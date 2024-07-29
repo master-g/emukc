@@ -35,8 +35,10 @@ pub struct ApiMstBgm {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstConst {
+	/// Hard cap on the number of ships the player can have.
 	pub api_boko_max_ships: ApiMstValue,
 	pub api_dpflag_quest: ApiMstValue,
+	/// Hard cap on the number of quests the player can carry in parallel.
 	pub api_parallel_quest_max: ApiMstValue,
 }
 
@@ -48,9 +50,12 @@ pub struct ApiMstValue {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstEquipExslotShip {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ctypes: Option<BTreeMap<String, i64>>,
 	pub api_req_level: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ship_ids: Option<BTreeMap<String, i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_stypes: Option<BTreeMap<String, i64>>,
 }
 
@@ -70,6 +75,7 @@ pub struct ApiMstFurniture {
 	pub api_price: i64,
 	pub api_rarity: i64,
 	pub api_saleflg: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_season: Option<i64>,
 	pub api_title: String,
 	pub api_type: i64,
@@ -116,9 +122,11 @@ pub struct ApiMstMapinfo {
 	pub api_item: Vec<i64>,
 	pub api_level: i64,
 	pub api_maparea_id: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_max_maphp: Option<serde_json::Value>,
 	pub api_name: String,
 	pub api_opetext: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_required_defeat_count: Option<i64>,
 	pub api_sally_flag: Vec<i64>,
 }
@@ -157,60 +165,164 @@ pub struct ApiMstPayitem {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShip {
+	/// The ship's ID.
 	pub api_id: i64,
+
+	/// Ammo consumption for remodeling.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_afterbull: Option<i64>,
+
+	/// Steel consumption for remodeling.
+	/// the dev of the game has a typo here
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_afterfuel: Option<i64>,
+
+	/// Level required for remodeling.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_afterlv: Option<i64>,
+
+	/// The ship's ID after remodeling.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_aftershipid: Option<String>,
+
+	/// The ship's background image
+	/// 1 = blue, 2 = green, 3 = azure, 4 = silver, 5 = gold, 6 = rainbow etc.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_backs: Option<i64>,
+
+	/// The materials reclaimed when the ship is scrapped.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_broken: Option<Vec<i64>>,
+
+	/// The ship's build time in minutes.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_buildtime: Option<i64>,
+
+	/// Maxium ammo consumption.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_bull_max: Option<i64>,
+
+	/// The ship's class type.
 	pub api_ctype: i64,
+
+	/// Maxium fuel consumption.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_fuel_max: Option<i64>,
+
+	/// Lines spoken when player gets the ship.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_getmes: Option<String>,
+
+	/// Firepower. [0] = initial, [1] = max.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_houg: Option<Vec<i64>>,
+
+	/// Range, 0 = none, 1 = short, 2 = medium, 3 = long, 4 = very long.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_leng: Option<i64>,
+
+	/// Luck. [0] = initial, [1] = max.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_luck: Option<Vec<i64>>,
+
+	/// Aircraft capacity for each slot.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_maxeq: Option<Vec<i64>>,
+
+	/// The ship's name.
 	pub api_name: String,
+
+	/// Power up points provided as material for the modernization of other ships.
+	/// [0]: firepower, [1]: torpedo, [2]: Anti-air, [3]: armor
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_powup: Option<Vec<i64>>,
+
+	/// Torpedo. [0] = initial, [1] = max.
+	/// `raig` is the Japanese word for `raigeki` which means lightning strike.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_raig: Option<Vec<i64>>,
+
+	/// The number of slots for equipment.
 	pub api_slot_num: i64,
+
+	/// Speed. 0 = base, 5 = slow, 10 = fast, 15 = (fast+), 20 = (max).
 	pub api_soku: i64,
+
+	/// Sort number for port
 	pub api_sort_id: i64,
+
+	/// Sort number in picture book.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_sortno: Option<i64>,
+
+	/// Armor. [0] = initial, [1] = max.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_souk: Option<Vec<i64>>,
+
+	/// The ship's type id, see `emukc_model::KcShipType`.
 	pub api_stype: i64,
+
+	/// Hitpoints. [0] = initial, [1] = max.
+	/// `taik` is the Japanese word for `taikyuu` which means endurance.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_taik: Option<Vec<i64>>,
+
+	/// Anti-air. [0] = initial, [1] = max.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_tyku: Option<Vec<i64>>,
+
+	/// Voice setting flag
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_voicef: Option<i64>,
+
+	/// yomi name
 	pub api_yomi: String,
+
+	/// Anti-submarine warfare. [0] = initial, [1] = max.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_tais: Option<Vec<i64>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipgraph {
 	pub api_id: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_battle_d: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_battle_n: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_boko_d: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_boko_n: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ensyue_n: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ensyuf_d: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ensyuf_n: Option<Vec<i64>>,
 	pub api_filename: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_kaisyu_d: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_kaisyu_n: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_kaizo_d: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_kaizo_n: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_map_d: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_map_n: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_pa: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_pab: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_sortno: Option<i64>,
 	pub api_version: Vec<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_weda: Option<Vec<i64>>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_wedb: Option<Vec<i64>>,
 }
 
@@ -226,6 +338,7 @@ pub struct ApiMstShipUpgrade {
 	pub api_report_count: i64,
 	pub api_aviation_mat_count: i64,
 	pub api_arms_mat_count: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_boiler_count: Option<i64>,
 	pub api_sortno: i64,
 }
