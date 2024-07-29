@@ -1,0 +1,436 @@
+pub mod debug;
+
+pub use debug::*;
+
+use serde::{Deserialize, Serialize};
+
+use crate::{
+	quest::{KcApiQuestClearItemBonusType, KcApiQuestListRewardItem, KcApiQuestType},
+	KcSortieResult, KcUseItemType,
+};
+
+/// Quest data converted from thirdparty source
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuest {
+	/// Quest ID (API number)
+	pub api_no: i64,
+	/// Wiki ID
+	pub wiki_id: String,
+	/// Quest category
+	pub category: Kc3rdQuestCategory,
+	/// Quest type
+	pub period: Kc3rdQuestPeriod,
+	/// Quest name
+	pub name: String,
+	/// Quest detail
+	pub detail: String,
+	/// Label type
+	pub label_type: i64,
+	/// Quest reward fuel
+	pub reward_fuel: i64,
+	/// Quest reward ammo
+	pub reward_ammo: i64,
+	/// Quest reward steel
+	pub reward_steel: i64,
+	/// Quest reward bauxite
+	pub reward_bauxite: i64,
+	/// Quest prerequisites, Quest ID (API number)
+	pub prerequisite: Vec<i64>,
+	/// Quest additional rewards
+	pub additional_rewards: Vec<Kc3rdQuestReward>,
+	/// Quest choice rewards
+	pub choice_rewards: Vec<Kc3rdQuestChoiceReward>,
+	/// Quest requirements
+	pub requirements: Kc3rdQuestRequirement,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
+pub enum Kc3rdQuestCategory {
+	Composition = 1,     // 編成
+	Sortie = 2,          // 出撃
+	Excercise = 3,       // 演習
+	Expedition = 4,      // 遠征
+	SupplyOrDocking = 5, // 補給/入渠
+	Factory = 6,         // 工廠
+	Mordenization = 7,   // 近代化改修
+	SortieExercises = 8, // 出撃/演習
+	Sortie3 = 9,         // 出撃3
+	Sortie4 = 10,        // 出撃4
+	Factory2 = 11,       // 工廠2
+}
+
+impl From<i64> for Kc3rdQuestCategory {
+	fn from(value: i64) -> Self {
+		match value {
+			1 => Self::Composition,
+			2 => Self::Sortie,
+			3 => Self::Excercise,
+			4 => Self::Expedition,
+			5 => Self::SupplyOrDocking,
+			6 => Self::Factory,
+			7 => Self::Mordenization,
+			8 => Self::SortieExercises,
+			9 => Self::Sortie3,
+			10 => Self::Sortie4,
+			11 => Self::Factory2,
+			_ => panic!("Invalid value for Kc3rdQuestCategory: {}", value),
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Default)]
+pub enum Kc3rdQuestPeriod {
+	#[default]
+	Onetime = 1,
+	Daily = 2,
+	Weekly = 3,
+	Daily3rd7th0th = 4,
+	Daily2nd8th = 5,
+	Monthly = 6,
+	Quarterly = 7,
+	Annual = 8,
+}
+
+impl From<i64> for Kc3rdQuestPeriod {
+	fn from(value: i64) -> Self {
+		match value {
+			1 => Self::Onetime,
+			2 => Self::Daily,
+			3 => Self::Weekly,
+			4 => Self::Daily3rd7th0th,
+			5 => Self::Daily2nd8th,
+			6 => Self::Monthly,
+			7 => Self::Quarterly,
+			8 => Self::Annual,
+			_ => panic!("Invalid value for Kc3rdQuestPeriod: {}", value),
+		}
+	}
+}
+
+impl Kc3rdQuestPeriod {
+	pub fn to_api_type(&self) -> i64 {
+		match &self {
+			Kc3rdQuestPeriod::Onetime => KcApiQuestType::Onetime as i64,
+			Kc3rdQuestPeriod::Daily | Kc3rdQuestPeriod::Daily3rd7th0th => {
+				KcApiQuestType::Daily as i64
+			}
+			Kc3rdQuestPeriod::Daily2nd8th => KcApiQuestType::Daily as i64,
+			Kc3rdQuestPeriod::Weekly => KcApiQuestType::Weekly as i64,
+			Kc3rdQuestPeriod::Monthly => KcApiQuestType::Monthly as i64,
+			Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual => KcApiQuestType::Other as i64,
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestReward {
+	pub api_id: i64,
+	pub category: Kc3rdQuestRewardCategory,
+	pub amount: i64,
+	pub stars: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum Kc3rdQuestRewardCategory {
+	Material = 1,
+	Slotitem = 2,
+	Ship = 3,
+	Furniture = 4,
+	UseItem = 5,
+	FleetUnlock = 6,
+	LargeShipConstructionUnlock = 7,
+	FactoryImprovementUnlock = 8,
+	WarResult = 9,
+	ExpeditionSupplyUnlock = 10,
+	AirbaseUnlock = 11,
+}
+
+/*
+impl From<i64> for Kc3rdQuestRewardCategory {
+	fn from(value: i64) -> Self {
+		match value {
+			1 => Self::Slotitem,
+			2 => Self::Ship,
+			3 => Self::Furniture,
+			_ => panic!("Invalid value for Kc3rdQuestRewardCategory: {}", value),
+		}
+	}
+}
+*/
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestChoiceReward {
+	pub choices: Vec<Kc3rdQuestReward>,
+}
+
+// Quest requirements
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestRequirement {
+	And(Vec<Kc3rdQuestCondition>),
+	OneOf(Vec<Kc3rdQuestCondition>),
+	Sequential(Vec<Kc3rdQuestCondition>),
+}
+
+impl Default for Kc3rdQuestRequirement {
+	fn default() -> Self {
+		Self::And(vec![])
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestCondition {
+	Composition(Kc3rdQuestConditionComposition),
+	Construct(i64),
+	Excercise(Kc3rdQuestConditionExcerise),
+	Expedition(Vec<Kc3rdQuestConditionExpedition>),
+	ModelConversion(Kc3rdQuestConditionModelConversion),
+	Modernization(Kc3rdQuestConditionModernization),
+	Repair(i64),
+	ResourceConsumption(Kc3rdQuestConditionMaterialConsumption),
+	Resupply(i64),
+	ScrapAnyEquipment(i64),
+	ScrapAnyShip(i64),
+	Sink(Kc3rdQuestConditionShip, i64),
+	SlotItemConstruction(i64),
+	SlotItemConsumption(Vec<Kc3rdQuestConditionSlotItem>),
+	SlotItemImprovement(i64),
+	SlotItemScrap(Vec<Kc3rdQuestConditionSlotItem>),
+	Sortie(Kc3rdQuestConditionSortie),
+	SortieCount(i64),
+	UseItemConsumption(Vec<Kc3rdQuestConditionUseItemConsumption>),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionMaterialConsumption {
+	pub fuel: i64,
+	pub ammo: i64,
+	pub steel: i64,
+	pub bauxite: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionUseItemConsumption {
+	pub api_id: i64,
+	pub amount: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestConditionSlotItemType {
+	Equipment(i64),
+	Equipments(Vec<i64>),
+	EquipType(i64),
+	EquipTypes(Vec<i64>),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionSlotItem {
+	pub item_type: Kc3rdQuestConditionSlotItemType,
+	pub amount: i64,
+	pub stars: i64,
+	pub fully_skilled: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionEquipInSlot {
+	pub item: Kc3rdQuestConditionSlotItem,
+	pub pos: i64,
+	pub keep_stars: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionExcerise {
+	pub times: i64,
+	pub expect_result: KcSortieResult,
+	pub expire_next_day: bool,
+	pub groups: Option<Vec<Kc3rdQuestConditionShipGroup>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestConditionShip {
+	Any,
+	Ship(i64),
+	Ships(Vec<i64>),
+	ShipType(i64),
+	ShipTypes(Vec<i64>),
+	ShipClass(i64),
+	ShipClasses(Vec<i64>),
+	HighSpeed,
+	LowSpeed,
+	Aviation,
+	Carrier,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestShipAmount {
+	Exactly(i64),
+	Range(i64, i64),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionShipGroup {
+	pub ship: Kc3rdQuestConditionShip,
+	pub amount: Kc3rdQuestShipAmount,
+	pub lv: i64,
+	pub position: i64,                // 0: any, 1: first, 2: second, etc.
+	pub white_list: Option<Vec<i64>>, // ship id list
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionModernization {
+	// which ship type to modernize
+	pub target_ship: Kc3rdQuestConditionShip,
+	// ships used as modernization material
+	pub material_ship: Kc3rdQuestConditionShip,
+	// how many material ships are needed for each modernization
+	pub batch_size: i64,
+	// total number of modernizations needed
+	pub times: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionExpedition {
+	pub list: Option<Vec<String>>,
+	pub times: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionComposition {
+	pub groups: Vec<Kc3rdQuestConditionShipGroup>,
+	pub disallowed: Option<Vec<Kc3rdQuestConditionShip>>,
+	pub fleet_id: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionModelConversion {
+	pub secretary: Option<Kc3rdQuestConditionShip>,
+	pub banned_secretary: Option<Kc3rdQuestConditionShip>,
+	pub slots: Option<Vec<Kc3rdQuestConditionEquipInSlot>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionMapInfo {
+	pub area: i64,
+	pub number: i64,
+	pub phase: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestConditionSortieMap {
+	One(Kc3rdQuestConditionMapInfo),
+	All(Vec<Kc3rdQuestConditionMapInfo>),
+	AnyOf(Vec<Kc3rdQuestConditionMapInfo>),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Kc3rdQuestConditionSortie {
+	pub composition: Option<Kc3rdQuestConditionComposition>,
+	pub defeat_boss: bool,
+	pub fleet_id: i64,
+	pub map: Option<Kc3rdQuestConditionSortieMap>,
+	pub result: Option<KcSortieResult>,
+	pub times: i64,
+}
+
+impl Kc3rdQuestRequirement {
+	pub fn lost_badges(&self) -> i64 {
+		match self {
+			Kc3rdQuestRequirement::And(conds) => conds
+				.iter()
+				.map(|c| match c {
+					Kc3rdQuestCondition::UseItemConsumption(item) => {
+						item.iter().fold(0, |acc, f| {
+							acc + if f.api_id == KcUseItemType::Medal as i64 {
+								f.amount
+							} else {
+								0
+							}
+						})
+					}
+					_ => 0,
+				})
+				.sum(),
+			Kc3rdQuestRequirement::OneOf(_) | Kc3rdQuestRequirement::Sequential(_) => 0,
+		}
+	}
+}
+
+impl Kc3rdQuest {
+	pub fn bonus_flag(&self) -> i64 {
+		for r in &self.choice_rewards {
+			for choice in &r.choices {
+				if choice.category == Kc3rdQuestRewardCategory::Ship {
+					return 2;
+				}
+			}
+		}
+		for r in &self.additional_rewards {
+			if r.category == Kc3rdQuestRewardCategory::Ship {
+				return 2;
+			}
+		}
+		1
+	}
+
+	pub fn to_api_reward_selection(&self) -> Option<Vec<Vec<KcApiQuestListRewardItem>>> {
+		if self.choice_rewards.is_empty() {
+			return None;
+		}
+
+		let mut results: Vec<Vec<KcApiQuestListRewardItem>> = Vec::new();
+		for group in &self.choice_rewards {
+			let result: Vec<KcApiQuestListRewardItem> = group
+				.choices
+				.iter()
+				.enumerate()
+				.map(|(i, choice)| KcApiQuestListRewardItem {
+					api_no: i as i64 + 1,
+					api_kind: match choice.category {
+						Kc3rdQuestRewardCategory::Material => {
+							KcApiQuestClearItemBonusType::Material as i64
+						}
+						Kc3rdQuestRewardCategory::Slotitem => {
+							KcApiQuestClearItemBonusType::SlotItem as i64
+						}
+						Kc3rdQuestRewardCategory::Ship => {
+							KcApiQuestClearItemBonusType::ShipBonus as i64
+						}
+						Kc3rdQuestRewardCategory::Furniture => {
+							KcApiQuestClearItemBonusType::Furniture as i64
+						}
+						Kc3rdQuestRewardCategory::UseItem => {
+							KcApiQuestClearItemBonusType::UseItem as i64
+						}
+						Kc3rdQuestRewardCategory::FleetUnlock => {
+							KcApiQuestClearItemBonusType::UnlockDeck as i64
+						}
+						Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
+							KcApiQuestClearItemBonusType::UnlockLargeBuild as i64
+						}
+						Kc3rdQuestRewardCategory::FactoryImprovementUnlock => {
+							KcApiQuestClearItemBonusType::TuckYouTanaka as i64
+						}
+						Kc3rdQuestRewardCategory::WarResult => {
+							KcApiQuestClearItemBonusType::WarResult as i64
+						}
+						Kc3rdQuestRewardCategory::ExpeditionSupplyUnlock => {
+							KcApiQuestClearItemBonusType::ExtraSupply as i64
+						}
+						Kc3rdQuestRewardCategory::AirbaseUnlock => {
+							KcApiQuestClearItemBonusType::AirUnitBase as i64
+						}
+					},
+					api_mst_id: choice.api_id,
+					api_slotitem_level: choice.stars,
+					api_count: choice.amount,
+				})
+				.collect();
+
+			results.push(result);
+		}
+
+		Some(results)
+	}
+}
+
+pub type Kc3rdQuestMap = std::collections::BTreeMap<i64, Kc3rdQuest>;

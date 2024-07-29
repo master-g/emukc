@@ -1,0 +1,20 @@
+[package]
+name = "emukc_model"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# emukc
+emukc_crypto = { path = "../emukc_crypto" }
+
+# other
+chrono = { workspace = true, features = ["serde"] }
+enumn = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "fast-rng"] }
+
+[lints]
+workspace = true

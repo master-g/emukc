@@ -1,0 +1,16 @@
+[package]
+name = "emukc_crypto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base16ct = { workspace = true, features = ["alloc"] }
+bcrypt = { workspace = true }
+bs58 = { workspace = true }
+hmac = { workspace = true }
+md-5 = { workspace = true }
+sha2 = { workspace = true, default-features = false }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

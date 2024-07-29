@@ -1,0 +1,59 @@
+[package]
+name = "emukc"
+version = "0.1.0"
+edition = "2021"
+categories = ["emulator"]
+description = "A simple emulator for the web browser game: Kantai Collection"
+exclude = ["z/", ".github/", "crates/"]
+homepage = "https://github.com/master-g/emukc.git"
+keywords = ["emulator", "kancolle"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/master-g/emukc"
+rust-version = "1.80.0"
+
+[workspace]
+exclude = ["benches"]
+members = ["crates/*"]
+
+[workspace.lints.clippy]
+type_complexity = "allow"
+doc_markdown = "warn"
+manual_let_else = "warn"
+undocumented_unsafe_blocks = "warn"
+redundant_else = "warn"
+match_same_arms = "warn"
+semicolon_if_nothing_returned = "warn"
+redundant_closure_for_method_calls = "warn"
+unwrap_or_default = "warn"
+
+ptr_as_ptr = "warn"
+ptr_cast_constness = "warn"
+ref_as_ptr = "warn"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_docs = "warn"
+unsafe_code = "deny"
+
+[lints]
+workspace = true
+
+[dependencies]
+
+[workspace.dependencies]
+base16ct = { version = "0.2.0", features = ["alloc"] }
+bcrypt = { version = "0.15.1" }
+bs58 = { version = "0.5.1" }
+chrono = { version = "0.4.38", features = ["serde"] }
+enumn = "0.1.13"
+hmac = { version = "0.12.1" }
+md-5 = "0.10.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = { version = "0.10.8", default-features = false }
+thiserror = "1"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-log = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }

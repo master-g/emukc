@@ -1,0 +1,21 @@
+# ------------------------------
+# macOS
+# ------------------------------
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+/.vscode
+/.fleet
+/.idea
+/target
+/.cargo
+/z
+/temp
+/.data
+
+spkc.config.toml
