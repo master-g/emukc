@@ -48,6 +48,11 @@ chrono = { version = "0.4.38", features = ["serde"] }
 enumn = "0.1.13"
 hmac = { version = "0.12.1" }
 md-5 = "0.10.6"
+sea-orm = { version = "0.12", features = [
+	"debug-print",
+	"runtime-tokio-native-tls",
+	"sqlx-sqlite",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = { version = "0.10.8", default-features = false }

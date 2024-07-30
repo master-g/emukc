@@ -498,6 +498,7 @@ dependencies = [
 name = "emukc_db"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "emukc_model",
  "sea-orm",
  "serde",

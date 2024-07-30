@@ -25,7 +25,7 @@ pub use thirdparty::*;
 
 #[doc(inline)]
 #[allow(unused_imports)]
-pub(crate) use user::*;
+pub use user::*;
 
 /// The `Codex` struct holds almost all the game data needed for the `EmuKC` project.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

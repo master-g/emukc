@@ -1,21 +1,36 @@
 use chrono::{DateTime, Utc};
-use emukc_crypto::SimpleHash;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+/// Account holds the user's account information in `EmuKC`.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Account {
+	/// User ID
 	pub uid: i64,
+
+	/// User name
 	pub name: String,
+
+	/// Hashed password
 	pub secret: String,
+
+	/// Account creation time
 	pub create_time: DateTime<Utc>,
+
+	/// Last login time
 	pub last_login: DateTime<Utc>,
+
+	/// Last update time
 	pub last_update: DateTime<Utc>,
-	pub access_token: Option<Token>,
-	pub refresh_token: Option<Token>,
 }
 
 impl Account {
+	/// Create a new account
+	///
+	/// # Arguments
+	///
+	/// * `uid` - User ID
+	/// * `name` - User name
+	/// * `secret` - Hashed password
 	pub fn new(uid: i64, name: String, secret: String) -> Self {
 		Self {
 			uid,
@@ -24,34 +39,6 @@ impl Account {
 			create_time: Utc::now(),
 			last_login: Utc::now(),
 			last_update: Utc::now(),
-			access_token: None,
-			refresh_token: None,
 		}
-	}
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Token {
-	pub token: String,
-	pub expire: DateTime<Utc>,
-}
-
-impl Token {
-	pub fn issue(salt: &str, expire_duration: std::time::Duration) -> Self {
-		let token = Uuid::new_v4().as_bytes().simple_hash_salted(salt);
-		let expire = Utc::now() + expire_duration;
-
-		Self {
-			token,
-			expire,
-		}
-	}
-
-	pub fn is_valid(&self) -> bool {
-		self.expire > Utc::now()
-	}
-
-	pub fn is_expired(&self) -> bool {
-		!self.is_valid()
 	}
 }

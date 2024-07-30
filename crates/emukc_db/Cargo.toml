@@ -9,13 +9,14 @@ resolver = "2"
 emukc_model = { path = "../emukc_model" }
 
 # other
-sea-orm = { version = "0.12", features = [
+chrono = { workspace = true, features = ["serde"] }
+sea-orm = { workspace = true, features = [
 	"debug-print",
 	"runtime-tokio-native-tls",
 	"sqlx-sqlite",
 ] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }
@@ -24,4 +25,4 @@ tokio = { version = "1", features = ["macros", "rt"] }
 workspace = true
 
 [[test]]
-name = "test"
+name = "user"
