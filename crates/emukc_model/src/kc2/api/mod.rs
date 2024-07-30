@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
-use crate::UserOwnedFurniture;
+pub const KC_DEFAULT_FURNITURES: [i64; 6] = [1, 38, 72, 102, 133, 164];
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KcApiUserBasic {
@@ -104,7 +104,7 @@ impl Default for KcApiUserBasic {
 			api_max_kagu: 0,
 			api_playtime: 0,
 			api_tutorial: 0,
-			api_furniture: UserOwnedFurniture::default().records,
+			api_furniture: KC_DEFAULT_FURNITURES.to_vec(),
 			api_count_deck: 1,
 			api_count_kdock: 2,
 			api_count_ndock: 2,

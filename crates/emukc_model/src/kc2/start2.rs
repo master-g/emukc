@@ -429,18 +429,54 @@ impl FromStr for ApiManifest {
 }
 
 impl ApiManifest {
+	/// Find a slot item by its name.
+	///
+	/// # Arguments
+	///
+	/// * `name` - The exact name of the slot item.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstSlotitem` if found, otherwise `None`.
 	pub fn find_slotitem_by_name(&self, name: &str) -> Option<&ApiMstSlotitem> {
 		self.api_mst_slotitem.iter().find(|m| m.api_name == name)
 	}
 
+	/// Find a use item by its name.
+	///
+	/// # Arguments
+	///
+	/// * `name` - The exact name of the use item.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstUseitem` if found, otherwise `None`.
 	pub fn find_useitem_by_name(&self, name: &str) -> Option<&ApiMstUseitem> {
 		self.api_mst_useitem.iter().find(|m| m.api_name == name)
 	}
 
+	/// Find a ship by its name.
+	///
+	/// # Arguments
+	///
+	/// * `name` - The exact name of the ship.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstShip` if found, otherwise `None`.
 	pub fn find_ship_by_name(&self, name: &str) -> Option<&ApiMstShip> {
 		self.api_mst_ship.iter().find(|m| m.api_name == name)
 	}
 
+	/// Find a ship by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the slot item.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstSlotitem` if found, otherwise `None`.
 	pub fn find_slotitem(&self, id: i64) -> Option<&ApiMstSlotitem> {
 		let value = self.api_mst_slotitem.iter().find(|m| m.api_id == id);
 		if value.is_none() {
@@ -449,6 +485,15 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a slot item type by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the slot item type.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstSlotitemEquiptype` if found, otherwise `None`.
 	pub fn find_slotitem_type(&self, id: i64) -> Option<&ApiMstSlotitemEquiptype> {
 		let value = self.api_mst_slotitem_equiptype.iter().find(|m| m.api_id == id);
 		if value.is_none() {
@@ -457,6 +502,15 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a ship by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the ship.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstShip` if found, otherwise `None`.
 	pub fn find_ship(&self, id: i64) -> Option<&ApiMstShip> {
 		let value = self.api_mst_ship.iter().find(|m| m.api_id == id);
 		if value.is_none() {
@@ -465,6 +519,15 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a furniture by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the furniture.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstFurniture` if found, otherwise `None`.
 	pub fn find_furniture(&self, id: i64) -> Option<&ApiMstFurniture> {
 		let value = self.api_mst_furniture.iter().find(|m| m.api_id == id);
 		if value.is_none() {
@@ -473,6 +536,15 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a use item by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the use item.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstUseitem` if found, otherwise `None`.
 	pub fn find_useitem(&self, id: i64) -> Option<&ApiMstUseitem> {
 		let value = self.api_mst_useitem.iter().find(|m| m.api_id == id);
 		if value.is_none() {
@@ -481,6 +553,15 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a ship type by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the ship type.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstStype` if found, otherwise `None`.
 	pub fn find_ship_type(&self, id: i64) -> Option<&ApiMstStype> {
 		let value = self.api_mst_stype.iter().find(|m| m.api_id == id);
 		if value.is_none() {
@@ -489,6 +570,15 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a ship class by its `api_ctype`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_ctype` of the ship class.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstShip` if found, otherwise `None`.
 	pub fn find_ship_class(&self, id: i64) -> Option<&ApiMstShip> {
 		let value = self.api_mst_ship.iter().find(|s| s.api_ctype == id);
 		if value.is_none() {

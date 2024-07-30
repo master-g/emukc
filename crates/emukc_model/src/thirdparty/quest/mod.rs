@@ -46,17 +46,38 @@ pub struct Kc3rdQuest {
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
 pub enum Kc3rdQuestCategory {
-	Composition = 1,     // 編成
-	Sortie = 2,          // 出撃
-	Excercise = 3,       // 演習
-	Expedition = 4,      // 遠征
-	SupplyOrDocking = 5, // 補給/入渠
-	Factory = 6,         // 工廠
-	Mordenization = 7,   // 近代化改修
-	SortieExercises = 8, // 出撃/演習
-	Sortie3 = 9,         // 出撃3
-	Sortie4 = 10,        // 出撃4
-	Factory2 = 11,       // 工廠2
+	/// 編成
+	Composition = 1,
+
+	/// 出撃
+	Sortie = 2,
+
+	/// 演習
+	Excercise = 3,
+
+	/// 遠征
+	Expedition = 4,
+
+	/// 補給/入渠
+	SupplyOrDocking = 5,
+
+	/// 工廠
+	Factory = 6,
+
+	/// 近代化改修
+	Mordenization = 7,
+
+	/// 出撃/演習
+	SortieExercises = 8,
+
+	/// 出撃3
+	Sortie3 = 9,
+
+	/// 出撃4
+	Sortie4 = 10,
+
+	/// 工廠2
+	Factory2 = 11,
 }
 
 impl From<i64> for Kc3rdQuestCategory {
@@ -78,6 +99,7 @@ impl From<i64> for Kc3rdQuestCategory {
 	}
 }
 
+/// Quest period
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Default)]
 pub enum Kc3rdQuestPeriod {
 	#[default]
@@ -122,14 +144,23 @@ impl Kc3rdQuestPeriod {
 	}
 }
 
+/// Quest reward
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestReward {
+	/// API number
 	pub api_id: i64,
+
+	/// Reward category
 	pub category: Kc3rdQuestRewardCategory,
+
+	/// Reward amount
 	pub amount: i64,
+
+	/// stars for slot item
 	pub stars: i64,
 }
 
+/// Quest reward category
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Kc3rdQuestRewardCategory {
 	Material = 1,
@@ -158,17 +189,22 @@ impl From<i64> for Kc3rdQuestRewardCategory {
 }
 */
 
+/// Quest choice reward
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestChoiceReward {
 	pub choices: Vec<Kc3rdQuestReward>,
 }
 
 // Quest requirements
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestRequirement {
+	/// All conditions must be met
 	And(Vec<Kc3rdQuestCondition>),
+
+	/// At least one condition must be met
 	OneOf(Vec<Kc3rdQuestCondition>),
+
+	/// Conditions must be met in sequence
 	Sequential(Vec<Kc3rdQuestCondition>),
 }
 
@@ -178,6 +214,7 @@ impl Default for Kc3rdQuestRequirement {
 	}
 }
 
+/// Quest condition
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestCondition {
 	Composition(Kc3rdQuestConditionComposition),
@@ -201,6 +238,7 @@ pub enum Kc3rdQuestCondition {
 	UseItemConsumption(Vec<Kc3rdQuestConditionUseItemConsumption>),
 }
 
+/// Quest condition material consumption
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionMaterialConsumption {
 	pub fuel: i64,
@@ -209,40 +247,74 @@ pub struct Kc3rdQuestConditionMaterialConsumption {
 	pub bauxite: i64,
 }
 
+/// Quest condition use item consumption
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionUseItemConsumption {
+	/// use item id
 	pub api_id: i64,
+
+	/// amount
 	pub amount: i64,
 }
 
+/// Quest condition slot item type
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestConditionSlotItemType {
+	/// Exact slot item
 	Equipment(i64),
+
+	/// One of the slot items
 	Equipments(Vec<i64>),
+
+	/// Exact slot item type
 	EquipType(i64),
+
+	/// One of the slot item types
 	EquipTypes(Vec<i64>),
 }
 
+/// Quest condition slot item
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionSlotItem {
+	/// slot item type
 	pub item_type: Kc3rdQuestConditionSlotItemType,
+
+	/// amount
 	pub amount: i64,
+
+	/// remodel level
 	pub stars: i64,
+
+	/// some quest requires fully skilled aircraft
 	pub fully_skilled: bool,
 }
 
+/// Quest condition equipment in ship's slot
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionEquipInSlot {
+	/// slot item type
 	pub item: Kc3rdQuestConditionSlotItem,
+
+	/// slot position
 	pub pos: i64,
+
+	/// will the slot item keep stars after quest
 	pub keep_stars: bool,
 }
 
+/// Quest condition excercise
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionExcerise {
+	/// excercise times
 	pub times: i64,
+
+	/// excercise result
 	pub expect_result: KcSortieResult,
+
+	/// will the quest expire next day
 	pub expire_next_day: bool,
+
+	/// composition requirement
 	pub groups: Option<Vec<Kc3rdQuestConditionShipGroup>>,
 }
 
