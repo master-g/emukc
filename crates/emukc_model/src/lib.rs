@@ -10,6 +10,8 @@ extern crate tracing;
 #[doc(hidden)]
 mod kc2;
 #[doc(hidden)]
+mod profile;
+#[doc(hidden)]
 mod thirdparty;
 #[doc(hidden)]
 mod user;
@@ -20,6 +22,11 @@ mod user;
 #[allow(unused_imports)]
 pub use kc2::*;
 
+#[doc(inline)]
+#[allow(unused_imports)]
+pub use profile::*;
+
+use remodel::KcShipRemodelRequirementMap;
 #[doc(inline)]
 pub use thirdparty::*;
 
@@ -45,8 +52,15 @@ pub struct Codex {
 	/// thirdparty slot item extra info map.
 	pub slotitem_extra_info: Kc3rdSlotItemExtraInfoMap,
 
+	/// ship remodel info map.
+	pub ship_remodel_info: KcShipRemodelRequirementMap,
+
+	/// navy info.
+	pub navy: navy::KcNavy,
+
 	/// thirdparty quest info map.
 	pub quest: Kc3rdQuestMap,
+	// TODO: add more limitations.
 }
 
 /// A type alias for `std::sync::Arc<Codex>`.

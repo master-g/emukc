@@ -131,3 +131,57 @@ impl FromStr for KcNavy {
 		Ok(data)
 	}
 }
+
+impl KcNavy {
+	/// Check if the ship is in the USN
+	///
+	/// # Arguments
+	///
+	/// * `id` - The ship ID
+	///
+	/// # Returns
+	///
+	/// * `bool` - If the ship is in the USN
+	pub fn is_usn(&self, id: i64) -> bool {
+		self.usn.contains(&id)
+	}
+
+	/// Check if the ship is in the RN
+	///
+	/// # Arguments
+	///
+	/// * `id` - The ship ID
+	///
+	/// # Returns
+	///
+	/// * `bool` - If the ship is in the RN
+	pub fn is_rn(&self, id: i64) -> bool {
+		self.rn.contains(&id)
+	}
+
+	/// Check if the ship is in the RAN
+	///
+	/// # Arguments
+	///
+	/// * `id` - The ship ID
+	///
+	/// # Returns
+	///
+	/// * `bool` - If the ship is in the RAN
+	pub fn is_ran(&self, id: i64) -> bool {
+		self.ran.contains(&id)
+	}
+
+	/// Check if the ship is in the RNN
+	///
+	/// # Arguments
+	///
+	/// * `id` - The ship ID
+	///
+	/// # Returns
+	///
+	/// * `bool` - If the ship is in the RNN
+	pub fn is_rnn(&self, id: i64) -> bool {
+		self.rnn.contains(&id)
+	}
+}

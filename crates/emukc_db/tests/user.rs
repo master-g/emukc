@@ -1,7 +1,10 @@
 #[cfg(test)]
 mod test {
-	use emukc_db::entity::{self, user};
-	use sea_orm::{Database, DatabaseConnection};
+	use emukc_db::entity::{
+		self,
+		global::id_generator::{self, IdType},
+	};
+	use sea_orm::{sea_query::OnConflict, ActiveValue, Database, DatabaseConnection, EntityTrait};
 
 	#[allow(unused)]
 	fn temp_dir() -> std::path::PathBuf {
@@ -26,8 +29,35 @@ mod test {
 		db
 	}
 
+	async fn gen_id(db: &DatabaseConnection) -> i64 {
+		let record = id_generator::Entity::find_by_id(IdType::Account).one(db).await.unwrap();
+		let new_value = if let Some(record) = record {
+			record.current + 1
+		} else {
+			1
+		};
+		id_generator::Entity::insert(id_generator::ActiveModel {
+			id: ActiveValue::set(IdType::Account),
+			current: ActiveValue::set(new_value),
+		})
+		.on_conflict(
+			OnConflict::column(id_generator::Column::Id)
+				.update_column(id_generator::Column::Current)
+				.to_owned(),
+		)
+		.exec(db)
+		.await
+		.unwrap();
+
+		new_value
+	}
+
 	#[tokio::test]
 	async fn test_account() {
-		let _db = mem_db().await;
+		let db = mem_db().await;
+		for _ in 0..10 {
+			let id = gen_id(&db).await;
+			println!("{:?}", id);
+		}
 	}
 }
