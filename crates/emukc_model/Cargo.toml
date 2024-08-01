@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 # emukc
 emukc_crypto = { path = "../emukc_crypto" }
+emukc_time = { path = "../emukc_time" }
 
 # other
 chrono = { workspace = true, features = ["serde"] }

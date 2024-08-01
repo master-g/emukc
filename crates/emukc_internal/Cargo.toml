@@ -1,0 +1,18 @@
+[package]
+name = "emukc_internal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+emukc_crypto = { path = "../emukc_crypto" }
+emukc_db = { path = "../emukc_db" }
+emukc_macros = { path = "../emukc_macros" }
+emukc_model = { path = "../emukc_model" }
+emukc_time = { path = "../emukc_time" }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["-Zunstable-options", "--generate-link-to-definition"]
+all-features = true

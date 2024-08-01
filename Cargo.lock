@@ -480,6 +480,10 @@ dependencies = [
 [[package]]
 name = "emukc"
 version = "0.1.0"
+dependencies = [
+ "emukc_dylib",
+ "emukc_internal",
+]
 
 [[package]]
 name = "emukc_crypto"
@@ -507,6 +511,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "emukc_dylib"
+version = "0.1.0"
+dependencies = [
+ "emukc_internal",
+]
+
+[[package]]
+name = "emukc_internal"
+version = "0.1.0"
+dependencies = [
+ "emukc_crypto",
+ "emukc_db",
+ "emukc_macros",
+ "emukc_model",
+ "emukc_time",
+]
+
+[[package]]
 name = "emukc_macros"
 version = "0.1.0"
 
@@ -516,12 +538,20 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "emukc_crypto",
+ "emukc_time",
  "enumn",
  "serde",
  "serde_json",
  "thiserror",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "emukc_time"
+version = "0.1.0"
+dependencies = [
+ "chrono",
 ]
 
 [[package]]

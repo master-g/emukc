@@ -38,7 +38,14 @@ unsafe_code = "deny"
 [lints]
 workspace = true
 
+[features]
+dynamic_linking = ["dep:emukc_dylib"]
+
 [dependencies]
+emukc_internal = { path = "crates/emukc_internal" }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 
 [workspace.dependencies]
 base16ct = { version = "0.2.0", features = ["alloc"] }

@@ -1,0 +1,13 @@
+[package]
+name = "emukc_time"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = { workspace = true, features = ["serde"] }
+
+[lints]
+workspace = true
+
+[[test]]
+name = "test"

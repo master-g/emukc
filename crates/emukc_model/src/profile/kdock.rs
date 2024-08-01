@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use emukc_time::format_date;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -91,12 +92,16 @@ impl ConstructionDock {
 
 	/// Build API element
 	pub fn build_api_element(&self) -> KcApiKDock {
+		let api_complete_time_str = self
+			.context
+			.as_ref()
+			.map_or("0".to_owned(), |c| format_date(c.complete_time.timestamp(), " "));
 		KcApiKDock {
 			api_id: self.index,
 			api_state: self.status.clone() as i64,
 			api_created_ship_id: self.context.as_ref().map_or(0, |c| c.ship_id),
 			api_complete_time: self.context.as_ref().map_or(0, |c| c.complete_time.timestamp()),
-			api_complete_time_str: "0".to_string(),
+			api_complete_time_str,
 			api_item1: self.context.as_ref().map_or(0, |c| c.fuel),
 			api_item2: self.context.as_ref().map_or(0, |c| c.ammo),
 			api_item3: self.context.as_ref().map_or(0, |c| c.steel),
