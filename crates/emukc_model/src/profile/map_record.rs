@@ -21,6 +21,7 @@ pub struct MapRecord {
 }
 
 impl MapRecord {
+	/// Build API elements
 	pub fn build_api_elements(&self) -> KcApiMapRecord {
 		KcApiMapRecord {
 			api_id: self.map_id,
@@ -36,3 +37,14 @@ impl MapRecord {
 		}
 	}
 }
+
+/// List of map IDs
+pub const MAP_ID_LIST: &[i64; 33] = &[
+	11, 12, 13, 14, 15, // map 1
+	21, 22, 23, 24, 25, // map 2
+	31, 32, 33, 34, 35, // map 3
+	41, 42, 43, 44, 45, // map 4
+	51, 52, 53, 54, 55, // map 5
+	61, 62, 63, 64, 65, // map 6
+	71, 72, 73, // map 7
+];
