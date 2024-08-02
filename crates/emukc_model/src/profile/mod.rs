@@ -1,5 +1,9 @@
 //! An `EmuKC` account can has multiple game profiles
 
+/// User airbases
+pub mod airbase;
+/// User expeditions
+pub mod expedition;
 /// In game deck ports
 pub mod fleet;
 /// In game furnitures
