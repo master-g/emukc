@@ -81,6 +81,16 @@ impl Material {
 	}
 }
 
+impl From<Material> for Vec<KcApiMaterialElement> {
+	fn from(value: Material) -> Self {
+		vec![KcApiMaterialElement {
+			api_member_id: value.id,
+			api_id: MaterialCategory::Fuel as i64,
+			api_value: value.fuel,
+		}]
+	}
+}
+
 /// Primary resource hard cap
 const PRIMARY_RESOURCE_HARD_CAP: i64 = 35000;
 

@@ -2,7 +2,7 @@ use sea_orm::entity::prelude::*;
 
 /// Id type enum
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(Some(1))")]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
 pub enum IdType {
 	/// Account ID
 	#[sea_orm(string_value = "account")]

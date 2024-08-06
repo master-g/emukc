@@ -199,9 +199,18 @@ pub struct KcApiDeckPort {
 	pub api_member_id: i64,
 	pub api_id: i64,
 	pub api_name: String,
+	/// always "" for now
 	pub api_name_id: String,
+	/// expedition
+	///
+	/// 0: status, 0: idle, 1: in mission, 2: returning, 3: force returning
+	/// 1: mission id
+	/// 2: return time, in milliseconds
+	/// 3: always 0
 	pub api_mission: Vec<i64>,
+	/// always "0" for now
 	pub api_flagship: String,
+	/// ship id, -1 for empty slot
 	pub api_ship: Vec<i64>,
 }
 

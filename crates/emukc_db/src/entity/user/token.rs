@@ -19,7 +19,7 @@ pub struct Model {
 
 /// Token type definition
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(Some(1))")]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::N(1))")]
 pub enum TokenTypeDef {
 	/// Access token
 	#[sea_orm(string_value = "A")]

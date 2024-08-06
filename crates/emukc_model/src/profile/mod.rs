@@ -16,5 +16,9 @@ pub mod map_record;
 pub mod material;
 /// In game repair dock
 pub mod ndock;
-/// In game use items
-pub mod use_item;
+/// In game user items, including `UseItem` and `PayItem`
+pub mod user_item;
+
+pub trait BuildKcApiItem<T> {
+	fn build_kc_api_item(&self) -> T;
+}

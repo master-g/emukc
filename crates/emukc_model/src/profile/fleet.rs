@@ -85,17 +85,26 @@ impl Fleet {
 			ships: Vec::new(),
 		})
 	}
+}
 
-	/// Build API element
-	pub fn build_api_element(&self) -> KcApiDeckPort {
-		KcApiDeckPort {
-			api_member_id: self.id,
-			api_id: self.index,
-			api_name: self.name.to_owned(),
-			api_name_id: "".to_owned(),
-			api_mission: vec![0; 4],
-			api_flagship: "0".to_owned(),
-			api_ship: self.ships.clone(),
+impl From<Fleet> for KcApiDeckPort {
+	fn from(value: Fleet) -> Self {
+		Self {
+			api_member_id: value.id,
+			api_id: value.index,
+			api_name: value.name,
+			api_name_id: "".to_string(),
+			api_mission: match value.mission {
+				Some(context) => {
+					let status = context.status as i64;
+					let return_time =
+						context.return_time.map(|r| r.timestamp_millis()).unwrap_or(0);
+					vec![status, context.id, return_time, 0]
+				}
+				None => vec![0; 4],
+			},
+			api_flagship: "0".to_string(),
+			api_ship: value.ships,
 		}
 	}
 }

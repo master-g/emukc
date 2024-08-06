@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::KcApiMission;
+
 /// Expedition state
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum ExpeditionState {
@@ -23,4 +25,11 @@ pub struct Expedition {
 	pub state: ExpeditionState,
 }
 
-// TODO: Implement build_api_item
+impl From<Expedition> for KcApiMission {
+	fn from(value: Expedition) -> Self {
+		Self {
+			api_mission_id: value.mission_id,
+			api_state: value.state as i64,
+		}
+	}
+}

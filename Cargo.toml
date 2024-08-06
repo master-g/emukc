@@ -55,7 +55,7 @@ chrono = { version = "0.4.38", features = ["serde"] }
 enumn = "0.1.13"
 hmac = { version = "0.12.1" }
 md-5 = "0.10.6"
-sea-orm = { version = "0.12", features = [
+sea-orm = { version = "1", features = [
 	"debug-print",
 	"runtime-tokio-native-tls",
 	"sqlx-sqlite",

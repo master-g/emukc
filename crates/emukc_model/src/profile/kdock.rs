@@ -89,24 +89,27 @@ impl ConstructionDock {
 			context: None,
 		})
 	}
+}
 
-	/// Build API element
-	pub fn build_api_element(&self) -> KcApiKDock {
-		let api_complete_time_str = self
-			.context
-			.as_ref()
-			.map_or("0".to_owned(), |c| format_date(c.complete_time.timestamp(), " "));
-		KcApiKDock {
-			api_id: self.index,
-			api_state: self.status.clone() as i64,
-			api_created_ship_id: self.context.as_ref().map_or(0, |c| c.ship_id),
-			api_complete_time: self.context.as_ref().map_or(0, |c| c.complete_time.timestamp()),
-			api_complete_time_str,
-			api_item1: self.context.as_ref().map_or(0, |c| c.fuel),
-			api_item2: self.context.as_ref().map_or(0, |c| c.ammo),
-			api_item3: self.context.as_ref().map_or(0, |c| c.steel),
-			api_item4: self.context.as_ref().map_or(0, |c| c.bauxite),
-			api_item5: self.context.as_ref().map_or(0, |c| c.devmat),
+impl From<ConstructionDock> for KcApiKDock {
+	fn from(value: ConstructionDock) -> Self {
+		Self {
+			api_id: value.index,
+			api_state: value.status as i64,
+			api_created_ship_id: value.context.as_ref().map_or(0, |c| c.ship_id),
+			api_complete_time: value
+				.context
+				.as_ref()
+				.map_or(0, |c| c.complete_time.timestamp_millis()),
+			api_complete_time_str: value
+				.context
+				.as_ref()
+				.map_or("0".to_owned(), |c| format_date(c.complete_time.timestamp_millis(), " ")),
+			api_item1: value.context.as_ref().map_or(0, |c| c.fuel),
+			api_item2: value.context.as_ref().map_or(0, |c| c.ammo),
+			api_item3: value.context.as_ref().map_or(0, |c| c.steel),
+			api_item4: value.context.as_ref().map_or(0, |c| c.bauxite),
+			api_item5: value.context.as_ref().map_or(0, |c| c.devmat),
 		}
 	}
 }
