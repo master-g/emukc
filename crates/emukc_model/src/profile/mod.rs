@@ -16,6 +16,12 @@ pub mod map_record;
 pub mod material;
 /// In game repair dock
 pub mod ndock;
+/// Picture book
+pub mod picture_book;
+/// In game slot items
+pub mod slot_item;
+/// In game timer
+pub mod timer;
 /// In game user items, including `UseItem` and `PayItem`
 pub mod user_item;
 

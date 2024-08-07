@@ -22,6 +22,7 @@ mod user;
 #[allow(unused_imports)]
 pub use kc2::*;
 
+use material::MaterialConfig;
 #[doc(inline)]
 #[allow(unused_imports)]
 pub use profile::*;
@@ -55,11 +56,17 @@ pub struct Codex {
 	/// ship remodel info map.
 	pub ship_remodel_info: KcShipRemodelRequirementMap,
 
+	/// thirdparty ship extrace voice info map.
+	pub ship_extra_voice: Kc3rdShipVoiceMap,
+
 	/// navy info.
 	pub navy: navy::KcNavy,
 
 	/// thirdparty quest info map.
 	pub quest: Kc3rdQuestMap,
+
+	/// Material config
+	pub material_cfg: MaterialConfig,
 	// TODO: add more limitations.
 }
 

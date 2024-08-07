@@ -479,3 +479,60 @@ pub struct KcApiPracticeResp {
 	pub api_entry_limit: Option<i64>,
 	pub api_list: Vec<KcApiPracticeRival>,
 }
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct KcApiShipQVoiceInfo {
+	pub api_no: i64,
+	pub api_voice_id: i64,
+	pub api_icon_id: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KcApiPictureBookShip {
+	pub api_index_no: i64,
+	pub api_state: Vec<Vec<i64>>,
+	pub api_q_voice_info: Vec<KcApiShipQVoiceInfo>,
+	pub api_table_id: Vec<i64>,
+	pub api_name: String,
+	pub api_yomi: String,
+	pub api_stype: i64,
+	pub api_cnum: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_taik: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_souk: Option<i64>,
+	pub api_kaih: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_houg: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_raig: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_tyku: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_tais: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_leng: Option<i64>,
+	pub api_sinfo: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KcApiPictureBookSlotItem {
+	pub api_index_no: i64,
+	pub api_state: Vec<i64>,
+	pub api_table_id: Vec<i64>,
+	pub api_name: String,
+	pub api_type: Vec<i64>,
+	pub api_souk: i64,
+	pub api_houg: i64,
+	pub api_raig: i64,
+	pub api_soku: i64,
+	pub api_baku: i64,
+	pub api_tyku: i64,
+	pub api_tais: i64,
+	pub api_houm: i64,
+	pub api_houk: i64,
+	pub api_saku: i64,
+	pub api_leng: i64,
+	pub api_flag: Vec<i64>,
+	pub api_info: String,
+}

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::KcApiShipQVoiceInfo;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kc3rdShipBasic {
 	/// `api_id`, ship id
@@ -72,3 +74,6 @@ pub type Kc3rdShipExtraInfoMap = std::collections::BTreeMap<i64, Kc3rdShipExtraI
 
 /// Ship class name information map
 pub type Kc3rdShipClassNameMap = std::collections::BTreeMap<i64, Kc3rdShipClassNameInfo>;
+
+/// Ship extra voice information map, ship sort number -> `KcApiShipQVoiceInfo`
+pub type Kc3rdShipVoiceMap = std::collections::BTreeMap<i64, Vec<KcApiShipQVoiceInfo>>;

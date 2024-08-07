@@ -33,61 +33,50 @@ pub struct Material {
 	pub screw: i64,
 }
 
-impl Material {
-	/// Build API elements
-	pub fn build_api_elements(&self) -> Vec<KcApiMaterialElement> {
-		vec![
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Fuel as i64,
-				api_value: self.fuel,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Ammo as i64,
-				api_value: self.ammo,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Steel as i64,
-				api_value: self.steel,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Bauxite as i64,
-				api_value: self.bauxite,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Torch as i64,
-				api_value: self.torch,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Bucket as i64,
-				api_value: self.bucket,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::DevMat as i64,
-				api_value: self.devmat,
-			},
-			KcApiMaterialElement {
-				api_member_id: self.id,
-				api_id: MaterialCategory::Screw as i64,
-				api_value: self.screw,
-			},
-		]
-	}
-}
-
 impl From<Material> for Vec<KcApiMaterialElement> {
 	fn from(value: Material) -> Self {
-		vec![KcApiMaterialElement {
-			api_member_id: value.id,
-			api_id: MaterialCategory::Fuel as i64,
-			api_value: value.fuel,
-		}]
+		vec![
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Fuel as i64,
+				api_value: value.fuel,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Ammo as i64,
+				api_value: value.ammo,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Steel as i64,
+				api_value: value.steel,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Bauxite as i64,
+				api_value: value.bauxite,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Torch as i64,
+				api_value: value.torch,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Bucket as i64,
+				api_value: value.bucket,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::DevMat as i64,
+				api_value: value.devmat,
+			},
+			KcApiMaterialElement {
+				api_member_id: value.id,
+				api_id: MaterialCategory::Screw as i64,
+				api_value: value.screw,
+			},
+		]
 	}
 }
 
@@ -129,7 +118,12 @@ pub struct MaterialConfig {
 
 	/// Special resource cap
 	pub special_resource_cap: i64,
-	// TODO: primary resource regenerate rate
+
+	/// Primary resource regenerate rate, per milliseconds
+	pub primary_resource_regenerate_rate: i64,
+
+	/// Bauxite regenerate rate, per milliseconds
+	pub bauxite_regenerate_rate: i64,
 }
 
 impl Default for MaterialConfig {
@@ -145,6 +139,8 @@ impl Default for MaterialConfig {
 			init_screw: 0,
 			primary_resource_hard_cap: PRIMARY_RESOURCE_HARD_CAP,
 			special_resource_cap: SPECIAL_RESOURCE_CAP,
+			primary_resource_regenerate_rate: 60_000,
+			bauxite_regenerate_rate: 180_000,
 		}
 	}
 }
