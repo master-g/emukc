@@ -12,6 +12,10 @@ pub struct UserTimer {
 	pub bauxite: DateTime<Utc>,
 	/// repair dock timer
 	pub repair_dock: DateTime<Utc>,
+	/// quest timer
+	pub quest: DateTime<Utc>,
+	/// pratice rival timer
+	pub rival: DateTime<Utc>,
 }
 
 impl Default for UserTimer {
@@ -21,6 +25,8 @@ impl Default for UserTimer {
 			primary_resource: Utc::now(),
 			bauxite: Utc::now(),
 			repair_dock: Utc::now(),
+			quest: Utc::now(),
+			rival: Utc::now(),
 		}
 	}
 }

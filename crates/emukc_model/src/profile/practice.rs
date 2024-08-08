@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -134,9 +133,6 @@ pub struct PracticeConfig {
 
 	/// rival info generated with
 	pub generated_type: RivalType,
-
-	/// created time
-	pub created_time: DateTime<Utc>,
 }
 
 impl From<Rival> for KcApiPracticeRival {

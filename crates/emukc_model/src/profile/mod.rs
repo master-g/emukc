@@ -20,6 +20,8 @@ pub mod ndock;
 pub mod picture_book;
 /// Practice
 pub mod practice;
+/// Quest progress
+pub mod quest;
 /// In game slot items
 pub mod slot_item;
 /// In game timer
