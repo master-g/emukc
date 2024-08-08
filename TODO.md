@@ -1,8 +1,6 @@
 # TODO
 
-we don't need to implement default for KcApiUserBasic, these default values should be in `profile` module.
-
-the final limits and initial values will be found in `Codex`
+should we expose db entities to the outside of the crate?
 
 ```rust
 pub const KC_DEFAULT_FURNITURES: [i64; 6] = [1, 38, 72, 102, 133, 164];
