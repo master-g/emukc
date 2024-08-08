@@ -18,6 +18,8 @@ pub mod material;
 pub mod ndock;
 /// Picture book
 pub mod picture_book;
+/// Practice
+pub mod practice;
 /// In game slot items
 pub mod slot_item;
 /// In game timer

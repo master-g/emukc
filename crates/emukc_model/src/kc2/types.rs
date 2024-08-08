@@ -237,7 +237,9 @@ pub enum KcShipType {
 	AO = 22,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N)]
+#[derive(
+	Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N,
+)]
 pub enum UserHQRank {
 	MarshalAdmiral = 1,
 	Admiral = 2,
@@ -250,6 +252,7 @@ pub enum UserHQRank {
 
 	/// this is a special rank for the game, should be 8
 	ViceLieutenantCommander = 9,
+	#[default]
 	JuniorLieutenantCommander = 10,
 }
 
