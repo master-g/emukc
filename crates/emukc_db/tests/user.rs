@@ -19,7 +19,10 @@ mod test {
 		let sqlite_url = format!("sqlite:{}?mode=rwc", db_path.to_str().unwrap());
 		println!("{:?}", sqlite_url);
 
-		Database::connect(&sqlite_url).await.unwrap()
+		let db = Database::connect(&sqlite_url).await.unwrap();
+		entity::bootstrap(&db).await.unwrap();
+
+		db
 	}
 
 	async fn mem_db() -> DatabaseConnection {
@@ -54,7 +57,7 @@ mod test {
 
 	#[tokio::test]
 	async fn test_account() {
-		let db = mem_db().await;
+		let db = bootstrap_db().await;
 		for _ in 0..10 {
 			let id = gen_id(&db).await;
 			println!("{:?}", id);
