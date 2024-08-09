@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::KcApiUserItem;
+use crate::kc2::KcApiUserItem;
 
+/// Use item
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseItem {
 	/// Profile ID

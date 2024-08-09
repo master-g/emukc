@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
+use crate::kc2::{
 	KcApiPracticeEnemyDeck, KcApiPracticeEnemyInfo, KcApiPracticeEnemyShip, KcApiPracticeRival,
 	UserHQRank,
 };
 
+/// Rival ship info
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct RivalShip {
 	/// profile id
@@ -23,6 +24,7 @@ pub struct RivalShip {
 	pub star: i64,
 }
 
+/// Rival detail
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct RivalDetail {
 	/// profile id
@@ -59,6 +61,8 @@ pub struct RivalDetail {
 	pub ships: Vec<RivalShip>,
 }
 
+/// Rival flag
+#[allow(missing_docs)]
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum RivalFlag {
 	#[default]
@@ -67,10 +71,11 @@ pub enum RivalFlag {
 	Gold = 3,
 }
 
+#[allow(missing_docs)]
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum RivalStatus {
 	#[default]
-	Idle = 0,
+	Untouched = 0,
 	LostRankE = 1,
 	LostRankD = 2,
 	LostRankC = 3,
@@ -79,6 +84,7 @@ pub enum RivalStatus {
 	VictoryRankS = 6,
 }
 
+/// Rival info
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Rival {
 	/// profile id this rival belongs to
@@ -115,14 +121,19 @@ pub struct Rival {
 	pub details: RivalDetail,
 }
 
+/// Rival type
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum RivalType {
+	/// First group, whales and chads
 	#[default]
 	FirstGroup = 0,
+	/// Secondary group, casuals and f2p
 	SecondaryGroup = 1,
+	/// All
 	All = 2,
 }
 
+/// Practice config
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct PracticeConfig {
 	/// profile id

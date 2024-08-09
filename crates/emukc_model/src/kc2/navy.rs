@@ -1,3 +1,5 @@
+//! Navy manifest, used to determine which navy a ship belongs to
+
 /*
 let list = vec![
 299, // Scamp

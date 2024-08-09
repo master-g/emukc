@@ -1,14 +1,20 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{KcApiAirBase, KcApiAirBaseExpandedInfo, KcApiDistance, KcApiPlaneInfo};
+use crate::kc2::{KcApiAirBase, KcApiAirBaseExpandedInfo, KcApiDistance, KcApiPlaneInfo};
 
+/// Airbase action assigned
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum AirbaseAction {
+	/// Idle
 	#[default]
 	IDLE = 0,
+	/// Attack
 	ATTACK = 1,
+	/// Defense
 	DEFENSE = 2,
+	/// Evasion
 	EVASION = 3,
+	/// Resort
 	RESORT = 4,
 }
 
@@ -37,11 +43,15 @@ pub struct Airbase {
 	pub name: String,
 }
 
+/// Plane status
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum PlaneState {
+	/// Unassigned
 	#[default]
 	UNASSIGNED = 0,
+	/// Assigned
 	ASSIGNED = 1,
+	/// Reassigning
 	REASSIGNING = 2,
 }
 

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
-use emukc_model::account::Account;
+use emukc_model::user::account::Account;
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]

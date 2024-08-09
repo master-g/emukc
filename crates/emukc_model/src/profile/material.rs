@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{KcApiMaterialElement, MaterialCategory};
+use crate::kc2::{KcApiMaterialElement, MaterialCategory};
 
 /// In game materials
 #[derive(Clone, Serialize, Deserialize, Debug)]

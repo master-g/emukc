@@ -25,6 +25,7 @@ mod test {
 		db
 	}
 
+	#[allow(unused)]
 	async fn mem_db() -> DatabaseConnection {
 		let db = Database::connect("sqlite::memory:").await.unwrap();
 		entity::bootstrap(&db).await.unwrap();
@@ -32,6 +33,7 @@ mod test {
 		db
 	}
 
+	#[allow(unused)]
 	async fn gen_id(db: &DatabaseConnection) -> i64 {
 		let record = id_generator::Entity::find_by_id(IdType::Account).one(db).await.unwrap();
 		let new_value = if let Some(record) = record {

@@ -2,9 +2,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::KcApiDeckPort;
+use crate::kc2::KcApiDeckPort;
 
 /// Fleet mission status
+#[allow(missing_docs)]
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum FleetMissionStatus {
 	Idle = 0,

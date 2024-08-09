@@ -1,4 +1,7 @@
-use crate::{start2::ApiManifest, Kc3rdQuestCondition, Kc3rdQuestConditionComposition};
+use crate::{
+	kc2::start2::ApiManifest,
+	thirdparty::{Kc3rdQuestCondition, Kc3rdQuestConditionComposition},
+};
 
 use super::Kc3rdQuestDebugJson;
 

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Picture book for ships
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PictureBookShip {
 	/// Profile ID
@@ -15,6 +16,7 @@ pub struct PictureBookShip {
 	pub married: bool,
 }
 
+/// Picture book for slot items
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct PictureBookSlotItem {
 	/// Profile ID

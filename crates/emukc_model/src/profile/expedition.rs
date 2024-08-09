@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::KcApiMission;
+use crate::kc2::KcApiMission;
 
 /// Expedition state
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -13,6 +13,7 @@ pub enum ExpeditionState {
 	Completed = 2,
 }
 
+/// User expedition record
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Expedition {
 	/// Profile id

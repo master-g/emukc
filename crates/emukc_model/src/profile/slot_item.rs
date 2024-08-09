@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::KcApiSlotItem;
+use crate::kc2::KcApiSlotItem;
 
+/// Slot item
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SlotItem {
 	/// Profile ID

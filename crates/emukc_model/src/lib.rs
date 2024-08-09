@@ -7,66 +7,43 @@
 #[macro_use]
 extern crate tracing;
 
-#[doc(hidden)]
-mod kc2;
-#[doc(hidden)]
-mod profile;
-#[doc(hidden)]
-mod thirdparty;
-#[doc(hidden)]
-mod user;
-
-// Re-export the modules.
-
-#[doc(inline)]
-#[allow(unused_imports)]
-pub use kc2::*;
-
-use material::MaterialConfig;
-#[doc(inline)]
-#[allow(unused_imports)]
-pub use profile::*;
-
-use remodel::KcShipRemodelRequirementMap;
-#[doc(inline)]
-pub use thirdparty::*;
-
-#[doc(inline)]
-#[allow(unused_imports)]
-pub use user::*;
+pub mod kc2;
+pub mod profile;
+pub mod thirdparty;
+pub mod user;
 
 /// The `Codex` struct holds almost all the game data needed for the `EmuKC` project.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Codex {
 	/// KC2 API manifest.
-	pub manifest: start2::ApiManifest,
+	pub manifest: kc2::start2::ApiManifest,
 
 	/// thirdparty ship basic info map.
-	pub ship_basic: Kc3rdShipBasicMap,
+	pub ship_basic: thirdparty::Kc3rdShipBasicMap,
 
 	/// thirdparty ship class name map.
-	pub ship_class_name: Kc3rdShipClassNameMap,
+	pub ship_class_name: thirdparty::Kc3rdShipClassNameMap,
 
 	/// thirdparty ship extra info map.
-	pub ship_extra_info: Kc3rdShipExtraInfoMap,
+	pub ship_extra_info: thirdparty::Kc3rdShipExtraInfoMap,
 
 	/// thirdparty slot item extra info map.
-	pub slotitem_extra_info: Kc3rdSlotItemExtraInfoMap,
+	pub slotitem_extra_info: thirdparty::Kc3rdSlotItemExtraInfoMap,
 
 	/// ship remodel info map.
-	pub ship_remodel_info: KcShipRemodelRequirementMap,
+	pub ship_remodel_info: kc2::remodel::KcShipRemodelRequirementMap,
 
 	/// thirdparty ship extrace voice info map.
-	pub ship_extra_voice: Kc3rdShipVoiceMap,
+	pub ship_extra_voice: thirdparty::Kc3rdShipVoiceMap,
 
 	/// navy info.
-	pub navy: navy::KcNavy,
+	pub navy: kc2::navy::KcNavy,
 
 	/// thirdparty quest info map.
-	pub quest: Kc3rdQuestMap,
+	pub quest: thirdparty::Kc3rdQuestMap,
 
 	/// Material config
-	pub material_cfg: MaterialConfig,
+	pub material_cfg: profile::material::MaterialConfig,
 	// TODO: add more limitations.
 }
 

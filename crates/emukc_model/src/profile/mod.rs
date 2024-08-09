@@ -1,5 +1,7 @@
 //! An `EmuKC` account can has multiple game profiles
 
+use serde::{Deserialize, Serialize};
+
 /// User airbases
 pub mod airbase;
 /// User expeditions
@@ -29,6 +31,15 @@ pub mod timer;
 /// In game user items, including `UseItem` and `PayItem`
 pub mod user_item;
 
-pub trait BuildKcApiItem<T> {
-	fn build_kc_api_item(&self) -> T;
+/// User profile
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct Profile {
+	/// Account id
+	pub account_id: i64,
+
+	/// Profile id
+	pub id: i64,
+
+	/// Profile name
+	pub name: String,
 }

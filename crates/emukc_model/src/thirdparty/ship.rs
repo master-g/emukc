@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::KcApiShipQVoiceInfo;
+use crate::kc2::KcApiShipQVoiceInfo;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kc3rdShipBasic {

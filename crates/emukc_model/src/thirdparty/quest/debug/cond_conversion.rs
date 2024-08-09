@@ -1,6 +1,9 @@
 use crate::{
-	start2::ApiManifest, Kc3rdQuestConditionEquipInSlot, Kc3rdQuestConditionModelConversion,
-	Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType,
+	kc2::start2::ApiManifest,
+	thirdparty::{
+		Kc3rdQuestConditionEquipInSlot, Kc3rdQuestConditionModelConversion,
+		Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType,
+	},
 };
 
 use super::Kc3rdQuestDebugJson;

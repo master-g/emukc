@@ -10,7 +10,7 @@ mod condition;
 mod requirement;
 mod reward;
 
-use crate::start2::ApiManifest;
+use crate::{kc2::start2::ApiManifest, thirdparty::Kc3rdQuestRequirement};
 
 use super::Kc3rdQuest;
 
@@ -39,15 +39,15 @@ impl Kc3rdQuestDebugJson for Kc3rdQuest {
 			.collect::<Vec<Vec<serde_json::Value>>>();
 
 		let requirement = match &self.requirements {
-			crate::Kc3rdQuestRequirement::And(req) => serde_json::json!({
+			Kc3rdQuestRequirement::And(req) => serde_json::json!({
 				"type": "AND",
 				"conds": req.iter().map(|cond| cond.to_json(mst)).collect::<Vec<serde_json::Value>>(),
 			}),
-			crate::Kc3rdQuestRequirement::OneOf(req) => serde_json::json!({
+			Kc3rdQuestRequirement::OneOf(req) => serde_json::json!({
 				"type": "ONE_OF",
 				"conds": req.iter().map(|cond| cond.to_json(mst)).collect::<Vec<serde_json::Value>>(),
 			}),
-			crate::Kc3rdQuestRequirement::Sequential(req) => serde_json::json!({
+			Kc3rdQuestRequirement::Sequential(req) => serde_json::json!({
 				"type": "SEQUENTIAL",
 				"conds": req.iter().map(|cond| cond.to_json(mst)).collect::<Vec<serde_json::Value>>(),
 			}),

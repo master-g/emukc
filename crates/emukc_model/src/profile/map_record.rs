@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::KcApiMapRecord;
+use crate::kc2::KcApiMapRecord;
 
+/// User map record
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MapRecord {
 	/// Profile ID

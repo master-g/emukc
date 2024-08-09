@@ -1,4 +1,7 @@
-use crate::{start2::ApiManifest, Kc3rdQuestReward, Kc3rdQuestRewardCategory};
+use crate::{
+	kc2::start2::ApiManifest,
+	thirdparty::{Kc3rdQuestReward, Kc3rdQuestRewardCategory},
+};
 
 use super::Kc3rdQuestDebugJson;
 

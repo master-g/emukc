@@ -1,3 +1,5 @@
+//! Remodel info extracted from the `main.js`.
+
 use serde::{Deserialize, Serialize};
 
 /// A ship remodel requirement.

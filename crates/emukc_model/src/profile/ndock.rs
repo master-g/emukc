@@ -3,8 +3,9 @@ use emukc_time::format_date;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::KcApiNDock;
+use crate::kc2::KcApiNDock;
 
+/// Repair dock status
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum RepairDockStatus {
 	/// Locked
@@ -47,6 +48,7 @@ pub struct RepairDock {
 	pub context: Option<RepairContext>,
 }
 
+/// Repair dock error
 #[derive(Error, Debug)]
 pub enum RepairDockError {
 	/// Dock ID out of range

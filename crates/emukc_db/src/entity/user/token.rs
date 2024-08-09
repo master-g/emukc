@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use emukc_model::token::{Token, TokenType};
+use emukc_model::user::token::{Token, TokenType};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]

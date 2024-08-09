@@ -1,6 +1,8 @@
 use crate::{
-	start2::ApiManifest, Kc3rdQuestConditionMapInfo, Kc3rdQuestConditionSortie,
-	Kc3rdQuestConditionSortieMap,
+	kc2::start2::ApiManifest,
+	thirdparty::{
+		Kc3rdQuestConditionMapInfo, Kc3rdQuestConditionSortie, Kc3rdQuestConditionSortieMap,
+	},
 };
 
 use super::Kc3rdQuestDebugJson;

@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{Kc3rdQuestPeriod, Kc3rdQuestRequirement};
+use crate::thirdparty::{Kc3rdQuestPeriod, Kc3rdQuestRequirement};
 
+/// One-time quest record
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct QuestOnceRecord {
+pub struct QuestOneTimeRecord {
 	/// profile id
 	pub id: i64,
 
@@ -15,6 +16,7 @@ pub struct QuestOnceRecord {
 	pub complete_time: DateTime<Utc>,
 }
 
+/// Periodic quest record
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct QuestPeriodicRecord {
 	/// profile id
@@ -30,6 +32,7 @@ pub struct QuestPeriodicRecord {
 	pub period: Kc3rdQuestPeriod,
 }
 
+/// Quest status
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum QuestStatus {
 	/// not started
@@ -41,6 +44,7 @@ pub enum QuestStatus {
 	Completed = 3,
 }
 
+/// Quest progress status
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub enum QuestProgressStatus {
 	/// empty
@@ -52,6 +56,7 @@ pub enum QuestProgressStatus {
 	Eighty = 2,
 }
 
+/// Quest progress record
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct QuestProgress {
 	/// profile id

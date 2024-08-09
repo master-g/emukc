@@ -3,8 +3,9 @@ use emukc_time::format_date;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::KcApiKDock;
+use crate::kc2::KcApiKDock;
 
+/// Construction dock status
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum ConstructionDockStatus {
 	/// Locked
@@ -58,6 +59,7 @@ pub struct ConstructionDock {
 	pub context: Option<ConstructionContext>,
 }
 
+/// Construction dock error
 #[derive(Error, Debug)]
 pub enum ConstructionDockError {
 	/// Dock ID out of range

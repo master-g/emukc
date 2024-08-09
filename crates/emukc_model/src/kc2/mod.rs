@@ -6,7 +6,6 @@ pub mod api;
 pub mod navy;
 pub mod remodel;
 pub mod start2;
-pub mod world;
 
 #[doc(hidden)]
 pub mod types;

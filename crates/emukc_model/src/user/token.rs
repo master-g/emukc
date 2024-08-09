@@ -3,9 +3,12 @@ use emukc_crypto::SimpleHash;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Token type
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum TokenType {
+	/// Access token
 	Access,
+	/// Refresh token
 	Refresh,
 }
 

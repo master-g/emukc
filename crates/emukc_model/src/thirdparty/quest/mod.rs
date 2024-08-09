@@ -1,10 +1,8 @@
 pub mod debug;
 
-pub use debug::*;
-
 use serde::{Deserialize, Serialize};
 
-use crate::{
+use crate::kc2::{
 	KcApiQuestClearItemBonusType, KcApiQuestListRewardItem, KcApiQuestType, KcSortieResult,
 	KcUseItemType,
 };

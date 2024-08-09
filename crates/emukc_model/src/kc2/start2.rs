@@ -1,139 +1,227 @@
+//! Models used in the infamous `start2` API endpoint.
+
 use std::{collections::BTreeMap, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
 
+/// KC2 Game Data Manifest
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiManifest {
+	/// BGM data.
 	pub api_mst_bgm: Vec<ApiMstBgm>,
+	/// Constants used in the game.
 	pub api_mst_const: ApiMstConst,
+	/// What can be equipped in the extra slot.
 	pub api_mst_equip_exslot: Vec<i64>,
+	/// What can be equipped in the extra slot, but specific to ship.
 	pub api_mst_equip_exslot_ship: BTreeMap<String, ApiMstEquipExslotShip>,
+	/// What ship can equip.
 	pub api_mst_equip_ship: Vec<ApiMstEquipShip>,
+	/// Furniture data.
 	pub api_mst_furniture: Vec<ApiMstFurniture>,
+	/// Furniture graph data.
 	pub api_mst_furnituregraph: Vec<ApiMstFurnituregraph>,
+	/// Item shop data.
 	pub api_mst_item_shop: ApiMstItemShop,
+	/// Map area data.
 	pub api_mst_maparea: Vec<ApiMstMaparea>,
+	/// Map BGM data.
 	pub api_mst_mapbgm: Vec<ApiMstMapbgm>,
+	/// Map info data.
 	pub api_mst_mapinfo: Vec<ApiMstMapinfo>,
+	/// Mission data, for expeditions.
 	pub api_mst_mission: Vec<ApiMstMission>,
+	/// Pay item data.
 	pub api_mst_payitem: Vec<ApiMstPayitem>,
+	/// Ship data.
 	pub api_mst_ship: Vec<ApiMstShip>,
+	/// Ship graph data.
 	pub api_mst_shipgraph: Vec<ApiMstShipgraph>,
+	/// Ship upgrade data.
 	pub api_mst_shipupgrade: Vec<ApiMstShipUpgrade>,
+	/// Slot item data.
 	pub api_mst_slotitem: Vec<ApiMstSlotitem>,
+	/// Slot item equip type data.
 	pub api_mst_slotitem_equiptype: Vec<ApiMstSlotitemEquiptype>,
+	/// Ship type data.
 	pub api_mst_stype: Vec<ApiMstStype>,
+	/// Use item data.
 	pub api_mst_useitem: Vec<ApiMstUseitem>,
 }
 
+/// BGM data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstBgm {
+	/// BGM ID.
 	pub api_id: i64,
+	/// BGM name.
 	pub api_name: String,
 }
 
+/// Constants used in the game.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstConst {
 	/// Hard cap on the number of ships the player can have.
 	pub api_boko_max_ships: ApiMstValue,
+	/// ???.
 	pub api_dpflag_quest: ApiMstValue,
 	/// Hard cap on the number of quests the player can carry in parallel.
 	pub api_parallel_quest_max: ApiMstValue,
 }
 
+/// Value type used in `ApiMstConst`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstValue {
+	/// Integer value.
 	pub api_int_value: i64,
+	/// String value.
 	pub api_string_value: String,
 }
 
+/// What can be equipped in the extra slot.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstEquipExslotShip {
+	/// Key: Ship family ID. value: 1 - can equip, None - cannot equip.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ctypes: Option<BTreeMap<String, i64>>,
+	/// Level required to equip. 0 for no requirement.
 	pub api_req_level: i64,
+	/// Key: Ship ID. value: 1 - can equip, None - cannot equip.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ship_ids: Option<BTreeMap<String, i64>>,
+	/// Key: Ship type ID. value: 1 - can equip, None - cannot equip.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_stypes: Option<BTreeMap<String, i64>>,
 }
 
+/// What ship can equip.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstEquipShip {
+	/// Ship ID.
 	pub api_ship_id: i64,
+	/// Equipment type ID.
 	pub api_equip_type: Vec<i64>,
 }
 
+/// Furniture data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstFurniture {
+	/// Furniture ID.
 	pub api_id: i64,
+	/// index in its category. starts from 0.
 	pub api_no: i64,
+	/// ???
 	pub api_active_flag: i64,
+	/// Description.
 	pub api_description: String,
+	/// ???
 	pub api_outside_id: i64,
+	/// Price.
 	pub api_price: i64,
+	/// Rarity.
 	pub api_rarity: i64,
+	/// Sale flag.
 	pub api_saleflg: i64,
+	/// Season. ???
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_season: Option<i64>,
+	/// Furniture name.
 	pub api_title: String,
+	/// Type. 0: floor, 1: wall, 2: window, 3: wall-hanging, 4: ???, 5: desk
 	pub api_type: i64,
+	/// Version.
 	pub api_version: i64,
 }
 
+/// Furniture graph data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstFurnituregraph {
+	/// Furniture ID.
 	pub api_id: i64,
+	/// ???
 	pub api_no: i64,
+	/// ???
 	pub api_filename: String,
+	/// ???
 	pub api_type: i64,
+	/// ???
 	pub api_version: String,
 }
 
+/// Item shop data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstItemShop {
+	/// items in first cabinet, `ApiMstPayItem` ID.
 	pub api_cabinet_1: Vec<i64>,
+	/// items in second cabinet, empty slot is -1.
 	pub api_cabinet_2: Vec<i64>,
 }
 
+/// Map area data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstMaparea {
+	/// Map area ID.
 	pub api_id: i64,
+	/// Map area name.
 	pub api_name: String,
+	/// Map area type. 0: normal, 1: event
 	pub api_type: i64,
 }
 
+/// Map BGM data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstMapbgm {
+	/// Map BGM ID.
 	pub api_id: i64,
+	/// Map BGM name.
 	pub api_no: i64,
+	/// ???
 	pub api_boss_bgm: Vec<i64>,
+	/// ???
 	pub api_map_bgm: Vec<i64>,
+	/// ???
 	pub api_maparea_id: i64,
+	/// ???
 	pub api_moving_bgm: i64,
 }
 
+/// Map info details.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstMapinfo {
+	/// Map ID.
 	pub api_id: i64,
-	pub api_no: i64,
-	pub api_infotext: String,
-	pub api_item: Vec<i64>,
-	pub api_level: i64,
+	/// Map area ID.
 	pub api_maparea_id: i64,
+	/// Number in the map area
+	pub api_no: i64,
+	/// info text
+	pub api_infotext: String,
+	/// item drop
+	pub api_item: Vec<i64>,
+	/// level required
+	pub api_level: i64,
+	/// map HP
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_max_maphp: Option<serde_json::Value>,
+	/// map name
 	pub api_name: String,
+	/// operation text
 	pub api_opetext: String,
+	/// how many times needed to defeat the map
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_required_defeat_count: Option<i64>,
+	/// fleet, combination require flags
 	pub api_sally_flag: Vec<i64>,
 }
 
+/// Mission data, for expeditions.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstMission {
+	/// Mission ID.
 	pub api_id: i64,
+	/// Display number.
 	pub api_disp_no: String,
 	pub api_damage_type: i64,
 	pub api_deck_num: i64,
@@ -152,17 +240,27 @@ pub struct ApiMstMission {
 	pub api_win_mat_level: Vec<i64>,
 }
 
+/// Pay item data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstPayitem {
+	/// Pay item ID.
 	pub api_id: i64,
+	/// Description.
 	pub api_description: String,
+	/// items get after purchase
+	/// [0]: fuel, [1]: ammo, [2]: steel, [3]: bauxite, [4]: instant construction, [5]: instant repair, [6]: development material, [7]: dock key
 	pub api_item: Vec<i64>,
+	/// Name.
 	pub api_name: String,
+	/// Price.
 	pub api_price: i64,
+	/// ???
 	pub api_shop_description: String,
+	/// ???
 	pub api_type: i64,
 }
 
+/// Ship data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShip {
 	/// The ship's ID.
@@ -283,6 +381,7 @@ pub struct ApiMstShip {
 	pub api_tais: Option<Vec<i64>>,
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipgraph {
 	pub api_id: i64,
@@ -326,6 +425,7 @@ pub struct ApiMstShipgraph {
 	pub api_wedb: Option<Vec<i64>>,
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipUpgrade {
 	pub api_id: i64,               // read as `mst_id_after` in main.js
@@ -343,6 +443,7 @@ pub struct ApiMstShipUpgrade {
 	pub api_sortno: i64,
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstSlotitem {
 	pub api_id: i64,
@@ -375,6 +476,7 @@ pub struct ApiMstSlotitem {
 	pub api_distance: Option<i64>,
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstSlotitemEquiptype {
 	pub api_id: i64,
@@ -382,6 +484,7 @@ pub struct ApiMstSlotitemEquiptype {
 	pub api_show_flg: i64,
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstStype {
 	pub api_id: i64,
@@ -392,6 +495,7 @@ pub struct ApiMstStype {
 	pub api_sortno: i64,
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstUseitem {
 	pub api_id: i64,
