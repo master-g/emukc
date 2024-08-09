@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::kc2::KcApiKDock;
 
 /// Construction dock status
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum ConstructionDockStatus {
 	/// Locked
 	Locked = -1,

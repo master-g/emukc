@@ -63,7 +63,7 @@ pub struct RivalDetail {
 
 /// Rival flag
 #[allow(missing_docs)]
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum RivalFlag {
 	#[default]
 	Bronze = 1,
@@ -72,7 +72,7 @@ pub enum RivalFlag {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum RivalStatus {
 	#[default]
 	Untouched = 0,
@@ -122,7 +122,7 @@ pub struct Rival {
 }
 
 /// Rival type
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum RivalType {
 	/// First group, whales and chads
 	#[default]

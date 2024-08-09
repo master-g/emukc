@@ -33,7 +33,7 @@ pub struct QuestPeriodicRecord {
 }
 
 /// Quest status
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum QuestStatus {
 	/// not started
 	#[default]
@@ -45,7 +45,7 @@ pub enum QuestStatus {
 }
 
 /// Quest progress status
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum QuestProgressStatus {
 	/// empty
 	#[default]

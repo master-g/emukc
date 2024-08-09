@@ -6,7 +6,7 @@ use crate::kc2::KcApiDeckPort;
 
 /// Fleet mission status
 #[allow(missing_docs)]
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum FleetMissionStatus {
 	Idle = 0,
 	InMission = 1,

@@ -2,6 +2,8 @@ use sea_orm::ConnectionTrait;
 
 /// Entities for `EmuKC` global variables.
 pub mod global;
+/// Entities for `EmuKC` profile related stuff.
+pub mod profile;
 /// Entities for `EmuKC` user related stuff.
 pub mod user;
 

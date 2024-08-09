@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::kc2::{KcApiAirBase, KcApiAirBaseExpandedInfo, KcApiDistance, KcApiPlaneInfo};
 
 /// Airbase action assigned
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
 pub enum AirbaseAction {
 	/// Idle
 	#[default]

@@ -42,7 +42,7 @@ pub struct Kc3rdQuest {
 	pub requirements: Kc3rdQuestRequirement,
 }
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Kc3rdQuestCategory {
 	/// 編成
 	Composition = 1,
@@ -98,7 +98,7 @@ impl From<i64> for Kc3rdQuestCategory {
 }
 
 /// Quest period
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum Kc3rdQuestPeriod {
 	#[default]
 	Onetime = 1,
@@ -159,7 +159,7 @@ pub struct Kc3rdQuestReward {
 }
 
 /// Quest reward category
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Kc3rdQuestRewardCategory {
 	Material = 1,
 	Slotitem = 2,
