@@ -21,6 +21,14 @@ pub struct Model {
 /// See <https://www.sea-ql.org/SeaORM/docs/generate-entity/entity-structure>
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+	/// Relation to `Account`
+	#[sea_orm(
+		belongs_to = "crate::entity::user::account::Entity",
+		from = "Column::AccountId",
+		to = "crate::entity::user::account::Column::Uid"
+	)]
+	Account,
+
 	/// Relation to `Token`
 	#[sea_orm(has_one = "material::Entity")]
 	Material,
@@ -29,6 +37,12 @@ pub enum Relation {
 impl Related<material::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Material.def()
+	}
+}
+
+impl Related<crate::entity::user::account::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::Account.def()
 	}
 }
 

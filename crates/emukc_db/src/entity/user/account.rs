@@ -28,11 +28,21 @@ pub enum Relation {
 	/// Relation to `Token`
 	#[sea_orm(has_many = "super::token::Entity")]
 	Token,
+
+	/// Relation to `Profile`
+	#[sea_orm(has_many = "crate::entity::profile::Entity")]
+	Profile,
 }
 
 impl Related<super::token::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Token.def()
+	}
+}
+
+impl Related<crate::entity::profile::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::Profile.def()
 	}
 }
 
