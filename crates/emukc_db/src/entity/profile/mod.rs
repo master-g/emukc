@@ -2,6 +2,8 @@ use emukc_model::profile::Profile;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 pub mod material;
+pub mod pay_item;
+pub mod slot_item;
 pub mod use_item;
 
 #[allow(missing_docs)]
@@ -33,6 +35,10 @@ pub enum Relation {
 	/// Relation to `Material`
 	#[sea_orm(has_one = "material::Entity")]
 	Material,
+
+	/// Relation to `PayItem`
+	#[sea_orm(has_many = "pay_item::Entity")]
+	PayItem,
 
 	/// Relation to `UseItem`
 	#[sea_orm(has_many = "use_item::Entity")]
@@ -85,6 +91,16 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// material
 	{
 		let stmt = schema.create_table_from_entity(material::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// pay_item
+	{
+		let stmt = schema.create_table_from_entity(pay_item::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// slot_item
+	{
+		let stmt = schema.create_table_from_entity(slot_item::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// use_item

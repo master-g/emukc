@@ -5,7 +5,7 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "use_item")]
+#[sea_orm(table_name = "pay_item")]
 pub struct Model {
 	/// Manifest ID
 	#[sea_orm(primary_key)]

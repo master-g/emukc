@@ -1,21 +1,30 @@
-//! Use Item Entity
+//! Slot item entity
 
-use emukc_model::profile::user_item::UserItem;
+use emukc_model::profile::slot_item::SlotItem;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "use_item")]
+#[sea_orm(table_name = "slot_item")]
 pub struct Model {
-	/// Manifest ID
+	/// Instance ID
 	#[sea_orm(primary_key)]
 	pub id: i64,
 
 	/// Profile ID
 	pub profile_id: i64,
 
-	/// Item count
-	pub count: i64,
+	/// Manifest ID
+	pub mst_id: i64,
+
+	/// locked
+	pub locked: bool,
+
+	/// modify level
+	pub level: i64,
+
+	/// aircraft level
+	pub aircraft_lv: i64,
 }
 
 /// Relation
@@ -34,22 +43,28 @@ impl Related<super::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<UserItem> for ActiveModel {
-	fn from(t: UserItem) -> Self {
+impl From<SlotItem> for ActiveModel {
+	fn from(t: SlotItem) -> Self {
 		Self {
-			id: ActiveValue::Set(t.mst_id),
+			id: ActiveValue::Set(t.instance_id),
 			profile_id: ActiveValue::Set(t.id),
-			count: ActiveValue::Set(t.count),
+			mst_id: ActiveValue::Set(t.mst_id),
+			locked: ActiveValue::Set(t.locked),
+			level: ActiveValue::Set(t.level),
+			aircraft_lv: ActiveValue::Set(t.aircraft_lv),
 		}
 	}
 }
 
-impl From<Model> for UserItem {
+impl From<Model> for SlotItem {
 	fn from(value: Model) -> Self {
 		Self {
+			instance_id: value.id,
 			id: value.profile_id,
-			mst_id: value.id,
-			count: value.count,
+			mst_id: value.mst_id,
+			locked: value.locked,
+			level: value.level,
+			aircraft_lv: value.aircraft_lv,
 		}
 	}
 }
