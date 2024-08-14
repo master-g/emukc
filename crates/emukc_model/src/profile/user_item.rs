@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::kc2::KcApiUserItem;
 
-/// Use item
+/// User item
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UseItem {
+pub struct UserItem {
 	/// Profile ID
 	pub id: i64,
 
@@ -15,8 +15,8 @@ pub struct UseItem {
 	pub count: i64,
 }
 
-impl From<UseItem> for KcApiUserItem {
-	fn from(value: UseItem) -> Self {
+impl From<UserItem> for KcApiUserItem {
+	fn from(value: UserItem) -> Self {
 		Self {
 			api_id: value.mst_id,
 			api_count: value.count,

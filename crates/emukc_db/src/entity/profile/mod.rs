@@ -2,6 +2,7 @@ use emukc_model::profile::Profile;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 pub mod material;
+pub mod use_item;
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
@@ -29,9 +30,13 @@ pub enum Relation {
 	)]
 	Account,
 
-	/// Relation to `Token`
+	/// Relation to `Material`
 	#[sea_orm(has_one = "material::Entity")]
 	Material,
+
+	/// Relation to `UseItem`
+	#[sea_orm(has_many = "use_item::Entity")]
+	UseItem,
 }
 
 impl Related<material::Entity> for Entity {
@@ -66,4 +71,27 @@ impl From<Model> for Profile {
 			name: value.name,
 		}
 	}
+}
+
+/// Bootstrap the database with the necessary tables
+pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
+	let schema = sea_orm::Schema::new(db.get_database_backend());
+
+	// profile
+	{
+		let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// material
+	{
+		let stmt = schema.create_table_from_entity(material::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// use_item
+	{
+		let stmt = schema.create_table_from_entity(use_item::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+
+	Ok(())
 }
