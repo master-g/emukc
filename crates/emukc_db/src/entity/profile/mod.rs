@@ -3,6 +3,7 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 
 pub mod airbase;
 pub mod expedition;
+pub mod fleet;
 pub mod item;
 pub mod material;
 
