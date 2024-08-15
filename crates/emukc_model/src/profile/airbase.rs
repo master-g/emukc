@@ -67,23 +67,23 @@ pub struct PlaneInfo {
 	/// Airbase id
 	pub rid: i64,
 
-	/// Slot id (index)
+	/// Slot item instance id
 	pub slot_id: i64,
 
-	/// Squadron id
+	/// Squadron id, index, starts from 1, up to 4
 	pub squadron_id: i64,
 
 	/// plane status
 	pub state: PlaneState,
 
 	/// plane condition
-	pub condition: Option<i64>,
+	pub condition: i64,
 
 	/// plane count
-	pub count: Option<i64>,
+	pub count: i64,
 
 	/// plane max count
-	pub max_count: Option<i64>,
+	pub max_count: i64,
 }
 
 /// Air base extended info
@@ -127,9 +127,9 @@ impl From<AirbaseExtendedInfo> for KcApiAirBaseExpandedInfo {
 impl From<PlaneInfo> for KcApiPlaneInfo {
 	fn from(value: PlaneInfo) -> Self {
 		Self {
-			api_cond: value.condition,
-			api_count: value.count,
-			api_max_count: value.max_count,
+			api_cond: Some(value.condition),
+			api_count: Some(value.count),
+			api_max_count: Some(value.max_count),
 			api_slotid: value.slot_id,
 			api_squadron_id: value.squadron_id,
 			api_state: value.state as i64,

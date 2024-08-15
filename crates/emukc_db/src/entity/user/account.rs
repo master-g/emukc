@@ -51,7 +51,7 @@ impl ActiveModelBehavior for ActiveModel {}
 impl From<Account> for ActiveModel {
 	fn from(t: Account) -> Self {
 		Self {
-			uid: ActiveValue::Set(t.uid),
+			uid: ActiveValue::NotSet,
 			name: ActiveValue::Set(t.name),
 			secret: ActiveValue::Set(t.secret),
 			create_time: ActiveValue::Set(t.create_time),

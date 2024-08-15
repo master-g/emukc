@@ -1,10 +1,9 @@
 use emukc_model::profile::Profile;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
+pub mod airbase;
+pub mod item;
 pub mod material;
-pub mod pay_item;
-pub mod slot_item;
-pub mod use_item;
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
@@ -32,16 +31,32 @@ pub enum Relation {
 	)]
 	Account,
 
+	/// Relation to `Airbase`
+	#[sea_orm(has_many = "airbase::base::Entity")]
+	Airbase,
+
+	/// Relation to `AirbaseExtend`
+	#[sea_orm(has_many = "airbase::extend::Entity")]
+	AirbaseExtend,
+
 	/// Relation to `Material`
 	#[sea_orm(has_one = "material::Entity")]
 	Material,
 
 	/// Relation to `PayItem`
-	#[sea_orm(has_many = "pay_item::Entity")]
+	#[sea_orm(has_many = "item::pay_item::Entity")]
 	PayItem,
 
+	/// Relation to `PlaneInfo`
+	#[sea_orm(has_many = "airbase::plane::Entity")]
+	PlaneInfo,
+
+	/// Relation to `SlotItem`
+	#[sea_orm(has_many = "item::slot_item::Entity")]
+	SlotItem,
+
 	/// Relation to `UseItem`
-	#[sea_orm(has_many = "use_item::Entity")]
+	#[sea_orm(has_many = "item::use_item::Entity")]
 	UseItem,
 }
 
@@ -88,25 +103,18 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 		let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
+	// airbase
+	{
+		airbase::bootstrap(db).await?;
+	}
 	// material
 	{
 		let stmt = schema.create_table_from_entity(material::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
-	// pay_item
+	// items
 	{
-		let stmt = schema.create_table_from_entity(pay_item::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
-	}
-	// slot_item
-	{
-		let stmt = schema.create_table_from_entity(slot_item::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
-	}
-	// use_item
-	{
-		let stmt = schema.create_table_from_entity(use_item::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
+		item::bootstrap(db).await?;
 	}
 
 	Ok(())

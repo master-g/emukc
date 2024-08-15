@@ -1,10 +1,18 @@
 #[cfg(test)]
 mod test {
+	use chrono::Utc;
 	use emukc_db::entity::{
 		self,
 		global::id_generator::{self, IdType},
 	};
-	use sea_orm::{sea_query::OnConflict, ActiveValue, Database, DatabaseConnection, EntityTrait};
+	use emukc_model::{
+		profile::{user_item::UserItem, Profile},
+		user::account::Account,
+	};
+	use sea_orm::{
+		sea_query::OnConflict, ActiveValue, ConnectionTrait, Database, DatabaseConnection,
+		EntityTrait, Statement,
+	};
 
 	#[allow(unused)]
 	fn temp_dir() -> std::path::PathBuf {
@@ -57,12 +65,113 @@ mod test {
 		new_value
 	}
 
+	#[allow(unused)]
+	async fn new_account(db: &DatabaseConnection, name: &str) -> Account {
+		let account = entity::user::account::Entity::find()
+			.from_raw_sql(Statement::from_sql_and_values(
+				db.get_database_backend(),
+				r#"SELECT * FROM "account" WHERE "name" = ?"#,
+				[name.into()],
+			))
+			.one(db)
+			.await
+			.unwrap();
+
+		if let Some(account) = account {
+			account.into()
+		} else {
+			let mut new_account = Account {
+				uid: 0,
+				name: name.to_owned(),
+				secret: "test secret".to_owned(),
+				create_time: Utc::now(),
+				last_login: Utc::now(),
+				last_update: Utc::now(),
+			};
+
+			let active_model = entity::user::account::ActiveModel::from(new_account.clone());
+			let result =
+				entity::user::account::Entity::insert(active_model).exec(db).await.unwrap();
+
+			new_account.uid = result.last_insert_id;
+			new_account
+		}
+	}
+
+	#[allow(unused)]
+	async fn new_profile(db: &DatabaseConnection, account: &Account, name: &str) -> Profile {
+		let profile = entity::profile::Entity::find()
+			.from_raw_sql(Statement::from_sql_and_values(
+				db.get_database_backend(),
+				r#"SELECT * FROM "profile" WHERE "account_id" = ? AND "name" = ?"#,
+				[account.uid.into(), name.into()],
+			))
+			.one(db)
+			.await
+			.unwrap();
+
+		if let Some(profile) = profile {
+			profile.into()
+		} else {
+			let mut new_profile = Profile {
+				id: 0,
+				account_id: account.uid,
+				name: name.to_owned(),
+			};
+
+			let active_model = entity::profile::ActiveModel::from(new_profile.clone());
+			let result = entity::profile::Entity::insert(active_model).exec(db).await.unwrap();
+
+			new_profile.id = result.last_insert_id;
+			new_profile
+		}
+	}
+
+	#[allow(unused)]
+	async fn new_use_item(db: &DatabaseConnection, profile: &Profile, mst_id: i64, count: i64) {
+		let user_item = UserItem {
+			id: profile.id,
+			mst_id,
+			count,
+		};
+
+		let active_model = entity::profile::item::use_item::ActiveModel::from(user_item.clone());
+		let old_entry = entity::profile::item::use_item::Entity::find()
+			.from_raw_sql(Statement::from_sql_and_values(
+				db.get_database_backend(),
+				r#"SELECT * FROM "use_item" WHERE "profile_id" = ? AND "mst_id" = ?"#,
+				[profile.id.into(), mst_id.into()],
+			))
+			.one(db)
+			.await
+			.unwrap();
+		if let Some(old_entry) = old_entry {
+			entity::profile::item::use_item::Entity::update(
+				entity::profile::item::use_item::ActiveModel {
+					id: ActiveValue::Unchanged(old_entry.id),
+					profile_id: ActiveValue::Unchanged(old_entry.profile_id),
+					mst_id: ActiveValue::Unchanged(old_entry.mst_id),
+					count: ActiveValue::Set(user_item.count + old_entry.count),
+				},
+			)
+			.exec(db)
+			.await
+			.unwrap();
+		} else {
+			entity::profile::item::use_item::Entity::insert(active_model).exec(db).await.unwrap();
+		}
+	}
+
 	#[tokio::test]
 	async fn test_account() {
 		let db = bootstrap_db().await;
-		for _ in 0..10 {
-			let id = gen_id(&db).await;
-			println!("{:?}", id);
-		}
+
+		let account = new_account(&db, "test_account").await;
+		let profile = new_profile(&db, &account, "test_profile").await;
+
+		assert_eq!(account.name, "test_account");
+		assert_eq!(profile.name, "test_profile");
+
+		new_use_item(&db, &profile, 114, 514).await;
 	}
 }

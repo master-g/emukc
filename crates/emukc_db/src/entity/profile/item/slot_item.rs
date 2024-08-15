@@ -8,7 +8,7 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 #[sea_orm(table_name = "slot_item")]
 pub struct Model {
 	/// Instance ID
-	#[sea_orm(primary_key)]
+	#[sea_orm(primary_key, auto_increment = true)]
 	pub id: i64,
 
 	/// Profile ID
@@ -31,11 +31,15 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
 	/// Relation to `Profile`
-	#[sea_orm(belongs_to = "super::Entity", from = "Column::ProfileId", to = "super::Column::Id")]
+	#[sea_orm(
+		belongs_to = "crate::entity::profile::Entity",
+		from = "Column::ProfileId",
+		to = "crate::entity::profile::Column::Id"
+	)]
 	Profile,
 }
 
-impl Related<super::Entity> for Entity {
+impl Related<crate::entity::profile::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Profile.def()
 	}
