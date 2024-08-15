@@ -8,15 +8,15 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Action {
 	#[sea_orm(num_value = 0)]
-	IDLE,
+	Idle,
 	#[sea_orm(num_value = 1)]
-	ATTACK,
+	Attack,
 	#[sea_orm(num_value = 2)]
-	DEFENSE,
+	Defense,
 	#[sea_orm(num_value = 3)]
-	EVASION,
+	Evasion,
 	#[sea_orm(num_value = 4)]
-	RESORT,
+	Resort,
 }
 
 #[allow(missing_docs)]
@@ -72,11 +72,11 @@ impl ActiveModelBehavior for ActiveModel {}
 impl From<AirbaseAction> for Action {
 	fn from(value: AirbaseAction) -> Self {
 		match value {
-			AirbaseAction::IDLE => Action::IDLE,
-			AirbaseAction::ATTACK => Action::ATTACK,
-			AirbaseAction::DEFENSE => Action::DEFENSE,
-			AirbaseAction::EVASION => Action::EVASION,
-			AirbaseAction::RESORT => Action::RESORT,
+			AirbaseAction::Idle => Action::Idle,
+			AirbaseAction::Attack => Action::Attack,
+			AirbaseAction::Defense => Action::Defense,
+			AirbaseAction::Evasion => Action::Evasion,
+			AirbaseAction::Resort => Action::Resort,
 		}
 	}
 }
@@ -84,11 +84,11 @@ impl From<AirbaseAction> for Action {
 impl From<Action> for AirbaseAction {
 	fn from(value: Action) -> Self {
 		match value {
-			Action::IDLE => AirbaseAction::IDLE,
-			Action::ATTACK => AirbaseAction::ATTACK,
-			Action::DEFENSE => AirbaseAction::DEFENSE,
-			Action::EVASION => AirbaseAction::EVASION,
-			Action::RESORT => AirbaseAction::RESORT,
+			Action::Idle => AirbaseAction::Idle,
+			Action::Attack => AirbaseAction::Attack,
+			Action::Defense => AirbaseAction::Defense,
+			Action::Evasion => AirbaseAction::Evasion,
+			Action::Resort => AirbaseAction::Resort,
 		}
 	}
 }

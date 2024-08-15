@@ -9,15 +9,15 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 pub enum Status {
 	/// Unassigned
 	#[sea_orm(num_value = 0)]
-	UNASSIGNED,
+	Unassigned,
 
 	/// Assigned
 	#[sea_orm(num_value = 1)]
-	ASSIGNED,
+	Assigned,
 
 	/// Reassigning
 	#[sea_orm(num_value = 2)]
-	REASSIGNING,
+	Reassigning,
 }
 
 #[allow(missing_docs)]
@@ -76,9 +76,9 @@ impl ActiveModelBehavior for ActiveModel {}
 impl From<Status> for PlaneState {
 	fn from(value: Status) -> Self {
 		match value {
-			Status::UNASSIGNED => PlaneState::UNASSIGNED,
-			Status::ASSIGNED => PlaneState::ASSIGNED,
-			Status::REASSIGNING => PlaneState::REASSIGNING,
+			Status::Unassigned => PlaneState::Unassigned,
+			Status::Assigned => PlaneState::Assigned,
+			Status::Reassigning => PlaneState::Reassigning,
 		}
 	}
 }
@@ -86,9 +86,9 @@ impl From<Status> for PlaneState {
 impl From<PlaneState> for Status {
 	fn from(value: PlaneState) -> Self {
 		match value {
-			PlaneState::UNASSIGNED => Status::UNASSIGNED,
-			PlaneState::ASSIGNED => Status::ASSIGNED,
-			PlaneState::REASSIGNING => Status::REASSIGNING,
+			PlaneState::Unassigned => Status::Unassigned,
+			PlaneState::Assigned => Status::Assigned,
+			PlaneState::Reassigning => Status::Reassigning,
 		}
 	}
 }

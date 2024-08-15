@@ -7,15 +7,15 @@ use crate::kc2::{KcApiAirBase, KcApiAirBaseExpandedInfo, KcApiDistance, KcApiPla
 pub enum AirbaseAction {
 	/// Idle
 	#[default]
-	IDLE = 0,
+	Idle = 0,
 	/// Attack
-	ATTACK = 1,
+	Attack = 1,
 	/// Defense
-	DEFENSE = 2,
+	Defense = 2,
 	/// Evasion
-	EVASION = 3,
+	Evasion = 3,
 	/// Resort
-	RESORT = 4,
+	Resort = 4,
 }
 
 /// User airbase
@@ -48,11 +48,11 @@ pub struct Airbase {
 pub enum PlaneState {
 	/// Unassigned
 	#[default]
-	UNASSIGNED = 0,
+	Unassigned = 0,
 	/// Assigned
-	ASSIGNED = 1,
+	Assigned = 1,
 	/// Reassigning
-	REASSIGNING = 2,
+	Reassigning = 2,
 }
 
 /// User plane(air base) info

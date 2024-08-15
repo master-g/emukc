@@ -2,6 +2,7 @@ use emukc_model::profile::Profile;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 pub mod airbase;
+pub mod expedition;
 pub mod item;
 pub mod material;
 
@@ -38,6 +39,10 @@ pub enum Relation {
 	/// Relation to `AirbaseExtend`
 	#[sea_orm(has_many = "airbase::extend::Entity")]
 	AirbaseExtend,
+
+	/// Relation to `Expedition`
+	#[sea_orm(has_many = "expedition::Entity")]
+	Expedition,
 
 	/// Relation to `Material`
 	#[sea_orm(has_one = "material::Entity")]
@@ -106,6 +111,11 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// airbase
 	{
 		airbase::bootstrap(db).await?;
+	}
+	// expedition
+	{
+		let stmt = schema.create_table_from_entity(expedition::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// material
 	{
