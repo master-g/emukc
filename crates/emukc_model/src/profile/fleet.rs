@@ -43,7 +43,7 @@ pub struct Fleet {
 	pub mission: Option<FleetMissionContext>,
 
 	/// Fleet ships, length is always 6, empty slot is filled with -1
-	pub ships: Vec<i64>,
+	pub ships: [i64; 6],
 }
 
 /// Fleet error
@@ -83,7 +83,7 @@ impl Fleet {
 			index,
 			name,
 			mission: None,
-			ships: Vec::new(),
+			ships: [-1; 6],
 		})
 	}
 }
@@ -105,7 +105,7 @@ impl From<Fleet> for KcApiDeckPort {
 				None => vec![0; 4],
 			},
 			api_flagship: "0".to_string(),
-			api_ship: value.ships,
+			api_ship: value.ships.to_vec(),
 		}
 	}
 }

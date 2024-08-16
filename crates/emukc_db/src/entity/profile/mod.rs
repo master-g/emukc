@@ -4,6 +4,7 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 pub mod airbase;
 pub mod expedition;
 pub mod fleet;
+pub mod furniture;
 pub mod item;
 pub mod material;
 
@@ -44,6 +45,14 @@ pub enum Relation {
 	/// Relation to `Expedition`
 	#[sea_orm(has_many = "expedition::Entity")]
 	Expedition,
+
+	/// Relation to `Fleet`
+	#[sea_orm(has_many = "fleet::Entity")]
+	Fleet,
+
+	/// Relation to `Furniture`
+	#[sea_orm(has_many = "furniture::Entity")]
+	Furniture,
 
 	/// Relation to `Material`
 	#[sea_orm(has_one = "material::Entity")]
@@ -116,6 +125,16 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// expedition
 	{
 		let stmt = schema.create_table_from_entity(expedition::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// fleet
+	{
+		let stmt = schema.create_table_from_entity(fleet::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// furniture
+	{
+		let stmt = schema.create_table_from_entity(furniture::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// material
