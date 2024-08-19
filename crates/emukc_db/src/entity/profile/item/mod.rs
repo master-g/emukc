@@ -2,6 +2,7 @@
 use sea_orm::entity::prelude::*;
 
 pub mod pay_item;
+pub mod picturebook;
 pub mod slot_item;
 pub mod use_item;
 
@@ -16,6 +17,11 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// slot_item
 	{
 		let stmt = schema.create_table_from_entity(slot_item::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// picturebook
+	{
+		let stmt = schema.create_table_from_entity(picturebook::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// use_item

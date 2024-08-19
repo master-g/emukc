@@ -4,7 +4,7 @@ use emukc_model::profile::expedition::{Expedition, ExpeditionState};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
 	/// Never started
@@ -21,7 +21,7 @@ pub enum Status {
 }
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "expedition")]
 pub struct Model {
 	/// Instance ID

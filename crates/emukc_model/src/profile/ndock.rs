@@ -30,6 +30,9 @@ pub struct RepairContext {
 
 	/// steel consumption
 	pub steel: i64,
+
+	/// last update time
+	pub last_update: DateTime<Utc>,
 }
 
 /// Repair dock, `NDock`

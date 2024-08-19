@@ -4,7 +4,7 @@ use emukc_model::profile::airbase::{Airbase, AirbaseAction};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Action {
 	#[sea_orm(num_value = 0)]
@@ -20,7 +20,7 @@ pub enum Action {
 }
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "airbase")]
 pub struct Model {
 	/// Instance ID

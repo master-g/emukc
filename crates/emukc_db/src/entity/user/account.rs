@@ -4,7 +4,7 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 use emukc_model::user::account::Account;
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "account")]
 pub struct Model {
 	/// Primary key, `uid`

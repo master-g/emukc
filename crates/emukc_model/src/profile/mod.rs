@@ -26,8 +26,6 @@ pub mod practice;
 pub mod quest;
 /// In game slot items
 pub mod slot_item;
-/// In game timer
-pub mod timer;
 /// In game user items, including `UseItem` and `PayItem`
 pub mod user_item;
 

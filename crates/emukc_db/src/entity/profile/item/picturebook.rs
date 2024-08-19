@@ -1,11 +1,11 @@
-//! Furniture entity
+//! Slot item picture entity
 
-use emukc_model::profile::furniture::Furniture;
+use emukc_model::profile::picture_book::PictureBookSlotItem;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
-#[sea_orm(table_name = "furniture")]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
+#[sea_orm(table_name = "slotitem_record")]
 pub struct Model {
 	/// Instance ID
 	#[sea_orm(primary_key, auto_increment = true)]
@@ -14,8 +14,8 @@ pub struct Model {
 	/// Profile ID
 	pub profile_id: i64,
 
-	/// Furniture ID
-	pub furniture_id: i64,
+	/// slotitem sort number
+	pub sort_num: i64,
 }
 
 /// Relation
@@ -38,21 +38,21 @@ impl Related<crate::entity::profile::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<Furniture> for ActiveModel {
-	fn from(furniture: Furniture) -> Self {
+impl From<PictureBookSlotItem> for ActiveModel {
+	fn from(value: PictureBookSlotItem) -> Self {
 		Self {
 			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(furniture.id),
-			furniture_id: ActiveValue::set(furniture.furniture_id),
+			profile_id: ActiveValue::Set(value.id),
+			sort_num: ActiveValue::Set(value.sort_num),
 		}
 	}
 }
 
-impl From<Model> for Furniture {
-	fn from(model: Model) -> Self {
+impl From<Model> for PictureBookSlotItem {
+	fn from(value: Model) -> Self {
 		Self {
-			id: model.profile_id,
-			furniture_id: model.furniture_id,
+			id: value.profile_id,
+			sort_num: value.sort_num,
 		}
 	}
 }

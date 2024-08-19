@@ -6,10 +6,15 @@ pub mod expedition;
 pub mod fleet;
 pub mod furniture;
 pub mod item;
+pub mod kdock;
+pub mod map_record;
 pub mod material;
+pub mod ndock;
+pub mod practice;
+pub mod ship;
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "profile")]
 pub struct Model {
 	/// Profile ID
@@ -54,9 +59,21 @@ pub enum Relation {
 	#[sea_orm(has_many = "furniture::Entity")]
 	Furniture,
 
+	/// Construct dock
+	#[sea_orm(has_many = "kdock::Entity")]
+	KDock,
+
+	/// Relation to `MapRecord`
+	#[sea_orm(has_many = "map_record::Entity")]
+	MapRecord,
+
 	/// Relation to `Material`
 	#[sea_orm(has_one = "material::Entity")]
 	Material,
+
+	/// Relation to `Ndock`
+	#[sea_orm(has_many = "ndock::Entity")]
+	NDock,
 
 	/// Relation to `PayItem`
 	#[sea_orm(has_many = "item::pay_item::Entity")]
@@ -66,9 +83,21 @@ pub enum Relation {
 	#[sea_orm(has_many = "airbase::plane::Entity")]
 	PlaneInfo,
 
+	/// Relation to `PracticeConfig`
+	#[sea_orm(has_one = "practice::config::Entity")]
+	PracticeConfig,
+
+	/// Relation to `Rival`
+	#[sea_orm(has_many = "practice::rival::Entity")]
+	Rival,
+
 	/// Relation to `SlotItem`
 	#[sea_orm(has_many = "item::slot_item::Entity")]
 	SlotItem,
+
+	/// Relation to `SlotItemRecord`
+	#[sea_orm(has_many = "item::picturebook::Entity")]
+	SlotItemRecord,
 
 	/// Relation to `UseItem`
 	#[sea_orm(has_many = "item::use_item::Entity")]
@@ -137,10 +166,29 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 		let stmt = schema.create_table_from_entity(furniture::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
+	// kdock
+	{
+		let stmt = schema.create_table_from_entity(kdock::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// map_record
+	{
+		let stmt = schema.create_table_from_entity(map_record::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
 	// material
 	{
 		let stmt = schema.create_table_from_entity(material::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// ndock
+	{
+		let stmt = schema.create_table_from_entity(ndock::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// practice
+	{
+		practice::bootstrap(db).await?;
 	}
 	// items
 	{

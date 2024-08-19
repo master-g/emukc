@@ -4,7 +4,7 @@ use emukc_model::profile::user_item::UserItem;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "use_item")]
 pub struct Model {
 	/// instance ID

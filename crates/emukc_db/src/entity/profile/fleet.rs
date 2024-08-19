@@ -5,7 +5,7 @@ use emukc_model::profile::fleet::{Fleet, FleetMissionContext, FleetMissionStatus
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum MissionStatus {
 	/// Idle
@@ -26,7 +26,7 @@ pub enum MissionStatus {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "fleet")]
 pub struct Model {
 	/// Instance ID

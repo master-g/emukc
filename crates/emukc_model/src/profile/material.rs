@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::kc2::{KcApiMaterialElement, MaterialCategory};
@@ -31,6 +32,12 @@ pub struct Material {
 
 	/// Screw, improvement material
 	pub screw: i64,
+
+	/// last time update first three materials
+	pub last_update_primary: DateTime<Utc>,
+
+	/// last time update bauxite
+	pub last_update_bauxite: DateTime<Utc>,
 }
 
 impl From<Material> for Vec<KcApiMaterialElement> {
@@ -162,6 +169,8 @@ impl MaterialConfig {
 			bucket: self.init_bucket,
 			devmat: self.init_devmat,
 			screw: self.init_screw,
+			last_update_primary: Utc::now(),
+			last_update_bauxite: Utc::now(),
 		}
 	}
 

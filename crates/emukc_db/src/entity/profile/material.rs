@@ -1,10 +1,11 @@
 //! Material Entity
 
+use chrono::{DateTime, Utc};
 use emukc_model::profile::material::Material;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "material")]
 pub struct Model {
 	/// Primary key
@@ -34,6 +35,12 @@ pub struct Model {
 
 	/// Screw
 	pub screw: i64,
+
+	/// last time update first three materials
+	pub last_update_primary: DateTime<Utc>,
+
+	/// last time update bauxite
+	pub last_update_bauxite: DateTime<Utc>,
 }
 
 /// Relation
@@ -64,6 +71,8 @@ impl From<Material> for ActiveModel {
 			bucket: ActiveValue::Set(t.bucket),
 			devmat: ActiveValue::Set(t.devmat),
 			screw: ActiveValue::Set(t.screw),
+			last_update_primary: ActiveValue::Set(t.last_update_primary),
+			last_update_bauxite: ActiveValue::Set(t.last_update_bauxite),
 		}
 	}
 }
@@ -80,6 +89,8 @@ impl From<Model> for Material {
 			bucket: value.bucket,
 			devmat: value.devmat,
 			screw: value.screw,
+			last_update_primary: value.last_update_primary,
+			last_update_bauxite: value.last_update_bauxite,
 		}
 	}
 }

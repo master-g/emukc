@@ -4,7 +4,7 @@ use emukc_model::profile::slot_item::SlotItem;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "slot_item")]
 pub struct Model {
 	/// Instance ID

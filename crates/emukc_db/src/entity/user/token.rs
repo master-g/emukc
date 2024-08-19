@@ -3,7 +3,7 @@ use emukc_model::user::token::{Token, TokenType};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "refresh_token")]
 pub struct Model {
 	/// Primary key, `uid`
@@ -18,7 +18,7 @@ pub struct Model {
 }
 
 /// Token type definition
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(1))")]
 pub enum TokenTypeDef {
 	/// Access token

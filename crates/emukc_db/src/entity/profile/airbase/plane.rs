@@ -4,7 +4,7 @@ use emukc_model::profile::airbase::{PlaneInfo, PlaneState};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
 	/// Unassigned
@@ -21,7 +21,7 @@ pub enum Status {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "plane_info")]
 pub struct Model {
 	/// Slot id, slot item instance id

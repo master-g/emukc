@@ -1,11 +1,11 @@
-//! Use Item Entity
+//! Ship record entity
 
-use emukc_model::profile::user_item::UserItem;
+use emukc_model::profile::picture_book::PictureBookShip;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
-#[sea_orm(table_name = "pay_item")]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
+#[sea_orm(table_name = "ship_record")]
 pub struct Model {
 	/// Instance ID
 	#[sea_orm(primary_key, auto_increment = true)]
@@ -14,11 +14,14 @@ pub struct Model {
 	/// Profile ID
 	pub profile_id: i64,
 
-	/// Manifest ID
-	pub mst_id: i64,
+	/// ship sort number
+	pub sort_num: i64,
 
-	/// Item count
-	pub count: i64,
+	/// Has damaged record
+	pub damaged: bool,
+
+	/// Has married record
+	pub married: bool,
 }
 
 /// Relation
@@ -41,23 +44,25 @@ impl Related<crate::entity::profile::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<UserItem> for ActiveModel {
-	fn from(t: UserItem) -> Self {
+impl From<PictureBookShip> for ActiveModel {
+	fn from(value: PictureBookShip) -> Self {
 		Self {
 			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(t.id),
-			mst_id: ActiveValue::Set(t.mst_id),
-			count: ActiveValue::Set(t.count),
+			profile_id: ActiveValue::Set(value.id),
+			sort_num: ActiveValue::Set(value.sort_num),
+			damaged: ActiveValue::Set(value.damaged),
+			married: ActiveValue::Set(value.married),
 		}
 	}
 }
 
-impl From<Model> for UserItem {
+impl From<Model> for PictureBookShip {
 	fn from(value: Model) -> Self {
 		Self {
 			id: value.profile_id,
-			mst_id: value.id,
-			count: value.count,
+			sort_num: value.sort_num,
+			damaged: value.damaged,
+			married: value.married,
 		}
 	}
 }

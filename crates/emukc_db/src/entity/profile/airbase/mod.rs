@@ -13,6 +13,16 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 		let stmt = schema.create_table_from_entity(base::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
+	// extend
+	{
+		let stmt = schema.create_table_from_entity(extend::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// plane
+	{
+		let stmt = schema.create_table_from_entity(plane::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
 
 	Ok(())
 }

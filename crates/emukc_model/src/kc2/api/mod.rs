@@ -132,22 +132,39 @@ pub struct KcApiShip {
 	pub api_sortno: i64,
 	pub api_ship_id: i64,
 	pub api_lv: i64,
+	/// Ship experience
+	/// [0]: current
+	/// [1]: needed for next level
+	/// [2]: progress percentage, 0-100
 	pub api_exp: Vec<i64>,
 	pub api_nowhp: i64,
 	pub api_maxhp: i64,
+	/// Speed
+	/// 0: base, 5: slow, 10: fast, 15: fast+, 20: fastest
 	pub api_soku: i64,
+	/// Range, 0: none, 1: short, 2: medium, 3: long, 4: very long, 5: very long+
 	pub api_leng: i64,
+	/// Slots, length 5, -1 for empty slot
 	pub api_slot: Vec<i64>,
+	/// Aircraft capacity
 	pub api_onslot: Vec<i64>,
+	/// Extra slot, 0 for locked, -1 for empty
 	pub api_slot_ex: i64,
+	/// Modernization, [0]: firepower, [1]: torpedo, [2]: AA, [3]: armor, [4]: luck, [5]: HP, [6]: ASW
 	pub api_kyouka: Vec<i64>,
+	/// Rarity
 	pub api_backs: i64,
 	pub api_fuel: i64,
 	pub api_bull: i64,
+	/// Number of slots
 	pub api_slotnum: i64,
+	/// Repair time, in milliseconds
 	pub api_ndock_time: i64,
+	/// Material consumption for repair, [0]: fuel, [1]: steel
 	pub api_ndock_item: Vec<i64>,
+	/// Modernization level, 0 for not modernized
 	pub api_srate: i64,
+	/// Morale
 	pub api_cond: i64,
 	pub api_karyoku: Vec<i64>,
 	pub api_raisou: Vec<i64>,
@@ -157,8 +174,11 @@ pub struct KcApiShip {
 	pub api_taisen: Vec<i64>,
 	pub api_sakuteki: Vec<i64>,
 	pub api_lucky: Vec<i64>,
+	/// Is locked, 0: no, 1: yes
 	pub api_locked: i64,
+	/// Equip any locked equipment, 0: no, 1: yes
 	pub api_locked_equip: i64,
+	/// Sally area, used when there is event
 	pub api_sally_area: i64,
 }
 

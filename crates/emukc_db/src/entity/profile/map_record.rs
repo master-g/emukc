@@ -1,11 +1,11 @@
-//! Airbase extend info
+//! Map record entity
 
-use emukc_model::profile::airbase::AirbaseExtendedInfo;
+use emukc_model::profile::map_record::MapRecord;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
-#[sea_orm(table_name = "airbase_extend")]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
+#[sea_orm(table_name = "map_record")]
 pub struct Model {
 	/// Instance ID
 	#[sea_orm(primary_key, auto_increment = true)]
@@ -14,11 +14,17 @@ pub struct Model {
 	/// Profile ID
 	pub profile_id: i64,
 
-	/// Area ID
-	pub area_id: i64,
+	/// Map ID
+	pub map_id: i64,
 
-	/// Maintenance level
-	pub maintenance_level: i64,
+	/// Has cleared
+	pub cleared: bool,
+
+	/// Defeat count
+	pub defeat_count: Option<i64>,
+
+	/// Current map HP
+	pub current_hp: Option<i64>,
 }
 
 /// Relation
@@ -41,23 +47,27 @@ impl Related<crate::entity::profile::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<AirbaseExtendedInfo> for ActiveModel {
-	fn from(value: AirbaseExtendedInfo) -> Self {
+impl From<MapRecord> for ActiveModel {
+	fn from(value: MapRecord) -> Self {
 		Self {
 			id: ActiveValue::NotSet,
 			profile_id: ActiveValue::Set(value.id),
-			area_id: ActiveValue::Set(value.area_id),
-			maintenance_level: ActiveValue::Set(value.maintenance_level),
+			map_id: ActiveValue::Set(value.map_id),
+			cleared: ActiveValue::Set(value.cleared),
+			defeat_count: ActiveValue::Set(value.defeat_count),
+			current_hp: ActiveValue::Set(value.current_hp),
 		}
 	}
 }
 
-impl From<Model> for AirbaseExtendedInfo {
+impl From<Model> for MapRecord {
 	fn from(value: Model) -> Self {
 		Self {
 			id: value.profile_id,
-			area_id: value.area_id,
-			maintenance_level: value.maintenance_level,
+			map_id: value.map_id,
+			cleared: value.cleared,
+			defeat_count: value.defeat_count,
+			current_hp: value.current_hp,
 		}
 	}
 }
