@@ -23,7 +23,7 @@ pub struct Kc3rdShipBasic {
 	pub cnum: i64,
 
 	/// `slots.len()`: how many slots the ship has
-	/// `slots[n]`: how many planes the n-th slot can hold
+	/// `slots[n]`: how many aircraft the n-th slot can hold
 	pub slots: Vec<i64>,
 
 	/// initial equipment

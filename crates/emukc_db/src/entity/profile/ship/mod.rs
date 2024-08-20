@@ -25,6 +25,81 @@ pub struct Model {
 
 	/// experience
 	pub exp: i64,
+
+	/// Married
+	pub married: bool,
+
+	/// current hp
+	pub hp_now: i64,
+
+	/// maximum hp
+	pub hp_max: i64,
+
+	/// speed, soku
+	pub speed: i64,
+
+	/// range, leng
+	pub range: i64,
+
+	/// slots, first
+	pub slot_1: i64,
+
+	/// slots, second
+	pub slot_2: i64,
+
+	/// slots, third
+	pub slot_3: i64,
+
+	/// slots, fourth
+	pub slot_4: i64,
+
+	/// slots, fifth
+	pub slot_5: i64,
+
+	/// extra slots
+	pub slot_ex: i64,
+
+	/// aircraft capacity left
+	pub onslot_1: i64,
+
+	/// aircraft capacity left
+	pub onslot_2: i64,
+
+	/// aircraft capacity left
+	pub onslot_3: i64,
+
+	/// aircraft capacity left
+	pub onslot_4: i64,
+
+	/// aircraft capacity left
+	pub onslot_5: i64,
+
+	/// modrenization, firepower
+	pub mod_firepower: i64,
+
+	/// modrenization, torpedo
+	pub mod_torpedo: i64,
+
+	/// modrenization, AA
+	pub mod_aa: i64,
+
+	/// modrenization, armor
+	pub mod_armor: i64,
+
+	/// modrenization, luck
+	pub mod_luck: i64,
+
+	/// modrenization, HP
+	pub mod_hp: i64,
+
+	/// modrenization, ASW
+	pub mod_asw: i64,
+
+	/// fuel left
+	pub fuel: i64,
+
+	/// ammo left
+	pub ammo: i64,
 }
 
 /// Relation
