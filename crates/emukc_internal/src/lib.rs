@@ -1,5 +1,8 @@
 //! This module is separated into its own crate to enable simple dynamic linking for `EmuKC`, and should not be used directly.
 
+/// `use emukc::prelude::*;` to import commonly used items.
+pub mod prelude;
+
 pub use emukc_crypto as crypto;
 pub use emukc_db as db;
 pub use emukc_macros as macros;

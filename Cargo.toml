@@ -69,3 +69,17 @@ tracing-appender = "0.2"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }
+
+[dev-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# For testing
+
+[[example]]
+name = "model_loader"
+path = "tests/model/load.rs"
+doc-scrape-examples = true
+
+[package.metadata.example.model_loader]
+hidden = true

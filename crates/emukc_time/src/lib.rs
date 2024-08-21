@@ -138,3 +138,12 @@ pub fn jst_0500_day_one_of_year() -> DateTime<Utc> {
 
 	first_day_0500_jst.with_timezone(&Utc)
 }
+
+pub mod prelude {
+	//! The `emukc_time` crate prelude.
+	#[doc(hidden)]
+	pub use crate::{
+		format_date, jst_0500_day_one_of_quarter, jst_0500_day_one_of_year, jst_0500_of_nth_day,
+		jst_day_of_month, jst_monday_0500_utc, jst_today_0500_utc,
+	};
+}

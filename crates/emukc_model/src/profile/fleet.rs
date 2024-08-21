@@ -100,12 +100,12 @@ impl From<Fleet> for KcApiDeckPort {
 					let status = context.status as i64;
 					let return_time =
 						context.return_time.map(|r| r.timestamp_millis()).unwrap_or(0);
-					vec![status, context.id, return_time, 0]
+					[status, context.id, return_time, 0]
 				}
-				None => vec![0; 4],
+				None => [0; 4],
 			},
 			api_flagship: "0".to_string(),
-			api_ship: value.ships.to_vec(),
+			api_ship: value.ships,
 		}
 	}
 }

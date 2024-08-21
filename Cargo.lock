@@ -487,6 +487,8 @@ version = "0.1.0"
 dependencies = [
  "emukc_dylib",
  "emukc_internal",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

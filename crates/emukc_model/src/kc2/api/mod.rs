@@ -43,7 +43,7 @@ pub struct KcApiUserBasic {
 	/// ???, always 0, not used in main.js
 	pub api_tutorial: i64,
 	/// Furniture setting, [0]: floor, [1]: wallpaper, [2]: window, [3]: wallhanging, [4]: shelf, [5]: desk
-	pub api_furniture: Vec<i64>,
+	pub api_furniture: [i64; 6],
 	/// Deck count
 	pub api_count_deck: i64,
 	/// Construction dock count
@@ -73,7 +73,7 @@ pub struct KcApiUserBasic {
 	/// Tutorial progress register
 	pub api_tutorial_progress: i64,
 	/// ???, always [0, 0], not used in main.js
-	pub api_pvp: Vec<i64>,
+	pub api_pvp: [i64; 2],
 	/// Number of class A medal obtained
 	pub api_medals: i64,
 	/// Large construction dock unlock flag, not exist in origin API, 0: locked, 1: unlocked
@@ -81,7 +81,7 @@ pub struct KcApiUserBasic {
 	/// Maxium parallel quest count, not exist in origin API
 	pub api_max_quests: i64,
 	/// Extra supply enable flag, [0] expendition, [1] battle
-	pub api_extra_supply: Vec<i64>,
+	pub api_extra_supply: [i64; 2],
 	/// War result points, not exist in origin API
 	pub api_war_result: i64,
 }
@@ -136,7 +136,7 @@ pub struct KcApiShip {
 	/// [0]: current
 	/// [1]: needed for next level
 	/// [2]: progress percentage, 0-100
-	pub api_exp: Vec<i64>,
+	pub api_exp: [i64; 3],
 	pub api_nowhp: i64,
 	pub api_maxhp: i64,
 	/// Speed
@@ -145,13 +145,13 @@ pub struct KcApiShip {
 	/// Range, 0: none, 1: short, 2: medium, 3: long, 4: very long, 5: very long+
 	pub api_leng: i64,
 	/// Slots, length 5, -1 for empty slot
-	pub api_slot: Vec<i64>,
+	pub api_slot: [i64; 5],
 	/// Aircraft capacity
-	pub api_onslot: Vec<i64>,
+	pub api_onslot: [i64; 5],
 	/// Extra slot, 0 for locked, -1 for empty
 	pub api_slot_ex: i64,
 	/// Modernization, [0]: firepower, [1]: torpedo, [2]: AA, [3]: armor, [4]: luck, [5]: HP, [6]: ASW
-	pub api_kyouka: Vec<i64>,
+	pub api_kyouka: [i64; 7],
 	/// Rarity
 	pub api_backs: i64,
 	pub api_fuel: i64,
@@ -161,19 +161,27 @@ pub struct KcApiShip {
 	/// Repair time, in milliseconds
 	pub api_ndock_time: i64,
 	/// Material consumption for repair, [0]: fuel, [1]: steel
-	pub api_ndock_item: Vec<i64>,
+	pub api_ndock_item: [i64; 2],
 	/// Modernization level, 0 for not modernized
 	pub api_srate: i64,
 	/// Morale
 	pub api_cond: i64,
-	pub api_karyoku: Vec<i64>,
-	pub api_raisou: Vec<i64>,
-	pub api_taiku: Vec<i64>,
-	pub api_soukou: Vec<i64>,
-	pub api_kaihi: Vec<i64>,
-	pub api_taisen: Vec<i64>,
-	pub api_sakuteki: Vec<i64>,
-	pub api_lucky: Vec<i64>,
+	/// fire power, [0]: including equipment, [1]: max
+	pub api_karyoku: [i64; 2],
+	/// torpedo, [0]: current, [1]: max
+	pub api_raisou: [i64; 2],
+	/// AA, [0]: current, [1]: max
+	pub api_taiku: [i64; 2],
+	/// armor, [0]: current, [1]: max
+	pub api_soukou: [i64; 2],
+	/// evasion, [0]: current, [1]: max
+	pub api_kaihi: [i64; 2],
+	/// anti-submarine, [0]: current, [1]: max
+	pub api_taisen: [i64; 2],
+	/// line of sight, [0]: current, [1]: max
+	pub api_sakuteki: [i64; 2],
+	/// luck, [0]: current, [1]: max
+	pub api_lucky: [i64; 2],
 	/// Is locked, 0: no, 1: yes
 	pub api_locked: i64,
 	/// Equip any locked equipment, 0: no, 1: yes
@@ -187,7 +195,7 @@ pub struct KcApiPresetDeckElement {
 	pub api_preset_no: i64,
 	pub api_name: String,
 	pub api_name_id: String,
-	pub api_ship: Vec<i64>,
+	pub api_ship: [i64; 6],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -232,11 +240,11 @@ pub struct KcApiDeckPort {
 	/// 1: mission id
 	/// 2: return time, in milliseconds
 	/// 3: always 0
-	pub api_mission: Vec<i64>,
+	pub api_mission: [i64; 4],
 	/// always "0" for now
 	pub api_flagship: String,
 	/// ship id, -1 for empty slot
-	pub api_ship: Vec<i64>,
+	pub api_ship: [i64; 6],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -291,7 +299,7 @@ pub struct KcApiGameSetting {
 	/// Language type, 0: Japanese, 1: English
 	pub api_language_type: i64,
 	/// Ship sorting filters, 0: BB, 1: CV, 2: CA, 3: CL, 4: DD, 5: DE, 6: SS, 7: other
-	pub api_oss_items: Vec<i64>,
+	pub api_oss_items: [i64; 8],
 	/// Secretary ship position
 	pub api_position_id: i64,
 	/// UI skin ID
@@ -308,7 +316,7 @@ impl Default for KcApiGameSetting {
 	fn default() -> Self {
 		Self {
 			api_language_type: 0,
-			api_oss_items: vec![],
+			api_oss_items: [0; 8],
 			api_position_id: 0,
 			api_skin_id: 101,
 			api_p_bgm_id: 101,
@@ -470,10 +478,10 @@ pub struct KcApiPracticeEnemyInfo {
 	pub api_cmt_id: String,
 	pub api_level: i64,
 	pub api_rank: i64,
-	pub api_experience: Vec<i64>, // [0]: current value, [1]: always 0
+	pub api_experience: [i64; 2], // [0]: current value, [1]: always 0
 	pub api_friend: i64,          // 0: default
-	pub api_ship: Vec<i64>,       // [0]: current, [1]: max
-	pub api_slotitem: Vec<i64>,   // [0]: current, [1]: max
+	pub api_ship: [i64; 2],       // [0]: current, [1]: max
+	pub api_slotitem: [i64; 2],   // [0]: current, [1]: max
 	pub api_furniture: i64,
 	pub api_deckname: String,
 	pub api_deckname_id: String,
@@ -515,7 +523,12 @@ pub struct KcApiShipQVoiceInfo {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KcApiPictureBookShip {
 	pub api_index_no: i64,
-	pub api_state: Vec<Vec<i64>>,
+	/// [][0]: default
+	/// [][1]: medium damage
+	/// [][2]: married
+	/// [][3]: ?
+	/// [][4]: ?
+	pub api_state: Vec<[i64; 5]>,
 	pub api_q_voice_info: Vec<KcApiShipQVoiceInfo>,
 	pub api_table_id: Vec<i64>,
 	pub api_name: String,

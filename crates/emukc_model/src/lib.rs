@@ -49,3 +49,9 @@ pub struct Codex {
 
 /// A type alias for `std::sync::Arc<Codex>`.
 pub type CodexRaw = std::sync::Arc<Codex>;
+
+pub mod prelude {
+	//! The `emukc_model` crate prelude.
+	#[doc(hidden)]
+	pub use crate::kc2::start2::*;
+}
