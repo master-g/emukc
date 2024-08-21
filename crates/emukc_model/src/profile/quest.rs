@@ -5,7 +5,7 @@ use crate::thirdparty::{Kc3rdQuestPeriod, Kc3rdQuestRequirement};
 
 /// One-time quest record
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct QuestOneTimeRecord {
+pub struct QuestOneshotRecord {
 	/// profile id
 	pub id: i64,
 

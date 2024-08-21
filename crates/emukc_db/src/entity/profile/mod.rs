@@ -13,6 +13,7 @@ pub mod map_record;
 pub mod material;
 pub mod ndock;
 pub mod practice;
+pub mod quest;
 pub mod ship;
 
 #[allow(missing_docs)]

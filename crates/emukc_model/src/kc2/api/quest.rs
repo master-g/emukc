@@ -5,7 +5,7 @@ pub enum KcApiQuestType {
 	Daily = 1,
 	Weekly = 2,
 	Monthly = 3,
-	Onetime = 4,
+	Oneshot = 4,
 	Other = 5,
 }
 

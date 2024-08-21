@@ -101,7 +101,7 @@ impl From<i64> for Kc3rdQuestCategory {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum Kc3rdQuestPeriod {
 	#[default]
-	Onetime = 1,
+	Oneshot = 1,
 	Daily = 2,
 	Weekly = 3,
 	Daily3rd7th0th = 4,
@@ -114,7 +114,7 @@ pub enum Kc3rdQuestPeriod {
 impl From<i64> for Kc3rdQuestPeriod {
 	fn from(value: i64) -> Self {
 		match value {
-			1 => Self::Onetime,
+			1 => Self::Oneshot,
 			2 => Self::Daily,
 			3 => Self::Weekly,
 			4 => Self::Daily3rd7th0th,
@@ -130,7 +130,7 @@ impl From<i64> for Kc3rdQuestPeriod {
 impl Kc3rdQuestPeriod {
 	pub fn to_api_type(&self) -> i64 {
 		match &self {
-			Kc3rdQuestPeriod::Onetime => KcApiQuestType::Onetime as i64,
+			Kc3rdQuestPeriod::Oneshot => KcApiQuestType::Oneshot as i64,
 			Kc3rdQuestPeriod::Daily | Kc3rdQuestPeriod::Daily3rd7th0th => {
 				KcApiQuestType::Daily as i64
 			}
