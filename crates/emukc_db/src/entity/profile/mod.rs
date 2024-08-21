@@ -1,5 +1,7 @@
+use chrono::{DateTime, Utc};
+use sea_orm::entity::prelude::*;
+
 use emukc_model::profile::Profile;
-use sea_orm::{entity::prelude::*, ActiveValue};
 
 pub mod airbase;
 pub mod expedition;
@@ -26,6 +28,81 @@ pub struct Model {
 
 	/// name
 	pub name: String,
+
+	/// last time played
+	pub last_played: DateTime<Utc>,
+
+	/// Headquarter level
+	pub hq_level: i64,
+
+	/// Headquarter rank
+	pub hq_rank: i64,
+
+	/// Experience
+	pub experience: i64,
+
+	/// Comment
+	pub comment: String,
+
+	/// Max ship capacity
+	pub max_ship_capacity: i64,
+
+	/// Max equipment capacity
+	pub max_equipment_capacity: i64,
+
+	/// Number of decks
+	pub deck_num: i64,
+
+	/// Number of K-docks
+	pub kdock_num: i64,
+
+	/// Number of N-docks
+	pub ndock_num: i64,
+
+	/// Number of winned sorties
+	pub sortie_wins: i64,
+
+	/// Number of expeditions
+	pub expeditions: i64,
+
+	/// Number of successful expeditions
+	pub expeditions_success: i64,
+
+	/// Number of practice battles
+	pub practice_battles: i64,
+
+	/// Number of won practice battles
+	pub practice_battle_wins: i64,
+
+	/// Number of practice challenges
+	pub practice_challenges: i64,
+
+	/// Number of won practice challenges
+	pub practice_challenge_wins: i64,
+
+	/// Is new player
+	pub intro_completed: bool,
+
+	/// Tutorial progress
+	pub tutorial_progress: i64,
+
+	/// Number of medals
+	pub medals: i64,
+
+	/// Number of medals earned
+	pub large_dock_unlocked: bool,
+
+	/// Number of quests can be accepted parallel
+	pub max_quests: i64,
+
+	/// Extra supply enabled, expedition
+	pub extra_supply_expedition: bool,
+
+	/// Extra supply enabled, sortie
+	pub extra_supply_sortie: bool,
+
+	/// War result
+	pub war_result: i64,
 }
 
 /// See <https://www.sea-ql.org/SeaORM/docs/generate-entity/entity-structure>
@@ -56,8 +133,12 @@ pub enum Relation {
 	Fleet,
 
 	/// Relation to `Furniture`
-	#[sea_orm(has_many = "furniture::Entity")]
+	#[sea_orm(has_many = "furniture::record::Entity")]
 	Furniture,
+
+	/// Relation to `FurnitureConfig`
+	#[sea_orm(has_one = "furniture::config::Entity")]
+	FurnitureConfig,
 
 	/// Construct dock
 	#[sea_orm(has_many = "kdock::Entity")]
@@ -118,16 +199,6 @@ impl Related<crate::entity::user::account::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<Profile> for ActiveModel {
-	fn from(t: Profile) -> Self {
-		Self {
-			id: ActiveValue::Set(t.id),
-			account_id: ActiveValue::Set(t.account_id),
-			name: ActiveValue::Set(t.name),
-		}
-	}
-}
-
 impl From<Model> for Profile {
 	fn from(value: Model) -> Self {
 		Self {
@@ -163,8 +234,7 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	}
 	// furniture
 	{
-		let stmt = schema.create_table_from_entity(furniture::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
+		furniture::bootstrap(db).await?;
 	}
 	// kdock
 	{

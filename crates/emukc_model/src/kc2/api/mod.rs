@@ -80,7 +80,7 @@ pub struct KcApiUserBasic {
 	pub api_large_dock: i64,
 	/// Maxium parallel quest count, not exist in origin API
 	pub api_max_quests: i64,
-	/// Extra supply enable flag, [0] expendition, [1] battle
+	/// Extra supply enable flag, [0] expedition, [1] battle
 	pub api_extra_supply: [i64; 2],
 	/// War result points, not exist in origin API
 	pub api_war_result: i64,

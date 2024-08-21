@@ -1,11 +1,11 @@
-//! Furniture entity
+//! Furniture inventory entity
 
 use emukc_model::profile::furniture::Furniture;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
-#[sea_orm(table_name = "furniture")]
+#[sea_orm(table_name = "furniture_record")]
 pub struct Model {
 	/// Instance ID
 	#[sea_orm(primary_key, auto_increment = true)]
