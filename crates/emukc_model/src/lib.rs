@@ -47,11 +47,50 @@ pub struct Codex {
 	// TODO: add more limitations.
 }
 
+impl Codex {
+	/// Load `Codex` instance from directory.
+	///
+	/// the `ApiManifest` is loaded from `dir/start2.json`.
+	///
+	/// the `Kc3rdShipBasicMap` is loaded from `dir/ship_basic.json`.
+	///
+	/// the `Kc3rdShipClassNameMap` is loaded from `dir/ship_class_name.json`.
+	///
+	/// the `Kc3rdShipExtraInfoMap` is loaded from `dir/ship_extra_info.json`.
+	///
+	/// the `Kc3rdSlotItemExtraInfoMap` is loaded from `dir/slotitem_extra_info.json`.
+	///
+	/// the `KcShipRemodelRequirementMap` is loaded from `dir/ship_remodel_info.json`.
+	///
+	/// the `Kc3rdShipVoiceMap` is loaded from `dir/ship_extra_voice.json`.
+	///
+	/// the `KcNavy` is loaded from `dir/navy.json`.
+	///
+	/// the `Kc3rdQuestMap` is loaded from `dir/quest.json`.
+	///
+	/// the `MaterialConfig` is loaded from `dir/material_cfg.json`.
+	///
+	/// # Arguments
+	///
+	/// * `dir` - The directory path.
+	///
+	/// # Returns
+	///
+	/// The `Codex` instance.
+	pub fn load(dir: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+		let path = dir.as_ref();
+		let file = std::fs::File::open(path)?;
+		let reader = std::io::BufReader::new(file);
+		let codex = serde_json::from_reader(reader)?;
+		Ok(codex)
+	}
+}
+
 /// A type alias for `std::sync::Arc<Codex>`.
 pub type CodexRaw = std::sync::Arc<Codex>;
 
 pub mod prelude {
 	//! The `emukc_model` crate prelude.
 	#[doc(hidden)]
-	pub use crate::kc2::start2::*;
+	pub use crate::{kc2::start2::*, Codex, CodexRaw};
 }
