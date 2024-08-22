@@ -6,6 +6,7 @@ mod test {
 		global::id_generator::{self, IdType},
 	};
 	use emukc_model::{
+		kc2::UserHQRank,
 		profile::{user_item::UserItem, Profile},
 		user::account::Account,
 	};
@@ -119,7 +120,36 @@ mod test {
 				name: name.to_owned(),
 			};
 
-			let active_model = entity::profile::ActiveModel::from(new_profile.clone());
+			let active_model = entity::profile::ActiveModel {
+				id: ActiveValue::NotSet,
+				account_id: ActiveValue::Set(account.uid),
+				name: ActiveValue::NotSet,
+				last_played: ActiveValue::Set(Utc::now()),
+				hq_level: ActiveValue::Set(1),
+				hq_rank: ActiveValue::Set(UserHQRank::JuniorLieutenantCommander as i64),
+				experience: ActiveValue::Set(0),
+				comment: ActiveValue::NotSet,
+				max_ship_capacity: ActiveValue::Set(100),
+				max_equipment_capacity: ActiveValue::Set(100),
+				deck_num: ActiveValue::Set(1),
+				kdock_num: ActiveValue::Set(2),
+				ndock_num: ActiveValue::Set(2),
+				sortie_wins: ActiveValue::Set(0),
+				expeditions: ActiveValue::Set(0),
+				expeditions_success: ActiveValue::Set(0),
+				practice_battles: ActiveValue::Set(0),
+				practice_battle_wins: ActiveValue::Set(0),
+				practice_challenges: ActiveValue::Set(0),
+				practice_challenge_wins: ActiveValue::Set(0),
+				intro_completed: ActiveValue::Set(false),
+				tutorial_progress: ActiveValue::Set(0),
+				medals: ActiveValue::Set(0),
+				large_dock_unlocked: ActiveValue::Set(false),
+				max_quests: ActiveValue::Set(3),
+				extra_supply_expedition: ActiveValue::Set(false),
+				extra_supply_sortie: ActiveValue::Set(false),
+				war_result: ActiveValue::Set(0),
+			};
 			let result = entity::profile::Entity::insert(active_model).exec(db).await.unwrap();
 
 			new_profile.id = result.last_insert_id;
