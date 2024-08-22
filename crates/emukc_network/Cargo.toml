@@ -1,0 +1,22 @@
+[package]
+name = "emukc_network"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# emukc
+emukc_crypto = { path = "../emukc_crypto" }
+
+# other
+http = { workspace = true }
+reqwest = { workspace = true, default-features = false, features = [
+	"default-tls",
+	"socks",
+	"stream",
+] }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true
