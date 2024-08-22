@@ -173,6 +173,18 @@ pub enum Relation {
 	#[sea_orm(has_many = "practice::rival::Entity")]
 	Rival,
 
+	/// Relation to `QuestProgress`
+	#[sea_orm(has_many = "quest::progress::Entity")]
+	QuestProgress,
+
+	/// Relation to `OneshotQuestRecord`
+	#[sea_orm(has_many = "quest::oneshot::Entity")]
+	OneshotQuestRecord,
+
+	/// Relation to `PeriodicQuestRecord`
+	#[sea_orm(has_many = "quest::periodic::Entity")]
+	PeriodicQuestRecord,
+
 	/// Relation to `SlotItem`
 	#[sea_orm(has_many = "item::slot_item::Entity")]
 	SlotItem,
@@ -260,6 +272,10 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// practice
 	{
 		practice::bootstrap(db).await?;
+	}
+	// quest
+	{
+		quest::bootstrap(db).await?;
 	}
 	// items
 	{
