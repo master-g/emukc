@@ -4,6 +4,10 @@
 #![doc(html_logo_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+use std::str::FromStr;
+
+use prelude::ApiManifest;
+
 #[macro_use]
 extern crate tracing;
 
@@ -47,6 +51,17 @@ pub struct Codex {
 	// TODO: add more limitations.
 }
 
+const PATH_START2: &str = "start2.json";
+const PATH_SHIP_BASIC: &str = "ship_basic.json";
+const PATH_SHIP_CLASS_NAME: &str = "ship_class_name.json";
+const PATH_SHIP_EXTRA_INFO: &str = "ship_extra_info.json";
+const PATH_SLOTITEM_EXTRA_INFO: &str = "slotitem_extra_info.json";
+const PATH_SHIP_REMODEL_INFO: &str = "ship_remodel_info.json";
+const PATH_SHIP_EXTRA_VOICE: &str = "ship_extra_voice.json";
+const PATH_NAVY: &str = "navy.json";
+const PATH_QUEST: &str = "quest.json";
+const PATH_MATERIAL_CFG: &str = "material_cfg.json";
+
 impl Codex {
 	/// Load `Codex` instance from directory.
 	///
@@ -79,10 +94,37 @@ impl Codex {
 	/// The `Codex` instance.
 	pub fn load(dir: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
 		let path = dir.as_ref();
-		let file = std::fs::File::open(path)?;
-		let reader = std::io::BufReader::new(file);
-		let codex = serde_json::from_reader(reader)?;
-		Ok(codex)
+
+		let manifest = {
+			let path = path.join(PATH_START2);
+			let raw = std::fs::read_to_string(&path)?;
+			ApiManifest::from_str(&raw)?
+		};
+
+		Ok(Codex {
+			manifest,
+			ship_basic: Self::load_single_item(path.join(PATH_SHIP_BASIC))?,
+			ship_class_name: Self::load_single_item(path.join(PATH_SHIP_CLASS_NAME))?,
+			ship_extra_info: Self::load_single_item(path.join(PATH_SHIP_EXTRA_INFO))?,
+			slotitem_extra_info: Self::load_single_item(path.join(PATH_SLOTITEM_EXTRA_INFO))?,
+			ship_remodel_info: Self::load_single_item(path.join(PATH_SHIP_REMODEL_INFO))?,
+			ship_extra_voice: Self::load_single_item(path.join(PATH_SHIP_EXTRA_VOICE))?,
+			navy: Self::load_single_item(path.join(PATH_NAVY))?,
+			quest: Self::load_single_item(path.join(PATH_QUEST))?,
+			material_cfg: Self::load_single_item(path.join(PATH_MATERIAL_CFG))?,
+		})
+	}
+
+	fn load_single_item<T>(
+		path: impl AsRef<std::path::Path>,
+	) -> Result<T, Box<dyn std::error::Error>>
+	where
+		T: serde::de::DeserializeOwned,
+	{
+		let path = path.as_ref();
+		let raw = std::fs::read_to_string(path)?;
+
+		Ok(serde_json::from_str(&raw)?)
 	}
 }
 
