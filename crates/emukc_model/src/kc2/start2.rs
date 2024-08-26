@@ -231,13 +231,13 @@ pub struct ApiMstMission {
 	pub api_name: String,
 	pub api_reset_type: i64,
 	pub api_return_flag: i64,
-	pub api_sample_fleet: Vec<i64>,
+	pub api_sample_fleet: [i64; 6],
 	pub api_time: i64,
 	pub api_use_bull: f64,
 	pub api_use_fuel: f64,
-	pub api_win_item1: Vec<i64>,
-	pub api_win_item2: Vec<i64>,
-	pub api_win_mat_level: Vec<i64>,
+	pub api_win_item1: [i64; 2],
+	pub api_win_item2: [i64; 2],
+	pub api_win_mat_level: [i64; 4],
 }
 
 /// Pay item data.
@@ -249,7 +249,7 @@ pub struct ApiMstPayitem {
 	pub api_description: String,
 	/// items get after purchase
 	/// [0]: fuel, [1]: ammo, [2]: steel, [3]: bauxite, [4]: instant construction, [5]: instant repair, [6]: development material, [7]: dock key
-	pub api_item: Vec<i64>,
+	pub api_item: [i64; 8],
 	/// Name.
 	pub api_name: String,
 	/// Price.
@@ -290,7 +290,7 @@ pub struct ApiMstShip {
 
 	/// The materials reclaimed when the ship is scrapped.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_broken: Option<Vec<i64>>,
+	pub api_broken: Option<[i64; 4]>,
 
 	/// The ship's build time in minutes.
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -313,7 +313,7 @@ pub struct ApiMstShip {
 
 	/// Firepower. [0] = initial, [1] = max.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_houg: Option<Vec<i64>>,
+	pub api_houg: Option<[i64; 2]>,
 
 	/// Range, 0 = none, 1 = short, 2 = medium, 3 = long, 4 = very long.
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -321,11 +321,11 @@ pub struct ApiMstShip {
 
 	/// Luck. [0] = initial, [1] = max.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_luck: Option<Vec<i64>>,
+	pub api_luck: Option<[i64; 2]>,
 
 	/// Aircraft capacity for each slot.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_maxeq: Option<Vec<i64>>,
+	pub api_maxeq: Option<[i64; 5]>,
 
 	/// The ship's name.
 	pub api_name: String,
@@ -333,12 +333,12 @@ pub struct ApiMstShip {
 	/// Power up points provided as material for the modernization of other ships.
 	/// [0]: firepower, [1]: torpedo, [2]: Anti-air, [3]: armor
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_powup: Option<Vec<i64>>,
+	pub api_powup: Option<[i64; 4]>,
 
 	/// Torpedo. [0] = initial, [1] = max.
 	/// `raig` is the Japanese word for `raigeki` which means lightning strike.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_raig: Option<Vec<i64>>,
+	pub api_raig: Option<[i64; 2]>,
 
 	/// The number of slots for equipment.
 	pub api_slot_num: i64,
@@ -355,7 +355,7 @@ pub struct ApiMstShip {
 
 	/// Armor. [0] = initial, [1] = max.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_souk: Option<Vec<i64>>,
+	pub api_souk: Option<[i64; 2]>,
 
 	/// The ship's type id, see `emukc_model::KcShipType`.
 	pub api_stype: i64,
@@ -363,11 +363,11 @@ pub struct ApiMstShip {
 	/// Hitpoints. [0] = initial, [1] = max.
 	/// `taik` is the Japanese word for `taikyuu` which means endurance.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_taik: Option<Vec<i64>>,
+	pub api_taik: Option<[i64; 2]>,
 
 	/// Anti-air. [0] = initial, [1] = max.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_tyku: Option<Vec<i64>>,
+	pub api_tyku: Option<[i64; 2]>,
 
 	/// Voice setting flag
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -376,9 +376,9 @@ pub struct ApiMstShip {
 	/// yomi name
 	pub api_yomi: String,
 
-	/// Anti-submarine warfare. [0] = initial, [1] = max.
+	/// Anti-submarine warfare. [0] = initial.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_tais: Option<Vec<i64>>,
+	pub api_tais: Option<[i64; 1]>,
 }
 
 #[allow(missing_docs)]
@@ -386,43 +386,43 @@ pub struct ApiMstShip {
 pub struct ApiMstShipgraph {
 	pub api_id: i64,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_battle_d: Option<Vec<i64>>,
+	pub api_battle_d: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_battle_n: Option<Vec<i64>>,
+	pub api_battle_n: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_boko_d: Option<Vec<i64>>,
+	pub api_boko_d: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_boko_n: Option<Vec<i64>>,
+	pub api_boko_n: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_ensyue_n: Option<Vec<i64>>,
+	pub api_ensyue_n: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_ensyuf_d: Option<Vec<i64>>,
+	pub api_ensyuf_d: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_ensyuf_n: Option<Vec<i64>>,
+	pub api_ensyuf_n: Option<[i64; 2]>,
 	pub api_filename: String,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_kaisyu_d: Option<Vec<i64>>,
+	pub api_kaisyu_d: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_kaisyu_n: Option<Vec<i64>>,
+	pub api_kaisyu_n: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_kaizo_d: Option<Vec<i64>>,
+	pub api_kaizo_d: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_kaizo_n: Option<Vec<i64>>,
+	pub api_kaizo_n: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_map_d: Option<Vec<i64>>,
+	pub api_map_d: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_map_n: Option<Vec<i64>>,
+	pub api_map_n: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_pa: Option<Vec<i64>>,
+	pub api_pa: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_pab: Option<Vec<i64>>,
+	pub api_pab: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_sortno: Option<i64>,
 	pub api_version: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_weda: Option<Vec<i64>>,
+	pub api_weda: Option<[i64; 2]>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_wedb: Option<Vec<i64>>,
+	pub api_wedb: Option<[i64; 2]>,
 }
 
 #[allow(missing_docs)]
@@ -450,7 +450,7 @@ pub struct ApiMstSlotitem {
 	pub api_atap: i64,
 	pub api_bakk: i64,
 	pub api_baku: i64,
-	pub api_broken: Vec<i64>,
+	pub api_broken: [i64; 4],
 	pub api_houg: i64,
 	pub api_houk: i64,
 	pub api_houm: i64,
@@ -469,7 +469,7 @@ pub struct ApiMstSlotitem {
 	pub api_taik: i64,
 	pub api_tais: i64,
 	pub api_tyku: i64,
-	pub api_type: Vec<i64>,
+	pub api_type: [i64; 5],
 	pub api_usebull: String,
 	pub api_version: Option<i64>,
 	pub api_cost: Option<i64>,

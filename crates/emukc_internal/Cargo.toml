@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+emukc_bootstrap = { path = "../emukc_bootstrap" }
 emukc_crypto = { path = "../emukc_crypto" }
 emukc_db = { path = "../emukc_db" }
 emukc_macros = { path = "../emukc_macros" }
