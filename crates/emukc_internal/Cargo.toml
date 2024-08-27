@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+emukc_app = { path = "../emukc_app" }
 emukc_bootstrap = { path = "../emukc_bootstrap" }
 emukc_crypto = { path = "../emukc_crypto" }
 emukc_db = { path = "../emukc_db" }
+emukc_log = { path = "../emukc_log" }
 emukc_macros = { path = "../emukc_macros" }
 emukc_model = { path = "../emukc_model" }
 emukc_time = { path = "../emukc_time" }
