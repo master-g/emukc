@@ -16,5 +16,8 @@ pub mod user;
 pub mod prelude {
 	//! The `emukc_model` crate prelude.
 	#[doc(hidden)]
-	pub use crate::{codex::Codex, codex::CodexRaw, kc2::start2::*};
+	pub use crate::{
+		codex::Codex, codex::CodexRaw, kc2::level::*, kc2::quest::*, kc2::remodel::*,
+		kc2::start2::*, kc2::types::*, thirdparty::*,
+	};
 }

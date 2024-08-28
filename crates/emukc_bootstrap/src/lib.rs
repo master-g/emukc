@@ -10,10 +10,17 @@ extern crate tracing;
 
 #[doc(hidden)]
 pub mod download;
+
+pub(crate) mod parser;
 pub(crate) mod res;
 
 pub mod prelude {
 	//! The `emukc_bootstrap` crate prelude.
 	#[doc(hidden)]
 	pub use crate::download::download_all;
+
+	#[doc(hidden)]
+	pub use crate::parser::{
+		parse_kaisou, parse_kccp_quests, parse_kcdata, parse_ships_nedb, parse_tsunkit_quests,
+	};
 }

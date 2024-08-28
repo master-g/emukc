@@ -12,6 +12,7 @@ emukc_network = { path = "../emukc_network" }
 
 # other
 chrono = { workspace = true, features = ["serde"] }
+regex = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = [
 	"default-tls",
 	"socks",
@@ -19,6 +20,7 @@ reqwest = { workspace = true, default-features = false, features = [
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 zip-extract = { workspace = true }

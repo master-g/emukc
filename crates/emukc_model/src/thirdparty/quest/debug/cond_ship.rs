@@ -1,6 +1,19 @@
-use crate::{kc2::start2::ApiManifest, thirdparty::Kc3rdQuestConditionShip};
+use crate::{
+	kc2::start2::ApiManifest, prelude::Kc3rdQuestShipNavy, thirdparty::Kc3rdQuestConditionShip,
+};
 
 use super::Kc3rdQuestDebugJson;
+
+impl Kc3rdQuestDebugJson for Kc3rdQuestShipNavy {
+	fn to_json(&self, _mst: &ApiManifest) -> serde_json::Value {
+		match self {
+			Kc3rdQuestShipNavy::USN => serde_json::Value::String("USN".to_string()),
+			Kc3rdQuestShipNavy::RN => serde_json::Value::String("RN".to_string()),
+			Kc3rdQuestShipNavy::RNN => serde_json::Value::String("RNN".to_string()),
+			Kc3rdQuestShipNavy::RAN => serde_json::Value::String("RAN".to_string()),
+		}
+	}
+}
 
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionShip {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
@@ -74,6 +87,12 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestConditionShip {
 			Kc3rdQuestConditionShip::LowSpeed => serde_json::Value::String("LOW_SPEED".to_string()),
 			Kc3rdQuestConditionShip::Aviation => serde_json::Value::String("AVIATION".to_string()),
 			Kc3rdQuestConditionShip::Carrier => serde_json::Value::String("CARRIER".to_string()),
+			Kc3rdQuestConditionShip::Navy(navy) => navy.to_json(mst),
+			Kc3rdQuestConditionShip::Navies(navies) => {
+				let navies =
+					navies.iter().map(|n| n.to_json(mst)).collect::<Vec<serde_json::Value>>();
+				serde_json::Value::Array(navies)
+			}
 		}
 	}
 }

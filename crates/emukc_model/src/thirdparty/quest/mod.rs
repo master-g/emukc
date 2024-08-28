@@ -317,6 +317,14 @@ pub struct Kc3rdQuestConditionExcerise {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestShipNavy {
+	USN,
+	RN,
+	RNN,
+	RAN,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestConditionShip {
 	Any,
 	Ship(i64),
@@ -325,6 +333,8 @@ pub enum Kc3rdQuestConditionShip {
 	ShipTypes(Vec<i64>),
 	ShipClass(i64),
 	ShipClasses(Vec<i64>),
+	Navy(Kc3rdQuestShipNavy),
+	Navies(Vec<Kc3rdQuestShipNavy>),
 	HighSpeed,
 	LowSpeed,
 	Aviation,
