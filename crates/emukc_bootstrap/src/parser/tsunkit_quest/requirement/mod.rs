@@ -23,19 +23,19 @@ impl Requirements {
 
 	fn extract_conditions(&self, mst: &ApiManifest) -> Vec<Kc3rdQuestCondition> {
 		match self.category {
-			RequirementsCategory::And => self.extract_list(mst),
+			RequirementsCategory::And | RequirementsCategory::Or | RequirementsCategory::Then => {
+				self.extract_list(mst)
+			}
 			RequirementsCategory::Conversion => self.extract_requirements_conversion(mst),
 			RequirementsCategory::Equipexchange => self.extract_requirements_equip_exchange(mst),
 			RequirementsCategory::Exercise => self.extract_requirements_exercise(mst),
 			RequirementsCategory::Expedition => self.extract_requirements_expedition(),
 			RequirementsCategory::Fleet => self.extract_requirements_fleet(mst),
 			RequirementsCategory::Modernization => self.extract_requirements_modernization(mst),
-			RequirementsCategory::Or => self.extract_list(mst),
 			RequirementsCategory::Scrapequipment => self.extract_requirements_scrap_equipment(mst),
 			RequirementsCategory::Simple => self.extract_requirements_simple(),
 			RequirementsCategory::Sink => self.extract_requirements_sink(),
 			RequirementsCategory::Sortie => self.extract_requirements_sortie(mst),
-			RequirementsCategory::Then => self.extract_list(mst),
 		}
 	}
 
@@ -61,9 +61,7 @@ impl Requirements {
 	}
 
 	fn extract_requirements_scrap_equipment(&self, mst: &ApiManifest) -> Vec<Kc3rdQuestCondition> {
-		let list = if let Some(list) = &self.list {
-			list
-		} else {
+		let Some(list) = &self.list else {
 			error!("scrap equipment requirement must have a list");
 			return vec![];
 		};
@@ -237,16 +235,12 @@ impl Requirements {
 	}
 
 	fn extract_requirements_sink(&self) -> Vec<Kc3rdQuestCondition> {
-		let group_id = if let Some(group_id) = self.group_id {
-			group_id
-		} else {
+		let Some(group_id) = self.group_id else {
 			error!("sink requirement must have a group_id");
 			return vec![];
 		};
 
-		let ship = if let Some(ship) = ClassId::find_ship_group(group_id) {
-			ship
-		} else {
+		let Some(ship) = ClassId::find_ship_group(group_id) else {
 			error!("ship group not found: {}", group_id);
 			return vec![];
 		};
@@ -257,12 +251,9 @@ impl Requirements {
 	}
 
 	fn extract_requirements_fleet(&self, mst: &ApiManifest) -> Vec<Kc3rdQuestCondition> {
-		let comp = match self.extract_fleet(mst) {
-			Some(comp) => comp,
-			None => {
-				error!("fleet requirement must have a comp");
-				return vec![];
-			}
+		let Some(comp) = self.extract_fleet(mst) else {
+			error!("fleet requirement must have a comp");
+			return vec![];
 		};
 
 		vec![Kc3rdQuestCondition::Composition(comp)]

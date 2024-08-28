@@ -21,13 +21,11 @@ impl Requirements {
 			},
 		};
 
-		let consumes = match &self.consume {
-			Some(consume) => consume,
-			None => {
-				error!("modernization requirement must have a consume");
-				return vec![];
-			}
+		let Some(consumes) = &self.consume else {
+			error!("modernization requirement must have a consume");
+			return vec![];
 		};
+
 		if consumes.is_empty() || consumes.len() > 1 {
 			error!("modernization requirement must have exactly one consume");
 			return vec![];
@@ -42,19 +40,14 @@ impl Requirements {
 			}
 		};
 
-		let target_ship = match target_ship {
-			Some(target_ship) => target_ship,
-			None => {
-				error!("modernization requirement target_ship not found");
-				return vec![];
-			}
+		let Some(target_ship) = target_ship else {
+			error!("modernization requirement target_ship not found");
+			return vec![];
 		};
-		let material_ship = match material_ship {
-			Some(material_ship) => material_ship,
-			None => {
-				error!("modernization requirement material_ship not found");
-				return vec![];
-			}
+
+		let Some(material_ship) = material_ship else {
+			error!("modernization requirement material_ship not found");
+			return vec![];
 		};
 
 		all.push(Kc3rdQuestCondition::Modernization(Kc3rdQuestConditionModernization {

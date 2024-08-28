@@ -15,9 +15,7 @@ impl Rewards {
 				continue;
 			}
 
-			let category = if let Some(category) = &other.category {
-				category
-			} else {
+			let Some(category) = &other.category else {
 				debug!("to_additional_reward, not found: {:?}", other);
 				continue;
 			};
@@ -57,9 +55,7 @@ impl Rewards {
 	) -> Option<Vec<Kc3rdQuestChoiceReward>> {
 		let mut result: Vec<Kc3rdQuestChoiceReward> = Vec::new();
 		for other in &self.other {
-			let choices = if let Some(choices) = &other.choices {
-				choices
-			} else {
+			let Some(choices) = &other.choices else {
 				debug!("to_choice_rewards, not found: {:?}", other);
 				continue;
 			};

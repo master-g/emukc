@@ -21,6 +21,7 @@ pub mod prelude {
 
 	#[doc(hidden)]
 	pub use crate::parser::{
-		parse_kaisou, parse_kccp_quests, parse_kcdata, parse_ships_nedb, parse_tsunkit_quests,
+		parse_kaisou, parse_kccp_quests, parse_kcdata, parse_partial_codex, parse_ships_nedb,
+		parse_tsunkit_quests,
 	};
 }

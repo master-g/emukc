@@ -144,7 +144,7 @@ impl RequirementsComp {
 					Some(Kc3rdQuestConditionShip::Ships(ids)) => Some(ids),
 					_ => None,
 				})
-				.flat_map(|s| s.into_iter())
+				.flat_map(std::iter::IntoIterator::into_iter)
 				.collect()
 		});
 

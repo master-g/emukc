@@ -87,10 +87,8 @@ impl Requirements {
 					};
 					let fully_skilled = s.fullyskilled.unwrap_or(false);
 					let pos = s.slot.unwrap_or(0);
-					let keep_stars = match &s.conversion {
-						Some(Conversion::Starskept) => true,
-						_ => false,
-					};
+					let keep_stars = matches!(s.conversion, Some(Conversion::Starskept));
+
 					Some(Kc3rdQuestConditionEquipInSlot {
 						item: Kc3rdQuestConditionSlotItem {
 							item_type: Kc3rdQuestConditionSlotItemType::Equipment(api_id),
@@ -159,8 +157,7 @@ impl Requirements {
 					let amount = s.amount;
 					let id = s.id.abs();
 					let item_type = match &s.category {
-						ConsumeCategory::Equipgroup => return None,
-						ConsumeCategory::Equipment => return None,
+						ConsumeCategory::Equipgroup | ConsumeCategory::Equipment => return None,
 						ConsumeCategory::Inventory => {
 							if let Some(m) = mst.find_useitem(id) {
 								debug!("use item found: {}, {}", m.api_id, m.api_name);

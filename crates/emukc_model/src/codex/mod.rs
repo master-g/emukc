@@ -1,6 +1,6 @@
 //! All the data need for running the game logic
 
-use std::str::FromStr;
+use std::{fs::create_dir_all, str::FromStr};
 
 use crate::{kc2, profile, thirdparty};
 
@@ -103,6 +103,56 @@ impl Codex {
 		})
 	}
 
+	/// Save `Codex` instance to directory.
+	///
+	/// # Arguments
+	///
+	/// * `dst` - The directory path.
+	/// * `overwrite` - Whether to overwrite the existing files.
+	///
+	/// # Returns
+	///
+	/// Ok if success, otherwise an error.
+	pub fn save(
+		&self,
+		dst: impl AsRef<std::path::Path>,
+		overwrite: bool,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		let dst = dst.as_ref();
+		if !dst.exists() {
+			create_dir_all(dst)?;
+		}
+
+		vec![
+			serde_json::to_string_pretty(&self.manifest)?,
+			serde_json::to_string_pretty(&self.ship_basic)?,
+			serde_json::to_string_pretty(&self.ship_class_name)?,
+			serde_json::to_string_pretty(&self.ship_extra_info)?,
+			serde_json::to_string_pretty(&self.slotitem_extra_info)?,
+			serde_json::to_string_pretty(&self.ship_remodel_info)?,
+			serde_json::to_string_pretty(&self.ship_extra_voice)?,
+			serde_json::to_string_pretty(&self.navy)?,
+			serde_json::to_string_pretty(&self.quest)?,
+			serde_json::to_string_pretty(&self.material_cfg)?,
+		]
+		.iter()
+		.zip(&[
+			PATH_START2,
+			PATH_SHIP_BASIC,
+			PATH_SHIP_CLASS_NAME,
+			PATH_SHIP_EXTRA_INFO,
+			PATH_SLOTITEM_EXTRA_INFO,
+			PATH_SHIP_REMODEL_INFO,
+			PATH_SHIP_EXTRA_VOICE,
+			PATH_NAVY,
+			PATH_QUEST,
+			PATH_MATERIAL_CFG,
+		])
+		.try_for_each(|(item, path)| Self::save_single_item(item, dst.join(path), overwrite))?;
+
+		Ok(())
+	}
+
 	fn load_single_item<T>(
 		path: impl AsRef<std::path::Path>,
 	) -> Result<T, Box<dyn std::error::Error>>
@@ -113,6 +163,22 @@ impl Codex {
 		let raw = std::fs::read_to_string(path)?;
 
 		Ok(serde_json::from_str(&raw)?)
+	}
+
+	fn save_single_item(
+		item: &str,
+		path: impl AsRef<std::path::Path>,
+		overwrite: bool,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		let path = path.as_ref();
+
+		if path.exists() && !overwrite {
+			return Err(format!("file {} already exists", path.display()).into());
+		}
+
+		std::fs::write(path, item)?;
+
+		Ok(())
 	}
 }
 

@@ -4,9 +4,7 @@ use crate::parser::tsunkit_quest::{Requirements, RequirementsSubCategory};
 
 impl Requirements {
 	pub(super) fn extract_requirements_simple(&self) -> Vec<Kc3rdQuestCondition> {
-		let subcategory = if let Some(subcategory) = &self.subcategory {
-			subcategory
-		} else {
+		let Some(subcategory) = &self.subcategory else {
 			error!("simple requirement must have a subcategory");
 			return vec![];
 		};

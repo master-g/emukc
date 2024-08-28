@@ -25,7 +25,7 @@ impl Requirements {
 					}
 				})
 				.collect();
-			conditions.push(Kc3rdQuestCondition::Expedition(expeds))
+			conditions.push(Kc3rdQuestCondition::Expedition(expeds));
 		} else {
 			error!("expedition requirement must have key named 'expeds'");
 		}
