@@ -81,6 +81,7 @@ uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }
 zip-extract = { version = "0.2.1" }
 
 [dev-dependencies]
+memory-stats = "1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["full"] }
