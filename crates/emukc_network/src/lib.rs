@@ -10,3 +10,9 @@ extern crate tracing;
 
 pub mod client;
 pub mod download;
+
+pub mod prelude {
+	//! The `emukc_network` crate prelude.
+	#[doc(hidden)]
+	pub use crate::client::new_reqwest_client;
+}

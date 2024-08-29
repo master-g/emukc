@@ -673,10 +673,12 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "emukc_crypto",
+ "emukc_db",
  "emukc_model",
  "emukc_network",
  "regex",
  "reqwest",
+ "sea-orm",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -703,6 +705,7 @@ dependencies = [
 name = "emukc_db"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "emukc_model",
  "sea-orm",
@@ -729,6 +732,7 @@ dependencies = [
  "emukc_log",
  "emukc_macros",
  "emukc_model",
+ "emukc_network",
  "emukc_time",
 ]
 
@@ -2138,9 +2142,9 @@ checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 
 [[package]]
 name = "rustix"
-version = "0.38.34"
+version = "0.38.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70dc5ec042f7a43c4a73241207cecc9873a06d45debb38b329f8541d85c2730f"
+checksum = "a85d50532239da68e9addb745ba38ff4612a242c1c7ceea689c4bc7c2f43c36f"
 dependencies = [
  "bitflags 2.6.0",
  "errno",

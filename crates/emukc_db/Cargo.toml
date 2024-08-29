@@ -9,6 +9,7 @@ resolver = "2"
 emukc_model = { path = "../emukc_model" }
 
 # other
+async-trait = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 sea-orm = { workspace = true, features = [
 	"debug-print",

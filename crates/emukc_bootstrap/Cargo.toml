@@ -7,6 +7,7 @@ resolver = "2"
 [dependencies]
 # emukc
 emukc_crypto = { path = "../emukc_crypto" }
+emukc_db = { path = "../emukc_db" }
 emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 
@@ -17,6 +18,11 @@ reqwest = { workspace = true, default-features = false, features = [
 	"default-tls",
 	"socks",
 	"stream",
+] }
+sea-orm = { workspace = true, features = [
+	"debug-print",
+	"runtime-tokio-native-tls",
+	"sqlx-sqlite",
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
