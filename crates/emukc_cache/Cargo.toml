@@ -1,0 +1,25 @@
+[package]
+name = "emukc_cache"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# emukc
+emukc_crypto = { path = "../emukc_crypto" }
+emukc_db = { path = "../emukc_db" }
+emukc_model = { path = "../emukc_model" }
+emukc_network = { path = "../emukc_network" }
+
+# other
+chrono = { workspace = true, features = ["serde"] }
+reqwest = { workspace = true, default-features = false, features = [
+	"default-tls",
+	"socks",
+	"stream",
+] }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

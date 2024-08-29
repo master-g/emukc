@@ -689,6 +689,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "emukc_cache"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "emukc_crypto",
+ "emukc_db",
+ "emukc_model",
+ "emukc_network",
+ "reqwest",
+ "serde",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "emukc_crypto"
 version = "0.1.0"
 dependencies = [
