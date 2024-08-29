@@ -313,6 +313,7 @@ pub struct Kc3rdQuestConditionExcerise {
 	pub expire_next_day: bool,
 
 	/// composition requirement
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub groups: Option<Vec<Kc3rdQuestConditionShipGroup>>,
 }
 
@@ -352,7 +353,8 @@ pub struct Kc3rdQuestConditionShipGroup {
 	pub ship: Kc3rdQuestConditionShip,
 	pub amount: Kc3rdQuestShipAmount,
 	pub lv: i64,
-	pub position: i64,                // 0: any, 1: first, 2: second, etc.
+	pub position: i64, // 0: any, 1: first, 2: second, etc.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub white_list: Option<Vec<i64>>, // ship id list
 }
 
@@ -370,21 +372,31 @@ pub struct Kc3rdQuestConditionModernization {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionExpedition {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub list: Option<Vec<String>>,
 	pub times: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionComposition {
+	/// ship group
 	pub groups: Vec<Kc3rdQuestConditionShipGroup>,
+
+	/// disallowed ship
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub disallowed: Option<Vec<Kc3rdQuestConditionShip>>,
+
+	/// fleet id
 	pub fleet_id: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionModelConversion {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub secretary: Option<Kc3rdQuestConditionShip>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub banned_secretary: Option<Kc3rdQuestConditionShip>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub slots: Option<Vec<Kc3rdQuestConditionEquipInSlot>>,
 }
 
@@ -404,11 +416,25 @@ pub enum Kc3rdQuestConditionSortieMap {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestConditionSortie {
+	/// ship group
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub composition: Option<Kc3rdQuestConditionComposition>,
+
+	/// need to defeat boss
 	pub defeat_boss: bool,
+
+	/// fleet id
 	pub fleet_id: i64,
+
+	/// sortie map specification
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub map: Option<Kc3rdQuestConditionSortieMap>,
+
+	/// sortie result
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub result: Option<KcSortieResult>,
+
+	/// how many times to sortie
 	pub times: i64,
 }
 

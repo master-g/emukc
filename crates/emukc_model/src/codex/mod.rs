@@ -1,6 +1,6 @@
 //! All the data need for running the game logic
 
-use std::{fs::create_dir_all, str::FromStr};
+use std::{collections::BTreeMap, fs::create_dir_all, str::FromStr};
 
 use crate::{kc2, profile, thirdparty};
 
@@ -89,16 +89,70 @@ impl Codex {
 			kc2::start2::ApiManifest::from_str(&raw)?
 		};
 
+		let ship_basic = {
+			let path = path.join(PATH_SHIP_BASIC);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<thirdparty::Kc3rdShipBasic> = serde_json::from_str(&raw)?;
+			data.into_iter().map(|v| (v.api_id, v)).collect()
+		};
+
+		let ship_class_name = {
+			let path = path.join(PATH_SHIP_CLASS_NAME);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<thirdparty::Kc3rdShipClassNameInfo> = serde_json::from_str(&raw)?;
+			data.into_iter().map(|v| (v.api_id, v)).collect()
+		};
+
+		let ship_extra_info = {
+			let path = path.join(PATH_SHIP_EXTRA_INFO);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<thirdparty::Kc3rdShipExtraInfo> = serde_json::from_str(&raw)?;
+			data.into_iter().map(|v| (v.api_id, v)).collect()
+		};
+
+		let slotitem_extra_info = {
+			let path = path.join(PATH_SLOTITEM_EXTRA_INFO);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<thirdparty::Kc3rdSlotItemExtraInfo> = serde_json::from_str(&raw)?;
+			data.into_iter().map(|v| (v.api_id, v)).collect()
+		};
+
+		let ship_remodel_info = {
+			let path = path.join(PATH_SHIP_REMODEL_INFO);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<kc2::remodel::KcShipRemodelRequirement> = serde_json::from_str(&raw)?;
+			data.into_iter().map(|v| ((v.id_from, v.id_to), v)).collect()
+		};
+
+		let ship_extra_voice = {
+			let path = path.join(PATH_SHIP_EXTRA_VOICE);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: BTreeMap<String, Vec<kc2::KcApiShipQVoiceInfo>> = serde_json::from_str(&raw)?;
+			let mut map = thirdparty::Kc3rdShipVoiceMap::new();
+			for (k, v) in data {
+				let k = k.parse()?;
+				map.insert(k, v);
+			}
+			map
+		};
+
+		let quest = {
+			let path = path.join(PATH_QUEST);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<thirdparty::Kc3rdQuest> = serde_json::from_str(&raw)?;
+			data.into_iter().map(|v| (v.api_no, v)).collect()
+		};
+
 		Ok(Codex {
 			manifest,
-			ship_basic: Self::load_single_item(path.join(PATH_SHIP_BASIC))?,
-			ship_class_name: Self::load_single_item(path.join(PATH_SHIP_CLASS_NAME))?,
-			ship_extra_info: Self::load_single_item(path.join(PATH_SHIP_EXTRA_INFO))?,
-			slotitem_extra_info: Self::load_single_item(path.join(PATH_SLOTITEM_EXTRA_INFO))?,
-			ship_remodel_info: Self::load_single_item(path.join(PATH_SHIP_REMODEL_INFO))?,
-			ship_extra_voice: Self::load_single_item(path.join(PATH_SHIP_EXTRA_VOICE))?,
+			ship_basic,
+			ship_class_name,
+			ship_extra_info,
+			slotitem_extra_info,
+			ship_remodel_info,
+			ship_extra_voice,
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
-			quest: Self::load_single_item(path.join(PATH_QUEST))?,
+			quest,
 			material_cfg: Self::load_single_item(path.join(PATH_MATERIAL_CFG))?,
 		})
 	}
@@ -123,32 +177,94 @@ impl Codex {
 			create_dir_all(dst)?;
 		}
 
-		vec![
-			serde_json::to_string_pretty(&self.manifest)?,
-			serde_json::to_string_pretty(&self.ship_basic)?,
-			serde_json::to_string_pretty(&self.ship_class_name)?,
-			serde_json::to_string_pretty(&self.ship_extra_info)?,
-			serde_json::to_string_pretty(&self.slotitem_extra_info)?,
-			serde_json::to_string_pretty(&self.ship_remodel_info)?,
-			serde_json::to_string_pretty(&self.ship_extra_voice)?,
-			serde_json::to_string_pretty(&self.navy)?,
-			serde_json::to_string_pretty(&self.quest)?,
-			serde_json::to_string_pretty(&self.material_cfg)?,
-		]
-		.iter()
-		.zip(&[
-			PATH_START2,
-			PATH_SHIP_BASIC,
-			PATH_SHIP_CLASS_NAME,
-			PATH_SHIP_EXTRA_INFO,
-			PATH_SLOTITEM_EXTRA_INFO,
-			PATH_SHIP_REMODEL_INFO,
-			PATH_SHIP_EXTRA_VOICE,
-			PATH_NAVY,
-			PATH_QUEST,
-			PATH_MATERIAL_CFG,
-		])
-		.try_for_each(|(item, path)| Self::save_single_item(item, dst.join(path), overwrite))?;
+		// manifest
+		{
+			let path = dst.join(PATH_START2);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
+		}
+		// ship basic
+		{
+			let path = dst.join(PATH_SHIP_BASIC);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data = self.ship_basic.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// ship class name
+		{
+			let path = dst.join(PATH_SHIP_CLASS_NAME);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data = self.ship_class_name.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// ship extra info
+		{
+			let path = dst.join(PATH_SHIP_EXTRA_INFO);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data = self.ship_extra_info.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// slotitem extra info
+		{
+			let path = dst.join(PATH_SLOTITEM_EXTRA_INFO);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data = self.slotitem_extra_info.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// ship remodel info
+		{
+			let path = dst.join(PATH_SHIP_REMODEL_INFO);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data = self.ship_remodel_info.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// ship extra voice
+		{
+			let path = dst.join(PATH_SHIP_EXTRA_VOICE);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data: BTreeMap<String, &Vec<kc2::KcApiShipQVoiceInfo>> =
+				self.ship_extra_voice.iter().map(|(k, v)| (k.to_string(), v)).collect();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// navy
+		{
+			let path = dst.join(PATH_NAVY);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			std::fs::write(path, serde_json::to_string_pretty(&self.navy)?)?;
+		}
+		// quest
+		{
+			let path = dst.join(PATH_QUEST);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			let data = self.quest.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// material cfg
+		{
+			let path = dst.join(PATH_MATERIAL_CFG);
+			if path.exists() && !overwrite {
+				return Err(format!("file {} already exists", path.display()).into());
+			}
+			std::fs::write(path, serde_json::to_string_pretty(&self.material_cfg)?)?;
+		}
 
 		Ok(())
 	}
@@ -163,22 +279,6 @@ impl Codex {
 		let raw = std::fs::read_to_string(path)?;
 
 		Ok(serde_json::from_str(&raw)?)
-	}
-
-	fn save_single_item(
-		item: &str,
-		path: impl AsRef<std::path::Path>,
-		overwrite: bool,
-	) -> Result<(), Box<dyn std::error::Error>> {
-		let path = path.as_ref();
-
-		if path.exists() && !overwrite {
-			return Err(format!("file {} already exists", path.display()).into());
-		}
-
-		std::fs::write(path, item)?;
-
-		Ok(())
 	}
 }
 
