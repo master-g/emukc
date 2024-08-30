@@ -9,3 +9,10 @@
 extern crate tracing;
 
 pub mod kache;
+
+pub mod prelude {
+	//! The `emukc_cache` crate prelude.
+	//!
+	#[doc(hidden)]
+	pub use crate::kache::Kache;
+}

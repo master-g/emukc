@@ -4,6 +4,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use emukc_crypto::md5_file;
 use emukc_db::{entity::cache, sea_orm::*};
+use emukc_model::cache::KcFileEntry;
 use emukc_network::{client::new_reqwest_client, download};
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
@@ -208,6 +209,15 @@ impl Kache {
 		info!("✅ {}, {}", path, version.unwrap_or("n/a"));
 
 		Ok(f)
+	}
+
+	/// Get all records from the database.
+	///
+	/// Return a list of `KcFileEntry`.
+	pub async fn get_all_records(&self) -> Result<Vec<KcFileEntry>, Error> {
+		let db = &*self.db;
+		let models = cache::Entity::find().all(db).await?;
+		Ok(models.into_iter().map(Into::into).collect())
 	}
 
 	/// Find the file in the mods.

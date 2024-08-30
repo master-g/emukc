@@ -100,5 +100,10 @@ name = "bootstrap_download"
 path = "tests/bootstrap/download.rs"
 doc-scrape-examples = true
 
+[[example]]
+name = "kache_test"
+path = "tests/kache/test.rs"
+doc-scrape-examples = true
+
 [package.metadata.example.model_loader]
 hidden = true

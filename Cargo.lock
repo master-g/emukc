@@ -743,6 +743,7 @@ version = "0.1.0"
 dependencies = [
  "emukc_app",
  "emukc_bootstrap",
+ "emukc_cache",
  "emukc_crypto",
  "emukc_db",
  "emukc_log",

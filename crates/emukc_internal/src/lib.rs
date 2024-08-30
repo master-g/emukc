@@ -5,6 +5,7 @@ pub mod prelude;
 
 pub use emukc_app as app;
 pub use emukc_bootstrap as bootstrap;
+pub use emukc_cache as cache;
 pub use emukc_crypto as crypto;
 pub use emukc_db as db;
 pub use emukc_log as log;
