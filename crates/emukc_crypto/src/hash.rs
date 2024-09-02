@@ -5,6 +5,8 @@ use sha2::Sha256;
 
 const SALT: &str = "emukc_salt";
 
+const MD5_BUF_SIZE: usize = 8192;
+
 /// Trait for calculate simple hash
 pub trait SimpleHash {
 	/// Calculate simple hash
@@ -111,9 +113,26 @@ pub fn md5(input: &str) -> String {
 pub fn md5_file<P: AsRef<Path>>(path: P) -> Result<String, std::io::Error> {
 	let mut file = File::open(path)?;
 	let mut hasher = Md5::new();
-	let mut buffer = [0; 1024];
+	let mut buffer = [0; MD5_BUF_SIZE];
 	loop {
 		let count = file.read(&mut buffer)?;
+		if count == 0 {
+			break;
+		}
+		hasher.update(&buffer[..count]);
+	}
+	let hash = hasher.finalize();
+	let hash = base16ct::lower::encode_string(&hash);
+	Ok(hash)
+}
+
+#[cfg(feature = "async")]
+pub async fn md5_file_async<P: AsRef<Path>>(path: P) -> Result<String, std::io::Error> {
+	let mut file = tokio::fs::File::open(path).await?;
+	let mut hasher = Md5::new();
+	let mut buffer = [0; MD5_BUF_SIZE];
+	loop {
+		let count = file.read(&mut buffer).await?;
 		if count == 0 {
 			break;
 		}
@@ -138,5 +157,12 @@ mod tests {
 	fn test_simple_hash_salted() {
 		let hash = "hello world".simple_hash_salted("salt");
 		assert_eq!(hash, "6g7aVvjVoDZ3GUe9oVonkLysBRqzDhv7qqt3RRD9gsWV");
+	}
+
+	#[cfg(feature = "async")]
+	#[tokio::test]
+	async fn test_md5_file_async() {
+		let hash = md5_file_async("Cargo.toml").await.unwrap();
+		assert_eq!(hash, "375496e41179a266719f4770e76d83b7");
 	}
 }

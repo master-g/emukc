@@ -6,6 +6,7 @@ resolver = "2"
 
 [dependencies]
 # emukc
+emukc_cache = { path = "../emukc_cache" }
 emukc_crypto = { path = "../emukc_crypto" }
 emukc_db = { path = "../emukc_db" }
 emukc_model = { path = "../emukc_model" }

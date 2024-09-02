@@ -672,6 +672,7 @@ name = "emukc_bootstrap"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "emukc_cache",
  "emukc_crypto",
  "emukc_db",
  "emukc_model",
@@ -715,6 +716,7 @@ dependencies = [
  "md-5",
  "sha2",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

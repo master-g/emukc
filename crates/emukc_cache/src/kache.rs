@@ -9,6 +9,9 @@ use emukc_network::{client::new_reqwest_client, download};
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
 
+/// The chunk size for batch processing.
+const CHUNK_SIZE: usize = 256;
+
 /// Error type for `Kache`.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -211,13 +214,72 @@ impl Kache {
 		Ok(f)
 	}
 
-	/// Get all records from the database.
+	/// Export all records from the database.
 	///
 	/// Return a list of `KcFileEntry`.
-	pub async fn get_all_records(&self) -> Result<Vec<KcFileEntry>, Error> {
+	pub async fn export(&self) -> Result<Vec<KcFileEntry>, Error> {
 		let db = &*self.db;
 		let models = cache::Entity::find().all(db).await?;
 		Ok(models.into_iter().map(Into::into).collect())
+	}
+
+	/// Import records to the database.
+	///
+	/// # Arguments
+	///
+	/// * `entries` - The list of `KcFileEntry`.
+	///
+	/// Return a tuple of `(new_entries, updated_entries)`.
+	#[instrument(skip_all)]
+	pub async fn import(&self, entries: &[KcFileEntry]) -> Result<(usize, usize), Error> {
+		let db = &*self.db;
+
+		trace!("importing {} entries", entries.len());
+		let mut updated = 0;
+
+		let mut not_exists = vec![];
+		for entry in entries {
+			let model =
+				cache::Entity::find().filter(cache::Column::Path.eq(&entry.path)).one(db).await?;
+
+			let Some(model) = model else {
+				not_exists.push(entry);
+				continue;
+			};
+
+			let old_entry: KcFileEntry = model.clone().into();
+			if entry.version_cmp(&old_entry) == std::cmp::Ordering::Greater {
+				let mut am: cache::ActiveModel = model.into();
+				am.version = ActiveValue::Set(entry.version.clone());
+				am.update(db).await?;
+				updated += 1;
+				// } else {
+				// trace!("entry not updated: {:?}", entry);
+			}
+		}
+
+		let new_entries = not_exists.len();
+		debug!("{} new entries", new_entries);
+
+		let chunks = not_exists.chunks(CHUNK_SIZE);
+		let mut processed = 0;
+		for chunk in chunks {
+			let models = chunk
+				.iter()
+				.map(|entry| cache::ActiveModel {
+					id: ActiveValue::NotSet,
+					path: ActiveValue::Set(entry.path.clone()),
+					md5: ActiveValue::Set(entry.md5.clone()),
+					version: ActiveValue::Set(entry.version.clone()),
+				})
+				.collect::<Vec<_>>();
+			cache::Entity::insert_many(models).exec(db).await?;
+
+			processed += chunk.len();
+			debug!("processed {}/{}", processed, new_entries);
+		}
+
+		Ok((new_entries, updated))
 	}
 
 	/// Find the file in the mods.
@@ -258,7 +320,7 @@ impl Kache {
 	/// * `rel_path` - The file's relative path.
 	/// * `local_path` - The file's local path.
 	/// * `version` - The file version.
-	#[instrument]
+	#[instrument(skip(self))]
 	async fn find_in_local(
 		&self,
 		rel_path: &str,
@@ -277,11 +339,10 @@ impl Kache {
 			}
 
 			// check if version matched
-			if let Some(v) = &model.version {
-				if version.is_none() || version != Some(v) {
-					trace!("version not matched: {:?} != {:?}", version, v);
-					return Err(Error::FileExpired(rel_path.to_owned()));
-				}
+			let v = model.version.filter(|v| !v.is_empty());
+			if version != v.as_deref() {
+				trace!("version not matched: {:?} != {:?}", version, v);
+				return Err(Error::FileExpired(rel_path.to_owned()));
 			}
 
 			// check if checksum matched

@@ -11,12 +11,17 @@ extern crate tracing;
 #[doc(hidden)]
 pub mod download;
 
+pub(crate) mod cache;
 pub(crate) mod db;
 pub(crate) mod parser;
 pub(crate) mod res;
 
 pub mod prelude {
 	//! The `emukc_bootstrap` crate prelude.
+
+	#[doc(hidden)]
+	pub use crate::cache::import_kccp_cache;
+
 	#[doc(hidden)]
 	pub use crate::download::download_all;
 

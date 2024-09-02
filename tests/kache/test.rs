@@ -32,5 +32,7 @@ fn main() {
 		kache.get("kcs/sound/kcojkgkujsenly/168525.mp3", Some("27")).await.unwrap();
 		kache.get("kcs2/resources/ship/character_full/0404_3736.png", None).await.unwrap();
 		kache.get("gadget_html5/js/kcs_const.js", None).await.unwrap();
+
+		import_kccp_cache(&kache, "./z/cache/cached.json", Some("./z/cache")).await.unwrap();
 	});
 }

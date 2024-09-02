@@ -11,6 +11,10 @@ hmac = { workspace = true }
 md-5 = { workspace = true }
 sha2 = { workspace = true, default-features = false }
 thiserror = { workspace = true }
+tokio = { workspace = true, default-features = false, optional = true }
+
+[features]
+async = ["tokio"]
 
 [lints]
 workspace = true
