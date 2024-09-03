@@ -235,9 +235,11 @@ impl Kache {
 		let db = &*self.db;
 
 		trace!("importing {} entries", entries.len());
-		let mut updated = 0;
-
 		let mut not_exists = vec![];
+		let mut updates = vec![];
+
+		let mut now = std::time::SystemTime::now();
+
 		for entry in entries {
 			let model =
 				cache::Entity::find().filter(cache::Column::Path.eq(&entry.path)).one(db).await?;
@@ -251,33 +253,53 @@ impl Kache {
 			if entry.version_cmp(&old_entry) == std::cmp::Ordering::Greater {
 				let mut am: cache::ActiveModel = model.into();
 				am.version = ActiveValue::Set(entry.version.clone());
-				am.update(db).await?;
-				updated += 1;
-				// } else {
-				// trace!("entry not updated: {:?}", entry);
+				updates.push(am);
 			}
 		}
 
+		trace!("filtering done, elapsed: {:?}", now.elapsed().unwrap());
+
+		let updated = updates.len();
+		debug!("{} entries need to be updated", updated);
+		now = std::time::SystemTime::now();
+		{
+			let chunks = updates.chunks(CHUNK_SIZE);
+			let mut processed = 0;
+			for chunk in chunks {
+				let txn = db.begin().await?;
+				for am in chunk.iter().cloned() {
+					am.update(&txn).await?;
+				}
+				txn.commit().await?;
+				processed += chunk.len();
+				debug!("processed {}/{}", processed, updated);
+			}
+		}
+		trace!("updating done, elapsed: {:?}", now.elapsed().unwrap());
+
 		let new_entries = not_exists.len();
 		debug!("{} new entries", new_entries);
+		now = std::time::SystemTime::now();
+		{
+			let chunks = not_exists.chunks(CHUNK_SIZE);
+			let mut processed = 0;
+			for chunk in chunks {
+				let models = chunk
+					.iter()
+					.map(|entry| cache::ActiveModel {
+						id: ActiveValue::NotSet,
+						path: ActiveValue::Set(entry.path.clone()),
+						md5: ActiveValue::Set(entry.md5.clone()),
+						version: ActiveValue::Set(entry.version.clone()),
+					})
+					.collect::<Vec<_>>();
+				cache::Entity::insert_many(models).exec(db).await?;
 
-		let chunks = not_exists.chunks(CHUNK_SIZE);
-		let mut processed = 0;
-		for chunk in chunks {
-			let models = chunk
-				.iter()
-				.map(|entry| cache::ActiveModel {
-					id: ActiveValue::NotSet,
-					path: ActiveValue::Set(entry.path.clone()),
-					md5: ActiveValue::Set(entry.md5.clone()),
-					version: ActiveValue::Set(entry.version.clone()),
-				})
-				.collect::<Vec<_>>();
-			cache::Entity::insert_many(models).exec(db).await?;
-
-			processed += chunk.len();
-			debug!("processed {}/{}", processed, new_entries);
+				processed += chunk.len();
+				debug!("processed {}/{}", processed, new_entries);
+			}
 		}
+		trace!("inserting done, elapsed: {:?}", now.elapsed().unwrap());
 
 		Ok((new_entries, updated))
 	}
@@ -406,6 +428,7 @@ impl Kache {
 		download::Request::builder()
 			.url(url)
 			.save_as(local_path)
+			.overwrite(true)
 			.build()?
 			.execute(Some(self.client.clone()))
 			.await?;
