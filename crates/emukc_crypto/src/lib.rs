@@ -15,6 +15,11 @@ pub mod password;
 pub use hash::md5;
 #[doc(inline)]
 pub use hash::md5_file;
+
+#[cfg(feature = "async")]
+#[doc(inline)]
+pub use hash::md5_file_async;
+
 #[doc(inline)]
 pub use hash::SimpleHash;
 #[doc(inline)]
@@ -24,4 +29,8 @@ pub mod prelude {
 	//! The `emukc_crypto` crate prelude.
 	#[doc(hidden)]
 	pub use crate::{md5, md5_file, PasswordCrypto, SimpleHash};
+
+	#[cfg(feature = "async")]
+	#[doc(hidden)]
+	pub use crate::md5_file_async;
 }

@@ -1,10 +1,13 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use emukc_cache::kache;
-use emukc_crypto::md5_file;
+use emukc_crypto::md5_file_async;
 use emukc_model::cache::KcFileEntry;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::sync::Semaphore;
+
+const SEMAPHORE_LIMIT: usize = 128;
 
 #[derive(Debug, Error)]
 pub enum ImportKccpCacheError {
@@ -16,6 +19,9 @@ pub enum ImportKccpCacheError {
 
 	#[error("Kache error: {0}")]
 	Kache(#[from] kache::Error),
+
+	#[error("Tokio error: {0}")]
+	Tokio(#[from] tokio::task::JoinError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -47,7 +53,10 @@ pub async fn import_kccp_cache(
 
 	info!("importing {} records, cache root: {:?}", records.len(), cache_root);
 
-	let mut entries: Vec<KcFileEntry> = Vec::new();
+	trace!("filtering out invalid entries...");
+	let mut now = std::time::SystemTime::now();
+
+	let mut tasks: Vec<(String, std::path::PathBuf, Option<String>)> = Vec::new();
 	for (key, value) in records.iter() {
 		let version = if let Some(v) = &value.version {
 			v.split('=').last()
@@ -63,15 +72,47 @@ pub async fn import_kccp_cache(
 			continue;
 		}
 
-		let md5 = md5_file(&full_path)?;
-		entries.push(KcFileEntry::new(key, &md5, version));
+		tasks.push((key.to_owned(), full_path, version.map(std::string::ToString::to_string)));
+	}
+	trace!("filtering done, elapsed: {:?}", now.elapsed().unwrap());
+
+	trace!("calucating md5 for each file, this might take a while...");
+	now = std::time::SystemTime::now();
+
+	let semaphore = Arc::new(Semaphore::new(SEMAPHORE_LIMIT));
+	let mut handles = vec![];
+
+	for task in tasks {
+		// let key = task.0.to_string();
+		// let full_path = task.1.clone();
+		// let version = task.2.map(|s| s.to_string());
+
+		let permit = semaphore.clone().acquire_owned().await.unwrap();
+		handles.push(tokio::spawn(async move {
+			let result = md5_file_async(&task.1).await;
+			drop(permit);
+			result.map(|md5| KcFileEntry::new(task.0.as_str(), md5.as_str(), task.2.as_deref()))
+		}));
 	}
 
+	let mut entries = vec![];
+	for handle in handles {
+		entries.push(handle.await??);
+	}
+
+	trace!("md5 calculation done, elapsed: {:?}", now.elapsed().unwrap());
+
 	info!("{} entries to import", entries.len());
+	now = std::time::SystemTime::now();
 
 	let (inserted, updated) = kache.import(&entries).await?;
 
-	info!("{} entries imported, {} entries updated", inserted, updated);
+	info!(
+		"{} entries imported, {} entries updated, elapsed: {:?}",
+		inserted,
+		updated,
+		now.elapsed().unwrap()
+	);
 
 	Ok(())
 }

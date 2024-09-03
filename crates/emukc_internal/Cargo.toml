@@ -7,7 +7,7 @@ edition = "2021"
 emukc_app = { path = "../emukc_app" }
 emukc_bootstrap = { path = "../emukc_bootstrap" }
 emukc_cache = { path = "../emukc_cache" }
-emukc_crypto = { path = "../emukc_crypto" }
+emukc_crypto = { path = "../emukc_crypto", features = ["async"] }
 emukc_db = { path = "../emukc_db" }
 emukc_log = { path = "../emukc_log" }
 emukc_macros = { path = "../emukc_macros" }

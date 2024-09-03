@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, sync::Arc};
 
-use emukc_crypto::md5_file;
+use emukc_crypto::md5_file_async;
 use emukc_db::{entity::cache, sea_orm::*};
 use emukc_model::cache::KcFileEntry;
 use emukc_network::{client::new_reqwest_client, download};
@@ -346,7 +346,7 @@ impl Kache {
 			}
 
 			// check if checksum matched
-			let md5 = md5_file(local_path)?;
+			let md5 = md5_file_async(local_path).await?;
 			if md5 != model.md5 {
 				trace!("checksum not matched: {:?} != {:?}", md5, model.md5);
 				// file expired
@@ -365,7 +365,7 @@ impl Kache {
 			}
 
 			// calculate md5
-			let md5 = md5_file(local_path)?;
+			let md5 = md5_file_async(local_path).await?;
 
 			// insert db
 			let model = cache::ActiveModel {
@@ -415,7 +415,7 @@ impl Kache {
 			return Err(Error::InvalidFile(local_path.to_str().unwrap().to_owned()));
 		}
 
-		let md5 = md5_file(local_path)?;
+		let md5 = md5_file_async(local_path).await?;
 		let db = &*self.db;
 
 		let record = cache::Entity::find()

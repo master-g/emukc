@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # emukc
-emukc_crypto = { path = "../emukc_crypto" }
+emukc_crypto = { path = "../emukc_crypto", features = ["async"] }
 emukc_db = { path = "../emukc_db" }
 emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
