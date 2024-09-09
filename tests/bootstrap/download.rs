@@ -18,7 +18,7 @@ fn print_memory_usage() {
 fn main() {
 	// initialize logger
 	let _guard = new_log_builder()
-		.with_log_level("error")
+		.with_log_level("trace")
 		.with_source_file()
 		.with_line_number()
 		.with_file_appender(std::path::PathBuf::from(".data/.emukc.log"))
@@ -32,7 +32,7 @@ fn main() {
 		let save_codex_to = dir.join("codex");
 		let db_path = dir.join("emukc.db");
 		dir.push("temp");
-		download_all(&dir, false, Some("http://127.0.0.1:1086")).await.unwrap();
+		download_all(&dir, true, Some("http://127.0.0.1:1086")).await.unwrap();
 
 		print_memory_usage();
 

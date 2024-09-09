@@ -124,67 +124,6 @@ fn parse_ship_class(
 	Ok(map)
 }
 
-fn parse_slotitem_info(
-	src: impl AsRef<Path>,
-	manifest: &ApiManifest,
-) -> Result<Kc3rdSlotItemExtraInfoMap, ParseError> {
-	#[derive(Debug, Serialize, Deserialize)]
-	struct KcWikiZhSlotItem {
-		id: i64,
-		info: String,
-	}
-
-	#[derive(Debug, Serialize, Deserialize)]
-	struct KcWikiZhSlotItemYaml {
-		data: KcWikiZhSlotItem,
-	}
-
-	// paring ships
-	let slotitem_dir = src.as_ref().to_path_buf().join("_slotitem");
-	// walk _ship dir and parse all the files
-	let dir = fs::read_dir(slotitem_dir)?;
-	let yaml_files: Vec<DirEntry> =
-		dir.filter_map(Result::ok).filter(|entry| entry.path().is_file()).collect();
-
-	let mut map: Kc3rdSlotItemExtraInfoMap = Kc3rdSlotItemExtraInfoMap::new();
-
-	trace!("parsing slotitem files");
-	for entry in yaml_files {
-		let path = entry.path();
-		let raw = fs::read_to_string(path)?;
-		for doc in serde_yaml::Deserializer::from_str(&raw) {
-			let slotitem = KcWikiZhSlotItemYaml::deserialize(doc);
-			if let Ok(slotitem) = slotitem {
-				let mst =
-					manifest.api_mst_slotitem.iter().find(|mst| mst.api_id == slotitem.data.id);
-				match mst {
-					Some(mst) => {
-						if mst.api_broken.iter().all(|v| v == &0) {
-							debug!("slotitem id {} is not an ally slotitem", slotitem.data.id);
-							continue;
-						}
-					}
-					None => {
-						debug!("slotitem id {} not found in manifest", slotitem.data.id);
-						continue;
-					}
-				}
-
-				map.insert(
-					slotitem.data.id,
-					Kc3rdSlotItemExtraInfo {
-						api_id: slotitem.data.id,
-						info: slotitem.data.info.clone(),
-					},
-				);
-			}
-		}
-	}
-	trace!("{} slotitems parsed", map.len());
-
-	Ok(map)
-}
-
 /// Parse the kcwikizh kcdata.
 ///
 /// # Arguments
@@ -198,13 +137,9 @@ fn parse_slotitem_info(
 pub fn parse(
 	src: impl AsRef<Path>,
 	manifest: &ApiManifest,
-) -> Result<(Kc3rdShipExtraInfoMap, Kc3rdShipClassNameMap, Kc3rdSlotItemExtraInfoMap), ParseError> {
+) -> Result<(Kc3rdShipExtraInfoMap, Kc3rdShipClassNameMap), ParseError> {
 	let src = src.as_ref();
 	trace!("parsing kcwikizh kcdata: {:?}", src);
 
-	Ok((
-		parse_ship_info(src, manifest)?,
-		parse_ship_class(src, manifest)?,
-		parse_slotitem_info(src, manifest)?,
-	))
+	Ok((parse_ship_info(src, manifest)?, parse_ship_class(src, manifest)?))
 }

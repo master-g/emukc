@@ -12,15 +12,11 @@ emukc_network = { path = "../emukc_network" }
 
 # other
 chrono = { workspace = true, features = ["serde"] }
-reqwest = { workspace = true, default-features = false, features = [
-	"default-tls",
-	"socks",
-	"stream",
-] }
+reqwest = { workspace = true, features = ["default-tls", "socks", "stream"] }
 serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
-tokio = { workspace = true, default-features = false }
-tracing = { workspace = true, default-features = false }
+tokio = { workspace = true }
+tracing = { workspace = true }
 
 [lints]
 workspace = true

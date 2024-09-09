@@ -10,6 +10,7 @@ pub enum ResourceCategory {
 	MainJS,
 	KccpQuests,
 	KcData,
+	KcWikiSlotItem,
 	ShipsNedb,
 	TsunKitQuests,
 }
@@ -47,6 +48,12 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			url: "https://github.com/kcwikizh/kcdata/archive/refs/heads/gh-pages.zip",
 			save_as: "kc_data.zip",
 			unzip_to: Some("kc_data"),
+		},
+		Resource {
+			category: ResourceCategory::KcWikiSlotItem,
+			url: "https://github.com/kcwiki/kancolle-data/raw/master/db/equipment.json",
+			save_as: "kcwiki_slotitem.json",
+			unzip_to: None,
 		},
 		Resource {
 			category: ResourceCategory::ShipsNedb,
