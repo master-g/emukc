@@ -8,7 +8,7 @@ pub mod profile;
 pub mod user;
 
 /// Bootstrap the database with the necessary tables
-pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
+pub async fn bootstrap(db: &sea_orm::DbConn) -> Result<(), sea_orm::error::DbErr> {
 	// cache
 	cache::bootstrap(db).await?;
 	// global

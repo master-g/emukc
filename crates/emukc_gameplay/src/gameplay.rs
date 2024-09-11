@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use emukc_db::sea_orm::DbConn;
+use emukc_db::{prelude::*, sea_orm::DbConn};
 use emukc_model::codex::Codex;
 
 /// The wrapper around the game's data and logic.
@@ -26,6 +26,16 @@ impl Gameplay {
 		Self {
 			codex,
 			db: Arc::new(db),
+		}
+	}
+
+	/// Create a new mock `Gameplay` instance.
+	#[allow(dead_code)]
+	pub(crate) async fn new_mock() -> Self {
+		let db = Arc::new(new_mem_db().await.unwrap());
+		Self {
+			codex: Codex::default(),
+			db,
 		}
 	}
 

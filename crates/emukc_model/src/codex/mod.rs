@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, fs::create_dir_all, str::FromStr};
 use crate::{kc2, profile, thirdparty};
 
 /// The `Codex` struct holds almost all the game data needed for the `EmuKC` project.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Codex {
 	/// KC2 API manifest.
 	pub manifest: kc2::start2::ApiManifest,

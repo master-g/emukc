@@ -731,6 +731,7 @@ dependencies = [
  "emukc_model",
  "emukc_time",
  "thiserror",
+ "tokio",
  "tracing",
 ]
 

@@ -15,5 +15,8 @@ emukc_time = { path = "../emukc_time" }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 
+[dev-dependencies]
+tokio = { workspace = true }
+
 [lints]
 workspace = true
