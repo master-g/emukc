@@ -10,8 +10,6 @@ extern crate tracing;
 
 pub mod kache;
 
-// TODO: add `export`, `import`, `repair` features
-
 pub mod prelude {
 	//! The `emukc_cache` crate prelude.
 	//!
