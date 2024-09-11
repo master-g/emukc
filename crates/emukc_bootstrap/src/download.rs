@@ -1,7 +1,7 @@
 //! Download the resources
 
 use emukc_crypto::md5_file;
-use emukc_network::client::new_reqwest_client;
+use emukc_network::{client::new_reqwest_client, reqwest};
 use thiserror::Error;
 
 use crate::res::RES_LIST;

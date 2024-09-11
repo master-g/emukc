@@ -9,6 +9,7 @@ emukc_bootstrap = { path = "../emukc_bootstrap" }
 emukc_cache = { path = "../emukc_cache" }
 emukc_crypto = { path = "../emukc_crypto", features = ["async"] }
 emukc_db = { path = "../emukc_db" }
+emukc_gameplay = { path = "../emukc_gameplay" }
 emukc_log = { path = "../emukc_log" }
 emukc_macros = { path = "../emukc_macros" }
 emukc_model = { path = "../emukc_model" }

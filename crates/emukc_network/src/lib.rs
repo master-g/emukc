@@ -11,6 +11,9 @@ extern crate tracing;
 pub mod client;
 pub mod download;
 
+/// Re-export the `reqwest` crate.
+pub use reqwest;
+
 pub mod prelude {
 	//! The `emukc_network` crate prelude.
 	#[doc(hidden)]

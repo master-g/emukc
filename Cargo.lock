@@ -659,15 +659,12 @@ dependencies = [
 name = "emukc_bootstrap"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "emukc_cache",
  "emukc_crypto",
  "emukc_db",
  "emukc_model",
  "emukc_network",
  "regex",
- "reqwest",
- "sea-orm",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -681,12 +678,10 @@ dependencies = [
 name = "emukc_cache"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "emukc_crypto",
  "emukc_db",
  "emukc_model",
  "emukc_network",
- "reqwest",
  "serde",
  "thiserror",
  "tokio",
@@ -731,10 +726,10 @@ dependencies = [
 name = "emukc_gameplay"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "emukc_crypto",
  "emukc_db",
  "emukc_model",
+ "emukc_time",
  "thiserror",
  "tracing",
 ]
@@ -748,6 +743,7 @@ dependencies = [
  "emukc_cache",
  "emukc_crypto",
  "emukc_db",
+ "emukc_gameplay",
  "emukc_log",
  "emukc_macros",
  "emukc_model",

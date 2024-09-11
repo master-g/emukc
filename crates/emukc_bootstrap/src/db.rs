@@ -1,7 +1,7 @@
 //! Bootstrap database
 
 use emukc_db::entity::bootstrap;
-use sea_orm::{Database, DatabaseConnection};
+use emukc_db::sea_orm::{Database, DatabaseConnection};
 
 /// Prepare the database
 ///

@@ -22,6 +22,9 @@ pub fn with_enough_stack<T>(fut: impl std::future::Future<Output = T> + Send) ->
 		.block_on(fut)
 }
 
+// Re-export
+pub use tokio;
+
 pub mod prelude {
 	//! The `emukc_app` crate prelude.
 	#[doc(hidden)]

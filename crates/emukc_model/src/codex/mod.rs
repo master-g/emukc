@@ -283,4 +283,4 @@ impl Codex {
 }
 
 /// A type alias for `std::sync::Arc<Codex>`.
-pub type CodexRaw = std::sync::Arc<Codex>;
+pub type CodexArc = std::sync::Arc<Codex>;

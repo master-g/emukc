@@ -139,6 +139,9 @@ pub fn jst_0500_day_one_of_year() -> DateTime<Utc> {
 	first_day_0500_jst.with_timezone(&Utc)
 }
 
+// Re-export chrono.
+pub use chrono;
+
 pub mod prelude {
 	//! The `emukc_time` crate prelude.
 	#[doc(hidden)]

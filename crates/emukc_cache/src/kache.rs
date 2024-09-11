@@ -5,7 +5,7 @@ use std::{path::PathBuf, sync::Arc};
 use emukc_crypto::md5_file_async;
 use emukc_db::{entity::cache, sea_orm::*};
 use emukc_model::cache::KcFileEntry;
-use emukc_network::{client::new_reqwest_client, download};
+use emukc_network::{client::new_reqwest_client, download, reqwest};
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
 

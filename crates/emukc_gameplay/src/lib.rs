@@ -8,17 +8,14 @@
 #[macro_use]
 extern crate tracing;
 
-pub fn add(left: u64, right: u64) -> u64 {
-	left + right
-}
+#[doc(hidden)]
+pub mod account;
 
-#[cfg(test)]
-mod tests {
-	use super::*;
+pub mod gameplay;
 
-	#[test]
-	fn it_works() {
-		let result = add(2, 2);
-		assert_eq!(result, 4);
-	}
+pub mod prelude {
+	//! The `emukc_gameplay` crate prelude.
+
+	#[doc(hidden)]
+	pub use crate::gameplay::Gameplay;
 }

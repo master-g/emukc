@@ -9,9 +9,9 @@ resolver = "2"
 emukc_crypto = { path = "../emukc_crypto" }
 emukc_db = { path = "../emukc_db" }
 emukc_model = { path = "../emukc_model" }
+emukc_time = { path = "../emukc_time" }
 
 # other
-chrono = { workspace = true, features = ["serde"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 
