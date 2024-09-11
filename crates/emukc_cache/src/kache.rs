@@ -404,7 +404,7 @@ impl Kache {
 		Err(Error::FileNotFound(rel_path.to_owned()))
 	}
 
-	/// Fetch the file from the remote CDN.
+	/// Fetch the file from CDN url.
 	///
 	/// 1. download the file from the remote CDN.
 	/// 2. save the file to the local cache.
@@ -418,7 +418,7 @@ impl Kache {
 	/// * `local_path` - The file's local path.
 	/// * `version` - The file version.
 	#[instrument]
-	async fn fetch_from_remote(
+	async fn fetch_from_url(
 		&self,
 		url: &str,
 		rel_path: &str,
@@ -447,17 +447,18 @@ impl Kache {
 			.one(db)
 			.await?;
 
-		let model = cache::ActiveModel {
+		let mut model = cache::ActiveModel {
 			id: ActiveValue::NotSet,
 			path: ActiveValue::Set(rel_path.to_owned()),
 			md5: ActiveValue::Set(md5),
 			version: ActiveValue::Set(version.map(ToOwned::to_owned)),
 		};
-		if record.is_some() {
-			model.update(db).await?;
-		} else {
-			model.insert(db).await?;
+
+		if let Some(record) = record {
+			model.id = ActiveValue::Unchanged(record.id);
 		}
+
+		model.save(db).await?;
 
 		Ok(tokio::fs::File::open(local_path).await?)
 	}
@@ -493,6 +494,15 @@ impl Kache {
 			},
 		};
 
+		self.fetch_from_remote(path, &local_path, version).await
+	}
+
+	async fn fetch_from_remote(
+		&self,
+		path: &str,
+		local_path: &PathBuf,
+		version: Option<&str>,
+	) -> Result<tokio::fs::File, Error> {
 		let cdn_list = if path.starts_with("gadget_html5") || path.starts_with("html") {
 			&self.gadgets_cdn
 		} else {
@@ -515,7 +525,7 @@ impl Kache {
 			let url = format!("{}/{}?version={}", cdn, remote_path, version.unwrap_or(""));
 			info!("🛫 {}", url);
 
-			match self.fetch_from_remote(&url, path, &local_path, version).await {
+			match self.fetch_from_url(&url, path, &local_path, version).await {
 				Ok(f) => {
 					info!("🛬 {}", url);
 					return Ok(f);
@@ -552,5 +562,50 @@ impl Kache {
 		}
 
 		buffer[0] != b'<'
+	}
+
+	/// Check all the cache files.
+	///
+	/// # Arguments
+	///
+	/// * `fix` - Whether to fix the invalid or missing files.
+	pub async fn check_all(&self, fix: bool) -> Result<(usize, usize, usize), Error> {
+		let mut invalid = 0;
+		let mut missing = 0;
+
+		let db = &*self.db;
+		let models = cache::Entity::find().all(db).await.unwrap();
+		let total = models.len();
+		for model in models {
+			trace!("checking: {:?}", model);
+			let abs_path = self.cache_root.join(&model.path);
+			if !abs_path.exists() {
+				missing += 1;
+				if fix {
+					debug!("missing: {:?}", abs_path);
+					let _ = self
+						.fetch_from_remote(&model.path, &abs_path, model.version.as_deref())
+						.await?;
+				} else {
+					warn!("missing file: {:?}", abs_path);
+				}
+				continue;
+			}
+
+			let md5 = md5_file_async(&abs_path).await?;
+			if md5 != model.md5 {
+				invalid += 1;
+				if fix {
+					debug!("invalid: {:?}", abs_path);
+					let _ = self
+						.fetch_from_remote(&model.path, &abs_path, model.version.as_deref())
+						.await?;
+				} else {
+					warn!("invalid file: {:?}", abs_path);
+				}
+			}
+		}
+
+		Ok((total, invalid, missing))
 	}
 }
