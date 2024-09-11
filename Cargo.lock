@@ -730,6 +730,7 @@ dependencies = [
  "emukc_db",
  "emukc_model",
  "emukc_time",
+ "serde",
  "thiserror",
  "tokio",
  "tracing",

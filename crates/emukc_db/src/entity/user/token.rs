@@ -4,11 +4,13 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
-#[sea_orm(table_name = "refresh_token")]
+#[sea_orm(table_name = "token")]
 pub struct Model {
-	/// Primary key, `uid`
+	/// FIXME: refactor this, and account will have many tokens
 	#[sea_orm(primary_key, auto_increment = false)]
 	pub uid: i64,
+
+	pub profile_id: i64,
 
 	pub typ: TokenTypeDef,
 
@@ -28,6 +30,10 @@ pub enum TokenTypeDef {
 	/// Refresh token
 	#[sea_orm(string_value = "R")]
 	Refresh,
+
+	/// Game Session
+	#[sea_orm(string_value = "S")]
+	Session,
 }
 
 impl From<TokenType> for TokenTypeDef {
@@ -35,6 +41,7 @@ impl From<TokenType> for TokenTypeDef {
 		match t {
 			TokenType::Access => TokenTypeDef::Access,
 			TokenType::Refresh => TokenTypeDef::Refresh,
+			TokenType::Session => TokenTypeDef::Session,
 		}
 	}
 }
@@ -44,6 +51,7 @@ impl From<TokenTypeDef> for TokenType {
 		match t {
 			TokenTypeDef::Access => TokenType::Access,
 			TokenTypeDef::Refresh => TokenType::Refresh,
+			TokenTypeDef::Session => TokenType::Session,
 		}
 	}
 }
@@ -72,6 +80,7 @@ impl From<Token> for ActiveModel {
 	fn from(t: Token) -> Self {
 		Self {
 			uid: ActiveValue::Set(t.uid),
+			profile_id: ActiveValue::Set(t.profile_id),
 			typ: ActiveValue::Set(TokenTypeDef::from(t.typ)),
 			token: ActiveValue::Set(t.token),
 			expire: ActiveValue::Set(t.expire),
@@ -83,6 +92,7 @@ impl From<Model> for Token {
 	fn from(value: Model) -> Self {
 		Self {
 			uid: value.uid,
+			profile_id: value.profile_id,
 			typ: value.typ.into(),
 			token: value.token,
 			expire: value.expire,

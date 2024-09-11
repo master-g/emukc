@@ -12,6 +12,7 @@ emukc_model = { path = "../emukc_model" }
 emukc_time = { path = "../emukc_time" }
 
 # other
+serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 

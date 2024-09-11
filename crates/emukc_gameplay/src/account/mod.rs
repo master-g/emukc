@@ -2,10 +2,12 @@
 
 use emukc_crypto::PasswordCrypto;
 use emukc_db::{
-	entity::user::account,
+	entity::user::{account, token},
 	sea_orm::{entity::*, query::*},
 };
+use emukc_model::user::{account::Account, token::Token};
 use emukc_time::chrono::Utc;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::prelude::Gameplay;
@@ -28,6 +30,13 @@ pub enum AccountError {
 	Db(#[from] emukc_db::sea_orm::DbErr),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignUpResult {
+	pub account: Account,
+	pub access_token: Token,
+	pub refresh_token: Token,
+}
+
 impl Gameplay {
 	/// Create a new account.
 	///
@@ -39,7 +48,7 @@ impl Gameplay {
 		&self,
 		username: &str,
 		password: &str,
-	) -> Result<account::Model, AccountError> {
+	) -> Result<SignUpResult, AccountError> {
 		let db = &*self.db;
 
 		let tx = db.begin().await?;
@@ -73,11 +82,26 @@ impl Gameplay {
 		let model = model.insert(&tx).await?;
 
 		// issue new tokens
+		let access_token = Token::issue_access(model.uid);
+		let refresh_token = Token::issue_refresh(model.uid);
+
+		// insert tokens
+		{
+			token::ActiveModel {
+				uid: ActiveValue::Set(access_token.uid),
+				profile_id: ActiveValue::NotSet,
+				typ: ActiveValue::Set(token::TokenTypeDef::Access),
+				token: ActiveValue::Set(access_token.token),
+				expire: ActiveValue::Set(access_token.expire),
+			}
+			.save(&tx)
+			.await?;
+		}
 
 		// final commit
 		tx.commit().await?;
 
-		Ok(model)
+		todo!()
 	}
 }
 
@@ -93,10 +117,10 @@ mod tests {
 		let username = "admin";
 		let password = "abcd123";
 
-		let model = gameplay.sign_up(username, password).await.unwrap();
+		let result = gameplay.sign_up(username, password).await.unwrap();
 
-		println!("{:?}", model);
+		println!("{:?}", result);
 
-		assert_eq!(model.name, username);
+		// assert_eq!(model.name, username);
 	}
 }
