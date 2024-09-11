@@ -525,7 +525,7 @@ impl Kache {
 			let url = format!("{}/{}?version={}", cdn, remote_path, version.unwrap_or(""));
 			info!("🛫 {}", url);
 
-			match self.fetch_from_url(&url, path, &local_path, version).await {
+			match self.fetch_from_url(&url, path, local_path, version).await {
 				Ok(f) => {
 					info!("🛬 {}", url);
 					return Ok(f);

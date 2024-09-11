@@ -728,6 +728,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "emukc_gameplay"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "emukc_crypto",
+ "emukc_db",
+ "emukc_model",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "emukc_internal"
 version = "0.1.0"
 dependencies = [

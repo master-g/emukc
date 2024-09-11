@@ -29,7 +29,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 thiserror = { workspace = true }
-tokio = { version = "1", features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 tracing = { workspace = true }
 zip-extract = { workspace = true }
 

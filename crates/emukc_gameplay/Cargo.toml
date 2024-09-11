@@ -1,0 +1,19 @@
+[package]
+name = "emukc_gameplay"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+[dependencies]
+# emukc
+emukc_crypto = { path = "../emukc_crypto" }
+emukc_db = { path = "../emukc_db" }
+emukc_model = { path = "../emukc_model" }
+
+# other
+chrono = { workspace = true, features = ["serde"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true
