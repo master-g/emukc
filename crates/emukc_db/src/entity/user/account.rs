@@ -18,8 +18,6 @@ pub struct Model {
 	pub create_time: DateTime<Utc>,
 
 	pub last_login: DateTime<Utc>,
-
-	pub last_update: DateTime<Utc>,
 }
 
 /// See <https://www.sea-ql.org/SeaORM/docs/generate-entity/entity-structure>
@@ -56,7 +54,6 @@ impl From<Account> for ActiveModel {
 			secret: ActiveValue::Set(t.secret),
 			create_time: ActiveValue::Set(t.create_time),
 			last_login: ActiveValue::Set(t.last_login),
-			last_update: ActiveValue::Set(t.last_update),
 		}
 	}
 }
@@ -69,7 +66,6 @@ impl From<Model> for Account {
 			secret: value.secret,
 			create_time: value.create_time,
 			last_login: value.last_login,
-			last_update: value.last_update,
 		}
 	}
 }

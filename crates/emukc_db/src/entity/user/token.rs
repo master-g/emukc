@@ -6,8 +6,9 @@ use sea_orm::{entity::prelude::*, ActiveValue};
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "token")]
 pub struct Model {
-	/// FIXME: refactor this, and account will have many tokens
-	#[sea_orm(primary_key, auto_increment = false)]
+	#[sea_orm(primary_key, auto_increment = true)]
+	pub id: i64,
+
 	pub uid: i64,
 
 	pub profile_id: i64,
@@ -79,6 +80,7 @@ impl ActiveModelBehavior for ActiveModel {}
 impl From<Token> for ActiveModel {
 	fn from(t: Token) -> Self {
 		Self {
+			id: ActiveValue::NotSet,
 			uid: ActiveValue::Set(t.uid),
 			profile_id: ActiveValue::Set(t.profile_id),
 			typ: ActiveValue::Set(TokenTypeDef::from(t.typ)),

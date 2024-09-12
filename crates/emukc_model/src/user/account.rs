@@ -18,9 +18,6 @@ pub struct Account {
 
 	/// Last login time
 	pub last_login: DateTime<Utc>,
-
-	/// Last update time
-	pub last_update: DateTime<Utc>,
 }
 
 impl Account {
@@ -38,7 +35,6 @@ impl Account {
 			secret,
 			create_time: Utc::now(),
 			last_login: Utc::now(),
-			last_update: Utc::now(),
 		}
 	}
 }
