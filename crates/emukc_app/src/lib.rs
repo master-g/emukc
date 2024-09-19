@@ -4,10 +4,14 @@
 #![doc(html_logo_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+mod macros;
 mod mem;
 
 #[doc(hidden)]
 pub mod cst;
+
+#[doc(hidden)]
+pub mod env;
 
 /// Rust's default thread stack size of 2MiB doesn't allow sufficient recursion depth.
 pub fn with_enough_stack<T>(fut: impl std::future::Future<Output = T> + Send) -> T {
@@ -29,6 +33,9 @@ pub mod prelude {
 	//! The `emukc_app` crate prelude.
 	#[doc(hidden)]
 	pub use crate::cst::{LOGO, PKG_VERSION, RUNTIME_MAX_BLOCKING_THREADS, RUNTIME_STACK_SIZE};
+
+	#[doc(hidden)]
+	pub use crate::env::{arch, os, VERSION};
 
 	#[doc(hidden)]
 	pub use crate::with_enough_stack;

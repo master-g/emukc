@@ -2,7 +2,10 @@
 
 use emukc_crypto::PasswordCrypto;
 use emukc_db::{
-	entity::user::{account, token},
+	entity::{
+		profile,
+		user::{account, token},
+	},
 	sea_orm::{entity::*, query::*},
 };
 use emukc_model::user::{
@@ -226,6 +229,38 @@ impl Gameplay {
 
 		// remove all tokens under the same uid
 		token::Entity::delete_many().filter(token::Column::Uid.eq(uid)).exec(&tx).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	pub async fn delete_account(&self, username: &str, password: &str) -> Result<(), AccountError> {
+		let db = &*self.db;
+		let tx = db.begin().await?;
+
+		let model =
+			account::Entity::find().filter(account::Column::Name.eq(username)).one(&tx).await?;
+
+		let Some(model) = model else {
+			return Err(AccountError::InvalidUsernameOrPassword);
+		};
+
+		if !password.verify_password(&model.secret) {
+			return Err(AccountError::InvalidUsernameOrPassword);
+		}
+
+		let uid = model.uid;
+
+		// remove all tokens under the same uid
+		token::Entity::delete_many().filter(token::Column::Uid.eq(uid)).exec(&tx).await?;
+
+		// remove all profiles under the same uid
+		// TODO: remove all profile data
+		profile::Entity::delete_many().filter(profile::Column::AccountId.eq(uid)).exec(&tx).await?;
+
+		// remove the account
+		model.delete(&tx).await?;
 
 		tx.commit().await?;
 
