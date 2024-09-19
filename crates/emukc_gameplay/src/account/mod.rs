@@ -267,7 +267,7 @@ impl Gameplay {
 		Ok(())
 	}
 
-	async fn issue_token<C>(
+	pub(crate) async fn issue_token<C>(
 		c: &C,
 		uid: i64,
 		profile_id: i64,

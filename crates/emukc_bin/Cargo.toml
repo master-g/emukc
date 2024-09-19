@@ -1,0 +1,26 @@
+[package]
+name = "emukc_bin"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+debug = false
+strip = "debuginfo"
+lto = true
+opt-level = "s"
+
+[[bin]]
+name = "emukcd"
+
+[dependencies]
+# emukc
+emukc_internal = { path = "../emukc_internal" }
+
+# workspace
+tracing = { workspace = true }
+
+# only needed for the executable
+clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
+
+[lints]
+workspace = true
