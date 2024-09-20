@@ -87,7 +87,6 @@ mod test {
 				secret: "test secret".to_owned(),
 				create_time: Utc::now(),
 				last_login: Utc::now(),
-				last_update: Utc::now(),
 			};
 
 			let active_model = entity::user::account::ActiveModel::from(new_account.clone());

@@ -17,10 +17,17 @@ name = "emukcd"
 emukc_internal = { path = "../emukc_internal" }
 
 # workspace
+serde = { workspace = true }
 tracing = { workspace = true }
 
 # only needed for the executable
+config = { version = "0.14", features = ["toml"] }
 clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
 
 [lints]
 workspace = true
+
+[[example]]
+name = "config_test"
+path = "tests/config/test.rs"
+doc-scrape-examples = true

@@ -1,0 +1,14 @@
+# where to store the user data
+workspace_root = ".data"
+# path to the game cache directory
+cache_root = "./z/cache"
+# path the the game resource mods directory
+mods_root = "./z/mods"
+# the hostname or ip address to listen for connections on
+bind = "0.0.0.0:27666"
+# the proxy to use for fetch missing game resources
+proxy = "socks5://127.0.0.1:1086"
+# html gadgets
+gadgets_cdn = ["127.0.0.1:1087"]
+# game resources
+game_cdn = ["127.0.0.1:1087"]

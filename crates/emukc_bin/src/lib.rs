@@ -8,4 +8,7 @@
 extern crate tracing;
 
 #[doc(hidden)]
+pub mod cfg;
+
+#[doc(hidden)]
 pub mod cli;
