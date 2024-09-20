@@ -1,9 +1,6 @@
 //! An example of downloading bootstrap files
 
-use emukc::{
-	model::{kc2::navy::KcNavy, profile::material::MaterialConfig},
-	prelude::*,
-};
+use emukc::prelude::*;
 use memory_stats::memory_stats;
 
 fn print_memory_usage() {
@@ -36,22 +33,8 @@ fn main() {
 
 		print_memory_usage();
 
-		// parse the partial codex
-		let partial_codex = parse_partial_codex(dir).unwrap();
-
-		// create the codex
-		let codex = Codex {
-			manifest: partial_codex.manifest,
-			ship_basic: partial_codex.ship_basic,
-			ship_class_name: partial_codex.ship_class_name,
-			ship_extra_info: partial_codex.ship_extra_info,
-			slotitem_extra_info: partial_codex.slotitem_extra_info,
-			ship_remodel_info: partial_codex.ship_remodel_info,
-			quest: partial_codex.quest,
-			ship_extra_voice: Kc3rdShipVoiceMap::new(),
-			navy: KcNavy::default(),
-			material_cfg: MaterialConfig::default(),
-		};
+		// parse the codex
+		let codex = parse_partial_codex(dir).unwrap();
 
 		// save
 		codex.save(&save_codex_to, true).unwrap();

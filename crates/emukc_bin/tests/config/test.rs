@@ -11,7 +11,7 @@ fn main() {
 }
 
 async fn load_config() {
-	let config = AppConfig::load("../../emukc.config").unwrap();
+	let config = AppConfig::load("emukc.config.toml").unwrap();
 	println!("{:?}", config);
 
 	let state = State::new(&config).await.unwrap();

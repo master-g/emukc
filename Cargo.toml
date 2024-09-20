@@ -9,7 +9,7 @@ homepage = "https://github.com/master-g/emukc.git"
 keywords = ["emulator", "kancolle"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/master-g/emukc"
-rust-version = "1.80.0"
+rust-version = "1.81.0"
 
 [workspace]
 exclude = ["benches"]

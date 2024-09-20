@@ -5,7 +5,8 @@ use std::{fs::create_dir, sync::Arc};
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::{self, DbConn},
-	prelude::{prepare, DbBootstrapError, Kache},
+	model::codex,
+	prelude::{prepare, Codex, CodexArc, DbBootstrapError, Kache},
 };
 use thiserror::Error;
 
@@ -21,6 +22,9 @@ pub struct State {
 
 	/// kache
 	pub kache: Arc<kache::Kache>,
+
+	/// Codex instance
+	pub codex: CodexArc,
 }
 
 #[derive(Error, Debug)]
@@ -39,6 +43,9 @@ pub enum StateError {
 
 	#[error("Kache error: {0}")]
 	Kache(#[from] kache::Error),
+
+	#[error("Codex error: {0}")]
+	Codex(#[from] codex::Error),
 }
 
 impl State {
@@ -72,11 +79,17 @@ impl State {
 			kache_builder
 		};
 
+		// kache system
 		let kache = Arc::new(kache_builder.build()?);
+
+		// codex
+		let codex_root = cfg.codex_root()?;
+		let codex = CodexArc::new(Codex::load(&codex_root)?);
 
 		Ok(Self {
 			db,
 			kache,
+			codex,
 		})
 	}
 }

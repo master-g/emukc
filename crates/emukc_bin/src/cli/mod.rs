@@ -6,6 +6,7 @@ use emukc_internal::prelude::*;
 
 use crate::{cfg::AppConfig, state::State};
 
+mod bootstrap;
 mod version;
 
 const INFO: &str = r#"
@@ -36,6 +37,8 @@ struct Cli {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 enum Commands {
+	#[command(about = "Prepare the bootstrap files")]
+	Bootstrap(bootstrap::BootstrapArgs),
 	#[command(about = "Print version information")]
 	Version,
 }
@@ -53,20 +56,27 @@ pub async fn init() -> ExitCode {
 	let cfg = match AppConfig::load(&args.config) {
 		Ok(cfg) => cfg,
 		Err(e) => {
-			error!("Failed to load configuration: {}", e);
+			eprintln!("Failed to load configuration: {}", e);
 			return ExitCode::FAILURE;
 		}
 	};
 
 	// initialize logging
+	let log_dir = match cfg.log_root() {
+		Ok(log_dir) => log_dir,
+		Err(e) => {
+			eprintln!("Failed to get log directory: {}", e);
+			return ExitCode::FAILURE;
+		}
+	};
 	let Some(_guard) = new_log_builder()
 		.with_log_level(&args.log)
 		.with_source_file()
 		.with_line_number()
-		.with_file_appender(cfg.workspace_root.join("logs"))
+		.with_file_appender(log_dir)
 		.build()
 	else {
-		error!("Failed to initialize logging");
+		eprintln!("Failed to initialize logging");
 		return ExitCode::FAILURE;
 	};
 
@@ -79,12 +89,15 @@ pub async fn init() -> ExitCode {
 		}
 	};
 
-	// if let Err(e) = output {
-	// 	error!("{}", e);
-	// 	ExitCode::FAILURE
-	// } else {
-	// 	ExitCode::SUCCESS
-	// }
+	let output = match args.command {
+		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
+		_ => Ok(()),
+	};
 
-	ExitCode::SUCCESS
+	if let Err(e) = output {
+		error!("{}", e);
+		ExitCode::FAILURE
+	} else {
+		ExitCode::SUCCESS
+	}
 }

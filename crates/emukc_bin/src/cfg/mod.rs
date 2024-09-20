@@ -58,4 +58,35 @@ impl AppConfig {
 
 		Ok(cfg)
 	}
+
+	/// Get the path to the template files directory
+	pub fn temp_root(&self) -> Result<PathBuf, std::io::Error> {
+		self.ensure_dir("temp")
+	}
+
+	/// Get the path to the log files directory
+	pub fn log_root(&self) -> Result<PathBuf, std::io::Error> {
+		self.ensure_dir("logs")
+	}
+
+	/// Get the path to the codex files directory
+	pub fn codex_root(&self) -> Result<PathBuf, std::io::Error> {
+		self.ensure_dir("codex")
+	}
+
+	#[allow(unused)]
+	/// Get the path to a directory relative to the workspace root
+	fn dir(&self, dir: impl AsRef<Path>) -> PathBuf {
+		self.workspace_root.join(dir)
+	}
+
+	#[allow(unused)]
+	/// Ensure that a directory exists
+	fn ensure_dir(&self, dir: impl AsRef<Path>) -> Result<PathBuf, std::io::Error> {
+		let dir = self.dir(dir);
+		if !dir.exists() {
+			std::fs::create_dir_all(&dir)?;
+		}
+		Ok(dir)
+	}
 }

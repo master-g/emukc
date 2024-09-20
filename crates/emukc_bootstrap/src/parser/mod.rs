@@ -10,7 +10,7 @@ pub mod tsunkit_quest;
 
 use std::str::FromStr;
 
-use emukc_model::prelude::*;
+use emukc_model::{kc2::navy::KcNavy, prelude::*, profile::material::MaterialConfig};
 
 use error::ParseError;
 pub use kaisou::parse as parse_kaisou;
@@ -19,18 +19,6 @@ pub use kcwiki_slotitems::parse as parse_kcwiki_slotitems;
 pub use kcwikizh_kcdata::parse as parse_kcdata;
 pub use kcwikizh_ships::parse as parse_ships_nedb;
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
-
-/// A partial codex.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct PartialCodex {
-	pub manifest: ApiManifest,
-	pub ship_basic: Kc3rdShipBasicMap,
-	pub ship_class_name: Kc3rdShipClassNameMap,
-	pub ship_extra_info: Kc3rdShipExtraInfoMap,
-	pub slotitem_extra_info: Kc3rdSlotItemExtraInfoMap,
-	pub ship_remodel_info: KcShipRemodelRequirementMap,
-	pub quest: Kc3rdQuestMap,
-}
 
 /// Parse a partial codex from the given directory.
 ///
@@ -41,7 +29,7 @@ pub struct PartialCodex {
 /// # Returns
 ///
 /// A partial codex.
-pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<PartialCodex, ParseError> {
+pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, ParseError> {
 	let dir = dir.as_ref();
 	let manifest = {
 		let path = dir.join("start2.json");
@@ -59,7 +47,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<PartialCo
 	};
 	let quest = parse_tsunkit_quests(dir.join("tsunkit_quests.json"), &manifest, &kccp_quests)?;
 
-	Ok(PartialCodex {
+	Ok(Codex {
 		manifest,
 		ship_basic,
 		ship_class_name,
@@ -67,5 +55,8 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<PartialCo
 		slotitem_extra_info,
 		ship_remodel_info,
 		quest,
+		ship_extra_voice: Kc3rdShipVoiceMap::new(),
+		navy: KcNavy::default(),
+		material_cfg: MaterialConfig::default(),
 	})
 }
