@@ -7,6 +7,7 @@ use emukc_internal::prelude::*;
 use crate::{cfg::AppConfig, state::State};
 
 mod bootstrap;
+mod cache;
 mod version;
 
 const INFO: &str = r#"
@@ -39,6 +40,8 @@ struct Cli {
 enum Commands {
 	#[command(about = "Prepare the bootstrap files")]
 	Bootstrap(bootstrap::BootstrapArgs),
+	#[command(about = "Cache management")]
+	Cache(cache::CacheArgs),
 	#[command(about = "Print version information")]
 	Version,
 }
@@ -51,6 +54,8 @@ pub async fn init() -> ExitCode {
 		version::init().await.unwrap();
 		return ExitCode::SUCCESS;
 	}
+
+	println!("{}", std::env::current_exe().unwrap().to_str().unwrap());
 
 	// load configuration
 	let cfg = match AppConfig::load(&args.config) {
@@ -81,7 +86,7 @@ pub async fn init() -> ExitCode {
 	};
 
 	// prepare the application state
-	let _state = match State::new(&cfg).await {
+	let state = match State::new(&cfg).await {
 		Ok(state) => state,
 		Err(e) => {
 			error!("Failed to initialize application state: {}", e);
@@ -91,6 +96,7 @@ pub async fn init() -> ExitCode {
 
 	let output = match args.command {
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
+		Some(Commands::Cache(args)) => cache::exec(&args, &state).await,
 		_ => Ok(()),
 	};
 
