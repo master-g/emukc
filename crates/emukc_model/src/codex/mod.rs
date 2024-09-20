@@ -8,7 +8,7 @@ use crate::{kc2, profile, thirdparty};
 
 /// Error type for `Codex`
 #[derive(Error, Debug)]
-pub enum Error {
+pub enum CodexError {
 	/// Entry already exists
 	#[error("file {0} already exists")]
 	AlreadyExist(String),
@@ -102,7 +102,7 @@ impl Codex {
 	/// # Returns
 	///
 	/// The `Codex` instance.
-	pub fn load(dir: impl AsRef<std::path::Path>) -> Result<Self, Error> {
+	pub fn load(dir: impl AsRef<std::path::Path>) -> Result<Self, CodexError> {
 		let path = dir.as_ref();
 
 		let manifest = {
@@ -189,7 +189,11 @@ impl Codex {
 	/// # Returns
 	///
 	/// Ok if success, otherwise an error.
-	pub fn save(&self, dst: impl AsRef<std::path::Path>, overwrite: bool) -> Result<(), Error> {
+	pub fn save(
+		&self,
+		dst: impl AsRef<std::path::Path>,
+		overwrite: bool,
+	) -> Result<(), CodexError> {
 		let dst = dst.as_ref();
 		if !dst.exists() {
 			create_dir_all(dst)?;
@@ -199,7 +203,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_START2);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
 		}
@@ -207,7 +211,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_SHIP_BASIC);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.ship_basic.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
@@ -216,7 +220,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_SHIP_CLASS_NAME);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.ship_class_name.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
@@ -225,7 +229,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_SHIP_EXTRA_INFO);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.ship_extra_info.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
@@ -234,7 +238,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_SLOTITEM_EXTRA_INFO);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.slotitem_extra_info.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
@@ -243,7 +247,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_SHIP_REMODEL_INFO);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.ship_remodel_info.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
@@ -252,7 +256,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_SHIP_EXTRA_VOICE);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data: BTreeMap<String, &Vec<kc2::KcApiShipQVoiceInfo>> =
 				self.ship_extra_voice.iter().map(|(k, v)| (k.to_string(), v)).collect();
@@ -262,7 +266,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_NAVY);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.navy)?)?;
 		}
@@ -270,7 +274,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_QUEST);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.quest.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
@@ -279,7 +283,7 @@ impl Codex {
 		{
 			let path = dst.join(PATH_MATERIAL_CFG);
 			if path.exists() && !overwrite {
-				return Err(Error::AlreadyExist(path.display().to_string()));
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.material_cfg)?)?;
 		}
@@ -287,7 +291,7 @@ impl Codex {
 		Ok(())
 	}
 
-	fn load_single_item<T>(path: impl AsRef<std::path::Path>) -> Result<T, Error>
+	fn load_single_item<T>(path: impl AsRef<std::path::Path>) -> Result<T, CodexError>
 	where
 		T: serde::de::DeserializeOwned,
 	{

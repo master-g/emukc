@@ -5,7 +5,7 @@ use std::{fs::create_dir, sync::Arc};
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::{self, DbConn},
-	model::codex,
+	model::codex::CodexError,
 	prelude::{prepare, Codex, CodexArc, DbBootstrapError, Kache},
 };
 use thiserror::Error;
@@ -45,7 +45,7 @@ pub enum StateError {
 	Kache(#[from] kache::Error),
 
 	#[error("Codex error: {0}")]
-	Codex(#[from] codex::Error),
+	Codex(#[from] CodexError),
 }
 
 impl State {
