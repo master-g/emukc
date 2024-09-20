@@ -4,6 +4,8 @@ use clap::{Parser, Subcommand};
 
 use emukc_internal::prelude::*;
 
+use crate::{cfg::AppConfig, state::State};
+
 mod version;
 
 const INFO: &str = r#"
@@ -46,6 +48,36 @@ pub async fn init() -> ExitCode {
 		version::init().await.unwrap();
 		return ExitCode::SUCCESS;
 	}
+
+	// load configuration
+	let cfg = match AppConfig::load(&args.config) {
+		Ok(cfg) => cfg,
+		Err(e) => {
+			error!("Failed to load configuration: {}", e);
+			return ExitCode::FAILURE;
+		}
+	};
+
+	// initialize logging
+	let Some(_guard) = new_log_builder()
+		.with_log_level(&args.log)
+		.with_source_file()
+		.with_line_number()
+		.with_file_appender(cfg.workspace_root.join("logs"))
+		.build()
+	else {
+		error!("Failed to initialize logging");
+		return ExitCode::FAILURE;
+	};
+
+	// prepare the application state
+	let _state = match State::new(&cfg).await {
+		Ok(state) => state,
+		Err(e) => {
+			error!("Failed to initialize application state: {}", e);
+			return ExitCode::FAILURE;
+		}
+	};
 
 	// if let Err(e) = output {
 	// 	error!("{}", e);

@@ -770,6 +770,7 @@ dependencies = [
  "config",
  "emukc_internal",
  "serde",
+ "thiserror",
  "tracing",
 ]
 

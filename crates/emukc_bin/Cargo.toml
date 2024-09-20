@@ -18,6 +18,7 @@ emukc_internal = { path = "../emukc_internal" }
 
 # workspace
 serde = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
 
 # only needed for the executable

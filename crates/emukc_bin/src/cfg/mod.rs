@@ -42,7 +42,7 @@ impl AppConfig {
 	/// # Arguments
 	///
 	/// * `path` - The path to the configuration file
-	pub async fn load(path: impl AsRef<str>) -> Result<Self, Box<dyn std::error::Error>> {
+	pub fn load(path: impl AsRef<str>) -> Result<Self, Box<dyn std::error::Error>> {
 		let source = config::File::new(path.as_ref(), FileFormat::Toml);
 		let cfg = Config::builder().add_source(source).build()?;
 		let mut cfg = cfg.try_deserialize::<AppConfig>()?;

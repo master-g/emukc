@@ -17,6 +17,7 @@ impl Clone for CustomEnvFilter {
 	}
 }
 
+/// Log builder
 #[derive(Debug, Clone)]
 pub struct Builder {
 	filter: CustomEnvFilter,
@@ -27,6 +28,7 @@ pub struct Builder {
 	target: bool,
 }
 
+/// Create a new log builder
 pub fn new_log_builder() -> Builder {
 	Builder::default()
 }
