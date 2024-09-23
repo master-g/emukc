@@ -1,0 +1,34 @@
+body {
+  margin: 0px !important;
+}
+
+#w {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#main-ntg.page-appdetial {
+  position: relative;
+  background: #fff;
+}
+
+#main-ntg {
+  margin: 0px;
+  /* text-align: center; */
+}
+
+.d-rst {
+  line-height: 1.5;
+}
+
+.game_div {
+  width: 1200px;
+  height: 720px;
+  /* text-align: center; */
+}
+
+.game_wrapper {
+  width: 1200px;
+  height: 720px;
+  margin: 0px;
+}

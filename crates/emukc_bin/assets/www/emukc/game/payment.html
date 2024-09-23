@@ -1,0 +1,111 @@
+<style type="text/css">
+	@charset "EUC-JP";
+
+	.specified-commercial {
+		border-bottom: 1px solid #ccc;
+		margin: 0 0 12px;
+		padding: 0 0 6px;
+		text-align: left;
+	}
+
+	.specified-commercial .link-list {
+		margin: 0 0 6px;
+	}
+
+	.specified-commercial .notice-text {
+		color: #666;
+		margin: 0 0 6px;
+	}
+</style>
+<p class="hl-alert">購入確認</p>
+<div class="pd-12 bg-whi">
+	<form action="/social/confirm_payment?payment_id={{ payment_id }}&st={{ token }}" method="post"
+		onsubmit="return submitForm(this.action)">
+
+		<p class="mg-b12 left tx14">艦隊これくしょん -艦これ-</p>
+		<dl class="item-info left">
+			<dt>
+				<p>
+					<img src="/kcs/images/purchase_items/{{ sku_id }}.jpg" width="180" height="180" />
+					<span class="bold tx16">
+						{{ name }}
+					</span>
+				</p>
+			</dt>
+			<dd>
+				<p>
+					{{ description }}
+				</p>
+				<p class="pd-t12 bd-t-dash right">
+					単価:<span class="tx24">
+						{{ price }}pt
+					</span><br>
+					個数:<span class="tx24">
+						{{ it.count }}
+					</span>
+				</p>
+			</dd>
+		</dl>
+
+		<div class="bx-point">
+			<dl class="tx-point">
+				<dt>合計ポイント:</dt>
+				<dd>
+					{{ price * count }}pt
+				</dd>
+			</dl>
+			<dl class>
+				<dt>所持ポイント:</dt>
+				<dd>∞pt</dd>
+			</dl>
+			<!--/bx-point-->
+		</div>
+
+		<div class="bg-yel mg-b12 pd-6">
+			<p class="mg-b6 tx16">上記の内容で購入しますか？</p>
+			<p class="mg-b6">
+				<span class="d-btn-xhi-st" id="btn"><input type="submit" value="購入する" /></span>
+			</p>
+		</div>
+
+		<div class="specified-commercial">
+			<ul class="link-list">
+				<li><a class="link-text arrow" href="/netgame/game/-/legalcommerce/=/app_id=854854/"
+						target="_blank">特定商取引法に基づく表示</a></li>
+			</ul>
+			<p class="notice-text">支払時期、引渡・提供時期については以下をご確認ください。</p>
+			<ul class="link-list">
+				<!-- TODO: リンク先確定したらaタグのhrefを差し替える -->
+				<li><a class="link-text arrow" href="/netgame/game/-/legalcommerce/=/app_id=854854/#payment"
+						target="_blank">支払時期</a></li>
+				<!-- TODO: リンク先確定したらaタグのhrefを差し替える -->
+				<li><a class="link-text arrow" href="/netgame/game/-/legalcommerce/=/app_id=854854/#available"
+						target="_blank">引渡・提供時期</a></li>
+			</ul>
+			<!-- TODO: リンク先確定したらaタグのhrefを差し替える -->
+			<p class="notice-text">キャンセル・返品に関しては<a class="link-text"
+					href="/netgame/game/-/legalcommerce/=/app_id=854854/#return" target="_blank">返品の取扱方法</a>をご確認ください。
+			</p>
+		</div>
+		<p id="submitBack" class="center">
+			<a href="/social/cancel_payment?payment_id={{ payment_id }}&st={{ token }}" id="item_back"
+				onclick="return submitBackForm(this.href);" class="arrow">ゲームに戻る</a>
+		</p>
+
+	</form>
+
+</div>
+<script type="text/javascript">
+	function resetFormButtons() {
+		$('#btn').html('').removeClass();
+		$('#submitBack').html('<p class="red bold">処理中...</p>');
+	}
+	function submitForm(action) {
+		resetFormButtons();
+		return DMM.netgame.purchaseItem(action);
+	}
+	function submitBackForm(href) {
+		resetFormButtons();
+		return DMM.netgame.purchaseItemCancel(href);
+	}
+</script>

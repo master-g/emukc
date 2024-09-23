@@ -14,4 +14,7 @@ pub mod cfg;
 pub mod cli;
 
 #[doc(hidden)]
+pub mod net;
+
+#[doc(hidden)]
 pub mod state;

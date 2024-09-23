@@ -27,6 +27,9 @@ pub struct Model {
 	/// account id
 	pub account_id: i64,
 
+	/// world id
+	pub world_id: i64,
+
 	/// name
 	pub name: String,
 
@@ -217,6 +220,7 @@ impl From<Model> for Profile {
 		Self {
 			id: value.id,
 			account_id: value.account_id,
+			world_id: value.world_id,
 			name: value.name,
 		}
 	}

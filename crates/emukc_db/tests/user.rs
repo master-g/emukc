@@ -88,12 +88,14 @@ mod test {
 			let mut new_profile = Profile {
 				id: 0,
 				account_id: account.uid,
+				world_id: 0,
 				name: name.to_owned(),
 			};
 
 			let active_model = entity::profile::ActiveModel {
 				id: ActiveValue::NotSet,
 				account_id: ActiveValue::Set(account.uid),
+				world_id: ActiveValue::Set(0),
 				name: ActiveValue::NotSet,
 				last_played: ActiveValue::Set(Utc::now()),
 				hq_level: ActiveValue::Set(1),

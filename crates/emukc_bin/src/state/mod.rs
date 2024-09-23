@@ -93,3 +93,5 @@ impl State {
 		})
 	}
 }
+
+pub type StateArc = Arc<State>;

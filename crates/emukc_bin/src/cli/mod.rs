@@ -8,6 +8,7 @@ use crate::{cfg::AppConfig, state::State};
 
 mod bootstrap;
 mod cache;
+mod serve;
 mod version;
 
 const INFO: &str = r#"
@@ -42,6 +43,8 @@ enum Commands {
 	Bootstrap(bootstrap::BootstrapArgs),
 	#[command(about = "Cache management")]
 	Cache(cache::CacheArgs),
+	#[command(about = "Start the server")]
+	Serve(serve::ServeArgs),
 	#[command(about = "Print version information")]
 	Version,
 }
@@ -97,6 +100,7 @@ pub async fn init() -> ExitCode {
 	let output = match args.command {
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
 		Some(Commands::Cache(args)) => cache::exec(&args, &state).await,
+		Some(Commands::Serve(args)) => serve::exec(&args, &cfg, &state).await,
 		_ => Ok(()),
 	};
 

@@ -1,0 +1,45 @@
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<script type="text/javascript" src="/emukc/game/js/dmm2.js"></script>
+
+	<style type="text/css">
+		body {
+			zoom: 1;
+			margin: 0px;
+		}
+	</style>
+</head>
+
+<!-- src="/game/game.html?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=localhost:27013/osapi/v1&version=5.4.0.4&api_token=676db4b361da744cd5d0c71ae7019e0bb729f42b&api_starttime=1654447544684" -->
+
+<body>
+	<script type="text/javascript" src="/gadget_html5/script/jquery.min.js"></script>
+	<script type="text/javascript" src="/gadget_html5/script/cookie.js"></script>
+	<script type="text/javascript" src="/gadget_html5/script/jss.js"></script>
+	<script type="text/javascript" src="/gadget_html5/script/rollover.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_const.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_cda.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_content.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_global.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_inspection.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_login.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_options.js"></script>
+	<script type="text/javascript" src="/gadget_html5/js/kcs_payment.js"></script>
+	<script type="text/javascript" src="/emukc/game/js/hijack.js?viewer={{uid}}"></script>
+	<script type="text/javascript">
+		gadgets.util.registerOnLoadHandler(kcsLogin_StartLogin);
+	</script>
+
+	<div id="flashWrap" style="width:1200px; height: 720px;">
+	</div>
+	<div id="sectionWrap"></div>
+
+	<script type="text/javascript">
+		gadgets.util.runOnLoadHandlers();
+	</script>
+
+</body>
+
+</html>

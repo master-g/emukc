@@ -38,6 +38,9 @@ pub struct Profile {
 	/// Profile id
 	pub id: i64,
 
+	/// World id
+	pub world_id: i64,
+
 	/// Profile name
 	pub name: String,
 }

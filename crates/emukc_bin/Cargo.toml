@@ -17,13 +17,42 @@ name = "emukcd"
 emukc_internal = { path = "../emukc_internal" }
 
 # workspace
+http = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 
 # only needed for the executable
+axum = { version = "0.7.5", features = ["form"] }
+axum-server = { version = "0.7.1" }
 config = { version = "0.14", features = ["toml"] }
 clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
+http-body-util = "0.1"
+hyper = { version = "1", features = ["full"] }
+mime_guess = "2"
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
+tera = "1"
+tinytemplate = "1"
+tower = "0.5"
+tower-http = { version = "0.6", features = [
+    "add-extension",
+    "catch-panic",
+    "compression-br",
+    "compression-deflate",
+    "compression-gzip",
+    "compression-zstd",
+    "cors",
+    "request-id",
+    "set-header",
+    "trace",
+    "util",
+] }
+url = "2"
+urlencoding = "2"
+validator = { version = "0.18.1", features = ["derive"] }
 
 [lints]
 workspace = true

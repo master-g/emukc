@@ -12,9 +12,9 @@ emukc_model = { path = "../emukc_model" }
 async-trait = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 sea-orm = { workspace = true, features = [
-	"debug-print",
-	"runtime-tokio-native-tls",
-	"sqlx-sqlite",
+    "debug-print",
+    "runtime-tokio-native-tls",
+    "sqlx-sqlite",
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
