@@ -20,6 +20,7 @@ use crate::{
 };
 
 mod assets;
+mod auth;
 mod header;
 mod router;
 mod signal;
