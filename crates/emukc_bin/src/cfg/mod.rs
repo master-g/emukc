@@ -51,7 +51,27 @@ impl AppConfig {
 			let cfg_path = Path::new(path.as_ref()).parent().unwrap();
 			// join cfg_dif and workspace_root
 			let workspace_root = cfg_path.join(&cfg.workspace_root);
-			cfg.workspace_root = workspace_root;
+			cfg.workspace_root = if workspace_root.is_absolute() {
+				workspace_root
+			} else {
+				workspace_root.canonicalize()?
+			};
+
+			// join cfg_dif and cache_root
+			let cache_root = cfg_path.join(&cfg.cache_root);
+			cfg.cache_root = if cache_root.is_absolute() {
+				cache_root
+			} else {
+				cache_root.canonicalize()?
+			};
+
+			// join cfg_dif and mods_root
+			let mods_root = cfg_path.join(&cfg.mods_root);
+			cfg.mods_root = if mods_root.is_absolute() {
+				mods_root
+			} else {
+				mods_root.canonicalize()?
+			};
 		}
 
 		CFG.set(cfg.clone()).unwrap();
