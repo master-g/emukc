@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Args;
 use emukc_internal::prelude::{download_all, parse_partial_codex};
 
@@ -20,10 +21,7 @@ pub(super) struct BootstrapArgs {
 }
 
 /// Execute the bootstrap command
-pub(super) async fn exec(
-	cfg: &AppConfig,
-	args: &BootstrapArgs,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
 	let proxy = cfg.proxy.as_deref().or(args.proxy.as_deref());
 	let output = if let Some(output) = &args.output {
 		std::path::PathBuf::from(output)

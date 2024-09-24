@@ -9,7 +9,7 @@ use emukc_model::codex::Codex;
 #[derive(Debug, Clone)]
 pub struct Gameplay {
 	/// The game's codex.
-	pub(crate) codex: Codex,
+	pub(crate) codex: Arc<Codex>,
 
 	/// Database connection.
 	pub(crate) db: Arc<DbConn>,
@@ -24,7 +24,7 @@ impl Gameplay {
 	/// * `db` - Database connection.
 	pub fn new(codex: Codex, db: DbConn) -> Self {
 		Self {
-			codex,
+			codex: Arc::new(codex),
 			db: Arc::new(db),
 		}
 	}
@@ -33,8 +33,9 @@ impl Gameplay {
 	#[allow(dead_code)]
 	pub(crate) async fn new_mock() -> Self {
 		let db = Arc::new(new_mem_db().await.unwrap());
+		let codex = Arc::new(Codex::default());
 		Self {
-			codex: Codex::default(),
+			codex,
 			db,
 		}
 	}
@@ -49,3 +50,6 @@ impl Gameplay {
 		&self.db
 	}
 }
+
+/// An arc around a `Gameplay` instance.
+pub type GameplayArc = Arc<Gameplay>;

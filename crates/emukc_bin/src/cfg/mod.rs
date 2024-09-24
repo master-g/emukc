@@ -5,8 +5,10 @@ use std::{
 	sync::OnceLock,
 };
 
-use config::{Config, FileFormat};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+
+use config::{Config, FileFormat};
 
 /// The global configuration
 pub static CFG: OnceLock<AppConfig> = OnceLock::new();
@@ -42,7 +44,7 @@ impl AppConfig {
 	/// # Arguments
 	///
 	/// * `path` - The path to the configuration file
-	pub fn load(path: impl AsRef<str>) -> Result<Self, Box<dyn std::error::Error>> {
+	pub fn load(path: impl AsRef<str>) -> Result<Self> {
 		let source = config::File::new(path.as_ref(), FileFormat::Toml);
 		let cfg = Config::builder().add_source(source).build()?;
 		let mut cfg = cfg.try_deserialize::<AppConfig>()?;
@@ -80,17 +82,17 @@ impl AppConfig {
 	}
 
 	/// Get the path to the template files directory
-	pub fn temp_root(&self) -> Result<PathBuf, std::io::Error> {
+	pub fn temp_root(&self) -> Result<PathBuf> {
 		self.ensure_dir("temp")
 	}
 
 	/// Get the path to the log files directory
-	pub fn log_root(&self) -> Result<PathBuf, std::io::Error> {
+	pub fn log_root(&self) -> Result<PathBuf> {
 		self.ensure_dir("logs")
 	}
 
 	/// Get the path to the codex files directory
-	pub fn codex_root(&self) -> Result<PathBuf, std::io::Error> {
+	pub fn codex_root(&self) -> Result<PathBuf> {
 		self.ensure_dir("codex")
 	}
 
@@ -102,7 +104,7 @@ impl AppConfig {
 
 	#[allow(unused)]
 	/// Ensure that a directory exists
-	fn ensure_dir(&self, dir: impl AsRef<Path>) -> Result<PathBuf, std::io::Error> {
+	fn ensure_dir(&self, dir: impl AsRef<Path>) -> Result<PathBuf> {
 		let dir = self.dir(dir);
 		if !dir.exists() {
 			std::fs::create_dir_all(&dir)?;

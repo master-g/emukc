@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::Result;
 use clap::Args;
 use emukc_internal::prelude::{import_kccp_cache, Kache};
 
@@ -14,10 +15,7 @@ pub(super) struct ImportArgs {
 	cache_root: Option<PathBuf>,
 }
 
-pub(super) async fn exec(
-	args: &ImportArgs,
-	kache: &Kache,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn exec(args: &ImportArgs, kache: &Kache) -> Result<()> {
 	import_kccp_cache(kache, &args.json_path, args.cache_root.as_deref()).await?;
 
 	Ok(())

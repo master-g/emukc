@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{Args, Subcommand};
 
 use crate::state::State;
@@ -19,10 +20,7 @@ pub(super) struct CacheArgs {
 	command: Commands,
 }
 
-pub(super) async fn exec(
-	args: &CacheArgs,
-	state: &State,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn exec(args: &CacheArgs, state: &State) -> Result<()> {
 	match &args.command {
 		Commands::Check(args) => check::exec(&args, &state.kache).await?,
 		Commands::Import(args) => import::exec(&args, &state.kache).await?,

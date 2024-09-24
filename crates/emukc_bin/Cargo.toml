@@ -17,6 +17,7 @@ name = "emukcd"
 emukc_internal = { path = "../emukc_internal" }
 
 # workspace
+anyhow = { workspace = true }
 async-trait = { workspace = true }
 http = { workspace = true }
 serde = { workspace = true }

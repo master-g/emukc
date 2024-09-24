@@ -48,6 +48,7 @@ emukc_internal = { path = "crates/emukc_internal" }
 emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 
 [workspace.dependencies]
+anyhow = "1.0.89"
 async-trait = "0.1"
 base16ct = { version = "0.2.0", features = ["alloc"] }
 bcrypt = { version = "0.15.1" }
@@ -60,14 +61,14 @@ http = { version = "1.1.0" }
 md-5 = "0.10.6"
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = [
-	"default-tls",
-	"socks",
-	"stream",
+    "default-tls",
+    "socks",
+    "stream",
 ] }
 sea-orm = { version = "1", features = [
-	"debug-print",
-	"runtime-tokio-native-tls",
-	"sqlx-sqlite",
+    "debug-print",
+    "runtime-tokio-native-tls",
+    "sqlx-sqlite",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

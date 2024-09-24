@@ -1,3 +1,4 @@
+use anyhow::Result;
 use axum_server::Handle;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -50,7 +51,7 @@ pub fn graceful_shutdown(ct: CancellationToken, http_handle: Handle) -> JoinHand
 }
 
 #[cfg(unix)]
-pub async fn listen() -> Result<String, Box<dyn std::error::Error>> {
+pub async fn listen() -> Result<String> {
 	// Import the OS signals
 	use tokio::signal::unix::{signal, SignalKind};
 	// Get the operating system signal types
@@ -80,7 +81,7 @@ pub async fn listen() -> Result<String, Box<dyn std::error::Error>> {
 }
 
 #[cfg(windows)]
-pub async fn listen() -> Result<String, Box<dyn std::error::Error>> {
+pub async fn listen() -> Result<String> {
 	// Import the OS signals
 	use tokio::signal::windows;
 	// Get the operating system signal types

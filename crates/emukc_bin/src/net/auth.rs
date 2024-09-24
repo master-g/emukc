@@ -6,12 +6,26 @@ use axum::{
 	response::{IntoResponse, Response},
 	Form, RequestPartsExt,
 };
-use emukc_internal::model::profile::Profile;
+use emukc_internal::{model::profile::Profile, prelude::Gameplay};
 use http::{header, request::Parts, StatusCode};
 use http_body_util::BodyExt;
 use serde::{Deserialize, Serialize};
 
-use super::AppState;
+use crate::state::State;
+
+#[derive(Debug, thiserror::Error)]
+pub enum AuthError {
+	#[error("Missing token")]
+	MissingToken,
+}
+
+impl IntoResponse for AuthError {
+	fn into_response(self) -> Response {
+		match self {
+			AuthError::MissingToken => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
+		}
+	}
+}
 
 #[derive(Clone)]
 pub(super) struct AuthUserProfile(pub Profile);
@@ -22,7 +36,7 @@ where
 	State: FromRef<S>,
 	S: Send + Sync,
 {
-	type Rejection = Box<dyn std::error::Error>;
+	type Rejection = AuthError;
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let state = State::from_ref(state);
@@ -50,7 +64,7 @@ where
 						}
 					})
 			})
-			.ok_or_else(|| Error::Auth("missing".to_string()))?;
+			.ok_or_else(|| AuthError::MissingToken)?;
 
 		todo!()
 	}

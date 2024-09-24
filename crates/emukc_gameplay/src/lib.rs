@@ -17,5 +17,5 @@ pub mod prelude {
 	//! The `emukc_gameplay` crate prelude.
 
 	#[doc(hidden)]
-	pub use crate::gameplay::Gameplay;
+	pub use crate::gameplay::{Gameplay, GameplayArc};
 }

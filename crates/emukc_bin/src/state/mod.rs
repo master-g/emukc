@@ -2,13 +2,12 @@
 
 use std::{fs::create_dir, sync::Arc};
 
+use anyhow::bail;
 use emukc_internal::{
 	cache::kache,
-	db::sea_orm::{self, DbConn},
-	model::codex::CodexError,
-	prelude::{prepare, Codex, CodexArc, DbBootstrapError, Kache},
+	db::sea_orm::DbConn,
+	prelude::{prepare, Codex, CodexArc, Kache},
 };
-use thiserror::Error;
 
 use crate::cfg::AppConfig;
 
@@ -27,41 +26,18 @@ pub struct State {
 	pub codex: CodexArc,
 }
 
-#[derive(Error, Debug)]
-pub enum StateError {
-	#[error("IO error: {0}")]
-	Io(#[from] std::io::Error),
-
-	#[error("Database error: {0}")]
-	Db(#[from] sea_orm::error::DbErr),
-
-	#[error("Invalid workspace root: {0}")]
-	InvalidWorkspaceRoot(String),
-
-	#[error("Bootstrap error: {0}")]
-	DbBootstrap(#[from] DbBootstrapError),
-
-	#[error("Kache error: {0}")]
-	Kache(#[from] kache::Error),
-
-	#[error("Codex error: {0}")]
-	Codex(#[from] CodexError),
-}
-
 impl State {
 	/// Create a new application state
 	///
 	/// # Parameters
 	///
 	/// - `cfg` - Application configuration
-	pub async fn new(cfg: &AppConfig) -> Result<Self, StateError> {
+	pub async fn new(cfg: &AppConfig) -> anyhow::Result<Self> {
 		// ensure workspace root
 		if !cfg.workspace_root.exists() {
 			create_dir(&cfg.workspace_root)?;
 		} else if cfg.workspace_root.is_file() {
-			return Err(StateError::InvalidWorkspaceRoot(
-				cfg.workspace_root.to_string_lossy().to_string(),
-			));
+			bail!(cfg.workspace_root.to_string_lossy().to_string());
 		}
 
 		// prepare database

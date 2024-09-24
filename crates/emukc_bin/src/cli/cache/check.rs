@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Args;
 use emukc_internal::prelude::Kache;
 
@@ -8,10 +9,7 @@ pub(super) struct CheckArgs {
 	dry: bool,
 }
 
-pub(super) async fn exec(
-	args: &CheckArgs,
-	kache: &Kache,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn exec(args: &CheckArgs, kache: &Kache) -> Result<()> {
 	kache.check_all(!args.dry).await?;
 
 	Ok(())

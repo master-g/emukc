@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Args;
 use tokio_util::sync::CancellationToken;
 
@@ -13,11 +14,7 @@ pub(super) struct ServeArgs {
 	no_banner: bool,
 }
 
-pub(super) async fn exec(
-	args: &ServeArgs,
-	cfg: &AppConfig,
-	state: &State,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn exec(args: &ServeArgs, cfg: &AppConfig, state: &State) -> Result<()> {
 	if !args.no_banner {
 		println!("{LOGO}");
 	}

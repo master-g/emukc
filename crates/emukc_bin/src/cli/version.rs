@@ -6,7 +6,7 @@ pub fn release() -> String {
 }
 
 /// Initialize the version command
-pub async fn init() -> Result<(), ()> {
+pub async fn init() -> anyhow::Result<()> {
 	// Initialize tracing and logging
 	// Print local CLI version
 	println!("{}", release());

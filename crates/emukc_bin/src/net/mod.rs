@@ -1,7 +1,9 @@
 use std::net::SocketAddr;
 
+use anyhow::Result;
 use axum::{http, Extension};
 use axum_server::Handle;
+use emukc_internal::prelude::{Gameplay, GameplayArc};
 use signal::graceful_shutdown;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
@@ -22,12 +24,14 @@ use crate::{
 mod assets;
 mod auth;
 mod header;
+mod resp;
 mod router;
 mod signal;
 
 const LOG_TAG: &str = "emukc::net";
 
 type AppState = Extension<StateArc>;
+type AppGameplay = Extension<GameplayArc>;
 
 /// Start the network service.
 ///
@@ -38,11 +42,7 @@ type AppState = Extension<StateArc>;
 /// * `ct` - The cancellation token to stop the network service.
 /// * `cfg` - The application configuration.
 /// * `state` - The application state.
-pub(super) async fn run(
-	ct: CancellationToken,
-	cfg: &AppConfig,
-	state: &State,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) async fn run(ct: CancellationToken, cfg: &AppConfig, state: &State) -> Result<()> {
 	// axum service
 	let service = ServiceBuilder::new()
 		.catch_panic()
@@ -50,10 +50,12 @@ pub(super) async fn run(
 		.propagate_x_request_id();
 
 	let state = StateArc::new(state.clone());
+	let gameplay = GameplayArc::new(Gameplay::new(state.codex.clone(), state.db.clone()));
 
 	let service = service
 		.layer(CompressionLayer::new().br(true).deflate(true).gzip(true).zstd(true))
 		.layer(AddExtensionLayer::new(state))
+		.layer(AddExtensionLayer::new(gameplay))
 		.layer(
 			TraceLayer::new_for_http()
 				.make_span_with(DefaultMakeSpan::new().include_headers(true))
