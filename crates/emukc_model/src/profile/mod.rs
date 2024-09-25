@@ -30,7 +30,7 @@ pub mod slot_item;
 pub mod user_item;
 
 /// User profile
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Debug, Default)]
 pub struct Profile {
 	/// Account id
 	pub account_id: i64,

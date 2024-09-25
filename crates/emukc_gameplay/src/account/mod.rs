@@ -8,9 +8,12 @@ use emukc_db::{
 	},
 	sea_orm::{entity::*, query::*},
 };
-use emukc_model::user::{
-	account::Account,
-	token::{Token, TokenType},
+use emukc_model::{
+	profile::Profile,
+	user::{
+		account::Account,
+		token::{Token, TokenType},
+	},
 };
 use emukc_time::chrono::Utc;
 use prelude::async_trait::async_trait;
@@ -45,15 +48,30 @@ pub enum AccountError {
 	#[error("User not found.")]
 	UserNotFound,
 
+	#[error("Profile not found.")]
+	ProfileNotFound,
+
 	#[error("Database error: {0}")]
 	Db(#[from] emukc_db::sea_orm::DbErr),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LoginResult {
+pub struct AccountInfo {
 	pub account: Account,
 	pub access_token: Token,
 	pub refresh_token: Token,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AuthInfo {
+	Account(Account),
+	Profile(Profile),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StartGameInfo {
+	pub profile: Profile,
+	pub session: Token,
 }
 
 /// A trait for account related gameplay.
@@ -65,7 +83,7 @@ pub trait AccountGameplay {
 	///
 	/// * `username` - The username of the new account.
 	/// * `password` - The password of the new account.
-	async fn sign_up(&self, username: &str, password: &str) -> Result<LoginResult, AccountError>;
+	async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, AccountError>;
 
 	/// Sign in with username and password.
 	///
@@ -73,14 +91,26 @@ pub trait AccountGameplay {
 	///
 	/// * `username` - The username of the account.
 	/// * `password` - The password of the account.
-	async fn sign_in(&self, username: &str, password: &str) -> Result<LoginResult, AccountError>;
+	async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, AccountError>;
+
+	/// Start a game session.
+	///
+	/// # Arguments
+	///
+	/// * `access_token` - The access token of the account.
+	/// * `profile_id` - The profile ID to start the game with.
+	async fn start_game(
+		&self,
+		access_token: &str,
+		profile_id: i64,
+	) -> Result<StartGameInfo, AccountError>;
 
 	/// Authenticate with an access token.
 	///
 	/// # Arguments
 	///
-	/// * `access_token` - The access token to authenticate with.
-	async fn auth(&self, access_token: &str) -> Result<Account, AccountError>;
+	/// * `token` - The token to authenticate with, usually an access token, or game session token.
+	async fn auth(&self, token: &str) -> Result<AuthInfo, AccountError>;
 
 	/// Logout with an access token.
 	///
@@ -100,7 +130,7 @@ pub trait AccountGameplay {
 
 #[async_trait]
 impl<T: HasContext + ?Sized> AccountGameplay for T {
-	async fn sign_up(&self, username: &str, password: &str) -> Result<LoginResult, AccountError> {
+	async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, AccountError> {
 		let db = self.db();
 
 		let tx = db.begin().await?;
@@ -139,7 +169,7 @@ impl<T: HasContext + ?Sized> AccountGameplay for T {
 		// final commit
 		tx.commit().await?;
 
-		Ok(LoginResult {
+		Ok(AccountInfo {
 			account: model.into(),
 			access_token,
 			refresh_token,
@@ -152,7 +182,7 @@ impl<T: HasContext + ?Sized> AccountGameplay for T {
 	///
 	/// * `username` - The username of the account.
 	/// * `password` - The password of the account.
-	async fn sign_in(&self, username: &str, password: &str) -> Result<LoginResult, AccountError> {
+	async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, AccountError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 
@@ -177,21 +207,68 @@ impl<T: HasContext + ?Sized> AccountGameplay for T {
 
 		tx.commit().await?;
 
-		Ok(LoginResult {
+		Ok(AccountInfo {
 			account: model.into(),
 			access_token,
 			refresh_token,
 		})
 	}
 
-	async fn auth(&self, access_token: &str) -> Result<Account, AccountError> {
+	async fn start_game(
+		&self,
+		access_token: &str,
+		profile_id: i64,
+	) -> Result<StartGameInfo, AccountError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		// verify access token
+		let account_model = token::Entity::find()
+			.filter(token::Column::Token.eq(access_token))
+			.filter(token::Column::Typ.eq(token::TokenTypeDef::Access))
+			.one(&tx)
+			.await?;
+
+		let Some(account_model) = account_model else {
+			return Err(AccountError::TokenInvalid);
+		};
+
+		let token: Token = account_model.into();
+		if token.is_expired() {
+			return Err(AccountError::TokenExpired);
+		}
+
+		let uid = token.uid;
+
+		// find profile
+		let profile_model = profile::Entity::find()
+			.filter(profile::Column::AccountId.eq(uid))
+			.filter(profile::Column::Id.eq(profile_id))
+			.one(&tx)
+			.await?;
+
+		let Some(profile_model) = profile_model else {
+			return Err(AccountError::ProfileNotFound);
+		};
+
+		let token = issue_token(&tx, uid, profile_id, TokenType::Session).await?;
+
+		tx.commit().await?;
+
+		Ok(StartGameInfo {
+			profile: profile_model.into(),
+			session: token,
+		})
+	}
+
+	async fn auth(&self, token: &str) -> Result<AuthInfo, AccountError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 
 		// find token record
 		let model = token::Entity::find()
-			.filter(token::Column::Token.eq(access_token))
-			.filter(token::Column::Typ.eq(token::TokenTypeDef::Access))
+			.filter(token::Column::Token.eq(token))
+			.filter(token::Column::Typ.ne(token::TokenTypeDef::Refresh))
 			.one(&tx)
 			.await?;
 
@@ -202,27 +279,52 @@ impl<T: HasContext + ?Sized> AccountGameplay for T {
 		// check token
 
 		let uid = model.uid;
+		let profile_id = model.profile_id;
 
 		let token: Token = model.into();
 		if token.is_expired() {
 			return Err(AccountError::TokenExpired);
 		}
 
-		// find account
-		let account = account::Entity::find().filter(account::Column::Uid.eq(uid)).one(&tx).await?;
-		let Some(account) = account else {
-			return Err(AccountError::UserNotFound);
+		let info = match token.typ {
+			TokenType::Access => {
+				// find account
+				let account =
+					account::Entity::find().filter(account::Column::Uid.eq(uid)).one(&tx).await?;
+				let Some(account) = account else {
+					return Err(AccountError::UserNotFound);
+				};
+
+				// update
+				let mut active_model: account::ActiveModel = account.into();
+				active_model.last_login = ActiveValue::Set(Utc::now());
+
+				let updated_account = active_model.update(&tx).await?;
+
+				AuthInfo::Account(Account::from(updated_account))
+			}
+			TokenType::Session => {
+				// find profile
+				let profile = profile::Entity::find()
+					.filter(profile::Column::AccountId.eq(uid))
+					.filter(profile::Column::Id.eq(profile_id))
+					.one(&tx)
+					.await?;
+
+				let Some(profile) = profile else {
+					return Err(AccountError::ProfileNotFound);
+				};
+
+				AuthInfo::Profile(Profile::from(profile))
+			}
+			_ => {
+				return Err(AccountError::TokenInvalid);
+			}
 		};
-
-		// update
-		let mut active_model: account::ActiveModel = account.into();
-		active_model.last_login = ActiveValue::Set(Utc::now());
-
-		let model = active_model.update(&tx).await?;
 
 		tx.commit().await?;
 
-		Ok(model.into())
+		Ok(info)
 	}
 
 	async fn logout(&self, access_token: &str) -> Result<(), AccountError> {
@@ -408,7 +510,11 @@ mod tests {
 
 		let auth = gp.auth(&access_token).await.unwrap();
 
-		assert_eq!(auth.uid, signup.account.uid);
+		let account = match auth {
+			AuthInfo::Account(account) => account,
+			AuthInfo::Profile(profile) => panic!("expect account, got profile: {:?}", profile),
+		};
+		assert_eq!(account.uid, signup.account.uid);
 
 		gp.logout(&access_token).await.unwrap();
 
