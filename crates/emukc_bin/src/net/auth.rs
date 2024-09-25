@@ -59,6 +59,7 @@ impl IntoResponse for AuthError {
 	}
 }
 
+#[allow(unused)]
 #[derive(Clone)]
 pub(super) struct AuthAccount(pub Account);
 
@@ -109,6 +110,7 @@ where
 	}
 }
 
+#[allow(unused)]
 pub(super) async fn auth_middleware(request: Request, next: Next) -> Result<Response, StatusCode> {
 	let (mut parts, body) = request.into_parts();
 
@@ -124,6 +126,7 @@ pub(super) async fn auth_middleware(request: Request, next: Next) -> Result<Resp
 	Ok(next.run(Request::from_parts(parts, body)).await)
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub(super) struct GameSession(pub Profile);
 
@@ -209,6 +212,7 @@ async fn extract_kcs_api_game_session(
 	}
 }
 
+#[allow(unused)]
 pub(super) async fn kcs_api_auth_middleware(
 	request: Request,
 	next: Next,
