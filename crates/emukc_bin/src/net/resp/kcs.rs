@@ -49,6 +49,7 @@ impl IntoResponse for KcApiResponse {
 }
 
 impl KcApiResponse {
+	#[allow(dead_code)]
 	pub fn success<T: Serialize>(data: &T) -> Self {
 		Self {
 			api_result: 1,
@@ -58,6 +59,7 @@ impl KcApiResponse {
 		}
 	}
 
+	#[allow(dead_code)]
 	pub fn success_json(data: Value) -> Self {
 		Self {
 			api_result: 1,
@@ -77,6 +79,7 @@ impl KcApiResponse {
 		}
 	}
 
+	#[allow(dead_code)]
 	pub fn empty() -> Self {
 		Self {
 			api_result: 1,
@@ -86,6 +89,7 @@ impl KcApiResponse {
 		}
 	}
 
+	#[allow(dead_code)]
 	pub fn failure(msg: &str) -> Self {
 		Self {
 			api_result: -1,

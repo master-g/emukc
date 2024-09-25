@@ -43,7 +43,7 @@ where
 		let token_names = ["access_token", "token", "st", "api_token"];
 
 		// extract token from query first
-		let token = parts
+		let raw_token = parts
 			.uri
 			.query()
 			.and_then(|query| {

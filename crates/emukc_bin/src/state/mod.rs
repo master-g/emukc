@@ -6,7 +6,7 @@ use anyhow::bail;
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::DbConn,
-	prelude::{prepare, Codex, CodexArc, Kache},
+	prelude::{prepare, Codex, Kache},
 };
 
 use crate::cfg::AppConfig;
@@ -23,7 +23,7 @@ pub struct State {
 	pub kache: Arc<kache::Kache>,
 
 	/// Codex instance
-	pub codex: CodexArc,
+	pub codex: Arc<Codex>,
 }
 
 impl State {
@@ -60,7 +60,7 @@ impl State {
 
 		// codex
 		let codex_root = cfg.codex_root()?;
-		let codex = CodexArc::new(Codex::load(&codex_root)?);
+		let codex = Arc::new(Codex::load(&codex_root)?);
 
 		Ok(Self {
 			db,

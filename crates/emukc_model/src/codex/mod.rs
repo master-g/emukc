@@ -301,6 +301,3 @@ impl Codex {
 		Ok(serde_json::from_str(&raw)?)
 	}
 }
-
-/// A type alias for `std::sync::Arc<Codex>`.
-pub type CodexArc = std::sync::Arc<Codex>;

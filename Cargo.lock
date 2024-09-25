@@ -1115,6 +1115,7 @@ dependencies = [
 name = "emukc_gameplay"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "emukc_crypto",
  "emukc_db",
  "emukc_model",

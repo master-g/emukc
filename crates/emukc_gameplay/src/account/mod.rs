@@ -13,10 +13,11 @@ use emukc_model::user::{
 	token::{Token, TokenType},
 };
 use emukc_time::chrono::Utc;
+use prelude::async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::prelude::Gameplay;
+use crate::gameplay::HasContext;
 
 const MIN_USERNAME_LEN: usize = 4;
 const MIN_PASSWORD_LEN: usize = 7;
@@ -55,19 +56,52 @@ pub struct LoginResult {
 	pub refresh_token: Token,
 }
 
-impl Gameplay {
+/// A trait for account related gameplay.
+#[async_trait]
+pub trait AccountGameplay {
 	/// Create a new account.
 	///
 	/// # Arguments
 	///
 	/// * `username` - The username of the new account.
 	/// * `password` - The password of the new account.
-	pub async fn sign_up(
-		&self,
-		username: &str,
-		password: &str,
-	) -> Result<LoginResult, AccountError> {
-		let db = &*self.db;
+	async fn sign_up(&self, username: &str, password: &str) -> Result<LoginResult, AccountError>;
+
+	/// Sign in with username and password.
+	///
+	/// # Arguments
+	///
+	/// * `username` - The username of the account.
+	/// * `password` - The password of the account.
+	async fn sign_in(&self, username: &str, password: &str) -> Result<LoginResult, AccountError>;
+
+	/// Authenticate with an access token.
+	///
+	/// # Arguments
+	///
+	/// * `access_token` - The access token to authenticate with.
+	async fn auth(&self, access_token: &str) -> Result<Account, AccountError>;
+
+	/// Logout with an access token.
+	///
+	/// # Arguments
+	///
+	/// * `access_token` - The access token to logout with.
+	async fn logout(&self, access_token: &str) -> Result<(), AccountError>;
+
+	/// Remove an account and all its data.
+	///
+	/// # Arguments
+	///
+	/// * `username` - The username of the account.
+	/// * `password` - The password of the account.
+	async fn delete_account(&self, username: &str, password: &str) -> Result<(), AccountError>;
+}
+
+#[async_trait]
+impl<T: HasContext + ?Sized> AccountGameplay for T {
+	async fn sign_up(&self, username: &str, password: &str) -> Result<LoginResult, AccountError> {
+		let db = self.db();
 
 		let tx = db.begin().await?;
 
@@ -99,8 +133,8 @@ impl Gameplay {
 		let model = model.insert(&tx).await?;
 
 		// issue new tokens
-		let access_token = Self::issue_token(&tx, model.uid, 0, TokenType::Access).await?;
-		let refresh_token = Self::issue_token(&tx, model.uid, 0, TokenType::Refresh).await?;
+		let access_token = issue_token(&tx, model.uid, 0, TokenType::Access).await?;
+		let refresh_token = issue_token(&tx, model.uid, 0, TokenType::Refresh).await?;
 
 		// final commit
 		tx.commit().await?;
@@ -118,12 +152,8 @@ impl Gameplay {
 	///
 	/// * `username` - The username of the account.
 	/// * `password` - The password of the account.
-	pub async fn sign_in(
-		&self,
-		username: &str,
-		password: &str,
-	) -> Result<LoginResult, AccountError> {
-		let db = &*self.db;
+	async fn sign_in(&self, username: &str, password: &str) -> Result<LoginResult, AccountError> {
+		let db = self.db();
 		let tx = db.begin().await?;
 
 		let model =
@@ -142,8 +172,8 @@ impl Gameplay {
 
 		let model = active_model.update(&tx).await?;
 
-		let access_token = Self::issue_token(&tx, model.uid, 0, TokenType::Access).await?;
-		let refresh_token = Self::issue_token(&tx, model.uid, 0, TokenType::Refresh).await?;
+		let access_token = issue_token(&tx, model.uid, 0, TokenType::Access).await?;
+		let refresh_token = issue_token(&tx, model.uid, 0, TokenType::Refresh).await?;
 
 		tx.commit().await?;
 
@@ -154,13 +184,8 @@ impl Gameplay {
 		})
 	}
 
-	/// Authenticate with an access token.
-	///
-	/// # Arguments
-	///
-	/// * `access_token` - The access token to authenticate with.
-	pub async fn auth(&self, access_token: &str) -> Result<Account, AccountError> {
-		let db = &*self.db;
+	async fn auth(&self, access_token: &str) -> Result<Account, AccountError> {
+		let db = self.db();
 		let tx = db.begin().await?;
 
 		// find token record
@@ -200,13 +225,8 @@ impl Gameplay {
 		Ok(model.into())
 	}
 
-	/// Logout with an access token.
-	///
-	/// # Arguments
-	///
-	/// * `access_token` - The access token to logout with.
-	pub async fn logout(&self, access_token: &str) -> Result<(), AccountError> {
-		let db = &*self.db;
+	async fn logout(&self, access_token: &str) -> Result<(), AccountError> {
+		let db = self.db();
 		let tx = db.begin().await?;
 
 		// find token record
@@ -235,8 +255,8 @@ impl Gameplay {
 		Ok(())
 	}
 
-	pub async fn delete_account(&self, username: &str, password: &str) -> Result<(), AccountError> {
-		let db = &*self.db;
+	async fn delete_account(&self, username: &str, password: &str) -> Result<(), AccountError> {
+		let db = self.db();
 		let tx = db.begin().await?;
 
 		let model =
@@ -266,51 +286,51 @@ impl Gameplay {
 
 		Ok(())
 	}
+}
 
-	pub(crate) async fn issue_token<C>(
-		c: &C,
-		uid: i64,
-		profile_id: i64,
-		typ: TokenType,
-	) -> Result<Token, AccountError>
-	where
-		C: ConnectionTrait,
-	{
-		let token = match typ {
-			TokenType::Access => Token::issue_access(uid),
-			TokenType::Refresh => Token::issue_refresh(uid),
-			TokenType::Session => Token::issue_session(uid, profile_id),
-		};
+async fn issue_token<C>(
+	c: &C,
+	uid: i64,
+	profile_id: i64,
+	typ: TokenType,
+) -> Result<Token, AccountError>
+where
+	C: ConnectionTrait,
+{
+	let token = match typ {
+		TokenType::Access => Token::issue_access(uid),
+		TokenType::Refresh => Token::issue_refresh(uid),
+		TokenType::Session => Token::issue_session(uid, profile_id),
+	};
 
-		let db_token_type = token::TokenTypeDef::from(typ);
+	let db_token_type = token::TokenTypeDef::from(typ);
 
-		// find the old token
-		let record = token::Entity::find()
-			.filter(token::Column::Uid.eq(uid))
-			.filter(token::Column::ProfileId.eq(profile_id))
-			.filter(token::Column::Typ.eq(db_token_type))
-			.one(c)
-			.await?;
-
-		if let Some(record) = record {
-			// remove the old token
-			record.delete(c).await?;
-		}
-
-		// insert the new token
-		token::ActiveModel {
-			id: ActiveValue::NotSet,
-			uid: ActiveValue::Set(uid),
-			profile_id: ActiveValue::Set(profile_id),
-			typ: ActiveValue::Set(typ.into()),
-			token: ActiveValue::Set(token.token.clone()),
-			expire: ActiveValue::Set(token.expire),
-		}
-		.save(c)
+	// find the old token
+	let record = token::Entity::find()
+		.filter(token::Column::Uid.eq(uid))
+		.filter(token::Column::ProfileId.eq(profile_id))
+		.filter(token::Column::Typ.eq(db_token_type))
+		.one(c)
 		.await?;
 
-		Ok(token)
+	if let Some(record) = record {
+		// remove the old token
+		record.delete(c).await?;
 	}
+
+	// insert the new token
+	token::ActiveModel {
+		id: ActiveValue::NotSet,
+		uid: ActiveValue::Set(uid),
+		profile_id: ActiveValue::Set(profile_id),
+		typ: ActiveValue::Set(typ.into()),
+		token: ActiveValue::Set(token.token.clone()),
+		expire: ActiveValue::Set(token.expire),
+	}
+	.save(c)
+	.await?;
+
+	Ok(token)
 }
 
 #[cfg(test)]
@@ -319,12 +339,20 @@ mod tests {
 	use std::time::Duration;
 
 	use emukc_db::entity::user::{self, token::TokenTypeDef};
+	use emukc_model::codex::Codex;
+	use prelude::DbConn;
 
 	use super::*;
 
+	async fn new_mock() -> (DbConn, Codex) {
+		let db = emukc_db::prelude::new_mem_db().await.unwrap();
+		let codex = Codex::default();
+		return (db, codex);
+	}
+
 	#[tokio::test]
 	async fn test_new_account() {
-		let gameplay = Gameplay::new_mock().await;
+		let gameplay = new_mock().await;
 
 		let username = "admin";
 		let password = "abcd123";
@@ -336,16 +364,16 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_token_issue() {
-		let gp = Gameplay::new_mock().await;
+		let gp = new_mock().await;
 
 		let result = gp.sign_up("test", "1234567").await.unwrap();
 		let uid = result.account.uid;
 
-		let db = gp.db;
+		let db = &gp.0;
 		let tx = db.begin().await.unwrap();
 
 		for _ in 0..3 {
-			Gameplay::issue_token(&tx, uid, 0, TokenType::Access).await.unwrap();
+			issue_token(&tx, uid, 0, TokenType::Access).await.unwrap();
 		}
 
 		let tokens = user::token::Entity::find()
@@ -360,7 +388,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_login() {
-		let gp = Gameplay::new_mock().await;
+		let gp = new_mock().await;
 		let username = "test";
 		let password = "1234567";
 
