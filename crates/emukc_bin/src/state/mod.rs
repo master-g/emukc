@@ -6,7 +6,7 @@ use anyhow::bail;
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::DbConn,
-	prelude::{prepare, Codex, Kache},
+	prelude::{prepare, Codex, HasContext, Kache},
 };
 
 use crate::cfg::AppConfig;
@@ -71,3 +71,13 @@ impl State {
 }
 
 pub type StateArc = Arc<State>;
+
+impl HasContext for State {
+	fn db(&self) -> &DbConn {
+		self.db.as_ref()
+	}
+
+	fn codex(&self) -> &Codex {
+		self.codex.as_ref()
+	}
+}

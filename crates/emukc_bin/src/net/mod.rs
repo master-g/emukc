@@ -21,7 +21,7 @@ use crate::{
 };
 
 mod assets;
-// mod auth;
+mod auth;
 mod header;
 mod resp;
 mod router;

@@ -17,5 +17,8 @@ pub mod prelude {
 	//! The `emukc_gameplay` crate prelude.
 
 	#[doc(hidden)]
-	pub use crate::gameplay::{Gameplay, HasContext};
+	pub use crate::{
+		account::{AccountError, AccountGameplay, AccountInfo, AuthInfo},
+		gameplay::{Gameplay, HasContext},
+	};
 }
