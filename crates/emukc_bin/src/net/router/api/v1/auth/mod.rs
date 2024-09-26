@@ -1,12 +1,19 @@
 use axum::{routing::post, Json, Router};
-use emukc_internal::{model::user::token::Token, prelude::AccountOps};
+use emukc_internal::{
+	model::{profile::Profile, user::token::Token},
+	prelude::{AccountOps, ProfileOps},
+};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use crate::net::{err::ApiError, AppState};
 
 pub(super) fn router() -> Router {
-	Router::new().route("/sign-in", post(sign_in)).route("/sign-up", post(sign_up))
+	Router::new()
+		.route("/sign-in", post(sign_in))
+		.route("/sign-up", post(sign_up))
+		.route("/new-profile", post(new_profile))
+		.route("/start-game", post(start_game))
 }
 
 #[derive(Serialize, Deserialize, Debug, Validate)]
@@ -15,6 +22,30 @@ struct SignParameter {
 	username: String,
 	#[validate(length(min = 7, max = 20))]
 	password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Validate)]
+struct NewProfileRequest {
+	#[validate(length(equal = 44))]
+	access_token: String,
+
+	#[validate(length(min = 4))]
+	name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Validate)]
+struct StartGameRequest {
+	#[validate(length(equal = 44))]
+	access_token: String,
+
+	#[validate(range(min = 1))]
+	profile_id: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ProfileResponse {
+	profile: Profile,
+	session: Token,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -64,5 +95,33 @@ async fn sign_up(
 		uid: account.account.uid,
 		access_token: account.access_token,
 		refresh_token: account.refresh_token,
+	}))
+}
+
+async fn new_profile(
+	state: AppState,
+	Json(params): Json<NewProfileRequest>,
+) -> Result<Json<ProfileResponse>, ApiError> {
+	params.validate().map_err(ApiError::from)?;
+
+	let info = state.new_profile(&params.access_token, &params.name).await?;
+
+	Ok(Json(ProfileResponse {
+		profile: info.profile,
+		session: info.session,
+	}))
+}
+
+async fn start_game(
+	state: AppState,
+	Json(params): Json<StartGameRequest>,
+) -> Result<Json<ProfileResponse>, ApiError> {
+	params.validate().map_err(ApiError::from)?;
+
+	let info = state.start_game(&params.access_token, params.profile_id).await?;
+
+	Ok(Json(ProfileResponse {
+		profile: info.profile,
+		session: info.session,
 	}))
 }
