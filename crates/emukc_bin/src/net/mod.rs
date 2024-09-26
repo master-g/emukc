@@ -22,6 +22,7 @@ use crate::{
 
 mod assets;
 mod auth;
+mod err;
 mod header;
 mod resp;
 mod router;

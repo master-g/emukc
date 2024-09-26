@@ -8,7 +8,7 @@ use axum::{
 };
 use emukc_internal::{
 	model::{profile::Profile, user::account::Account},
-	prelude::{AccountError, AccountGameplay, AuthInfo},
+	prelude::{AccountGameplay, AuthInfo},
 };
 use http::{header, request::Parts, StatusCode};
 use http_body_util::BodyExt;
@@ -16,48 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::state::State;
 
-use super::AppState;
-
-#[derive(Debug, thiserror::Error)]
-pub enum AuthError {
-	#[error("Missing token")]
-	MissingToken,
-
-	#[error("Invalid token")]
-	InvalidToken,
-
-	#[error("Not fount")]
-	NotFound,
-
-	#[error("Internal error: {0}")]
-	Internal(String),
-
-	#[error("Unknown error {0}")]
-	Unknown(String),
-}
-
-impl From<AccountError> for AuthError {
-	fn from(value: AccountError) -> Self {
-		match value {
-			AccountError::TokenInvalid | AccountError::TokenExpired => Self::InvalidToken,
-			AccountError::UserNotFound | AccountError::ProfileNotFound => Self::NotFound,
-			AccountError::Db(db_err) => Self::Internal(db_err.to_string()),
-			_ => Self::Unknown(value.to_string()),
-		}
-	}
-}
-
-impl IntoResponse for AuthError {
-	fn into_response(self) -> Response {
-		match self {
-			AuthError::MissingToken => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-			AuthError::InvalidToken => (StatusCode::UNAUTHORIZED, self.to_string()).into_response(),
-			AuthError::NotFound => (StatusCode::NOT_FOUND, self.to_string()).into_response(),
-			AuthError::Internal(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-			AuthError::Unknown(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-		}
-	}
-}
+use super::{err::ApiError, AppState};
 
 #[allow(unused)]
 #[derive(Clone)]
@@ -69,7 +28,7 @@ where
 	State: FromRef<S>,
 	S: Send + Sync,
 {
-	type Rejection = AuthError;
+	type Rejection = ApiError;
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let state = State::from_ref(state);
@@ -97,13 +56,13 @@ where
 						}
 					})
 			})
-			.ok_or_else(|| AuthError::MissingToken)?;
+			.ok_or_else(|| ApiError::MissingToken)?;
 
 		match state.auth(&raw_token).await {
 			Ok(AuthInfo::Account(account)) => Ok(Self(account)),
 			Ok(AuthInfo::Profile(_)) => {
 				info!("expected access token, got game session token");
-				Err(AuthError::InvalidToken)
+				Err(ApiError::InvalidToken)
 			}
 			Err(e) => return Err(e.into()),
 		}
@@ -126,9 +85,11 @@ pub(super) async fn auth_middleware(request: Request, next: Next) -> Result<Resp
 	Ok(next.run(Request::from_parts(parts, body)).await)
 }
 
-#[allow(unused)]
 #[derive(Debug, Clone)]
-pub(super) struct GameSession(pub Profile);
+pub(super) struct GameSession {
+	pub token: String,
+	pub profile: Profile,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct KcsApiFormWithToken {
@@ -157,20 +118,23 @@ where
 	State: FromRef<S>,
 	S: Send + Sync + 'static,
 {
-	type Rejection = AuthError;
+	type Rejection = ApiError;
 
 	async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
 		let Ok(form) = KcsApiFormWithToken::from_request(req, state).await else {
-			return Err(AuthError::MissingToken);
+			return Err(ApiError::MissingToken);
 		};
 
 		let state = State::from_ref(state);
 
 		match state.auth(&form.api_token).await {
-			Ok(AuthInfo::Profile(profile)) => Ok(Self(profile)),
+			Ok(AuthInfo::Profile(profile)) => Ok(Self {
+				token: form.api_token,
+				profile,
+			}),
 			Ok(AuthInfo::Account(_)) => {
 				info!("expected game session token, got access token");
-				Err(AuthError::InvalidToken)
+				Err(ApiError::InvalidToken)
 			}
 			Err(e) => return Err(e.into()),
 		}
@@ -197,9 +161,13 @@ async fn extract_kcs_api_game_session(
 		.map_err(|err| (StatusCode::BAD_REQUEST, err.to_string()).into_response())?;
 
 	match state.auth(&form.api_token).await {
-		Ok(AuthInfo::Profile(profile)) => {
-			Ok((GameSession(profile), Request::from_parts(parts, Body::from(bytes))))
-		}
+		Ok(AuthInfo::Profile(profile)) => Ok((
+			GameSession {
+				token: form.api_token,
+				profile,
+			},
+			Request::from_parts(parts, Body::from(bytes)),
+		)),
 		Ok(AuthInfo::Account(_)) => {
 			info!("expected game session token, got access token");
 			Err((
@@ -208,7 +176,7 @@ async fn extract_kcs_api_game_session(
 			)
 				.into_response())
 		}
-		Err(e) => Err(AuthError::from(e).into_response()),
+		Err(e) => Err(ApiError::from(e).into_response()),
 	}
 }
 

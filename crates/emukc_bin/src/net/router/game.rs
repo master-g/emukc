@@ -5,10 +5,14 @@ use axum::{
 	routing::get,
 	Extension, Router,
 };
+use emukc_internal::prelude::PKG_VERSION;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
 
-use crate::net::assets::GameSiteAssets;
+use crate::net::{
+	assets::{GameSiteAssets, GameStaticFile},
+	auth::{auth_middleware, GameSession},
+};
 
 pub(super) fn router() -> Router {
 	Router::new()
@@ -22,8 +26,8 @@ pub(super) fn router() -> Router {
 		)
 }
 
-// spkc/index.html
-async fn home(Host(host): Host, Extension(user): Extension<AuthUser>) -> impl IntoResponse {
+// emukc/index.html
+async fn home(Host(host): Host, Extension(session): Extension<GameSession>) -> impl IntoResponse {
 	// prepare html
 	let html = GameSiteAssets::get("emukc/index.html").unwrap();
 	let html = std::str::from_utf8(html.data.as_ref()).unwrap();
@@ -31,16 +35,16 @@ async fn home(Host(host): Host, Extension(user): Extension<AuthUser>) -> impl In
 	// prepare parameters
 	let parent = format!("//{}/netgame/social/", host);
 	let parent = urlencoding::encode(&parent);
-	let token = user.0.access_token().unwrap().token;
 
-	let uid = user.0.uid();
+	let token = session.token;
+	let profile_id = session.profile.id;
 
 	let mut tera = Tera::default();
 	let mut context = tera::Context::new();
-	context.insert("uid", &uid);
+	context.insert("uid", &profile_id);
 	context.insert("parent", &parent);
 	context.insert("token", &token);
-	let url = "/spkc/game/ifr.html?synd=dmm&container=dmm&owner={{uid}}&viewer={{uid}}&aid=854854&mid=29080258&country=jp&lang=ja&view=canvas&parent={{parent}}&access_token={{token}}&st={{token}}#rpctoken=1131055973";
+	let url = "/emukc/game/ifr.html?synd=dmm&container=dmm&owner={{uid}}&viewer={{uid}}&aid=854854&mid=29080258&country=jp&lang=ja&view=canvas&parent={{parent}}&access_token={{token}}&st={{token}}#rpctoken=1131055973";
 	let url = tera.render_str(url, &context).unwrap();
 	context.insert("ifr_url", &url);
 	let result = tera.render_str(html, &context).unwrap();
@@ -48,19 +52,19 @@ async fn home(Host(host): Host, Extension(user): Extension<AuthUser>) -> impl In
 	Html(result)
 }
 
-// spkc/css/*
+// emukc/css/*
 async fn css(Path(path): Path<String>) -> impl IntoResponse {
-	GameStaticFile(format!("spkc/css/{}", path))
+	GameStaticFile(format!("emukc/css/{}", path))
 }
 
-// spkc/js/*
+// emukc/js/*
 async fn js(Path(path): Path<String>) -> impl IntoResponse {
-	GameStaticFile(format!("spkc/js/{}", path))
+	GameStaticFile(format!("emukc/js/{}", path))
 }
 
-// spkc/game/js/hijack.js
+// emukc/game/js/hijack.js
 async fn hijack_js(uid: i64) -> impl IntoResponse {
-	let raw = GameSiteAssets::get("spkc/game/js/hijack.js").unwrap();
+	let raw = GameSiteAssets::get("emukc/game/js/hijack.js").unwrap();
 	let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
 
 	let mut tera = Tera::default();
@@ -76,7 +80,7 @@ struct ViewerQuery {
 	viewer: Option<i64>,
 }
 
-// spkc/game/*
+// emukc/game/*
 async fn game(
 	Host(host): Host,
 	Path(path): Path<String>,
@@ -87,7 +91,7 @@ async fn game(
 		return hijack_js(uid).await.into_response();
 	} else if path.ends_with("ifr.html") {
 		let uid = query.viewer.unwrap_or(0);
-		let raw = GameSiteAssets::get("spkc/game/ifr.html").unwrap();
+		let raw = GameSiteAssets::get("emukc/game/ifr.html").unwrap();
 		let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
 		let mut tera = Tera::default();
 		let mut context = tera::Context::new();
@@ -96,7 +100,7 @@ async fn game(
 		return Html(result).into_response();
 	}
 
-	let rel_path = format!("spkc/game/{}", path);
+	let rel_path = format!("emukc/game/{}", path);
 	if GameSiteAssets::get(&rel_path).is_some() {
 		GameStaticFile(rel_path).into_response()
 	} else {

@@ -1,9 +1,9 @@
 use axum::{routing::post, Json, Router};
-use emukc_internal::model::user::token::Token;
+use emukc_internal::{model::user::token::Token, prelude::AccountGameplay};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::net::AppState;
+use crate::net::{err::ApiError, AppState};
 
 pub(super) fn router() -> Router {
 	Router::new().route("/sign-in", post(sign_in)).route("/sign-up", post(sign_up))
@@ -40,29 +40,29 @@ struct RenewResponse {
 async fn sign_in(
 	state: AppState,
 	Json(params): Json<SignParameter>,
-) -> Result<Json<AuthResponse>, Error> {
-	params.validate().map_err(Error::from)?;
+) -> Result<Json<AuthResponse>, ApiError> {
+	params.validate().map_err(ApiError::from)?;
 
-	let user = User::sign_in(&db, &params.username, &params.password).await?;
+	let account = state.sign_in(&params.username, &params.password).await?;
 
 	Ok(Json(AuthResponse {
-		uid: user.uid(),
-		access_token: user.access_token().unwrap(),
-		refresh_token: user.refresh_token().unwrap(),
+		uid: account.account.uid,
+		access_token: account.access_token,
+		refresh_token: account.refresh_token,
 	}))
 }
 
 async fn sign_up(
-	db: UserDB,
+	state: AppState,
 	Json(params): Json<SignParameter>,
-) -> Result<Json<AuthResponse>, Error> {
-	params.validate().map_err(Error::from)?;
+) -> Result<Json<AuthResponse>, ApiError> {
+	params.validate().map_err(ApiError::from)?;
 
-	let user = User::sign_up(&db, &params.username, &params.password).await?;
+	let account = state.sign_up(&params.username, &params.password).await?;
 
 	Ok(Json(AuthResponse {
-		uid: user.uid(),
-		access_token: user.access_token().unwrap(),
-		refresh_token: user.refresh_token().unwrap(),
+		uid: account.account.uid,
+		access_token: account.access_token,
+		refresh_token: account.refresh_token,
 	}))
 }

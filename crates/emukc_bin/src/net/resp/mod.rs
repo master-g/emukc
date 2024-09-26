@@ -1,12 +1,12 @@
 use axum::response::IntoResponse;
 use kcs::KcApiResponse;
 
+use super::err::ApiError;
+
 mod kcs;
 
-// TODO: add a error.rs to net module for common error handling
-
 #[derive(thiserror::Error, Debug)]
-pub struct KcApiError(Error);
+pub struct KcApiError(ApiError);
 
 impl std::fmt::Display for KcApiError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -14,8 +14,8 @@ impl std::fmt::Display for KcApiError {
 	}
 }
 
-impl From<Error> for KcApiError {
-	fn from(e: Error) -> Self {
+impl From<ApiError> for KcApiError {
+	fn from(e: ApiError) -> Self {
 		KcApiError(e)
 	}
 }
@@ -26,4 +26,5 @@ impl IntoResponse for KcApiError {
 	}
 }
 
+#[allow(unused)]
 pub type KcApiResult = std::result::Result<KcApiResponse, KcApiError>;
