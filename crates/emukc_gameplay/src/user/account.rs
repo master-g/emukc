@@ -190,6 +190,8 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 		let uid = model.uid;
 		let profile_id = model.profile_id;
 
+		let mut token_am: token::ActiveModel = model.clone().into();
+
 		let token: Token = model.into();
 		if token.is_expired() {
 			return Err(UserError::TokenExpired);
@@ -223,6 +225,10 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 				let Some(profile) = profile else {
 					return Err(UserError::ProfileNotFound);
 				};
+
+				// renew session token
+				token_am.expire = ActiveValue::Set(Utc::now() + token.typ.duration());
+				token_am.update(&tx).await?;
 
 				AuthInfo::Profile(Profile::from(profile))
 			}

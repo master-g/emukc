@@ -11,7 +11,7 @@ pub enum ApiError {
 	#[error("Invalid token")]
 	InvalidToken,
 
-	#[error("Not fount")]
+	#[error("Not found")]
 	NotFound,
 
 	#[error("Internal error: {0}")]

@@ -18,6 +18,17 @@ pub enum TokenType {
 	Session,
 }
 
+impl TokenType {
+	/// Get the duration of the token
+	pub fn duration(&self) -> std::time::Duration {
+		match self {
+			TokenType::Access => chrono::Duration::days(7).to_std().unwrap(),
+			TokenType::Refresh => chrono::Duration::days(30).to_std().unwrap(),
+			TokenType::Session => chrono::Duration::hours(1).to_std().unwrap(),
+		}
+	}
+}
+
 /// Token is a struct that holds the token information.
 /// It is used to issue and verify the token.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -87,13 +98,9 @@ impl Token {
 
 	fn issue(uid: i64, profile_id: i64, typ: TokenType) -> Self {
 		let (salt, span) = match typ {
-			TokenType::Access => (ACCESS_TOKEN_SALT, chrono::Duration::days(7).to_std().unwrap()),
-			TokenType::Refresh => {
-				(REFRESH_TOKEN_SALT, chrono::Duration::days(30).to_std().unwrap())
-			}
-			TokenType::Session => {
-				(SESSION_TOKEN_SALT, chrono::Duration::hours(1).to_std().unwrap())
-			}
+			TokenType::Access => (ACCESS_TOKEN_SALT, typ.duration()),
+			TokenType::Refresh => (REFRESH_TOKEN_SALT, typ.duration()),
+			TokenType::Session => (SESSION_TOKEN_SALT, typ.duration()),
 		};
 
 		let (token, expire) = Self::new_partial(salt, span);
