@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
-use crate::account::AccountGameplay;
+use crate::user::{AccountOps, ProfileOps};
 
 /// A trait for types that have a database connection and a codex.
 pub trait HasContext: Send + Sync {
@@ -19,7 +19,7 @@ pub trait HasContext: Send + Sync {
 
 /// Gameplay trait for the game's data and logic.
 #[async_trait]
-pub trait Gameplay: AccountGameplay {}
+pub trait Gameplay: AccountOps + ProfileOps {}
 
 /// Blanket implementation of `Gameplay` for types that implement `HasContext`.
 #[async_trait]

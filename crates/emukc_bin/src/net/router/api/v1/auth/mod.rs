@@ -1,5 +1,5 @@
 use axum::{routing::post, Json, Router};
-use emukc_internal::{model::user::token::Token, prelude::AccountGameplay};
+use emukc_internal::{model::user::token::Token, prelude::AccountOps};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 

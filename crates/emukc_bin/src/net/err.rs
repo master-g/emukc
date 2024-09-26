@@ -1,5 +1,5 @@
 use axum::response::{IntoResponse, Response};
-use emukc_internal::prelude::AccountError;
+use emukc_internal::prelude::UserError;
 use http::StatusCode;
 use thiserror::Error;
 
@@ -24,12 +24,12 @@ pub enum ApiError {
 	Validation(#[from] validator::ValidationErrors),
 }
 
-impl From<AccountError> for ApiError {
-	fn from(value: AccountError) -> Self {
+impl From<UserError> for ApiError {
+	fn from(value: UserError) -> Self {
 		match value {
-			AccountError::TokenInvalid | AccountError::TokenExpired => Self::InvalidToken,
-			AccountError::UserNotFound | AccountError::ProfileNotFound => Self::NotFound,
-			AccountError::Db(db_err) => Self::Internal(db_err.to_string()),
+			UserError::TokenInvalid | UserError::TokenExpired => Self::InvalidToken,
+			UserError::UserNotFound | UserError::ProfileNotFound => Self::NotFound,
+			UserError::Db(db_err) => Self::Internal(db_err.to_string()),
 			_ => Self::Unknown(value.to_string()),
 		}
 	}
