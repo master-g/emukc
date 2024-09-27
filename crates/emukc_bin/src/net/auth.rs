@@ -32,31 +32,9 @@ where
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let state = State::from_ref(state);
-		let token_names = ["access_token", "token", "st", "api_token"];
 
 		// extract token from query first
-		let raw_token = parts
-			.uri
-			.query()
-			.and_then(|query| {
-				url::form_urlencoded::parse(query.as_bytes())
-					.find(|(key, _)| token_names.contains(&key.as_ref()))
-					.map(|(_, value)| value.to_string())
-			})
-			.or_else(|| {
-				parts
-					.headers
-					.get(header::AUTHORIZATION)
-					.and_then(|value| value.to_str().ok())
-					.and_then(|value| {
-						if value.starts_with("bearer ") || value.starts_with("Bearer ") {
-							Some(value[7..].to_string())
-						} else {
-							None
-						}
-					})
-			})
-			.ok_or_else(|| ApiError::MissingToken)?;
+		let raw_token = find_token_in_parts(parts).ok_or_else(|| ApiError::MissingToken)?;
 
 		match state.auth(&raw_token).await {
 			Ok(AuthInfo::Account(account)) => Ok(Self(account)),
@@ -121,15 +99,16 @@ where
 	type Rejection = ApiError;
 
 	async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-		let Ok(form) = KcsApiFormWithToken::from_request(req, state).await else {
-			return Err(ApiError::MissingToken);
-		};
-
 		let state = State::from_ref(state);
 
-		match state.auth(&form.api_token).await {
+		let Ok(form) = KcsApiFormWithToken::from_request(req, &state).await else {
+			return Err(ApiError::MissingToken);
+		};
+		let token = form.api_token;
+
+		match state.auth(&token).await {
 			Ok(AuthInfo::Profile(profile)) => Ok(Self {
-				token: form.api_token,
+				token,
 				profile,
 			}),
 			Ok(AuthInfo::Account(_)) => {
@@ -151,22 +130,27 @@ async fn extract_kcs_api_game_session(
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response())?;
 	let state = State::from_ref(&state);
 
-	let bytes = body
-		.collect()
-		.await
-		.map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response())?
-		.to_bytes();
+	let (token, req) = if let Some(token) = find_token_in_parts(&parts) {
+		(token, Request::from_parts(parts, body))
+	} else {
+		let bytes = body
+			.collect()
+			.await
+			.map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response())?
+			.to_bytes();
 
-	let form = serde_urlencoded::from_bytes::<KcsApiFormWithToken>(&bytes)
-		.map_err(|err| (StatusCode::BAD_REQUEST, err.to_string()).into_response())?;
+		let form = serde_urlencoded::from_bytes::<KcsApiFormWithToken>(&bytes)
+			.map_err(|err| (StatusCode::BAD_REQUEST, err.to_string()).into_response())?;
+		(form.api_token, Request::from_parts(parts, Body::from(bytes)))
+	};
 
-	match state.auth(&form.api_token).await {
+	match state.auth(&token).await {
 		Ok(AuthInfo::Profile(profile)) => Ok((
 			GameSession {
-				token: form.api_token,
+				token,
 				profile,
 			},
-			Request::from_parts(parts, Body::from(bytes)),
+			req,
 		)),
 		Ok(AuthInfo::Account(_)) => {
 			info!("expected game session token, got access token");
@@ -191,4 +175,27 @@ pub(super) async fn kcs_api_auth_middleware(
 	parts.extensions.insert(auth_user);
 
 	Ok(next.run(Request::from_parts(parts, body)).await)
+}
+
+fn find_token_in_parts(parts: &Parts) -> Option<String> {
+	let token_names = ["token", "st", "api_token"];
+	parts
+		.uri
+		.query()
+		.and_then(|query| {
+			url::form_urlencoded::parse(query.as_bytes())
+				.find(|(key, _)| token_names.contains(&key.as_ref()))
+				.map(|(_, value)| value.to_string())
+		})
+		.or_else(|| {
+			parts.headers.get(header::AUTHORIZATION).and_then(|value| value.to_str().ok()).and_then(
+				|value| {
+					if value.starts_with("bearer ") || value.starts_with("Bearer ") {
+						Some(value[7..].to_string())
+					} else {
+						None
+					}
+				},
+			)
+		})
 }

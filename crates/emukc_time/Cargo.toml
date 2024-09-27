@@ -8,6 +8,3 @@ chrono = { workspace = true, features = ["serde"] }
 
 [lints]
 workspace = true
-
-[[test]]
-name = "test"

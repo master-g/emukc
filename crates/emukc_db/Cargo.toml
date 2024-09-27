@@ -24,6 +24,3 @@ tokio = { workspace = true, features = ["macros", "rt"] }
 
 [lints]
 workspace = true
-
-[[test]]
-name = "user"

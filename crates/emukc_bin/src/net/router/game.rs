@@ -11,7 +11,7 @@ use tera::Tera;
 
 use crate::net::{
 	assets::{GameSiteAssets, GameStaticFile},
-	auth::{auth_middleware, GameSession},
+	auth::{kcs_api_auth_middleware, GameSession},
 };
 
 pub(super) fn router() -> Router {
@@ -21,7 +21,7 @@ pub(super) fn router() -> Router {
 		.merge(
 			Router::new()
 				.route("/", get(home)) // game home
-				.route_layer(middleware::from_fn(auth_middleware))
+				.route_layer(middleware::from_fn(kcs_api_auth_middleware))
 				.route("/game/*path", get(game)), // game content
 		)
 }
@@ -44,7 +44,7 @@ async fn home(Host(host): Host, Extension(session): Extension<GameSession>) -> i
 	context.insert("uid", &profile_id);
 	context.insert("parent", &parent);
 	context.insert("token", &token);
-	let url = "/emukc/game/ifr.html?synd=dmm&container=dmm&owner={{uid}}&viewer={{uid}}&aid=854854&mid=29080258&country=jp&lang=ja&view=canvas&parent={{parent}}&access_token={{token}}&st={{token}}#rpctoken=1131055973";
+	let url = "/emukc/game/ifr.html?synd=dmm&container=dmm&owner={{uid}}&viewer={{uid}}&aid=854854&mid=29080258&country=jp&lang=ja&view=canvas&parent={{parent}}&st={{token}}#rpctoken=1131055973";
 	let url = tera.render_str(url, &context).unwrap();
 	context.insert("ifr_url", &url);
 	let result = tera.render_str(html, &context).unwrap();

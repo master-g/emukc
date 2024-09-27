@@ -194,7 +194,7 @@ impl Kache {
 	///
 	/// * `path` - The file's relative path.
 	/// * `version` - The file version.
-	#[instrument]
+	#[instrument(skip(self))]
 	pub async fn get(&self, path: &str, version: Option<&str>) -> Result<tokio::fs::File, Error> {
 		info!("🔍 {}, ver: {}", path, version.unwrap_or("n/a"));
 
@@ -306,7 +306,7 @@ impl Kache {
 
 	/// Find the file in the mods.
 	/// Version will be ignored.
-	#[instrument]
+	#[instrument(skip(self))]
 	async fn find_in_mods(&self, path: &str) -> Option<tokio::fs::File> {
 		let mod_path = self.mods_root.as_ref()?;
 
@@ -417,7 +417,7 @@ impl Kache {
 	/// * `rel_path` - The file's relative path.
 	/// * `local_path` - The file's local path.
 	/// * `version` - The file version.
-	#[instrument]
+	#[instrument(skip(self))]
 	async fn fetch_from_url(
 		&self,
 		url: &str,
@@ -469,7 +469,7 @@ impl Kache {
 	///
 	/// * `path` - The file's relative path.
 	/// * `version` - The file version.
-	#[instrument]
+	#[instrument(skip(self))]
 	async fn find_in_local_or_fetch_from_remote(
 		&self,
 		path: &str,

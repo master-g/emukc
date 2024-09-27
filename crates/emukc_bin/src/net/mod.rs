@@ -55,8 +55,8 @@ pub(super) async fn run(ct: CancellationToken, cfg: &AppConfig, state: &State) -
 		.layer(AddExtensionLayer::new(state))
 		.layer(
 			TraceLayer::new_for_http()
-				.make_span_with(DefaultMakeSpan::new().include_headers(true))
-				.on_response(DefaultOnResponse::new().include_headers(true)),
+				.make_span_with(DefaultMakeSpan::new().include_headers(false))
+				.on_response(DefaultOnResponse::new().include_headers(false)),
 		)
 		.layer(header::add_version_header())
 		.layer(

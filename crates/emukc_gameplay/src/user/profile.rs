@@ -122,6 +122,8 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let session =
 			issue_token(&tx, account_model.uid, profile_model.id, TokenType::Session).await?;
 
+		tx.commit().await?;
+
 		Ok(StartGameInfo {
 			profile: profile_model.into(),
 			session,
