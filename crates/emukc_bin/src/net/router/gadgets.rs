@@ -1,6 +1,8 @@
+use std::path::PathBuf;
+
 use axum::{
-	extract::Query,
-	response::IntoResponse,
+	extract::{Path, Query},
+	response::{IntoResponse, Response},
 	routing::{get, post},
 	Form, Router,
 };
@@ -8,15 +10,25 @@ use emukc_internal::{model::profile::Profile, time::chrono};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{header, AppState};
+use crate::net::{
+	assets::{self, GameGadgetsAssets, GameGadgetsFile, GameSiteAssets, GameStaticFile},
+	header, AppState,
+};
+
+use super::KcVersionQuery;
 
 const UNPARSEABLE_CRUFT: &str = "throw 1; < don't be evil' >";
 
 pub(super) fn router() -> Router {
 	Router::new()
-		.route("/makeRequest", get(get_make_request))
-		.route("/makeRequest", post(post_make_request))
-		.route_layer(header::add_content_type_json_header())
+		.route("/html/*path", get(get_gadgets_html))
+		.route("/kcs2/*path", get(get_kcs2))
+		.merge(
+			Router::new()
+				.route("/makeRequest", get(get_make_request))
+				.route("/makeRequest", post(post_make_request))
+				.route_layer(header::add_content_type_json_header()),
+		)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -125,4 +137,29 @@ async fn post_make_request(Form(params): Form<PostFormParams>) -> impl IntoRespo
 
 	let final_resp = format!("{}{}", UNPARSEABLE_CRUFT, resp.1);
 	(resp.0, final_resp)
+}
+
+async fn get_gadgets_html(Path(path): Path<String>) -> Response {
+	let real_path = PathBuf::from("html").join(path).to_string_lossy().to_string();
+
+	if GameGadgetsAssets::get(&real_path).is_some() {
+		return GameGadgetsFile(&real_path).into_response();
+	}
+
+	(StatusCode::NOT_FOUND, real_path).into_response()
+}
+
+async fn get_kcs2(
+	state: AppState,
+	Path(path): Path<String>,
+	Query(params): Query<KcVersionQuery>,
+) -> Response {
+	let embed_path = PathBuf::from("emukc").join(&path).to_string_lossy().to_string();
+	if GameSiteAssets::get(&embed_path).is_some() {
+		return GameStaticFile(&embed_path).into_response();
+	}
+
+	let remote_path = format!("kcs2/{}", path);
+
+	assets::cache::get_file(state, &remote_path, params.version.as_deref()).await.into_response()
 }

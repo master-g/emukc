@@ -16,6 +16,8 @@ use crate::net::{
 
 use super::KcVersionQuery;
 
+// FIXME: the `ConstServerInfo.Gadgets` in `hijack.js` is now modified to `{host}/gadgets/*`
+// this route might be broken
 pub(super) fn router() -> Router {
 	Router::new().route("/*path", get(file_handler))
 }

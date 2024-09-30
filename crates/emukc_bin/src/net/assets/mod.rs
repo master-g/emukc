@@ -3,6 +3,8 @@ use http::{header, StatusCode};
 
 pub(super) mod cache;
 
+// FIXME: naming here is somehow confusing
+
 #[derive(rust_embed::RustEmbed)]
 #[folder = "$CARGO_MANIFEST_DIR/assets/www"]
 pub(super) struct GameSiteAssets;
@@ -27,20 +29,20 @@ where
 }
 
 #[derive(rust_embed::RustEmbed)]
-#[folder = "$CARGO_MANIFEST_DIR/assets/html"]
-pub(super) struct GameHtmlAssets;
+#[folder = "$CARGO_MANIFEST_DIR/assets/www/gadgets"]
+pub(super) struct GameGadgetsAssets;
 
 #[allow(dead_code)]
-pub(super) struct GameHtmlFile<T>(pub T);
+pub(super) struct GameGadgetsFile<T>(pub T);
 
-impl<T> IntoResponse for GameHtmlFile<T>
+impl<T> IntoResponse for GameGadgetsFile<T>
 where
 	T: Into<String>,
 {
 	fn into_response(self) -> Response {
 		let path = self.0.into();
 
-		match GameHtmlAssets::get(path.as_str()) {
+		match GameGadgetsAssets::get(path.as_str()) {
 			Some(content) => {
 				let mime = mime_guess::from_path(path).first_or_octet_stream();
 				([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
