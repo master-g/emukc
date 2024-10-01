@@ -1,12 +1,12 @@
 use axum::response::IntoResponse;
-use kcs::KcApiResponse;
+pub use kcs::KcApiResponse;
 
 use super::err::ApiError;
 
 mod kcs;
 
 #[derive(thiserror::Error, Debug)]
-pub struct KcApiError(ApiError);
+pub struct KcApiError(pub ApiError);
 
 impl std::fmt::Display for KcApiError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -52,6 +52,14 @@ pub trait ProfileOps {
 		profile_id: i64,
 	) -> Result<StartGameInfo, UserError>;
 
+	/// Select a world for the profile.
+	///
+	/// # Arguments
+	///
+	/// * `profile_id` - The profile ID to select the world for.
+	/// * `world_id` - The world ID to select.
+	async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError>;
+
 	/// Remove an profile and all its data.
 	///
 	/// # Arguments
@@ -161,6 +169,27 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 			profile: profile_model.into(),
 			session: token,
 		})
+	}
+
+	async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let profile_model =
+			profile::Entity::find().filter(profile::Column::Id.eq(profile_id)).one(&tx).await?;
+
+		let profile_model = match profile_model {
+			Some(profile_model) => profile_model,
+			None => return Err(UserError::ProfileNotFound),
+		};
+
+		let mut am: profile::ActiveModel = profile_model.into();
+		am.world_id = ActiveValue::Set(world_id);
+		am.update(&tx).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 
 	async fn delete_profile(&self, _access_token: &str) -> Result<(), UserError> {

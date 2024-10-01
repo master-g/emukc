@@ -84,7 +84,7 @@ impl KcApiResponse {
 		Self {
 			api_result: 1,
 			api_result_msg: "\u{6210}\u{529f}".to_string(),
-			api_data: None,
+			api_data: Some(serde_json::json!("{}")), // None,
 			extra: None,
 		}
 	}

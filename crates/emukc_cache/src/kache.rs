@@ -183,6 +183,11 @@ impl Kache {
 		Builder::new()
 	}
 
+	/// Get the mods root directory.
+	pub fn mods_root(&self) -> Option<&PathBuf> {
+		self.mods_root.as_ref()
+	}
+
 	/// Get file from the cache.
 	///
 	/// 1. if the file exists in the cache, return the file path. else 2.
