@@ -2,7 +2,7 @@ var VERSION = "{{ version }}";
 // kcs_const.js
 var originWithSlash = document.location.origin + "/";
 var ConstServerInfo = {};
-ConstServerInfo.Gadget = originWithSlash + "gadgets/";
+ConstServerInfo.Gadget = originWithSlash;
 ConstServerInfo.OSAPI = document.location.host + "&dmmuser_id={{uid}}";
 ConstServerInfo.NETGAME = originWithSlash;
 

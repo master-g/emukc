@@ -11,24 +11,19 @@ use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use crate::net::{
-	assets::{self, GameGadgetsAssets, GameGadgetsFile, GameSiteAssets, GameStaticFile},
+	assets::{GameGadgetsAssets, GameGadgetsFile},
 	header, AppState,
 };
-
-use super::KcVersionQuery;
 
 const UNPARSEABLE_CRUFT: &str = "throw 1; < don't be evil' >";
 
 pub(super) fn router() -> Router {
-	Router::new()
-		.route("/html/*path", get(get_gadgets_html))
-		.route("/kcs2/*path", get(get_kcs2))
-		.merge(
-			Router::new()
-				.route("/makeRequest", get(get_make_request))
-				.route("/makeRequest", post(post_make_request))
-				.route_layer(header::add_content_type_json_header()),
-		)
+	Router::new().route("/html/*path", get(get_gadgets_html)).merge(
+		Router::new()
+			.route("/makeRequest", get(get_make_request))
+			.route("/makeRequest", post(post_make_request))
+			.route_layer(header::add_content_type_json_header()),
+	)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -147,19 +142,4 @@ async fn get_gadgets_html(Path(path): Path<String>) -> Response {
 	}
 
 	(StatusCode::NOT_FOUND, real_path).into_response()
-}
-
-async fn get_kcs2(
-	state: AppState,
-	Path(path): Path<String>,
-	Query(params): Query<KcVersionQuery>,
-) -> Response {
-	let embed_path = PathBuf::from("emukc").join(&path).to_string_lossy().to_string();
-	if GameSiteAssets::get(&embed_path).is_some() {
-		return GameStaticFile(&embed_path).into_response();
-	}
-
-	let remote_path = format!("kcs2/{}", path);
-
-	assets::cache::get_file(state, &remote_path, params.version.as_deref()).await.into_response()
 }

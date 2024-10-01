@@ -16,8 +16,6 @@ use crate::net::{
 
 use super::KcVersionQuery;
 
-// FIXME: the `ConstServerInfo.Gadgets` in `hijack.js` is now modified to `{host}/gadgets/*`
-// this route might be broken
 pub(super) fn router() -> Router {
 	Router::new().route("/*path", get(file_handler))
 }
@@ -41,20 +39,27 @@ async fn file_handler(
 	Path(path): Path<String>,
 	Query(params): Query<KcVersionQuery>,
 ) -> Response {
-	let real_path = PathBuf::from("kcs2").join(path).to_string_lossy().to_string();
+	info!("kcs2: {}", path);
 
-	if real_path.contains("index.php") {
+	let embed_path = PathBuf::from("emukc").join(&path).to_string_lossy().to_string();
+	if GameSiteAssets::get(&embed_path).is_some() {
+		return GameStaticFile(&embed_path).into_response();
+	}
+
+	let cache_rel_path = PathBuf::from("kcs2").join(path).to_string_lossy().to_string();
+
+	if cache_rel_path.contains("index.php") {
 		let version = if let Some(version) = params.version.as_deref() {
 			version
 		} else {
 			return (StatusCode::BAD_REQUEST, "version is required").into_response();
 		};
 		return index(version).await;
-	} else if real_path.starts_with("kcs2/resources/world/") {
-		let filename = real_path.rsplit('/').next().unwrap();
+	} else if cache_rel_path.starts_with("kcs2/resources/world/") {
+		let filename = cache_rel_path.rsplit('/').next().unwrap();
 		let local_path = PathBuf::from("emukc/game/resources/world/").join(filename);
 		return GameStaticFile(local_path.to_str().unwrap().to_string()).into_response();
 	}
 
-	assets::cache::get_file(state, &real_path, params.version.as_deref()).await.into_response()
+	assets::cache::get_file(state, &cache_rel_path, params.version.as_deref()).await.into_response()
 }
