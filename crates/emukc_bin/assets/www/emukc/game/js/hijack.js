@@ -19,7 +19,7 @@ ConstURLInfo.LoginURL = "/kcsapi/api_auth_member/dmmlogin/";
 
 // Connection 情報
 var ConnectionInfo = {};
-ConnectionInfo.Interval_Min = 1;
+ConnectionInfo.Interval_Min = 10; // change this to test keep-alive
 
 // Maintenance 情報
 var MaintenanceInfo = {};

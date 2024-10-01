@@ -24,7 +24,7 @@ impl TokenType {
 		match self {
 			TokenType::Access => chrono::Duration::days(7).to_std().unwrap(),
 			TokenType::Refresh => chrono::Duration::days(30).to_std().unwrap(),
-			TokenType::Session => chrono::Duration::hours(1).to_std().unwrap(),
+			TokenType::Session => chrono::Duration::hours(24).to_std().unwrap(),
 		}
 	}
 }

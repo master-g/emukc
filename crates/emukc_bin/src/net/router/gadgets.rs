@@ -1,29 +1,22 @@
-use std::path::PathBuf;
-
 use axum::{
-	extract::{Path, Query},
-	response::{IntoResponse, Response},
+	extract::Query,
+	response::IntoResponse,
 	routing::{get, post},
 	Form, Router,
 };
-use emukc_internal::{model::profile::Profile, time::chrono};
+use emukc_internal::{prelude::ProfileOps, time::chrono};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-	assets::{GameGadgetsAssets, GameGadgetsFile},
-	header, AppState,
-};
+use crate::net::{header, AppState};
 
 const UNPARSEABLE_CRUFT: &str = "throw 1; < don't be evil' >";
 
 pub(super) fn router() -> Router {
-	Router::new().route("/html/*path", get(get_gadgets_html)).merge(
-		Router::new()
-			.route("/makeRequest", get(get_make_request))
-			.route("/makeRequest", post(post_make_request))
-			.route_layer(header::add_content_type_json_header()),
-	)
+	Router::new()
+		.route("/makeRequest", get(get_make_request))
+		.route("/makeRequest", post(post_make_request))
+		.route_layer(header::add_content_type_json_header())
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,10 +27,10 @@ struct GetQuery {
 const GET_WORLD_ID: &str = "api_world/get_id/";
 const GET_INDEX_HTML: &str = "index.html";
 
-async fn get_make_request(_state: AppState, Query(query): Query<GetQuery>) -> impl IntoResponse {
+async fn get_make_request(state: AppState, Query(query): Query<GetQuery>) -> impl IntoResponse {
 	let resp = match query.url {
 		url if url.contains(GET_WORLD_ID) => {
-			let _uid: i64 = url
+			let profile_id: i64 = url
 				.split(GET_WORLD_ID)
 				.nth(1)
 				.unwrap_or("0")
@@ -46,20 +39,19 @@ async fn get_make_request(_state: AppState, Query(query): Query<GetQuery>) -> im
 				.unwrap_or("0")
 				.parse()
 				.unwrap_or(0);
-			let world: Option<Profile> = None;
-			// let world: Option<KcUserWorld> = if let Ok(r) = read_from(&db).one(uid).await {
-			// 	r
-			// } else {
-			// 	return (StatusCode::INTERNAL_SERVER_ERROR, "db error".to_string());
-			// };
-			trace!("world: {:?}", world);
-			let world_id = world.map(|w| w.world_id).unwrap_or(0);
+
+			let profile = match state.find_profile(profile_id).await {
+				Ok(profile) => profile,
+				Err(e) => return (StatusCode::NOT_FOUND, e.to_string()),
+			};
+
+			trace!("profile: {:?}", profile);
 
 			let api_result = serde_json::json!({
 				"api_result": 1,
 				"api_result_msg": "\u{6210}\u{529f}",
 				"api_data": {
-					"api_world_id": world_id
+					"api_world_id": profile.world_id
 				}
 			});
 			let j = serde_json::json!({
@@ -132,14 +124,4 @@ async fn post_make_request(Form(params): Form<PostFormParams>) -> impl IntoRespo
 
 	let final_resp = format!("{}{}", UNPARSEABLE_CRUFT, resp.1);
 	(resp.0, final_resp)
-}
-
-async fn get_gadgets_html(Path(path): Path<String>) -> Response {
-	let real_path = PathBuf::from("html").join(path).to_string_lossy().to_string();
-
-	if GameGadgetsAssets::get(&real_path).is_some() {
-		return GameGadgetsFile(&real_path).into_response();
-	}
-
-	(StatusCode::NOT_FOUND, real_path).into_response()
 }
