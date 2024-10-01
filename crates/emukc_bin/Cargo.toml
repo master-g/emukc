@@ -33,27 +33,27 @@ axum = { version = "0.7.5", features = ["form"] }
 axum-server = { version = "0.7.1" }
 config = { version = "0.14", features = ["toml"] }
 clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
-fontdue = { version = "0.7.2" }
+fontdue = { version = "0.9.2" }
 http-body-util = "0.1"
 hyper = { version = "1", features = ["full"] }
 mime_guess = "2"
-png = "0.17.5"
+png = "0.17.14"
 rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 tera = "1"
 tinytemplate = "1"
 tower = "0.5"
 tower-http = { version = "0.6", features = [
-    "add-extension",
-    "catch-panic",
-    "compression-br",
-    "compression-deflate",
-    "compression-gzip",
-    "compression-zstd",
-    "cors",
-    "request-id",
-    "set-header",
-    "trace",
-    "util",
+	"add-extension",
+	"catch-panic",
+	"compression-br",
+	"compression-deflate",
+	"compression-gzip",
+	"compression-zstd",
+	"cors",
+	"request-id",
+	"set-header",
+	"trace",
+	"util",
 ] }
 url = "2"
 urlencoding = "2"

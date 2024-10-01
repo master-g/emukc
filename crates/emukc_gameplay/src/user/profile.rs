@@ -185,9 +185,8 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let profile_model =
 			profile::Entity::find().filter(profile::Column::Id.eq(profile_id)).one(&tx).await?;
 
-		let profile_model = match profile_model {
-			Some(profile_model) => profile_model,
-			None => return Err(UserError::ProfileNotFound),
+		let Some(profile_model) = profile_model else {
+			return Err(UserError::ProfileNotFound);
 		};
 
 		let mut am: profile::ActiveModel = profile_model.into();
@@ -206,9 +205,8 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let profile_model =
 			profile::Entity::find().filter(profile::Column::Id.eq(profile_id)).one(&tx).await?;
 
-		let profile_model = match profile_model {
-			Some(profile_model) => profile_model,
-			None => return Err(UserError::ProfileNotFound),
+		let Some(profile_model) = profile_model else {
+			return Err(UserError::ProfileNotFound);
 		};
 
 		tx.commit().await?;
