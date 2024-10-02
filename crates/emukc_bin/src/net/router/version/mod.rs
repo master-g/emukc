@@ -5,7 +5,7 @@ use crate::net::assets::GameSiteAssets;
 /// Generate version png
 pub fn gen_version_png(v: &str, w: u32, h: u32) -> Option<Vec<u8>> {
 	// Read the font data.
-	let Some(font) = GameSiteAssets::get("emukc/fonts/Roboto-Regular.ttf") else {
+	let Some(font) = GameSiteAssets::get("emukc/fonts/Anton-Regular.ttf") else {
 		return None;
 	};
 	let font = font.data;
@@ -98,9 +98,9 @@ pub fn gen_version_png(v: &str, w: u32, h: u32) -> Option<Vec<u8>> {
 					let alpha = pixel;
 
 					if alpha > 0 {
-						img[idx] = 0; // R
-						img[idx + 1] = 0; // G
-						img[idx + 2] = 0; // B
+						img[idx] = 75; // R
+						img[idx + 1] = 72; // G
+						img[idx + 2] = 68; // B
 						img[idx + 3] = alpha; // A
 					}
 				}
@@ -128,19 +128,18 @@ mod test {
 
 	#[test]
 	fn test_font() {
-		let text = "EmuKC v0.1.0 ABCDEF";
-		let width = 200;
-		let height = 50;
+		let text = "EmuKC 0.1.0-750AECE";
+		let width = 157;
+		let height = 27;
 
 		match gen_version_png(text, width, height) {
 			Some(png_data) => {
-				// 例如，将 PNG 数据写入文件（仅为测试用途）
 				let size = png_data.len();
-				std::fs::write("output.png", png_data).expect("无法写入文件");
-				println!("PNG 图片已生成，大小: {} bytes", size);
+				std::fs::write("output.png", png_data).expect("cannot write file");
+				println!("png size: {}", size);
 			}
 			None => {
-				println!("生成 PNG 图片失败。");
+				println!("failed to generate version png");
 			}
 		}
 	}

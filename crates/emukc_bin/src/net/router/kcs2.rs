@@ -7,7 +7,7 @@ use axum::{
 	Router,
 };
 use emukc_internal::prelude::VERSION;
-use http::StatusCode;
+use http::{header, StatusCode};
 use tera::Tera;
 
 use crate::net::{
@@ -36,6 +36,8 @@ async fn index(version: &str) -> Response {
 	Html(result).into_response()
 }
 
+include!(concat!(env!("OUT_DIR"), "/git_version.rs"));
+
 async fn file_handler(
 	state: AppState,
 	Path(path): Path<String>,
@@ -60,7 +62,7 @@ async fn file_handler(
 			return (StatusCode::BAD_REQUEST, "invalid version png").into_response();
 		}
 
-		let ver = format!("EmuKC {}", VERSION);
+		let ver = format!("EmuKC {}-{}", VERSION, GIT_HASH.to_uppercase());
 		let Some(png) = gen_version_png(&ver, w, h) else {
 			return (StatusCode::INTERNAL_SERVER_ERROR, "failed to generate version png")
 				.into_response();
