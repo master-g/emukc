@@ -9,6 +9,7 @@ mod kcs;
 mod kcs2;
 mod kcsapi;
 mod social;
+mod version;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct KcVersionQuery {
