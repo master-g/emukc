@@ -1,6 +1,6 @@
 # TODO
 
-should we expose db entities to the outside of the crate?
+impl incentive gameplay and api
 
 ```rust
 pub const KC_DEFAULT_FURNITURES: [i64; 6] = [1, 38, 72, 102, 133, 164];

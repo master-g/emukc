@@ -7,6 +7,7 @@ pub mod airbase;
 pub mod expedition;
 pub mod fleet;
 pub mod furniture;
+pub mod incentive;
 pub mod item;
 pub mod kdock;
 pub mod map_record;
@@ -143,6 +144,10 @@ pub enum Relation {
 	/// Relation to `FurnitureConfig`
 	#[sea_orm(has_one = "furniture::config::Entity")]
 	FurnitureConfig,
+
+	/// Relation to `Incentive`
+	#[sea_orm(has_many = "incentive::Entity")]
+	Incentive,
 
 	/// Construct dock
 	#[sea_orm(has_many = "kdock::Entity")]
