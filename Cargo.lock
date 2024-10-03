@@ -1107,6 +1107,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "emukc_model",
+ "enumn",
  "sea-orm",
  "serde",
  "serde_json",

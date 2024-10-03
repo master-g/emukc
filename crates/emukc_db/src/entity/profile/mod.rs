@@ -258,6 +258,11 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	{
 		furniture::bootstrap(db).await?;
 	}
+	// incentive
+	{
+		let stmt = schema.create_table_from_entity(incentive::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
 	// kdock
 	{
 		let stmt = schema.create_table_from_entity(kdock::Entity).if_not_exists().to_owned();

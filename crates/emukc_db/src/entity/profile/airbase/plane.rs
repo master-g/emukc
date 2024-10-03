@@ -1,23 +1,26 @@
 //! Aircrafts belonging to an airbase.
+#![allow(missing_docs)]
 
 use emukc_model::profile::airbase::{PlaneInfo, PlaneState};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(
+	Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
+)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
 	/// Unassigned
 	#[sea_orm(num_value = 0)]
-	Unassigned,
+	Unassigned = 0,
 
 	/// Assigned
 	#[sea_orm(num_value = 1)]
-	Assigned,
+	Assigned = 1,
 
 	/// Reassigning
 	#[sea_orm(num_value = 2)]
-	Reassigning,
+	Reassigning = 2,
 }
 
 #[allow(missing_docs)]

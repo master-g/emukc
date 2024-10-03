@@ -1,4 +1,5 @@
 use axum::response::IntoResponse;
+use emukc_internal::prelude::GameplayError;
 pub use kcs::KcApiResponse;
 
 use super::err::ApiError;
@@ -17,6 +18,12 @@ impl std::fmt::Display for KcApiError {
 impl From<ApiError> for KcApiError {
 	fn from(e: ApiError) -> Self {
 		KcApiError(e)
+	}
+}
+
+impl From<GameplayError> for KcApiError {
+	fn from(value: GameplayError) -> Self {
+		KcApiError(ApiError::from(value))
 	}
 }
 

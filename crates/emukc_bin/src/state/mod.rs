@@ -6,12 +6,13 @@ use anyhow::bail;
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::DbConn,
-	prelude::{prepare, Codex, HasContext, Kache},
+	prelude::{prepare, prepare_cache, Codex, HasContext, Kache},
 };
 
 use crate::cfg::AppConfig;
 
 const DB_NAME: &str = "emukc.db";
+const CACHE_DB_NAME: &str = "kache.db";
 
 /// Application state
 #[derive(Debug, Clone)]
@@ -44,9 +45,12 @@ impl State {
 		let db_path = cfg.workspace_root.join(DB_NAME);
 		let db = Arc::new(prepare(&db_path, false).await?);
 
+		let cache_db_path = cfg.workspace_root.join(CACHE_DB_NAME);
+		let cache_db = Arc::new(prepare_cache(&cache_db_path, false).await?);
+
 		let kache_builder = Kache::builder()
 			.with_cache_root(cfg.cache_root.clone())
-			.with_db(db.clone())
+			.with_db(cache_db)
 			.with_gadgets_cdns(cfg.gadgets_cdn.clone())
 			.with_content_cdns(cfg.game_cdn.clone());
 		let kache_builder = if let Some(proxy) = &cfg.proxy {

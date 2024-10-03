@@ -9,6 +9,10 @@
 extern crate tracing;
 
 #[doc(hidden)]
+pub mod err;
+#[doc(hidden)]
+pub mod incentive;
+#[doc(hidden)]
 pub mod user;
 
 pub mod gameplay;
@@ -18,7 +22,9 @@ pub mod prelude {
 
 	#[doc(hidden)]
 	pub use crate::{
+		err::GameplayError,
 		gameplay::{Gameplay, HasContext},
+		incentive::IncentiveOps,
 		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
 	};
 }

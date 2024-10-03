@@ -356,7 +356,11 @@ impl Kache {
 	) -> Result<tokio::fs::File, Error> {
 		let db = &*self.db;
 
-		let model = cache::Entity::find().filter(cache::Column::Path.eq(rel_path)).one(db).await?;
+		let model = cache::Entity::find()
+			.filter(cache::Column::Path.eq(rel_path))
+			.filter(cache::Column::Version.eq(version))
+			.one(db)
+			.await?;
 
 		// find db entry
 		if let Some(model) = model {
@@ -445,11 +449,12 @@ impl Kache {
 
 		let md5 = md5_file_async(local_path).await?;
 		let db = &*self.db;
+		let tx = db.begin().await?;
 
 		let record = cache::Entity::find()
 			.filter(cache::Column::Path.eq(rel_path))
 			.filter(cache::Column::Version.eq(version.unwrap_or("")))
-			.one(db)
+			.one(&tx)
 			.await?;
 
 		let mut model = cache::ActiveModel {
@@ -463,7 +468,9 @@ impl Kache {
 			model.id = ActiveValue::Unchanged(record.id);
 		}
 
-		model.save(db).await?;
+		model.save(&tx).await?;
+
+		tx.commit().await?;
 
 		Ok(tokio::fs::File::open(local_path).await?)
 	}

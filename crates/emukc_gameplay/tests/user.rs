@@ -18,5 +18,7 @@ async fn profile() {
 	let session =
 		context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
 
+	let incentive = context.confirm_incentives(session.profile.id).await.unwrap();
+	assert!(incentive.is_empty());
 	println!("{:?}", session);
 }

@@ -12,7 +12,7 @@ pub use sea_orm;
 pub mod prelude {
 	//! The `emukc_db` crate prelude.
 	#[doc(hidden)]
-	pub use crate::entity::bootstrap;
+	pub use crate::entity::{bootstrap, bootstrap_cache};
 
 	#[doc(hidden)]
 	pub use crate::mem::new_mem_db;

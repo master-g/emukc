@@ -11,6 +11,7 @@ emukc_model = { path = "../emukc_model" }
 # other
 async-trait = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
+enumn = { workspace = true }
 sea-orm = { workspace = true, features = [
     "debug-print",
     "runtime-tokio-native-tls",

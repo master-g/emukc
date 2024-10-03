@@ -1,37 +1,53 @@
-use emukc_model::kc2::{KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType};
+//! Incentive entity
+#![allow(missing_docs)]
+
+use emukc_model::kc2::{KcApiIncentiveMode, KcApiIncentiveType};
 use sea_orm::entity::prelude::*;
 
-#[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+/// Incentive type
+#[derive(
+	Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
+)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum IncentiveType {
+	/// Ship
 	#[sea_orm(num_value = 1)]
-	Ship,
+	Ship = 1,
+
+	/// Slot item
 	#[sea_orm(num_value = 2)]
-	SlotItem,
+	SlotItem = 2,
+
+	/// Use item
 	#[sea_orm(num_value = 3)]
-	UseItem,
+	UseItem = 3,
+
+	/// Resource
 	#[sea_orm(num_value = 4)]
-	Resource,
+	Resource = 4,
+
+	/// Furniture
 	#[sea_orm(num_value = 5)]
-	Furniture,
+	Furniture = 5,
 }
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(
+	Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
+)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum IncentiveMode {
 	#[sea_orm(num_value = 1)]
-	PreRegister,
+	PreRegister = 1,
 	#[sea_orm(num_value = 2)]
-	Reception,
+	Reception = 2,
 	#[sea_orm(num_value = 3)]
-	MonthlyOrPresent,
+	MonthlyOrPresent = 3,
 }
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
-#[sea_orm(table_name = "profile")]
+#[sea_orm(table_name = "incentive")]
 pub struct Model {
 	/// Instance ID
 	#[sea_orm(primary_key, auto_increment = true)]
@@ -48,9 +64,6 @@ pub struct Model {
 
 	/// manifest ID
 	pub mst_id: i64,
-
-	/// for ship
-	pub get_me: Option<String>,
 
 	/// for slot item
 	pub stars: Option<i64>,
@@ -121,14 +134,16 @@ impl From<IncentiveMode> for KcApiIncentiveMode {
 	}
 }
 
-impl From<Model> for KcApiIncentiveItem {
-	fn from(value: Model) -> Self {
-		Self {
-			api_mode: value.mode as i64,
-			api_type: value.typ as i64,
-			api_mst_id: value.mst_id,
-			api_getmes: value.get_me.to_owned(),
-			api_slotitem_level: value.stars,
-		}
+#[cfg(test)]
+mod tests {
+	use crate::entity::profile::incentive::IncentiveType;
+
+	#[test]
+	fn test_enum() {
+		assert_eq!(IncentiveType::Ship as i64, 1);
+		assert_eq!(IncentiveType::SlotItem as i64, 2);
+		assert_eq!(IncentiveType::UseItem as i64, 3);
+
+		assert_eq!(IncentiveType::n(1).unwrap(), IncentiveType::Ship);
 	}
 }

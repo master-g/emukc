@@ -1,6 +1,6 @@
 //! Bootstrap database
 
-use emukc_db::entity::bootstrap;
+use emukc_db::entity::{bootstrap, bootstrap_cache};
 use emukc_db::sea_orm::{self, Database, DbConn};
 use thiserror::Error;
 
@@ -45,6 +45,31 @@ pub async fn prepare(
 	let sqlite_url = format!("sqlite:{}?mode=rwc", path.to_str().unwrap());
 	let db = Database::connect(&sqlite_url).await?;
 	bootstrap(&db).await?;
+
+	Ok(db)
+}
+
+/// Prepare the cache database
+///
+/// # Arguments
+///
+/// * `path` - The path to the cache database
+/// * `overwrite` - Whether to overwrite the cache database
+pub async fn prepare_cache(
+	path: impl AsRef<std::path::Path>,
+	overwrite: bool,
+) -> Result<DbConn, DbBootstrapError> {
+	let path = path.as_ref();
+	if path.is_dir() {
+		return Err(DbBootstrapError::InvalidPath(path.to_string_lossy().to_string()));
+	}
+	if path.exists() && overwrite {
+		std::fs::remove_file(path)?;
+	}
+
+	let sqlite_url = format!("sqlite:{}?mode=rwc", path.to_str().unwrap());
+	let db = Database::connect(&sqlite_url).await?;
+	bootstrap_cache(&db).await?;
 
 	Ok(db)
 }

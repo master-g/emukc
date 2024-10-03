@@ -1,5 +1,5 @@
 use axum::response::{IntoResponse, Response};
-use emukc_internal::prelude::UserError;
+use emukc_internal::prelude::{GameplayError, UserError};
 use http::StatusCode;
 use thiserror::Error;
 
@@ -31,6 +31,15 @@ impl From<UserError> for ApiError {
 			UserError::UserNotFound | UserError::ProfileNotFound => Self::NotFound,
 			UserError::Db(db_err) => Self::Internal(db_err.to_string()),
 			_ => Self::Unknown(value.to_string()),
+		}
+	}
+}
+
+impl From<GameplayError> for ApiError {
+	fn from(value: GameplayError) -> Self {
+		match value {
+			GameplayError::ProfileNotFound(_) => Self::NotFound,
+			GameplayError::Db(db_err) => Self::Internal(db_err.to_string()),
 		}
 	}
 }

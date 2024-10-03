@@ -1,22 +1,23 @@
 //! Airbase Entity
+#![allow(missing_docs)]
 
 use emukc_model::profile::airbase::{Airbase, AirbaseAction};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Action {
 	#[sea_orm(num_value = 0)]
-	Idle,
+	Idle = 0,
 	#[sea_orm(num_value = 1)]
-	Attack,
+	Attack = 1,
 	#[sea_orm(num_value = 2)]
-	Defense,
+	Defense = 2,
 	#[sea_orm(num_value = 3)]
-	Evasion,
+	Evasion = 3,
 	#[sea_orm(num_value = 4)]
-	Resort,
+	Resort = 4,
 }
 
 #[allow(missing_docs)]

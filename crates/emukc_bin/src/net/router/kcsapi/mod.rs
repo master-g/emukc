@@ -11,6 +11,7 @@ use crate::{
 	state::State,
 };
 
+mod api_req_member;
 mod api_start2;
 mod api_world;
 
@@ -21,7 +22,7 @@ pub(super) fn router() -> Router {
 		// .merge(Router::new().nest("/api_port", api_port::router()))
 		// .merge(Router::new().nest("/api_req_init", api_req_init::router()))
 		// .merge(Router::new().nest("/api_req_kaisou", api_req_kaisou::router()))
-		// .merge(Router::new().nest("/api_req_member", api_req_member::router()))
+		.merge(Router::new().nest("/api_req_member", api_req_member::router()))
 		// .merge(Router::new().nest("/api_req_ranking", api_req_ranking::router()))
 		// .merge(Router::new().nest("/api_req_quest", api_req_quest::router()))
 		.merge(Router::new().nest("/api_start2", api_start2::router()))
