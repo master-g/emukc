@@ -9,6 +9,8 @@ use prelude::{async_trait::async_trait, QueryFilter};
 
 use crate::{err::GameplayError, prelude::HasContext};
 
+use super::use_item::add_use_item;
+
 /// A trait for incentive related gameplay.
 #[async_trait]
 pub trait IncentiveOps {
@@ -116,6 +118,21 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 				},
 			})
 			.collect();
+
+		for item in items {
+			match item.typ {
+				IncentiveType::Ship => todo!(),
+				IncentiveType::SlotItem => {
+					add_use_item(&tx, profile_id, item.mst_id, item.stars.unwrap_or_default())
+						.await?;
+				}
+				IncentiveType::UseItem => {
+					add_use_item(&tx, profile_id, item.mst_id, 1).await?;
+				}
+				IncentiveType::Resource => todo!(),
+				IncentiveType::Furniture => todo!(),
+			}
+		}
 
 		// TODO: apply and then remove incentives
 

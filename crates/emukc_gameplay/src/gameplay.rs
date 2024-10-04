@@ -7,7 +7,7 @@ use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
 use crate::{
-	incentive::IncentiveOps,
+	game::IncentiveOps,
 	user::{AccountOps, ProfileOps},
 };
 

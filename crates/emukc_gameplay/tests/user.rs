@@ -20,5 +20,6 @@ async fn profile() {
 
 	let incentive = context.confirm_incentives(session.profile.id).await.unwrap();
 	assert!(incentive.is_empty());
+
 	println!("{:?}", session);
 }
