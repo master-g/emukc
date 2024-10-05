@@ -1,9 +1,39 @@
+use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::furniture,
-	sea_orm::{entity::prelude::*, ActiveValue},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
 
-use crate::err::GameplayError;
+use crate::{err::GameplayError, prelude::HasContext};
+
+/// A trait for furniture related gameplay.
+#[async_trait]
+pub trait FurnitureOps {
+	/// Add furniture to a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `mst_id`: The furniture manifest ID.
+	async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError>;
+
+	// TODO: save furniture settings
+}
+
+#[async_trait]
+impl<T: HasContext + ?Sized> FurnitureOps for T {
+	async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError> {
+		let db = self.db();
+
+		let tx = db.begin().await?;
+
+		add_furniture(&tx, profile_id, mst_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+}
 
 /// Add furniture to a profile.
 ///

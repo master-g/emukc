@@ -4,12 +4,15 @@ use emukc_db::{
 	entity::profile::incentive::{self, IncentiveMode, IncentiveType},
 	sea_orm::{entity::*, QueryOrder, TransactionTrait},
 };
-use emukc_model::kc2::KcApiIncentiveItem;
+use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory};
 use prelude::{async_trait::async_trait, QueryFilter};
 
 use crate::{err::GameplayError, prelude::HasContext};
 
-use super::use_item::add_use_item;
+use super::{
+	furniture::add_furniture, material::add_material, slot_item::add_slot_item,
+	use_item::add_use_item,
+};
 
 /// A trait for incentive related gameplay.
 #[async_trait]
@@ -65,6 +68,7 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 					mode: ActiveValue::Set(mode),
 					typ: ActiveValue::Set(typ),
 					mst_id: ActiveValue::Set(i.api_mst_id),
+					amount: ActiveValue::Set(i.amount),
 					stars: ActiveValue::Set(i.api_slotitem_level),
 				})
 			})
@@ -116,6 +120,7 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 				} else {
 					None
 				},
+				amount: i.amount,
 			})
 			.collect();
 
@@ -123,14 +128,21 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 			match item.typ {
 				IncentiveType::Ship => todo!(),
 				IncentiveType::SlotItem => {
-					add_use_item(&tx, profile_id, item.mst_id, item.stars.unwrap_or_default())
+					add_slot_item(&tx, profile_id, item.mst_id, item.stars.unwrap_or_default())
 						.await?;
 				}
 				IncentiveType::UseItem => {
-					add_use_item(&tx, profile_id, item.mst_id, 1).await?;
+					add_use_item(&tx, profile_id, item.mst_id, item.amount).await?;
 				}
-				IncentiveType::Resource => todo!(),
-				IncentiveType::Furniture => todo!(),
+				IncentiveType::Resource => {
+					let Some(category) = MaterialCategory::n(item.mst_id) else {
+						return Err(GameplayError::InvalidMaterialCategory(item.mst_id));
+					};
+					add_material(&tx, profile_id, category, item.amount).await?;
+				}
+				IncentiveType::Furniture => {
+					add_furniture(&tx, profile_id, item.mst_id).await?;
+				}
 			}
 		}
 

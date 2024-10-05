@@ -65,6 +65,9 @@ pub struct Model {
 	/// manifest ID
 	pub mst_id: i64,
 
+	/// amount
+	pub amount: i64,
+
 	/// for slot item
 	pub stars: Option<i64>,
 }

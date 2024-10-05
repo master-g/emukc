@@ -86,7 +86,7 @@ pub struct KcApiUserBasic {
 	pub api_war_result: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, enumn::N)]
 pub enum MaterialCategory {
 	/// 燃料
 	Fuel = 1,
@@ -368,9 +368,21 @@ pub enum KcApiIncentiveType {
 pub struct KcApiIncentiveItem {
 	pub api_mode: i64,
 	pub api_type: i64,
+
+	/// when type is 3(UseItem)
+	/// 903: 装備運用枠+3
+	/// 904: 装備運用枠+4
+	/// 905: 装備運用枠+5
+	/// 906: 装備運用枠+2
+	/// 907: 装備運用枠+?
+	/// 908: 装備運用枠+10
 	pub api_mst_id: i64,
 	pub api_getmes: Option<String>,
 	pub api_slotitem_level: Option<i64>,
+
+	/// hidden field for internal use
+	#[serde(skip_serializing)]
+	pub amount: i64,
 }
 
 pub type KcApiUnsetSlot = BTreeMap<String, Vec<i64>>;

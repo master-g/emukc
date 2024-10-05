@@ -7,7 +7,7 @@ use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
 use crate::{
-	game::IncentiveOps,
+	game::{FurnitureOps, IncentiveOps, MaterialOps},
 	user::{AccountOps, ProfileOps},
 };
 
@@ -22,7 +22,7 @@ pub trait HasContext: Send + Sync {
 
 /// Gameplay trait for the game's data and logic.
 #[async_trait]
-pub trait Gameplay: AccountOps + ProfileOps + IncentiveOps {}
+pub trait Gameplay: AccountOps + ProfileOps + IncentiveOps + FurnitureOps + MaterialOps {}
 
 /// Blanket implementation of `Gameplay` for types that implement `HasContext`.
 #[async_trait]

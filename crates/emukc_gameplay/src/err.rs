@@ -10,4 +10,7 @@ pub enum GameplayError {
 
 	#[error("Database error: {0}")]
 	Db(#[from] sea_orm::error::DbErr),
+
+	#[error("Invalid material category: {0}")]
+	InvalidMaterialCategory(i64),
 }
