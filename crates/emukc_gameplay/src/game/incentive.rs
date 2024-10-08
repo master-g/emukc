@@ -10,8 +10,8 @@ use prelude::{async_trait::async_trait, QueryFilter};
 use crate::{err::GameplayError, prelude::HasContext};
 
 use super::{
-	furniture::add_furniture, material::add_material, slot_item::add_slot_item,
-	use_item::add_use_item,
+	furniture::add_furniture_impl, material::add_material_impl, slot_item::add_slot_item_impl,
+	use_item::add_use_item_impl,
 };
 
 /// A trait for incentive related gameplay.
@@ -128,20 +128,25 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 			match item.typ {
 				IncentiveType::Ship => todo!(),
 				IncentiveType::SlotItem => {
-					add_slot_item(&tx, profile_id, item.mst_id, item.stars.unwrap_or_default())
-						.await?;
+					add_slot_item_impl(
+						&tx,
+						profile_id,
+						item.mst_id,
+						item.stars.unwrap_or_default(),
+					)
+					.await?;
 				}
 				IncentiveType::UseItem => {
-					add_use_item(&tx, profile_id, item.mst_id, item.amount).await?;
+					add_use_item_impl(&tx, profile_id, item.mst_id, item.amount).await?;
 				}
 				IncentiveType::Resource => {
 					let Some(category) = MaterialCategory::n(item.mst_id) else {
 						return Err(GameplayError::InvalidMaterialCategory(item.mst_id));
 					};
-					add_material(&tx, profile_id, category, item.amount).await?;
+					add_material_impl(&tx, profile_id, category, item.amount).await?;
 				}
 				IncentiveType::Furniture => {
-					add_furniture(&tx, profile_id, item.mst_id).await?;
+					add_furniture_impl(&tx, profile_id, item.mst_id).await?;
 				}
 			}
 		}

@@ -182,10 +182,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let profile_model =
-			profile::Entity::find().filter(profile::Column::Id.eq(profile_id)).one(&tx).await?;
-
-		let Some(profile_model) = profile_model else {
+		let Some(profile_model) = profile::Entity::find_by_id(profile_id).one(&tx).await? else {
 			return Err(UserError::ProfileNotFound);
 		};
 
@@ -202,10 +199,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let profile_model =
-			profile::Entity::find().filter(profile::Column::Id.eq(profile_id)).one(&tx).await?;
-
-		let Some(profile_model) = profile_model else {
+		let Some(profile_model) = profile::Entity::find_by_id(profile_id).one(&tx).await? else {
 			return Err(UserError::ProfileNotFound);
 		};
 

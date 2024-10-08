@@ -14,7 +14,7 @@ use crate::err::GameplayError;
 /// - `mst_id`: The item master ID.
 /// - `count`: The count of the item.
 #[allow(unused)]
-pub async fn add_use_item<C>(
+pub async fn add_use_item_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
@@ -68,14 +68,14 @@ mod tests {
 
 		let tx = context.0.begin().await.unwrap();
 
-		super::add_use_item(&tx, profile_id, 1, 1).await.unwrap();
+		super::add_use_item_impl(&tx, profile_id, 1, 1).await.unwrap();
 
 		tx.commit().await.unwrap();
 		println!("add use item 1");
 
 		let tx = context.0.begin().await.unwrap();
 
-		let item = super::add_use_item(&tx, profile_id, 1, 2).await.unwrap();
+		let item = super::add_use_item_impl(&tx, profile_id, 1, 2).await.unwrap();
 
 		tx.commit().await.unwrap();
 		println!("add use item 2");

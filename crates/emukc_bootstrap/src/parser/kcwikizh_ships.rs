@@ -105,10 +105,10 @@ pub fn parse(src: impl AsRef<Path>) -> Result<Kc3rdShipBasicMap, ParseError> {
 
 		ships.push(Kc3rdShipBasic {
 			api_id: entry.id,
-			kaih: vec![entry.stat.evasion, entry.stat.evasion_max],
-			tais: vec![entry.stat.asw, entry.stat.asw_max],
-			saku: vec![entry.stat.los, entry.stat.los_max],
-			luck: vec![entry.stat.luck, entry.stat.luck_max],
+			kaih: [entry.stat.evasion, entry.stat.evasion_max],
+			tais: [entry.stat.asw, entry.stat.asw_max],
+			saku: [entry.stat.los, entry.stat.los_max],
+			luck: [entry.stat.luck, entry.stat.luck_max],
 			cnum,
 			slots: entry.slot,
 			equip,

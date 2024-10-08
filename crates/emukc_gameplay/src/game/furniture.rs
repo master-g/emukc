@@ -27,7 +27,7 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 
 		let tx = db.begin().await?;
 
-		add_furniture(&tx, profile_id, mst_id).await?;
+		add_furniture_impl(&tx, profile_id, mst_id).await?;
 
 		tx.commit().await?;
 
@@ -43,7 +43,7 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The furniture master ID.
 #[allow(unused)]
-pub async fn add_furniture<C>(
+pub async fn add_furniture_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
@@ -92,14 +92,14 @@ mod tests {
 
 		let tx = context.0.begin().await.unwrap();
 
-		super::add_furniture(&tx, profile_id, 1).await.unwrap();
+		super::add_furniture_impl(&tx, profile_id, 1).await.unwrap();
 
 		tx.commit().await.unwrap();
 		println!("add furniture 1");
 
 		let tx = context.0.begin().await.unwrap();
 
-		let item = super::add_furniture(&tx, profile_id, 1).await.unwrap();
+		let item = super::add_furniture_impl(&tx, profile_id, 1).await.unwrap();
 
 		tx.commit().await.unwrap();
 		println!("add furniture 1 again");

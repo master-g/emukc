@@ -6,6 +6,8 @@ use thiserror::Error;
 
 use crate::{kc2, profile, thirdparty};
 
+pub mod ship;
+
 /// Error type for `Codex`
 #[derive(Error, Debug)]
 pub enum CodexError {

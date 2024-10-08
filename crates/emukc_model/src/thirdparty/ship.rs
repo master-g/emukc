@@ -8,16 +8,16 @@ pub struct Kc3rdShipBasic {
 	pub api_id: i64,
 
 	/// kaihi, evasion
-	pub kaih: Vec<i64>,
+	pub kaih: [i64; 2],
 
 	/// taisen, anti-submarine
-	pub tais: Vec<i64>,
+	pub tais: [i64; 2],
 
 	/// sakuteki, line of sight
-	pub saku: Vec<i64>,
+	pub saku: [i64; 2],
 
 	/// luck
-	pub luck: Vec<i64>,
+	pub luck: [i64; 2],
 
 	/// cnum, construction number
 	pub cnum: i64,

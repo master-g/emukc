@@ -13,4 +13,13 @@ pub enum GameplayError {
 
 	#[error("Invalid material category: {0}")]
 	InvalidMaterialCategory(i64),
+
+	#[error("Invalid manifest ID: {0}")]
+	ManifestNotFound(i64),
+
+	#[error("Capacity exceeded: {0}")]
+	CapacityExceeded(i64),
+
+	#[error("Failed to create new ship: {0}")]
+	ShipCreationFailed(i64),
 }

@@ -10,7 +10,7 @@ use crate::{err::GameplayError, prelude::HasContext};
 /// A trait for material related gameplay.
 #[async_trait]
 pub trait MaterialOps {
-	/// Add furniture to a profile.
+	/// Add material to a profile.
 	///
 	/// # Parameters
 	///
@@ -36,13 +36,13 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		add_material(&tx, profile_id, category, amount).await?;
+		add_material_impl(&tx, profile_id, category, amount).await?;
 
 		Ok(())
 	}
 }
 
-/// Add furniture to a profile.
+/// Add material to a profile.
 ///
 /// # Parameters
 ///
@@ -51,7 +51,7 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 /// - `material`: The material category.
 /// - `amount`: The amount of the material.
 #[allow(unused)]
-pub async fn add_material<C>(
+pub async fn add_material_impl<C>(
 	c: &C,
 	profile_id: i64,
 	material: MaterialCategory,

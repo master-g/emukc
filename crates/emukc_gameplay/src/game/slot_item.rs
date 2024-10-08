@@ -14,7 +14,7 @@ use crate::err::GameplayError;
 /// - `mst_id`: The item master ID.
 /// - `stars`: The stars of the item.
 #[allow(unused)]
-pub async fn add_slot_item<C>(
+pub async fn add_slot_item_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
