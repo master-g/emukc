@@ -61,20 +61,21 @@ http = { version = "1.1.0" }
 md-5 = "0.10.6"
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = [
-    "default-tls",
-    "socks",
-    "stream",
+	"default-tls",
+	"socks",
+	"stream",
 ] }
 sea-orm = { version = "1", features = [
-    "debug-print",
-    "runtime-tokio-native-tls",
-    "sqlx-sqlite",
+	"debug-print",
+	"runtime-tokio-native-tls",
+	"sqlx-sqlite",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 serde_urlencoded = "0.7"
 sha2 = { version = "0.10.8", default-features = false }
+test-log = { version = "0.2.16", features = ["trace"] }
 thiserror = "1.0.64"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7" }

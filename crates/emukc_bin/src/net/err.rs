@@ -40,6 +40,11 @@ impl From<GameplayError> for ApiError {
 		match value {
 			GameplayError::ProfileNotFound(_) => Self::NotFound,
 			GameplayError::Db(db_err) => Self::Internal(db_err.to_string()),
+			GameplayError::InvalidMaterialCategory(e) => Self::Internal(e.to_string()),
+			GameplayError::ManifestNotFound(e) => Self::Internal(e.to_string()),
+			GameplayError::CapacityExceeded(e) => Self::Internal(e.to_string()),
+			GameplayError::ShipCreationFailed(e) => Self::Internal(e.to_string()),
+			GameplayError::Codex(e) => Self::Internal(e.to_string()),
 		}
 	}
 }

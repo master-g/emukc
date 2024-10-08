@@ -295,6 +295,10 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	{
 		item::bootstrap(db).await?;
 	}
+	// ship
+	{
+		ship::bootstrap(db).await?;
+	}
 
 	Ok(())
 }

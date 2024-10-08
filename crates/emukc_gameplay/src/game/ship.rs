@@ -3,9 +3,11 @@ use emukc_db::{
 	entity::profile::{self, item::slot_item, ship},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
-use emukc_model::codex::Codex;
+use emukc_model::{codex::Codex, kc2::KcApiShip};
 
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, prelude::HasContext};
+
+use super::picturebook::add_ship_to_picture_book_impl;
 
 /// A trait for material related gameplay.
 #[async_trait]
@@ -16,20 +18,20 @@ pub trait ShipOps {
 	///
 	/// - `profile_id`: The profile ID.
 	/// - `mst_id`: The ship manifest ID.
-	async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError>;
+	async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<KcApiShip, GameplayError>;
 }
 
 #[async_trait]
 impl<T: HasContext + ?Sized> ShipOps for T {
-	async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError> {
+	async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<KcApiShip, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
 
 		let tx = db.begin().await?;
 
-		add_ship_impl(&tx, codex, profile_id, mst_id).await?;
+		let (_, ship) = add_ship_impl(&tx, codex, profile_id, mst_id).await?;
 
-		Ok(())
+		Ok(ship)
 	}
 }
 
@@ -47,7 +49,7 @@ pub async fn add_ship_impl<C>(
 	codex: &Codex,
 	profile_id: i64,
 	mst_id: i64,
-) -> Result<ship::ActiveModel, GameplayError>
+) -> Result<(ship::ActiveModel, KcApiShip), GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -157,5 +159,8 @@ where
 
 	let model = am.save(c).await?;
 
-	Ok(model)
+	// add ship to picture book
+	add_ship_to_picture_book_impl(c, profile_id, ship.api_sortno, None, None).await?;
+
+	Ok((model, ship))
 }

@@ -18,6 +18,8 @@ impl Codex {
 		let mst = self.manifest.find_ship(mst_id)?;
 		let basic = self.ship_basic.get(&mst_id)?;
 
+		trace!("ship mst, basic found for {}, {}", mst_id, mst.api_name);
+
 		let mut api_onslot = [0; 5];
 		for (i, slot) in basic.slots.iter().enumerate() {
 			api_onslot[i] = *slot;

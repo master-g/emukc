@@ -210,6 +210,11 @@ impl ActiveModelBehavior for ActiveModel {}
 /// Bootstrap the database with the necessary tables
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
 	let schema = sea_orm::Schema::new(db.get_database_backend());
+	// ship
+	{
+		let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
 	// picturebook
 	{
 		let stmt = schema.create_table_from_entity(picturebook::Entity).if_not_exists().to_owned();
