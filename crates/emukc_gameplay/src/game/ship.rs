@@ -3,7 +3,7 @@ use emukc_db::{
 	entity::profile::{self, item::slot_item, ship},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
-use emukc_model::kc2::{KcApiShip, KcApiSlotItem};
+use emukc_model::codex::Codex;
 
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, prelude::HasContext};
 
@@ -23,16 +23,11 @@ pub trait ShipOps {
 impl<T: HasContext + ?Sized> ShipOps for T {
 	async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError> {
 		let codex = self.codex();
-
 		let db = self.db();
+
 		let tx = db.begin().await?;
 
-		let Some((ship, slot_items)) = codex.new_ship(mst_id) else {
-			error!("Failed to create ship: {}", mst_id);
-			return Err(GameplayError::ShipCreationFailed(mst_id));
-		};
-
-		add_ship_impl(&tx, profile_id, &ship, &slot_items).await?;
+		add_ship_impl(&tx, codex, profile_id, mst_id).await?;
 
 		Ok(())
 	}
@@ -49,13 +44,20 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 #[allow(unused)]
 pub async fn add_ship_impl<C>(
 	c: &C,
+	codex: &Codex,
 	profile_id: i64,
-	ship: &KcApiShip,
-	slots: &[KcApiSlotItem],
+	mst_id: i64,
 ) -> Result<ship::ActiveModel, GameplayError>
 where
 	C: ConnectionTrait,
 {
+	// create ship and slot items
+	let Some((mut ship, mut slot_items)) = codex.new_ship(mst_id) else {
+		error!("Failed to create ship: {}", mst_id);
+		return Err(GameplayError::ShipCreationFailed(mst_id));
+	};
+
+	// check capacity
 	let Some(profile) = profile::Entity::find_by_id(profile_id).one(c).await? else {
 		return Err(GameplayError::ProfileNotFound(profile_id));
 	};
@@ -78,11 +80,17 @@ where
 
 	// add slot items
 	let mut item_ids = [-1; 5];
-	for (i, slot_item) in slots.iter().enumerate() {
+	for (i, slot_item) in slot_items.iter_mut().enumerate() {
 		let m = add_slot_item_impl(c, profile_id, slot_item.api_slotitem_id, slot_item.api_level)
 			.await?;
 		item_ids[i] = m.id.unwrap();
+		slot_item.api_id = item_ids[i];
 	}
+
+	ship.api_slot = item_ids;
+
+	// recalculate stats
+	codex.cal_ship_status(&mut ship, &slot_items)?;
 
 	// add ship
 	let mut am = ship::ActiveModel {
@@ -101,11 +109,11 @@ where
 		hp_max: ActiveValue::Set(ship.api_maxhp),
 		speed: ActiveValue::Set(ship.api_soku),
 		range: ActiveValue::Set(ship.api_leng),
-		slot_1: ActiveValue::Set(item_ids[0]),
-		slot_2: ActiveValue::Set(item_ids[1]),
-		slot_3: ActiveValue::Set(item_ids[2]),
-		slot_4: ActiveValue::Set(item_ids[3]),
-		slot_5: ActiveValue::Set(item_ids[4]),
+		slot_1: ActiveValue::Set(ship.api_slot[0]),
+		slot_2: ActiveValue::Set(ship.api_slot[1]),
+		slot_3: ActiveValue::Set(ship.api_slot[2]),
+		slot_4: ActiveValue::Set(ship.api_slot[3]),
+		slot_5: ActiveValue::Set(ship.api_slot[4]),
 		slot_ex: ActiveValue::Set(ship.api_slot_ex),
 		onslot_1: ActiveValue::Set(ship.api_onslot[0]),
 		onslot_2: ActiveValue::Set(ship.api_onslot[1]),

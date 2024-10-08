@@ -9,6 +9,7 @@ extern crate tracing;
 
 pub mod cache;
 pub mod codex;
+pub mod fields;
 pub mod kc2;
 pub mod profile;
 pub mod thirdparty;
@@ -18,7 +19,7 @@ pub mod prelude {
 	//! The `emukc_model` crate prelude.
 	#[doc(hidden)]
 	pub use crate::{
-		cache::*, codex::Codex, kc2::level::*, kc2::quest::*, kc2::remodel::*, kc2::start2::*,
-		kc2::types::*, thirdparty::*,
+		cache::*, codex::Codex, fields::*, kc2::level::*, kc2::quest::*, kc2::remodel::*,
+		kc2::start2::*, kc2::types::*, thirdparty::*,
 	};
 }

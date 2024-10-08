@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::{kc2, profile, thirdparty};
 
 pub mod ship;
+pub mod slotitem;
 
 /// Error type for `Codex`
 #[derive(Error, Debug)]
@@ -26,6 +27,10 @@ pub enum CodexError {
 	/// Serde error
 	#[error("Serde error: {0}")]
 	Serde(#[from] serde_json::Error),
+
+	/// Entry not found
+	#[error("Entry not found: {0}")]
+	NotFound(String),
 }
 
 /// The `Codex` struct holds almost all the game data needed for the `EmuKC` project.

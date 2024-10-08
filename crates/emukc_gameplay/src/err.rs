@@ -22,4 +22,7 @@ pub enum GameplayError {
 
 	#[error("Failed to create new ship: {0}")]
 	ShipCreationFailed(i64),
+
+	#[error("Codex error: {0}")]
+	Codex(#[from] emukc_model::codex::CodexError),
 }
