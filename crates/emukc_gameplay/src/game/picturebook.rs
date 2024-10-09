@@ -74,13 +74,13 @@ where
 			id: ActiveValue::Unchanged(record.id),
 			profile_id: ActiveValue::Unchanged(profile_id),
 			sort_num: ActiveValue::Unchanged(sortno),
-			damaged: if damaged.is_some() {
-				ActiveValue::Set(damaged.unwrap())
+			damaged: if let Some(damaged) = damaged {
+				ActiveValue::Set(damaged)
 			} else {
 				ActiveValue::Unchanged(record.damaged)
 			},
-			married: if married.is_some() {
-				ActiveValue::Set(married.unwrap())
+			married: if let Some(married) = married {
+				ActiveValue::Set(married)
 			} else {
 				ActiveValue::Unchanged(record.married)
 			},

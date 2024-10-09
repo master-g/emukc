@@ -3,6 +3,10 @@ use emukc_db::sea_orm::DbConn;
 use emukc_gameplay::prelude::*;
 use emukc_model::codex::Codex;
 
+#[allow(unused_imports)]
+#[macro_use]
+extern crate tracing;
+
 fn load_codex() -> anyhow::Result<Codex> {
 	let codex = Codex::load("../../.data/codex")?;
 	Ok(codex)
@@ -14,7 +18,7 @@ async fn mock_context() -> (DbConn, Codex) {
 	(db, codex)
 }
 
-#[test_log::test(tokio::test)]
+#[tokio::test]
 async fn profile() {
 	let context = mock_context().await;
 
