@@ -1,5 +1,6 @@
 //! Gameplay logic.
 
+pub use basic::BasicOps;
 pub use furniture::FurnitureOps;
 pub use incentive::IncentiveOps;
 pub(crate) use init::init_profile_game_data;
@@ -13,6 +14,7 @@ use crate::prelude::HasContext;
 
 // modules
 
+mod basic;
 mod furniture;
 mod incentive;
 mod init;
@@ -25,7 +27,14 @@ mod use_item;
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
 pub trait GameOps:
-	FurnitureOps + IncentiveOps + MaterialOps + ShipOps + PictureBookOps + SlotItemOps + UseItemOps
+	FurnitureOps
+	+ IncentiveOps
+	+ MaterialOps
+	+ ShipOps
+	+ PictureBookOps
+	+ SlotItemOps
+	+ UseItemOps
+	+ BasicOps
 {
 }
 

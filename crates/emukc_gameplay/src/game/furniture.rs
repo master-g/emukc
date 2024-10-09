@@ -18,6 +18,14 @@ pub trait FurnitureOps {
 	/// - `mst_id`: The furniture manifest ID.
 	async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError>;
 
+	/// Get furniture configuration.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_furniture_config(&self, profile_id: i64)
+		-> Result<FurnitureConfig, GameplayError>;
+
 	/// Update furniture configuration.
 	///
 	/// # Parameters
@@ -43,6 +51,18 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 		tx.commit().await?;
 
 		Ok(())
+	}
+
+	async fn get_furniture_config(
+		&self,
+		profile_id: i64,
+	) -> Result<FurnitureConfig, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let (_, cfg) = get_furniture_config_impl(&tx, profile_id).await?;
+
+		Ok(cfg)
 	}
 
 	async fn update_furniture_config(
@@ -94,6 +114,33 @@ where
 	let model = am.save(c).await?;
 
 	Ok(model)
+}
+
+/// Get user furniture configuration.
+///
+/// # Parameters
+///
+/// - `c`: The database connection.
+/// - `profile_id`: The profile ID.
+#[allow(unused)]
+pub async fn get_furniture_config_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<(furniture::config::Model, FurnitureConfig), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let Some(record) = furniture::config::Entity::find()
+		.filter(furniture::record::Column::ProfileId.eq(profile_id))
+		.one(c)
+		.await?
+	else {
+		return Err(GameplayError::ProfileNotFound(profile_id));
+	};
+
+	let cfg: FurnitureConfig = record.into();
+
+	Ok((record, cfg))
 }
 
 /// Update furniture config.

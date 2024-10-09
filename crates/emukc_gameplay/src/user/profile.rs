@@ -116,6 +116,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 			kdock_num: ActiveValue::Set(2),
 			ndock_num: ActiveValue::Set(2),
 			sortie_wins: ActiveValue::Set(0),
+			sortie_loses: ActiveValue::Set(0),
 			expeditions: ActiveValue::Set(0),
 			expeditions_success: ActiveValue::Set(0),
 			practice_battles: ActiveValue::Set(0),

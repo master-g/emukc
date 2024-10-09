@@ -89,39 +89,3 @@ where
 
 	Ok(model)
 }
-
-#[cfg(test)]
-mod tests {
-	use emukc_db::sea_orm::TransactionTrait;
-
-	use crate::user::{AccountOps, ProfileOps};
-
-	#[tokio::test]
-	async fn test_use_item() {
-		let db = emukc_db::prelude::new_mem_db().await.unwrap();
-		let codex = emukc_model::codex::Codex::default();
-
-		let context = (db, codex);
-
-		let account = context.sign_up("test", "1234567").await.unwrap();
-		let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
-
-		let profile_id = profile.profile.id;
-
-		let tx = context.0.begin().await.unwrap();
-
-		super::add_use_item_impl(&tx, profile_id, 1, 1).await.unwrap();
-
-		tx.commit().await.unwrap();
-		println!("add use item 1");
-
-		let tx = context.0.begin().await.unwrap();
-
-		let item = super::add_use_item_impl(&tx, profile_id, 1, 2).await.unwrap();
-
-		tx.commit().await.unwrap();
-		println!("add use item 2");
-
-		assert_eq!(item.count.unwrap(), 3);
-	}
-}

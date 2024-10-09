@@ -67,6 +67,9 @@ pub struct Model {
 	/// Number of winned sorties
 	pub sortie_wins: i64,
 
+	/// Number of lost sorties
+	pub sortie_loses: i64,
+
 	/// Number of expeditions
 	pub expeditions: i64,
 

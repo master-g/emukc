@@ -78,3 +78,14 @@ async fn material() {
 
 	assert_eq!(new.fuel, old.fuel + 100);
 }
+
+#[tokio::test]
+async fn use_item() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+	let m = context.add_use_item(pid, 5, 99).await.unwrap();
+	assert_eq!(m.api_count, 99);
+
+	let m = context.add_use_item(pid, 5, 1).await.unwrap();
+	assert_eq!(m.api_count, 100);
+}

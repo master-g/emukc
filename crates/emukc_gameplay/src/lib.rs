@@ -24,8 +24,8 @@ pub mod prelude {
 	pub use crate::{
 		err::GameplayError,
 		game::{
-			FurnitureOps, IncentiveOps, MaterialOps, PictureBookOps, ShipOps, SlotItemOps,
-			UseItemOps,
+			BasicOps, FurnitureOps, IncentiveOps, MaterialOps, PictureBookOps, ShipOps,
+			SlotItemOps, UseItemOps,
 		},
 		gameplay::{Gameplay, HasContext},
 		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
