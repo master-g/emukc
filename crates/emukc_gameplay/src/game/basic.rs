@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use emukc_crypto::SimpleHash;
 use emukc_db::{
-	entity::profile::{self, kdock},
+	entity::profile::{self, kdock, ndock},
 	sea_orm::{entity::prelude::*, TransactionTrait},
 };
 use emukc_model::kc2::KcApiUserBasic;
 
 use crate::{err::GameplayError, prelude::HasContext};
 
-use super::{furniture::get_furniture_config_impl, kdock::get_kdocks_impl};
+use super::{furniture::get_furniture_config_impl, kdock::get_kdocks_impl, ndock::get_ndocks_impl};
 
 /// A trait for furniture related gameplay.
 #[async_trait]
@@ -62,6 +62,10 @@ where
 	let kdocks = get_kdocks_impl(c, profile_id).await?;
 	let api_count_kdock =
 		kdocks.iter().filter(|x| x.status != kdock::Status::Locked).count() as i64;
+	// repair docks
+	let ndocks = get_ndocks_impl(c, profile_id).await?;
+	let api_count_ndock =
+		ndocks.iter().filter(|x| x.status != ndock::Status::Locked).count() as i64;
 
 	let basic = KcApiUserBasic {
 		api_member_id: record.id,
@@ -83,8 +87,8 @@ where
 		api_furniture: furniture_cfg.api_values(),
 		api_count_deck: 0, // needs to be filled in another api
 		api_count_kdock,
-		api_count_ndock: 0, // needs to be filled in another api
-		api_fcoin: 0,       // needs to be filled in another api
+		api_count_ndock,
+		api_fcoin: 0, // needs to be filled in another api
 		api_st_win: record.sortie_wins,
 		api_st_lose: record.sortie_loses,
 		api_ms_count: record.expeditions,

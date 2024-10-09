@@ -7,7 +7,7 @@ use emukc_model::profile::kdock::ConstructionDock;
 
 use crate::{err::GameplayError, prelude::HasContext};
 
-/// A trait for furniture related gameplay.
+/// A trait for construction dock related gameplay.
 #[async_trait]
 pub trait KDockOps {
 	/// Unlock new construction dock.

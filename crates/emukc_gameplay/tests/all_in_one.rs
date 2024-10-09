@@ -6,6 +6,7 @@ use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
 use emukc_model::profile::kdock::ConstructionDockStatus;
+use emukc_model::profile::ndock::RepairDockStatus;
 
 async fn mock_context() -> (DbConn, Codex) {
 	let db = new_mem_db().await.unwrap();
@@ -109,4 +110,24 @@ async fn kdock() {
 
 	let dock = context.unlock_kdock(pid, 2).await.unwrap();
 	assert_eq!(dock.status, ConstructionDockStatus::Idle);
+}
+
+#[tokio::test]
+async fn ndock() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let docks = context.get_ndocks(pid).await.unwrap();
+	assert_eq!(docks.len(), 4);
+
+	let dock = context.get_ndock(pid, 1).await.unwrap();
+	assert_eq!(dock.index, 1);
+	assert_eq!(dock.status, RepairDockStatus::Idle);
+
+	let dock = context.get_ndock(pid, 2).await.unwrap();
+	assert_eq!(dock.index, 2);
+	assert_eq!(dock.status, RepairDockStatus::Locked);
+
+	let dock = context.unlock_ndock(pid, 2).await.unwrap();
+	assert_eq!(dock.status, RepairDockStatus::Idle);
 }

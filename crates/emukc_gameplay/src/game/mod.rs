@@ -6,6 +6,7 @@ pub use incentive::IncentiveOps;
 pub(crate) use init::init_profile_game_data;
 pub use kdock::KDockOps;
 pub use material::MaterialOps;
+pub use ndock::NDockOps;
 pub use picturebook::PictureBookOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
@@ -21,6 +22,7 @@ mod incentive;
 mod init;
 mod kdock;
 mod material;
+mod ndock;
 mod picturebook;
 mod ship;
 mod slot_item;
@@ -34,6 +36,7 @@ pub trait GameOps:
 	+ IncentiveOps
 	+ KDockOps
 	+ MaterialOps
+	+ NDockOps
 	+ PictureBookOps
 	+ ShipOps
 	+ SlotItemOps

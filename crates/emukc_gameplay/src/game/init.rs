@@ -7,6 +7,7 @@ use super::{
 	furniture::{add_furniture_impl, update_furniture_config_impl},
 	kdock::init_kdock_impl,
 	material::init_material_impl,
+	ndock::init_ndock_impl,
 };
 
 /// Initialize the profile game data.
@@ -33,6 +34,9 @@ where
 
 	// construction docks
 	init_kdock_impl(c, profile_id).await?;
+
+	// repair docks
+	init_ndock_impl(c, profile_id).await?;
 
 	Ok(())
 }
