@@ -48,6 +48,9 @@ pub struct Model {
 	/// complete time
 	pub complete_time: Option<DateTime<Utc>>,
 
+	/// is current constuction large
+	pub is_large: bool,
+
 	/// fuel consumption
 	pub fuel: i64,
 
@@ -115,6 +118,7 @@ impl From<ConstructionDock> for ActiveModel {
 			status: ActiveValue::Set(value.status.into()),
 			ship_id: ActiveValue::Set(value.context.as_ref().map(|x| x.ship_id).unwrap_or(0)),
 			complete_time: ActiveValue::Set(value.context.as_ref().map(|x| x.complete_time)),
+			is_large: ActiveValue::Set(value.context.as_ref().map(|x| x.is_large).unwrap_or(false)),
 			fuel: ActiveValue::Set(value.context.as_ref().map(|x| x.fuel).unwrap_or(0)),
 			ammo: ActiveValue::Set(value.context.as_ref().map(|x| x.ammo).unwrap_or(0)),
 			steel: ActiveValue::Set(value.context.as_ref().map(|x| x.steel).unwrap_or(0)),
@@ -130,6 +134,7 @@ impl From<Model> for ConstructionDock {
 			Status::Busy | Status::Completed => Some(ConstructionContext {
 				ship_id: value.ship_id,
 				complete_time: value.complete_time.unwrap_or_else(Utc::now),
+				is_large: value.is_large,
 				fuel: value.fuel,
 				ammo: value.ammo,
 				steel: value.steel,

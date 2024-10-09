@@ -4,6 +4,7 @@ pub use basic::BasicOps;
 pub use furniture::FurnitureOps;
 pub use incentive::IncentiveOps;
 pub(crate) use init::init_profile_game_data;
+pub use kdock::KDockOps;
 pub use material::MaterialOps;
 pub use picturebook::PictureBookOps;
 pub use ship::ShipOps;
@@ -18,6 +19,7 @@ mod basic;
 mod furniture;
 mod incentive;
 mod init;
+mod kdock;
 mod material;
 mod picturebook;
 mod ship;
@@ -27,14 +29,15 @@ mod use_item;
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
 pub trait GameOps:
-	FurnitureOps
+	BasicOps
+	+ FurnitureOps
 	+ IncentiveOps
+	+ KDockOps
 	+ MaterialOps
-	+ ShipOps
 	+ PictureBookOps
+	+ ShipOps
 	+ SlotItemOps
 	+ UseItemOps
-	+ BasicOps
 {
 }
 

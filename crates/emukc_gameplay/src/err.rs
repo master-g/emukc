@@ -25,4 +25,7 @@ pub enum GameplayError {
 
 	#[error("Codex error: {0}")]
 	Codex(#[from] emukc_model::codex::CodexError),
+
+	#[error("Entry not found: {0}")]
+	EntryNotFound(String),
 }

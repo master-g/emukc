@@ -3,7 +3,7 @@ use crate::gameplay::HasContext;
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
 use emukc_model::kc2::KcApiUserItem;
 
@@ -42,7 +42,7 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 
 		Ok(KcApiUserItem {
 			api_id: mst_id,
-			api_count: am.count.unwrap(),
+			api_count: am.count,
 		})
 	}
 }
@@ -61,7 +61,7 @@ pub async fn add_use_item_impl<C>(
 	profile_id: i64,
 	mst_id: i64,
 	amount: i64,
-) -> Result<use_item::ActiveModel, GameplayError>
+) -> Result<use_item::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -87,5 +87,5 @@ where
 
 	let model = am.save(c).await?;
 
-	Ok(model)
+	Ok(model.try_into_model()?)
 }

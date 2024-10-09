@@ -4,7 +4,7 @@ use emukc_db::{
 		item::{self},
 		ship,
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
 
 use crate::{err::GameplayError, prelude::HasContext};
@@ -92,7 +92,7 @@ pub async fn add_ship_to_picture_book_impl<C>(
 	sortno: i64,
 	damaged: Option<bool>,
 	married: Option<bool>,
-) -> Result<ship::picturebook::ActiveModel, GameplayError>
+) -> Result<ship::picturebook::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -129,7 +129,7 @@ where
 
 	let model = am.save(c).await?;
 
-	Ok(model)
+	Ok(model.try_into_model()?)
 }
 
 /// Add slot item record to picture book.
@@ -144,7 +144,7 @@ pub async fn add_slot_item_to_picture_book_impl<C>(
 	c: &C,
 	profile_id: i64,
 	sortno: i64,
-) -> Result<item::picturebook::ActiveModel, GameplayError>
+) -> Result<item::picturebook::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -169,5 +169,5 @@ where
 
 	let model = am.save(c).await?;
 
-	Ok(model)
+	Ok(model.try_into_model()?)
 }

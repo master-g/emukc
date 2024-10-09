@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{self, item::slot_item, ship},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{codex::Codex, kc2::KcApiShip};
 
@@ -51,7 +51,7 @@ pub async fn add_ship_impl<C>(
 	codex: &Codex,
 	profile_id: i64,
 	mst_id: i64,
-) -> Result<(ship::ActiveModel, KcApiShip), GameplayError>
+) -> Result<(ship::Model, KcApiShip), GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -94,7 +94,7 @@ where
 			slot_item.api_alv.unwrap_or_default(),
 		)
 		.await?;
-		item_ids[i] = m.id.unwrap();
+		item_ids[i] = m.id;
 		slot_item.api_id = item_ids[i];
 	}
 
@@ -173,5 +173,5 @@ where
 	// add ship to picture book
 	add_ship_to_picture_book_impl(c, profile_id, ship.api_sortno, None, None).await?;
 
-	Ok((model, ship))
+	Ok((model.try_into_model()?, ship))
 }

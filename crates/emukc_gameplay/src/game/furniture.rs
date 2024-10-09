@@ -182,39 +182,3 @@ where
 
 	Ok(model)
 }
-
-#[cfg(test)]
-mod tests {
-	use emukc_db::sea_orm::TransactionTrait;
-
-	use crate::user::{AccountOps, ProfileOps};
-
-	#[tokio::test]
-	async fn test_furniture_record() {
-		let db = emukc_db::prelude::new_mem_db().await.unwrap();
-		let codex = emukc_model::codex::Codex::default();
-
-		let context = (db, codex);
-
-		let account = context.sign_up("test", "1234567").await.unwrap();
-		let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
-
-		let profile_id = profile.profile.id;
-
-		let tx = context.0.begin().await.unwrap();
-
-		super::add_furniture_impl(&tx, profile_id, 1).await.unwrap();
-
-		tx.commit().await.unwrap();
-		println!("add furniture 1");
-
-		let tx = context.0.begin().await.unwrap();
-
-		let item = super::add_furniture_impl(&tx, profile_id, 1).await.unwrap();
-
-		tx.commit().await.unwrap();
-		println!("add furniture 1 again");
-
-		assert_eq!(item.id.unwrap(), 1);
-	}
-}

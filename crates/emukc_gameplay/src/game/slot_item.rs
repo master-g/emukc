@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::item::slot_item,
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{codex::Codex, kc2::KcApiSlotItem};
 
@@ -48,7 +48,7 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 		tx.commit().await?;
 
 		Ok(KcApiSlotItem {
-			api_id: am.id.unwrap(),
+			api_id: am.id,
 			api_slotitem_id: mst_id,
 			api_locked: 0,
 			api_level: stars,
@@ -79,7 +79,7 @@ pub async fn add_slot_item_impl<C>(
 	mst_id: i64,
 	stars: i64,
 	alv: i64,
-) -> Result<slot_item::ActiveModel, GameplayError>
+) -> Result<slot_item::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -98,5 +98,5 @@ where
 	let mst = codex.find_slotitem_mst(mst_id)?;
 	add_slot_item_to_picture_book_impl(c, profile_id, mst.api_sortno).await?;
 
-	Ok(model)
+	Ok(model.try_into_model()?)
 }

@@ -5,6 +5,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
+use emukc_model::profile::kdock::ConstructionDockStatus;
 
 async fn mock_context() -> (DbConn, Codex) {
 	let db = new_mem_db().await.unwrap();
@@ -88,4 +89,24 @@ async fn use_item() {
 
 	let m = context.add_use_item(pid, 5, 1).await.unwrap();
 	assert_eq!(m.api_count, 100);
+}
+
+#[tokio::test]
+async fn kdock() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let docks = context.get_kdocks(pid).await.unwrap();
+	assert_eq!(docks.len(), 4);
+
+	let dock = context.get_kdock(pid, 1).await.unwrap();
+	assert_eq!(dock.index, 1);
+	assert_eq!(dock.status, ConstructionDockStatus::Idle);
+
+	let dock = context.get_kdock(pid, 2).await.unwrap();
+	assert_eq!(dock.index, 2);
+	assert_eq!(dock.status, ConstructionDockStatus::Locked);
+
+	let dock = context.unlock_kdock(pid, 2).await.unwrap();
+	assert_eq!(dock.status, ConstructionDockStatus::Idle);
 }

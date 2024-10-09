@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use emukc_crypto::SimpleHash;
 use emukc_db::{
-	entity::profile,
+	entity::profile::{self, kdock},
 	sea_orm::{entity::prelude::*, TransactionTrait},
 };
 use emukc_model::kc2::KcApiUserBasic;
 
 use crate::{err::GameplayError, prelude::HasContext};
 
-use super::furniture::get_furniture_config_impl;
+use super::{furniture::get_furniture_config_impl, kdock::get_kdocks_impl};
 
 /// A trait for furniture related gameplay.
 #[async_trait]
@@ -56,7 +56,12 @@ where
 		return Err(GameplayError::ProfileNotFound(profile_id));
 	};
 
+	// furniture
 	let (_, furniture_cfg) = get_furniture_config_impl(c, profile_id).await?;
+	// construction docks
+	let kdocks = get_kdocks_impl(c, profile_id).await?;
+	let api_count_kdock =
+		kdocks.iter().filter(|x| x.status != kdock::Status::Locked).count() as i64;
 
 	let basic = KcApiUserBasic {
 		api_member_id: record.id,
@@ -76,8 +81,8 @@ where
 		api_playtime: 0,
 		api_tutorial: record.tutorial_progress,
 		api_furniture: furniture_cfg.api_values(),
-		api_count_deck: 0,  // needs to be filled in another api
-		api_count_kdock: 0, // needs to be filled in another api
+		api_count_deck: 0, // needs to be filled in another api
+		api_count_kdock,
 		api_count_ndock: 0, // needs to be filled in another api
 		api_fcoin: 0,       // needs to be filled in another api
 		api_st_win: record.sortie_wins,

@@ -27,6 +27,9 @@ pub struct ConstructionContext {
 	/// complete time
 	pub complete_time: DateTime<Utc>,
 
+	/// is current constuction large
+	pub is_large: bool,
+
 	/// fuel consumption
 	pub fuel: i64,
 

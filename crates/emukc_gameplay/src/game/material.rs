@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::material,
-	sea_orm::{entity::prelude::*, TransactionTrait},
+	sea_orm::{entity::prelude::*, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{codex::Codex, kc2::MaterialCategory, profile::material::Material};
 
@@ -88,7 +88,7 @@ pub async fn add_material_impl<C>(
 	profile_id: i64,
 	category: MaterialCategory,
 	amount: i64,
-) -> Result<material::ActiveModel, GameplayError>
+) -> Result<material::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -113,7 +113,7 @@ where
 
 	let am = am.save(c).await?;
 
-	Ok(am)
+	Ok(am.try_into_model()?)
 }
 
 /// Initialize material for a profile.
