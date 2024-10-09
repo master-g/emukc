@@ -10,8 +10,8 @@ use prelude::{async_trait::async_trait, QueryFilter};
 use crate::{err::GameplayError, prelude::HasContext};
 
 use super::{
-	furniture::add_furniture_impl, material::add_material_impl, slot_item::add_slot_item_impl,
-	use_item::add_use_item_impl,
+	furniture::add_furniture_impl, material::add_material_impl, ship::add_ship_impl,
+	slot_item::add_slot_item_impl, use_item::add_use_item_impl,
 };
 
 /// A trait for incentive related gameplay.
@@ -130,9 +130,12 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 			})
 			.collect();
 
+		// apply incentives
 		for item in items {
 			match item.typ {
-				IncentiveType::Ship => todo!(),
+				IncentiveType::Ship => {
+					add_ship_impl(&tx, codex, profile_id, item.mst_id).await?;
+				}
 				IncentiveType::SlotItem => {
 					add_slot_item_impl(
 						&tx,
@@ -159,7 +162,11 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 			}
 		}
 
-		// TODO: apply and then remove incentives
+		// remove incentives
+		incentive::Entity::delete_many()
+			.filter(incentive::Column::ProfileId.eq(profile_id))
+			.exec(&tx)
+			.await?;
 
 		Ok(api_items)
 	}
