@@ -23,7 +23,7 @@ pub mod prelude {
 	#[doc(hidden)]
 	pub use crate::{
 		err::GameplayError,
-		game::{FurnitureOps, IncentiveOps, MaterialOps, PictureBookOps, ShipOps},
+		game::{FurnitureOps, IncentiveOps, MaterialOps, PictureBookOps, ShipOps, SlotItemOps},
 		gameplay::{Gameplay, HasContext},
 		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
 	};

@@ -5,6 +5,7 @@ pub use incentive::IncentiveOps;
 pub use material::MaterialOps;
 pub use picturebook::PictureBookOps;
 pub use ship::ShipOps;
+pub use slot_item::SlotItemOps;
 
 use crate::prelude::HasContext;
 
@@ -20,7 +21,10 @@ mod use_item;
 
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
-pub trait GameOps: FurnitureOps + IncentiveOps + MaterialOps + ShipOps + PictureBookOps {}
+pub trait GameOps:
+	FurnitureOps + IncentiveOps + MaterialOps + ShipOps + PictureBookOps + SlotItemOps
+{
+}
 
 #[async_trait::async_trait]
 impl<T: HasContext + ?Sized> GameOps for T {}

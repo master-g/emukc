@@ -70,6 +70,11 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 					mst_id: ActiveValue::Set(i.api_mst_id),
 					amount: ActiveValue::Set(i.amount),
 					stars: ActiveValue::Set(i.api_slotitem_level),
+					alv: ActiveValue::Set(if i.alv > 0 {
+						Some(i.alv)
+					} else {
+						None
+					}),
 				})
 			})
 			.collect();
@@ -121,6 +126,7 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 					None
 				},
 				amount: i.amount,
+				alv: i.alv.unwrap_or_default(),
 			})
 			.collect();
 
@@ -130,9 +136,11 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 				IncentiveType::SlotItem => {
 					add_slot_item_impl(
 						&tx,
+						codex,
 						profile_id,
 						item.mst_id,
 						item.stars.unwrap_or_default(),
+						item.alv.unwrap_or_default(),
 					)
 					.await?;
 				}

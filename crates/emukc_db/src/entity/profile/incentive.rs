@@ -70,6 +70,9 @@ pub struct Model {
 
 	/// for slot item
 	pub stars: Option<i64>,
+
+	/// for slot item, aircraft level
+	pub alv: Option<i64>,
 }
 
 /// Relation

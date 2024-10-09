@@ -83,8 +83,15 @@ where
 	// add slot items
 	let mut item_ids = [-1; 5];
 	for (i, slot_item) in slot_items.iter_mut().enumerate() {
-		let m = add_slot_item_impl(c, profile_id, slot_item.api_slotitem_id, slot_item.api_level)
-			.await?;
+		let m = add_slot_item_impl(
+			c,
+			codex,
+			profile_id,
+			slot_item.api_slotitem_id,
+			slot_item.api_level,
+			slot_item.api_alv.unwrap_or_default(),
+		)
+		.await?;
 		item_ids[i] = m.id.unwrap();
 		slot_item.api_id = item_ids[i];
 	}
@@ -158,6 +165,8 @@ where
 	};
 
 	let model = am.save(c).await?;
+
+	ship.api_id = model.id.clone().unwrap();
 
 	// add ship to picture book
 	add_ship_to_picture_book_impl(c, profile_id, ship.api_sortno, None, None).await?;

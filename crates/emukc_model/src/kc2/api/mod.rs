@@ -383,6 +383,8 @@ pub struct KcApiIncentiveItem {
 	/// hidden field for internal use
 	#[serde(skip_serializing)]
 	pub amount: i64,
+	#[serde(skip_serializing)]
+	pub alv: i64,
 }
 
 pub type KcApiUnsetSlot = BTreeMap<String, Vec<i64>>;
