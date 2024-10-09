@@ -31,6 +31,8 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 
 		let (_, ship) = add_ship_impl(&tx, codex, profile_id, mst_id).await?;
 
+		tx.commit().await?;
+
 		Ok(ship)
 	}
 }

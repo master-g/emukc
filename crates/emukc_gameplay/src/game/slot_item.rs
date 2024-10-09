@@ -45,6 +45,8 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 
 		let am = add_slot_item_impl(&tx, codex, profile_id, mst_id, stars, alv).await?;
 
+		tx.commit().await?;
+
 		Ok(KcApiSlotItem {
 			api_id: am.id.unwrap(),
 			api_slotitem_id: mst_id,

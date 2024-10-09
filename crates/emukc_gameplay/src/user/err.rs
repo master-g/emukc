@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::err::GameplayError;
+
 #[derive(Debug, Error)]
 pub enum UserError {
 	#[error("The username is already taken.")]
@@ -31,4 +33,7 @@ pub enum UserError {
 
 	#[error("Database error: {0}")]
 	Db(#[from] emukc_db::sea_orm::DbErr),
+
+	#[error("Gameplay error: {0}")]
+	Gameplay(#[from] GameplayError),
 }

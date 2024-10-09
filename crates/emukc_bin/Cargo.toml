@@ -3,14 +3,6 @@ name = "emukc_bin"
 version = "0.1.0"
 edition = "2021"
 
-[profile.release]
-debug = false
-strip = "debuginfo"
-lto = true
-opt-level = "s"
-
-# build = "build.rs"
-
 [[bin]]
 name = "emukcd"
 

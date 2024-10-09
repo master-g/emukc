@@ -1,9 +1,51 @@
+use crate::err::GameplayError;
+use crate::gameplay::HasContext;
+use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
-	sea_orm::{entity::prelude::*, ActiveValue},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
+use emukc_model::kc2::KcApiUserItem;
 
-use crate::err::GameplayError;
+/// A trait for use item related gameplay.
+#[async_trait]
+pub trait UseItemOps {
+	/// Add use item to a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `mst_id`: The use item manifest ID.
+	/// - `amount`: The amount of the use item.
+	async fn add_use_item(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+		amount: i64,
+	) -> Result<KcApiUserItem, GameplayError>;
+}
+
+#[async_trait]
+impl<T: HasContext + ?Sized> UseItemOps for T {
+	async fn add_use_item(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+		amount: i64,
+	) -> Result<KcApiUserItem, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let am = add_use_item_impl(&tx, profile_id, mst_id, amount).await?;
+
+		tx.commit().await?;
+
+		Ok(KcApiUserItem {
+			api_id: mst_id,
+			api_count: am.count.unwrap(),
+		})
+	}
+}
 
 /// Add use item to a profile.
 ///
@@ -18,7 +60,7 @@ pub async fn add_use_item_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
-	count: i64,
+	amount: i64,
 ) -> Result<use_item::ActiveModel, GameplayError>
 where
 	C: ConnectionTrait,
@@ -32,14 +74,14 @@ where
 	let am = match record {
 		Some(rec) => ActiveModel {
 			id: ActiveValue::Unchanged(rec.id),
-			count: ActiveValue::Set(rec.count + count),
+			count: ActiveValue::Set(rec.count + amount),
 			..rec.into()
 		},
 		None => use_item::ActiveModel {
 			id: ActiveValue::NotSet,
 			profile_id: ActiveValue::Set(profile_id),
 			mst_id: ActiveValue::Set(mst_id),
-			count: ActiveValue::Set(count),
+			count: ActiveValue::Set(amount),
 		},
 	};
 

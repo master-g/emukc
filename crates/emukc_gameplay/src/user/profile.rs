@@ -12,7 +12,7 @@ use emukc_time::chrono::Utc;
 use prelude::async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::gameplay::HasContext;
+use crate::{game::init_profile_game_data, gameplay::HasContext};
 
 use super::{
 	auth::{issue_token, verify_access_token},
@@ -83,6 +83,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		profile_name: &str,
 	) -> Result<StartGameInfo, UserError> {
 		let db = self.db();
+		let codex = self.codex();
 		let tx = db.begin().await?;
 
 		// verify access token
@@ -136,6 +137,9 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		// issue new tokens
 		let session =
 			issue_token(&tx, account_model.uid, profile_model.id, TokenType::Session).await?;
+
+		// populate game data
+		init_profile_game_data(&tx, codex, profile_model.id).await?;
 
 		tx.commit().await?;
 

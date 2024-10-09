@@ -348,14 +348,14 @@ pub struct KcApiIncentive {
 	pub api_item: Option<Vec<KcApiIncentiveItem>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, enumn::N)]
 pub enum KcApiIncentiveMode {
 	PreRegister = 1,
 	Reception = 2,
 	MonthlyOrPresent = 3,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, enumn::N)]
 pub enum KcApiIncentiveType {
 	Ship = 1,
 	SlotItem = 2,

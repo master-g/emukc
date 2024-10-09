@@ -55,6 +55,8 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 
 		add_ship_to_picture_book_impl(&tx, profile_id, sortno, damaged, married).await?;
 
+		tx.commit().await?;
+
 		Ok(())
 	}
 
@@ -67,6 +69,8 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 		let tx = db.begin().await?;
 
 		add_slot_item_to_picture_book_impl(&tx, profile_id, sortno).await?;
+
+		tx.commit().await?;
 
 		Ok(())
 	}

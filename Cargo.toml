@@ -92,6 +92,15 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 
+# bin
+[profile.release]
+debug = false
+strip = "debuginfo"
+lto = true
+opt-level = "s"
+
+# build = "build.rs"
+
 # For testing
 
 [[example]]

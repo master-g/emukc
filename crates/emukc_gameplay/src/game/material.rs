@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::material,
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, TransactionTrait},
 };
-use emukc_model::kc2::MaterialCategory;
+use emukc_model::{codex::Codex, kc2::MaterialCategory, profile::material::Material};
 
 use crate::{err::GameplayError, prelude::HasContext};
 
@@ -23,6 +23,13 @@ pub trait MaterialOps {
 		category: MaterialCategory,
 		amount: i64,
 	) -> Result<(), GameplayError>;
+
+	/// Get materials of a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError>;
 }
 
 #[async_trait]
@@ -33,13 +40,37 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 		category: MaterialCategory,
 		amount: i64,
 	) -> Result<(), GameplayError> {
+		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		add_material_impl(&tx, profile_id, category, amount).await?;
+		add_material_impl(&tx, codex, profile_id, category, amount).await?;
+
+		tx.commit().await?;
 
 		Ok(())
 	}
+
+	async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
+		let db = self.db();
+		let record = get_mat_impl(db, profile_id).await?;
+		let model: Material = record.into();
+
+		Ok(model)
+	}
+}
+
+async fn get_mat_impl<C>(c: &C, profile_id: i64) -> Result<material::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let Some(record) =
+		material::Entity::find().filter(material::Column::ProfileId.eq(profile_id)).one(c).await?
+	else {
+		return Err(GameplayError::ProfileNotFound(profile_id));
+	};
+
+	Ok(record)
 }
 
 /// Add material to a profile.
@@ -48,39 +79,62 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-/// - `material`: The material category.
+/// - `category`: The material category.
 /// - `amount`: The amount of the material.
 #[allow(unused)]
 pub async fn add_material_impl<C>(
 	c: &C,
+	codex: &Codex,
 	profile_id: i64,
-	material: MaterialCategory,
+	category: MaterialCategory,
 	amount: i64,
 ) -> Result<material::ActiveModel, GameplayError>
 where
 	C: ConnectionTrait,
 {
-	let Some(model) =
-		material::Entity::find().filter(material::Column::ProfileId.eq(profile_id)).one(c).await?
-	else {
-		return Err(GameplayError::ProfileNotFound(profile_id));
+	let record = get_mat_impl(c, profile_id).await?;
+	let mut model: Material = record.into();
+
+	match category {
+		MaterialCategory::Fuel => model.fuel += amount,
+		MaterialCategory::Ammo => model.ammo += amount,
+		MaterialCategory::Steel => model.steel += amount,
+		MaterialCategory::Bauxite => model.bauxite += amount,
+		MaterialCategory::Torch => model.torch += amount,
+		MaterialCategory::Bucket => model.bucket += amount,
+		MaterialCategory::DevMat => model.devmat += amount,
+		MaterialCategory::Screw => model.screw += amount,
 	};
 
-	let mut am: material::ActiveModel = model.clone().into();
-	am.profile_id = ActiveValue::Unchanged(model.profile_id);
+	let cfg = &codex.material_cfg;
+	cfg.apply_hard_cap(&mut model);
 
-	match material {
-		MaterialCategory::Fuel => am.fuel = ActiveValue::Set(model.fuel + amount),
-		MaterialCategory::Ammo => am.ammo = ActiveValue::Set(model.ammo + amount),
-		MaterialCategory::Steel => am.steel = ActiveValue::Set(model.steel + amount),
-		MaterialCategory::Bauxite => am.bauxite = ActiveValue::Set(model.bauxite + amount),
-		MaterialCategory::Torch => am.torch = ActiveValue::Set(model.torch + amount),
-		MaterialCategory::Bucket => am.bucket = ActiveValue::Set(model.bucket + amount),
-		MaterialCategory::DevMat => am.devmat = ActiveValue::Set(model.devmat + amount),
-		MaterialCategory::Screw => am.screw = ActiveValue::Set(model.screw + amount),
-	};
+	let am: material::ActiveModel = model.into();
 
-	let model = am.save(c).await?;
+	let am = am.save(c).await?;
 
-	Ok(model)
+	Ok(am)
+}
+
+/// Initialize material for a profile.
+///
+/// # Parameters
+///
+/// - `c`: The database connection.
+/// - `codex`: The codex.
+/// - `profile_id`: The profile ID.
+pub async fn init_material_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let cfg = &codex.material_cfg;
+	let model = cfg.new_material(profile_id);
+	let am: material::ActiveModel = model.into();
+	am.insert(c).await?;
+
+	Ok(())
 }

@@ -18,6 +18,7 @@ pub(super) async fn handler(state: AppState, Form(params): Form<RegisterForm>) -
 	match state.select_world(params.api_dmmuser_id, params.api_world_id).await {
 		Ok(_) => {
 			trace!("user {} selected world {}", params.api_dmmuser_id, params.api_world_id);
+			// TODO: populate user data here
 			Ok(KcApiResponse::empty())
 		}
 		Err(e) => {

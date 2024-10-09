@@ -154,7 +154,7 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 					let Some(category) = MaterialCategory::n(item.mst_id) else {
 						return Err(GameplayError::InvalidMaterialCategory(item.mst_id));
 					};
-					add_material_impl(&tx, profile_id, category, item.amount).await?;
+					add_material_impl(&tx, codex, profile_id, category, item.amount).await?;
 				}
 				IncentiveType::Furniture => {
 					add_furniture_impl(&tx, profile_id, item.mst_id).await?;
@@ -167,6 +167,8 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 			.filter(incentive::Column::ProfileId.eq(profile_id))
 			.exec(&tx)
 			.await?;
+
+		tx.commit().await?;
 
 		Ok(api_items)
 	}
