@@ -3,6 +3,7 @@ use emukc_db::{
 	entity::profile::furniture,
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
+use emukc_model::profile::furniture::FurnitureConfig;
 
 use crate::{err::GameplayError, prelude::HasContext};
 
@@ -17,7 +18,17 @@ pub trait FurnitureOps {
 	/// - `mst_id`: The furniture manifest ID.
 	async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError>;
 
-	// TODO: save furniture settings
+	/// Update furniture configuration.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `config`: The new configuration.
+	async fn update_furniture_config(
+		&self,
+		profile_id: i64,
+		config: &FurnitureConfig,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -30,6 +41,19 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 		add_furniture_impl(&tx, profile_id, mst_id).await?;
 
 		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_furniture_config(
+		&self,
+		profile_id: i64,
+		config: &FurnitureConfig,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_furniture_config_impl(&tx, profile_id, config).await?;
 
 		Ok(())
 	}
@@ -65,6 +89,46 @@ where
 		id: ActiveValue::NotSet,
 		profile_id: ActiveValue::Set(profile_id),
 		furniture_id: ActiveValue::Set(mst_id),
+	};
+
+	let model = am.save(c).await?;
+
+	Ok(model)
+}
+
+/// Update furniture config.
+///
+/// # Parameters
+///
+/// - `c`: The database connection.
+/// - `profile_id`: The profile ID.
+/// - `config`: The new configuration.
+#[allow(unused)]
+pub async fn update_furniture_config_impl<C>(
+	c: &C,
+	profile_id: i64,
+	config: &FurnitureConfig,
+) -> Result<furniture::config::ActiveModel, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = furniture::config::Entity::find()
+		.filter(furniture::config::Column::Id.eq(profile_id))
+		.one(c)
+		.await?;
+
+	let mut am = furniture::config::ActiveModel {
+		id: if let Some(record) = record {
+			ActiveValue::Unchanged(record.id)
+		} else {
+			ActiveValue::NotSet
+		},
+		floor: ActiveValue::Set(config.floor),
+		wallpaper: ActiveValue::Set(config.wallpaper),
+		window: ActiveValue::Set(config.window),
+		wall_hanging: ActiveValue::Set(config.wall_hanging),
+		shelf: ActiveValue::Set(config.shelf),
+		desk: ActiveValue::Set(config.desk),
 	};
 
 	let model = am.save(c).await?;
