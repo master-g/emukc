@@ -53,6 +53,9 @@ async fn incentive() {
 	println!("{:?}", incentive);
 
 	assert!(!incentive.is_empty());
+
+	let incentive = context.confirm_incentives(session.profile.id).await.unwrap();
+	assert!(incentive.is_empty());
 }
 
 #[tokio::test]
