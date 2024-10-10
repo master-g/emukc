@@ -5,7 +5,7 @@ use emukc_db::{
 };
 use emukc_model::{codex::Codex, kc2::MaterialCategory, profile::material::Material};
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 /// A trait for material related gameplay.
 #[async_trait]

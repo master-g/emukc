@@ -5,7 +5,7 @@ use emukc_db::{
 };
 use emukc_model::{codex::Codex, kc2::KcApiShip};
 
-use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, prelude::HasContext};
+use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
 
 use super::picturebook::add_ship_to_picture_book_impl;
 

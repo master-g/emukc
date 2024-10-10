@@ -3,11 +3,9 @@ use emukc_db::{
 	entity::profile::item::slot_item,
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
-use emukc_model::{
-	codex::Codex, kc2::KcApiSlotItem, prelude::ApiMstSlotitem, profile::slot_item::SlotItem,
-};
+use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 use super::picturebook::add_slot_item_to_picture_book_impl;
 

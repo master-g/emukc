@@ -5,7 +5,7 @@ use emukc_db::{
 };
 use emukc_model::kc2::KcApiGameSetting;
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 /// A trait for game settings related gameplay.
 #[async_trait]

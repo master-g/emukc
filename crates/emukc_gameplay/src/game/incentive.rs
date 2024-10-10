@@ -7,7 +7,7 @@ use emukc_db::{
 use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory};
 use prelude::{async_trait::async_trait, QueryFilter};
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 use super::{
 	furniture::add_furniture_impl, material::add_material_impl, ship::add_ship_impl,

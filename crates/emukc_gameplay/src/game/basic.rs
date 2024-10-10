@@ -6,7 +6,7 @@ use emukc_db::{
 };
 use emukc_model::kc2::{KcApiUserBasic, KcUseItemType};
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 use super::{
 	fleet::get_fleets_impl, furniture::get_furniture_config_impl, kdock::get_kdocks_impl,

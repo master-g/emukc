@@ -19,7 +19,7 @@ pub mod prelude {
 	//! The `emukc_model` crate prelude.
 	#[doc(hidden)]
 	pub use crate::{
-		cache::*, codex::Codex, fields::*, kc2::level::*, kc2::quest::*, kc2::remodel::*,
+		cache::*, codex::Codex, fields::*, kc2::api::*, kc2::level::*, kc2::remodel::*,
 		kc2::start2::*, kc2::types::*, thirdparty::*,
 	};
 }

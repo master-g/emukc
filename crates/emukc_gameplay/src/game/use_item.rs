@@ -5,7 +5,7 @@ use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
-use emukc_model::{kc2::KcApiUserItem, profile::user_item::UserItem};
+use emukc_model::{prelude::*, profile::user_item::UserItem};
 
 /// A trait for use item related gameplay.
 #[async_trait]

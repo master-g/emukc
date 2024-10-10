@@ -5,7 +5,7 @@ use emukc_db::{
 };
 use emukc_model::profile::ndock::RepairDock;
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 /// A trait for repair dock related gameplay.
 #[async_trait]

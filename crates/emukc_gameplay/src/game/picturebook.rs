@@ -7,7 +7,7 @@ use emukc_db::{
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
 
-use crate::{err::GameplayError, prelude::HasContext};
+use crate::{err::GameplayError, gameplay::HasContext};
 
 /// A trait for material related gameplay.
 #[async_trait]
