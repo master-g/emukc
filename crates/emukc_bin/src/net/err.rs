@@ -1,5 +1,8 @@
 use axum::response::{IntoResponse, Response};
-use emukc_internal::prelude::{GameplayError, UserError};
+use emukc_internal::{
+	model::codex::CodexError,
+	prelude::{GameplayError, UserError},
+};
 use http::StatusCode;
 use thiserror::Error;
 
@@ -47,6 +50,18 @@ impl From<GameplayError> for ApiError {
 			GameplayError::ShipCreationFailed(e) => Self::Internal(e.to_string()),
 			GameplayError::Codex(e) => Self::Internal(e.to_string()),
 			GameplayError::EntryNotFound(e) => Self::NotFound(e),
+		}
+	}
+}
+
+impl From<CodexError> for ApiError {
+	fn from(value: CodexError) -> Self {
+		match value {
+			CodexError::AlreadyExist(e) => Self::Internal(e),
+			CodexError::Io(e) => Self::Internal(e.to_string()),
+			CodexError::Parse(e) => Self::Internal(e.to_string()),
+			CodexError::Serde(e) => Self::Internal(e.to_string()),
+			CodexError::NotFound(e) => Self::NotFound(e),
 		}
 	}
 }

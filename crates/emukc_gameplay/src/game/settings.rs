@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::{self, fleet},
+	entity::profile::{self},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
 use emukc_model::kc2::KcApiGameSetting;
@@ -68,7 +68,7 @@ where
 	C: ConnectionTrait,
 {
 	let settings = profile::setting::Entity::find()
-		.filter(fleet::Column::ProfileId.eq(profile_id))
+		.filter(profile::setting::Column::ProfileId.eq(profile_id))
 		.one(c)
 		.await?
 		.ok_or_else(|| {

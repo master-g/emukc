@@ -1,5 +1,5 @@
 use axum::response::IntoResponse;
-use emukc_internal::prelude::GameplayError;
+use emukc_internal::{model::codex::CodexError, prelude::GameplayError};
 pub use kcs::KcApiResponse;
 
 use super::err::ApiError;
@@ -23,6 +23,12 @@ impl From<ApiError> for KcApiError {
 
 impl From<GameplayError> for KcApiError {
 	fn from(value: GameplayError) -> Self {
+		KcApiError(ApiError::from(value))
+	}
+}
+
+impl From<CodexError> for KcApiError {
+	fn from(value: CodexError) -> Self {
 		KcApiError(ApiError::from(value))
 	}
 }

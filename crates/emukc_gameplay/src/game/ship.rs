@@ -7,7 +7,7 @@ use emukc_model::{codex::Codex, kc2::KcApiShip};
 
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
 
-use super::picturebook::add_ship_to_picture_book_impl;
+use super::{picturebook::add_ship_to_picture_book_impl, slot_item::update_slot_item_impl};
 
 /// A trait for material related gameplay.
 #[async_trait]
@@ -170,6 +170,11 @@ where
 	let model = am.save(c).await?;
 
 	ship.api_id = model.id.clone().unwrap();
+
+	// equip slot items
+	for item in slot_items {
+		update_slot_item_impl(c, item.api_id, None, None, Some(ship.api_id)).await?;
+	}
 
 	// add ship to picture book
 	add_ship_to_picture_book_impl(c, profile_id, ship.api_sortno, None, None).await?;

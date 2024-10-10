@@ -30,9 +30,9 @@ async fn fleet() {
 	let (context, _, session) = new_game_session().await;
 	let pid = session.profile.id;
 
-	let fleet = context.get_fleet(pid, 1).await.unwrap();
-	println!("{:?}", fleet);
-	assert_eq!(fleet.index, 1);
+	let fleets = context.get_fleets(pid).await.unwrap();
+	println!("{:?}", fleets);
+	assert_eq!(fleets.len(), 1);
 
 	let fleet = context.unlock_fleet(pid, 2).await.unwrap();
 	println!("{:?}", fleet);
@@ -86,9 +86,16 @@ async fn basics() {
 #[tokio::test]
 async fn add_ship() {
 	let (context, _, session) = new_game_session().await;
-	let ship = context.add_ship(session.profile.id, 951).await.unwrap();
+	let pid = session.profile.id;
+	let ship = context.add_ship(pid, 951).await.unwrap();
 
 	assert_eq!(ship.api_id, 1);
+
+	let slot_items = context.get_slot_items(pid).await.unwrap();
+	assert_eq!(slot_items.len(), 3);
+
+	let unset_slots = context.get_unuse_slot_items(pid).await.unwrap();
+	assert!(unset_slots.is_empty());
 }
 
 #[tokio::test]

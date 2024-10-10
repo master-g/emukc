@@ -8,6 +8,7 @@ use crate::{kc2, profile, thirdparty};
 
 pub mod query;
 pub mod ship;
+pub mod slot_item;
 
 /// Error type for `Codex`
 #[derive(Error, Debug)]

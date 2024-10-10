@@ -1,7 +1,7 @@
 //! Slot item entity
 
 use emukc_model::profile::slot_item::SlotItem;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
@@ -25,6 +25,9 @@ pub struct Model {
 
 	/// aircraft level
 	pub aircraft_lv: i64,
+
+	/// equip on ship instance id
+	pub equip_on: i64,
 }
 
 /// Relation
@@ -46,19 +49,6 @@ impl Related<crate::entity::profile::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
-
-impl From<SlotItem> for ActiveModel {
-	fn from(t: SlotItem) -> Self {
-		Self {
-			id: ActiveValue::Set(t.instance_id),
-			profile_id: ActiveValue::Set(t.id),
-			mst_id: ActiveValue::Set(t.mst_id),
-			locked: ActiveValue::Set(t.locked),
-			level: ActiveValue::Set(t.level),
-			aircraft_lv: ActiveValue::Set(t.aircraft_lv),
-		}
-	}
-}
 
 impl From<Model> for SlotItem {
 	fn from(value: Model) -> Self {

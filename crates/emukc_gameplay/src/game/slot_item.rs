@@ -33,12 +33,8 @@ pub trait SlotItemOps {
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
-	/// - `instance_id`: The slot item instance ID.
-	async fn find_slot_item(
-		&self,
-		profile_id: i64,
-		instance_id: i64,
-	) -> Result<KcApiSlotItem, GameplayError>;
+	/// - `id`: The slot item instance ID.
+	async fn find_slot_item(&self, id: i64) -> Result<KcApiSlotItem, GameplayError>;
 
 	/// Get all slot items from a profile.
 	///
@@ -46,6 +42,22 @@ pub trait SlotItemOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_slot_items(&self, profile_id: i64) -> Result<Vec<KcApiSlotItem>, GameplayError>;
+
+	/// Update slot item.
+	///
+	/// # Parameters
+	///
+	/// - `id`: The slot item instance ID.
+	/// - `stars`: The stars of the item.
+	/// - `alv`: The aircraft level of the item.
+	/// - `equip_on`: The ship instance ID the item is equipped on.
+	async fn update_slot_item(
+		&self,
+		id: i64,
+		stars: Option<i64>,
+		alv: Option<i64>,
+		equip_on: Option<i64>,
+	) -> Result<KcApiSlotItem, GameplayError>;
 
 	/// Get all unused slot items from a profile.
 	///
@@ -81,23 +93,15 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 			api_slotitem_id: mst_id,
 			api_locked: 0,
 			api_level: stars,
-			api_alv: if alv > 0 {
-				Some(alv)
-			} else {
-				None
-			},
+			api_alv: (alv > 0).then_some(alv),
 		})
 	}
 
-	async fn find_slot_item(
-		&self,
-		profile_id: i64,
-		instance_id: i64,
-	) -> Result<KcApiSlotItem, GameplayError> {
+	async fn find_slot_item(&self, id: i64) -> Result<KcApiSlotItem, GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let m = find_slot_item_impl(&tx, profile_id, instance_id).await?;
+		let m = find_slot_item_impl(&tx, id).await?;
 		let slot_item: SlotItem = m.into();
 
 		Ok(slot_item.into())
@@ -115,11 +119,42 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 		Ok(slot_items)
 	}
 
+	async fn update_slot_item(
+		&self,
+		id: i64,
+		stars: Option<i64>,
+		alv: Option<i64>,
+		equip_on: Option<i64>,
+	) -> Result<KcApiSlotItem, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = update_slot_item_impl(&tx, id, stars, alv, equip_on).await?;
+
+		tx.commit().await?;
+
+		Ok(KcApiSlotItem {
+			api_id: m.id,
+			api_slotitem_id: m.mst_id,
+			api_locked: m.locked as i64,
+			api_level: m.level,
+			api_alv: (m.aircraft_lv > 0).then_some(m.aircraft_lv),
+		})
+	}
+
 	async fn get_unuse_slot_items(
 		&self,
-		profile_id: i64,
+		_profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError> {
-		todo!()
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let ms = get_unuse_slot_items_impl(&tx, _profile_id).await?;
+		let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
+		let slot_items: Vec<KcApiSlotItem> =
+			slot_items.into_iter().map(std::convert::Into::into).collect();
+
+		Ok(slot_items)
 	}
 }
 
@@ -152,6 +187,7 @@ where
 		locked: ActiveValue::Set(false),
 		level: ActiveValue::Set(stars),
 		aircraft_lv: ActiveValue::Set(alv),
+		equip_on: ActiveValue::Set(0),
 	};
 
 	let model = am.save(c).await?;
@@ -163,27 +199,52 @@ where
 	Ok(model.try_into_model()?)
 }
 
-pub async fn find_slot_item_impl<C>(
-	c: &C,
-	profile_id: i64,
-	instance_id: i64,
-) -> Result<slot_item::Model, GameplayError>
+pub async fn find_slot_item_impl<C>(c: &C, id: i64) -> Result<slot_item::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
 	let record = slot_item::Entity::find()
-		.filter(slot_item::Column::ProfileId.eq(profile_id))
-		.filter(slot_item::Column::Id.eq(instance_id))
+		.filter(slot_item::Column::Id.eq(id))
 		.one(c)
 		.await?
-		.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"slot item {} not found for profile {}",
-				instance_id, profile_id
-			))
-		})?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", id)))?;
 
 	Ok(record)
+}
+
+pub async fn update_slot_item_impl<C>(
+	c: &C,
+	id: i64,
+	stars: Option<i64>,
+	alv: Option<i64>,
+	equip_on: Option<i64>,
+) -> Result<slot_item::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let model = slot_item::Entity::find()
+		.filter(slot_item::Column::Id.eq(id))
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", id)))?;
+
+	let mut am: slot_item::ActiveModel = model.into();
+
+	if let Some(stars) = stars {
+		am.level = ActiveValue::Set(stars);
+	}
+
+	if let Some(alv) = alv {
+		am.aircraft_lv = ActiveValue::Set(alv);
+	}
+
+	if let Some(equip_on) = equip_on {
+		am.equip_on = ActiveValue::Set(equip_on);
+	}
+
+	let m = am.save(c).await?;
+
+	Ok(m.try_into_model()?)
 }
 
 pub async fn get_slot_items_impl<C>(
@@ -199,4 +260,29 @@ where
 		.await?;
 
 	Ok(records)
+}
+
+pub async fn get_unuse_slot_items_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<slot_item::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let records = slot_item::Entity::find()
+		.filter(slot_item::Column::ProfileId.eq(profile_id))
+		.filter(slot_item::Column::EquipOn.eq(0))
+		.all(c)
+		.await?;
+
+	Ok(records)
+}
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_bool_to_i64() {
+		assert_eq!(true as i64, 1);
+		assert_eq!(false as i64, 0);
+	}
 }

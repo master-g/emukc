@@ -59,13 +59,16 @@ pub(super) async fn handler(
 	let api_kdock = api_kdock.iter().map(|k| k.to_owned().into()).collect();
 
 	let api_oss_setting = state.get_game_settings(pid).await?;
+	println!("0");
 	let api_extra_supply = api_basic.api_extra_supply;
 	let api_position_id = api_oss_setting.api_position_id;
 	let api_skin_id = api_oss_setting.api_skin_id;
 
 	let api_slot_item = state.get_slot_items(pid).await?;
-
 	let api_useitem = state.get_use_items(pid).await?;
+
+	let unused_slot_items = state.get_unuse_slot_items(pid).await?;
+	let api_unsetslot = codex.convert_unused_slot_items_to_api(&unused_slot_items)?;
 
 	Ok(KcApiResponse::success(&Resp {
 		api_basic,
@@ -76,7 +79,7 @@ pub(super) async fn handler(
 		api_position_id,
 		api_skin_id,
 		api_slot_item,
-		api_unsetslot: todo!(),
+		api_unsetslot,
 		api_useitem,
 	}))
 }
