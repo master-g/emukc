@@ -9,6 +9,7 @@ pub use kdock::KDockOps;
 pub use material::MaterialOps;
 pub use ndock::NDockOps;
 pub use picturebook::PictureBookOps;
+pub use settings::GameSettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
 pub use use_item::UseItemOps;
@@ -26,6 +27,7 @@ mod kdock;
 mod material;
 mod ndock;
 mod picturebook;
+mod settings;
 mod ship;
 mod slot_item;
 mod use_item;
@@ -36,6 +38,7 @@ pub trait GameOps:
 	BasicOps
 	+ FleetOps
 	+ FurnitureOps
+	+ GameSettingsOps
 	+ IncentiveOps
 	+ KDockOps
 	+ MaterialOps

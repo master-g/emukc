@@ -123,7 +123,7 @@ where
 /// - `c`: The database connection.
 /// - `codex`: The codex.
 /// - `profile_id`: The profile ID.
-pub async fn init_material_impl<C>(
+pub(super) async fn init_material_impl<C>(
 	c: &C,
 	codex: &Codex,
 	profile_id: i64,

@@ -11,8 +11,8 @@ pub enum GameplayError {
 	#[error("Database error: {0}")]
 	Db(#[from] sea_orm::error::DbErr),
 
-	#[error("Invalid material category: {0}")]
-	InvalidMaterialCategory(i64),
+	#[error("Wrong type: {0}")]
+	WrongType(String),
 
 	#[error("Invalid manifest ID: {0}")]
 	ManifestNotFound(i64),

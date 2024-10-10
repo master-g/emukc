@@ -15,6 +15,7 @@ pub mod material;
 pub mod ndock;
 pub mod practice;
 pub mod quest;
+pub mod setting;
 pub mod ship;
 
 #[allow(missing_docs)]

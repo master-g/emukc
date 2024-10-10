@@ -182,3 +182,18 @@ where
 
 	Ok(model)
 }
+
+pub(super) async fn init_furniture_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let cfg = FurnitureConfig::default();
+	let ids = cfg.api_values();
+	for id in ids {
+		add_furniture_impl(c, profile_id, id).await?;
+	}
+
+	update_furniture_config_impl(c, profile_id, &cfg).await?;
+
+	Ok(())
+}

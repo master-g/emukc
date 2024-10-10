@@ -10,14 +10,8 @@ use crate::net::{
 };
 use emukc_internal::{
 	model::kc2::{KcApiGameSetting, KcApiKDock, KcApiSlotItem, KcApiUserBasic, KcApiUserItem},
-	prelude::{ApiMstFurniture, BasicOps},
+	prelude::{ApiMstFurniture, BasicOps, GameSettingsOps, KDockOps},
 };
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Basic {
-	api_member_id: i64,
-	api_firstflag: i64,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Furniture {
@@ -64,15 +58,19 @@ pub(super) async fn handler(
 				.ok()
 		})
 		.collect();
+	let api_kdock = state.get_kdocks(pid).await?;
+	let api_kdock = api_kdock.iter().map(|k| k.into()).collect();
+
+	let api_oss_setting = state.get_game_settings(pid).await?;
 
 	Ok(KcApiResponse::success(&Resp {
 		api_basic,
 		api_extra_supply: api_basic.api_extra_supply,
 		api_furniture,
-		api_kdock: todo!(),
-		api_oss_setting: todo!(),
-		api_position_id: todo!(),
-		api_skin_id: todo!(),
+		api_kdock,
+		api_oss_setting,
+		api_position_id: api_oss_setting.api_position_id,
+		api_skin_id: api_oss_setting.api_skin_id,
 		api_slot_item: todo!(),
 		api_unsetslot: todo!(),
 		api_useitem: todo!(),

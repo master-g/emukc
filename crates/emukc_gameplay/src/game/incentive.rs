@@ -152,7 +152,10 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 				}
 				IncentiveType::Resource => {
 					let Some(category) = MaterialCategory::n(item.mst_id) else {
-						return Err(GameplayError::InvalidMaterialCategory(item.mst_id));
+						return Err(GameplayError::WrongType(format!(
+							"invalid material category: {}",
+							item.mst_id
+						)));
 					};
 					add_material_impl(&tx, codex, profile_id, category, item.amount).await?;
 				}
