@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::fleet,
-	sea_orm::{entity::prelude::*, QueryOrder, TransactionTrait, TryIntoModel},
+	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
 };
 use emukc_model::profile::fleet::Fleet;
 
@@ -32,6 +32,20 @@ pub trait FleetOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_fleets(&self, profile_id: i64) -> Result<Vec<Fleet>, GameplayError>;
+
+	/// Change ship position in deck port.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `index`: The fleet index, must be one of 1, 2, 3, 4.
+	/// - `ship_ids`: The ship IDs, must be 6 elements.
+	async fn update_fleet_ships(
+		&self,
+		profile_id: i64,
+		index: i64,
+		ship_ids: [i64; 6],
+	) -> Result<Fleet, GameplayError>;
 }
 
 #[async_trait]
@@ -67,6 +81,21 @@ impl<T: HasContext + ?Sized> FleetOps for T {
 		tx.commit().await?;
 
 		Ok(fleets.into_iter().map(std::convert::Into::into).collect())
+	}
+
+	async fn update_fleet_ships(
+		&self,
+		profile_id: i64,
+		index: i64,
+		ship_ids: [i64; 6],
+	) -> Result<Fleet, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+		let m = update_fleet_ships_impl(&tx, profile_id, index, ship_ids).await?;
+
+		tx.commit().await?;
+
+		Ok(m.into())
 	}
 }
 
@@ -161,4 +190,34 @@ where
 	unlock_fleet_impl(c, profile_id, 1).await?;
 
 	Ok(())
+}
+
+/// Change ship position in deck port.
+///
+/// # Parameters
+///
+/// - `profile_id`: The profile ID.
+/// - `index`: The fleet index, must be one of 1, 2, 3, 4.
+/// - `ship_ids`: The ship IDs, must be 6 elements.
+pub async fn update_fleet_ships_impl<C>(
+	c: &C,
+	profile_id: i64,
+	index: i64,
+	ship_ids: [i64; 6],
+) -> Result<fleet::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let fleet = find_fleet(c, profile_id, index).await?;
+	let mut am: fleet::ActiveModel = fleet.into();
+	am.ship_1 = ActiveValue::Set(ship_ids[0]);
+	am.ship_2 = ActiveValue::Set(ship_ids[1]);
+	am.ship_3 = ActiveValue::Set(ship_ids[2]);
+	am.ship_4 = ActiveValue::Set(ship_ids[3]);
+	am.ship_5 = ActiveValue::Set(ship_ids[4]);
+	am.ship_6 = ActiveValue::Set(ship_ids[5]);
+
+	let m = am.update(c).await?;
+
+	Ok(m.try_into_model()?)
 }

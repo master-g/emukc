@@ -26,6 +26,18 @@ async fn new_game_session() -> ((DbConn, Codex), AccountInfo, StartGameInfo) {
 }
 
 #[tokio::test]
+async fn nickname() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	context.update_user_nickname(pid, "ararakikun").await.unwrap();
+
+	let basic = context.get_user_basic(pid).await.unwrap();
+
+	assert_eq!(basic.api_nickname, "ararakikun");
+}
+
+#[tokio::test]
 async fn fleet() {
 	let (context, _, session) = new_game_session().await;
 	let pid = session.profile.id;

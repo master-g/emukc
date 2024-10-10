@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use emukc_crypto::SimpleHash;
 use emukc_db::{
 	entity::profile::{self, kdock, ndock},
-	sea_orm::{entity::prelude::*, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
 use emukc_model::kc2::{KcApiUserBasic, KcUseItemType};
 
@@ -22,6 +22,30 @@ pub trait BasicOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_user_basic(&self, profile_id: i64) -> Result<KcApiUserBasic, GameplayError>;
+
+	/// Update user nickname.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `nickname`: The new nickname.
+	async fn update_user_nickname(
+		&self,
+		profile_id: i64,
+		nickname: &str,
+	) -> Result<(), GameplayError>;
+
+	/// Update user firstflag.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `firstflag`: The new firstflag.
+	async fn update_user_first_flag(
+		&self,
+		profile_id: i64,
+		firstflag: i64,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -36,6 +60,36 @@ impl<T: HasContext + ?Sized> BasicOps for T {
 		tx.commit().await?;
 
 		Ok(basic)
+	}
+
+	async fn update_user_nickname(
+		&self,
+		profile_id: i64,
+		nickname: &str,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_user_nickname_impl(&tx, profile_id, nickname).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_user_first_flag(
+		&self,
+		profile_id: i64,
+		firstflag: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_user_first_flag_impl(&tx, profile_id, firstflag).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -136,4 +190,56 @@ where
 	};
 
 	Ok((record, basic))
+}
+
+async fn find_profile<C>(c: &C, profile_id: i64) -> Result<profile::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = profile::Entity::find()
+		.filter(profile::Column::Id.eq(profile_id))
+		.one(c)
+		.await?
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
+
+	Ok(record)
+}
+
+pub async fn update_user_nickname_impl<C>(
+	c: &C,
+	profile_id: i64,
+	nickname: &str,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+
+	let mut am: profile::ActiveModel = profile.into();
+
+	am.id = ActiveValue::Unchanged(profile_id);
+	am.name = ActiveValue::Set(nickname.to_string());
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub async fn update_user_first_flag_impl<C>(
+	c: &C,
+	profile_id: i64,
+	firstflag: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let mut am: profile::ActiveModel = profile.into();
+
+	am.id = ActiveValue::Unchanged(profile_id);
+	am.intro_completed = ActiveValue::Set(firstflag != 0);
+
+	am.update(c).await?;
+
+	Ok(())
 }

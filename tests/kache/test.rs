@@ -26,7 +26,7 @@ async fn get_kache() -> Result<Kache, Box<dyn std::error::Error>> {
 	let kache = Kache::builder()
 		.with_cache_root(std::path::PathBuf::from("z").join("cache"))
 		.with_db(std::sync::Arc::new(db))
-		.with_proxy("http://127.0.0.1:1086".to_string())
+		.with_proxy(Some("http://127.0.0.1:1086".to_string()))
 		.with_gadgets_cdn("203.104.209.7".to_string())
 		.with_content_cdn("203.104.209.71".to_string())
 		.build()?;
