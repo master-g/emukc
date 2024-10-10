@@ -14,21 +14,16 @@ where
 		.filter(token::Column::Token.eq(token))
 		.filter(token::Column::Typ.eq(token::TokenTypeDef::Access))
 		.one(c)
-		.await?;
+		.await?
+		.ok_or_else(|| UserError::TokenInvalid)?;
 
-	if let Some(record) = record {
-		let uid = record.uid;
+	let account = account::Entity::find()
+		.filter(account::Column::Uid.eq(record.uid))
+		.one(c)
+		.await?
+		.ok_or(UserError::UserNotFound)?;
 
-		let account = account::Entity::find().filter(account::Column::Uid.eq(uid)).one(c).await?;
-
-		if let Some(account) = account {
-			Ok(account)
-		} else {
-			Err(UserError::UserNotFound)
-		}
-	} else {
-		Err(UserError::TokenInvalid)
-	}
+	Ok(account)
 }
 
 pub(super) async fn issue_token<C>(
@@ -48,16 +43,14 @@ where
 
 	let db_token_type = token::TokenTypeDef::from(typ);
 
-	// find the old token
-	let record = token::Entity::find()
+	// find and delete the old token if it exists
+	if let Some(record) = token::Entity::find()
 		.filter(token::Column::Uid.eq(uid))
 		.filter(token::Column::ProfileId.eq(profile_id))
-		.filter(token::Column::Typ.eq(db_token_type))
+		.filter(token::Column::Typ.eq(db_token_type.clone()))
 		.one(c)
-		.await?;
-
-	if let Some(record) = record {
-		// remove the old token
+		.await?
+	{
 		record.delete(c).await?;
 	}
 
@@ -66,7 +59,7 @@ where
 		id: ActiveValue::NotSet,
 		uid: ActiveValue::Set(uid),
 		profile_id: ActiveValue::Set(profile_id),
-		typ: ActiveValue::Set(typ.into()),
+		typ: ActiveValue::Set(db_token_type),
 		token: ActiveValue::Set(token.token.clone()),
 		expire: ActiveValue::Set(token.expire),
 	}

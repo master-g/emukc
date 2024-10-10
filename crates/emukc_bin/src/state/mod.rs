@@ -48,19 +48,16 @@ impl State {
 		let cache_db_path = cfg.workspace_root.join(CACHE_DB_NAME);
 		let cache_db = Arc::new(prepare_cache(&cache_db_path, false).await?);
 
-		let kache_builder = Kache::builder()
+		let kache = Kache::builder()
 			.with_cache_root(cfg.cache_root.clone())
 			.with_db(cache_db)
 			.with_gadgets_cdns(cfg.gadgets_cdn.clone())
-			.with_content_cdns(cfg.game_cdn.clone());
-		let kache_builder = if let Some(proxy) = &cfg.proxy {
-			kache_builder.with_proxy(proxy.clone())
-		} else {
-			kache_builder
-		};
+			.with_content_cdns(cfg.game_cdn.clone())
+			.with_proxy(cfg.proxy.to_owned())
+			.build()?;
 
 		// kache system
-		let kache = Arc::new(kache_builder.build()?);
+		let kache = Arc::new(kache);
 
 		// codex
 		let codex_root = cfg.codex_root()?;

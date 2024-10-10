@@ -8,10 +8,7 @@ use crate::net::{
 	resp::{KcApiResponse, KcApiResult},
 	AppState,
 };
-use emukc_internal::{
-	model::kc2::{KcApiGameSetting, KcApiKDock, KcApiSlotItem, KcApiUserBasic, KcApiUserItem},
-	prelude::{ApiMstFurniture, BasicOps, GameSettingsOps, KDockOps},
-};
+use emukc_internal::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Furniture {
@@ -59,20 +56,27 @@ pub(super) async fn handler(
 		})
 		.collect();
 	let api_kdock = state.get_kdocks(pid).await?;
-	let api_kdock = api_kdock.iter().map(|k| k.into()).collect();
+	let api_kdock = api_kdock.iter().map(|k| k.to_owned().into()).collect();
 
 	let api_oss_setting = state.get_game_settings(pid).await?;
+	let api_extra_supply = api_basic.api_extra_supply;
+	let api_position_id = api_oss_setting.api_position_id;
+	let api_skin_id = api_oss_setting.api_skin_id;
+
+	let api_slot_item = state.get_slot_items(pid).await?;
+
+	let api_useitem = state.get_use_items(pid).await?;
 
 	Ok(KcApiResponse::success(&Resp {
 		api_basic,
-		api_extra_supply: api_basic.api_extra_supply,
+		api_extra_supply,
 		api_furniture,
 		api_kdock,
 		api_oss_setting,
-		api_position_id: api_oss_setting.api_position_id,
-		api_skin_id: api_oss_setting.api_skin_id,
-		api_slot_item: todo!(),
+		api_position_id,
+		api_skin_id,
+		api_slot_item,
 		api_unsetslot: todo!(),
-		api_useitem: todo!(),
+		api_useitem,
 	}))
 }

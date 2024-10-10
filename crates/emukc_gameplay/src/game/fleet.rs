@@ -74,17 +74,17 @@ async fn find_fleet<C>(c: &C, profile_id: i64, index: i64) -> Result<fleet::Mode
 where
 	C: ConnectionTrait,
 {
-	let Some(fleet) = fleet::Entity::find()
+	let fleet = fleet::Entity::find()
 		.filter(fleet::Column::ProfileId.eq(profile_id))
 		.filter(fleet::Column::Index.eq(index))
 		.one(c)
 		.await?
-	else {
-		return Err(GameplayError::EntryNotFound(format!(
-			"fleet {} not found for profile {}",
-			index, profile_id
-		)));
-	};
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"fleet {} not found for profile {}",
+				index, profile_id
+			))
+		})?;
 
 	Ok(fleet)
 }

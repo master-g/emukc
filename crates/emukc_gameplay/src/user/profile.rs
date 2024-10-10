@@ -167,11 +167,8 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 			.filter(profile::Column::AccountId.eq(uid))
 			.filter(profile::Column::Id.eq(profile_id))
 			.one(&tx)
-			.await?;
-
-		let Some(profile_model) = profile_model else {
-			return Err(UserError::ProfileNotFound);
-		};
+			.await?
+			.ok_or_else(|| UserError::ProfileNotFound)?;
 
 		let token = issue_token(&tx, uid, profile_id, TokenType::Session).await?;
 
@@ -187,9 +184,10 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let Some(profile_model) = profile::Entity::find_by_id(profile_id).one(&tx).await? else {
-			return Err(UserError::ProfileNotFound);
-		};
+		let profile_model = profile::Entity::find_by_id(profile_id)
+			.one(&tx)
+			.await?
+			.ok_or_else(|| UserError::ProfileNotFound)?;
 
 		let mut am: profile::ActiveModel = profile_model.into();
 		am.world_id = ActiveValue::Set(world_id);
@@ -204,9 +202,10 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let Some(profile_model) = profile::Entity::find_by_id(profile_id).one(&tx).await? else {
-			return Err(UserError::ProfileNotFound);
-		};
+		let profile_model = profile::Entity::find_by_id(profile_id)
+			.one(&tx)
+			.await?
+			.ok_or_else(|| UserError::ProfileNotFound)?;
 
 		tx.commit().await?;
 

@@ -56,15 +56,16 @@ where
 	C: ConnectionTrait,
 {
 	// create ship and slot items
-	let Some((mut ship, mut slot_items)) = codex.new_ship(mst_id) else {
+	let (mut ship, mut slot_items) = codex.new_ship(mst_id).ok_or_else(|| {
 		error!("Failed to create ship: {}", mst_id);
-		return Err(GameplayError::ShipCreationFailed(mst_id));
-	};
+		GameplayError::ShipCreationFailed(mst_id)
+	})?;
 
 	// check capacity
-	let Some(profile) = profile::Entity::find_by_id(profile_id).one(c).await? else {
-		return Err(GameplayError::ProfileNotFound(profile_id));
-	};
+	let profile = profile::Entity::find_by_id(profile_id)
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::ProfileNotFound(profile_id))?;
 
 	let num_ships_owned =
 		ship::Entity::find().filter(ship::Column::ProfileId.eq(profile_id)).count(c).await?;

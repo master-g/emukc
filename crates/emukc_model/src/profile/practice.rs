@@ -184,21 +184,20 @@ impl From<Rival> for KcApiPracticeEnemyInfo {
 			api_deck: KcApiPracticeEnemyDeck {
 				api_ships: (0..6)
 					.map(|i| {
-						if let Some(ship) = value.details.ships.get(i) {
-							KcApiPracticeEnemyShip {
-								api_id: ship.instance_id,
-								api_ship_id: Some(ship.mst_id),
-								api_level: Some(ship.level),
-								api_star: Some(ship.star),
-							}
-						} else {
-							KcApiPracticeEnemyShip {
+						value.details.ships.get(i).map_or_else(
+							|| KcApiPracticeEnemyShip {
 								api_id: -1,
 								api_ship_id: None,
 								api_level: None,
 								api_star: None,
-							}
-						}
+							},
+							|ship| KcApiPracticeEnemyShip {
+								api_id: ship.instance_id,
+								api_ship_id: Some(ship.mst_id),
+								api_level: Some(ship.level),
+								api_star: Some(ship.star),
+							},
+						)
 					})
 					.collect(),
 			},

@@ -4,12 +4,9 @@ use super::Kc3rdQuestDebugJson;
 
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionExcerise {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
-		let groups = if let Some(groups) = &self.groups {
-			let groups = groups.iter().map(|g| g.to_json(mst)).collect::<Vec<serde_json::Value>>();
-			Some(groups)
-		} else {
-			None
-		};
+		let groups = self.groups.as_ref().map(|groups| {
+			groups.iter().map(|g| g.to_json(mst)).collect::<Vec<serde_json::Value>>()
+		});
 
 		serde_json::json!({
 			"times": self.times,

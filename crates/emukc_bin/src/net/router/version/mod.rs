@@ -5,9 +5,7 @@ use crate::net::assets::GameSiteAssets;
 /// Generate version png
 pub fn gen_version_png(v: &str, w: u32, h: u32) -> Option<Vec<u8>> {
 	// Read the font data.
-	let Some(font) = GameSiteAssets::get("emukc/fonts/Anton-Regular.ttf") else {
-		return None;
-	};
+	let font = GameSiteAssets::get("emukc/fonts/Anton-Regular.ttf")?;
 	let font = font.data;
 	// Parse it into the font type.
 	let font = fontdue::Font::from_bytes(font, fontdue::FontSettings::default()).unwrap();

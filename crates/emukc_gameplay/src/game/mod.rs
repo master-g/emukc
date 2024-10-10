@@ -52,3 +52,13 @@ pub trait GameOps:
 
 #[async_trait::async_trait]
 impl<T: HasContext + ?Sized> GameOps for T {}
+
+pub mod ops {
+	//! The ops traits prelude.
+
+	#[doc(hidden)]
+	pub use crate::game::{
+		BasicOps, FleetOps, FurnitureOps, GameOps, GameSettingsOps, IncentiveOps, KDockOps,
+		MaterialOps, NDockOps, PictureBookOps, ShipOps, SlotItemOps, UseItemOps,
+	};
+}

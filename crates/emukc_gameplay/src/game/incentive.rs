@@ -54,14 +54,14 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 		let ams: Vec<incentive::ActiveModel> = items
 			.iter()
 			.filter_map(|i| {
-				let Some(mode) = IncentiveMode::n(i.api_mode) else {
+				let mode = IncentiveMode::n(i.api_mode).or_else(|| {
 					error!("Invalid incentive mode: {}", i.api_mode);
-					return None;
-				};
-				let Some(typ) = IncentiveType::n(i.api_type) else {
+					None
+				})?;
+				let typ = IncentiveType::n(i.api_type).or_else(|| {
 					error!("Invalid incentive type: {}", i.api_type);
-					return None;
-				};
+					None
+				})?;
 				Some(incentive::ActiveModel {
 					id: ActiveValue::NotSet,
 					profile_id: ActiveValue::Set(profile_id),
@@ -70,11 +70,7 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 					mst_id: ActiveValue::Set(i.api_mst_id),
 					amount: ActiveValue::Set(i.amount),
 					stars: ActiveValue::Set(i.api_slotitem_level),
-					alv: ActiveValue::Set(if i.alv > 0 {
-						Some(i.alv)
-					} else {
-						None
-					}),
+					alv: ActiveValue::Set((i.alv > 0).then_some(i.alv)),
 				})
 			})
 			.collect();
@@ -151,12 +147,12 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 					add_use_item_impl(&tx, profile_id, item.mst_id, item.amount).await?;
 				}
 				IncentiveType::Resource => {
-					let Some(category) = MaterialCategory::n(item.mst_id) else {
-						return Err(GameplayError::WrongType(format!(
+					let category = MaterialCategory::n(item.mst_id).ok_or_else(|| {
+						GameplayError::WrongType(format!(
 							"invalid material category: {}",
 							item.mst_id
-						)));
-					};
+						))
+					})?;
 					add_material_impl(&tx, codex, profile_id, category, item.amount).await?;
 				}
 				IncentiveType::Furniture => {

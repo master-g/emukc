@@ -517,16 +517,12 @@ impl FromStr for ApiManifest {
 			raw
 		};
 
-		let data: ApiManifest = if let Ok(obj) = serde_json::from_str::<serde_json::Value>(cleaned)
-		{
-			if let Some(api_data) = obj.get("api_data") {
-				ApiManifest::deserialize(api_data)?
-			} else {
-				ApiManifest::deserialize(&obj)?
-			}
-		} else {
-			serde_json::from_str(raw)?
-		};
+		let data: ApiManifest = serde_json::from_str::<serde_json::Value>(cleaned)
+			.and_then(|obj| {
+				let api_data = obj.get("api_data").unwrap_or(&obj);
+				ApiManifest::deserialize(api_data)
+			})
+			.or_else(|_| serde_json::from_str(raw))?;
 
 		Ok(data)
 	}

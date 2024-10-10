@@ -436,13 +436,11 @@ impl TsunkitQuestValue {
 			self.game_id
 		};
 
-		let info_default = KccpQuestInfo::default();
-		let info = if let Some(info) = quest_info.get(&game_id) {
-			info
-		} else {
+		let default_quest_info = KccpQuestInfo::default();
+		let info = quest_info.get(&game_id).unwrap_or_else(|| {
 			error!("quest info not found: {}", self.game_id);
-			&info_default
-		};
+			&default_quest_info
+		});
 
 		let period: Kc3rdQuestPeriod = self.frequency.into();
 

@@ -5,7 +5,7 @@ use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
-use emukc_model::kc2::KcApiUserItem;
+use emukc_model::{kc2::KcApiUserItem, profile::user_item::UserItem};
 
 /// A trait for use item related gameplay.
 #[async_trait]
@@ -24,17 +24,24 @@ pub trait UseItemOps {
 		amount: i64,
 	) -> Result<KcApiUserItem, GameplayError>;
 
-	/// Get use item from a profile.
+	/// Find use item from a profile.
 	///
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
 	/// - `mst_id`: The use item manifest ID.
-	async fn get_use_item(
+	async fn find_use_item(
 		&self,
 		profile_id: i64,
 		mst_id: i64,
 	) -> Result<KcApiUserItem, GameplayError>;
+
+	/// Get all use items from a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_use_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError>;
 }
 
 #[async_trait]
@@ -58,7 +65,7 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 		})
 	}
 
-	async fn get_use_item(
+	async fn find_use_item(
 		&self,
 		profile_id: i64,
 		mst_id: i64,
@@ -66,7 +73,7 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let am = get_use_item_impl(&tx, profile_id, mst_id).await?;
+		let am = find_use_item_impl(&tx, profile_id, mst_id).await?;
 
 		tx.commit().await?;
 
@@ -74,6 +81,17 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 			api_id: mst_id,
 			api_count: am.count,
 		})
+	}
+
+	async fn get_use_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let items = get_use_items_impl(&tx, profile_id).await?;
+		let items: Vec<UserItem> = items.into_iter().map(std::convert::Into::into).collect();
+		let items: Vec<KcApiUserItem> = items.into_iter().map(std::convert::Into::into).collect();
+
+		Ok(items)
 	}
 }
 
@@ -120,7 +138,7 @@ where
 	Ok(model.try_into_model()?)
 }
 
-/// Get use item to a profile.
+/// Find use item to a profile.
 ///
 /// # Parameters
 ///
@@ -128,7 +146,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The item master ID.
 #[allow(unused)]
-pub async fn get_use_item_impl<C>(
+pub async fn find_use_item_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
@@ -148,4 +166,16 @@ where
 		count: 0,
 	});
 	Ok(m)
+}
+
+pub async fn get_use_items_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<use_item::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let items =
+		use_item::Entity::find().filter(use_item::Column::ProfileId.eq(profile_id)).all(c).await?;
+	Ok(items)
 }

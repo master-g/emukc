@@ -134,8 +134,8 @@ impl Builder {
 	}
 
 	/// Set the proxy for downloading files.
-	pub fn with_proxy(mut self, proxy: String) -> Self {
-		self.proxy = Some(proxy);
+	pub fn with_proxy(mut self, proxy: Option<String>) -> Self {
+		self.proxy = proxy;
 		self
 	}
 

@@ -17,16 +17,15 @@ pub mod user;
 
 pub mod gameplay;
 
+pub use game::ops as game_ops;
+
 pub mod prelude {
 	//! The `emukc_gameplay` crate prelude.
 
 	#[doc(hidden)]
 	pub use crate::{
 		err::GameplayError,
-		game::{
-			BasicOps, FleetOps, FurnitureOps, GameSettingsOps, IncentiveOps, KDockOps, MaterialOps,
-			NDockOps, PictureBookOps, ShipOps, SlotItemOps, UseItemOps,
-		},
+		game::ops::*,
 		gameplay::{Gameplay, HasContext},
 		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
 	};

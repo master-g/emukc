@@ -64,11 +64,11 @@ async fn get_mat_impl<C>(c: &C, profile_id: i64) -> Result<material::Model, Game
 where
 	C: ConnectionTrait,
 {
-	let Some(record) =
-		material::Entity::find().filter(material::Column::ProfileId.eq(profile_id)).one(c).await?
-	else {
-		return Err(GameplayError::ProfileNotFound(profile_id));
-	};
+	let record = material::Entity::find()
+		.filter(material::Column::ProfileId.eq(profile_id))
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::ProfileNotFound(profile_id))?;
 
 	Ok(record)
 }

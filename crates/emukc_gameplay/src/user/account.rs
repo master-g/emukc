@@ -142,12 +142,11 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let model =
-			account::Entity::find().filter(account::Column::Name.eq(username)).one(&tx).await?;
-
-		let Some(model) = model else {
-			return Err(UserError::InvalidUsernameOrPassword);
-		};
+		let model = account::Entity::find()
+			.filter(account::Column::Name.eq(username))
+			.one(&tx)
+			.await?
+			.ok_or_else(|| UserError::InvalidUsernameOrPassword)?;
 
 		if !password.verify_password(&model.secret) {
 			return Err(UserError::InvalidUsernameOrPassword);
@@ -179,11 +178,8 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 			.filter(token::Column::Token.eq(token))
 			.filter(token::Column::Typ.ne(token::TokenTypeDef::Refresh))
 			.one(&tx)
-			.await?;
-
-		let Some(model) = model else {
-			return Err(UserError::TokenInvalid);
-		};
+			.await?
+			.ok_or_else(|| UserError::TokenInvalid)?;
 
 		// check token
 
@@ -200,11 +196,11 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 		let info = match token.typ {
 			TokenType::Access => {
 				// find account
-				let account =
-					account::Entity::find().filter(account::Column::Uid.eq(uid)).one(&tx).await?;
-				let Some(account) = account else {
-					return Err(UserError::UserNotFound);
-				};
+				let account = account::Entity::find()
+					.filter(account::Column::Uid.eq(uid))
+					.one(&tx)
+					.await?
+					.ok_or_else(|| UserError::UserNotFound)?;
 
 				// update
 				let mut active_model: account::ActiveModel = account.into();
@@ -220,11 +216,8 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 					.filter(profile::Column::AccountId.eq(uid))
 					.filter(profile::Column::Id.eq(profile_id))
 					.one(&tx)
-					.await?;
-
-				let Some(profile) = profile else {
-					return Err(UserError::ProfileNotFound);
-				};
+					.await?
+					.ok_or_else(|| UserError::ProfileNotFound)?;
 
 				// renew session token
 				token_am.expire = ActiveValue::Set(Utc::now() + token.typ.duration());
@@ -262,12 +255,11 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let model =
-			account::Entity::find().filter(account::Column::Name.eq(username)).one(&tx).await?;
-
-		let Some(model) = model else {
-			return Err(UserError::InvalidUsernameOrPassword);
-		};
+		let model = account::Entity::find()
+			.filter(account::Column::Name.eq(username))
+			.one(&tx)
+			.await?
+			.ok_or_else(|| UserError::InvalidUsernameOrPassword)?;
 
 		if !password.verify_password(&model.secret) {
 			return Err(UserError::InvalidUsernameOrPassword);

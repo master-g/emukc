@@ -90,17 +90,17 @@ async fn find_dock<C>(c: &C, profile_id: i64, index: i64) -> Result<kdock::Model
 where
 	C: ConnectionTrait,
 {
-	let Some(dock) = kdock::Entity::find()
+	let dock = kdock::Entity::find()
 		.filter(kdock::Column::ProfileId.eq(profile_id))
 		.filter(kdock::Column::Index.eq(index))
 		.one(c)
 		.await?
-	else {
-		return Err(GameplayError::EntryNotFound(format!(
-			"Construction dock {} not found for profile {}",
-			index, profile_id
-		)));
-	};
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"Construction dock {} not found for profile {}",
+				index, profile_id
+			))
+		})?;
 
 	Ok(dock)
 }

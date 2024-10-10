@@ -10,7 +10,7 @@ use crate::{err::GameplayError, prelude::HasContext};
 
 use super::{
 	fleet::get_fleets_impl, furniture::get_furniture_config_impl, kdock::get_kdocks_impl,
-	ndock::get_ndocks_impl, use_item::get_use_item_impl,
+	ndock::get_ndocks_impl, use_item::find_use_item_impl,
 };
 
 /// A trait for furniture related gameplay.
@@ -53,11 +53,11 @@ pub async fn get_user_basic_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let Some(record) =
-		profile::Entity::find().filter(profile::Column::Id.eq(profile_id)).one(c).await?
-	else {
-		return Err(GameplayError::ProfileNotFound(profile_id));
-	};
+	let record = profile::Entity::find()
+		.filter(profile::Column::Id.eq(profile_id))
+		.one(c)
+		.await?
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
 
 	// furniture
 	let (_, furniture_cfg) = get_furniture_config_impl(c, profile_id).await?;
@@ -73,13 +73,13 @@ where
 	let api_count_ndock =
 		ndocks.iter().filter(|x| x.status != ndock::Status::Locked).count() as i64;
 	// fcoin
-	let fcoin = get_use_item_impl(c, profile_id, KcUseItemType::FCoin as i64).await?;
+	let fcoin = find_use_item_impl(c, profile_id, KcUseItemType::FCoin as i64).await?;
 	let api_fcoin = fcoin.count;
 
 	let basic = KcApiUserBasic {
 		api_member_id: record.id,
 		api_nickname: record.name.clone(),
-		api_nickname_id: record.name.simple_hash(),
+		api_nickname_id: record.name.hash_i64().to_string(),
 		api_active_flag: 1,
 		api_starttime: record.last_played.timestamp(),
 		api_level: record.hq_level,
@@ -87,7 +87,7 @@ where
 		api_experience: record.experience,
 		api_fleetname: None,
 		api_comment: record.comment.clone(),
-		api_comment_id: record.comment.simple_hash(),
+		api_comment_id: record.comment.hash_i64().to_string(),
 		api_max_chara: record.max_ship_capacity,
 		api_max_slotitem: record.max_equipment_capacity,
 		api_max_kagu: 0,

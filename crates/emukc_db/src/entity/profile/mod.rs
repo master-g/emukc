@@ -149,6 +149,10 @@ pub enum Relation {
 	#[sea_orm(has_one = "furniture::config::Entity")]
 	FurnitureConfig,
 
+	/// Relation to `GameSettings`
+	#[sea_orm(has_one = "setting::Entity")]
+	GameSettings,
+
 	/// Relation to `Incentive`
 	#[sea_orm(has_many = "incentive::Entity")]
 	Incentive,
@@ -242,6 +246,11 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// profile
 	{
 		let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// game settings
+	{
+		let stmt = schema.create_table_from_entity(setting::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// airbase

@@ -5,7 +5,7 @@ use crate::net::{
 	resp::{KcApiResponse, KcApiResult},
 	AppState,
 };
-use emukc_internal::{model::kc2::KcApiIncentive, prelude::IncentiveOps};
+use emukc_internal::prelude::*;
 
 pub(super) async fn handler(
 	state: AppState,

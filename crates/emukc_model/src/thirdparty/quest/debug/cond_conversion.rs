@@ -10,13 +10,9 @@ use super::Kc3rdQuestDebugJson;
 
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionModelConversion {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
-		let slots = if let Some(slots) = &self.slots {
-			let slots =
-				slots.iter().map(|slot| slot.to_json(mst)).collect::<Vec<serde_json::Value>>();
-			Some(slots)
-		} else {
-			None
-		};
+		let slots = self.slots.as_ref().map(|slots| {
+			slots.iter().map(|slot| slot.to_json(mst)).collect::<Vec<serde_json::Value>>()
+		});
 
 		serde_json::json!({
 			"slots": slots,

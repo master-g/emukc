@@ -95,13 +95,12 @@ pub async fn add_furniture_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let record = furniture::record::Entity::find()
+	if let Some(record) = furniture::record::Entity::find()
 		.filter(furniture::record::Column::ProfileId.eq(profile_id))
 		.filter(furniture::record::Column::FurnitureId.eq(mst_id))
 		.one(c)
-		.await?;
-
-	if let Some(record) = record {
+		.await?
+	{
 		return Ok(record.into());
 	}
 
@@ -130,13 +129,11 @@ pub async fn get_furniture_config_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let Some(record) = furniture::config::Entity::find()
-		.filter(furniture::record::Column::ProfileId.eq(profile_id))
+	let record = furniture::config::Entity::find()
+		.filter(furniture::config::Column::Id.eq(profile_id))
 		.one(c)
 		.await?
-	else {
-		return Err(GameplayError::ProfileNotFound(profile_id));
-	};
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
 
 	let cfg: FurnitureConfig = record.into();
 
@@ -165,11 +162,7 @@ where
 		.await?;
 
 	let mut am = furniture::config::ActiveModel {
-		id: if let Some(record) = record {
-			ActiveValue::Unchanged(record.id)
-		} else {
-			ActiveValue::NotSet
-		},
+		id: record.map_or(ActiveValue::NotSet, |r| ActiveValue::Unchanged(r.id)),
 		floor: ActiveValue::Set(config.floor),
 		wallpaper: ActiveValue::Set(config.wallpaper),
 		window: ActiveValue::Set(config.window),

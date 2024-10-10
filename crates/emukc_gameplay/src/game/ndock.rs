@@ -74,17 +74,17 @@ async fn find_dock<C>(c: &C, profile_id: i64, index: i64) -> Result<ndock::Model
 where
 	C: ConnectionTrait,
 {
-	let Some(dock) = ndock::Entity::find()
+	let dock = ndock::Entity::find()
 		.filter(ndock::Column::ProfileId.eq(profile_id))
 		.filter(ndock::Column::Index.eq(index))
 		.one(c)
 		.await?
-	else {
-		return Err(GameplayError::EntryNotFound(format!(
-			"Repair dock {} not found for profile {}",
-			index, profile_id
-		)));
-	};
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"Repair dock {} not found for profile {}",
+				index, profile_id
+			))
+		})?;
 
 	Ok(dock)
 }

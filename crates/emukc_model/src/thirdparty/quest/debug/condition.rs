@@ -91,13 +91,9 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestCondition {
 
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionComposition {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
-		let disallow = if let Some(disallowed) = &self.disallowed {
-			let vec =
-				disallowed.iter().map(|item| item.to_json(mst)).collect::<Vec<serde_json::Value>>();
-			Some(vec)
-		} else {
-			None
-		};
+		let disallow = self.disallowed.as_ref().map(|disallowed| {
+			disallowed.iter().map(|item| item.to_json(mst)).collect::<Vec<serde_json::Value>>()
+		});
 
 		let groups = self.groups.iter().map(|g| g.to_json(mst)).collect::<Vec<serde_json::Value>>();
 

@@ -67,16 +67,16 @@ pub async fn get_game_settings_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let Some(settings) = profile::setting::Entity::find()
+	let settings = profile::setting::Entity::find()
 		.filter(fleet::Column::ProfileId.eq(profile_id))
 		.one(c)
 		.await?
-	else {
-		return Err(GameplayError::EntryNotFound(format!(
-			"game settings not found for profile {}",
-			profile_id
-		)));
-	};
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"game settings not found for profile {}",
+				profile_id
+			))
+		})?;
 
 	Ok(settings)
 }

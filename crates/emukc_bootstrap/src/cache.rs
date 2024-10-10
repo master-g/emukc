@@ -45,11 +45,9 @@ pub async fn import_kccp_cache(
 	let raw = std::fs::read_to_string(path_to_json.as_ref())?;
 	let records = serde_json::from_str::<HashMap<String, KccpCacheEntry>>(&raw)?;
 
-	let cache_root = if let Some(p) = path_to_cache_root {
-		p.as_ref().to_path_buf()
-	} else {
-		path_to_json.as_ref().parent().unwrap().to_path_buf()
-	};
+	let cache_root = path_to_cache_root
+		.map(|p| p.as_ref().to_path_buf())
+		.unwrap_or_else(|| path_to_json.as_ref().parent().unwrap().to_path_buf());
 
 	info!("importing {} records, cache root: {:?}", records.len(), cache_root);
 
@@ -58,11 +56,7 @@ pub async fn import_kccp_cache(
 
 	let mut tasks: Vec<(String, std::path::PathBuf, Option<String>)> = Vec::new();
 	for (key, value) in records.iter() {
-		let version = if let Some(v) = &value.version {
-			v.split('=').last()
-		} else {
-			None
-		};
+		let version = value.version.as_deref().and_then(|v| v.split('=').last());
 
 		let key = key.trim_start_matches('/');
 

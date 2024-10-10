@@ -4,21 +4,20 @@ use super::Kc3rdQuestDebugJson;
 
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionShipGroup {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
-		let while_list = if let Some(white_list) = &self.white_list {
-			let name_list = white_list
+		let while_list = self.white_list.as_ref().map(|white_list| {
+			white_list
 				.iter()
-				.map(|id| {
-					let ship = mst.find_ship(*id);
-					ship.map(|ship| ship.api_name.clone()).unwrap_or_else(|| {
-						error!("Unknown ship ID: {}", id);
-						"n/a".to_string()
-					})
+				.map(|&id| {
+					mst.find_ship(id).map_or_else(
+						|| {
+							error!("Unknown ship ID: {}", id);
+							"n/a".to_string()
+						},
+						|ship| ship.api_name.clone(),
+					)
 				})
-				.collect::<Vec<String>>();
-			Some(name_list)
-		} else {
-			None
-		};
+				.collect::<Vec<String>>()
+		});
 
 		serde_json::json!({
 			"ship": self.ship.to_json(mst),

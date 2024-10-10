@@ -75,6 +75,15 @@ async fn incentive() {
 }
 
 #[tokio::test]
+async fn basics() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let basic = context.get_user_basic(pid).await.unwrap();
+	println!("{:?}", basic);
+}
+
+#[tokio::test]
 async fn add_ship() {
 	let (context, _, session) = new_game_session().await;
 	let ship = context.add_ship(session.profile.id, 951).await.unwrap();

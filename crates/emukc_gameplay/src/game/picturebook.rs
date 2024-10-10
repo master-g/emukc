@@ -96,35 +96,26 @@ pub async fn add_ship_to_picture_book_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let mut am = if let Some(record) = ship::picturebook::Entity::find()
+	let mut am = match ship::picturebook::Entity::find()
 		.filter(ship::picturebook::Column::ProfileId.eq(profile_id))
 		.filter(ship::picturebook::Column::SortNum.eq(sortno))
 		.one(c)
 		.await?
 	{
-		ship::picturebook::ActiveModel {
+		Some(record) => ship::picturebook::ActiveModel {
 			id: ActiveValue::Unchanged(record.id),
 			profile_id: ActiveValue::Unchanged(profile_id),
 			sort_num: ActiveValue::Unchanged(sortno),
-			damaged: if let Some(damaged) = damaged {
-				ActiveValue::Set(damaged)
-			} else {
-				ActiveValue::Unchanged(record.damaged)
-			},
-			married: if let Some(married) = married {
-				ActiveValue::Set(married)
-			} else {
-				ActiveValue::Unchanged(record.married)
-			},
-		}
-	} else {
-		ship::picturebook::ActiveModel {
+			damaged: damaged.map_or(ActiveValue::Unchanged(record.damaged), ActiveValue::Set),
+			married: married.map_or(ActiveValue::Unchanged(record.married), ActiveValue::Set),
+		},
+		None => ship::picturebook::ActiveModel {
 			id: ActiveValue::NotSet,
 			profile_id: ActiveValue::Set(profile_id),
 			sort_num: ActiveValue::Set(sortno),
 			damaged: ActiveValue::Set(damaged.unwrap_or(false)),
 			married: ActiveValue::Set(married.unwrap_or(false)),
-		}
+		},
 	};
 
 	let model = am.save(c).await?;
@@ -148,23 +139,22 @@ pub async fn add_slot_item_to_picture_book_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let mut am = if let Some(record) = item::picturebook::Entity::find()
+	let mut am = match item::picturebook::Entity::find()
 		.filter(item::picturebook::Column::ProfileId.eq(profile_id))
 		.filter(item::picturebook::Column::SortNum.eq(sortno))
 		.one(c)
 		.await?
 	{
-		item::picturebook::ActiveModel {
+		Some(record) => item::picturebook::ActiveModel {
 			id: ActiveValue::Unchanged(record.id),
 			profile_id: ActiveValue::Unchanged(profile_id),
 			sort_num: ActiveValue::Unchanged(sortno),
-		}
-	} else {
-		item::picturebook::ActiveModel {
+		},
+		None => item::picturebook::ActiveModel {
 			id: ActiveValue::NotSet,
 			profile_id: ActiveValue::Set(profile_id),
 			sort_num: ActiveValue::Set(sortno),
-		}
+		},
 	};
 
 	let model = am.save(c).await?;
