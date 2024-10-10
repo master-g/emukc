@@ -4,11 +4,14 @@ use emukc_db::{
 	entity::profile::{self, kdock, ndock},
 	sea_orm::{entity::prelude::*, TransactionTrait},
 };
-use emukc_model::kc2::KcApiUserBasic;
+use emukc_model::kc2::{KcApiUserBasic, KcUseItemType};
 
 use crate::{err::GameplayError, prelude::HasContext};
 
-use super::{furniture::get_furniture_config_impl, kdock::get_kdocks_impl, ndock::get_ndocks_impl};
+use super::{
+	fleet::get_fleets_impl, furniture::get_furniture_config_impl, kdock::get_kdocks_impl,
+	ndock::get_ndocks_impl, use_item::get_use_item_impl,
+};
 
 /// A trait for furniture related gameplay.
 #[async_trait]
@@ -58,6 +61,9 @@ where
 
 	// furniture
 	let (_, furniture_cfg) = get_furniture_config_impl(c, profile_id).await?;
+	// fleets
+	let fleets = get_fleets_impl(c, profile_id).await?;
+	let api_count_deck = fleets.len() as i64;
 	// construction docks
 	let kdocks = get_kdocks_impl(c, profile_id).await?;
 	let api_count_kdock =
@@ -66,6 +72,9 @@ where
 	let ndocks = get_ndocks_impl(c, profile_id).await?;
 	let api_count_ndock =
 		ndocks.iter().filter(|x| x.status != ndock::Status::Locked).count() as i64;
+	// fcoin
+	let fcoin = get_use_item_impl(c, profile_id, KcUseItemType::FCoin as i64).await?;
+	let api_fcoin = fcoin.count;
 
 	let basic = KcApiUserBasic {
 		api_member_id: record.id,
@@ -85,10 +94,10 @@ where
 		api_playtime: 0,
 		api_tutorial: record.tutorial_progress,
 		api_furniture: furniture_cfg.api_values(),
-		api_count_deck: 0, // needs to be filled in another api
+		api_count_deck,
 		api_count_kdock,
 		api_count_ndock,
-		api_fcoin: 0, // needs to be filled in another api
+		api_fcoin,
 		api_st_win: record.sortie_wins,
 		api_st_lose: record.sortie_loses,
 		api_ms_count: record.expeditions,

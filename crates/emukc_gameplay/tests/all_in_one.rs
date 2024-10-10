@@ -26,6 +26,20 @@ async fn new_game_session() -> ((DbConn, Codex), AccountInfo, StartGameInfo) {
 }
 
 #[tokio::test]
+async fn fleet() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let fleet = context.get_fleet(pid, 1).await.unwrap();
+	println!("{:?}", fleet);
+	assert_eq!(fleet.index, 1);
+
+	let fleet = context.unlock_fleet(pid, 2).await.unwrap();
+	println!("{:?}", fleet);
+	assert_eq!(fleet.index, 2);
+}
+
+#[tokio::test]
 async fn incentive() {
 	let (context, _, session) = new_game_session().await;
 

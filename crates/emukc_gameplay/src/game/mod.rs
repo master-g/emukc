@@ -1,6 +1,7 @@
 //! Gameplay logic.
 
 pub use basic::BasicOps;
+pub use fleet::FleetOps;
 pub use furniture::FurnitureOps;
 pub use incentive::IncentiveOps;
 pub(crate) use init::init_profile_game_data;
@@ -17,6 +18,7 @@ use crate::prelude::HasContext;
 // modules
 
 mod basic;
+mod fleet;
 mod furniture;
 mod incentive;
 mod init;
@@ -32,6 +34,7 @@ mod use_item;
 #[async_trait::async_trait]
 pub trait GameOps:
 	BasicOps
+	+ FleetOps
 	+ FurnitureOps
 	+ IncentiveOps
 	+ KDockOps

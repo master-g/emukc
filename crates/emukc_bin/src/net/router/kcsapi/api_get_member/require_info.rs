@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use axum::Extension;
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +8,9 @@ use crate::net::{
 	resp::{KcApiResponse, KcApiResult},
 	AppState,
 };
-use emukc_internal::{model::kc2::KcApiIncentive, prelude::IncentiveOps};
+use emukc_internal::model::kc2::{
+	KcApiGameSetting, KcApiKDock, KcApiSlotItem, KcApiUserBasic, KcApiUserItem,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Basic {
@@ -37,8 +41,8 @@ struct Resp {
 }
 
 pub(super) async fn handler(
-	state: AppState,
-	Extension(session): Extension<GameSession>,
+	_state: AppState,
+	Extension(_session): Extension<GameSession>,
 ) -> KcApiResult {
 	todo!()
 }

@@ -4,6 +4,7 @@ use emukc_model::{codex::Codex, profile::furniture::FurnitureConfig};
 use crate::err::GameplayError;
 
 use super::{
+	fleet::init_fleets_impl,
 	furniture::{add_furniture_impl, update_furniture_config_impl},
 	kdock::init_kdock_impl,
 	material::init_material_impl,
@@ -26,6 +27,9 @@ pub async fn init_profile_game_data<C>(
 where
 	C: ConnectionTrait,
 {
+	// fleet
+	init_fleets_impl(c, profile_id).await?;
+
 	// furniture
 	init_furniture(c, profile_id).await?;
 

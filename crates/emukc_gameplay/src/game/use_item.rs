@@ -23,6 +23,18 @@ pub trait UseItemOps {
 		mst_id: i64,
 		amount: i64,
 	) -> Result<KcApiUserItem, GameplayError>;
+
+	/// Get use item from a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `mst_id`: The use item manifest ID.
+	async fn get_use_item(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+	) -> Result<KcApiUserItem, GameplayError>;
 }
 
 #[async_trait]
@@ -37,6 +49,24 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 		let tx = db.begin().await?;
 
 		let am = add_use_item_impl(&tx, profile_id, mst_id, amount).await?;
+
+		tx.commit().await?;
+
+		Ok(KcApiUserItem {
+			api_id: mst_id,
+			api_count: am.count,
+		})
+	}
+
+	async fn get_use_item(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+	) -> Result<KcApiUserItem, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let am = get_use_item_impl(&tx, profile_id, mst_id).await?;
 
 		tx.commit().await?;
 
@@ -88,4 +118,34 @@ where
 	let model = am.save(c).await?;
 
 	Ok(model.try_into_model()?)
+}
+
+/// Get use item to a profile.
+///
+/// # Parameters
+///
+/// - `c`: The database connection.
+/// - `profile_id`: The profile ID.
+/// - `mst_id`: The item master ID.
+#[allow(unused)]
+pub async fn get_use_item_impl<C>(
+	c: &C,
+	profile_id: i64,
+	mst_id: i64,
+) -> Result<use_item::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let m = use_item::Entity::find()
+		.filter(use_item::Column::ProfileId.eq(profile_id))
+		.filter(use_item::Column::MstId.eq(mst_id))
+		.one(c)
+		.await?;
+	let m = m.unwrap_or(use_item::Model {
+		id: 0,
+		profile_id,
+		mst_id,
+		count: 0,
+	});
+	Ok(m)
 }
