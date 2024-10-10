@@ -12,7 +12,10 @@ use emukc_time::chrono::Utc;
 use prelude::async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::{game::init_profile_game_data, gameplay::HasContext};
+use crate::{
+	game::{init_profile_game_data, wipe_profile_game_data},
+	gameplay::HasContext,
+};
 
 use super::{
 	auth::{issue_token, verify_access_token},
@@ -60,12 +63,13 @@ pub trait ProfileOps {
 	/// * `world_id` - The world ID to select.
 	async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError>;
 
-	/// Remove an profile and all its data.
+	/// Wipe a profile.
 	///
 	/// # Arguments
 	///
-	/// * `access_token` - The access token of the account.
-	async fn delete_profile(&self, access_token: &str) -> Result<(), UserError>;
+	/// - `access_token` - The access token of the account.
+	/// - `profile_id` - The profile ID to wipe.
+	async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError>;
 
 	/// Find a profile by its ID.
 	///
@@ -212,8 +216,14 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		Ok(profile_model.into())
 	}
 
-	async fn delete_profile(&self, _access_token: &str) -> Result<(), UserError> {
-		// TODO: implement
+	async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		verify_access_token(&tx, access_token).await?;
+
+		wipe_profile_game_data(&tx, profile_id).await?;
+
 		Ok(())
 	}
 }

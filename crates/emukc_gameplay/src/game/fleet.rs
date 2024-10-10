@@ -177,21 +177,6 @@ where
 	Ok(fleets)
 }
 
-/// Initialize deck ports for a profile.
-///
-/// # Parameters
-///
-/// - `c`: The database connection.
-/// - `profile_id`: The profile ID.
-pub(super) async fn init_fleets_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
-where
-	C: ConnectionTrait,
-{
-	unlock_fleet_impl(c, profile_id, 1).await?;
-
-	Ok(())
-}
-
 /// Change ship position in deck port.
 ///
 /// # Parameters
@@ -220,4 +205,28 @@ where
 	let m = am.update(c).await?;
 
 	Ok(m.try_into_model()?)
+}
+
+/// Initialize deck ports for a profile.
+///
+/// # Parameters
+///
+/// - `c`: The database connection.
+/// - `profile_id`: The profile ID.
+pub(super) async fn init_fleets_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	unlock_fleet_impl(c, profile_id, 1).await?;
+
+	Ok(())
+}
+
+pub(super) async fn wipe_fleets_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	fleet::Entity::delete_many().filter(fleet::Column::ProfileId.eq(profile_id)).exec(c).await?;
+
+	Ok(())
 }

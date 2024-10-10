@@ -190,3 +190,18 @@ where
 
 	Ok(())
 }
+
+pub(super) async fn wipe_furniture_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	furniture::record::Entity::delete_many()
+		.filter(furniture::record::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+
+	let cfg = FurnitureConfig::default();
+	update_furniture_config_impl(c, profile_id, &cfg).await?;
+
+	Ok(())
+}

@@ -130,3 +130,12 @@ where
 
 	Ok(m)
 }
+
+pub(super) async fn wipe_game_settings_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	profile::setting::Entity::delete_by_id(profile_id).exec(c).await?;
+
+	Ok(())
+}

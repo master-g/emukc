@@ -4,7 +4,7 @@ pub use basic::BasicOps;
 pub use fleet::FleetOps;
 pub use furniture::FurnitureOps;
 pub use incentive::IncentiveOps;
-pub(crate) use init::init_profile_game_data;
+pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub use kdock::KDockOps;
 pub use material::MaterialOps;
 pub use ndock::NDockOps;
