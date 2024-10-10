@@ -8,6 +8,7 @@ mod game;
 mod kcs;
 mod kcs2;
 mod kcsapi;
+mod netgame;
 mod social;
 mod version;
 
@@ -24,7 +25,7 @@ pub(super) fn new() -> Router {
 		.merge(Router::new().nest("/kcs", kcs::router())) // gadget_html5
 		.merge(Router::new().nest("/kcs2", kcs2::router())) // kcs2
 		.merge(Router::new().nest("/kcsapi", kcsapi::router())) // kcsapi
-		// .merge(Router::new().nest("/netgame", netgame::router())) // netgame
+		.merge(Router::new().nest("/netgame", netgame::router())) // netgame
 		.merge(Router::new().nest("/social", social::router())) // rpc
 		.merge(Router::new().nest("/emukc", game::router())) // game site
 }
