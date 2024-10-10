@@ -1,4 +1,4 @@
-//! Math
+//! Fields Math Prize for Mr.Tanaka
 
 /// Move a value to the end of an array.
 pub trait MoveValueToEnd<T>

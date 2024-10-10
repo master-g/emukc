@@ -6,8 +6,8 @@ use thiserror::Error;
 
 use crate::{kc2, profile, thirdparty};
 
+pub mod query;
 pub mod ship;
-pub mod slotitem;
 
 /// Error type for `Codex`
 #[derive(Error, Debug)]

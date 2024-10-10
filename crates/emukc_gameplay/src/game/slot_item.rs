@@ -3,7 +3,7 @@ use emukc_db::{
 	entity::profile::item::slot_item,
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
-use emukc_model::{codex::Codex, kc2::KcApiSlotItem};
+use emukc_model::{codex::Codex, kc2::KcApiSlotItem, prelude::ApiMstSlotitem};
 
 use crate::{err::GameplayError, prelude::HasContext};
 
@@ -95,7 +95,7 @@ where
 	let model = am.save(c).await?;
 
 	// add slot item to picture book
-	let mst = codex.find_slotitem_mst(mst_id)?;
+	let mst = codex.find::<ApiMstSlotitem>(&mst_id)?;
 	add_slot_item_to_picture_book_impl(c, profile_id, mst.api_sortno).await?;
 
 	Ok(model.try_into_model()?)

@@ -3,7 +3,7 @@
 use crate::{
 	fields::MoveValueToEnd,
 	kc2::{KcApiShip, KcApiSlotItem, KcShipType},
-	prelude::{ApiMstShip, Kc3rdShipBasic, Kc3rdShipExtraInfo},
+	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShipBasic, Kc3rdShipExtraInfo},
 };
 
 use super::{Codex, CodexError};
@@ -145,7 +145,7 @@ impl Codex {
 				ship.api_locked_equip = 1;
 			}
 
-			let item_mst = self.find_slotitem_mst(slotitem.api_slotitem_id)?;
+			let item_mst = self.find::<ApiMstSlotitem>(&slotitem.api_slotitem_id)?;
 
 			item_souk += item_mst.api_souk;
 			item_houg += item_mst.api_houg;
@@ -352,7 +352,7 @@ impl Codex {
 			return false;
 		};
 
-		let Ok(slotitem_mst) = self.find_slotitem_mst(slotitem_mst_id) else {
+		let Ok(slotitem_mst) = self.find::<ApiMstSlotitem>(&slotitem_mst_id) else {
 			error!("slotitem mst id {} not found", slotitem_mst_id);
 			return false;
 		};

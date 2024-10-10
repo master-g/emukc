@@ -8,8 +8,9 @@ use crate::net::{
 	resp::{KcApiResponse, KcApiResult},
 	AppState,
 };
-use emukc_internal::model::kc2::{
-	KcApiGameSetting, KcApiKDock, KcApiSlotItem, KcApiUserBasic, KcApiUserItem,
+use emukc_internal::{
+	model::kc2::{KcApiGameSetting, KcApiKDock, KcApiSlotItem, KcApiUserBasic, KcApiUserItem},
+	prelude::{ApiMstFurniture, BasicOps},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -29,7 +30,7 @@ struct Furniture {
 #[derive(Serialize, Deserialize, Debug)]
 struct Resp {
 	api_basic: KcApiUserBasic,
-	api_extra_supply: Vec<i64>,
+	api_extra_supply: [i64; 2],
 	api_furniture: Vec<Furniture>,
 	api_kdock: Vec<KcApiKDock>,
 	api_oss_setting: KcApiGameSetting,
@@ -41,8 +42,39 @@ struct Resp {
 }
 
 pub(super) async fn handler(
-	_state: AppState,
-	Extension(_session): Extension<GameSession>,
+	state: AppState,
+	Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
-	todo!()
+	let codex = &*state.codex;
+	let pid = session.profile.id;
+	let api_basic = state.get_user_basic(pid).await?;
+	let api_furniture = api_basic
+		.api_furniture
+		.iter()
+		.filter_map(|f| {
+			codex
+				.find::<ApiMstFurniture>(f)
+				.map(|mst| Furniture {
+					api_id: *f,
+					api_furniture_id: *f,
+					api_furniture_no: mst.api_no,
+					api_furniture_type: mst.api_type,
+				})
+				.inspect_err(|e| error!("Failed to find furniture {}: {}", f, e))
+				.ok()
+		})
+		.collect();
+
+	Ok(KcApiResponse::success(&Resp {
+		api_basic,
+		api_extra_supply: api_basic.api_extra_supply,
+		api_furniture,
+		api_kdock: todo!(),
+		api_oss_setting: todo!(),
+		api_position_id: todo!(),
+		api_skin_id: todo!(),
+		api_slot_item: todo!(),
+		api_unsetslot: todo!(),
+		api_useitem: todo!(),
+	}))
 }
