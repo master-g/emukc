@@ -11,6 +11,9 @@ pub struct Model {
 	#[sea_orm(primary_key, auto_increment = true)]
 	pub id: i64,
 
+	/// profile ID
+	pub profile_id: i64,
+
 	/// ship instance ID
 	pub ship_id: i64,
 
@@ -43,11 +46,25 @@ pub enum Relation {
 		to = "crate::entity::profile::ship::Column::Id"
 	)]
 	Ship,
+
+	/// Relation to `Profile`
+	#[sea_orm(
+		belongs_to = "crate::entity::profile::Entity",
+		from = "Column::ProfileId",
+		to = "crate::entity::profile::Column::Id"
+	)]
+	Profile,
 }
 
 impl Related<crate::entity::profile::ship::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Ship.def()
+	}
+}
+
+impl Related<crate::entity::profile::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::Profile.def()
 	}
 }
 

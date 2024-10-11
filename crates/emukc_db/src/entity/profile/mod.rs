@@ -203,6 +203,18 @@ pub enum Relation {
 	/// Relation to `UseItem`
 	#[sea_orm(has_many = "item::use_item::Entity")]
 	UseItem,
+
+	/// Relation to `Ship`
+	#[sea_orm(has_many = "ship::Entity")]
+	Ship,
+
+	/// Relation to `ShipRecord`
+	#[sea_orm(has_many = "ship::picturebook::Entity")]
+	ShipRecord,
+
+	/// Relation to `Ship SpEffectItem`
+	#[sea_orm(has_many = "ship::sp_effect_item::Entity")]
+	ShipSpEffectItems,
 }
 
 impl Related<crate::entity::user::account::Entity> for Entity {

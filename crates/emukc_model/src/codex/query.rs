@@ -1,6 +1,6 @@
 //! Querying trait for objects in the codex.
 
-use crate::prelude::{ApiMstFurniture, ApiMstShip, ApiMstSlotitem};
+use crate::prelude::{ApiMstFurniture, ApiMstShip, ApiMstSlotitem, ApiMstUseitem};
 
 use super::{Codex, CodexError};
 
@@ -66,5 +66,17 @@ impl FoundInCodex for ApiMstShip {
 			.manifest
 			.find_ship(*key)
 			.ok_or_else(|| CodexError::NotFound(format!("ship manifest ID: {}", key)))
+	}
+}
+
+// ApiUseItem
+impl FoundInCodex for ApiMstUseitem {
+	type Key = i64;
+
+	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
+		codex
+			.manifest
+			.find_useitem(*key)
+			.ok_or_else(|| CodexError::NotFound(format!("use item manifest ID: {}", key)))
 	}
 }

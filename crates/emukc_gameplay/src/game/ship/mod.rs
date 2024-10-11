@@ -290,6 +290,10 @@ where
 	C: ConnectionTrait,
 {
 	ship::Entity::delete_many().filter(ship::Column::ProfileId.eq(profile_id)).exec(c).await?;
+	sp_effect_item::Entity::delete_many()
+		.filter(sp_effect_item::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
 
 	Ok(())
 }

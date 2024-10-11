@@ -3,7 +3,9 @@ use emukc_db::{
 	entity::profile::furniture,
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
-use emukc_model::profile::furniture::FurnitureConfig;
+use emukc_model::{
+	kc2::KcApiFurniture, prelude::ApiMstFurniture, profile::furniture::FurnitureConfig,
+};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -37,6 +39,13 @@ pub trait FurnitureOps {
 		profile_id: i64,
 		config: &FurnitureConfig,
 	) -> Result<(), GameplayError>;
+
+	/// Get furnitures of a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_furnitures(&self, profile_id: i64) -> Result<Vec<KcApiFurniture>, GameplayError>;
 }
 
 #[async_trait]
@@ -76,6 +85,28 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 		update_furniture_config_impl(&tx, profile_id, config).await?;
 
 		Ok(())
+	}
+
+	async fn get_furnitures(&self, profile_id: i64) -> Result<Vec<KcApiFurniture>, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let models = get_furnitures_impl(&tx, profile_id).await?;
+
+		let furnitures = models
+			.iter()
+			.filter_map(|m| {
+				codex.find::<ApiMstFurniture>(&m.furniture_id).ok().map(|mst| KcApiFurniture {
+					api_id: mst.api_id,
+					api_furniture_type: mst.api_type,
+					api_furniture_no: mst.api_no,
+					api_furniture_id: mst.api_id,
+				})
+			})
+			.collect();
+
+		Ok(furnitures)
 	}
 }
 
@@ -174,6 +205,21 @@ where
 	let model = am.save(c).await?;
 
 	Ok(model)
+}
+
+pub async fn get_furnitures_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<furniture::record::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let records = furniture::record::Entity::find()
+		.filter(furniture::record::Column::ProfileId.eq(profile_id))
+		.all(c)
+		.await?;
+
+	Ok(records)
 }
 
 pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
