@@ -115,7 +115,7 @@ where
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-pub(super) async fn init_game_settings_impl<C>(
+pub(super) async fn init<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<profile::setting::Model, GameplayError>
@@ -131,7 +131,7 @@ where
 	Ok(m)
 }
 
-pub(super) async fn wipe_game_settings_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {

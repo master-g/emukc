@@ -179,3 +179,22 @@ where
 		use_item::Entity::find().filter(use_item::Column::ProfileId.eq(profile_id)).all(c).await?;
 	Ok(items)
 }
+
+pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	use_item::Entity::delete_many()
+		.filter(use_item::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+
+	Ok(())
+}

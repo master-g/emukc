@@ -161,3 +161,27 @@ where
 
 	Ok(model.try_into_model()?)
 }
+
+pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	ship::picturebook::Entity::delete_many()
+		.filter(ship::picturebook::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+
+	item::picturebook::Entity::delete_many()
+		.filter(item::picturebook::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+
+	Ok(())
+}

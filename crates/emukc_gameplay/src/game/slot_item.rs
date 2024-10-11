@@ -278,6 +278,25 @@ where
 	Ok(records)
 }
 
+pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	slot_item::Entity::delete_many()
+		.filter(slot_item::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+
+	Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 	#[test]

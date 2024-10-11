@@ -213,7 +213,7 @@ where
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-pub(super) async fn init_fleets_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -222,7 +222,7 @@ where
 	Ok(())
 }
 
-pub(super) async fn wipe_fleets_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {

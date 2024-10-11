@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, ActiveValue};
 
 use emukc_model::profile::Profile;
 
@@ -55,15 +55,6 @@ pub struct Model {
 
 	/// Max equipment capacity
 	pub max_equipment_capacity: i64,
-
-	/// Number of decks
-	pub deck_num: i64,
-
-	/// Number of K-docks
-	pub kdock_num: i64,
-
-	/// Number of N-docks
-	pub ndock_num: i64,
 
 	/// Number of winned sorties
 	pub sortie_wins: i64,
@@ -236,6 +227,44 @@ impl From<Model> for Profile {
 			world_id: value.world_id,
 			name: value.name,
 		}
+	}
+}
+
+/// Default active model
+///
+/// # Arguments
+///
+/// * `account_id` - Account ID
+/// * `nickname` - Nickname
+pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
+	ActiveModel {
+		id: ActiveValue::NotSet,
+		account_id: ActiveValue::Set(account_id),
+		world_id: ActiveValue::Set(0),
+		name: ActiveValue::Set(nickname.to_string()),
+		last_played: ActiveValue::Set(Utc::now()),
+		hq_level: ActiveValue::Set(1),
+		hq_rank: ActiveValue::Set(0),
+		experience: ActiveValue::Set(0),
+		comment: ActiveValue::Set("".to_string()),
+		max_ship_capacity: ActiveValue::Set(100),
+		max_equipment_capacity: ActiveValue::Set(497),
+		sortie_wins: ActiveValue::Set(0),
+		sortie_loses: ActiveValue::Set(0),
+		expeditions: ActiveValue::Set(0),
+		expeditions_success: ActiveValue::Set(0),
+		practice_battles: ActiveValue::Set(0),
+		practice_battle_wins: ActiveValue::Set(0),
+		practice_challenges: ActiveValue::Set(0),
+		practice_challenge_wins: ActiveValue::Set(0),
+		intro_completed: ActiveValue::Set(false),
+		tutorial_progress: ActiveValue::Set(0),
+		medals: ActiveValue::Set(0),
+		large_dock_unlocked: ActiveValue::Set(false),
+		max_quests: ActiveValue::Set(5),
+		extra_supply_expedition: ActiveValue::Set(false),
+		extra_supply_sortie: ActiveValue::Set(false),
+		war_result: ActiveValue::Set(0),
 	}
 }
 

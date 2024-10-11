@@ -1,15 +1,11 @@
 use emukc_db::sea_orm::ConnectionTrait;
 use emukc_model::codex::Codex;
 
-use crate::{err::GameplayError, game::settings::wipe_game_settings_impl};
+use crate::err::GameplayError;
 
 use super::{
-	fleet::{init_fleets_impl, wipe_fleets_impl},
-	furniture::{init_furniture_impl, wipe_furniture_impl},
-	kdock::init_kdock_impl,
-	material::init_material_impl,
-	ndock::init_ndock_impl,
-	settings::init_game_settings_impl,
+	basic, fleet, furniture, incentive, kdock, material, ndock, picturebook, settings, ship,
+	slot_item, use_item,
 };
 
 /// Initialize the profile game data.
@@ -28,23 +24,41 @@ pub async fn init_profile_game_data<C>(
 where
 	C: ConnectionTrait,
 {
+	// basic
+	basic::init(c, profile_id).await?;
+
 	// user game settings
-	init_game_settings_impl(c, profile_id).await?;
+	settings::init(c, profile_id).await?;
+
+	// incentive
+	incentive::init(c, profile_id).await?;
 
 	// fleet
-	init_fleets_impl(c, profile_id).await?;
+	fleet::init(c, profile_id).await?;
 
 	// furniture
-	init_furniture_impl(c, profile_id).await?;
+	furniture::init(c, profile_id).await?;
 
 	// material
-	init_material_impl(c, codex, profile_id).await?;
+	material::init(c, codex, profile_id).await?;
 
 	// construction docks
-	init_kdock_impl(c, profile_id).await?;
+	kdock::init(c, profile_id).await?;
 
 	// repair docks
-	init_ndock_impl(c, profile_id).await?;
+	ndock::init(c, profile_id).await?;
+
+	// picture book
+	picturebook::init(c, profile_id).await?;
+
+	// ships
+	ship::init(c, profile_id).await?;
+
+	// slot items
+	slot_item::init(c, profile_id).await?;
+
+	// use items
+	use_item::init(c, profile_id).await?;
 
 	Ok(())
 }
@@ -53,10 +67,18 @@ pub async fn wipe_profile_game_data<C>(c: &C, profile_id: i64) -> Result<(), Gam
 where
 	C: ConnectionTrait,
 {
-	wipe_game_settings_impl(c, profile_id).await?;
-	wipe_fleets_impl(c, profile_id).await?;
-	wipe_furniture_impl(c, profile_id).await?;
-	// TODO: more wipe functions here
+	basic::wipe(c, profile_id).await?;
+	settings::wipe(c, profile_id).await?;
+	incentive::wipe(c, profile_id).await?;
+	fleet::wipe(c, profile_id).await?;
+	furniture::wipe(c, profile_id).await?;
+	material::wipe(c, profile_id).await?;
+	kdock::wipe_kdock_impl(c, profile_id).await?;
+	ndock::wipe(c, profile_id).await?;
+	picturebook::wipe(c, profile_id).await?;
+	ship::wipe(c, profile_id).await?;
+	slot_item::wipe(c, profile_id).await?;
+	use_item::wipe(c, profile_id).await?;
 
 	Ok(())
 }

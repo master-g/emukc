@@ -123,11 +123,7 @@ where
 /// - `c`: The database connection.
 /// - `codex`: The codex.
 /// - `profile_id`: The profile ID.
-pub(super) async fn init_material_impl<C>(
-	c: &C,
-	codex: &Codex,
-	profile_id: i64,
-) -> Result<(), GameplayError>
+pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -135,6 +131,15 @@ where
 	let model = cfg.new_material(profile_id);
 	let am: material::ActiveModel = model.into();
 	am.insert(c).await?;
+
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	material::Entity::delete_by_id(profile_id).exec(c).await?;
 
 	Ok(())
 }

@@ -8,7 +8,6 @@ use emukc_model::{
 	profile::Profile,
 	user::token::{Token, TokenType},
 };
-use emukc_time::chrono::Utc;
 use prelude::async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -104,38 +103,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 			return Err(UserError::ProfileExists);
 		}
 
-		let am = profile::ActiveModel {
-			id: ActiveValue::NotSet,
-			account_id: ActiveValue::Set(account_model.uid),
-			world_id: ActiveValue::Set(0),
-			name: ActiveValue::Set(profile_name.to_string()),
-			last_played: ActiveValue::Set(Utc::now()),
-			hq_level: ActiveValue::Set(1),
-			hq_rank: ActiveValue::Set(0),
-			experience: ActiveValue::Set(0),
-			comment: ActiveValue::Set("".to_string()),
-			max_ship_capacity: ActiveValue::Set(100),
-			max_equipment_capacity: ActiveValue::Set(497),
-			deck_num: ActiveValue::Set(1),
-			kdock_num: ActiveValue::Set(2),
-			ndock_num: ActiveValue::Set(2),
-			sortie_wins: ActiveValue::Set(0),
-			sortie_loses: ActiveValue::Set(0),
-			expeditions: ActiveValue::Set(0),
-			expeditions_success: ActiveValue::Set(0),
-			practice_battles: ActiveValue::Set(0),
-			practice_battle_wins: ActiveValue::Set(0),
-			practice_challenges: ActiveValue::Set(0),
-			practice_challenge_wins: ActiveValue::Set(0),
-			intro_completed: ActiveValue::Set(false),
-			tutorial_progress: ActiveValue::Set(0),
-			medals: ActiveValue::Set(0),
-			large_dock_unlocked: ActiveValue::Set(false),
-			max_quests: ActiveValue::Set(5),
-			extra_supply_expedition: ActiveValue::Set(false),
-			extra_supply_sortie: ActiveValue::Set(false),
-			war_result: ActiveValue::Set(0),
-		};
+		let am = profile::default_active_model(account_model.uid, profile_name);
 
 		let profile_model = am.insert(&tx).await?;
 
@@ -217,12 +185,21 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 	}
 
 	async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError> {
+		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
 		verify_access_token(&tx, access_token).await?;
 
 		wipe_profile_game_data(&tx, profile_id).await?;
+
+		tx.commit().await?;
+
+		let tx = db.begin().await?;
+
+		init_profile_game_data(&tx, codex, profile_id).await?;
+
+		tx.commit().await?;
 
 		Ok(())
 	}

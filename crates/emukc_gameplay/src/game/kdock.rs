@@ -175,7 +175,7 @@ where
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-pub(super) async fn init_kdock_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -201,6 +201,15 @@ where
 		.collect();
 
 	kdock::Entity::insert_many(models).exec(c).await?;
+
+	Ok(())
+}
+
+pub(super) async fn wipe_kdock_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	kdock::Entity::delete_many().filter(kdock::Column::ProfileId.eq(profile_id)).exec(c).await?;
 
 	Ok(())
 }

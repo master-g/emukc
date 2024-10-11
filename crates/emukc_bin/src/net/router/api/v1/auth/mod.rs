@@ -14,6 +14,7 @@ pub(super) fn router() -> Router {
 		.route("/sign-up", post(sign_up))
 		.route("/new-profile", post(new_profile))
 		.route("/start-game", post(start_game))
+		.route("/wipe", post(wipe_profile))
 }
 
 #[derive(Serialize, Deserialize, Debug, Validate)]
@@ -124,4 +125,15 @@ async fn start_game(
 		profile: info.profile,
 		session: info.session,
 	}))
+}
+
+async fn wipe_profile(
+	state: AppState,
+	Json(params): Json<StartGameRequest>,
+) -> Result<Json<()>, ApiError> {
+	params.validate().map_err(ApiError::from)?;
+
+	state.wipe_profile(&params.access_token, params.profile_id).await?;
+
+	Ok(Json(()))
 }

@@ -5,7 +5,7 @@ use emukc_db::{
 	sea_orm::{entity::*, QueryOrder, TransactionTrait},
 };
 use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory};
-use prelude::{async_trait::async_trait, QueryFilter};
+use prelude::{async_trait::async_trait, ConnectionTrait, QueryFilter};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -171,4 +171,24 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 
 		Ok(api_items)
 	}
+}
+
+pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	// this function is empty for now
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	incentive::Entity::delete_many()
+		.filter(incentive::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+
+	Ok(())
 }

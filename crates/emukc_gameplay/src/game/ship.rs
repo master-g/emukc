@@ -181,3 +181,19 @@ where
 
 	Ok((model.try_into_model()?, ship))
 }
+
+pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	ship::Entity::delete_many().filter(ship::Column::ProfileId.eq(profile_id)).exec(c).await?;
+
+	Ok(())
+}

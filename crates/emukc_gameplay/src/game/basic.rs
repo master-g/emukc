@@ -243,3 +243,24 @@ where
 
 	Ok(())
 }
+
+pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	Ok(())
+}
+
+pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let mut am: profile::ActiveModel =
+		profile::default_active_model(profile.account_id, &profile.name);
+	am.id = ActiveValue::Unchanged(profile_id);
+
+	am.update(c).await?;
+
+	Ok(())
+}
