@@ -300,7 +300,7 @@ pub struct KcApiGameSetting {
 	pub api_language_type: i64,
 	/// Ship sorting filters, 0: BB, 1: CV, 2: CA, 3: CL, 4: DD, 5: DE, 6: SS, 7: other
 	pub api_oss_items: [i64; 8],
-	/// Secretary ship position
+	/// Secretary ship position, 0: right, 1: center
 	pub api_position_id: i64,
 	/// UI skin ID
 	pub api_skin_id: i64,
@@ -518,7 +518,7 @@ pub struct KcApiPracticeEnemyShip {
 	pub api_star: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiPracticeResp {
 	pub api_create_kind: i64,
 	pub api_selected_kind: i64,
@@ -527,14 +527,14 @@ pub struct KcApiPracticeResp {
 	pub api_list: Vec<KcApiPracticeRival>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiShipQVoiceInfo {
 	pub api_no: i64,
 	pub api_voice_id: i64,
 	pub api_icon_id: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiPictureBookShip {
 	pub api_index_no: i64,
 	/// [][0]: default
@@ -567,7 +567,7 @@ pub struct KcApiPictureBookShip {
 	pub api_sinfo: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiPictureBookSlotItem {
 	pub api_index_no: i64,
 	pub api_state: Vec<i64>,
@@ -587,4 +587,12 @@ pub struct KcApiPictureBookSlotItem {
 	pub api_leng: i64,
 	pub api_flag: Vec<i64>,
 	pub api_info: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiLogElement {
+	pub api_no: i64,
+	pub api_type: String,
+	pub api_state: String,
+	pub api_message: String,
 }

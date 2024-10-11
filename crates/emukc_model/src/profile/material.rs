@@ -205,4 +205,47 @@ impl MaterialConfig {
 			material.screw = self.special_resource_cap;
 		}
 	}
+
+	/// Apply self replenish to the material
+	///
+	/// # Arguments
+	///
+	/// * `material` - The material to apply self replenish
+	/// * `player_lv` - The player level
+	pub fn apply_self_replenish(&self, material: &mut Material, player_lv: i64) {
+		let soft_cap = (player_lv + 3) * 250;
+		let now = chrono::Utc::now();
+
+		if material.bauxite < soft_cap {
+			let diff = now.timestamp_millis() - material.last_update_bauxite.timestamp_millis();
+			if diff >= self.bauxite_regenerate_rate {
+				let replenish = diff / self.bauxite_regenerate_rate;
+				material.bauxite += replenish;
+				if material.bauxite > soft_cap {
+					material.bauxite = soft_cap;
+				}
+				material.last_update_bauxite = now;
+			}
+		}
+
+		let diff = now.timestamp_millis() - material.last_update_primary.timestamp_millis();
+		if diff >= self.primary_resource_regenerate_rate {
+			let replenish = diff / self.primary_resource_regenerate_rate;
+			material.fuel += replenish;
+			material.ammo += replenish;
+			material.steel += replenish;
+			if material.fuel > soft_cap {
+				material.fuel = soft_cap;
+			}
+			if material.ammo > soft_cap {
+				material.ammo = soft_cap;
+			}
+			if material.steel > soft_cap {
+				material.steel = soft_cap;
+			}
+			material.last_update_primary = now;
+		}
+
+		self.apply_hard_cap(material);
+	}
 }

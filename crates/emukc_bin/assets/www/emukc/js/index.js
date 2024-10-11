@@ -4,7 +4,7 @@ var lang_path = "";
 var parent = escape(`//${location.host}/netgame/social/`);
 var url = escape(`${document.URL}gadget_html5.xml`);
 var uriObject = new URL(document.URL);
-var st = uriObject.searchParams.get("access_token");
+var st = uriObject.searchParams.get("api_token");
 
 var gadgetInfo = {
   VIEWER_ID: 16517263,

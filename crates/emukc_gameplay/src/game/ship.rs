@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{self, item::slot_item, ship},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
+	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{codex::Codex, kc2::KcApiShip};
 
@@ -19,6 +19,20 @@ pub trait ShipOps {
 	/// - `profile_id`: The profile ID.
 	/// - `mst_id`: The ship manifest ID.
 	async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<KcApiShip, GameplayError>;
+
+	/// Find a ship by ID.
+	///
+	/// # Parameters
+	///
+	/// - `ship_id`: The ship ID.
+	async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError>;
+
+	/// Get ships of a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError>;
 }
 
 #[async_trait]
@@ -34,6 +48,24 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 		tx.commit().await?;
 
 		Ok(ship)
+	}
+
+	async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = find_ship_impl(&tx, ship_id).await?;
+
+		Ok(m.map(std::convert::Into::into))
+	}
+
+	async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = get_ships_impl(&tx, profile_id).await?;
+
+		Ok(m.into_iter().map(std::convert::Into::into).collect())
 	}
 }
 
@@ -180,6 +212,28 @@ where
 	add_ship_to_picture_book_impl(c, profile_id, ship.api_sortno, None, None).await?;
 
 	Ok((model.try_into_model()?, ship))
+}
+
+pub async fn find_ship_impl<C>(c: &C, ship_id: i64) -> Result<Option<ship::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let model = ship::Entity::find().filter(ship::Column::Id.eq(ship_id)).one(c).await?;
+
+	Ok(model)
+}
+
+pub async fn get_ships_impl<C>(c: &C, profile_id: i64) -> Result<Vec<ship::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let models = ship::Entity::find()
+		.filter(ship::Column::ProfileId.eq(profile_id))
+		.order_by_asc(ship::Column::Id)
+		.all(c)
+		.await?;
+
+	Ok(models)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

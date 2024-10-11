@@ -10,7 +10,9 @@ in alphabetical order:
 
 [Akashi-List](https://github.com/yukikuri/akashi-list).
 
-[ElectronicObserver](https://github.com/andanteyk/ElectronicObserver/)
+[ElectronicObserver](https://github.com/andanteyk/ElectronicObserver)
+
+[KCS2-Assets](https://github.com/sinsinpub/kcs2-assets)
 
 [KanColle-English-Patch-KCCP](https://github.com/Oradimi/KanColle-English-Patch-KCCP)
 

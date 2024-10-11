@@ -50,6 +50,7 @@ impl State {
 
 		let kache = Kache::builder()
 			.with_cache_root(cfg.cache_root.clone())
+			.with_mods_root(cfg.mods_root.clone())
 			.with_db(cache_db)
 			.with_gadgets_cdns(cfg.gadgets_cdn.clone())
 			.with_content_cdns(cfg.game_cdn.clone())

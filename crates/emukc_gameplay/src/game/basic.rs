@@ -107,11 +107,7 @@ pub async fn get_user_basic_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let record = profile::Entity::find()
-		.filter(profile::Column::Id.eq(profile_id))
-		.one(c)
-		.await?
-		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
+	let record = find_profile(c, profile_id).await?;
 
 	// furniture
 	let (_, furniture_cfg) = get_furniture_config_impl(c, profile_id).await?;
@@ -192,7 +188,7 @@ where
 	Ok((record, basic))
 }
 
-async fn find_profile<C>(c: &C, profile_id: i64) -> Result<profile::Model, GameplayError>
+pub(super) async fn find_profile<C>(c: &C, profile_id: i64) -> Result<profile::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {

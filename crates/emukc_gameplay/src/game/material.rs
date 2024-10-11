@@ -1,11 +1,13 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::material,
-	sea_orm::{entity::prelude::*, TransactionTrait, TryIntoModel},
+	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{codex::Codex, kc2::MaterialCategory, profile::material::Material};
 
 use crate::{err::GameplayError, gameplay::HasContext};
+
+use super::basic::find_profile;
 
 /// A trait for material related gameplay.
 #[async_trait]
@@ -30,6 +32,13 @@ pub trait MaterialOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError>;
+
+	/// Update materials of a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn update_materials(&self, profile_id: i64) -> Result<Material, GameplayError>;
 }
 
 #[async_trait]
@@ -57,6 +66,20 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 		let model: Material = record.into();
 
 		Ok(model)
+	}
+
+	async fn update_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let profile = find_profile(&tx, profile_id).await?;
+
+		let m = update_materials_impl(&tx, codex, profile_id, profile.hq_level).await?;
+
+		tx.commit().await?;
+
+		Ok(m.into())
 	}
 }
 
@@ -110,6 +133,29 @@ where
 	cfg.apply_hard_cap(&mut model);
 
 	let am: material::ActiveModel = model.into();
+
+	let am = am.save(c).await?;
+
+	Ok(am.try_into_model()?)
+}
+
+pub async fn update_materials_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	user_lv: i64,
+) -> Result<material::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = get_mat_impl(c, profile_id).await?;
+	let mut model: Material = record.into();
+	codex.material_cfg.apply_self_replenish(&mut model, user_lv);
+
+	let am = material::ActiveModel {
+		profile_id: ActiveValue::Unchanged(profile_id),
+		..model.into()
+	};
 
 	let am = am.save(c).await?;
 

@@ -1,7 +1,7 @@
+use axum::{routing::post, Router};
+
 mod get_worldinfo;
 mod register;
-
-use axum::{routing::post, Router};
 
 pub(super) fn router() -> Router {
 	Router::new()
