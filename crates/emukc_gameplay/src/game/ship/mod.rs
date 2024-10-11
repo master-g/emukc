@@ -1,13 +1,19 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::{self, item::slot_item, ship},
+	entity::profile::{
+		self,
+		item::slot_item,
+		ship::{self, sp_effect_item},
+	},
 	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{codex::Codex, kc2::KcApiShip};
 
-use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
-
 use super::{picturebook::add_ship_to_picture_book_impl, slot_item::update_slot_item_impl};
+use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
+use sp::find_ship_sp_effect_items_impl;
+
+mod sp;
 
 /// A trait for material related gameplay.
 #[async_trait]
@@ -54,18 +60,40 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let m = find_ship_impl(&tx, ship_id).await?;
+		if let Some((ship, sps)) = find_ship_impl(&tx, ship_id).await? {
+			let mut m: KcApiShip = ship.into();
 
-		Ok(m.map(std::convert::Into::into))
+			if !sps.is_empty() {
+				m.api_sp_effect_items = Some(sps.into_iter().map(Into::into).collect());
+			}
+
+			Ok(Some(m))
+		} else {
+			Ok(None)
+		}
 	}
 
 	async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let m = get_ships_impl(&tx, profile_id).await?;
+		let (ships, sps) = get_ships_impl(&tx, profile_id).await?;
 
-		Ok(m.into_iter().map(std::convert::Into::into).collect())
+		let ships = ships
+			.into_iter()
+			.zip(sps)
+			.map(|(s, sp)| {
+				let mut m: KcApiShip = s.into();
+
+				if !sp.is_empty() {
+					m.api_sp_effect_items = Some(sp.into_iter().map(Into::into).collect());
+				}
+
+				m
+			})
+			.collect();
+
+		Ok(ships)
 	}
 }
 
@@ -214,26 +242,40 @@ where
 	Ok((model.try_into_model()?, ship))
 }
 
-pub async fn find_ship_impl<C>(c: &C, ship_id: i64) -> Result<Option<ship::Model>, GameplayError>
+pub async fn find_ship_impl<C>(
+	c: &C,
+	ship_id: i64,
+) -> Result<Option<(ship::Model, Vec<sp_effect_item::Model>)>, GameplayError>
 where
 	C: ConnectionTrait,
 {
-	let model = ship::Entity::find().filter(ship::Column::Id.eq(ship_id)).one(c).await?;
+	let ship = ship::Entity::find().filter(ship::Column::Id.eq(ship_id)).one(c).await?;
 
-	Ok(model)
+	let sp_items = if ship.is_some() {
+		find_ship_sp_effect_items_impl(c, ship_id).await?
+	} else {
+		vec![]
+	};
+
+	Ok(ship.map(|s| (s, sp_items)))
 }
 
-pub async fn get_ships_impl<C>(c: &C, profile_id: i64) -> Result<Vec<ship::Model>, GameplayError>
+pub async fn get_ships_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<(Vec<ship::Model>, Vec<Vec<sp_effect_item::Model>>), GameplayError>
 where
 	C: ConnectionTrait,
 {
-	let models = ship::Entity::find()
+	let ships = ship::Entity::find()
 		.filter(ship::Column::ProfileId.eq(profile_id))
 		.order_by_asc(ship::Column::Id)
 		.all(c)
 		.await?;
 
-	Ok(models)
+	let sp_items = ships.load_many(sp_effect_item::Entity, c).await?;
+
+	Ok((ships, sp_items))
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

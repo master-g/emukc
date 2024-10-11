@@ -3,6 +3,7 @@ use emukc_model::kc2::KcApiShip;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 pub mod picturebook;
+pub mod sp_effect_item;
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
@@ -197,11 +198,21 @@ pub enum Relation {
 		to = "crate::entity::profile::Column::Id"
 	)]
 	Profile,
+
+	/// Relation to `SpecialEffect`
+	#[sea_orm(has_many = "sp_effect_item::Entity")]
+	SpEffectItem,
 }
 
 impl Related<crate::entity::profile::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Profile.def()
+	}
+}
+
+impl Related<sp_effect_item::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::SpEffectItem.def()
 	}
 }
 
@@ -213,6 +224,12 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// ship
 	{
 		let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// sp_effect_item
+	{
+		let stmt =
+			schema.create_table_from_entity(sp_effect_item::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// picturebook
@@ -347,6 +364,7 @@ impl From<Model> for KcApiShip {
 				0
 			},
 			api_sally_area: value.sally_area,
+			api_sp_effect_items: None,
 		}
 	}
 }

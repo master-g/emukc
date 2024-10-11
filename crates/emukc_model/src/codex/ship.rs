@@ -70,6 +70,7 @@ impl Codex {
 			api_locked: 0,
 			api_locked_equip: 0,
 			api_sally_area: 0,
+			api_sp_effect_items: None,
 		};
 
 		Some((ship, slot_items))
@@ -207,6 +208,14 @@ impl Codex {
 		ship.api_kaihi[0] += item_houk;
 		ship.api_taisen[0] += item_tais;
 		ship.api_sakuteki[0] += item_saku;
+
+		// apply special effect items
+		ship.api_sp_effect_items.iter().flatten().for_each(|v| {
+			ship.api_karyoku[0] += v.api_houg.unwrap_or(0);
+			ship.api_raisou[0] += v.api_raig.unwrap_or(0);
+			ship.api_kaihi[0] += v.api_kaih.unwrap_or(0);
+			ship.api_soukou[0] += v.api_souk.unwrap_or(0);
+		});
 
 		Ok(())
 	}

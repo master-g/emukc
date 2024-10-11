@@ -188,6 +188,27 @@ pub struct KcApiShip {
 	pub api_locked_equip: i64,
 	/// Sally area, used when there is event
 	pub api_sally_area: i64,
+	/// Special effect item attachment info
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_sp_effect_items: Option<Vec<KcApiSpEffectOnShip>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiSpEffectOnShip {
+	/// 1: azure ribbon (useitem 98), 2: white sash (useitem 99)
+	pub api_kind: i64,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_houg: Option<i64>,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_raig: Option<i64>,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_kaih: Option<i64>,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_souk: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -435,20 +456,28 @@ pub struct KcApiAirBaseExpandedInfo {
 pub struct KcApiMapInfo {
 	pub api_cleared: i64,
 	pub api_id: i64,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_defeat_count: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_gauge_num: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_gauge_type: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_required_defeat_count: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_air_base_decks: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_eventmap: Option<KcApiEventmap>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_s_no: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_sally_flag: Option<Vec<i64>>,
 }
@@ -510,10 +539,13 @@ pub struct KcApiPracticeEnemyDeck {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KcApiPracticeEnemyShip {
 	pub api_id: i64,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ship_id: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_level: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_star: Option<i64>,
 }
@@ -522,8 +554,10 @@ pub struct KcApiPracticeEnemyShip {
 pub struct KcApiPracticeResp {
 	pub api_create_kind: i64,
 	pub api_selected_kind: i64,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_entry_limit: Option<i64>,
+
 	pub api_list: Vec<KcApiPracticeRival>,
 }
 
@@ -549,21 +583,30 @@ pub struct KcApiPictureBookShip {
 	pub api_yomi: String,
 	pub api_stype: i64,
 	pub api_cnum: i64,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_taik: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_souk: Option<i64>,
+
 	pub api_kaih: i64,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_houg: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_raig: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_tyku: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_tais: Option<i64>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_leng: Option<i64>,
+
 	pub api_sinfo: String,
 }
 

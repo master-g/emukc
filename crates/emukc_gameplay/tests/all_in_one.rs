@@ -108,6 +108,9 @@ async fn add_ship() {
 
 	let unset_slots = context.get_unuse_slot_items(pid).await.unwrap();
 	assert!(unset_slots.is_empty());
+
+	let ships = context.get_ships(pid).await.unwrap();
+	assert_eq!(ships.len(), 1);
 }
 
 #[tokio::test]

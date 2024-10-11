@@ -205,15 +205,23 @@ pub enum Relation {
 	UseItem,
 }
 
-impl Related<material::Entity> for Entity {
-	fn to() -> RelationDef {
-		Relation::Material.def()
-	}
-}
-
 impl Related<crate::entity::user::account::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Account.def()
+	}
+}
+
+impl Related<crate::entity::profile::airbase::base::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::Airbase.def()
+	}
+}
+
+// TODO: more relations here
+
+impl Related<material::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::Material.def()
 	}
 }
 
