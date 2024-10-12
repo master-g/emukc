@@ -9,7 +9,7 @@ use emukc_db::{
 };
 use emukc_model::{codex::Codex, kc2::KcApiShip};
 
-use super::{picturebook::add_ship_to_picture_book_impl, slot_item::update_slot_item_impl};
+use super::{picturebook::add_ship_to_picturebook_impl, slot_item::update_slot_item_impl};
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
 use sp::find_ship_sp_effect_items_impl;
 
@@ -58,9 +58,8 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 
 	async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
 
-		if let Some((ship, sps)) = find_ship_impl(&tx, ship_id).await? {
+		if let Some((ship, sps)) = find_ship_impl(db, ship_id).await? {
 			let mut m: KcApiShip = ship.into();
 
 			if !sps.is_empty() {
@@ -75,9 +74,8 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 
 	async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
 
-		let (ships, sps) = get_ships_impl(&tx, profile_id).await?;
+		let (ships, sps) = get_ships_impl(db, profile_id).await?;
 
 		let ships = ships
 			.into_iter()
@@ -237,7 +235,7 @@ where
 	}
 
 	// add ship to picture book
-	add_ship_to_picture_book_impl(c, profile_id, ship.api_sortno, None, None).await?;
+	add_ship_to_picturebook_impl(c, profile_id, ship.api_sortno, None, None).await?;
 
 	Ok((model.try_into_model()?, ship))
 }

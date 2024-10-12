@@ -471,7 +471,12 @@ impl Codex {
 			.ok_or(CodexError::NotFound(format!("ship manifest ID: {}", ship_id)))
 	}
 
-	fn find_ship_basic(&self, ship_id: i64) -> Result<&Kc3rdShipBasic, CodexError> {
+	/// Find the ship basic information.
+	///
+	/// # Arguments
+	///
+	/// * `ship_id` - The ship ID.
+	pub fn find_ship_basic(&self, ship_id: i64) -> Result<&Kc3rdShipBasic, CodexError> {
 		self.ship_basic
 			.get(&ship_id)
 			.ok_or(CodexError::NotFound(format!("ship basic ID: {}", ship_id)))

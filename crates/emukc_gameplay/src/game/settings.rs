@@ -34,9 +34,7 @@ pub trait GameSettingsOps {
 impl<T: HasContext + ?Sized> GameSettingsOps for T {
 	async fn get_game_settings(&self, profile_id: i64) -> Result<KcApiGameSetting, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let settings = get_game_settings_impl(&tx, profile_id).await?;
+		let settings = get_game_settings_impl(db, profile_id).await?;
 
 		Ok(settings.into())
 	}

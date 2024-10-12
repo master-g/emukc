@@ -49,22 +49,14 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 
 	async fn get_ndock(&self, profile_id: i64, index: i64) -> Result<RepairDock, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let dock = get_ndock_impl(&tx, profile_id, index).await?;
-
-		tx.commit().await?;
+		let dock = get_ndock_impl(db, profile_id, index).await?;
 
 		Ok(dock)
 	}
 
 	async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let docks = get_ndocks_impl(&tx, profile_id).await?;
-
-		tx.commit().await?;
+		let docks = get_ndocks_impl(db, profile_id).await?;
 
 		Ok(docks.into_iter().map(std::convert::Into::into).collect())
 	}

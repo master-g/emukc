@@ -65,22 +65,14 @@ impl<T: HasContext + ?Sized> KDockOps for T {
 		index: i64,
 	) -> Result<ConstructionDock, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let dock = get_kdock_impl(&tx, profile_id, index).await?;
-
-		tx.commit().await?;
+		let dock = get_kdock_impl(db, profile_id, index).await?;
 
 		Ok(dock)
 	}
 
 	async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let docks = get_kdocks_impl(&tx, profile_id).await?;
-
-		tx.commit().await?;
+		let docks = get_kdocks_impl(db, profile_id).await?;
 
 		Ok(docks.into_iter().map(std::convert::Into::into).collect())
 	}

@@ -67,9 +67,7 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 		profile_id: i64,
 	) -> Result<FurnitureConfig, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let (_, cfg) = get_furniture_config_impl(&tx, profile_id).await?;
+		let (_, cfg) = get_furniture_config_impl(db, profile_id).await?;
 
 		Ok(cfg)
 	}
@@ -84,15 +82,16 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 
 		update_furniture_config_impl(&tx, profile_id, config).await?;
 
+		tx.commit().await?;
+
 		Ok(())
 	}
 
 	async fn get_furnitures(&self, profile_id: i64) -> Result<Vec<KcApiFurniture>, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
-		let tx = db.begin().await?;
 
-		let models = get_furnitures_impl(&tx, profile_id).await?;
+		let models = get_furnitures_impl(db, profile_id).await?;
 
 		let furnitures = models
 			.iter()

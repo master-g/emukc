@@ -172,14 +172,11 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 
 	async fn find_profile(&self, profile_id: i64) -> Result<Profile, UserError> {
 		let db = self.db();
-		let tx = db.begin().await?;
 
 		let profile_model = profile::Entity::find_by_id(profile_id)
-			.one(&tx)
+			.one(db)
 			.await?
 			.ok_or_else(|| UserError::ProfileNotFound)?;
-
-		tx.commit().await?;
 
 		Ok(profile_model.into())
 	}

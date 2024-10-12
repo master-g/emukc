@@ -7,7 +7,7 @@ use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
-use super::picturebook::add_slot_item_to_picture_book_impl;
+use super::picturebook::add_slot_item_to_picturebook_impl;
 
 /// A trait for slot item related gameplay.
 #[async_trait]
@@ -99,9 +99,7 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 
 	async fn find_slot_item(&self, id: i64) -> Result<KcApiSlotItem, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let m = find_slot_item_impl(&tx, id).await?;
+		let m = find_slot_item_impl(db, id).await?;
 		let slot_item: SlotItem = m.into();
 
 		Ok(slot_item.into())
@@ -109,9 +107,8 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 
 	async fn get_slot_items(&self, profile_id: i64) -> Result<Vec<KcApiSlotItem>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
+		let ms = get_slot_items_impl(db, profile_id).await?;
 
-		let ms = get_slot_items_impl(&tx, profile_id).await?;
 		let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
 		let slot_items: Vec<KcApiSlotItem> =
 			slot_items.into_iter().map(std::convert::Into::into).collect();
@@ -147,9 +144,8 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 		_profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
+		let ms = get_unuse_slot_items_impl(db, _profile_id).await?;
 
-		let ms = get_unuse_slot_items_impl(&tx, _profile_id).await?;
 		let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
 		let slot_items: Vec<KcApiSlotItem> =
 			slot_items.into_iter().map(std::convert::Into::into).collect();
@@ -194,7 +190,7 @@ where
 
 	// add slot item to picture book
 	let mst = codex.find::<ApiMstSlotitem>(&mst_id)?;
-	add_slot_item_to_picture_book_impl(c, profile_id, mst.api_sortno).await?;
+	add_slot_item_to_picturebook_impl(c, profile_id, mst.api_sortno).await?;
 
 	Ok(model.try_into_model()?)
 }

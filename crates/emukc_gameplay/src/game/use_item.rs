@@ -71,11 +71,7 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 		mst_id: i64,
 	) -> Result<KcApiUserItem, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let am = find_use_item_impl(&tx, profile_id, mst_id).await?;
-
-		tx.commit().await?;
+		let am = find_use_item_impl(db, profile_id, mst_id).await?;
 
 		Ok(KcApiUserItem {
 			api_id: mst_id,
@@ -85,9 +81,8 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 
 	async fn get_use_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
+		let items = get_use_items_impl(db, profile_id).await?;
 
-		let items = get_use_items_impl(&tx, profile_id).await?;
 		let items: Vec<UserItem> = items.into_iter().map(std::convert::Into::into).collect();
 		let items: Vec<KcApiUserItem> = items.into_iter().map(std::convert::Into::into).collect();
 

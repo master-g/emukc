@@ -1,6 +1,9 @@
 //! Querying trait for objects in the codex.
 
-use crate::prelude::{ApiMstFurniture, ApiMstShip, ApiMstSlotitem, ApiMstUseitem};
+use crate::prelude::{
+	ApiMstFurniture, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdShipBasic,
+	Kc3rdSlotItemExtraInfo,
+};
 
 use super::{Codex, CodexError};
 
@@ -69,6 +72,15 @@ impl FoundInCodex for ApiMstShip {
 	}
 }
 
+// Kc3rdShipBasic
+impl FoundInCodex for Kc3rdShipBasic {
+	type Key = i64;
+
+	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
+		codex.find_ship_basic(*key)
+	}
+}
+
 // ApiUseItem
 impl FoundInCodex for ApiMstUseitem {
 	type Key = i64;
@@ -78,5 +90,17 @@ impl FoundInCodex for ApiMstUseitem {
 			.manifest
 			.find_useitem(*key)
 			.ok_or_else(|| CodexError::NotFound(format!("use item manifest ID: {}", key)))
+	}
+}
+
+// Kc3rdSlotItemExtraInfo
+impl FoundInCodex for Kc3rdSlotItemExtraInfo {
+	type Key = i64;
+
+	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
+		codex
+			.slotitem_extra_info
+			.get(key)
+			.ok_or_else(|| CodexError::NotFound(format!("slot item extra info ID: {}", key)))
 	}
 }

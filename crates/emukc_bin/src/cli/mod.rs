@@ -49,6 +49,16 @@ enum Commands {
 	Version,
 }
 
+// prepare the application state
+async fn prepare_state(cfg: &AppConfig) -> Option<State> {
+	State::new(&cfg)
+		.await
+		.inspect_err(|e| {
+			error!("Failed to prepare application state: {}", e);
+		})
+		.ok()
+}
+
 pub async fn init() -> ExitCode {
 	let args = Cli::parse();
 
@@ -88,19 +98,20 @@ pub async fn init() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 
-	// prepare the application state
-	let state = match State::new(&cfg).await {
-		Ok(state) => state,
-		Err(e) => {
-			error!("Failed to initialize application state: {}", e);
-			return ExitCode::FAILURE;
-		}
-	};
-
 	let output = match args.command {
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
-		Some(Commands::Cache(args)) => cache::exec(&args, &state).await,
-		Some(Commands::Serve(args)) => serve::exec(&args, &cfg, &state).await,
+		Some(Commands::Cache(args)) => {
+			let Some(state) = prepare_state(&cfg).await else {
+				return ExitCode::FAILURE;
+			};
+			cache::exec(&args, &state).await
+		}
+		Some(Commands::Serve(args)) => {
+			let Some(state) = prepare_state(&cfg).await else {
+				return ExitCode::FAILURE;
+			};
+			serve::exec(&args, &cfg, &state).await
+		}
 		_ => Ok(()),
 	};
 

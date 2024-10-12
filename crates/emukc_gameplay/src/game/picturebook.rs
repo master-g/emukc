@@ -6,6 +6,7 @@ use emukc_db::{
 	},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
+use emukc_model::profile::picture_book::{PictureBookShip, PictureBookSlotItem};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -20,7 +21,7 @@ pub trait PictureBookOps {
 	/// - `sortno`: The ship's sort number.
 	/// - `damaged`: Whether the ship is damaged.
 	/// - `married`: Whether the ship is married.
-	async fn add_ship_to_picture_book(
+	async fn add_ship_to_picturebook(
 		&self,
 		profile_id: i64,
 		sortno: i64,
@@ -34,16 +35,36 @@ pub trait PictureBookOps {
 	///
 	/// - `profile_id`: The profile ID.
 	/// - `sortno`: The slot item's sort number.
-	async fn add_slot_item_to_picture_book(
+	async fn add_slot_item_to_picturebook(
 		&self,
 		profile_id: i64,
 		sortno: i64,
 	) -> Result<(), GameplayError>;
+
+	/// Get picture book of ships.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_ship_picturebook(
+		&self,
+		profile_id: i64,
+	) -> Result<Vec<PictureBookShip>, GameplayError>;
+
+	/// Get picture book of slot items.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn get_slot_item_picturebook(
+		&self,
+		profile_id: i64,
+	) -> Result<Vec<PictureBookSlotItem>, GameplayError>;
 }
 
 #[async_trait]
 impl<T: HasContext + ?Sized> PictureBookOps for T {
-	async fn add_ship_to_picture_book(
+	async fn add_ship_to_picturebook(
 		&self,
 		profile_id: i64,
 		sortno: i64,
@@ -53,14 +74,14 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		add_ship_to_picture_book_impl(&tx, profile_id, sortno, damaged, married).await?;
+		add_ship_to_picturebook_impl(&tx, profile_id, sortno, damaged, married).await?;
 
 		tx.commit().await?;
 
 		Ok(())
 	}
 
-	async fn add_slot_item_to_picture_book(
+	async fn add_slot_item_to_picturebook(
 		&self,
 		profile_id: i64,
 		sortno: i64,
@@ -68,11 +89,35 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		add_slot_item_to_picture_book_impl(&tx, profile_id, sortno).await?;
+		add_slot_item_to_picturebook_impl(&tx, profile_id, sortno).await?;
 
 		tx.commit().await?;
 
 		Ok(())
+	}
+
+	async fn get_ship_picturebook(
+		&self,
+		profile_id: i64,
+	) -> Result<Vec<PictureBookShip>, GameplayError> {
+		let db = self.db();
+
+		let records = get_ship_picturebook_impl(db, profile_id).await?;
+		let records = records.into_iter().map(std::convert::Into::into).collect();
+
+		Ok(records)
+	}
+
+	async fn get_slot_item_picturebook(
+		&self,
+		profile_id: i64,
+	) -> Result<Vec<PictureBookSlotItem>, GameplayError> {
+		let db = self.db();
+
+		let records = get_slot_item_picturebook_impl(db, profile_id).await?;
+		let records = records.into_iter().map(std::convert::Into::into).collect();
+
+		Ok(records)
 	}
 }
 
@@ -86,7 +131,7 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 /// - `damaged`: Whether the ship is damaged.
 /// - `married`: Whether the ship is married.
 #[allow(unused)]
-pub async fn add_ship_to_picture_book_impl<C>(
+pub async fn add_ship_to_picturebook_impl<C>(
 	c: &C,
 	profile_id: i64,
 	sortno: i64,
@@ -131,7 +176,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `sortno`: The slot item's sort number.
 #[allow(unused)]
-pub async fn add_slot_item_to_picture_book_impl<C>(
+pub async fn add_slot_item_to_picturebook_impl<C>(
 	c: &C,
 	profile_id: i64,
 	sortno: i64,
@@ -160,6 +205,36 @@ where
 	let model = am.save(c).await?;
 
 	Ok(model.try_into_model()?)
+}
+
+pub async fn get_ship_picturebook_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<ship::picturebook::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let records = ship::picturebook::Entity::find()
+		.filter(ship::picturebook::Column::ProfileId.eq(profile_id))
+		.all(c)
+		.await?;
+
+	Ok(records)
+}
+
+pub async fn get_slot_item_picturebook_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<item::picturebook::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let records = item::picturebook::Entity::find()
+		.filter(item::picturebook::Column::ProfileId.eq(profile_id))
+		.all(c)
+		.await?;
+
+	Ok(records)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

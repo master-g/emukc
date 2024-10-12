@@ -1,8 +1,9 @@
 //! Thirdparty data from other sources.
 
 #[doc(hidden)]
+mod picturebook;
+#[doc(hidden)]
 mod quest;
-
 #[doc(hidden)]
 mod ship;
 #[doc(hidden)]
@@ -21,3 +22,7 @@ pub use ship::*;
 #[doc(inline)]
 #[allow(unused_imports)]
 pub use slotitem::*;
+
+#[doc(inline)]
+#[allow(unused_imports)]
+pub use picturebook::*;

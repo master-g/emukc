@@ -39,5 +39,7 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
 	let codex_root = cfg.codex_root()?;
 	codex.save(&codex_root, args.overwrite)?;
 
+	info!("Bootstrap completed successfully.");
+
 	Ok(())
 }

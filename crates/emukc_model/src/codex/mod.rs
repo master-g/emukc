@@ -1,10 +1,14 @@
 //! All the data need for running the game logic
 
-use std::{collections::BTreeMap, fs::create_dir_all, str::FromStr};
+use std::{fs::create_dir_all, str::FromStr};
 
 use thiserror::Error;
 
-use crate::{kc2, profile, thirdparty};
+use crate::{
+	kc2,
+	prelude::{Kc3rdPicturebookExtra, Kc3rdPicturebookRW},
+	profile, thirdparty,
+};
 
 pub mod query;
 pub mod ship;
@@ -55,8 +59,8 @@ pub struct Codex {
 	/// ship remodel info map.
 	pub ship_remodel_info: kc2::remodel::KcShipRemodelRequirementMap,
 
-	/// thirdparty ship extrace voice info map.
-	pub ship_extra_voice: thirdparty::Kc3rdShipVoiceMap,
+	/// thirdparty picturebook extra info.
+	pub picturebook_extra: thirdparty::Kc3rdPicturebookExtra,
 
 	/// navy info.
 	pub navy: kc2::navy::KcNavy,
@@ -75,7 +79,7 @@ const PATH_SHIP_CLASS_NAME: &str = "ship_class_name.json";
 const PATH_SHIP_EXTRA_INFO: &str = "ship_extra_info.json";
 const PATH_SLOTITEM_EXTRA_INFO: &str = "slotitem_extra_info.json";
 const PATH_SHIP_REMODEL_INFO: &str = "ship_remodel_info.json";
-const PATH_SHIP_EXTRA_VOICE: &str = "ship_extra_voice.json";
+const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
 const PATH_MATERIAL_CFG: &str = "material_cfg.json";
@@ -154,16 +158,12 @@ impl Codex {
 			data.into_iter().map(|v| ((v.id_from, v.id_to), v)).collect()
 		};
 
-		let ship_extra_voice = {
-			let path = path.join(PATH_SHIP_EXTRA_VOICE);
+		let picturebook_extra = {
+			let path = path.join(PATH_PICTUREBOOK_EXTRA_INFO);
 			let raw = std::fs::read_to_string(&path)?;
-			let data: BTreeMap<String, Vec<kc2::KcApiShipQVoiceInfo>> = serde_json::from_str(&raw)?;
-			let mut map = thirdparty::Kc3rdShipVoiceMap::new();
-			for (k, v) in data {
-				let k = k.parse()?;
-				map.insert(k, v);
-			}
-			map
+			let data: Kc3rdPicturebookRW = serde_json::from_str(&raw)?;
+			let data: Kc3rdPicturebookExtra = data.into();
+			data
 		};
 
 		let quest = {
@@ -180,7 +180,7 @@ impl Codex {
 			ship_extra_info,
 			slotitem_extra_info,
 			ship_remodel_info,
-			ship_extra_voice,
+			picturebook_extra,
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
 			quest,
 			material_cfg: Self::load_single_item(path.join(PATH_MATERIAL_CFG))?,
@@ -260,14 +260,13 @@ impl Codex {
 			let data = self.ship_remodel_info.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
-		// ship extra voice
+		// picturebook extra info
 		{
-			let path = dst.join(PATH_SHIP_EXTRA_VOICE);
+			let path = dst.join(PATH_PICTUREBOOK_EXTRA_INFO);
 			if path.exists() && !overwrite {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
-			let data: BTreeMap<String, &Vec<kc2::KcApiShipQVoiceInfo>> =
-				self.ship_extra_voice.iter().map(|(k, v)| (k.to_string(), v)).collect();
+			let data: Kc3rdPicturebookRW = self.picturebook_extra.clone().into();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
 		// navy

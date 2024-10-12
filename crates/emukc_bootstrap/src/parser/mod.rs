@@ -55,7 +55,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		slotitem_extra_info,
 		ship_remodel_info,
 		quest,
-		ship_extra_voice: Kc3rdShipVoiceMap::new(),
+		picturebook_extra: Kc3rdPicturebookExtra::default(),
 		navy: KcNavy::default(),
 		material_cfg: MaterialConfig::default(),
 	})

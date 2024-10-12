@@ -63,22 +63,14 @@ impl<T: HasContext + ?Sized> FleetOps for T {
 
 	async fn get_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let fleet = get_fleet_impl(&tx, profile_id, index).await?;
-
-		tx.commit().await?;
+		let fleet = get_fleet_impl(db, profile_id, index).await?;
 
 		Ok(fleet)
 	}
 
 	async fn get_fleets(&self, profile_id: i64) -> Result<Vec<Fleet>, GameplayError> {
 		let db = self.db();
-		let tx = db.begin().await?;
-
-		let fleets = get_fleets_impl(&tx, profile_id).await?;
-
-		tx.commit().await?;
+		let fleets = get_fleets_impl(db, profile_id).await?;
 
 		Ok(fleets.into_iter().map(std::convert::Into::into).collect())
 	}

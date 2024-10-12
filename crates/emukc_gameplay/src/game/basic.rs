@@ -53,11 +53,7 @@ impl<T: HasContext + ?Sized> BasicOps for T {
 	async fn get_user_basic(&self, profile_id: i64) -> Result<KcApiUserBasic, GameplayError> {
 		let db = self.db();
 
-		let tx = db.begin().await?;
-
-		let (_, basic) = get_user_basic_impl(&tx, profile_id).await?;
-
-		tx.commit().await?;
+		let (_, basic) = get_user_basic_impl(db, profile_id).await?;
 
 		Ok(basic)
 	}

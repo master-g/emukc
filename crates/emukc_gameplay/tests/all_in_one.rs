@@ -5,6 +5,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
+use emukc_model::prelude::Kc3rdShipBasic;
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 
@@ -23,6 +24,15 @@ async fn new_game_session() -> ((DbConn, Codex), AccountInfo, StartGameInfo) {
 		context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
 
 	(context, account, session)
+}
+
+#[tokio::test]
+async fn foo() {
+	let (context, _, _) = new_game_session().await;
+
+	let codex = context.codex();
+	let basic = codex.find::<Kc3rdShipBasic>(&966).unwrap();
+	println!("{:?}", basic);
 }
 
 #[tokio::test]
