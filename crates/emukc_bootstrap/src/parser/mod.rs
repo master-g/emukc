@@ -3,7 +3,7 @@
 pub mod error;
 pub mod kaisou;
 pub mod kccp;
-pub mod kcwiki_slotitems;
+pub mod kcwiki;
 pub mod kcwikizh_kcdata;
 pub mod kcwikizh_ships;
 pub mod tsunkit_quest;
@@ -15,7 +15,7 @@ use emukc_model::{kc2::navy::KcNavy, prelude::*, profile::material::MaterialConf
 use error::ParseError;
 pub use kaisou::parse as parse_kaisou;
 pub use kccp::quest::parse as parse_kccp_quests;
-pub use kcwiki_slotitems::parse as parse_kcwiki_slotitems;
+pub use kcwiki::parse as parse_kcwiki;
 pub use kcwikizh_kcdata::parse as parse_kcdata;
 pub use kcwikizh_ships::parse as parse_ships_nedb;
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
@@ -37,7 +37,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		ApiManifest::from_str(&raw)?
 	};
 	let ship_basic = parse_ships_nedb(dir.join("ships.nedb"))?;
-	let slotitem_extra_info = parse_kcwiki_slotitems(dir.join("kcwiki_slotitem.json"))?;
+	let slotitem_extra_info = parse_kcwiki(dir, &manifest)?;
 	let (ship_extra_info, ship_class_name) = parse_kcdata(dir.join("kc_data"), &manifest)?;
 	let ship_remodel_info = parse_kaisou(dir.join("main.js"), &manifest)?;
 	let kccp_quests = {

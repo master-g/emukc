@@ -3,17 +3,16 @@ use std::path::Path;
 use emukc_model::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::error::ParseError;
+use crate::parser::error::ParseError;
 
 /// Parse the slot item extra info.
 ///
 /// # Arguments
 ///
 /// * `src` - The source directory.
-/// * `manifest` - The API manifest.
 pub fn parse(src: impl AsRef<Path>) -> Result<Kc3rdSlotItemExtraInfoMap, ParseError> {
 	let src = src.as_ref();
-	trace!("parsing slot item extra info: {:?}", src);
+	trace!("parsing kcwiki db slotitems info: {:?}", src);
 
 	#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 	struct Item {
@@ -45,4 +44,14 @@ pub fn parse(src: impl AsRef<Path>) -> Result<Kc3rdSlotItemExtraInfoMap, ParseEr
 	}
 
 	Ok(map)
+}
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_parse() {
+		let src = std::path::Path::new("../../.data/temp/kcwiki_db_slotitem.json");
+		let map = super::parse(src).unwrap();
+		println!("{:?}", map);
+	}
 }

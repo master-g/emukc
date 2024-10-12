@@ -1,3 +1,7 @@
+//! ship data parser for kcwikizh
+//!
+//! their data format is pretty clean, but they did not update the data for quite a long time
+
 use std::{fs, path::Path};
 
 use emukc_model::prelude::*;
