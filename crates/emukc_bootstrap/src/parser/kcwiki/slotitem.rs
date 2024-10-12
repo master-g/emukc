@@ -26,7 +26,6 @@ pub enum StringOrInt {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
 pub enum AswDamageType {
 	#[serde(rename = "DCP")]
 	Dcp,
@@ -164,7 +163,8 @@ mod tests {
 	use std::collections::BTreeMap;
 
 	use crate::parser::kcwiki::slotitem::{
-		ImprovmentEquipConsumption, ImprovmentExtraConsumption, Product, StringOrInt, WeekInfo,
+		AswDamageType, ImprovmentEquipConsumption, ImprovmentExtraConsumption, Product,
+		StringOrInt, WeekInfo,
 	};
 
 	#[test]
@@ -172,6 +172,14 @@ mod tests {
 		let src = std::path::Path::new("../../.data/temp/kcwiki_slotitem.json");
 		let map = super::parse(src).unwrap();
 		println!("{:?}", map);
+	}
+
+	#[test]
+	fn test_dcr() {
+		let a = AswDamageType::Dcr;
+		let v = vec![a];
+		let j = serde_json::to_string(&v).unwrap();
+		println!("{}", j);
 	}
 
 	#[test]
