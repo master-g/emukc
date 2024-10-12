@@ -20,6 +20,13 @@ pub enum BoolOrInt {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
+pub enum StringOrInt {
+	String(String),
+	Int(i64),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum AswDamageType {
 	#[serde(rename = "DCP")]
 	Dcp,
@@ -54,13 +61,13 @@ pub enum ImprovementsUnion {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct WeekInfo {
-	friday: bool,
-	monday: bool,
-	saturday: bool,
-	sunday: bool,
-	thursday: bool,
-	tuesday: bool,
-	wednesday: bool,
+	friday: Option<bool>,
+	monday: Option<bool>,
+	saturday: Option<bool>,
+	sunday: Option<bool>,
+	thursday: Option<bool>,
+	tuesday: Option<bool>,
+	wednesday: Option<bool>,
 }
 
 pub type Secretary2WeekInfo = BTreeMap<String, WeekInfo>;
@@ -77,13 +84,13 @@ pub struct ImprovmentExtraConsumption {
 	#[serde(rename = "_development_material")]
 	pub development_material: i64,
 	#[serde(rename = "_development_material_x")]
-	pub development_material_x: i64,
+	pub development_material_x: StringOrInt,
 	#[serde(rename = "_equipment")]
 	pub equipment: ImprovmentEquipConsumption,
 	#[serde(rename = "_improvement_material")]
 	pub improvement_material: i64,
 	#[serde(rename = "_improvement_material_x")]
-	pub improvement_material_x: i64,
+	pub improvement_material_x: StringOrInt,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -91,7 +98,7 @@ pub struct ImprovmentExtraConsumption {
 pub enum Product {
 	Level2Consumption(ImprovmentExtraConsumption),
 	Secretary2WeekInfo(Secretary2WeekInfo),
-	Stars(BoolOrInt),
+	Stars(Option<BoolOrInt>),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -157,7 +164,7 @@ mod tests {
 	use std::collections::BTreeMap;
 
 	use crate::parser::kcwiki::slotitem::{
-		ImprovmentEquipConsumption, ImprovmentExtraConsumption, Product, WeekInfo,
+		ImprovmentEquipConsumption, ImprovmentExtraConsumption, Product, StringOrInt, WeekInfo,
 	};
 
 	#[test]
@@ -171,7 +178,7 @@ mod tests {
 	fn test_r_product() {
 		let mut map: BTreeMap<String, BTreeMap<String, Product>> = BTreeMap::new();
 
-		let product: Product = Product::Stars(super::BoolOrInt::Bool(false));
+		let product: Product = Product::Stars(Some(super::BoolOrInt::Bool(false)));
 
 		let mut product_map: BTreeMap<String, Product> = BTreeMap::new();
 
@@ -179,22 +186,22 @@ mod tests {
 
 		let level_0_consumption = ImprovmentExtraConsumption {
 			development_material: 6,
-			development_material_x: 7,
+			development_material_x: StringOrInt::String("6".to_string()),
 			equipment: ImprovmentEquipConsumption::Bool(false),
 			improvement_material: 3,
-			improvement_material_x: 4,
+			improvement_material_x: StringOrInt::Int(4),
 		};
 
 		let level_6_consumption = ImprovmentExtraConsumption {
 			development_material: 5,
-			development_material_x: 8,
+			development_material_x: StringOrInt::Int(8),
 			equipment: ImprovmentEquipConsumption::Map({
 				let mut m = BTreeMap::new();
 				m.insert("10cm Twin High-angle Gun Mount".to_string(), 2);
 				m
 			}),
 			improvement_material: 4,
-			improvement_material_x: 7,
+			improvement_material_x: StringOrInt::Int(7),
 		};
 
 		product_map.insert("0".to_string(), Product::Level2Consumption(level_0_consumption));
@@ -206,13 +213,13 @@ mod tests {
 				m.insert(
 					"Akizuki/".to_string(),
 					WeekInfo {
-						friday: false,
-						monday: true,
-						saturday: false,
-						sunday: false,
-						thursday: true,
-						tuesday: true,
-						wednesday: true,
+						friday: Some(false),
+						monday: Some(true),
+						saturday: Some(false),
+						sunday: Some(false),
+						thursday: Some(true),
+						tuesday: Some(true),
+						wednesday: Some(true),
 					},
 				);
 				m
@@ -229,98 +236,63 @@ mod tests {
 	fn test_product() {
 		let raw = r#"
 {
-        "false": {
+        "F6F-3": {
           "0": {
-            "_development_material": 6,
-            "_development_material_x": 7,
-            "_equipment": false,
+            "_development_material": 3,
+            "_development_material_x": "6",
+            "_equipment": {
+              "Type 0 Fighter Model 21": 1
+            },
             "_improvement_material": 3,
-            "_improvement_material_x": 4
+            "_improvement_material_x": "4"
           },
           "6": {
-            "_development_material": 5,
+            "_development_material": 4,
             "_development_material_x": 8,
             "_equipment": {
-              "10cm Twin High-angle Gun Mount": 2
+              "Type 0 Fighter Model 32": 1
             },
-            "_improvement_material": 4,
-            "_improvement_material_x": 7
+            "_improvement_material": 3,
+            "_improvement_material_x": 6
+          },
+          "10": {
+            "_development_material": 8,
+            "_development_material_x": 16,
+            "_equipment": {
+              "Type 0 Fighter Model 52": 2
+            },
+            "_improvement_material": 6,
+            "_improvement_material_x": 9
           },
           "_ships": {
-            "Akizuki/": {
+            "Saratoga/": {
               "Friday": false,
               "Monday": true,
               "Saturday": false,
               "Sunday": false,
-              "Thursday": true,
-              "Tuesday": true,
-              "Wednesday": true
-            },
-            "Akizuki/Kai": {
-              "Friday": false,
-              "Monday": true,
-              "Saturday": false,
-              "Sunday": false,
-              "Thursday": true,
-              "Tuesday": true,
-              "Wednesday": true
-            },
-            "Hatsuzuki/": {
-              "Friday": false,
-              "Monday": true,
-              "Saturday": false,
-              "Sunday": false,
-              "Thursday": true,
-              "Tuesday": true,
-              "Wednesday": true
-            },
-            "Hatsuzuki/Kai": {
-              "Friday": false,
-              "Monday": true,
-              "Saturday": false,
-              "Sunday": false,
-              "Thursday": true,
-              "Tuesday": true,
-              "Wednesday": true
-            },
-            "Suzutsuki/": {
-              "Friday": true,
-              "Monday": true,
-              "Saturday": true,
-              "Sunday": true,
               "Thursday": false,
-              "Tuesday": false,
+              "Tuesday": true,
               "Wednesday": false
             },
-            "Suzutsuki/Kai": {
-              "Friday": true,
+            "Saratoga/Kai": {
+              "Friday": false,
               "Monday": true,
-              "Saturday": true,
-              "Sunday": true,
+              "Saturday": false,
+              "Sunday": false,
               "Thursday": false,
-              "Tuesday": false,
-              "Wednesday": false
+              "Tuesday": true,
+              "Wednesday": true
             },
-            "Teruzuki/": {
-              "Friday": true,
-              "Monday": false,
-              "Saturday": true,
-              "Sunday": true,
-              "Thursday": true,
-              "Tuesday": false,
-              "Wednesday": false
-            },
-            "Teruzuki/Kai": {
-              "Friday": true,
-              "Monday": false,
-              "Saturday": true,
-              "Sunday": true,
+            "Saratoga/Mk.II": {
+              "Friday": false,
+              "Monday": true,
+              "Saturday": false,
+              "Sunday": false,
               "Thursday": true,
               "Tuesday": false,
               "Wednesday": false
             }
-          },
-          "_stars": false
+          }
         }
       }
         "#;
