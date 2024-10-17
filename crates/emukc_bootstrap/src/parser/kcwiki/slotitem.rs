@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, path::Path};
 
+use emukc_model::prelude::Kc3rdSlotItem;
 use serde::{Deserialize, Serialize};
 
 use crate::parser::error::ParseError;
@@ -126,6 +127,8 @@ pub struct KcwikiSlotitem {
 	pub info: String,
 	#[serde(rename = "_japanese_name")]
 	pub japanese_name: String,
+	#[serde(rename = "_name")]
+	pub name: String,
 	#[serde(rename = "_special")]
 	pub special: BoolOrString,
 	#[serde(rename = "_bonus")]
@@ -144,16 +147,45 @@ pub struct KcwikiSlotitem {
 	pub asw_damage_type: Option<AswDamageType>,
 }
 
+fn parse_kcwiki_items(
+	src: impl AsRef<Path>,
+) -> Result<BTreeMap<String, KcwikiSlotitem>, ParseError> {
+	let src = src.as_ref();
+	trace!("parsing kcwiki slotitem extra info: {:?}", src);
+
+	let map: BTreeMap<String, KcwikiSlotitem> = serde_json::from_reader(std::fs::File::open(src)?)?;
+
+	Ok(map)
+}
+
+impl From<KcwikiSlotitem> for Kc3rdSlotItem {
+	fn from(value: KcwikiSlotitem) -> Self {
+		Self {
+			api_id: value.id,
+			name: value.japanese_name.to_string(),
+			info: value.info.to_string(),
+			buildable: value.buildable,
+		}
+	}
+}
+
 /// Parse the slot item extra info.
 ///
 /// # Arguments
 ///
 /// * `src` - The source directory.
-pub fn parse(src: impl AsRef<Path>) -> Result<BTreeMap<String, KcwikiSlotitem>, ParseError> {
-	let src = src.as_ref();
-	trace!("parsing kcwiki slotitem extra info: {:?}", src);
+pub fn parse(src: impl AsRef<Path>) -> Result<BTreeMap<i64, Kc3rdSlotItem>, ParseError> {
+	let wiki_map = parse_kcwiki_items(src)?;
+	println!("{}", wiki_map.len());
 
-	let map: BTreeMap<String, KcwikiSlotitem> = serde_json::from_reader(std::fs::File::open(src)?)?;
+	for (k, v) in wiki_map.iter() {
+		if k != &v.name {
+			println!("{} != {}", k, v.name);
+		}
+	}
+
+	let map: BTreeMap<i64, Kc3rdSlotItem> =
+		wiki_map.into_values().map(|v| (v.id, v.into())).collect();
 
 	Ok(map)
 }

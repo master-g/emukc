@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Slot item extra information
 /// This is what we actually using right now
+#[deprecated]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kc3rdSlotItemExtraInfo {
 	/// `api_id`, slot item id
