@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::Path};
 
-use emukc_model::prelude::Kc3rdSlotItem;
+use emukc_model::prelude::{Kc3rdSlotItem, Kc3rdSlotItemAswDamageType};
 use serde::{Deserialize, Serialize};
 
 use crate::parser::error::ParseError;
@@ -19,6 +19,15 @@ pub enum BoolOrInt {
 	Int(i64),
 }
 
+impl From<BoolOrInt> for Option<i64> {
+	fn from(b: BoolOrInt) -> Self {
+		match b {
+			BoolOrInt::Bool(_) => None,
+			BoolOrInt::Int(i) => Some(i),
+		}
+	}
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum StringOrInt {
@@ -32,6 +41,15 @@ pub enum AswDamageType {
 	Dcp,
 	#[serde(rename = "DCR")]
 	Dcr,
+}
+
+impl From<AswDamageType> for Kc3rdSlotItemAswDamageType {
+	fn from(value: AswDamageType) -> Self {
+		match value {
+			AswDamageType::Dcp => Self::DepthCargeProjector,
+			AswDamageType::Dcr => Self::DepthChargeRack,
+		}
+	}
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -162,11 +180,22 @@ impl From<KcwikiSlotitem> for Kc3rdSlotItem {
 	fn from(value: KcwikiSlotitem) -> Self {
 		Self {
 			api_id: value.id,
-			name: value.japanese_name.to_string(),
-			info: value.info.to_string(),
-			buildable: value.buildable,
+			name: value.japanese_name,
+			info: value.info,
+			craftable: value.buildable,
+			stars: value.stars,
+			flight_cost: value.flight_cost.and_then(Into::into),
+			flight_range: value.flight_range.and_then(Into::into),
+			can_attack_installations: value.can_attack_installations.unwrap_or(false),
+			asw_damage_type: value.asw_damage_type.map(Into::into),
 		}
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KcwikiSlotitemParsed {
+	pub map: BTreeMap<i64, Kc3rdSlotItem>,
+	pub wiki_map: BTreeMap<String, KcwikiSlotitem>,
 }
 
 /// Parse the slot item extra info.
@@ -174,25 +203,31 @@ impl From<KcwikiSlotitem> for Kc3rdSlotItem {
 /// # Arguments
 ///
 /// * `src` - The source directory.
-pub fn parse(src: impl AsRef<Path>) -> Result<BTreeMap<i64, Kc3rdSlotItem>, ParseError> {
+pub fn parse(src: impl AsRef<Path>) -> Result<KcwikiSlotitemParsed, ParseError> {
 	let wiki_map = parse_kcwiki_items(src)?;
-	println!("{}", wiki_map.len());
 
 	for (k, v) in wiki_map.iter() {
 		if k != &v.name {
-			println!("{} != {}", k, v.name);
+			error!("{} != {}", k, v.name);
+		}
+		if let Some(flight_cost) = &v.flight_cost {
+			trace!("{:?}", flight_cost);
 		}
 	}
 
 	let map: BTreeMap<i64, Kc3rdSlotItem> =
-		wiki_map.into_values().map(|v| (v.id, v.into())).collect();
+		wiki_map.clone().into_values().map(|v| (v.id, v.into())).collect();
 
-	Ok(map)
+	Ok(KcwikiSlotitemParsed {
+		map,
+		wiki_map,
+	})
 }
 
 #[cfg(test)]
 mod tests {
 	use std::collections::BTreeMap;
+	use test_log::test;
 
 	use crate::parser::kcwiki::slotitem::{
 		AswDamageType, ImprovmentEquipConsumption, ImprovmentExtraConsumption, Product,
@@ -202,8 +237,8 @@ mod tests {
 	#[test]
 	fn test_parse() {
 		let src = std::path::Path::new("../../.data/temp/kcwiki_slotitem.json");
-		let map = super::parse(src).unwrap();
-		println!("{:?}", map);
+		let parsed = super::parse(src).unwrap();
+		println!("{}, {}", parsed.map.len(), parsed.wiki_map.len());
 	}
 
 	#[test]

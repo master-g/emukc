@@ -17,6 +17,15 @@ pub type Kc3rdSlotItemExtraInfoMap = std::collections::BTreeMap<i64, Kc3rdSlotIt
 
 // TODO: modify the following struct to match the `KcWiki` slot item info
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum Kc3rdSlotItemAswDamageType {
+	/// DCP
+	DepthCargeProjector,
+
+	/// DCR
+	DepthChargeRack,
+}
+
 /// Slot item thirdparty information
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kc3rdSlotItem {
@@ -29,6 +38,24 @@ pub struct Kc3rdSlotItem {
 	/// info in picture book
 	pub info: String,
 
-	/// can be constructed
-	pub buildable: bool,
+	/// can be crafted
+	pub craftable: bool,
+
+	/// initial level
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub stars: Option<i64>,
+
+	/// flight cost
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub flight_cost: Option<i64>,
+
+	/// flight range
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub flight_range: Option<i64>,
+
+	/// can attack installations
+	pub can_attack_installations: bool,
+
+	/// asw damage type
+	pub asw_damage_type: Option<Kc3rdSlotItemAswDamageType>,
 }
