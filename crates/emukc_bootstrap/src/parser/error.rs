@@ -12,4 +12,7 @@ pub enum ParseError {
 
 	#[error("json error: {0}")]
 	Json(#[from] serde_json::Error),
+
+	#[error("key missing")]
+	KeyMissing,
 }

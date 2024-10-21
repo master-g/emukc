@@ -1,9 +1,15 @@
 use std::{collections::BTreeMap, path::Path};
 
-use emukc_model::prelude::{Kc3rdSlotItem, Kc3rdSlotItemAswDamageType};
+use emukc_model::prelude::{
+	Kc3rdSlotItem, Kc3rdSlotItemAswDamageType, Kc3rdSlotItemImproveBaseConsumption,
+	Kc3rdSlotItemImprovePerLevelConsumption, Kc3rdSlotItemImproveSecretary,
+	Kc3rdSlotItemImprovment,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::parser::error::ParseError;
+
+use super::ParseContext;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -12,7 +18,7 @@ pub enum BoolOrString {
 	String(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum BoolOrInt {
 	Bool(bool),
@@ -33,6 +39,15 @@ impl From<BoolOrInt> for Option<i64> {
 pub enum StringOrInt {
 	String(String),
 	Int(i64),
+}
+
+impl From<StringOrInt> for i64 {
+	fn from(b: StringOrInt) -> Self {
+		match b {
+			StringOrInt::String(s) => s.parse().unwrap(),
+			StringOrInt::Int(i) => i,
+		}
+	}
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -188,6 +203,7 @@ impl From<KcwikiSlotitem> for Kc3rdSlotItem {
 			flight_range: value.flight_range.and_then(Into::into),
 			can_attack_installations: value.can_attack_installations.unwrap_or(false),
 			asw_damage_type: value.asw_damage_type.map(Into::into),
+			improvement: None,
 		}
 	}
 }
@@ -198,181 +214,155 @@ pub struct KcwikiSlotitemParsed {
 	pub wiki_map: BTreeMap<String, KcwikiSlotitem>,
 }
 
+/// Parse the `kcwiki_slotitem.json` first-pass for EN name to `mst_id` mapping.
+pub(super) fn parse_slotitem_name_mapping(
+	src: impl AsRef<Path>,
+) -> Result<BTreeMap<String, i64>, ParseError> {
+	let src = src.as_ref();
+	trace!("parsing kcwiki slotitem for name mapping: {:?}", src);
+
+	#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+	struct Entry {
+		#[serde(rename = "_id")]
+		id: i64,
+
+		#[serde(rename = "_name")]
+		name: String,
+	}
+
+	let map: BTreeMap<String, Entry> = serde_json::from_reader(std::fs::File::open(src)?)?;
+
+	for (k, v) in map.iter() {
+		if k != &v.name {
+			error!("{} != {}", k, v.name);
+		}
+	}
+
+	let map = map.into_iter().map(|(k, v)| (k, v.id)).collect();
+
+	Ok(map)
+}
+
+fn parse_level_consumption(
+	context: &ParseContext,
+	info_map: &BTreeMap<String, Product>,
+) -> Result<Kc3rdSlotItemImprovePerLevelConsumption, ParseError> {
+	for (k, v) in info_map.iter() {
+		if let Product::Level2Consumption(consumption) = v {
+			return Ok(Kc3rdSlotItemImprovePerLevelConsumption {
+				dev_mat_min: consumption.development_material,
+				dev_mat_max: consumption.development_material_x.clone().into(),
+				screw_min: consumption.improvement_material,
+				screw_max: consumption.improvement_material_x.clone().into(),
+				slot_item_consumption: None,
+				use_item_consumption: None,
+			});
+		}
+	}
+
+	Err(ParseError::KeyMissing)
+}
+
 /// Parse the slot item extra info.
 ///
 /// # Arguments
 ///
 /// * `src` - The source directory.
-pub fn parse(src: impl AsRef<Path>) -> Result<KcwikiSlotitemParsed, ParseError> {
+pub(super) fn parse(
+	context: &ParseContext,
+	src: impl AsRef<Path>,
+) -> Result<KcwikiSlotitemParsed, ParseError> {
 	let wiki_map = parse_kcwiki_items(src)?;
+
+	let mut map: BTreeMap<i64, Kc3rdSlotItem> = BTreeMap::new();
 
 	for (k, v) in wiki_map.iter() {
 		if k != &v.name {
 			error!("{} != {}", k, v.name);
 		}
-		if let Some(flight_cost) = &v.flight_cost {
-			trace!("{:?}", flight_cost);
-		}
-	}
 
-	let map: BTreeMap<i64, Kc3rdSlotItem> =
-		wiki_map.clone().into_values().map(|v| (v.id, v.into())).collect();
+		let mut item: Kc3rdSlotItem = v.clone().into();
+
+		item.improvement =
+			match &v.improvements {
+				ImprovementsUnion::Bool(true) => {
+					info!("`{}` has improvements, but a boolean is not enough", k);
+					None
+				}
+				ImprovementsUnion::Bool(false) => None,
+				ImprovementsUnion::ImprovementsClass(info) => {
+					if info.products.is_empty() {
+						error!("`{}` has no products", k);
+						None
+					} else {
+						if info.products.len() > 1 {
+							let s = serde_json::to_string_pretty(&info.products).unwrap();
+							debug!("{}", s);
+						}
+
+						let base_consumption = {
+							let fuel: i64 = Into::<Option<i64>>::into(info.fuel).unwrap_or(0);
+							let ammo: i64 = Into::<Option<i64>>::into(info.ammo).unwrap_or(0);
+							let steel: i64 = Into::<Option<i64>>::into(info.steel).unwrap_or(0);
+							let bauxite: i64 = Into::<Option<i64>>::into(info.bauxite).unwrap_or(0);
+
+							Kc3rdSlotItemImproveBaseConsumption {
+								fuel,
+								ammo,
+								steel,
+								bauxite,
+							}
+						};
+
+						let mut first_half_consumption: Option<
+							Kc3rdSlotItemImprovePerLevelConsumption,
+						> = None;
+
+						for (next_key, info_map) in info.products.iter() {
+							for (kk, vv) in info_map.iter() {
+								if kk == "0" {
+									first_half_consumption =
+										parse_level_consumption(context, info_map)
+											.inspect_err(|e| {
+												error!("cannot parse first half consumption for `{}`: {}", k, e);
+											})
+											.ok();
+								}
+							}
+						}
+
+						Some(Kc3rdSlotItemImprovment {
+							base_consumption,
+							first_half_consumption: first_half_consumption.unwrap(),
+							second_half_consumption: Kc3rdSlotItemImprovePerLevelConsumption {
+								dev_mat_min: 0,
+								dev_mat_max: 0,
+								screw_min: 0,
+								screw_max: 0,
+								slot_item_consumption: None,
+								use_item_consumption: None,
+							},
+							secretary: vec![Kc3rdSlotItemImproveSecretary {
+								id: 0,
+								monday: false,
+								tuesday: false,
+								wednesday: false,
+								thursday: false,
+								friday: false,
+								saturday: false,
+								sunday: false,
+							}],
+							remodel_variants: None,
+						})
+					}
+				}
+			};
+
+		map.insert(v.id, item);
+	}
 
 	Ok(KcwikiSlotitemParsed {
 		map,
 		wiki_map,
 	})
-}
-
-#[cfg(test)]
-mod tests {
-	use std::collections::BTreeMap;
-	use test_log::test;
-
-	use crate::parser::kcwiki::slotitem::{
-		AswDamageType, ImprovmentEquipConsumption, ImprovmentExtraConsumption, Product,
-		StringOrInt, WeekInfo,
-	};
-
-	#[test]
-	fn test_parse() {
-		let src = std::path::Path::new("../../.data/temp/kcwiki_slotitem.json");
-		let parsed = super::parse(src).unwrap();
-		println!("{}, {}", parsed.map.len(), parsed.wiki_map.len());
-	}
-
-	#[test]
-	fn test_dcr() {
-		let a = AswDamageType::Dcr;
-		let v = vec![a];
-		let j = serde_json::to_string(&v).unwrap();
-		println!("{}", j);
-	}
-
-	#[test]
-	fn test_r_product() {
-		let mut map: BTreeMap<String, BTreeMap<String, Product>> = BTreeMap::new();
-
-		let product: Product = Product::Stars(Some(super::BoolOrInt::Bool(false)));
-
-		let mut product_map: BTreeMap<String, Product> = BTreeMap::new();
-
-		product_map.insert("_stars".to_string(), product);
-
-		let level_0_consumption = ImprovmentExtraConsumption {
-			development_material: 6,
-			development_material_x: StringOrInt::String("6".to_string()),
-			equipment: ImprovmentEquipConsumption::Bool(false),
-			improvement_material: 3,
-			improvement_material_x: StringOrInt::Int(4),
-		};
-
-		let level_6_consumption = ImprovmentExtraConsumption {
-			development_material: 5,
-			development_material_x: StringOrInt::Int(8),
-			equipment: ImprovmentEquipConsumption::Map({
-				let mut m = BTreeMap::new();
-				m.insert("10cm Twin High-angle Gun Mount".to_string(), 2);
-				m
-			}),
-			improvement_material: 4,
-			improvement_material_x: StringOrInt::Int(7),
-		};
-
-		product_map.insert("0".to_string(), Product::Level2Consumption(level_0_consumption));
-		product_map.insert("6".to_string(), Product::Level2Consumption(level_6_consumption));
-		product_map.insert(
-			"_ships".to_string(),
-			Product::Secretary2WeekInfo({
-				let mut m = BTreeMap::new();
-				m.insert(
-					"Akizuki/".to_string(),
-					WeekInfo {
-						friday: Some(false),
-						monday: Some(true),
-						saturday: Some(false),
-						sunday: Some(false),
-						thursday: Some(true),
-						tuesday: Some(true),
-						wednesday: Some(true),
-					},
-				);
-				m
-			}),
-		);
-
-		map.insert("false".to_string(), product_map);
-
-		let j = serde_json::to_string_pretty(&map).unwrap();
-		println!("{}", j);
-	}
-
-	#[test]
-	fn test_product() {
-		let raw = r#"
-{
-        "F6F-3": {
-          "0": {
-            "_development_material": 3,
-            "_development_material_x": "6",
-            "_equipment": {
-              "Type 0 Fighter Model 21": 1
-            },
-            "_improvement_material": 3,
-            "_improvement_material_x": "4"
-          },
-          "6": {
-            "_development_material": 4,
-            "_development_material_x": 8,
-            "_equipment": {
-              "Type 0 Fighter Model 32": 1
-            },
-            "_improvement_material": 3,
-            "_improvement_material_x": 6
-          },
-          "10": {
-            "_development_material": 8,
-            "_development_material_x": 16,
-            "_equipment": {
-              "Type 0 Fighter Model 52": 2
-            },
-            "_improvement_material": 6,
-            "_improvement_material_x": 9
-          },
-          "_ships": {
-            "Saratoga/": {
-              "Friday": false,
-              "Monday": true,
-              "Saturday": false,
-              "Sunday": false,
-              "Thursday": false,
-              "Tuesday": true,
-              "Wednesday": false
-            },
-            "Saratoga/Kai": {
-              "Friday": false,
-              "Monday": true,
-              "Saturday": false,
-              "Sunday": false,
-              "Thursday": false,
-              "Tuesday": true,
-              "Wednesday": true
-            },
-            "Saratoga/Mk.II": {
-              "Friday": false,
-              "Monday": true,
-              "Saturday": false,
-              "Sunday": false,
-              "Thursday": true,
-              "Tuesday": false,
-              "Wednesday": false
-            }
-          }
-        }
-      }
-        "#;
-
-		let m = serde_json::from_str::<BTreeMap<String, BTreeMap<String, Product>>>(raw).unwrap();
-		println!("{:?}", m);
-	}
 }
