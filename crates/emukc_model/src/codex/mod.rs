@@ -54,7 +54,7 @@ pub struct Codex {
 	pub ship_extra_info: thirdparty::Kc3rdShipExtraInfoMap,
 
 	/// thirdparty slot item extra info map.
-	pub slotitem_extra_info: thirdparty::Kc3rdSlotItemExtraInfoMap,
+	pub slotitem_extra_info: thirdparty::Kc3rdSlotItemMap,
 
 	/// ship remodel info map.
 	pub ship_remodel_info: kc2::remodel::KcShipRemodelRequirementMap,
@@ -147,7 +147,7 @@ impl Codex {
 		let slotitem_extra_info = {
 			let path = path.join(PATH_SLOTITEM_EXTRA_INFO);
 			let raw = std::fs::read_to_string(&path)?;
-			let data: Vec<thirdparty::Kc3rdSlotItemExtraInfo> = serde_json::from_str(&raw)?;
+			let data: Vec<thirdparty::Kc3rdSlotItem> = serde_json::from_str(&raw)?;
 			data.into_iter().map(|v| (v.api_id, v)).collect()
 		};
 

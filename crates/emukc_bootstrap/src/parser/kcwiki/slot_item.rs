@@ -2,8 +2,9 @@ use std::{collections::BTreeMap, path::Path};
 
 use emukc_model::prelude::{
 	Kc3rdSlotItem, Kc3rdSlotItemAswDamageType, Kc3rdSlotItemImproveBaseConsumption,
-	Kc3rdSlotItemImprovePerLevelConsumption, Kc3rdSlotItemImproveRequirements,
-	Kc3rdSlotItemImproveSecretary, Kc3rdSlotItemImprovment, Kc3rdSlotItemRemodelVariant,
+	Kc3rdSlotItemImproveItemConsumption, Kc3rdSlotItemImprovePerLevelConsumption,
+	Kc3rdSlotItemImproveRequirements, Kc3rdSlotItemImproveSecretary, Kc3rdSlotItemImprovment,
+	Kc3rdSlotItemRemodelVariant,
 };
 use serde::{Deserialize, Serialize};
 
@@ -269,16 +270,32 @@ fn parse_level_consumption(
 	product: &Product,
 ) -> Result<Kc3rdSlotItemImprovePerLevelConsumption, ParseError> {
 	if let Product::Level2Consumption(consumption) = product {
+		let mut slot_item_consumptions = vec![];
+		let mut use_item_consumptions = vec![];
+
 		match &consumption.equipment {
 			ImprovmentEquipConsumption::Bool(true) => {
 				error!("`{}` has equipment improvements, but a `true` is unexpected", mst_id);
 			}
 			ImprovmentEquipConsumption::Map(map) => {
 				for (k, v) in map.iter() {
-					if let Some(id) = context.find_slotitem_id(k) {
-						debug!("`{}` -> `{}`", k, id);
+					if k == "true" {
+						slot_item_consumptions.push(Kc3rdSlotItemImproveItemConsumption {
+							id: mst_id,
+							count: *v,
+						});
+					} else if let Some(id) = context.find_slotitem_id(k) {
+						slot_item_consumptions.push(Kc3rdSlotItemImproveItemConsumption {
+							id,
+							count: *v,
+						});
+					} else if let Some(id) = context.find_useitem_id(k) {
+						use_item_consumptions.push(Kc3rdSlotItemImproveItemConsumption {
+							id,
+							count: *v,
+						});
 					} else {
-						warn!("{} -> `{}` not found", mst_id, k);
+						error!("{} -> `{}` not found", mst_id, k);
 					}
 				}
 			}
@@ -290,8 +307,16 @@ fn parse_level_consumption(
 			dev_mat_max: consumption.development_material_x.clone().into(),
 			screw_min: consumption.improvement_material,
 			screw_max: consumption.improvement_material_x.clone().into(),
-			slot_item_consumption: None,
-			use_item_consumption: None,
+			slot_item_consumption: if slot_item_consumptions.is_empty() {
+				None
+			} else {
+				Some(slot_item_consumptions)
+			},
+			use_item_consumption: if use_item_consumptions.is_empty() {
+				None
+			} else {
+				Some(use_item_consumptions)
+			},
 		});
 	}
 
@@ -344,22 +369,22 @@ pub(super) fn parse(
 
 	let mut map: BTreeMap<i64, Kc3rdSlotItem> = BTreeMap::new();
 
-	for (k, v) in wiki_map.iter() {
-		if k != &v.name {
-			error!("{} != {}", k, v.name);
+	for (slot_item_en_name, wiki_item_obj) in wiki_map.iter() {
+		if slot_item_en_name != &wiki_item_obj.name {
+			error!("{} != {}", slot_item_en_name, wiki_item_obj.name);
 		}
 
-		let mut item: Kc3rdSlotItem = v.clone().into();
+		let mut item: Kc3rdSlotItem = wiki_item_obj.clone().into();
 
-		item.improvement = match &v.improvements {
+		item.improvement = match &wiki_item_obj.improvements {
 			ImprovementsUnion::Bool(true) => {
-				debug!("`{}` has improvements, but a boolean is not enough", k);
+				debug!("`{}` has improvements, but a boolean is not enough", slot_item_en_name);
 				None
 			}
 			ImprovementsUnion::Bool(false) => None,
 			ImprovementsUnion::ImprovementsClass(info) => {
 				if info.products.is_empty() {
-					error!("`{}` has no products", k);
+					error!("`{}` has no products", slot_item_en_name);
 					None
 				} else {
 					let base_consumption = {
@@ -388,29 +413,41 @@ pub(super) fn parse(
 								remodel: None,
 								secretary: vec![],
 							};
-							for (kk, vv) in info_map.iter() {
-								match kk.as_str() {
+							for (k, product) in info_map.iter() {
+								match k.as_str() {
 									"0" => {
 										level_consumption.first_half =
-											Some(parse_level_consumption(v.id, context, vv)?);
+											Some(parse_level_consumption(
+												wiki_item_obj.id,
+												context,
+												product,
+											)?);
 									}
 									"6" => {
 										level_consumption.second_half =
-											Some(parse_level_consumption(v.id, context, vv)?);
+											Some(parse_level_consumption(
+												wiki_item_obj.id,
+												context,
+												product,
+											)?);
 									}
 									"_ships" => {
-										level_consumption.secretary = parse_secretary(context, vv)?;
+										level_consumption.secretary =
+											parse_secretary(context, product)?;
 									}
 									"_stars" => {
 										// NOTHING TO DO
 									}
 									_ => {
-										error!("unknown key `{}` found in `{}`s `false`", kk, k);
+										error!(
+											"unknown key `{}` found in `{}`s `false`",
+											k, slot_item_en_name
+										);
 									}
 								}
 							}
 							if level_consumption.secretary.is_empty() {
-								error!("{}, has no secretary", k);
+								error!("{}, has no secretary", slot_item_en_name);
 							}
 							level_consumption_option = Some(level_consumption);
 						} else if let Some(slot_item_id) = context.find_slotitem_id(next_key) {
@@ -424,26 +461,38 @@ pub(super) fn parse(
 									secretary: vec![],
 								},
 							};
-							for (kk, vv) in info_map.iter() {
-								match kk.as_str() {
+							for (k, product) in info_map.iter() {
+								match k.as_str() {
 									"0" => {
 										variant.requirements.first_half =
-											Some(parse_level_consumption(v.id, context, vv)?);
+											Some(parse_level_consumption(
+												wiki_item_obj.id,
+												context,
+												product,
+											)?);
 									}
 									"6" => {
 										variant.requirements.second_half =
-											Some(parse_level_consumption(v.id, context, vv)?);
+											Some(parse_level_consumption(
+												wiki_item_obj.id,
+												context,
+												product,
+											)?);
 									}
 									"10" => {
 										variant.requirements.remodel =
-											Some(parse_level_consumption(v.id, context, vv)?);
+											Some(parse_level_consumption(
+												wiki_item_obj.id,
+												context,
+												product,
+											)?);
 									}
 									"_ships" => {
 										variant.requirements.secretary =
-											parse_secretary(context, vv)?;
+											parse_secretary(context, product)?;
 									}
 									"_stars" => {
-										if let Product::Stars(Some(stars)) = vv {
+										if let Product::Stars(Some(stars)) = product {
 											match stars {
 												BoolOrInt::Int(i) => {
 													variant.initial_stars = *i;
@@ -457,14 +506,14 @@ pub(super) fn parse(
 									_ => {
 										error!(
 											"unknown key `{}` found in `{}`s `{}`",
-											kk, k, next_key
+											k, slot_item_en_name, next_key
 										);
 									}
 								}
 							}
 							remodel_variants.push(variant);
 						} else {
-							warn!("`{}` -> `{}` not found", k, next_key);
+							warn!("`{}` -> `{}` not found", slot_item_en_name, next_key);
 						}
 					}
 
@@ -481,7 +530,7 @@ pub(super) fn parse(
 			}
 		};
 
-		map.insert(v.id, item);
+		map.insert(wiki_item_obj.id, item);
 	}
 
 	Ok(KcwikiSlotitemParsed {

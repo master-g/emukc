@@ -10,8 +10,9 @@ pub enum ResourceCategory {
 	MainJS,
 	KccpQuests,
 	KcData,
-	KcWikiDbSlotItem,
+	KcWikiSlotItem,
 	KcWikiShip,
+	KcWikiUseItem,
 	ShipsNedb,
 	TsunKitQuests,
 }
@@ -50,14 +51,8 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			save_as: "kc_data.zip",
 			unzip_to: Some("kc_data"),
 		},
-		Resource {
-			category: ResourceCategory::KcWikiDbSlotItem,
-			url: "https://github.com/kcwiki/kancolle-data/raw/master/db/equipment.json",
-			save_as: "kcwiki_db_slotitem.json",
-			unzip_to: None,
-		},
 		Resource{
-			category: ResourceCategory::KcWikiDbSlotItem,
+			category: ResourceCategory::KcWikiSlotItem,
 	 		url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/equipment.json",
 			save_as: "kcwiki_slotitem.json",
 			unzip_to: None,
@@ -66,6 +61,12 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			category:ResourceCategory::KcWikiShip,
 	 		url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/ship.json",
 	 		save_as: "kcwiki_ship.json",
+	 		unzip_to: None ,
+		},
+		Resource {
+			category:ResourceCategory::KcWikiUseItem,
+	 		url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/item.json",
+	 		save_as: "kcwiki_useitem.json",
 	 		unzip_to: None ,
 		},
 		Resource {

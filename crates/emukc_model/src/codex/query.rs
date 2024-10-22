@@ -1,8 +1,7 @@
 //! Querying trait for objects in the codex.
 
 use crate::prelude::{
-	ApiMstFurniture, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdShipBasic,
-	Kc3rdSlotItemExtraInfo,
+	ApiMstFurniture, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdShipBasic, Kc3rdSlotItem,
 };
 
 use super::{Codex, CodexError};
@@ -94,7 +93,7 @@ impl FoundInCodex for ApiMstUseitem {
 }
 
 // Kc3rdSlotItemExtraInfo
-impl FoundInCodex for Kc3rdSlotItemExtraInfo {
+impl FoundInCodex for Kc3rdSlotItem {
 	type Key = i64;
 
 	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {

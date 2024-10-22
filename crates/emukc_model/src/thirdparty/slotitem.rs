@@ -1,19 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-/// Slot item extra information
-/// This is what we actually using right now
-#[deprecated]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Kc3rdSlotItemExtraInfo {
-	/// `api_id`, slot item id
-	pub api_id: i64,
-
-	/// info in picture book
-	pub info: String,
-}
-
 /// Slot item extra information map
-pub type Kc3rdSlotItemExtraInfoMap = std::collections::BTreeMap<i64, Kc3rdSlotItemExtraInfo>;
+pub type Kc3rdSlotItemMap = std::collections::BTreeMap<i64, Kc3rdSlotItem>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Kc3rdSlotItemAswDamageType {
@@ -130,7 +118,6 @@ pub struct Kc3rdSlotItemImprovment {
 }
 
 /// Slot item thirdparty information
-// TODO: modify the following struct to match the `KcWiki` slot item info
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kc3rdSlotItem {
 	/// `api_id`, slot item id

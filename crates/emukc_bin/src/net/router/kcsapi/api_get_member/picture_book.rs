@@ -196,7 +196,7 @@ async fn item_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			Some(mst) => mst,
 			None => continue,
 		};
-		let extra = match codex.find::<Kc3rdSlotItemExtraInfo>(&mst.api_id) {
+		let extra = match codex.find::<Kc3rdSlotItem>(&mst.api_id) {
 			Ok(extra) => extra,
 			Err(_) => {
 				warn!("slotitem extra id {} not found or cannot be loaded", mst.api_id);
