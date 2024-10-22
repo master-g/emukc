@@ -10,46 +10,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::parser::error::ParseError;
 
-use super::ParseContext;
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum BoolOrString {
-	Bool(bool),
-	String(String),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum BoolOrInt {
-	Bool(bool),
-	Int(i64),
-}
-
-impl From<BoolOrInt> for Option<i64> {
-	fn from(b: BoolOrInt) -> Self {
-		match b {
-			BoolOrInt::Bool(_) => None,
-			BoolOrInt::Int(i) => Some(i),
-		}
-	}
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum StringOrInt {
-	String(String),
-	Int(i64),
-}
-
-impl From<StringOrInt> for i64 {
-	fn from(b: StringOrInt) -> Self {
-		match b {
-			StringOrInt::String(s) => s.parse().unwrap(),
-			StringOrInt::Int(i) => i,
-		}
-	}
-}
+use super::{
+	types::{BoolOrInt, BoolOrString, StringOrInt},
+	ParseContext,
+};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AswDamageType {
