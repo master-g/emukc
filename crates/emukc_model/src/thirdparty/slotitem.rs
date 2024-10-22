@@ -93,8 +93,23 @@ pub struct Kc3rdSlotItemRemodelVariant {
 	/// initial stars after fully improved and transform
 	pub initial_stars: i64,
 
-	/// consumption
-	pub consumption: Kc3rdSlotItemImprovePerLevelConsumption,
+	/// improvement requirements
+	pub requirements: Kc3rdSlotItemImproveRequirements,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Kc3rdSlotItemImproveRequirements {
+	/// level 0 to 5(inclusive) consumption
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub first_half: Option<Kc3rdSlotItemImprovePerLevelConsumption>,
+
+	/// level 6 to 9(inclusive) consumption
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub second_half: Option<Kc3rdSlotItemImprovePerLevelConsumption>,
+
+	/// remodel consumption
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub remodel: Option<Kc3rdSlotItemImprovePerLevelConsumption>,
 
 	/// secretary ship
 	pub secretary: Vec<Kc3rdSlotItemImproveSecretary>,
@@ -105,16 +120,12 @@ pub struct Kc3rdSlotItemImprovment {
 	/// base material consumption
 	pub base_consumption: Kc3rdSlotItemImproveBaseConsumption,
 
-	/// level 0 to 5(inclusive) consumption
-	pub first_half_consumption: Kc3rdSlotItemImprovePerLevelConsumption,
-
-	/// level 6 to 9(inclusive) consumption
-	pub second_half_consumption: Kc3rdSlotItemImprovePerLevelConsumption,
-
-	/// secretary ship
-	pub secretary: Vec<Kc3rdSlotItemImproveSecretary>,
+	/// level 0 to 9(inclusive) consumption
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub level_consumption: Option<Kc3rdSlotItemImproveRequirements>,
 
 	/// remodel variants
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub remodel_variants: Option<Vec<Kc3rdSlotItemRemodelVariant>>,
 }
 
@@ -134,6 +145,9 @@ pub struct Kc3rdSlotItem {
 	/// can be crafted
 	pub craftable: bool,
 
+	/// can attack installations
+	pub can_attack_installations: bool,
+
 	/// initial level
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub stars: Option<i64>,
@@ -146,12 +160,11 @@ pub struct Kc3rdSlotItem {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub flight_range: Option<i64>,
 
-	/// can attack installations
-	pub can_attack_installations: bool,
-
 	/// asw damage type
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub asw_damage_type: Option<Kc3rdSlotItemAswDamageType>,
 
 	/// improvement
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub improvement: Option<Kc3rdSlotItemImprovment>,
 }

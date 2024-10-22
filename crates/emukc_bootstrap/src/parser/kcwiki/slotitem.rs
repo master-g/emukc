@@ -2,8 +2,8 @@ use std::{collections::BTreeMap, path::Path};
 
 use emukc_model::prelude::{
 	Kc3rdSlotItem, Kc3rdSlotItemAswDamageType, Kc3rdSlotItemImproveBaseConsumption,
-	Kc3rdSlotItemImprovePerLevelConsumption, Kc3rdSlotItemImproveSecretary,
-	Kc3rdSlotItemImprovment,
+	Kc3rdSlotItemImprovePerLevelConsumption, Kc3rdSlotItemImproveRequirements,
+	Kc3rdSlotItemImproveSecretary, Kc3rdSlotItemImprovment, Kc3rdSlotItemRemodelVariant,
 };
 use serde::{Deserialize, Serialize};
 
@@ -82,7 +82,7 @@ pub struct EquipBonus {
 	pub torpedo: Option<i64>,
 }
 
-pub type EquipBonusMap = std::collections::BTreeMap<String, EquipBonus>;
+// pub type EquipBonusMap = std::collections::BTreeMap<String, EquipBonus>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -116,12 +116,16 @@ pub enum ImprovmentEquipConsumption {
 pub struct ImprovmentExtraConsumption {
 	#[serde(rename = "_development_material")]
 	pub development_material: i64,
+
 	#[serde(rename = "_development_material_x")]
 	pub development_material_x: StringOrInt,
+
 	#[serde(rename = "_equipment")]
 	pub equipment: ImprovmentEquipConsumption,
+
 	#[serde(rename = "_improvement_material")]
 	pub improvement_material: i64,
+
 	#[serde(rename = "_improvement_material_x")]
 	pub improvement_material_x: StringOrInt,
 }
@@ -138,12 +142,16 @@ pub enum Product {
 pub struct ImprovementsClass {
 	#[serde(rename = "_ammo")]
 	pub ammo: BoolOrInt,
+
 	#[serde(rename = "_bauxite")]
 	pub bauxite: BoolOrInt,
+
 	#[serde(rename = "_fuel")]
 	pub fuel: BoolOrInt,
+
 	#[serde(rename = "_products")]
 	pub products: BTreeMap<String, BTreeMap<String, Product>>,
+
 	#[serde(rename = "_steel")]
 	pub steel: BoolOrInt,
 }
@@ -152,32 +160,44 @@ pub struct ImprovementsClass {
 pub struct KcwikiSlotitem {
 	#[serde(rename = "_buildable")]
 	pub buildable: bool,
+
 	#[serde(rename = "_id")]
 	pub id: i64,
+
 	#[serde(rename = "_improvements")]
 	pub improvements: ImprovementsUnion,
+
 	#[serde(rename = "_info")]
 	pub info: String,
+
 	#[serde(rename = "_japanese_name")]
 	pub japanese_name: String,
+
 	#[serde(rename = "_name")]
 	pub name: String,
+
 	#[serde(rename = "_special")]
 	pub special: BoolOrString,
-	#[serde(rename = "_bonus")]
-	pub bonus: Option<EquipBonusMap>,
-	#[serde(rename = "_gun_fit_group")]
-	pub gun_fit_group: Option<String>,
+
 	#[serde(rename = "_flight_cost")]
 	pub flight_cost: Option<BoolOrInt>,
+
 	#[serde(rename = "_flight_range")]
 	pub flight_range: Option<BoolOrInt>,
+
 	#[serde(rename = "_stars")]
 	pub stars: Option<i64>,
+
 	#[serde(rename = "_can_attack_installations")]
 	pub can_attack_installations: Option<bool>,
+
 	#[serde(rename = "_asw_damage_type")]
 	pub asw_damage_type: Option<AswDamageType>,
+	// we are not there yet
+	// #[serde(rename = "_bonus")]
+	// pub bonus: Option<EquipBonusMap>,
+	// #[serde(rename = "_gun_fit_group")]
+	// pub gun_fit_group: Option<String>,
 }
 
 fn parse_kcwiki_items(
@@ -244,23 +264,71 @@ pub(super) fn parse_slotitem_name_mapping(
 }
 
 fn parse_level_consumption(
+	mst_id: i64,
 	context: &ParseContext,
-	info_map: &BTreeMap<String, Product>,
+	product: &Product,
 ) -> Result<Kc3rdSlotItemImprovePerLevelConsumption, ParseError> {
-	for (k, v) in info_map.iter() {
-		if let Product::Level2Consumption(consumption) = v {
-			return Ok(Kc3rdSlotItemImprovePerLevelConsumption {
-				dev_mat_min: consumption.development_material,
-				dev_mat_max: consumption.development_material_x.clone().into(),
-				screw_min: consumption.improvement_material,
-				screw_max: consumption.improvement_material_x.clone().into(),
-				slot_item_consumption: None,
-				use_item_consumption: None,
-			});
-		}
+	if let Product::Level2Consumption(consumption) = product {
+		match &consumption.equipment {
+			ImprovmentEquipConsumption::Bool(true) => {
+				error!("`{}` has equipment improvements, but a `true` is unexpected", mst_id);
+			}
+			ImprovmentEquipConsumption::Map(map) => {
+				for (k, v) in map.iter() {
+					if let Some(id) = context.find_slotitem_id(k) {
+						debug!("`{}` -> `{}`", k, id);
+					} else {
+						warn!("{} -> `{}` not found", mst_id, k);
+					}
+				}
+			}
+			_ => {}
+		};
+
+		return Ok(Kc3rdSlotItemImprovePerLevelConsumption {
+			dev_mat_min: consumption.development_material,
+			dev_mat_max: consumption.development_material_x.clone().into(),
+			screw_min: consumption.improvement_material,
+			screw_max: consumption.improvement_material_x.clone().into(),
+			slot_item_consumption: None,
+			use_item_consumption: None,
+		});
 	}
 
 	Err(ParseError::KeyMissing)
+}
+
+fn parse_secretary(
+	context: &ParseContext,
+	product: &Product,
+) -> Result<Vec<Kc3rdSlotItemImproveSecretary>, ParseError> {
+	let mut result = vec![];
+
+	if let Product::Secretary2WeekInfo(info) = product {
+		for (k, week_info) in info.iter() {
+			let id = if k == "true" {
+				// any ship will do
+				0
+			} else if let Some(id) = context.find_ship_id(k) {
+				id
+			} else {
+				warn!("ship `{}` not found", k);
+				continue;
+			};
+
+			result.push(Kc3rdSlotItemImproveSecretary {
+				id,
+				monday: week_info.monday.unwrap_or(false),
+				tuesday: week_info.tuesday.unwrap_or(false),
+				wednesday: week_info.wednesday.unwrap_or(false),
+				thursday: week_info.thursday.unwrap_or(false),
+				friday: week_info.friday.unwrap_or(false),
+				saturday: week_info.saturday.unwrap_or(false),
+				sunday: week_info.sunday.unwrap_or(false),
+			});
+		}
+	}
+	Ok(result)
 }
 
 /// Parse the slot item extra info.
@@ -283,80 +351,135 @@ pub(super) fn parse(
 
 		let mut item: Kc3rdSlotItem = v.clone().into();
 
-		item.improvement =
-			match &v.improvements {
-				ImprovementsUnion::Bool(true) => {
-					info!("`{}` has improvements, but a boolean is not enough", k);
+		item.improvement = match &v.improvements {
+			ImprovementsUnion::Bool(true) => {
+				debug!("`{}` has improvements, but a boolean is not enough", k);
+				None
+			}
+			ImprovementsUnion::Bool(false) => None,
+			ImprovementsUnion::ImprovementsClass(info) => {
+				if info.products.is_empty() {
+					error!("`{}` has no products", k);
 					None
-				}
-				ImprovementsUnion::Bool(false) => None,
-				ImprovementsUnion::ImprovementsClass(info) => {
-					if info.products.is_empty() {
-						error!("`{}` has no products", k);
-						None
-					} else {
-						if info.products.len() > 1 {
-							let s = serde_json::to_string_pretty(&info.products).unwrap();
-							debug!("{}", s);
+				} else {
+					let base_consumption = {
+						let fuel: i64 = Into::<Option<i64>>::into(info.fuel).unwrap_or(0);
+						let ammo: i64 = Into::<Option<i64>>::into(info.ammo).unwrap_or(0);
+						let steel: i64 = Into::<Option<i64>>::into(info.steel).unwrap_or(0);
+						let bauxite: i64 = Into::<Option<i64>>::into(info.bauxite).unwrap_or(0);
+
+						Kc3rdSlotItemImproveBaseConsumption {
+							fuel,
+							ammo,
+							steel,
+							bauxite,
 						}
+					};
 
-						let base_consumption = {
-							let fuel: i64 = Into::<Option<i64>>::into(info.fuel).unwrap_or(0);
-							let ammo: i64 = Into::<Option<i64>>::into(info.ammo).unwrap_or(0);
-							let steel: i64 = Into::<Option<i64>>::into(info.steel).unwrap_or(0);
-							let bauxite: i64 = Into::<Option<i64>>::into(info.bauxite).unwrap_or(0);
+					let mut level_consumption_option: Option<Kc3rdSlotItemImproveRequirements> =
+						None;
+					let mut remodel_variants = vec![];
 
-							Kc3rdSlotItemImproveBaseConsumption {
-								fuel,
-								ammo,
-								steel,
-								bauxite,
-							}
-						};
-
-						let mut first_half_consumption: Option<
-							Kc3rdSlotItemImprovePerLevelConsumption,
-						> = None;
-
-						for (next_key, info_map) in info.products.iter() {
+					for (next_key, info_map) in info.products.iter() {
+						if next_key == "false" {
+							let mut level_consumption = Kc3rdSlotItemImproveRequirements {
+								first_half: None,
+								second_half: None,
+								remodel: None,
+								secretary: vec![],
+							};
 							for (kk, vv) in info_map.iter() {
-								if kk == "0" {
-									first_half_consumption =
-										parse_level_consumption(context, info_map)
-											.inspect_err(|e| {
-												error!("cannot parse first half consumption for `{}`: {}", k, e);
-											})
-											.ok();
+								match kk.as_str() {
+									"0" => {
+										level_consumption.first_half =
+											Some(parse_level_consumption(v.id, context, vv)?);
+									}
+									"6" => {
+										level_consumption.second_half =
+											Some(parse_level_consumption(v.id, context, vv)?);
+									}
+									"_ships" => {
+										level_consumption.secretary = parse_secretary(context, vv)?;
+									}
+									"_stars" => {
+										// NOTHING TO DO
+									}
+									_ => {
+										error!("unknown key `{}` found in `{}`s `false`", kk, k);
+									}
 								}
 							}
+							if level_consumption.secretary.is_empty() {
+								error!("{}, has no secretary", k);
+							}
+							level_consumption_option = Some(level_consumption);
+						} else if let Some(slot_item_id) = context.find_slotitem_id(next_key) {
+							let mut variant = Kc3rdSlotItemRemodelVariant {
+								slot_item_id,
+								initial_stars: 0,
+								requirements: Kc3rdSlotItemImproveRequirements {
+									first_half: None,
+									second_half: None,
+									remodel: None,
+									secretary: vec![],
+								},
+							};
+							for (kk, vv) in info_map.iter() {
+								match kk.as_str() {
+									"0" => {
+										variant.requirements.first_half =
+											Some(parse_level_consumption(v.id, context, vv)?);
+									}
+									"6" => {
+										variant.requirements.second_half =
+											Some(parse_level_consumption(v.id, context, vv)?);
+									}
+									"10" => {
+										variant.requirements.remodel =
+											Some(parse_level_consumption(v.id, context, vv)?);
+									}
+									"_ships" => {
+										variant.requirements.secretary =
+											parse_secretary(context, vv)?;
+									}
+									"_stars" => {
+										if let Product::Stars(Some(stars)) = vv {
+											match stars {
+												BoolOrInt::Int(i) => {
+													variant.initial_stars = *i;
+												}
+												BoolOrInt::Bool(_) => {
+													variant.initial_stars = 0;
+												}
+											}
+										}
+									}
+									_ => {
+										error!(
+											"unknown key `{}` found in `{}`s `{}`",
+											kk, k, next_key
+										);
+									}
+								}
+							}
+							remodel_variants.push(variant);
+						} else {
+							warn!("`{}` -> `{}` not found", k, next_key);
 						}
-
-						Some(Kc3rdSlotItemImprovment {
-							base_consumption,
-							first_half_consumption: first_half_consumption.unwrap(),
-							second_half_consumption: Kc3rdSlotItemImprovePerLevelConsumption {
-								dev_mat_min: 0,
-								dev_mat_max: 0,
-								screw_min: 0,
-								screw_max: 0,
-								slot_item_consumption: None,
-								use_item_consumption: None,
-							},
-							secretary: vec![Kc3rdSlotItemImproveSecretary {
-								id: 0,
-								monday: false,
-								tuesday: false,
-								wednesday: false,
-								thursday: false,
-								friday: false,
-								saturday: false,
-								sunday: false,
-							}],
-							remodel_variants: None,
-						})
 					}
+
+					Some(Kc3rdSlotItemImprovment {
+						base_consumption,
+						level_consumption: level_consumption_option,
+						remodel_variants: if remodel_variants.is_empty() {
+							None
+						} else {
+							Some(remodel_variants)
+						},
+					})
 				}
-			};
+			}
+		};
 
 		map.insert(v.id, item);
 	}

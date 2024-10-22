@@ -17,11 +17,27 @@ struct ParseContext {
 
 impl ParseContext {
 	pub fn find_slotitem_id(&self, name: &str) -> Option<i64> {
-		self.slotitem_name_map.get(name).copied()
+		let key = if name.ends_with('*') {
+			name.strip_suffix('*').unwrap()
+		} else if name.ends_with("Ni") {
+			&name.replace("Ni", "2")
+		} else if name.contains('_') {
+			&name.replace('_', " ")
+		} else {
+			name
+		};
+		self.slotitem_name_map.get(key).copied()
 	}
 
 	pub fn find_ship_id(&self, name: &str) -> Option<i64> {
-		self.ship_name_map.get(name).copied()
+		let key = if name.ends_with('/') {
+			name.strip_suffix('/').unwrap()
+		} else if name.contains('/') {
+			&name.replace('/', " ").replace("Carrier", "Kou")
+		} else {
+			name
+		};
+		self.ship_name_map.get(key).copied()
 	}
 }
 
@@ -70,6 +86,10 @@ mod tests {
 			std::path::Path::new("../../.data/temp/kcwiki_slotitem.json"),
 		)
 		.unwrap();
+
+		let raw = serde_json::to_string_pretty(&map.map).unwrap();
+		// save to file
+		std::fs::write("../../.data/temp/kcwiki_slotitem_parsed.json", raw).unwrap();
 		println!("slotitem: {}", map.map.len());
 	}
 }
