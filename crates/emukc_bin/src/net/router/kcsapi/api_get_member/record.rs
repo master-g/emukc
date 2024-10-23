@@ -62,10 +62,17 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	let air_base_info = state.0.get_airbase_info(pid).await?;
+	let air_bases = state.0.get_airbases(pid).await?;
+	let api_air_base_expanded_info = air_bases
+		.iter()
+		.map(|v| AirBaseExpandedInfo {
+			api_area_id: v.area_id,
+			api_maintenance_level: v.maintenance_level,
+		})
+		.collect();
 
 	Ok(KcApiResponse::success(&Record {
-		api_air_base_expanded_info: todo!(),
+		api_air_base_expanded_info,
 		api_cmt: todo!(),
 		api_cmt_id: todo!(),
 		api_complate: todo!(),

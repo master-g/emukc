@@ -3,7 +3,7 @@ use emukc_db::{
 	entity::profile::airbase::{base, plane as plane_db},
 	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait},
 };
-use emukc_model::kc2::{KcApiAirBase, KcApiDistance, KcApiPlaneInfo};
+use emukc_model::profile::airbase::Airbase;
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -31,7 +31,7 @@ pub trait AirbaseOps {
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
-	async fn get_airbases(&self, profile_id: i64) -> Result<Vec<KcApiAirBase>, GameplayError>;
+	async fn get_airbases(&self, profile_id: i64) -> Result<Vec<Airbase>, GameplayError>;
 }
 
 #[async_trait]
@@ -52,53 +52,25 @@ impl<T: HasContext + ?Sized> AirbaseOps for T {
 		Ok(())
 	}
 
-	async fn get_airbases(&self, profile_id: i64) -> Result<Vec<KcApiAirBase>, GameplayError> {
+	async fn get_airbases(&self, profile_id: i64) -> Result<Vec<Airbase>, GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let (base_models, plane_models) = get_airbases_impl(&tx, profile_id).await?;
+		let models = get_airbases_impl(&tx, profile_id).await?;
 
-		let mut airbases = Vec::new();
-		for m in base_models.iter() {
-			let api_plane_info = plane_models
-				.iter()
-				.filter(|p| p.rid == m.rid)
-				.map(|p| KcApiPlaneInfo {
-					api_count: if p.count > 0 {
-						Some(p.count)
-					} else {
-						None
-					},
-					api_state: p.state as i64,
-					api_cond: if p.condition > 0 {
-						Some(p.condition)
-					} else {
-						None
-					},
-					api_max_count: if p.max_count > 0 {
-						Some(p.max_count)
-					} else {
-						None
-					},
-					api_slotid: p.slot_id,
-					api_squadron_id: p.squadron_id,
-				})
-				.collect();
-
-			let base = KcApiAirBase {
-				api_action_kind: m.action as i64,
-				api_area_id: m.area_id,
-				api_distance: KcApiDistance {
-					api_base: m.base_range,
-					api_bonus: m.bonus_range,
-				},
-				api_name: m.name.clone(),
-				api_plane_info,
-				api_rid: m.rid,
-			};
-
-			airbases.push(base);
-		}
+		let airbases = models
+			.iter()
+			.map(|v| Airbase {
+				id: v.id,
+				area_id: v.area_id,
+				rid: v.rid,
+				action: v.action.into(),
+				base_range: v.base_range,
+				bonus_range: v.bonus_range,
+				name: v.name.clone(),
+				maintenance_level: v.maintenance_level,
+			})
+			.collect();
 
 		Ok(airbases)
 	}
@@ -141,10 +113,7 @@ where
 	Ok(m)
 }
 
-pub async fn get_airbases_impl<C>(
-	c: &C,
-	profile_id: i64,
-) -> Result<(Vec<base::Model>, Vec<plane_db::Model>), GameplayError>
+pub async fn get_airbases_impl<C>(c: &C, profile_id: i64) -> Result<Vec<base::Model>, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -154,10 +123,7 @@ where
 		.all(c)
 		.await?;
 
-	let plane_models =
-		plane_db::Entity::find().filter(plane_db::Column::ProfileId.eq(profile_id)).all(c).await?;
-
-	Ok((models, plane_models))
+	Ok(models)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
