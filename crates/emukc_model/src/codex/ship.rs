@@ -3,7 +3,7 @@
 use crate::{
 	fields::MoveValueToEnd,
 	kc2::{KcApiShip, KcApiSlotItem, KcShipType},
-	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShipBasic, Kc3rdShipExtraInfo},
+	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo},
 };
 
 use super::{Codex, CodexError};
@@ -16,23 +16,19 @@ impl Codex {
 	/// * `mst_id` - The ship manifest ID.
 	pub fn new_ship(&self, mst_id: i64) -> Option<(KcApiShip, Vec<KcApiSlotItem>)> {
 		let mst = self.manifest.find_ship(mst_id)?;
-		let basic = self.ship_basic.get(&mst_id)?;
+		let basic = self.ship_extra.get(&mst_id)?;
 
 		let mut api_onslot = [0; 5];
-		for (i, slot) in basic.slots.iter().enumerate() {
-			api_onslot[i] = *slot;
-		}
-
 		let mut slot_items: Vec<KcApiSlotItem> = Vec::new();
-		for equip in basic.equip.iter() {
-			let slot_item = KcApiSlotItem {
+		for (i, slot_info) in basic.slots.iter().enumerate() {
+			api_onslot[i] = slot_info.onslot;
+			slot_items.push(KcApiSlotItem {
 				api_id: 0,
-				api_slotitem_id: equip.api_id,
+				api_slotitem_id: slot_info.item_id,
 				api_locked: 0,
-				api_level: equip.star,
+				api_level: slot_info.stars,
 				api_alv: None,
-			};
-			slot_items.push(slot_item);
+			});
 		}
 
 		let api_nowhp = mst.api_taik.as_ref().unwrap()[0];
@@ -96,7 +92,7 @@ impl Codex {
 		slot_items: &[KcApiSlotItem],
 	) -> Result<(), CodexError> {
 		let mst = self.find_ship_mst(ship.api_ship_id)?;
-		let basic = self.find_ship_basic(ship.api_ship_id)?;
+		let basic = self.find_ship_extra(ship.api_ship_id)?;
 
 		// recalculating ship repair status
 		self.cal_damage_status(mst, ship)?;
@@ -231,11 +227,11 @@ impl Codex {
 		&self,
 		ship: &KcApiShip,
 		mst: Option<&ApiMstShip>,
-		basic: Option<&Kc3rdShipBasic>,
+		basic: Option<&Kc3rdShip>,
 	) -> Result<Vec<i64>, CodexError> {
 		let mst = mst.map_or_else(|| self.find_ship_mst(ship.api_ship_id), Ok)?;
 
-		let basic = basic.map_or_else(|| self.find_ship_basic(ship.api_ship_id), Ok)?;
+		let basic = basic.map_or_else(|| self.find_ship_extra(ship.api_ship_id), Ok)?;
 
 		let mst_houg = mst.api_houg.unwrap_or([0, 0]);
 		let mst_raig = mst.api_raig.unwrap_or([0, 0]);
@@ -335,14 +331,17 @@ impl Codex {
 		self.ship_and_after(first_ship_id)
 	}
 
-	/// Get ship extra info
+	/// Get ship picturebook info
 	///
 	/// # Arguments
 	///
 	/// * `mst_id` - The ship manifest ID.
-	pub fn find_ship_extra(&self, mst_id: i64) -> Result<&Kc3rdShipExtraInfo, CodexError> {
-		let extra = self.ship_extra_info.get(&mst_id).ok_or(CodexError::NotFound(format!(
-			"ship extra id {} not found in thirdparty",
+	pub fn find_ship_picturebook(
+		&self,
+		mst_id: i64,
+	) -> Result<&Kc3rdShipPicturebookInfo, CodexError> {
+		let extra = self.ship_picturebook.get(&mst_id).ok_or(CodexError::NotFound(format!(
+			"ship picturebook info id {} not found in thirdparty",
 			mst_id
 		)))?;
 
@@ -471,14 +470,14 @@ impl Codex {
 			.ok_or(CodexError::NotFound(format!("ship manifest ID: {}", ship_id)))
 	}
 
-	/// Find the ship basic information.
+	/// Find the ship extra information.
 	///
 	/// # Arguments
 	///
 	/// * `ship_id` - The ship ID.
-	pub fn find_ship_basic(&self, ship_id: i64) -> Result<&Kc3rdShipBasic, CodexError> {
-		self.ship_basic
+	pub fn find_ship_extra(&self, ship_id: i64) -> Result<&Kc3rdShip, CodexError> {
+		self.ship_extra
 			.get(&ship_id)
-			.ok_or(CodexError::NotFound(format!("ship basic ID: {}", ship_id)))
+			.ok_or(CodexError::NotFound(format!("ship extra ID: {}", ship_id)))
 	}
 }

@@ -113,11 +113,11 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			}
 		};
 
-		let basic = match codex.find_ship_basic(mst.api_id) {
+		let basic = match codex.find_ship_extra(mst.api_id) {
 			Ok(basic) => basic,
 			Err(_) => &{
-				warn!("ship basic id {} not found or cannot be loaded", mst.api_id);
-				Kc3rdShipBasic {
+				warn!("ship extra id {} not found or cannot be loaded", mst.api_id);
+				Kc3rdShip {
 					api_id: mst.api_id,
 					kaih: [-1, -1],
 					tais: [-1, -1],
@@ -125,16 +125,22 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 					luck: [-1, -1],
 					cnum: 1,
 					slots: vec![],
-					equip: vec![],
+					luck_bonus: 0f64,
+					armor_bonus: 0,
+					buildable: false,
+					buildable_lsc: false,
+					remodel: None,
+					remodel_back_to: 0,
+					remodel_back_requirement: None,
 				}
 				// continue;
 			},
 		};
 
-		let extra = match codex.find_ship_extra(mst.api_id) {
-			Ok(extra) => extra,
+		let picturebook_info = match codex.find_ship_picturebook(mst.api_id) {
+			Ok(picturebook_info) => picturebook_info,
 			Err(_) => {
-				warn!("ship extra id {} not found or cannot be loaded", mst.api_id);
+				warn!("ship picturebook id {} not found or cannot be loaded", mst.api_id);
 				continue;
 			}
 		};
@@ -175,7 +181,7 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			api_tyku: mst.api_tyku.as_ref().map(|v| v[0]),
 			api_tais: mst.api_tais.as_ref().map(|v| v[0]),
 			api_leng: mst.api_leng,
-			api_sinfo: extra.info.clone(), // TODO: add <br> for text that is too long
+			api_sinfo: picturebook_info.info.clone(),
 		})
 	}
 

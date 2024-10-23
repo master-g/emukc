@@ -11,14 +11,11 @@ use super::error::ParseError;
 fn parse_ship_info(
 	src: impl AsRef<Path>,
 	manifest: &ApiManifest,
-) -> Result<Kc3rdShipExtraInfoMap, ParseError> {
+) -> Result<Kc3rdShipPicturebookInfoMap, ParseError> {
 	#[derive(Debug, Serialize, Deserialize)]
 	struct KcWikiZhShip {
 		id: i64,
 		book_sinfo: String,
-		cnum: i64,
-		can_drop: bool,
-		can_construct: bool,
 	}
 
 	#[derive(Debug, Serialize, Deserialize)]
@@ -33,7 +30,7 @@ fn parse_ship_info(
 	let yaml_files: Vec<DirEntry> =
 		dir.filter_map(Result::ok).filter(|entry| entry.path().is_file()).collect();
 
-	let mut map: Kc3rdShipExtraInfoMap = Kc3rdShipExtraInfoMap::new();
+	let mut map: Kc3rdShipPicturebookInfoMap = Kc3rdShipPicturebookInfoMap::new();
 
 	trace!("parsing ship files");
 	for entry in yaml_files {
@@ -58,11 +55,9 @@ fn parse_ship_info(
 
 				map.insert(
 					ship.data.id,
-					Kc3rdShipExtraInfo {
+					Kc3rdShipPicturebookInfo {
 						api_id: ship.data.id,
 						info: ship.data.book_sinfo.clone(),
-						droppable: ship.data.can_drop,
-						buildable: ship.data.can_construct,
 					},
 				);
 			}
@@ -137,7 +132,7 @@ fn parse_ship_class(
 pub fn parse(
 	src: impl AsRef<Path>,
 	manifest: &ApiManifest,
-) -> Result<(Kc3rdShipExtraInfoMap, Kc3rdShipClassNameMap), ParseError> {
+) -> Result<(Kc3rdShipPicturebookInfoMap, Kc3rdShipClassNameMap), ParseError> {
 	let src = src.as_ref();
 	trace!("parsing kcwikizh kcdata: {:?}", src);
 

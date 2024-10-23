@@ -1,6 +1,6 @@
 //! `KCWiki` data parser
 
-use emukc_model::prelude::{ApiManifest, Kc3rdSlotItemMap};
+use emukc_model::prelude::{ApiManifest, Kc3rdShipMap, Kc3rdSlotItemMap};
 
 use super::error::ParseError;
 
@@ -109,7 +109,7 @@ fn prepare_context(src: impl AsRef<std::path::Path>) -> Result<ParseContext, Par
 pub fn parse(
 	src: impl AsRef<std::path::Path>,
 	_manifest: &ApiManifest,
-) -> Result<Kc3rdSlotItemMap, ParseError> {
+) -> Result<(Kc3rdShipMap, Kc3rdSlotItemMap), ParseError> {
 	let context = prepare_context(&src)?;
 
 	let slot_item_parsed = {
@@ -117,12 +117,12 @@ pub fn parse(
 		slot_item::parse(&context, &json_path)?
 	};
 
-	let _ship_parsed = {
+	let ship_parsed = {
 		let json_path = src.as_ref().join("kcwiki_ship.json");
 		ship::parse(&context, &json_path)?
 	};
 
-	Ok(slot_item_parsed.map)
+	Ok((ship_parsed, slot_item_parsed.map))
 }
 
 #[cfg(test)]

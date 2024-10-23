@@ -5,7 +5,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
-use emukc_model::prelude::Kc3rdShipBasic;
+use emukc_model::prelude::Kc3rdShip;
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 
@@ -31,7 +31,7 @@ async fn foo() {
 	let (context, _, _) = new_game_session().await;
 
 	let codex = context.codex();
-	let basic = codex.find::<Kc3rdShipBasic>(&966).unwrap();
+	let basic = codex.find::<Kc3rdShip>(&966).unwrap();
 	println!("{:?}", basic);
 }
 

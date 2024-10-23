@@ -44,20 +44,17 @@ pub struct Codex {
 	/// KC2 API manifest.
 	pub manifest: kc2::start2::ApiManifest,
 
-	/// thirdparty ship basic info map.
-	pub ship_basic: thirdparty::Kc3rdShipBasicMap,
+	/// thirdparty ship extra info map.
+	pub ship_extra: thirdparty::Kc3rdShipMap,
 
 	/// thirdparty ship class name map.
 	pub ship_class_name: thirdparty::Kc3rdShipClassNameMap,
 
-	/// thirdparty ship extra info map.
-	pub ship_extra_info: thirdparty::Kc3rdShipExtraInfoMap,
+	/// thirdparty ship picturebook info map.
+	pub ship_picturebook: thirdparty::Kc3rdShipPicturebookInfoMap,
 
 	/// thirdparty slot item extra info map.
 	pub slotitem_extra_info: thirdparty::Kc3rdSlotItemMap,
-
-	/// ship remodel info map.
-	pub ship_remodel_info: kc2::remodel::KcShipRemodelRequirementMap,
 
 	/// thirdparty picturebook extra info.
 	pub picturebook_extra: thirdparty::Kc3rdPicturebookExtra,
@@ -74,11 +71,10 @@ pub struct Codex {
 }
 
 const PATH_START2: &str = "start2.json";
-const PATH_SHIP_BASIC: &str = "ship_basic.json";
+const PATH_SHIP_EXTRA: &str = "ship_extra.json";
 const PATH_SHIP_CLASS_NAME: &str = "ship_class_name.json";
-const PATH_SHIP_EXTRA_INFO: &str = "ship_extra_info.json";
+const PATH_SHIP_PICTUREBOOK: &str = "ship_picturebook.json";
 const PATH_SLOTITEM_EXTRA_INFO: &str = "slotitem_extra_info.json";
-const PATH_SHIP_REMODEL_INFO: &str = "ship_remodel_info.json";
 const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
@@ -123,10 +119,10 @@ impl Codex {
 			kc2::start2::ApiManifest::from_str(&raw)?
 		};
 
-		let ship_basic = {
-			let path = path.join(PATH_SHIP_BASIC);
+		let ship_extra = {
+			let path = path.join(PATH_SHIP_EXTRA);
 			let raw = std::fs::read_to_string(&path)?;
-			let data: Vec<thirdparty::Kc3rdShipBasic> = serde_json::from_str(&raw)?;
+			let data: Vec<thirdparty::Kc3rdShip> = serde_json::from_str(&raw)?;
 			data.into_iter().map(|v| (v.api_id, v)).collect()
 		};
 
@@ -137,10 +133,10 @@ impl Codex {
 			data.into_iter().map(|v| (v.api_id, v)).collect()
 		};
 
-		let ship_extra_info = {
-			let path = path.join(PATH_SHIP_EXTRA_INFO);
+		let ship_picturebook = {
+			let path = path.join(PATH_SHIP_PICTUREBOOK);
 			let raw = std::fs::read_to_string(&path)?;
-			let data: Vec<thirdparty::Kc3rdShipExtraInfo> = serde_json::from_str(&raw)?;
+			let data: Vec<thirdparty::Kc3rdShipPicturebookInfo> = serde_json::from_str(&raw)?;
 			data.into_iter().map(|v| (v.api_id, v)).collect()
 		};
 
@@ -149,13 +145,6 @@ impl Codex {
 			let raw = std::fs::read_to_string(&path)?;
 			let data: Vec<thirdparty::Kc3rdSlotItem> = serde_json::from_str(&raw)?;
 			data.into_iter().map(|v| (v.api_id, v)).collect()
-		};
-
-		let ship_remodel_info = {
-			let path = path.join(PATH_SHIP_REMODEL_INFO);
-			let raw = std::fs::read_to_string(&path)?;
-			let data: Vec<kc2::remodel::KcShipRemodelRequirement> = serde_json::from_str(&raw)?;
-			data.into_iter().map(|v| ((v.id_from, v.id_to), v)).collect()
 		};
 
 		let picturebook_extra = {
@@ -175,11 +164,10 @@ impl Codex {
 
 		Ok(Codex {
 			manifest,
-			ship_basic,
+			ship_extra,
 			ship_class_name,
-			ship_extra_info,
+			ship_picturebook,
 			slotitem_extra_info,
-			ship_remodel_info,
 			picturebook_extra,
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
 			quest,
@@ -215,13 +203,13 @@ impl Codex {
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
 		}
-		// ship basic
+		// ship extra
 		{
-			let path = dst.join(PATH_SHIP_BASIC);
+			let path = dst.join(PATH_SHIP_EXTRA);
 			if path.exists() && !overwrite {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
-			let data = self.ship_basic.values().collect::<Vec<_>>();
+			let data = self.ship_extra.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
 		// ship class name
@@ -233,13 +221,13 @@ impl Codex {
 			let data = self.ship_class_name.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
-		// ship extra info
+		// ship picturebook
 		{
-			let path = dst.join(PATH_SHIP_EXTRA_INFO);
+			let path = dst.join(PATH_SHIP_PICTUREBOOK);
 			if path.exists() && !overwrite {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
-			let data = self.ship_extra_info.values().collect::<Vec<_>>();
+			let data = self.ship_picturebook.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
 		// slotitem extra info
@@ -249,15 +237,6 @@ impl Codex {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.slotitem_extra_info.values().collect::<Vec<_>>();
-			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-		}
-		// ship remodel info
-		{
-			let path = dst.join(PATH_SHIP_REMODEL_INFO);
-			if path.exists() && !overwrite {
-				return Err(CodexError::AlreadyExist(path.display().to_string()));
-			}
-			let data = self.ship_remodel_info.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
 		// picturebook extra info
