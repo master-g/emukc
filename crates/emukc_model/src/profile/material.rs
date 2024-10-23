@@ -180,29 +180,20 @@ impl MaterialConfig {
 	///
 	/// * `material` - The material to apply hard cap
 	pub fn apply_hard_cap(&self, material: &mut Material) {
-		if material.fuel > self.primary_resource_hard_cap {
-			material.fuel = self.primary_resource_hard_cap;
+		for res in
+			[&mut material.fuel, &mut material.ammo, &mut material.steel, &mut material.bauxite]
+		{
+			if *res > self.primary_resource_hard_cap {
+				*res = self.primary_resource_hard_cap;
+			}
 		}
-		if material.ammo > self.primary_resource_hard_cap {
-			material.ammo = self.primary_resource_hard_cap;
-		}
-		if material.steel > self.primary_resource_hard_cap {
-			material.steel = self.primary_resource_hard_cap;
-		}
-		if material.bauxite > self.primary_resource_hard_cap {
-			material.bauxite = self.primary_resource_hard_cap;
-		}
-		if material.torch > self.special_resource_cap {
-			material.torch = self.special_resource_cap;
-		}
-		if material.bucket > self.special_resource_cap {
-			material.bucket = self.special_resource_cap;
-		}
-		if material.devmat > self.special_resource_cap {
-			material.devmat = self.special_resource_cap;
-		}
-		if material.screw > self.special_resource_cap {
-			material.screw = self.special_resource_cap;
+
+		for res in
+			[&mut material.torch, &mut material.bucket, &mut material.devmat, &mut material.screw]
+		{
+			if *res > self.special_resource_cap {
+				*res = self.special_resource_cap;
+			}
 		}
 	}
 
@@ -231,18 +222,15 @@ impl MaterialConfig {
 		let diff = now.timestamp_millis() - material.last_update_primary.timestamp_millis();
 		if diff >= self.primary_resource_regenerate_rate {
 			let replenish = diff / self.primary_resource_regenerate_rate;
-			material.fuel += replenish;
-			material.ammo += replenish;
-			material.steel += replenish;
-			if material.fuel > soft_cap {
-				material.fuel = soft_cap;
+			for resource in [&mut material.fuel, &mut material.ammo, &mut material.steel] {
+				if *resource < soft_cap {
+					*resource += replenish;
+					if *resource > soft_cap {
+						*resource = soft_cap;
+					}
+				}
 			}
-			if material.ammo > soft_cap {
-				material.ammo = soft_cap;
-			}
-			if material.steel > soft_cap {
-				material.steel = soft_cap;
-			}
+
 			material.last_update_primary = now;
 		}
 

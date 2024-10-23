@@ -457,14 +457,7 @@ pub(super) fn parse(
 									}
 									"_stars" => {
 										if let Product::Stars(Some(stars)) = product {
-											match stars {
-												BoolOrInt::Int(i) => {
-													variant.initial_stars = *i;
-												}
-												BoolOrInt::Bool(_) => {
-													variant.initial_stars = 0;
-												}
-											}
+											variant.initial_stars = (*stars).into();
 										}
 									}
 									_ => {

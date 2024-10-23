@@ -89,12 +89,11 @@ pub struct Kc3rdShipSlotInfo {
 	pub stars: i64,
 }
 
-/// A ship remodel requirement.
-/// Extracted from the `main.js`.
+/// Requirement needed for remodeling to this ship
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kc3rdShipRemodelRequirement {
-	/// ship id after remodel
-	pub after_id: i64,
+	/// level requirement
+	pub level: i64,
 
 	/// ammo consumption, `api_afterbull`
 	pub ammo: i64,
@@ -103,7 +102,7 @@ pub struct Kc3rdShipRemodelRequirement {
 	pub steel: i64,
 
 	/// `Blueprint` consumption
-	pub drawing: i64,
+	pub blueprint: i64,
 
 	/// `ProtoCatapult` consumption
 	pub catapult: i64,
@@ -124,7 +123,7 @@ pub struct Kc3rdShipRemodelRequirement {
 	pub artillery: i64,
 
 	/// `NewArmamentMaterial` consumption
-	pub arms: i64,
+	pub armament: i64,
 
 	/// `Boiler` consumption
 	pub boiler: i64,
@@ -168,4 +167,15 @@ pub struct Kc3rdShip {
 	/// `slots.len()`: how many slots the ship has
 	/// `slots[n]`: how many aircraft the n-th slot can hold
 	pub slots: Vec<Kc3rdShipSlotInfo>,
+
+	/// requirement to remodel to this ship
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub remodel: Option<Kc3rdShipRemodelRequirement>,
+
+	/// remodel to previous ship, `api_id` of the previous ship
+	pub remodel_back_to: i64,
+
+	/// requirement to remodel back to previous ship
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub remodel_back_requirement: Option<Kc3rdShipRemodelRequirement>,
 }

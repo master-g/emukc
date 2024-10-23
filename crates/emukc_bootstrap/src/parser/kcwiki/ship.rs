@@ -1,4 +1,4 @@
-use emukc_model::prelude::{Kc3rdShip, Kc3rdShipSlotInfo};
+use emukc_model::prelude::{Kc3rdShip, Kc3rdShipRemodelRequirement, Kc3rdShipSlotInfo};
 use serde::{Deserialize, Serialize};
 use std::vec;
 use std::{collections::BTreeMap, path::Path};
@@ -224,6 +224,60 @@ pub(super) fn parse(
 			});
 		}
 
+		let remodel = if wiki_ship.remodel_from.is_some() {
+			Some(Kc3rdShipRemodelRequirement {
+				level: wiki_ship.remodel_level.into(),
+				ammo: wiki_ship.remodel_ammo.unwrap_or(0),
+				steel: wiki_ship.remodel_steel.unwrap_or(0),
+				blueprint: wiki_ship.remodel_blueprint.map_or(0, Into::into),
+				catapult: wiki_ship.remodel_catapult.map_or(0, Into::into),
+				report: wiki_ship.remodel_report.map_or(0, Into::into),
+				devmat: wiki_ship.remodel_development_material.map_or(0, Into::into),
+				torch: wiki_ship.remodel_construction_material.map_or(0, Into::into),
+				aviation: wiki_ship.remodel_airmat.map_or(0, Into::into),
+				artillery: wiki_ship.remodel_gunmat.map_or(0, Into::into),
+				armament: wiki_ship.remodel_armament.map_or(0, Into::into),
+				boiler: wiki_ship.remodel_boiler.map_or(0, Into::into),
+				overseas: wiki_ship.remodel_overseas.map_or(0, Into::into),
+			})
+		} else {
+			None
+		};
+
+		let (remodel_back_to, remodel_back_requirement) = if wiki_ship.reversible.unwrap_or(false) {
+			let remodel_to = match &wiki_ship.remodel_to {
+				BoolOrString::Bool(_) => 0,
+				BoolOrString::String(v) => {
+					if let Some(id) = context.find_ship_id(v) {
+						id
+					} else {
+						error!("ship not found: {}", v);
+						0
+					}
+				}
+			};
+			(
+				remodel_to,
+				Some(Kc3rdShipRemodelRequirement {
+					level: wiki_ship.remodel_to_level.unwrap_or(0),
+					ammo: wiki_ship.remodel_to_ammo.unwrap_or(0),
+					steel: wiki_ship.remodel_to_steel.unwrap_or(0),
+					blueprint: wiki_ship.remodel_to_blueprint.map_or(0, Into::into),
+					catapult: wiki_ship.remodel_to_catapult.map_or(0, Into::into),
+					report: wiki_ship.remodel_to_report.map_or(0, Into::into),
+					devmat: wiki_ship.remodel_to_development_material.map_or(0, Into::into),
+					torch: wiki_ship.remodel_to_construction_material.map_or(0, Into::into),
+					aviation: 0,
+					artillery: 0,
+					armament: 0,
+					boiler: 0,
+					overseas: 0,
+				}),
+			)
+		} else {
+			(0, None)
+		};
+
 		result.insert(
 			api_id,
 			Kc3rdShip {
@@ -246,6 +300,9 @@ pub(super) fn parse(
 				buildable: wiki_ship.buildable.unwrap_or(false),
 				buildable_lsc: wiki_ship.buildable_lsc.unwrap_or(false),
 				slots,
+				remodel,
+				remodel_back_to,
+				remodel_back_requirement,
 			},
 		);
 	}

@@ -23,6 +23,15 @@ impl From<BoolOrInt> for Option<i64> {
 	}
 }
 
+impl From<BoolOrInt> for i64 {
+	fn from(b: BoolOrInt) -> Self {
+		match b {
+			BoolOrInt::Bool(_) => 0,
+			BoolOrInt::Int(i) => i,
+		}
+	}
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum StringOrInt {
