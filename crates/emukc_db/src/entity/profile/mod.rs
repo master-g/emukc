@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
-use emukc_model::profile::Profile;
+use emukc_model::{kc2::UserHQRank, profile::Profile};
 
 pub mod airbase;
 pub mod expedition;
@@ -119,10 +119,6 @@ pub enum Relation {
 	/// Relation to `Airbase`
 	#[sea_orm(has_many = "airbase::base::Entity")]
 	Airbase,
-
-	/// Relation to `AirbaseExtend`
-	#[sea_orm(has_many = "airbase::extend::Entity")]
-	AirbaseExtend,
 
 	/// Relation to `Expedition`
 	#[sea_orm(has_many = "expedition::Entity")]
@@ -264,7 +260,7 @@ pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
 		name: ActiveValue::Set(nickname.to_string()),
 		last_played: ActiveValue::Set(Utc::now()),
 		hq_level: ActiveValue::Set(1),
-		hq_rank: ActiveValue::Set(0),
+		hq_rank: ActiveValue::Set(UserHQRank::JuniorLieutenantCommander as i64),
 		experience: ActiveValue::Set(0),
 		comment: ActiveValue::Set("".to_string()),
 		max_ship_capacity: ActiveValue::Set(100),

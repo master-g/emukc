@@ -92,35 +92,7 @@ mod test {
 				name: name.to_owned(),
 			};
 
-			let active_model = entity::profile::ActiveModel {
-				id: ActiveValue::NotSet,
-				account_id: ActiveValue::Set(account.uid),
-				world_id: ActiveValue::Set(0),
-				name: ActiveValue::Set("".to_string()),
-				last_played: ActiveValue::Set(Utc::now()),
-				hq_level: ActiveValue::Set(1),
-				hq_rank: ActiveValue::Set(UserHQRank::JuniorLieutenantCommander as i64),
-				experience: ActiveValue::Set(0),
-				comment: ActiveValue::Set("".to_string()),
-				max_ship_capacity: ActiveValue::Set(100),
-				max_equipment_capacity: ActiveValue::Set(100),
-				sortie_wins: ActiveValue::Set(0),
-				sortie_loses: ActiveValue::Set(0),
-				expeditions: ActiveValue::Set(0),
-				expeditions_success: ActiveValue::Set(0),
-				practice_battles: ActiveValue::Set(0),
-				practice_battle_wins: ActiveValue::Set(0),
-				practice_challenges: ActiveValue::Set(0),
-				practice_challenge_wins: ActiveValue::Set(0),
-				intro_completed: ActiveValue::Set(false),
-				tutorial_progress: ActiveValue::Set(0),
-				medals: ActiveValue::Set(0),
-				large_dock_unlocked: ActiveValue::Set(false),
-				max_quests: ActiveValue::Set(3),
-				extra_supply_expedition: ActiveValue::Set(false),
-				extra_supply_sortie: ActiveValue::Set(false),
-				war_result: ActiveValue::Set(0),
-			};
+			let active_model = entity::profile::default_active_model(account.uid, name);
 			let result = entity::profile::Entity::insert(active_model).exec(db).await.unwrap();
 
 			new_profile.id = result.last_insert_id;

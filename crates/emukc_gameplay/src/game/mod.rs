@@ -1,5 +1,6 @@
 //! Gameplay logic.
 
+pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
 pub use fleet::FleetOps;
 pub use furniture::FurnitureOps;
@@ -18,6 +19,7 @@ use crate::gameplay::HasContext;
 
 // modules
 
+mod airbase;
 mod basic;
 mod fleet;
 mod furniture;
@@ -36,6 +38,7 @@ mod use_item;
 #[async_trait::async_trait]
 pub trait GameOps:
 	BasicOps
+	+ AirbaseOps
 	+ FleetOps
 	+ FurnitureOps
 	+ GameSettingsOps
@@ -58,7 +61,7 @@ pub mod ops {
 
 	#[doc(hidden)]
 	pub use crate::game::{
-		BasicOps, FleetOps, FurnitureOps, GameOps, GameSettingsOps, IncentiveOps, KDockOps,
-		MaterialOps, NDockOps, PictureBookOps, ShipOps, SlotItemOps, UseItemOps,
+		AirbaseOps, BasicOps, FleetOps, FurnitureOps, GameOps, GameSettingsOps, IncentiveOps,
+		KDockOps, MaterialOps, NDockOps, PictureBookOps, ShipOps, SlotItemOps, UseItemOps,
 	};
 }

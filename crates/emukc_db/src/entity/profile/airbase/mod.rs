@@ -2,7 +2,6 @@
 use sea_orm::entity::prelude::*;
 
 pub mod base;
-pub mod extend;
 pub mod plane;
 
 /// Bootstrap the database with the necessary tables
@@ -11,11 +10,6 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// base
 	{
 		let stmt = schema.create_table_from_entity(base::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
-	}
-	// extend
-	{
-		let stmt = schema.create_table_from_entity(extend::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 	// plane

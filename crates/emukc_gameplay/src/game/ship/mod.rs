@@ -15,7 +15,7 @@ use sp::find_ship_sp_effect_items_impl;
 
 mod sp;
 
-/// A trait for material related gameplay.
+/// A trait for ship related gameplay.
 #[async_trait]
 pub trait ShipOps {
 	/// Add ship to a profile.

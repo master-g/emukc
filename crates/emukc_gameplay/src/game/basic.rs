@@ -35,6 +35,18 @@ pub trait BasicOps {
 		nickname: &str,
 	) -> Result<(), GameplayError>;
 
+	/// Update user comment.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `comment`: The new comment.
+	async fn update_user_comment(
+		&self,
+		profile_id: i64,
+		comment: &str,
+	) -> Result<(), GameplayError>;
+
 	/// Update user firstflag.
 	///
 	/// # Parameters
@@ -45,6 +57,18 @@ pub trait BasicOps {
 		&self,
 		profile_id: i64,
 		firstflag: i64,
+	) -> Result<(), GameplayError>;
+
+	/// Update user tutorial progress.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `progress`: The new tutorial progress.
+	async fn update_tutorial_progress(
+		&self,
+		profile_id: i64,
+		progress: i64,
 	) -> Result<(), GameplayError>;
 }
 
@@ -73,6 +97,21 @@ impl<T: HasContext + ?Sized> BasicOps for T {
 		Ok(())
 	}
 
+	async fn update_user_comment(
+		&self,
+		profile_id: i64,
+		comment: &str,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_user_comment_impl(&tx, profile_id, comment).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
 	async fn update_user_first_flag(
 		&self,
 		profile_id: i64,
@@ -82,6 +121,21 @@ impl<T: HasContext + ?Sized> BasicOps for T {
 		let tx = db.begin().await?;
 
 		update_user_first_flag_impl(&tx, profile_id, firstflag).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_tutorial_progress(
+		&self,
+		profile_id: i64,
+		progress: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_tutorial_progress_impl(&tx, profile_id, progress).await?;
 
 		tx.commit().await?;
 
@@ -217,6 +271,26 @@ where
 	Ok(())
 }
 
+pub async fn update_user_comment_impl<C>(
+	c: &C,
+	profile_id: i64,
+	comment: &str,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+
+	let mut am: profile::ActiveModel = profile.into();
+
+	am.id = ActiveValue::Unchanged(profile_id);
+	am.comment = ActiveValue::Set(comment.to_string());
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
 pub async fn update_user_first_flag_impl<C>(
 	c: &C,
 	profile_id: i64,
@@ -230,6 +304,25 @@ where
 
 	am.id = ActiveValue::Unchanged(profile_id);
 	am.intro_completed = ActiveValue::Set(firstflag != 0);
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub async fn update_tutorial_progress_impl<C>(
+	c: &C,
+	profile_id: i64,
+	tutorial_progress: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let mut am: profile::ActiveModel = profile.into();
+
+	am.id = ActiveValue::Unchanged(profile_id);
+	am.tutorial_progress = ActiveValue::Set(tutorial_progress);
 
 	am.update(c).await?;
 

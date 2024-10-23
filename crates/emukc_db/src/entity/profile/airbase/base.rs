@@ -5,7 +5,9 @@ use emukc_model::profile::airbase::{Airbase, AirbaseAction};
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N)]
+#[derive(
+	Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
+)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Action {
 	#[sea_orm(num_value = 0)]
@@ -48,6 +50,9 @@ pub struct Model {
 
 	/// name
 	pub name: String,
+
+	/// maintenance level
+	pub maintenance_level: i64,
 }
 
 /// Relation
@@ -105,6 +110,7 @@ impl From<Airbase> for ActiveModel {
 			base_range: ActiveValue::Set(t.base_range),
 			bonus_range: ActiveValue::Set(t.bonus_range),
 			name: ActiveValue::Set(t.name),
+			maintenance_level: ActiveValue::Set(t.maintenance_level),
 		}
 	}
 }
@@ -119,6 +125,7 @@ impl From<Model> for Airbase {
 			base_range: value.base_range,
 			bonus_range: value.bonus_range,
 			name: value.name,
+			maintenance_level: value.maintenance_level,
 		}
 	}
 }

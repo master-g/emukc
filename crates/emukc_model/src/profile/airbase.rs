@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::kc2::{KcApiAirBase, KcApiAirBaseExpandedInfo, KcApiDistance, KcApiPlaneInfo};
+use crate::kc2::{KcApiAirBase, KcApiDistance, KcApiPlaneInfo};
 
 /// Airbase action assigned
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
@@ -41,6 +41,9 @@ pub struct Airbase {
 
 	/// Airbase name
 	pub name: String,
+
+	/// maintenance level
+	pub maintenance_level: i64,
 }
 
 /// Plane status
@@ -86,19 +89,6 @@ pub struct PlaneInfo {
 	pub max_count: i64,
 }
 
-/// Air base extended info
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct AirbaseExtendedInfo {
-	/// Profile id
-	pub id: i64,
-
-	/// Airbase area id
-	pub area_id: i64,
-
-	/// maintenance level
-	pub maintenance_level: i64,
-}
-
 impl From<Airbase> for KcApiAirBase {
 	fn from(value: Airbase) -> Self {
 		Self {
@@ -111,15 +101,6 @@ impl From<Airbase> for KcApiAirBase {
 			api_name: value.name.clone(),
 			api_plane_info: vec![],
 			api_rid: value.rid,
-		}
-	}
-}
-
-impl From<AirbaseExtendedInfo> for KcApiAirBaseExpandedInfo {
-	fn from(value: AirbaseExtendedInfo) -> Self {
-		Self {
-			api_area_id: value.area_id,
-			api_maintenance_level: value.maintenance_level,
 		}
 	}
 }

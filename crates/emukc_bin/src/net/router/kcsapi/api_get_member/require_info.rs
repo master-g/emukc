@@ -19,8 +19,14 @@ struct Furniture {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+struct UserBasic {
+	api_member_id: i64,
+	api_firstflag: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct Resp {
-	api_basic: KcApiUserBasic,
+	api_basic: UserBasic,
 	api_extra_supply: [i64; 2],
 	api_furniture: Vec<Furniture>,
 	api_kdock: Vec<KcApiKDock>,
@@ -59,7 +65,6 @@ pub(super) async fn handler(
 	let api_kdock = api_kdock.iter().map(|k| k.to_owned().into()).collect();
 
 	let api_oss_setting = state.get_game_settings(pid).await?;
-	println!("0");
 	let api_extra_supply = api_basic.api_extra_supply;
 	let api_position_id = api_oss_setting.api_position_id;
 	let api_skin_id = api_oss_setting.api_skin_id;
@@ -71,7 +76,10 @@ pub(super) async fn handler(
 	let api_unsetslot = codex.convert_unused_slot_items_to_api(&unused_slot_items)?;
 
 	Ok(KcApiResponse::success(&Resp {
-		api_basic,
+		api_basic: UserBasic {
+			api_member_id: api_basic.api_member_id,
+			api_firstflag: api_basic.api_firstflag,
+		},
 		api_extra_supply,
 		api_furniture,
 		api_kdock,
