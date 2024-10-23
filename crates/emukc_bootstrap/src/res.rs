@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ResourceCategory {
 	Start2,
-	MainJS,
 	KccpQuests,
 	KcData,
 	KcWikiSlotItem,
@@ -31,12 +30,6 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			category: ResourceCategory::Start2,
 			url: "http://api.kcwiki.moe/start2",
 			save_as: "start2.json",
-			unzip_to: None,
-		},
-		Resource {
-			category: ResourceCategory::MainJS,
-			url: "https://github.com/kcwiki/kancolle-main/raw/master/dist/main.js",
-			save_as: "main.js",
 			unzip_to: None,
 		},
 		Resource {
