@@ -33,7 +33,7 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
 	let pid = session.profile.id;
-	let api_basic = state.get_user_basic(pid).await?;
+	let (_, api_basic) = state.get_user_basic(pid).await?;
 
 	state.update_materials(pid).await?;
 

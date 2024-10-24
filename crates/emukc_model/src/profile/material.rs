@@ -131,6 +131,9 @@ pub struct MaterialConfig {
 
 	/// Bauxite regenerate rate, per milliseconds
 	pub bauxite_regenerate_rate: i64,
+
+	/// Soft cap level factor, used to calculate soft cap
+	pub soft_cap_lv_factor: i64,
 }
 
 impl Default for MaterialConfig {
@@ -148,6 +151,7 @@ impl Default for MaterialConfig {
 			special_resource_cap: SPECIAL_RESOURCE_CAP,
 			primary_resource_regenerate_rate: 60_000,
 			bauxite_regenerate_rate: 180_000,
+			soft_cap_lv_factor: 250,
 		}
 	}
 }
@@ -172,6 +176,15 @@ impl MaterialConfig {
 			last_update_primary: Utc::now(),
 			last_update_bauxite: Utc::now(),
 		}
+	}
+
+	/// Get soft cap of the material
+	///
+	/// # Arguments
+	///
+	/// * `lv` - The player level
+	pub fn get_soft_cap(&self, lv: i64) -> i64 {
+		(lv + 3) * self.soft_cap_lv_factor
 	}
 
 	/// Apply hard cap to the material
@@ -204,7 +217,7 @@ impl MaterialConfig {
 	/// * `material` - The material to apply self replenish
 	/// * `player_lv` - The player level
 	pub fn apply_self_replenish(&self, material: &mut Material, player_lv: i64) {
-		let soft_cap = (player_lv + 3) * 250;
+		let soft_cap = self.get_soft_cap(player_lv);
 		let now = chrono::Utc::now();
 
 		if material.bauxite < soft_cap {

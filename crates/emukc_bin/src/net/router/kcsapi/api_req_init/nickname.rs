@@ -23,7 +23,7 @@ pub(super) async fn handler(
 	let pid = session.profile.id;
 	state.0.update_user_nickname(pid, &params.api_nickname).await?;
 
-	let basic = state.0.get_user_basic(pid).await?;
+	let (_, basic) = state.0.get_user_basic(pid).await?;
 
 	Ok(KcApiResponse::success(&basic))
 }

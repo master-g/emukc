@@ -44,7 +44,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let codex = &*state.codex;
 	let pid = session.profile.id;
-	let api_basic = state.get_user_basic(pid).await?;
+	let (_, api_basic) = state.get_user_basic(pid).await?;
 	let api_furniture = api_basic
 		.api_furniture
 		.iter()

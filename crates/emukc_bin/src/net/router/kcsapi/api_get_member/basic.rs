@@ -12,6 +12,6 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
 	let pid = session.profile.id;
-	let basic = state.get_user_basic(pid).await?;
+	let (_, basic) = state.get_user_basic(pid).await?;
 	Ok(KcApiResponse::success(&basic))
 }

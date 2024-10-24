@@ -1,7 +1,4 @@
-use axum::{Extension, Form};
-use serde::{Deserialize, Serialize};
-
-use emukc_internal::prelude::*;
+use axum::Extension;
 
 use crate::net::{
 	auth::GameSession,
@@ -10,8 +7,8 @@ use crate::net::{
 };
 
 pub(super) async fn handler(
-	state: AppState,
-	Extension(session): Extension<GameSession>,
+	_state: AppState,
+	Extension(_session): Extension<GameSession>,
 ) -> KcApiResult {
 	// TODO: implement this
 	// let pid = session.profile.id;

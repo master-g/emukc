@@ -22,13 +22,15 @@ impl Codex {
 		let mut slot_items: Vec<KcApiSlotItem> = Vec::new();
 		for (i, slot_info) in basic.slots.iter().enumerate() {
 			api_onslot[i] = slot_info.onslot;
-			slot_items.push(KcApiSlotItem {
-				api_id: 0,
-				api_slotitem_id: slot_info.item_id,
-				api_locked: 0,
-				api_level: slot_info.stars,
-				api_alv: None,
-			});
+			if slot_info.item_id > 0 {
+				slot_items.push(KcApiSlotItem {
+					api_id: 0,
+					api_slotitem_id: slot_info.item_id,
+					api_locked: 0,
+					api_level: slot_info.stars,
+					api_alv: None,
+				});
+			}
 		}
 
 		let api_nowhp = mst.api_taik.as_ref().unwrap()[0];

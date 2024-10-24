@@ -21,7 +21,10 @@ pub trait BasicOps {
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
-	async fn get_user_basic(&self, profile_id: i64) -> Result<KcApiUserBasic, GameplayError>;
+	async fn get_user_basic(
+		&self,
+		profile_id: i64,
+	) -> Result<(profile::Model, KcApiUserBasic), GameplayError>;
 
 	/// Update user nickname.
 	///
@@ -74,12 +77,15 @@ pub trait BasicOps {
 
 #[async_trait]
 impl<T: HasContext + ?Sized> BasicOps for T {
-	async fn get_user_basic(&self, profile_id: i64) -> Result<KcApiUserBasic, GameplayError> {
+	async fn get_user_basic(
+		&self,
+		profile_id: i64,
+	) -> Result<(profile::Model, KcApiUserBasic), GameplayError> {
 		let db = self.db();
 
-		let (_, basic) = get_user_basic_impl(db, profile_id).await?;
+		let (model, basic) = get_user_basic_impl(db, profile_id).await?;
 
-		Ok(basic)
+		Ok((model, basic))
 	}
 
 	async fn update_user_nickname(
