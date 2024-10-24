@@ -22,8 +22,8 @@ pub(super) struct CacheArgs {
 
 pub(super) async fn exec(args: &CacheArgs, state: &State) -> Result<()> {
 	match &args.command {
-		Commands::Check(args) => check::exec(&args, &state.kache).await?,
-		Commands::Import(args) => import::exec(&args, &state.kache).await?,
+		Commands::Check(args) => check::exec(args, &state.kache).await?,
+		Commands::Import(args) => import::exec(args, &state.kache).await?,
 	}
 
 	Ok(())

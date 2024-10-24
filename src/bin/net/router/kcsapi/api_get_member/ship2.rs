@@ -44,7 +44,7 @@ pub(super) async fn handler(
 	};
 
 	let fleets = state.get_fleets(pid).await?;
-	let api_data_deck = fleets.into_iter().map(|f| f.into()).collect();
+	let api_data_deck = fleets.into_iter().map(std::convert::Into::into).collect();
 
 	Ok(KcApiResponse::success_extra(
 		&ships,

@@ -1006,38 +1006,19 @@ dependencies = [
 name = "emukc"
 version = "0.1.0"
 dependencies = [
- "emukc_dylib",
- "emukc_internal",
- "memory-stats",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "emukc_app"
-version = "0.1.0"
-dependencies = [
- "jemallocator",
- "mimalloc",
- "tokio",
-]
-
-[[package]]
-name = "emukc_bin"
-version = "0.1.0"
-dependencies = [
  "anyhow",
  "async-trait",
  "axum",
  "axum-server",
  "clap",
  "config",
+ "emukc_dylib",
  "emukc_internal",
  "fontdue",
  "http",
  "http-body-util",
  "hyper",
+ "memory-stats",
  "mime_guess",
  "png",
  "rust-embed",
@@ -1055,6 +1036,15 @@ dependencies = [
  "url",
  "urlencoding",
  "validator",
+]
+
+[[package]]
+name = "emukc_app"
+version = "0.1.0"
+dependencies = [
+ "jemallocator",
+ "mimalloc",
+ "tokio",
 ]
 
 [[package]]

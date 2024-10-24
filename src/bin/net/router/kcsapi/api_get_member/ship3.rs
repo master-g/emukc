@@ -31,7 +31,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 	let fleets = state.get_fleets(pid).await?;
-	let api_deck_data = fleets.into_iter().map(|f| f.into()).collect();
+	let api_deck_data = fleets.into_iter().map(std::convert::Into::into).collect();
 
 	let ship = state.find_ship(params.api_shipid).await?.ok_or(ApiError::NotFound(format!(
 		"ship {} not found for profile {}",

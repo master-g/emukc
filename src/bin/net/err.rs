@@ -45,8 +45,9 @@ impl From<GameplayError> for ApiError {
 			GameplayError::ProfileNotFound(e) => Self::NotFound(e.to_string()),
 			GameplayError::Db(db_err) => Self::Internal(db_err.to_string()),
 			GameplayError::WrongType(e) => Self::Internal(e),
-			GameplayError::ManifestNotFound(e) => Self::Internal(e.to_string()),
-			GameplayError::CapacityExceeded(e) => Self::Internal(e.to_string()),
+			GameplayError::ManifestNotFound(e) | GameplayError::CapacityExceeded(e) => {
+				Self::Internal(e.to_string())
+			}
 			GameplayError::ShipCreationFailed(e) => Self::Internal(e.to_string()),
 			GameplayError::Codex(e) => Self::Internal(e.to_string()),
 			GameplayError::EntryNotFound(e) => Self::NotFound(e),
@@ -72,8 +73,9 @@ impl IntoResponse for ApiError {
 			ApiError::MissingToken => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
 			ApiError::InvalidToken => (StatusCode::UNAUTHORIZED, self.to_string()).into_response(),
 			ApiError::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-			ApiError::Internal(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-			ApiError::Unknown(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+			ApiError::Internal(e) | ApiError::Unknown(e) => {
+				(StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
+			}
 			ApiError::Validation(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
 		}
 	}

@@ -49,9 +49,8 @@ async fn file_handler(
 	if path.contains("resources/world/") {
 		let Some((w, h)) =
 			path.strip_suffix(".png").and_then(|s| s.chars().last()).map(|c| match c {
-				'l' => (157, 27),
 				's' => (114, 19),
-				't' => (157, 27),
+				't' | 'l' => (157, 27),
 				_ => (0, 0),
 			})
 		else {
@@ -81,11 +80,10 @@ async fn file_handler(
 	let cache_rel_path = PathBuf::from("kcs2").join(path).to_string_lossy().to_string();
 
 	if cache_rel_path.contains("index.php") {
-		let version = if let Some(version) = params.version.as_deref() {
-			version
-		} else {
+		let Some(version) = params.version.as_deref() else {
 			return (StatusCode::BAD_REQUEST, "version is required").into_response();
 		};
+
 		return index(version).await;
 	}
 	// } else if cache_rel_path.starts_with("kcs2/resources/world/") {

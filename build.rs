@@ -33,7 +33,7 @@ fn main() {
 fn get_git_commit_hash() -> Option<String> {
 	// exec `git rev-parse --short HEAD`
 	let output = Command::new("git")
-		.args(&["rev-parse", "--short", "HEAD"])
+		.args(["rev-parse", "--short", "HEAD"])
 		.stdout(Stdio::piped())
 		.output()
 		.ok()?;

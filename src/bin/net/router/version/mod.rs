@@ -76,8 +76,8 @@ pub fn gen_version_png(v: &str, w: u32, h: u32) -> Option<Vec<u8>> {
 	for c in v.chars() {
 		let (metrics, bitmap) = font.rasterize(c, font_size);
 
-		let glyph_width = metrics.width as usize;
-		let glyph_height = metrics.height as usize;
+		let glyph_width = metrics.width;
+		let glyph_height = metrics.height;
 
 		let bounds_ymax = metrics.ymin as f32 + metrics.height as f32;
 		let y_offset_f32 = baseline as f32 - bounds_ymax;

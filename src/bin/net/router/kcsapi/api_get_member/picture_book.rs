@@ -105,12 +105,9 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 	let mut data: Vec<ShipItem> = Vec::new();
 	for sort_no in start_index..end_index {
 		let mst = codex.manifest.api_mst_ship.iter().find(|m| m.api_sortno == Some(sort_no));
-		let mst = match mst {
-			Some(mst) => mst,
-			None => {
-				warn!("ship mst sortno {} not found", sort_no);
-				continue;
-			}
+		let Some(mst) = mst else {
+			warn!("ship mst sortno {} not found", sort_no);
+			continue;
 		};
 
 		let basic = match codex.find_ship_extra(mst.api_id) {
@@ -137,12 +134,9 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			},
 		};
 
-		let picturebook_info = match codex.find_ship_picturebook(mst.api_id) {
-			Ok(picturebook_info) => picturebook_info,
-			Err(_) => {
-				warn!("ship picturebook id {} not found or cannot be loaded", mst.api_id);
-				continue;
-			}
+		let Ok(picturebook_info) = codex.find_ship_picturebook(mst.api_id) else {
+			warn!("ship picturebook id {} not found or cannot be loaded", mst.api_id);
+			continue;
 		};
 
 		let record = if codex.picturebook_extra.unlock_all_ships {
@@ -182,7 +176,7 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			api_tais: mst.api_tais.as_ref().map(|v| v[0]),
 			api_leng: mst.api_leng,
 			api_sinfo: picturebook_info.info.clone(),
-		})
+		});
 	}
 
 	Ok(KcApiResponse::success_json(serde_json::json!({
@@ -198,16 +192,12 @@ async fn item_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 	let mut data: Vec<SlotItem> = Vec::new();
 	for sort_no in start_index..end_index {
 		let mst = codex.manifest.api_mst_slotitem.iter().find(|m| m.api_sortno == sort_no);
-		let mst = match mst {
-			Some(mst) => mst,
-			None => continue,
+		let Some(mst) = mst else {
+			continue;
 		};
-		let extra = match codex.find::<Kc3rdSlotItem>(&mst.api_id) {
-			Ok(extra) => extra,
-			Err(_) => {
-				warn!("slotitem extra id {} not found or cannot be loaded", mst.api_id);
-				continue;
-			}
+		let Ok(extra) = codex.find::<Kc3rdSlotItem>(&mst.api_id) else {
+			warn!("slotitem extra id {} not found or cannot be loaded", mst.api_id);
+			continue;
 		};
 		if !codex.picturebook_extra.unlock_all_slotitems && !records.contains(&sort_no) {
 			continue;
@@ -232,7 +222,7 @@ async fn item_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			api_leng: mst.api_leng,
 			api_flag: vec![0, 0, 0, 0, 0, 0, 0, 0],
 			api_info: extra.info.clone(),
-		})
+		});
 	}
 
 	Ok(KcApiResponse::success_json(serde_json::json!({

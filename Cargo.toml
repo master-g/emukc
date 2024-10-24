@@ -44,27 +44,82 @@ dynamic_linking = ["dep:emukc_dylib"]
 [dependencies]
 emukc_internal = { path = "crates/emukc_internal" }
 
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true, features = ["form"] }
+axum-server = { workspace = true }
+clap = { workspace = true, features = [
+	"derive",
+	"env",
+	"wrap_help",
+	"unicode",
+] }
+config = { workspace = true, features = ["toml"] }
+fontdue = { workspace = true }
+http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true, features = ["full"] }
+mime_guess = { workspace = true }
+png = { workspace = true }
+rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
+tera = { workspace = true }
+thiserror = { workspace = true }
+tinytemplate = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tokio-util = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true, features = [
+	"add-extension",
+	"catch-panic",
+	"compression-br",
+	"compression-deflate",
+	"compression-gzip",
+	"compression-zstd",
+	"cors",
+	"request-id",
+	"set-header",
+	"trace",
+	"util",
+] }
+tracing = { workspace = true }
+url = { workspace = true }
+urlencoding = { workspace = true }
+validator = { workspace = true, features = ["derive"] }
+
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 
 [workspace.dependencies]
 anyhow = "1.0.91"
 async-trait = "0.1"
+axum = { version = "0.7.5", features = ["form"] }
+axum-server = { version = "0.7.1" }
 base16ct = { version = "0.2.0", features = ["alloc"] }
 bcrypt = { version = "0.15.1" }
 bs58 = { version = "0.5.1" }
 chrono = { version = "0.4.38", features = ["serde"] }
+clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
+config = { version = "0.14", features = ["toml"] }
 enumn = "0.1.14"
 env_logger = "0.11.5"
+fontdue = { version = "0.9.2" }
 hmac = { version = "0.12.1" }
 http = { version = "1.1.0" }
+http-body-util = "0.1"
+hyper = { version = "1", features = ["full"] }
 md-5 = "0.10.6"
+mime_guess = "2"
+png = "0.17.14"
 regex = "1.11.0"
 reqwest = { version = "0.12.8", default-features = false, features = [
 	"default-tls",
 	"socks",
 	"stream",
 ] }
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 sea-orm = { version = "1", features = [
 	"debug-print",
 	"runtime-tokio-native-tls",
@@ -75,15 +130,34 @@ serde_json = "1"
 serde_yaml = "0.9.34"
 serde_urlencoded = "0.7"
 sha2 = { version = "0.10.8", default-features = false }
+tera = "1"
 test-log = { version = "0.2.16", features = ["trace"] }
 thiserror = "1.0.65"
+tinytemplate = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7" }
+tower = "0.5"
+tower-http = { version = "0.6", features = [
+	"add-extension",
+	"catch-panic",
+	"compression-br",
+	"compression-deflate",
+	"compression-gzip",
+	"compression-zstd",
+	"cors",
+	"request-id",
+	"set-header",
+	"trace",
+	"util",
+] }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+urlencoding = "2"
 uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
+validator = { version = "0.18.1", features = ["derive"] }
 zip-extract = { version = "0.2.1" }
 
 [dev-dependencies]
@@ -98,8 +172,7 @@ debug = false
 strip = "debuginfo"
 lto = true
 opt-level = "s"
-
-# build = "build.rs"
+build = "build.rs"
 
 # For testing
 
