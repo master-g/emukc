@@ -78,7 +78,11 @@ impl<T: HasContext + ?Sized> KDockOps for T {
 	}
 }
 
-async fn find_dock<C>(c: &C, profile_id: i64, index: i64) -> Result<kdock::Model, GameplayError>
+pub(super) async fn find_kdock_impl<C>(
+	c: &C,
+	profile_id: i64,
+	index: i64,
+) -> Result<kdock::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -112,7 +116,7 @@ pub async fn unlock_kdock_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let dock = find_dock(c, profile_id, index).await?;
+	let dock = find_kdock_impl(c, profile_id, index).await?;
 
 	let mut am: kdock::ActiveModel = dock.into();
 	am.status = ActiveValue::Set(kdock::Status::Idle);
@@ -137,7 +141,7 @@ pub async fn get_kdock_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let dock = find_dock(c, profile_id, index).await?;
+	let dock = find_kdock_impl(c, profile_id, index).await?;
 
 	Ok(dock.into())
 }

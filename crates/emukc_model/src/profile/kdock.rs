@@ -13,9 +13,9 @@ pub enum ConstructionDockStatus {
 	/// Idle
 	Idle = 0,
 	/// In construction
-	Busy = 1,
+	Busy = 2,
 	/// Construction completed
-	Completed = 2,
+	Completed = 3,
 }
 
 /// Construction context

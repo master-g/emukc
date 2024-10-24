@@ -72,8 +72,7 @@ pub(super) async fn handler(
 		]
 	};
 
-	let pool: Vec<Kc3rdSlotItem> = state
-		.codex()
+	let pool: Vec<Kc3rdSlotItem> = codex
 		.slotitem_extra_info
 		.iter()
 		.filter_map(|(_, info)| {
@@ -107,7 +106,7 @@ pub(super) async fn handler(
 		}
 	}
 
-	let (ids, material) = state.create_slotitem(pid, &crafted_mst_ids, costs).await?;
+	let (ids, material) = state.create_slotitem(pid, &crafted_mst_ids, &costs).await?;
 
 	let api_create_flag = if ids.iter().any(|v| *v > 0) {
 		1

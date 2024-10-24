@@ -35,7 +35,7 @@ pub trait MaterialOps {
 	async fn deduct_material(
 		&self,
 		profile_id: i64,
-		values: Vec<(MaterialCategory, i64)>,
+		values: &[(MaterialCategory, i64)],
 	) -> Result<Material, GameplayError>;
 
 	/// Get materials of a profile.
@@ -75,7 +75,7 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 	async fn deduct_material(
 		&self,
 		profile_id: i64,
-		values: Vec<(MaterialCategory, i64)>,
+		values: &[(MaterialCategory, i64)],
 	) -> Result<Material, GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
@@ -169,7 +169,7 @@ where
 pub async fn deduct_material_impl<C>(
 	c: &C,
 	profile_id: i64,
-	values: Vec<(MaterialCategory, i64)>,
+	values: &[(MaterialCategory, i64)],
 ) -> Result<material::Model, GameplayError>
 where
 	C: ConnectionTrait,
