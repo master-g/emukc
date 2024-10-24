@@ -16,6 +16,7 @@ mod api_port;
 mod api_req_init;
 mod api_req_kaisou;
 mod api_req_member;
+mod api_req_ranking;
 mod api_start2;
 mod api_world;
 
@@ -27,7 +28,7 @@ pub(super) fn router() -> Router {
 		.merge(Router::new().nest("/api_req_init", api_req_init::router()))
 		.merge(Router::new().nest("/api_req_kaisou", api_req_kaisou::router()))
 		.merge(Router::new().nest("/api_req_member", api_req_member::router()))
-		// .merge(Router::new().nest("/api_req_ranking", api_req_ranking::router()))
+		.merge(Router::new().nest("/api_req_ranking", api_req_ranking::router()))
 		// .merge(Router::new().nest("/api_req_quest", api_req_quest::router()))
 		.merge(Router::new().nest("/api_start2", api_start2::router()))
 		.route_layer(middleware::from_fn(kcs_api_auth_middleware))
