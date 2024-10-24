@@ -141,10 +141,10 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 
 	async fn get_unuse_slot_items(
 		&self,
-		_profile_id: i64,
+		profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError> {
 		let db = self.db();
-		let ms = get_unuse_slot_items_impl(db, _profile_id).await?;
+		let ms = get_unuse_slot_items_impl(db, profile_id).await?;
 
 		let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
 		let slot_items: Vec<KcApiSlotItem> =

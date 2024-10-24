@@ -47,6 +47,7 @@ emukc_internal = { path = "crates/emukc_internal" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true, features = ["form"] }
+axum-macros = { workspace = true }
 axum-server = { workspace = true }
 clap = { workspace = true, features = [
 	"derive",
@@ -61,6 +62,7 @@ http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["full"] }
 mime_guess = { workspace = true }
 png = { workspace = true }
+rand = { workspace = true, features = ["small_rng"] }
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -96,6 +98,7 @@ emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 anyhow = "1.0.91"
 async-trait = "0.1"
 axum = { version = "0.7.5", features = ["form"] }
+axum-macros = { version = "0.4.2" }
 axum-server = { version = "0.7.1" }
 base16ct = { version = "0.2.0", features = ["alloc"] }
 bcrypt = { version = "0.15.1" }
@@ -113,6 +116,7 @@ hyper = { version = "1", features = ["full"] }
 md-5 = "0.10.6"
 mime_guess = "2"
 png = "0.17.14"
+rand = { version = "0.8.5", features = ["small_rng"] }
 regex = "1.11.0"
 reqwest = { version = "0.12.8", default-features = false, features = [
 	"default-tls",

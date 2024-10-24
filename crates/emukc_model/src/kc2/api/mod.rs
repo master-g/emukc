@@ -86,7 +86,7 @@ pub struct KcApiUserBasic {
 	pub api_war_result: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, enumn::N)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, PartialOrd, Debug, enumn::N)]
 pub enum MaterialCategory {
 	/// 燃料
 	Fuel = 1,

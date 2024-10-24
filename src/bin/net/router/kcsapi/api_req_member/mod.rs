@@ -1,9 +1,9 @@
+use axum::{routing::post, Router};
+
 mod get_incentive;
 mod update_tutorial_progress;
 mod updatecomment;
 // mod get_practice_enemyinfo;
-
-use axum::{routing::post, Router};
 
 pub(super) fn router() -> Router {
 	Router::new()

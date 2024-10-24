@@ -469,6 +469,7 @@ pub struct ApiMstSlotitem {
 	pub api_taik: i64,
 	pub api_tais: i64,
 	pub api_tyku: i64,
+	/// [0]: category, [1]: picturebook, [2]: equiptype, [3]: category, [4]: icon
 	pub api_type: [i64; 5],
 	pub api_usebull: String,
 	pub api_version: Option<i64>,

@@ -26,6 +26,18 @@ pub trait MaterialOps {
 		amount: i64,
 	) -> Result<(), GameplayError>;
 
+	/// Deduct materials from a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `values`: The materials to deduct.
+	async fn deduct_material(
+		&self,
+		profile_id: i64,
+		values: Vec<(MaterialCategory, i64)>,
+	) -> Result<Material, GameplayError>;
+
 	/// Get materials of a profile.
 	///
 	/// # Parameters
@@ -58,6 +70,21 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 		tx.commit().await?;
 
 		Ok(())
+	}
+
+	async fn deduct_material(
+		&self,
+		profile_id: i64,
+		values: Vec<(MaterialCategory, i64)>,
+	) -> Result<Material, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = deduct_material_impl(&tx, profile_id, values).await?;
+
+		tx.commit().await?;
+
+		Ok(m.into())
 	}
 
 	async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
@@ -135,6 +162,47 @@ where
 	let am: material::ActiveModel = model.into();
 
 	let am = am.save(c).await?;
+
+	Ok(am.try_into_model()?)
+}
+
+pub async fn deduct_material_impl<C>(
+	c: &C,
+	profile_id: i64,
+	values: Vec<(MaterialCategory, i64)>,
+) -> Result<material::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = get_mat_impl(c, profile_id).await?;
+	let mut model: Material = record.into();
+
+	for (category, amount) in values.iter() {
+		let mut stocks = [
+			(MaterialCategory::Fuel, &mut model.fuel),
+			(MaterialCategory::Ammo, &mut model.ammo),
+			(MaterialCategory::Steel, &mut model.steel),
+			(MaterialCategory::Bauxite, &mut model.bauxite),
+			(MaterialCategory::Torch, &mut model.torch),
+			(MaterialCategory::Bucket, &mut model.bucket),
+			(MaterialCategory::DevMat, &mut model.devmat),
+			(MaterialCategory::Screw, &mut model.screw),
+		];
+
+		if let Some(stock) = stocks.iter_mut().find(|(c, _)| c == category) {
+			if *stock.1 < *amount {
+				return Err(GameplayError::Insufficient(format!(
+					"material category:{:?}, has:{}, deduct:{}",
+					category, *stock.1, amount
+				)));
+			}
+			*stock.1 -= amount;
+		}
+	}
+
+	let am: material::ActiveModel = model.into();
+
+	let am = am.update(c).await?;
 
 	Ok(am.try_into_model()?)
 }

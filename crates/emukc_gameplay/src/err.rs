@@ -28,4 +28,7 @@ pub enum GameplayError {
 
 	#[error("Entry not found: {0}")]
 	EntryNotFound(String),
+
+	#[error("Insufficient item: {0}")]
+	Insufficient(String),
 }

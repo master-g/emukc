@@ -5,7 +5,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
-use emukc_model::prelude::Kc3rdShip;
+use emukc_model::prelude::{Kc3rdShip, Kc3rdSlotItem};
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 
@@ -42,7 +42,7 @@ async fn nickname() {
 
 	context.update_user_nickname(pid, "ararakikun").await.unwrap();
 
-	let basic = context.get_user_basic(pid).await.unwrap();
+	let (_, basic) = context.get_user_basic(pid).await.unwrap();
 
 	assert_eq!(basic.api_nickname, "ararakikun");
 }
@@ -121,6 +121,41 @@ async fn add_ship() {
 
 	let ships = context.get_ships(pid).await.unwrap();
 	assert_eq!(ships.len(), 1);
+}
+
+#[tokio::test]
+async fn create_slotitems() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let slot_items = context
+		.1
+		.slotitem_extra_info
+		.iter()
+		.filter_map(|(_, v)| {
+			if v.craftable {
+				Some(v.clone())
+			} else {
+				None
+			}
+		})
+		.collect::<Vec<Kc3rdSlotItem>>();
+	let chunk = slot_items.chunks(3).next().unwrap();
+
+	let costs = vec![
+		(MaterialCategory::Fuel, 100),
+		(MaterialCategory::Ammo, 100),
+		(MaterialCategory::Steel, 100),
+		(MaterialCategory::Bauxite, 100),
+		(MaterialCategory::DevMat, 1),
+	];
+
+	let ids = chunk.iter().map(|v| v.api_id).collect::<Vec<i64>>();
+
+	let (ids, material) = context.create_slotitem(pid, ids, costs).await.unwrap();
+
+	println!("{:?}", ids);
+	println!("{:?}", material);
 }
 
 #[tokio::test]
