@@ -6,6 +6,7 @@ mod furniture;
 mod kdock;
 mod material;
 mod ndock;
+mod payitem;
 mod picture_book;
 mod record;
 mod require_info;
@@ -21,6 +22,7 @@ pub(super) fn router() -> Router {
 		.route("/kdock", post(kdock::handler))
 		.route("/material", post(material::handler))
 		.route("/ndock", post(ndock::handler))
+		.route("/payitem", post(payitem::handler))
 		.route("/picture_book", post(picture_book::handler))
 		.route("/record", post(record::handler))
 		.route("/require_info", post(require_info::handler))
