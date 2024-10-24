@@ -71,13 +71,27 @@ pub(super) async fn handler(
 		})
 		.collect();
 
-	let (user, basic) = state.0.get_user_basic(pid).await?;
-	let (hq_lv, next_lv_exp) = level::exp_to_hq_level(user.experience);
+	let (_, basic) = state.0.get_user_basic(pid).await?;
+	let (hq_lv, next_lv_exp) = level::exp_to_hq_level(basic.api_experience);
 
 	let furnitures = state.0.get_furnitures(pid).await?;
 	let api_material_max = state.codex.material_cfg.get_soft_cap(hq_lv);
 	let slotitems = state.0.get_slot_items(pid).await?;
 	let ships = state.0.get_ships(pid).await?;
+
+	let rate_calculator = |v: i64, total: i64, percentage: bool| -> String {
+		let rate = if total == 0 {
+			0.0
+		} else {
+			v as f64 / total as f64
+		};
+		let rate = if percentage {
+			rate * 100.0
+		} else {
+			rate
+		};
+		format!("{:.2}", rate)
+	};
 
 	Ok(KcApiResponse::success(&Record {
 		api_air_base_expanded_info,
@@ -94,30 +108,30 @@ pub(super) async fn handler(
 		api_material_max,
 		api_member_id: pid,
 		api_mission: MissionStat {
-			api_count: user.expeditions.to_string(),
-			api_rate: (user.expeditions_success as f64 / user.expeditions as f64 * 100.0)
-				.to_string(),
-			api_success: user.expeditions_success.to_string(),
+			api_count: basic.api_ms_count.to_string(),
+			api_rate: rate_calculator(basic.api_ms_success, basic.api_ms_count, true),
+			api_success: basic.api_ms_success.to_string(),
 		},
 		api_ndoc: basic.api_count_ndock,
 		api_nickname: basic.api_nickname,
 		api_nickname_id: basic.api_nickname_id,
 		api_photo_url: "".to_string(),
 		api_practice: Rate {
-			api_lose: user.practice_battles.to_string(),
-			api_rate: (user.practice_battle_wins as f64 / user.practice_battles as f64 * 100.0)
-				.to_string(),
-			api_win: user.practice_battle_wins.to_string(),
+			api_lose: basic.api_pt_lose.to_string(),
+			api_rate: rate_calculator(basic.api_pt_win, basic.api_pt_win + basic.api_pt_lose, true),
+			api_win: basic.api_pt_win.to_string(),
 		},
-		api_rank: user.hq_rank,
+		api_rank: basic.api_rank,
 		api_ship: [ships.len() as i64, basic.api_max_chara],
 		api_slotitem: [slotitems.len() as i64, basic.api_max_slotitem],
 		api_war: Rate {
-			api_lose: user.sortie_loses.to_string(),
-			api_rate: (user.sortie_wins as f64 / ((user.sortie_wins + user.sortie_loses) as f64)
-				* 100.0)
-				.to_string(),
-			api_win: user.sortie_wins.to_string(),
+			api_lose: basic.api_st_lose.to_string(),
+			api_rate: rate_calculator(
+				basic.api_st_win,
+				basic.api_st_win + basic.api_st_lose,
+				false,
+			),
+			api_win: basic.api_st_win.to_string(),
 		},
 	}))
 }

@@ -653,6 +653,19 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a map area by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the map area.
+	pub fn find_payitem(&self, id: i64) -> Option<&ApiMstPayitem> {
+		let value = self.api_mst_payitem.iter().find(|m| m.api_id == id);
+		if value.is_none() {
+			error!("pay item {} not found", id);
+		}
+		value
+	}
+
 	/// Find a ship type by its `api_id`.
 	///
 	/// # Arguments

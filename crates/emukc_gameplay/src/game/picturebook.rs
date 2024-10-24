@@ -10,7 +10,7 @@ use emukc_model::profile::picture_book::{PictureBookShip, PictureBookSlotItem};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
-/// A trait for material related gameplay.
+/// A trait for picturebook related gameplay.
 #[async_trait]
 pub trait PictureBookOps {
 	/// Add ship record to picture book.
