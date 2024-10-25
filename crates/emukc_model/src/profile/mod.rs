@@ -22,6 +22,8 @@ pub mod ndock;
 pub mod picture_book;
 /// Practice
 pub mod practice;
+/// Preset deck
+pub mod preset_deck;
 /// Quest progress
 pub mod quest;
 /// In game slot items

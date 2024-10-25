@@ -14,6 +14,7 @@ pub mod map_record;
 pub mod material;
 pub mod ndock;
 pub mod practice;
+pub mod preset;
 pub mod quest;
 pub mod setting;
 pub mod ship;
@@ -171,6 +172,14 @@ pub enum Relation {
 	/// Relation to `PracticeConfig`
 	#[sea_orm(has_one = "practice::config::Entity")]
 	PracticeConfig,
+
+	/// Relation to `PresetCaps`
+	#[sea_orm(has_one = "preset::preset_caps::Entity")]
+	PresetCaps,
+
+	/// Relation to `PresetDeck`
+	#[sea_orm(has_many = "preset::preset_deck::Entity")]
+	PresetDeck,
 
 	/// Relation to `Rival`
 	#[sea_orm(has_many = "practice::rival::Entity")]
@@ -344,6 +353,10 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// practice
 	{
 		practice::bootstrap(db).await?;
+	}
+	// preset
+	{
+		preset::bootstrap(db).await?;
 	}
 	// quest
 	{

@@ -5,6 +5,7 @@ mod createship;
 mod createship_speedchange;
 mod destroyitem2;
 mod destroyship;
+mod getship;
 
 pub(super) fn router() -> Router {
 	Router::new()
@@ -13,4 +14,5 @@ pub(super) fn router() -> Router {
 		.route("/createship_speedchange", post(createship_speedchange::handler))
 		.route("/destroyitem2", post(destroyitem2::handler))
 		.route("/destroyship", post(destroyship::handler))
+		.route("/getship", post(getship::handler))
 }

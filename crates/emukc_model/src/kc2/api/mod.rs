@@ -216,7 +216,7 @@ pub struct KcApiPresetDeckElement {
 	pub api_preset_no: i64,
 	pub api_name: String,
 	pub api_name_id: String,
-	pub api_ship: [i64; 6],
+	pub api_ship: [i64; 7],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -337,7 +337,7 @@ impl Default for KcApiGameSetting {
 	fn default() -> Self {
 		Self {
 			api_language_type: 0,
-			api_oss_items: [0; 8],
+			api_oss_items: [1; 8],
 			api_position_id: 0,
 			api_skin_id: 101,
 			api_p_bgm_id: 101,

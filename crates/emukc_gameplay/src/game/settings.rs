@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{self},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
 };
 use emukc_model::kc2::KcApiGameSetting;
 
@@ -17,16 +17,18 @@ pub trait GameSettingsOps {
 	/// - `profile_id`: The profile ID.
 	async fn get_game_settings(&self, profile_id: i64) -> Result<KcApiGameSetting, GameplayError>;
 
-	/// Update user game settings.
+	/// Update oss settings.
 	///
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
-	/// - `settings`: The game settings.
-	async fn update_game_settings(
+	/// - `lan_type`: The language type.
+	/// - `oss_items`: The OSS items.
+	async fn update_oss_settings(
 		&self,
 		profile_id: i64,
-		settings: &KcApiGameSetting,
+		lan_type: i64,
+		oss_items: &[i64],
 	) -> Result<(), GameplayError>;
 }
 
@@ -39,15 +41,18 @@ impl<T: HasContext + ?Sized> GameSettingsOps for T {
 		Ok(settings.into())
 	}
 
-	async fn update_game_settings(
+	async fn update_oss_settings(
 		&self,
 		profile_id: i64,
-		settings: &KcApiGameSetting,
+		lan_type: i64,
+		oss_items: &[i64],
 	) -> Result<(), GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		update_game_settings_impl(&tx, profile_id, settings).await?;
+		update_oss_settings_impl(&tx, profile_id, lan_type, oss_items).await?;
+
+		tx.commit().await?;
 
 		Ok(())
 	}
@@ -79,30 +84,43 @@ where
 	Ok(settings)
 }
 
-/// Update game settings of user.
-///
-/// # Parameters
-///
-/// - `c`: The database connection.
-/// - `profile_id`: The profile ID.
-/// - `settings`: The game settings.
-pub async fn update_game_settings_impl<C>(
+pub async fn update_oss_settings_impl<C>(
 	c: &C,
 	profile_id: i64,
-	settings: &KcApiGameSetting,
+	lan_type: i64,
+	oss_items: &[i64],
 ) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
-	let _ = profile::setting::Entity::find_by_id(profile_id)
+	let m = profile::setting::Entity::find_by_id(profile_id)
 		.one(c)
 		.await?
 		.ok_or_else(|| GameplayError::ProfileNotFound(profile_id))?;
 
-	let mut am: profile::setting::ActiveModel = settings.clone().into();
+	let mut am: profile::setting::ActiveModel = m.into_active_model();
 	am.profile_id = ActiveValue::Unchanged(profile_id);
 
-	am.save(c).await?;
+	let language = profile::setting::Language::n(lan_type)
+		.ok_or_else(|| GameplayError::WrongType(format!("invalid language type {}", lan_type)))?;
+
+	am.language = ActiveValue::Set(language);
+	let oss = [
+		&mut am.oss_1,
+		&mut am.oss_2,
+		&mut am.oss_3,
+		&mut am.oss_4,
+		&mut am.oss_5,
+		&mut am.oss_6,
+		&mut am.oss_7,
+		&mut am.oss_8,
+	];
+
+	for (i, item) in oss_items.iter().enumerate() {
+		*oss[i] = ActiveValue::Set(*item);
+	}
+
+	am.update(c).await?;
 
 	Ok(())
 }

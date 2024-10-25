@@ -3,7 +3,11 @@ use emukc_db::{
 	entity::profile::{kdock, ship},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
-use emukc_model::{kc2::MaterialCategory, prelude::ApiMstShip, profile::material::Material};
+use emukc_model::{
+	kc2::{KcApiShip, KcApiSlotItem, MaterialCategory},
+	prelude::ApiMstShip,
+	profile::{material::Material, slot_item::SlotItem},
+};
 use emukc_time::chrono;
 
 use crate::{
@@ -15,6 +19,8 @@ use crate::{
 	},
 	gameplay::HasContext,
 };
+
+use super::{ship::add_ship_impl, slot_item::find_slot_item_impl};
 
 /// A trait for factory related gameplay.
 #[async_trait]
@@ -74,6 +80,18 @@ pub trait FactoryOps {
 		ship_id: i64,
 		keep_equipment: bool,
 	) -> Result<(), GameplayError>;
+
+	/// Complete ship construction.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `kdock_id`: The construction dock ID.
+	async fn complete_ship_construction(
+		&self,
+		profile_id: i64,
+		kdock_id: i64,
+	) -> Result<(KcApiShip, Vec<KcApiSlotItem>), GameplayError>;
 }
 
 #[async_trait]
@@ -249,5 +267,61 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 		tx.commit().await?;
 
 		Ok(())
+	}
+
+	async fn complete_ship_construction(
+		&self,
+		profile_id: i64,
+		kdock_id: i64,
+	) -> Result<(KcApiShip, Vec<KcApiSlotItem>), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		// find the construction dock
+		let kdock = find_kdock_impl(&tx, profile_id, kdock_id).await?;
+		let ship_id = kdock.ship_id;
+
+		// add ship to profile
+		let (_, ship) = add_ship_impl(&tx, codex, profile_id, ship_id).await?;
+		let slot_item_ids: Vec<i64> = ship
+			.api_slot
+			.iter()
+			.filter_map(|id| {
+				if *id > 0 {
+					Some(*id)
+				} else {
+					None
+				}
+			})
+			.collect();
+
+		// find slot items
+		let mut slot_items: Vec<KcApiSlotItem> = Vec::new();
+		for id in slot_item_ids.iter() {
+			let slot_item = find_slot_item_impl(&tx, *id).await?;
+			let slot_item: SlotItem = slot_item.into();
+			let slot_item: KcApiSlotItem = slot_item.into();
+			slot_items.push(slot_item);
+		}
+
+		// reset construction dock
+		let mut kdock_am: kdock::ActiveModel = kdock.into();
+		kdock_am.status = ActiveValue::Set(kdock::Status::Idle);
+		kdock_am.ship_id = ActiveValue::Set(0);
+		kdock_am.complete_time = ActiveValue::Set(None);
+		kdock_am.is_large = ActiveValue::Set(false);
+		kdock_am.fuel = ActiveValue::Set(0);
+		kdock_am.ammo = ActiveValue::Set(0);
+		kdock_am.steel = ActiveValue::Set(0);
+		kdock_am.bauxite = ActiveValue::Set(0);
+		kdock_am.devmat = ActiveValue::Set(0);
+
+		kdock_am.update(&tx).await?;
+
+		// commit transaction
+		tx.commit().await?;
+
+		Ok((ship, slot_items))
 	}
 }
