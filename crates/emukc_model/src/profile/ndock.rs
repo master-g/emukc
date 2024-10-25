@@ -75,7 +75,7 @@ impl RepairDock {
 		Ok(Self {
 			id,
 			index,
-			status: if index == 1 {
+			status: if index < 3 {
 				RepairDockStatus::Idle
 			} else {
 				RepairDockStatus::Locked

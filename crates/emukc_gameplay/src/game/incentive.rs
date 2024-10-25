@@ -153,7 +153,7 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
 							item.mst_id
 						))
 					})?;
-					add_material_impl(&tx, codex, profile_id, category, item.amount).await?;
+					add_material_impl(&tx, codex, profile_id, &[(category, item.amount)]).await?;
 				}
 				IncentiveType::Furniture => {
 					add_furniture_impl(&tx, profile_id, item.mst_id).await?;

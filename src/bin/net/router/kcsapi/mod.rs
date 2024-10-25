@@ -21,6 +21,8 @@ mod api_req_ranking;
 mod api_start2;
 mod api_world;
 
+mod form_utils;
+
 pub(super) fn router() -> Router {
 	Router::new()
 		// .merge(Router::new().nest("/api_dmm_payment", api_dmm_payment::router()))

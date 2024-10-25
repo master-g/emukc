@@ -17,13 +17,11 @@ pub trait MaterialOps {
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
-	/// - `category`: The material category.
-	/// - `amount`: The amount of the material.
+	/// - `values`: The materials to add.
 	async fn add_material(
 		&self,
 		profile_id: i64,
-		category: MaterialCategory,
-		amount: i64,
+		values: &[(MaterialCategory, i64)],
 	) -> Result<(), GameplayError>;
 
 	/// Deduct materials from a profile.
@@ -58,14 +56,13 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 	async fn add_material(
 		&self,
 		profile_id: i64,
-		category: MaterialCategory,
-		amount: i64,
+		values: &[(MaterialCategory, i64)],
 	) -> Result<(), GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		add_material_impl(&tx, codex, profile_id, category, amount).await?;
+		add_material_impl(&tx, codex, profile_id, values).await?;
 
 		tx.commit().await?;
 
@@ -129,15 +126,13 @@ where
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-/// - `category`: The material category.
-/// - `amount`: The amount of the material.
+/// - `values`: The materials to add.
 #[allow(unused)]
 pub async fn add_material_impl<C>(
 	c: &C,
 	codex: &Codex,
 	profile_id: i64,
-	category: MaterialCategory,
-	amount: i64,
+	values: &[(MaterialCategory, i64)],
 ) -> Result<material::Model, GameplayError>
 where
 	C: ConnectionTrait,
@@ -145,16 +140,18 @@ where
 	let record = get_mat_impl(c, profile_id).await?;
 	let mut model: Material = record.into();
 
-	match category {
-		MaterialCategory::Fuel => model.fuel += amount,
-		MaterialCategory::Ammo => model.ammo += amount,
-		MaterialCategory::Steel => model.steel += amount,
-		MaterialCategory::Bauxite => model.bauxite += amount,
-		MaterialCategory::Torch => model.torch += amount,
-		MaterialCategory::Bucket => model.bucket += amount,
-		MaterialCategory::DevMat => model.devmat += amount,
-		MaterialCategory::Screw => model.screw += amount,
-	};
+	for (category, amount) in values.iter() {
+		match category {
+			MaterialCategory::Fuel => model.fuel += amount,
+			MaterialCategory::Ammo => model.ammo += amount,
+			MaterialCategory::Steel => model.steel += amount,
+			MaterialCategory::Bauxite => model.bauxite += amount,
+			MaterialCategory::Torch => model.torch += amount,
+			MaterialCategory::Bucket => model.bucket += amount,
+			MaterialCategory::DevMat => model.devmat += amount,
+			MaterialCategory::Screw => model.screw += amount,
+		};
+	}
 
 	let cfg = &codex.material_cfg;
 	cfg.apply_hard_cap(&mut model);

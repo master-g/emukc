@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::kdock,
+	entity::profile::{kdock, ship},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
 use emukc_model::{kc2::MaterialCategory, prelude::ApiMstShip, profile::material::Material};
@@ -8,7 +8,11 @@ use emukc_time::chrono;
 
 use crate::{
 	err::GameplayError,
-	game::{kdock::find_kdock_impl, material::deduct_material_impl, slot_item::add_slot_item_impl},
+	game::{
+		kdock::find_kdock_impl,
+		material::{add_material_impl, deduct_material_impl},
+		slot_item::{add_slot_item_impl, destroy_items_impl},
+	},
 	gameplay::HasContext,
 };
 
@@ -47,6 +51,28 @@ pub trait FactoryOps {
 		large: bool,
 		fast: bool,
 		consumption: &[(MaterialCategory, i64)],
+	) -> Result<(), GameplayError>;
+
+	/// High-speed construction.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `kdock_id`: The construction dock ID.
+	async fn kdock_fastbuild(&self, profile_id: i64, kdock_id: i64) -> Result<(), GameplayError>;
+
+	/// Destroy a ship.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `ship_id`: The ship ID.
+	/// - `keep_equipment`: Whether to keep the equipment.
+	async fn destroy_ship(
+		&self,
+		profile_id: i64,
+		ship_id: i64,
+		keep_equipment: bool,
 	) -> Result<(), GameplayError>;
 }
 
@@ -132,6 +158,93 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 		}
 
 		kdock_am.update(&tx).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn kdock_fastbuild(&self, profile_id: i64, kdock_id: i64) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let kdock = find_kdock_impl(&tx, profile_id, kdock_id).await?;
+
+		let torch_cost = if kdock.is_large {
+			10
+		} else {
+			1
+		};
+
+		// deduct material first
+		deduct_material_impl(&tx, profile_id, &[(MaterialCategory::Torch, torch_cost)]).await?;
+
+		// change kdock status
+
+		let mut kdock_am: kdock::ActiveModel = kdock.into();
+		kdock_am.complete_time = ActiveValue::Set(None);
+		kdock_am.status = ActiveValue::Set(kdock::Status::Completed);
+
+		kdock_am.update(&tx).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn destroy_ship(
+		&self,
+		profile_id: i64,
+		ship_id: i64,
+		keep_equipment: bool,
+	) -> Result<(), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let ship_model = ship::Entity::find_by_id(ship_id)
+			.one(&tx)
+			.await?
+			.ok_or_else(|| GameplayError::EntryNotFound(format!("ship {} not found", ship_id)))?;
+
+		let ship_mst = codex.find::<ApiMstShip>(&ship_model.mst_id)?;
+
+		if !keep_equipment {
+			let slot_ids: Vec<i64> = [
+				ship_model.slot_1,
+				ship_model.slot_2,
+				ship_model.slot_3,
+				ship_model.slot_4,
+				ship_model.slot_5,
+				ship_model.slot_ex,
+			]
+			.iter()
+			.filter_map(|&id| {
+				if id > 0 {
+					Some(id)
+				} else {
+					None
+				}
+			})
+			.collect();
+
+			destroy_items_impl(&tx, codex, profile_id, &slot_ids).await?;
+		}
+
+		let mut scrap_materials = [
+			(MaterialCategory::Fuel, 0),
+			(MaterialCategory::Ammo, 0),
+			(MaterialCategory::Steel, 0),
+			(MaterialCategory::Bauxite, 0),
+		];
+
+		if let Some(broken) = ship_mst.api_broken {
+			for (i, amount) in broken.iter().enumerate() {
+				scrap_materials[i].1 += amount;
+			}
+		}
+
+		add_material_impl(&tx, codex, profile_id, &scrap_materials).await?;
 
 		tx.commit().await?;
 

@@ -86,7 +86,7 @@ impl ConstructionDock {
 		Ok(Self {
 			id,
 			index,
-			status: if index == 1 {
+			status: if index < 3 {
 				ConstructionDockStatus::Idle
 			} else {
 				ConstructionDockStatus::Locked

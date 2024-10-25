@@ -5,7 +5,7 @@ use emukc_db::{
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, game::material::add_material_impl, gameplay::HasContext};
 
 use super::picturebook::add_slot_item_to_picturebook_impl;
 
@@ -68,6 +68,18 @@ pub trait SlotItemOps {
 		&self,
 		profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError>;
+
+	/// Destroy slot items.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `item_ids`: The slot item instance IDs.
+	async fn destroy_items(
+		&self,
+		profile_id: i64,
+		item_ids: &[i64],
+	) -> Result<Vec<(MaterialCategory, i64)>, GameplayError>;
 }
 
 #[async_trait]
@@ -151,6 +163,20 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 			slot_items.into_iter().map(std::convert::Into::into).collect();
 
 		Ok(slot_items)
+	}
+
+	async fn destroy_items(
+		&self,
+		profile_id: i64,
+		item_ids: &[i64],
+	) -> Result<Vec<(MaterialCategory, i64)>, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let scrapped_materials = destroy_items_impl(&tx, codex, profile_id, item_ids).await?;
+
+		Ok(scrapped_materials)
 	}
 }
 
@@ -272,6 +298,43 @@ where
 		.await?;
 
 	Ok(records)
+}
+
+pub async fn destroy_items_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	item_ids: &[i64],
+) -> Result<Vec<(MaterialCategory, i64)>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let mut scrap_materials = vec![
+		(MaterialCategory::Fuel, 0),
+		(MaterialCategory::Ammo, 0),
+		(MaterialCategory::Steel, 0),
+		(MaterialCategory::Bauxite, 0),
+	];
+
+	let items = slot_item::Entity::find()
+		.filter(slot_item::Column::ProfileId.eq(profile_id))
+		.filter(slot_item::Column::Id.is_in(item_ids.to_owned()))
+		.all(c)
+		.await?;
+
+	for item in items {
+		let mst = codex.find::<ApiMstSlotitem>(&item.mst_id)?;
+
+		mst.api_broken.iter().enumerate().for_each(|(i, v)| {
+			scrap_materials[i].1 += v;
+		});
+
+		item.delete(c).await?;
+	}
+
+	add_material_impl(c, codex, profile_id, &scrap_materials).await?;
+
+	Ok(scrap_materials)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

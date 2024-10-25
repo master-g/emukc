@@ -176,7 +176,6 @@ debug = false
 strip = "debuginfo"
 lto = true
 opt-level = "s"
-build = "build.rs"
 
 # For testing
 

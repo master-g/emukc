@@ -152,7 +152,7 @@ async fn create_slotitems() {
 
 	let ids = chunk.iter().map(|v| v.api_id).collect::<Vec<i64>>();
 
-	let (ids, material) = context.create_slotitem(pid, ids, costs).await.unwrap();
+	let (ids, material) = context.create_slotitem(pid, &ids, &costs).await.unwrap();
 
 	println!("{:?}", ids);
 	println!("{:?}", material);
@@ -164,7 +164,7 @@ async fn material() {
 
 	let old = context.get_materials(session.profile.id).await.unwrap();
 
-	context.add_material(session.profile.id, MaterialCategory::Fuel, 100).await.unwrap();
+	context.add_material(session.profile.id, &[(MaterialCategory::Fuel, 100)]).await.unwrap();
 
 	let new = context.get_materials(session.profile.id).await.unwrap();
 
