@@ -14,6 +14,9 @@ mod require_info;
 mod ship2;
 mod ship3;
 mod slot_item;
+mod sortie_conditions;
+mod unsetslot;
+mod useitem;
 
 pub(super) fn router() -> Router {
 	Router::new()
@@ -31,4 +34,7 @@ pub(super) fn router() -> Router {
 		.route("/ship2", post(ship2::handler))
 		.route("/ship3", post(ship3::handler))
 		.route("/slot_item", post(slot_item::handler))
+		.route("/sortie_conditions", post(sortie_conditions::handler))
+		.route("/unsetslot", post(unsetslot::handler))
+		.route("useitem", post(useitem::handler))
 }
