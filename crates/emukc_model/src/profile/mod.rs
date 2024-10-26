@@ -24,6 +24,8 @@ pub mod picture_book;
 pub mod practice;
 /// Preset deck
 pub mod preset_deck;
+/// Preset slot
+pub mod preset_slot;
 /// Quest progress
 pub mod quest;
 /// In game slot items
