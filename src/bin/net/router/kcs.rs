@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use axum::{
 	extract::{Path, Query},
 	response::{IntoResponse, Response},
@@ -23,6 +21,6 @@ async fn file_handler(
 	Path(path): Path<String>,
 	Query(params): Query<KcVersionQuery>,
 ) -> Response {
-	let rel_path = PathBuf::from("kcs").join(&path).to_string_lossy().to_string();
+	let rel_path = format!("kcs/{}", path);
 	assets::cache::get_file(state, &rel_path, params.version.as_deref()).await.into_response()
 }

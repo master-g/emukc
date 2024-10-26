@@ -42,11 +42,23 @@ pub async fn prepare(
 		std::fs::remove_file(path)?;
 	}
 
-	let sqlite_url = format!("sqlite:{}?mode=rwc", path.to_str().unwrap());
+	let path = clean_db_path(path);
+
+	let sqlite_url = format!("sqlite:{}?mode=rwc", path);
 	let db = Database::connect(&sqlite_url).await?;
 	bootstrap(&db).await?;
 
 	Ok(db)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn clean_db_path(path: &std::path::Path) -> String {
+	path.to_str().unwrap().to_string()
+}
+
+#[cfg(target_os = "windows")]
+fn clean_db_path(path: &std::path::Path) -> String {
+	path.to_str().unwrap().replace("\\\\?\\", "").to_string()
 }
 
 /// Prepare the cache database
@@ -67,7 +79,9 @@ pub async fn prepare_cache(
 		std::fs::remove_file(path)?;
 	}
 
-	let sqlite_url = format!("sqlite:{}?mode=rwc", path.to_str().unwrap());
+	let path = clean_db_path(path);
+
+	let sqlite_url = format!("sqlite:{}?mode=rwc", path);
 	let db = Database::connect(&sqlite_url).await?;
 	bootstrap_cache(&db).await?;
 

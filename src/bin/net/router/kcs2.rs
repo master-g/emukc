@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use axum::{
 	extract::{Path, Query},
 	response::{Html, IntoResponse, Response},
@@ -71,13 +69,13 @@ async fn file_handler(
 	}
 
 	// embedded
-	let embed_path = PathBuf::from("emukc").join(&path).to_string_lossy().to_string();
+	let embed_path = format!("emukc/{}", path);
 	if GameSiteAssets::get(&embed_path).is_some() {
 		return GameStaticFile(&embed_path).into_response();
 	}
 
 	// cache
-	let cache_rel_path = PathBuf::from("kcs2").join(path).to_string_lossy().to_string();
+	let cache_rel_path = format!("kcs2/{}", path);
 
 	if cache_rel_path.contains("index.php") {
 		let Some(version) = params.version.as_deref() else {

@@ -36,5 +36,5 @@ pub(super) fn router() -> Router {
 		.route("/slot_item", post(slot_item::handler))
 		.route("/sortie_conditions", post(sortie_conditions::handler))
 		.route("/unsetslot", post(unsetslot::handler))
-		.route("useitem", post(useitem::handler))
+		.route("/useitem", post(useitem::handler))
 }
