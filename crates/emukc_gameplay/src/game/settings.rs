@@ -96,7 +96,7 @@ where
 	let m = profile::setting::Entity::find_by_id(profile_id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::ProfileNotFound(profile_id))?;
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
 
 	let mut am: profile::setting::ActiveModel = m.into_active_model();
 	am.profile_id = ActiveValue::Unchanged(profile_id);

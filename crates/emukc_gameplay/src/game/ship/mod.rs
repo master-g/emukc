@@ -123,7 +123,7 @@ where
 	let profile = profile::Entity::find_by_id(profile_id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::ProfileNotFound(profile_id))?;
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
 
 	let num_ships_owned =
 		ship::Entity::find().filter(ship::Column::ProfileId.eq(profile_id)).count(c).await?;

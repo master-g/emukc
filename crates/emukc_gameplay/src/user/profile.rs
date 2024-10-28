@@ -159,7 +159,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let profile_model = profile::Entity::find_by_id(profile_id)
 			.one(&tx)
 			.await?
-			.ok_or_else(|| UserError::ProfileNotFound)?;
+			.ok_or(UserError::ProfileNotFound)?;
 
 		let mut am: profile::ActiveModel = profile_model.into();
 		am.world_id = ActiveValue::Set(world_id);
@@ -176,7 +176,7 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
 		let profile_model = profile::Entity::find_by_id(profile_id)
 			.one(db)
 			.await?
-			.ok_or_else(|| UserError::ProfileNotFound)?;
+			.ok_or(UserError::ProfileNotFound)?;
 
 		Ok(profile_model.into())
 	}

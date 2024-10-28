@@ -28,20 +28,23 @@ pub fn format_date(ms: i64, symbol: &str) -> String {
 	)
 }
 
-/// Get today's JST (UTC+9) at 5 AM, and convert it to UTC.
+/// Get today's JST (UTC+9) at the specified hour, and convert it to UTC.
+///
+/// # Arguments
+///
+/// * `hour` - The hour of the day.
 ///
 /// # Returns
 ///
-/// A `DateTime<Utc>` representing today's 5 AM JST.
-#[must_use]
-pub fn jst_today_0500_utc() -> DateTime<Utc> {
+/// A `DateTime<Utc>` representing today's specified hour JST.
+pub fn jst_today_hour_utc(hour: u32) -> DateTime<Utc> {
 	let now = Utc::now();
 	let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
 	let tokyo_now = now.with_timezone(&tokyo_tz);
 	let today = tokyo_now.date_naive();
-	let five_am_jst = today.and_hms_opt(5, 0, 0).unwrap().and_local_timezone(tokyo_tz).unwrap();
+	let n_hour_jst = today.and_hms_opt(hour, 0, 0).unwrap().and_local_timezone(tokyo_tz).unwrap();
 
-	five_am_jst.with_timezone(&Utc)
+	n_hour_jst.with_timezone(&Utc)
 }
 
 /// Get this week's Monday's JST (UTC+9) at 5 AM, and convert it to UTC.
@@ -139,6 +142,24 @@ pub fn jst_0500_day_one_of_year() -> DateTime<Utc> {
 	first_day_0500_jst.with_timezone(&Utc)
 }
 
+/// Check if the given time is before or after the specified hour in JST (UTC+9) today.
+///
+/// # Arguments
+///
+/// * `t` - The time to check.
+/// * `before_hour` - The hour to check before.
+/// * `after_hour` - The hour to check after.
+pub fn is_before_or_after_jst_today_hour(
+	t: DateTime<Utc>,
+	before_hour: u32,
+	after_hour: u32,
+) -> bool {
+	let before = jst_today_hour_utc(before_hour);
+	let after = jst_today_hour_utc(after_hour);
+
+	t < before || t >= after
+}
+
 // Re-export chrono.
 pub use chrono;
 
@@ -147,6 +168,6 @@ pub mod prelude {
 	#[doc(hidden)]
 	pub use crate::{
 		format_date, jst_0500_day_one_of_quarter, jst_0500_day_one_of_year, jst_0500_of_nth_day,
-		jst_day_of_month, jst_monday_0500_utc, jst_today_0500_utc,
+		jst_day_of_month, jst_monday_0500_utc, jst_today_hour_utc,
 	};
 }

@@ -15,7 +15,7 @@ where
 		.filter(token::Column::Typ.eq(token::TokenTypeDef::Access))
 		.one(c)
 		.await?
-		.ok_or_else(|| UserError::TokenInvalid)?;
+		.ok_or(UserError::TokenInvalid)?;
 
 	let account = account::Entity::find()
 		.filter(account::Column::Uid.eq(record.uid))

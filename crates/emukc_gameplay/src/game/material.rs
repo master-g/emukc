@@ -115,7 +115,7 @@ where
 		.filter(material::Column::ProfileId.eq(profile_id))
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::ProfileNotFound(profile_id))?;
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
 
 	Ok(record)
 }

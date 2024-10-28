@@ -3,6 +3,8 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
+use emukc_model::profile::practice::RivalType as RivalTypeModel;
+
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
@@ -57,3 +59,23 @@ impl Related<crate::entity::profile::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl From<RivalTypeModel> for RivalType {
+	fn from(value: RivalTypeModel) -> Self {
+		match value {
+			RivalTypeModel::FirstGroup => RivalType::FirstGroup,
+			RivalTypeModel::SecondaryGroup => RivalType::SecondGroup,
+			RivalTypeModel::All => RivalType::All,
+		}
+	}
+}
+
+impl From<RivalType> for RivalTypeModel {
+	fn from(value: RivalType) -> Self {
+		match value {
+			RivalType::FirstGroup => RivalTypeModel::FirstGroup,
+			RivalType::SecondGroup => RivalTypeModel::SecondaryGroup,
+			RivalType::All => RivalTypeModel::All,
+		}
+	}
+}

@@ -29,7 +29,7 @@ mod test {
 		println!("Current time in Tokyo: {}", tokyo_now);
 		println!("Today at 5 AM JST: {}", five_am_jst);
 		println!("Today at 5 AM JST in UTC: {}", five_am_utc);
-		assert_eq!(jst_today_0500_utc(), five_am_utc);
+		assert_eq!(jst_today_hour_utc(5), five_am_utc);
 	}
 
 	#[test]
@@ -55,5 +55,19 @@ mod test {
 	#[test]
 	fn test_jst_day_one_of_year() {
 		println!("First day of year at 5 AM JST in UTC: {:?}", jst_0500_day_one_of_year());
+	}
+
+	#[test]
+	fn test_before_or_after() {
+		let now = Utc::now();
+		let before_hour = 3;
+		let after_hour = 15;
+		println!("Current time in UTC: {}", now);
+		println!("Before 3 AM JST today: {}", jst_today_hour_utc(before_hour));
+		println!("After 3 PM JST today: {}", jst_today_hour_utc(after_hour));
+		println!(
+			"Is before 3 AM JST today or after 3 PM JST today? {}",
+			is_before_or_after_jst_today_hour(now, before_hour, after_hour)
+		);
 	}
 }

@@ -34,7 +34,7 @@ where
 		let state = State::from_ref(state);
 
 		// extract token from query first
-		let raw_token = find_token_in_parts(parts).ok_or_else(|| ApiError::MissingToken)?;
+		let raw_token = find_token_in_parts(parts).ok_or(ApiError::MissingToken)?;
 
 		match state.auth(&raw_token).await {
 			Ok(AuthInfo::Account(account)) => Ok(Self(account)),

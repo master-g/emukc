@@ -146,7 +146,7 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 			.filter(account::Column::Name.eq(username))
 			.one(&tx)
 			.await?
-			.ok_or_else(|| UserError::InvalidUsernameOrPassword)?;
+			.ok_or(UserError::InvalidUsernameOrPassword)?;
 
 		if !password.verify_password(&model.secret) {
 			return Err(UserError::InvalidUsernameOrPassword);
@@ -179,7 +179,7 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 			.filter(token::Column::Typ.ne(token::TokenTypeDef::Refresh))
 			.one(&tx)
 			.await?
-			.ok_or_else(|| UserError::TokenInvalid)?;
+			.ok_or(UserError::TokenInvalid)?;
 
 		// check token
 
@@ -200,7 +200,7 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 					.filter(account::Column::Uid.eq(uid))
 					.one(&tx)
 					.await?
-					.ok_or_else(|| UserError::UserNotFound)?;
+					.ok_or(UserError::UserNotFound)?;
 
 				// update
 				let mut active_model: account::ActiveModel = account.into();
@@ -217,7 +217,7 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 					.filter(profile::Column::Id.eq(profile_id))
 					.one(&tx)
 					.await?
-					.ok_or_else(|| UserError::ProfileNotFound)?;
+					.ok_or(UserError::ProfileNotFound)?;
 
 				// renew session token
 				token_am.expire = ActiveValue::Set(Utc::now() + token.typ.duration());
@@ -259,7 +259,7 @@ impl<T: HasContext + ?Sized> AccountOps for T {
 			.filter(account::Column::Name.eq(username))
 			.one(&tx)
 			.await?
-			.ok_or_else(|| UserError::InvalidUsernameOrPassword)?;
+			.ok_or(UserError::InvalidUsernameOrPassword)?;
 
 		if !password.verify_password(&model.secret) {
 			return Err(UserError::InvalidUsernameOrPassword);

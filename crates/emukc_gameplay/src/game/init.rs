@@ -5,7 +5,7 @@ use crate::err::GameplayError;
 
 use super::{
 	airbase, basic, fleet, furniture, incentive, kdock, material, ndock, pay_item, picturebook,
-	presets, settings, ship, slot_item, use_item,
+	practice, presets, settings, ship, slot_item, use_item,
 };
 
 /// Initialize the profile game data.
@@ -63,6 +63,9 @@ where
 	// pay items
 	pay_item::init(c, profile_id).await?;
 
+	// practice
+	practice::init(c, profile_id).await?;
+
 	// presets
 	presets::init(c, profile_id).await?;
 
@@ -89,6 +92,7 @@ where
 	slot_item::wipe(c, profile_id).await?;
 	use_item::wipe(c, profile_id).await?;
 	pay_item::wipe(c, profile_id).await?;
+	practice::wipe(c, profile_id).await?;
 	presets::wipe(c, profile_id).await?;
 	airbase::wipe(c, profile_id).await?;
 

@@ -34,6 +34,7 @@ mod material;
 mod ndock;
 mod pay_item;
 mod picturebook;
+mod practice;
 mod presets;
 mod settings;
 mod ship;
