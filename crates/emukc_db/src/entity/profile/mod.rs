@@ -181,6 +181,10 @@ pub enum Relation {
 	#[sea_orm(has_many = "preset::preset_deck::Entity")]
 	PresetDeck,
 
+	/// Relation to `PresetSlot`
+	#[sea_orm(has_many = "preset::preset_slot::Entity")]
+	PresetSlot,
+
 	/// Relation to `Rival`
 	#[sea_orm(has_many = "practice::rival::Entity")]
 	Rival,

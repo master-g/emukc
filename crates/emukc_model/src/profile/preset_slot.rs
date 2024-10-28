@@ -12,6 +12,16 @@ pub struct PresetSlotItemSlot {
 	pub stars: i64,
 }
 
+/// Preset slot item select mode
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
+pub enum PresetSlotItemSelectMode {
+	/// mode A, max level slot item will be select first
+	A = 1,
+
+	/// mode B, same level slot item will be select first, and `api_slot_ex_flag` will be took into account
+	B = 2,
+}
+
 /// Preset slot item
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PresetSlotItemElement {
@@ -25,13 +35,12 @@ pub struct PresetSlotItemElement {
 	pub name: String,
 
 	/// select mode, 1 = A, 2 = B
-	/// FIXME: use enum
-	pub select_mode: i64,
+	pub select_mode: PresetSlotItemSelectMode,
 
 	/// preset locked
 	pub locked: bool,
 
-	/// ???
+	/// ex slot flag
 	pub ex_flag: bool,
 
 	/// slot item mst id and stars
@@ -68,7 +77,7 @@ impl From<PresetSlotItemElement> for KcApiPresetSlotElement {
 		Self {
 			api_preset_no: value.index,
 			api_name: value.name,
-			api_selected_mode: value.select_mode,
+			api_selected_mode: value.select_mode as i64,
 			api_lock_flag: if value.locked {
 				1
 			} else {
