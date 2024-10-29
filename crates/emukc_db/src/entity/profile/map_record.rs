@@ -46,28 +46,3 @@ impl Related<crate::entity::profile::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
-
-impl From<MapRecord> for ActiveModel {
-	fn from(value: MapRecord) -> Self {
-		Self {
-			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(value.id),
-			map_id: ActiveValue::Set(value.map_id),
-			cleared: ActiveValue::Set(value.cleared),
-			defeat_count: ActiveValue::Set(value.defeat_count),
-			current_hp: ActiveValue::Set(value.current_hp),
-		}
-	}
-}
-
-impl From<Model> for MapRecord {
-	fn from(value: Model) -> Self {
-		Self {
-			id: value.profile_id,
-			map_id: value.map_id,
-			cleared: value.cleared,
-			defeat_count: value.defeat_count,
-			current_hp: value.current_hp,
-		}
-	}
-}
