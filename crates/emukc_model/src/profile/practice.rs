@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use serde::{Deserialize, Serialize};
 
 use crate::kc2::{
@@ -8,11 +10,8 @@ use crate::kc2::{
 /// Rival ship info
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct RivalShip {
-	/// profile id
-	pub id: i64,
-
 	/// ship instance id
-	pub instance_id: i64,
+	pub id: i64,
 
 	/// ship mst id
 	pub mst_id: i64,
@@ -27,9 +26,6 @@ pub struct RivalShip {
 /// Rival detail
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct RivalDetail {
-	/// profile id
-	pub id: i64,
-
 	/// experience now
 	pub exp_now: i64,
 
@@ -62,8 +58,7 @@ pub struct RivalDetail {
 }
 
 /// Rival flag
-#[allow(missing_docs)]
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default, enumn::N)]
 pub enum RivalFlag {
 	#[default]
 	Bronze = 1,
@@ -71,8 +66,7 @@ pub enum RivalFlag {
 	Gold = 3,
 }
 
-#[allow(missing_docs)]
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default, enumn::N)]
 pub enum RivalStatus {
 	#[default]
 	Untouched = 0,
@@ -87,11 +81,8 @@ pub enum RivalStatus {
 /// Rival info
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Rival {
-	/// profile id this rival belongs to
+	/// profile id of this rival
 	pub id: i64,
-
-	/// rival profile id
-	pub rival_profile_id: i64,
 
 	/// rival index
 	pub index: i64,
@@ -192,7 +183,7 @@ impl From<Rival> for KcApiPracticeEnemyInfo {
 								api_star: None,
 							},
 							|ship| KcApiPracticeEnemyShip {
-								api_id: ship.instance_id,
+								api_id: ship.id,
 								api_ship_id: Some(ship.mst_id),
 								api_level: Some(ship.level),
 								api_star: Some(ship.star),

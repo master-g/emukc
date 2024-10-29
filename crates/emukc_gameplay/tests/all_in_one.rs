@@ -221,3 +221,12 @@ async fn ndock() {
 	let dock = context.unlock_ndock(pid, 2).await.unwrap();
 	assert_eq!(dock.status, RepairDockStatus::Idle);
 }
+
+#[tokio::test]
+async fn practice() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let rivals = context.get_practice_rivals(pid).await.unwrap();
+	println!("{:?}", rivals);
+}

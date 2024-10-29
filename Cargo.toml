@@ -117,8 +117,8 @@ md-5 = "0.10.6"
 mime_guess = "2"
 png = "0.17.14"
 rand = { version = "0.8.5", features = ["small_rng"] }
-regex = "1.11.0"
-reqwest = { version = "0.12.8", default-features = false, features = [
+regex = "1.11.1"
+reqwest = { version = "0.12.9", default-features = false, features = [
 	"default-tls",
 	"socks",
 	"stream",

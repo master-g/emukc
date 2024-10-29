@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 use emukc_model::profile::practice::RivalType as RivalTypeModel;
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum RivalType {
 	/// First group

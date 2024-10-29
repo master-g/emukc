@@ -150,14 +150,14 @@ pub fn jst_0500_day_one_of_year() -> DateTime<Utc> {
 /// * `before_hour` - The hour to check before.
 /// * `after_hour` - The hour to check after.
 pub fn is_before_or_after_jst_today_hour(
-	t: DateTime<Utc>,
+	t: &DateTime<Utc>,
 	before_hour: u32,
 	after_hour: u32,
 ) -> bool {
 	let before = jst_today_hour_utc(before_hour);
 	let after = jst_today_hour_utc(after_hour);
 
-	t < before || t >= after
+	t < &before || t >= &after
 }
 
 // Re-export chrono.

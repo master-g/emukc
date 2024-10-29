@@ -1,5 +1,6 @@
 //! Practice rival entity
 
+use emukc_model::profile::practice::{RivalFlag, RivalStatus};
 use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
@@ -115,3 +116,51 @@ impl Related<crate::entity::profile::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl From<RivalFlag> for Flag {
+	fn from(value: RivalFlag) -> Self {
+		match value {
+			RivalFlag::Bronze => Self::Bronze,
+			RivalFlag::Silver => Self::Silver,
+			RivalFlag::Gold => Self::Gold,
+		}
+	}
+}
+
+impl From<Flag> for RivalFlag {
+	fn from(value: Flag) -> Self {
+		match value {
+			Flag::Bronze => Self::Bronze,
+			Flag::Silver => Self::Silver,
+			Flag::Gold => Self::Gold,
+		}
+	}
+}
+
+impl From<RivalStatus> for Status {
+	fn from(value: RivalStatus) -> Self {
+		match value {
+			RivalStatus::Untouched => Self::Untouched,
+			RivalStatus::LostRankE => Self::LostRankE,
+			RivalStatus::LostRankD => Self::LostRankD,
+			RivalStatus::LostRankC => Self::LostRankC,
+			RivalStatus::VictoryRankB => Self::VictoryRankB,
+			RivalStatus::VictoryRankA => Self::VictoryRankA,
+			RivalStatus::VictoryRankS => Self::VictoryRankS,
+		}
+	}
+}
+
+impl From<Status> for RivalStatus {
+	fn from(value: Status) -> Self {
+		match value {
+			Status::Untouched => Self::Untouched,
+			Status::LostRankE => Self::LostRankE,
+			Status::LostRankD => Self::LostRankD,
+			Status::LostRankC => Self::LostRankC,
+			Status::VictoryRankB => Self::VictoryRankB,
+			Status::VictoryRankA => Self::VictoryRankA,
+			Status::VictoryRankS => Self::VictoryRankS,
+		}
+	}
+}

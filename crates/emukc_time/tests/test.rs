@@ -67,7 +67,7 @@ mod test {
 		println!("After 3 PM JST today: {}", jst_today_hour_utc(after_hour));
 		println!(
 			"Is before 3 AM JST today or after 3 PM JST today? {}",
-			is_before_or_after_jst_today_hour(now, before_hour, after_hour)
+			is_before_or_after_jst_today_hour(&now, before_hour, after_hour)
 		);
 	}
 }

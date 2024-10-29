@@ -6,8 +6,11 @@ use sea_orm::entity::prelude::*;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "rival_detail")]
 pub struct Model {
-	/// Profile ID
+	/// instance id
 	#[sea_orm(primary_key)]
+	pub id: i64,
+
+	/// Profile ID
 	pub profile_id: i64,
 
 	/// Experience now
@@ -44,15 +47,29 @@ pub enum Relation {
 	/// Relation to `Rival`
 	#[sea_orm(
 		belongs_to = "super::rival::Entity",
-		from = "Column::ProfileId",
+		from = "Column::Id",
 		to = "super::rival::Column::Id"
 	)]
 	Rival,
+
+	/// Relation to `Profile`
+	#[sea_orm(
+		belongs_to = "crate::entity::profile::Entity",
+		from = "Column::ProfileId",
+		to = "crate::entity::profile::Column::Id"
+	)]
+	Profile,
 }
 
 impl Related<super::rival::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::Rival.def()
+	}
+}
+
+impl Related<crate::entity::profile::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::Profile.def()
 	}
 }
 

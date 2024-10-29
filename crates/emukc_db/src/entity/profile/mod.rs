@@ -189,6 +189,14 @@ pub enum Relation {
 	#[sea_orm(has_many = "practice::rival::Entity")]
 	Rival,
 
+	/// Relation to `RivalDetail`
+	#[sea_orm(has_one = "practice::detail::Entity")]
+	RivalDetail,
+
+	/// Relation to `RivalShip`
+	#[sea_orm(has_many = "practice::ship::Entity")]
+	RivalShip,
+
 	/// Relation to `QuestProgress`
 	#[sea_orm(has_many = "quest::progress::Entity")]
 	QuestProgress,

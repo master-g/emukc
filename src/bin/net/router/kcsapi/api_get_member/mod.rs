@@ -8,6 +8,7 @@ mod material;
 mod ndock;
 mod payitem;
 mod picture_book;
+mod practice;
 mod preset_deck;
 mod preset_slot;
 mod record;
@@ -30,6 +31,7 @@ pub(super) fn router() -> Router {
 		.route("/ndock", post(ndock::handler))
 		.route("/payitem", post(payitem::handler))
 		.route("/picture_book", post(picture_book::handler))
+		.route("/practice", post(practice::handler))
 		.route("/preset_deck", post(preset_deck::handler))
 		.route("/preset_slot", post(preset_slot::handler))
 		.route("/record", post(record::handler))
