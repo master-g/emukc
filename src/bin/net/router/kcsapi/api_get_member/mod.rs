@@ -13,6 +13,7 @@ mod picture_book;
 mod practice;
 mod preset_deck;
 mod preset_slot;
+mod questlist;
 mod record;
 mod require_info;
 mod ship2;
@@ -38,6 +39,7 @@ pub(super) fn router() -> Router {
 		.route("/practice", post(practice::handler))
 		.route("/preset_deck", post(preset_deck::handler))
 		.route("/preset_slot", post(preset_slot::handler))
+		.route("/questlist", post(questlist::handler))
 		.route("/record", post(record::handler))
 		.route("/require_info", post(require_info::handler))
 		.route("/ship2", post(ship2::handler))
