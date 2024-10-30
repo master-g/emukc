@@ -1,15 +1,16 @@
 //! User expedition record
 
-use emukc_model::profile::expedition::{Expedition, ExpeditionState};
-use sea_orm::{entity::prelude::*, ActiveValue};
+use chrono::{DateTime, Utc};
+use emukc_model::profile::expedition::ExpeditionState;
+use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
-	/// Never started
+	/// Not started
 	#[sea_orm(num_value = 0)]
-	NeverStarted,
+	NotStarted,
 
 	/// Unfinished
 	#[sea_orm(num_value = 1)]
@@ -36,6 +37,9 @@ pub struct Model {
 
 	/// Expedition state
 	pub state: Status,
+
+	/// Last completed time
+	pub last_completed_at: Option<DateTime<Utc>>,
 }
 
 /// Relation
@@ -61,7 +65,7 @@ impl ActiveModelBehavior for ActiveModel {}
 impl From<Status> for ExpeditionState {
 	fn from(value: Status) -> Self {
 		match value {
-			Status::NeverStarted => ExpeditionState::NeverStarted,
+			Status::NotStarted => ExpeditionState::NotStarted,
 			Status::Unfinished => ExpeditionState::Unfinished,
 			Status::Completed => ExpeditionState::Completed,
 		}
@@ -71,20 +75,9 @@ impl From<Status> for ExpeditionState {
 impl From<ExpeditionState> for Status {
 	fn from(value: ExpeditionState) -> Self {
 		match value {
-			ExpeditionState::NeverStarted => Status::NeverStarted,
+			ExpeditionState::NotStarted => Status::NotStarted,
 			ExpeditionState::Unfinished => Status::Unfinished,
 			ExpeditionState::Completed => Status::Completed,
-		}
-	}
-}
-
-impl From<Expedition> for ActiveModel {
-	fn from(t: Expedition) -> Self {
-		Self {
-			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(t.id),
-			mission_id: ActiveValue::Set(t.mission_id),
-			state: ActiveValue::Set(t.state.into()),
 		}
 	}
 }

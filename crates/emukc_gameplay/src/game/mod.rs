@@ -2,6 +2,7 @@
 
 pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
+pub use expedition::ExpeditionOps;
 pub use factory::FactoryOps;
 pub use fleet::FleetOps;
 pub use furniture::FurnitureOps;
@@ -26,6 +27,7 @@ use crate::gameplay::HasContext;
 
 mod airbase;
 mod basic;
+mod expedition;
 mod factory;
 mod fleet;
 mod furniture;
@@ -49,6 +51,7 @@ mod use_item;
 pub trait GameOps:
 	BasicOps
 	+ AirbaseOps
+	+ ExpeditionOps
 	+ FactoryOps
 	+ FleetOps
 	+ FurnitureOps
@@ -76,8 +79,8 @@ pub mod ops {
 
 	#[doc(hidden)]
 	pub use crate::game::{
-		AirbaseOps, BasicOps, FactoryOps, FleetOps, FurnitureOps, GameOps, GameSettingsOps,
-		IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps, PictureBookOps,
-		PracticeOps, PresetOps, ShipOps, SlotItemOps, UseItemOps,
+		AirbaseOps, BasicOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps, GameOps,
+		GameSettingsOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps,
+		PictureBookOps, PracticeOps, PresetOps, ShipOps, SlotItemOps, UseItemOps,
 	};
 }

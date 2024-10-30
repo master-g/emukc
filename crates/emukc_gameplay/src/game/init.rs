@@ -4,7 +4,7 @@ use emukc_model::codex::Codex;
 use crate::err::GameplayError;
 
 use super::{
-	airbase, basic, fleet, furniture, incentive, kdock, map, material, ndock, pay_item,
+	airbase, basic, expedition, fleet, furniture, incentive, kdock, map, material, ndock, pay_item,
 	picturebook, practice, presets, settings, ship, slot_item, use_item,
 };
 
@@ -32,6 +32,9 @@ where
 
 	// incentive
 	incentive::init(c, profile_id).await?;
+
+	// expedition
+	expedition::init(c, profile_id).await?;
 
 	// fleet
 	fleet::init(c, profile_id).await?;
@@ -85,6 +88,7 @@ where
 	basic::wipe(c, profile_id).await?;
 	settings::wipe(c, profile_id).await?;
 	incentive::wipe(c, profile_id).await?;
+	expedition::wipe(c, profile_id).await?;
 	fleet::wipe(c, profile_id).await?;
 	furniture::wipe(c, profile_id).await?;
 	map::wipe(c, profile_id).await?;

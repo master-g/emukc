@@ -487,6 +487,8 @@ pub struct KcApiEventmap {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KcApiMission {
 	pub api_mission_id: i64,
+
+	// 0: not started, 1: in progress, 2: completed
 	pub api_state: i64,
 }
 

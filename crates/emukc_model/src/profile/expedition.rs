@@ -5,9 +5,9 @@ use crate::kc2::KcApiMission;
 /// Expedition state
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum ExpeditionState {
-	/// Never started
+	/// Not started
 	#[default]
-	NeverStarted = 0,
+	NotStarted = 0,
 	/// Unfinished
 	Unfinished = 1,
 	/// Completed
