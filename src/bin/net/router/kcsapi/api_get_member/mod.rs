@@ -4,6 +4,7 @@ mod basic;
 mod deck;
 mod furniture;
 mod kdock;
+mod mapinfo;
 mod material;
 mod ndock;
 mod payitem;
@@ -27,6 +28,7 @@ pub(super) fn router() -> Router {
 		.route("/deck", post(deck::handler))
 		.route("/furniture", post(furniture::handler))
 		.route("/kdock", post(kdock::handler))
+		.route("/mapinfo", post(mapinfo::handler))
 		.route("/material", post(material::handler))
 		.route("/ndock", post(ndock::handler))
 		.route("/payitem", post(payitem::handler))

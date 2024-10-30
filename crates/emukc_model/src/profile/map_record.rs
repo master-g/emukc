@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
-use crate::kc2::KcApiMapRecord;
+use crate::kc2::{KcApiEventmap, KcApiMapInfo};
 
 /// User map record
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -45,6 +45,24 @@ pub enum MapRefreshType {
 	Monthly = 1,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, enumn::N)]
+pub enum MapSelectRank {
+	/// Not set
+	NotSet = 0,
+
+	/// 丁
+	Casual = 1,
+
+	/// 丙
+	Easy = 2,
+
+	/// 乙
+	Normal = 3,
+
+	/// 甲
+	Hard = 4,
+}
+
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct MapDefeatContext {
 	/// current defeat count
@@ -83,6 +101,9 @@ pub struct MapEventContext {
 	/// Event state
 	pub state: MapEventState,
 
+	/// Selected rank
+	pub selected_rank: MapSelectRank,
+
 	/// Flag
 	/// [0, x, x] normal fleet enabled, [1, x, x] combined fleet enabled
 	/// [x, 1, x] Carrier Task Force, [x, 2, x] Surface Task Force, [x, 4, x] Transport Escort Force
@@ -96,18 +117,7 @@ pub struct MapEventContext {
 	pub m10: i64,
 }
 
-/// List of map IDs
-pub const MAP_ID_LIST: &[i64; 33] = &[
-	11, 12, 13, 14, 15, // map 1
-	21, 22, 23, 24, 25, // map 2
-	31, 32, 33, 34, 35, // map 3
-	41, 42, 43, 44, 45, // map 4
-	51, 52, 53, 54, 55, // map 5
-	61, 62, 63, 64, 65, // map 6
-	71, 72, 73, // map 7
-];
-
-impl From<MapRecord> for KcApiMapRecord {
+impl From<MapRecord> for KcApiMapInfo {
 	fn from(value: MapRecord) -> Self {
 		Self {
 			api_id: value.id,
@@ -120,6 +130,12 @@ impl From<MapRecord> for KcApiMapRecord {
 			api_air_base_decks: value.airbase_count,
 			api_s_no: value.event_ctx.map(|x| x.s_no),
 			api_m10: value.event_ctx.map(|x| x.m10),
+			api_eventmap: value.event_ctx.map(|x| KcApiEventmap {
+				api_now_maphp: x.now_hp,
+				api_max_maphp: x.max_hp,
+				api_state: x.state as i64,
+				api_selected_rank: x.selected_rank as i64,
+			}),
 		}
 	}
 }

@@ -4,8 +4,8 @@ use emukc_model::codex::Codex;
 use crate::err::GameplayError;
 
 use super::{
-	airbase, basic, fleet, furniture, incentive, kdock, material, ndock, pay_item, picturebook,
-	practice, presets, settings, ship, slot_item, use_item,
+	airbase, basic, fleet, furniture, incentive, kdock, map, material, ndock, pay_item,
+	picturebook, practice, presets, settings, ship, slot_item, use_item,
 };
 
 /// Initialize the profile game data.
@@ -38,6 +38,9 @@ where
 
 	// furniture
 	furniture::init(c, profile_id).await?;
+
+	// map
+	map::init(c, profile_id).await?;
 
 	// material
 	material::init(c, codex, profile_id).await?;
@@ -84,6 +87,7 @@ where
 	incentive::wipe(c, profile_id).await?;
 	fleet::wipe(c, profile_id).await?;
 	furniture::wipe(c, profile_id).await?;
+	map::wipe(c, profile_id).await?;
 	material::wipe(c, profile_id).await?;
 	kdock::wipe_kdock_impl(c, profile_id).await?;
 	ndock::wipe(c, profile_id).await?;

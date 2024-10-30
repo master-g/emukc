@@ -354,38 +354,6 @@ pub struct KcApiUserItem {
 	pub api_count: i64,
 }
 
-/// User map progress
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KcApiMapRecord {
-	pub api_id: i64,
-
-	pub api_cleared: i64,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_sally_flag: Option<[i64; 3]>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_defeat_count: Option<i64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_required_defeat_count: Option<i64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_gauge_type: Option<i64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_gauge_num: Option<i64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_air_base_decks: Option<i64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_s_no: Option<i64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_m10: Option<i64>,
-}
-
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct KcApiIncentive {
 	pub api_count: i64,
@@ -502,7 +470,10 @@ pub struct KcApiMapInfo {
 	pub api_s_no: Option<i64>,
 
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_sally_flag: Option<Vec<i64>>,
+	pub api_m10: Option<i64>,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_sally_flag: Option<[i64; 3]>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

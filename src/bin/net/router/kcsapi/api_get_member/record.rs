@@ -8,9 +8,9 @@ use crate::net::{
 };
 use emukc_internal::{model::kc2::level, prelude::*};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Record {
-	api_air_base_expanded_info: Vec<AirBaseExpandedInfo>,
+	api_air_base_expanded_info: Vec<KcApiAirBaseExpandedInfo>,
 	api_cmt: String,
 	api_cmt_id: String,
 	/// Unknown
@@ -36,20 +36,14 @@ struct Record {
 	api_war: Rate,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct AirBaseExpandedInfo {
-	api_area_id: i64,
-	api_maintenance_level: i64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct MissionStat {
 	api_count: String,
 	api_rate: String,
 	api_success: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Rate {
 	api_lose: String,
 	api_rate: String,
@@ -65,7 +59,7 @@ pub(super) async fn handler(
 	let air_bases = state.0.get_airbases(pid).await?;
 	let api_air_base_expanded_info = air_bases
 		.iter()
-		.map(|v| AirBaseExpandedInfo {
+		.map(|v| KcApiAirBaseExpandedInfo {
 			api_area_id: v.area_id,
 			api_maintenance_level: v.maintenance_level,
 		})
