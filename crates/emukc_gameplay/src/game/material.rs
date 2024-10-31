@@ -128,7 +128,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `values`: The materials to add.
 #[allow(unused)]
-pub async fn add_material_impl<C>(
+pub(crate) async fn add_material_impl<C>(
 	c: &C,
 	codex: &Codex,
 	profile_id: i64,
@@ -163,7 +163,7 @@ where
 	Ok(am.try_into_model()?)
 }
 
-pub async fn deduct_material_impl<C>(
+pub(crate) async fn deduct_material_impl<C>(
 	c: &C,
 	profile_id: i64,
 	values: &[(MaterialCategory, i64)],
@@ -204,7 +204,7 @@ where
 	Ok(am.try_into_model()?)
 }
 
-pub async fn update_materials_impl<C>(
+pub(crate) async fn update_materials_impl<C>(
 	c: &C,
 	codex: &Codex,
 	profile_id: i64,

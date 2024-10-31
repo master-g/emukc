@@ -131,7 +131,7 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 /// - `damaged`: Whether the ship is damaged.
 /// - `married`: Whether the ship is married.
 #[allow(unused)]
-pub async fn add_ship_to_picturebook_impl<C>(
+pub(crate) async fn add_ship_to_picturebook_impl<C>(
 	c: &C,
 	profile_id: i64,
 	sortno: i64,
@@ -176,7 +176,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `sortno`: The slot item's sort number.
 #[allow(unused)]
-pub async fn add_slot_item_to_picturebook_impl<C>(
+pub(crate) async fn add_slot_item_to_picturebook_impl<C>(
 	c: &C,
 	profile_id: i64,
 	sortno: i64,
@@ -207,7 +207,7 @@ where
 	Ok(model.try_into_model()?)
 }
 
-pub async fn get_ship_picturebook_impl<C>(
+pub(crate) async fn get_ship_picturebook_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<ship::picturebook::Model>, GameplayError>
@@ -222,7 +222,7 @@ where
 	Ok(records)
 }
 
-pub async fn get_slot_item_picturebook_impl<C>(
+pub(crate) async fn get_slot_item_picturebook_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<item::picturebook::Model>, GameplayError>

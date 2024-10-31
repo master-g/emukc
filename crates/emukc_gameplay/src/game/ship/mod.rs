@@ -240,7 +240,7 @@ where
 	Ok((model.try_into_model()?, ship))
 }
 
-pub async fn find_ship_impl<C>(
+pub(crate) async fn find_ship_impl<C>(
 	c: &C,
 	ship_id: i64,
 ) -> Result<Option<(ship::Model, Vec<sp_effect_item::Model>)>, GameplayError>
@@ -258,7 +258,7 @@ where
 	Ok(ship.map(|s| (s, sp_items)))
 }
 
-pub async fn get_ships_impl<C>(
+pub(crate) async fn get_ships_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<(Vec<ship::Model>, Vec<Vec<sp_effect_item::Model>>), GameplayError>

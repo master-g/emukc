@@ -117,7 +117,7 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The furniture master ID.
 #[allow(unused)]
-pub async fn add_furniture_impl<C>(
+pub(crate) async fn add_furniture_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
@@ -152,7 +152,7 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 #[allow(unused)]
-pub async fn get_furniture_config_impl<C>(
+pub(crate) async fn get_furniture_config_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<(furniture::config::Model, FurnitureConfig), GameplayError>
@@ -178,7 +178,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `config`: The new configuration.
 #[allow(unused)]
-pub async fn update_furniture_config_impl<C>(
+pub(crate) async fn update_furniture_config_impl<C>(
 	c: &C,
 	profile_id: i64,
 	config: &FurnitureConfig,
@@ -206,7 +206,7 @@ where
 	Ok(model)
 }
 
-pub async fn get_furnitures_impl<C>(
+pub(crate) async fn get_furnitures_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<furniture::record::Model>, GameplayError>

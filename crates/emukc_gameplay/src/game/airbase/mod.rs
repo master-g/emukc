@@ -76,7 +76,7 @@ impl<T: HasContext + ?Sized> AirbaseOps for T {
 	}
 }
 
-pub async fn unlock_airbase_impl<C>(
+pub(crate) async fn unlock_airbase_impl<C>(
 	c: &C,
 	profile_id: i64,
 	area_id: i64,
@@ -113,7 +113,10 @@ where
 	Ok(m)
 }
 
-pub async fn get_airbases_impl<C>(c: &C, profile_id: i64) -> Result<Vec<base::Model>, GameplayError>
+pub(crate) async fn get_airbases_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<base::Model>, GameplayError>
 where
 	C: ConnectionTrait,
 {

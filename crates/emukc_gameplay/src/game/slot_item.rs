@@ -234,7 +234,7 @@ where
 	Ok(record)
 }
 
-pub async fn update_slot_item_impl<C>(
+pub(crate) async fn update_slot_item_impl<C>(
 	c: &C,
 	id: i64,
 	stars: Option<i64>,
@@ -269,7 +269,7 @@ where
 	Ok(m.try_into_model()?)
 }
 
-pub async fn get_slot_items_impl<C>(
+pub(crate) async fn get_slot_items_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<slot_item::Model>, GameplayError>
@@ -284,7 +284,7 @@ where
 	Ok(records)
 }
 
-pub async fn get_unuse_slot_items_impl<C>(
+pub(crate) async fn get_unuse_slot_items_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<slot_item::Model>, GameplayError>
@@ -300,7 +300,7 @@ where
 	Ok(records)
 }
 
-pub async fn destroy_items_impl<C>(
+pub(crate) async fn destroy_items_impl<C>(
 	c: &C,
 	codex: &Codex,
 	profile_id: i64,

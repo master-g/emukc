@@ -34,7 +34,7 @@ impl<T: HasContext + ?Sized> MapOps for T {
 	}
 }
 
-pub async fn get_map_records_impl<C>(
+pub(crate) async fn get_map_records_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<map_record::Model>, GameplayError>

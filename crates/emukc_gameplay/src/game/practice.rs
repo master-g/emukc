@@ -58,7 +58,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 	}
 }
 
-pub async fn get_practice_rivals_impl<C>(
+pub(crate) async fn get_practice_rivals_impl<C>(
 	c: &C,
 	codex: &Codex,
 	profile_id: i64,

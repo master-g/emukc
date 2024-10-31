@@ -156,7 +156,7 @@ impl<T: HasContext + ?Sized> BasicOps for T {
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 #[allow(unused)]
-pub async fn get_user_basic_impl<C>(
+pub(crate) async fn get_user_basic_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<(profile::Model, KcApiUserBasic), GameplayError>
@@ -257,7 +257,7 @@ where
 	Ok(record)
 }
 
-pub async fn update_user_nickname_impl<C>(
+pub(crate) async fn update_user_nickname_impl<C>(
 	c: &C,
 	profile_id: i64,
 	nickname: &str,
@@ -277,7 +277,7 @@ where
 	Ok(())
 }
 
-pub async fn update_user_comment_impl<C>(
+pub(crate) async fn update_user_comment_impl<C>(
 	c: &C,
 	profile_id: i64,
 	comment: &str,
@@ -297,7 +297,7 @@ where
 	Ok(())
 }
 
-pub async fn update_user_first_flag_impl<C>(
+pub(crate) async fn update_user_first_flag_impl<C>(
 	c: &C,
 	profile_id: i64,
 	firstflag: i64,
@@ -316,7 +316,7 @@ where
 	Ok(())
 }
 
-pub async fn update_tutorial_progress_impl<C>(
+pub(crate) async fn update_tutorial_progress_impl<C>(
 	c: &C,
 	profile_id: i64,
 	tutorial_progress: i64,

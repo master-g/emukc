@@ -63,7 +63,7 @@ impl<T: HasContext + ?Sized> GameSettingsOps for T {
 /// # Parameters
 ///
 /// - `profile_id`: The profile ID.
-pub async fn get_game_settings_impl<C>(
+pub(crate) async fn get_game_settings_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<profile::setting::Model, GameplayError>
@@ -84,7 +84,7 @@ where
 	Ok(settings)
 }
 
-pub async fn update_oss_settings_impl<C>(
+pub(crate) async fn update_oss_settings_impl<C>(
 	c: &C,
 	profile_id: i64,
 	lan_type: i64,

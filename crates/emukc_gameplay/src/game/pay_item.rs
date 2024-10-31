@@ -99,7 +99,7 @@ impl<T: HasContext + ?Sized> PayItemOps for T {
 /// - `mst_id`: The item master ID.
 /// - `count`: The count of the item.
 #[allow(unused)]
-pub async fn add_pay_item_impl<C>(
+pub(crate) async fn add_pay_item_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
@@ -141,7 +141,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The item master ID.
 #[allow(unused)]
-pub async fn find_pay_item_impl<C>(
+pub(crate) async fn find_pay_item_impl<C>(
 	c: &C,
 	profile_id: i64,
 	mst_id: i64,
@@ -163,7 +163,7 @@ where
 	Ok(m)
 }
 
-pub async fn get_pay_items_impl<C>(
+pub(crate) async fn get_pay_items_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<pay_item::Model>, GameplayError>

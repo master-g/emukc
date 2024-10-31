@@ -52,7 +52,7 @@ impl<T: HasContext + ?Sized> PresetOps for T {
 	}
 }
 
-pub async fn get_preset_deck_impl<C>(
+pub(crate) async fn get_preset_deck_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<(preset_caps::Model, Vec<preset_deck::Model>), GameplayError>
@@ -75,7 +75,7 @@ where
 	Ok((caps, decks))
 }
 
-pub async fn get_preset_slot_impl<C>(
+pub(crate) async fn get_preset_slot_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<(preset_caps::Model, Vec<preset_slot::Model>), GameplayError>

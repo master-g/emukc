@@ -117,7 +117,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `index`: The fleet index, must be one of 2, 3, 4.
 #[allow(unused)]
-pub async fn unlock_fleet_impl<C>(
+pub(crate) async fn unlock_fleet_impl<C>(
 	c: &C,
 	profile_id: i64,
 	index: i64,
@@ -141,7 +141,11 @@ where
 /// - `profile_id`: The profile ID.
 /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
 #[allow(unused)]
-pub async fn get_fleet_impl<C>(c: &C, profile_id: i64, index: i64) -> Result<Fleet, GameplayError>
+pub(crate) async fn get_fleet_impl<C>(
+	c: &C,
+	profile_id: i64,
+	index: i64,
+) -> Result<Fleet, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -156,7 +160,10 @@ where
 ///
 /// - `profile_id`: The profile ID.
 #[allow(unused)]
-pub async fn get_fleets_impl<C>(c: &C, profile_id: i64) -> Result<Vec<fleet::Model>, GameplayError>
+pub(crate) async fn get_fleets_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<Vec<fleet::Model>, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -176,7 +183,7 @@ where
 /// - `profile_id`: The profile ID.
 /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
 /// - `ship_ids`: The ship IDs, must be 6 elements.
-pub async fn update_fleet_ships_impl<C>(
+pub(crate) async fn update_fleet_ships_impl<C>(
 	c: &C,
 	profile_id: i64,
 	index: i64,
