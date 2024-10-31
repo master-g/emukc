@@ -3,6 +3,7 @@ use emukc_db::{
 	entity::profile::{expedition, quest},
 	sea_orm::{entity::prelude::*, TransactionTrait},
 };
+use update::update_quests_impl;
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -36,6 +37,8 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
+
+		update_quests_impl(&tx, codex, profile_id).await?;
 
 		todo!()
 	}
