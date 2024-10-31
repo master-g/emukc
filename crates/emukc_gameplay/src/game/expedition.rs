@@ -3,7 +3,7 @@ use emukc_db::{
 	entity::profile::expedition,
 	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
 };
-use emukc_time::{chrono::Utc, jst_0500_of_nth_day};
+use emukc_time::{chrono::Utc, KcTime};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -41,7 +41,7 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 			.all(&tx)
 			.await?;
 
-		let first_day_of_the_month = jst_0500_of_nth_day(1);
+		let first_day_of_the_month = KcTime::jst_0500_of_nth_day(1);
 		let now = Utc::now();
 
 		let mut next_refresh_time: Option<i64> = None;

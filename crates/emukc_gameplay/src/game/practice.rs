@@ -13,7 +13,7 @@ use emukc_model::{
 };
 use emukc_time::{
 	chrono::{DateTime, Duration, Utc},
-	is_before_or_after_jst_today_hour, jst_today_hour_utc,
+	KcTime,
 };
 use rand::{rngs::SmallRng, seq::SliceRandom, Rng, SeedableRng};
 
@@ -84,83 +84,84 @@ where
 
 	let entry_limit = cal_practice_entry_limit();
 
-	let resp =
-		if rivals.is_empty() || is_before_or_after_jst_today_hour(&config.last_generated, 3, 15) {
-			let selected_type = config.selected_type;
-			let r = generate_practice_rivals(c, codex, profile_id, selected_type).await?;
+	let resp = if rivals.is_empty()
+		|| KcTime::is_before_or_after_jst_today_hour(&config.last_generated, 3, 15)
+	{
+		let selected_type = config.selected_type;
+		let r = generate_practice_rivals(c, codex, profile_id, selected_type).await?;
 
-			// update last generated time
-			let mut cfg_am = config.into_active_model();
-			cfg_am.last_generated = ActiveValue::Set(Utc::now());
-			cfg_am.generated_type = ActiveValue::Set(selected_type);
+		// update last generated time
+		let mut cfg_am = config.into_active_model();
+		cfg_am.last_generated = ActiveValue::Set(Utc::now());
+		cfg_am.generated_type = ActiveValue::Set(selected_type);
 
-			let cfg = cfg_am.update(c).await?;
+		let cfg = cfg_am.update(c).await?;
 
-			PracticeInfo {
-				rivals: r,
-				cfg,
-				entry_limit,
-			}
-		} else {
-			let mut r: Vec<Rival> = Vec::new();
+		PracticeInfo {
+			rivals: r,
+			cfg,
+			entry_limit,
+		}
+	} else {
+		let mut r: Vec<Rival> = Vec::new();
 
-			for rival in rivals.into_iter() {
-				// find rival details and all ships
-				let details = profile::practice::detail::Entity::find_by_id(rival.id)
-					.one(c)
-					.await?
-					.ok_or_else(|| {
-						GameplayError::EntryNotFound(format!(
-							"Practice rival details not found for profile {}",
-							profile_id
-						))
-					})?;
+		for rival in rivals.into_iter() {
+			// find rival details and all ships
+			let details = profile::practice::detail::Entity::find_by_id(rival.id)
+				.one(c)
+				.await?
+				.ok_or_else(|| {
+					GameplayError::EntryNotFound(format!(
+						"Practice rival details not found for profile {}",
+						profile_id
+					))
+				})?;
 
-				let ships = profile::practice::ship::Entity::find()
-					.filter(profile::practice::ship::Column::ProfileId.eq(profile_id))
-					.filter(profile::practice::ship::Column::RivalId.eq(rival.id))
-					.all(c)
-					.await?;
+			let ships = profile::practice::ship::Entity::find()
+				.filter(profile::practice::ship::Column::ProfileId.eq(profile_id))
+				.filter(profile::practice::ship::Column::RivalId.eq(rival.id))
+				.all(c)
+				.await?;
 
-				r.push(Rival {
-					id: rival.id,
-					index: rival.index,
-					name: rival.name,
-					comment: rival.comment,
-					level: rival.level,
-					rank: UserHQRank::n(rival.rank).unwrap(),
-					flag: rival.flag.into(),
-					status: rival.status.into(),
-					medals: rival.medals,
-					details: RivalDetail {
-						exp_now: details.exp_now,
-						exp_next: details.exp_next,
-						friend: details.friend,
-						current_ship_count: details.current_ship_count,
-						ship_capacity: details.ship_capacity,
-						current_slot_item_count: details.current_slot_item_count,
-						slot_item_capacity: details.slot_item_capacity,
-						furniture: details.furniture,
-						deck_name: details.deck_name,
-						ships: ships
-							.into_iter()
-							.map(|s| RivalShip {
-								id: s.id,
-								mst_id: s.mst_id,
-								level: s.level,
-								star: s.star,
-							})
-							.collect(),
-					},
-				});
-			}
+			r.push(Rival {
+				id: rival.id,
+				index: rival.index,
+				name: rival.name,
+				comment: rival.comment,
+				level: rival.level,
+				rank: UserHQRank::n(rival.rank).unwrap(),
+				flag: rival.flag.into(),
+				status: rival.status.into(),
+				medals: rival.medals,
+				details: RivalDetail {
+					exp_now: details.exp_now,
+					exp_next: details.exp_next,
+					friend: details.friend,
+					current_ship_count: details.current_ship_count,
+					ship_capacity: details.ship_capacity,
+					current_slot_item_count: details.current_slot_item_count,
+					slot_item_capacity: details.slot_item_capacity,
+					furniture: details.furniture,
+					deck_name: details.deck_name,
+					ships: ships
+						.into_iter()
+						.map(|s| RivalShip {
+							id: s.id,
+							mst_id: s.mst_id,
+							level: s.level,
+							star: s.star,
+						})
+						.collect(),
+				},
+			});
+		}
 
-			PracticeInfo {
-				rivals: r,
-				cfg: config,
-				entry_limit,
-			}
-		};
+		PracticeInfo {
+			rivals: r,
+			cfg: config,
+			entry_limit,
+		}
+	};
 
 	Ok(resp)
 }
@@ -320,12 +321,12 @@ where
 
 fn cal_practice_entry_limit() -> Option<i64> {
 	let now = Utc::now();
-	let jst_0100 = jst_today_hour_utc(1);
+	let jst_0100 = KcTime::jst_today_hour_utc(1);
 
 	if now < jst_0100 {
 		return None;
 	}
-	let jst_1300 = jst_today_hour_utc(13);
+	let jst_1300 = KcTime::jst_today_hour_utc(13);
 	if now < jst_1300 {
 		return Some((jst_1300.timestamp_millis() - now.timestamp_millis()) / 1000);
 	}

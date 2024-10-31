@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use emukc_model::{profile::quest::QuestPeriodicRecord, thirdparty::Kc3rdQuestPeriod};
+use emukc_time::KcTime;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
 #[allow(missing_docs)]
@@ -81,6 +82,24 @@ impl Related<crate::entity::profile::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl Model {
+	/// Check if the quest should be reset.
+	pub fn should_reset(&self) -> bool {
+		let now = Utc::now();
+		let next_reset_time = match self.period {
+			Period::Daily => KcTime::jst_next_day_0500(&self.complete_time),
+			Period::Weekly => KcTime::jst_next_monday_0500(&self.complete_time),
+			Period::Daily3rd7th0th => KcTime::jst_next_370th_day_of_the_month(&self.complete_time),
+			Period::Daily2nd8th => KcTime::jst_next_28th_day_of_the_month(&self.complete_time),
+			Period::Monthly => KcTime::jst_next_1st_day_of_the_month(&self.complete_time),
+			Period::Quarterly => KcTime::jst_next_quarter_day_one_0500(&self.complete_time),
+			Period::Annually => KcTime::jst_next_year_day_one_0500(&self.complete_time),
+			_ => return false,
+		};
+		now > next_reset_time
+	}
+}
 
 impl From<Period> for Kc3rdQuestPeriod {
 	fn from(value: Period) -> Self {

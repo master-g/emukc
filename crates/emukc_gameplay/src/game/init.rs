@@ -5,7 +5,7 @@ use crate::err::GameplayError;
 
 use super::{
 	airbase, basic, expedition, fleet, furniture, incentive, kdock, map, material, ndock, pay_item,
-	picturebook, practice, presets, settings, ship, slot_item, use_item,
+	picturebook, practice, presets, quest, settings, ship, slot_item, use_item,
 };
 
 /// Initialize the profile game data.
@@ -57,6 +57,9 @@ where
 	// picture book
 	picturebook::init(c, profile_id).await?;
 
+	// quest
+	quest::init(c, profile_id).await?;
+
 	// ships
 	ship::init(c, profile_id).await?;
 
@@ -96,6 +99,7 @@ where
 	kdock::wipe_kdock_impl(c, profile_id).await?;
 	ndock::wipe(c, profile_id).await?;
 	picturebook::wipe(c, profile_id).await?;
+	quest::wipe(c, profile_id).await?;
 	ship::wipe(c, profile_id).await?;
 	slot_item::wipe(c, profile_id).await?;
 	use_item::wipe(c, profile_id).await?;

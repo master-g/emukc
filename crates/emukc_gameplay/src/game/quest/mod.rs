@@ -52,7 +52,15 @@ pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
-	expedition::Entity::delete_many()
+	quest::oneshot::Entity::delete_many()
+		.filter(expedition::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+	quest::periodic::Entity::delete_many()
+		.filter(expedition::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+	quest::progress::Entity::delete_many()
 		.filter(expedition::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;

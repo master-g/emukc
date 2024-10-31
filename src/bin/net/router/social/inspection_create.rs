@@ -1,4 +1,4 @@
-use emukc_internal::time::{chrono, format_date};
+use emukc_internal::time::{chrono, KcTime};
 
 use crate::{net::auth::GameSession, state::State};
 
@@ -11,7 +11,7 @@ pub(super) async fn exec(
 ) -> serde_json::Value {
 	let now = chrono::Utc::now().timestamp_millis();
 
-	let now = format_date(now, "T");
+	let now = KcTime::format_date(now, "T");
 	let uid = session.profile.id.to_string();
 	let resp = serde_json::json!({
 		"id": "key",

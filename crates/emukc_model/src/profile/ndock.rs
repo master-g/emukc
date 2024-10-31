@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use emukc_time::format_date;
+use emukc_time::KcTime;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -96,10 +96,9 @@ impl From<RepairDock> for KcApiNDock {
 				.context
 				.as_ref()
 				.map_or(0, |c| c.complete_time.timestamp_millis()),
-			api_complete_time_str: value
-				.context
-				.as_ref()
-				.map_or("0".to_owned(), |c| format_date(c.complete_time.timestamp_millis(), " ")),
+			api_complete_time_str: value.context.as_ref().map_or("0".to_owned(), |c| {
+				KcTime::format_date(c.complete_time.timestamp_millis(), " ")
+			}),
 			api_item1: value.context.as_ref().map_or(0, |c| c.fuel),
 			api_item2: 0,
 			api_item3: value.context.as_ref().map_or(0, |c| c.steel),
