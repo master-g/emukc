@@ -61,7 +61,6 @@ http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["full"] }
 mime_guess = { workspace = true }
-open = { workspace = true }
 png = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
@@ -116,7 +115,6 @@ http-body-util = "0.1"
 hyper = { version = "1", features = ["full"] }
 md-5 = "0.10.6"
 mime_guess = "2"
-open = "5.3.0"
 png = "0.17.14"
 rand = { version = "0.8.5", features = ["small_rng"] }
 regex = "1.11.1"

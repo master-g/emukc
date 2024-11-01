@@ -31,10 +31,6 @@ pub(super) async fn exec(cfg: &AppConfig) -> Result<()> {
 
 	println!("{}", session.session.token);
 
-	let url = format!("http://{}/emukc?api_token={}", cfg.bind, session.session.token);
-
-	open::that(url)?;
-
 	Ok(())
 }
 
