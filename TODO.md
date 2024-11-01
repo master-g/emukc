@@ -7,4 +7,5 @@
 -[x] dock, port ops traits and init
 -[x] require_info api impl
 -[x] material self replenish logic
+-[ ] recalculate quest progress on `start` the quest
 -[ ] mechanism to remove deprecated kc cache
