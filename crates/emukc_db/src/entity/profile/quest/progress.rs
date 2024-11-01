@@ -1,30 +1,29 @@
 //! User quest progress entity
 
+use chrono::{DateTime, Utc};
 use emukc_model::{
 	profile::quest::{QuestProgress, QuestProgressStatus, QuestStatus},
 	thirdparty::{Kc3rdQuestCondition, Kc3rdQuestRequirement},
 };
 use sea_orm::entity::prelude::*;
 
+use super::{HasTimestampAndPeriod, Period};
+
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
 	/// Not Started
-	#[sea_orm(num_value = 1)]
-	NotStarted,
+	#[sea_orm(num_value = 0)]
+	Idle,
 
 	/// In Progress
-	#[sea_orm(num_value = 2)]
-	InProgress,
-
-	/// Completed
-	#[sea_orm(num_value = 3)]
-	Completed,
+	#[sea_orm(num_value = 1)]
+	Activated,
 }
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Progress {
 	/// Empty
@@ -38,10 +37,13 @@ pub enum Progress {
 	/// 80% or more
 	#[sea_orm(num_value = 2)]
 	Eighty,
+
+	#[sea_orm(num_value = 3)]
+	Completed,
 }
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum RequirementType {
 	/// All the requirements must be met
@@ -71,14 +73,17 @@ pub struct Model {
 	/// Quest ID
 	pub quest_id: i64,
 
-	/// Activated
-	pub activated: bool,
-
 	/// Status
 	pub status: Status,
 
 	/// Progress
 	pub progress: Progress,
+
+	/// Period
+	pub period: Period,
+
+	/// Start since
+	pub start_since: DateTime<Utc>,
 
 	/// Requirement type
 	pub requirement_type: RequirementType,
@@ -107,12 +112,21 @@ impl Related<crate::entity::profile::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+impl HasTimestampAndPeriod for Model {
+	fn timestamp(&self) -> DateTime<Utc> {
+		self.start_since
+	}
+
+	fn period(&self) -> Period {
+		self.period
+	}
+}
+
 impl From<Status> for QuestStatus {
 	fn from(value: Status) -> Self {
 		match value {
-			Status::NotStarted => QuestStatus::NotStarted,
-			Status::InProgress => QuestStatus::InProgress,
-			Status::Completed => QuestStatus::Completed,
+			Status::Idle => Self::Idle,
+			Status::Activated => Self::Activated,
 		}
 	}
 }
@@ -120,9 +134,8 @@ impl From<Status> for QuestStatus {
 impl From<QuestStatus> for Status {
 	fn from(value: QuestStatus) -> Self {
 		match value {
-			QuestStatus::NotStarted => Status::NotStarted,
-			QuestStatus::InProgress => Status::InProgress,
-			QuestStatus::Completed => Status::Completed,
+			QuestStatus::Idle => Self::Idle,
+			QuestStatus::Activated => Self::Activated,
 		}
 	}
 }
@@ -130,9 +143,10 @@ impl From<QuestStatus> for Status {
 impl From<Progress> for QuestProgressStatus {
 	fn from(value: Progress) -> Self {
 		match value {
-			Progress::Empty => QuestProgressStatus::Empty,
-			Progress::Half => QuestProgressStatus::Half,
-			Progress::Eighty => QuestProgressStatus::Eighty,
+			Progress::Empty => Self::Empty,
+			Progress::Half => Self::Half,
+			Progress::Eighty => Self::Eighty,
+			Progress::Completed => Self::Completed,
 		}
 	}
 }
@@ -140,9 +154,10 @@ impl From<Progress> for QuestProgressStatus {
 impl From<QuestProgressStatus> for Progress {
 	fn from(value: QuestProgressStatus) -> Self {
 		match value {
-			QuestProgressStatus::Empty => Progress::Empty,
-			QuestProgressStatus::Half => Progress::Half,
-			QuestProgressStatus::Eighty => Progress::Eighty,
+			QuestProgressStatus::Empty => Self::Empty,
+			QuestProgressStatus::Half => Self::Half,
+			QuestProgressStatus::Eighty => Self::Eighty,
+			QuestProgressStatus::Completed => Self::Completed,
 		}
 	}
 }
@@ -154,9 +169,10 @@ impl From<Model> for QuestProgress {
 		Self {
 			id: value.profile_id,
 			quest_id: value.quest_id,
-			activated: value.activated,
 			state: value.status.into(),
 			progress: value.progress.into(),
+			period: value.period.into(),
+			start_time: value.start_since,
 			requirements: match value.requirement_type {
 				RequirementType::And => Kc3rdQuestRequirement::And(conditions),
 				RequirementType::OneOf => Kc3rdQuestRequirement::OneOf(conditions),

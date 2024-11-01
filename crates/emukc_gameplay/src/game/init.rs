@@ -58,7 +58,7 @@ where
 	picturebook::init(c, profile_id).await?;
 
 	// quest
-	quest::init(c, profile_id).await?;
+	quest::init(c, codex, profile_id).await?;
 
 	// ships
 	ship::init(c, profile_id).await?;

@@ -1,4 +1,5 @@
 pub mod debug;
+pub mod progress;
 
 use serde::{Deserialize, Serialize};
 

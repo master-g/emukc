@@ -1145,6 +1145,7 @@ dependencies = [
  "env_logger",
  "rand",
  "serde",
+ "serde_json",
  "test-log",
  "thiserror",
  "tokio",

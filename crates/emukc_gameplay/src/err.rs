@@ -31,4 +31,7 @@ pub enum GameplayError {
 
 	#[error("Insufficient item: {0}")]
 	Insufficient(String),
+
+	#[error("JSON error: {0}")]
+	Json(#[from] serde_json::Error),
 }

@@ -5,7 +5,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
-use emukc_model::prelude::{Kc3rdShip, Kc3rdSlotItem};
+use emukc_model::prelude::{Kc3rdQuest, Kc3rdShip, Kc3rdSlotItem};
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 
@@ -229,4 +229,25 @@ async fn practice() {
 
 	let rivals = context.get_practice_rivals(pid).await.unwrap();
 	println!("{:?}", rivals);
+}
+
+#[tokio::test]
+async fn c_list_quests() {
+	let ((_, codex), _, _) = new_game_session().await;
+	[
+		506, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 658, 666, 668, 966,
+		1101, 1102, 1103, 1104, 1105, 1110, 1111, 1112, 1113, 1114, 1115, 1116, 1117, 1119, 1120,
+		1121, 1122, 1126, 1127, 1128, 1129, 1130, 1131, 1132, 1133, 1134, 1135,
+	]
+	.iter()
+	.for_each(|&id| {
+		if let Some(mst) = codex.find::<Kc3rdQuest>(&id).ok() {
+			println!("--- {} | {} ---", id, mst.name);
+			println!("category: {:?}", mst.category);
+			println!("requirements: {:?}", mst.requirements);
+		} else {
+			println!("--- {} ---", id);
+			println!("NOT FOUND");
+		}
+	});
 }

@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{expedition, quest},
-	sea_orm::{entity::prelude::*, TransactionTrait},
+	sea_orm::{entity::prelude::*, QueryOrder, TransactionTrait},
 };
+use emukc_model::codex::Codex;
 use update::update_quests_impl;
 
 use crate::{err::GameplayError, gameplay::HasContext};
@@ -38,16 +39,24 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		update_quests_impl(&tx, codex, profile_id).await?;
+		if update_quests_impl(&tx, codex, profile_id).await? {
+			tx.commit().await?;
+		}
 
-		todo!()
+		Ok(quest::progress::Entity::find()
+			.filter(quest::progress::Column::ProfileId.eq(profile_id))
+			.order_by_asc(quest::progress::Column::QuestId)
+			.all(db)
+			.await?)
 	}
 }
 
-pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
+	update_quests_impl(c, codex, profile_id).await?;
+
 	Ok(())
 }
 

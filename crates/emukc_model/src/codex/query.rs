@@ -1,8 +1,8 @@
 //! Querying trait for objects in the codex.
 
 use crate::prelude::{
-	ApiMstFurniture, ApiMstPayitem, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdShip,
-	Kc3rdSlotItem,
+	ApiMstFurniture, ApiMstPayitem, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdQuest,
+	Kc3rdShip, Kc3rdSlotItem,
 };
 
 use super::{Codex, CodexError};
@@ -114,5 +114,14 @@ impl FoundInCodex for Kc3rdSlotItem {
 			.slotitem_extra_info
 			.get(key)
 			.ok_or_else(|| CodexError::NotFound(format!("slot item extra info ID: {}", key)))
+	}
+}
+
+// Kc3rdQuest
+impl FoundInCodex for Kc3rdQuest {
+	type Key = i64;
+
+	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
+		codex.quest.get(key).ok_or_else(|| CodexError::NotFound(format!("quest ID: {}", key)))
 	}
 }

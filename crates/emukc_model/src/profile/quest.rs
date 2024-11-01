@@ -35,13 +35,11 @@ pub struct QuestPeriodicRecord {
 /// Quest status
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug, Default)]
 pub enum QuestStatus {
-	/// not started
+	/// not activated
 	#[default]
-	NotStarted = 1,
+	Idle = 0,
 	/// in progress
-	InProgress = 2,
-	/// completed
-	Completed = 3,
+	Activated = 1,
 }
 
 /// Quest progress status
@@ -50,10 +48,15 @@ pub enum QuestProgressStatus {
 	/// empty
 	#[default]
 	Empty = 0,
+
 	/// 50% or more
 	Half = 1,
+
 	/// 80% or more
 	Eighty = 2,
+
+	/// completed
+	Completed = 3,
 }
 
 /// Quest progress record
@@ -65,14 +68,17 @@ pub struct QuestProgress {
 	/// quest id
 	pub quest_id: i64,
 
-	/// activated
-	pub activated: bool,
-
 	/// state
 	pub state: QuestStatus,
 
 	/// progress
 	pub progress: QuestProgressStatus,
+
+	/// period
+	pub period: Kc3rdQuestPeriod,
+
+	/// start time
+	pub start_time: DateTime<Utc>,
 
 	/// requirements left to complete
 	pub requirements: Kc3rdQuestRequirement,
