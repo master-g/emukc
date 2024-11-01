@@ -13,6 +13,8 @@ use crate::{
 
 mod api_get_member;
 mod api_port;
+mod api_req_furniture;
+mod api_req_hensei;
 mod api_req_init;
 mod api_req_kaisou;
 mod api_req_kousyou;
@@ -29,6 +31,8 @@ pub(super) fn router() -> Router {
 		.merge(Router::new().nest("/api_get_member", api_get_member::router()))
 		.merge(Router::new().nest("/api_port", api_port::router()))
 		.merge(Router::new().nest("/api_req_init", api_req_init::router()))
+		.merge(Router::new().nest("/api_req_furniture", api_req_furniture::router()))
+		.merge(Router::new().nest("/api_req_hensei", api_req_hensei::router()))
 		.merge(Router::new().nest("/api_req_kaisou", api_req_kaisou::router()))
 		.merge(Router::new().nest("/api_req_kousyou", api_req_kousyou::router()))
 		.merge(Router::new().nest("/api_req_member", api_req_member::router()))
