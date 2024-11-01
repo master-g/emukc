@@ -11,6 +11,13 @@ use emukc_internal::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {
+	/// 0: All
+	/// 1: Daily
+	/// 2: Weekly
+	/// 3: Monthly
+	/// 4: One-time
+	/// 5: Others
+	/// 9: Activated
 	api_tab_id: i64,
 }
 
@@ -55,7 +62,7 @@ pub(super) async fn handler(
 	let api_list: Vec<KcApiQuestItem> = quests
 		.iter()
 		.filter_map(|model| {
-			if params.api_tab_id == 0 && model.status != progress::Status::Activated {
+			if params.api_tab_id == 9 && model.status != progress::Status::Activated {
 				return None;
 			}
 

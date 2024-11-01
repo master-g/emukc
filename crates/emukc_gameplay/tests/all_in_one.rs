@@ -232,6 +232,16 @@ async fn practice() {
 }
 
 #[tokio::test]
+async fn quests() {
+	let (context, _, session) = new_game_session().await;
+	let pid = session.profile.id;
+
+	let quests = context.get_quest_records(pid).await.unwrap();
+	let quest_ids: Vec<i64> = quests.iter().map(|m| m.quest_id).collect();
+	println!("{:?}", quest_ids);
+}
+
+#[tokio::test]
 async fn c_list_quests() {
 	let ((_, codex), _, _) = new_game_session().await;
 	[

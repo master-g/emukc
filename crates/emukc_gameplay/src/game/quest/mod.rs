@@ -37,16 +37,18 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 	) -> Result<Vec<quest::progress::Model>, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
-		let tx = db.begin().await?;
+		let mut tx = db.begin().await?;
 
 		if update_quests_impl(&tx, codex, profile_id).await? {
 			tx.commit().await?;
+
+			tx = db.begin().await?;
 		}
 
 		Ok(quest::progress::Entity::find()
 			.filter(quest::progress::Column::ProfileId.eq(profile_id))
 			.order_by_asc(quest::progress::Column::QuestId)
-			.all(db)
+			.all(&tx)
 			.await?)
 	}
 }
