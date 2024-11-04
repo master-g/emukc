@@ -11,14 +11,6 @@ use crate::net::{
 use emukc_internal::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Furniture {
-	api_id: i64,
-	api_furniture_id: i64,
-	api_furniture_no: i64,
-	api_furniture_type: i64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 struct UserBasic {
 	api_member_id: i64,
 	api_firstflag: i64,
@@ -28,7 +20,7 @@ struct UserBasic {
 struct Resp {
 	api_basic: UserBasic,
 	api_extra_supply: [i64; 2],
-	api_furniture: Vec<Furniture>,
+	api_furniture: Vec<KcApiFurniture>,
 	api_kdock: Vec<KcApiKDock>,
 	api_oss_setting: KcApiGameSetting,
 	api_position_id: i64,
@@ -45,22 +37,7 @@ pub(super) async fn handler(
 	let codex = &*state.codex;
 	let pid = session.profile.id;
 	let (_, api_basic) = state.get_user_basic(pid).await?;
-	let api_furniture = api_basic
-		.api_furniture
-		.iter()
-		.filter_map(|f| {
-			codex
-				.find::<ApiMstFurniture>(f)
-				.map(|mst| Furniture {
-					api_id: *f,
-					api_furniture_id: *f,
-					api_furniture_no: mst.api_no,
-					api_furniture_type: mst.api_type,
-				})
-				.inspect_err(|e| error!("Failed to find furniture {}: {}", f, e))
-				.ok()
-		})
-		.collect();
+	let api_furniture = state.get_furnitures(pid).await?;
 	let api_kdock = state.get_kdocks(pid).await?;
 	let api_kdock = api_kdock.iter().map(|k| k.to_owned().into()).collect();
 

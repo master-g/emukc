@@ -1,5 +1,11 @@
 use anyhow::Result;
-use emukc::prelude::{AccountOps, BasicOps, FleetOps, ProfileOps, ShipOps, SlotItemOps};
+use emukc::{
+	model::profile::furniture::FurnitureConfig,
+	prelude::{
+		AccountOps, BasicOps, FleetOps, FurnitureOps, HasContext, KcUseItemType, ProfileOps,
+		ShipOps, SlotItemOps, UseItemOps,
+	},
+};
 
 use crate::{cfg::AppConfig, state::State};
 
@@ -44,6 +50,29 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 	for api_slotitem_id in [42, 42] {
 		state.add_slot_item(pid, api_slotitem_id, 0, 0).await?;
 	}
+
+	// furniture
+	let codex = state.codex();
+	for furniture in &codex.manifest.api_mst_furniture {
+		state.add_furniture(pid, furniture.api_id).await?;
+	}
+
+	state
+		.update_furniture_config(
+			pid,
+			&FurnitureConfig {
+				floor: 629,
+				wallpaper: 630,
+				window: 319,
+				wall_hanging: 631,
+				shelf: 222,
+				desk: 248,
+				season: 0,
+			},
+		)
+		.await?;
+
+	state.add_use_item(pid, KcUseItemType::FCoin as i64, 100000).await?;
 
 	// update first flag
 	state.update_user_first_flag(pid, 1).await?;

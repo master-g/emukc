@@ -71,6 +71,8 @@ impl<T: HasContext + ?Sized> GameSettingsOps for T {
 
 		update_port_bgm_impl(&tx, profile_id, bgm_id).await?;
 
+		tx.commit().await?;
+
 		Ok(())
 	}
 }
