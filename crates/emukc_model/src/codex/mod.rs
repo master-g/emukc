@@ -5,7 +5,7 @@ use std::{fs::create_dir_all, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-	kc2,
+	kc2::{self, KcApiMusicListElement},
 	prelude::{Kc3rdPicturebookExtra, Kc3rdPicturebookRW},
 	profile, thirdparty,
 };
@@ -68,6 +68,9 @@ pub struct Codex {
 
 	/// Material config
 	pub material_cfg: profile::material::MaterialConfig,
+
+	/// Music list
+	pub music_list: Vec<KcApiMusicListElement>,
 	// TODO: add more limitations.
 }
 
@@ -80,6 +83,7 @@ const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
 const PATH_MATERIAL_CFG: &str = "material_cfg.json";
+const PATH_MUSIC_LIST: &str = "music_list.json";
 
 impl Codex {
 	/// Load `Codex` instance from directory.
@@ -103,6 +107,8 @@ impl Codex {
 	/// the `Kc3rdQuestMap` is loaded from `dir/quest.json`.
 	///
 	/// the `MaterialConfig` is loaded from `dir/material_cfg.json`.
+	///
+	/// the `KcApiMusicListElement` is loaded from `dir/music_list.json`.
 	///
 	/// # Arguments
 	///
@@ -163,6 +169,13 @@ impl Codex {
 			data.into_iter().map(|v| (v.api_no, v)).collect()
 		};
 
+		let music_list = {
+			let path = path.join(PATH_MUSIC_LIST);
+			let raw = std::fs::read_to_string(&path)?;
+			let data: Vec<KcApiMusicListElement> = serde_json::from_str(&raw)?;
+			data
+		};
+
 		Ok(Codex {
 			manifest,
 			ship_extra,
@@ -173,6 +186,7 @@ impl Codex {
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
 			quest,
 			material_cfg: Self::load_single_item(path.join(PATH_MATERIAL_CFG))?,
+			music_list,
 		})
 	}
 
@@ -273,6 +287,15 @@ impl Codex {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.material_cfg)?)?;
+		}
+
+		// music list
+		{
+			let path = dst.join(PATH_MUSIC_LIST);
+			if path.exists() && !overwrite {
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
+			}
+			std::fs::write(path, serde_json::to_string_pretty(&self.music_list)?)?;
 		}
 
 		Ok(())

@@ -635,3 +635,14 @@ pub struct KcApiLogElement {
 	pub api_state: String,
 	pub api_message: String,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiMusicListElement {
+	pub api_bgm_flag: i64,
+	pub api_bgm_id: i64,
+	pub api_description: String,
+	pub api_id: i64,
+	pub api_loops: i64,
+	pub api_name: String,
+	pub api_use_coin: i64,
+}

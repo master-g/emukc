@@ -4,6 +4,7 @@ pub mod error;
 pub mod kccp;
 pub mod kcwiki;
 pub mod kcwikizh_kcdata;
+pub mod music;
 pub mod tsunkit_quest;
 
 use std::str::FromStr;
@@ -43,6 +44,8 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	};
 	let quest = parse_tsunkit_quests(dir.join("tsunkit_quests.json"), &manifest, &kccp_quests)?;
 
+	let music_list = music::get()?;
+
 	Ok(Codex {
 		manifest,
 		ship_extra,
@@ -53,5 +56,6 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		picturebook_extra: Kc3rdPicturebookExtra::default(),
 		navy: KcNavy::default(),
 		material_cfg: MaterialConfig::default(),
+		music_list,
 	})
 }

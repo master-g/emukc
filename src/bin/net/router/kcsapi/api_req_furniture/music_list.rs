@@ -9,8 +9,10 @@ use emukc_internal::prelude::*;
 
 pub(super) async fn handler(
 	state: AppState,
-	Extension(session): Extension<GameSession>,
+	Extension(_session): Extension<GameSession>,
 ) -> KcApiResult {
-	let pid = session.profile.id;
-	Ok(KcApiResponse::empty())
+	let codex = state.codex();
+	let music_list = &codex.music_list;
+
+	Ok(KcApiResponse::success(music_list))
 }
