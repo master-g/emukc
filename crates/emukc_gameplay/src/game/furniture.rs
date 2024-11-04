@@ -288,6 +288,7 @@ where
 		wall_hanging: ActiveValue::Set(config.wall_hanging),
 		shelf: ActiveValue::Set(config.shelf),
 		desk: ActiveValue::Set(config.desk),
+		season: ActiveValue::Set(config.season),
 	};
 
 	let model = am.save(c).await?;

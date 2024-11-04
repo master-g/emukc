@@ -1,7 +1,7 @@
 //! Player furniture configuration entity.
 
 use emukc_model::profile::furniture::FurnitureConfig;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
@@ -28,6 +28,9 @@ pub struct Model {
 
 	/// Desk
 	pub desk: i64,
+
+	/// season, ???
+	pub season: i64,
 }
 
 /// Relation
@@ -50,30 +53,16 @@ impl Related<crate::entity::profile::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<FurnitureConfig> for ActiveModel {
-	fn from(value: FurnitureConfig) -> Self {
-		Self {
-			id: ActiveValue::Set(value.id),
-			floor: ActiveValue::Set(value.floor),
-			wallpaper: ActiveValue::Set(value.wallpaper),
-			window: ActiveValue::Set(value.window),
-			wall_hanging: ActiveValue::Set(value.wall_hanging),
-			shelf: ActiveValue::Set(value.shelf),
-			desk: ActiveValue::Set(value.desk),
-		}
-	}
-}
-
 impl From<Model> for FurnitureConfig {
 	fn from(model: Model) -> Self {
 		Self {
-			id: model.id,
 			floor: model.floor,
 			wallpaper: model.wallpaper,
 			window: model.window,
 			wall_hanging: model.wall_hanging,
 			shelf: model.shelf,
 			desk: model.desk,
+			season: model.season,
 		}
 	}
 }

@@ -6,9 +6,6 @@ pub static FURNITURE_INIT_VALUES: [i64; 6] = [1, 38, 72, 102, 133, 164];
 /// User owned furniture
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Furniture {
-	/// Profile ID
-	pub id: i64,
-
 	/// Furniture ID
 	pub furniture_id: i64,
 }
@@ -16,9 +13,6 @@ pub struct Furniture {
 /// Furniture config
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FurnitureConfig {
-	/// Profile ID
-	pub id: i64,
-
 	/// Floor
 	pub floor: i64,
 
@@ -36,18 +30,21 @@ pub struct FurnitureConfig {
 
 	/// Desk
 	pub desk: i64,
+
+	/// Season
+	pub season: i64,
 }
 
 impl Default for FurnitureConfig {
 	fn default() -> Self {
 		Self {
-			id: 0,
 			floor: 1,
 			wallpaper: 38,
 			window: 72,
 			wall_hanging: 102,
 			shelf: 133,
 			desk: 164,
+			season: 0,
 		}
 	}
 }

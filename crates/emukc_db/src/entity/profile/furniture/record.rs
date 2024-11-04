@@ -1,7 +1,6 @@
 //! Furniture inventory entity
 
-use emukc_model::profile::furniture::Furniture;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
@@ -37,22 +36,3 @@ impl Related<crate::entity::profile::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
-
-impl From<Furniture> for ActiveModel {
-	fn from(furniture: Furniture) -> Self {
-		Self {
-			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(furniture.id),
-			furniture_id: ActiveValue::set(furniture.furniture_id),
-		}
-	}
-}
-
-impl From<Model> for Furniture {
-	fn from(model: Model) -> Self {
-		Self {
-			id: model.profile_id,
-			furniture_id: model.furniture_id,
-		}
-	}
-}
