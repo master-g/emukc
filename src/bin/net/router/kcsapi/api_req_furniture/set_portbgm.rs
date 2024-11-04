@@ -18,9 +18,11 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 	Form(params): Form<Params>,
 ) -> KcApiResult {
+	let codex = state.codex();
+	let mst = codex.find::<KcApiMusicListElement>(&params.api_music_id)?;
 	let pid = session.profile.id;
 
-	state.update_port_bgm(pid, params.api_music_id).await?;
+	state.update_port_bgm(pid, mst.api_bgm_id).await?;
 
 	Ok(KcApiResponse::empty())
 }
