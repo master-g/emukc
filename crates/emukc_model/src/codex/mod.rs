@@ -10,6 +10,7 @@ use crate::{
 	profile, thirdparty,
 };
 
+pub mod furniture;
 pub mod query;
 pub mod ship;
 pub mod slot_item;

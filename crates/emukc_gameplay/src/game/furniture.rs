@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::furniture,
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	entity::profile::{furniture, item::use_item},
+	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
 };
 use emukc_model::{
-	kc2::KcApiFurniture, prelude::ApiMstFurniture, profile::furniture::FurnitureConfig,
+	kc2::{KcApiFurniture, KcUseItemType},
+	prelude::ApiMstFurniture,
+	profile::furniture::FurnitureConfig,
 };
 
 use crate::{err::GameplayError, gameplay::HasContext};
@@ -19,6 +21,22 @@ pub trait FurnitureOps {
 	/// - `profile_id`: The profile ID.
 	/// - `mst_id`: The furniture manifest ID.
 	async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError>;
+
+	/// Buy furniture.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `mst_id`: The furniture manifest ID.
+	/// - `price`: The price of the furniture.
+	/// - `need_craftman`: Whether the furniture needs a craftman to build.
+	async fn buy_furniture(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+		price: i64,
+		need_craftman: bool,
+	) -> Result<(), GameplayError>;
 
 	/// Get furniture configuration.
 	///
@@ -56,6 +74,23 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 		let tx = db.begin().await?;
 
 		add_furniture_impl(&tx, profile_id, mst_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn buy_furniture(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+		price: i64,
+		need_craftman: bool,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		buy_furniture_impl(&tx, profile_id, mst_id, price, need_craftman).await?;
 
 		tx.commit().await?;
 
@@ -143,6 +178,60 @@ where
 	let model = am.save(c).await?;
 
 	Ok(model)
+}
+
+pub(crate) async fn buy_furniture_impl<C>(
+	c: &C,
+	profile_id: i64,
+	mst_id: i64,
+	price: i64,
+	need_craftman: bool,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	if need_craftman {
+		let Some(craftman) = use_item::Entity::find()
+			.filter(use_item::Column::ProfileId.eq(profile_id))
+			.filter(use_item::Column::MstId.eq(KcUseItemType::FurnitureCraftman as i64))
+			.one(c)
+			.await?
+		else {
+			return Err(GameplayError::EntryNotFound("furniture craftman".to_string()));
+		};
+
+		if craftman.count < 1 {
+			return Err(GameplayError::Insufficient("furniture craftman".to_string()));
+		}
+
+		let count = ActiveValue::Set(craftman.count - 1);
+
+		let mut am = craftman.into_active_model();
+		am.count = count;
+		am.update(c).await?;
+	}
+
+	let Some(fcoins) = use_item::Entity::find()
+		.filter(use_item::Column::ProfileId.eq(profile_id))
+		.filter(use_item::Column::MstId.eq(KcUseItemType::FCoin as i64))
+		.one(c)
+		.await?
+	else {
+		return Err(GameplayError::EntryNotFound("furniture coin".to_string()));
+	};
+
+	if fcoins.count < price {
+		return Err(GameplayError::Insufficient("furniture coin".to_string()));
+	}
+
+	let count = ActiveValue::Set(fcoins.count - price);
+	let mut am = fcoins.into_active_model();
+	am.count = count;
+	am.update(c).await?;
+
+	add_furniture_impl(c, profile_id, mst_id).await?;
+
+	Ok(())
 }
 
 /// Get user furniture configuration.
