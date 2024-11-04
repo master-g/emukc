@@ -30,6 +30,14 @@ pub trait GameSettingsOps {
 		lan_type: i64,
 		oss_items: &[i64],
 	) -> Result<(), GameplayError>;
+
+	/// Update port BGM.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `bgm_id`: The BGM ID.
+	async fn update_port_bgm(&self, profile_id: i64, bgm_id: i64) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -53,6 +61,15 @@ impl<T: HasContext + ?Sized> GameSettingsOps for T {
 		update_oss_settings_impl(&tx, profile_id, lan_type, oss_items).await?;
 
 		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_port_bgm(&self, profile_id: i64, bgm_id: i64) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_port_bgm_impl(&tx, profile_id, bgm_id).await?;
 
 		Ok(())
 	}
@@ -123,6 +140,27 @@ where
 	am.update(c).await?;
 
 	Ok(())
+}
+
+pub(crate) async fn update_port_bgm_impl<C>(
+	c: &C,
+	profile_id: i64,
+	bgm_id: i64,
+) -> Result<profile::setting::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let setting = profile::setting::Entity::find_by_id(profile_id)
+		.one(c)
+		.await?
+		.ok_or(GameplayError::ProfileNotFound(profile_id))?;
+
+	let mut am: profile::setting::ActiveModel = setting.into_active_model();
+	am.port_bgm = ActiveValue::Set(bgm_id);
+
+	let m = am.update(c).await?;
+
+	Ok(m)
 }
 
 /// Initialize game settings of user.

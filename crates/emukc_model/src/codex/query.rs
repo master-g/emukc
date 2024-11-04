@@ -1,8 +1,11 @@
 //! Querying trait for objects in the codex.
 
-use crate::prelude::{
-	ApiMstFurniture, ApiMstPayitem, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdQuest,
-	Kc3rdShip, Kc3rdSlotItem,
+use crate::{
+	kc2::KcApiMusicListElement,
+	prelude::{
+		ApiMstFurniture, ApiMstPayitem, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdQuest,
+		Kc3rdShip, Kc3rdSlotItem,
+	},
 };
 
 use super::{Codex, CodexError};
@@ -123,5 +126,18 @@ impl FoundInCodex for Kc3rdQuest {
 
 	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
 		codex.quest.get(key).ok_or_else(|| CodexError::NotFound(format!("quest ID: {}", key)))
+	}
+}
+
+// KcApiMusicListElement
+impl FoundInCodex for KcApiMusicListElement {
+	type Key = i64;
+
+	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
+		codex
+			.music_list
+			.iter()
+			.find(|v| v.api_id == *key)
+			.ok_or_else(|| CodexError::NotFound(format!("music list ID: {}", key)))
 	}
 }
