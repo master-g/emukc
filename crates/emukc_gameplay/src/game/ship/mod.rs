@@ -5,7 +5,10 @@ use emukc_db::{
 		item::slot_item,
 		ship::{self, sp_effect_item},
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
+	sea_orm::{
+		entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait,
+		TryIntoModel,
+	},
 };
 use emukc_model::{codex::Codex, kc2::KcApiShip};
 
@@ -39,6 +42,13 @@ pub trait ShipOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError>;
+
+	/// Toggle ship locked status.
+	///
+	/// # Parameters
+	///
+	/// - `ship_id`: The ship ID.
+	async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError>;
 }
 
 #[async_trait]
@@ -92,6 +102,18 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 			.collect();
 
 		Ok(ships)
+	}
+
+	async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError> {
+		let db = self.db();
+
+		let tx = db.begin().await?;
+
+		let ship = toggle_ship_locked_impl(&tx, ship_id).await?;
+
+		tx.commit().await?;
+
+		Ok(ship.into())
 	}
 }
 
@@ -274,6 +296,25 @@ where
 	let sp_items = ships.load_many(sp_effect_item::Entity, c).await?;
 
 	Ok((ships, sp_items))
+}
+
+pub(crate) async fn toggle_ship_locked_impl<C>(
+	c: &C,
+	ship_id: i64,
+) -> Result<ship::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let ship = ship::Entity::find().filter(ship::Column::Id.eq(ship_id)).one(c).await?.ok_or_else(
+		|| GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id)),
+	)?;
+
+	let locked = !ship.locked;
+	let mut am = ship.into_active_model();
+	am.locked = ActiveValue::Set(locked);
+	let m = am.update(c).await?;
+
+	Ok(m)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
