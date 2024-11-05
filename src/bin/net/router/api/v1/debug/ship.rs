@@ -26,7 +26,7 @@ pub(super) async fn add(
 	let mut ships = vec![];
 
 	for ship_id in params.ship_id {
-		let ship = state.0.add_ship(params.profile_id, ship_id).await?;
+		let ship = state.add_ship(params.profile_id, ship_id).await?;
 		ships.push(ship);
 	}
 

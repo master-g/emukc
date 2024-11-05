@@ -21,9 +21,9 @@ pub(super) async fn handler(
 	Form(params): Form<NicknameParams>,
 ) -> KcApiResult {
 	let pid = session.profile.id;
-	state.0.update_user_nickname(pid, &params.api_nickname).await?;
+	state.update_user_nickname(pid, &params.api_nickname).await?;
 
-	let (_, basic) = state.0.get_user_basic(pid).await?;
+	let (_, basic) = state.get_user_basic(pid).await?;
 
 	Ok(KcApiResponse::success(&basic))
 }

@@ -44,7 +44,7 @@ pub trait FleetOps {
 		&self,
 		profile_id: i64,
 		index: i64,
-		ship_ids: [i64; 6],
+		ship_ids: &[i64; 6],
 	) -> Result<Fleet, GameplayError>;
 }
 
@@ -79,7 +79,7 @@ impl<T: HasContext + ?Sized> FleetOps for T {
 		&self,
 		profile_id: i64,
 		index: i64,
-		ship_ids: [i64; 6],
+		ship_ids: &[i64; 6],
 	) -> Result<Fleet, GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
@@ -187,7 +187,7 @@ pub(crate) async fn update_fleet_ships_impl<C>(
 	c: &C,
 	profile_id: i64,
 	index: i64,
-	ship_ids: [i64; 6],
+	ship_ids: &[i64; 6],
 ) -> Result<fleet::Model, GameplayError>
 where
 	C: ConnectionTrait,

@@ -18,6 +18,6 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 	Form(params): Form<Params>,
 ) -> KcApiResult {
-	state.0.update_user_comment(session.profile.id, &params.api_cmt).await?;
+	state.update_user_comment(session.profile.id, &params.api_cmt).await?;
 	Ok(KcApiResponse::empty())
 }

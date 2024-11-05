@@ -56,7 +56,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	let air_bases = state.0.get_airbases(pid).await?;
+	let air_bases = state.get_airbases(pid).await?;
 	let api_air_base_expanded_info = air_bases
 		.iter()
 		.map(|v| KcApiAirBaseExpandedInfo {
@@ -65,13 +65,13 @@ pub(super) async fn handler(
 		})
 		.collect();
 
-	let (_, basic) = state.0.get_user_basic(pid).await?;
+	let (_, basic) = state.get_user_basic(pid).await?;
 	let (hq_lv, next_lv_exp) = level::exp_to_hq_level(basic.api_experience);
 
-	let furnitures = state.0.get_furnitures(pid).await?;
+	let furnitures = state.get_furnitures(pid).await?;
 	let api_material_max = state.codex.material_cfg.get_soft_cap(hq_lv);
-	let slotitems = state.0.get_slot_items(pid).await?;
-	let ships = state.0.get_ships(pid).await?;
+	let slotitems = state.get_slot_items(pid).await?;
+	let ships = state.get_ships(pid).await?;
 
 	let rate_calculator = |v: i64, total: i64, percentage: bool| -> String {
 		let rate = if total == 0 {

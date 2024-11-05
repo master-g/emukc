@@ -18,6 +18,6 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 	Form(params): Form<Params>,
 ) -> KcApiResult {
-	state.0.update_tutorial_progress(session.profile.id, params.api_no).await?;
+	state.update_tutorial_progress(session.profile.id, params.api_no).await?;
 	Ok(KcApiResponse::empty())
 }

@@ -52,7 +52,7 @@ pub(super) async fn mocking_middleware(
 	let (mut parts, body) = request.into_parts();
 
 	let state = parts.extract::<AppState>().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-	let state: &State = state.0.as_ref();
+	let state: &State = state.as_ref();
 
 	if let Some(mod_dir) = state.kache.mods_root() {
 		let req_path = parts.uri.path();

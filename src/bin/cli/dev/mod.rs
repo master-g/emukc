@@ -44,7 +44,7 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 	state.select_world(pid, 1).await?;
 
 	let ship = state.add_ship(pid, 549).await?;
-	state.update_fleet_ships(pid, 1, [ship.api_id, -1, -1, -1, -1, -1]).await?;
+	state.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await?;
 
 	// give two damage control teams
 	for api_slotitem_id in [42, 42] {
