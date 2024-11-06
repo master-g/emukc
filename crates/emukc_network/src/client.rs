@@ -25,7 +25,7 @@ pub fn new_reqwest_client(
 		let proxy = reqwest::Proxy::all(proxy)?;
 		builder.proxy(proxy)
 	} else {
-		builder
+		builder.no_proxy()
 	};
 
 	builder.build()
