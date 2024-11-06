@@ -21,7 +21,9 @@ impl Codex {
 		let mut api_onslot = [0; 5];
 		let mut slot_items: Vec<KcApiSlotItem> = Vec::new();
 		for (i, slot_info) in basic.slots.iter().enumerate() {
+			// FIXME: this info can be read from manifest
 			api_onslot[i] = slot_info.onslot;
+
 			if slot_info.item_id > 0 {
 				slot_items.push(KcApiSlotItem {
 					api_id: 0,

@@ -648,3 +648,27 @@ pub struct KcApiMusicListElement {
 	pub api_name: String,
 	pub api_use_coin: i64,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiChargeShip {
+	pub api_id: i64,
+	pub api_fuel: i64,
+	pub api_bull: i64,
+	pub api_onslot: [i64; 5],
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, enumn::N)]
+pub enum KcApiChargeKind {
+	Plane = 0,
+	Fuel = 1,
+	Ammo = 2,
+	Collective = 3,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiChargeResp {
+	pub api_ship: Vec<KcApiChargeShip>,
+	/// [0]: fuel, [1]: ammo, [2]: steel, [3]: bauxite
+	pub api_material: [i64; 4],
+	pub api_use_bou: i64,
+}

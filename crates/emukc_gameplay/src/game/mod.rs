@@ -20,6 +20,7 @@ pub use quest::QuestOps;
 pub use settings::GameSettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
+pub use supply::SupplyOps;
 pub use use_item::UseItemOps;
 
 use crate::gameplay::HasContext;
@@ -46,6 +47,7 @@ mod quest;
 mod settings;
 mod ship;
 mod slot_item;
+mod supply;
 mod use_item;
 
 /// A trait for gameplay logic.
@@ -69,6 +71,7 @@ pub trait GameOps:
 	+ PresetOps
 	+ QuestOps
 	+ ShipOps
+	+ SupplyOps
 	+ SlotItemOps
 	+ UseItemOps
 {
@@ -84,6 +87,7 @@ pub mod ops {
 	pub use crate::game::{
 		AirbaseOps, BasicOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps, GameOps,
 		GameSettingsOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps,
-		PictureBookOps, PracticeOps, PresetOps, QuestOps, ShipOps, SlotItemOps, UseItemOps,
+		PictureBookOps, PracticeOps, PresetOps, QuestOps, ShipOps, SlotItemOps, SupplyOps,
+		UseItemOps,
 	};
 }

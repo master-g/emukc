@@ -44,7 +44,9 @@ impl From<GameplayError> for ApiError {
 		match value {
 			GameplayError::ProfileNotFound(e) => Self::NotFound(e.to_string()),
 			GameplayError::Db(db_err) => Self::Internal(db_err.to_string()),
-			GameplayError::WrongType(e) | GameplayError::Insufficient(e) => Self::Internal(e),
+			GameplayError::BadManifest(e)
+			| GameplayError::WrongType(e)
+			| GameplayError::Insufficient(e) => Self::Internal(e),
 			GameplayError::ManifestNotFound(e) | GameplayError::CapacityExceeded(e) => {
 				Self::Internal(e.to_string())
 			}

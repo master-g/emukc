@@ -17,6 +17,9 @@ pub enum GameplayError {
 	#[error("Invalid manifest ID: {0}")]
 	ManifestNotFound(i64),
 
+	#[error("Bad manifest: {0}")]
+	BadManifest(String),
+
 	#[error("Capacity exceeded: {0}")]
 	CapacityExceeded(i64),
 
