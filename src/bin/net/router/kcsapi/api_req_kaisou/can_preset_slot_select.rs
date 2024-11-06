@@ -12,7 +12,7 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
 	let pid = session.profile.id;
-	let preset_slots = state.get_preset_slot(pid).await?;
+	let preset_slots = state.get_preset_slots(pid).await?;
 	let flag = if preset_slots.records.is_empty() {
 		0
 	} else {

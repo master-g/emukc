@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub mod furniture;
+pub mod incentive;
 pub mod query;
 pub mod ship;
 pub mod slot_item;

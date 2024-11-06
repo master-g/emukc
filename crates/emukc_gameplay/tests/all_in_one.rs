@@ -113,6 +113,8 @@ async fn add_ship() {
 
 	assert_eq!(ship.api_id, 1);
 
+	println!("{:?}", ship);
+
 	let slot_items = context.get_slot_items(pid).await.unwrap();
 	assert_eq!(slot_items.len(), 3);
 
@@ -121,6 +123,14 @@ async fn add_ship() {
 
 	let ships = context.get_ships(pid).await.unwrap();
 	assert_eq!(ships.len(), 1);
+}
+
+#[tokio::test]
+async fn ship_incentive() {
+	let (context, _, _) = new_game_session().await;
+
+	let incentive = context.1.new_incentive_with_ship(951).unwrap();
+	println!("{:?}", incentive);
 }
 
 #[tokio::test]

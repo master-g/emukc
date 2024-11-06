@@ -1,7 +1,7 @@
 //! Deck preset entity
 
 use emukc_model::profile::preset_deck::PresetDeckItem;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
@@ -59,27 +59,9 @@ impl Related<crate::entity::profile::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl From<PresetDeckItem> for ActiveModel {
-	fn from(value: PresetDeckItem) -> Self {
-		Self {
-			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(value.profile_id),
-			index: ActiveValue::Set(value.index),
-			name: ActiveValue::Set(value.name),
-			ship_1: ActiveValue::Set(value.ships[0]),
-			ship_2: ActiveValue::Set(value.ships[1]),
-			ship_3: ActiveValue::Set(value.ships[2]),
-			ship_4: ActiveValue::Set(value.ships[3]),
-			ship_5: ActiveValue::Set(value.ships[4]),
-			ship_6: ActiveValue::Set(value.ships[5]),
-		}
-	}
-}
-
 impl From<Model> for PresetDeckItem {
 	fn from(value: Model) -> Self {
 		Self {
-			profile_id: value.profile_id,
 			index: value.index,
 			name: value.name,
 			ships: [

@@ -191,6 +191,18 @@ pub fn exp_to_ship_level(exp: i64) -> (i64, i64) {
 	(180, 0)
 }
 
+/// Get the required exp for the next level.
+///
+/// # Arguments
+///
+/// * `lv` - The current level.
+pub fn ship_level_required_exp(lv: i64) -> i64 {
+	if lv < 2 {
+		return 0;
+	}
+	SHIP_EXP_TABLE.get(lv as usize - 2).copied().unwrap_or(0)
+}
+
 #[cfg(test)]
 mod test {
 
@@ -198,6 +210,14 @@ mod test {
 	fn test_ship_exp_table() {
 		for (i, &exp) in super::SHIP_EXP_TABLE.iter().enumerate() {
 			println!("lv: {}, Exp: {}", i + 2, exp);
+		}
+	}
+
+	#[test]
+	fn test_ship_exp_vice_versa() {
+		for i in 0..180 {
+			let exp = super::ship_level_required_exp(i);
+			println!("lv: {}, Exp: {}", i, exp);
 		}
 	}
 

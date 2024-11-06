@@ -12,5 +12,8 @@ pub(super) async fn handler(
 	Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
 	let pid = session.profile.id;
+
+	state.expand_preset_deck_capacity(pid).await?;
+
 	Ok(KcApiResponse::empty())
 }

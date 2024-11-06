@@ -2,7 +2,7 @@
 
 use crate::{
 	fields::MoveValueToEnd,
-	kc2::{KcApiShip, KcApiSlotItem, KcShipType},
+	kc2::{level, KcApiShip, KcApiSlotItem, KcShipType},
 	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo},
 };
 
@@ -33,14 +33,30 @@ impl Codex {
 			}
 		}
 
+		let api_lv = basic.remodel.as_ref().map_or(1, |remodel| {
+			if remodel.level > 0 {
+				remodel.level
+			} else {
+				1
+			}
+		});
+
+		let exp_now = if api_lv > 1 {
+			level::ship_level_required_exp(api_lv)
+		} else {
+			0
+		};
+
+		let next_exp_required = level::exp_to_ship_level(exp_now).1;
+
 		let api_nowhp = mst.api_taik.as_ref().unwrap()[0];
 
 		let ship = KcApiShip {
 			api_id: 0,
 			api_sortno: mst.api_sortno.unwrap_or(-1),
 			api_ship_id: mst_id,
-			api_lv: 1,
-			api_exp: [0, 100, 0],
+			api_lv,
+			api_exp: [exp_now, next_exp_required, 0],
 			api_nowhp,
 			api_maxhp: api_nowhp,
 			api_soku: mst.api_soku,

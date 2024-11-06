@@ -2,8 +2,8 @@ use anyhow::Result;
 use emukc::{
 	model::profile::furniture::FurnitureConfig,
 	prelude::{
-		AccountOps, BasicOps, FleetOps, FurnitureOps, HasContext, KcUseItemType, ProfileOps,
-		ShipOps, SlotItemOps, UseItemOps,
+		AccountOps, BasicOps, FleetOps, FurnitureOps, HasContext, IncentiveOps, KcApiIncentiveItem,
+		KcUseItemType, MaterialCategory, MaterialOps, ProfileOps, ShipOps, SlotItemOps, UseItemOps,
 	},
 };
 
@@ -36,6 +36,29 @@ pub(super) async fn exec(cfg: &AppConfig) -> Result<()> {
 	info!("game stuffs initialized");
 
 	println!("{}", session.session.token);
+
+	Ok(())
+}
+
+async fn add_incentives(state: &State, pid: i64) -> Result<()> {
+	let codex = state.codex();
+
+	let ship_incentives: Vec<KcApiIncentiveItem> = [
+		184, // 大鯨
+		186, // 時津風
+		187, // 明石改
+		299, // Scamp
+		892, // Drum
+		927, // Valiant
+		951, // 天津風改二
+		952, // Phoenix
+		964, // 白雲
+	]
+	.iter()
+	.filter_map(|sid| codex.new_incentive_with_ship(*sid).ok())
+	.collect();
+
+	state.add_incentive(pid, &ship_incentives).await?;
 
 	Ok(())
 }
@@ -73,6 +96,26 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 		.await?;
 
 	state.add_use_item(pid, KcUseItemType::FCoin as i64, 100000).await?;
+	state.add_use_item(pid, KcUseItemType::DockKey as i64, 5).await?;
+
+	state
+		.add_material(
+			pid,
+			&[
+				(MaterialCategory::Fuel, 10000),
+				(MaterialCategory::Ammo, 10000),
+				(MaterialCategory::Steel, 10000),
+				(MaterialCategory::Bauxite, 10000),
+				(MaterialCategory::Torch, 300),
+				(MaterialCategory::DevMat, 1000),
+				(MaterialCategory::Bucket, 1000),
+				(MaterialCategory::Screw, 300),
+			],
+		)
+		.await?;
+
+	// add incentives
+	add_incentives(state, pid).await?;
 
 	// update first flag
 	state.update_user_first_flag(pid, 1).await?;

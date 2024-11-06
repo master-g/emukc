@@ -389,6 +389,8 @@ pub struct KcApiIncentiveItem {
 	/// 907: 装備運用枠+?
 	/// 908: 装備運用枠+10
 	pub api_mst_id: i64,
+
+	/// ship get message, but the game does not use it
 	pub api_getmes: Option<String>,
 	pub api_slotitem_level: Option<i64>,
 

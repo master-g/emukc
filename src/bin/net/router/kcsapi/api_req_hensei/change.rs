@@ -66,7 +66,7 @@ pub(super) async fn handler(
 		};
 		([fleet.ships[0], -1, -1, -1, -1, -1], count)
 	} else {
-		let mut nf = fleet.ships.clone();
+		let mut nf = fleet.ships;
 		nf[params.api_ship_idx as usize] = params.api_ship_id;
 		if origin_ship_idx > 0 {
 			// swap

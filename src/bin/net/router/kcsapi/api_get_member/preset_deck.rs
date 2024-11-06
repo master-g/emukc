@@ -13,7 +13,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	let preset_decks = state.get_preset_deck(pid).await?;
+	let preset_decks = state.get_preset_decks(pid).await?;
 	let resp: KcApiPresetDeck = preset_decks.into();
 
 	Ok(KcApiResponse::success(&resp))

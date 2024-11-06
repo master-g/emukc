@@ -5,9 +5,6 @@ use crate::kc2::{KcApiPresetDeck, KcApiPresetDeckElement};
 /// Preset deck item
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PresetDeckItem {
-	/// Profile id
-	pub profile_id: i64,
-
 	/// Deck index
 	pub index: i64,
 
@@ -21,9 +18,6 @@ pub struct PresetDeckItem {
 /// Preset deck
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PresetDeck {
-	/// Profile id
-	pub profile_id: i64,
-
 	/// Max number of records
 	pub max_num: i64,
 
