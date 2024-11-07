@@ -51,7 +51,7 @@ where
 	// FIXME: https://en.kancollewiki.net/Marriage
 	codex.cal_ship_status(&mut api_ship, &slot_items)?;
 
-	let mut am: ship::ActiveModel = ship.into();
+	let mut am: ship::ActiveModel = api_ship.into();
 	am.id = ActiveValue::Unchanged(ship.id);
 	am.profile_id = ActiveValue::Unchanged(ship.profile_id);
 
