@@ -1,7 +1,6 @@
-use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::ship,
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel},
 };
 use emukc_model::{
 	codex::Codex,
@@ -9,48 +8,7 @@ use emukc_model::{
 	prelude::ApiMstShip,
 };
 
-use crate::{err::GameplayError, game::material::deduct_material_impl, gameplay::HasContext};
-
-/// A trait for supply related gameplay.
-#[async_trait]
-pub trait SupplyOps {
-	/// Execute a resupply operation.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `ship_ids`: The ship IDs.
-	/// - `mode`: The resupply mode.
-	/// - `supply_aircrafts`: Whether to resupply aircrafts.
-	async fn charge_supply(
-		&self,
-		profile_id: i64,
-		ship_ids: &[i64],
-		mode: KcApiChargeKind,
-		supply_aircrafts: bool,
-	) -> Result<KcApiChargeResp, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> SupplyOps for T {
-	async fn charge_supply(
-		&self,
-		profile_id: i64,
-		ship_ids: &[i64],
-		mode: KcApiChargeKind,
-		supply_aircrafts: bool,
-	) -> Result<KcApiChargeResp, GameplayError> {
-		let codex = self.codex();
-		let db = self.db();
-		let tx = db.begin().await?;
-
-		let resp =
-			supply_fleet_impl(&tx, codex, profile_id, ship_ids, mode, supply_aircrafts).await?;
-		tx.commit().await?;
-
-		Ok(resp)
-	}
-}
+use crate::{err::GameplayError, game::material::deduct_material_impl};
 
 pub(crate) async fn supply_fleet_impl<C>(
 	c: &C,

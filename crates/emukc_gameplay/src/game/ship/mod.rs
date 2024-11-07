@@ -288,7 +288,7 @@ pub(crate) async fn find_ship_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let ship = ship::Entity::find().filter(ship::Column::Id.eq(ship_id)).one(c).await?;
+	let ship = ship::Entity::find_by_id(ship_id).one(c).await?;
 
 	let sp_items = if ship.is_some() {
 		find_ship_sp_effect_items_impl(c, ship_id).await?
@@ -324,9 +324,9 @@ pub(crate) async fn toggle_ship_locked_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let ship = ship::Entity::find().filter(ship::Column::Id.eq(ship_id)).one(c).await?.ok_or_else(
-		|| GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id)),
-	)?;
+	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
+	})?;
 
 	let locked = !ship.locked;
 	let mut am = ship.into_active_model();

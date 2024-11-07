@@ -1,6 +1,6 @@
 //! Slot item entity
 
-use emukc_model::profile::slot_item::SlotItem;
+use emukc_model::{kc2::KcApiSlotItem, profile::slot_item::SlotItem};
 use sea_orm::entity::prelude::*;
 
 #[allow(missing_docs)]
@@ -59,6 +59,18 @@ impl From<Model> for SlotItem {
 			locked: value.locked,
 			level: value.level,
 			aircraft_lv: value.aircraft_lv,
+		}
+	}
+}
+
+impl From<Model> for KcApiSlotItem {
+	fn from(value: Model) -> Self {
+		Self {
+			api_id: value.id,
+			api_slotitem_id: value.mst_id,
+			api_locked: value.locked as i64,
+			api_level: value.level,
+			api_alv: (value.aircraft_lv > 0).then_some(value.aircraft_lv),
 		}
 	}
 }

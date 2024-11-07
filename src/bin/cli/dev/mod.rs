@@ -69,6 +69,7 @@ async fn add_incentives(state: &State, pid: i64) -> Result<()> {
 		ship.api_fuel = 0;
 		ship.api_bull = 0;
 		ship.api_onslot = [0, 0, 0, 0, 0];
+		ship.api_lv = 99;
 
 		state.update_ship(ship).await?;
 	}
@@ -108,8 +109,12 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 		)
 		.await?;
 
-	state.add_use_item(pid, KcUseItemType::FCoin as i64, 100000).await?;
-	state.add_use_item(pid, KcUseItemType::DockKey as i64, 5).await?;
+	// give use items
+	for (t, c) in
+		[(KcUseItemType::FCoin, 100000), (KcUseItemType::DockKey, 5), (KcUseItemType::Ring, 7)]
+	{
+		state.add_use_item(pid, t as i64, c).await?;
+	}
 
 	state
 		.add_material(

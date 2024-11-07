@@ -2,6 +2,7 @@
 
 pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
+pub use compose::ComposeOps;
 pub use expedition::ExpeditionOps;
 pub use factory::FactoryOps;
 pub use fleet::FleetOps;
@@ -20,7 +21,6 @@ pub use quest::QuestOps;
 pub use settings::GameSettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
-pub use supply::SupplyOps;
 pub use use_item::UseItemOps;
 
 use crate::gameplay::HasContext;
@@ -29,6 +29,7 @@ use crate::gameplay::HasContext;
 
 mod airbase;
 mod basic;
+mod compose;
 mod expedition;
 mod factory;
 mod fleet;
@@ -47,7 +48,6 @@ mod quest;
 mod settings;
 mod ship;
 mod slot_item;
-mod supply;
 mod use_item;
 
 /// A trait for gameplay logic.
@@ -55,6 +55,7 @@ mod use_item;
 pub trait GameOps:
 	BasicOps
 	+ AirbaseOps
+	+ ComposeOps
 	+ ExpeditionOps
 	+ FactoryOps
 	+ FleetOps
@@ -71,7 +72,6 @@ pub trait GameOps:
 	+ PresetOps
 	+ QuestOps
 	+ ShipOps
-	+ SupplyOps
 	+ SlotItemOps
 	+ UseItemOps
 {
@@ -85,9 +85,9 @@ pub mod ops {
 
 	#[doc(hidden)]
 	pub use crate::game::{
-		AirbaseOps, BasicOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps, GameOps,
-		GameSettingsOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps,
-		PictureBookOps, PracticeOps, PresetOps, QuestOps, ShipOps, SlotItemOps, SupplyOps,
+		AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps,
+		GameOps, GameSettingsOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps,
+		PayItemOps, PictureBookOps, PracticeOps, PresetOps, QuestOps, ShipOps, SlotItemOps,
 		UseItemOps,
 	};
 }
