@@ -49,6 +49,15 @@ pub trait ShipOps {
 	///
 	/// - `ship_id`: The ship ID.
 	async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError>;
+
+	/// Update ship.
+	///
+	/// TODO: this is a temporary implementation.
+	///
+	/// # Parameters
+	///
+	/// - `ship`: The ship to update.
+	async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -106,7 +115,6 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 
 	async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError> {
 		let db = self.db();
-
 		let tx = db.begin().await?;
 
 		let ship = toggle_ship_locked_impl(&tx, ship_id).await?;
@@ -114,6 +122,17 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 		tx.commit().await?;
 
 		Ok(ship.into())
+	}
+
+	async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_ship_impl(&tx, ship).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -312,6 +331,80 @@ where
 	let locked = !ship.locked;
 	let mut am = ship.into_active_model();
 	am.locked = ActiveValue::Set(locked);
+	let m = am.update(c).await?;
+
+	Ok(m)
+}
+
+pub(crate) async fn update_ship_impl<C>(c: &C, s: &KcApiShip) -> Result<ship::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let m = ship::Entity::find_by_id(s.api_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("ship with id {} not found", s.api_id))
+	})?;
+
+	let mut am = m.into_active_model();
+
+	{
+		let progress = s.api_exp[0] as f64 / s.api_exp[1] as f64 * 100.0;
+		am.level = ActiveValue::Set(s.api_lv);
+		am.exp_now = ActiveValue::Set(s.api_exp[0]);
+		am.exp_next = ActiveValue::Set(s.api_exp[1]);
+		am.exp_progress = ActiveValue::Set(progress as i64);
+		am.married = ActiveValue::Set(s.api_lv > 99);
+		am.locked = ActiveValue::Set(s.api_locked == 1);
+		am.backs = ActiveValue::Set(s.api_backs);
+		am.hp_now = ActiveValue::Set(s.api_nowhp);
+		am.hp_max = ActiveValue::Set(s.api_maxhp);
+		am.speed = ActiveValue::Set(s.api_soku);
+		am.range = ActiveValue::Set(s.api_leng);
+		am.slot_1 = ActiveValue::Set(s.api_slot[0]);
+		am.slot_2 = ActiveValue::Set(s.api_slot[1]);
+		am.slot_3 = ActiveValue::Set(s.api_slot[2]);
+		am.slot_4 = ActiveValue::Set(s.api_slot[3]);
+		am.slot_5 = ActiveValue::Set(s.api_slot[4]);
+		am.slot_ex = ActiveValue::Set(s.api_slot_ex);
+		am.onslot_1 = ActiveValue::Set(s.api_onslot[0]);
+		am.onslot_2 = ActiveValue::Set(s.api_onslot[1]);
+		am.onslot_3 = ActiveValue::Set(s.api_onslot[2]);
+		am.onslot_4 = ActiveValue::Set(s.api_onslot[3]);
+		am.onslot_5 = ActiveValue::Set(s.api_onslot[4]);
+		am.mod_firepower = ActiveValue::Set(s.api_kyouka[0]);
+		am.mod_torpedo = ActiveValue::Set(s.api_kyouka[1]);
+		am.mod_aa = ActiveValue::Set(s.api_kyouka[2]);
+		am.mod_armor = ActiveValue::Set(s.api_kyouka[3]);
+		am.mod_luck = ActiveValue::Set(s.api_kyouka[4]);
+		am.mod_hp = ActiveValue::Set(s.api_kyouka[5]);
+		am.mod_asw = ActiveValue::Set(s.api_kyouka[6]);
+		am.fuel = ActiveValue::Set(s.api_fuel);
+		am.ammo = ActiveValue::Set(s.api_bull);
+		am.slot_num = ActiveValue::Set(s.api_slotnum);
+		am.ndock_time = ActiveValue::Set(s.api_ndock_time);
+		am.ndock_fuel = ActiveValue::Set(s.api_ndock_item[0]);
+		am.ndock_steel = ActiveValue::Set(s.api_ndock_item[1]);
+		am.srate = ActiveValue::Set(s.api_srate);
+		am.condition = ActiveValue::Set(s.api_cond);
+		am.firepower_now = ActiveValue::Set(s.api_karyoku[0]);
+		am.firepower_max = ActiveValue::Set(s.api_karyoku[1]);
+		am.torpedo_now = ActiveValue::Set(s.api_raisou[0]);
+		am.torpedo_max = ActiveValue::Set(s.api_raisou[1]);
+		am.aa_now = ActiveValue::Set(s.api_taiku[0]);
+		am.aa_max = ActiveValue::Set(s.api_taiku[1]);
+		am.armor_now = ActiveValue::Set(s.api_soukou[0]);
+		am.armor_max = ActiveValue::Set(s.api_soukou[1]);
+		am.evasion_now = ActiveValue::Set(s.api_kaihi[0]);
+		am.evasion_max = ActiveValue::Set(s.api_kaihi[1]);
+		am.asw_now = ActiveValue::Set(s.api_taisen[0]);
+		am.asw_max = ActiveValue::Set(s.api_taisen[1]);
+		am.los_now = ActiveValue::Set(s.api_sakuteki[0]);
+		am.los_max = ActiveValue::Set(s.api_sakuteki[1]);
+		am.luck_now = ActiveValue::Set(s.api_lucky[0]);
+		am.luck_max = ActiveValue::Set(s.api_lucky[1]);
+		am.has_locked_euqip = ActiveValue::Set(s.api_locked_equip == 1);
+		am.sally_area = ActiveValue::Set(s.api_sally_area);
+	}
+
 	let m = am.update(c).await?;
 
 	Ok(m)

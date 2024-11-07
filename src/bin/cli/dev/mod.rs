@@ -44,21 +44,34 @@ async fn add_incentives(state: &State, pid: i64) -> Result<()> {
 	let codex = state.codex();
 
 	let ship_incentives: Vec<KcApiIncentiveItem> = [
-		184, // 大鯨
-		186, // 時津風
-		187, // 明石改
-		299, // Scamp
-		892, // Drum
-		927, // Valiant
-		951, // 天津風改二
-		952, // Phoenix
-		964, // 白雲
+		(184, "大鯨"),
+		// (186, "時津風"),
+		(187, "明石改"),
+		// (299, "Scamp"),
+		(433, "Saratoga"),
+		// (892, "Drum"),
+		// (927, "Valiant"),
+		(951, "天津風改二"),
+		// (952, "Phoenix"),
+		// (964, "白雲"),
 	]
 	.iter()
-	.filter_map(|sid| codex.new_incentive_with_ship(*sid).ok())
+	.filter_map(|(sid, _)| codex.new_incentive_with_ship(*sid).ok())
 	.collect();
 
 	state.add_incentive(pid, &ship_incentives).await?;
+
+	// modify ships for testing `api_req_hokyu/charge`
+
+	let mut ships = state.get_ships(pid).await?;
+
+	for ship in ships.iter_mut() {
+		ship.api_fuel = 0;
+		ship.api_bull = 0;
+		ship.api_onslot = [0, 0, 0, 0, 0];
+
+		state.update_ship(ship).await?;
+	}
 
 	Ok(())
 }

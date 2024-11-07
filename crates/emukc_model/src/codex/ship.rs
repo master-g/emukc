@@ -18,12 +18,8 @@ impl Codex {
 		let mst = self.manifest.find_ship(mst_id)?;
 		let basic = self.ship_extra.get(&mst_id)?;
 
-		let mut api_onslot = [0; 5];
 		let mut slot_items: Vec<KcApiSlotItem> = Vec::new();
-		for (i, slot_info) in basic.slots.iter().enumerate() {
-			// FIXME: this info can be read from manifest
-			api_onslot[i] = slot_info.onslot;
-
+		for slot_info in basic.slots.iter() {
 			if slot_info.item_id > 0 {
 				slot_items.push(KcApiSlotItem {
 					api_id: 0,
@@ -64,7 +60,7 @@ impl Codex {
 			api_soku: mst.api_soku,
 			api_leng: mst.api_leng.unwrap_or(-1),
 			api_slot: [-1; 5],
-			api_onslot,
+			api_onslot: mst.api_maxeq.unwrap_or([0; 5]),
 			api_slot_ex: 0,
 			api_kyouka: [0; 7],
 			api_backs: mst.api_backs.unwrap_or(-1),

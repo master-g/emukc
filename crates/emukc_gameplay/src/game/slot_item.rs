@@ -69,6 +69,13 @@ pub trait SlotItemOps {
 		profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError>;
 
+	/// Toggle slot item locked status.
+	///
+	/// # Parameters
+	///
+	/// - `item_id`: The slot item instance ID.
+	async fn toggle_slot_item_locked(&self, item_id: i64) -> Result<KcApiSlotItem, GameplayError>;
+
 	/// Destroy slot items.
 	///
 	/// # Parameters
@@ -163,6 +170,16 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 			slot_items.into_iter().map(std::convert::Into::into).collect();
 
 		Ok(slot_items)
+	}
+
+	async fn toggle_slot_item_locked(&self, item_id: i64) -> Result<KcApiSlotItem, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = toggle_slot_item_locked_impl(&tx, item_id).await?;
+		let m: SlotItem = m.into();
+
+		Ok(m.into())
 	}
 
 	async fn destroy_items(
@@ -298,6 +315,29 @@ where
 		.await?;
 
 	Ok(records)
+}
+
+pub(crate) async fn toggle_slot_item_locked_impl<C>(
+	c: &C,
+	item_id: i64,
+) -> Result<slot_item::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = slot_item::Entity::find()
+		.filter(slot_item::Column::Id.eq(item_id))
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", item_id)))?;
+
+	let locked = record.locked;
+	let mut am: slot_item::ActiveModel = record.into();
+
+	am.locked = ActiveValue::Set(!locked);
+
+	let m = am.update(c).await?;
+
+	Ok(m)
 }
 
 pub(crate) async fn destroy_items_impl<C>(
