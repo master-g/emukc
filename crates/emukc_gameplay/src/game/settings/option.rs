@@ -53,9 +53,9 @@ where
 	am.v_duty = ActiveValue::Set(settings.api_v_duty.eq(&1));
 
 	let m = if am.profile_id.is_set() {
-		am.update(c).await?
-	} else {
 		am.insert(c).await?
+	} else {
+		am.update(c).await?
 	};
 
 	Ok(m)

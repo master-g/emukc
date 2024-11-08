@@ -71,7 +71,7 @@ impl From<Model> for KcApiOptionSetting {
 		Self {
 			api_skin_id: value.skin_id,
 			api_vol_bgm: value.bgm_volume,
-			api_vol_se: value.voice_volume,
+			api_vol_se: value.se_volume,
 			api_vol_voice: value.voice_volume,
 			api_v_be_left: value.v_be_left as i64,
 			api_v_duty: value.v_duty as i64,
