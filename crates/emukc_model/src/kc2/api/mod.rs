@@ -316,15 +316,42 @@ pub struct KcApiNDock {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KcApiGameSetting {
+pub struct KcApiOssSetting {
 	/// Language type, 0: Japanese, 1: English
 	pub api_language_type: i64,
 	/// Ship sorting filters, 0: BB, 1: CV, 2: CA, 3: CL, 4: DD, 5: DE, 6: SS, 7: other
 	pub api_oss_items: [i64; 8],
+}
+
+impl Default for KcApiOssSetting {
+	fn default() -> Self {
+		Self {
+			api_language_type: 0,
+			api_oss_items: [1; 8],
+		}
+	}
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KcApiOptionSetting {
+	/// Skin ID
+	pub api_skin_id: i64,
+	/// BGM volume, 0-100
+	pub api_vol_bgm: i64,
+	/// Sound effect volume, 0-100
+	pub api_vol_se: i64,
+	/// Voice volume, 0-100
+	pub api_vol_voice: i64,
+	/// Secretary idle voice enabled
+	pub api_v_be_left: i64,
+	/// Mission completed voice enabled
+	pub api_v_duty: i64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KcApiGameSetting {
 	/// Secretary ship position, 0: right, 1: center
 	pub api_position_id: i64,
-	/// UI skin ID
-	pub api_skin_id: i64,
 	/// Port music ID
 	pub api_p_bgm_id: i64,
 	/// Call for reinforcement flag, 0: off, 1: on
@@ -336,10 +363,7 @@ pub struct KcApiGameSetting {
 impl Default for KcApiGameSetting {
 	fn default() -> Self {
 		Self {
-			api_language_type: 0,
-			api_oss_items: [1; 8],
 			api_position_id: 0,
-			api_skin_id: 101,
 			api_p_bgm_id: 101,
 			api_friend_fleet_request_flag: 0,
 			api_friend_fleet_request_type: 0,

@@ -11,6 +11,7 @@ use supply::supply_fleet_impl;
 use crate::{err::GameplayError, gameplay::HasContext};
 
 pub(crate) mod marriage;
+pub(crate) mod powerup;
 pub(crate) mod supply;
 
 /// A trait for gameplay logic that composed by one or more other trait implements.
@@ -39,6 +40,22 @@ pub trait ComposeOps {
 	/// - `profile_id`: The profile ID.
 	/// - `ship_id`: The ship ID.
 	async fn marriage(&self, profile_id: i64, ship_id: i64) -> Result<ship::Model, GameplayError>;
+
+	/// Execute a powerup operation.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `ship_id`: The ship ID.
+	/// - `material_ships`: The material ship IDs.
+	/// - `keep_slot_items`: Whether to keep slot items.
+	async fn powerup(
+		&self,
+		profile_id: i64,
+		ship_id: i64,
+		material_ships: &[i64],
+		keep_slot_items: bool,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -70,5 +87,23 @@ impl<T: HasContext + ?Sized> ComposeOps for T {
 		tx.commit().await?;
 
 		Ok(ship)
+	}
+
+	async fn powerup(
+		&self,
+		profile_id: i64,
+		ship_id: i64,
+		material_ships: &[i64],
+		keep_slot_items: bool,
+	) -> Result<(), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		powerup::powerup_impl(&tx, codex, profile_id, ship_id, material_ships, keep_slot_items)
+			.await?;
+		tx.commit().await?;
+
+		Ok(())
 	}
 }

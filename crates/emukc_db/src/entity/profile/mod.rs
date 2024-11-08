@@ -16,7 +16,7 @@ pub mod ndock;
 pub mod practice;
 pub mod preset;
 pub mod quest;
-pub mod setting;
+pub mod settings;
 pub mod ship;
 
 #[allow(missing_docs)]
@@ -138,8 +138,16 @@ pub enum Relation {
 	FurnitureConfig,
 
 	/// Relation to `GameSettings`
-	#[sea_orm(has_one = "setting::Entity")]
+	#[sea_orm(has_one = "settings::game::Entity")]
 	GameSettings,
+
+	/// Relation to `OptionSettings`
+	#[sea_orm(has_one = "settings::option::Entity")]
+	OptionSettings,
+
+	/// Relation to `OssSettings`
+	#[sea_orm(has_one = "settings::oss::Entity")]
+	OssSettings,
 
 	/// Relation to `Incentive`
 	#[sea_orm(has_many = "incentive::Entity")]
@@ -314,10 +322,9 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 		let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
-	// game settings
+	// settings
 	{
-		let stmt = schema.create_table_from_entity(setting::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
+		settings::bootstrap(db).await?;
 	}
 	// airbase
 	{

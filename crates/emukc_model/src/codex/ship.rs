@@ -191,6 +191,8 @@ impl Codex {
 
 		// married
 		if ship.api_lv >= 100 {
+			// some exceptional cases are not addressed here
+			// see https://en.kancollewiki.net/Marriage
 			let min_hp = mst.api_taik.as_ref().unwrap()[0];
 			let max_hp = mst.api_taik.as_ref().unwrap()[1];
 			let idx = (min_hp as f64 / 10.0).floor() as usize;
@@ -244,7 +246,7 @@ impl Codex {
 		ship: &KcApiShip,
 		mst: Option<&ApiMstShip>,
 		basic: Option<&Kc3rdShip>,
-	) -> Result<Vec<i64>, CodexError> {
+	) -> Result<[i64; 7], CodexError> {
 		let mst = mst.map_or_else(|| self.find_ship_mst(ship.api_ship_id), Ok)?;
 
 		let basic = basic.map_or_else(|| self.find_ship_extra(ship.api_ship_id), Ok)?;
@@ -256,7 +258,7 @@ impl Codex {
 		let mst_luck = mst.api_luck.unwrap_or([0, 0]);
 		let mst_tais = basic.tais;
 
-		let mut potentials = vec![0; 7];
+		let mut potentials = [0; 7];
 		potentials[0] = mst_houg[1] - mst_houg[0] - ship.api_kyouka[0]; // firepower
 		potentials[1] = mst_raig[1] - mst_raig[0] - ship.api_kyouka[1]; // torpedo
 		potentials[2] = mst_tyku[1] - mst_tyku[0] - ship.api_kyouka[2]; // anti-air
@@ -413,6 +415,7 @@ impl Codex {
 		self.find_ship_mst(mst_id).map(|mst| mst.api_stype).unwrap_or(0)
 	}
 
+	/// see <https://en.kancollewiki.net/Modernization>
 	fn cal_srate(&self, mst: &ApiMstShip, ship: &mut KcApiShip) -> Result<(), CodexError> {
 		let mst_houg = mst.api_houg.unwrap_or([0, 0]);
 		let mst_raig = mst.api_raig.unwrap_or([0, 0]);

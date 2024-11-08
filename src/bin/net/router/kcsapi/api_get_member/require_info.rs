@@ -22,7 +22,7 @@ struct Resp {
 	api_extra_supply: [i64; 2],
 	api_furniture: Vec<KcApiFurniture>,
 	api_kdock: Vec<KcApiKDock>,
-	api_oss_setting: KcApiGameSetting,
+	api_oss_setting: KcApiOssSetting,
 	api_position_id: i64,
 	api_skin_id: i64,
 	api_slot_item: Vec<KcApiSlotItem>,
@@ -41,10 +41,13 @@ pub(super) async fn handler(
 	let api_kdock = state.get_kdocks(pid).await?;
 	let api_kdock = api_kdock.iter().map(|k| k.to_owned().into()).collect();
 
-	let api_oss_setting = state.get_game_settings(pid).await?;
+	let api_oss_setting = state.get_oss_settings(pid).await?;
+	let api_game_settings = state.get_game_settings(pid).await?;
+	let api_option_settings = state.get_option_settings(pid).await?;
+
 	let api_extra_supply = api_basic.api_extra_supply;
-	let api_position_id = api_oss_setting.api_position_id;
-	let api_skin_id = api_oss_setting.api_skin_id;
+	let api_position_id = api_game_settings.api_position_id;
+	let api_skin_id = api_option_settings.map(|s| s.api_skin_id).unwrap_or(101);
 
 	let api_slot_item = state.get_slot_items(pid).await?;
 	let api_useitem = state.get_use_items(pid).await?;

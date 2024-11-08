@@ -110,9 +110,12 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 		.await?;
 
 	// give use items
-	for (t, c) in
-		[(KcUseItemType::FCoin, 100000), (KcUseItemType::DockKey, 5), (KcUseItemType::Ring, 7)]
-	{
+	for (t, c) in [
+		(KcUseItemType::FCoin, 100000),
+		(KcUseItemType::DockKey, 5),
+		(KcUseItemType::Ring, 7),
+		(KcUseItemType::ReinforceExpansion, 100),
+	] {
 		state.add_use_item(pid, t as i64, c).await?;
 	}
 

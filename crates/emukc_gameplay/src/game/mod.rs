@@ -18,7 +18,7 @@ pub use picturebook::PictureBookOps;
 pub use practice::PracticeOps;
 pub use presets::PresetOps;
 pub use quest::QuestOps;
-pub use settings::GameSettingsOps;
+pub use settings::SettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
 pub use use_item::UseItemOps;
@@ -60,7 +60,7 @@ pub trait GameOps:
 	+ FactoryOps
 	+ FleetOps
 	+ FurnitureOps
-	+ GameSettingsOps
+	+ SettingsOps
 	+ IncentiveOps
 	+ KDockOps
 	+ MapOps
@@ -86,8 +86,7 @@ pub mod ops {
 	#[doc(hidden)]
 	pub use crate::game::{
 		AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps,
-		GameOps, GameSettingsOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps,
-		PayItemOps, PictureBookOps, PracticeOps, PresetOps, QuestOps, ShipOps, SlotItemOps,
-		UseItemOps,
+		GameOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps, PictureBookOps,
+		PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, UseItemOps,
 	};
 }

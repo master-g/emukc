@@ -23,7 +23,6 @@ pub(crate) async fn marriage_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let mst = codex.find::<ApiMstShip>(&ship_id)?;
 	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
 			"No ship found for profile ID {} and ship ID {}",
@@ -34,6 +33,8 @@ where
 	if ship.married {
 		return Ok(ship);
 	}
+
+	let mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
 
 	// Deduct ring first
 	deduct_use_item_impl(c, profile_id, KcUseItemType::Ring as i64, 1).await?;
