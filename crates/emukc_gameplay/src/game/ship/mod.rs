@@ -10,9 +10,15 @@ use emukc_db::{
 		TryIntoModel,
 	},
 };
-use emukc_model::{codex::Codex, kc2::KcApiShip};
+use emukc_model::{
+	codex::Codex,
+	kc2::{KcApiShip, KcUseItemType},
+};
 
-use super::{picturebook::add_ship_to_picturebook_impl, slot_item::update_slot_item_impl};
+use super::{
+	picturebook::add_ship_to_picturebook_impl, slot_item::update_slot_item_impl,
+	use_item::deduct_use_item_impl,
+};
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
 use sp::find_ship_sp_effect_items_impl;
 
@@ -49,6 +55,18 @@ pub trait ShipOps {
 	///
 	/// - `ship_id`: The ship ID.
 	async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError>;
+
+	/// Open ship ex-slot.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `ship_id`: The ship ID.
+	async fn open_ship_exslot(
+		&self,
+		profile_id: i64,
+		ship_id: i64,
+	) -> Result<KcApiShip, GameplayError>;
 
 	/// Update ship.
 	///
@@ -118,6 +136,21 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 		let tx = db.begin().await?;
 
 		let ship = toggle_ship_locked_impl(&tx, ship_id).await?;
+
+		tx.commit().await?;
+
+		Ok(ship.into())
+	}
+
+	async fn open_ship_exslot(
+		&self,
+		profile_id: i64,
+		ship_id: i64,
+	) -> Result<KcApiShip, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let ship = open_ship_exslot_impl(&tx, profile_id, ship_id).await?;
 
 		tx.commit().await?;
 
@@ -331,6 +364,27 @@ where
 	let locked = !ship.locked;
 	let mut am = ship.into_active_model();
 	am.locked = ActiveValue::Set(locked);
+	let m = am.update(c).await?;
+
+	Ok(m)
+}
+
+pub(crate) async fn open_ship_exslot_impl<C>(
+	c: &C,
+	profile_id: i64,
+	ship_id: i64,
+) -> Result<ship::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
+	})?;
+
+	deduct_use_item_impl(c, profile_id, KcUseItemType::ReinforceExpansion as i64, 1).await?;
+
+	let mut am = ship.into_active_model();
+	am.slot_ex = ActiveValue::Set(-1);
 	let m = am.update(c).await?;
 
 	Ok(m)
