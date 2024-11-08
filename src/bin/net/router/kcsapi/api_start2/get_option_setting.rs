@@ -11,15 +11,15 @@ use emukc_internal::prelude::*;
 #[derive(Serialize, Deserialize, Debug)]
 struct VolumeSetting {
 	/// BGM volume, 0-100
-	pub api_vol_bgm: i64,
+	pub api_bgm: i64,
 	/// Sound effect volume, 0-100
-	pub api_vol_se: i64,
+	pub api_se: i64,
 	/// Voice volume, 0-100
-	pub api_vol_voice: i64,
+	pub api_voice: i64,
 	/// Secretary idle voice enabled
-	pub api_v_be_left: i64,
+	pub api_be_left: i64,
 	/// Mission completed voice enabled
-	pub api_v_duty: i64,
+	pub api_duty: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -39,11 +39,11 @@ pub(super) async fn handler(
 	Ok(KcApiResponse::success(&Resp {
 		api_skin_id: option.as_ref().map(|s| s.api_skin_id).unwrap_or(101),
 		api_volume_setting: option.map(|s| VolumeSetting {
-			api_vol_bgm: s.api_vol_bgm,
-			api_vol_se: s.api_vol_se,
-			api_vol_voice: s.api_vol_voice,
-			api_v_be_left: s.api_v_be_left,
-			api_v_duty: s.api_v_duty,
+			api_bgm: s.api_vol_bgm,
+			api_se: s.api_vol_se,
+			api_voice: s.api_vol_voice,
+			api_be_left: s.api_v_be_left,
+			api_duty: s.api_v_duty,
 		}),
 	}))
 }
