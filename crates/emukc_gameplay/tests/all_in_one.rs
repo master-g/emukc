@@ -5,7 +5,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
 };
-use emukc_model::prelude::{Kc3rdQuest, Kc3rdShip, Kc3rdSlotItem};
+use emukc_model::prelude::{ApiMstShip, Kc3rdQuest, Kc3rdShip, Kc3rdSlotItem};
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 
@@ -269,5 +269,14 @@ async fn c_list_quests() {
 			println!("--- {} ---", id);
 			println!("NOT FOUND");
 		}
+	});
+}
+
+#[tokio::test]
+async fn ship_before_and_after() {
+	let ((_, codex), _, _) = new_game_session().await;
+	let list = codex.ships_before_and_after(518).unwrap();
+	list.iter().filter_map(|id| codex.find::<ApiMstShip>(id).ok()).for_each(|mst| {
+		println!("--- {} | {} ---", mst.api_id, mst.api_name);
 	});
 }

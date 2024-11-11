@@ -1,17 +1,20 @@
-use std::{collections::BTreeMap, sync::LazyLock};
+use std::{
+	collections::{BTreeMap, HashMap, HashSet},
+	sync::LazyLock,
+};
 
 use emukc_db::{
 	entity::profile::{fleet, item::slot_item, ship},
-	sea_orm::{entity::prelude::*, ActiveValue},
+	sea_orm::entity::prelude::*,
 };
 use emukc_model::{
 	codex::Codex,
-	kc2::{KcApiShip, KcApiSlotItem, KcUseItemType},
+	kc2::{KcApiShip, KcShipType},
 	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip},
 };
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 
-use crate::{err::GameplayError, game::slot_item::destroy_items_impl};
+use crate::err::GameplayError;
 
 /// (num of Maruyu, num of Maruyu Kai) -> success rate
 static MARUYU_CHART: LazyLock<BTreeMap<(i64, i64), f64>> = LazyLock::new(|| {
@@ -188,78 +191,185 @@ where
 	let mut extra_power_ups: [i64; 3] = [0; 3];
 
 	// Maruyu luck bonus
-
-	// remove and collect all Maruyu from material ships
-	let maruyu_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 163).cloned().collect();
-	let maruyu_kai_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 402).cloned().collect();
-
-	// calculate luck bonus
-	if let Some(rate) =
-		MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
 	{
-		if rng.gen_bool(*rate) {
-			extra_power_ups[0] = (maruyu_ships.len() as f64 * 1.2
-				+ maruyu_kai_ships.len() as f64 * 1.6)
-				.ceil() as i64;
+		// collect all Maruyu from material ships
+		let maruyu_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 163).cloned().collect();
+		let maruyu_kai_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 402).cloned().collect();
+
+		// calculate luck bonus
+		if let Some(rate) =
+			MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
+		{
+			if rng.gen_bool(*rate) {
+				extra_power_ups[0] = (maruyu_ships.len() as f64 * 1.2
+					+ maruyu_kai_ships.len() as f64 * 1.6)
+					.ceil() as i64;
+			}
 		}
 	}
 
 	// Mizuho/Kamoi HP bonus
+	{
+		// mizuho 瑞穂 451
+		// mizuho kai 瑞穂改 348
+		// kamoi 神威 162
+		// kamoi kai 神威改 499
+		// kamoi kai b 神威改母 500
+		let mizuho_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 451).cloned().collect();
+		let mizuho_kai_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 348).cloned().collect();
+		let kamoi_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 162).cloned().collect();
+		let kamoi_kai_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 499).cloned().collect();
+		let kamoi_kai_b_ships: Vec<ship::Model> =
+			material_ships.iter().filter(|m| m.mst_id == 500).cloned().collect();
 
-	// mizuho 瑞穂 451
-	// mizuho kai 瑞穂改 348
-	// kamoi 神威 162
-	// kamoi kai 神威改 499
-	// kamoi kai b 神威改母 500
-	let mizuho_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 451).cloned().collect();
-	let mizuho_kai_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 348).cloned().collect();
-	let kamoi_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 162).cloned().collect();
-	let kamoi_kai_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 499).cloned().collect();
-	let kamoi_kai_b_ships: Vec<ship::Model> =
-		material_ships.iter().filter(|m| m.mst_id == 500).cloned().collect();
+		// mizuho/kamoi must be used in pairs
+		let num_of_mizuho = mizuho_ships.len() + mizuho_kai_ships.len();
+		if num_of_mizuho > 1 && [62, 72].contains(&target_ship_mst.api_ctype) {
+			// mizuho can only be used to power up mizuho/kamoi
+			let mut remaining_mizuho = mizuho_ships.len();
+			let remaining_mizuho_kai = mizuho_kai_ships.len();
+			let mut p = 0;
 
-	// mizuho/kamoi must be used in pairs
-	let num_of_mizuho = mizuho_ships.len() + mizuho_kai_ships.len();
-	if num_of_mizuho > 1 && [451i64, 348, 162, 499, 500].contains(&target_ship_mst.api_id) {
-		// mizuho can only be used to power up mizuho/kamoi
-		let mut remaining_mizuho = mizuho_ships.len();
-		let remaining_mizuho_kai = mizuho_kai_ships.len();
-		let mut p = 0;
+			// pair kai first
+			let pairs_mizuho_kai = remaining_mizuho_kai / 2;
+			p += pairs_mizuho_kai * 80;
 
-		// pair kai first
-		let pairs_mizuho_kai = remaining_mizuho_kai / 2;
-		p += pairs_mizuho_kai * 80;
+			// on kai on base
+			let pairs_mizuho_mizuho_kai = remaining_mizuho.min(remaining_mizuho_kai);
+			p += pairs_mizuho_mizuho_kai * 70;
+			remaining_mizuho -= pairs_mizuho_mizuho_kai;
 
-		// on kai on base
-		let pairs_mizuho_mizuho_kai = remaining_mizuho.min(remaining_mizuho_kai);
-		p += pairs_mizuho_mizuho_kai * 70;
-		remaining_mizuho -= pairs_mizuho_mizuho_kai;
+			// pair base
+			let pairs_mizuho = remaining_mizuho / 2;
+			p += pairs_mizuho * 60;
 
-		// pair base
-		let pairs_mizuho = remaining_mizuho / 2;
-		p += pairs_mizuho * 60;
+			let mut bonus = p / 100 * 2;
+			let remaining_p = p % 100;
+			if p > 0 && rng.gen_bool(remaining_p as f64 / 100.0) {
+				bonus += 2;
+			}
 
-		let mut bonus = p / 100 * 2;
-		let remaining_p = p % 100;
-		if p > 0 && rng.gen_bool(remaining_p as f64 / 100.0) {
-			bonus += 2;
+			extra_power_ups[1] = bonus as i64;
 		}
 
-		extra_power_ups[1] = bonus as i64;
+		let num_of_kamoi = kamoi_ships.len() + kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
+		if num_of_kamoi > 1 && [62, 72, 41, 37].contains(&target_ship_mst.api_ctype) {
+			// kamoi can only be used to power up mizuho/kamoi and agano class, and yamato class
+			let mut remaining_kamoi = kamoi_ships.len();
+			let remaining_kamoi_kai = kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
+			let mut p = 0;
+
+			// pair kai first
+			let pairs_kamoi_kai = remaining_kamoi_kai / 2;
+			p += pairs_kamoi_kai * 80;
+
+			// on kai on base
+			let pairs_kamoi_kamoi_kai = remaining_kamoi.min(remaining_kamoi_kai);
+			p += pairs_kamoi_kamoi_kai * 70;
+			remaining_kamoi -= pairs_kamoi_kamoi_kai;
+
+			// pair base
+			let pairs_kamoi = remaining_kamoi / 2;
+			p += pairs_kamoi * 60;
+
+			let mut bonus = p / 100 * 2;
+			let remaining_p = p % 100;
+			if p > 0 && rng.gen_bool(remaining_p as f64 / 100.0) {
+				bonus += 2;
+			}
+
+			extra_power_ups[1] += bonus as i64;
+		}
 	}
 
-	let num_of_kamoi = kamoi_ships.len() + kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
-	if num_of_kamoi > 1 {
-		// kamoi can only be used to power up mizuho/kamoi and agano class, and yamato class
+	// DE bonus
+	{
+		let de_ships: Vec<(&ship::Model, &ApiMstShip)> = material_ships
+			.iter()
+			.filter_map(|s| {
+				let mst = codex.find::<ApiMstShip>(&s.mst_id).ok()?;
+				if mst.api_stype != KcShipType::DE as i64 {
+					None
+				} else {
+					Some((s, mst))
+				}
+			})
+			.collect();
+
+		match de_ships.len() {
+			0 => {
+				// no DE
+			}
+			1 => {
+				// single DE
+				let chance_mod_luck = 32.0 + 0.7 * de_ships[0].0.level as f64;
+				let chance_mod_aws = 100.0 - chance_mod_luck;
+				if chance_mod_luck > 100.0 || rng.gen_bool(chance_mod_luck / 100.0) {
+					extra_power_ups[0] += 1;
+				} else if chance_mod_aws > 0.0 && rng.gen_bool(chance_mod_aws / 100.0) {
+					extra_power_ups[2] += 1;
+				}
+			}
+			_ => {}
+		}
 	}
 
 	// apply power up
 
 	todo!()
+}
+
+struct DeGroupParam {
+	id: i64,
+	mst_id: i64,
+}
+
+fn group_de_ships(codex: &Codex, params: &[DeGroupParam]) -> (Vec<(i64, i64)>, Vec<i64>) {
+	let mut hp_pairs: Vec<(i64, i64)> = Vec::new();
+	let mut rest: Vec<i64> = Vec::new();
+	let mut paired_ids: HashSet<i64> = HashSet::new();
+
+	let id_to_mst: HashMap<i64, i64> = params.iter().map(|p| (p.id, p.mst_id)).collect();
+
+	for param in params {
+		let current_id = param.id;
+		let current_mst_id = param.mst_id;
+
+		if paired_ids.contains(&current_id) {
+			continue;
+		}
+
+		let Ok(related_ids) = codex.ships_before_and_after(current_id) else {
+			rest.push(current_id);
+			continue;
+		};
+
+		let mut pair_found = false;
+		for &rel_id in &related_ids {
+			if let Some(&rel_mst_id) = id_to_mst.get(&rel_id) {
+				if rel_mst_id == current_mst_id
+					&& rel_id != current_id
+					&& !paired_ids.contains(&rel_id)
+				{
+					hp_pairs.push((current_id, rel_id));
+					paired_ids.insert(current_id);
+					paired_ids.insert(rel_id);
+					pair_found = true;
+					break;
+				}
+			}
+		}
+
+		if !pair_found {
+			rest.push(current_id);
+		}
+	}
+
+	(hp_pairs, rest)
 }
