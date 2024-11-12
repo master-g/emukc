@@ -1,4 +1,6 @@
 use anyhow::Result;
+use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
+
 use emukc::{
 	model::profile::furniture::FurnitureConfig,
 	prelude::{
@@ -40,7 +42,32 @@ pub(super) async fn exec(cfg: &AppConfig) -> Result<()> {
 	Ok(())
 }
 
-async fn add_incentives(state: &State, pid: i64) -> Result<()> {
+async fn add_ship_quietly(state: &State, pid: i64) -> Result<()> {
+	for ship_mst_id in [184, 187, 433, 951] {
+		state.add_ship(pid, ship_mst_id).await?;
+	}
+
+	let codex = state.codex();
+
+	let mut rng = SmallRng::from_entropy();
+	let mut i = 0;
+	loop {
+		let mst = codex.manifest.api_mst_ship.choose(&mut rng).unwrap();
+		if codex.ship_extra.contains_key(&mst.api_id) {
+			state.add_ship(pid, mst.api_id).await?;
+			i += 1;
+		}
+
+		if i >= 90 {
+			break;
+		}
+	}
+
+	Ok(())
+}
+
+#[allow(unused)]
+async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
 	let codex = state.codex();
 
 	let ship_incentives: Vec<KcApiIncentiveItem> = [
@@ -61,15 +88,18 @@ async fn add_incentives(state: &State, pid: i64) -> Result<()> {
 
 	state.add_incentive(pid, &ship_incentives).await?;
 
-	// modify ships for testing `api_req_hokyu/charge`
+	Ok(())
+}
 
+#[allow(unused)]
+async fn deplete_ship_fuel_and_ammo(state: &State, pid: i64) -> Result<()> {
+	// modify ships for testing `api_req_hokyu/charge`
 	let mut ships = state.get_ships(pid).await?;
 
 	for ship in ships.iter_mut() {
 		ship.api_fuel = 0;
 		ship.api_bull = 0;
 		ship.api_onslot = [0, 0, 0, 0, 0];
-		ship.api_lv = 99;
 
 		state.update_ship(ship).await?;
 	}
@@ -135,8 +165,12 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 		)
 		.await?;
 
+	add_ship_quietly(state, pid).await?;
+
 	// add incentives
-	add_incentives(state, pid).await?;
+	// add_ship_incentives(state, pid).await?;
+	// deplete ship fuel and ammo
+	// deplete_ship_fuel_and_ammo(state, pid).await?;
 
 	// update first flag
 	state.update_user_first_flag(pid, 1).await?;

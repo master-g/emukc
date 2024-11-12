@@ -35,7 +35,7 @@ pub(super) async fn handler(
 	state.destroy_ship(pid, params.api_ship_id, params.api_slot_dest_flag == 0).await?;
 
 	let materials = state.get_materials(pid).await?;
-	let unset_slots = state.get_unuse_slot_items(pid).await?;
+	let unset_slots = state.get_unset_slot_items(pid).await?;
 	let api_unset_list: KcApiUnsetSlot = codex.convert_unused_slot_items_to_api(&unset_slots)?;
 
 	Ok(KcApiResponse::success(&Resp {

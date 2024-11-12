@@ -1,6 +1,7 @@
 use emukc_db::prelude::new_mem_db;
 use emukc_db::sea_orm::DbConn;
 use emukc_gameplay::prelude::*;
+use emukc_model::codex::group::DeGroupParam;
 use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
@@ -118,7 +119,7 @@ async fn add_ship() {
 	let slot_items = context.get_slot_items(pid).await.unwrap();
 	assert_eq!(slot_items.len(), 3);
 
-	let unset_slots = context.get_unuse_slot_items(pid).await.unwrap();
+	let unset_slots = context.get_unset_slot_items(pid).await.unwrap();
 	assert!(unset_slots.is_empty());
 
 	let ships = context.get_ships(pid).await.unwrap();
@@ -279,4 +280,87 @@ async fn ship_before_and_after() {
 	list.iter().filter_map(|id| codex.find::<ApiMstShip>(id).ok()).for_each(|mst| {
 		println!("--- {} | {} ---", mst.api_id, mst.api_name);
 	});
+}
+
+#[tokio::test]
+async fn de_group() {
+	let ((_, codex), _, _) = new_game_session().await;
+
+	{
+		let grouped = codex.group_de_ships(&[]);
+		assert!(grouped.hp_pairs.is_empty());
+		assert!(grouped.other_pairs.is_empty());
+		assert!(grouped.rest.is_empty());
+	}
+	{
+		let grouped = codex.group_de_ships(&[DeGroupParam {
+			id: 1,
+			mst_id: 518,
+			ctype: 74,
+		}]);
+		assert!(grouped.hp_pairs.is_empty());
+		assert!(grouped.other_pairs.is_empty());
+		assert_eq!(grouped.rest.len(), 1);
+	}
+	{
+		let grouped = codex.group_de_ships(&[
+			DeGroupParam {
+				id: 1,
+				mst_id: 518,
+				ctype: 74,
+			},
+			DeGroupParam {
+				id: 2,
+				mst_id: 377,
+				ctype: 74,
+			},
+		]);
+		assert!(grouped.hp_pairs.is_empty());
+		assert_eq!(grouped.other_pairs.len(), 1);
+		assert!(grouped.rest.is_empty())
+	}
+	{
+		let grouped = codex.group_de_ships(&[
+			DeGroupParam {
+				id: 1,
+				mst_id: 518,
+				ctype: 74,
+			},
+			DeGroupParam {
+				id: 2,
+				mst_id: 517,
+				ctype: 74,
+			},
+		]);
+		assert_eq!(grouped.hp_pairs.len(), 1);
+		assert!(grouped.other_pairs.is_empty());
+		assert!(grouped.rest.is_empty());
+	}
+	{
+		let grouped = codex.group_de_ships(&[
+			DeGroupParam {
+				id: 1,
+				mst_id: 518,
+				ctype: 74,
+			},
+			DeGroupParam {
+				id: 2,
+				mst_id: 517,
+				ctype: 74,
+			},
+			DeGroupParam {
+				id: 3,
+				mst_id: 524,
+				ctype: 77,
+			},
+			DeGroupParam {
+				id: 4,
+				mst_id: 525,
+				ctype: 77,
+			},
+		]);
+		assert_eq!(grouped.hp_pairs.len(), 2);
+		assert!(grouped.other_pairs.is_empty());
+		assert!(grouped.rest.is_empty());
+	}
 }

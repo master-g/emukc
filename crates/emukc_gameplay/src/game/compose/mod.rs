@@ -1,18 +1,35 @@
 //! The compose here means this trait is a composition of other gameplay logics.
 
 use async_trait::async_trait;
+use std::collections::BTreeMap;
+
 use emukc_db::{
 	entity::profile::ship,
 	sea_orm::{entity::prelude::*, TransactionTrait},
 };
-use emukc_model::kc2::{KcApiChargeKind, KcApiChargeResp};
+use emukc_model::{
+	kc2::{KcApiChargeKind, KcApiChargeResp},
+	profile::fleet::Fleet,
+};
 use supply::supply_fleet_impl;
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{
+	err::GameplayError, game::slot_item::get_unset_slot_items_by_types_impl, gameplay::HasContext,
+};
+
+use super::fleet::get_fleets_impl;
 
 pub(crate) mod marriage;
 pub(crate) mod powerup;
 pub(crate) mod supply;
+
+#[derive(Debug, Clone)]
+pub struct PowerupResp {
+	pub success: bool,
+	pub ship: ship::Model,
+	pub fleets: Vec<Fleet>,
+	pub unset_slot_items: Option<BTreeMap<i64, Vec<i64>>>,
+}
 
 /// A trait for gameplay logic that composed by one or more other trait implements.
 #[async_trait]
@@ -55,7 +72,7 @@ pub trait ComposeOps {
 		ship_id: i64,
 		material_ships: &[i64],
 		keep_slot_items: bool,
-	) -> Result<(), GameplayError>;
+	) -> Result<PowerupResp, GameplayError>;
 }
 
 #[async_trait]
@@ -95,15 +112,32 @@ impl<T: HasContext + ?Sized> ComposeOps for T {
 		ship_id: i64,
 		material_ships: &[i64],
 		keep_slot_items: bool,
-	) -> Result<(), GameplayError> {
+	) -> Result<PowerupResp, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		powerup::powerup_impl(&tx, codex, profile_id, ship_id, material_ships, keep_slot_items)
-			.await?;
+		let result =
+			powerup::powerup_impl(&tx, codex, profile_id, ship_id, material_ships, keep_slot_items)
+				.await?;
 		tx.commit().await?;
 
-		Ok(())
+		let fleets = get_fleets_impl(db, profile_id).await?;
+
+		let unset_slot_items = if let Some(item_types) = result.unset_slot_item_types {
+			let types: Vec<i64> = item_types.iter().copied().collect();
+			let unset_slot_items =
+				get_unset_slot_items_by_types_impl(db, codex, profile_id, &types).await?;
+			Some(unset_slot_items)
+		} else {
+			None
+		};
+
+		Ok(PowerupResp {
+			success: result.success,
+			ship: result.ship.unwrap(),
+			fleets: fleets.into_iter().map(Into::into).collect(),
+			unset_slot_items,
+		})
 	}
 }

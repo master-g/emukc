@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::item::slot_item,
@@ -59,15 +61,27 @@ pub trait SlotItemOps {
 		equip_on: Option<i64>,
 	) -> Result<KcApiSlotItem, GameplayError>;
 
-	/// Get all unused slot items from a profile.
+	/// Get all unset slot items from a profile.
 	///
 	/// # Parameters
 	///
 	/// - `profile_id`: The profile ID.
-	async fn get_unuse_slot_items(
+	async fn get_unset_slot_items(
 		&self,
 		profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError>;
+
+	/// Get unset slot items by types.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `type3`: The item types.
+	async fn get_unset_slot_items_by_types(
+		&self,
+		profile_id: i64,
+		type3: &[i64],
+	) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError>;
 
 	/// Toggle slot item locked status.
 	///
@@ -158,18 +172,31 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 		})
 	}
 
-	async fn get_unuse_slot_items(
+	async fn get_unset_slot_items(
 		&self,
 		profile_id: i64,
 	) -> Result<Vec<KcApiSlotItem>, GameplayError> {
 		let db = self.db();
-		let ms = get_unuse_slot_items_impl(db, profile_id).await?;
+		let ms = get_unset_slot_items_impl(db, profile_id).await?;
 
 		let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
 		let slot_items: Vec<KcApiSlotItem> =
 			slot_items.into_iter().map(std::convert::Into::into).collect();
 
 		Ok(slot_items)
+	}
+
+	async fn get_unset_slot_items_by_types(
+		&self,
+		profile_id: i64,
+		type3: &[i64],
+	) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+
+		let item_ids = get_unset_slot_items_by_types_impl(db, codex, profile_id, type3).await?;
+
+		Ok(item_ids)
 	}
 
 	async fn toggle_slot_item_locked(&self, item_id: i64) -> Result<KcApiSlotItem, GameplayError> {
@@ -251,6 +278,21 @@ where
 	Ok(record)
 }
 
+pub async fn find_slot_items_by_id_impl<C>(
+	c: &C,
+	ids: &[i64],
+) -> Result<Vec<slot_item::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let records = slot_item::Entity::find()
+		.filter(slot_item::Column::Id.is_in(ids.to_owned()))
+		.all(c)
+		.await?;
+
+	Ok(records)
+}
+
 pub(crate) async fn update_slot_item_impl<C>(
 	c: &C,
 	id: i64,
@@ -301,7 +343,7 @@ where
 	Ok(records)
 }
 
-pub(crate) async fn get_unuse_slot_items_impl<C>(
+pub(crate) async fn get_unset_slot_items_impl<C>(
 	c: &C,
 	profile_id: i64,
 ) -> Result<Vec<slot_item::Model>, GameplayError>
@@ -315,6 +357,34 @@ where
 		.await?;
 
 	Ok(records)
+}
+
+pub(crate) async fn get_unset_slot_items_by_types_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	type3: &[i64],
+) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let records = slot_item::Entity::find()
+		.filter(slot_item::Column::ProfileId.eq(profile_id))
+		.filter(slot_item::Column::EquipOn.eq(0))
+		.all(c)
+		.await?;
+
+	let mut map: BTreeMap<i64, Vec<i64>> = BTreeMap::new();
+
+	for record in records {
+		let mst = codex.find::<ApiMstSlotitem>(&record.mst_id)?;
+
+		if type3.contains(&mst.api_type[2]) {
+			map.entry(mst.api_type[2]).or_default().push(record.id);
+		}
+	}
+
+	Ok(map)
 }
 
 pub(crate) async fn toggle_slot_item_locked_impl<C>(

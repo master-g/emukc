@@ -135,7 +135,7 @@ pub(super) async fn handler(
 				}
 			})
 			.collect::<Vec<i64>>();
-		let unset_items = state.get_unuse_slot_items(pid).await?;
+		let unset_items = state.get_unset_slot_items(pid).await?;
 		let unset_items = unset_items
 			.iter()
 			.filter_map(|item| {

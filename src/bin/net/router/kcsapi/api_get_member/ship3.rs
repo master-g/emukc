@@ -38,7 +38,7 @@ pub(super) async fn handler(
 		params.api_shipid, pid
 	)))?;
 
-	let unset_slot = state.get_unuse_slot_items(pid).await?;
+	let unset_slot = state.get_unset_slot_items(pid).await?;
 	let api_slot_data = state.codex.convert_unused_slot_items_to_api(&unset_slot)?;
 
 	Ok(KcApiResponse::success(&Resp {

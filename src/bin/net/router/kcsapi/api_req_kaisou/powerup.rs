@@ -37,7 +37,7 @@ struct Resp {
 	api_powerup_flag: i64,
 	api_ship: KcApiShip,
 	api_deck: Vec<KcApiDeckPort>,
-	api_unset_list: Vec<UnsetListElement>,
+	api_unset_list: Option<Vec<UnsetListElement>>,
 }
 
 pub(super) async fn handler(
@@ -47,7 +47,21 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	state.powerup(pid, params.api_id, &params.api_id_items, params.api_slot_dest_flag != 0).await?;
+	let r = state
+		.powerup(pid, params.api_id, &params.api_id_items, params.api_slot_dest_flag == 0)
+		.await?;
 
-	Ok(KcApiResponse::empty())
+	Ok(KcApiResponse::success(&Resp {
+		api_powerup_flag: r.success as i64,
+		api_ship: r.ship.into(),
+		api_deck: r.fleets.into_iter().map(Into::into).collect(),
+		api_unset_list: r.unset_slot_items.map(|m| {
+			m.into_iter()
+				.map(|(k, v)| UnsetListElement {
+					api_type_3_no: k,
+					api_slot_list: v,
+				})
+				.collect()
+		}),
+	}))
 }

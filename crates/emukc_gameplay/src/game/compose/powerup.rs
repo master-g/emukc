@@ -1,20 +1,20 @@
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use std::{
 	collections::{BTreeMap, HashMap, HashSet},
 	sync::LazyLock,
 };
 
 use emukc_db::{
-	entity::profile::{fleet, item::slot_item, ship},
-	sea_orm::entity::prelude::*,
+	entity::profile::{item::slot_item, ship},
+	sea_orm::{entity::prelude::*, ActiveValue},
 };
 use emukc_model::{
-	codex::Codex,
-	kc2::{KcApiShip, KcShipType},
+	codex::{group::DeGroupParam, Codex},
+	kc2::{KcApiShip, KcApiSlotItem, KcShipType},
 	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip},
 };
-use rand::{rngs::SmallRng, Rng, SeedableRng};
 
-use crate::err::GameplayError;
+use crate::{err::GameplayError, game::slot_item::find_slot_items_by_id_impl};
 
 /// (num of Maruyu, num of Maruyu Kai) -> success rate
 static MARUYU_CHART: LazyLock<BTreeMap<(i64, i64), f64>> = LazyLock::new(|| {
@@ -47,12 +47,11 @@ static MARUYU_CHART: LazyLock<BTreeMap<(i64, i64), f64>> = LazyLock::new(|| {
 	map
 });
 
-struct PowerUpResult {
-	success: bool,
-	ship: Option<ship::Model>,
-	deck_ports: Option<Vec<fleet::Model>>,
+pub struct PowerUpResult {
+	pub success: bool,
+	pub ship: Option<ship::Model>,
 	// slot item type[2] -> [slot item instance ID]
-	unset_list: Option<BTreeMap<i64, Vec<i64>>>,
+	pub unset_slot_item_types: Option<HashSet<i64>>,
 }
 
 pub(crate) async fn powerup_impl<C>(
@@ -62,15 +61,14 @@ pub(crate) async fn powerup_impl<C>(
 	ship_id: i64,
 	material_ships: &[i64],
 	keep_slot_items: bool,
-) -> Result<(), GameplayError>
+) -> Result<PowerUpResult, GameplayError>
 where
 	C: ConnectionTrait,
 {
 	let mut result = PowerUpResult {
 		success: false,
 		ship: None,
-		deck_ports: None,
-		unset_list: None,
+		unset_slot_item_types: None,
 	};
 	// find target ship
 
@@ -86,7 +84,7 @@ where
 	let target_ship_mst = codex.find::<ApiMstShip>(&target_ship.mst_id)?;
 	let target_ship_basic = codex.find::<Kc3rdShip>(&target_ship_mst.api_id)?;
 
-	let target_api_ship: KcApiShip = target_ship.into();
+	let mut target_api_ship: KcApiShip = target_ship.into();
 
 	let kc3rd_ship = &target_ship_basic;
 
@@ -135,18 +133,8 @@ where
 			.await?;
 
 		// unset slot items
-		result.unset_list = Some(
-			slot_item_ids
-				.iter()
-				.map(|&sid| {
-					let mst = slot_item_mst_map.get(&sid).unwrap();
-					(mst.api_type[2], sid)
-				})
-				.fold(BTreeMap::new(), |mut map, (t, sid)| {
-					map.entry(t).or_default().push(sid);
-					map
-				}),
-		);
+		result.unset_slot_item_types =
+			Some(slot_item_mst_map.values().map(|mst| mst.api_type[2]).collect::<HashSet<i64>>());
 	} else {
 		// power up without keeping slot items, will not turn these slot items into materials
 		// so we can simply remove them
@@ -188,7 +176,9 @@ where
 	}
 
 	// extra powerup, 0: Luck, 1: HP, 2: ASW
-	let mut extra_power_ups: [i64; 3] = [0; 3];
+	let mut extra_luck_powerup: i64 = 0;
+	let mut extra_hp_powerup: i64 = 0;
+	let mut extra_asw_powerup: i64 = 0;
 
 	// Maruyu luck bonus
 	{
@@ -203,7 +193,7 @@ where
 			MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
 		{
 			if rng.gen_bool(*rate) {
-				extra_power_ups[0] = (maruyu_ships.len() as f64 * 1.2
+				extra_luck_powerup += (maruyu_ships.len() as f64 * 1.2
 					+ maruyu_kai_ships.len() as f64 * 1.6)
 					.ceil() as i64;
 			}
@@ -255,7 +245,7 @@ where
 				bonus += 2;
 			}
 
-			extra_power_ups[1] = bonus as i64;
+			extra_hp_powerup += bonus as i64;
 		}
 
 		let num_of_kamoi = kamoi_ships.len() + kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
@@ -284,13 +274,13 @@ where
 				bonus += 2;
 			}
 
-			extra_power_ups[1] += bonus as i64;
+			extra_hp_powerup += bonus as i64;
 		}
 	}
 
 	// DE bonus
 	{
-		let de_ships: Vec<(&ship::Model, &ApiMstShip)> = material_ships
+		let de_ships: Vec<DeGroupParam> = material_ships
 			.iter()
 			.filter_map(|s| {
 				let mst = codex.find::<ApiMstShip>(&s.mst_id).ok()?;
@@ -300,76 +290,106 @@ where
 					Some((s, mst))
 				}
 			})
+			.map(|(s, mst)| DeGroupParam {
+				id: s.id,
+				mst_id: s.mst_id,
+				ctype: mst.api_ctype,
+			})
 			.collect();
 
-		match de_ships.len() {
-			0 => {
-				// no DE
+		let ship_id_model_lookup: HashMap<i64, &ship::Model> =
+			material_ships.iter().map(|s| (s.id, s)).collect();
+
+		let grouped = codex.group_de_ships(&de_ships);
+		grouped.hp_pairs.iter().for_each(|(id1, id2)| {
+			let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
+			let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
+			let hp_mod_rate = 26.0 + 0.35 * (lv1 + lv2);
+			if hp_mod_rate > 100.0 || rng.gen_bool(hp_mod_rate / 100.0) {
+				extra_hp_powerup += 1;
+			} else {
+				extra_luck_powerup += 1;
 			}
-			1 => {
-				// single DE
-				let chance_mod_luck = 32.0 + 0.7 * de_ships[0].0.level as f64;
-				let chance_mod_aws = 100.0 - chance_mod_luck;
-				if chance_mod_luck > 100.0 || rng.gen_bool(chance_mod_luck / 100.0) {
-					extra_power_ups[0] += 1;
-				} else if chance_mod_aws > 0.0 && rng.gen_bool(chance_mod_aws / 100.0) {
-					extra_power_ups[2] += 1;
-				}
+
+			let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
+			if asw_mod_rate > 100.0 || rng.gen_bool(asw_mod_rate / 100.0) {
+				extra_asw_powerup += 1;
 			}
-			_ => {}
-		}
+			result.success = true;
+		});
+		grouped.other_pairs.iter().for_each(|(id1, id2)| {
+			let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
+			let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
+			let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
+			if asw_mod_rate > 100.0 || rng.gen_bool(asw_mod_rate / 100.0) {
+				extra_asw_powerup += 1;
+			} else {
+				extra_luck_powerup += 1;
+			}
+			result.success = true;
+		});
+		grouped.rest.iter().for_each(|id| {
+			let lv = ship_id_model_lookup.get(id).unwrap().level as f64;
+			let luck_mod_rate = 32.0 + 0.7 * lv;
+			if luck_mod_rate > 100.0 || rng.gen_bool(luck_mod_rate / 100.0) {
+				extra_luck_powerup += 1;
+			} else {
+				extra_asw_powerup += 1;
+			}
+			result.success = true;
+		});
+	}
+
+	// remove material ships
+
+	for m in material_ships.iter() {
+		ship::Entity::delete_by_id(m.id).exec(c).await?;
 	}
 
 	// apply power up
+	let powerups = [
+		base_power_ups[0],
+		base_power_ups[1],
+		base_power_ups[2],
+		base_power_ups[3],
+		extra_luck_powerup,
+		extra_hp_powerup,
+		extra_asw_powerup,
+	];
 
-	todo!()
-}
-
-struct DeGroupParam {
-	id: i64,
-	mst_id: i64,
-}
-
-fn group_de_ships(codex: &Codex, params: &[DeGroupParam]) -> (Vec<(i64, i64)>, Vec<i64>) {
-	let mut hp_pairs: Vec<(i64, i64)> = Vec::new();
-	let mut rest: Vec<i64> = Vec::new();
-	let mut paired_ids: HashSet<i64> = HashSet::new();
-
-	let id_to_mst: HashMap<i64, i64> = params.iter().map(|p| (p.id, p.mst_id)).collect();
-
-	for param in params {
-		let current_id = param.id;
-		let current_mst_id = param.mst_id;
-
-		if paired_ids.contains(&current_id) {
-			continue;
-		}
-
-		let Ok(related_ids) = codex.ships_before_and_after(current_id) else {
-			rest.push(current_id);
-			continue;
-		};
-
-		let mut pair_found = false;
-		for &rel_id in &related_ids {
-			if let Some(&rel_mst_id) = id_to_mst.get(&rel_id) {
-				if rel_mst_id == current_mst_id
-					&& rel_id != current_id
-					&& !paired_ids.contains(&rel_id)
-				{
-					hp_pairs.push((current_id, rel_id));
-					paired_ids.insert(current_id);
-					paired_ids.insert(rel_id);
-					pair_found = true;
-					break;
-				}
-			}
-		}
-
-		if !pair_found {
-			rest.push(current_id);
-		}
+	for (i, (add, cap)) in powerups.into_iter().zip(powerup_potentials).enumerate() {
+		let bonus = add.min(cap);
+		target_api_ship.api_kyouka[i] += bonus;
 	}
 
-	(hp_pairs, rest)
+	let target_ship_slot_items = find_slot_items_by_id_impl(
+		c,
+		&[
+			target_ship.slot_1,
+			target_ship.slot_2,
+			target_ship.slot_3,
+			target_ship.slot_4,
+			target_ship.slot_5,
+			target_ship.slot_ex,
+		],
+	)
+	.await?;
+
+	let target_ship_slot_items: Vec<KcApiSlotItem> =
+		target_ship_slot_items.into_iter().map(std::convert::Into::into).collect();
+
+	// recalculate ship status
+	codex.cal_ship_status(&mut target_api_ship, &target_ship_slot_items)?;
+
+	let mut am: ship::ActiveModel = target_api_ship.clone().into();
+
+	am.id = ActiveValue::Unchanged(target_api_ship.api_id);
+	am.profile_id = ActiveValue::Unchanged(profile_id);
+
+	// update ship
+	let m = am.update(c).await?;
+
+	result.ship = Some(m);
+
+	Ok(result)
 }

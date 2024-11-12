@@ -52,7 +52,7 @@ pub(super) async fn handler(
 	let api_slot_item = state.get_slot_items(pid).await?;
 	let api_useitem = state.get_use_items(pid).await?;
 
-	let unused_slot_items = state.get_unuse_slot_items(pid).await?;
+	let unused_slot_items = state.get_unset_slot_items(pid).await?;
 	let api_unsetslot = codex.convert_unused_slot_items_to_api(&unused_slot_items)?;
 
 	Ok(KcApiResponse::success(&Resp {
