@@ -14,7 +14,7 @@ use crate::net::{
 pub(super) struct Params {
 	api_shipid: i64,
 	api_sort_key: i64,
-	api_sort_order: i64,
+	spi_sort_order: i64,
 }
 
 #[derive(Serialize)]
