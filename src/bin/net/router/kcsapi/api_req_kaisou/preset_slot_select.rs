@@ -27,5 +27,6 @@ pub(super) async fn handler(
 		.apply_preset_slot(pid, params.api_preset_id, params.api_ship_id, params.api_equip_mode)
 		.await?;
 
+	// `api_bauxite` is not implemented yet (日進に大型飛行艇を装備させた場合など)
 	Ok(KcApiResponse::empty())
 }
