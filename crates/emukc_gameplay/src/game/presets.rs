@@ -2,7 +2,10 @@ use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{
 		fleet,
-		preset::{preset_caps, preset_deck, preset_slot},
+		preset::{
+			preset_caps, preset_deck,
+			preset_slot::{self, SelectMode},
+		},
 	},
 	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait},
 };
@@ -19,6 +22,8 @@ use crate::{err::GameplayError, gameplay::HasContext};
 
 use super::{
 	fleet::{get_fleets_impl, update_fleet_ships_impl},
+	ship::find_ship_impl,
+	slot_item::find_slot_item_impl,
 	use_item::deduct_use_item_impl,
 };
 
@@ -63,6 +68,20 @@ pub trait PresetOps {
 		preset: &PresetDeckItem,
 	) -> Result<preset_deck::Model, GameplayError>;
 
+	/// Register preset slot
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `preset_no`: The preset number.
+	/// - `ship_id`: The ship ID.
+	async fn register_preset_slot(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+		ship_id: i64,
+	) -> Result<preset_slot::Model, GameplayError>;
+
 	/// Delete preset deck
 	///
 	/// # Parameters
@@ -82,6 +101,13 @@ pub trait PresetOps {
 	/// - `profile_id`: The profile ID.
 	async fn expand_preset_deck_capacity(&self, profile_id: i64) -> Result<(), GameplayError>;
 
+	/// Expand preset slot capacity
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn expand_preset_slot_capacity(&self, profile_id: i64) -> Result<i64, GameplayError>;
+
 	/// Apply preset deck
 	///
 	/// # Parameters
@@ -95,6 +121,56 @@ pub trait PresetOps {
 		deck_id: i64,
 		preset_no: i64,
 	) -> Result<fleet::Model, GameplayError>;
+
+	/// Delete preset slot
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `preset_no`: The preset number.
+	async fn delete_preset_slot(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError>;
+
+	/// Toggle preset slot ex flag
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `preset_no`: The preset number.
+	async fn toggle_preset_slot_ex_flag(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError>;
+
+	/// Toggle preset slot locked
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `preset_no`: The preset number.
+	async fn toggle_preset_slot_locked(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError>;
+
+	/// Update preset slot name
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `preset_no`: The preset number.
+	/// - `name`: The new name.
+	async fn update_preset_slot_name(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+		name: &str,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -142,11 +218,27 @@ impl<T: HasContext + ?Sized> PresetOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let am = register_preset_deck_impl(&tx, profile_id, preset).await?;
+		let m = register_preset_deck_impl(&tx, profile_id, preset).await?;
 
 		tx.commit().await?;
 
-		Ok(am)
+		Ok(m)
+	}
+
+	async fn register_preset_slot(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+		ship_id: i64,
+	) -> Result<preset_slot::Model, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = register_preset_slot_impl(&tx, profile_id, preset_no, ship_id).await?;
+
+		tx.commit().await?;
+
+		Ok(m)
 	}
 
 	async fn delete_preset_deck(
@@ -175,6 +267,17 @@ impl<T: HasContext + ?Sized> PresetOps for T {
 		Ok(())
 	}
 
+	async fn expand_preset_slot_capacity(&self, profile_id: i64) -> Result<i64, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let new_cap = expand_preset_slot_capacity_impl(&tx, profile_id).await?;
+
+		tx.commit().await?;
+
+		Ok(new_cap)
+	}
+
 	async fn apply_preset_deck(
 		&self,
 		profile_id: i64,
@@ -189,6 +292,67 @@ impl<T: HasContext + ?Sized> PresetOps for T {
 		tx.commit().await?;
 
 		Ok(m)
+	}
+
+	async fn delete_preset_slot(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		delete_preset_slot_impl(&tx, profile_id, preset_no).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn toggle_preset_slot_ex_flag(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		toggle_preset_slot_ex_flag_impl(&tx, profile_id, preset_no).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn toggle_preset_slot_locked(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		toggle_preset_slot_locked_impl(&tx, profile_id, preset_no).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_preset_slot_name(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+		name: &str,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_preset_slot_name_impl(&tx, profile_id, preset_no, name).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -301,6 +465,72 @@ where
 	Ok(m)
 }
 
+async fn process_equip<C>(
+	c: &C,
+	slot_item_id: i64,
+	mst_id_field: &mut ActiveValue<i64>,
+	stars_field: &mut ActiveValue<i64>,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	if slot_item_id > 0 {
+		let slot_item = find_slot_item_impl(c, slot_item_id).await?;
+		*mst_id_field = ActiveValue::Set(slot_item.mst_id);
+		*stars_field = ActiveValue::Set(slot_item.level);
+	} else {
+		*mst_id_field = ActiveValue::Set(0);
+		*stars_field = ActiveValue::Set(0);
+	}
+	Ok(())
+}
+
+pub(crate) async fn register_preset_slot_impl<C>(
+	c: &C,
+	profile_id: i64,
+	preset_no: i64,
+	ship_id: i64,
+) -> Result<preset_slot::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = preset_slot::Entity::find()
+		.filter(preset_slot::Column::ProfileId.eq(profile_id))
+		.filter(preset_slot::Column::Index.eq(preset_no))
+		.one(c)
+		.await?;
+
+	let mut am =
+		record.map(emukc_db::sea_orm::IntoActiveModel::into_active_model).unwrap_or_else(|| {
+			preset_slot::ActiveModel {
+				id: ActiveValue::NotSet,
+				profile_id: ActiveValue::Set(profile_id),
+				index: ActiveValue::Set(preset_no),
+				mode: ActiveValue::Set(SelectMode::A),
+				name: ActiveValue::Set(format!("\u{7b2c}{:02}", preset_no)),
+				..Default::default()
+			}
+		});
+
+	let (ship, _) = find_ship_impl(c, ship_id)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {}", ship_id)))?;
+
+	process_equip(c, ship.slot_1, &mut am.mst_id_1, &mut am.stars_1).await?;
+	process_equip(c, ship.slot_2, &mut am.mst_id_2, &mut am.stars_2).await?;
+	process_equip(c, ship.slot_3, &mut am.mst_id_3, &mut am.stars_3).await?;
+	process_equip(c, ship.slot_4, &mut am.mst_id_4, &mut am.stars_4).await?;
+	process_equip(c, ship.slot_5, &mut am.mst_id_5, &mut am.stars_5).await?;
+	process_equip(c, ship.slot_ex, &mut am.mst_id_ex, &mut am.stars_ex).await?;
+
+	let m = match am.id {
+		ActiveValue::NotSet => am.insert(c).await?,
+		_ => am.update(c).await?,
+	};
+
+	Ok(m)
+}
+
 pub(crate) async fn delete_preset_deck_impl<C>(
 	c: &C,
 	profile_id: i64,
@@ -312,6 +542,23 @@ where
 	preset_deck::Entity::delete_many()
 		.filter(preset_deck::Column::ProfileId.eq(profile_id))
 		.filter(preset_deck::Column::Index.eq(preset_no))
+		.exec(c)
+		.await?;
+
+	Ok(())
+}
+
+pub(crate) async fn delete_preset_slot_impl<C>(
+	c: &C,
+	profile_id: i64,
+	preset_no: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	preset_slot::Entity::delete_many()
+		.filter(preset_slot::Column::ProfileId.eq(profile_id))
+		.filter(preset_slot::Column::Index.eq(preset_no))
 		.exec(c)
 		.await?;
 
@@ -340,6 +587,30 @@ where
 	am.update(c).await?;
 
 	Ok(())
+}
+
+pub(crate) async fn expand_preset_slot_capacity_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<i64, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	// deduct dock key
+	deduct_use_item_impl(c, profile_id, KcUseItemType::DockKey as i64, 1).await?;
+
+	// change slot limit
+	let caps = preset_caps::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("preset_caps for profile_id {}", profile_id))
+	})?;
+
+	let new_cap = caps.slot_limit + 1;
+	let mut am = caps.into_active_model();
+	am.slot_limit = ActiveValue::Set(new_cap);
+
+	am.update(c).await?;
+
+	Ok(new_cap)
 }
 
 pub(crate) async fn apply_preset_deck_impl<C>(
@@ -395,6 +666,98 @@ where
 	let m = update_fleet_ships_impl(c, profile_id, deck_id, &new_ship_ids).await?;
 
 	Ok(m)
+}
+
+pub(crate) async fn toggle_preset_slot_ex_flag_impl<C>(
+	c: &C,
+	profile_id: i64,
+	preset_no: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = preset_slot::Entity::find()
+		.filter(preset_slot::Column::ProfileId.eq(profile_id))
+		.filter(preset_slot::Column::Index.eq(preset_no))
+		.one(c)
+		.await?
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"preset_slot for profile_id {} and index {}",
+				profile_id, preset_no
+			))
+		})?;
+
+	let new_mod = match record.mode {
+		SelectMode::A => SelectMode::B,
+		SelectMode::B => SelectMode::A,
+	};
+
+	let mut am = record.into_active_model();
+	am.mode = ActiveValue::Set(new_mod);
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub(crate) async fn toggle_preset_slot_locked_impl<C>(
+	c: &C,
+	profile_id: i64,
+	preset_no: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = preset_slot::Entity::find()
+		.filter(preset_slot::Column::ProfileId.eq(profile_id))
+		.filter(preset_slot::Column::Index.eq(preset_no))
+		.one(c)
+		.await?
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"preset_slot for profile_id {} and index {}",
+				profile_id, preset_no
+			))
+		})?;
+
+	let new_locked = !record.locked;
+
+	let mut am = record.into_active_model();
+	am.locked = ActiveValue::Set(new_locked);
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub(crate) async fn update_preset_slot_name_impl<C>(
+	c: &C,
+	profile_id: i64,
+	preset_no: i64,
+	name: &str,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let record = preset_slot::Entity::find()
+		.filter(preset_slot::Column::ProfileId.eq(profile_id))
+		.filter(preset_slot::Column::Index.eq(preset_no))
+		.one(c)
+		.await?
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"preset_slot for profile_id {} and index {}",
+				profile_id, preset_no
+			))
+		})?;
+
+	let mut am = record.into_active_model();
+	am.name = ActiveValue::Set(name.to_string());
+
+	am.update(c).await?;
+
+	Ok(())
 }
 
 pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
