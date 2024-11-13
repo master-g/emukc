@@ -20,7 +20,7 @@ use emukc_model::{
 
 use crate::{err::GameplayError, game::slot_item::find_slot_item_impl};
 
-use super::{deduct_use_item_impl, find_ship_impl, get_unset_slot_items_impl};
+use super::{deduct_use_item_impl, get_unset_slot_items_impl};
 
 pub(crate) async fn get_preset_slots_impl<C>(
 	c: &C,
@@ -105,7 +105,8 @@ where
 			}
 		});
 
-	let (ship, _) = find_ship_impl(c, ship_id)
+	let ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
 		.await?
 		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {}", ship_id)))?;
 
@@ -196,7 +197,8 @@ where
 		})?;
 
 	// find target ship
-	let (ship, _) = find_ship_impl(c, ship_id)
+	let ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
 		.await?
 		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {}", ship_id)))?;
 

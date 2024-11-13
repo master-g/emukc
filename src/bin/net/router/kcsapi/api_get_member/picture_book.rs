@@ -127,7 +127,7 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 					buildable: false,
 					buildable_lsc: false,
 					remodel: None,
-					remodel_back_to: 0,
+					remodel_back_to: None,
 					remodel_back_requirement: None,
 				}
 				// continue;
@@ -139,7 +139,7 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			continue;
 		};
 
-		let record = if codex.picturebook_extra.unlock_all_ships {
+		let record = if codex.game_cfg.picturebook.unlock_all_ships {
 			// force unlock all
 			(true, true)
 		} else if let Some(record) = map.get(&sort_no) {
@@ -199,7 +199,7 @@ async fn item_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
 			warn!("slotitem extra id {} not found or cannot be loaded", mst.api_id);
 			continue;
 		};
-		if !codex.picturebook_extra.unlock_all_slotitems && !records.contains(&sort_no) {
+		if !codex.game_cfg.picturebook.unlock_all_slotitems && !records.contains(&sort_no) {
 			continue;
 		}
 

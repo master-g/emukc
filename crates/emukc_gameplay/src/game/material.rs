@@ -153,7 +153,7 @@ where
 		};
 	}
 
-	let cfg = &codex.material_cfg;
+	let cfg = &codex.game_cfg.material;
 	cfg.apply_hard_cap(&mut model);
 
 	let am: material::ActiveModel = model.into();
@@ -175,6 +175,9 @@ where
 	let mut model: Material = record.into();
 
 	for (category, amount) in values.iter() {
+		if *amount <= 0 {
+			continue;
+		}
 		let mut stocks = [
 			(MaterialCategory::Fuel, &mut model.fuel),
 			(MaterialCategory::Ammo, &mut model.ammo),
@@ -215,7 +218,7 @@ where
 {
 	let record = get_mat_impl(c, profile_id).await?;
 	let mut model: Material = record.into();
-	codex.material_cfg.apply_self_replenish(&mut model, user_lv);
+	codex.game_cfg.material.apply_self_replenish(&mut model, user_lv);
 
 	let am = material::ActiveModel {
 		profile_id: ActiveValue::Unchanged(profile_id),
@@ -238,7 +241,7 @@ pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(),
 where
 	C: ConnectionTrait,
 {
-	let cfg = &codex.material_cfg;
+	let cfg = &codex.game_cfg.material;
 	let model = cfg.new_material(profile_id);
 	let am: material::ActiveModel = model.into();
 	am.insert(c).await?;

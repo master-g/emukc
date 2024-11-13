@@ -4,7 +4,7 @@ use emukc_gameplay::prelude::*;
 use emukc_model::codex::group::DeGroupParam;
 use emukc_model::codex::Codex;
 use emukc_model::kc2::{
-	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, MaterialCategory,
+	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, KcSlotItemType3, MaterialCategory,
 };
 use emukc_model::prelude::{ApiMstShip, Kc3rdQuest, Kc3rdShip, Kc3rdSlotItem};
 use emukc_model::profile::kdock::ConstructionDockStatus;
@@ -32,8 +32,11 @@ async fn foo() {
 	let (context, _, _) = new_game_session().await;
 
 	let codex = context.codex();
-	let basic = codex.find::<Kc3rdShip>(&966).unwrap();
-	println!("{:?}", basic);
+	codex.manifest.api_mst_slotitem.iter().for_each(|v| {
+		if v.api_type[2] == KcSlotItemType3::EngineBoost as i64 {
+			println!("--- {} --- {}", v.api_id, v.api_name);
+		}
+	});
 }
 
 #[tokio::test]

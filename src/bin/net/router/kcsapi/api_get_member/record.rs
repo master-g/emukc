@@ -69,7 +69,7 @@ pub(super) async fn handler(
 	let (hq_lv, next_lv_exp) = level::exp_to_hq_level(basic.api_experience);
 
 	let furnitures = state.get_furnitures(pid).await?;
-	let api_material_max = state.codex.material_cfg.get_soft_cap(hq_lv);
+	let api_material_max = state.codex.game_cfg.material.get_soft_cap(hq_lv);
 	let slotitems = state.get_slot_items(pid).await?;
 	let ships = state.get_ships(pid).await?;
 

@@ -2,15 +2,17 @@
 
 use std::{fs::create_dir_all, str::FromStr};
 
+use game_config::GameConfig;
 use thiserror::Error;
 
 use crate::{
 	kc2::{self, KcApiMusicListElement},
 	prelude::{Kc3rdPicturebookExtra, Kc3rdPicturebookRW},
-	profile, thirdparty,
+	thirdparty,
 };
 
 pub mod furniture;
+pub mod game_config;
 pub mod group;
 pub mod incentive;
 pub mod query;
@@ -68,8 +70,8 @@ pub struct Codex {
 	/// thirdparty quest info map.
 	pub quest: thirdparty::Kc3rdQuestMap,
 
-	/// Material config
-	pub material_cfg: profile::material::MaterialConfig,
+	/// game config
+	pub game_cfg: GameConfig,
 
 	/// Music list
 	pub music_list: Vec<KcApiMusicListElement>,
@@ -84,8 +86,8 @@ const PATH_SLOTITEM_EXTRA_INFO: &str = "slotitem_extra_info.json";
 const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
-const PATH_MATERIAL_CFG: &str = "material_cfg.json";
 const PATH_MUSIC_LIST: &str = "music_list.json";
+const PATH_GAME_CFG: &str = "game_config.json";
 
 impl Codex {
 	/// Load `Codex` instance from directory.
@@ -108,9 +110,9 @@ impl Codex {
 	///
 	/// the `Kc3rdQuestMap` is loaded from `dir/quest.json`.
 	///
-	/// the `MaterialConfig` is loaded from `dir/material_cfg.json`.
-	///
 	/// the `KcApiMusicListElement` is loaded from `dir/music_list.json`.
+	///
+	/// the `GameConfig` is loaded from `dir/game_config.json`.
 	///
 	/// # Arguments
 	///
@@ -187,8 +189,8 @@ impl Codex {
 			picturebook_extra,
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
 			quest,
-			material_cfg: Self::load_single_item(path.join(PATH_MATERIAL_CFG))?,
 			music_list,
+			game_cfg: Self::load_single_item(path.join(PATH_GAME_CFG))?,
 		})
 	}
 
@@ -282,13 +284,13 @@ impl Codex {
 			let data = self.quest.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
-		// material cfg
+		// game cfg
 		{
-			let path = dst.join(PATH_MATERIAL_CFG);
+			let path = dst.join(PATH_GAME_CFG);
 			if path.exists() && !overwrite {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
-			std::fs::write(path, serde_json::to_string_pretty(&self.material_cfg)?)?;
+			std::fs::write(path, serde_json::to_string_pretty(&self.game_cfg)?)?;
 		}
 
 		// music list

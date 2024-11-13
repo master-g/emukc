@@ -157,7 +157,7 @@ pub(super) fn parse_ship_name_mapping(
 
 	#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 	struct Entry {
-		#[serde(rename = "_id")]
+		#[serde(rename = "_api_id")]
 		id: i64,
 
 		#[serde(rename = "_full_name")]
@@ -225,21 +225,26 @@ pub(super) fn parse(
 		}
 
 		let remodel = if wiki_ship.remodel_from.is_some() {
-			Some(Kc3rdShipRemodelRequirement {
-				level: wiki_ship.remodel_level.into(),
-				ammo: wiki_ship.remodel_ammo.unwrap_or(0),
-				steel: wiki_ship.remodel_steel.unwrap_or(0),
-				blueprint: wiki_ship.remodel_blueprint.map_or(0, Into::into),
-				catapult: wiki_ship.remodel_catapult.map_or(0, Into::into),
-				report: wiki_ship.remodel_report.map_or(0, Into::into),
-				devmat: wiki_ship.remodel_development_material.map_or(0, Into::into),
-				torch: wiki_ship.remodel_construction_material.map_or(0, Into::into),
-				aviation: wiki_ship.remodel_airmat.map_or(0, Into::into),
-				artillery: wiki_ship.remodel_gunmat.map_or(0, Into::into),
-				armament: wiki_ship.remodel_armament.map_or(0, Into::into),
-				boiler: wiki_ship.remodel_boiler.map_or(0, Into::into),
-				overseas: wiki_ship.remodel_overseas.map_or(0, Into::into),
-			})
+			let level: i64 = wiki_ship.remodel_level.into();
+			if level == 0 {
+				None
+			} else {
+				Some(Kc3rdShipRemodelRequirement {
+					level,
+					ammo: wiki_ship.remodel_ammo.unwrap_or(0),
+					steel: wiki_ship.remodel_steel.unwrap_or(0),
+					blueprint: wiki_ship.remodel_blueprint.map_or(0, Into::into),
+					catapult: wiki_ship.remodel_catapult.map_or(0, Into::into),
+					report: wiki_ship.remodel_report.map_or(0, Into::into),
+					devmat: wiki_ship.remodel_development_material.map_or(0, Into::into),
+					torch: wiki_ship.remodel_construction_material.map_or(0, Into::into),
+					aviation: wiki_ship.remodel_airmat.map_or(0, Into::into),
+					artillery: wiki_ship.remodel_gunmat.map_or(0, Into::into),
+					armament: wiki_ship.remodel_armament.map_or(0, Into::into),
+					boiler: wiki_ship.remodel_boiler.map_or(0, Into::into),
+					overseas: wiki_ship.remodel_overseas.map_or(0, Into::into),
+				})
+			}
 		} else {
 			None
 		};
@@ -257,7 +262,7 @@ pub(super) fn parse(
 				}
 			};
 			(
-				remodel_to,
+				Some(remodel_to),
 				Some(Kc3rdShipRemodelRequirement {
 					level: wiki_ship.remodel_to_level.unwrap_or(0),
 					ammo: wiki_ship.remodel_to_ammo.unwrap_or(0),
@@ -275,7 +280,7 @@ pub(super) fn parse(
 				}),
 			)
 		} else {
-			(0, None)
+			(None, None)
 		};
 
 		result.insert(

@@ -1,6 +1,7 @@
 //! The compose here means this trait is a composition of other gameplay logics.
 
 use async_trait::async_trait;
+use remodel::remodel_impl;
 use std::collections::BTreeMap;
 
 use emukc_db::{
@@ -21,6 +22,7 @@ use super::fleet::get_fleets_impl;
 
 pub(crate) mod marriage;
 pub(crate) mod powerup;
+pub(crate) mod remodel;
 pub(crate) mod supply;
 
 #[derive(Debug, Clone)]
@@ -73,6 +75,14 @@ pub trait ComposeOps {
 		material_ships: &[i64],
 		keep_slot_items: bool,
 	) -> Result<PowerupResp, GameplayError>;
+
+	/// Execute a remodel operation.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `ship_id`: The ship ID.
+	async fn remodel(&self, profile_id: i64, ship_id: i64) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -139,5 +149,16 @@ impl<T: HasContext + ?Sized> ComposeOps for T {
 			fleets: fleets.into_iter().map(Into::into).collect(),
 			unset_slot_items,
 		})
+	}
+
+	async fn remodel(&self, profile_id: i64, ship_id: i64) -> Result<(), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		remodel_impl(&tx, codex, profile_id, ship_id).await?;
+		tx.commit().await?;
+
+		Ok(())
 	}
 }

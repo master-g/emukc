@@ -3,7 +3,10 @@
 use crate::{
 	fields::MoveValueToEnd,
 	kc2::{level, KcApiShip, KcApiSlotItem, KcShipType},
-	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo},
+	prelude::{
+		ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo,
+		Kc3rdShipRemodelRequirement,
+	},
 };
 
 use super::{Codex, CodexError};
@@ -498,5 +501,59 @@ impl Codex {
 		self.ship_extra
 			.get(&ship_id)
 			.ok_or(CodexError::NotFound(format!("ship extra ID: {}", ship_id)))
+	}
+
+	/// Find the ship after the given ship ID.
+	///
+	/// # Arguments
+	///
+	/// * `ship_id` - The ship ID.
+	pub fn find_ship_after(
+		&self,
+		ship_id: i64,
+	) -> Result<(&ApiMstShip, &Kc3rdShip, &Kc3rdShipRemodelRequirement), CodexError> {
+		let ship_mst = self.find_ship_mst(ship_id)?;
+		let extra = self.find_ship_extra(ship_id)?;
+		if let Some(back_to) = extra.remodel_back_to {
+			if back_to > 0 {
+				let after_mst = self.find_ship_mst(back_to)?;
+				let after_extra = self.find_ship_extra(back_to)?;
+
+				let consumption = extra.remodel_back_requirement.as_ref().ok_or_else(|| {
+					CodexError::NotFound(format!(
+						"ship remodel back requirement for ID: {} not found",
+						ship_id
+					))
+				})?;
+
+				return Ok((after_mst, after_extra, consumption));
+			}
+		}
+
+		let after_ship_id = if let Some(after_ship_id) = &ship_mst.api_aftershipid {
+			after_ship_id.parse::<i64>().map_err(|_| {
+				CodexError::NotFound(format!(
+					"ship after ID: {} is not a valid integer",
+					after_ship_id
+				))
+			})?
+		} else {
+			0
+		};
+
+		if after_ship_id > 0 {
+			let after_mst = self.find_ship_mst(after_ship_id)?;
+			let after_extra = self.find_ship_extra(after_ship_id)?;
+			let consumption = after_extra.remodel.as_ref().ok_or_else(|| {
+				CodexError::NotFound(format!(
+					"ship remodel requirement for ID: {} not found",
+					after_ship_id
+				))
+			})?;
+
+			Ok((after_mst, after_extra, consumption))
+		} else {
+			Err(CodexError::NotFound(format!("ship after ID: {} not found", after_ship_id)))
+		}
 	}
 }

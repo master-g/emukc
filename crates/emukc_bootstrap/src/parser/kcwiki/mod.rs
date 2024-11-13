@@ -156,6 +156,10 @@ mod tests {
 	#[test]
 	fn test_parse_ship() {
 		let context = get_parse_context();
+
+		let raw = serde_json::to_string_pretty(&context.ship_name_map).unwrap();
+		std::fs::write("../../.data/temp/kcwiki_ship_name_map.json", raw).unwrap();
+
 		let map = ship::parse(&context, std::path::Path::new("../../.data/temp/kcwiki_ship.json"))
 			.unwrap();
 

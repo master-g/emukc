@@ -122,7 +122,8 @@ pub struct Kc3rdShip {
 	pub remodel: Option<Kc3rdShipRemodelRequirement>,
 
 	/// remodel to previous ship, `api_id` of the previous ship
-	pub remodel_back_to: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub remodel_back_to: Option<i64>,
 
 	/// requirement to remodel back to previous ship
 	#[serde(skip_serializing_if = "Option::is_none")]

@@ -9,7 +9,7 @@ pub mod tsunkit_quest;
 
 use std::str::FromStr;
 
-use emukc_model::{kc2::navy::KcNavy, prelude::*, profile::material::MaterialConfig};
+use emukc_model::{codex::game_config::GameConfig, kc2::navy::KcNavy, prelude::*};
 
 use error::ParseError;
 pub use kccp::quest::parse as parse_kccp_quests;
@@ -55,7 +55,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		quest,
 		picturebook_extra: Kc3rdPicturebookExtra::default(),
 		navy: KcNavy::default(),
-		material_cfg: MaterialConfig::default(),
+		game_cfg: GameConfig::default(),
 		music_list,
 	})
 }
