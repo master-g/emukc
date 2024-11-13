@@ -88,10 +88,10 @@ where
 		);
 	}
 	let (unset_type3, unset_id_list) = if unset_slot_item_id > 0 {
-		let mut unset_slot_item_model = find_slot_item_impl(c, unset_slot_item_id).await?;
+		let unset_slot_item_model = find_slot_item_impl(c, unset_slot_item_id).await?;
 		let type3 = unset_slot_item_model.type3;
-		unset_slot_item_model.equip_on = 0;
-		let am: slot_item::ActiveModel = unset_slot_item_model.into();
+		let mut am: slot_item::ActiveModel = unset_slot_item_model.into();
+		am.equip_on = ActiveValue::Set(0);
 		am.update(c).await?;
 
 		let unset_map = get_unset_slot_items_by_types_impl(c, profile_id, &[type3]).await?;
@@ -107,12 +107,18 @@ where
 	};
 
 	// recalculating stats
-	recalculate_ship_status_with_model(c, codex, &mut from_ship_model).await?;
-	recalculate_ship_status_with_model(c, codex, &mut to_ship_model).await?;
+	let from_ship = {
+		let am = recalculate_ship_status_with_model(c, codex, &from_ship_model).await?;
+		am.update(c).await?
+	};
+	let to_ship = {
+		let am = recalculate_ship_status_with_model(c, codex, &to_ship_model).await?;
+		am.update(c).await?
+	};
 
 	let resp = SlotDepriveResp {
-		from_ship: from_ship_model,
-		to_ship: to_ship_model,
+		from_ship,
+		to_ship,
 		unset_type3,
 		unset_id_list,
 		bauxite: 0,

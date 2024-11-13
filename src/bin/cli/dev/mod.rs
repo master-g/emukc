@@ -11,7 +11,6 @@ use emukc::{
 
 use crate::{cfg::AppConfig, state::State};
 
-#[instrument]
 pub(super) async fn exec(cfg: &AppConfig) -> Result<()> {
 	let game_db_path = cfg.workspace_root.join("emukc.db");
 	std::fs::remove_file(&game_db_path)?;

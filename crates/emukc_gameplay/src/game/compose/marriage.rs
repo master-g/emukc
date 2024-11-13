@@ -1,6 +1,6 @@
 use emukc_db::{
 	entity::profile::ship,
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel},
+	sea_orm::{entity::prelude::*, ActiveValue},
 };
 use emukc_model::{codex::Codex, kc2::KcUseItemType, prelude::ApiMstShip};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -50,21 +50,17 @@ where
 	ship.fuel = mst.api_fuel_max.unwrap_or(0);
 	ship.ammo = mst.api_bull_max.unwrap_or(0);
 
-	recalculate_ship_status_with_model(c, codex, &mut ship).await?;
+	let mut am = recalculate_ship_status_with_model(c, codex, &ship).await?;
 
-	ship.hp_now = ship.hp_max;
+	am.hp_now = ActiveValue::Set(ship.hp_max);
 	let max_eq = mst.api_maxeq.unwrap_or([0; 5]);
-	ship.onslot_1 = max_eq[0];
-	ship.onslot_2 = max_eq[1];
-	ship.onslot_3 = max_eq[2];
-	ship.onslot_4 = max_eq[3];
-	ship.onslot_5 = max_eq[4];
+	am.onslot_1 = ActiveValue::Set(max_eq[0]);
+	am.onslot_2 = ActiveValue::Set(max_eq[1]);
+	am.onslot_3 = ActiveValue::Set(max_eq[2]);
+	am.onslot_4 = ActiveValue::Set(max_eq[3]);
+	am.onslot_5 = ActiveValue::Set(max_eq[4]);
 
 	// save to db
-	let mut am: ship::ActiveModel = ship.into_active_model();
-	am.id = ActiveValue::Unchanged(ship.id);
-	am.profile_id = ActiveValue::Unchanged(ship.profile_id);
-
 	let new_ship = am.update(c).await?;
 
 	Ok(new_ship)

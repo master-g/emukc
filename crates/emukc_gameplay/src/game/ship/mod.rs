@@ -468,11 +468,13 @@ where
 pub(crate) async fn recalculate_ship_status_with_model<C>(
 	c: &C,
 	codex: &Codex,
-	ship: &mut ship::Model,
-) -> Result<(), GameplayError>
+	ship: &ship::Model,
+) -> Result<ship::ActiveModel, GameplayError>
 where
 	C: ConnectionTrait,
 {
+	let mut am: ship::ActiveModel = (*ship).into();
+
 	// find slot items
 	let slot_item_ids: Vec<i64> =
 		[ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
@@ -483,7 +485,7 @@ where
 	let slot_items = find_slot_items_by_id_impl(c, &slot_item_ids).await?;
 
 	// update ship has_locked_euqip
-	ship.has_locked_euqip = slot_items.iter().any(|x| x.locked);
+	am.has_locked_euqip = ActiveValue::Set(slot_items.iter().any(|x| x.locked));
 
 	// recalculate stats
 	let mut api_ship: KcApiShip = (*ship).into();
@@ -492,51 +494,51 @@ where
 	codex.cal_ship_status(&mut api_ship, &api_slot_items)?;
 
 	// modify ship model
-	// FIXME: the default active model field will be unchanged, which won't be updated in the database
-	ship.level = api_ship.api_lv;
-	ship.exp_now = api_ship.api_exp[0];
-	ship.exp_next = api_ship.api_exp[1];
-	ship.exp_progress = (api_ship.api_exp[0] as f64 / api_ship.api_exp[1] as f64 * 100.0) as i64;
-	ship.speed = api_ship.api_soku;
-	ship.range = api_ship.api_leng;
-	ship.slot_1 = api_ship.api_slot[0];
-	ship.slot_2 = api_ship.api_slot[1];
-	ship.slot_3 = api_ship.api_slot[2];
-	ship.slot_4 = api_ship.api_slot[3];
-	ship.slot_5 = api_ship.api_slot[4];
-	ship.slot_ex = api_ship.api_slot_ex;
-	ship.onslot_1 = api_ship.api_onslot[0];
-	ship.onslot_2 = api_ship.api_onslot[1];
-	ship.onslot_3 = api_ship.api_onslot[2];
-	ship.onslot_4 = api_ship.api_onslot[3];
-	ship.onslot_5 = api_ship.api_onslot[4];
-	ship.mod_firepower = api_ship.api_kyouka[0];
-	ship.mod_torpedo = api_ship.api_kyouka[1];
-	ship.mod_aa = api_ship.api_kyouka[2];
-	ship.mod_armor = api_ship.api_kyouka[3];
-	ship.mod_luck = api_ship.api_kyouka[4];
-	ship.mod_hp = api_ship.api_kyouka[5];
-	ship.mod_asw = api_ship.api_kyouka[6];
-	ship.srate = api_ship.api_srate;
-	ship.condition = api_ship.api_cond;
-	ship.firepower_now = api_ship.api_karyoku[0];
-	ship.firepower_max = api_ship.api_karyoku[1];
-	ship.torpedo_now = api_ship.api_raisou[0];
-	ship.torpedo_max = api_ship.api_raisou[1];
-	ship.aa_now = api_ship.api_taiku[0];
-	ship.aa_max = api_ship.api_taiku[1];
-	ship.armor_now = api_ship.api_soukou[0];
-	ship.armor_max = api_ship.api_soukou[1];
-	ship.evasion_now = api_ship.api_kaihi[0];
-	ship.evasion_max = api_ship.api_kaihi[1];
-	ship.asw_now = api_ship.api_taisen[0];
-	ship.asw_max = api_ship.api_taisen[1];
-	ship.los_now = api_ship.api_sakuteki[0];
-	ship.los_max = api_ship.api_sakuteki[1];
-	ship.luck_now = api_ship.api_lucky[0];
-	ship.luck_max = api_ship.api_lucky[1];
+	am.level = ActiveValue::Set(api_ship.api_lv);
+	am.exp_now = ActiveValue::Set(api_ship.api_exp[0]);
+	am.exp_next = ActiveValue::Set(api_ship.api_exp[1]);
+	am.exp_progress =
+		ActiveValue::Set((api_ship.api_exp[0] as f64 / api_ship.api_exp[1] as f64 * 100.0) as i64);
+	am.speed = ActiveValue::Set(api_ship.api_soku);
+	am.range = ActiveValue::Set(api_ship.api_leng);
+	am.slot_1 = ActiveValue::Set(api_ship.api_slot[0]);
+	am.slot_2 = ActiveValue::Set(api_ship.api_slot[1]);
+	am.slot_3 = ActiveValue::Set(api_ship.api_slot[2]);
+	am.slot_4 = ActiveValue::Set(api_ship.api_slot[3]);
+	am.slot_5 = ActiveValue::Set(api_ship.api_slot[4]);
+	am.slot_ex = ActiveValue::Set(api_ship.api_slot_ex);
+	am.onslot_1 = ActiveValue::Set(api_ship.api_onslot[0]);
+	am.onslot_2 = ActiveValue::Set(api_ship.api_onslot[1]);
+	am.onslot_3 = ActiveValue::Set(api_ship.api_onslot[2]);
+	am.onslot_4 = ActiveValue::Set(api_ship.api_onslot[3]);
+	am.onslot_5 = ActiveValue::Set(api_ship.api_onslot[4]);
+	am.mod_firepower = ActiveValue::Set(api_ship.api_kyouka[0]);
+	am.mod_torpedo = ActiveValue::Set(api_ship.api_kyouka[1]);
+	am.mod_aa = ActiveValue::Set(api_ship.api_kyouka[2]);
+	am.mod_armor = ActiveValue::Set(api_ship.api_kyouka[3]);
+	am.mod_luck = ActiveValue::Set(api_ship.api_kyouka[4]);
+	am.mod_hp = ActiveValue::Set(api_ship.api_kyouka[5]);
+	am.mod_asw = ActiveValue::Set(api_ship.api_kyouka[6]);
+	am.srate = ActiveValue::Set(api_ship.api_srate);
+	am.condition = ActiveValue::Set(api_ship.api_cond);
+	am.firepower_now = ActiveValue::Set(api_ship.api_karyoku[0]);
+	am.firepower_max = ActiveValue::Set(api_ship.api_karyoku[1]);
+	am.torpedo_now = ActiveValue::Set(api_ship.api_raisou[0]);
+	am.torpedo_max = ActiveValue::Set(api_ship.api_raisou[1]);
+	am.aa_now = ActiveValue::Set(api_ship.api_taiku[0]);
+	am.aa_max = ActiveValue::Set(api_ship.api_taiku[1]);
+	am.armor_now = ActiveValue::Set(api_ship.api_soukou[0]);
+	am.armor_max = ActiveValue::Set(api_ship.api_soukou[1]);
+	am.evasion_now = ActiveValue::Set(api_ship.api_kaihi[0]);
+	am.evasion_max = ActiveValue::Set(api_ship.api_kaihi[1]);
+	am.asw_now = ActiveValue::Set(api_ship.api_taisen[0]);
+	am.asw_max = ActiveValue::Set(api_ship.api_taisen[1]);
+	am.los_now = ActiveValue::Set(api_ship.api_sakuteki[0]);
+	am.los_max = ActiveValue::Set(api_ship.api_sakuteki[1]);
+	am.luck_now = ActiveValue::Set(api_ship.api_lucky[0]);
+	am.luck_max = ActiveValue::Set(api_ship.api_lucky[1]);
 
-	Ok(())
+	Ok(am)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

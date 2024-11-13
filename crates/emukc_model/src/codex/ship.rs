@@ -129,7 +129,7 @@ impl Codex {
 		}
 
 		// move -1 to the end
-		ship.api_onslot.move_value_to_end(-1);
+		ship.api_slot.move_value_to_end(-1);
 		// collect extra slot as well
 		if ship.api_slot_ex > 0 {
 			slots[5] = ship.api_slot_ex;
