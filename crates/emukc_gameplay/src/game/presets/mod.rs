@@ -27,7 +27,6 @@ use crate::{err::GameplayError, gameplay::HasContext};
 
 use super::{
 	fleet::{get_fleets_impl, update_fleet_ships_impl},
-	ship::find_ship_impl,
 	slot_item::get_unset_slot_items_impl,
 	use_item::deduct_use_item_impl,
 };

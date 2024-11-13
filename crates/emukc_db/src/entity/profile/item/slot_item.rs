@@ -17,6 +17,9 @@ pub struct Model {
 	/// Manifest ID
 	pub mst_id: i64,
 
+	/// type3 in `api_mst_slotitem`
+	pub type3: i64,
+
 	/// locked
 	pub locked: bool,
 

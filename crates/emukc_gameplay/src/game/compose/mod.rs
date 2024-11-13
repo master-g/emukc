@@ -137,7 +137,7 @@ impl<T: HasContext + ?Sized> ComposeOps for T {
 		let unset_slot_items = if let Some(item_types) = result.unset_slot_item_types {
 			let types: Vec<i64> = item_types.iter().copied().collect();
 			let unset_slot_items =
-				get_unset_slot_items_by_types_impl(db, codex, profile_id, &types).await?;
+				get_unset_slot_items_by_types_impl(db, profile_id, &types).await?;
 			Some(unset_slot_items)
 		} else {
 			None

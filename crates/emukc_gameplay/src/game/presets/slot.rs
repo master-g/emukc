@@ -323,12 +323,17 @@ where
 	let mut api_new_ship: KcApiShip = ship.into();
 	let mut api_slot_items: Vec<KcApiSlotItem> = Vec::new();
 
+	let mut has_locked_item = false;
+
 	api_new_ship.api_slot = new_equip_ids;
 
 	if ship_has_exslot && new_ex_id > 0 {
 		api_new_ship.api_slot_ex = new_ex_id;
 
 		if let Some(ex_m) = unset_id_lookup.remove(&new_ex_id) {
+			if ex_m.locked {
+				has_locked_item = true;
+			}
 			api_slot_items.push(ex_m.clone().into());
 
 			let mut am = ex_m.into_active_model();
@@ -343,6 +348,9 @@ where
 		}
 
 		if let Some(m) = unset_id_lookup.remove(item_id) {
+			if m.locked {
+				has_locked_item = true;
+			}
 			api_slot_items.push(m.clone().into());
 
 			let mut am = m.into_active_model();
@@ -365,6 +373,7 @@ where
 	if ship_has_exslot && ex_mst_id > 0 {
 		new_ship_am.slot_ex = ActiveValue::Set(new_ex_id);
 	}
+	new_ship_am.has_locked_euqip = ActiveValue::Set(has_locked_item);
 
 	new_ship_am.update(c).await?;
 

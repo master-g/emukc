@@ -85,6 +85,8 @@ pub trait SlotItemOps {
 
 	/// Toggle slot item locked status.
 	///
+	/// for now (5.9.4.0) this can only lock or unlock the item that is not equipped on any ship.
+	///
 	/// # Parameters
 	///
 	/// - `item_id`: The slot item instance ID.
@@ -191,10 +193,9 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 		profile_id: i64,
 		type3: &[i64],
 	) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError> {
-		let codex = self.codex();
 		let db = self.db();
 
-		let item_ids = get_unset_slot_items_by_types_impl(db, codex, profile_id, type3).await?;
+		let item_ids = get_unset_slot_items_by_types_impl(db, profile_id, type3).await?;
 
 		Ok(item_ids)
 	}
@@ -205,6 +206,8 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 
 		let m = toggle_slot_item_locked_impl(&tx, item_id).await?;
 		let m: SlotItem = m.into();
+
+		tx.commit().await?;
 
 		Ok(m.into())
 	}
@@ -246,10 +249,12 @@ pub async fn add_slot_item_impl<C>(
 where
 	C: ConnectionTrait,
 {
+	let mst = codex.find::<ApiMstSlotitem>(&mst_id)?;
 	let am = slot_item::ActiveModel {
 		id: ActiveValue::NotSet,
 		profile_id: ActiveValue::Set(profile_id),
 		mst_id: ActiveValue::Set(mst_id),
+		type3: ActiveValue::Set(mst.api_type[2]),
 		locked: ActiveValue::Set(false),
 		level: ActiveValue::Set(stars),
 		aircraft_lv: ActiveValue::Set(alv),
@@ -259,7 +264,6 @@ where
 	let model = am.save(c).await?;
 
 	// add slot item to picture book
-	let mst = codex.find::<ApiMstSlotitem>(&mst_id)?;
 	add_slot_item_to_picturebook_impl(c, profile_id, mst.api_sortno).await?;
 
 	Ok(model.try_into_model()?)
@@ -361,7 +365,6 @@ where
 
 pub(crate) async fn get_unset_slot_items_by_types_impl<C>(
 	c: &C,
-	codex: &Codex,
 	profile_id: i64,
 	type3: &[i64],
 ) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError>
@@ -371,18 +374,15 @@ where
 	let records = slot_item::Entity::find()
 		.filter(slot_item::Column::ProfileId.eq(profile_id))
 		.filter(slot_item::Column::EquipOn.eq(0))
+		.filter(slot_item::Column::Type3.is_in(type3.to_owned()))
 		.all(c)
 		.await?;
 
 	let mut map: BTreeMap<i64, Vec<i64>> = BTreeMap::new();
 
-	for record in records {
-		let mst = codex.find::<ApiMstSlotitem>(&record.mst_id)?;
-
-		if type3.contains(&mst.api_type[2]) {
-			map.entry(mst.api_type[2]).or_default().push(record.id);
-		}
-	}
+	records.iter().for_each(|record| {
+		map.entry(record.type3).or_default().push(record.id);
+	});
 
 	Ok(map)
 }
