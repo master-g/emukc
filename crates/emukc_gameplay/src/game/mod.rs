@@ -2,7 +2,7 @@
 
 pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
-pub use compose::ComposeOps;
+pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
 pub use expedition::ExpeditionOps;
 pub use factory::FactoryOps;
 pub use fleet::FleetOps;
@@ -89,4 +89,11 @@ pub mod ops {
 		GameOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps, PictureBookOps,
 		PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, UseItemOps,
 	};
+}
+
+pub mod types {
+	//! The types prelude.
+
+	#[doc(hidden)]
+	pub use crate::game::{PowerupResp, SlotDepriveParams};
 }

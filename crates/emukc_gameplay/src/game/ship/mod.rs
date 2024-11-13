@@ -12,11 +12,12 @@ use emukc_db::{
 };
 use emukc_model::{
 	codex::Codex,
-	kc2::{KcApiShip, KcUseItemType},
+	kc2::{KcApiShip, KcApiSlotItem, KcUseItemType},
 };
 
 use super::{
-	picturebook::add_ship_to_picturebook_impl, slot_item::update_slot_item_impl,
+	picturebook::add_ship_to_picturebook_impl,
+	slot_item::{find_slot_items_by_id_impl, update_slot_item_impl},
 	use_item::deduct_use_item_impl,
 };
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
@@ -462,6 +463,79 @@ where
 	let m = am.update(c).await?;
 
 	Ok(m)
+}
+
+pub(crate) async fn recalculate_ship_status_with_model<C>(
+	c: &C,
+	codex: &Codex,
+	ship: &mut ship::Model,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	// find slot items
+	let slot_item_ids: Vec<i64> =
+		[ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+			.into_iter()
+			.filter(|x| *x > 0)
+			.collect();
+
+	let slot_items = find_slot_items_by_id_impl(c, &slot_item_ids).await?;
+
+	// update ship has_locked_euqip
+	ship.has_locked_euqip = slot_items.iter().any(|x| x.locked);
+
+	// recalculate stats
+	let mut api_ship: KcApiShip = (*ship).into();
+	let api_slot_items: Vec<KcApiSlotItem> = slot_items.iter().map(|x| x.clone().into()).collect();
+
+	codex.cal_ship_status(&mut api_ship, &api_slot_items)?;
+
+	// modify ship model
+	ship.level = api_ship.api_lv;
+	ship.exp_now = api_ship.api_exp[0];
+	ship.exp_next = api_ship.api_exp[1];
+	ship.exp_progress = (api_ship.api_exp[0] as f64 / api_ship.api_exp[1] as f64 * 100.0) as i64;
+	ship.speed = api_ship.api_soku;
+	ship.range = api_ship.api_leng;
+	ship.slot_1 = api_ship.api_slot[0];
+	ship.slot_2 = api_ship.api_slot[1];
+	ship.slot_3 = api_ship.api_slot[2];
+	ship.slot_4 = api_ship.api_slot[3];
+	ship.slot_5 = api_ship.api_slot[4];
+	ship.slot_ex = api_ship.api_slot_ex;
+	ship.onslot_1 = api_ship.api_onslot[0];
+	ship.onslot_2 = api_ship.api_onslot[1];
+	ship.onslot_3 = api_ship.api_onslot[2];
+	ship.onslot_4 = api_ship.api_onslot[3];
+	ship.onslot_5 = api_ship.api_onslot[4];
+	ship.mod_firepower = api_ship.api_kyouka[0];
+	ship.mod_torpedo = api_ship.api_kyouka[1];
+	ship.mod_aa = api_ship.api_kyouka[2];
+	ship.mod_armor = api_ship.api_kyouka[3];
+	ship.mod_luck = api_ship.api_kyouka[4];
+	ship.mod_hp = api_ship.api_kyouka[5];
+	ship.mod_asw = api_ship.api_kyouka[6];
+	ship.srate = api_ship.api_srate;
+	ship.condition = api_ship.api_cond;
+	ship.firepower_now = api_ship.api_karyoku[0];
+	ship.firepower_max = api_ship.api_karyoku[1];
+	ship.torpedo_now = api_ship.api_raisou[0];
+	ship.torpedo_max = api_ship.api_raisou[1];
+	ship.aa_now = api_ship.api_taiku[0];
+	ship.aa_max = api_ship.api_taiku[1];
+	ship.armor_now = api_ship.api_soukou[0];
+	ship.armor_max = api_ship.api_soukou[1];
+	ship.evasion_now = api_ship.api_kaihi[0];
+	ship.evasion_max = api_ship.api_kaihi[1];
+	ship.asw_now = api_ship.api_taisen[0];
+	ship.asw_max = api_ship.api_taisen[1];
+	ship.los_now = api_ship.api_sakuteki[0];
+	ship.los_max = api_ship.api_sakuteki[1];
+	ship.luck_now = api_ship.api_lucky[0];
+	ship.luck_max = api_ship.api_lucky[1];
+
+	Ok(())
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

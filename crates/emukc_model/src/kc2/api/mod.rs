@@ -696,3 +696,11 @@ pub struct KcApiChargeResp {
 	pub api_material: [i64; 4],
 	pub api_use_bou: i64,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KcApiUnsetListElement {
+	/// Equipment type in `api_mst_slotitem.api_type[2]`
+	#[serde(rename = "api_type3No")]
+	pub api_type_3_no: i64,
+	pub api_slot_list: Vec<i64>,
+}

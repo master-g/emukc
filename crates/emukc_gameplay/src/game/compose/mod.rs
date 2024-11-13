@@ -2,6 +2,7 @@
 
 use async_trait::async_trait;
 use remodel::remodel_impl;
+use slot_deprive::slot_deprive_impl;
 use std::collections::BTreeMap;
 
 use emukc_db::{
@@ -23,6 +24,7 @@ use super::fleet::get_fleets_impl;
 pub(crate) mod marriage;
 pub(crate) mod powerup;
 pub(crate) mod remodel;
+pub(crate) mod slot_deprive;
 pub(crate) mod supply;
 
 #[derive(Debug, Clone)]
@@ -31,6 +33,25 @@ pub struct PowerupResp {
 	pub ship: ship::Model,
 	pub fleets: Vec<Fleet>,
 	pub unset_slot_items: Option<BTreeMap<i64, Vec<i64>>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SlotDepriveParams {
+	pub from_ship_id: i64,
+	pub to_ship_id: i64,
+	pub from_ex_slot: bool,
+	pub to_ex_slot: bool,
+	pub from_slot_idx: i64,
+	pub to_slot_idx: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct SlotDepriveResp {
+	pub from_ship: ship::Model,
+	pub to_ship: ship::Model,
+	pub unset_type3: Option<i64>,
+	pub unset_id_list: Option<Vec<i64>>,
+	pub bauxite: i64,
 }
 
 /// A trait for gameplay logic that composed by one or more other trait implements.
@@ -83,6 +104,18 @@ pub trait ComposeOps {
 	/// - `profile_id`: The profile ID.
 	/// - `ship_id`: The ship ID.
 	async fn remodel(&self, profile_id: i64, ship_id: i64) -> Result<(), GameplayError>;
+
+	/// Execute a slot deprive operation.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `params`: The slot deprive parameters.
+	async fn slot_deprive(
+		&self,
+		profile_id: i64,
+		params: &SlotDepriveParams,
+	) -> Result<SlotDepriveResp, GameplayError>;
 }
 
 #[async_trait]
@@ -160,5 +193,20 @@ impl<T: HasContext + ?Sized> ComposeOps for T {
 		tx.commit().await?;
 
 		Ok(())
+	}
+
+	async fn slot_deprive(
+		&self,
+		profile_id: i64,
+		params: &SlotDepriveParams,
+	) -> Result<SlotDepriveResp, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let resp = slot_deprive_impl(&tx, codex, profile_id, params).await?;
+		tx.commit().await?;
+
+		Ok(resp)
 	}
 }

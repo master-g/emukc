@@ -273,8 +273,7 @@ pub async fn find_slot_item_impl<C>(c: &C, id: i64) -> Result<slot_item::Model, 
 where
 	C: ConnectionTrait,
 {
-	let record = slot_item::Entity::find()
-		.filter(slot_item::Column::Id.eq(id))
+	let record = slot_item::Entity::find_by_id(id)
 		.one(c)
 		.await?
 		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", id)))?;

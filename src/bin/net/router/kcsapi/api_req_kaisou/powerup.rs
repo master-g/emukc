@@ -26,18 +26,11 @@ pub(super) struct Params {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct UnsetListElement {
-	#[serde(rename = "api_type3No")]
-	api_type_3_no: i64,
-	api_slot_list: Vec<i64>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 struct Resp {
 	api_powerup_flag: i64,
 	api_ship: KcApiShip,
 	api_deck: Vec<KcApiDeckPort>,
-	api_unset_list: Option<Vec<UnsetListElement>>,
+	api_unset_list: Option<Vec<KcApiUnsetListElement>>,
 }
 
 pub(super) async fn handler(
@@ -57,7 +50,7 @@ pub(super) async fn handler(
 		api_deck: r.fleets.into_iter().map(Into::into).collect(),
 		api_unset_list: r.unset_slot_items.map(|m| {
 			m.into_iter()
-				.map(|(k, v)| UnsetListElement {
+				.map(|(k, v)| KcApiUnsetListElement {
 					api_type_3_no: k,
 					api_slot_list: v,
 				})

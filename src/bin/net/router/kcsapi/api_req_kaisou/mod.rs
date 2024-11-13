@@ -13,6 +13,7 @@ mod preset_slot_update_exslot_flag;
 mod preset_slot_update_lock;
 mod preset_slot_update_name;
 mod remodeling;
+mod slot_deprive;
 
 pub(super) fn router() -> Router {
 	Router::new()
@@ -29,4 +30,5 @@ pub(super) fn router() -> Router {
 		.route("/preset_slot_update_lock", post(preset_slot_update_lock::handler))
 		.route("/preset_slot_update_name", post(preset_slot_update_name::handler))
 		.route("/remodeling", post(remodeling::handler))
+		.route("/slot_deprive", post(slot_deprive::handler))
 }
