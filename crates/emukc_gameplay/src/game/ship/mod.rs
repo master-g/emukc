@@ -492,6 +492,7 @@ where
 	codex.cal_ship_status(&mut api_ship, &api_slot_items)?;
 
 	// modify ship model
+	// FIXME: the default active model field will be unchanged, which won't be updated in the database
 	ship.level = api_ship.api_lv;
 	ship.exp_now = api_ship.api_exp[0];
 	ship.exp_next = api_ship.api_exp[1];
