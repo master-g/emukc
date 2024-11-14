@@ -77,10 +77,13 @@ impl Codex {
 		let fuel_cost = (hp_lost as f64) * fuel_max * 0.032;
 		let steel_cost = (hp_lost as f64) * 0.06;
 
-		Ok(RepairCost {
+		let cost = RepairCost {
 			duration_sec: duration_sec.floor() as i64,
 			fuel_cost: fuel_cost.floor() as i64,
 			steel_cost: steel_cost.floor() as i64,
-		})
+		};
+		debug!("Repair cost: {:?}", cost);
+
+		Ok(cost)
 	}
 }

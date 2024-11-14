@@ -41,7 +41,7 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
 	#[command(about = "Remove game database and create a new account and profile")]
-	AvadaKedavra,
+	Nuke,
 
 	#[command(about = "Prepare the bootstrap files")]
 	Bootstrap(bootstrap::BootstrapArgs),
@@ -106,7 +106,7 @@ pub async fn init() -> ExitCode {
 	};
 
 	let output = match args.command {
-		Some(Commands::AvadaKedavra) => dev::exec(&cfg).await,
+		Some(Commands::Nuke) => dev::exec(&cfg).await,
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
 		Some(Commands::Cache(args)) => {
 			let Some(state) = prepare_state(&cfg).await else {

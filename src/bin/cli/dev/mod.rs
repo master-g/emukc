@@ -99,6 +99,7 @@ async fn deplete_ship_fuel_and_ammo(state: &State, pid: i64) -> Result<()> {
 		ship.api_fuel = 0;
 		ship.api_bull = 0;
 		ship.api_onslot = [0, 0, 0, 0, 0];
+		ship.api_nowhp = 1;
 
 		state.update_ship(ship).await?;
 	}
@@ -169,7 +170,7 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 	// add incentives
 	// add_ship_incentives(state, pid).await?;
 	// deplete ship fuel and ammo
-	// deplete_ship_fuel_and_ammo(state, pid).await?;
+	deplete_ship_fuel_and_ammo(state, pid).await?;
 
 	// update first flag
 	state.update_user_first_flag(pid, 1).await?;

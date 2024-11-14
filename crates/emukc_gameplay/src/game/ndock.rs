@@ -244,6 +244,7 @@ where
 {
 	let dock = ndock::Entity::find()
 		.filter(ndock::Column::ProfileId.eq(profile_id))
+		.filter(ndock::Column::Status.eq(ndock::Status::Locked))
 		.order_by_asc(ndock::Column::Index)
 		.one(c)
 		.await?

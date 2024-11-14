@@ -228,10 +228,11 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 	}
 
 	async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError> {
+		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		update_ship_impl(&tx, ship).await?;
+		update_ship_impl(&tx, codex, ship).await?;
 
 		tx.commit().await?;
 
@@ -615,75 +616,75 @@ where
 	Ok(())
 }
 
-pub(crate) async fn update_ship_impl<C>(c: &C, s: &KcApiShip) -> Result<ship::Model, GameplayError>
+pub(crate) async fn update_ship_impl<C>(
+	c: &C,
+	codex: &Codex,
+	s: &KcApiShip,
+) -> Result<ship::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
-	let m = ship::Entity::find_by_id(s.api_id).one(c).await?.ok_or_else(|| {
+	let mut m = ship::Entity::find_by_id(s.api_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!("ship with id {} not found", s.api_id))
 	})?;
 
-	let mut am = m.into_active_model();
+	m.level = s.api_lv;
+	m.exp_now = s.api_exp[0];
+	m.exp_next = s.api_exp[1];
+	m.exp_progress = s.api_exp[2];
+	m.married = s.api_lv > 99;
+	m.locked = s.api_locked == 1;
+	m.backs = s.api_backs;
+	m.hp_now = s.api_nowhp;
+	m.hp_max = s.api_maxhp;
+	m.speed = s.api_soku;
+	m.range = s.api_leng;
+	m.slot_1 = s.api_slot[0];
+	m.slot_2 = s.api_slot[1];
+	m.slot_3 = s.api_slot[2];
+	m.slot_4 = s.api_slot[3];
+	m.slot_5 = s.api_slot[4];
+	m.slot_ex = s.api_slot_ex;
+	m.onslot_1 = s.api_onslot[0];
+	m.onslot_2 = s.api_onslot[1];
+	m.onslot_3 = s.api_onslot[2];
+	m.onslot_4 = s.api_onslot[3];
+	m.onslot_5 = s.api_onslot[4];
+	m.mod_firepower = s.api_kyouka[0];
+	m.mod_torpedo = s.api_kyouka[1];
+	m.mod_aa = s.api_kyouka[2];
+	m.mod_armor = s.api_kyouka[3];
+	m.mod_luck = s.api_kyouka[4];
+	m.mod_hp = s.api_kyouka[5];
+	m.mod_asw = s.api_kyouka[6];
+	m.fuel = s.api_fuel;
+	m.ammo = s.api_bull;
+	m.slot_num = s.api_slotnum;
+	m.ndock_time = s.api_ndock_time;
+	m.ndock_fuel = s.api_ndock_item[0];
+	m.ndock_steel = s.api_ndock_item[1];
+	m.srate = s.api_srate;
+	m.condition = s.api_cond;
+	m.firepower_now = s.api_karyoku[0];
+	m.firepower_max = s.api_karyoku[1];
+	m.torpedo_now = s.api_raisou[0];
+	m.torpedo_max = s.api_raisou[1];
+	m.aa_now = s.api_taiku[0];
+	m.aa_max = s.api_taiku[1];
+	m.armor_now = s.api_soukou[0];
+	m.armor_max = s.api_soukou[1];
+	m.evasion_now = s.api_kaihi[0];
+	m.evasion_max = s.api_kaihi[1];
+	m.asw_now = s.api_taisen[0];
+	m.asw_max = s.api_taisen[1];
+	m.los_now = s.api_sakuteki[0];
+	m.los_max = s.api_sakuteki[1];
+	m.luck_now = s.api_lucky[0];
+	m.luck_max = s.api_lucky[1];
+	m.has_locked_euqip = s.api_locked_equip == 1;
+	m.sally_area = s.api_sally_area;
 
-	{
-		let progress = s.api_exp[0] as f64 / s.api_exp[1] as f64 * 100.0;
-		am.level = ActiveValue::Set(s.api_lv);
-		am.exp_now = ActiveValue::Set(s.api_exp[0]);
-		am.exp_next = ActiveValue::Set(s.api_exp[1]);
-		am.exp_progress = ActiveValue::Set(progress as i64);
-		am.married = ActiveValue::Set(s.api_lv > 99);
-		am.locked = ActiveValue::Set(s.api_locked == 1);
-		am.backs = ActiveValue::Set(s.api_backs);
-		am.hp_now = ActiveValue::Set(s.api_nowhp);
-		am.hp_max = ActiveValue::Set(s.api_maxhp);
-		am.speed = ActiveValue::Set(s.api_soku);
-		am.range = ActiveValue::Set(s.api_leng);
-		am.slot_1 = ActiveValue::Set(s.api_slot[0]);
-		am.slot_2 = ActiveValue::Set(s.api_slot[1]);
-		am.slot_3 = ActiveValue::Set(s.api_slot[2]);
-		am.slot_4 = ActiveValue::Set(s.api_slot[3]);
-		am.slot_5 = ActiveValue::Set(s.api_slot[4]);
-		am.slot_ex = ActiveValue::Set(s.api_slot_ex);
-		am.onslot_1 = ActiveValue::Set(s.api_onslot[0]);
-		am.onslot_2 = ActiveValue::Set(s.api_onslot[1]);
-		am.onslot_3 = ActiveValue::Set(s.api_onslot[2]);
-		am.onslot_4 = ActiveValue::Set(s.api_onslot[3]);
-		am.onslot_5 = ActiveValue::Set(s.api_onslot[4]);
-		am.mod_firepower = ActiveValue::Set(s.api_kyouka[0]);
-		am.mod_torpedo = ActiveValue::Set(s.api_kyouka[1]);
-		am.mod_aa = ActiveValue::Set(s.api_kyouka[2]);
-		am.mod_armor = ActiveValue::Set(s.api_kyouka[3]);
-		am.mod_luck = ActiveValue::Set(s.api_kyouka[4]);
-		am.mod_hp = ActiveValue::Set(s.api_kyouka[5]);
-		am.mod_asw = ActiveValue::Set(s.api_kyouka[6]);
-		am.fuel = ActiveValue::Set(s.api_fuel);
-		am.ammo = ActiveValue::Set(s.api_bull);
-		am.slot_num = ActiveValue::Set(s.api_slotnum);
-		am.ndock_time = ActiveValue::Set(s.api_ndock_time);
-		am.ndock_fuel = ActiveValue::Set(s.api_ndock_item[0]);
-		am.ndock_steel = ActiveValue::Set(s.api_ndock_item[1]);
-		am.srate = ActiveValue::Set(s.api_srate);
-		am.condition = ActiveValue::Set(s.api_cond);
-		am.firepower_now = ActiveValue::Set(s.api_karyoku[0]);
-		am.firepower_max = ActiveValue::Set(s.api_karyoku[1]);
-		am.torpedo_now = ActiveValue::Set(s.api_raisou[0]);
-		am.torpedo_max = ActiveValue::Set(s.api_raisou[1]);
-		am.aa_now = ActiveValue::Set(s.api_taiku[0]);
-		am.aa_max = ActiveValue::Set(s.api_taiku[1]);
-		am.armor_now = ActiveValue::Set(s.api_soukou[0]);
-		am.armor_max = ActiveValue::Set(s.api_soukou[1]);
-		am.evasion_now = ActiveValue::Set(s.api_kaihi[0]);
-		am.evasion_max = ActiveValue::Set(s.api_kaihi[1]);
-		am.asw_now = ActiveValue::Set(s.api_taisen[0]);
-		am.asw_max = ActiveValue::Set(s.api_taisen[1]);
-		am.los_now = ActiveValue::Set(s.api_sakuteki[0]);
-		am.los_max = ActiveValue::Set(s.api_sakuteki[1]);
-		am.luck_now = ActiveValue::Set(s.api_lucky[0]);
-		am.luck_max = ActiveValue::Set(s.api_lucky[1]);
-		am.has_locked_euqip = ActiveValue::Set(s.api_locked_equip == 1);
-		am.sally_area = ActiveValue::Set(s.api_sally_area);
-	}
-
+	let am = recalculate_ship_status_with_model(c, codex, &m).await?;
 	let m = am.update(c).await?;
 
 	Ok(m)
@@ -723,8 +724,14 @@ where
 	am.exp_next = ActiveValue::Set(api_ship.api_exp[1]);
 	am.exp_progress =
 		ActiveValue::Set((api_ship.api_exp[0] as f64 / api_ship.api_exp[1] as f64 * 100.0) as i64);
+	am.hp_max = ActiveValue::Set(api_ship.api_maxhp);
+	am.hp_now = ActiveValue::Set(api_ship.api_nowhp);
+	am.married = ActiveValue::Set(api_ship.api_lv > 99);
+	am.backs = ActiveValue::Set(api_ship.api_backs);
 	am.speed = ActiveValue::Set(api_ship.api_soku);
 	am.range = ActiveValue::Set(api_ship.api_leng);
+	am.fuel = ActiveValue::Set(api_ship.api_fuel);
+	am.ammo = ActiveValue::Set(api_ship.api_bull);
 	am.slot_1 = ActiveValue::Set(api_ship.api_slot[0]);
 	am.slot_2 = ActiveValue::Set(api_ship.api_slot[1]);
 	am.slot_3 = ActiveValue::Set(api_ship.api_slot[2]);
@@ -761,6 +768,7 @@ where
 	am.los_max = ActiveValue::Set(api_ship.api_sakuteki[1]);
 	am.luck_now = ActiveValue::Set(api_ship.api_lucky[0]);
 	am.luck_max = ActiveValue::Set(api_ship.api_lucky[1]);
+	am.sally_area = ActiveValue::Set(api_ship.api_sally_area);
 
 	Ok(am)
 }

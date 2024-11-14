@@ -454,7 +454,7 @@ impl Codex {
 		let repair_info =
 			self.cal_ship_docking_cost(mst, ship.api_lv, ship.api_maxhp - ship.api_nowhp)?;
 
-		ship.api_ndock_time = repair_info.duration_sec;
+		ship.api_ndock_time = repair_info.duration_sec * 1000;
 		ship.api_ndock_item = [repair_info.fuel_cost.max(1), repair_info.steel_cost.max(1)];
 
 		Ok(())

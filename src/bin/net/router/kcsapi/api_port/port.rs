@@ -37,13 +37,6 @@ pub(super) async fn handler(
 
 	state.update_materials(pid).await?;
 
-	let mut ships = state.get_ships(pid).await?;
-	let slot_items = state.get_slot_items(pid).await?;
-
-	for ship in ships.iter_mut() {
-		state.codex.cal_ship_status(ship, &slot_items)?;
-	}
-
 	// TODO: update quests here
 
 	let api_material = state.get_materials(pid).await?;
@@ -55,6 +48,8 @@ pub(super) async fn handler(
 	let api_dest_ship_slot = 1;
 	let api_ndock = state.get_ndocks(pid).await?;
 	let api_ndock: Vec<KcApiNDock> = api_ndock.into_iter().map(std::convert::Into::into).collect();
+
+	// FIXME: the ndock info is not correct
 	let api_ship = state.get_ships(pid).await?;
 
 	let ver = format!("Welcome to EmuKC {}-{}", VERSION, GIT_HASH.to_uppercase());
