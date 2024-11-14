@@ -65,7 +65,11 @@ pub trait FactoryOps {
 	///
 	/// - `profile_id`: The profile ID.
 	/// - `kdock_id`: The construction dock ID.
-	async fn kdock_fastbuild(&self, profile_id: i64, kdock_id: i64) -> Result<(), GameplayError>;
+	async fn speed_up_ship_construction(
+		&self,
+		profile_id: i64,
+		kdock_id: i64,
+	) -> Result<(), GameplayError>;
 
 	/// Destroy a ship.
 	///
@@ -182,7 +186,11 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 		Ok(())
 	}
 
-	async fn kdock_fastbuild(&self, profile_id: i64, kdock_id: i64) -> Result<(), GameplayError> {
+	async fn speed_up_ship_construction(
+		&self,
+		profile_id: i64,
+		kdock_id: i64,
+	) -> Result<(), GameplayError> {
 		let db = self.db();
 		let tx = db.begin().await?;
 

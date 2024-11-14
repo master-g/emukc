@@ -202,7 +202,7 @@ pub enum Relation {
 	RivalDetail,
 
 	/// Relation to `RivalShip`
-	#[sea_orm(has_many = "practice::ship::Entity")]
+	#[sea_orm(has_many = "practice::rival_ship::Entity")]
 	RivalShip,
 
 	/// Relation to `QuestProgress`

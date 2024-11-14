@@ -44,9 +44,6 @@ pub struct Model {
 	/// complete time
 	pub complete_time: Option<DateTime<Utc>>,
 
-	/// last update time
-	pub last_update: Option<DateTime<Utc>>,
-
 	/// fuel consumption
 	pub fuel: i64,
 
@@ -103,7 +100,6 @@ impl From<RepairDock> for ActiveModel {
 			status: ActiveValue::Set(value.status.into()),
 			ship_id: ActiveValue::Set(value.context.as_ref().map(|x| x.ship_id).unwrap_or(0)),
 			complete_time: ActiveValue::Set(value.context.as_ref().map(|x| x.complete_time)),
-			last_update: ActiveValue::Set(value.context.as_ref().map(|x| x.last_update)),
 			fuel: ActiveValue::Set(value.context.as_ref().map(|x| x.fuel).unwrap_or(0)),
 			steel: ActiveValue::Set(value.context.as_ref().map(|x| x.steel).unwrap_or(0)),
 		}
@@ -116,7 +112,6 @@ impl From<Model> for RepairDock {
 			Status::Busy => Some(RepairContext {
 				ship_id: value.ship_id,
 				complete_time: value.complete_time.unwrap_or_else(Utc::now),
-				last_update: value.last_update.unwrap_or_else(Utc::now),
 				fuel: value.fuel,
 				steel: value.steel,
 			}),

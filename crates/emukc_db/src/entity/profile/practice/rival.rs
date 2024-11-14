@@ -105,7 +105,7 @@ pub enum Relation {
 	Detail,
 
 	/// Relation to `Ship`
-	#[sea_orm(has_many = "super::ship::Entity")]
+	#[sea_orm(has_many = "super::rival_ship::Entity")]
 	Ship,
 }
 

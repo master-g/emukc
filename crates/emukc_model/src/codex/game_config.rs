@@ -14,6 +14,25 @@ pub struct PicturebookConfig {
 	pub unlock_all_slotitems: bool,
 }
 
+/// Repair config
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DockingConfig {
+	/// Repair time factor
+	pub time_factor: f64,
+
+	/// Repair cost factor
+	pub cost_factor: f64,
+}
+
+impl Default for DockingConfig {
+	fn default() -> Self {
+		Self {
+			time_factor: 1.0,
+			cost_factor: 1.0,
+		}
+	}
+}
+
 /// Game configuration.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GameConfig {
@@ -22,4 +41,7 @@ pub struct GameConfig {
 
 	/// Picture book for ships.
 	pub picturebook: PicturebookConfig,
+
+	/// Docking configuration.
+	pub docking: DockingConfig,
 }

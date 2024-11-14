@@ -3,9 +3,11 @@ use emukc_db::{
 	entity::profile::kdock,
 	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
 };
-use emukc_model::profile::kdock::ConstructionDock;
+use emukc_model::{kc2::KcUseItemType, profile::kdock::ConstructionDock};
 
 use crate::{err::GameplayError, gameplay::HasContext};
+
+use super::use_item::deduct_use_item_impl;
 
 /// A trait for construction dock related gameplay.
 #[async_trait]
@@ -40,6 +42,13 @@ pub trait KDockOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError>;
+
+	/// Expand construction dock.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -75,6 +84,17 @@ impl<T: HasContext + ?Sized> KDockOps for T {
 		let docks = get_kdocks_impl(db, profile_id).await?;
 
 		Ok(docks.into_iter().map(std::convert::Into::into).collect())
+	}
+
+	async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		expand_construction_dock_impl(&tx, profile_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -166,6 +186,36 @@ where
 		.await?;
 
 	Ok(docks)
+}
+
+pub(crate) async fn expand_construction_dock_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let dock = kdock::Entity::find()
+		.filter(kdock::Column::ProfileId.eq(profile_id))
+		.filter(kdock::Column::Status.eq(kdock::Status::Locked))
+		.order_by_asc(kdock::Column::Index)
+		.one(c)
+		.await?
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"no locked construction dock not found for profile {}",
+				profile_id
+			))
+		})?;
+
+	deduct_use_item_impl(c, profile_id, KcUseItemType::DockKey as i64, 1).await?;
+
+	let mut am: kdock::ActiveModel = dock.into();
+	am.status = ActiveValue::Set(kdock::Status::Idle);
+
+	am.save(c).await?;
+
+	Ok(())
 }
 
 /// Initialize construction docks for a profile.

@@ -2,7 +2,7 @@
 
 use crate::{
 	fields::MoveValueToEnd,
-	kc2::{level, KcApiShip, KcApiSlotItem, KcShipType},
+	kc2::{level, KcApiShip, KcApiSlotItem},
 	prelude::{
 		ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo,
 		Kc3rdShipRemodelRequirement,
@@ -451,37 +451,11 @@ impl Codex {
 			return Ok(());
 		}
 
-		let ship_type = KcShipType::n(mst.api_stype)
-			.ok_or(CodexError::NotFound(format!("invalid ship type {}", mst.api_stype)))?;
-		let multiplier = match ship_type {
-			KcShipType::BB | KcShipType::BBV | KcShipType::CVB | KcShipType::AR => 2.0,
-			KcShipType::CA
-			| KcShipType::CAV
-			| KcShipType::FBB
-			| KcShipType::CVL
-			| KcShipType::AS => 1.5,
-			KcShipType::SS | KcShipType::DE => 0.5,
-			_ => 1.0,
-		};
+		let repair_info =
+			self.cal_ship_docking_cost(mst, ship.api_lv, ship.api_maxhp - ship.api_nowhp)?;
 
-		let hp_lost = (ship.api_maxhp - ship.api_nowhp) as f64;
-		let mut repair_seconds = if ship.api_lv < 12 {
-			hp_lost * (ship.api_lv as f64) * 10.0 * multiplier
-		} else {
-			hp_lost
-				* ((ship.api_lv as f64 * 5.0
-					+ (ship.api_lv as f64 - 11.0).sqrt().floor() * 10.0
-					+ 50.0) * multiplier)
-		};
-		repair_seconds += 30.0;
-
-		ship.api_ndock_time = repair_seconds.floor() as i64;
-
-		// materials
-		let fuel_cost = ((mst.api_fuel_max.unwrap_or(0) as f64) * hp_lost * 0.032).floor() as i64;
-		let steel_cost = ((mst.api_fuel_max.unwrap_or(0) as f64) * hp_lost * 0.06).floor() as i64;
-
-		ship.api_ndock_item = [fuel_cost.max(1), steel_cost.max(1)];
+		ship.api_ndock_time = repair_info.duration_sec;
+		ship.api_ndock_item = [repair_info.fuel_cost.max(1), repair_info.steel_cost.max(1)];
 
 		Ok(())
 	}

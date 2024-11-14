@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{
 		self,
-		practice::{self, config::RivalType, ship},
+		practice::{self, config::RivalType, rival_ship},
 	},
 	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait},
 };
@@ -117,9 +117,9 @@ where
 					))
 				})?;
 
-			let ships = profile::practice::ship::Entity::find()
-				.filter(profile::practice::ship::Column::ProfileId.eq(profile_id))
-				.filter(profile::practice::ship::Column::RivalId.eq(rival.id))
+			let ships = profile::practice::rival_ship::Entity::find()
+				.filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
+				.filter(profile::practice::rival_ship::Column::RivalId.eq(rival.id))
 				.all(c)
 				.await?;
 
@@ -199,7 +199,7 @@ where
 	let last_profile = profile::Entity::find().order_by_desc(profile::Column::Id).one(c).await?;
 	let current_uid = last_profile.map(|p| p.id).unwrap_or(0) + 1;
 
-	let last_ship = ship::Entity::find().order_by_desc(ship::Column::Id).one(c).await?;
+	let last_ship = rival_ship::Entity::find().order_by_desc(rival_ship::Column::Id).one(c).await?;
 	let current_ship_id = last_ship.map(|s| s.id).unwrap_or(0) + 1;
 
 	let rival_uid_starts_from = current_uid + 10000;
@@ -257,8 +257,8 @@ where
 		.exec(c)
 		.await?;
 
-	profile::practice::ship::Entity::delete_many()
-		.filter(profile::practice::ship::Column::ProfileId.eq(profile_id))
+	profile::practice::rival_ship::Entity::delete_many()
+		.filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
 
@@ -302,7 +302,7 @@ where
 		// ships
 		{
 			for ship in &rival.details.ships {
-				let am = profile::practice::ship::ActiveModel {
+				let am = profile::practice::rival_ship::ActiveModel {
 					id: ActiveValue::Set(ship.id),
 					profile_id: ActiveValue::Set(profile_id),
 					rival_id: ActiveValue::Set(rival.id),
@@ -379,8 +379,8 @@ where
 		.filter(profile::practice::detail::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
-	profile::practice::ship::Entity::delete_many()
-		.filter(profile::practice::ship::Column::ProfileId.eq(profile_id))
+	profile::practice::rival_ship::Entity::delete_many()
+		.filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
 

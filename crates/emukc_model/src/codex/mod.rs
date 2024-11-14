@@ -16,6 +16,7 @@ pub mod game_config;
 pub mod group;
 pub mod incentive;
 pub mod query;
+pub mod repair;
 pub mod ship;
 pub mod slot_item;
 

@@ -1,20 +1,16 @@
 use axum::{Extension, Form};
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::prelude::*;
-
 use crate::net::{
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
 	AppState,
 };
+use emukc_internal::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {
-	/// should be 1
-	api_highspeed: i64,
-	/// construction dock id
-	api_kdock_id: i64,
+	api_ndock_id: i64,
 }
 
 pub(super) async fn handler(
@@ -24,7 +20,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	state.speed_up_ship_construction(pid, params.api_kdock_id).await?;
+	state.speed_up_ship_repairation(pid, params.api_ndock_id).await?;
 
 	Ok(KcApiResponse::empty())
 }

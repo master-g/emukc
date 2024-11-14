@@ -1,11 +1,22 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::ndock,
-	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
+	entity::profile::{ndock, ship},
+	sea_orm::{
+		entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait,
+		TryIntoModel,
+	},
 };
-use emukc_model::profile::ndock::RepairDock;
+use emukc_model::{
+	codex::{repair::RepairCost, Codex},
+	kc2::{KcUseItemType, MaterialCategory},
+	prelude::ApiMstShip,
+	profile::ndock::RepairDock,
+};
+use emukc_time::chrono;
 
 use crate::{err::GameplayError, gameplay::HasContext};
+
+use super::{material::deduct_material_impl, use_item::deduct_use_item_impl};
 
 /// A trait for repair dock related gameplay.
 #[async_trait]
@@ -32,6 +43,41 @@ pub trait NDockOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError>;
+
+	/// Expand repair dock.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	async fn expand_repair_dock(&self, profile_id: i64) -> Result<(), GameplayError>;
+
+	/// Start ship repairation.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `ndock_id`: The repair dock ID.
+	/// - `ship_id`: The ship ID.
+	/// - `highspeed`: Whether to use high-speed repair.
+	async fn ndock_start_repair(
+		&self,
+		profile_id: i64,
+		ndock_id: i64,
+		ship_id: i64,
+		highspeed: bool,
+	) -> Result<(), GameplayError>;
+
+	/// Speed up ship repairation.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `ndock_id`: The repair dock ID.
+	async fn speed_up_ship_repairation(
+		&self,
+		profile_id: i64,
+		ndock_id: i64,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -59,6 +105,50 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 		let docks = get_ndocks_impl(db, profile_id).await?;
 
 		Ok(docks.into_iter().map(std::convert::Into::into).collect())
+	}
+
+	async fn expand_repair_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		expand_repair_dock_impl(&tx, profile_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn ndock_start_repair(
+		&self,
+		profile_id: i64,
+		ndock_id: i64,
+		ship_id: i64,
+		highspeed: bool,
+	) -> Result<(), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn speed_up_ship_repairation(
+		&self,
+		profile_id: i64,
+		ndock_id: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		speed_up_ship_repairation_impl(&tx, profile_id, ndock_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -148,6 +238,181 @@ where
 	Ok(docks)
 }
 
+pub(crate) async fn expand_repair_dock_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let dock = ndock::Entity::find()
+		.filter(ndock::Column::ProfileId.eq(profile_id))
+		.order_by_asc(ndock::Column::Index)
+		.one(c)
+		.await?
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"Repair dock not found for profile {}",
+				profile_id
+			))
+		})?;
+
+	deduct_use_item_impl(c, profile_id, KcUseItemType::DockKey as i64, 1).await?;
+
+	let mut am: ndock::ActiveModel = dock.into();
+	am.status = ActiveValue::Set(ndock::Status::Idle);
+
+	am.save(c).await?;
+
+	Ok(())
+}
+
+pub(crate) async fn ndock_start_repair_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	ndock_id: i64,
+	ship_id: i64,
+	highspeed: bool,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let dock = ndock::Entity::find_by_id(ndock_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!(
+			"Repair dock {} not found for profile {}",
+			ndock_id, profile_id
+		))
+	})?;
+
+	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!(
+			"Ship {} not found for profile {}",
+			ship_id, profile_id
+		))
+	})?;
+
+	let ship_mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
+
+	// check if there are repair info in ship model already
+	let docking_cost = if ship.ndock_time <= 0 {
+		// no repair info, calculate repair time
+		warn!("No repair info in ship model, calculate repair time");
+
+		codex.cal_ship_docking_cost(ship_mst, ship.level, ship.hp_max - ship.hp_now)?
+	} else {
+		RepairCost {
+			duration_sec: ship.ndock_time / 1000,
+			fuel_cost: ship.ndock_fuel,
+			steel_cost: ship.ndock_steel,
+		}
+	};
+
+	// update ship model
+	{
+		let mut am = ship.into_active_model();
+
+		if highspeed {
+			am.ndock_time = ActiveValue::Set(0);
+			am.ndock_fuel = ActiveValue::Set(0);
+			am.ndock_steel = ActiveValue::Set(0);
+			am.hp_now = ActiveValue::Set(ship.hp_max);
+			am.condition = if ship.condition < 40 {
+				ActiveValue::Set(40)
+			} else {
+				ActiveValue::Unchanged(ship.condition)
+			};
+		} else {
+			am.ndock_time = ActiveValue::Set(docking_cost.duration_sec * 1000);
+			am.ndock_fuel = ActiveValue::Set(docking_cost.fuel_cost);
+			am.ndock_steel = ActiveValue::Set(docking_cost.steel_cost);
+		}
+
+		am.update(c).await?;
+	}
+
+	// deduct material
+	{
+		let mut material_cost = vec![(MaterialCategory::Fuel, docking_cost.fuel_cost)];
+		if highspeed {
+			material_cost.push((MaterialCategory::Bucket, 1));
+		}
+		deduct_material_impl(c, profile_id, &material_cost).await?;
+	}
+
+	// update ndock model
+	{
+		let mut am = dock.into_active_model();
+		if highspeed {
+			am.status = ActiveValue::Set(ndock::Status::Idle);
+			am.fuel = ActiveValue::Set(0);
+			am.steel = ActiveValue::Set(0);
+			am.ship_id = ActiveValue::Set(0);
+			am.complete_time = ActiveValue::Set(None);
+		} else {
+			am.status = ActiveValue::Set(ndock::Status::Busy);
+			am.fuel = ActiveValue::Set(docking_cost.fuel_cost);
+			am.steel = ActiveValue::Set(docking_cost.steel_cost);
+			am.ship_id = ActiveValue::Set(ship_id);
+			am.complete_time = ActiveValue::Set(Some(
+				chrono::Utc::now() + chrono::Duration::seconds(docking_cost.duration_sec),
+			));
+		}
+
+		am.update(c).await?;
+	}
+
+	Ok(())
+}
+
+pub(crate) async fn speed_up_ship_repairation_impl<C>(
+	c: &C,
+	profile_id: i64,
+	ndock_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let dock = ndock::Entity::find_by_id(ndock_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!(
+			"Repair dock {} not found for profile {}",
+			ndock_id, profile_id
+		))
+	})?;
+
+	// deduct material
+	deduct_material_impl(c, profile_id, &[(MaterialCategory::Bucket, 1)]).await?;
+
+	let ship = ship::Entity::find_by_id(dock.ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!(
+			"Ship {} not found for repair dock {}",
+			dock.ship_id, ndock_id
+		))
+	})?;
+
+	// update ndock model
+	{
+		let mut am = dock.into_active_model();
+		am.complete_time = ActiveValue::Set(None);
+		am.status = ActiveValue::Set(ndock::Status::Idle);
+		am.ship_id = ActiveValue::Set(0);
+		am.fuel = ActiveValue::Set(0);
+		am.steel = ActiveValue::Set(0);
+
+		am.update(c).await?;
+	}
+
+	// update ship
+	{
+		let mut am = ship.into_active_model();
+		am.hp_now = ActiveValue::Set(ship.hp_max);
+		if ship.condition < 40 {
+			am.condition = ActiveValue::Set(40);
+		}
+
+		am.update(c).await?;
+	}
+
+	Ok(())
+}
+
 /// Initialize repair docks for a profile.
 ///
 /// # Parameters
@@ -168,7 +433,6 @@ where
 				index: ActiveValue::Set(*i),
 				status: ActiveValue::Set(dock.status.into()),
 				ship_id: ActiveValue::Set(0),
-				last_update: ActiveValue::Set(None),
 				complete_time: ActiveValue::Set(None),
 				fuel: ActiveValue::Set(0),
 				steel: ActiveValue::Set(0),
