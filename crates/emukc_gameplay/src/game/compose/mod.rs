@@ -3,6 +3,7 @@
 use async_trait::async_trait;
 use remodel::remodel_impl;
 use slot_deprive::slot_deprive_impl;
+use slot_exchange::slot_exchange_impl;
 use std::collections::BTreeMap;
 
 use emukc_db::{
@@ -25,6 +26,7 @@ pub(crate) mod marriage;
 pub(crate) mod powerup;
 pub(crate) mod remodel;
 pub(crate) mod slot_deprive;
+pub(crate) mod slot_exchange;
 pub(crate) mod supply;
 
 #[derive(Debug, Clone)]
@@ -116,6 +118,20 @@ pub trait ComposeOps {
 		profile_id: i64,
 		params: &SlotDepriveParams,
 	) -> Result<SlotDepriveResp, GameplayError>;
+
+	/// Execute a slot exchange operation.
+	///
+	/// # Parameters
+	///
+	/// - `ship_id`: The ship ID.
+	/// - `src_idx`: The source slot index.
+	/// - `dst_idx`: The target slot index.
+	async fn slot_exchange(
+		&self,
+		ship_id: i64,
+		src_idx: i64,
+		dst_idx: i64,
+	) -> Result<ship::Model, GameplayError>;
 }
 
 #[async_trait]
@@ -208,5 +224,21 @@ impl<T: HasContext + ?Sized> ComposeOps for T {
 		tx.commit().await?;
 
 		Ok(resp)
+	}
+
+	async fn slot_exchange(
+		&self,
+		ship_id: i64,
+		src_idx: i64,
+		dst_idx: i64,
+	) -> Result<ship::Model, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let ship = slot_exchange_impl(&tx, ship_id, src_idx, dst_idx).await?;
+
+		tx.commit().await?;
+
+		Ok(ship)
 	}
 }

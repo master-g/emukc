@@ -355,7 +355,7 @@ where
 {
 	let records = slot_item::Entity::find()
 		.filter(slot_item::Column::ProfileId.eq(profile_id))
-		.filter(slot_item::Column::EquipOn.eq(0))
+		.filter(slot_item::Column::EquipOn.lte(0))
 		.all(c)
 		.await?;
 
@@ -372,7 +372,7 @@ where
 {
 	let records = slot_item::Entity::find()
 		.filter(slot_item::Column::ProfileId.eq(profile_id))
-		.filter(slot_item::Column::EquipOn.eq(0))
+		.filter(slot_item::Column::EquipOn.lte(0))
 		.filter(slot_item::Column::Type3.is_in(type3.to_owned()))
 		.all(c)
 		.await?;

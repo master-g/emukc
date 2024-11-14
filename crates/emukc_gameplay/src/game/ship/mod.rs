@@ -69,6 +69,35 @@ pub trait ShipOps {
 		ship_id: i64,
 	) -> Result<KcApiShip, GameplayError>;
 
+	/// Set ex-slot item.
+	///
+	/// # Parameters
+	///
+	/// - `ship_id`: The ship ID.
+	/// - `slot_item_id`: The slot item ID.
+	async fn set_exslot_item(&self, ship_id: i64, slot_item_id: i64) -> Result<(), GameplayError>;
+
+	/// Set slot item.
+	///
+	/// # Parameters
+	///
+	/// - `ship_id`: The ship ID.
+	/// - `slot_idx`: The slot index.
+	/// - `slot_item_id`: The slot item ID.
+	async fn set_slot_item(
+		&self,
+		ship_id: i64,
+		slot_idx: i64,
+		slot_item_id: i64,
+	) -> Result<(), GameplayError>;
+
+	/// Unset all slots of a ship.
+	///
+	/// # Parameters
+	///
+	/// - `ship_id`: The ship ID.
+	async fn unset_all_slots(&self, ship_id: i64) -> Result<(), GameplayError>;
+
 	/// Update ship.
 	///
 	/// TODO: this is a temporary implementation.
@@ -156,6 +185,46 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 		tx.commit().await?;
 
 		Ok(ship.into())
+	}
+
+	async fn set_exslot_item(&self, ship_id: i64, slot_item_id: i64) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		set_exslot_item_impl(&tx, ship_id, slot_item_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn set_slot_item(
+		&self,
+		ship_id: i64,
+		slot_idx: i64,
+		slot_item_id: i64,
+	) -> Result<(), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		set_slot_item_impl(&tx, codex, ship_id, slot_idx, slot_item_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn unset_all_slots(&self, ship_id: i64) -> Result<(), GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		unset_all_slots_impl(&tx, codex, ship_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 
 	async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError> {
@@ -389,6 +458,161 @@ where
 	let m = am.update(c).await?;
 
 	Ok(m)
+}
+
+pub(crate) async fn set_exslot_item_impl<C>(
+	c: &C,
+	ship_id: i64,
+	slot_item_id: i64,
+) -> Result<ship::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
+	})?;
+
+	{
+		let slot_item_model =
+			slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
+				GameplayError::EntryNotFound(format!(
+					"slot item with id {} not found",
+					slot_item_id
+				))
+			})?;
+		let mut am = slot_item_model.into_active_model();
+
+		am.equip_on = ActiveValue::Set(ship_id);
+
+		am.update(c).await?;
+	}
+
+	let mut am = ship.into_active_model();
+	am.slot_ex = ActiveValue::Set(slot_item_id);
+	let m = am.update(c).await?;
+
+	Ok(m)
+}
+
+pub(crate) async fn set_slot_item_impl<C>(
+	c: &C,
+	codex: &Codex,
+	ship_id: i64,
+	slot_idx: i64,
+	slot_item_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	// find target ship
+	let mut ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
+	})?;
+
+	// find slot item to set
+	if slot_item_id > 0 {
+		let slot_item_model =
+			slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
+				GameplayError::EntryNotFound(format!(
+					"slot item with id {} not found",
+					slot_item_id
+				))
+			})?;
+
+		let mut am = slot_item_model.into_active_model();
+		am.equip_on = ActiveValue::Set(ship_id);
+		am.update(c).await?;
+	}
+
+	// handle unset slot item
+	let unset_slot_item_id = match slot_idx {
+		0 => {
+			let tmp = ship.slot_1;
+			ship.slot_1 = slot_item_id;
+			tmp
+		}
+		1 => {
+			let tmp = ship.slot_2;
+			ship.slot_2 = slot_item_id;
+			tmp
+		}
+		2 => {
+			let tmp = ship.slot_3;
+			ship.slot_3 = slot_item_id;
+			tmp
+		}
+		3 => {
+			let tmp = ship.slot_4;
+			ship.slot_4 = slot_item_id;
+			tmp
+		}
+		4 => {
+			let tmp = ship.slot_5;
+			ship.slot_5 = slot_item_id;
+			tmp
+		}
+		_ => unreachable!(),
+	};
+
+	if unset_slot_item_id > 0 {
+		let slot_item_model =
+			slot_item::Entity::find_by_id(unset_slot_item_id).one(c).await?.ok_or_else(|| {
+				GameplayError::EntryNotFound(format!(
+					"slot item with id {} not found",
+					unset_slot_item_id
+				))
+			})?;
+
+		let mut am = slot_item_model.into_active_model();
+		am.equip_on = ActiveValue::Set(0);
+		am.update(c).await?;
+	}
+
+	// recalculate stats
+	let am = recalculate_ship_status_with_model(c, codex, &ship).await?;
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub(crate) async fn unset_all_slots_impl<C>(
+	c: &C,
+	codex: &Codex,
+	ship_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let mut ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
+	})?;
+
+	for m in find_slot_items_by_id_impl(
+		c,
+		&[ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex],
+	)
+	.await?
+	{
+		let mut am = m.into_active_model();
+		am.equip_on = ActiveValue::Set(0);
+		am.update(c).await?;
+	}
+
+	ship.slot_1 = -1;
+	ship.slot_2 = -1;
+	ship.slot_3 = -1;
+	ship.slot_4 = -1;
+	ship.slot_5 = -1;
+	if ship.slot_ex != 0 {
+		ship.slot_ex = -1;
+	}
+
+	let am = recalculate_ship_status_with_model(c, codex, &ship).await?;
+
+	am.update(c).await?;
+
+	Ok(())
 }
 
 pub(crate) async fn update_ship_impl<C>(c: &C, s: &KcApiShip) -> Result<ship::Model, GameplayError>
