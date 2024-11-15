@@ -41,6 +41,18 @@ pub trait PracticeOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_practice_rivals(&self, profile_id: i64) -> Result<PracticeInfo, GameplayError>;
+
+	/// Get practice rival details.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `rival_id`: The rival ID.
+	async fn get_practice_rival_details(
+		&self,
+		profile_id: i64,
+		rival_id: i64,
+	) -> Result<Rival, GameplayError>;
 }
 
 #[async_trait]
@@ -55,6 +67,18 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 		tx.commit().await?;
 
 		Ok(rivals)
+	}
+
+	async fn get_practice_rival_details(
+		&self,
+		profile_id: i64,
+		rival_id: i64,
+	) -> Result<Rival, GameplayError> {
+		let db = self.db();
+
+		let rival = get_practice_rival_details_impl(db, profile_id, rival_id).await?;
+
+		Ok(rival)
 	}
 }
 
@@ -104,6 +128,8 @@ where
 		}
 	} else {
 		let mut r: Vec<Rival> = Vec::new();
+
+		debug!("load practice rivals");
 
 		for rival in rivals.into_iter() {
 			// find rival details and all ships
@@ -166,6 +192,63 @@ where
 	Ok(resp)
 }
 
+pub(crate) async fn get_practice_rival_details_impl<C>(
+	c: &C,
+	profile_id: i64,
+	rival_id: i64,
+) -> Result<Rival, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let rival =
+		profile::practice::rival::Entity::find_by_id(rival_id).one(c).await?.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"Practice rival not found for profile {}",
+				profile_id
+			))
+		})?;
+
+	let details =
+		profile::practice::detail::Entity::find_by_id(rival_id).one(c).await?.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"Practice rival details not found for profile {}",
+				profile_id
+			))
+		})?;
+
+	let ships = profile::practice::rival_ship::Entity::find()
+		.filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
+		.filter(profile::practice::rival_ship::Column::RivalId.eq(rival_id))
+		.all(c)
+		.await?;
+
+	let rival = Rival {
+		id: rival.id,
+		index: rival.index,
+		name: rival.name,
+		comment: rival.comment,
+		level: rival.level,
+		rank: rival.rank.into(),
+		flag: rival.flag.into(),
+		status: rival.status.into(),
+		medals: rival.medals,
+		details: RivalDetail {
+			exp_now: details.exp_now,
+			exp_next: details.exp_next,
+			friend: details.friend,
+			current_ship_count: details.current_ship_count,
+			ship_capacity: details.ship_capacity,
+			current_slot_item_count: details.current_slot_item_count,
+			slot_item_capacity: details.slot_item_capacity,
+			furniture: details.furniture,
+			deck_name: details.deck_name,
+			ships: ships.into_iter().map(std::convert::Into::into).collect(),
+		},
+	};
+
+	Ok(rival)
+}
+
 /// Generate practice rivals.
 ///
 /// # Parameters
@@ -210,7 +293,7 @@ where
 	let rivals: Vec<Rival> = (1..6)
 		.map(|i| {
 			let name = format!("Practice Rival {}", i);
-			let comment = format!("I am the {}th rival", i);
+			let comment = format!("I am your {}th rival", i);
 			let rank = r.gen_range(1..=10);
 			let flag = r.gen_range(1..=3);
 			let ship_mst = api_mst_ship.choose(&mut r).unwrap();
@@ -247,8 +330,9 @@ where
 		.collect();
 
 	// remove old records
-	profile::practice::rival::Entity::delete_many()
-		.filter(profile::practice::rival::Column::ProfileId.eq(profile_id))
+
+	profile::practice::rival_ship::Entity::delete_many()
+		.filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
 
@@ -257,8 +341,8 @@ where
 		.exec(c)
 		.await?;
 
-	profile::practice::rival_ship::Entity::delete_many()
-		.filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
+	profile::practice::rival::Entity::delete_many()
+		.filter(profile::practice::rival::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
 

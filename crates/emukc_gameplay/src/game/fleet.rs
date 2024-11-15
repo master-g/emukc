@@ -46,6 +46,20 @@ pub trait FleetOps {
 		index: i64,
 		ship_ids: &[i64; 6],
 	) -> Result<Fleet, GameplayError>;
+
+	/// Update deck name.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `index`: The deck index.
+	/// - `name`: The new deck name.
+	async fn update_deck_name(
+		&self,
+		profile_id: i64,
+		index: i64,
+		name: &str,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -88,6 +102,22 @@ impl<T: HasContext + ?Sized> FleetOps for T {
 		tx.commit().await?;
 
 		Ok(m.into())
+	}
+
+	async fn update_deck_name(
+		&self,
+		profile_id: i64,
+		index: i64,
+		name: &str,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_deck_name_impl(&tx, profile_id, index, name).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -204,6 +234,24 @@ where
 	let m = am.update(c).await?;
 
 	Ok(m.try_into_model()?)
+}
+
+pub(crate) async fn update_deck_name_impl<C>(
+	c: &C,
+	profile_id: i64,
+	index: i64,
+	name: &str,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let fleet = find_fleet(c, profile_id, index).await?;
+	let mut am: fleet::ActiveModel = fleet.into();
+	am.name = ActiveValue::Set(name.to_string());
+
+	am.update(c).await?;
+
+	Ok(())
 }
 
 /// Initialize deck ports for a profile.

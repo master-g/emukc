@@ -115,7 +115,6 @@ api_req_member/get_practice_enemyinfo
 api_req_member/itemuse
 api_req_member/itemuse_cond
 api_req_member/payitemuse
-api_req_member/registration_sp
 api_req_member/set_flagship_position
 api_req_member/set_friendly_request
 api_req_member/set_option_setting
