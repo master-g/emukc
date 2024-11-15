@@ -141,7 +141,6 @@ api_req_quest/clearitemget
 api_req_quest/start
 api_req_quest/stop
 
-api_req_ranking/getlist
 api_req_ranking/mxltvkpyuklh
 
 api_req_sortie/airbattle

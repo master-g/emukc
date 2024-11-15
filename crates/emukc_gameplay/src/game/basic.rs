@@ -10,7 +10,7 @@ use crate::{err::GameplayError, gameplay::HasContext};
 
 use super::{
 	fleet::get_fleets_impl, furniture::get_furniture_config_impl, kdock::get_kdocks_impl,
-	ndock::get_ndocks_impl, use_item::find_use_item_impl,
+	use_item::find_use_item_impl,
 };
 
 /// A trait for furniture related gameplay.
@@ -175,9 +175,11 @@ where
 	let api_count_kdock =
 		kdocks.iter().filter(|x| x.status != kdock::Status::Locked).count() as i64;
 	// repair docks
-	let ndocks = get_ndocks_impl(c, profile_id).await?;
-	let api_count_ndock =
-		ndocks.iter().filter(|x| x.status != ndock::Status::Locked).count() as i64;
+	let api_count_ndock = ndock::Entity::find()
+		.filter(ndock::Column::ProfileId.eq(profile_id))
+		.filter(ndock::Column::Status.ne(ndock::Status::Locked))
+		.count(c)
+		.await? as i64;
 	// fcoin
 	let fcoin = find_use_item_impl(c, profile_id, KcUseItemType::FCoin as i64).await?;
 	let api_fcoin = fcoin.count;

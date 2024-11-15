@@ -16,7 +16,10 @@ use emukc_time::chrono;
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
-use super::{material::deduct_material_impl, use_item::deduct_use_item_impl};
+use super::{
+	material::deduct_material_impl, ship::recalculate_ship_status_with_model,
+	use_item::deduct_use_item_impl,
+};
 
 /// A trait for repair dock related gameplay.
 #[async_trait]
@@ -101,8 +104,13 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 	}
 
 	async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError> {
+		let codex = self.codex();
 		let db = self.db();
-		let docks = get_ndocks_impl(db, profile_id).await?;
+		let tx = db.begin().await?;
+
+		let docks = get_ndocks_impl(&tx, codex, profile_id).await?;
+
+		tx.commit().await?;
 
 		Ok(docks.into_iter().map(std::convert::Into::into).collect())
 	}
@@ -224,16 +232,60 @@ where
 #[allow(unused)]
 pub(crate) async fn get_ndocks_impl<C>(
 	c: &C,
+	codex: &Codex,
 	profile_id: i64,
 ) -> Result<Vec<ndock::Model>, GameplayError>
 where
 	C: ConnectionTrait,
 {
-	let docks: Vec<ndock::Model> = ndock::Entity::find()
+	let models: Vec<ndock::Model> = ndock::Entity::find()
 		.filter(ndock::Column::ProfileId.eq(profile_id))
 		.order_by_asc(ndock::Column::Index)
 		.all(c)
 		.await?;
+
+	let mut docks = vec![];
+
+	for model in models {
+		if model.ship_id > 0 {
+			let ship_id = model.ship_id;
+			if let Some(complete_time) = model.complete_time {
+				if complete_time <= chrono::Utc::now() {
+					let dock_id = model.id;
+
+					let mut am: ndock::ActiveModel = model.into();
+					am.status = ActiveValue::Set(ndock::Status::Idle);
+					am.ship_id = ActiveValue::Set(0);
+					am.fuel = ActiveValue::Set(0);
+					am.steel = ActiveValue::Set(0);
+					am.complete_time = ActiveValue::Set(None);
+
+					let m = am.update(c).await?;
+					docks.push(m);
+
+					// update ship
+					let mut ship =
+						ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+							GameplayError::EntryNotFound(format!(
+								"Ship {} not found for repair dock {}",
+								ship_id, dock_id
+							))
+						})?;
+
+					ship.hp_now = ship.hp_max;
+					if ship.condition < 40 {
+						ship.condition = 40;
+					}
+					let ship_am = recalculate_ship_status_with_model(c, codex, &ship).await?;
+					ship_am.update(c).await?;
+
+					continue;
+				}
+			}
+		}
+
+		docks.push(model);
+	}
 
 	Ok(docks)
 }

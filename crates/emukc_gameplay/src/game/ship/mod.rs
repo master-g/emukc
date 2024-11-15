@@ -719,19 +719,23 @@ where
 	codex.cal_ship_status(&mut api_ship, &api_slot_items)?;
 
 	// modify ship model
+	am.sort_num = ActiveValue::Set(api_ship.api_sortno);
+	am.mst_id = ActiveValue::Set(api_ship.api_ship_id);
 	am.level = ActiveValue::Set(api_ship.api_lv);
 	am.exp_now = ActiveValue::Set(api_ship.api_exp[0]);
 	am.exp_next = ActiveValue::Set(api_ship.api_exp[1]);
-	am.exp_progress =
-		ActiveValue::Set((api_ship.api_exp[0] as f64 / api_ship.api_exp[1] as f64 * 100.0) as i64);
+	am.exp_progress = ActiveValue::Set(api_ship.api_exp[2]);
 	am.hp_max = ActiveValue::Set(api_ship.api_maxhp);
 	am.hp_now = ActiveValue::Set(api_ship.api_nowhp);
 	am.married = ActiveValue::Set(api_ship.api_lv > 99);
 	am.backs = ActiveValue::Set(api_ship.api_backs);
+	am.hp_now = ActiveValue::Set(api_ship.api_nowhp);
+	am.hp_max = ActiveValue::Set(api_ship.api_maxhp);
 	am.speed = ActiveValue::Set(api_ship.api_soku);
 	am.range = ActiveValue::Set(api_ship.api_leng);
 	am.fuel = ActiveValue::Set(api_ship.api_fuel);
 	am.ammo = ActiveValue::Set(api_ship.api_bull);
+	am.slot_num = ActiveValue::Set(api_ship.api_slotnum);
 	am.slot_1 = ActiveValue::Set(api_ship.api_slot[0]);
 	am.slot_2 = ActiveValue::Set(api_ship.api_slot[1]);
 	am.slot_3 = ActiveValue::Set(api_ship.api_slot[2]);
@@ -750,6 +754,9 @@ where
 	am.mod_luck = ActiveValue::Set(api_ship.api_kyouka[4]);
 	am.mod_hp = ActiveValue::Set(api_ship.api_kyouka[5]);
 	am.mod_asw = ActiveValue::Set(api_ship.api_kyouka[6]);
+	am.ndock_time = ActiveValue::Set(api_ship.api_ndock_time);
+	am.ndock_fuel = ActiveValue::Set(api_ship.api_ndock_item[0]);
+	am.ndock_steel = ActiveValue::Set(api_ship.api_ndock_item[1]);
 	am.srate = ActiveValue::Set(api_ship.api_srate);
 	am.condition = ActiveValue::Set(api_ship.api_cond);
 	am.firepower_now = ActiveValue::Set(api_ship.api_karyoku[0]);
