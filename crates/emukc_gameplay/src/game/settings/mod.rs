@@ -1,7 +1,10 @@
 use async_trait::async_trait;
 use emukc_db::sea_orm::{entity::prelude::*, TransactionTrait};
 use emukc_model::kc2::{KcApiGameSetting, KcApiOptionSetting, KcApiOssSetting};
-use game::{get_game_settings_impl, update_flagship_position_impl, update_port_bgm_impl};
+use game::{
+	get_game_settings_impl, update_flagship_position_impl, update_friendly_fleet_settings_impl,
+	update_port_bgm_impl,
+};
 use option::update_options_settings_impl;
 use oss::update_oss_settings_impl;
 
@@ -83,6 +86,20 @@ pub trait SettingsOps {
 		profile_id: i64,
 		position_id: i64,
 	) -> Result<(), GameplayError>;
+
+	/// Update friendly fleet settings.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `request`: The request flag.
+	/// - `typ`: The type.
+	async fn update_friendly_fleet_settings(
+		&self,
+		profile_id: i64,
+		request: bool,
+		typ: i64,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -162,6 +179,22 @@ impl<T: HasContext + ?Sized> SettingsOps for T {
 		let tx = db.begin().await?;
 
 		update_flagship_position_impl(&tx, profile_id, position_id).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_friendly_fleet_settings(
+		&self,
+		profile_id: i64,
+		request: bool,
+		typ: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_friendly_fleet_settings_impl(&tx, profile_id, request, typ).await?;
 
 		tx.commit().await?;
 

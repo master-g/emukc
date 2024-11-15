@@ -80,6 +80,32 @@ where
 	Ok(m)
 }
 
+pub(crate) async fn update_friendly_fleet_settings_impl<C>(
+	c: &C,
+	profile_id: i64,
+	request: bool,
+	typ: i64,
+) -> Result<profile::settings::game::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let m =
+		profile::settings::game::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"game settings not found for profile {}",
+				profile_id
+			))
+		})?;
+
+	let mut am = m.into_active_model();
+
+	am.friend_fleet_req_flag = ActiveValue::Set(request);
+	am.friend_fleet_req_type = ActiveValue::Set(typ);
+	let m = am.update(c).await?;
+
+	Ok(m)
+}
+
 /// Initialize game settings of user.
 ///
 /// # Parameters

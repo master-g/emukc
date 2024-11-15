@@ -1,4 +1,5 @@
 use axum::{Extension, Form};
+use emukc::prelude::SettingsOps;
 use serde::Deserialize;
 
 use crate::net::{
@@ -18,7 +19,7 @@ pub(super) struct Params {
 }
 
 pub(super) async fn handler(
-	_state: AppState,
+	state: AppState,
 	Extension(session): Extension<GameSession>,
 	Form(params): Form<Params>,
 ) -> KcApiResult {
@@ -28,6 +29,10 @@ pub(super) async fn handler(
 		"set_friendly_request: pid={}, request_flag={}, request_typ={}",
 		pid, params.api_request_flag, params.api_request_typ
 	);
+
+	state
+		.update_friendly_fleet_settings(pid, params.api_request_flag == 1, params.api_request_typ)
+		.await?;
 
 	Ok(KcApiResponse::empty())
 }
