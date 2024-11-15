@@ -62,7 +62,6 @@ api_req_furniture/music_list
 api_req_furniture/music_play
 api_req_furniture/radio_play
 api_req_furniture/set_portbgm
-api_req_furniture/set_portbgm
 
 api_req_hensei/change
 api_req_hensei/combined 
