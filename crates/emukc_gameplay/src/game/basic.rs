@@ -4,7 +4,10 @@ use emukc_db::{
 	entity::profile::{self, kdock, ndock},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
 };
-use emukc_model::kc2::{KcApiUserBasic, KcUseItemType};
+use emukc_model::{
+	codex::Codex,
+	kc2::{KcApiUserBasic, KcUseItemType},
+};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -331,6 +334,32 @@ where
 
 	am.id = ActiveValue::Unchanged(profile_id);
 	am.tutorial_progress = ActiveValue::Set(tutorial_progress);
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub(crate) async fn inc_parallel_quest_max_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let max_quests = profile.max_quests;
+
+	if max_quests >= codex.manifest.api_mst_const.api_parallel_quest_max.api_int_value {
+		error!("Capacity exceeded: max_quests={}", max_quests);
+		return Ok(());
+	}
+
+	let mut am: profile::ActiveModel = profile.into();
+
+	am.id = ActiveValue::Unchanged(profile_id);
+	am.max_quests = ActiveValue::Set(max_quests + 1);
 
 	am.update(c).await?;
 

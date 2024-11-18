@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::net::{
 	auth::GameSession,
@@ -14,16 +14,11 @@ pub(super) struct Params {
 
 	// 1: medal for blueprint
 	// 61: raw food materials for rice balls
-	api_exchange_type: i64,
+	api_exchange_type: Option<i64>,
 
 	// 0: response.api_caution_flag will be 1 if the material will be capped by limit.
 	// 1: response.api_caution_flag will be 0 if the material will be capped by limit.
 	api_force_flag: i64,
-}
-
-#[derive(Serialize, Default)]
-struct Resp {
-	api_caution_flag: i64,
 }
 
 pub(super) async fn handler(
@@ -33,5 +28,14 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	Ok(KcApiResponse::empty())
+	let resp = state
+		.consume_use_item(
+			pid,
+			params.api_useitem_id,
+			params.api_exchange_type.unwrap_or(0),
+			params.api_force_flag == 1,
+		)
+		.await?;
+
+	Ok(KcApiResponse::success(&resp))
 }

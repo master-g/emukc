@@ -123,9 +123,9 @@ pub enum KcUseItemType {
 	/// 洋上補給, slotitem
 	Resuppiler = 67,
 	/// 秋刀魚
-	Meckerel = 68,
+	Saury = 68,
 	/// 秋刀魚の缶詰, slotitem
-	MeckerelCan = 69,
+	MackerelCan = 69,
 	/// 熟練搭乗員
 	SkilledCrew = 70,
 	/// ネ式エンジン
@@ -135,7 +135,7 @@ pub enum KcUseItemType {
 	/// 設営隊
 	ConstCorps = 73,
 	/// 新型航空機設計図
-	NewAricraftBlueprint = 74,
+	NewAircraftBlueprint = 74,
 	/// 新型砲熕兵装資材
 	NewArtilleryMaterial = 75,
 	/// 戦闘糧食(特別なおにぎり), slotitem

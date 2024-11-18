@@ -107,7 +107,10 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
 	}
 }
 
-async fn get_mat_impl<C>(c: &C, profile_id: i64) -> Result<material::Model, GameplayError>
+pub(crate) async fn get_mat_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<material::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {

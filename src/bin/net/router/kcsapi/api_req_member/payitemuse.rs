@@ -19,6 +19,7 @@ pub(super) struct Params {
 
 #[derive(Serialize, Default)]
 struct Resp {
+	// 0: will not show caution dialog, 1: will show caution dialog
 	api_caution_flag: i64,
 }
 

@@ -145,6 +145,19 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 		(KcUseItemType::DockKey, 5),
 		(KcUseItemType::Ring, 7),
 		(KcUseItemType::ReinforceExpansion, 100),
+		(KcUseItemType::FCoinBox200, 1),
+		(KcUseItemType::FCoinBox400, 10),
+		(KcUseItemType::FCoinBox700, 23),
+		(KcUseItemType::Medal, 100),
+		(KcUseItemType::Chocolate, 10),
+		(KcUseItemType::Irako, 100),
+		(KcUseItemType::Mamiya, 100),
+		(KcUseItemType::Presents, 100),
+		(KcUseItemType::FirstClassMedal, 100),
+		(KcUseItemType::Hishimochi, 100),
+		(KcUseItemType::HQPersonnel, 100),
+		(KcUseItemType::Saury, 100),
+		(KcUseItemType::Sardine, 100),
 	] {
 		state.add_use_item(pid, t as i64, c).await?;
 	}

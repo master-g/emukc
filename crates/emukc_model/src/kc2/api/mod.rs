@@ -704,3 +704,27 @@ pub struct KcApiUnsetListElement {
 	pub api_type_3_no: i64,
 	pub api_slot_list: Vec<i64>,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiUseItemGetItemElement {
+	/// Type, 2: slot item, 5: item, 6: blueprint
+	pub api_usemst: i64,
+	/// Item ID
+	pub api_mst_id: i64,
+	/// Amount
+	pub api_getcount: i64,
+	/// slot item get
+	pub api_slotitem: Option<KcApiSlotItem>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiUseItemResp {
+	/// 0: won't show caution dialog, 1: will show caution dialog
+	pub api_caution_flag: i64,
+	/// 1: get item, 2: get resources, 3: get both
+	pub api_flag: i64,
+	/// item get
+	pub api_getitem: Option<Vec<KcApiUseItemGetItemElement>>,
+	/// [fuel, ammo, steel, bauxite, torch, bucket, devmat, screw]
+	pub api_material: [i64; 8],
+}

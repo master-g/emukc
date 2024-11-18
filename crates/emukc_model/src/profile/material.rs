@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::kc2::{KcApiMaterialElement, MaterialCategory};
 
 /// In game materials
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Material {
 	/// Profile ID
 	pub id: i64,
@@ -83,6 +83,22 @@ impl From<Material> for Vec<KcApiMaterialElement> {
 				api_id: MaterialCategory::Screw as i64,
 				api_value: value.screw,
 			},
+		]
+	}
+}
+
+impl Material {
+	/// Convert material to array
+	pub fn into_array(&self) -> [i64; 8] {
+		[
+			self.fuel,
+			self.ammo,
+			self.steel,
+			self.bauxite,
+			self.torch,
+			self.bucket,
+			self.devmat,
+			self.screw,
 		]
 	}
 }
