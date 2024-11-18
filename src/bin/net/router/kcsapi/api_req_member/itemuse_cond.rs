@@ -24,5 +24,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
+	state.consume_cond_use_item(pid, params.api_deck_id, params.api_use_type).await?;
+
 	Ok(KcApiResponse::empty())
 }

@@ -1,8 +1,6 @@
-use crate::game::material::{add_material_impl, get_mat_impl};
-use crate::game::slot_item::add_slot_item_impl;
-use crate::gameplay::HasContext;
-use crate::{err::GameplayError, game::basic::inc_parallel_quest_max_impl};
 use async_trait::async_trait;
+use rand::{rngs::SmallRng, seq::IteratorRandom, Rng, SeedableRng};
+
 use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
 	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel},
@@ -11,6 +9,13 @@ use emukc_model::{
 	prelude::*,
 	profile::{material::Material, user_item::UserItem},
 };
+
+use crate::game::material::{add_material_impl, get_mat_impl};
+use crate::game::slot_item::add_slot_item_impl;
+use crate::gameplay::HasContext;
+use crate::{err::GameplayError, game::basic::inc_parallel_quest_max_impl};
+
+use super::fleet::get_fleet_ships_impl;
 
 /// A trait for use item related gameplay.
 #[async_trait]
@@ -77,6 +82,20 @@ pub trait UseItemOps {
 		use_type: i64,
 		force: bool,
 	) -> Result<KcApiUseItemResp, GameplayError>;
+
+	/// Consume Irako and/or Mamiya use item.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `deck_id`: The deck ID.
+	/// - `use_type`: The use type.
+	async fn consume_cond_use_item(
+		&self,
+		profile_id: i64,
+		deck_id: i64,
+		use_type: i64,
+	) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
@@ -160,6 +179,22 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 		tx.commit().await?;
 
 		Ok(resp)
+	}
+
+	async fn consume_cond_use_item(
+		&self,
+		profile_id: i64,
+		deck_id: i64,
+		use_type: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		consume_cond_use_item_impl(&tx, profile_id, deck_id, use_type).await?;
+
+		tx.commit().await?;
+
+		Ok(())
 	}
 }
 
@@ -657,6 +692,91 @@ where
 			Some(get_items)
 		},
 	})
+}
+
+pub(crate) async fn consume_cond_use_item_impl<C>(
+	c: &C,
+	profile_id: i64,
+	deck_id: i64,
+	use_type: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let mut ships = get_fleet_ships_impl(c, profile_id, deck_id).await?;
+
+	deduct_use_item_impl(c, profile_id, KcUseItemType::Mamiya as i64, 1).await?;
+	deduct_use_item_impl(c, profile_id, KcUseItemType::Irako as i64, 1).await?;
+
+	match use_type {
+		1 => {
+			// mamiya
+			ships.iter_mut().for_each(|ship| {
+				ship.condition = if ship.condition < 40 {
+					40
+				} else if ship.condition < 50 {
+					50
+				} else {
+					ship.condition
+				}
+			});
+		}
+		2 => {
+			// irako
+			let mut rng = SmallRng::from_entropy();
+			let lucky_count = rng.gen_range(0..=3);
+			let mut luck_ship_id = vec![ships[0].id];
+			for _ in 0..lucky_count {
+				let id = ships.iter().skip(1).choose(&mut rng).unwrap().id;
+				if !luck_ship_id.contains(&id) {
+					luck_ship_id.push(id);
+				}
+			}
+			for id in luck_ship_id {
+				let ship = ships.iter_mut().find(|s| s.id == id).unwrap();
+				ship.condition = if ship.condition <= 75 {
+					ship.condition + 25
+				} else {
+					100
+				};
+			}
+		}
+		3 => {
+			// mamiya + irako
+			let mut rng = SmallRng::from_entropy();
+			ships.iter_mut().enumerate().for_each(|(i, ship)| {
+				if i == 0 {
+					if ship.condition < 40 {
+						ship.condition = 70;
+					} else {
+						ship.condition += 30;
+					}
+				} else {
+					if ship.condition < 40 {
+						ship.condition = 40;
+					}
+					ship.condition += rng.gen_range(20..=31);
+				}
+				ship.condition = ship.condition.min(100);
+			});
+		}
+		_ => {
+			return Err(GameplayError::WrongType(format!(
+				"use type: {} for profile: {}",
+				use_type, profile_id
+			)));
+		}
+	}
+
+	for ship in ships {
+		let cond = ship.condition;
+		let mut am = ship.into_active_model();
+		am.condition = ActiveValue::Set(cond);
+
+		am.update(c).await?;
+	}
+
+	Ok(())
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

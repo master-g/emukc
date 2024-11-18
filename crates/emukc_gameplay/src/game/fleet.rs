@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::fleet,
+	entity::profile::{fleet, ship},
 	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
 };
 use emukc_model::profile::fleet::Fleet;
@@ -25,6 +25,18 @@ pub trait FleetOps {
 	/// - `profile_id`: The profile ID.
 	/// - `index`: The fleet index, must be one of 1, 2, 3, 4.
 	async fn get_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError>;
+
+	/// Get ship from deck port.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `index`: The fleet index, must be one of 1, 2, 3, 4.
+	async fn get_fleet_ships(
+		&self,
+		profile_id: i64,
+		index: i64,
+	) -> Result<Vec<ship::Model>, GameplayError>;
 
 	/// Get all deck ports.
 	///
@@ -87,6 +99,18 @@ impl<T: HasContext + ?Sized> FleetOps for T {
 		let fleets = get_fleets_impl(db, profile_id).await?;
 
 		Ok(fleets.into_iter().map(std::convert::Into::into).collect())
+	}
+
+	async fn get_fleet_ships(
+		&self,
+		profile_id: i64,
+		index: i64,
+	) -> Result<Vec<ship::Model>, GameplayError> {
+		let db = self.db();
+
+		let ships = get_fleet_ships_impl(db, profile_id, index).await?;
+
+		Ok(ships)
 	}
 
 	async fn update_fleet_ships(
@@ -204,6 +228,21 @@ where
 		.await?;
 
 	Ok(fleets)
+}
+
+pub(crate) async fn get_fleet_ships_impl<C>(
+	c: &C,
+	profile_id: i64,
+	index: i64,
+) -> Result<Vec<ship::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let fleet = get_fleet_impl(c, profile_id, index).await?;
+	let mut ships = ship::Entity::find().filter(ship::Column::Id.is_in(fleet.ships)).all(c).await?;
+	ships.sort_by_key(|ship| fleet.ships.iter().position(|&id| id == ship.id).unwrap());
+
+	Ok(ships)
 }
 
 /// Change ship position in deck port.
