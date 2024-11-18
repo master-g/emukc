@@ -5,7 +5,13 @@ use emukc_db::{
 	entity::profile::item::pay_item::{self, ActiveModel},
 	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
 };
-use emukc_model::{prelude::*, profile::user_item::UserItem};
+use emukc_model::{
+	prelude::*,
+	profile::{material::Material, user_item::UserItem},
+};
+use emukc_time::chrono::Utc;
+
+use super::material::{add_material_impl, get_mat_impl};
 
 /// A trait for pay item related gameplay.
 #[async_trait]
@@ -42,6 +48,20 @@ pub trait PayItemOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_pay_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError>;
+
+	/// Consume pay item from a profile.
+	///
+	/// # Parameters
+	///
+	/// - `profile_id`: The profile ID.
+	/// - `mst_id`: The pay item manifest ID.
+	/// - `forced`: Whether to force consume the item.
+	async fn consume_pay_item(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+		forced: bool,
+	) -> Result<bool, GameplayError>;
 }
 
 #[async_trait]
@@ -87,6 +107,21 @@ impl<T: HasContext + ?Sized> PayItemOps for T {
 		let items: Vec<KcApiUserItem> = items.into_iter().map(std::convert::Into::into).collect();
 
 		Ok(items)
+	}
+
+	async fn consume_pay_item(
+		&self,
+		profile_id: i64,
+		mst_id: i64,
+		forced: bool,
+	) -> Result<bool, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let cauction = consume_pay_item_impl(&tx, codex, profile_id, mst_id, forced).await?;
+
+		Ok(true)
 	}
 }
 
@@ -173,6 +208,123 @@ where
 	let items =
 		pay_item::Entity::find().filter(pay_item::Column::ProfileId.eq(profile_id)).all(c).await?;
 	Ok(items)
+}
+
+pub(crate) async fn consume_pay_item_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	mst_id: i64,
+	forced: bool,
+) -> Result<bool, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let item = find_pay_item_impl(c, profile_id, mst_id).await?;
+	if item.count <= 0 {
+		return Ok(false);
+	}
+
+	let pay_item_type = KcPayItemType::n(mst_id)
+		.ok_or_else(|| GameplayError::WrongType(format!("Invalid pay item type: {}", mst_id)))?;
+
+	let mst = codex.find::<ApiMstPayitem>(&mst_id)?;
+
+	let get_materials = Material {
+		id: 0,
+		last_update_primary: Utc::now(),
+		last_update_bauxite: Utc::now(),
+		fuel: mst.api_item[0],
+		ammo: mst.api_item[1],
+		steel: mst.api_item[2],
+		bauxite: mst.api_item[3],
+		torch: mst.api_item[4],
+		bucket: mst.api_item[5],
+		devmat: mst.api_item[6],
+		screw: mst.api_item[7],
+	};
+
+	let owned_material_model = get_mat_impl(c, profile_id).await?;
+	let mut caution = false;
+	for after in [
+		owned_material_model.fuel + get_materials.fuel,
+		owned_material_model.ammo + get_materials.ammo,
+		owned_material_model.steel + get_materials.steel,
+		owned_material_model.bauxite + get_materials.bauxite,
+	] {
+		if after > codex.game_cfg.material.primary_resource_hard_cap {
+			caution = true;
+			break;
+		}
+	}
+
+	for after in [
+		owned_material_model.bucket + get_materials.bucket,
+		owned_material_model.torch + get_materials.torch,
+		owned_material_model.devmat + get_materials.devmat,
+		owned_material_model.screw + get_materials.screw,
+	] {
+		if after > codex.game_cfg.material.special_resource_cap {
+			caution = true;
+			break;
+		}
+	}
+
+	if !forced && caution {
+		return Ok(true);
+	}
+
+	// add materials
+	add_material_impl(
+		c,
+		codex,
+		profile_id,
+		&[
+			(MaterialCategory::Fuel, get_materials.fuel),
+			(MaterialCategory::Ammo, get_materials.ammo),
+			(MaterialCategory::Steel, get_materials.steel),
+			(MaterialCategory::Bauxite, get_materials.bauxite),
+			(MaterialCategory::Torch, get_materials.torch),
+			(MaterialCategory::Bucket, get_materials.bucket),
+			(MaterialCategory::DevMat, get_materials.devmat),
+			(MaterialCategory::Screw, get_materials.screw),
+		],
+	)
+	.await?;
+
+	match pay_item_type {
+		KcPayItemType::FuelPack => todo!(),
+		KcPayItemType::AmmoPack => todo!(),
+		KcPayItemType::SteelPack => todo!(),
+		KcPayItemType::BauxitePack => todo!(),
+		KcPayItemType::DevMaterialPack => todo!(),
+		KcPayItemType::TorchPack => todo!(),
+		KcPayItemType::BucketPack => todo!(),
+		KcPayItemType::FactorySet => todo!(),
+		KcPayItemType::SortieSet => todo!(),
+		KcPayItemType::DockExpansionSet => todo!(),
+		KcPayItemType::RepairTeam => todo!(),
+		KcPayItemType::RepairSpecialSet => todo!(),
+		KcPayItemType::EightyEightResourceSet => todo!(),
+		KcPayItemType::RepairGoddess => todo!(),
+		KcPayItemType::FurnitureCraftman => todo!(),
+		KcPayItemType::PortExpansion => todo!(),
+		KcPayItemType::TankerRequisition => todo!(),
+		KcPayItemType::Mamiya => todo!(),
+		KcPayItemType::AluminumMassProduction => todo!(),
+		KcPayItemType::Ring => todo!(),
+		KcPayItemType::Cookie => todo!(),
+		KcPayItemType::Screw10 => todo!(),
+		KcPayItemType::Irako5 => todo!(),
+		KcPayItemType::BattleRation => todo!(),
+		KcPayItemType::Resupplier => todo!(),
+		KcPayItemType::ReinforceExpansion => todo!(),
+		KcPayItemType::ConstCorps => todo!(),
+		KcPayItemType::EmergencyRepairMaterialSet => todo!(),
+		KcPayItemType::SubmarineSupplyMaterialPack => todo!(),
+	};
+
+	Ok(false)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>

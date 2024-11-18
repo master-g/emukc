@@ -80,7 +80,7 @@ pub trait UseItemOps {
 		profile_id: i64,
 		mst_id: i64,
 		use_type: i64,
-		force: bool,
+		forced: bool,
 	) -> Result<KcApiUseItemResp, GameplayError>;
 
 	/// Consume Irako and/or Mamiya use item.
@@ -167,14 +167,14 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 		profile_id: i64,
 		mst_id: i64,
 		exchange_type: i64,
-		force: bool,
+		forced: bool,
 	) -> Result<KcApiUseItemResp, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
 		let resp =
-			consume_use_item_impl(&tx, codex, profile_id, mst_id, exchange_type, force).await?;
+			consume_use_item_impl(&tx, codex, profile_id, mst_id, exchange_type, forced).await?;
 
 		tx.commit().await?;
 
@@ -326,7 +326,7 @@ pub(crate) async fn consume_use_item_impl<C>(
 	profile_id: i64,
 	mst_id: i64,
 	exchange_type: i64,
-	force: bool,
+	forced: bool,
 ) -> Result<KcApiUseItemResp, GameplayError>
 where
 	C: ConnectionTrait,
@@ -337,9 +337,8 @@ where
 
 	let use_item_model = find_use_item_impl(c, profile_id, mst_id).await?;
 
-	let mut get_items: Vec<KcApiUseItemGetItemElement> = vec![];
-
 	let mut get_materials = Material::default();
+	let mut get_items: Vec<KcApiUseItemGetItemElement> = vec![];
 
 	let consume_amount = match use_item_type {
 		KcUseItemType::FCoinBox200 | KcUseItemType::FCoinBox400 | KcUseItemType::FCoinBox700 => {
@@ -377,8 +376,6 @@ where
 				api_slotitem: None,
 			});
 
-			add_use_item_impl(c, profile_id, KcUseItemType::FCoin as i64, api_getcount).await?;
-
 			consume_amount
 		}
 		KcUseItemType::Chocolate => {
@@ -404,8 +401,6 @@ where
 				}
 				1 => {
 					// 4 medal for 1 blueprint
-					add_use_item_impl(c, profile_id, KcUseItemType::Blueprint as i64, 1).await?;
-
 					get_items.push(KcApiUseItemGetItemElement {
 						api_usemst: 6,
 						api_mst_id: KcUseItemType::Blueprint as i64,
@@ -442,7 +437,6 @@ where
 				}
 				13 => {
 					// irako
-					add_use_item_impl(c, profile_id, KcUseItemType::Irako as i64, 1).await?;
 					get_items.push(KcApiUseItemGetItemElement {
 						api_usemst: 5,
 						api_mst_id: KcUseItemType::Irako as i64,
@@ -466,7 +460,6 @@ where
 			get_materials.devmat = 10;
 			get_materials.screw = 10;
 
-			add_use_item_impl(c, profile_id, KcUseItemType::FCoinBox700 as i64, 10).await?;
 			get_items.push(KcApiUseItemGetItemElement {
 				api_usemst: 5,
 				api_mst_id: KcUseItemType::FCoinBox700 as i64,
@@ -491,7 +484,6 @@ where
 				}
 				23 => {
 					// irako
-					add_use_item_impl(c, profile_id, KcUseItemType::Irako as i64, 1).await?;
 					get_items.push(KcApiUseItemGetItemElement {
 						api_usemst: 5,
 						api_mst_id: KcUseItemType::Irako as i64,
@@ -511,6 +503,7 @@ where
 		}
 		KcUseItemType::HQPersonnel => {
 			inc_parallel_quest_max_impl(c, codex, profile_id).await?;
+
 			1
 		}
 		KcUseItemType::Saury => {
@@ -532,14 +525,13 @@ where
 				33 => {
 					// kabayaki
 					// 秋刀魚の缶詰
-					let m = add_slot_item_impl(c, codex, profile_id, 150, 0, 0).await?;
 					get_items.push(KcApiUseItemGetItemElement {
 						api_usemst: 2,
-						api_mst_id: m.mst_id,
+						api_mst_id: 150,
 						api_getcount: 1,
 						api_slotitem: Some(KcApiSlotItem {
-							api_id: m.id,
-							api_slotitem_id: m.mst_id,
+							api_id: 0,
+							api_slotitem_id: 150,
 							api_locked: 0,
 							api_level: 0,
 							api_alv: None,
@@ -551,14 +543,13 @@ where
 				}
 				34 => {
 					// grilled
-					let m = add_slot_item_impl(c, codex, profile_id, 388, 0, 0).await?;
 					get_items.push(KcApiUseItemGetItemElement {
 						api_usemst: 2,
-						api_mst_id: m.mst_id,
+						api_mst_id: 388,
 						api_getcount: 1,
 						api_slotitem: Some(KcApiSlotItem {
-							api_id: m.id,
-							api_slotitem_id: m.mst_id,
+							api_id: 0,
+							api_slotitem_id: 388,
 							api_locked: 0,
 							api_level: 0,
 							api_alv: None,
@@ -587,7 +578,6 @@ where
 				}
 				113 => {
 					// blue ribbon
-					add_use_item_impl(c, profile_id, KcUseItemType::BlueRibbon as i64, 1).await?;
 					get_items.push(KcApiUseItemGetItemElement {
 						api_usemst: 5,
 						api_mst_id: KcUseItemType::BlueRibbon as i64,
@@ -652,7 +642,25 @@ where
 		1
 	};
 
-	if force || api_caution_flag == 0 {
+	let resp = if forced || api_caution_flag == 0 {
+		// add items
+		for item in get_items.iter_mut() {
+			if let Some(slot_item) = &mut item.api_slotitem {
+				let m = add_slot_item_impl(
+					c,
+					codex,
+					profile_id,
+					slot_item.api_slotitem_id,
+					slot_item.api_level,
+					0,
+				)
+				.await?;
+				slot_item.api_id = m.id;
+			} else {
+				add_use_item_impl(c, profile_id, item.api_mst_id, item.api_getcount).await?;
+			}
+		}
+
 		// deduct use item
 		deduct_use_item_impl(c, profile_id, mst_id, consume_amount).await?;
 
@@ -678,20 +686,27 @@ where
 			};
 			add_material_impl(c, codex, profile_id, &mats).await?;
 		}
-	}
 
-	get_mat_impl(c, profile_id).await?;
+		KcApiUseItemResp {
+			api_caution_flag: 0,
+			api_material: get_materials.into_array(),
+			api_flag,
+			api_getitem: if get_items.is_empty() {
+				None
+			} else {
+				Some(get_items)
+			},
+		}
+	} else {
+		KcApiUseItemResp {
+			api_caution_flag: 1,
+			api_flag: 0,
+			api_getitem: None,
+			api_material: [0; 8],
+		}
+	};
 
-	Ok(KcApiUseItemResp {
-		api_caution_flag,
-		api_material: get_materials.into_array(),
-		api_flag,
-		api_getitem: if get_items.is_empty() {
-			None
-		} else {
-			Some(get_items)
-		},
-	})
+	Ok(resp)
 }
 
 pub(crate) async fn consume_cond_use_item_impl<C>(

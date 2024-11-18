@@ -719,7 +719,7 @@ pub struct KcApiUseItemGetItemElement {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiUseItemResp {
-	/// 0: won't show caution dialog, 1: will show caution dialog
+	/// 0: will not show caution dialog, 1: will show caution dialog
 	pub api_caution_flag: i64,
 	/// 1: get item, 2: get resources, 3: get both
 	pub api_flag: i64,

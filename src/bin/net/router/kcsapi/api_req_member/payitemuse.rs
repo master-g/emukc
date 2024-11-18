@@ -30,5 +30,14 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	Ok(KcApiResponse::empty())
+	let cauction =
+		state.consume_pay_item(pid, params.api_payitem_id, params.api_force_flag == 1).await?;
+
+	Ok(KcApiResponse::success(&Resp {
+		api_caution_flag: if cauction {
+			1
+		} else {
+			0
+		},
+	}))
 }
