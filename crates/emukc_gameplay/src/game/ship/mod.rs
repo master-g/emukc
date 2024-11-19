@@ -3,7 +3,7 @@ use emukc_db::{
 	entity::profile::{
 		self,
 		item::slot_item,
-		ship::{self, sp_effect_item},
+		ship::{self, morale_timer, sp_effect_item},
 	},
 	sea_orm::{
 		entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait,
@@ -14,6 +14,7 @@ use emukc_model::{
 	codex::Codex,
 	kc2::{KcApiShip, KcApiSlotItem, KcUseItemType},
 };
+use emukc_time::chrono::{DateTime, Utc};
 
 use super::{
 	picturebook::add_ship_to_picturebook_impl,
@@ -141,8 +142,11 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 
 	async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
 		let db = self.db();
+		let tx = db.begin().await?;
 
-		let (ships, sps) = get_ships_impl(db, profile_id).await?;
+		let (ships, sps) = get_ships_impl(&tx, profile_id).await?;
+
+		tx.commit().await?;
 
 		let ships = ships
 			.into_iter()
@@ -417,6 +421,47 @@ where
 		.await?;
 
 	let sp_items = ships.load_many(sp_effect_item::Entity, c).await?;
+
+	let ships = {
+		// morale
+		let timer =
+			morale_timer::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
+				GameplayError::EntryNotFound(format!(
+					"morale timer for profile {} not found",
+					profile_id
+				))
+			})?;
+		let last_time_checked = timer.last_time_regen.unwrap_or(DateTime::UNIX_EPOCH);
+		let num_of_3_minutes_passed = (Utc::now() - last_time_checked).num_minutes() / 3;
+
+		debug!("{} mins passed", num_of_3_minutes_passed);
+
+		if num_of_3_minutes_passed > 1 {
+			let morale_gain = num_of_3_minutes_passed * 3;
+			let mut new_ships = vec![];
+			for ship in &ships {
+				let new_cond = if ship.condition < 49 {
+					(ship.condition + morale_gain).max(49)
+				} else {
+					ship.condition
+				};
+				let mut am = ship.into_active_model();
+				am.condition = ActiveValue::Set(new_cond);
+				let m = am.update(c).await?;
+				new_ships.push(m);
+			}
+
+			{
+				let mut am = timer.into_active_model();
+				am.last_time_regen = ActiveValue::Set(Some(Utc::now()));
+				am.update(c).await?;
+			}
+
+			new_ships
+		} else {
+			ships
+		}
+	};
 
 	Ok((ships, sp_items))
 }
@@ -780,10 +825,18 @@ where
 	Ok(am)
 }
 
-pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
+pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
+	{
+		morale_timer::ActiveModel {
+			id: ActiveValue::Set(profile_id),
+			last_time_regen: ActiveValue::Set(None),
+		}
+		.insert(c)
+		.await?;
+	}
 	Ok(())
 }
 
@@ -796,6 +849,7 @@ where
 		.filter(sp_effect_item::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
+	morale_timer::Entity::delete_by_id(profile_id).exec(c).await?;
 
 	Ok(())
 }

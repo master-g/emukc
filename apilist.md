@@ -121,9 +121,8 @@ api_req_member/set_oss_condition
 api_req_member/updatecomment
 api_req_member/updatedeckname
 
-api_req_mission.return_instruction
-api_req_mission/result
 api_req_mission/return_instruction
+api_req_mission/result
 api_req_mission/start
 
 api_req_nyukyo/open_new_dock

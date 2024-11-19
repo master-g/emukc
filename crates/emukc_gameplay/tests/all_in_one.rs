@@ -6,7 +6,7 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, KcSlotItemType3, MaterialCategory,
 };
-use emukc_model::prelude::{ApiMstShip, Kc3rdQuest, Kc3rdShip, Kc3rdSlotItem};
+use emukc_model::prelude::{ApiMstShip, Kc3rdQuest, Kc3rdSlotItem};
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 

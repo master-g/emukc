@@ -3,7 +3,6 @@ mod test {
 	use chrono::Utc;
 	use emukc_db::entity::{self};
 	use emukc_model::{
-		kc2::UserHQRank,
 		profile::{user_item::UserItem, Profile},
 		user::account::Account,
 	};

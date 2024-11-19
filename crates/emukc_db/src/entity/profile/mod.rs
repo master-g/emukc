@@ -240,6 +240,10 @@ pub enum Relation {
 	/// Relation to `Ship SpEffectItem`
 	#[sea_orm(has_many = "ship::sp_effect_item::Entity")]
 	ShipSpEffectItems,
+
+	/// Relation to `ShipMoraleTimer`
+	#[sea_orm(has_many = "ship::morale_timer::Entity")]
+	ShipMoraleTimer,
 }
 
 impl Related<crate::entity::user::account::Entity> for Entity {

@@ -2,6 +2,7 @@
 use emukc_model::kc2::KcApiShip;
 use sea_orm::{entity::prelude::*, ActiveValue};
 
+pub mod morale_timer;
 pub mod picturebook;
 pub mod sp_effect_item;
 
@@ -235,6 +236,11 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// picturebook
 	{
 		let stmt = schema.create_table_from_entity(picturebook::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// morale timer
+	{
+		let stmt = schema.create_table_from_entity(morale_timer::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 

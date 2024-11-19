@@ -49,7 +49,6 @@ pub(super) async fn handler(
 	let api_ndock = state.get_ndocks(pid).await?;
 	let api_ndock: Vec<KcApiNDock> = api_ndock.into_iter().map(std::convert::Into::into).collect();
 
-	// FIXME: the ndock info is not correct
 	let api_ship = state.get_ships(pid).await?;
 
 	let ver = format!("Welcome to EmuKC {}-{}", VERSION, GIT_HASH.to_uppercase());
