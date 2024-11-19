@@ -56,7 +56,7 @@ impl From<Model> for UserItem {
 	fn from(value: Model) -> Self {
 		Self {
 			id: value.profile_id,
-			mst_id: value.id,
+			mst_id: value.mst_id,
 			count: value.count,
 		}
 	}

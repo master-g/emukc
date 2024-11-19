@@ -5,7 +5,8 @@ use emukc::{
 	model::profile::furniture::FurnitureConfig,
 	prelude::{
 		AccountOps, BasicOps, FleetOps, FurnitureOps, HasContext, IncentiveOps, KcApiIncentiveItem,
-		KcUseItemType, MaterialCategory, MaterialOps, ProfileOps, ShipOps, SlotItemOps, UseItemOps,
+		KcUseItemType, MaterialCategory, MaterialOps, PayItemOps, ProfileOps, ShipOps, SlotItemOps,
+		UseItemOps,
 	},
 };
 
@@ -100,6 +101,7 @@ async fn deplete_ship_fuel_and_ammo(state: &State, pid: i64) -> Result<()> {
 		ship.api_bull = 0;
 		ship.api_onslot = [0, 0, 0, 0, 0];
 		ship.api_nowhp = 1;
+		ship.api_cond = 1;
 
 		state.update_ship(ship).await?;
 	}
@@ -160,6 +162,11 @@ async fn init_game_stuffs(state: &State, pid: i64) -> Result<()> {
 		(KcUseItemType::Sardine, 100),
 	] {
 		state.add_use_item(pid, t as i64, c).await?;
+	}
+
+	// give pay items
+	for mst in &state.codex().manifest.api_mst_payitem {
+		state.add_pay_item(pid, mst.api_id, 98).await?;
 	}
 
 	state

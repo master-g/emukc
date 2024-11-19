@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use emukc_crypto::SimpleHash;
 use emukc_db::{
 	entity::profile::{self, kdock, ndock},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
 };
 use emukc_model::{
 	codex::Codex,
@@ -360,6 +360,33 @@ where
 
 	am.id = ActiveValue::Unchanged(profile_id);
 	am.max_quests = ActiveValue::Set(max_quests + 1);
+
+	am.update(c).await?;
+
+	Ok(())
+}
+
+pub(crate) async fn expand_ship_slotitem_capacity_impl<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let new_ship_capacity = profile.max_ship_capacity + 10;
+	let new_slotitem_capacity = profile.max_equipment_capacity + 40;
+
+	let ship_limit = codex.manifest.api_mst_const.api_boko_max_ships.api_int_value;
+	if new_ship_capacity > ship_limit {
+		error!("Capacity exceeded: new_ship_capacity={}", new_ship_capacity);
+		return Ok(());
+	}
+
+	let mut am = profile.into_active_model();
+	am.max_ship_capacity = ActiveValue::Set(new_ship_capacity);
+	am.max_equipment_capacity = ActiveValue::Set(new_slotitem_capacity);
 
 	am.update(c).await?;
 

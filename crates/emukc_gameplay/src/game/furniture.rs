@@ -193,7 +193,7 @@ where
 	if need_craftman {
 		let Some(craftman) = use_item::Entity::find()
 			.filter(use_item::Column::ProfileId.eq(profile_id))
-			.filter(use_item::Column::MstId.eq(KcUseItemType::FurnitureCraftman as i64))
+			.filter(use_item::Column::MstId.eq(KcUseItemType::FurnitureCraftsman as i64))
 			.one(c)
 			.await?
 		else {

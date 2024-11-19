@@ -3,7 +3,7 @@ use crate::gameplay::HasContext;
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::item::pay_item::{self, ActiveModel},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
+	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel},
 };
 use emukc_model::{
 	prelude::*,
@@ -11,7 +11,12 @@ use emukc_model::{
 };
 use emukc_time::chrono::Utc;
 
-use super::material::{add_material_impl, get_mat_impl};
+use super::{
+	basic::expand_ship_slotitem_capacity_impl,
+	material::{add_material_impl, get_mat_impl},
+	slot_item::add_slot_item_impl,
+	use_item::add_use_item_impl,
+};
 
 /// A trait for pay item related gameplay.
 #[async_trait]
@@ -119,9 +124,11 @@ impl<T: HasContext + ?Sized> PayItemOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let cauction = consume_pay_item_impl(&tx, codex, profile_id, mst_id, forced).await?;
+		let caution = consume_pay_item_impl(&tx, codex, profile_id, mst_id, forced).await?;
 
-		Ok(true)
+		tx.commit().await?;
+
+		Ok(caution)
 	}
 }
 
@@ -292,37 +299,90 @@ where
 	)
 	.await?;
 
+	let mut use_item_get: Vec<(KcUseItemType, i64)> = Vec::new();
+	let mut slot_item_get: Vec<(KcSlotItemCommonId, i64)> = Vec::new();
 	match pay_item_type {
-		KcPayItemType::FuelPack => todo!(),
-		KcPayItemType::AmmoPack => todo!(),
-		KcPayItemType::SteelPack => todo!(),
-		KcPayItemType::BauxitePack => todo!(),
-		KcPayItemType::DevMaterialPack => todo!(),
-		KcPayItemType::TorchPack => todo!(),
-		KcPayItemType::BucketPack => todo!(),
-		KcPayItemType::FactorySet => todo!(),
-		KcPayItemType::SortieSet => todo!(),
-		KcPayItemType::DockExpansionSet => todo!(),
-		KcPayItemType::RepairTeam => todo!(),
-		KcPayItemType::RepairSpecialSet => todo!(),
-		KcPayItemType::EightyEightResourceSet => todo!(),
-		KcPayItemType::RepairGoddess => todo!(),
-		KcPayItemType::FurnitureCraftman => todo!(),
-		KcPayItemType::PortExpansion => todo!(),
-		KcPayItemType::TankerRequisition => todo!(),
-		KcPayItemType::Mamiya => todo!(),
-		KcPayItemType::AluminumMassProduction => todo!(),
-		KcPayItemType::Ring => todo!(),
-		KcPayItemType::Cookie => todo!(),
-		KcPayItemType::Screw10 => todo!(),
-		KcPayItemType::Irako5 => todo!(),
-		KcPayItemType::BattleRation => todo!(),
-		KcPayItemType::Resupplier => todo!(),
-		KcPayItemType::ReinforceExpansion => todo!(),
-		KcPayItemType::ConstCorps => todo!(),
-		KcPayItemType::EmergencyRepairMaterialSet => todo!(),
-		KcPayItemType::SubmarineSupplyMaterialPack => todo!(),
+		KcPayItemType::DockExpansionSet => {
+			use_item_get.push((KcUseItemType::DockKey, 1));
+		}
+		KcPayItemType::RepairTeam => slot_item_get.push((KcSlotItemCommonId::RepairTeam, 1)),
+		KcPayItemType::RepairSpecialSet => {
+			slot_item_get.push((KcSlotItemCommonId::RepairTeam, 3));
+			slot_item_get.push((KcSlotItemCommonId::RepairGoddess, 2));
+		}
+		KcPayItemType::RepairGoddess => slot_item_get.push((KcSlotItemCommonId::RepairGoddess, 1)),
+		KcPayItemType::FurnitureCraftsman => {
+			use_item_get.push((KcUseItemType::FurnitureCraftsman, 1));
+		}
+		KcPayItemType::PortExpansion => {
+			expand_ship_slotitem_capacity_impl(c, codex, profile_id).await?;
+		}
+		KcPayItemType::Mamiya | KcPayItemType::Cookie => {
+			use_item_get.push((KcUseItemType::Mamiya, 1));
+		}
+		KcPayItemType::Ring => {
+			use_item_get.push((KcUseItemType::Ring, 1));
+		}
+		KcPayItemType::Irako5 => {
+			use_item_get.push((KcUseItemType::Irako, 5));
+		}
+		KcPayItemType::BattleRation => {
+			slot_item_get.push((KcSlotItemCommonId::BattleRation, 3));
+		}
+		KcPayItemType::OffShoreResupply => {
+			slot_item_get.push((KcSlotItemCommonId::OffShoreResupply, 2));
+		}
+		KcPayItemType::ReinforceExpansion => {
+			use_item_get.push((KcUseItemType::ReinforceExpansion, 1));
+		}
+		KcPayItemType::ConstCorps => {
+			use_item_get.push((KcUseItemType::ConstCorps, 1));
+		}
+		KcPayItemType::EmergencyRepairMaterialSet => {
+			use_item_get.push((KcUseItemType::EmergencyRepair, 3));
+		}
+		KcPayItemType::SubmarineSupplyMaterialPack => {
+			use_item_get.push((KcUseItemType::SubmarineSupplyMaterial, 3));
+		}
+		_ => {
+			// do nothing
+		}
 	};
+
+	// deduct pay item
+	let new_amount = item.count - 1;
+	let mut am = item.into_active_model();
+	am.count = ActiveValue::Set(new_amount);
+	am.save(c).await?;
+
+	// apply
+
+	add_material_impl(
+		c,
+		codex,
+		profile_id,
+		&[
+			(MaterialCategory::Fuel, get_materials.fuel),
+			(MaterialCategory::Ammo, get_materials.ammo),
+			(MaterialCategory::Steel, get_materials.steel),
+			(MaterialCategory::Bauxite, get_materials.bauxite),
+			(MaterialCategory::Torch, get_materials.torch),
+			(MaterialCategory::Bucket, get_materials.bucket),
+			(MaterialCategory::DevMat, get_materials.devmat),
+			(MaterialCategory::Screw, get_materials.screw),
+		],
+	)
+	.await?;
+
+	for (t, amount) in use_item_get {
+		add_use_item_impl(c, profile_id, t as i64, amount).await?;
+	}
+
+	for (t, amount) in slot_item_get {
+		for _ in 0..amount {
+			add_slot_item_impl(c, codex, profile_id, t as i64, 0, 0).await?;
+		}
+	}
 
 	Ok(false)
 }
