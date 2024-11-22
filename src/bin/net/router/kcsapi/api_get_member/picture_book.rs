@@ -24,7 +24,6 @@ pub(super) struct Params {
 #[derive(Serialize, Deserialize, Debug)]
 struct ShipItem {
 	api_index_no: i64,
-	/// [][5], 0: reigster, 1: medium damaged, 2: married, 3: ?, 4: ?
 	api_state: Vec<[i64; 5]>,
 	api_q_voice_info: Vec<KcApiShipQVoiceInfo>,
 	api_table_id: Vec<i64>,
