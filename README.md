@@ -2,6 +2,26 @@
 
 Kancolle Emulator
 
+## Dev
+
+### Prerequisites
+
+- [pre-commit](https://pre-commit.com/)
+
+## Usage
+
+### Bootstrap
+
+```bash
+emukc bootstrap --config emukc.config.toml --overwrite
+```
+
+### Run
+
+```bash
+emukc serve --config emukc.config.toml --overwrite
+```
+
 ## Sources
 
 Thanks to the following data sources, from whom we get the data we need, this project would not have been possible without them
