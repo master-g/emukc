@@ -13,14 +13,16 @@ Kancolle Emulator
 ### Bootstrap
 
 ```bash
-emukc bootstrap --config emukc.config.toml --overwrite
+emukc bootstrap
 ```
 
 ### Run
 
 ```bash
-emukc serve --config emukc.config.toml --overwrite
+emukc serve
 ```
+
+then open `http://localhost:{port}` in your browser
 
 ## Sources
 
