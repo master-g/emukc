@@ -11,6 +11,10 @@ pub(super) struct BootstrapArgs {
 	#[arg(short, long)]
 	overwrite: bool,
 
+	#[arg(help = "Remove version files from cache folder")]
+	#[arg(long)]
+	force_update: bool,
+
 	#[arg(help = "use another proxy")]
 	#[arg(long)]
 	proxy: Option<String>,
@@ -38,6 +42,18 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
 	// save the codex
 	let codex_root = cfg.codex_root()?;
 	codex.save(&codex_root, args.overwrite)?;
+
+	if args.force_update {
+		let p = cfg.cache_root.join("gadget_html5").join("kcs_const.js");
+		if p.exists() {
+			std::fs::remove_file(p)?;
+		}
+		let p = cfg.cache_root.join("kcs2").join("version.json");
+		if p.exists() {
+			std::fs::remove_file(p)?;
+		}
+		info!("version files in kcs cache removed.");
+	}
 
 	info!("Bootstrap completed successfully.");
 
