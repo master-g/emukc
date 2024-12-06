@@ -101,7 +101,7 @@ axum = { version = "0.7.9", features = ["form"] }
 axum-macros = { version = "0.4.2" }
 axum-server = { version = "0.7.1" }
 base16ct = { version = "0.2.0", features = ["alloc"] }
-bcrypt = { version = "0.15.1" }
+bcrypt = { version = "0.16.0" }
 bs58 = { version = "0.5.1" }
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
