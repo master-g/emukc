@@ -1,10 +1,11 @@
 use axum::{
-	extract::{Host, Path, Query},
+	extract::{Path, Query},
 	middleware,
 	response::{Html, IntoResponse, Redirect, Response},
 	routing::get,
 	Extension, Router,
 };
+use axum_extra::extract::Host;
 use emukc_internal::prelude::PKG_VERSION;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -16,13 +17,13 @@ use crate::net::{
 
 pub(super) fn router() -> Router {
 	Router::new()
-		.route("/css/*path", get(css)) // css/*
-		.route("/js/*path", get(js)) // js/*
+		.route("/css/{*path}", get(css)) // css/*
+		.route("/js/{*path}", get(js)) // js/*
 		.merge(
 			Router::new()
 				.route("/", get(home)) // game home
 				.route_layer(middleware::from_fn(kcs_api_auth_middleware))
-				.route("/game/*path", get(game)), // game content
+				.route("/game/{*path}", get(game)), // game content
 		)
 }
 

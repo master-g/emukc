@@ -1,5 +1,4 @@
 use axum::{
-	async_trait,
 	body::Body,
 	extract::{FromRef, FromRequest, FromRequestParts, Request},
 	middleware::Next,
@@ -22,7 +21,6 @@ use super::{err::ApiError, AppState};
 #[derive(Clone)]
 pub(super) struct AuthAccount(pub Account);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AuthAccount
 where
 	State: FromRef<S>,
@@ -74,7 +72,6 @@ pub(super) struct KcsApiFormWithToken {
 	api_token: String,
 }
 
-#[async_trait]
 impl<S> FromRequest<S> for KcsApiFormWithToken
 where
 	S: Send + Sync,
@@ -90,7 +87,6 @@ where
 	}
 }
 
-#[async_trait]
 impl<S> FromRequest<S> for GameSession
 where
 	State: FromRef<S>,

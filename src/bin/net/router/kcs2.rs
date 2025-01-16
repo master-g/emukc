@@ -17,7 +17,7 @@ use crate::net::{
 use super::KcVersionQuery;
 
 pub(super) fn router() -> Router {
-	Router::new().route("/*path", get(file_handler))
+	Router::new().route("/{*path}", get(file_handler))
 }
 
 async fn index(version: &str) -> Response {
