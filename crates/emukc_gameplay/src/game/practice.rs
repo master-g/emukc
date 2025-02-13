@@ -15,7 +15,7 @@ use emukc_time::{
 	chrono::{DateTime, Duration, Utc},
 	KcTime,
 };
-use rand::{rngs::SmallRng, seq::SliceRandom, Rng, SeedableRng};
+use rand::{rngs::SmallRng, seq::IndexedRandom, Rng, SeedableRng};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -288,14 +288,14 @@ where
 	let rival_uid_starts_from = current_uid + 10000;
 	let rival_ship_id_starts_from = current_ship_id + 10000;
 
-	let mut r = SmallRng::from_entropy();
+	let mut r = SmallRng::from_os_rng();
 
 	let rivals: Vec<Rival> = (1..6)
 		.map(|i| {
 			let name = format!("Practice Rival {}", i);
 			let comment = format!("I am your {}th rival", i);
-			let rank = r.gen_range(1..=10);
-			let flag = r.gen_range(1..=3);
+			let rank = r.random_range(1..=10);
+			let flag = r.random_range(1..=3);
 			let ship_mst = api_mst_ship.choose(&mut r).unwrap();
 
 			Rival {

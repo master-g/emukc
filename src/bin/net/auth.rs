@@ -40,7 +40,7 @@ where
 				info!("expected access token, got game session token");
 				Err(ApiError::InvalidToken)
 			}
-			Err(e) => return Err(e.into()),
+			Err(e) => Err(e.into()),
 		}
 	}
 }
@@ -111,7 +111,7 @@ where
 				info!("expected game session token, got access token");
 				Err(ApiError::InvalidToken)
 			}
-			Err(e) => return Err(e.into()),
+			Err(e) => Err(e.into()),
 		}
 	}
 }

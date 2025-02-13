@@ -44,8 +44,8 @@ where
 
 	// update ship status
 	ship.level = 100;
-	let mut rng = SmallRng::from_entropy();
-	ship.mod_luck = rng.gen_range(3..=6);
+	let mut rng = SmallRng::from_os_rng();
+	ship.mod_luck = rng.random_range(3..=6);
 
 	ship.fuel = mst.api_fuel_max.unwrap_or(0);
 	ship.ammo = mst.api_bull_max.unwrap_or(0);

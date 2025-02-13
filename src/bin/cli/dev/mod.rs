@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
+use rand::{rngs::SmallRng, seq::IndexedRandom, SeedableRng};
 
 use emukc::{
 	model::profile::furniture::FurnitureConfig,
@@ -49,7 +49,7 @@ async fn add_ship_quietly(state: &State, pid: i64) -> Result<()> {
 
 	let codex = state.codex();
 
-	let mut rng = SmallRng::from_entropy();
+	let mut rng = SmallRng::from_os_rng();
 	let mut i = 0;
 	loop {
 		let mst = codex.manifest.api_mst_ship.choose(&mut rng).unwrap();

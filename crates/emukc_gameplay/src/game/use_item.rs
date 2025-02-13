@@ -738,8 +738,8 @@ where
 		}
 		2 => {
 			// irako
-			let mut rng = SmallRng::from_entropy();
-			let lucky_count = rng.gen_range(0..=3);
+			let mut rng = SmallRng::from_os_rng();
+			let lucky_count = rng.random_range(0..=3);
 			let mut luck_ship_id = vec![ships[0].id];
 			for _ in 0..lucky_count {
 				let id = ships.iter().skip(1).choose(&mut rng).unwrap().id;
@@ -758,7 +758,7 @@ where
 		}
 		3 => {
 			// mamiya + irako
-			let mut rng = SmallRng::from_entropy();
+			let mut rng = SmallRng::from_os_rng();
 			ships.iter_mut().enumerate().for_each(|(i, ship)| {
 				if i == 0 {
 					if ship.condition < 40 {
@@ -770,7 +770,7 @@ where
 					if ship.condition < 40 {
 						ship.condition = 40;
 					}
-					ship.condition += rng.gen_range(20..=31);
+					ship.condition += rng.random_range(20..=31);
 				}
 				ship.condition = ship.condition.min(100);
 			});

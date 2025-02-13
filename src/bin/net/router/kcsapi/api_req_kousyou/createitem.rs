@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use rand::{rngs::SmallRng, seq::SliceRandom, RngCore, SeedableRng};
+use rand::{rngs::SmallRng, seq::IndexedRandom, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;
@@ -92,7 +92,7 @@ pub(super) async fn handler(
 		1
 	};
 
-	let mut r = SmallRng::from_entropy();
+	let mut r = SmallRng::from_os_rng();
 
 	for _ in 0..upper {
 		let next_u32 = r.next_u32() % 100;

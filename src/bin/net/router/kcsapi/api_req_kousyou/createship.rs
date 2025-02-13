@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
+use rand::{rngs::SmallRng, seq::IndexedRandom, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;
@@ -83,7 +83,7 @@ pub(super) async fn handler(
 		})
 		.collect();
 
-	let mut r = SmallRng::from_entropy();
+	let mut r = SmallRng::from_os_rng();
 
 	let ship = pool.choose(&mut r).ok_or(ApiError::Internal(format!(
 		"Failed to choose a ship from the pool of {} ships",
