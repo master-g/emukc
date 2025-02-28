@@ -1,7 +1,9 @@
 [package]
 name = "emukc"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.85.0"
+resolver = "3"
 categories = ["emulator"]
 description = "A simple emulator for the web browser game: Kantai Collection"
 exclude = ["z/", ".github/", "crates/"]
@@ -9,11 +11,14 @@ homepage = "https://github.com/master-g/emukc.git"
 keywords = ["emulator", "kancolle"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/master-g/emukc"
-rust-version = "1.81.0"
 
 [workspace]
 exclude = ["benches"]
 members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85.0"
 
 [workspace.lints.clippy]
 type_complexity = "allow"
@@ -99,7 +104,7 @@ emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 anyhow = "1.0.95"
 async-trait = "0.1.86"
 axum = { version = "0.8.1", features = ["form"] }
-axum-extra = { version = "0.11.0" }
+axum-extra = { version = "0.10.0" }
 axum-macros = { version = "0.5.0" }
 axum-server = { version = "0.7.1" }
 base16ct = { version = "0.2.0", features = ["alloc"] }

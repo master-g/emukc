@@ -1,8 +1,9 @@
 [package]
 name = "emukc_macros"
 version = "0.1.0"
-edition = "2021"
 description = "Provides macros for the emukc project"
+edition.workspace = true
+rust-version.workspace = true
 
 [lib]
 proc-macro = true

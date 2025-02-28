@@ -2,7 +2,7 @@
 # Taken from surrealdb project, see https://github.com/surrealdb/surrealdb
 # -----------------------------------
 
-edition = "2021"
+edition = "2024"
 hard_tabs = true
 merge_derives = true
 reorder_imports = true
