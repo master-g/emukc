@@ -59,7 +59,7 @@ impl AppConfig {
 				workspace_root.canonicalize()?
 			};
 
-			// join cfg_dif and cache_root
+			// join cfg_dir and cache_root
 			let cache_root = cfg_path.join(&cfg.cache_root);
 			cfg.cache_root = if cache_root.is_absolute() {
 				cache_root

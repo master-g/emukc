@@ -81,7 +81,7 @@ pub async fn init() -> ExitCode {
 	let cfg = match AppConfig::load(&args.config) {
 		Ok(cfg) => cfg,
 		Err(e) => {
-			eprintln!("Failed to load configuration: {}", e);
+			eprintln!("Failed to load configuration at '{}', err: {}", &args.config, e);
 			return ExitCode::FAILURE;
 		}
 	};
