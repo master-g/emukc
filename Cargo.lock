@@ -1038,7 +1038,6 @@ name = "emukc"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "axum",
  "axum-extra",
  "axum-macros",
@@ -1050,7 +1049,6 @@ dependencies = [
  "fontdue",
  "http",
  "http-body-util",
- "hyper",
  "memory-stats",
  "mime_guess",
  "png",
@@ -1061,7 +1059,6 @@ dependencies = [
  "serde_urlencoded",
  "tera",
  "thiserror 2.0.11",
- "tinytemplate",
  "tokio",
  "tokio-util",
  "tower 0.5.2",
@@ -1090,7 +1087,6 @@ dependencies = [
  "emukc_db",
  "emukc_model",
  "emukc_network",
- "env_logger",
  "regex",
  "serde",
  "serde_json",
@@ -1099,7 +1095,6 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "zip-extract",
 ]
 
@@ -1111,7 +1106,6 @@ dependencies = [
  "emukc_db",
  "emukc_model",
  "emukc_network",
- "serde",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
@@ -1124,10 +1118,8 @@ dependencies = [
  "base16ct",
  "bcrypt",
  "bs58",
- "hmac",
  "md-5",
  "sha2",
- "thiserror 2.0.11",
  "tokio",
 ]
 
@@ -1157,21 +1149,17 @@ dependencies = [
 name = "emukc_gameplay"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "emukc_crypto",
  "emukc_db",
  "emukc_model",
  "emukc_time",
- "env_logger",
  "rand 0.9.0",
  "serde",
  "serde_json",
- "test-log",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -1195,7 +1183,6 @@ dependencies = [
 name = "emukc_log"
 version = "0.1.0"
 dependencies = [
- "env_logger",
  "tracing",
  "tracing-appender",
  "tracing-log",
@@ -1267,7 +1254,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "186e05a59d4c50738528153b83b0b0194d3a29507dfec16eccd4b342903397d0"
 dependencies = [
  "log",
- "regex",
 ]
 
 [[package]]
@@ -1279,7 +1265,6 @@ dependencies = [
  "anstream",
  "anstyle",
  "env_filter",
- "humantime",
  "log",
 ]
 
@@ -1736,12 +1721,6 @@ checksum = "6cb51c9a029ddc91b07a787f1d86b53ccfa49b0e86688c946ebe8d3555685dd7"
 dependencies = [
  "libm",
 ]
-
-[[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
@@ -3959,16 +3938,6 @@ checksum = "9117f5d4db391c1cf6927e7bea3db74b9a1c1add8f7eda9ffd5364f40f57b82f"
 dependencies = [
  "displaydoc",
  "zerovec",
-]
-
-[[package]]
-name = "tinytemplate"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4d6b5f19ff7664e8c98d03e2139cb510db9b0a60b55f8e8709b689d939b6bc"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]

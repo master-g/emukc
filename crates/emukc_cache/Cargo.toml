@@ -12,7 +12,6 @@ emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 
 # other
-serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

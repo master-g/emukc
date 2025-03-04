@@ -10,8 +10,5 @@ tracing-appender = { workspace = true }
 tracing-log = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
-[dev-dependencies]
-env_logger = { workspace = true }
-
 [lints]
 workspace = true

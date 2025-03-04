@@ -23,9 +23,7 @@ tracing = { workspace = true }
 zip-extract = { workspace = true }
 
 [dev-dependencies]
-env_logger = { workspace = true }
 test-log = { workspace = true, features = ["trace"] }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [lints]
 workspace = true

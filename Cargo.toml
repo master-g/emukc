@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85.0"
 resolver = "3"
-categories = ["Emulators"]
 description = "A simple emulator for the web browser game: Kantai Collection"
 exclude = ["z/", ".github/", "crates/"]
 homepage = "https://github.com/master-g/emukc.git"
@@ -50,7 +49,6 @@ dynamic_linking = ["dep:emukc_dylib"]
 emukc_internal = { path = "crates/emukc_internal" }
 
 anyhow = { workspace = true }
-async-trait = { workspace = true }
 axum = { workspace = true, features = ["form"] }
 axum-extra = { workspace = true }
 axum-macros = { workspace = true }
@@ -65,7 +63,6 @@ config = { workspace = true, features = ["toml"] }
 fontdue = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
-hyper = { workspace = true, features = ["full"] }
 mime_guess = { workspace = true }
 png = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
@@ -75,7 +72,6 @@ serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
 tera = { workspace = true }
 thiserror = { workspace = true }
-tinytemplate = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-util = { workspace = true }
 tower = { workspace = true }
@@ -119,7 +115,6 @@ fontdue = { version = "0.9.3" }
 hmac = { version = "0.12.1" }
 http = { version = "1.2.0" }
 http-body-util = "0.1"
-hyper = { version = "1.6.0", features = ["full"] }
 md-5 = "0.10.6"
 mime_guess = "2"
 png = "0.17.16"
@@ -144,7 +139,6 @@ sha2 = { version = "0.10.8", default-features = false }
 tera = "1"
 test-log = { version = "0.2.17", features = ["trace"] }
 thiserror = "2.0.11"
-tinytemplate = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7" }
 tower = "0.5.2"
