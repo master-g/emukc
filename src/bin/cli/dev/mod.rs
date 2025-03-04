@@ -14,7 +14,9 @@ use crate::{cfg::AppConfig, state::State};
 
 pub(super) async fn exec(cfg: &AppConfig) -> Result<()> {
 	let game_db_path = cfg.workspace_root.join("emukc.db");
-	std::fs::remove_file(&game_db_path)?;
+	if std::fs::metadata(&game_db_path).is_ok() {
+		std::fs::remove_file(&game_db_path)?;
+	}
 
 	info!("game database removed");
 

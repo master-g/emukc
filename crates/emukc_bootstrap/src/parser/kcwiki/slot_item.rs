@@ -133,7 +133,7 @@ pub struct KcwikiSlotitem {
 	pub improvements: ImprovementsUnion,
 
 	#[serde(rename = "_info")]
-	pub info: String,
+	pub info: Option<String>,
 
 	#[serde(rename = "_japanese_name")]
 	pub japanese_name: String,
@@ -181,7 +181,7 @@ impl From<KcwikiSlotitem> for Kc3rdSlotItem {
 		Self {
 			api_id: value.id,
 			name: value.japanese_name,
-			info: value.info,
+			info: value.info.unwrap_or("n/a".to_string()),
 			craftable: value.buildable,
 			stars: value.stars,
 			flight_cost: value.flight_cost.and_then(Into::into),

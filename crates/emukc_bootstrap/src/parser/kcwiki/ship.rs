@@ -120,7 +120,7 @@ pub struct KcwikiShip {
 	#[serde(rename = "_remodel_screw")]
 	remodel_screw: Option<i64>,
 	#[serde(rename = "_remodel_gunmat")]
-	remodel_gunmat: Option<i64>,
+	remodel_gunmat: Option<BoolOrInt>,
 	#[serde(rename = "_reversible")]
 	reversible: Option<bool>,
 	#[serde(rename = "_remodel_overseas")]
