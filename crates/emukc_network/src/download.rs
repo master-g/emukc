@@ -1,7 +1,7 @@
 //! Download requests and responses.
 
 use std::{
-	fs::{create_dir_all, OpenOptions},
+	fs::{OpenOptions, create_dir_all},
 	io::Cursor,
 	path::PathBuf,
 };

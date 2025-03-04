@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::vec;
 use std::{collections::BTreeMap, path::Path};
 
-use super::types::{BoolOrInt, BoolOrString};
 use super::ParseContext;
+use super::types::{BoolOrInt, BoolOrString};
 use crate::parser::error::ParseError;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

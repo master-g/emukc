@@ -4,7 +4,7 @@ use emukc_db::{
 		item::{self},
 		ship,
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
+	sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::profile::picture_book::{PictureBookShip, PictureBookSlotItem};
 

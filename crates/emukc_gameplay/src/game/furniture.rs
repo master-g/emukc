@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{furniture, item::use_item},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
+	sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
 	kc2::{KcApiFurniture, KcUseItemType},
@@ -44,7 +44,7 @@ pub trait FurnitureOps {
 	///
 	/// - `profile_id`: The profile ID.
 	async fn get_furniture_config(&self, profile_id: i64)
-		-> Result<FurnitureConfig, GameplayError>;
+	-> Result<FurnitureConfig, GameplayError>;
 
 	/// Update furniture configuration.
 	///

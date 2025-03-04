@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Args;
-use emukc_internal::prelude::{import_kccp_cache, Kache};
+use emukc_internal::prelude::{Kache, import_kccp_cache};
 
 #[derive(Debug, Args)]
 pub(super) struct ImportArgs {

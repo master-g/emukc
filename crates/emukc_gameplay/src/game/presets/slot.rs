@@ -9,7 +9,7 @@ use emukc_db::{
 		},
 		ship,
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder},
+	sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
 };
 use emukc_model::{
 	codex::Codex,

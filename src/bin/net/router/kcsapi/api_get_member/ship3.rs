@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use emukc_internal::prelude::*;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	err::ApiError,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 
 #[derive(Serialize, Deserialize, Debug)]

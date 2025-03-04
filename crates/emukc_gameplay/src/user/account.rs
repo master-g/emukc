@@ -22,8 +22,8 @@ use serde::{Deserialize, Serialize};
 use crate::gameplay::HasContext;
 
 use super::{
-	auth::{issue_token, verify_access_token},
 	UserError,
+	auth::{issue_token, verify_access_token},
 };
 
 const MIN_USERNAME_LEN: usize = 4;

@@ -1,5 +1,5 @@
 use axum::response::{IntoResponse, Response};
-use http::{header, StatusCode};
+use http::{StatusCode, header};
 
 pub(super) mod cache;
 

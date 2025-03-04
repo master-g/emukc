@@ -3,7 +3,7 @@ mod test {
 	use chrono::Utc;
 	use emukc_db::entity::{self};
 	use emukc_model::{
-		profile::{user_item::UserItem, Profile},
+		profile::{Profile, user_item::UserItem},
 		user::account::Account,
 	};
 	use sea_orm::{

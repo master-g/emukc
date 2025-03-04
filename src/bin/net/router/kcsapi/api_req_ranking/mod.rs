@@ -1,12 +1,12 @@
-use axum::{routing::post, Extension, Router};
+use axum::{Extension, Router, routing::post};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 
 pub(super) fn router() -> Router {

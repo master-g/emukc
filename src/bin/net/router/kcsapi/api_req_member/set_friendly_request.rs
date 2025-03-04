@@ -3,9 +3,9 @@ use emukc::prelude::SettingsOps;
 use serde::Deserialize;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 // use emukc_internal::prelude::*;
 

@@ -2,8 +2,8 @@ mod gadgets;
 mod purchase;
 
 use axum::{
-	routing::{get, post},
 	Router,
+	routing::{get, post},
 };
 
 pub(super) fn router() -> Router {

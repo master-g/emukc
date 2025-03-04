@@ -1,21 +1,21 @@
 use axum::{
+	Form, RequestPartsExt,
 	body::Body,
 	extract::{FromRef, FromRequest, FromRequestParts, Request},
 	middleware::Next,
 	response::{IntoResponse, Response},
-	Form, RequestPartsExt,
 };
 use emukc_internal::{
 	model::{profile::Profile, user::account::Account},
 	prelude::{AccountOps, AuthInfo},
 };
-use http::{header, request::Parts, StatusCode};
+use http::{StatusCode, header, request::Parts};
 use http_body_util::BodyExt;
 use serde::{Deserialize, Serialize};
 
 use crate::state::State;
 
-use super::{err::ApiError, AppState};
+use super::{AppState, err::ApiError};
 
 #[allow(unused)]
 #[derive(Clone)]

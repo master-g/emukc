@@ -11,7 +11,7 @@ use emukc_db::{
 			preset_slot::{self},
 		},
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{ActiveValue, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::profile::{
 	preset_deck::{PresetDeck, PresetDeckItem},

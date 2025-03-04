@@ -53,7 +53,7 @@ pub fn graceful_shutdown(ct: CancellationToken, http_handle: Handle) -> JoinHand
 #[cfg(unix)]
 pub async fn listen() -> Result<String> {
 	// Import the OS signals
-	use tokio::signal::unix::{signal, SignalKind};
+	use tokio::signal::unix::{SignalKind, signal};
 	// Get the operating system signal types
 	let mut sighup = signal(SignalKind::hangup())?;
 	let mut sigint = signal(SignalKind::interrupt())?;

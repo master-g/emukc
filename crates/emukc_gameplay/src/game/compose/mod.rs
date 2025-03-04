@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use emukc_db::{
 	entity::profile::ship,
-	sea_orm::{entity::prelude::*, TransactionTrait},
+	sea_orm::{TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
 	kc2::{KcApiChargeKind, KcApiChargeResp},

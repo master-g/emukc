@@ -2,9 +2,9 @@ use axum::Extension;
 use emukc::prelude::PresetOps;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 
 pub(super) async fn handler(

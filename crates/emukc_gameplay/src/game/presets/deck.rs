@@ -3,7 +3,7 @@ use emukc_db::{
 		fleet,
 		preset::{preset_caps, preset_deck},
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder},
+	sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
 };
 use emukc_model::{
 	fields::MoveValueToEnd, kc2::KcUseItemType, profile::preset_deck::PresetDeckItem,

@@ -28,7 +28,7 @@ pub use password::PasswordCrypto;
 pub mod prelude {
 	//! The `emukc_crypto` crate prelude.
 	#[doc(hidden)]
-	pub use crate::{md5, md5_file, PasswordCrypto, SimpleHash};
+	pub use crate::{PasswordCrypto, SimpleHash, md5, md5_file};
 
 	#[cfg(feature = "async")]
 	#[doc(hidden)]

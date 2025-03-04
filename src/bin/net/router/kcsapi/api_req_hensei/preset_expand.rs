@@ -1,9 +1,9 @@
 use axum::Extension;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 use emukc_internal::prelude::*;
 

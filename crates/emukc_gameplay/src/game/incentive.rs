@@ -2,10 +2,10 @@
 
 use emukc_db::{
 	entity::profile::incentive::{self, IncentiveMode, IncentiveType},
-	sea_orm::{entity::*, QueryOrder, TransactionTrait},
+	sea_orm::{QueryOrder, TransactionTrait, entity::*},
 };
 use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory};
-use prelude::{async_trait::async_trait, ConnectionTrait, QueryFilter};
+use prelude::{ConnectionTrait, QueryFilter, async_trait::async_trait};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 

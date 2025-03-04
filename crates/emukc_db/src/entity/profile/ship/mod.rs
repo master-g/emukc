@@ -1,6 +1,6 @@
 //! Ship related entities
 use emukc_model::kc2::KcApiShip;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 pub mod morale_timer;
 pub mod picturebook;

@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use emukc_internal::prelude::*;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 
 #[derive(Serialize, Deserialize, Debug)]

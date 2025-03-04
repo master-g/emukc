@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{fleet, ship},
-	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait, TryIntoModel},
+	sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::profile::fleet::Fleet;
 

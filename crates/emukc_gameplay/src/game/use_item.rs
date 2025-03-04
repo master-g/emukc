@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use rand::{rngs::SmallRng, seq::IteratorRandom, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng, seq::IteratorRandom};
 
 use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel},
+	sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{
 	prelude::*,

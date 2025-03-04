@@ -1,4 +1,4 @@
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 
 use crate::net::auth;
 

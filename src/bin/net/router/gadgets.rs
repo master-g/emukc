@@ -1,14 +1,14 @@
 use axum::{
+	Form, Router,
 	extract::Query,
 	response::IntoResponse,
 	routing::{get, post},
-	Form, Router,
 };
 use emukc_internal::{prelude::ProfileOps, time::chrono};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{header, AppState};
+use crate::net::{AppState, header};
 
 const UNPARSEABLE_CRUFT: &str = "throw 1; < don't be evil' >";
 

@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::expedition,
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
+	sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
 };
-use emukc_time::{chrono::Utc, KcTime};
+use emukc_time::{KcTime, chrono::Utc};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 

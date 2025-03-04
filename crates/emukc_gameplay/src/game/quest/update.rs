@@ -1,10 +1,10 @@
 use emukc_db::{
 	entity::profile::quest::{
-		oneshot,
+		ShouldReset, oneshot,
 		periodic::{self},
-		progress, ShouldReset,
+		progress,
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel},
+	sea_orm::{ActiveValue, IntoActiveModel, entity::prelude::*},
 };
 use emukc_model::{
 	codex::Codex,

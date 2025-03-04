@@ -3,9 +3,9 @@ use emukc::model::profile::furniture::FurnitureConfig;
 use serde::{Deserialize, Serialize};
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 use emukc_internal::prelude::*;
 

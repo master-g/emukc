@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::airbase::{base, plane as plane_db},
-	sea_orm::{entity::prelude::*, ActiveValue, QueryOrder, TransactionTrait},
+	sea_orm::{ActiveValue, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::profile::airbase::Airbase;
 

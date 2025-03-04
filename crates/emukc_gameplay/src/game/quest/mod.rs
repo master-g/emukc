@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{expedition, quest},
-	sea_orm::{entity::prelude::*, QueryOrder, TransactionTrait},
+	sea_orm::{QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::codex::Codex;
 use update::update_quests_impl;

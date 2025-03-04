@@ -1,6 +1,6 @@
 use emukc_db::{
 	entity::profile::{item::slot_item, ship},
-	sea_orm::{entity::prelude::*, ActiveValue},
+	sea_orm::{ActiveValue, entity::prelude::*},
 };
 use emukc_model::codex::Codex;
 

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use emukc_model::user::token::{Token, TokenType};
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]

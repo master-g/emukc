@@ -1,4 +1,4 @@
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::{
 	collections::{BTreeMap, HashMap, HashSet},
 	sync::LazyLock,
@@ -6,10 +6,10 @@ use std::{
 
 use emukc_db::{
 	entity::profile::{item::slot_item, ship},
-	sea_orm::{entity::prelude::*, ActiveValue},
+	sea_orm::{ActiveValue, entity::prelude::*},
 };
 use emukc_model::{
-	codex::{group::DeGroupParam, Codex},
+	codex::{Codex, group::DeGroupParam},
 	kc2::{KcApiShip, KcApiSlotItem, KcShipType},
 	prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip},
 };

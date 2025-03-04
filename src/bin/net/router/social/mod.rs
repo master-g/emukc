@@ -1,9 +1,9 @@
-use axum::{middleware, routing::post, Extension, Json, Router};
+use axum::{Extension, Json, Router, middleware, routing::post};
 use serde::{Deserialize, Serialize};
 
 use crate::net::{
-	auth::{kcs_api_auth_middleware, GameSession},
 	AppState,
+	auth::{GameSession, kcs_api_auth_middleware},
 };
 
 mod inspection_create;

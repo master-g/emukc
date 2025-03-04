@@ -1,17 +1,17 @@
 use axum::{
+	Router,
 	extract::{Path, Query},
 	response::{Html, IntoResponse, Response},
 	routing::get,
-	Router,
 };
 use emukc_internal::prelude::VERSION;
-use http::{header, StatusCode};
+use http::{StatusCode, header};
 use tera::Tera;
 
 use crate::net::{
+	AppState,
 	assets::{self, GameSiteAssets, GameStaticFile},
 	router::version::gen_version_png,
-	AppState,
 };
 
 use super::KcVersionQuery;

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::item::slot_item,
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait, TryIntoModel},
+	sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 

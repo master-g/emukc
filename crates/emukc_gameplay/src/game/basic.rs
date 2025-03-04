@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use emukc_crypto::SimpleHash;
 use emukc_db::{
 	entity::profile::{self, kdock, ndock},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, TransactionTrait},
+	sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
 	codex::Codex,

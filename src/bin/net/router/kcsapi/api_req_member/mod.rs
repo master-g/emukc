@@ -1,4 +1,4 @@
-use axum::{routing::post, Router};
+use axum::{Router, routing::post};
 
 mod get_event_selected_reward;
 mod get_incentive;

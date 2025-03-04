@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use emukc_db::sea_orm::{entity::prelude::*, TransactionTrait};
+use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
 use emukc_model::kc2::{KcApiGameSetting, KcApiOptionSetting, KcApiOssSetting};
 use game::{
 	get_game_settings_impl, update_flagship_position_impl, update_friendly_fleet_settings_impl,

@@ -3,9 +3,9 @@ use emukc::model::profile::preset_deck::PresetDeckItem;
 use serde::{Deserialize, Serialize};
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 use emukc_internal::prelude::*;
 

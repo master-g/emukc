@@ -2,12 +2,12 @@ use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{ndock, ship},
 	sea_orm::{
-		entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait,
-		TryIntoModel,
+		ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, TryIntoModel,
+		entity::prelude::*,
 	},
 };
 use emukc_model::{
-	codex::{repair::RepairCost, Codex},
+	codex::{Codex, repair::RepairCost},
 	kc2::{KcUseItemType, MaterialCategory},
 	prelude::ApiMstShip,
 	profile::ndock::RepairDock,

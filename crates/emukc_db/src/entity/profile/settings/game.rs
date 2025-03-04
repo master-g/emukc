@@ -3,7 +3,7 @@
 #![allow(missing_docs)]
 
 use emukc_model::kc2::KcApiGameSetting;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]

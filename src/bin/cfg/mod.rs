@@ -49,6 +49,10 @@ impl AppConfig {
 		let cfg = Config::builder().add_source(source).build()?;
 		let mut cfg = cfg.try_deserialize::<AppConfig>()?;
 
+		if !cfg.workspace_root.exists() {
+			std::fs::create_dir_all(&cfg.workspace_root)?;
+		}
+
 		if cfg.workspace_root.is_relative() {
 			let cfg_path = Path::new(path.as_ref()).parent().unwrap();
 			// join cfg_dif and workspace_root
@@ -61,6 +65,9 @@ impl AppConfig {
 
 			// join cfg_dir and cache_root
 			let cache_root = cfg_path.join(&cfg.cache_root);
+			if !cache_root.exists() {
+				std::fs::create_dir_all(&cache_root)?;
+			}
 			cfg.cache_root = if cache_root.is_absolute() {
 				cache_root
 			} else {
@@ -69,6 +76,9 @@ impl AppConfig {
 
 			// join cfg_dif and mods_root
 			let mods_root = cfg_path.join(&cfg.mods_root);
+			if !mods_root.exists() {
+				std::fs::create_dir_all(&mods_root)?;
+			}
 			cfg.mods_root = if mods_root.is_absolute() {
 				mods_root
 			} else {

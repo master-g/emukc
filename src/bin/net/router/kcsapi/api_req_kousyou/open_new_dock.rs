@@ -3,9 +3,9 @@ use axum::Extension;
 use emukc_internal::prelude::*;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 
 pub(super) async fn handler(

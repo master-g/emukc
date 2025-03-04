@@ -1,8 +1,8 @@
 use emukc_db::prelude::new_mem_db;
 use emukc_db::sea_orm::DbConn;
 use emukc_gameplay::prelude::*;
-use emukc_model::codex::group::DeGroupParam;
 use emukc_model::codex::Codex;
+use emukc_model::codex::group::DeGroupParam;
 use emukc_model::kc2::{
 	KcApiIncentiveItem, KcApiIncentiveMode, KcApiIncentiveType, KcSlotItemType3, MaterialCategory,
 };

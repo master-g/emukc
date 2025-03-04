@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use emukc_model::profile::quest::QuestPeriodicRecord;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 use super::{HasTimestampAndPeriod, Period};
 

@@ -1,9 +1,9 @@
 use emukc_db::{
 	entity::profile::ship,
-	sea_orm::{entity::prelude::*, ActiveValue},
+	sea_orm::{ActiveValue, entity::prelude::*},
 };
 use emukc_model::{codex::Codex, kc2::KcUseItemType, prelude::ApiMstShip};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 
 use crate::{
 	err::GameplayError,

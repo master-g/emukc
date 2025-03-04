@@ -1,13 +1,13 @@
 use axum::{
+	Router,
 	extract::{Path, Query},
 	response::{IntoResponse, Response},
 	routing::get,
-	Router,
 };
 
 use crate::net::{
-	assets::{self},
 	AppState,
+	assets::{self},
 };
 
 use super::KcVersionQuery;

@@ -26,7 +26,7 @@ pub mod prelude {
 	pub use crate::download::download_all;
 
 	#[doc(hidden)]
-	pub use crate::db::{prepare, prepare_cache, DbBootstrapError};
+	pub use crate::db::{DbBootstrapError, prepare, prepare_cache};
 
 	#[doc(hidden)]
 	pub use crate::parser::parse_partial_codex;

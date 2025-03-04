@@ -1,6 +1,6 @@
-use axum::{response::IntoResponse, routing::post, Router};
+use axum::{Router, response::IntoResponse, routing::post};
 
-use crate::net::{resp::KcApiResponse, AppState};
+use crate::net::{AppState, resp::KcApiResponse};
 
 mod get_option_setting;
 

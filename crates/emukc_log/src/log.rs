@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use tracing::Level;
 use tracing_log::LogTracer;
-use tracing_subscriber::{fmt, Layer};
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
+use tracing_subscriber::{Layer, fmt};
 
 const LOG_FILE_NAME_PREFIX: &str = "emukc.log";
 

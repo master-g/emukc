@@ -1,14 +1,14 @@
 use axum::{Extension, Form};
-use rand::{rngs::SmallRng, seq::IndexedRandom, RngCore, SeedableRng};
+use rand::{RngCore, SeedableRng, rngs::SmallRng, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	err::ApiError,
 	resp::{KcApiResponse, KcApiResult},
-	AppState,
 };
 
 #[derive(Serialize, Deserialize, Debug)]

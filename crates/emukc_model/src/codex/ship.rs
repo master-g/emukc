@@ -2,7 +2,7 @@
 
 use crate::{
 	fields::MoveValueToEnd,
-	kc2::{level, KcApiShip, KcApiSlotItem},
+	kc2::{KcApiShip, KcApiSlotItem, level},
 	prelude::{
 		ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo,
 		Kc3rdShipRemodelRequirement,

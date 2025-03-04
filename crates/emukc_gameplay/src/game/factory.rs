@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{kdock, ship},
-	sea_orm::{entity::prelude::*, ActiveValue, TransactionTrait},
+	sea_orm::{ActiveValue, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
 	kc2::{KcApiShip, KcApiSlotItem, MaterialCategory},

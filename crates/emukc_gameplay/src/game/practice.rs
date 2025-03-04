@@ -4,7 +4,7 @@ use emukc_db::{
 		self,
 		practice::{self, config::RivalType, rival_ship},
 	},
-	sea_orm::{entity::prelude::*, ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait},
+	sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
 	codex::Codex,
@@ -12,10 +12,10 @@ use emukc_model::{
 	profile::practice::{PracticeConfig, Rival, RivalDetail, RivalFlag, RivalShip, RivalStatus},
 };
 use emukc_time::{
-	chrono::{DateTime, Duration, Utc},
 	KcTime,
+	chrono::{DateTime, Duration, Utc},
 };
-use rand::{rngs::SmallRng, seq::IndexedRandom, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng, seq::IndexedRandom};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 

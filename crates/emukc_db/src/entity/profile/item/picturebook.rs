@@ -1,7 +1,7 @@
 //! Slot item picture entity
 
 use emukc_model::profile::picture_book::PictureBookSlotItem;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]

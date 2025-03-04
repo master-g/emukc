@@ -1,4 +1,4 @@
-use serde::{self, de, Deserialize, Deserializer};
+use serde::{self, Deserialize, Deserializer, de};
 
 /// Deserialize form kcs api form IDs
 pub(crate) fn deserialize_form_ivec<'de, D>(deserializer: D) -> Result<Vec<i64>, D::Error>

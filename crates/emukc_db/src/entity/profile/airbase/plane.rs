@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 
 use emukc_model::profile::airbase::{PlaneInfo, PlaneState};
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 #[allow(missing_docs)]
 #[derive(

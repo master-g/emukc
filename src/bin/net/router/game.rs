@@ -1,9 +1,9 @@
 use axum::{
+	Extension, Router,
 	extract::{Path, Query},
 	middleware,
 	response::{Html, IntoResponse, Redirect, Response},
 	routing::get,
-	Extension, Router,
 };
 use axum_extra::extract::Host;
 use emukc_internal::prelude::PKG_VERSION;
@@ -12,7 +12,7 @@ use tera::Tera;
 
 use crate::net::{
 	assets::{GameSiteAssets, GameStaticFile},
-	auth::{kcs_api_auth_middleware, GameSession},
+	auth::{GameSession, kcs_api_auth_middleware},
 };
 
 pub(super) fn router() -> Router {

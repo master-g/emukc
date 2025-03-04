@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rand::{rngs::SmallRng, seq::IndexedRandom, SeedableRng};
+use rand::{SeedableRng, rngs::SmallRng, seq::IndexedRandom};
 
 use emukc::{
 	model::profile::furniture::FurnitureConfig,

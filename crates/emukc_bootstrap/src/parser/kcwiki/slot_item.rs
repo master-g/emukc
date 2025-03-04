@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use crate::parser::error::ParseError;
 
 use super::{
-	types::{BoolOrInt, BoolOrString, StringOrInt},
 	ParseContext,
+	types::{BoolOrInt, BoolOrString, StringOrInt},
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

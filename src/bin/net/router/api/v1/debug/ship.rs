@@ -1,8 +1,8 @@
-use axum::{routing::post, Json, Router};
+use axum::{Json, Router, routing::post};
 use emukc_internal::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{err::ApiError, AppState};
+use crate::net::{AppState, err::ApiError};
 
 pub(super) fn router() -> Router {
 	axum::Router::new().route("/add", post(add))

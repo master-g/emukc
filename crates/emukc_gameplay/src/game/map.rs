@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::map_record,
-	sea_orm::{entity::prelude::*, QueryOrder},
+	sea_orm::{QueryOrder, entity::prelude::*},
 };
 
 use crate::{err::GameplayError, gameplay::HasContext};

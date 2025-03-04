@@ -1,6 +1,6 @@
 use emukc_db::{
 	entity::profile::ship::sp_effect_item,
-	sea_orm::{entity::prelude::*, ConnectionTrait, QueryOrder},
+	sea_orm::{ConnectionTrait, QueryOrder, entity::prelude::*},
 };
 
 use crate::err::GameplayError;

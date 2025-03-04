@@ -6,7 +6,7 @@ use anyhow::bail;
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::DbConn,
-	prelude::{prepare, prepare_cache, Codex, HasContext, Kache},
+	prelude::{Codex, HasContext, Kache, prepare, prepare_cache},
 };
 
 use crate::cfg::AppConfig;

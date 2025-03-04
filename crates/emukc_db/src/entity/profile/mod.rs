@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 use emukc_model::{kc2::UserHQRank, profile::Profile};
 

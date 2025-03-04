@@ -1,18 +1,18 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
-use axum::{http, Extension};
+use axum::{Extension, http};
 use axum_server::Handle;
 use signal::graceful_shutdown;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
 use tower_http::{
+	ServiceBuilderExt,
 	add_extension::AddExtensionLayer,
 	compression::CompressionLayer,
 	cors::{Any, CorsLayer},
 	request_id::MakeRequestUuid,
 	trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
-	ServiceBuilderExt,
 };
 
 use crate::{

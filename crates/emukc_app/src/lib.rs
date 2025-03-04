@@ -35,7 +35,7 @@ pub mod prelude {
 	pub use crate::cst::{LOGO, PKG_VERSION, RUNTIME_MAX_BLOCKING_THREADS, RUNTIME_STACK_SIZE};
 
 	#[doc(hidden)]
-	pub use crate::env::{arch, os, VERSION};
+	pub use crate::env::{VERSION, arch, os};
 
 	#[doc(hidden)]
 	pub use crate::with_enough_stack;

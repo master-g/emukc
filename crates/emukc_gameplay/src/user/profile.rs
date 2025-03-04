@@ -17,8 +17,8 @@ use crate::{
 };
 
 use super::{
-	auth::{issue_token, verify_access_token},
 	UserError,
+	auth::{issue_token, verify_access_token},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

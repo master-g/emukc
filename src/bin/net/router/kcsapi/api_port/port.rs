@@ -2,10 +2,10 @@ use axum::Extension;
 use serde::Serialize;
 
 use crate::net::{
+	AppState,
 	auth::GameSession,
 	resp::{KcApiResponse, KcApiResult},
 	router::kcs2::GIT_HASH,
-	AppState,
 };
 use emukc_internal::prelude::*;
 

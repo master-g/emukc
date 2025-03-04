@@ -1,4 +1,4 @@
-use emukc_internal::time::{chrono, KcTime};
+use emukc_internal::time::{KcTime, chrono};
 
 use crate::{net::auth::GameSession, state::State};
 

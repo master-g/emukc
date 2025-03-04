@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use emukc_model::profile::kdock::{ConstructionContext, ConstructionDock, ConstructionDockStatus};
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]

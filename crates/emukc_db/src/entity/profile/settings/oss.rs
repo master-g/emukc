@@ -3,7 +3,7 @@
 #![allow(missing_docs)]
 
 use emukc_model::kc2::KcApiOssSetting;
-use sea_orm::{entity::prelude::*, ActiveValue};
+use sea_orm::{ActiveValue, entity::prelude::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]

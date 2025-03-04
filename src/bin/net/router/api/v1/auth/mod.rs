@@ -1,4 +1,4 @@
-use axum::{routing::post, Json, Router};
+use axum::{Json, Router, routing::post};
 use emukc_internal::{
 	model::{profile::Profile, user::token::Token},
 	prelude::{AccountOps, ProfileOps},
@@ -6,7 +6,7 @@ use emukc_internal::{
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::net::{err::ApiError, AppState};
+use crate::net::{AppState, err::ApiError};
 
 pub(super) fn router() -> Router {
 	Router::new()
