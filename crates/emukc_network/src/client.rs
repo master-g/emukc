@@ -22,11 +22,22 @@ pub fn new_reqwest_client(
 		.user_agent(ua.unwrap_or(DEFAULT_UA));
 
 	let builder = if let Some(proxy) = proxy {
-		let proxy = reqwest::Proxy::all(proxy)?;
+		let proxy = reqwest::Proxy::http(proxy)?;
 		builder.proxy(proxy)
 	} else {
 		builder.no_proxy()
 	};
 
 	builder.build()
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[tokio::test]
+	async fn test_new_reqwest_client() {
+		let client = new_reqwest_client(None, None).unwrap();
+		client.get("http://w00g.kancolle-server.com/kcs2/world.html").send().await.unwrap();
+	}
 }

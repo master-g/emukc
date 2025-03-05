@@ -97,8 +97,8 @@ validator = { workspace = true, features = ["derive"] }
 emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 
 [workspace.dependencies]
-anyhow = "1.0.95"
-async-trait = "0.1.86"
+anyhow = "1.0.97"
+async-trait = "0.1.87"
 axum = { version = "0.8.1", features = ["form"] }
 axum-extra = { version = "0.10.0" }
 axum-macros = { version = "0.5.0" }
@@ -106,7 +106,7 @@ axum-server = { version = "0.7.1" }
 base16ct = { version = "0.2.0", features = ["alloc"] }
 bcrypt = { version = "0.17.0" }
 bs58 = { version = "0.5.1" }
-chrono = { version = "0.4.39", features = ["serde"] }
+chrono = { version = "0.4.40", features = ["serde"] }
 clap = { version = "4", features = ["derive", "env", "wrap_help", "unicode"] }
 config = { version = "0.15.8", features = ["toml"] }
 enumn = "0.1.14"
@@ -132,13 +132,13 @@ sea-orm = { version = "1", features = [
 	"sqlx-sqlite",
 ] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1.0.138"
-serde_yaml = "0.9.34"
+serde_json = "1.0.140"
+serde_yaml = "0.9.33"
 serde_urlencoded = "0.7"
 sha2 = { version = "0.10.8", default-features = false }
 tera = "1"
 test-log = { version = "0.2.17", features = ["trace"] }
-thiserror = "2.0.11"
+thiserror = "2.0.12"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7" }
 tower = "0.5.2"
@@ -161,7 +161,7 @@ tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"
 urlencoding = "2"
-uuid = { version = "1.13.1", features = ["v4", "fast-rng"] }
+uuid = { version = "1.15.1", features = ["v4", "fast-rng"] }
 validator = { version = "0.20.0", features = ["derive"] }
 zip-extract = { version = "0.2.1" }
 
@@ -188,6 +188,11 @@ doc-scrape-examples = true
 [[example]]
 name = "bootstrap_download"
 path = "tests/bootstrap/download.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "dump_tree"
+path = "tests/dump_fs_tree/dump_tree.rs"
 doc-scrape-examples = true
 
 [[example]]

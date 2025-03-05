@@ -166,6 +166,7 @@ impl Builder {
 		};
 		let db = self.db.ok_or(Error::MissingField("db".to_owned()))?;
 		let client = new_reqwest_client(self.proxy.as_deref(), self.ua.as_deref())?;
+		debug!("proxy: {}", self.proxy.as_deref().unwrap_or("none"));
 		Ok(Kache {
 			cache_root,
 			mods_root: self.mods_root,
@@ -515,7 +516,10 @@ impl Kache {
 		local_path: &PathBuf,
 		version: Option<&str>,
 	) -> Result<tokio::fs::File, Error> {
-		let cdn_list = if path.starts_with("gadget_html5") || path.starts_with("html") {
+		let cdn_list = if path.starts_with("gadget_html5")
+			|| path.starts_with("html")
+			|| path.contains("world.html")
+		{
 			&self.gadgets_cdn
 		} else {
 			&self.content_cdn
@@ -555,21 +559,31 @@ impl Kache {
 
 	/// Check if the file is valid.
 	///
-	/// A valid cache file should not be a HTML file.
-	///
 	/// # Arguments
 	///
 	/// * `path` - The file path.
 	async fn is_valid(path: &std::path::Path) -> bool {
 		if !path.exists() || !path.is_file() {
+			trace!("File does not exist or is not a file: {:?}", path);
 			return false;
 		}
+
+		// Check if the file is a HTML file.
+		if path.extension().map_or(false, |ext| ext == "html") {
+			trace!("File is a HTML file: {:?}", path);
+			return true;
+		} else {
+			trace!("File is not a HTML file: {:?}", path);
+		}
+
 		let Ok(mut file) = tokio::fs::File::open(path).await else {
+			trace!("Failed to open file: {:?}", path);
 			return false;
 		};
 
 		let mut buffer = [0; 1];
 		if file.read_exact(&mut buffer).await.is_err() {
+			trace!("Failed to read file: {:?}", path);
 			return false;
 		}
 

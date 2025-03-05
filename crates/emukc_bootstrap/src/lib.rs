@@ -12,6 +12,7 @@ extern crate tracing;
 pub mod download;
 
 pub(crate) mod cache;
+pub(crate) mod crawl;
 pub(crate) mod db;
 pub(crate) mod parser;
 pub(crate) mod res;
@@ -21,6 +22,9 @@ pub mod prelude {
 
 	#[doc(hidden)]
 	pub use crate::cache::import_kccp_cache;
+
+	#[doc(hidden)]
+	pub use crate::crawl::crawl;
 
 	#[doc(hidden)]
 	pub use crate::download::download_all;

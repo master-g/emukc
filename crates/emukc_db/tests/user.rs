@@ -1,3 +1,5 @@
+//! Tests for emukc_db
+
 #[cfg(test)]
 mod test {
 	use chrono::Utc;

@@ -122,9 +122,11 @@ impl Request {
 		let client = client.unwrap_or(new_reqwest_client(None, None)?);
 
 		if !self.skip_header_check {
+			trace!("checking if the file exists via a HEAD request");
 			// check if the file exists via a HEAD request
 			let head = client.head(&self.url).send().await?;
 			if !head.status().is_success() {
+				error!("HEAD request failed with status code: {}", head.status());
 				return Err(DownloadError::HeaderCheckFailed(head.status()));
 			}
 		}
@@ -132,6 +134,7 @@ impl Request {
 		// send
 		let response = client.get(&self.url).send().await?;
 		if !response.status().is_success() {
+			error!("GET request failed with status code: {}", response.status());
 			return Err(DownloadError::ResponseError(response.status()));
 		}
 

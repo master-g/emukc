@@ -4,6 +4,7 @@ use clap::{Args, Subcommand};
 use crate::state::State;
 
 mod check;
+mod crawl;
 mod import;
 
 #[derive(Debug, Subcommand)]
@@ -12,6 +13,8 @@ enum Commands {
 	Check(check::CheckArgs),
 	#[command(about = "Import cached files from KCCP")]
 	Import(import::ImportArgs),
+	#[command(about = "Crawl from CDN")]
+	Crawl,
 }
 
 #[derive(Debug, Args)]
@@ -24,6 +27,7 @@ pub(super) async fn exec(args: &CacheArgs, state: &State) -> Result<()> {
 	match &args.command {
 		Commands::Check(args) => check::exec(args, &state.kache).await?,
 		Commands::Import(args) => import::exec(args, &state.kache).await?,
+		Commands::Crawl => crawl::exec(&state).await?,
 	}
 
 	Ok(())

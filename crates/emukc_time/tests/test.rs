@@ -1,3 +1,5 @@
+//! Tests for emukc_time
+
 #[cfg(test)]
 mod test {
 	use chrono::{DateTime, FixedOffset, Utc};

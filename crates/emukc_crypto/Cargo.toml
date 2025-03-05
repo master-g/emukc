@@ -9,6 +9,7 @@ base16ct = { workspace = true, features = ["alloc"] }
 bcrypt = { workspace = true }
 bs58 = { workspace = true }
 md-5 = { workspace = true }
+regex = { workspace = true }
 sha2 = { workspace = true, default-features = false }
 tokio = { workspace = true, optional = true }
 

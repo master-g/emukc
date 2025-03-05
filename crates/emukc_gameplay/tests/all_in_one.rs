@@ -1,3 +1,5 @@
+//! test game db and play stuff
+
 use emukc_db::prelude::new_mem_db;
 use emukc_db::sea_orm::DbConn;
 use emukc_gameplay::prelude::*;
