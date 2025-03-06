@@ -23,7 +23,7 @@ pub struct AppConfig {
 	pub cache_root: PathBuf,
 
 	/// The root directory of the KC mods
-	pub mods_root: PathBuf,
+	pub mods_root: Option<PathBuf>,
 
 	/// addr to bind the server to
 	pub bind: std::net::SocketAddr,
@@ -75,15 +75,17 @@ impl AppConfig {
 			};
 
 			// join cfg_dif and mods_root
-			let mods_root = cfg_path.join(&cfg.mods_root);
-			if !mods_root.exists() {
-				std::fs::create_dir_all(&mods_root)?;
+			if let Some(mods_root) = &cfg.mods_root {
+				let mods_root = cfg_path.join(mods_root);
+				if !mods_root.exists() {
+					std::fs::create_dir_all(&mods_root)?;
+				}
+				cfg.mods_root = if mods_root.is_absolute() {
+					Some(mods_root)
+				} else {
+					Some(mods_root.canonicalize()?)
+				};
 			}
-			cfg.mods_root = if mods_root.is_absolute() {
-				mods_root
-			} else {
-				mods_root.canonicalize()?
-			};
 		}
 
 		CFG.set(cfg.clone()).unwrap();

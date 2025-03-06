@@ -44,9 +44,6 @@ impl SuffixUtils {
 	pub fn create(s: &str, key: &str) -> String {
 		// extract first consecutive digits from `s`
 		let num: u64 = DIGIT_REGEX.find(s).and_then(|m| m.as_str().parse().ok()).unwrap_or(0);
-		if num == 0 {
-			return String::new();
-		}
 
 		// calculate index
 		let key_sum = Self::create_key(key);
@@ -79,5 +76,12 @@ mod tests {
 	fn test_create() {
 		assert_eq!(SuffixUtils::create("1", "ship_banner"), "2910");
 		assert_eq!(SuffixUtils::create("1", "ship_banner_dmg"), "4742");
+	}
+
+	#[test]
+	fn test_bgm() {
+		// SoundManager.bgm.play(bgm_id, loop, )
+		// SoundManager.bgm.playBattleBGM = play(bgm_id, loop, fadeOutDuration, category, callback)
+		assert_eq!(SuffixUtils::create("014", "bgm_battle"), "3949");
 	}
 }

@@ -30,13 +30,17 @@ fn dump_tree(root: impl AsRef<Path>) -> Vec<String> {
 
 		if let Ok(entries) = path.read_dir() {
 			for entry in entries {
-				if let Ok(entry) = entry {
-					stack.push((entry.path(), depth + 1));
-
-					if entry.file_type().unwrap().is_file() {
-						tree.push(entry.path().to_string_lossy().into_owned());
+				match entry {
+					Ok(entry) => {
+						let filetype = entry.file_type().unwrap();
+						if filetype.is_file() {
+							tree.push(entry.path().to_string_lossy().into_owned());
+						} else if filetype.is_dir() {
+							stack.push((entry.path(), depth + 1));
+						}
 					}
-				}
+					Err(_) => continue,
+				};
 			}
 		}
 	}

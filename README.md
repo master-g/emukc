@@ -24,6 +24,12 @@ emukc serve
 
 then open `http://localhost:{port}` in your browser
 
+### API
+
+```shell
+atac -d doc/.atac
+```
+
 ## Sources
 
 Thanks to the following data sources, from whom we get the data we need, this project would not have been possible without them

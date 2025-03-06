@@ -104,8 +104,8 @@ impl Builder {
 	}
 
 	/// Set the mods root directory.
-	pub fn with_mods_root(mut self, mods_root: PathBuf) -> Self {
-		self.mods_root = Some(mods_root);
+	pub fn with_mods_root(mut self, mods_root: Option<PathBuf>) -> Self {
+		self.mods_root = mods_root;
 		self
 	}
 
