@@ -77,6 +77,10 @@ pub struct Kache {
 
 	/// Database connection.
 	db: Arc<DbConn>,
+
+	/// Fast check when get a file from cache.
+	/// only check if the file exists in the cache directory.
+	fast_check: bool,
 }
 
 /// The `Builder` struct is the builder for the `Kache` struct.
@@ -89,6 +93,7 @@ pub struct Builder {
 	proxy: Option<String>,
 	ua: Option<String>,
 	db: Option<Arc<DbConn>>,
+	fast_check: bool,
 }
 
 impl Builder {
@@ -151,6 +156,12 @@ impl Builder {
 		self
 	}
 
+	/// Set the fast check flag.
+	pub fn with_fast_check(mut self, fast_check: bool) -> Self {
+		self.fast_check = fast_check;
+		self
+	}
+
 	/// Build the `Kache` struct.
 	pub fn build(self) -> Result<Kache, Error> {
 		let cache_root = self.cache_root.ok_or(Error::MissingField("cache_root".to_owned()))?;
@@ -174,6 +185,7 @@ impl Builder {
 			content_cdn,
 			client,
 			db,
+			fast_check: self.fast_check,
 		})
 	}
 }
@@ -202,7 +214,9 @@ impl Kache {
 	/// * `version` - The file version.
 	#[instrument(skip(self))]
 	pub async fn get(&self, path: &str, version: Option<&str>) -> Result<tokio::fs::File, Error> {
-		info!("🔍 {}, ver: {}", path, version.unwrap_or("n/a"));
+		if !self.fast_check {
+			info!("🔍 {}, ver: {}", path, version.unwrap_or("n/a"));
+		}
 
 		let f = match self.find_in_mods(path).await {
 			Some(f) => f,
@@ -355,6 +369,14 @@ impl Kache {
 		local_path: &PathBuf,
 		version: Option<&str>,
 	) -> Result<tokio::fs::File, Error> {
+		if self.fast_check {
+			if !local_path.exists() {
+				trace!("file not found in cache");
+				return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
+			}
+			return Ok(tokio::fs::File::open(local_path).await?);
+		}
+
 		let db = &*self.db;
 
 		let model = cache::Entity::find()
@@ -538,7 +560,12 @@ impl Kache {
 				format!("http://{}", cdn)
 			};
 			let remote_path = path.trim_start_matches('/');
-			let url = format!("{}/{}?version={}", cdn, remote_path, version.unwrap_or(""));
+			let ver = if let Some(v) = version {
+				format!("?version={}", v)
+			} else {
+				"".to_string()
+			};
+			let url = format!("{}/{}{}", cdn, remote_path, ver);
 			info!("🛫 {}", url);
 
 			match self.fetch_from_url(&url, path, local_path, version).await {
@@ -633,5 +660,14 @@ impl Kache {
 		}
 
 		Ok((total, invalid, missing))
+	}
+
+	/// Set the fast check flag.
+	///
+	/// # Arguments
+	///
+	/// * `flag` - The new value of the fast check flag.
+	pub fn set_fast_check(&mut self, flag: bool) {
+		self.fast_check = flag;
 	}
 }

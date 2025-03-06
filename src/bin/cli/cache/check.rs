@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Args;
-use emukc_internal::prelude::Kache;
+
+use crate::{cfg::AppConfig, state::State};
 
 #[derive(Debug, Args)]
 pub(super) struct CheckArgs {
@@ -9,8 +10,9 @@ pub(super) struct CheckArgs {
 	dry: bool,
 }
 
-pub(super) async fn exec(args: &CheckArgs, kache: &Kache) -> Result<()> {
-	kache.check_all(!args.dry).await?;
+pub(super) async fn exec(args: &CheckArgs, config: &AppConfig) -> Result<()> {
+	let state = State::new(config).await?;
+	state.kache.check_all(!args.dry).await?;
 
 	Ok(())
 }

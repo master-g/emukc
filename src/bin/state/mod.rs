@@ -3,6 +3,7 @@
 use std::{fs::create_dir, sync::Arc};
 
 use anyhow::bail;
+use emukc::cache::kache::Builder;
 use emukc_internal::{
 	cache::kache,
 	db::sea_orm::DbConn,
@@ -59,6 +60,43 @@ impl State {
 
 		// kache system
 		let kache = Arc::new(kache);
+
+		// codex
+		let codex_root = cfg.codex_root()?;
+		let codex = Arc::new(Codex::load(&codex_root)?);
+
+		Ok(Self {
+			db,
+			kache,
+			codex,
+		})
+	}
+
+	pub async fn new_with_custom_kache<F>(
+		cfg: &AppConfig,
+		kache_middleware: F,
+	) -> anyhow::Result<Self>
+	where
+		F: FnOnce(Builder) -> Builder,
+	{
+		let db_path = cfg.workspace_root.join(DB_NAME);
+		let db = Arc::new(prepare(&db_path, false).await?);
+
+		let cache_db_path = cfg.workspace_root.join(CACHE_DB_NAME);
+		let cache_db = Arc::new(prepare_cache(&cache_db_path, false).await?);
+
+		let kache_builder = Kache::builder()
+			.with_cache_root(cfg.cache_root.clone())
+			.with_mods_root(cfg.mods_root.clone())
+			.with_db(cache_db)
+			.with_gadgets_cdns(cfg.gadgets_cdn.clone())
+			.with_content_cdns(cfg.game_cdn.clone())
+			.with_proxy(cfg.proxy.to_owned());
+
+		let kache_builder = kache_middleware(kache_builder);
+
+		// kache system
+		let kache = Arc::new(kache_builder.build()?);
 
 		// codex
 		let codex_root = cfg.codex_root()?;

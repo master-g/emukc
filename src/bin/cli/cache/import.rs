@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Args;
-use emukc_internal::prelude::{Kache, import_kccp_cache};
+use emukc_internal::prelude::import_kccp_cache;
+
+use crate::{cfg::AppConfig, state::State};
 
 #[derive(Debug, Args)]
 pub(super) struct ImportArgs {
@@ -15,8 +17,9 @@ pub(super) struct ImportArgs {
 	cache_root: Option<PathBuf>,
 }
 
-pub(super) async fn exec(args: &ImportArgs, kache: &Kache) -> Result<()> {
-	import_kccp_cache(kache, &args.json_path, args.cache_root.as_deref()).await?;
+pub(super) async fn exec(args: &ImportArgs, config: &AppConfig) -> Result<()> {
+	let state = State::new(config).await?;
+	import_kccp_cache(&state.kache, &args.json_path, args.cache_root.as_deref()).await?;
 
 	Ok(())
 }

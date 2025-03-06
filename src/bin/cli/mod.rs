@@ -108,12 +108,7 @@ pub async fn init() -> ExitCode {
 	let output = match args.command {
 		Some(Commands::Nuke) => dev::exec(&cfg).await,
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
-		Some(Commands::Cache(args)) => {
-			let Some(state) = prepare_state(&cfg).await else {
-				return ExitCode::FAILURE;
-			};
-			cache::exec(&args, &state).await
-		}
+		Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
 		Some(Commands::Serve(args)) => {
 			let Some(state) = prepare_state(&cfg).await else {
 				return ExitCode::FAILURE;

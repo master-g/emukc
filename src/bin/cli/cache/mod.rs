@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::{Args, Subcommand};
 
-use crate::state::State;
+use crate::cfg::AppConfig;
 
 mod check;
 mod crawl;
@@ -14,7 +14,7 @@ enum Commands {
 	#[command(about = "Import cached files from KCCP")]
 	Import(import::ImportArgs),
 	#[command(about = "Crawl from CDN")]
-	Crawl,
+	Crawl(crawl::CrawlArguments),
 }
 
 #[derive(Debug, Args)]
@@ -23,11 +23,11 @@ pub(super) struct CacheArgs {
 	command: Commands,
 }
 
-pub(super) async fn exec(args: &CacheArgs, state: &State) -> Result<()> {
+pub(super) async fn exec(args: &CacheArgs, config: &AppConfig) -> Result<()> {
 	match &args.command {
-		Commands::Check(args) => check::exec(args, &state.kache).await?,
-		Commands::Import(args) => import::exec(args, &state.kache).await?,
-		Commands::Crawl => crawl::exec(&state).await?,
+		Commands::Check(args) => check::exec(args, config).await?,
+		Commands::Import(args) => import::exec(args, config).await?,
+		Commands::Crawl(args) => crawl::exec(args, config).await?,
 	}
 
 	Ok(())
