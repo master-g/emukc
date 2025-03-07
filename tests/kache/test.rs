@@ -37,9 +37,9 @@ async fn get_kache() -> Result<Kache, Box<dyn std::error::Error>> {
 #[allow(dead_code)]
 async fn test_get() -> Result<(), Box<dyn std::error::Error>> {
 	let kache = get_kache().await?;
-	kache.get("kcs/sound/kcojkgkujsenly/168525.mp3", Some("27")).await?;
-	kache.get("kcs2/resources/ship/character_full/0404_3736.png", None).await?;
-	kache.get("gadget_html5/js/kcs_const.js", None).await?;
+	kache.get("kcs/sound/kcojkgkujsenly/168525.mp3", 27).await?;
+	kache.get("kcs2/resources/ship/character_full/0404_3736.png", NoVersion).await?;
+	kache.get("gadget_html5/js/kcs_const.js", NoVersion).await?;
 	Ok(())
 }
 

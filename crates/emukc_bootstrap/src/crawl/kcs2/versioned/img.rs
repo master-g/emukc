@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::LazyLock};
 
-use emukc_cache::kache;
+use emukc_cache::prelude::*;
 
 static LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 	&[
@@ -465,12 +465,12 @@ static LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 });
 
 pub(super) async fn crawl(
-	cache: &kache::Kache,
+	cache: &Kache,
 	versions: &BTreeMap<String, String>,
-) -> Result<(), kache::Error> {
+) -> Result<(), KacheError> {
 	for p in LIST.iter() {
 		let category = p.split('/').next().unwrap();
-		let version = versions.get(category).map(|v| v.as_str());
+		let version = versions.get(category);
 		cache.get(format!("kcs2/img/{}", p).as_str(), version).await?;
 	}
 	Ok(())

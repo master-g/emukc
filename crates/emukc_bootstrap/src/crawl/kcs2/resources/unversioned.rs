@@ -2,7 +2,7 @@
 
 use std::sync::LazyLock;
 
-use emukc_cache::kache;
+use emukc_cache::prelude::*;
 
 static SE: LazyLock<Vec<u32>> = LazyLock::new(|| {
 	vec![
@@ -27,28 +27,36 @@ static TUTORIAL_VOICE: LazyLock<&[&str]> = LazyLock::new(|| {
 	]
 });
 
-pub(super) async fn crawl(cache: &kache::Kache) -> Result<(), kache::Error> {
+pub(super) async fn crawl(cache: &Kache) -> Result<(), KacheError> {
 	for se in SE.iter() {
-		cache.get(format!("kcs2/resources/se/{}.mp3", se).as_str(), None).await?;
+		cache.get(format!("kcs2/resources/se/{}.mp3", se).as_str(), NoVersion).await?;
 	}
 
 	for sally in AREA_SALLY.iter() {
-		cache.get(format!("kcs2/resources/area/sally/{}.png", sally).as_str(), None).await?;
+		cache.get(format!("kcs2/resources/area/sally/{}.png", sally).as_str(), NoVersion).await?;
 	}
 
 	for air_unit in AREA_AIR_UNIT.iter() {
-		cache.get(format!("kcs2/resources/area/airunit/{}.png", air_unit).as_str(), None).await?;
+		cache
+			.get(format!("kcs2/resources/area/airunit/{}.png", air_unit).as_str(), NoVersion)
+			.await?;
 	}
 
 	for voice in TUTORIAL_VOICE.iter() {
-		cache.get(format!("kcs2/resources/voice/tutorial/{}.mp3", voice).as_str(), None).await?;
+		cache
+			.get(format!("kcs2/resources/voice/tutorial/{}.mp3", voice).as_str(), NoVersion)
+			.await?;
 	}
 
 	for i in 1..=103 {
-		cache.get(format!("kcs2/resources/voice/titlecall_1/{0:03}.mp3", i).as_str(), None).await?;
+		cache
+			.get(format!("kcs2/resources/voice/titlecall_1/{0:03}.mp3", i).as_str(), NoVersion)
+			.await?;
 	}
 	for i in 1..=64 {
-		cache.get(format!("kcs2/resources/voice/titlecall_2/{0:03}.mp3", i).as_str(), None).await?;
+		cache
+			.get(format!("kcs2/resources/voice/titlecall_2/{0:03}.mp3", i).as_str(), NoVersion)
+			.await?;
 	}
 
 	Ok(())

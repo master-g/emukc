@@ -1,8 +1,13 @@
 use std::{collections::BTreeSet, sync::LazyLock};
 
-use emukc_cache::kache;
-use emukc_crypto::SuffixUtils;
+use emukc_cache::prelude::*;
 use emukc_model::kc2::start2::ApiManifest;
+
+use crate::crawl::kcs2::fetch_res_impl;
+
+async fn fetch_bgm(cache: &Kache, id: i64, category: &str) -> Result<tokio::fs::File, KacheError> {
+	fetch_res_impl(cache, id, 3, "bgm", category, "mp3", NoVersion).await
+}
 
 static BATTLE_BGM_ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
@@ -23,23 +28,15 @@ static BATTLE_BGM_ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	]
 });
 
-pub(super) async fn crawl(mst: &ApiManifest, cache: &kache::Kache) -> Result<(), kache::Error> {
+pub(super) async fn crawl(mst: &ApiManifest, cache: &Kache) -> Result<(), KacheError> {
 	for i in 1..=5 {
-		cache
-			.get(
-				format!("kcs2/resources/bgm/fanfare/{}", gen_bgm_name(i, "fanfare")).as_str(),
-				None,
-			)
-			.await?;
+		fetch_bgm(cache, i, "fanfare").await?;
 	}
 
 	// port
-	cache
-		.get(format!("kcs2/resources/bgm/port/{}", gen_bgm_name(0, "port")).as_str(), None)
-		.await?;
+	fetch_bgm(cache, 0, "port").await?;
 	for bgm in mst.api_mst_bgm.iter() {
-		let bgm_name = gen_bgm_name(bgm.api_id, "port");
-		cache.get(format!("kcs2/resources/bgm/port/{}", bgm_name).as_str(), None).await?;
+		fetch_bgm(cache, bgm.api_id, "port").await?;
 	}
 
 	// map
@@ -49,28 +46,23 @@ pub(super) async fn crawl(mst: &ApiManifest, cache: &kache::Kache) -> Result<(),
 }
 
 #[allow(dead_code)]
-async fn fetch_battle_bgm_by_preset(cache: &kache::Kache) -> Result<(), kache::Error> {
+async fn fetch_battle_bgm_by_preset(cache: &Kache) -> Result<(), KacheError> {
 	for id in BATTLE_BGM_ID.iter() {
-		let bgm_name = gen_bgm_name(*id, "battle");
-		let _ = cache.get(format!("kcs2/resources/bgm/battle/{}", bgm_name).as_str(), None).await;
+		fetch_bgm(cache, *id, "battle").await?;
 	}
 	Ok(())
 }
 
 #[allow(dead_code)]
-async fn fetch_battle_bgm_greedy(cache: &kache::Kache) -> Result<(), kache::Error> {
+async fn fetch_battle_bgm_greedy(cache: &Kache) -> Result<(), KacheError> {
 	for i in 1..=300 {
-		let bgm_name = gen_bgm_name(i, "battle");
-		let _ = cache.get(format!("kcs2/resources/bgm/battle/{}", bgm_name).as_str(), None).await;
+		fetch_bgm(cache, i, "battle").await?;
 	}
 	Ok(())
 }
 
 #[allow(dead_code)]
-async fn fetch_battle_bgm_from_mst(
-	mst: &ApiManifest,
-	cache: &kache::Kache,
-) -> Result<(), kache::Error> {
+async fn fetch_battle_bgm_from_mst(mst: &ApiManifest, cache: &Kache) -> Result<(), KacheError> {
 	let id_set: BTreeSet<i64> = mst
 		.api_mst_mapbgm
 		.iter()
@@ -83,16 +75,8 @@ async fn fetch_battle_bgm_from_mst(
 		.collect();
 
 	for id in id_set {
-		let bgm_name = gen_bgm_name(id, "battle");
-		cache.get(format!("kcs2/resources/bgm/battle/{}", bgm_name).as_str(), None).await?;
+		fetch_bgm(cache, id, "battle").await?;
 	}
 
 	Ok(())
-}
-
-fn gen_bgm_name(id: i64, sub_id: &str) -> String {
-	let key = format!("{id:03}");
-	let category = format!("bgm_{sub_id}");
-	let magic = SuffixUtils::create(&key, &category);
-	format!("{key}_{magic}.mp3")
 }

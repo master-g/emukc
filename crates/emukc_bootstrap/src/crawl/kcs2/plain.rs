@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use emukc_cache::kache;
+use emukc_cache::prelude::*;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 static PLAIN_RES: LazyLock<&[&str]> = LazyLock::new(|| {
@@ -17,9 +17,9 @@ static PLAIN_RES: LazyLock<&[&str]> = LazyLock::new(|| {
 static VERSION_REGEX: LazyLock<regex::Regex> =
 	LazyLock::new(|| regex::Regex::new(r#"VersionInfo\.scriptVesion\s*=\s*"([^"]+)";"#).unwrap());
 
-pub(super) async fn crawl_kcs2_plain(cache: &kache::Kache) -> Result<(), kache::Error> {
+pub(super) async fn crawl_kcs2_plain(cache: &Kache) -> Result<(), KacheError> {
 	for res in PLAIN_RES.iter() {
-		cache.get(format!("kcs2/{}", res).as_str(), None).await?;
+		cache.get(format!("kcs2/{}", res).as_str(), "").await?;
 	}
 
 	let mainjs_ver = parse_main_js_version(cache).await?;
@@ -28,8 +28,8 @@ pub(super) async fn crawl_kcs2_plain(cache: &kache::Kache) -> Result<(), kache::
 	Ok(())
 }
 
-async fn parse_main_js_version(cache: &kache::Kache) -> Result<String, kache::Error> {
-	let mainjs = cache.get("gadget_html5/js/kcs_const.js", None).await?;
+async fn parse_main_js_version(cache: &Kache) -> Result<String, KacheError> {
+	let mainjs = cache.get("gadget_html5/js/kcs_const.js", "").await?;
 
 	let reader = BufReader::new(mainjs);
 	let mut lines = reader.lines();
@@ -42,5 +42,5 @@ async fn parse_main_js_version(cache: &kache::Kache) -> Result<String, kache::Er
 		}
 	}
 
-	Err(kache::Error::InvalidFile("kcs_const.js has no version info".to_string()))
+	Err(KacheError::InvalidFile("kcs_const.js has no version info".to_string()))
 }

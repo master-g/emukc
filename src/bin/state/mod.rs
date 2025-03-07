@@ -3,11 +3,9 @@
 use std::{fs::create_dir, sync::Arc};
 
 use anyhow::bail;
-use emukc::cache::kache::Builder;
 use emukc_internal::{
-	cache::kache,
 	db::sea_orm::DbConn,
-	prelude::{Codex, HasContext, Kache, prepare, prepare_cache},
+	prelude::{Codex, HasContext, Kache, KacheBuilder, prepare, prepare_cache},
 };
 
 use crate::cfg::AppConfig;
@@ -22,7 +20,7 @@ pub struct State {
 	pub db: Arc<DbConn>,
 
 	/// kache
-	pub kache: Arc<kache::Kache>,
+	pub kache: Arc<Kache>,
 
 	/// Codex instance
 	pub codex: Arc<Codex>,
@@ -77,7 +75,7 @@ impl State {
 		kache_middleware: F,
 	) -> anyhow::Result<Self>
 	where
-		F: FnOnce(Builder) -> Builder,
+		F: FnOnce(KacheBuilder) -> KacheBuilder,
 	{
 		let db_path = cfg.workspace_root.join(DB_NAME);
 		let db = Arc::new(prepare(&db_path, false).await?);

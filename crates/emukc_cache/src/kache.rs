@@ -9,6 +9,8 @@ use emukc_network::{client::new_reqwest_client, download, reqwest};
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
 
+use crate::ver::IntoVersion;
+
 /// The chunk size for batch processing.
 const CHUNK_SIZE: usize = 256;
 
@@ -213,14 +215,26 @@ impl Kache {
 	/// * `path` - The file's relative path.
 	/// * `version` - The file version.
 	#[instrument(skip(self))]
-	pub async fn get(&self, path: &str, version: Option<&str>) -> Result<tokio::fs::File, Error> {
+	pub async fn get<V>(&self, path: &str, version: V) -> Result<tokio::fs::File, Error>
+	where
+		V: IntoVersion + std::fmt::Debug,
+	{
+		let v = if let Some(v) = version.into_version() {
+			v
+		} else {
+			"".to_string()
+		};
 		if !self.fast_check {
-			info!("🔍 {}, ver: {}", path, version.unwrap_or("n/a"));
+			if v == "" {
+				info!("🔍 {path}");
+			} else {
+				info!("🔍 {path}, ver: {v}");
+			}
 		}
 
 		let f = match self.find_in_mods(path).await {
 			Some(f) => f,
-			None => match self.find_in_local_or_fetch_from_remote(path, version).await {
+			None => match self.find_in_local_or_fetch_from_remote(path, v.as_str()).await {
 				Ok(file) => file,
 				Err(e) => {
 					error!("❗️ local_path:{}, err:{:?}", path, e);
@@ -229,7 +243,7 @@ impl Kache {
 			},
 		};
 
-		info!("✅ {}, {}", path, version.unwrap_or("n/a"));
+		info!("✅ {}, {}", path, v);
 
 		Ok(f)
 	}
@@ -367,7 +381,7 @@ impl Kache {
 		&self,
 		rel_path: &str,
 		local_path: &PathBuf,
-		version: Option<&str>,
+		version: &str,
 	) -> Result<tokio::fs::File, Error> {
 		if self.fast_check {
 			if !local_path.exists() {
@@ -379,11 +393,13 @@ impl Kache {
 
 		let db = &*self.db;
 
-		let model = cache::Entity::find()
-			.filter(cache::Column::Path.eq(rel_path))
-			.filter(cache::Column::Version.eq(version))
-			.one(db)
-			.await?;
+		let query = cache::Entity::find().filter(cache::Column::Path.eq(rel_path));
+		let query = if version == "" {
+			query
+		} else {
+			query.filter(cache::Column::Version.eq(Some(version)))
+		};
+		let model = query.one(db).await?;
 
 		// find db entry
 		if let Some(model) = model {
@@ -393,8 +409,8 @@ impl Kache {
 			}
 
 			// check if version matched
-			let v = model.version.filter(|v| !v.is_empty());
-			if version != v.as_deref() {
+			let v = model.version.unwrap_or_default();
+			if version != v {
 				trace!("version not matched: {:?} != {:?}", version, v);
 				return Err(Error::FileExpired(rel_path.to_owned()));
 			}
@@ -411,7 +427,7 @@ impl Kache {
 		}
 
 		// not found in db
-		if version.is_none() && local_path.exists() {
+		if version == "" && local_path.exists() {
 			// non-versioned file found
 			if !Self::is_valid(local_path).await {
 				// invalid file
@@ -455,7 +471,7 @@ impl Kache {
 		url: &str,
 		rel_path: &str,
 		local_path: &PathBuf,
-		version: Option<&str>,
+		version: &str,
 	) -> Result<tokio::fs::File, Error> {
 		download::Request::builder()
 			.url(url)
@@ -474,17 +490,23 @@ impl Kache {
 		let db = &*self.db;
 		let tx = db.begin().await?;
 
-		let record = cache::Entity::find()
-			.filter(cache::Column::Path.eq(rel_path))
-			.filter(cache::Column::Version.eq(version.unwrap_or("")))
-			.one(&tx)
-			.await?;
+		let query = cache::Entity::find().filter(cache::Column::Path.eq(rel_path));
+		let query = if version == "" {
+			query
+		} else {
+			query.filter(cache::Column::Version.eq(Some(version)))
+		};
+		let record = query.one(&tx).await?;
 
 		let mut model = cache::ActiveModel {
 			id: ActiveValue::NotSet,
 			path: ActiveValue::Set(rel_path.to_owned()),
 			md5: ActiveValue::Set(md5),
-			version: ActiveValue::Set(version.map(ToOwned::to_owned)),
+			version: ActiveValue::Set(if version == "" {
+				None
+			} else {
+				Some(version.to_owned())
+			}),
 		};
 
 		if let Some(record) = record {
@@ -508,22 +530,26 @@ impl Kache {
 	async fn find_in_local_or_fetch_from_remote(
 		&self,
 		path: &str,
-		version: Option<&str>,
+		version: &str,
 	) -> Result<tokio::fs::File, Error> {
 		let local_path = self.cache_root.join(path);
-		let str_ver = version.unwrap_or("n/a");
+		let log_tail = if version == "" {
+			path.to_string()
+		} else {
+			format!("{path}, version: {version}")
+		};
 
 		match self.find_in_local(path, &local_path, version).await {
 			Ok(file) => return Ok(file),
 			Err(e) => match e {
 				Error::FileNotFound(_) => {
-					warn!("🤔 missing: {}, version: {}", path, str_ver);
+					warn!("🤔 missing: {log_tail}");
 				}
 				Error::InvalidFile(_) => {
-					warn!("❌ invalid: {}, version: {}", path, str_ver);
+					warn!("❌ invalid: {log_tail}");
 				}
 				Error::FileExpired(_) => {
-					warn!("🥀 expired: {}, version: {}", path, str_ver);
+					warn!("🥀 expired: {log_tail}");
 				}
 				_ => return Err(e),
 			},
@@ -536,7 +562,7 @@ impl Kache {
 		&self,
 		path: &str,
 		local_path: &PathBuf,
-		version: Option<&str>,
+		version: &str,
 	) -> Result<tokio::fs::File, Error> {
 		let cdn_list = if path.starts_with("gadget_html5")
 			|| path.starts_with("html")
@@ -560,10 +586,10 @@ impl Kache {
 				format!("http://{}", cdn)
 			};
 			let remote_path = path.trim_start_matches('/');
-			let ver = if let Some(v) = version {
-				format!("?version={}", v)
-			} else {
+			let ver = if version == "" {
 				"".to_string()
+			} else {
+				format!("?version={version}")
 			};
 			let url = format!("{}/{}{}", cdn, remote_path, ver);
 			info!("🛫 {}", url);
@@ -637,7 +663,11 @@ impl Kache {
 				if fix {
 					debug!("missing: {:?}", abs_path);
 					let _ = self
-						.fetch_from_remote(&model.path, &abs_path, model.version.as_deref())
+						.fetch_from_remote(
+							&model.path,
+							&abs_path,
+							model.version.as_deref().unwrap_or_default(),
+						)
 						.await?;
 				} else {
 					warn!("missing file: {:?}", abs_path);
@@ -651,7 +681,11 @@ impl Kache {
 				if fix {
 					debug!("invalid: {:?}", abs_path);
 					let _ = self
-						.fetch_from_remote(&model.path, &abs_path, model.version.as_deref())
+						.fetch_from_remote(
+							&model.path,
+							&abs_path,
+							model.version.as_deref().unwrap_or_default(),
+						)
 						.await?;
 				} else {
 					warn!("invalid file: {:?}", abs_path);

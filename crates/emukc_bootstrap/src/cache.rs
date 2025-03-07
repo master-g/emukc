@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
-use emukc_cache::kache;
+use emukc_cache::prelude::*;
 use emukc_crypto::md5_file_async;
 use emukc_model::cache::KcFileEntry;
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ pub enum ImportKccpCacheError {
 	Json(#[from] serde_json::Error),
 
 	#[error("Kache error: {0}")]
-	Kache(#[from] kache::Error),
+	Kache(#[from] KacheError),
 
 	#[error("Tokio error: {0}")]
 	Tokio(#[from] tokio::task::JoinError),
@@ -38,7 +38,7 @@ struct KccpCacheEntry {
 /// * `path_to_cache_root` - The path to the cache root.
 #[instrument(skip_all)]
 pub async fn import_kccp_cache(
-	kache: &kache::Kache,
+	kache: &Kache,
 	path_to_json: impl AsRef<Path>,
 	path_to_cache_root: Option<impl AsRef<Path>>,
 ) -> Result<(), ImportKccpCacheError> {

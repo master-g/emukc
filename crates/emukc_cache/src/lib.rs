@@ -8,11 +8,22 @@
 #[macro_use]
 extern crate tracing;
 
-pub mod kache;
+mod kache;
+mod ver;
 
+pub use kache::Builder as KacheBuilder;
+pub use kache::Error as KacheError;
+pub use kache::Kache;
+pub use ver::{IntoVersion, NoVersion};
+
+/// The `emukc_cache` crate prelude.
+///
+/// This module re-exports the core types and traits of the crate
+/// for convenient importing with a global import: `use emukc_cache::prelude::*;`
 pub mod prelude {
-	//! The `emukc_cache` crate prelude.
-	//!
-	#[doc(hidden)]
-	pub use crate::kache::Kache;
+	pub use crate::IntoVersion;
+	pub use crate::Kache;
+	pub use crate::KacheBuilder;
+	pub use crate::KacheError;
+	pub use crate::NoVersion;
 }
