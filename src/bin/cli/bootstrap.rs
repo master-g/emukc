@@ -44,13 +44,17 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
 	codex.save(&codex_root, args.overwrite)?;
 
 	if args.force_update {
-		let p = cfg.cache_root.join("gadget_html5").join("kcs_const.js");
+		let p = cfg.cache_root.join("gadget_html5").join("js").join("kcs_const.js");
 		if p.exists() {
 			std::fs::remove_file(p)?;
+		} else {
+			warn!("{:?} not found.", p);
 		}
 		let p = cfg.cache_root.join("kcs2").join("version.json");
 		if p.exists() {
 			std::fs::remove_file(p)?;
+		} else {
+			warn!("{:?} not found.", p);
 		}
 		info!("version files in kcs cache removed.");
 	}

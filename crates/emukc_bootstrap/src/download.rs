@@ -1,13 +1,13 @@
 //! Download the resources
 
 use emukc_crypto::md5_file;
-use emukc_network::{client::new_reqwest_client, reqwest};
+use emukc_network::{client::new_reqwest_client, download::DownloadError, reqwest};
 use thiserror::Error;
 
 use crate::res::RES_LIST;
 
 #[derive(Debug, Error)]
-pub enum DownloadError {
+pub enum BootstrapDownloadError {
 	#[error("IO error: {0}")]
 	Io(#[from] std::io::Error),
 
@@ -33,7 +33,7 @@ pub async fn download_all(
 	dir: impl AsRef<std::path::Path>,
 	overwrite: bool,
 	proxy: Option<&str>,
-) -> Result<(), DownloadError> {
+) -> Result<(), BootstrapDownloadError> {
 	let output_dir = dir.as_ref();
 	if !output_dir.exists() {
 		std::fs::create_dir_all(output_dir)?;
@@ -50,14 +50,22 @@ pub async fn download_all(
 			continue;
 		}
 
-		emukc_network::download::Request::builder()
+		let result = emukc_network::download::Request::builder()
 			.url(res.url)
 			.save_as(&fullpath)
 			.overwrite(overwrite)
 			.skip_header_check(true)
 			.build()?
 			.execute(Some(client.clone()))
-			.await?;
+			.await;
+
+		match result {
+			Err(DownloadError::FileExists(f)) if !overwrite => {
+				return Err(BootstrapDownloadError::Download(DownloadError::FileExists(f)));
+			}
+			Err(e) => return Err(BootstrapDownloadError::Download(e)),
+			Ok(_) => {}
+		}
 
 		let size = fullpath.metadata()?.len();
 		let md5 = md5_file(&fullpath)?;

@@ -219,7 +219,8 @@ impl Codex {
 		{
 			let path = dst.join(PATH_START2);
 			if path.exists() && !overwrite {
-				return Err(CodexError::AlreadyExist(path.display().to_string()));
+				warn!("file {} already exists", path.display());
+				return Ok(());
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
 		}

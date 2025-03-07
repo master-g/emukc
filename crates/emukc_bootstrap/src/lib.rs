@@ -30,6 +30,9 @@ pub mod prelude {
 	pub use crate::download::download_all;
 
 	#[doc(hidden)]
+	pub use crate::download::BootstrapDownloadError;
+
+	#[doc(hidden)]
 	pub use crate::db::{DbBootstrapError, prepare, prepare_cache};
 
 	#[doc(hidden)]

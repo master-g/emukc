@@ -11,10 +11,10 @@ static JAVASCRIPT_LIST: LazyLock<&[&str]> =
 
 pub(super) async fn crawl_gadget_html5(cache: &Kache) -> Result<(), KacheError> {
 	for js in JS_LIST.iter() {
-		cache.get(format!("gadget_html5/js/kcs_{}.js", js).as_str(), "").await?;
+		cache.get(format!("gadget_html5/js/kcs_{}.js", js).as_str(), NoVersion).await?;
 	}
 	for js in JAVASCRIPT_LIST.iter() {
-		cache.get(format!("gadget_html5/script/{}.js", js).as_str(), "").await?;
+		cache.get(format!("gadget_html5/script/{}.js", js).as_str(), NoVersion).await?;
 	}
 
 	Ok(())

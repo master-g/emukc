@@ -132,7 +132,13 @@ impl Request {
 		}
 
 		// send
-		let response = client.get(&self.url).send().await?;
+		let response = client
+			.get(&self.url)
+			.header("Cache-Control", "no-cache, no-store, must-revalidate")
+			.header("Pragma", "no-cache")
+			.header("Expires", "0")
+			.send()
+			.await?;
 		if !response.status().is_success() {
 			error!("GET request failed with status code: {}", response.status());
 			return Err(DownloadError::ResponseError(response.status()));
