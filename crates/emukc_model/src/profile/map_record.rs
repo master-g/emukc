@@ -197,6 +197,18 @@ pub static DEFAULT_MAP_RECORDS: LazyLock<Vec<MapRecord>> = LazyLock::new(|| {
 			},
 		)
 			.into(),
+		(
+			16,
+			None,
+			MapDefeatContext {
+				defeat_count: 0,
+				defeat_required: 4,
+				gauge_num: 1,
+				gauge_type: MapGaugeType::Destroy,
+				refresh_type: MapRefreshType::Monthly,
+			},
+		)
+			.into(),
 		21.into(),
 		22.into(),
 		23.into(),
