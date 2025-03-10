@@ -6,6 +6,7 @@ use emukc_cache::{IntoVersion, Kache};
 use emukc_model::kc2::start2::ApiManifest;
 
 use errors::CacheListMakingError;
+use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 
 pub mod errors;
 
@@ -16,6 +17,7 @@ pub(crate) struct CacheListItem {
 	#[serde(rename = "_id")]
 	pub id: i64,
 	pub path: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub version: Option<String>,
 }
 
@@ -83,14 +85,27 @@ pub async fn make(
 		return Err(CacheListMakingError::FileExists(out));
 	}
 
+	info!("making cache list to {:?}", out);
+
 	let mut list = CacheList::new();
 
 	source::make(mst, kache, &mut list).await?;
 
 	for item in list.items.iter() {
 		let line = serde_json::to_string(item)?;
-		info!("{}", line);
+		debug!("{}", line);
 	}
+
+	let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(&out).await?;
+	for item in list.items.iter() {
+		let line = serde_json::to_string(item)?;
+		file.write_all(line.as_bytes()).await?;
+		file.write_u8(b'\n').await?;
+	}
+
+	file.sync_all().await?;
+
+	info!("cache list made to {:?}", out);
 
 	Ok(())
 }

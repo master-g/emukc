@@ -14,6 +14,7 @@ mod db;
 mod download;
 mod make_list;
 mod parser;
+mod populate;
 mod res;
 
 /// The `emukc_bootstrap` crate prelude.
@@ -25,4 +26,5 @@ pub mod prelude {
 	pub use crate::download::download_all;
 	pub use crate::make_list::{errors::CacheListMakingError, make as make_cache_list};
 	pub use crate::parser::parse_partial_codex;
+	pub use crate::populate::populate;
 }
