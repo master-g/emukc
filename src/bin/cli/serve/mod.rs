@@ -11,7 +11,7 @@ pub(super) struct ServeArgs {
 	#[arg(help = "Whether to hide the startup banner")]
 	#[arg(env = "EMUKC_NO_BANNER", long)]
 	#[arg(default_value_t = false)]
-	no_banner: bool,
+	pub no_banner: bool,
 }
 
 pub(super) async fn exec(args: &ServeArgs, cfg: &AppConfig, state: &State) -> Result<()> {

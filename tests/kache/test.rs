@@ -57,13 +57,6 @@ async fn test_get() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[allow(dead_code)]
-async fn import() -> Result<(), Box<dyn std::error::Error>> {
-	let kache = get_kache().await?;
-	import_kccp_cache(&kache, "./z/cache/cached.json", Some("./z/cache")).await?;
-	Ok(())
-}
-
-#[allow(dead_code)]
 async fn check() -> Result<(), Box<dyn std::error::Error>> {
 	let kache = get_kache().await.unwrap();
 	let (total, invalid, missing) = kache.check_all(true).await?;

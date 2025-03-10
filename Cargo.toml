@@ -64,6 +64,7 @@ fontdue = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
 mime_guess = { workspace = true }
+open = { workspace = true }
 png = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
@@ -117,6 +118,7 @@ http = { version = "1.2.0" }
 http-body-util = "0.1"
 md-5 = "0.10.6"
 mime_guess = "2"
+open = "5"
 png = "0.17.16"
 rand = { version = "0.9.0", features = ["small_rng", "os_rng"] }
 regex = "1.11.1"

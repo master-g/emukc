@@ -6,20 +6,26 @@ use thiserror::Error;
 
 use crate::res::RES_LIST;
 
+/// Error that can occur during the download process
 #[derive(Debug, Error)]
 pub enum BootstrapDownloadError {
+	/// IO error
 	#[error("IO error: {0}")]
 	Io(#[from] std::io::Error),
 
+	/// Request builder error
 	#[error("Request builder error: {0}")]
 	Builder(#[from] emukc_network::download::BuilderError),
 
+	/// Reqwest error
 	#[error("Reqwest error: {0}")]
 	Reqwest(#[from] reqwest::Error),
 
+	/// Download error
 	#[error("Download error: {0}")]
 	Download(#[from] emukc_network::download::DownloadError),
 
+	/// Unzip error
 	#[error("Unzip error: {0}")]
 	Unzip(#[from] zip_extract::ZipExtractError),
 }

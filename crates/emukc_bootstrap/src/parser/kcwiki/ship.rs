@@ -26,7 +26,7 @@ pub struct KcwikiShip {
 	#[serde(rename = "_armor_mod")]
 	armor_mod: BoolOrInt,
 	#[serde(rename = "_asw")]
-	asw: i64,
+	asw: Option<i64>,
 	#[serde(rename = "_asw_max")]
 	asw_max: Option<BoolOrInt>,
 	#[serde(rename = "_buildable")]
@@ -124,7 +124,7 @@ pub struct KcwikiShip {
 	#[serde(rename = "_reversible")]
 	reversible: Option<bool>,
 	#[serde(rename = "_remodel_overseas")]
-	remodel_overseas: Option<i64>,
+	remodel_overseas: Option<BoolOrInt>,
 	#[serde(rename = "_remodel_from_fixme")]
 	remodel_from_fixme: Option<String>,
 	#[serde(rename = "_remodel_boiler")]
@@ -136,7 +136,7 @@ pub struct KcwikiShip {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Equipment {
-	equipment: BoolOrString,
+	equipment: Option<BoolOrString>,
 	size: i64,
 	stars: Option<i64>,
 }
@@ -206,8 +206,8 @@ pub(super) fn parse(
 
 		for equipment in wiki_ship.equipment.iter() {
 			let item_id = match &equipment.equipment {
-				BoolOrString::Bool(_) => 0,
-				BoolOrString::String(v) => {
+				Some(BoolOrString::Bool(_)) => 0,
+				Some(BoolOrString::String(v)) => {
 					if let Some(id) = context.find_slotitem_id(v) {
 						id
 					} else {
@@ -215,6 +215,7 @@ pub(super) fn parse(
 						0
 					}
 				}
+				None => 0,
 			};
 
 			slots.push(Kc3rdShipSlotInfo {
@@ -288,7 +289,7 @@ pub(super) fn parse(
 			Kc3rdShip {
 				api_id,
 				kaih: [wiki_ship.evasion.unwrap_or(0), evasion_max],
-				tais: [wiki_ship.asw, aws_max],
+				tais: [wiki_ship.asw.unwrap_or(0), aws_max],
 				saku: [wiki_ship.los.unwrap_or(0), wiki_ship.los_max.unwrap_or(0)],
 				luck: [wiki_ship.luck, wiki_ship.luck_max],
 				luck_bonus: if let LuckMod::Double(v) = wiki_ship.luck_mod {

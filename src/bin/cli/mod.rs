@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 
 use emukc_internal::prelude::*;
+use serve::ServeArgs;
 
 use crate::{cfg::AppConfig, state::State};
 
@@ -42,6 +43,9 @@ struct Cli {
 enum Commands {
 	#[command(about = "Remove game database and create a new account and profile")]
 	Nuke,
+
+	#[command(about = "Start a game session with given username and password")]
+	NewSession(dev::NewSessionArgs),
 
 	#[command(about = "Prepare the bootstrap files")]
 	Bootstrap(bootstrap::BootstrapArgs),
@@ -106,7 +110,27 @@ pub async fn init() -> ExitCode {
 	};
 
 	let output = match args.command {
-		Some(Commands::Nuke) => dev::exec(&cfg).await,
+		Some(Commands::Nuke) => dev::nuke::exec(&cfg).await,
+		Some(Commands::NewSession(args)) => {
+			let Some(state) = prepare_state(&cfg).await else {
+				return ExitCode::FAILURE;
+			};
+			if dev::new_session::exec(&args, &cfg, &state).await.is_err() {
+				return ExitCode::FAILURE;
+			}
+			if !args.no_start {
+				serve::exec(
+					&ServeArgs {
+						no_banner: true,
+					},
+					&cfg,
+					&state,
+				)
+				.await
+			} else {
+				Ok(())
+			}
+		}
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
 		Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
 		Some(Commands::Serve(args)) => {

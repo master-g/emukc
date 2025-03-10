@@ -4,6 +4,8 @@ use emukc_cache::prelude::*;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
+use crate::{make_list::CacheList, prelude::CacheListMakingError};
+
 static MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 	&[
 		"00105", "00106", "00205", "00305", "00404", "00405", "00502", "00503", "00504", "00505",
@@ -52,13 +54,13 @@ struct VerticalConfig {
 	img: String,
 }
 
-pub(super) async fn crawl(cache: &Kache) -> Result<(), KacheError> {
+pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
 	for id in *MAP_ID_LIST {
-		crawl_gauge_by_id(cache, id).await?;
+		make_gauge_by_id(cache, id, list).await?;
 	}
 
 	for id in *EVENT_MAP_ID_LIST {
-		crawl_gauge_by_id(cache, id).await?;
+		make_gauge_by_id(cache, id, list).await?;
 
 		// try to find more
 		// for i in 2..=9 {
@@ -91,9 +93,14 @@ pub(super) async fn crawl(cache: &Kache) -> Result<(), KacheError> {
 	Ok(())
 }
 
-async fn crawl_gauge_by_id(cache: &Kache, id: &str) -> Result<(), KacheError> {
-	let mut json_file =
-		cache.get(format!("kcs2/resources/gauge/{id}.json").as_str(), NoVersion).await?;
+async fn make_gauge_by_id(
+	cache: &Kache,
+	id: &str,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+	let p = format!("kcs2/resources/gauge/{id}.json");
+	let mut json_file = cache.get(&p, NoVersion).await?;
+	list.add_unversioned(p);
 	let mut raw = String::new();
 	json_file.read_to_string(&mut raw).await.map_err(|e| KacheError::InvalidFile(e.to_string()))?;
 
@@ -101,8 +108,8 @@ async fn crawl_gauge_by_id(cache: &Kache, id: &str) -> Result<(), KacheError> {
 		serde_json::from_str(&raw).map_err(|e| KacheError::InvalidFile(e.to_string()))?;
 
 	for img in [config.img, config.vertical.img] {
-		cache.get(format!("kcs2/resources/gauge/{img}.png").as_str(), NoVersion).await?;
-		cache.get(format!("kcs2/resources/gauge/{img}_light.png").as_str(), NoVersion).await?;
+		list.add_unversioned(format!("kcs2/resources/gauge/{img}.png"));
+		list.add_unversioned(format!("kcs2/resources/gauge/{img}_light.png"));
 	}
 
 	Ok(())

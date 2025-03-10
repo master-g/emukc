@@ -1,18 +1,19 @@
 use anyhow::Result;
 use clap::{Args, Subcommand};
+use make_list::MakeListArguments;
 
 use crate::cfg::AppConfig;
 
 mod check;
 mod crawl;
-mod import;
+mod make_list;
 
 #[derive(Debug, Subcommand)]
 enum Commands {
 	#[command(about = "Check cache files integrity")]
 	Check(check::CheckArgs),
-	#[command(about = "Import cached files from KCCP")]
-	Import(import::ImportArgs),
+	#[command(about = "Generate cache list manifest")]
+	MakeList(MakeListArguments),
 	#[command(about = "Crawl from CDN")]
 	Crawl(crawl::CrawlArguments),
 }
@@ -26,8 +27,8 @@ pub(super) struct CacheArgs {
 pub(super) async fn exec(args: &CacheArgs, config: &AppConfig) -> Result<()> {
 	match &args.command {
 		Commands::Check(args) => check::exec(args, config).await?,
-		Commands::Import(args) => import::exec(args, config).await?,
 		Commands::Crawl(args) => crawl::exec(args, config).await?,
+		Commands::MakeList(args) => make_list::exec(args, config).await?,
 	}
 
 	Ok(())
