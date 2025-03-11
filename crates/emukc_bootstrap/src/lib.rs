@@ -9,7 +9,6 @@
 extern crate tracing;
 
 mod cache;
-mod crawl;
 mod db;
 mod download;
 mod make_list;
@@ -20,7 +19,6 @@ mod res;
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
 	pub use crate::cache::import_kccp_cache;
-	pub use crate::crawl::crawl;
 	pub use crate::db::{DbBootstrapError, prepare, prepare_cache};
 	pub use crate::download::BootstrapDownloadError;
 	pub use crate::download::download_all;

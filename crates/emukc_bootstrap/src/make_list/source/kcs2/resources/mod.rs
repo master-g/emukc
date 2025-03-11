@@ -6,6 +6,7 @@ use crate::{make_list::CacheList, prelude::CacheListMakingError};
 mod bgm;
 mod furniture;
 mod gauge;
+mod map;
 mod unversioned;
 
 pub(super) async fn make(
@@ -16,6 +17,7 @@ pub(super) async fn make(
 	bgm::make(mst, list).await?;
 	furniture::make(mst, cache, list).await?;
 	gauge::make(cache, list).await?;
+	map::make(cache, list).await?;
 	unversioned::make(list).await?;
 
 	Ok(())

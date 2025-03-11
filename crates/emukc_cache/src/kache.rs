@@ -338,6 +338,65 @@ impl Kache {
 		Ok((new_entries, updated))
 	}
 
+	/// Check if the file exists on the remote CDN.
+	pub async fn exists_on_remote<V>(&self, path: &str, ver: V) -> Result<bool, Error>
+	where
+		V: IntoVersion + std::fmt::Debug,
+	{
+		let v = if let Some(v) = ver.into_version() {
+			v
+		} else {
+			"".to_string()
+		};
+		let cdn_list = if path.starts_with("gadget_html5")
+			|| path.starts_with("html")
+			|| path.contains("world.html")
+		{
+			&self.gadgets_cdn
+		} else {
+			&self.content_cdn
+		};
+
+		if cdn_list.is_empty() {
+			error!("🚫 no available cdn");
+			return Err(Error::MissingField("cdn_list".to_owned()));
+		}
+
+		for cdn in cdn_list {
+			let cdn = cdn.trim_end_matches('/');
+			let cdn = if cdn.starts_with("http") {
+				cdn.to_string()
+			} else {
+				format!("http://{}", cdn)
+			};
+			let remote_path = path.trim_start_matches('/');
+			let ver = if v == "" {
+				"".to_string()
+			} else {
+				format!("?version={v}")
+			};
+			let url = format!("{}/{}{}", cdn, remote_path, ver);
+			trace!("🛫 {}", &url);
+
+			let resp = self.client.head(&url).send().await?;
+			match resp.status() {
+				reqwest::StatusCode::OK => {
+					trace!("🛬 {}", &url);
+					return Ok(true);
+				}
+				reqwest::StatusCode::NOT_FOUND => {
+					trace!("🚫 not found: {}", &url);
+					return Ok(false);
+				}
+				_ => {
+					trace!("💥 url:{}, status:{:?}", url, resp.status());
+				}
+			}
+		}
+
+		Err(Error::FailedOnAllCdn)
+	}
+
 	/// Find the file in the mods.
 	/// Version will be ignored.
 	#[instrument(skip(self))]
