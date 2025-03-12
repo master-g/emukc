@@ -4,7 +4,9 @@ use axum::{
 	middleware::{self, Next},
 	response::Response,
 };
+use emukc::cache::{GetOption, NoVersion};
 use http::StatusCode;
+use tokio::io::AsyncReadExt;
 
 use crate::{
 	net::{AppState, auth::kcs_api_auth_middleware, header::add_content_type_json_header},
@@ -58,23 +60,20 @@ pub(super) async fn mocking_middleware(
 	let state = parts.extract::<AppState>().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 	let state: &State = state.as_ref();
 
-	if let Some(mod_dir) = state.kache.mods_root() {
-		let req_path = parts.uri.path();
-		let mock_file =
-			mod_dir.join("kcsapi").join(req_path.trim_start_matches('/')).with_extension("json");
-		if mock_file.exists() {
-			info!("🤖 mocking response for {}", req_path);
-			let mock_data =
-				tokio::fs::read(mock_file).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+	let req_path = parts.uri.path();
+	let mock_path = format!("kcsapi{}.json", req_path);
+	if let Ok(mut f) = GetOption::new_api_mocking().get(&state.kache, &mock_path, NoVersion).await {
+		info!("🤖 mocking response for {}", req_path);
+		let mut raw = String::new();
+		f.read_to_string(&mut raw).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-			// check if mock_data starts with 'svdata='
-			return if mock_data.starts_with(b"svdata=") {
-				Ok(Response::new(mock_data.into()))
-			} else {
-				// append 'svdata=' to the beginning of the response
-				Ok(Response::new(format!("svdata={}", String::from_utf8_lossy(&mock_data)).into()))
-			};
-		}
+		// check if mock_data starts with 'svdata='
+		return if raw.starts_with("svdata=") {
+			Ok(Response::new(raw.into()))
+		} else {
+			// append 'svdata=' to the beginning of the response
+			Ok(Response::new(format!("svdata={}", raw).into()))
+		};
 	}
 
 	Ok(next.run(Request::from_parts(parts, body)).await)

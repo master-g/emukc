@@ -4,59 +4,10 @@ use std::{path::PathBuf, sync::Arc};
 
 use emukc_crypto::md5_file_async;
 use emukc_db::{entity::cache, sea_orm::*};
-use emukc_model::cache::KcFileEntry;
 use emukc_network::{client::new_reqwest_client, download, reqwest};
-use thiserror::Error;
 use tokio::io::AsyncReadExt;
 
-use crate::ver::IntoVersion;
-
-/// The chunk size for batch processing.
-const CHUNK_SIZE: usize = 256;
-
-/// Error type for `Kache`.
-#[derive(Debug, Error)]
-pub enum Error {
-	/// Missing field error.
-	#[error("missing field: {0}")]
-	MissingField(String),
-
-	/// File not found error.
-	#[error("file not found: {0}")]
-	FileNotFound(String),
-
-	/// Invalid file error.
-	#[error("invalid file: {0}")]
-	InvalidFile(String),
-
-	/// File expired error.
-	#[error("file expired: {0}")]
-	FileExpired(String),
-
-	/// IO error.
-	#[error("IO error: {0}")]
-	Io(#[from] std::io::Error),
-
-	/// Database error.
-	#[error("database error: {0}")]
-	Db(#[from] DbErr),
-
-	/// Download error.
-	#[error("download request builder error: {0}")]
-	DownloadRequestBuilder(#[from] download::BuilderError),
-
-	/// Download error.
-	#[error("download error: {0}")]
-	Download(#[from] download::DownloadError),
-
-	/// Failed on all CDN.
-	#[error("failed on all CDN")]
-	FailedOnAllCdn,
-
-	/// Reqwest error.
-	#[error("reqwest error: {0}")]
-	Reqwest(#[from] reqwest::Error),
-}
+use crate::{error::Error, opt::GetOption, ver::IntoVersion};
 
 /// The `Kache` struct is the main struct for the `KanColle` CDN file cache utilities.
 #[allow(unused)]
@@ -78,11 +29,7 @@ pub struct Kache {
 	client: reqwest::Client,
 
 	/// Database connection.
-	db: Arc<DbConn>,
-
-	/// Fast check when get a file from cache.
-	/// only check if the file exists in the cache directory.
-	fast_check: bool,
+	pub(crate) db: Arc<DbConn>,
 }
 
 /// The `Builder` struct is the builder for the `Kache` struct.
@@ -95,7 +42,6 @@ pub struct Builder {
 	proxy: Option<String>,
 	ua: Option<String>,
 	db: Option<Arc<DbConn>>,
-	fast_check: bool,
 }
 
 impl Builder {
@@ -158,12 +104,6 @@ impl Builder {
 		self
 	}
 
-	/// Set the fast check flag.
-	pub fn with_fast_check(mut self, fast_check: bool) -> Self {
-		self.fast_check = fast_check;
-		self
-	}
-
 	/// Build the `Kache` struct.
 	pub fn build(self) -> Result<Kache, Error> {
 		let cache_root = self.cache_root.ok_or(Error::MissingField("cache_root".to_owned()))?;
@@ -187,7 +127,6 @@ impl Builder {
 			content_cdn,
 			client,
 			db,
-			fast_check: self.fast_check,
 		})
 	}
 }
@@ -196,11 +135,6 @@ impl Kache {
 	/// Create a new `Builder` instance.
 	pub fn builder() -> Builder {
 		Builder::new()
-	}
-
-	/// Get the mods root directory.
-	pub fn mods_root(&self) -> Option<&PathBuf> {
-		self.mods_root.as_ref()
 	}
 
 	/// Get file from the cache.
@@ -214,134 +148,93 @@ impl Kache {
 	///
 	/// * `path` - The file's relative path.
 	/// * `version` - The file version.
-	#[instrument(skip(self))]
 	pub async fn get<V>(&self, path: &str, version: V) -> Result<tokio::fs::File, Error>
 	where
-		V: IntoVersion + std::fmt::Debug,
+		V: IntoVersion,
 	{
-		let v = if let Some(v) = version.into_version() {
-			v
-		} else {
-			"".to_string()
-		};
-		if !self.fast_check {
-			if v == "" {
-				info!("🔍 {path}");
-			} else {
-				info!("🔍 {path}, ver: {v}");
-			}
-		}
-
-		let f = match self.find_in_mods(path).await {
-			Some(f) => f,
-			None => match self.find_in_local_or_fetch_from_remote(path, v.as_str()).await {
-				Ok(file) => file,
-				Err(e) => {
-					error!("❗️ local_path:{}, err:{:?}", path, e);
-					return Err(e);
-				}
-			},
-		};
-
-		info!("✅ {}, {}", path, v);
-
-		Ok(f)
+		self.get_with_opt(path, version, &GetOption::new()).await
 	}
 
-	/// Export all records from the database.
-	///
-	/// Return a list of `KcFileEntry`.
-	pub async fn export(&self) -> Result<Vec<KcFileEntry>, Error> {
-		let db = &*self.db;
-		let models = cache::Entity::find().all(db).await?;
-		Ok(models.into_iter().map(Into::into).collect())
-	}
-
-	/// Import records to the database.
+	/// Get file from the cache.
 	///
 	/// # Arguments
 	///
-	/// * `entries` - The list of `KcFileEntry`.
-	///
-	/// Return a tuple of `(new_entries, updated_entries)`.
-	#[instrument(skip_all)]
-	pub async fn import(&self, entries: &[KcFileEntry]) -> Result<(usize, usize), Error> {
-		let db = &*self.db;
+	/// * `path` - The file's relative path.
+	/// * `version` - The file version.
+	/// * `opt` - The options for the get operation.
+	pub async fn get_with_opt<V>(
+		&self,
+		path: &str,
+		version: V,
+		opt: &GetOption,
+	) -> Result<tokio::fs::File, Error>
+	where
+		V: IntoVersion,
+	{
+		let v = if opt.enable_version_check {
+			version.into_version().unwrap_or("".to_string())
+		} else {
+			"".to_string()
+		};
 
-		trace!("importing {} entries", entries.len());
-		let mut not_exists = vec![];
-		let mut updates = vec![];
+		if v == "" {
+			info!("🔍 {path}");
+		} else {
+			info!("🔍 {path}, ver: {v}");
+		}
 
-		let mut now = std::time::SystemTime::now();
+		if opt.enable_mod && self.mods_root.is_some() {
+			if let Some(f) = self.find_in_mods(path).await {
+				info!("✅ {}, {}", path, v);
+				return Ok(f);
+			}
+		}
 
-		for entry in entries {
-			let model =
-				cache::Entity::find().filter(cache::Column::Path.eq(&entry.path)).one(db).await?;
-
-			let Some(model) = model else {
-				not_exists.push(entry);
-				continue;
+		let local_path = self.cache_root.join(path);
+		if opt.enable_local {
+			let log_tail = if v == "" {
+				path.to_string()
+			} else {
+				format!("{path}, version: {v}")
 			};
 
-			let old_entry: KcFileEntry = model.clone().into();
-			if entry.version_cmp(&old_entry) == std::cmp::Ordering::Greater {
-				let mut am: cache::ActiveModel = model.into();
-				am.version = ActiveValue::Set(entry.version.clone());
-				updates.push(am);
-			}
-		}
-
-		trace!("filtering done, elapsed: {:?}", now.elapsed().unwrap());
-
-		let updated = updates.len();
-		debug!("{} entries need to be updated", updated);
-		now = std::time::SystemTime::now();
-		{
-			let chunks = updates.chunks(CHUNK_SIZE);
-			let mut processed = 0;
-			for chunk in chunks {
-				let txn = db.begin().await?;
-				for am in chunk.iter().cloned() {
-					am.update(&txn).await?;
+			match self.find_in_local(path, &local_path, &v, opt.enable_version_check).await {
+				Ok(file) => {
+					info!("✅ {}, {}", path, v);
+					return Ok(file);
 				}
-				txn.commit().await?;
-				processed += chunk.len();
-				debug!("processed {}/{}", processed, updated);
-			}
+				Err(e) => match e {
+					Error::FileNotFound(_) => {
+						warn!("🤔 missing: {log_tail}");
+					}
+					Error::InvalidFile(_) => {
+						warn!("❌ invalid: {log_tail}");
+					}
+					Error::FileExpired(_) => {
+						warn!("🥀 expired: {log_tail}");
+					}
+					_ => {
+						error!("❗️ local_path:{}, err:{:?}", path, e);
+						return Err(e);
+					}
+				},
+			};
 		}
-		trace!("updating done, elapsed: {:?}", now.elapsed().unwrap());
 
-		let new_entries = not_exists.len();
-		debug!("{} new entries", new_entries);
-		now = std::time::SystemTime::now();
-		{
-			let chunks = not_exists.chunks(CHUNK_SIZE);
-			let mut processed = 0;
-			for chunk in chunks {
-				let models = chunk
-					.iter()
-					.map(|entry| cache::ActiveModel {
-						id: ActiveValue::NotSet,
-						path: ActiveValue::Set(entry.path.clone()),
-						md5: ActiveValue::Set(entry.md5.clone()),
-						version: ActiveValue::Set(entry.version.clone()),
-					})
-					.collect::<Vec<_>>();
-				cache::Entity::insert_many(models).exec(db).await?;
-
-				processed += chunk.len();
-				debug!("processed {}/{}", processed, new_entries);
-			}
+		if opt.enable_remote {
+			self.fetch_from_remote(path, &local_path, &v).await.map(|file| {
+				info!("✅ {}, {}", path, v);
+				file
+			})?;
 		}
-		trace!("inserting done, elapsed: {:?}", now.elapsed().unwrap());
 
-		Ok((new_entries, updated))
+		Err(Error::FileNotFound(path.to_owned()))
 	}
 
 	/// Check if the file exists on the remote CDN.
 	pub async fn exists_on_remote<V>(&self, path: &str, ver: V) -> Result<bool, Error>
 	where
-		V: IntoVersion + std::fmt::Debug,
+		V: IntoVersion,
 	{
 		let v = if let Some(v) = ver.into_version() {
 			v
@@ -376,12 +269,12 @@ impl Kache {
 				format!("?version={v}")
 			};
 			let url = format!("{}/{}{}", cdn, remote_path, ver);
-			trace!("🛫 {}", &url);
+			trace!("🔍 {}", &url);
 
 			let resp = self.client.head(&url).send().await?;
 			match resp.status() {
 				reqwest::StatusCode::OK => {
-					trace!("🛬 {}", &url);
+					trace!("✅ {}", &url);
 					return Ok(true);
 				}
 				reqwest::StatusCode::NOT_FOUND => {
@@ -422,27 +315,14 @@ impl Kache {
 		}
 	}
 
-	/// Find the file in the local cache.
-	///
-	/// 1. load db record.
-	/// 2. check if the file exists.
-	/// 3. check if the checksum matched.
-	/// 4. if not matched, return error.
-	/// 5. if not found in db, and is a non-versioned file, insert db record.
-	///
-	/// # Arguments
-	///
-	/// * `rel_path` - The file's relative path.
-	/// * `local_path` - The file's local path.
-	/// * `version` - The file version.
-	#[instrument(skip(self))]
 	async fn find_in_local(
 		&self,
 		rel_path: &str,
 		local_path: &PathBuf,
 		version: &str,
+		enable_version_check: bool,
 	) -> Result<tokio::fs::File, Error> {
-		if self.fast_check {
+		if !enable_version_check {
 			if !local_path.exists() {
 				trace!("file not found in cache");
 				return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
@@ -577,44 +457,6 @@ impl Kache {
 		tx.commit().await?;
 
 		Ok(tokio::fs::File::open(local_path).await?)
-	}
-
-	/// Find the file in the local cache or fetch from the remote CDN.
-	///
-	/// # Arguments
-	///
-	/// * `path` - The file's relative path.
-	/// * `version` - The file version.
-	#[instrument(skip(self))]
-	async fn find_in_local_or_fetch_from_remote(
-		&self,
-		path: &str,
-		version: &str,
-	) -> Result<tokio::fs::File, Error> {
-		let local_path = self.cache_root.join(path);
-		let log_tail = if version == "" {
-			path.to_string()
-		} else {
-			format!("{path}, version: {version}")
-		};
-
-		match self.find_in_local(path, &local_path, version).await {
-			Ok(file) => return Ok(file),
-			Err(e) => match e {
-				Error::FileNotFound(_) => {
-					warn!("🤔 missing: {log_tail}");
-				}
-				Error::InvalidFile(_) => {
-					warn!("❌ invalid: {log_tail}");
-				}
-				Error::FileExpired(_) => {
-					warn!("🥀 expired: {log_tail}");
-				}
-				_ => return Err(e),
-			},
-		};
-
-		self.fetch_from_remote(path, &local_path, version).await
 	}
 
 	async fn fetch_from_remote(
@@ -753,14 +595,5 @@ impl Kache {
 		}
 
 		Ok((total, invalid, missing))
-	}
-
-	/// Set the fast check flag.
-	///
-	/// # Arguments
-	///
-	/// * `flag` - The new value of the fast check flag.
-	pub fn set_fast_check(&mut self, flag: bool) {
-		self.fast_check = flag;
 	}
 }

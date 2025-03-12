@@ -16,9 +16,7 @@ pub(super) struct MakeListArguments {
 
 /// Make cache resources file list
 pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result<()> {
-	let state =
-		state::State::new_with_custom_kache(config, |builder| builder.with_fast_check(true))
-			.await?;
+	let state = state::State::new(config).await?;
 
 	let output = args.output.clone().unwrap_or_else(|| {
 		config.cache_root.join("cache_resources.nedb").to_string_lossy().into_owned()
