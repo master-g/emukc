@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{collections::BTreeSet, sync::LazyLock};
 
 use emukc_cache::{GetOption, Kache, KacheError, NoVersion};
 use serde::{Deserialize, Serialize};
@@ -211,9 +211,15 @@ async fn find_in_local_then_remote(
 	Ok(Some(file))
 }
 
+type EventMapInfo = (i64, i64, Option<Vec<i64>>);
+
 async fn get_event_area(cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
+	let mut map_info_set: BTreeSet<EventMapInfo> = BTreeSet::new();
+
 	for event_id in 42..=60 {
 		let area_id = format!("{event_id:03}");
+
+		let mut info_set: EventMapInfo = (event_id, 0, None);
 
 		for map in 1..=9 {
 			let map_id = format!("{map:02}");
@@ -222,6 +228,8 @@ async fn get_event_area(cache: &Kache, list: &mut CacheList) -> Result<(), Cache
 			if cache.exists_on_remote(&cover, NoVersion).await? {
 				list.add_unversioned(cover);
 			}
+
+			info_set.1 = map;
 
 			loop {
 				let suffix = if spots == 0 {
@@ -246,6 +254,10 @@ async fn get_event_area(cache: &Kache, list: &mut CacheList) -> Result<(), Cache
 				list.add_unversioned(image_png_path);
 				list.add_unversioned(image_json_path);
 
+				if spots != 0 {
+					info_set.2.get_or_insert_with(Vec::new).push(spots as i64);
+				}
+
 				// find suffix
 				let mut content = String::new();
 				file.read_to_string(&mut content).await?;
@@ -257,6 +269,10 @@ async fn get_event_area(cache: &Kache, list: &mut CacheList) -> Result<(), Cache
 				break;
 			}
 		}
+
+		map_info_set.insert(info_set);
 	}
+
+	println!("{:?}", map_info_set);
 	Ok(())
 }
