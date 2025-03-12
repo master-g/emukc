@@ -43,6 +43,16 @@ impl GetOption {
 		}
 	}
 
+	/// Creates a new `GetOption` with non-module options.
+	pub fn new_non_mod() -> Self {
+		Self {
+			enable_local: true,
+			enable_remote: true,
+			enable_mod: false,
+			enable_version_check: true,
+		}
+	}
+
 	/// Disables the local cache.
 	pub fn disable_local(mut self) -> Self {
 		self.enable_local = false;

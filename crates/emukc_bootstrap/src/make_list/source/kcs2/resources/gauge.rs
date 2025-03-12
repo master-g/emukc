@@ -99,7 +99,7 @@ async fn make_gauge_by_id(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	let p = format!("kcs2/resources/gauge/{id}.json");
-	let mut json_file = cache.get(&p, NoVersion).await?;
+	let mut json_file = GetOption::new_non_mod().get(cache, &p, NoVersion).await?;
 	list.add_unversioned(p);
 	let mut raw = String::new();
 	json_file.read_to_string(&mut raw).await.map_err(|e| KacheError::InvalidFile(e.to_string()))?;

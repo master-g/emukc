@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use emukc_cache::{Kache, NoVersion};
+use emukc_cache::{GetOption, Kache, KacheError, NoVersion};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
@@ -190,12 +190,39 @@ struct MapInfoJson {
 	spots: Vec<serde_json::Value>,
 }
 
+async fn find_in_local_then_remote(
+	cache: &Kache,
+	p: &str,
+) -> Result<Option<tokio::fs::File>, KacheError> {
+	let file = match GetOption::new().disable_mod().disable_remote().get(cache, p, NoVersion).await
+	{
+		Ok(f) => f,
+		Err(_) => {
+			// check if exist
+			if !cache.exists_on_remote(p, NoVersion).await? {
+				// not exist
+				return Ok(None);
+			}
+			// fetch from CDN
+			GetOption::new().disable_mod().disable_local().get(cache, p, NoVersion).await?
+		}
+	};
+
+	Ok(Some(file))
+}
+
 async fn get_event_area(cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
-	for event_id in 42..=90 {
+	for event_id in 42..=60 {
 		let area_id = format!("{event_id:03}");
 
-		for map_id in 1..=9 {
+		for map in 1..=9 {
+			let map_id = format!("{map:02}");
 			let mut spots = 0;
+			let cover = format!("kcs2/resources/map/{area_id}/{map_id}.png");
+			if cache.exists_on_remote(&cover, NoVersion).await? {
+				list.add_unversioned(cover);
+			}
+
 			loop {
 				let suffix = if spots == 0 {
 					"".to_string()
@@ -203,26 +230,31 @@ async fn get_event_area(cache: &Kache, list: &mut CacheList) -> Result<(), Cache
 					format!("{spots}")
 				};
 
-				let json_path =
-					format!("kcs2/resources/map/{area_id}/{map_id:02}_info{suffix}.json");
-				if !cache.exists_on_remote(&json_path, NoVersion).await? {
-					break;
-				}
+				let json_path = format!("kcs2/resources/map/{area_id}/{map_id}_info{suffix}.json");
+
+				let mut file = match find_in_local_then_remote(cache, &json_path).await? {
+					Some(f) => f,
+					None => break,
+				};
+
 				let image_png_path =
-					format!("kcs2/resources/map/{area_id}/{map_id:02}_image{suffix}.png");
+					format!("kcs2/resources/map/{area_id}/{map_id}_image{suffix}.png");
 				let image_json_path =
-					format!("kcs2/resources/map/{area_id}/{map_id:02}_image{suffix}.json");
+					format!("kcs2/resources/map/{area_id}/{map_id}_image{suffix}.json");
 
 				list.add_unversioned(json_path.clone());
 				list.add_unversioned(image_png_path);
 				list.add_unversioned(image_json_path);
 
 				// find suffix
-				let mut file = cache.get(&json_path, NoVersion).await?;
 				let mut content = String::new();
 				file.read_to_string(&mut content).await?;
 				let map_info: MapInfoJson = serde_json::from_str(&content)?;
 				spots += map_info.spots.len();
+			}
+
+			if spots == 0 {
+				break;
 			}
 		}
 	}

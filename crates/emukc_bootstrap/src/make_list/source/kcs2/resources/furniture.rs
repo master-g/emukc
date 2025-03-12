@@ -64,7 +64,7 @@ async fn make_scripts(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	let p = gen_furniture_path(entry.api_id, "scripts", "json");
-	let mut script_file = kache.get(&p, entry.api_version).await?;
+	let mut script_file = GetOption::new_non_mod().get(kache, &p, entry.api_version).await?;
 	list.add(p, entry.api_version);
 
 	let mut raw = String::new();

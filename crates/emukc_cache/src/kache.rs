@@ -222,10 +222,10 @@ impl Kache {
 		}
 
 		if opt.enable_remote {
-			self.fetch_from_remote(path, &local_path, &v).await.map(|file| {
+			return self.fetch_from_remote(path, &local_path, &v).await.map(|file| {
 				info!("✅ {}, {}", path, v);
 				file
-			})?;
+			});
 		}
 
 		Err(Error::FileNotFound(path.to_owned()))
