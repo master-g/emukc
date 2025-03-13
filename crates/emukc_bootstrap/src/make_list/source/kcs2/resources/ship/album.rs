@@ -10,13 +10,29 @@ pub(super) fn make(mst: &ApiManifest, list: &mut CacheList) {
 		}
 
 		let ship_id = format!("{0:04}", ship.api_id);
-		let p = format!(
-			"kcs2/resources/ship/album_status/{ship_id}_{}.png",
-			SuffixUtils::create(&ship_id, "ship_album_status")
-		);
 
 		let graph = mst.api_mst_shipgraph.iter().find(|v| v.api_id == ship.api_id);
 		let version = graph.map(|v| v.api_version.first()).flatten();
-		list.add(p, version);
+
+		for category in [
+			"album_status",
+			"banner",
+			"banner_dmg",
+			"card",
+			"card_dmg",
+			"character_full",
+			"character_full_dmg",
+			"character_up",
+			"character_up_dmg",
+			"supply_character_dmg",
+		] {
+			list.add(
+				format!(
+					"kcs2/resources/ship/{category}/{ship_id}_{}.png",
+					SuffixUtils::create(&ship_id, format!("ship_{category}").as_str())
+				),
+				version,
+			);
+		}
 	}
 }
