@@ -84,4 +84,9 @@ mod tests {
 		// SoundManager.bgm.playBattleBGM = play(bgm_id, loop, fadeOutDuration, category, callback)
 		assert_eq!(SuffixUtils::create("014", "bgm_battle"), "3949");
 	}
+
+	#[test]
+	fn test_ship() {
+		assert_eq!(SuffixUtils::create("0001", "ship_album_status"), "5832");
+	}
 }

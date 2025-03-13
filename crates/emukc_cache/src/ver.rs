@@ -46,25 +46,25 @@ impl IntoVersion for i64 {
 
 impl IntoVersion for Option<String> {
 	fn into_version(self) -> Option<String> {
-		self
+		self.map(IntoVersion::into_version).flatten()
 	}
 }
 
 impl IntoVersion for Option<&str> {
 	fn into_version(self) -> Option<String> {
-		self.map(|s| s.to_string())
+		self.map(IntoVersion::into_version).flatten()
 	}
 }
 
 impl IntoVersion for Option<&String> {
 	fn into_version(self) -> Option<String> {
-		self.map(|s| s.to_string())
+		self.map(IntoVersion::into_version).flatten()
 	}
 }
 
 impl IntoVersion for Option<i64> {
 	fn into_version(self) -> Option<String> {
-		self.map(|v| v.to_string())
+		self.map(IntoVersion::into_version).flatten()
 	}
 }
 

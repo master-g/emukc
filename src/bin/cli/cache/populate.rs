@@ -8,10 +8,6 @@ pub(super) struct PopulateArguments {
 	#[arg(help = "Path to cache list file.")]
 	#[arg(long)]
 	pub src: Option<String>,
-
-	#[arg(help = "Skip version checking")]
-	#[arg(long)]
-	pub fast: bool,
 }
 
 /// Populate cache with list file
