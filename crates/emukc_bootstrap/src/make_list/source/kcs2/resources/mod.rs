@@ -19,7 +19,7 @@ pub(super) async fn make(
 	furniture::make(mst, cache, list).await?;
 	gauge::make(cache, list).await?;
 	map::make(cache, list).await?;
-	ship::make(mst, cache, list).await?;
+	ship::make(mst, list).await?;
 	unversioned::make(list).await?;
 
 	Ok(())
