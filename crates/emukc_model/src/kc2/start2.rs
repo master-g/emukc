@@ -620,6 +620,23 @@ impl ApiManifest {
 		value
 	}
 
+	/// Find a shipgraph by its `api_id`.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The `api_id` of the shipgraph.
+	///
+	/// # Returns
+	///
+	/// A reference to `ApiMstShipgraph` if found, otherwise `None`.
+	pub fn find_shipgraph(&self, id: i64) -> Option<&ApiMstShipgraph> {
+		let value = self.api_mst_shipgraph.iter().find(|m| m.api_id == id);
+		if value.is_none() {
+			error!("shipgraph {} not found", id);
+		}
+		value
+	}
+
 	/// Find a furniture by its `api_id`.
 	///
 	/// # Arguments

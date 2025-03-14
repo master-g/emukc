@@ -21,8 +21,10 @@ pub(super) async fn make(
 		CacheListMakeStrategy::Default => {
 			make_friend_event_graph(mst, list);
 			make_enemy_graph(mst, list);
+			make_ship_special(mst, list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
+			make_ship_special_greedy(mst, cache, concurrent, list).await?;
 			make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
 			make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
 		}
@@ -361,6 +363,61 @@ fn make_enemy_graph(mst: &ApiManifest, list: &mut CacheList) {
 			);
 		}
 	}
+}
+
+static SPECIAL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
+	vec![
+		0639, 0724, 0694, 0969, 0918, 0446, 0554, 0553, 0576, 0411, 0184, 0733, 0412, 0944, 0916,
+		0634, 0577, 0592, 0572, 0949, 0392, 0571, 0635, 0573, 0640, 0447, 0541, 1496, 0659, 0601,
+		0697, 0546, 0911, 0364, 0178, 0360, 0954, 0591, 0913, 0593,
+	]
+});
+
+fn make_ship_special(mst: &ApiManifest, list: &mut CacheList) {
+	SPECIAL_SHIPS.iter().filter_map(|id| mst.find_shipgraph(*id)).for_each(|graph| {
+		let ship_id = format!("{0:04}", graph.api_id);
+		let p = format!(
+			"kcs2/resources/ship/special/{ship_id}_{}.png",
+			SuffixUtils::create(&ship_id, format!("ship_special").as_str()),
+		);
+		list.add(p, graph.api_version.first());
+	});
+}
+
+#[allow(unused)]
+async fn make_ship_special_greedy(
+	mst: &ApiManifest,
+	kache: &Kache,
+	concurrent: usize,
+	list: &mut CacheList,
+) -> Result<(), KacheError> {
+	let checks: Vec<(String, String)> = mst
+		.api_mst_shipgraph
+		.iter()
+		.filter(|v| v.api_sortno.is_some())
+		.map(|v| {
+			let ship_id = format!("{0:04}", v.api_id);
+			(
+				format!(
+					"kcs2/resources/ship/special/{ship_id}_{}.png",
+					SuffixUtils::create(&ship_id, format!("ship_special").as_str()),
+				),
+				v.api_version.first().cloned().unwrap_or_default(),
+			)
+		})
+		.collect();
+
+	let c = Arc::new(kache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, v), exists) in check_result {
+		if exists {
+			println!("{}, {}", p, v);
+			list.add(p, v);
+		}
+	}
+
+	Ok(())
 }
 
 #[cfg(test)]
