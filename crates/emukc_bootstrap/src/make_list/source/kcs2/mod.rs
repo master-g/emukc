@@ -2,7 +2,10 @@ use emukc_cache::Kache;
 use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
 
-use crate::{make_list::CacheList, prelude::CacheListMakingError};
+use crate::{
+	make_list::{CacheList, CacheListMakeStrategy},
+	prelude::CacheListMakingError,
+};
 
 mod plain;
 mod resources;
@@ -11,11 +14,12 @@ mod versioned;
 pub(super) async fn make(
 	mst: &ApiManifest,
 	kache: &Kache,
+	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	plain::make(kache, list).await?;
 	versioned::make(kache, list).await?;
-	resources::make(mst, kache, list).await?;
+	resources::make(mst, kache, strategy, list).await?;
 
 	Ok(())
 }

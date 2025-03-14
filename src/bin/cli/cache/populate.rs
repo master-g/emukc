@@ -12,6 +12,10 @@ pub(super) struct PopulateArguments {
 	#[arg(help = "skip checksum verification.")]
 	#[arg(long)]
 	pub skip_checksum: bool,
+
+	#[arg(help = "Number of concurrent tasks.")]
+	#[arg(long)]
+	pub concurrent: u8,
 }
 
 /// Populate cache with list file
@@ -22,7 +26,13 @@ pub(super) async fn exec(args: &PopulateArguments, config: &AppConfig) -> Result
 		config.cache_root.join("cache_resources.nedb").to_string_lossy().into_owned()
 	});
 
-	emukc_internal::bootstrap::prelude::populate(&state.kache, &src, args.skip_checksum).await?;
+	emukc_internal::bootstrap::prelude::populate(
+		state.kache,
+		&src,
+		args.concurrent as usize,
+		args.skip_checksum,
+	)
+	.await?;
 
 	Ok(())
 }

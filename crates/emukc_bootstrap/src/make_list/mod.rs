@@ -1,8 +1,12 @@
-use std::collections::BTreeSet;
+use std::{
+	collections::{BTreeSet, HashMap},
+	sync::Arc,
+};
 
+use futures::{StreamExt, stream::FuturesUnordered};
 use serde::{Deserialize, Serialize};
 
-use emukc_cache::{IntoVersion, Kache};
+use emukc_cache::{IntoVersion, Kache, KacheError};
 use emukc_model::kc2::start2::ApiManifest;
 
 use errors::CacheListMakingError;
@@ -11,6 +15,14 @@ use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 pub mod errors;
 
 mod source;
+
+/// Strategy for making a cache list.
+pub enum CacheListMakeStrategy {
+	/// Default strategy
+	Default,
+	/// Greedy strategy
+	Greedy(usize),
+}
 
 #[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct CacheListItem {
@@ -78,6 +90,7 @@ pub async fn make(
 	mst: &ApiManifest,
 	kache: &Kache,
 	outpath: impl AsRef<std::path::Path>,
+	strategy: CacheListMakeStrategy,
 	overwrite: bool,
 ) -> Result<(), CacheListMakingError> {
 	let out = outpath.as_ref().to_owned();
@@ -89,7 +102,7 @@ pub async fn make(
 
 	let mut list = CacheList::new();
 
-	source::make(mst, kache, &mut list).await?;
+	source::make(mst, kache, strategy, &mut list).await?;
 
 	for item in list.items.iter() {
 		let line = serde_json::to_string(item)?;
@@ -108,4 +121,63 @@ pub async fn make(
 	info!("cache list made to {:?}", out);
 
 	Ok(())
+}
+
+const MAX_CHECK_SIZE: usize = 32;
+
+/// Check if a list of URLs exist on the remote cache.
+///
+/// # Arguments
+///
+/// * `cache` - The remote cache to check against.
+/// * `urls` - The list of URLs to check.
+/// * `concurrent` - The maximum number of concurrent checks.
+///
+/// # Returns
+///
+/// A `HashMap` mapping each URL to a boolean indicating whether it exists on the remote cache.
+pub async fn batch_check_exists(
+	cache: Arc<Kache>,
+	mut urls: Vec<(String, String)>,
+	concurrent: usize,
+) -> Result<HashMap<(String, String), bool>, KacheError> {
+	let q = concurrent.clamp(1, MAX_CHECK_SIZE);
+	let mut result: HashMap<(String, String), bool> = HashMap::new();
+	let mut tasks = FuturesUnordered::new();
+
+	loop {
+		while tasks.len() < q {
+			match urls.pop() {
+				Some((url, ver)) => {
+					let c = cache.clone();
+					let key = url.clone();
+					tasks.push(async move {
+						let exists = c.exists_on_remote(&key, &ver).await?;
+						Ok::<((String, String), bool), KacheError>(((key, ver), exists))
+					});
+				}
+				None => {
+					break;
+				}
+			}
+		}
+
+		if tasks.is_empty() {
+			break;
+		}
+
+		match tasks.next().await {
+			Some(Ok(((key, ver), exists))) => {
+				result.insert((key, ver), exists);
+			}
+			Some(Err(err)) => {
+				return Err(err);
+			}
+			None => {
+				break;
+			}
+		}
+	}
+
+	Ok(result)
 }

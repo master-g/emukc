@@ -171,11 +171,7 @@ impl Kache {
 	where
 		V: IntoVersion,
 	{
-		let v = if opt.enable_version_check {
-			version.into_version().unwrap_or("".to_string())
-		} else {
-			"".to_string()
-		};
+		let v = version.into_version().unwrap_or_default();
 
 		if v == "" {
 			info!("🔍 {path}");
@@ -198,7 +194,7 @@ impl Kache {
 				format!("{path}, version: {v}")
 			};
 
-			match self.find_in_local(path, &local_path, &v, opt.enable_version_check).await {
+			match self.find_in_local(path, &local_path, &v, opt.enable_checksum).await {
 				Ok(file) => {
 					info!("✅ {}, {}", path, v);
 					return Ok(file);
@@ -271,18 +267,22 @@ impl Kache {
 			let url = format!("{}/{}{}", cdn, remote_path, ver);
 			trace!("🔍 {}", &url);
 
-			let resp = self.client.head(&url).send().await?;
-			match resp.status() {
-				reqwest::StatusCode::OK => {
-					trace!("✅ {}", &url);
-					return Ok(true);
-				}
-				reqwest::StatusCode::NOT_FOUND => {
-					trace!("🚫 not found: {}", &url);
-					return Ok(false);
-				}
-				_ => {
-					trace!("💥 url:{}, status:{:?}", url, resp.status());
+			match self.client.head(&url).send().await {
+				Ok(resp) => match resp.status() {
+					reqwest::StatusCode::OK => {
+						trace!("✅ {}", &url);
+						return Ok(true);
+					}
+					reqwest::StatusCode::NOT_FOUND => {
+						trace!("🚫 not found: {}", &url);
+						return Ok(false);
+					}
+					_ => {
+						trace!("💥 url:{}, status:{:?}", url, resp.status());
+					}
+				},
+				Err(e) => {
+					trace!("💥 url:{}, error:{:?}", url, e);
 				}
 			}
 		}
@@ -320,14 +320,30 @@ impl Kache {
 		rel_path: &str,
 		local_path: &PathBuf,
 		version: &str,
-		enable_version_check: bool,
+		enable_checksum: bool,
 	) -> Result<tokio::fs::File, Error> {
-		if !enable_version_check {
+		if !enable_checksum {
 			if !local_path.exists() {
 				trace!("file not found in cache");
 				return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
 			}
 			return Ok(tokio::fs::File::open(local_path).await?);
+		}
+
+		if !local_path.exists() {
+			trace!("file not found");
+			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
+		}
+
+		let metadata = local_path.metadata()?;
+		if !metadata.is_file() {
+			trace!("not a file");
+			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
+		}
+
+		if metadata.len() == 0 {
+			trace!("file is empty");
+			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
 		}
 
 		let db = &*self.db;
@@ -342,11 +358,6 @@ impl Kache {
 
 		// find db entry
 		if let Some(model) = model {
-			if !local_path.exists() {
-				trace!("file not found in cache, but found in db: {:?}", model);
-				return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
-			}
-
 			// check if version matched
 			let v = model.version.unwrap_or_default();
 			if version != v {

@@ -12,8 +12,8 @@ pub struct GetOption {
 	/// Whether to enable the module cache.
 	pub enable_mod: bool,
 
-	/// Whether to enable the version check.
-	pub enable_version_check: bool,
+	/// Whether to enable the file checksum.
+	pub enable_checksum: bool,
 }
 
 impl Default for GetOption {
@@ -22,7 +22,7 @@ impl Default for GetOption {
 			enable_local: true,
 			enable_remote: true,
 			enable_mod: true,
-			enable_version_check: true,
+			enable_checksum: true,
 		}
 	}
 }
@@ -39,7 +39,7 @@ impl GetOption {
 			enable_local: false,
 			enable_remote: false,
 			enable_mod: true,
-			enable_version_check: false,
+			enable_checksum: false,
 		}
 	}
 
@@ -49,7 +49,7 @@ impl GetOption {
 			enable_local: true,
 			enable_remote: true,
 			enable_mod: false,
-			enable_version_check: true,
+			enable_checksum: true,
 		}
 	}
 
@@ -71,9 +71,9 @@ impl GetOption {
 		self
 	}
 
-	/// Disables the version check.
-	pub fn disable_version_check(mut self) -> Self {
-		self.enable_version_check = false;
+	/// Disables the checksum verification.
+	pub fn disable_checksum(mut self) -> Self {
+		self.enable_checksum = false;
 		self
 	}
 

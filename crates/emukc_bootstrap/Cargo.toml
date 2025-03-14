@@ -13,6 +13,8 @@ emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 
 # other
+futures = { workspace = true }
+futures-util = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
