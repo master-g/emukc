@@ -30,6 +30,8 @@ pub(super) async fn make(
 		}
 	};
 
+	make_sp_remodel_greedy(mst, cache, 16, list).await?;
+
 	// make_friend_event_graph_greedy(mst, cache, list).await?;
 	// make_enemy_graph(mst, cache, list).await?;
 
@@ -420,6 +422,97 @@ async fn make_ship_special_greedy(
 	Ok(())
 }
 
+#[allow(unused)]
+async fn make_sp_remodel_greedy(
+	mst: &ApiManifest,
+	kache: &Kache,
+	concurrent: usize,
+	list: &mut CacheList,
+) -> Result<(), KacheError> {
+	let checks: Vec<(String, String)> = mst
+		.api_mst_shipgraph
+		.iter()
+		.filter(|v| v.api_sortno.is_some())
+		.map(|v| {
+			let ship_id = format!("{0:04}", v.api_id);
+			(
+				format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json",),
+				v.api_version.first().cloned().unwrap_or_default(),
+			)
+		})
+		.collect();
+
+	let c = Arc::new(kache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, v), exists) in check_result {
+		if exists {
+			println!("{}, {}", p, v);
+			list.add(p, v);
+		}
+	}
+
+	Ok(())
+}
+
+static SP_REMODEL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
+	vec![
+		0667, 0599, 0501, 0969, 0956, 0959, 0975, 0694, 0594, 0668, 0592, 0707, 0986, 0911, 0591,
+		0593, 0888, 0916, 0646, 0629, 0651, 0507, 0968, 0954, 0960, 0630, 0899, 0506, 0951, 0656,
+		0587, 0663, 0652, 0610, 0588, 0955, 0883, 0698, 0981, 0662, 0502, 0894, 0622, 0961,
+	]
+});
+
+#[allow(unused)]
+async fn check_sp_remodel(
+	mst: &ApiManifest,
+	kache: &Kache,
+	concurrent: usize,
+) -> Result<(), KacheError> {
+	let checks: Vec<(String, String)> = SP_REMODEL_SHIPS
+		.iter()
+		.filter_map(|id| mst.find_shipgraph(*id))
+		.flat_map(|v| {
+			let ship_id = format!("{0:04}", v.api_id);
+			let v = v.api_version.first().cloned().unwrap_or_default();
+			let key = "";
+			vec![
+				(
+					format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json",),
+					v.clone(),
+				),
+				(
+					format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png", key),
+					v.clone(),
+				),
+				(
+					format!("kcs2/resources/ship/sp_remodel/silhoutte/{ship_id}_{}.png", key),
+					v.clone(),
+				),
+				(
+					format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png", key),
+					v.clone(),
+				),
+				(
+					format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png", key),
+					v.clone(),
+				),
+			]
+		})
+		.collect();
+
+	let c = Arc::new(kache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, v), exists) in check_result {
+		if exists {
+			println!("{}, {}", p, v);
+		}
+	}
+
+	Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -430,6 +523,17 @@ mod tests {
 		let key = SuffixUtils::create(&ship_id, format!("ship_full_dmg").as_str());
 
 		assert_eq!(key, "6245");
+	}
+
+	#[test]
+	fn test_sp_remodel() {
+		vec![
+			"/animation_key/0502_remodel.json",
+			"/full_x2/0502_8686.png",
+			"/silhouette/0502_8686.png",
+			"/text_class/0502_8209.png",
+			"/text_name/0502_4089.png",
+		];
 	}
 
 	#[test]
