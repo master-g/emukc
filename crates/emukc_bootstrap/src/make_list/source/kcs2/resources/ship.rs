@@ -25,9 +25,9 @@ pub(super) async fn make(
 			make_sp_remodel(mst, list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
-			// make_ship_special_greedy(mst, cache, concurrent, list).await?;
-			// make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
-			// make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
+			make_ship_special_greedy(mst, cache, concurrent, list).await?;
+			make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
+			make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
 			make_sp_remodel_greedy(mst, cache, concurrent, list).await?;
 		}
 	};
@@ -504,13 +504,14 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 
 		let ship_id = format!("{0:04}", id);
 		let v = graph.api_version.first();
-		let img_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2");
+		let full_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2");
+		let silh_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/silhouette");
 		let cls_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_class");
 		let name_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_name");
 
 		list.add(format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json"), v)
-			.add(format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png", img_key), v)
-			.add(format!("kcs2/resources/ship/sp_remodel/silhoutte/{ship_id}_{}.png", img_key), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png", full_key), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/silhouette/{ship_id}_{}.png", silh_key), v)
 			.add(format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png", cls_key), v)
 			.add(format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png", name_key), v);
 	}
@@ -537,8 +538,8 @@ mod tests {
 		// 			"/text_class/0502_8209.png",
 		// 			"/text_name/0502_4089.png",
 		// 		];
-		let ship_id = "0501";
-		for category in ["full_x2", "text_class", "text_name"] {
+		let ship_id = "0502";
+		for category in ["full_x2", "silhouette", "text_class", "text_name"] {
 			println!(
 				"{}",
 				SuffixUtils::create(ship_id, format!("ship_sp_remodel/{}", category).as_str())
