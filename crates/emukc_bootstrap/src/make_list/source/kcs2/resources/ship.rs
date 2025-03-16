@@ -22,15 +22,15 @@ pub(super) async fn make(
 			make_friend_event_graph(mst, list);
 			make_enemy_graph(mst, list);
 			make_ship_special(mst, list);
+			make_sp_remodel(mst, list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_ship_special_greedy(mst, cache, concurrent, list).await?;
-			make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
-			make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
+			// make_ship_special_greedy(mst, cache, concurrent, list).await?;
+			// make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
+			// make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
+			make_sp_remodel_greedy(mst, cache, concurrent, list).await?;
 		}
 	};
-
-	make_sp_remodel_greedy(mst, cache, 16, list).await?;
 
 	// make_friend_event_graph_greedy(mst, cache, list).await?;
 	// make_enemy_graph(mst, cache, list).await?;
@@ -433,12 +433,43 @@ async fn make_sp_remodel_greedy(
 		.api_mst_shipgraph
 		.iter()
 		.filter(|v| v.api_sortno.is_some())
-		.map(|v| {
+		.flat_map(|v| {
 			let ship_id = format!("{0:04}", v.api_id);
-			(
-				format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json",),
-				v.api_version.first().cloned().unwrap_or_default(),
-			)
+			let v = v.api_version.first().cloned().unwrap_or_default();
+			vec![
+				(
+					format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json",),
+					v.to_owned(),
+				),
+				(
+					format!(
+						"kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png",
+						SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2")
+					),
+					v.to_owned(),
+				),
+				(
+					format!(
+						"kcs2/resources/ship/sp_remodel/silhouette/{ship_id}_{}.png",
+						SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2")
+					),
+					v.to_owned(),
+				),
+				(
+					format!(
+						"kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png",
+						SuffixUtils::create(&ship_id, "ship_sp_remodel/text_class")
+					),
+					v.to_owned(),
+				),
+				(
+					format!(
+						"kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png",
+						SuffixUtils::create(&ship_id, "ship_sp_remodel/text_name")
+					),
+					v.to_owned(),
+				),
+			]
 		})
 		.collect();
 
@@ -457,60 +488,32 @@ async fn make_sp_remodel_greedy(
 
 static SP_REMODEL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		0667, 0599, 0501, 0969, 0956, 0959, 0975, 0694, 0594, 0668, 0592, 0707, 0986, 0911, 0591,
-		0593, 0888, 0916, 0646, 0629, 0651, 0507, 0968, 0954, 0960, 0630, 0899, 0506, 0951, 0656,
-		0587, 0663, 0652, 0610, 0588, 0955, 0883, 0698, 0981, 0662, 0502, 0894, 0622, 0961,
+		0501, 0502, 0506, 0507, 0587, 0588, 0591, 0592, 0593, 0594, 0599, 0610, 0622, 0629, 0630,
+		0646, 0651, 0652, 0656, 0662, 0663, 0667, 0668, 0694, 0698, 0707, 0883, 0888, 0894, 0899,
+		0911, 0916, 0951, 0954, 0955, 0956, 0959, 0960, 0961, 0968, 0969, 0975, 0981, 0986,
 	]
 });
 
 #[allow(unused)]
-async fn check_sp_remodel(
-	mst: &ApiManifest,
-	kache: &Kache,
-	concurrent: usize,
-) -> Result<(), KacheError> {
-	let checks: Vec<(String, String)> = SP_REMODEL_SHIPS
-		.iter()
-		.filter_map(|id| mst.find_shipgraph(*id))
-		.flat_map(|v| {
-			let ship_id = format!("{0:04}", v.api_id);
-			let v = v.api_version.first().cloned().unwrap_or_default();
-			let key = "";
-			vec![
-				(
-					format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json",),
-					v.clone(),
-				),
-				(
-					format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png", key),
-					v.clone(),
-				),
-				(
-					format!("kcs2/resources/ship/sp_remodel/silhoutte/{ship_id}_{}.png", key),
-					v.clone(),
-				),
-				(
-					format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png", key),
-					v.clone(),
-				),
-				(
-					format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png", key),
-					v.clone(),
-				),
-			]
-		})
-		.collect();
+fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
+	for id in SP_REMODEL_SHIPS.iter() {
+		let graph = match mst.find_shipgraph(*id) {
+			Some(graph) => graph,
+			None => continue,
+		};
 
-	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+		let ship_id = format!("{0:04}", id);
+		let v = graph.api_version.first();
+		let img_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2");
+		let cls_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_class");
+		let name_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_name");
 
-	for ((p, v), exists) in check_result {
-		if exists {
-			println!("{}, {}", p, v);
-		}
+		list.add(format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json"), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png", img_key), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/silhoutte/{ship_id}_{}.png", img_key), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png", cls_key), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png", name_key), v);
 	}
-
-	Ok(())
 }
 
 #[cfg(test)]
@@ -527,13 +530,20 @@ mod tests {
 
 	#[test]
 	fn test_sp_remodel() {
-		vec![
-			"/animation_key/0502_remodel.json",
-			"/full_x2/0502_8686.png",
-			"/silhouette/0502_8686.png",
-			"/text_class/0502_8209.png",
-			"/text_name/0502_4089.png",
-		];
+		// vec![
+		// 			"/animation_key/0502_remodel.json",
+		// 			"/full_x2/0502_8686.png",
+		// 			"/silhouette/0502_8686.png",
+		// 			"/text_class/0502_8209.png",
+		// 			"/text_name/0502_4089.png",
+		// 		];
+		let ship_id = "0501";
+		for category in ["full_x2", "text_class", "text_name"] {
+			println!(
+				"{}",
+				SuffixUtils::create(ship_id, format!("ship_sp_remodel/{}", category).as_str())
+			);
+		}
 	}
 
 	#[test]
