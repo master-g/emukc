@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::sync::LazyLock;
 
 use emukc_model::kc2::start2::ApiManifest;

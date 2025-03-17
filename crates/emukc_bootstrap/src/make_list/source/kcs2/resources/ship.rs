@@ -24,18 +24,17 @@ pub(super) async fn make(
 			make_ship_special(mst, list);
 			make_sp_remodel(mst, list);
 			make_ship_type(mst, list);
+			make_ship_reward_res(mst, list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
 			make_ship_special_greedy(mst, cache, concurrent, list).await?;
 			make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
 			make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
 			make_sp_remodel_greedy(mst, cache, concurrent, list).await?;
-			make_ship_type_greedy(mst, cache, concurrent, list).await?
+			make_ship_type_greedy(mst, cache, concurrent, list).await?;
+			make_ship_reward_res_greedy(mst, cache, concurrent, list).await?;
 		}
 	};
-
-	// make_friend_event_graph_greedy(mst, cache, list).await?;
-	// make_enemy_graph(mst, cache, list).await?;
 
 	Ok(())
 }
@@ -43,6 +42,7 @@ pub(super) async fn make(
 fn make_non_graph(mst: &ApiManifest, list: &mut CacheList) {
 	for ship in mst.api_mst_ship.iter() {
 		let categories = if ship.api_aftershipid.is_none() {
+			// abyssal
 			vec!["banner", "banner3", "banner3_g_dmg"]
 		} else {
 			vec![
@@ -600,6 +600,85 @@ fn make_ship_type(mst: &ApiManifest, list: &mut CacheList) {
 		let etext = format!("kcs2/resources/stype/etext/sp{}.png", stype_id);
 
 		list.add(etext, "");
+	}
+}
+
+async fn make_ship_reward_res_greedy(
+	mst: &ApiManifest,
+	kache: &Kache,
+	concurrent: usize,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+	let checks: Vec<(String, String)> = mst
+		.api_mst_ship
+		.iter()
+		.filter(|v| v.api_aftershipid.is_some())
+		.flat_map(|s| {
+			let graph = match mst.find_shipgraph(s.api_id) {
+				Some(graph) => graph,
+				None => return Vec::new(),
+			};
+			let v = graph.api_version.first().cloned().unwrap_or_default();
+
+			["card_round", "icon_box", "reward_card", "reward_icon"]
+				.iter()
+				.map(|category| {
+					let ship_id = format!("{0:04}", s.api_id);
+					let key = SuffixUtils::create(&ship_id, format!("ship_{}", category).as_str());
+					(format!("kcs2/resources/ship/{}/{}_{}.png", category, ship_id, key), v.clone())
+				})
+				.collect()
+		})
+		.collect();
+
+	let c = Arc::new(kache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, v), exists) in check_result {
+		if exists {
+			println!("{}, {}", p, v);
+			list.add(p, v);
+		}
+	}
+
+	Ok(())
+}
+
+const CARD_ROUNDS: LazyLock<Vec<i64>> = LazyLock::new(|| vec![524, 525]);
+const REWARDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
+	vec![
+		0162, 0182, 0183, 0184, 0451, 0460, 0491, 0517, 0518, 0524, 0525, 0531, 0540, 0551, 0552,
+		0565, 0570, 0574, 0634, 0635, 0900, 0943,
+	]
+});
+
+fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
+	for id in CARD_ROUNDS.iter() {
+		let Some(graph) = mst.find_shipgraph(*id) else {
+			continue;
+		};
+		let v = graph.api_version.first().cloned().unwrap_or_default();
+
+		let ship_id = format!("{0:04}", id);
+		let key = SuffixUtils::create(&ship_id, "ship_card_round");
+		list.add(format!("kcs2/resources/ship/card_round/{}_{}.png", ship_id, key), v.clone());
+
+		let key = SuffixUtils::create(&ship_id, "ship_icon_box");
+		list.add(format!("kcs2/resources/ship/icon_box/{}_{}.png", ship_id, key), v);
+	}
+
+	for id in REWARDS.iter() {
+		let Some(graph) = mst.find_shipgraph(*id) else {
+			continue;
+		};
+		let v = graph.api_version.first().cloned().unwrap_or_default();
+
+		let ship_id = format!("{0:04}", id);
+		let key = SuffixUtils::create(&ship_id, "ship_reward_card");
+		list.add(format!("kcs2/resources/ship/reward_card/{}_{}.png", ship_id, key), v.clone());
+
+		let key = SuffixUtils::create(&ship_id, "ship_reward_icon");
+		list.add(format!("kcs2/resources/ship/reward_icon/{}_{}.png", ship_id, key), v);
 	}
 }
 
