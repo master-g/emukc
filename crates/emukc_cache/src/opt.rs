@@ -14,6 +14,9 @@ pub struct GetOption {
 
 	/// Whether to enable the file checksum.
 	pub enable_checksum: bool,
+
+	/// Whether to enable the shuffle, picking CDN randomly.
+	pub enable_shuffle: bool,
 }
 
 impl Default for GetOption {
@@ -23,6 +26,7 @@ impl Default for GetOption {
 			enable_remote: true,
 			enable_mod: true,
 			enable_checksum: true,
+			enable_shuffle: true,
 		}
 	}
 }
@@ -40,6 +44,7 @@ impl GetOption {
 			enable_remote: false,
 			enable_mod: true,
 			enable_checksum: false,
+			enable_shuffle: false,
 		}
 	}
 
@@ -50,6 +55,7 @@ impl GetOption {
 			enable_remote: true,
 			enable_mod: false,
 			enable_checksum: true,
+			enable_shuffle: true,
 		}
 	}
 
@@ -74,6 +80,12 @@ impl GetOption {
 	/// Disables the checksum verification.
 	pub fn disable_checksum(mut self) -> Self {
 		self.enable_checksum = false;
+		self
+	}
+
+	/// Disables the shuffle.
+	pub fn diable_shuffle(mut self) -> Self {
+		self.enable_shuffle = false;
 		self
 	}
 

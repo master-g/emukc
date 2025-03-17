@@ -12,6 +12,7 @@ emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 
 # other
+rand = { workspace = true, features = ["small_rng"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

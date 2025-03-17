@@ -17,6 +17,7 @@ pub mod errors;
 mod source;
 
 /// Strategy for making a cache list.
+#[derive(Clone, Copy)]
 pub enum CacheListMakeStrategy {
 	/// Default strategy
 	Default,

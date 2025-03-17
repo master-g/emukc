@@ -55,11 +55,3 @@ async fn test_get() -> Result<(), Box<dyn std::error::Error>> {
 	kache.get("gadget_html5/js/kcs_const.js", NoVersion).await?;
 	Ok(())
 }
-
-#[allow(dead_code)]
-async fn check() -> Result<(), Box<dyn std::error::Error>> {
-	let kache = get_kache().await.unwrap();
-	let (total, invalid, missing) = kache.check_all(true).await?;
-	println!("total: {}, invalid: {}, missing: {}", total, invalid, missing);
-	Ok(())
-}

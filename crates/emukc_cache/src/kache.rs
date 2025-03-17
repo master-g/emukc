@@ -5,6 +5,7 @@ use std::{path::PathBuf, sync::Arc};
 use emukc_crypto::md5_file_async;
 use emukc_db::{entity::cache, sea_orm::*};
 use emukc_network::{client::new_reqwest_client, download, reqwest};
+use rand::{SeedableRng, rngs::SmallRng, seq::SliceRandom};
 use tokio::io::AsyncReadExt;
 
 use crate::{error::Error, opt::GetOption, ver::IntoVersion};
@@ -173,30 +174,30 @@ impl Kache {
 	{
 		let v = version.into_version().unwrap_or_default();
 
-		if v == "" {
-			info!("🔍 {path}");
+		let log_tail = if v == "" {
+			path.to_string()
 		} else {
-			info!("🔍 {path}, ver: {v}");
+			format!("{path}, version: {v}")
+		};
+
+		if v == "" {
+			info!("🔍 {log_tail}");
+		} else {
+			info!("🔍 {log_tail}");
 		}
 
 		if opt.enable_mod && self.mods_root.is_some() {
 			if let Some(f) = self.find_in_mods(path).await {
-				info!("✅ {}, {}", path, v);
+				info!("✅ {log_tail}");
 				return Ok(f);
 			}
 		}
 
 		let local_path = self.cache_root.join(path);
 		if opt.enable_local {
-			let log_tail = if v == "" {
-				path.to_string()
-			} else {
-				format!("{path}, version: {v}")
-			};
-
 			match self.find_in_local(path, &local_path, &v, opt.enable_checksum).await {
 				Ok(file) => {
-					info!("✅ {}, {}", path, v);
+					info!("✅ {log_tail}");
 					return Ok(file);
 				}
 				Err(e) => match e {
@@ -218,10 +219,12 @@ impl Kache {
 		}
 
 		if opt.enable_remote {
-			return self.fetch_from_remote(path, &local_path, &v).await.map(|file| {
-				info!("✅ {}, {}", path, v);
-				file
-			});
+			return self.fetch_from_remote(path, &local_path, &v, opt.enable_shuffle).await.map(
+				|file| {
+					info!("✅ {log_tail}");
+					file
+				},
+			);
 		}
 
 		Err(Error::FileNotFound(path.to_owned()))
@@ -475,6 +478,7 @@ impl Kache {
 		path: &str,
 		local_path: &PathBuf,
 		version: &str,
+		shuffle: bool,
 	) -> Result<tokio::fs::File, Error> {
 		let cdn_list = if path.starts_with("gadget_html5")
 			|| path.starts_with("html")
@@ -489,6 +493,15 @@ impl Kache {
 			error!("🚫 no available cdn");
 			return Err(Error::MissingField("cdn_list".to_owned()));
 		}
+
+		let cdn_list = if shuffle {
+			let mut cloned = cdn_list.clone();
+			let mut rng = SmallRng::from_os_rng();
+			cloned.shuffle(&mut rng);
+			cloned
+		} else {
+			cdn_list.to_vec()
+		};
 
 		for cdn in cdn_list {
 			let cdn = cdn.trim_end_matches('/');
@@ -553,58 +566,5 @@ impl Kache {
 		}
 
 		buffer[0] != b'<'
-	}
-
-	/// Check all the cache files.
-	///
-	/// # Arguments
-	///
-	/// * `fix` - Whether to fix the invalid or missing files.
-	pub async fn check_all(&self, fix: bool) -> Result<(usize, usize, usize), Error> {
-		let mut invalid = 0;
-		let mut missing = 0;
-
-		let db = &*self.db;
-		let models = cache::Entity::find().all(db).await.unwrap();
-		let total = models.len();
-		for model in models {
-			trace!("checking: {:?}", model);
-			let abs_path = self.cache_root.join(&model.path);
-			if !abs_path.exists() {
-				missing += 1;
-				if fix {
-					debug!("missing: {:?}", abs_path);
-					let _ = self
-						.fetch_from_remote(
-							&model.path,
-							&abs_path,
-							model.version.as_deref().unwrap_or_default(),
-						)
-						.await?;
-				} else {
-					warn!("missing file: {:?}", abs_path);
-				}
-				continue;
-			}
-
-			let md5 = md5_file_async(&abs_path).await?;
-			if md5 != model.md5 {
-				invalid += 1;
-				if fix {
-					debug!("invalid: {:?}", abs_path);
-					let _ = self
-						.fetch_from_remote(
-							&model.path,
-							&abs_path,
-							model.version.as_deref().unwrap_or_default(),
-						)
-						.await?;
-				} else {
-					warn!("invalid file: {:?}", abs_path);
-				}
-			}
-		}
-
-		Ok((total, invalid, missing))
 	}
 }

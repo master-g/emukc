@@ -11,6 +11,7 @@ mod furniture;
 mod gauge;
 mod map;
 mod ship;
+mod slot;
 mod unversioned;
 
 pub(super) async fn make(
@@ -24,6 +25,7 @@ pub(super) async fn make(
 	gauge::make(cache, list).await?;
 	map::make(cache, list).await?;
 	ship::make(mst, cache, strategy, list).await?;
+	slot::make(mst, cache, strategy, list).await?;
 	unversioned::make(list).await?;
 
 	Ok(())

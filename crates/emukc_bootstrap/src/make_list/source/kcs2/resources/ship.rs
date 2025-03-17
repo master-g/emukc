@@ -23,12 +23,14 @@ pub(super) async fn make(
 			make_enemy_graph(mst, list);
 			make_ship_special(mst, list);
 			make_sp_remodel(mst, list);
+			make_ship_type(mst, list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
 			make_ship_special_greedy(mst, cache, concurrent, list).await?;
 			make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
 			make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
 			make_sp_remodel_greedy(mst, cache, concurrent, list).await?;
+			make_ship_type_greedy(mst, cache, concurrent, list).await?
 		}
 	};
 
@@ -469,6 +471,13 @@ async fn make_sp_remodel_greedy(
 					),
 					v.to_owned(),
 				),
+				(
+					format!(
+						"kcs2/resources/ship/sp_remodel/text_remodel_mes/{ship_id}_{}.png",
+						SuffixUtils::create(&ship_id, "ship_sp_remodel/text_remodel_mes")
+					),
+					v.to_owned(),
+				),
 			]
 		})
 		.collect();
@@ -494,6 +503,15 @@ static SP_REMODEL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	]
 });
 
+static SP_REMODEL_MES: LazyLock<Vec<i64>> = LazyLock::new(|| {
+	vec![
+		0073, 0121, 0136, 0145, 0149, 0150, 0151, 0152, 0202, 0204, 0215, 0228, 0277, 0278, 0285,
+		0293, 0306, 0307, 0316, 0318, 0323, 0324, 0325, 0350, 0357, 0369, 0373, 0392, 0396, 0501,
+		0502, 0579, 0588, 0593, 0594, 0610, 0628, 0651, 0663, 0667, 0698, 0883, 0894, 0911, 0954,
+		0955, 0960,
+	]
+});
+
 #[allow(unused)]
 fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 	for id in SP_REMODEL_SHIPS.iter() {
@@ -514,6 +532,74 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 			.add(format!("kcs2/resources/ship/sp_remodel/silhouette/{ship_id}_{}.png", silh_key), v)
 			.add(format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png", cls_key), v)
 			.add(format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png", name_key), v);
+	}
+
+	for id in SP_REMODEL_MES.iter() {
+		let graph = match mst.find_shipgraph(*id) {
+			Some(graph) => graph,
+			None => continue,
+		};
+
+		let ship_id = format!("{0:04}", id);
+		let v = graph.api_version.first();
+		let mes_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_remodel_mes");
+		list.add(
+			format!("kcs2/resources/ship/sp_remodel/text_remodel_mes/{ship_id}_{}.png", mes_key),
+			v,
+		);
+	}
+}
+
+#[allow(unused)]
+async fn make_ship_type_greedy(
+	mst: &ApiManifest,
+	kache: &Kache,
+	concurrent: usize,
+	list: &mut CacheList,
+) -> Result<(), KacheError> {
+	let checks: Vec<(String, String)> = mst
+		.api_mst_stype
+		.iter()
+		.flat_map(|v| {
+			[
+				(format!("kcs2/resources/stype/etext/{0:03}.png", v.api_id,), "".to_string()),
+				(format!("kcs2/resources/stype/etext/sp{0:03}.png", v.api_id,), "".to_string()),
+			]
+		})
+		.collect();
+
+	let c = Arc::new(kache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, v), exists) in check_result {
+		if exists {
+			println!("{}, {}", p, v);
+			list.add(p, v);
+		}
+	}
+
+	Ok(())
+}
+
+const SHIP_SP_TYPE_MAX: usize = 8;
+
+fn make_ship_type(mst: &ApiManifest, list: &mut CacheList) {
+	for stype in mst.api_mst_stype.iter() {
+		if stype.api_id == 8 || stype.api_id == 15 {
+			continue;
+		}
+
+		let stype_id = format!("{0:03}", stype.api_id);
+		let etext = format!("kcs2/resources/stype/etext/{}.png", stype_id);
+
+		list.add(etext, "");
+	}
+
+	for i in 1..=SHIP_SP_TYPE_MAX {
+		let stype_id = format!("{0:03}", i);
+		let etext = format!("kcs2/resources/stype/etext/sp{}.png", stype_id);
+
+		list.add(etext, "");
 	}
 }
 
@@ -538,8 +624,8 @@ mod tests {
 		// 			"/text_class/0502_8209.png",
 		// 			"/text_name/0502_4089.png",
 		// 		];
-		let ship_id = "0502";
-		for category in ["full_x2", "silhouette", "text_class", "text_name"] {
+		let ship_id = "0121";
+		for category in ["full_x2", "silhouette", "text_class", "text_name", "text_remodel_mes"] {
 			println!(
 				"{}",
 				SuffixUtils::create(ship_id, format!("ship_sp_remodel/{}", category).as_str())
