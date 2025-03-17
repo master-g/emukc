@@ -1,11 +1,14 @@
 #![allow(unused)]
-use std::sync::LazyLock;
+use std::{
+	collections::HashMap,
+	sync::{Arc, LazyLock},
+};
 
 use emukc_cache::Kache;
-use emukc_model::kc2::start2::ApiManifest;
+use emukc_model::kc2::start2::{ApiManifest, ApiMstShipgraph};
 
 use crate::{
-	make_list::CacheList,
+	make_list::{CacheList, batch_check_exists},
 	prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
@@ -18,10 +21,10 @@ pub(super) async fn make(
 	make_preset(mst, list);
 	match strategy {
 		CacheListMakeStrategy::Default => {
-			make_special_preset(list);
+			make_special_preset(mst, list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_special_greedy(mst, cache, list).await?;
+			make_special_greedy(mst, cache, concurrent, list).await?;
 		}
 	};
 
@@ -91,6 +94,20 @@ fn calc_voice_id(ship_id: i64, voice_id: i64) -> i64 {
 	}
 }
 
+fn get_voice_version(graph: &ApiMstShipgraph, voice_id: i64) -> i64 {
+	let idx = if voice_id == 2 || voice_id == 3 {
+		2
+	} else {
+		1
+	};
+
+	if graph.api_version.len() > idx {
+		graph.api_version[idx].parse().unwrap_or(0)
+	} else {
+		0
+	}
+}
+
 fn make_preset(mst: &ApiManifest, list: &mut CacheList) {
 	for graph in mst.api_mst_shipgraph.iter() {
 		match graph.api_sortno {
@@ -112,20 +129,6 @@ fn make_preset(mst: &ApiManifest, list: &mut CacheList) {
 		if graph.api_boko_d.is_none() {
 			continue;
 		}
-
-		let get_ver = |id: i64| -> i64 {
-			let idx = if id == 2 || id == 3 {
-				2
-			} else {
-				1
-			};
-
-			if graph.api_version.len() > idx {
-				graph.api_version[idx].parse().unwrap_or(0)
-			} else {
-				0
-			}
-		};
 
 		let mut vnums = vec![
 			1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -166,7 +169,7 @@ fn make_preset(mst: &ApiManifest, list: &mut CacheList) {
 				graph.api_filename,
 				calc_voice_id(graph.api_id, voice_id)
 			);
-			let ver = get_ver(voice_id);
+			let ver = get_voice_version(graph, voice_id);
 
 			list.add(path, ver);
 		}
@@ -176,9 +179,94 @@ fn make_preset(mst: &ApiManifest, list: &mut CacheList) {
 async fn make_special_greedy(
 	mst: &ApiManifest,
 	cache: &Kache,
+	concurrent: usize,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+	let mut checks: Vec<(String, String)> = Vec::new();
+	let mut lookups: HashMap<String, (i64, i64)> = HashMap::new();
+
+	for graph in mst.api_mst_shipgraph.iter() {
+		match graph.api_sortno {
+			Some(id) => {
+				if id == 0 {
+					continue;
+				}
+			}
+			None => continue,
+		}
+
+		let Some(ship_mst) = mst.find_ship(graph.api_id) else {
+			continue;
+		};
+
+		if graph.api_battle_n.is_none() {
+			continue;
+		}
+		if graph.api_boko_d.is_none() {
+			continue;
+		}
+
+		if SPECIAL_CG.contains(&graph.api_id) {
+			for voice_id in [901, 902, 903, 904, 905] {
+				let path = format!(
+					"kcs/sound/kc{}/{}.mp3",
+					graph.api_filename,
+					calc_voice_id(graph.api_id, voice_id)
+				);
+				let ver = get_voice_version(graph, voice_id);
+
+				lookups.insert(path.clone(), (graph.api_id, voice_id));
+				checks.push((path, format!("{}", ver)));
+			}
+		}
+	}
+
+	let c = Arc::new(cache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	for ((p, v), exists) in check_result {
+		if exists {
+			if let Some((ship_id, voice_id)) = lookups.get(&p) {
+				println!("{}: {}", ship_id, voice_id);
+			}
+
+			list.add(p, v);
+		}
+	}
+
 	Ok(())
 }
 
-fn make_special_preset(list: &mut CacheList) {}
+type SpecialVoice = (i64, Vec<i64>);
+
+const SPECIAL: LazyLock<Vec<SpecialVoice>> = LazyLock::new(|| {
+	vec![
+		(184, vec![901]),
+		(541, vec![901, 902, 903]),
+		(573, vec![901, 902]),
+		(634, vec![901]),
+		(635, vec![901]),
+		(639, vec![901]),
+		(640, vec![901]),
+		(911, vec![901]),
+		(916, vec![901]),
+		(944, vec![901]),
+		(949, vec![901]),
+	]
+});
+
+fn make_special_preset(mst: &ApiManifest, list: &mut CacheList) {
+	for (ship_id, voice_ids) in SPECIAL.iter() {
+		let Some(graph) = mst.find_shipgraph(*ship_id) else {
+			continue;
+		};
+
+		for voice_id in voice_ids {
+			let path = format!(
+				"kcs/sound/kc{}/{}.mp3",
+				graph.api_filename,
+				calc_voice_id(*ship_id, *voice_id)
+			);
+			list.add(path, get_voice_version(graph, *voice_id));
+		}
+	}
+}
