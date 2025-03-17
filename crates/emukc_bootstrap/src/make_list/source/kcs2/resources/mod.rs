@@ -13,6 +13,7 @@ mod map;
 mod ship;
 mod slot;
 mod unversioned;
+mod use_item;
 
 pub(super) async fn make(
 	mst: &ApiManifest,
@@ -27,6 +28,7 @@ pub(super) async fn make(
 	ship::make(mst, cache, strategy, list).await?;
 	slot::make(mst, cache, strategy, list).await?;
 	unversioned::make(list).await?;
+	use_item::make(mst, cache, strategy, list).await?;
 
 	Ok(())
 }

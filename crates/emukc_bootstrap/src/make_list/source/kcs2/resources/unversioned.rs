@@ -27,6 +27,17 @@ static TUTORIAL_VOICE: LazyLock<&[&str]> = LazyLock::new(|| {
 	]
 });
 
+static WORLD_SELECT: LazyLock<&[&str]> = LazyLock::new(|| {
+	&[
+		"bg.jpg",
+		"error.png",
+		"gauge20.png",
+		"gauge20_gray.png",
+		"title20_icon.png",
+		"title20_select.png",
+	]
+});
+
 pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingError> {
 	for se in SE.iter() {
 		list.add_unversioned(format!("kcs2/resources/se/{}.mp3", se));
@@ -49,6 +60,14 @@ pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingErro
 	}
 	for i in 1..=64 {
 		list.add_unversioned(format!("kcs2/resources/voice/titlecall_2/{0:03}.mp3", i));
+	}
+
+	for i in 1..=20 {
+		list.add_unversioned(format!("kcs2/resources/worldselect/btn_chinjyufu{i}.png"));
+	}
+
+	for res in WORLD_SELECT.iter() {
+		list.add_unversioned(format!("kcs2/resources/worldselect/{}", res));
 	}
 
 	Ok(())

@@ -1,16 +1,8 @@
-//! A test for loading a JSON file into a model.
+use std::sync::LazyLock;
 
-use std::{str::FromStr, sync::LazyLock};
+use emukc_model::kc2::start2::ApiManifest;
 
-use emukc::prelude::*;
-
-fn main() {
-	let json_path = ".data/temp/start2.json";
-	let raw = std::fs::read_to_string(json_path).unwrap();
-	let manifest: ApiManifest = ApiManifest::from_str(&raw).unwrap();
-
-	foo(&manifest);
-}
+use crate::make_list::CacheList;
 
 // https://github.com/KC3Kai/KC3Kai/blob/master/src/library/modules/Meta.js
 
@@ -55,10 +47,10 @@ const REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 
 const VOICE_DIFF: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		2475, 0, 0, 8691, 7847, 3595, 1767, 3311, 2507, 9651, 5321, 4473, 7117, 5947, 9489, 2669,
-		8741, 6149, 1301, 7297, 2975, 6413, 8391, 9705, 2243, 2091, 4231, 3107, 9499, 4205, 6013,
-		3393, 6401, 6985, 3683, 9447, 3287, 5181, 7587, 9353, 2135, 4947, 5405, 5223, 9457, 5767,
-		9265, 8191, 3927, 3061, 2805, 3273, 7331,
+		2475, 6547, 1471, 8691, 7847, 3595, 1767, 3311, 2507, 9651, 5321, 4473, 7117, 5947, 9489,
+		2669, 8741, 6149, 1301, 7297, 2975, 6413, 8391, 9705, 2243, 2091, 4231, 3107, 9499, 4205,
+		6013, 3393, 6401, 6985, 3683, 9447, 3287, 5181, 7587, 9353, 2135, 4947, 5405, 5223, 9457,
+		5767, 9265, 8191, 3927, 3061, 2805, 3273, 7331,
 	]
 });
 
@@ -70,7 +62,7 @@ fn calc_voice_id(ship_id: i64, voice_id: i64) -> i64 {
 	}
 }
 
-fn foo(mst: &ApiManifest) {
+pub(super) fn make(mst: &ApiManifest, list: &mut CacheList) {
 	for graph in mst.api_mst_shipgraph.iter() {
 		match graph.api_sortno {
 			Some(id) => {
@@ -151,7 +143,7 @@ fn foo(mst: &ApiManifest) {
 			);
 			let ver = get_ver(voice_id);
 
-			println!("http://w01y.kancolle-server.com/{}?version={}", path, ver);
+			list.add(path, ver);
 		}
 	}
 }

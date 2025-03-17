@@ -4,6 +4,7 @@ use emukc_model::kc2::start2::ApiManifest;
 use super::{CacheList, CacheListMakeStrategy, errors::CacheListMakingError};
 
 mod gadget_html5;
+mod kcs;
 mod kcs2;
 
 /// Make a list of caches.
@@ -25,6 +26,7 @@ pub(super) async fn make(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	gadget_html5::make(mst, kache, list).await?;
+	kcs::make(mst, kache, strategy, list).await?;
 	kcs2::make(mst, kache, strategy, list).await?;
 
 	Ok(())
