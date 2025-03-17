@@ -1,9 +1,32 @@
 #![allow(unused)]
 use std::sync::LazyLock;
 
+use emukc_cache::Kache;
 use emukc_model::kc2::start2::ApiManifest;
 
-use crate::make_list::CacheList;
+use crate::{
+	make_list::CacheList,
+	prelude::{CacheListMakeStrategy, CacheListMakingError},
+};
+
+pub(super) async fn make(
+	mst: &ApiManifest,
+	cache: &Kache,
+	strategy: CacheListMakeStrategy,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+	make_preset(mst, list);
+	match strategy {
+		CacheListMakeStrategy::Default => {
+			make_special_preset(list);
+		}
+		CacheListMakeStrategy::Greedy(concurrent) => {
+			make_special_greedy(mst, cache, list).await?;
+		}
+	};
+
+	Ok(())
+}
 
 // https://github.com/Tibowl/KCCacheProxy/blob/33d826c46e1969c69cd83e784bd9b0addb44230e/src/proxy/preload.js#L583
 
@@ -68,7 +91,7 @@ fn calc_voice_id(ship_id: i64, voice_id: i64) -> i64 {
 	}
 }
 
-pub(super) fn make(mst: &ApiManifest, list: &mut CacheList) {
+fn make_preset(mst: &ApiManifest, list: &mut CacheList) {
 	for graph in mst.api_mst_shipgraph.iter() {
 		match graph.api_sortno {
 			Some(id) => {
@@ -149,3 +172,13 @@ pub(super) fn make(mst: &ApiManifest, list: &mut CacheList) {
 		}
 	}
 }
+
+async fn make_special_greedy(
+	mst: &ApiManifest,
+	cache: &Kache,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+	Ok(())
+}
+
+fn make_special_preset(list: &mut CacheList) {}
