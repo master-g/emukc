@@ -5,9 +5,14 @@ use emukc_model::kc2::start2::ApiManifest;
 
 use crate::make_list::CacheList;
 
-// https://github.com/KC3Kai/KC3Kai/blob/master/src/library/modules/Meta.js
+// https://github.com/Tibowl/KCCacheProxy/blob/33d826c46e1969c69cd83e784bd9b0addb44230e/src/proxy/preload.js#L583
 
-const SPECIAL_CG: LazyLock<Vec<i64>> = LazyLock::new(|| vec![541, 571, 573, 576, 601, 149]);
+const SPECIAL_CG: LazyLock<Vec<i64>> = LazyLock::new(|| {
+	vec![
+		541, 571, 572, 573, 576, 577, 591, 592, 593, 954, 694, 601, 1496, 913, 918, 184, 634, 635,
+		639, 640, 944, 949, 911, 916, 546, 392, 969, 724, 364, 733,
+	]
+});
 
 const REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
@@ -105,26 +110,22 @@ pub(super) fn make(mst: &ApiManifest, list: &mut CacheList) {
 		];
 
 		let voicef = ship_mst.api_voicef.unwrap_or(0);
-		match voicef {
-			1 => {
-				vnums.push(29);
-			}
-			2 => {
-				vnums.extend_from_slice(&[
-					30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
-					50, 51, 52, 53,
-				]);
-			}
-			4 => {
-				vnums.push(129);
-			}
-
-			_ => {}
+		if voicef & 0b0001 != 0 {
+			vnums.push(29);
+		}
+		if voicef & 0b0010 != 0 {
+			vnums.extend_from_slice(&[
+				30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+				51, 52, 53,
+			]);
+		}
+		if voicef & 0b0100 != 0 {
+			vnums.push(129);
 		}
 
 		if SPECIAL_CG.contains(&graph.api_id) {
 			vnums.push(900);
-			vnums.extend_from_slice(&[901, 902, 903]);
+			// 	vnums.extend_from_slice(&[901, 902, 903]);
 		}
 
 		// fix zeppelin, see: https://github.com/KC3Kai/KC3Kai/blob/da2a3d60ee21335af886b0bd10ef12f6d9cdd287/src/library/modules/Meta.js#L80

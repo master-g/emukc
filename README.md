@@ -40,6 +40,10 @@ in alphabetical order:
 
 [ElectronicObserver](https://github.com/andanteyk/ElectronicObserver)
 
+[KC3Kai](https://github.com/KC3Kai/KC3Kai)
+
+[KCCacheProxy](https://github.com/Tibowl/KCCacheProxy)
+
 [KCS2-Assets](https://github.com/sinsinpub/kcs2-assets)
 
 [KanColle-English-Patch-KCCP](https://github.com/Oradimi/KanColle-English-Patch-KCCP)
