@@ -48,7 +48,7 @@ async fn make_greedy(
 	Ok(())
 }
 
-const ID: LazyLock<Vec<i64>> = LazyLock::new(|| vec![428, 1186, 1871, 1188, 1187]);
+static ID: LazyLock<Vec<i64>> = LazyLock::new(|| vec![428, 1186, 1871, 1188, 1187]);
 
 fn make_preset(list: &mut CacheList) {
 	for i in ID.iter() {

@@ -108,7 +108,11 @@ pub enum DownloadError {
 
 	/// File already exists
 	#[error("File already exists: {0}")]
-	FileExists(String),
+	FileAlreadyExists(String),
+
+	/// File not found
+	#[error("File not found: {0}")]
+	FileNotFound(String),
 }
 
 impl Request {
@@ -141,6 +145,9 @@ impl Request {
 			.await?;
 		if !response.status().is_success() {
 			error!("GET request failed with status code: {}", response.status());
+			if response.status() == http::StatusCode::NOT_FOUND {
+				return Err(DownloadError::FileNotFound(self.url.clone()));
+			}
 			return Err(DownloadError::ResponseError(response.status()));
 		}
 
@@ -160,7 +167,7 @@ impl Request {
 				save_as.join(fname)
 			} else if save_as.exists() && !self.overwrite {
 				let save_as = save_as.display().to_string();
-				return Err(DownloadError::FileExists(save_as));
+				return Err(DownloadError::FileAlreadyExists(save_as));
 			} else {
 				save_as
 			}

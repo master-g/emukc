@@ -174,21 +174,21 @@ impl Kache {
 	{
 		let v = version.into_version().unwrap_or_default();
 
-		let log_tail = if v == "" {
+		let log_tail = if v.is_empty() {
 			path.to_string()
 		} else {
 			format!("{path}, version: {v}")
 		};
 
-		if v == "" {
-			info!("🔍 {log_tail}");
+		if v.is_empty() {
+			debug!("🔍 {log_tail}");
 		} else {
-			info!("🔍 {log_tail}");
+			debug!("🔍 {log_tail}");
 		}
 
 		if opt.enable_mod && self.mods_root.is_some() {
 			if let Some(f) = self.find_in_mods(path).await {
-				info!("✅ {log_tail}");
+				debug!("✅ {log_tail}");
 				return Ok(f);
 			}
 		}
@@ -197,7 +197,7 @@ impl Kache {
 		if opt.enable_local {
 			match self.find_in_local(path, &local_path, &v, opt.enable_checksum).await {
 				Ok(file) => {
-					info!("✅ {log_tail}");
+					debug!("✅ {log_tail}");
 					return Ok(file);
 				}
 				Err(e) => match e {
@@ -219,12 +219,12 @@ impl Kache {
 		}
 
 		if opt.enable_remote {
-			return self.fetch_from_remote(path, &local_path, &v, opt.enable_shuffle).await.map(
-				|file| {
-					info!("✅ {log_tail}");
-					file
-				},
-			);
+			return self
+				.fetch_from_remote(path, &local_path, &v, opt.enable_shuffle)
+				.await
+				.inspect(|_file| {
+					debug!("✅ {log_tail}");
+				});
 		}
 
 		Err(Error::FileNotFound(path.to_owned()))
@@ -262,7 +262,7 @@ impl Kache {
 				format!("http://{}", cdn)
 			};
 			let remote_path = path.trim_start_matches('/');
-			let ver = if v == "" {
+			let ver = if v.is_empty() {
 				"".to_string()
 			} else {
 				format!("?version={v}")
@@ -352,7 +352,7 @@ impl Kache {
 		let db = &*self.db;
 
 		let query = cache::Entity::find().filter(cache::Column::Path.eq(rel_path));
-		let query = if version == "" {
+		let query = if version.is_empty() {
 			query
 		} else {
 			query.filter(cache::Column::Version.eq(Some(version)))
@@ -380,7 +380,7 @@ impl Kache {
 		}
 
 		// not found in db
-		if version == "" && local_path.exists() {
+		if version.is_empty() && local_path.exists() {
 			// non-versioned file found
 			if !Self::is_valid(local_path).await {
 				// invalid file
@@ -444,7 +444,7 @@ impl Kache {
 		let tx = db.begin().await?;
 
 		let query = cache::Entity::find().filter(cache::Column::Path.eq(rel_path));
-		let query = if version == "" {
+		let query = if version.is_empty() {
 			query
 		} else {
 			query.filter(cache::Column::Version.eq(Some(version)))
@@ -455,7 +455,7 @@ impl Kache {
 			id: ActiveValue::NotSet,
 			path: ActiveValue::Set(rel_path.to_owned()),
 			md5: ActiveValue::Set(md5),
-			version: ActiveValue::Set(if version == "" {
+			version: ActiveValue::Set(if version.is_empty() {
 				None
 			} else {
 				Some(version.to_owned())
@@ -511,7 +511,7 @@ impl Kache {
 				format!("http://{}", cdn)
 			};
 			let remote_path = path.trim_start_matches('/');
-			let ver = if version == "" {
+			let ver = if version.is_empty() {
 				"".to_string()
 			} else {
 				format!("?version={version}")
@@ -547,17 +547,25 @@ impl Kache {
 		}
 
 		// Check if the file is a HTML file.
-		if path.extension().map_or(false, |ext| ext == "html") {
+		if path.extension().is_some_and(|ext| ext == "html") {
 			trace!("File is a HTML file: {:?}", path);
 			return true;
-		} else {
-			trace!("File is not a HTML file: {:?}", path);
 		}
+
+		trace!("File is not a HTML file: {:?}", path);
 
 		let Ok(mut file) = tokio::fs::File::open(path).await else {
 			trace!("Failed to open file: {:?}", path);
 			return false;
 		};
+
+		// check if file is empty
+		let Ok(metadata) = file.metadata().await else {
+			return false;
+		};
+		if metadata.len() == 0 {
+			return true;
+		}
 
 		let mut buffer = [0; 1];
 		if file.read_exact(&mut buffer).await.is_err() {

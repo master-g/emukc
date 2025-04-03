@@ -33,14 +33,14 @@ pub(super) async fn make(
 
 // https://github.com/Tibowl/KCCacheProxy/blob/33d826c46e1969c69cd83e784bd9b0addb44230e/src/proxy/preload.js#L583
 
-const SPECIAL_CG: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static SPECIAL_CG: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
 		541, 571, 572, 573, 576, 577, 591, 592, 593, 954, 694, 601, 1496, 913, 918, 184, 634, 635,
 		639, 640, 944, 949, 911, 916, 546, 392, 969, 724, 364, 733,
 	]
 });
 
-const REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
 		// These ships got special voice line (6, aka. Repair) implemented (some used by akashi remodel),
 		// tested by trying and succeeding to http fetch mp3 from kc server
@@ -77,7 +77,7 @@ const REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	]
 });
 
-const VOICE_DIFF: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static VOICE_DIFF: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
 		2475, 6547, 1471, 8691, 7847, 3595, 1767, 3311, 2507, 9651, 5321, 4473, 7117, 5947, 9489,
 		2669, 8741, 6149, 1301, 7297, 2975, 6413, 8391, 9705, 2243, 2091, 4231, 3107, 9499, 4205,
@@ -238,7 +238,7 @@ async fn make_special_greedy(
 
 type SpecialVoice = (i64, Vec<i64>);
 
-const SPECIAL: LazyLock<Vec<SpecialVoice>> = LazyLock::new(|| {
+static SPECIAL: LazyLock<Vec<SpecialVoice>> = LazyLock::new(|| {
 	vec![
 		(184, vec![901]),
 		(541, vec![901, 902, 903]),

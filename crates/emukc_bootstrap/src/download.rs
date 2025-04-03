@@ -66,8 +66,8 @@ pub async fn download_all(
 			.await;
 
 		match result {
-			Err(DownloadError::FileExists(f)) if !overwrite => {
-				return Err(BootstrapDownloadError::Download(DownloadError::FileExists(f)));
+			Err(DownloadError::FileAlreadyExists(f)) if !overwrite => {
+				return Err(BootstrapDownloadError::Download(DownloadError::FileAlreadyExists(f)));
 			}
 			Err(e) => return Err(BootstrapDownloadError::Download(e)),
 			Ok(_) => {}

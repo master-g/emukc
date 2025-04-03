@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use crate::make_list::CacheList;
 
-const ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
 		3505871, 3505872, 3505873, 3505881, 3505882, 3505883, 4505731, 4505732, 4506131, 6105851,
 		6105852, 6105853, 6466520, 6466530, 6466820, 6466830, 27605572, 27605573, 28405992,
