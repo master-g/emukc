@@ -206,7 +206,6 @@ pub(super) fn parse(
 
 		for equipment in wiki_ship.equipment.iter() {
 			let item_id = match &equipment.equipment {
-				Some(BoolOrString::Bool(_)) => 0,
 				Some(BoolOrString::String(v)) => {
 					if let Some(id) = context.find_slotitem_id(v) {
 						id
@@ -215,7 +214,7 @@ pub(super) fn parse(
 						0
 					}
 				}
-				None => 0,
+				None | Some(BoolOrString::Bool(_)) => 0,
 			};
 
 			slots.push(Kc3rdShipSlotInfo {

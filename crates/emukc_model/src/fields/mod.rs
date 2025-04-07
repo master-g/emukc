@@ -28,7 +28,7 @@ where
 			}
 		});
 
-		self.extend(std::iter::repeat(value).take(remove_count));
+		self.extend(std::iter::repeat_n(value, remove_count));
 	}
 }
 

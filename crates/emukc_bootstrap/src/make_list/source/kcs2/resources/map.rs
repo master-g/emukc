@@ -247,9 +247,8 @@ async fn get_event_area_greedy(
 
 				let json_path = format!("kcs2/resources/map/{area_id}/{map_id}_info{suffix}.json");
 
-				let mut file = match find_in_local_then_remote(cache, &json_path).await? {
-					Some(f) => f,
-					None => break,
+				let Some(mut file) = find_in_local_then_remote(cache, &json_path).await? else {
+					break;
 				};
 
 				let image_png_path =

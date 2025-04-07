@@ -66,7 +66,7 @@ fn make_non_graph(mst: &ApiManifest, list: &mut CacheList) {
 		let ship_id = format!("{0:04}", ship.api_id);
 
 		let graph = mst.api_mst_shipgraph.iter().find(|v| v.api_id == ship.api_id);
-		let version = graph.map(|v| v.api_version.first()).flatten();
+		let version = graph.and_then(|v| v.api_version.first());
 
 		for category in categories {
 			list.add(
@@ -371,9 +371,9 @@ fn make_enemy_graph(mst: &ApiManifest, list: &mut CacheList) {
 
 static SPECIAL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		0639, 0724, 0694, 0969, 0918, 0446, 0554, 0553, 0576, 0411, 0184, 0733, 0412, 0944, 0916,
-		0634, 0577, 0592, 0572, 0949, 0392, 0571, 0635, 0573, 0640, 0447, 0541, 1496, 0659, 0601,
-		0697, 0546, 0911, 0364, 0178, 0360, 0954, 0591, 0913, 0593,
+		639, 724, 694, 969, 918, 446, 554, 553, 576, 411, 184, 733, 412, 944, 916, 634, 577, 592,
+		572, 949, 392, 571, 635, 573, 640, 447, 541, 1496, 659, 601, 697, 546, 911, 364, 178, 360,
+		954, 591, 913, 593,
 	]
 });
 
@@ -382,7 +382,7 @@ fn make_ship_special(mst: &ApiManifest, list: &mut CacheList) {
 		let ship_id = format!("{0:04}", graph.api_id);
 		let p = format!(
 			"kcs2/resources/ship/special/{ship_id}_{}.png",
-			SuffixUtils::create(&ship_id, format!("ship_special").as_str()),
+			SuffixUtils::create(&ship_id, "ship_special".to_string().as_str()),
 		);
 		list.add(p, graph.api_version.first());
 	});
@@ -404,7 +404,7 @@ async fn make_ship_special_greedy(
 			(
 				format!(
 					"kcs2/resources/ship/special/{ship_id}_{}.png",
-					SuffixUtils::create(&ship_id, format!("ship_special").as_str()),
+					SuffixUtils::create(&ship_id, "ship_special".to_string().as_str()),
 				),
 				v.api_version.first().cloned().unwrap_or_default(),
 			)
@@ -497,27 +497,25 @@ async fn make_sp_remodel_greedy(
 
 static SP_REMODEL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		0501, 0502, 0506, 0507, 0587, 0588, 0591, 0592, 0593, 0594, 0599, 0610, 0622, 0629, 0630,
-		0646, 0651, 0652, 0656, 0662, 0663, 0667, 0668, 0694, 0698, 0707, 0883, 0888, 0894, 0899,
-		0911, 0916, 0951, 0954, 0955, 0956, 0959, 0960, 0961, 0968, 0969, 0975, 0981, 0986,
+		501, 502, 506, 507, 587, 588, 591, 592, 593, 594, 599, 610, 622, 629, 630, 646, 651, 652,
+		656, 662, 663, 667, 668, 694, 698, 707, 883, 888, 894, 899, 911, 916, 951, 954, 955, 956,
+		959, 960, 961, 968, 969, 975, 981, 986,
 	]
 });
 
 static SP_REMODEL_MES: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		0073, 0121, 0136, 0145, 0149, 0150, 0151, 0152, 0202, 0204, 0215, 0228, 0277, 0278, 0285,
-		0293, 0306, 0307, 0316, 0318, 0323, 0324, 0325, 0350, 0357, 0369, 0373, 0392, 0396, 0501,
-		0502, 0579, 0588, 0593, 0594, 0610, 0628, 0651, 0663, 0667, 0698, 0883, 0894, 0911, 0954,
-		0955, 0960,
+		73, 121, 136, 145, 149, 150, 151, 152, 202, 204, 215, 228, 277, 278, 285, 293, 306, 307,
+		316, 318, 323, 324, 325, 350, 357, 369, 373, 392, 396, 501, 502, 579, 588, 593, 594, 610,
+		628, 651, 663, 667, 698, 883, 894, 911, 954, 955, 960,
 	]
 });
 
 #[allow(unused)]
 fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 	for id in SP_REMODEL_SHIPS.iter() {
-		let graph = match mst.find_shipgraph(*id) {
-			Some(graph) => graph,
-			None => continue,
+		let Some(graph) = mst.find_shipgraph(*id) else {
+			continue;
 		};
 
 		let ship_id = format!("{0:04}", id);
@@ -535,9 +533,8 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 	}
 
 	for id in SP_REMODEL_MES.iter() {
-		let graph = match mst.find_shipgraph(*id) {
-			Some(graph) => graph,
-			None => continue,
+		let Some(graph) = mst.find_shipgraph(*id) else {
+			continue;
 		};
 
 		let ship_id = format!("{0:04}", id);
@@ -614,9 +611,8 @@ async fn make_ship_reward_res_greedy(
 		.iter()
 		.filter(|v| v.api_aftershipid.is_some())
 		.flat_map(|s| {
-			let graph = match mst.find_shipgraph(s.api_id) {
-				Some(graph) => graph,
-				None => return Vec::new(),
+			let Some(graph) = mst.find_shipgraph(s.api_id) else {
+				return Vec::new();
 			};
 			let v = graph.api_version.first().cloned().unwrap_or_default();
 
@@ -644,11 +640,11 @@ async fn make_ship_reward_res_greedy(
 	Ok(())
 }
 
-const CARD_ROUNDS: LazyLock<Vec<i64>> = LazyLock::new(|| vec![524, 525]);
-const REWARDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static CARD_ROUNDS: LazyLock<Vec<i64>> = LazyLock::new(|| vec![524, 525]);
+static REWARDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		0162, 0182, 0183, 0184, 0451, 0460, 0491, 0517, 0518, 0524, 0525, 0531, 0540, 0551, 0552,
-		0565, 0570, 0574, 0634, 0635, 0900, 0943,
+		162, 182, 183, 184, 451, 460, 491, 517, 518, 524, 525, 531, 540, 551, 552, 565, 570, 574,
+		634, 635, 900, 943,
 	]
 });
 

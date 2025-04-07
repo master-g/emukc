@@ -1,14 +1,23 @@
 //! Kache is for `KanColle` Cache, a simple cache system.
 
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
+use std::sync::Arc;
 
-use emukc_crypto::md5_file_async;
-use emukc_db::{entity::cache, sea_orm::*};
-use emukc_network::{client::new_reqwest_client, download, reqwest};
 use rand::{SeedableRng, rngs::SmallRng, seq::SliceRandom};
+use redb::{Database, TableDefinition};
 use tokio::io::AsyncReadExt;
 
-use crate::{error::Error, opt::GetOption, ver::IntoVersion};
+use emukc_network::{client::new_reqwest_client, download, reqwest};
+
+use crate::{
+	error::Error,
+	opt::GetOption,
+	unified_rel_path,
+	ver::{IntoVersion, cmp_version},
+};
+
+pub(crate) const KACHE_TABLE: TableDefinition<&str, Option<&str>> =
+	TableDefinition::new("kache_entry");
 
 /// The `Kache` struct is the main struct for the `KanColle` CDN file cache utilities.
 #[allow(unused)]
@@ -29,8 +38,8 @@ pub struct Kache {
 	/// rewuest client for downloading files.
 	client: reqwest::Client,
 
-	/// Database connection.
-	pub(crate) db: Arc<DbConn>,
+	/// Database for storing cache entries.
+	pub(crate) db: Arc<Database>,
 }
 
 /// The `Builder` struct is the builder for the `Kache` struct.
@@ -42,7 +51,7 @@ pub struct Builder {
 	content_cdn: Vec<String>,
 	proxy: Option<String>,
 	ua: Option<String>,
-	db: Option<Arc<DbConn>>,
+	db_path: Option<String>,
 }
 
 impl Builder {
@@ -99,9 +108,10 @@ impl Builder {
 		self
 	}
 
-	/// Set the database connection.
-	pub fn with_db(mut self, db: Arc<DbConn>) -> Self {
-		self.db = Some(db);
+	/// Set the database path.
+	/// This will use specified path for the database rather than the default path.
+	pub fn with_db_path(mut self, path: String) -> Self {
+		self.db_path = Some(path);
 		self
 	}
 
@@ -118,9 +128,25 @@ impl Builder {
 		} else {
 			self.content_cdn
 		};
-		let db = self.db.ok_or(Error::MissingField("db".to_owned()))?;
+
+		let db_path = if let Some(db_path) = self.db_path {
+			PathBuf::from(db_path)
+		} else {
+			cache_root.join("kache.redb")
+		};
+
 		let client = new_reqwest_client(self.proxy.as_deref(), self.ua.as_deref())?;
 		debug!("proxy: {}", self.proxy.as_deref().unwrap_or("none"));
+
+		let db = Database::create(&db_path)?;
+		let write_txn = db.begin_write()?;
+		{
+			let _ = write_txn.open_table(KACHE_TABLE)?;
+		}
+		write_txn.commit()?;
+
+		let db = Arc::new(db);
+
 		Ok(Kache {
 			cache_root,
 			mods_root: self.mods_root,
@@ -195,7 +221,7 @@ impl Kache {
 
 		let local_path = self.cache_root.join(path);
 		if opt.enable_local {
-			match self.find_in_local(path, &local_path, &v, opt.enable_checksum).await {
+			match self.find_in_local(path, &local_path, &v).await {
 				Ok(file) => {
 					debug!("✅ {log_tail}");
 					return Ok(file);
@@ -323,19 +349,15 @@ impl Kache {
 		rel_path: &str,
 		local_path: &PathBuf,
 		version: &str,
-		enable_checksum: bool,
 	) -> Result<tokio::fs::File, Error> {
-		if !enable_checksum {
-			if !local_path.exists() {
-				trace!("file not found in cache");
-				return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
-			}
-			return Ok(tokio::fs::File::open(local_path).await?);
-		}
-
 		if !local_path.exists() {
 			trace!("file not found");
 			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
+		}
+
+		if !Self::is_valid(local_path).await {
+			trace!("invalid file");
+			return Err(Error::InvalidFile(local_path.to_str().unwrap().to_owned()));
 		}
 
 		let metadata = local_path.metadata()?;
@@ -344,65 +366,39 @@ impl Kache {
 			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
 		}
 
-		if metadata.len() == 0 {
-			trace!("file is empty");
-			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
-		}
+		let read_txn = self.db.begin_read()?;
+		let table = read_txn.open_table(KACHE_TABLE)?;
 
-		let db = &*self.db;
+		let rel_path = unified_rel_path(rel_path);
 
-		let query = cache::Entity::find().filter(cache::Column::Path.eq(rel_path));
-		let query = if version.is_empty() {
-			query
-		} else {
-			query.filter(cache::Column::Version.eq(Some(version)))
-		};
-		let model = query.one(db).await?;
+		let entry = table.get(rel_path.as_str())?;
 
-		// find db entry
-		if let Some(model) = model {
-			// check if version matched
-			let v = model.version.unwrap_or_default();
-			if version != v {
-				trace!("version not matched: {:?} != {:?}", version, v);
-				return Err(Error::FileExpired(rel_path.to_owned()));
-			}
-
-			// check if checksum matched
-			let md5 = md5_file_async(local_path).await?;
-			if md5 != model.md5 {
-				trace!("checksum not matched: {:?} != {:?}", md5, model.md5);
-				// file expired
-				return Err(Error::FileExpired(rel_path.to_owned()));
-			}
-
-			return Ok(tokio::fs::File::open(local_path).await?);
-		}
-
-		// not found in db
-		if version.is_empty() && local_path.exists() {
-			// non-versioned file found
-			if !Self::is_valid(local_path).await {
-				// invalid file
-				return Err(Error::InvalidFile(rel_path.to_owned()));
-			}
-
-			// calculate md5
-			let md5 = md5_file_async(local_path).await?;
-
-			// insert db
-			let model = cache::ActiveModel {
-				id: ActiveValue::NotSet,
-				path: ActiveValue::Set(rel_path.to_owned()),
-				md5: ActiveValue::Set(md5),
-				version: ActiveValue::Set(None),
+		if let Some(ver) = entry {
+			let v = ver.value();
+			return match cmp_version(v, version) {
+				std::cmp::Ordering::Less => {
+					trace!("the required version is newer than the local version");
+					Err(Error::FileExpired(rel_path.to_owned()))
+				}
+				std::cmp::Ordering::Equal => {
+					trace!("the required version is equal to the local version");
+					Ok(tokio::fs::File::open(local_path).await?)
+				}
+				std::cmp::Ordering::Greater => {
+					warn!("the required version is older than the local version");
+					return Ok(tokio::fs::File::open(local_path).await?);
+				}
 			};
-			model.insert(db).await?;
-
-			return Ok(tokio::fs::File::open(local_path).await?);
 		}
 
-		Err(Error::FileNotFound(rel_path.to_owned()))
+		let required_version = version.into_version();
+		if required_version.is_none() {
+			trace!("the required version is none");
+			Ok(tokio::fs::File::open(local_path).await?)
+		} else {
+			trace!("required version has no record in local");
+			Err(Error::FileExpired(rel_path))
+		}
 	}
 
 	/// Fetch the file from CDN url.
@@ -439,36 +435,14 @@ impl Kache {
 			return Err(Error::InvalidFile(local_path.to_str().unwrap().to_owned()));
 		}
 
-		let md5 = md5_file_async(local_path).await?;
-		let db = &*self.db;
-		let tx = db.begin().await?;
-
-		let query = cache::Entity::find().filter(cache::Column::Path.eq(rel_path));
-		let query = if version.is_empty() {
-			query
-		} else {
-			query.filter(cache::Column::Version.eq(Some(version)))
-		};
-		let record = query.one(&tx).await?;
-
-		let mut model = cache::ActiveModel {
-			id: ActiveValue::NotSet,
-			path: ActiveValue::Set(rel_path.to_owned()),
-			md5: ActiveValue::Set(md5),
-			version: ActiveValue::Set(if version.is_empty() {
-				None
-			} else {
-				Some(version.to_owned())
-			}),
-		};
-
-		if let Some(record) = record {
-			model.id = ActiveValue::Unchanged(record.id);
+		let rel_path = unified_rel_path(rel_path);
+		let write_txn = self.db.begin_write()?;
+		{
+			let mut table = write_txn.open_table(KACHE_TABLE)?;
+			let v = version.into_version();
+			table.insert(rel_path.as_str(), v.as_deref())?;
 		}
-
-		model.save(&tx).await?;
-
-		tx.commit().await?;
+		write_txn.commit()?;
 
 		Ok(tokio::fs::File::open(local_path).await?)
 	}

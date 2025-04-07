@@ -13,9 +13,10 @@ emukc_network = { path = "../emukc_network" }
 
 # other
 rand = { workspace = true, features = ["small_rng"] }
-thiserror = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
+redb.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
 
 [lints]
 workspace = true

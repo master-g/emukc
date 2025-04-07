@@ -25,7 +25,7 @@ pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), Cach
 	}
 
 	let mainjs_ver = parse_main_js_version(cache).await?;
-	list.add(format!("kcs2/js/main.js"), &mainjs_ver);
+	list.add("kcs2/js/main.js".to_string(), &mainjs_ver);
 
 	Ok(())
 }

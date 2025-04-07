@@ -9,11 +9,8 @@ mod mem;
 /// re-export `sea_orm`
 pub use sea_orm;
 
+/// prelude module for `emukc_db`
 pub mod prelude {
-	//! The `emukc_db` crate prelude.
-	#[doc(hidden)]
-	pub use crate::entity::{bootstrap, bootstrap_cache};
-
 	#[doc(hidden)]
 	pub use crate::mem::new_mem_db;
 }

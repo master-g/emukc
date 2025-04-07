@@ -1,4 +1,3 @@
-use emukc_db::sea_orm::DbErr;
 use emukc_network::{download, reqwest};
 
 /// Error type for `Kache`.
@@ -26,7 +25,23 @@ pub enum Error {
 
 	/// Database error.
 	#[error("database error: {0}")]
-	Db(#[from] DbErr),
+	Db(#[from] redb::DatabaseError),
+
+	/// Database transaction error.
+	#[error("database transaction error: {0}")]
+	DbTxn(#[from] redb::TransactionError),
+
+	/// Database table error.
+	#[error("database table error: {0}")]
+	DbTable(#[from] redb::TableError),
+
+	/// Database table storage error.
+	#[error("database table storage error: {0}")]
+	DbStorage(#[from] redb::StorageError),
+
+	/// Database commit error.
+	#[error("database commit error: {0}")]
+	DbCommit(#[from] redb::CommitError),
 
 	/// Download error.
 	#[error("download request builder error: {0}")]

@@ -9,15 +9,9 @@ fn main() {
 }
 
 async fn get_kache() -> Result<Kache, Box<dyn std::error::Error>> {
-	// download all bootstrap files
 	let dir = std::path::PathBuf::from(".data");
-	let db_path = dir.join("kache.db");
-	// prepare the database
-	let db = prepare(&db_path, false).await?;
-
 	let kache = Kache::builder()
 		.with_cache_root(std::path::PathBuf::from("z").join("cache2"))
-		.with_db(std::sync::Arc::new(db))
 		.with_proxy(Some("http://127.0.0.1:1086".to_string()))
 		.with_gadgets_cdn("w00g.kancolle-server.com".to_string())
 		.with_content_cdn("w01y.kancolle-server.com".to_string())

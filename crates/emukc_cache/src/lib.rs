@@ -20,6 +20,15 @@ pub use kache::Kache;
 pub use opt::GetOption;
 pub use ver::{IntoVersion, NoVersion};
 
+/// Convert a path to a unified relative path.
+///
+/// This function replaces backslashes with forward slashes and
+/// trims leading slashes from the path.
+pub fn unified_rel_path(path: &str) -> String {
+	// unify the path to be relative
+	path.replace('\\', "/").trim_start_matches('/').to_owned()
+}
+
 /// The `emukc_cache` crate prelude.
 ///
 /// This module re-exports the core types and traits of the crate

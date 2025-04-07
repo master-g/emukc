@@ -97,9 +97,8 @@ fn make_movable(entry: &ApiMstFurniture, list: &mut CacheList) {
 	}
 }
 
-static NORMAL_HOLES: LazyLock<Vec<i64>> = LazyLock::new(|| {
-	vec![008, 043, 062, 121, 131, 134, 150, 153, 163, 167, 169, 173, 177, 190, 191]
-});
+static NORMAL_HOLES: LazyLock<Vec<i64>> =
+	LazyLock::new(|| vec![8, 43, 62, 121, 131, 134, 150, 153, 163, 167, 169, 173, 177, 190, 191]);
 
 async fn make_normal(entry: &ApiMstFurniture, list: &mut CacheList) {
 	if !NORMAL_HOLES.contains(&entry.api_id) {
@@ -122,9 +121,9 @@ fn make_outside(mst: &ApiManifest, list: &mut CacheList) {
 
 static REWARD_PREDEFINED: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		408, 479, 291, 520, 381, 578, 380, 433, 280, 558, 011, 426, 393, 268, 517, 261, 328, 607,
+		408, 479, 291, 520, 381, 578, 380, 433, 280, 558, 11, 426, 393, 268, 517, 261, 328, 607,
 		292, 277, 458, 286, 382, 533, 588, 612, 628, 416, 557, 589, 501, 325, 293, 518, 581, 395,
-		453, 459, 634, 183, 301, 516, 446, 618, 490, 505, 030, 510, 361, 324, 529, 474, 314, 569,
+		453, 459, 634, 183, 301, 516, 446, 618, 490, 505, 30, 510, 361, 324, 529, 474, 314, 569,
 		407, 639, 478, 412, 632, 322, 555, 497, 600,
 	]
 });
