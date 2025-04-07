@@ -375,6 +375,9 @@ static EVENT_PRESET: LazyLock<Vec<EventMapInfo>> = LazyLock::new(|| {
 		(60, 1, Some(vec![15, 22])),
 		(60, 2, Some(vec![12, 18, 35])),
 		(60, 3, Some(vec![18, 25, 44, 59, 63, 66])),
+		(60, 4, Some(vec![14, 20, 27])),
+		(60, 5, Some(vec![17, 26, 41])),
+		(60, 6, Some(vec![11, 32, 38, 48, 53])),
 	]
 });
 
