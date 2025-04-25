@@ -54,10 +54,10 @@ axum-extra = { workspace = true }
 axum-macros = { workspace = true }
 axum-server = { workspace = true }
 clap = { workspace = true, features = [
-  "derive",
-  "env",
-  "wrap_help",
-  "unicode",
+	"derive",
+	"env",
+	"wrap_help",
+	"unicode",
 ] }
 config = { workspace = true, features = ["toml"] }
 fontdue = { workspace = true }
@@ -77,17 +77,17 @@ tokio = { workspace = true, features = ["full"] }
 tokio-util = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true, features = [
-  "add-extension",
-  "catch-panic",
-  "compression-br",
-  "compression-deflate",
-  "compression-gzip",
-  "compression-zstd",
-  "cors",
-  "request-id",
-  "set-header",
-  "trace",
-  "util",
+	"add-extension",
+	"catch-panic",
+	"compression-br",
+	"compression-deflate",
+	"compression-gzip",
+	"compression-zstd",
+	"cors",
+	"request-id",
+	"set-header",
+	"trace",
+	"util",
 ] }
 tracing = { workspace = true }
 url = { workspace = true }
@@ -98,7 +98,7 @@ validator = { workspace = true, features = ["derive"] }
 emukc_dylib = { path = "crates/emukc_dylib", optional = true }
 
 [workspace.dependencies]
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 async-trait = "0.1.88"
 axum = { version = "0.8.3", features = ["form"] }
 axum-extra = { version = "0.10.1" }
@@ -108,11 +108,11 @@ base16ct = { version = "0.2.0", features = ["alloc"] }
 bcrypt = { version = "0.17.0" }
 bs58 = { version = "0.5.1" }
 chrono = { version = "0.4.40", features = ["serde"] }
-clap = { version = "4.5.35", features = [
-  "derive",
-  "env",
-  "wrap_help",
-  "unicode",
+clap = { version = "4.5.37", features = [
+	"derive",
+	"env",
+	"wrap_help",
+	"unicode",
 ] }
 config = { version = "0.15.11", features = ["toml"] }
 enumn = "0.1.14"
@@ -127,19 +127,19 @@ md-5 = "0.10.6"
 mime_guess = "2.0.5"
 open = "5.3.2"
 png = "0.17.16"
-rand = { version = "0.9.0", features = ["small_rng", "os_rng"] }
-redb = "2.4.0"
+rand = { version = "0.9.1", features = ["small_rng", "os_rng"] }
+redb = "2.5.0"
 regex = "1.11.1"
 reqwest = { version = "0.12.15", default-features = false, features = [
-  "default-tls",
-  "socks",
-  "stream",
+	"default-tls",
+	"socks",
+	"stream",
 ] }
 rust-embed = { version = "8.6.0", features = ["interpolate-folder-path"] }
-sea-orm = { version = "1.1.8", features = [
-  "debug-print",
-  "runtime-tokio-native-tls",
-  "sqlx-sqlite",
+sea-orm = { version = "1.1.10", features = [
+	"debug-print",
+	"runtime-tokio-native-tls",
+	"sqlx-sqlite",
 ] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
@@ -149,21 +149,21 @@ sha2 = { version = "0.10.8", default-features = false }
 tera = "1.20.0"
 test-log = { version = "0.2.17", features = ["trace"] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.1", features = ["full"] }
-tokio-util = { version = "0.7.14" }
+tokio = { version = "1.44.2", features = ["full"] }
+tokio-util = { version = "0.7.15" }
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = [
-  "add-extension",
-  "catch-panic",
-  "compression-br",
-  "compression-deflate",
-  "compression-gzip",
-  "compression-zstd",
-  "cors",
-  "request-id",
-  "set-header",
-  "trace",
-  "util",
+	"add-extension",
+	"catch-panic",
+	"compression-br",
+	"compression-deflate",
+	"compression-gzip",
+	"compression-zstd",
+	"cors",
+	"request-id",
+	"set-header",
+	"trace",
+	"util",
 ] }
 tracing = "0.1.41"
 tracing-appender = "0.2.3"
@@ -187,7 +187,8 @@ tokio = { workspace = true, features = ["full"] }
 debug = false
 strip = "debuginfo"
 lto = true
-opt-level = "s"
+panic = "abort"
+opt-level = 3
 
 # For testing
 

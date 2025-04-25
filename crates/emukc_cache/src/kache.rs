@@ -385,7 +385,10 @@ impl Kache {
 					Ok(tokio::fs::File::open(local_path).await?)
 				}
 				std::cmp::Ordering::Greater => {
-					warn!("the required version is older than the local version");
+					warn!(
+						"{} the required version {} is older than the local version {:?}",
+						rel_path, version, v
+					);
 					return Ok(tokio::fs::File::open(local_path).await?);
 				}
 			};

@@ -79,8 +79,6 @@ pub async fn init() -> ExitCode {
 		return ExitCode::SUCCESS;
 	}
 
-	println!("{}", std::env::current_exe().unwrap().to_str().unwrap());
-
 	// load configuration
 	let cfg = match AppConfig::load(&args.config) {
 		Ok(cfg) => cfg,
@@ -113,9 +111,11 @@ pub async fn init() -> ExitCode {
 		Some(Commands::Nuke) => dev::nuke::exec(&cfg).await,
 		Some(Commands::NewSession(args)) => {
 			let Some(state) = prepare_state(&cfg).await else {
+				eprintln!("Failed to prepare application state");
 				return ExitCode::FAILURE;
 			};
-			if dev::new_session::exec(&args, &cfg, &state).await.is_err() {
+			if let Err(e) = dev::new_session::exec(&args, &cfg, &state).await {
+				eprintln!("Failed to start new session: {}", e);
 				return ExitCode::FAILURE;
 			}
 			if !args.no_start {

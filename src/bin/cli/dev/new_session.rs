@@ -21,7 +21,15 @@ pub struct NewSessionArgs {
 }
 
 pub async fn exec(args: &NewSessionArgs, cfg: &AppConfig, state: &State) -> Result<()> {
-	let info = state.sign_in(&args.name, &args.pass).await?;
+	let info = match state.sign_in(&args.name, &args.pass).await {
+		Ok(info) => info,
+		Err(_) => {
+			let info = state.sign_up(&args.name, &args.pass).await?;
+			state.new_profile(&info.access_token.token, &args.name).await?;
+			info
+		}
+	};
+
 	let session = state.start_game(&info.access_token.token, 1).await?;
 	let port = cfg.bind.port();
 

@@ -1,6 +1,15 @@
-use std::{collections::BTreeMap, sync::LazyLock};
+use std::{
+	collections::BTreeMap,
+	sync::{Arc, LazyLock},
+};
 
-use crate::{make_list::CacheList, prelude::CacheListMakingError};
+use emukc_cache::Kache;
+use emukc_model::kc2::start2::ApiManifest;
+
+use crate::{
+	make_list::{CacheList, batch_check_exists},
+	prelude::{CacheListMakeStrategy, CacheListMakingError},
+};
 
 static LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 	&[
@@ -483,8 +492,58 @@ static LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 	]
 });
 
+static FRIENDLY_SHIPS: LazyLock<&[&str]> = LazyLock::new(|| {
+	&[
+		"ff_chara_118.png",
+		"ff_chara_119.png",
+		"ff_chara_142_dress.png",
+		"ff_chara_142.png",
+		"ff_chara_192.png",
+		"ff_chara_193.png",
+		"ff_chara_200.png",
+		"ff_chara_264.png",
+		"ff_chara_363.png",
+		"ff_chara_397.png",
+		"ff_chara_411.png",
+		"ff_chara_412.png",
+		"ff_chara_439.png",
+		"ff_chara_440.png",
+		"ff_chara_464.png",
+		"ff_chara_487.png",
+		"ff_chara_520.png",
+		"ff_chara_541.png",
+		"ff_chara_547.png",
+		"ff_chara_553.png",
+		"ff_chara_557.png",
+		"ff_chara_591.png",
+		"ff_chara_626.png",
+		"ff_chara_630_dress.png",
+		"ff_chara_630.png",
+		"ff_chara_631.png",
+		"ff_chara_632.png",
+		"ff_chara_642.png",
+		"ff_chara_665_dress.png",
+		"ff_chara_668.png",
+		"ff_chara_699.png",
+		"ff_chara_725.png",
+		"ff_chara_726.png",
+		"ff_chara_734.png",
+		"ff_chara_906.png",
+		"ff_chara_916_dress.png",
+		"ff_chara_948.png",
+		"ff_chara_949_dress.png",
+		"ff_chara_954.png",
+		"ff_chara_964.png",
+		"ff_chara_969.png",
+		"ff_chara_986.png",
+	]
+});
+
 pub(super) async fn make(
+	mst: &ApiManifest,
+	cache: &Kache,
 	versions: &BTreeMap<String, String>,
+	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	for p in LIST.iter() {
@@ -492,6 +551,52 @@ pub(super) async fn make(
 		let version = versions.get(category);
 
 		list.add(format!("kcs2/img/{}", p), version);
+	}
+
+	match strategy {
+		CacheListMakeStrategy::Greedy(concurrency) => {
+			make_greedy(mst, cache, versions, concurrency, list).await?;
+		}
+		CacheListMakeStrategy::Default => {
+			let v = versions.get("port");
+			for p in FRIENDLY_SHIPS.iter() {
+				list.add(format!("kcs2/img/port/friendly_ship/{}", p), v);
+			}
+		}
+	}
+	// make_greedy(mst, cache, versions, 16, list).await?;
+
+	Ok(())
+}
+
+#[allow(unused)]
+async fn make_greedy(
+	mst: &ApiManifest,
+	cache: &Kache,
+	versions: &BTreeMap<String, String>,
+	concurrent: usize,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+	let v = versions.get("port").map(std::string::ToString::to_string).unwrap_or_default();
+	let checks: Vec<(String, String)> = mst
+		.friend_ships()
+		.iter()
+		.flat_map(|s| {
+			vec![
+				(format!("kcs2/img/port/friendly_ship/ff_chara_{}.png", s.api_id), v.clone()),
+				(format!("kcs2/img/port/friendly_ship/ff_chara_{}_dress.png", s.api_id), v.clone()),
+			]
+		})
+		.collect();
+
+	let c = Arc::new(cache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, _), exists) in check_result {
+		if exists {
+			println!("{}", p);
+			list.add_unversioned(p);
+		}
 	}
 	Ok(())
 }

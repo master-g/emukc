@@ -717,4 +717,9 @@ impl ApiManifest {
 		}
 		value
 	}
+
+	/// Find all ally ships.
+	pub fn friend_ships(&self) -> Vec<&ApiMstShip> {
+		self.api_mst_ship.iter().filter(|s| s.api_aftershipid.is_some()).collect()
+	}
 }

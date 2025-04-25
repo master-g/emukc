@@ -15,7 +15,7 @@ pub(super) struct Params {
 	api_request_flag: i64,
 
 	// 0: default, 1: powerful
-	api_request_typ: i64,
+	api_request_type: i64,
 }
 
 pub(super) async fn handler(
@@ -26,12 +26,12 @@ pub(super) async fn handler(
 	let pid = session.profile.id;
 
 	debug!(
-		"set_friendly_request: pid={}, request_flag={}, request_typ={}",
-		pid, params.api_request_flag, params.api_request_typ
+		"set_friendly_request: pid={}, request_flag={}, request_type={}",
+		pid, params.api_request_flag, params.api_request_type
 	);
 
 	state
-		.update_friendly_fleet_settings(pid, params.api_request_flag == 1, params.api_request_typ)
+		.update_friendly_fleet_settings(pid, params.api_request_flag == 1, params.api_request_type)
 		.await?;
 
 	Ok(KcApiResponse::empty())
