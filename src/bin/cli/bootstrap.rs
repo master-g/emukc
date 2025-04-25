@@ -34,7 +34,7 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
 	};
 
 	// download files needed for constructing the codex
-	download_all(&output, args.overwrite, proxy).await?;
+	download_all(&output, args.overwrite, proxy, Some(16)).await?;
 
 	// parse the codex
 	let codex = parse_partial_codex(&output)?;
