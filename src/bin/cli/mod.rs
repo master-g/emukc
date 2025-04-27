@@ -1,4 +1,4 @@
-use std::process::ExitCode;
+use std::{path::PathBuf, process::ExitCode};
 
 use clap::{Parser, Subcommand};
 
@@ -7,6 +7,7 @@ use serve::ServeArgs;
 
 use crate::{cfg::AppConfig, state::State};
 
+mod auto;
 mod bootstrap;
 mod cache;
 mod dev;
@@ -20,7 +21,7 @@ Yet Another Kantai Collection Emulator
 #[derive(Parser, Debug)]
 #[command(name = "EmuKC command-line interface and server", bin_name = "emukcd")]
 #[command(author, version, about = INFO, before_help = LOGO)]
-#[command(disable_version_flag = true, arg_required_else_help = true)]
+#[command(disable_version_flag = true)] // , arg_required_else_help = true)]
 struct Cli {
 	#[arg(help = "Configuration file to use")]
 	#[arg(env = "EMUKC_CONFIG", short, long)]
@@ -70,6 +71,39 @@ async fn prepare_state(cfg: &AppConfig) -> Option<State> {
 		.ok()
 }
 
+fn find_config_file(arg: &str) -> anyhow::Result<PathBuf> {
+	let default_path = PathBuf::from(arg);
+	if default_path.exists() {
+		return Ok(default_path);
+	}
+
+	let pwd = std::env::current_dir()?;
+	let config_path = pwd.join(default_path);
+	if config_path.exists() {
+		return Ok(config_path);
+	}
+
+	let exe_path = std::env::current_exe()?;
+	let exe_dir = exe_path.parent().unwrap();
+	let config_path = exe_dir.join(arg);
+	if config_path.exists() {
+		return Ok(config_path);
+	}
+
+	let env_path = std::env::var("EMUKC_CONFIG")?;
+	let env_path = PathBuf::from(env_path);
+	if env_path.exists() {
+		return Ok(env_path);
+	}
+
+	Err(anyhow::anyhow!(
+		"Configuration file not found at '{}', '{}', or '{}'",
+		arg,
+		pwd.display(),
+		exe_dir.display()
+	))
+}
+
 pub async fn init() -> ExitCode {
 	let args = Cli::parse();
 
@@ -80,7 +114,18 @@ pub async fn init() -> ExitCode {
 	}
 
 	// load configuration
-	let cfg = match AppConfig::load(&args.config) {
+	let cfg_path = match find_config_file(&args.config) {
+		Ok(cfg_path) => {
+			debug!("Using configuration file at '{}'", cfg_path.display());
+			cfg_path
+		}
+		Err(e) => {
+			eprintln!("Configuration file not found, err'{}'", e);
+			return ExitCode::FAILURE;
+		}
+	};
+
+	let cfg = match AppConfig::load(cfg_path.to_string_lossy().as_ref()) {
 		Ok(cfg) => cfg,
 		Err(e) => {
 			eprintln!("Failed to load configuration at '{}', err: {}", &args.config, e);
@@ -139,6 +184,7 @@ pub async fn init() -> ExitCode {
 			};
 			serve::exec(&args, &cfg, &state).await
 		}
+		None => auto::exec(&cfg).await,
 		_ => Ok(()),
 	};
 

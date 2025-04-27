@@ -4,7 +4,10 @@ use emukc_cache::{GetOption, Kache, KacheError, NoVersion};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
-use crate::{make_list::CacheList, prelude::CacheListMakingError};
+use crate::{
+	make_list::CacheList,
+	prelude::{CacheListMakeStrategy, CacheListMakingError},
+};
 
 static DEFAULT_MAPS: LazyLock<&[&str]> = LazyLock::new(|| {
 	&[
@@ -167,9 +170,17 @@ static DEFAULT_MAPS: LazyLock<&[&str]> = LazyLock::new(|| {
 	]
 });
 
-pub(super) async fn make(_cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
+pub(super) async fn make(
+	_cache: &Kache,
+	strategy: CacheListMakeStrategy,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
 	// get default area maps
 	get_default_areas(list);
+
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
 
 	// get event area maps from preset
 	get_event_area_preset(list);

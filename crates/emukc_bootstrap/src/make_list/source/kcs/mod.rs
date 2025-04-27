@@ -19,7 +19,7 @@ pub(super) async fn make(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	kc9997::make(cache, strategy, list).await?;
-	kc9998::make(list);
+	kc9998::make(list, strategy);
 	kc9999::make(cache, strategy, list).await?;
 	purchase::make(mst, list);
 	voice::make(mst, cache, strategy, list).await?;

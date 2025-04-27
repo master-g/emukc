@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crate::make_list::CacheList;
+use crate::{make_list::CacheList, prelude::CacheListMakeStrategy};
 
 static ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
@@ -52,7 +52,11 @@ static ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	]
 });
 
-pub(super) fn make(list: &mut CacheList) {
+pub(super) fn make(list: &mut CacheList, strategy: CacheListMakeStrategy) {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return;
+	}
+
 	for id in ID.iter() {
 		list.add_unversioned(format!("kcs/sound/kc9998/{}.mp3", id));
 	}

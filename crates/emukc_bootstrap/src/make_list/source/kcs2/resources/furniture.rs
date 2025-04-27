@@ -7,7 +7,7 @@ use tokio::io::AsyncReadExt;
 
 use crate::{
 	make_list::{CacheList, source::kcs2::gen_path},
-	prelude::CacheListMakingError,
+	prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -40,8 +40,13 @@ struct Popup {
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
+	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
+
 	for entry in mst.api_mst_furniture.iter() {
 		if entry.api_active_flag == 1 {
 			make_scripts(entry, cache, list).await?;

@@ -65,6 +65,7 @@ pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingErro
 	for i in 1..=20 {
 		list.add_unversioned(format!("kcs2/resources/worldselect/btn_chinjyufu{i}.png"));
 	}
+	list.add_unversioned("kcs2/resources/worldselect/btn_chinjyufu_on.png".to_string());
 
 	for res in WORLD_SELECT.iter() {
 		list.add_unversioned(format!("kcs2/resources/worldselect/{}", res));

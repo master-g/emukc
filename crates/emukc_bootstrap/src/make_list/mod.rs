@@ -17,10 +17,12 @@ pub mod errors;
 mod source;
 
 /// Strategy for making a cache list.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum CacheListMakeStrategy {
 	/// Default strategy
 	Default,
+	/// Minimal strategy
+	Minimal,
 	/// Greedy strategy
 	Greedy(usize),
 }

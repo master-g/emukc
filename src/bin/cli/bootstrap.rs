@@ -9,19 +9,19 @@ use crate::cfg::AppConfig;
 pub(super) struct BootstrapArgs {
 	#[arg(help = "Overwrite existing files")]
 	#[arg(short, long)]
-	overwrite: bool,
+	pub(super) overwrite: bool,
 
 	#[arg(help = "Remove version files from cache folder")]
 	#[arg(long)]
-	force_update: bool,
+	pub(super) force_update: bool,
 
 	#[arg(help = "use another proxy")]
 	#[arg(long)]
-	proxy: Option<String>,
+	pub(super) proxy: Option<String>,
 
 	#[arg(help = "specify output directory")]
 	#[arg(long)]
-	output: Option<String>,
+	pub(super) output: Option<String>,
 }
 
 /// Execute the bootstrap command

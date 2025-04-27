@@ -4,7 +4,7 @@ use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
 	make_list::{CacheList, source::kcs2::gen_path},
-	prelude::CacheListMakingError,
+	prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
 fn gen_bgm_path(id: i64, category: &str) -> String {
@@ -31,8 +31,13 @@ static BATTLE_BGM_ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 
 pub(super) async fn make(
 	mst: &ApiManifest,
+	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
+
 	for i in 1..=5 {
 		list.add_unversioned(gen_bgm_path(i, "fanfare"));
 	}

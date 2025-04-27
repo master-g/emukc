@@ -554,14 +554,14 @@ pub(super) async fn make(
 	}
 
 	match strategy {
-		CacheListMakeStrategy::Greedy(concurrency) => {
-			make_greedy(mst, cache, versions, concurrency, list).await?;
-		}
-		CacheListMakeStrategy::Default => {
+		CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {
 			let v = versions.get("port");
 			for p in FRIENDLY_SHIPS.iter() {
 				list.add(format!("kcs2/img/port/friendly_ship/{}", p), v);
 			}
+		}
+		CacheListMakeStrategy::Greedy(concurrency) => {
+			make_greedy(mst, cache, versions, concurrency, list).await?;
 		}
 	}
 	// make_greedy(mst, cache, versions, 16, list).await?;

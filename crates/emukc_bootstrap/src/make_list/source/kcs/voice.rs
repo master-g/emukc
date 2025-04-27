@@ -18,14 +18,20 @@ pub(super) async fn make(
 	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
+
 	make_preset(mst, list);
 	match strategy {
 		CacheListMakeStrategy::Default => {
 			make_special_preset(mst, list);
 		}
+
 		CacheListMakeStrategy::Greedy(concurrent) => {
 			make_special_greedy(mst, cache, concurrent, list).await?;
 		}
+		_ => {}
 	};
 
 	Ok(())

@@ -15,6 +15,10 @@ pub(super) async fn make(
 	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
+
 	make_non_graph(mst, list);
 	make_friend_graph(mst, list);
 	match strategy {
@@ -34,6 +38,7 @@ pub(super) async fn make(
 			make_ship_type_greedy(mst, cache, concurrent, list).await?;
 			make_ship_reward_res_greedy(mst, cache, concurrent, list).await?;
 		}
+		_ => {}
 	};
 
 	Ok(())

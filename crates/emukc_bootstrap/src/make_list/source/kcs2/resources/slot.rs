@@ -15,6 +15,10 @@ pub(super) async fn make(
 	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
+
 	make_default(mst, list);
 
 	match strategy {
@@ -28,6 +32,7 @@ pub(super) async fn make(
 			make_btxt_flat_greedy(mst, cache, concurrent, list).await?;
 			make_character_greedy(mst, cache, concurrent, list).await?;
 		}
+		_ => {}
 	};
 
 	Ok(())

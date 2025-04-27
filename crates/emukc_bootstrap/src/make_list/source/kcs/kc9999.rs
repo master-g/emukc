@@ -16,6 +16,9 @@ pub(super) async fn make(
 		CacheListMakeStrategy::Default => {
 			make_preset(list);
 		}
+		CacheListMakeStrategy::Minimal => {
+			return Ok(());
+		}
 		CacheListMakeStrategy::Greedy(concurrent) => {
 			make_greedy(cache, concurrent, list).await?;
 		}

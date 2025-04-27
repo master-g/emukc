@@ -4,7 +4,10 @@ use emukc_cache::prelude::*;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
-use crate::{make_list::CacheList, prelude::CacheListMakingError};
+use crate::{
+	make_list::CacheList,
+	prelude::{CacheListMakeStrategy, CacheListMakingError},
+};
 
 static MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 	&[
@@ -55,7 +58,15 @@ struct VerticalConfig {
 	img: String,
 }
 
-pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
+pub(super) async fn make(
+	cache: &Kache,
+	strategy: CacheListMakeStrategy,
+	list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+	if strategy == CacheListMakeStrategy::Minimal {
+		return Ok(());
+	}
+
 	for id in *MAP_ID_LIST {
 		make_gauge_by_id(cache, id, list).await?;
 	}

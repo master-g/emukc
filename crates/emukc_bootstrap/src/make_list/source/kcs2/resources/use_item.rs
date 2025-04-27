@@ -15,7 +15,7 @@ pub(super) async fn make(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	match strategy {
-		CacheListMakeStrategy::Default => {
+		CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {
 			make_useitem(list);
 		}
 		CacheListMakeStrategy::Greedy(concurrent) => {

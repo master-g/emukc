@@ -21,10 +21,10 @@ pub(super) async fn make(
 	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	bgm::make(mst, list).await?;
-	furniture::make(mst, cache, list).await?;
-	gauge::make(cache, list).await?;
-	map::make(cache, list).await?;
+	bgm::make(mst, strategy, list).await?;
+	furniture::make(mst, cache, strategy, list).await?;
+	gauge::make(cache, strategy, list).await?;
+	map::make(cache, strategy, list).await?;
 	ship::make(mst, cache, strategy, list).await?;
 	slot::make(mst, cache, strategy, list).await?;
 	unversioned::make(list).await?;
