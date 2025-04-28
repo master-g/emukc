@@ -4,8 +4,7 @@ use tokio_util::sync::CancellationToken;
 use crate::net;
 use crate::state::State;
 use crate::{cfg::AppConfig, state};
-use emukc_internal::app::cst::LOGO;
-use emukc_internal::prelude::{AccountOps, ProfileOps};
+use emukc_internal::prelude::*;
 
 use super::bootstrap;
 
@@ -123,6 +122,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 		Err(_) => {
 			let info = state.sign_up(DEFAULT_NAME, DEFAULT_PASS).await?;
 			state.new_profile(&info.access_token.token, DEFAULT_NAME).await?;
+			add_ship_incentives(&state, 1).await?;
 			info
 		}
 	};
@@ -151,6 +151,27 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 
 	// wait for the server to finish
 	server_task.await?;
+
+	Ok(())
+}
+
+async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
+	let codex = state.codex();
+
+	let ship_incentives: Vec<KcApiIncentiveItem> = [
+		(50, "島風改"),
+		(184, "大鯨"),
+		(951, "天津風改二"),
+		(299, "Scamp"),
+		(892, "Drum"),
+		(1005, "Minneapolis改"),
+		(916, "大和改二重"),
+	]
+	.iter()
+	.filter_map(|(sid, _)| codex.new_incentive_with_ship(*sid).ok())
+	.collect();
+
+	state.add_incentive(pid, &ship_incentives).await?;
 
 	Ok(())
 }

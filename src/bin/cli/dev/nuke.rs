@@ -83,6 +83,7 @@ async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
 		(951, "天津風改二"),
 		// (952, "Phoenix"),
 		// (964, "白雲"),
+		// (1581, "北方棲姫"), // this won't work
 	]
 	.iter()
 	.filter_map(|(sid, _)| codex.new_incentive_with_ship(*sid).ok())

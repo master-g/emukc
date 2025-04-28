@@ -123,7 +123,13 @@ impl Request {
 
 	/// Execute the download
 	pub async fn execute(self, client: Option<reqwest::Client>) -> Result<(), DownloadError> {
-		let client = client.unwrap_or(new_reqwest_client(None, None)?);
+		let client = match client {
+			Some(client) => client,
+			None => {
+				trace!("using default reqwest client");
+				new_reqwest_client(None, None)?
+			}
+		};
 
 		if !self.skip_header_check {
 			trace!("checking if the file exists via a HEAD request");

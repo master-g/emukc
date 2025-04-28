@@ -51,6 +51,8 @@ pub async fn download_all(
 		std::fs::create_dir_all(output_dir)?;
 	}
 
+	debug!("proxy: {:?}", proxy);
+
 	let client = Arc::new(new_reqwest_client(proxy, None)?);
 	let max_concurrent = concurrent.unwrap_or(4).max(1);
 	let mut tasks = FuturesUnordered::new();
