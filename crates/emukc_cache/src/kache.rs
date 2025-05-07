@@ -236,6 +236,9 @@ impl Kache {
 					Error::FileExpired(_) => {
 						warn!("🥀 expired: {log_tail}");
 					}
+					Error::InvalidFileVersion(_) => {
+						warn!("🎃 version rollback: {log_tail}");
+					}
 					_ => {
 						error!("❗️ local_path:{}, err:{:?}", path, e);
 						return Err(e);
@@ -385,11 +388,12 @@ impl Kache {
 					Ok(tokio::fs::File::open(local_path).await?)
 				}
 				std::cmp::Ordering::Greater => {
-					warn!(
+					trace!(
 						"{} the required version {} is older than the local version {:?}",
 						rel_path, version, v
 					);
-					return Ok(tokio::fs::File::open(local_path).await?);
+					Err(Error::InvalidFileVersion(rel_path.to_owned()))
+					// return Ok(tokio::fs::File::open(local_path).await?);
 				}
 			};
 		}

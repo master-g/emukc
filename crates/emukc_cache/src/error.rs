@@ -19,6 +19,10 @@ pub enum Error {
 	#[error("file expired: {0}")]
 	FileExpired(String),
 
+	/// File version not matched error.
+	#[error("file version not matched: {0}")]
+	InvalidFileVersion(String),
+
 	/// IO error.
 	#[error("IO error: {0}")]
 	Io(#[from] std::io::Error),
