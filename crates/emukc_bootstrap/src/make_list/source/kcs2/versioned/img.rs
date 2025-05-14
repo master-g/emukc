@@ -31,6 +31,8 @@ static LIST: LazyLock<&[&str]> = LazyLock::new(|| {
 		"arsenal/arsenal_skin_2.png",
 		"arsenal/arsenal_skin_3.json",
 		"arsenal/arsenal_skin_3.png",
+		"arsenal/arsenal_sort.json",
+		"arsenal/arsenal_sort.png",
 		"battle/battle_airunit.json",
 		"battle/battle_airunit.png",
 		"battle/battle_balloon.json",

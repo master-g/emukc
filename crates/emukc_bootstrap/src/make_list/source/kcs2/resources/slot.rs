@@ -1,8 +1,11 @@
-use std::sync::{Arc, LazyLock};
+use std::{
+	collections::BTreeMap,
+	sync::{Arc, LazyLock},
+};
 
 use emukc_cache::Kache;
 use emukc_crypto::SuffixUtils;
-use emukc_model::kc2::start2::ApiManifest;
+use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
 
 use crate::{
 	make_list::{CacheList, batch_check_exists},
@@ -43,6 +46,8 @@ fn make_default(mst: &ApiManifest, list: &mut CacheList) {
 	let default_categories =
 		vec!["card", "card_t", "item_on", "item_up", "remodel", "statustop_item"];
 
+	let mut plane_slots: BTreeMap<i64, &ApiMstSlotitem> = BTreeMap::new();
+
 	for slot in mst.api_mst_slotitem.iter() {
 		let item_id = format!("{0:04}", slot.api_id);
 
@@ -63,20 +68,30 @@ fn make_default(mst: &ApiManifest, list: &mut CacheList) {
 		}
 
 		// plane
-		if slot.api_type[4] != 0 {
-			list.add(
-				format!("kcs2/resources/plane/{0:03}.png", slot.api_type[4]),
-				slot.api_version,
-			)
-			.add(format!("kcs2/resources/plane/r{0:03}.png", slot.api_type[4]), slot.api_version);
+		if let Some(key) = (slot.api_type[4] != 0).then_some(slot.api_type[4]) {
+			plane_slots
+				.entry(key)
+				.and_modify(|entry| {
+					if entry.api_version.is_none() && slot.api_version.is_some() {
+						*entry = slot;
+					}
+				})
+				.or_insert(slot);
+		}
+	}
 
-			for category in ["airunit_banner", "airunit_fairy", "airunit_name"] {
-				let key = SuffixUtils::create(&item_id, format!("slot_{}", category).as_str());
-				list.add(
-					format!("kcs2/resources/slot/{category}/{item_id}_{key}.png"),
-					slot.api_version,
-				);
-			}
+	for (id, slot) in plane_slots.iter() {
+		list.add(format!("kcs2/resources/plane/{0:03}.png", id), slot.api_version)
+			.add(format!("kcs2/resources/plane/r{0:03}.png", id), slot.api_version);
+
+		let item_id = format!("{0:04}", slot.api_id);
+
+		for category in ["airunit_banner", "airunit_fairy", "airunit_name"] {
+			let key = SuffixUtils::create(&item_id, format!("slot_{}", category).as_str());
+			list.add(
+				format!("kcs2/resources/slot/{category}/{item_id}_{key}.png"),
+				slot.api_version,
+			);
 		}
 	}
 }
