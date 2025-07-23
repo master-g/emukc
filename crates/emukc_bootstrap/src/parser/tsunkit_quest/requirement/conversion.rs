@@ -26,15 +26,20 @@ impl Requirements {
 
 		// Extract secretary
 		let secretary = self.secretary.as_ref().map(|secretary| {
-			if let Some(class_id) = &secretary.class_id {
-				Kc3rdQuestConditionShip::ShipTypes(class_id.clone())
-			} else if let Some(family_id) = &secretary.family_id {
-				family_id.to_kc3rd_ship_class(mst).unwrap_or(Kc3rdQuestConditionShip::Any)
-			} else if let Some(ship_id) = &secretary.ship_id {
-				ship_id.to_kc3rd_ship_ids(mst).unwrap_or(Kc3rdQuestConditionShip::Any)
-			} else {
-				Kc3rdQuestConditionShip::Any
-			}
+			secretary
+				.class_id
+				.as_ref()
+				.and_then(|class_id| class_id.to_kc3rd_ship_types(mst))
+				.or_else(|| {
+					secretary
+						.family_id
+						.as_ref()
+						.and_then(|family_id| family_id.to_kc3rd_ship_class(mst))
+				})
+				.or_else(|| {
+					secretary.ship_id.as_ref().and_then(|ship_id| ship_id.to_kc3rd_ship_ids(mst))
+				})
+				.unwrap_or(Kc3rdQuestConditionShip::Any)
 		});
 
 		// Extract banned secretary

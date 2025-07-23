@@ -31,6 +31,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	let manifest = {
 		let path = dir.join("start2.json");
 		let raw = std::fs::read_to_string(&path)?;
+		debug!("Parsing manifest from {:?}", path);
 		ApiManifest::from_str(&raw)?
 	};
 
@@ -40,6 +41,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	let kccp_quests = {
 		let path = dir.join("kccp_quests.json");
 		let raw = std::fs::read_to_string(&path)?;
+		debug!("Parsing kccp quests from {:?}", path);
 		parse_kccp_quests(&raw)?
 	};
 	let quest = parse_tsunkit_quests(dir.join("tsunkit_quests.json"), &manifest, &kccp_quests)?;

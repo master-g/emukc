@@ -5,6 +5,7 @@ mod api;
 mod gadget_html5;
 mod gadgets;
 mod game;
+mod html;
 mod kcs;
 mod kcs2;
 mod kcsapi;
@@ -22,6 +23,7 @@ pub(super) fn new() -> Router {
 		.merge(Router::new().nest("/api", api::router())) // api
 		.merge(Router::new().nest("/gadget_html5", gadget_html5::router())) // gadget_html5
 		.merge(Router::new().nest("/gadgets", gadgets::router())) // gadgets
+		.merge(Router::new().nest("/html", html::router())) // version
 		.merge(Router::new().nest("/kcs", kcs::router())) // gadget_html5
 		.merge(Router::new().nest("/kcs2", kcs2::router())) // kcs2
 		.merge(Router::new().nest("/kcsapi", kcsapi::router())) // kcsapi

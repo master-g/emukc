@@ -386,15 +386,18 @@ impl Codex {
 
 		let slotitem_type = slotitem_mst.api_type[2];
 
-		let mst_equip_slot =
-			self.manifest.api_mst_equip_ship.iter().find(|m| m.api_ship_id == ship_mst_id);
+		let ship_id_str = ship_mst_id.to_string();
+		let mst_equip_slot = self.manifest.api_mst_equip_ship.get(&ship_id_str);
 		let Some(mst_equip_slot) = mst_equip_slot else {
 			error!("equip ship mst id {} not found in api_mst_equip_ship", ship_mst_id);
 			return false;
 		};
 
-		if mst_equip_slot.api_equip_type.contains(&slotitem_type) {
-			return true;
+		let slot_item_type_str = slotitem_type.to_string();
+		if let Some(Some(slot_id_list)) = mst_equip_slot.api_equip_type.get(&slot_item_type_str) {
+			if slot_id_list.contains(&slotitem_mst_id) {
+				return true;
+			}
 		}
 
 		match self.manifest.api_mst_stype.iter().find(|m| m.api_id == ship_mst.api_stype) {

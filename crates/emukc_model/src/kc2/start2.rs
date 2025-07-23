@@ -17,7 +17,7 @@ pub struct ApiManifest {
 	/// What can be equipped in the extra slot, but specific to ship.
 	pub api_mst_equip_exslot_ship: BTreeMap<String, ApiMstEquipExslotShip>,
 	/// What ship can equip.
-	pub api_mst_equip_ship: Vec<ApiMstEquipShip>,
+	pub api_mst_equip_ship: BTreeMap<String, ApiMstEquipShip>,
 	/// Furniture data.
 	pub api_mst_furniture: Vec<ApiMstFurniture>,
 	/// Furniture graph data.
@@ -98,10 +98,8 @@ pub struct ApiMstEquipExslotShip {
 /// What ship can equip.
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstEquipShip {
-	/// Ship ID.
-	pub api_ship_id: i64,
 	/// Equipment type ID.
-	pub api_equip_type: Vec<i64>,
+	pub api_equip_type: BTreeMap<String, Option<Vec<i64>>>,
 }
 
 /// Furniture data.

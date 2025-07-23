@@ -22,7 +22,7 @@ pub struct TsunkitQuestValue {
 	pub(super) wiki_id: String,
 	pub(super) category: TsunkitQuestCategory,
 	pub(super) frequency: Frequency,
-	pub(super) release_date: String,
+	pub(super) release_date: Option<String>,
 	pub(super) updated: String,
 	pub(super) prereqs: Vec<i64>,
 	pub(super) requirements: Requirements,
@@ -322,7 +322,7 @@ pub enum Node {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Secretary {
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub class_id: Option<Vec<i64>>,
+	pub class_id: Option<ClassId>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub ship_id: Option<ClassId>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -483,8 +483,8 @@ pub fn parse(
 	manifest: &ApiManifest,
 	info: &BTreeMap<i64, KccpQuestInfo>,
 ) -> Result<Kc3rdQuestMap, ParseError> {
+	trace!("parsing tsunkit quests, src: {:?}", src.as_ref());
 	let raw = fs::read_to_string(src)?;
-	trace!("parsing tsunkit quests");
 	let raw: TsunkitQuest = serde_json::from_str(&raw)?;
 
 	let quests: Vec<Kc3rdQuest> = raw

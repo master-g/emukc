@@ -24,5 +24,8 @@ pub(super) async fn make(
 		list.add_unversioned(format!("gadget_html5/script/{js}.js"));
 	}
 
+	list.add_unversioned("html/maintenance.html".to_string());
+	list.add_unversioned("html/maintenance.png".to_string());
+
 	Ok(())
 }
