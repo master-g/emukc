@@ -12,24 +12,24 @@ use crate::res::RES_LIST;
 #[derive(Debug, Error)]
 pub enum BootstrapDownloadError {
 	/// IO error
-	#[error("IO error: {0}")]
+	#[error(transparent)]
 	Io(#[from] std::io::Error),
 
 	/// Request builder error
-	#[error("Request builder error: {0}")]
+	#[error(transparent)]
 	Builder(#[from] emukc_network::download::BuilderError),
 
 	/// Reqwest error
-	#[error("Reqwest error: {0}")]
+	#[error(transparent)]
 	Reqwest(#[from] reqwest::Error),
 
 	/// Download error
-	#[error("Download error: {0}")]
+	#[error(transparent)]
 	Download(#[from] emukc_network::download::DownloadError),
 
 	/// Unzip error
-	#[error("Unzip error: {0}")]
-	Unzip(#[from] zip_extract::ZipExtractError),
+	#[error(transparent)]
+	Unzip(#[from] zip::result::ZipError),
 }
 
 /// Download all the resources
@@ -111,7 +111,10 @@ pub async fn download_all(
 				debug!("unzipping {} to {}", res.save_as, unzip_to);
 
 				let file = std::fs::File::open(&fullpath)?;
-				zip_extract::extract(&file, &unzip_to_path, true)?;
+				let mut archive = zip::ZipArchive::new(file)?;
+				archive
+					.extract_unwrapped_root_dir(unzip_to_path, zip::read::root_dir_common_filter)?;
+				// zip_extract::extract(&file, &unzip_to_path, true)?;
 
 				info!("{} unzipped to {}", res.save_as, unzip_to);
 			}

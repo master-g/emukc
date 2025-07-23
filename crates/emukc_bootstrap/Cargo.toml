@@ -22,7 +22,7 @@ serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt"] }
 tracing = { workspace = true }
-zip-extract = { workspace = true }
+zip = { workspace = true }
 
 [dev-dependencies]
 test-log = { workspace = true, features = ["trace"] }
