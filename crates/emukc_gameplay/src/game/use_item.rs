@@ -256,17 +256,13 @@ where
 		.one(c)
 		.await?
 		.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"use item: {} for profile: {}",
-				mst_id, profile_id
-			))
+			GameplayError::EntryNotFound(format!("use item: {mst_id} for profile: {profile_id}"))
 		})?;
 
 	let new_amount = record.count - amount;
 	if new_amount < 0 {
 		return Err(GameplayError::Insufficient(format!(
-			"use item: {} for profile: {}",
-			mst_id, profile_id
+			"use item: {mst_id} for profile: {profile_id}",
 		)));
 	}
 
@@ -332,7 +328,7 @@ where
 	C: ConnectionTrait,
 {
 	let use_item_type = KcUseItemType::n(mst_id).ok_or_else(|| {
-		GameplayError::WrongType(format!("use item type: {} for profile: {}", mst_id, profile_id))
+		GameplayError::WrongType(format!("use item type: {mst_id} for profile: {profile_id}"))
 	})?;
 
 	let use_item_model = find_use_item_impl(c, profile_id, mst_id).await?;
@@ -362,8 +358,7 @@ where
 				use_item_model.count.min(10)
 			} else {
 				return Err(GameplayError::WrongType(format!(
-					"exchange type: {} for use item: {}",
-					exchange_type, mst_id
+					"exchange type: {exchange_type} for use item: {mst_id}",
 				)));
 			};
 
@@ -416,8 +411,7 @@ where
 				}
 				_ => {
 					return Err(GameplayError::WrongType(format!(
-						"exchange type: {} for use item: {}",
-						exchange_type, mst_id
+						"exchange type: {exchange_type} for use item: {mst_id}",
 					)));
 				}
 			}
@@ -446,8 +440,7 @@ where
 				}
 				_ => {
 					return Err(GameplayError::WrongType(format!(
-						"exchange type: {} for use item: {}",
-						exchange_type, mst_id
+						"exchange type: {exchange_type} for use item: {mst_id}",
 					)));
 				}
 			};
@@ -493,8 +486,7 @@ where
 				}
 				_ => {
 					return Err(GameplayError::WrongType(format!(
-						"exchange type: {} for use item: {}",
-						exchange_type, mst_id
+						"exchange type: {exchange_type} for use item: {mst_id}",
 					)));
 				}
 			};
@@ -560,8 +552,7 @@ where
 				}
 				_ => {
 					return Err(GameplayError::WrongType(format!(
-						"exchange type: {} for use item: {}",
-						exchange_type, mst_id
+						"exchange type: {exchange_type} for use item: {mst_id}",
 					)));
 				}
 			}
@@ -594,8 +585,7 @@ where
 				}
 				_ => {
 					return Err(GameplayError::WrongType(format!(
-						"exchange type: {} for use item: {}",
-						exchange_type, mst_id
+						"exchange type: {exchange_type} for use item: {mst_id}",
 					)));
 				}
 			}
@@ -603,8 +593,7 @@ where
 		_ => {
 			error!("unhandled use item type: {}", mst_id);
 			return Err(GameplayError::WrongType(format!(
-				"do not know how to use item type: {} for profile: {}",
-				mst_id, profile_id
+				"do not know how to use item type: {mst_id} for profile: {profile_id}",
 			)));
 		}
 	};
@@ -777,8 +766,7 @@ where
 		}
 		_ => {
 			return Err(GameplayError::WrongType(format!(
-				"use type: {} for profile: {}",
-				use_type, profile_id
+				"use type: {use_type} for profile: {profile_id}",
 			)));
 		}
 	}

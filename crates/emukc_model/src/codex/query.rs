@@ -47,7 +47,7 @@ impl FoundInCodex for ApiMstFurniture {
 		codex
 			.manifest
 			.find_furniture(*key)
-			.ok_or_else(|| CodexError::NotFound(format!("furniture manifest ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("furniture manifest ID: {key}")))
 	}
 }
 
@@ -59,7 +59,7 @@ impl FoundInCodex for ApiMstSlotitem {
 		codex
 			.manifest
 			.find_slotitem(*key)
-			.ok_or_else(|| CodexError::NotFound(format!("slot item manifest ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("slot item manifest ID: {key}")))
 	}
 }
 
@@ -71,7 +71,7 @@ impl FoundInCodex for ApiMstShip {
 		codex
 			.manifest
 			.find_ship(*key)
-			.ok_or_else(|| CodexError::NotFound(format!("ship manifest ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("ship manifest ID: {key}")))
 	}
 }
 
@@ -92,7 +92,7 @@ impl FoundInCodex for ApiMstUseitem {
 		codex
 			.manifest
 			.find_useitem(*key)
-			.ok_or_else(|| CodexError::NotFound(format!("use item manifest ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("use item manifest ID: {key}")))
 	}
 }
 
@@ -104,7 +104,7 @@ impl FoundInCodex for ApiMstPayitem {
 		codex
 			.manifest
 			.find_payitem(*key)
-			.ok_or_else(|| CodexError::NotFound(format!("pay item manifest ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("pay item manifest ID: {key}")))
 	}
 }
 
@@ -116,7 +116,7 @@ impl FoundInCodex for Kc3rdSlotItem {
 		codex
 			.slotitem_extra_info
 			.get(key)
-			.ok_or_else(|| CodexError::NotFound(format!("slot item extra info ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("slot item extra info ID: {key}")))
 	}
 }
 
@@ -125,7 +125,7 @@ impl FoundInCodex for Kc3rdQuest {
 	type Key = i64;
 
 	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
-		codex.quest.get(key).ok_or_else(|| CodexError::NotFound(format!("quest ID: {}", key)))
+		codex.quest.get(key).ok_or_else(|| CodexError::NotFound(format!("quest ID: {key}")))
 	}
 }
 
@@ -138,6 +138,6 @@ impl FoundInCodex for KcApiMusicListElement {
 			.music_list
 			.iter()
 			.find(|v| v.api_id == *key)
-			.ok_or_else(|| CodexError::NotFound(format!("music list ID: {}", key)))
+			.ok_or_else(|| CodexError::NotFound(format!("music list ID: {key}")))
 	}
 }

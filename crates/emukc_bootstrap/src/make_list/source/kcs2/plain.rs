@@ -21,7 +21,7 @@ static VERSION_REGEX: LazyLock<regex::Regex> =
 
 pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
 	for res in PLAIN_RES.iter() {
-		list.add_unversioned(format!("kcs2/{}", res));
+		list.add_unversioned(format!("kcs2/{res}"));
 	}
 
 	let mainjs_ver = parse_main_js_version(cache).await?;

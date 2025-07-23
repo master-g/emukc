@@ -120,7 +120,7 @@ pub async fn init() -> ExitCode {
 			cfg_path
 		}
 		Err(e) => {
-			eprintln!("Configuration file not found, err'{}'", e);
+			eprintln!("Configuration file not found, err'{e}'");
 			return ExitCode::FAILURE;
 		}
 	};
@@ -137,7 +137,7 @@ pub async fn init() -> ExitCode {
 	let log_dir = match cfg.log_root() {
 		Ok(log_dir) => log_dir,
 		Err(e) => {
-			eprintln!("Failed to get log directory: {}", e);
+			eprintln!("Failed to get log directory: {e}");
 			return ExitCode::FAILURE;
 		}
 	};
@@ -160,7 +160,7 @@ pub async fn init() -> ExitCode {
 				return ExitCode::FAILURE;
 			};
 			if let Err(e) = dev::new_session::exec(&args, &cfg, &state).await {
-				eprintln!("Failed to start new session: {}", e);
+				eprintln!("Failed to start new session: {e}");
 				return ExitCode::FAILURE;
 			}
 			if !args.no_start {

@@ -39,7 +39,7 @@ impl Default for KcApiResponse {
 impl IntoResponse for KcApiResponse {
 	fn into_response(self) -> axum::response::Response {
 		let json = match serde_json::to_string(&self) {
-			Ok(json) => format!("svdata={}", json),
+			Ok(json) => format!("svdata={json}"),
 			Err(_) => "svdata={\"api_result\":-1,\"api_result_msg\":\"Failed to serialize response\",\"api_data\":null}".to_string(),
 		};
 

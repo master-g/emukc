@@ -61,7 +61,7 @@ pub(super) async fn mocking_middleware(
 	let state: &State = state.as_ref();
 
 	let req_path = parts.uri.path();
-	let mock_path = format!("kcsapi{}.json", req_path);
+	let mock_path = format!("kcsapi{req_path}.json");
 	if let Ok(mut f) = GetOption::new_api_mocking().get(&state.kache, &mock_path, NoVersion).await {
 		info!("🤖 mocking response for {}", req_path);
 		let mut raw = String::new();
@@ -72,7 +72,7 @@ pub(super) async fn mocking_middleware(
 			Ok(Response::new(raw.into()))
 		} else {
 			// append 'svdata=' to the beginning of the response
-			Ok(Response::new(format!("svdata={}", raw).into()))
+			Ok(Response::new(format!("svdata={raw}").into()))
 		};
 	}
 

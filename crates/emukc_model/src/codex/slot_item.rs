@@ -21,7 +21,7 @@ impl Codex {
 		for item in items {
 			let mst = self.find::<ApiMstSlotitem>(&item.api_slotitem_id)?;
 			let stype = mst.api_type[2];
-			let key = format!("api_slottype{}", stype);
+			let key = format!("api_slottype{stype}");
 			if let Some(slots) = unset_slots.get_mut(&key) {
 				slots.push(item.api_id);
 			} else {

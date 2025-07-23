@@ -31,8 +31,7 @@ where
 {
 	let Some(caps) = preset_caps::Entity::find_by_id(profile_id).one(c).await? else {
 		return Err(GameplayError::EntryNotFound(format!(
-			"preset_caps for profile_id {}",
-			profile_id
+			"preset_caps for profile_id {profile_id}",
 		)));
 	};
 
@@ -87,7 +86,7 @@ where
 				profile_id: ActiveValue::Set(profile_id),
 				index: ActiveValue::Set(preset_no),
 				mode: ActiveValue::Set(SelectMode::A),
-				name: ActiveValue::Set(format!("\u{7b2c}{:02}", preset_no)),
+				name: ActiveValue::Set(format!("\u{7b2c}{preset_no:02}")),
 				locked: ActiveValue::Set(false),
 				ex_flag: ActiveValue::Set(false),
 				mst_id_1: ActiveValue::Set(0),
@@ -108,7 +107,7 @@ where
 	let ship = ship::Entity::find_by_id(ship_id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {}", ship_id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {ship_id}")))?;
 
 	process_equip(c, ship.slot_1, &mut am.mst_id_1, &mut am.stars_1).await?;
 	process_equip(c, ship.slot_2, &mut am.mst_id_2, &mut am.stars_2).await?;
@@ -154,7 +153,7 @@ where
 
 	// change slot limit
 	let caps = preset_caps::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("preset_caps for profile_id {}", profile_id))
+		GameplayError::EntryNotFound(format!("preset_caps for profile_id {profile_id}"))
 	})?;
 
 	let new_cap = caps.slot_limit + 1;
@@ -180,7 +179,7 @@ where
 	let mode = match mode {
 		1 => SelectMode::A,
 		2 => SelectMode::B,
-		_ => return Err(GameplayError::WrongType(format!("mode {}", mode))),
+		_ => return Err(GameplayError::WrongType(format!("mode {mode}"))),
 	};
 
 	// find preset record
@@ -191,8 +190,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"preset_slot for profile_id {} and index {}",
-				profile_id, preset_no
+				"preset_slot for profile_id {profile_id} and index {preset_no}",
 			))
 		})?;
 
@@ -200,7 +198,7 @@ where
 	let ship = ship::Entity::find_by_id(ship_id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {}", ship_id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {ship_id}")))?;
 
 	let extra = codex.find::<Kc3rdShip>(&ship.mst_id)?;
 
@@ -395,8 +393,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"preset_slot for profile_id {} and index {}",
-				profile_id, preset_no
+				"preset_slot for profile_id {profile_id} and index {preset_no}",
 			))
 		})?;
 
@@ -428,8 +425,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"preset_slot for profile_id {} and index {}",
-				profile_id, preset_no
+				"preset_slot for profile_id {profile_id} and index {preset_no}",
 			))
 		})?;
 
@@ -459,8 +455,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"preset_slot for profile_id {} and index {}",
-				profile_id, preset_no
+				"preset_slot for profile_id {profile_id} and index {preset_no}",
 			))
 		})?;
 

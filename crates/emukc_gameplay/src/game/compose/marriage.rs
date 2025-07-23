@@ -24,8 +24,7 @@ where
 {
 	let mut ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
-			"No ship found for profile ID {} and ship ID {}",
-			profile_id, ship_id
+			"No ship found for profile ID {profile_id} and ship ID {ship_id}",
 		))
 	})?;
 

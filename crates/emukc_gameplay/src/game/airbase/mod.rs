@@ -104,7 +104,7 @@ where
 		action: ActiveValue::Set(base::Action::Idle),
 		base_range: ActiveValue::Set(0),
 		bonus_range: ActiveValue::Set(0),
-		name: ActiveValue::Set(format!("\u{7B2C}{}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}", rid)),
+		name: ActiveValue::Set(format!("\u{7B2C}{rid}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}")),
 		maintenance_level: ActiveValue::Set(1),
 	};
 

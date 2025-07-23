@@ -276,7 +276,7 @@ where
 	let record = slot_item::Entity::find_by_id(id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {id} not found")))?;
 
 	Ok(record)
 }
@@ -310,7 +310,7 @@ where
 		.filter(slot_item::Column::Id.eq(id))
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {id} not found")))?;
 
 	let mut am: slot_item::ActiveModel = model.into();
 
@@ -397,7 +397,7 @@ where
 		.filter(slot_item::Column::Id.eq(item_id))
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {} not found", item_id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {item_id} not found")))?;
 
 	let locked = record.locked;
 	let mut am: slot_item::ActiveModel = record.into();

@@ -171,8 +171,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"Repair dock {} not found for profile {}",
-				index, profile_id
+				"Repair dock {index} not found for profile {profile_id}",
 			))
 		})?;
 
@@ -267,8 +266,7 @@ where
 					let mut ship =
 						ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 							GameplayError::EntryNotFound(format!(
-								"Ship {} not found for repair dock {}",
-								ship_id, dock_id
+								"Ship {ship_id} not found for repair dock {dock_id}",
 							))
 						})?;
 
@@ -301,10 +299,7 @@ where
 		.one(c)
 		.await?
 		.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"Repair dock not found for profile {}",
-				profile_id
-			))
+			GameplayError::EntryNotFound(format!("Repair dock not found for profile {profile_id}",))
 		})?;
 
 	deduct_use_item_impl(c, profile_id, KcUseItemType::DockKey as i64, 1).await?;
@@ -330,16 +325,12 @@ where
 {
 	let dock = ndock::Entity::find_by_id(ndock_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
-			"Repair dock {} not found for profile {}",
-			ndock_id, profile_id
+			"Repair dock {ndock_id} not found for profile {profile_id}",
 		))
 	})?;
 
 	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!(
-			"Ship {} not found for profile {}",
-			ship_id, profile_id
-		))
+		GameplayError::EntryNotFound(format!("Ship {ship_id} not found for profile {profile_id}",))
 	})?;
 
 	let ship_mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
@@ -425,8 +416,7 @@ where
 {
 	let dock = ndock::Entity::find_by_id(ndock_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
-			"Repair dock {} not found for profile {}",
-			ndock_id, profile_id
+			"Repair dock {ndock_id} not found for profile {profile_id}",
 		))
 	})?;
 
@@ -435,8 +425,8 @@ where
 
 	let ship = ship::Entity::find_by_id(dock.ship_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
-			"Ship {} not found for repair dock {}",
-			dock.ship_id, ndock_id
+			"Ship {} not found for repair dock {ndock_id}",
+			dock.ship_id,
 		))
 	})?;
 

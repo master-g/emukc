@@ -552,14 +552,14 @@ pub(super) async fn make(
 		let category = p.split('/').next().unwrap();
 		let version = versions.get(category);
 
-		list.add(format!("kcs2/img/{}", p), version);
+		list.add(format!("kcs2/img/{p}"), version);
 	}
 
 	match strategy {
 		CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {
 			let v = versions.get("port");
 			for p in FRIENDLY_SHIPS.iter() {
-				list.add(format!("kcs2/img/port/friendly_ship/{}", p), v);
+				list.add(format!("kcs2/img/port/friendly_ship/{p}"), v);
 			}
 		}
 		CacheListMakeStrategy::Greedy(concurrency) => {
@@ -596,7 +596,7 @@ async fn make_greedy(
 
 	for ((p, _), exists) in check_result {
 		if exists {
-			println!("{}", p);
+			println!("{p}");
 			list.add_unversioned(p);
 		}
 	}

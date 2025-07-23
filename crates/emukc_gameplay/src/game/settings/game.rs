@@ -24,8 +24,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"game settings not found for profile {}",
-				profile_id
+				"game settings not found for profile {profile_id}",
 			))
 		})?;
 
@@ -43,8 +42,7 @@ where
 	let m =
 		profile::settings::game::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"game settings not found for profile {}",
-				profile_id
+				"game settings not found for profile {profile_id}",
 			))
 		})?;
 
@@ -67,8 +65,7 @@ where
 	let m =
 		profile::settings::game::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"game settings not found for profile {}",
-				profile_id
+				"game settings not found for profile {profile_id}",
 			))
 		})?;
 
@@ -92,8 +89,7 @@ where
 	let m =
 		profile::settings::game::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"game settings not found for profile {}",
-				profile_id
+				"game settings not found for profile {profile_id}",
 			))
 		})?;
 

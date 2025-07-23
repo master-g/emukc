@@ -41,7 +41,7 @@ async fn make_greedy(
 
 	for ((p, _), exists) in check_result {
 		if exists {
-			println!("{}", p);
+			println!("{p}");
 			list.add_unversioned(p);
 		}
 	}

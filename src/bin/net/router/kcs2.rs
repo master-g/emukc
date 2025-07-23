@@ -69,13 +69,13 @@ async fn file_handler(
 	}
 
 	// embedded
-	let embed_path = format!("emukc/{}", path);
+	let embed_path = format!("emukc/{path}");
 	if GameSiteAssets::get(&embed_path).is_some() {
 		return GameStaticFile(&embed_path).into_response();
 	}
 
 	// cache
-	let cache_rel_path = format!("kcs2/{}", path);
+	let cache_rel_path = format!("kcs2/{path}");
 
 	if cache_rel_path.contains("index.php") {
 		let Some(version) = params.version.as_deref() else {

@@ -76,7 +76,7 @@ impl Fleet {
 			return Err(FleetError::OutOfRange(index));
 		}
 
-		let name = format!("\u{7b2c} {} \u{8266}\u{968a}", index);
+		let name = format!("\u{7b2c} {index} \u{8266}\u{968a}");
 
 		Ok(Self {
 			id,

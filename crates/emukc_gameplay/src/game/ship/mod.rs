@@ -427,8 +427,7 @@ where
 		let timer =
 			morale_timer::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
 				GameplayError::EntryNotFound(format!(
-					"morale timer for profile {} not found",
-					profile_id
+					"morale timer for profile {profile_id} not found"
 				))
 			})?;
 		let last_time_checked = timer.last_time_regen.unwrap_or(DateTime::UNIX_EPOCH);
@@ -473,9 +472,10 @@ pub(crate) async fn toggle_ship_locked_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
-	})?;
+	let ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
 
 	let locked = !ship.locked;
 	let mut am = ship.into_active_model();
@@ -493,9 +493,10 @@ pub(crate) async fn open_ship_exslot_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
-	})?;
+	let ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
 
 	deduct_use_item_impl(c, profile_id, KcUseItemType::ReinforceExpansion as i64, 1).await?;
 
@@ -514,17 +515,15 @@ pub(crate) async fn set_exslot_item_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
-	})?;
+	let ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
 
 	{
 		let slot_item_model =
 			slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
-				GameplayError::EntryNotFound(format!(
-					"slot item with id {} not found",
-					slot_item_id
-				))
+				GameplayError::EntryNotFound(format!("slot item with id {slot_item_id} not found"))
 			})?;
 		let mut am = slot_item_model.into_active_model();
 
@@ -551,18 +550,16 @@ where
 	C: ConnectionTrait,
 {
 	// find target ship
-	let mut ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
-	})?;
+	let mut ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
 
 	// find slot item to set
 	if slot_item_id > 0 {
 		let slot_item_model =
 			slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
-				GameplayError::EntryNotFound(format!(
-					"slot item with id {} not found",
-					slot_item_id
-				))
+				GameplayError::EntryNotFound(format!("slot item with id {slot_item_id} not found"))
 			})?;
 
 		let mut am = slot_item_model.into_active_model();
@@ -604,8 +601,7 @@ where
 		let slot_item_model =
 			slot_item::Entity::find_by_id(unset_slot_item_id).one(c).await?.ok_or_else(|| {
 				GameplayError::EntryNotFound(format!(
-					"slot item with id {} not found",
-					unset_slot_item_id
+					"slot item with id {unset_slot_item_id} not found"
 				))
 			})?;
 
@@ -630,9 +626,10 @@ pub(crate) async fn unset_all_slots_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let mut ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("ship with id {} not found", ship_id))
-	})?;
+	let mut ship = ship::Entity::find_by_id(ship_id)
+		.one(c)
+		.await?
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
 
 	for m in find_slot_items_by_id_impl(
 		c,

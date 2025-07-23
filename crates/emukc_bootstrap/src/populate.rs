@@ -32,7 +32,7 @@ fn print_progress(completed: usize, total: usize) {
 		0
 	};
 
-	print!("\r[{}/{}][{}%]", completed, total, percentage);
+	print!("\r[{completed}/{total}][{percentage}%]");
 	std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdout");
 }
 

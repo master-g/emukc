@@ -152,10 +152,9 @@ impl Codex {
 			if slotitem_id <= 0 {
 				continue;
 			}
-			let slotitem =
-				slot_items.iter().find(|s| s.api_id == slotitem_id).ok_or(CodexError::NotFound(
-					format!("slot item id {} not found in slotitems", slotitem_id),
-				))?;
+			let slotitem = slot_items.iter().find(|s| s.api_id == slotitem_id).ok_or(
+				CodexError::NotFound(format!("slot item id {slotitem_id} not found in slotitems")),
+			)?;
 
 			if slotitem.api_locked != 0 && ship.api_locked_equip == 0 {
 				ship.api_locked_equip = 1;
@@ -362,8 +361,7 @@ impl Codex {
 		mst_id: i64,
 	) -> Result<&Kc3rdShipPicturebookInfo, CodexError> {
 		let extra = self.ship_picturebook.get(&mst_id).ok_or(CodexError::NotFound(format!(
-			"ship picturebook info id {} not found in thirdparty",
-			mst_id
+			"ship picturebook info id {mst_id} not found in thirdparty"
 		)))?;
 
 		Ok(extra)
@@ -463,7 +461,7 @@ impl Codex {
 	fn find_ship_mst(&self, ship_id: i64) -> Result<&ApiMstShip, CodexError> {
 		self.manifest
 			.find_ship(ship_id)
-			.ok_or(CodexError::NotFound(format!("ship manifest ID: {}", ship_id)))
+			.ok_or(CodexError::NotFound(format!("ship manifest ID: {ship_id}")))
 	}
 
 	/// Find the ship extra information.
@@ -474,7 +472,7 @@ impl Codex {
 	pub fn find_ship_extra(&self, ship_id: i64) -> Result<&Kc3rdShip, CodexError> {
 		self.ship_extra
 			.get(&ship_id)
-			.ok_or(CodexError::NotFound(format!("ship extra ID: {}", ship_id)))
+			.ok_or(CodexError::NotFound(format!("ship extra ID: {ship_id}")))
 	}
 
 	/// Find the ship after the given ship ID.
@@ -495,8 +493,7 @@ impl Codex {
 
 				let consumption = extra.remodel_back_requirement.as_ref().ok_or_else(|| {
 					CodexError::NotFound(format!(
-						"ship remodel back requirement for ID: {} not found",
-						ship_id
+						"ship remodel back requirement for ID: {ship_id} not found",
 					))
 				})?;
 
@@ -507,8 +504,7 @@ impl Codex {
 		let after_ship_id = if let Some(after_ship_id) = &ship_mst.api_aftershipid {
 			after_ship_id.parse::<i64>().map_err(|_| {
 				CodexError::NotFound(format!(
-					"ship after ID: {} is not a valid integer",
-					after_ship_id
+					"ship after ID: {after_ship_id} is not a valid integer",
 				))
 			})?
 		} else {
@@ -520,14 +516,13 @@ impl Codex {
 			let after_extra = self.find_ship_extra(after_ship_id)?;
 			let consumption = after_extra.remodel.as_ref().ok_or_else(|| {
 				CodexError::NotFound(format!(
-					"ship remodel requirement for ID: {} not found",
-					after_ship_id
+					"ship remodel requirement for ID: {after_ship_id} not found",
 				))
 			})?;
 
 			Ok((after_mst, after_extra, consumption))
 		} else {
-			Err(CodexError::NotFound(format!("ship after ID: {} not found", after_ship_id)))
+			Err(CodexError::NotFound(format!("ship after ID: {after_ship_id} not found")))
 		}
 	}
 }

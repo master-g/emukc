@@ -58,6 +58,6 @@ pub(super) fn make(list: &mut CacheList, strategy: CacheListMakeStrategy) {
 	}
 
 	for id in ID.iter() {
-		list.add_unversioned(format!("kcs/sound/kc9998/{}.mp3", id));
+		list.add_unversioned(format!("kcs/sound/kc9998/{id}.mp3"));
 	}
 }

@@ -29,8 +29,7 @@ where
 
 	if ships.is_empty() {
 		return Err(GameplayError::EntryNotFound(format!(
-			"No ships found for profile ID {} and ship IDs {:?}",
-			profile_id, ship_ids
+			"No ships found for profile ID {profile_id} and ship IDs {ship_ids:?}",
 		)));
 	}
 

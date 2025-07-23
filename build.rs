@@ -10,7 +10,7 @@ fn main() {
 	let out_dir = match env::var("OUT_DIR") {
 		Ok(val) => val,
 		Err(e) => {
-			eprintln!("error reading OUT_DIR: {}", e);
+			eprintln!("error reading OUT_DIR: {e}");
 			std::process::exit(1);
 		}
 	};
@@ -19,7 +19,7 @@ fn main() {
 
 	let git_hash = get_git_commit_hash().unwrap_or_else(|| "unknown".to_string());
 
-	let build_version = format!("pub const GIT_HASH: &str = \"{}\";", git_hash);
+	let build_version = format!("pub const GIT_HASH: &str = \"{git_hash}\";");
 
 	if let Err(e) = fs::write(&dest_path, build_version) {
 		eprintln!("error writing to {}: {}", dest_path.display(), e);

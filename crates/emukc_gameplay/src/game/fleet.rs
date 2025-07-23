@@ -156,8 +156,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"fleet {} not found for profile {}",
-				index, profile_id
+				"fleet {index} not found for profile {profile_id}",
 			))
 		})?;
 

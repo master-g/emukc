@@ -18,7 +18,7 @@ where
 	let ship = ship::Entity::find_by_id(ship_id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {}", ship_id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {ship_id}")))?;
 
 	let mut slots = [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5];
 

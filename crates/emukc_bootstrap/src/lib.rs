@@ -1,4 +1,13 @@
 //! The `emukc_bootstrap` crate provides the bootstrap utilities for the `EmuKC` project.
+//!
+//! This crate handles:
+//! - Downloading and parsing game data (ships, items, quests, etc.)
+//! - Preparing the database with initial data
+//! - Creating cache lists for game assets
+//! - Populating the database with parsed data
+//!
+//! The bootstrap process ensures that all necessary game data and assets are available
+//! for the `EmuKC` server to function properly.
 
 #![doc(html_favicon_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]
 #![doc(html_logo_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]

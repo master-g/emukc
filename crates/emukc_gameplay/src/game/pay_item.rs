@@ -233,7 +233,7 @@ where
 	}
 
 	let pay_item_type = KcPayItemType::n(mst_id)
-		.ok_or_else(|| GameplayError::WrongType(format!("Invalid pay item type: {}", mst_id)))?;
+		.ok_or_else(|| GameplayError::WrongType(format!("Invalid pay item type: {mst_id}")))?;
 
 	let mst = codex.find::<ApiMstPayitem>(&mst_id)?;
 

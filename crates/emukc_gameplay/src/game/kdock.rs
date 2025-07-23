@@ -113,8 +113,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"Construction dock {} not found for profile {}",
-				index, profile_id
+				"Construction dock {index} not found for profile {profile_id}",
 			))
 		})?;
 
@@ -203,8 +202,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"no locked construction dock not found for profile {}",
-				profile_id
+				"no locked construction dock not found for profile {profile_id}",
 			))
 		})?;
 

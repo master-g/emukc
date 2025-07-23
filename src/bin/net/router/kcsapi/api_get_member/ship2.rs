@@ -37,7 +37,7 @@ pub(super) async fn handler(
 		let ship = state
 			.find_ship(ship_id)
 			.await?
-			.ok_or(ApiError::NotFound(format!("ship with id {} not found", ship_id)))?;
+			.ok_or(ApiError::NotFound(format!("ship with id {ship_id} not found")))?;
 		vec![ship]
 	} else {
 		state.get_ships(pid).await?

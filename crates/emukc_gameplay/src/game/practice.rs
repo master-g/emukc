@@ -95,8 +95,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"Practice config not found for profile {}",
-				profile_id
+				"Practice config not found for profile {profile_id}",
 			))
 		})?;
 
@@ -138,8 +137,7 @@ where
 				.await?
 				.ok_or_else(|| {
 					GameplayError::EntryNotFound(format!(
-						"Practice rival details not found for profile {}",
-						profile_id
+						"Practice rival details not found for profile {profile_id}",
 					))
 				})?;
 
@@ -203,16 +201,14 @@ where
 	let rival =
 		profile::practice::rival::Entity::find_by_id(rival_id).one(c).await?.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"Practice rival not found for profile {}",
-				profile_id
+				"Practice rival not found for profile {profile_id}",
 			))
 		})?;
 
 	let details =
 		profile::practice::detail::Entity::find_by_id(rival_id).one(c).await?.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"Practice rival details not found for profile {}",
-				profile_id
+				"Practice rival details not found for profile {profile_id}",
 			))
 		})?;
 
@@ -292,8 +288,8 @@ where
 
 	let rivals: Vec<Rival> = (1..6)
 		.map(|i| {
-			let name = format!("Practice Rival {}", i);
-			let comment = format!("I am your {}th rival", i);
+			let name = format!("Practice Rival {i}");
+			let comment = format!("I am your {i}th rival");
 			let rank = r.random_range(1..=10);
 			let flag = r.random_range(1..=3);
 			let ship_mst = api_mst_ship.choose(&mut r).unwrap();
@@ -317,7 +313,7 @@ where
 					current_slot_item_count: 999,
 					slot_item_capacity: 1000,
 					furniture: 123,
-					deck_name: format!("Deck {}", i),
+					deck_name: format!("Deck {i}"),
 					ships: vec![RivalShip {
 						id: rival_ship_id_starts_from + i,
 						mst_id: ship_mst.api_id,

@@ -34,7 +34,7 @@ pub async fn exec(args: &NewSessionArgs, cfg: &AppConfig, state: &State) -> Resu
 	let port = cfg.bind.port();
 
 	let url = format!("http://localhost:{port}/emukc?api_token={}", session.session.token);
-	println!("{}", url);
+	println!("{url}");
 
 	// open the url in the default browser
 	open::that(url).unwrap();

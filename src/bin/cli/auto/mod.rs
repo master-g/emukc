@@ -131,7 +131,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 	let port = cfg.bind.port();
 
 	let url = format!("http://localhost:{port}/emukc?api_token={}", session.session.token);
-	println!("{}", url);
+	println!("{url}");
 
 	// start server in another thread
 	let server_cfg = cfg.clone();
@@ -139,7 +139,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 		println!("{LOGO}");
 		let ct = CancellationToken::new();
 		if let Err(e) = net::run(ct, &server_cfg, &state).await {
-			eprintln!("Server error: {}", e);
+			eprintln!("Server error: {e}");
 		}
 	});
 

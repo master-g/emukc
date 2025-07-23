@@ -288,7 +288,7 @@ impl Kache {
 			let cdn = if cdn.starts_with("http") {
 				cdn.to_string()
 			} else {
-				format!("http://{}", cdn)
+				format!("http://{cdn}")
 			};
 			let remote_path = path.trim_start_matches('/');
 			let ver = if v.is_empty() {
@@ -296,7 +296,7 @@ impl Kache {
 			} else {
 				format!("?version={v}")
 			};
-			let url = format!("{}/{}{}", cdn, remote_path, ver);
+			let url = format!("{cdn}/{remote_path}{ver}");
 			trace!("🔍 {}", &url);
 
 			match self.client.head(&url).send().await {
@@ -336,10 +336,10 @@ impl Kache {
 			// check for wildcard
 			let ext = local_path.extension()?.to_str()?;
 			let parent_dir = local_path.parent()?;
-			let wildcard_file = parent_dir.join(format!("wildcard.{}", ext));
+			let wildcard_file = parent_dir.join(format!("wildcard.{ext}"));
 
 			if wildcard_file.exists() {
-				info!("👻 wildcard mod found {:?}", wildcard_file);
+				info!("👻 wildcard mod found {wildcard_file:?}");
 				Some(tokio::fs::File::open(wildcard_file).await.unwrap())
 			} else {
 				None
@@ -489,7 +489,7 @@ impl Kache {
 			let cdn = if cdn.starts_with("http") {
 				cdn.to_string()
 			} else {
-				format!("http://{}", cdn)
+				format!("http://{cdn}")
 			};
 			let remote_path = path.trim_start_matches('/');
 			let ver = if version.is_empty() {
@@ -497,7 +497,7 @@ impl Kache {
 			} else {
 				format!("?version={version}")
 			};
-			let url = format!("{}/{}{}", cdn, remote_path, ver);
+			let url = format!("{cdn}/{remote_path}{ver}");
 			info!("🛫 {}", url);
 
 			match self.fetch_from_url(&url, path, local_path, version).await {

@@ -32,7 +32,7 @@ impl<'de> Deserialize<'de> for Params {
 
 		let mut oss_items = [0i64; 8];
 		for (i, item) in oss_items.iter_mut().enumerate() {
-			let key = format!("api_oss_items[{}]", i);
+			let key = format!("api_oss_items[{i}]");
 			let value = map
 				.get(&key)
 				.ok_or_else(|| serde::de::Error::missing_field("api_oss_items"))?

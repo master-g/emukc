@@ -28,7 +28,7 @@ where
 	let ship_model = ship::Entity::find_by_id(ship_id)
 		.one(c)
 		.await?
-		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {}", ship_id)))?;
+		.ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {ship_id}")))?;
 
 	let (after_mst, _, requirements) = codex.find_ship_after(ship_model.mst_id)?;
 
@@ -72,7 +72,7 @@ where
 	] {
 		if slot_item_id > 0 {
 			let m = slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
-				GameplayError::EntryNotFound(format!("slot item for ID {}", slot_item_id))
+				GameplayError::EntryNotFound(format!("slot item for ID {slot_item_id}"))
 			})?;
 			let mut am = m.into_active_model();
 			am.equip_on = ActiveValue::Set(0);

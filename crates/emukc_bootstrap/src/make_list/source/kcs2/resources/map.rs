@@ -294,7 +294,7 @@ async fn get_event_area_greedy(
 		}
 	}
 
-	println!("{:?}", map_info_set);
+	println!("{map_info_set:?}");
 	Ok(())
 }
 

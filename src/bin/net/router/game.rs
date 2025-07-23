@@ -34,7 +34,7 @@ async fn home(Host(host): Host, Extension(session): Extension<GameSession>) -> i
 	let html = std::str::from_utf8(html.data.as_ref()).unwrap();
 
 	// prepare parameters
-	let parent = format!("//{}/netgame/social/", host);
+	let parent = format!("//{host}/netgame/social/");
 	let parent = urlencoding::encode(&parent);
 
 	let token = session.token;
@@ -55,12 +55,12 @@ async fn home(Host(host): Host, Extension(session): Extension<GameSession>) -> i
 
 // emukc/css/*
 async fn css(Path(path): Path<String>) -> impl IntoResponse {
-	GameStaticFile(format!("emukc/css/{}", path))
+	GameStaticFile(format!("emukc/css/{path}"))
 }
 
 // emukc/js/*
 async fn js(Path(path): Path<String>) -> impl IntoResponse {
-	GameStaticFile(format!("emukc/js/{}", path))
+	GameStaticFile(format!("emukc/js/{path}"))
 }
 
 // emukc/game/js/hijack.js
@@ -101,11 +101,11 @@ async fn game(
 		return Html(result).into_response();
 	}
 
-	let rel_path = format!("emukc/game/{}", path);
+	let rel_path = format!("emukc/game/{path}");
 	if GameSiteAssets::get(&rel_path).is_some() {
 		GameStaticFile(rel_path).into_response()
 	} else {
 		// not embedded, redirect to the real path
-		Redirect::temporary(format!("//{}/gadgets/{}", host, path).as_str()).into_response()
+		Redirect::temporary(format!("//{host}/gadgets/{path}").as_str()).into_response()
 	}
 }

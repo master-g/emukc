@@ -18,10 +18,10 @@ pub(super) async fn make(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	for js in JS_LIST.iter() {
-		list.add_unversioned(format!("gadget_html5/js/kcs_{}.js", js));
+		list.add_unversioned(format!("gadget_html5/js/kcs_{js}.js"));
 	}
 	for js in JAVASCRIPT_LIST.iter() {
-		list.add_unversioned(format!("gadget_html5/script/{}.js", js));
+		list.add_unversioned(format!("gadget_html5/script/{js}.js"));
 	}
 
 	Ok(())

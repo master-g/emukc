@@ -44,7 +44,7 @@ pub async fn prepare(
 
 	let path = clean_db_path(path);
 
-	let sqlite_url = format!("sqlite:{}?mode=rwc", path);
+	let sqlite_url = format!("sqlite:{path}?mode=rwc");
 	let db = Database::connect(&sqlite_url).await?;
 	bootstrap(&db).await?;
 

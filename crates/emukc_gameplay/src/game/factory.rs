@@ -203,7 +203,8 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 		};
 
 		// deduct material first
-		deduct_material_impl(&tx, profile_id, &[(MaterialCategory::Torch, torch_cost)]).await?;
+		deduct_material_impl(&tx, profile_id, [(MaterialCategory::Torch, torch_cost)].as_slice())
+			.await?;
 
 		// change kdock status
 
@@ -231,7 +232,7 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 		let ship_model = ship::Entity::find_by_id(ship_id)
 			.one(&tx)
 			.await?
-			.ok_or_else(|| GameplayError::EntryNotFound(format!("ship {} not found", ship_id)))?;
+			.ok_or_else(|| GameplayError::EntryNotFound(format!("ship {ship_id} not found")))?;
 
 		let ship_mst = codex.find::<ApiMstShip>(&ship_model.mst_id)?;
 
@@ -270,7 +271,7 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 			}
 		}
 
-		add_material_impl(&tx, codex, profile_id, &scrap_materials).await?;
+		add_material_impl(&tx, codex, profile_id, scrap_materials.as_slice()).await?;
 
 		tx.commit().await?;
 

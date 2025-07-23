@@ -59,7 +59,7 @@ fn make_default(mst: &ApiManifest, list: &mut CacheList) {
 				&baga_categories
 			};
 			for category in categories {
-				let key = SuffixUtils::create(&item_id, format!("slot_{}", category).as_str());
+				let key = SuffixUtils::create(&item_id, format!("slot_{category}").as_str());
 				list.add(
 					format!("kcs2/resources/slot/{category}/{item_id}_{key}.png"),
 					slot.api_version,
@@ -81,13 +81,13 @@ fn make_default(mst: &ApiManifest, list: &mut CacheList) {
 	}
 
 	for (id, slot) in plane_slots.iter() {
-		list.add(format!("kcs2/resources/plane/{0:03}.png", id), slot.api_version)
-			.add(format!("kcs2/resources/plane/r{0:03}.png", id), slot.api_version);
+		list.add(format!("kcs2/resources/plane/{id:03}.png"), slot.api_version)
+			.add(format!("kcs2/resources/plane/r{id:03}.png"), slot.api_version);
 
 		let item_id = format!("{0:04}", slot.api_id);
 
 		for category in ["airunit_banner", "airunit_fairy", "airunit_name"] {
-			let key = SuffixUtils::create(&item_id, format!("slot_{}", category).as_str());
+			let key = SuffixUtils::create(&item_id, format!("slot_{category}").as_str());
 			list.add(
 				format!("kcs2/resources/slot/{category}/{item_id}_{key}.png"),
 				slot.api_version,
@@ -102,16 +102,15 @@ async fn make_enemy_plane_greedy(
 	concurrent: usize,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	let checks: Vec<(String, String)> = (1..=50)
-		.map(|v| (format!("kcs2/resources/plane/e{0:03}.png", v), "".to_string()))
-		.collect();
+	let checks: Vec<(String, String)> =
+		(1..=50).map(|v| (format!("kcs2/resources/plane/e{v:03}.png"), "".to_string())).collect();
 
 	let c = Arc::new(cache.clone());
 	let check_result = batch_check_exists(c, checks, concurrent).await?;
 
 	for ((p, _), exists) in check_result {
 		if exists {
-			println!("{}", p);
+			println!("{p}");
 			list.add_unversioned(p);
 		}
 	}
@@ -123,7 +122,7 @@ const ENEMY_PLANE_MAX_ID: usize = 25;
 
 fn make_enemy_plane(list: &mut CacheList) {
 	for i in 1..=ENEMY_PLANE_MAX_ID {
-		let p = format!("kcs2/resources/plane/e{0:03}.png", i);
+		let p = format!("kcs2/resources/plane/e{i:03}.png");
 		list.add_unversioned(p);
 	}
 }
@@ -141,7 +140,7 @@ async fn make_btxt_flat_greedy(
 			let item_id = format!("{0:04}", v.api_id);
 			let key = SuffixUtils::create(&item_id, "slot_btxt_flat");
 			let ver = v.api_version.unwrap_or(1);
-			(format!("kcs2/resources/slot/btxt_flat/{item_id}_{key}.png"), format!("{}", ver))
+			(format!("kcs2/resources/slot/btxt_flat/{item_id}_{key}.png"), format!("{ver}"))
 		})
 		.collect();
 
@@ -150,7 +149,7 @@ async fn make_btxt_flat_greedy(
 
 	for ((p, _), exists) in check_result {
 		if exists {
-			println!("{}", p);
+			println!("{p}");
 			list.add_unversioned(p);
 		}
 	}
@@ -184,11 +183,11 @@ static BTXT_FLAT_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 
 fn make_btxt_flat(api: &ApiManifest, list: &mut CacheList) {
 	for id in BTXT_FLAT_IDS.iter() {
-		let item_id = format!("{0:04}", id);
+		let item_id = format!("{id:04}");
 		let key = SuffixUtils::create(&item_id, "slot_btxt_flat");
 		let ver =
 			api.api_mst_slotitem.iter().find(|v| v.api_id == *id).unwrap().api_version.unwrap_or(1);
-		list.add(format!("kcs2/resources/slot/btxt_flat/{item_id}_{key}.png"), format!("{}", ver));
+		list.add(format!("kcs2/resources/slot/btxt_flat/{item_id}_{key}.png"), format!("{ver}"));
 	}
 }
 
@@ -202,10 +201,7 @@ fn make_character(mst: &ApiManifest, list: &mut CacheList) {
 
 		let item_id = format!("{0:04}", m.api_id);
 		let key = SuffixUtils::create(&item_id, "slot_item_character");
-		list.add(
-			format!("kcs2/resources/slot/item_character/{}_{}.png", item_id, key),
-			m.api_version,
-		);
+		list.add(format!("kcs2/resources/slot/item_character/{item_id}_{key}.png"), m.api_version);
 	}
 }
 
@@ -223,7 +219,7 @@ async fn make_character_greedy(
 			let item_id = format!("{0:04}", v.api_id);
 			let key = SuffixUtils::create(&item_id, "slot_item_character");
 			let ver = v.api_version.unwrap_or(1);
-			(format!("kcs2/resources/slot/item_character/{item_id}_{key}.png"), format!("{}", ver))
+			(format!("kcs2/resources/slot/item_character/{item_id}_{key}.png"), format!("{ver}"))
 		})
 		.collect();
 
@@ -232,7 +228,7 @@ async fn make_character_greedy(
 
 	for ((p, _), exists) in check_result {
 		if exists {
-			println!("{}", p);
+			println!("{p}");
 			list.add_unversioned(p);
 		}
 	}

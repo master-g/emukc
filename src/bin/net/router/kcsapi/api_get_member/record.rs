@@ -84,7 +84,7 @@ pub(super) async fn handler(
 		} else {
 			rate
 		};
-		format!("{:.2}", rate)
+		format!("{rate:.2}")
 	};
 
 	Ok(KcApiResponse::success(&Record {

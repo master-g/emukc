@@ -23,10 +23,9 @@ where
 		.one(c)
 		.await?
 		.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"oss settings not found for profile {}",
-				profile_id
-			))
+			GameplayError::EntryNotFound(
+				format!("oss settings not found for profile {profile_id}",),
+			)
 		})?;
 
 	Ok(settings)
@@ -43,16 +42,13 @@ where
 {
 	let m =
 		profile::settings::oss::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"oss settings not found for profile {}",
-				profile_id
-			))
+			GameplayError::EntryNotFound(format!("oss settings not found for profile {profile_id}"))
 		})?;
 
 	let mut am = m.into_active_model();
 
 	let lang = profile::settings::oss::Language::n(lan_type)
-		.ok_or_else(|| GameplayError::WrongType(format!("invalid language type {}", lan_type)))?;
+		.ok_or_else(|| GameplayError::WrongType(format!("invalid language type {lan_type}")))?;
 
 	am.language = ActiveValue::Set(lang);
 	am.oss_1 = ActiveValue::Set(oss_items[0]);

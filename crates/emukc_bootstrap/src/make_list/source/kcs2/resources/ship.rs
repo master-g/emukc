@@ -154,7 +154,7 @@ async fn make_friend_event_graph_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -262,7 +262,7 @@ async fn make_enemy_graph_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -421,7 +421,7 @@ async fn make_ship_special_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -492,7 +492,7 @@ async fn make_sp_remodel_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -523,7 +523,7 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 			continue;
 		};
 
-		let ship_id = format!("{0:04}", id);
+		let ship_id = format!("{id:04}");
 		let v = graph.api_version.first();
 		let full_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2");
 		let silh_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/silhouette");
@@ -531,10 +531,10 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 		let name_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_name");
 
 		list.add(format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json"), v)
-			.add(format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png", full_key), v)
-			.add(format!("kcs2/resources/ship/sp_remodel/silhouette/{ship_id}_{}.png", silh_key), v)
-			.add(format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png", cls_key), v)
-			.add(format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png", name_key), v);
+			.add(format!("kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{full_key}.png"), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/silhouette/{ship_id}_{silh_key}.png"), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{cls_key}.png"), v)
+			.add(format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{name_key}.png"), v);
 	}
 
 	for id in SP_REMODEL_MES.iter() {
@@ -542,11 +542,11 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
 			continue;
 		};
 
-		let ship_id = format!("{0:04}", id);
+		let ship_id = format!("{id:04}");
 		let v = graph.api_version.first();
 		let mes_key = SuffixUtils::create(&ship_id, "ship_sp_remodel/text_remodel_mes");
 		list.add(
-			format!("kcs2/resources/ship/sp_remodel/text_remodel_mes/{ship_id}_{}.png", mes_key),
+			format!("kcs2/resources/ship/sp_remodel/text_remodel_mes/{ship_id}_{mes_key}.png"),
 			v,
 		);
 	}
@@ -575,7 +575,7 @@ async fn make_ship_type_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -592,14 +592,14 @@ fn make_ship_type(mst: &ApiManifest, list: &mut CacheList) {
 		}
 
 		let stype_id = format!("{0:03}", stype.api_id);
-		let etext = format!("kcs2/resources/stype/etext/{}.png", stype_id);
+		let etext = format!("kcs2/resources/stype/etext/{stype_id}.png");
 
 		list.add(etext, "");
 	}
 
 	for i in 1..=SHIP_SP_TYPE_MAX {
-		let stype_id = format!("{0:03}", i);
-		let etext = format!("kcs2/resources/stype/etext/sp{}.png", stype_id);
+		let stype_id = format!("{i:03}");
+		let etext = format!("kcs2/resources/stype/etext/sp{stype_id}.png");
 
 		list.add(etext, "");
 	}
@@ -625,8 +625,8 @@ async fn make_ship_reward_res_greedy(
 				.iter()
 				.map(|category| {
 					let ship_id = format!("{0:04}", s.api_id);
-					let key = SuffixUtils::create(&ship_id, format!("ship_{}", category).as_str());
-					(format!("kcs2/resources/ship/{}/{}_{}.png", category, ship_id, key), v.clone())
+					let key = SuffixUtils::create(&ship_id, format!("ship_{category}").as_str());
+					(format!("kcs2/resources/ship/{category}/{ship_id}_{key}.png"), v.clone())
 				})
 				.collect()
 		})
@@ -637,7 +637,7 @@ async fn make_ship_reward_res_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -660,12 +660,12 @@ fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
 		};
 		let v = graph.api_version.first().cloned().unwrap_or_default();
 
-		let ship_id = format!("{0:04}", id);
+		let ship_id = format!("{id:04}");
 		let key = SuffixUtils::create(&ship_id, "ship_card_round");
-		list.add(format!("kcs2/resources/ship/card_round/{}_{}.png", ship_id, key), v.clone());
+		list.add(format!("kcs2/resources/ship/card_round/{ship_id}_{key}.png"), v.clone());
 
 		let key = SuffixUtils::create(&ship_id, "ship_icon_box");
-		list.add(format!("kcs2/resources/ship/icon_box/{}_{}.png", ship_id, key), v);
+		list.add(format!("kcs2/resources/ship/icon_box/{ship_id}_{key}.png"), v);
 	}
 
 	for id in REWARDS.iter() {
@@ -674,12 +674,12 @@ fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
 		};
 		let v = graph.api_version.first().cloned().unwrap_or_default();
 
-		let ship_id = format!("{0:04}", id);
+		let ship_id = format!("{id:04}");
 		let key = SuffixUtils::create(&ship_id, "ship_reward_card");
-		list.add(format!("kcs2/resources/ship/reward_card/{}_{}.png", ship_id, key), v.clone());
+		list.add(format!("kcs2/resources/ship/reward_card/{ship_id}_{key}.png"), v.clone());
 
 		let key = SuffixUtils::create(&ship_id, "ship_reward_icon");
-		list.add(format!("kcs2/resources/ship/reward_icon/{}_{}.png", ship_id, key), v);
+		list.add(format!("kcs2/resources/ship/reward_icon/{ship_id}_{key}.png"), v);
 	}
 }
 

@@ -48,7 +48,7 @@ async fn make_useitem_greedy(
 
 	for ((p, v), exists) in check_result {
 		if exists {
-			println!("{}, {}", p, v);
+			println!("{p}, {v}");
 			list.add(p, v);
 		}
 	}
@@ -73,11 +73,11 @@ static CARD_UNDERLINE_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 
 fn make_useitem(list: &mut CacheList) {
 	for id in CARD_IDS.iter() {
-		let p = format!("kcs2/resources/useitem/card/{0:03}.png", id);
+		let p = format!("kcs2/resources/useitem/card/{id:03}.png");
 		list.add(p, "".to_string());
 	}
 	for id in CARD_UNDERLINE_IDS.iter() {
-		let p = format!("kcs2/resources/useitem/card_/{0:03}.png", id);
+		let p = format!("kcs2/resources/useitem/card_/{id:03}.png");
 		list.add(p, "".to_string());
 	}
 }

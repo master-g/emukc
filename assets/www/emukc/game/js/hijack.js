@@ -9,7 +9,7 @@ ConstServerInfo.NETGAME = originWithSlash;
 console.log(ConstServerInfo);
 
 for (var i = 1; i <= 20; i++) {
-  ConstServerInfo["World_" + i] = originWithSlash;
+	ConstServerInfo["World_" + i] = originWithSlash;
 }
 
 var ConstURLInfo = {};
@@ -23,7 +23,7 @@ ConnectionInfo.Interval_Min = 10; // change this to test keep-alive
 
 // Maintenance 情報
 var MaintenanceInfo = {};
-MaintenanceInfo.IsDoing = 0;
+MaintenanceInfo.IsDoing = 1;
 MaintenanceInfo.IsEmergency = 0;
 MaintenanceInfo.StartDateTime = Date.parse("2077/05/01 00:00:00");
 MaintenanceInfo.EndDateTime = Date.parse("2077/05/01 00:59:59");
@@ -36,18 +36,18 @@ EntranceInfo.UidIndex = 0;
 // Entrance 情報（ワールド別）
 EntranceInfo.NewUser = 2; // allow new user
 for (var i = 1; i <= 20; i++) {
-  EntranceInfo["World_" + i + "_User"] = 2;
+	EntranceInfo["World_" + i + "_User"] = 2;
 }
 
 // kcs_options.js
 function kcsOptions_Save(options) {
-  var sKey = "kcs_options";
-  var sValue = options;
-  var vEnd = 2592000;
-  var sPath = "/";
-  var sDomain = "localhost";
-  var bSecure = false;
-  docCookies.setItem(sKey, sValue, vEnd, sPath, sDomain, bSecure);
+	var sKey = "kcs_options";
+	var sValue = options;
+	var vEnd = 2592000;
+	var sPath = "/";
+	var sDomain = "localhost";
+	var bSecure = false;
+	docCookies.setItem(sKey, sValue, vEnd, sPath, sDomain, bSecure);
 }
 
 // dmm.js
@@ -61,20 +61,20 @@ var REPO_URL = "https://github.com/master-g/emukc.git";
 var type = "DEBUG";
 
 if (navigator.userAgent.toLowerCase().indexOf("chrome") > -1) {
-  const args = [
-    `\n %c %c %c EMUKC ${VERSION} - ✰ ${type} ✰  %c  %c  ${REPO_URL}  %c %c ♥%c♥%c♥ \n\n`,
-    "background: #e15e04; padding:5px 0;",
-    "background: #e15e04; padding:5px 0;",
-    "color: #f8c104; background: #cc0404; padding:5px 0;",
-    "background: #d43004; padding:5px 0;",
-    "background: #e15e04; padding:5px 0;",
-    "background: #d43004; padding:5px 0;",
-    "color: #f8c104; background: #cc0404; padding:5px 0;",
-    "color: #f8c104; background: #cc0404; padding:5px 0;",
-    "color: #f8c104; background: #cc0404; padding:5px 0;",
-  ];
+	const args = [
+		`\n %c %c %c EMUKC ${VERSION} - ✰ ${type} ✰  %c  %c  ${REPO_URL}  %c %c ♥%c♥%c♥ \n\n`,
+		"background: #e15e04; padding:5px 0;",
+		"background: #e15e04; padding:5px 0;",
+		"color: #f8c104; background: #cc0404; padding:5px 0;",
+		"background: #d43004; padding:5px 0;",
+		"background: #e15e04; padding:5px 0;",
+		"background: #d43004; padding:5px 0;",
+		"color: #f8c104; background: #cc0404; padding:5px 0;",
+		"color: #f8c104; background: #cc0404; padding:5px 0;",
+		"color: #f8c104; background: #cc0404; padding:5px 0;",
+	];
 
-  console.log(...args);
+	console.log(...args);
 } else {
-  console.warn(`EmuKC ${VERSION} - ${type} - ${REPO_URL}`);
+	console.warn(`EmuKC ${VERSION} - ${type} - ${REPO_URL}`);
 }

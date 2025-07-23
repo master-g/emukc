@@ -22,8 +22,7 @@ where
 {
 	let Some(caps) = preset_caps::Entity::find_by_id(profile_id).one(c).await? else {
 		return Err(GameplayError::EntryNotFound(format!(
-			"preset_caps for profile_id {}",
-			profile_id
+			"preset_caps for profile_id {profile_id}",
 		)));
 	};
 
@@ -51,8 +50,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"preset_deck for profile_id {} and index {}",
-				profile_id, preset_no
+				"preset_deck for profile_id {profile_id} and index {preset_no}",
 			))
 		})?;
 
@@ -128,7 +126,7 @@ where
 
 	// change deck limit
 	let caps = preset_caps::Entity::find_by_id(profile_id).one(c).await?.ok_or_else(|| {
-		GameplayError::EntryNotFound(format!("preset_caps for profile_id {}", profile_id))
+		GameplayError::EntryNotFound(format!("preset_caps for profile_id {profile_id}"))
 	})?;
 
 	let new_cap = caps.deck_limit + 1;
@@ -156,8 +154,7 @@ where
 		.await?
 		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
-				"preset_deck for profile_id {} and index {}",
-				profile_id, preset_no
+				"preset_deck for profile_id {profile_id} and index {preset_no}",
 			))
 		})?;
 

@@ -40,26 +40,26 @@ static WORLD_SELECT: LazyLock<&[&str]> = LazyLock::new(|| {
 
 pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingError> {
 	for se in SE.iter() {
-		list.add_unversioned(format!("kcs2/resources/se/{}.mp3", se));
+		list.add_unversioned(format!("kcs2/resources/se/{se}.mp3"));
 	}
 
 	for sally in AREA_SALLY.iter() {
-		list.add_unversioned(format!("kcs2/resources/area/sally/{}.png", sally));
+		list.add_unversioned(format!("kcs2/resources/area/sally/{sally}.png"));
 	}
 
 	for air_unit in AREA_AIR_UNIT.iter() {
-		list.add_unversioned(format!("kcs2/resources/area/airunit/{}.png", air_unit));
+		list.add_unversioned(format!("kcs2/resources/area/airunit/{air_unit}.png"));
 	}
 
 	for voice in TUTORIAL_VOICE.iter() {
-		list.add_unversioned(format!("kcs2/resources/voice/tutorial/{}.mp3", voice));
+		list.add_unversioned(format!("kcs2/resources/voice/tutorial/{voice}.mp3"));
 	}
 
 	for i in 1..=103 {
-		list.add_unversioned(format!("kcs2/resources/voice/titlecall_1/{0:03}.mp3", i));
+		list.add_unversioned(format!("kcs2/resources/voice/titlecall_1/{i:03}.mp3"));
 	}
 	for i in 1..=64 {
-		list.add_unversioned(format!("kcs2/resources/voice/titlecall_2/{0:03}.mp3", i));
+		list.add_unversioned(format!("kcs2/resources/voice/titlecall_2/{i:03}.mp3"));
 	}
 
 	for i in 1..=20 {
@@ -68,7 +68,7 @@ pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingErro
 	list.add_unversioned("kcs2/resources/worldselect/btn_chinjyufu_on.png".to_string());
 
 	for res in WORLD_SELECT.iter() {
-		list.add_unversioned(format!("kcs2/resources/worldselect/{}", res));
+		list.add_unversioned(format!("kcs2/resources/worldselect/{res}"));
 	}
 
 	Ok(())

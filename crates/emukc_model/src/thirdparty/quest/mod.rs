@@ -93,7 +93,7 @@ impl From<i64> for Kc3rdQuestCategory {
 			9 => Self::Sortie3,
 			10 => Self::Sortie4,
 			11 => Self::Factory2,
-			_ => panic!("Invalid value for Kc3rdQuestCategory: {}", value),
+			_ => panic!("Invalid value for Kc3rdQuestCategory: {value}"),
 		}
 	}
 }
@@ -123,7 +123,7 @@ impl From<i64> for Kc3rdQuestPeriod {
 			6 => Self::Monthly,
 			7 => Self::Quarterly,
 			8 => Self::Annual,
-			_ => panic!("Invalid value for Kc3rdQuestPeriod: {}", value),
+			_ => panic!("Invalid value for Kc3rdQuestPeriod: {value}"),
 		}
 	}
 }

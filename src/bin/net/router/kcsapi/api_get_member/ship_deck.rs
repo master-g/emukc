@@ -49,7 +49,7 @@ pub(super) async fn handler(
 		let ship = state
 			.find_ship(*ship_id)
 			.await?
-			.ok_or(ApiError::NotFound(format!("ship {} not found for profile {}", ship_id, pid)))?;
+			.ok_or(ApiError::NotFound(format!("ship {ship_id} not found for profile {pid}")))?;
 
 		api_ship_data.push(ship);
 	}

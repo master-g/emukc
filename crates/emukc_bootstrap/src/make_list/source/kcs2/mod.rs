@@ -26,11 +26,28 @@ pub(super) async fn make(
 
 fn gen_path(id: i64, padding: u8, folder: &str, category: &str, extension: &str) -> String {
 	let id = if padding == 3 {
-		format!("{0:03}", id)
+		format!("{id:03}")
 	} else {
-		format!("{0:04}", id)
+		format!("{id:04}")
 	};
 
 	let key = SuffixUtils::create(&id, format!("{folder}_{category}").as_str());
 	format!("kcs2/resources/{folder}/{category}/{id}_{key}.{extension}")
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_gen_path() {
+		assert_eq!(
+			gen_path(23, 3, "ship", "image", "png"),
+			"kcs2/resources/ship/image/023_2377.png"
+		);
+		assert_eq!(
+			gen_path(1234, 4, "ship", "image", "png"),
+			"kcs2/resources/ship/image/1234_5939.png"
+		);
+	}
 }

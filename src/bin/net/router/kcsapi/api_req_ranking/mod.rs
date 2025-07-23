@@ -55,8 +55,8 @@ async fn handler(state: AppState, Extension(session): Extension<GameSession>) ->
 
 	let api_list = (2..=10).map(|rank| {
 		let uid = pid + 1001 + rank;
-		let api_mtjmdcwtvhdr = format!("Anonymous {}", uid);
-		let api_itbrdpdbkynm = format!("Comments from {}", uid);
+		let api_mtjmdcwtvhdr = format!("Anonymous {uid}");
+		let api_itbrdpdbkynm = format!("Comments from {uid}");
 		Item {
 			api_itbrdpdbkynm,
 			api_itslcqtmrxtf: 1001 - rank,

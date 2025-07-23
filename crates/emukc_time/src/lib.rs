@@ -17,7 +17,7 @@ impl KcTime {
 	///
 	/// A string representation of the date.
 	pub fn format_date(ms: i64, symbol: &str) -> String {
-		let pad = |n: u32| format!("{:02}", n);
+		let pad = |n: u32| format!("{n:02}");
 		let date = Local.timestamp_millis_opt(ms).unwrap();
 		format!(
 			"{}-{}-{}{}{:02}:{:02}:{:02}",

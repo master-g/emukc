@@ -222,7 +222,7 @@ async fn make_special_greedy(
 				let ver = get_voice_version(graph, voice_id);
 
 				lookups.insert(path.clone(), (graph.api_id, voice_id));
-				checks.push((path, format!("{}", ver)));
+				checks.push((path, format!("{ver}")));
 			}
 		}
 	}
@@ -232,7 +232,7 @@ async fn make_special_greedy(
 	for ((p, v), exists) in check_result {
 		if exists {
 			if let Some((ship_id, voice_id)) = lookups.get(&p) {
-				println!("{}: {}", ship_id, voice_id);
+				println!("{ship_id}: {voice_id}");
 			}
 
 			list.add(p, v);
