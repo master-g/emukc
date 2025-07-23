@@ -226,10 +226,10 @@ async fn make_character_greedy(
 	let c = Arc::new(cache.clone());
 	let check_result = batch_check_exists(c, checks, concurrent).await?;
 
-	for ((p, _), exists) in check_result {
+	for ((p, v), exists) in check_result {
 		if exists {
 			println!("{p}");
-			list.add_unversioned(p);
+			list.add(p, v);
 		}
 	}
 

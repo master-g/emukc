@@ -23,7 +23,7 @@ ConnectionInfo.Interval_Min = 10; // change this to test keep-alive
 
 // Maintenance 情報
 var MaintenanceInfo = {};
-MaintenanceInfo.IsDoing = 1;
+MaintenanceInfo.IsDoing = 0;
 MaintenanceInfo.IsEmergency = 0;
 MaintenanceInfo.StartDateTime = Date.parse("2077/05/01 00:00:00");
 MaintenanceInfo.EndDateTime = Date.parse("2077/05/01 00:59:59");
