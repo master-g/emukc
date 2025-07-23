@@ -3,58 +3,135 @@ name = "emukc"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88.0"
-resolver = "3"
 description = "A simple emulator for the web browser game: Kantai Collection"
-exclude = ["z/", ".github/", "crates/"]
 homepage = "https://github.com/master-g/emukc.git"
-keywords = ["emulator", "kancolle"]
-license = "MIT OR Apache-2.0"
 repository = "https://github.com/master-g/emukc"
+license = "MIT OR Apache-2.0"
+keywords = ["emulator", "kancolle"]
+exclude = [".github/", "crates/", "z/"]
+resolver = "3"
+
+[package.metadata.example.model_loader]
+hidden = true
 
 [workspace]
-exclude = ["benches"]
 members = ["crates/*"]
+exclude = ["benches"]
 
 [workspace.package]
 edition = "2024"
 rust-version = "1.88.0"
 
+[workspace.dependencies]
+anyhow = "1.0.98"
+async-trait = "0.1.88"
+axum = { version = "0.8.4", features = ["form"] }
+axum-extra = { version = "0.10.1" }
+axum-macros = { version = "0.5.0" }
+axum-server = { version = "0.7.2" }
+base16ct = { version = "0.2.0", features = ["alloc"] }
+bcrypt = { version = "0.17.0" }
+bs58 = { version = "0.5.1" }
+chrono = { version = "0.4.41", features = ["serde"] }
+clap = { version = "4.5.41", features = ["derive", "env", "unicode", "wrap_help"] }
+config = { version = "0.15.13", features = ["toml"] }
+enumn = "0.1.14"
+env_logger = "0.11.8"
+fontdue = { version = "0.9.3" }
+futures = { version = "0.3.31" }
+futures-util = { version = "0.3.31" }
+hmac = { version = "0.12.1" }
+http = { version = "1.3.1" }
+http-body-util = "0.1.3"
+inquire = { version = "0.7.5" }
+md-5 = "0.10.6"
+mime_guess = "2.0.5"
+open = "5.3.2"
+png = "0.17.16"
+rand = { version = "0.9.2", features = ["os_rng", "small_rng"] }
+redb = "2.6.0"
+regex = "1.11.1"
+reqwest = { version = "0.12.22", default-features = false, features = ["default-tls", "socks", "stream"] }
+rust-embed = { version = "8.7.2", features = ["interpolate-folder-path"] }
+sea-orm = { version = "1.1.14", features = ["debug-print", "runtime-tokio-native-tls", "sqlx-sqlite"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.141"
+serde_urlencoded = "0.7.1"
+serde_yaml = "0.9.33"
+sha2 = { version = "0.10.9", default-features = false }
+tera = "1.20.0"
+test-log = { version = "0.2.18", features = ["trace"] }
+thiserror = "2.0.12"
+tokio = { version = "1.46.1", features = ["full"] }
+tokio-util = { version = "0.7.15" }
+tower = "0.5.2"
+tower-http = { version = "0.6.6", features = [
+	"add-extension",
+	"catch-panic",
+	"compression-br",
+	"compression-deflate",
+	"compression-gzip",
+	"compression-zstd",
+	"cors",
+	"request-id",
+	"set-header",
+	"trace",
+	"util",
+] }
+tracing = "0.1.41"
+tracing-appender = "0.2.3"
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+url = "2.5.4"
+urlencoding = "2.1.3"
+uuid = { version = "1.17.0", features = ["fast-rng", "v4"] }
+validator = { version = "0.20.0", features = ["derive"] }
+zip = { version = "4.3.0" }
+
 [workspace.lints.clippy]
-type_complexity = "allow"
 doc_markdown = "warn"
 manual_let_else = "warn"
-undocumented_unsafe_blocks = "warn"
-redundant_else = "warn"
 match_same_arms = "warn"
-semicolon_if_nothing_returned = "warn"
-redundant_closure_for_method_calls = "warn"
-unwrap_or_default = "warn"
-
 ptr_as_ptr = "warn"
 ptr_cast_constness = "warn"
+redundant_closure_for_method_calls = "warn"
+redundant_else = "warn"
 ref_as_ptr = "warn"
+semicolon_if_nothing_returned = "warn"
+type_complexity = "allow"
+undocumented_unsafe_blocks = "warn"
+unwrap_or_default = "warn"
 
 [workspace.lints.rust]
-unsafe_op_in_unsafe_fn = "warn"
 missing_docs = "warn"
 unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "warn"
 
-[lints]
-workspace = true
+[[example]]
+name = "model_loader"
+path = "tests/model/load.rs"
 
-[features]
-dynamic_linking = ["dep:emukc_dylib"]
+[[example]]
+name = "bootstrap_download"
+path = "tests/bootstrap/download.rs"
+
+[[example]]
+name = "dump_tree"
+path = "tests/dump_fs_tree/dump_tree.rs"
+
+[[example]]
+name = "kache_test"
+path = "tests/kache/test.rs"
 
 [dependencies]
-emukc_internal = { path = "crates/emukc_internal" }
-
 anyhow = { workspace = true }
 axum = { workspace = true, features = ["form"] }
 axum-extra = { workspace = true }
 axum-macros = { workspace = true }
 axum-server = { workspace = true }
-clap = { workspace = true, features = ["derive", "env", "wrap_help", "unicode"] }
+clap = { workspace = true, features = ["derive", "env", "unicode", "wrap_help"] }
 config = { workspace = true, features = ["toml"] }
+emukc_internal = { path = "crates/emukc_internal" }
 fontdue = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
@@ -90,75 +167,6 @@ url = { workspace = true }
 urlencoding = { workspace = true }
 validator = { workspace = true, features = ["derive"] }
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-emukc_dylib = { path = "crates/emukc_dylib", optional = true }
-
-[workspace.dependencies]
-anyhow = "1.0.98"
-async-trait = "0.1.88"
-axum = { version = "0.8.4", features = ["form"] }
-axum-extra = { version = "0.10.1" }
-axum-macros = { version = "0.5.0" }
-axum-server = { version = "0.7.2" }
-base16ct = { version = "0.2.0", features = ["alloc"] }
-bcrypt = { version = "0.17.0" }
-bs58 = { version = "0.5.1" }
-chrono = { version = "0.4.41", features = ["serde"] }
-clap = { version = "4.5.41", features = ["derive", "env", "wrap_help", "unicode"] }
-config = { version = "0.15.13", features = ["toml"] }
-enumn = "0.1.14"
-env_logger = "0.11.8"
-fontdue = { version = "0.9.3" }
-futures = { version = "0.3.31" }
-futures-util = { version = "0.3.31" }
-hmac = { version = "0.12.1" }
-http = { version = "1.3.1" }
-http-body-util = "0.1.3"
-inquire = { version = "0.7.5" }
-md-5 = "0.10.6"
-mime_guess = "2.0.5"
-open = "5.3.2"
-png = "0.17.16"
-rand = { version = "0.9.2", features = ["small_rng", "os_rng"] }
-redb = "2.6.0"
-regex = "1.11.1"
-reqwest = { version = "0.12.22", default-features = false, features = ["default-tls", "socks", "stream"] }
-rust-embed = { version = "8.7.2", features = ["interpolate-folder-path"] }
-sea-orm = { version = "1.1.14", features = ["debug-print", "runtime-tokio-native-tls", "sqlx-sqlite"] }
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.141"
-serde_yaml = "0.9.33"
-serde_urlencoded = "0.7.1"
-sha2 = { version = "0.10.9", default-features = false }
-tera = "1.20.0"
-test-log = { version = "0.2.18", features = ["trace"] }
-thiserror = "2.0.12"
-tokio = { version = "1.46.1", features = ["full"] }
-tokio-util = { version = "0.7.15" }
-tower = "0.5.2"
-tower-http = { version = "0.6.6", features = [
-	"add-extension",
-	"catch-panic",
-	"compression-br",
-	"compression-deflate",
-	"compression-gzip",
-	"compression-zstd",
-	"cors",
-	"request-id",
-	"set-header",
-	"trace",
-	"util",
-] }
-tracing = "0.1.41"
-tracing-appender = "0.2.3"
-tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-url = "2.5.4"
-urlencoding = "2.1.3"
-uuid = { version = "1.17.0", features = ["v4", "fast-rng"] }
-validator = { version = "0.20.0", features = ["derive"] }
-zip = { version = "4.3.0" }
-
 [dev-dependencies]
 memory-stats = "1"
 regex = { workspace = true }
@@ -166,35 +174,20 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+emukc_dylib = { path = "crates/emukc_dylib", optional = true }
+
+[features]
+dynamic_linking = ["dep:emukc_dylib"]
+
+[lints]
+workspace = true
+
 # bin
 [profile.release]
+opt-level = 3
 debug = false
 strip = "debuginfo"
 lto = true
 panic = "abort"
-opt-level = 3
-
-# For testing
-
-[[example]]
-name = "model_loader"
-path = "tests/model/load.rs"
-doc-scrape-examples = true
-
-[[example]]
-name = "bootstrap_download"
-path = "tests/bootstrap/download.rs"
-doc-scrape-examples = true
-
-[[example]]
-name = "dump_tree"
-path = "tests/dump_fs_tree/dump_tree.rs"
-doc-scrape-examples = true
-
-[[example]]
-name = "kache_test"
-path = "tests/kache/test.rs"
-doc-scrape-examples = true
-
-[package.metadata.example.model_loader]
-hidden = true
+codegen-units = 1

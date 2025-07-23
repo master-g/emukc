@@ -24,35 +24,35 @@ pub enum Error {
 	InvalidFileVersion(String),
 
 	/// IO error.
-	#[error("IO error: {0}")]
+	#[error(transparent)]
 	Io(#[from] std::io::Error),
 
 	/// Database error.
-	#[error("database error: {0}")]
+	#[error(transparent)]
 	Db(#[from] redb::DatabaseError),
 
 	/// Database transaction error.
-	#[error("database transaction error: {0}")]
+	#[error(transparent)]
 	DbTxn(#[from] redb::TransactionError),
 
 	/// Database table error.
-	#[error("database table error: {0}")]
+	#[error(transparent)]
 	DbTable(#[from] redb::TableError),
 
 	/// Database table storage error.
-	#[error("database table storage error: {0}")]
+	#[error(transparent)]
 	DbStorage(#[from] redb::StorageError),
 
 	/// Database commit error.
-	#[error("database commit error: {0}")]
+	#[error(transparent)]
 	DbCommit(#[from] redb::CommitError),
 
 	/// Download error.
-	#[error("download request builder error: {0}")]
+	#[error(transparent)]
 	DownloadRequestBuilder(#[from] download::BuilderError),
 
 	/// Download error.
-	#[error("download error: {0}")]
+	#[error(transparent)]
 	Download(#[from] download::DownloadError),
 
 	/// Failed on all CDN.
@@ -60,6 +60,6 @@ pub enum Error {
 	FailedOnAllCdn,
 
 	/// Reqwest error.
-	#[error("reqwest error: {0}")]
+	#[error(transparent)]
 	Reqwest(#[from] reqwest::Error),
 }

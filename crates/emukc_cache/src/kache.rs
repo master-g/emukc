@@ -116,6 +116,7 @@ impl Builder {
 	}
 
 	/// Build the `Kache` struct.
+	#[allow(clippy::result_large_err)]
 	pub fn build(self) -> Result<Kache, Error> {
 		let cache_root = self.cache_root.ok_or(Error::MissingField("cache_root".to_owned()))?;
 		let gadgets_cdn = if self.gadgets_cdn.is_empty() {
