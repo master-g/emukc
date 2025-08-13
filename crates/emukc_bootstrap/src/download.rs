@@ -125,10 +125,10 @@ pub async fn download_all(
 		tasks.push(task);
 
 		// Limit the number of concurrent downloads
-		if tasks.len() >= max_concurrent {
-			if let Some(result) = tasks.next().await {
-				result?;
-			}
+		if tasks.len() >= max_concurrent
+			&& let Some(result) = tasks.next().await
+		{
+			result?;
 		}
 	}
 
