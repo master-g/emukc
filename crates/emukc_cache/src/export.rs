@@ -1,4 +1,4 @@
-use redb::ReadableTable;
+use redb::{ReadableDatabase, ReadableTable};
 
 use crate::{Kache, error::Error, kache::KACHE_TABLE};
 

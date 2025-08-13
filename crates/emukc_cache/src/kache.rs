@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use rand::{SeedableRng, rngs::SmallRng, seq::SliceRandom};
-use redb::{Database, TableDefinition};
+use redb::{Database, ReadableDatabase, TableDefinition};
 use tokio::io::AsyncReadExt;
 
 use emukc_network::{client::new_reqwest_client, download, reqwest};

@@ -29,7 +29,7 @@ fn main() {
 		let save_codex_to = dir.join("codex");
 		let db_path = dir.join("emukc.db");
 		dir.push("temp");
-		download_all(&dir, true, Some("http://127.0.0.1:1086")).await.unwrap();
+		download_all(&dir, true, Some("http://127.0.0.1:1086"), Some(16)).await.unwrap();
 
 		print_memory_usage();
 

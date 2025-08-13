@@ -9,7 +9,7 @@ fn main() {
 }
 
 async fn get_kache() -> Result<Kache, Box<dyn std::error::Error>> {
-	let dir = std::path::PathBuf::from(".data");
+	let _dir = std::path::PathBuf::from(".data");
 	let kache = Kache::builder()
 		.with_cache_root(std::path::PathBuf::from("z").join("cache2"))
 		.with_proxy(Some("http://127.0.0.1:1086".to_string()))

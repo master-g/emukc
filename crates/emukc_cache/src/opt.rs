@@ -43,6 +43,16 @@ impl GetOption {
 		}
 	}
 
+	/// Creates a new `GetOption` with remote only options.
+	pub fn new_remote_only() -> Self {
+		Self {
+			enable_local: false,
+			enable_remote: true,
+			enable_mod: false,
+			enable_shuffle: true,
+		}
+	}
+
 	/// Creates a new `GetOption` with non-module options.
 	pub fn new_non_mod() -> Self {
 		Self {

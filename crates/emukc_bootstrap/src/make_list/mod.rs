@@ -27,11 +27,17 @@ pub enum CacheListMakeStrategy {
 	Greedy(usize),
 }
 
+/// A single cache list entry
 #[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct CacheListItem {
+	/// resource id
 	#[serde(rename = "_id")]
 	pub id: i64,
+
+	/// resource path
 	pub path: String,
+
+	/// Resource version
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub version: Option<String>,
 }
