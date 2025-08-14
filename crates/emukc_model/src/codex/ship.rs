@@ -394,10 +394,10 @@ impl Codex {
 		};
 
 		let slot_item_type_str = slotitem_type.to_string();
-		if let Some(Some(slot_id_list)) = mst_equip_slot.api_equip_type.get(&slot_item_type_str) {
-			if slot_id_list.contains(&slotitem_mst_id) {
-				return true;
-			}
+		if let Some(Some(slot_id_list)) = mst_equip_slot.api_equip_type.get(&slot_item_type_str)
+			&& slot_id_list.contains(&slotitem_mst_id)
+		{
+			return true;
 		}
 
 		match self.manifest.api_mst_stype.iter().find(|m| m.api_id == ship_mst.api_stype) {
@@ -489,19 +489,19 @@ impl Codex {
 	) -> Result<(&ApiMstShip, &Kc3rdShip, &Kc3rdShipRemodelRequirement), CodexError> {
 		let ship_mst = self.find_ship_mst(ship_id)?;
 		let extra = self.find_ship_extra(ship_id)?;
-		if let Some(back_to) = extra.remodel_back_to {
-			if back_to > 0 {
-				let after_mst = self.find_ship_mst(back_to)?;
-				let after_extra = self.find_ship_extra(back_to)?;
+		if let Some(back_to) = extra.remodel_back_to
+			&& back_to > 0
+		{
+			let after_mst = self.find_ship_mst(back_to)?;
+			let after_extra = self.find_ship_extra(back_to)?;
 
-				let consumption = extra.remodel_back_requirement.as_ref().ok_or_else(|| {
-					CodexError::NotFound(format!(
-						"ship remodel back requirement for ID: {ship_id} not found",
-					))
-				})?;
+			let consumption = extra.remodel_back_requirement.as_ref().ok_or_else(|| {
+				CodexError::NotFound(format!(
+					"ship remodel back requirement for ID: {ship_id} not found",
+				))
+			})?;
 
-				return Ok((after_mst, after_extra, consumption));
-			}
+			return Ok((after_mst, after_extra, consumption));
 		}
 
 		let after_ship_id = if let Some(after_ship_id) = &ship_mst.api_aftershipid {

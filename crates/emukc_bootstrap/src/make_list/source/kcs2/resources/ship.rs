@@ -690,7 +690,7 @@ mod tests {
 	#[test]
 	fn test_full() {
 		let ship_id = format!("{0:04}", 1);
-		let key = SuffixUtils::create(&ship_id, format!("ship_full_dmg").as_str());
+		let key = SuffixUtils::create(&ship_id, "ship_full_dmg".to_string().as_str());
 
 		assert_eq!(key, "6245");
 	}

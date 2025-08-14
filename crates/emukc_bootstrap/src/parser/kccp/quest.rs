@@ -50,11 +50,11 @@ pub fn parse(raw: &str) -> Result<BTreeMap<i64, KccpQuestInfo>, ParseError> {
 	for line in raw.lines() {
 		match status {
 			ParserStatus::Id => {
-				if let Some(caps) = reg_id.captures(line) {
-					if let Some(matched) = caps.get(1) {
-						quest_id = Some(matched.as_str().parse().unwrap());
-						status = ParserStatus::Name;
-					}
+				if let Some(caps) = reg_id.captures(line)
+					&& let Some(matched) = caps.get(1)
+				{
+					quest_id = Some(matched.as_str().parse().unwrap());
+					status = ParserStatus::Name;
 				}
 			}
 			ParserStatus::Name => {

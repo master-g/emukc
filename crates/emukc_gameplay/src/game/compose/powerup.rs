@@ -190,12 +190,11 @@ where
 		// calculate luck bonus
 		if let Some(rate) =
 			MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
+			&& rng.random_bool(*rate)
 		{
-			if rng.random_bool(*rate) {
-				extra_luck_powerup += (maruyu_ships.len() as f64 * 1.2
-					+ maruyu_kai_ships.len() as f64 * 1.6)
-					.ceil() as i64;
-			}
+			extra_luck_powerup += (maruyu_ships.len() as f64 * 1.2
+				+ maruyu_kai_ships.len() as f64 * 1.6)
+				.ceil() as i64;
 		}
 	}
 

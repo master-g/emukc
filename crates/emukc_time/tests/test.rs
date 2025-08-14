@@ -1,4 +1,4 @@
-//! Tests for emukc_time
+//! Tests for `emukc_time`
 
 #[cfg(test)]
 mod test {

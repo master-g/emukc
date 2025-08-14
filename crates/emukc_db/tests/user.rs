@@ -1,4 +1,4 @@
-//! Tests for emukc_db
+//! Tests for `emukc_db`
 
 #[cfg(test)]
 mod test {

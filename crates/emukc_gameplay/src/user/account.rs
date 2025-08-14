@@ -297,7 +297,7 @@ mod tests {
 	async fn new_mock() -> (DbConn, Codex) {
 		let db = emukc_db::prelude::new_mem_db().await.unwrap();
 		let codex = Codex::default();
-		return (db, codex);
+		(db, codex)
 	}
 
 	#[tokio::test]

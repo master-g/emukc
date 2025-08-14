@@ -267,7 +267,7 @@ async fn c_list_quests() {
 	]
 	.iter()
 	.for_each(|&id| {
-		if let Some(mst) = codex.find::<Kc3rdQuest>(&id).ok() {
+		if let Ok(mst) = codex.find::<Kc3rdQuest>(&id) {
 			println!("--- {} | {} ---", id, mst.name);
 			println!("category: {:?}", mst.category);
 			println!("requirements: {:?}", mst.requirements);
@@ -322,7 +322,7 @@ async fn de_group() {
 		]);
 		assert!(grouped.hp_pairs.is_empty());
 		assert_eq!(grouped.other_pairs.len(), 1);
-		assert!(grouped.rest.is_empty())
+		assert!(grouped.rest.is_empty());
 	}
 	{
 		let grouped = codex.group_de_ships(&[

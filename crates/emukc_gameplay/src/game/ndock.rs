@@ -248,37 +248,37 @@ where
 	for model in models {
 		if model.ship_id > 0 {
 			let ship_id = model.ship_id;
-			if let Some(complete_time) = model.complete_time {
-				if complete_time <= chrono::Utc::now() {
-					let dock_id = model.id;
+			if let Some(complete_time) = model.complete_time
+				&& complete_time <= chrono::Utc::now()
+			{
+				let dock_id = model.id;
 
-					let mut am: ndock::ActiveModel = model.into();
-					am.status = ActiveValue::Set(ndock::Status::Idle);
-					am.ship_id = ActiveValue::Set(0);
-					am.fuel = ActiveValue::Set(0);
-					am.steel = ActiveValue::Set(0);
-					am.complete_time = ActiveValue::Set(None);
+				let mut am: ndock::ActiveModel = model.into();
+				am.status = ActiveValue::Set(ndock::Status::Idle);
+				am.ship_id = ActiveValue::Set(0);
+				am.fuel = ActiveValue::Set(0);
+				am.steel = ActiveValue::Set(0);
+				am.complete_time = ActiveValue::Set(None);
 
-					let m = am.update(c).await?;
-					docks.push(m);
+				let m = am.update(c).await?;
+				docks.push(m);
 
-					// update ship
-					let mut ship =
-						ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-							GameplayError::EntryNotFound(format!(
-								"Ship {ship_id} not found for repair dock {dock_id}",
-							))
-						})?;
+				// update ship
+				let mut ship =
+					ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+						GameplayError::EntryNotFound(format!(
+							"Ship {ship_id} not found for repair dock {dock_id}",
+						))
+					})?;
 
-					ship.hp_now = ship.hp_max;
-					if ship.condition < 40 {
-						ship.condition = 40;
-					}
-					let ship_am = recalculate_ship_status_with_model(c, codex, &ship).await?;
-					ship_am.update(c).await?;
-
-					continue;
+				ship.hp_now = ship.hp_max;
+				if ship.condition < 40 {
+					ship.condition = 40;
 				}
+				let ship_am = recalculate_ship_status_with_model(c, codex, &ship).await?;
+				ship_am.update(c).await?;
+
+				continue;
 			}
 		}
 

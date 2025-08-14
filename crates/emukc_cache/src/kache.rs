@@ -213,11 +213,12 @@ impl Kache {
 			debug!("🔍 {log_tail}");
 		}
 
-		if opt.enable_mod && self.mods_root.is_some() {
-			if let Some(f) = self.find_in_mods(path).await {
-				debug!("✅ {log_tail}");
-				return Ok(f);
-			}
+		if opt.enable_mod
+			&& self.mods_root.is_some()
+			&& let Some(f) = self.find_in_mods(path).await
+		{
+			debug!("✅ {log_tail}");
+			return Ok(f);
 		}
 
 		let local_path = self.cache_root.join(path);

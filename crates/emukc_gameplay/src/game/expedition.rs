@@ -48,34 +48,29 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 		let mut result: Vec<expedition::Model> = Vec::new();
 
 		for record in records {
-			if let expedition::Status::Completed = record.state {
-				if let Some(last_completed_at) = record.last_completed_at {
-					if codex
-						.manifest
-						.api_mst_mission
-						.iter()
-						.any(|v| v.api_id == record.mission_id && v.api_reset_type == 1)
-					{
-						// is monthly expedition, check needs to reset
-						if now > first_day_of_the_month
-							&& last_completed_at < first_day_of_the_month
-						{
-							// needs to reset
-							let mut am = record.into_active_model();
-							am.state = ActiveValue::Set(expedition::Status::NotStarted);
-							am.last_completed_at = ActiveValue::Set(None);
+			if let expedition::Status::Completed = record.state
+				&& let Some(last_completed_at) = record.last_completed_at
+				&& codex
+					.manifest
+					.api_mst_mission
+					.iter()
+					.any(|v| v.api_id == record.mission_id && v.api_reset_type == 1)
+			{
+				// is monthly expedition, check needs to reset
+				if now > first_day_of_the_month && last_completed_at < first_day_of_the_month {
+					// needs to reset
+					let mut am = record.into_active_model();
+					am.state = ActiveValue::Set(expedition::Status::NotStarted);
+					am.last_completed_at = ActiveValue::Set(None);
 
-							let m = am.update(&tx).await?;
+					let m = am.update(&tx).await?;
 
-							result.push(m);
-							continue;
-						} else if next_refresh_time.is_none() {
-							// the first day of next month is not reached yet
-							next_refresh_time = Some(
-								first_day_of_the_month.timestamp_millis() - now.timestamp_millis(),
-							);
-						}
-					}
+					result.push(m);
+					continue;
+				} else if next_refresh_time.is_none() {
+					// the first day of next month is not reached yet
+					next_refresh_time =
+						Some(first_day_of_the_month.timestamp_millis() - now.timestamp_millis());
 				}
 			}
 
