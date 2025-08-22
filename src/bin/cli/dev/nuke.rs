@@ -20,7 +20,7 @@ pub async fn exec(cfg: &AppConfig) -> Result<()> {
 
 	info!("game database removed");
 
-	let state = State::new(cfg).await?;
+	let state = State::new(cfg, false).await?;
 
 	info!("state created");
 

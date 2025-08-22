@@ -8,21 +8,19 @@ use crate::{
 };
 
 pub(super) async fn make(
-	_cache: &Kache,
-	_strategy: CacheListMakeStrategy,
+	cache: &Kache,
+	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	make_preset(list);
-
-	// match strategy {
-	// 	CacheListMakeStrategy::Default => {
-	// 		make_preset(list);
-	// 	}
-	// 	CacheListMakeStrategy::Greedy(concurrent) => {
-	// 		// too slow
-	// 		make_greedy(cache, concurrent, list).await?;
-	// 	}
-	// };
+	match strategy {
+		CacheListMakeStrategy::Greedy(concurrent) => {
+			// too slow
+			make_greedy(cache, concurrent, list).await?;
+		}
+		_ => {
+			make_preset(list);
+		}
+	};
 
 	Ok(())
 }

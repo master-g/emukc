@@ -31,7 +31,8 @@ impl State {
 	/// # Parameters
 	///
 	/// - `cfg` - Application configuration
-	pub async fn new(cfg: &AppConfig) -> anyhow::Result<Self> {
+	/// - `load_cache_source` - Whether to load cache source
+	pub async fn new(cfg: &AppConfig, load_cache_source: bool) -> anyhow::Result<Self> {
 		// ensure workspace root
 		if !cfg.workspace_root.exists() {
 			create_dir(&cfg.workspace_root)?;
@@ -56,7 +57,7 @@ impl State {
 
 		// codex
 		let codex_root = cfg.codex_root()?;
-		let codex = Arc::new(Codex::load(&codex_root)?);
+		let codex = Arc::new(Codex::load(&codex_root, load_cache_source)?);
 
 		Ok(Self {
 			db,

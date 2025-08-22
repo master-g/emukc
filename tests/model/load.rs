@@ -14,9 +14,9 @@ fn main() {
 
 // https://github.com/KC3Kai/KC3Kai/blob/master/src/library/modules/Meta.js
 
-const SPECIAL_CG: LazyLock<Vec<i64>> = LazyLock::new(|| vec![541, 571, 573, 576, 601, 149]);
+static SPECIAL_CG: LazyLock<Vec<i64>> = LazyLock::new(|| vec![541, 571, 573, 576, 601, 149]);
 
-const REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
 		// These ships got special voice line (6, aka. Repair) implemented (some used by akashi remodel),
 		// tested by trying and succeeding to http fetch mp3 from kc server
@@ -53,7 +53,7 @@ const REPAIR_VOICE_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	]
 });
 
-const VOICE_DIFF: LazyLock<Vec<i64>> = LazyLock::new(|| {
+static VOICE_DIFF: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
 		2475, 0, 0, 8691, 7847, 3595, 1767, 3311, 2507, 9651, 5321, 4473, 7117, 5947, 9489, 2669,
 		8741, 6149, 1301, 7297, 2975, 6413, 8391, 9705, 2243, 2091, 4231, 3107, 9499, 4205, 6013,

@@ -25,7 +25,7 @@ pub(super) struct MakeListArguments {
 
 /// Make cache resources file list
 pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result<()> {
-	let state = state::State::new(config).await?;
+	let state = state::State::new(config, true).await?;
 
 	let output = args.output.clone().unwrap_or_else(|| {
 		config.cache_root.join("cache_resources.nedb").to_string_lossy().into_owned()
@@ -38,7 +38,7 @@ pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result
 	};
 
 	emukc_internal::bootstrap::prelude::make_cache_list(
-		&state.codex.manifest,
+		&state.codex,
 		&state.kache,
 		&output,
 		strategy,

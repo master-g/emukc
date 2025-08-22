@@ -15,6 +15,7 @@ pub enum ResourceCategory {
 	KcWikiUseItem,
 	ShipsNedb,
 	TsunKitQuests,
+	KC3KaiQuotes,
 }
 
 #[derive(Debug)]
@@ -72,6 +73,12 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			// category: ResourceCategory::TsunKitQuests,
 			url: "https://raw.githubusercontent.com/planetarian/TsunKitQuests/main/quests.json",
 			save_as: "tsunkit_quests.json",
+			unzip_to: None,
+		},
+		Resource {
+			// category: ResourceCategory::TsunKitQuests,
+			url: "https://raw.githubusercontent.com/KC3Kai/kc3-translations/master/data/jp/quotes.json",
+			save_as: "kc3kai_jp_quotes.json",
 			unzip_to: None,
 		},
 	]

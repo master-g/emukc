@@ -63,7 +63,7 @@ enum Commands {
 
 // prepare the application state
 async fn prepare_state(cfg: &AppConfig) -> Option<State> {
-	State::new(cfg)
+	State::new(cfg, false)
 		.await
 		.inspect_err(|e| {
 			error!("Failed to prepare application state: {}", e);

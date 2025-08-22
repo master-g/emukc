@@ -16,7 +16,7 @@ pub(super) async fn exec(config: &AppConfig) -> Result<()> {
 }
 
 async fn prepare_state(cfg: &AppConfig) -> Result<state::State> {
-	let result = state::State::new(cfg).await;
+	let result = state::State::new(cfg, true).await;
 	if result.is_ok() {
 		return result;
 	}
@@ -44,7 +44,7 @@ async fn prepare_state(cfg: &AppConfig) -> Result<state::State> {
 		.await
 		.map_err(|e| anyhow::anyhow!("Failed to create app state: {}", e))?;
 
-		let state = state::State::new(cfg)
+		let state = state::State::new(cfg, true)
 			.await
 			.map_err(|e| anyhow::anyhow!("Failed to load app state after creation: {}", e))?;
 
@@ -78,8 +78,9 @@ async fn prepare_resources(cfg: &AppConfig, state: &State) -> Result<()> {
 	// prepare cache list
 	let cache_list_path =
 		cfg.cache_root.join("cache_resources.nedb").to_string_lossy().into_owned();
+
 	emukc_internal::bootstrap::prelude::make_cache_list(
-		&state.codex.manifest,
+		&state.codex,
 		&state.kache,
 		&cache_list_path,
 		strategy,

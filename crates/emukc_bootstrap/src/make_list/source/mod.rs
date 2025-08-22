@@ -1,5 +1,5 @@
 use emukc_cache::Kache;
-use emukc_model::kc2::start2::ApiManifest;
+use emukc_model::codex::Codex;
 
 use super::{CacheList, CacheListMakeStrategy, errors::CacheListMakingError};
 
@@ -20,14 +20,14 @@ mod kcs2;
 ///
 /// A result indicating success or failure.
 pub(super) async fn make(
-	mst: &ApiManifest,
+	codex: &Codex,
 	kache: &Kache,
 	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	gadget_html5::make(mst, kache, list).await?;
-	kcs::make(mst, kache, strategy, list).await?;
-	kcs2::make(mst, kache, strategy, list).await?;
+	gadget_html5::make(&codex.manifest, kache, list).await?;
+	kcs::make(codex, kache, strategy, list).await?;
+	kcs2::make(&codex.manifest, kache, strategy, list).await?;
 
 	Ok(())
 }

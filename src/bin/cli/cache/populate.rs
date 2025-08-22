@@ -16,7 +16,7 @@ pub(super) struct PopulateArguments {
 
 /// Populate cache with list file
 pub(super) async fn exec(args: &PopulateArguments, config: &AppConfig) -> Result<()> {
-	let state = state::State::new(config).await?;
+	let state = state::State::new(config, true).await?;
 
 	let src = args.src.clone().unwrap_or_else(|| {
 		config.cache_root.join("cache_resources.nedb").to_string_lossy().into_owned()

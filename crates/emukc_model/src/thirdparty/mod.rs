@@ -1,6 +1,8 @@
 //! Thirdparty data from other sources.
 
 #[doc(hidden)]
+mod cache;
+#[doc(hidden)]
 mod picturebook;
 #[doc(hidden)]
 mod quest;
@@ -10,6 +12,10 @@ mod ship;
 mod slotitem;
 
 // Re-export
+
+#[doc(inline)]
+#[allow(unused_imports)]
+pub use cache::*;
 
 #[doc(inline)]
 #[allow(unused_imports)]

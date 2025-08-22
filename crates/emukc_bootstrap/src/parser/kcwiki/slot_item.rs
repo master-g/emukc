@@ -284,7 +284,7 @@ fn parse_level_consumption(
 		});
 	}
 
-	Err(ParseError::KeyMissing)
+	Err(ParseError::KeyMissing(format!("`{}` is not a level 2 consumption", mst_id)))
 }
 
 fn parse_secretary(

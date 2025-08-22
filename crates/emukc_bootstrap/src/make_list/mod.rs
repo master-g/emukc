@@ -7,7 +7,7 @@ use futures::{StreamExt, stream::FuturesUnordered};
 use serde::{Deserialize, Serialize};
 
 use emukc_cache::{IntoVersion, Kache, KacheError};
-use emukc_model::kc2::start2::ApiManifest;
+use emukc_model::codex::Codex;
 
 use errors::CacheListMakingError;
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
@@ -96,7 +96,7 @@ impl CacheList {
 ///
 /// A `Result` containing either `Ok(())` if the cache list was successfully made, or an error if it failed.
 pub async fn make(
-	mst: &ApiManifest,
+	codex: &Codex,
 	kache: &Kache,
 	outpath: impl AsRef<std::path::Path>,
 	strategy: CacheListMakeStrategy,
@@ -111,7 +111,7 @@ pub async fn make(
 
 	let mut list = CacheList::new();
 
-	source::make(mst, kache, strategy, &mut list).await?;
+	source::make(codex, kache, strategy, &mut list).await?;
 
 	for item in list.items.iter() {
 		let line = serde_json::to_string(item)?;

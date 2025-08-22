@@ -1,3 +1,5 @@
+//! K9998 contains abyssal ship quotes files.
+
 use std::sync::LazyLock;
 
 use crate::{make_list::CacheList, prelude::CacheListMakeStrategy};

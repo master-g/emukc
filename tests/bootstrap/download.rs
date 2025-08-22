@@ -40,7 +40,7 @@ fn main() {
 		codex.save(&save_codex_to, true).unwrap();
 
 		// test load
-		let _codex = Codex::load(save_codex_to).unwrap();
+		let _codex = Codex::load_without_cache_source(save_codex_to).unwrap();
 
 		// prepare the database
 		let _db = prepare(&db_path, false).await.unwrap();

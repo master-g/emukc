@@ -14,7 +14,7 @@ use emukc_model::profile::ndock::RepairDockStatus;
 
 async fn mock_context() -> (DbConn, Codex) {
 	let db = new_mem_db().await.unwrap();
-	let codex = Codex::load("../../.data/codex").unwrap();
+	let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 	(db, codex)
 }
 

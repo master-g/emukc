@@ -26,7 +26,7 @@ struct Entry {
 
 /// Dump cache resources file list
 pub(super) async fn exec(args: &DumpArguments, config: &AppConfig) -> Result<()> {
-	let state = state::State::new(config).await?;
+	let state = state::State::new(config, false).await?;
 	let kache = &state.kache;
 	let output = match &args.output {
 		Some(path) => PathBuf::from(path),

@@ -4,7 +4,7 @@ use emukc::cache::NoVersion;
 use crate::cfg::AppConfig;
 
 pub(super) async fn exec(config: &AppConfig) -> Result<()> {
-	let state = crate::state::State::new(config).await?;
+	let state = crate::state::State::new(config, false).await?;
 
 	let kache = state.kache.clone();
 

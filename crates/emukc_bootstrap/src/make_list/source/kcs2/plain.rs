@@ -25,17 +25,18 @@ pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), Cach
 	}
 
 	let mainjs_ver = parse_main_js_version(cache).await?;
+	debug!("main.js version: {mainjs_ver}");
 	list.add("kcs2/js/main.js".to_string(), &mainjs_ver);
 
 	Ok(())
 }
 
 async fn parse_main_js_version(cache: &Kache) -> Result<String, KacheError> {
-	let mainjs = cache
+	let version_const_file = cache
 		.get_with_opt("gadget_html5/js/kcs_const.js", NoVersion, &GetOption::new_remote_only())
 		.await?;
 
-	let reader = BufReader::new(mainjs);
+	let reader = BufReader::new(version_const_file);
 	let mut lines = reader.lines();
 
 	while let Some(line) = lines.next_line().await? {

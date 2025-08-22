@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::{
 	kc2::{self, KcApiMusicListElement},
-	prelude::{Kc3rdPicturebookExtra, Kc3rdPicturebookRW},
+	prelude::{CacheSource, Kc3rdPicturebookExtra, Kc3rdPicturebookRW},
 	thirdparty,
 };
 
@@ -76,6 +76,9 @@ pub struct Codex {
 
 	/// Music list
 	pub music_list: Vec<KcApiMusicListElement>,
+
+	/// Cache source.
+	pub cache_source: Option<CacheSource>,
 	// TODO: add more limitations.
 }
 
@@ -89,6 +92,7 @@ const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
 const PATH_MUSIC_LIST: &str = "music_list.json";
 const PATH_GAME_CFG: &str = "game_config.json";
+const PATH_CACHE_SOURCE: &str = "cache_source.json";
 
 impl Codex {
 	/// Load `Codex` instance from directory.
@@ -118,11 +122,15 @@ impl Codex {
 	/// # Arguments
 	///
 	/// * `dir` - The directory path.
+	/// * `with_cache_source` - Whether to load the cache source.
 	///
 	/// # Returns
 	///
 	/// The `Codex` instance.
-	pub fn load(dir: impl AsRef<std::path::Path>) -> Result<Self, CodexError> {
+	pub fn load(
+		dir: impl AsRef<std::path::Path>,
+		with_cache_source: bool,
+	) -> Result<Self, CodexError> {
 		let path = dir.as_ref();
 
 		let manifest = {
@@ -181,6 +189,15 @@ impl Codex {
 			data
 		};
 
+		let cache_source = if with_cache_source {
+			let path = path.join(PATH_CACHE_SOURCE);
+			let raw = std::fs::read_to_string(&path)?;
+			let source = serde_json::from_str::<CacheSource>(&raw)?;
+			Some(source)
+		} else {
+			None
+		};
+
 		Ok(Codex {
 			manifest,
 			ship_extra,
@@ -192,7 +209,17 @@ impl Codex {
 			quest,
 			music_list,
 			game_cfg: Self::load_single_item(path.join(PATH_GAME_CFG))?,
+			cache_source,
 		})
+	}
+
+	/// Load `Codex` instance without cache source.
+	///
+	/// # Arguments
+	///
+	/// * `dir` - The directory path.
+	pub fn load_without_cache_source(dir: impl AsRef<std::path::Path>) -> Result<Self, CodexError> {
+		Self::load(dir, false)
 	}
 
 	/// Save `Codex` instance to directory.
@@ -302,6 +329,15 @@ impl Codex {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			std::fs::write(path, serde_json::to_string_pretty(&self.music_list)?)?;
+		}
+
+		// cache source
+		if let Some(source) = &self.cache_source {
+			let path = dst.join(PATH_CACHE_SOURCE);
+			if path.exists() && !overwrite {
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
+			}
+			std::fs::write(path, serde_json::to_string_pretty(source)?)?;
 		}
 
 		Ok(())

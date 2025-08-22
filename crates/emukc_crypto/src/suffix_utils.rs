@@ -60,6 +60,60 @@ impl SuffixUtils {
 
 		step3.to_string()
 	}
+
+	fn c(id: u64, typ: &str) -> String {
+		let key_value = Self::create_key(typ);
+		let resource_index = ((key_value + id * typ.len() as u64) % 100) as usize;
+		(17 * (id + 7) * RESOURCE_TABLE[resource_index] % 8973 + 1000).to_string()
+	}
+
+	fn pad(id: u64, eors: &str) -> String {
+		if eors == "ship" || eors == "slot" {
+			format!("{:04}", id)
+		} else {
+			format!("{:03}", id)
+		}
+	}
+
+	/// Format a KC2 resource path.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The resource ID.
+	/// * `eors` - The EORS type (e.g., "ship", /// "slot", "useitem").
+	/// * `typ` - The resource type (e.g., "`ship_banner`", "`ship_banner_dmg`").
+	/// * `ext` - The file extension (e.g., "png", "json").
+	/// * `filename` - An optional filename suffix.
+	///
+	/// # Returns
+	///
+	/// A formatted resource path string.
+	pub fn format_kc2_resource(
+		id: u64,
+		eors: &str,
+		typ: &str,
+		ext: &str,
+		filename: Option<&str>,
+	) -> String {
+		let mut suffix = String::new();
+		let mut processed_type = typ.to_string();
+
+		// handle special cases for resource types
+		if typ.contains("_d") && !typ.contains("_dmg") {
+			suffix = "_d".to_string();
+			processed_type = typ.replace("_d", "");
+		}
+
+		// handle optional suffixes
+		let unique_key = match filename {
+			Some(name) => format!("_{}", name),
+			None => String::new(),
+		};
+		let padded = Self::pad(id, eors);
+		let magic = Self::c(id, &format!("{}_{}", eors, processed_type));
+
+		format!("kcs2/resources/{eors}/{processed_type}/{padded}{suffix}_{magic}{unique_key}.{ext}",)
+	}
 }
 
 #[cfg(test)]
@@ -88,5 +142,14 @@ mod tests {
 	#[test]
 	fn test_ship() {
 		assert_eq!(SuffixUtils::create("0001", "ship_album_status"), "5832");
+	}
+
+	#[test]
+	fn test_kc2_resource() {
+		let path = SuffixUtils::format_kc2_resource(1, "ship", "banner", "png", None);
+		assert_eq!(path, "kcs2/resources/ship/banner/0001_2910.png");
+
+		let path = SuffixUtils::format_kc2_resource(1, "ship", "banner2_dmg", "png", None);
+		assert_eq!(path, "kcs2/resources/ship/banner2_dmg/0001_7408.png");
 	}
 }

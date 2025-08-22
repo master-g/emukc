@@ -1,5 +1,5 @@
 use emukc_cache::Kache;
-use emukc_model::kc2::start2::ApiManifest;
+use emukc_model::codex::Codex;
 
 use crate::{
 	make_list::{CacheList, CacheListMakeStrategy},
@@ -13,7 +13,7 @@ mod purchase;
 mod voice;
 
 pub(super) async fn make(
-	mst: &ApiManifest,
+	codex: &Codex,
 	cache: &Kache,
 	strategy: CacheListMakeStrategy,
 	list: &mut CacheList,
@@ -21,7 +21,7 @@ pub(super) async fn make(
 	kc9997::make(cache, strategy, list).await?;
 	kc9998::make(list, strategy);
 	kc9999::make(cache, strategy, list).await?;
-	purchase::make(mst, list);
-	voice::make(mst, cache, strategy, list).await?;
+	purchase::make(&codex.manifest, list);
+	voice::make(&codex.manifest, cache, strategy, list).await?;
 	Ok(())
 }
