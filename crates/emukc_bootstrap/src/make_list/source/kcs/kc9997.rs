@@ -1,56 +1,16 @@
-use std::sync::{Arc, LazyLock};
+use emukc_model::thirdparty::CacheSource;
 
-use emukc_cache::Kache;
-
-use crate::{
-	make_list::{CacheList, batch_check_exists},
-	prelude::{CacheListMakeStrategy, CacheListMakingError},
-};
+use crate::{make_list::CacheList, prelude::CacheListMakingError};
 
 pub(super) async fn make(
-	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	cache_source: &Option<CacheSource>,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	match strategy {
-		CacheListMakeStrategy::Greedy(concurrent) => {
-			// too slow
-			make_greedy(cache, concurrent, list).await?;
-		}
-		_ => {
-			make_preset(list);
-		}
-	};
+	if let Some(source) = cache_source {
+		source.voices.event.iter().for_each(|id| {
+			list.add_unversioned(format!("kcs/sound/kc9997/{id}.mp3"));
+		});
+	}
 
 	Ok(())
-}
-
-#[allow(unused)]
-async fn make_greedy(
-	cache: &Kache,
-	concurrent: usize,
-	list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-	let checks: Vec<(String, String)> =
-		(428..=2000).map(|v| (format!("kcs/sound/kc9997/{v}.mp3"), "".to_string())).collect();
-
-	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
-
-	for ((p, _), exists) in check_result {
-		if exists {
-			println!("{p}");
-			list.add_unversioned(p);
-		}
-	}
-	Ok(())
-}
-
-static ID: LazyLock<Vec<i64>> = LazyLock::new(|| vec![428, 1186, 1871, 1188, 1187]);
-
-fn make_preset(list: &mut CacheList) {
-	for i in ID.iter() {
-		let p = format!("kcs/sound/kc9997/{i}.mp3");
-		list.add_unversioned(p);
-	}
 }
