@@ -136,6 +136,10 @@ path = "tests/dump_fs_tree/dump_tree.rs"
 name = "kache_test"
 path = "tests/kache/test.rs"
 
+[[example]]
+name = "quest_test"
+path = "tests/quest/test.rs"
+
 [dependencies]
 anyhow = { workspace = true }
 axum = { workspace = true, features = ["form"] }

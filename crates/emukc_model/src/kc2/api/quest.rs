@@ -37,6 +37,7 @@ pub enum KcApiQuestClearItemBonusType {
 	ModelChange = 15,
 	ModelChange2 = 16,
 	WarResult = 18,
+	EventAreaUnlock = 99,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -63,7 +64,7 @@ pub struct KcApiQuestClearItemGetBonus {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiQuestClearItemGet {
-	pub api_material: Vec<i64>,
+	pub api_material: [i64; 4],
 	pub api_bounus_count: i64,
 	pub api_bounus: Vec<KcApiQuestClearItemGetBonus>,
 }

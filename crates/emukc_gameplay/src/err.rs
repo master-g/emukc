@@ -37,4 +37,7 @@ pub enum GameplayError {
 
 	#[error("JSON error: {0}")]
 	Json(#[from] serde_json::Error),
+
+	#[error("Quest status invalid: {0}")]
+	QuestStatusInvalid(String),
 }

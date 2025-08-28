@@ -46,7 +46,8 @@ impl From<GameplayError> for ApiError {
 			GameplayError::Db(db_err) => Self::Internal(db_err.to_string()),
 			GameplayError::BadManifest(e)
 			| GameplayError::WrongType(e)
-			| GameplayError::Insufficient(e) => Self::Internal(e),
+			| GameplayError::Insufficient(e)
+			| GameplayError::QuestStatusInvalid(e) => Self::Internal(e),
 			GameplayError::ManifestNotFound(e) | GameplayError::CapacityExceeded(e) => {
 				Self::Internal(e.to_string())
 			}

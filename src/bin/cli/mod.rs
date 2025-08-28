@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use emukc_internal::prelude::*;
 use serve::ServeArgs;
 
-use crate::{cfg::AppConfig, state::State};
+use crate::{cfg::AppConfig, cli::dev::add_quest, state::State};
 
 mod auto;
 mod bootstrap;
@@ -47,6 +47,9 @@ enum Commands {
 
 	#[command(about = "Start a game session with given username and password")]
 	NewSession(dev::NewSessionArgs),
+
+	#[command(about = "Add a quest to the profile")]
+	AddQuest(dev::AddQuestArgs),
 
 	#[command(about = "Prepare the bootstrap files")]
 	Bootstrap(bootstrap::BootstrapArgs),
@@ -175,6 +178,17 @@ pub async fn init() -> ExitCode {
 			} else {
 				Ok(())
 			}
+		}
+		Some(Commands::AddQuest(args)) => {
+			let Some(state) = prepare_state(&cfg).await else {
+				eprintln!("Failed to prepare application state");
+				return ExitCode::FAILURE;
+			};
+			if let Err(e) = add_quest::exec(&args, &cfg, &state).await {
+				eprintln!("Failed to add quest: {e}");
+				return ExitCode::FAILURE;
+			}
+			Ok(())
 		}
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
 		Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
