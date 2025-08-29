@@ -539,6 +539,37 @@ impl Kc3rdQuest {
 
 		Some(results)
 	}
+
+	/// Is this quest a model conversion quest?
+	pub fn get_model_conversion_info(&self) -> Option<i64> {
+		let requirements = match &self.requirements {
+			Kc3rdQuestRequirement::And(cond)
+			| Kc3rdQuestRequirement::OneOf(cond)
+			| Kc3rdQuestRequirement::Sequential(cond) => cond,
+		};
+
+		for cond in requirements {
+			if let Kc3rdQuestCondition::ModelConversion(m) = cond
+				&& let Some(slots) = &m.slots
+			{
+				for slot in slots {
+					match &slot.item.item_type {
+						Kc3rdQuestConditionSlotItemType::Equipment(id) => {
+							return Some(*id);
+						}
+						Kc3rdQuestConditionSlotItemType::Equipments(items) => {
+							if !items.is_empty() {
+								return Some(items[0]);
+							}
+						}
+						_ => return None,
+					}
+				}
+			}
+		}
+
+		None
+	}
 }
 
 pub type Kc3rdQuestMap = std::collections::BTreeMap<i64, Kc3rdQuest>;

@@ -21,6 +21,8 @@ pub enum RewardError {
 	InvalidShip(i64),
 }
 
+/// convert Kc3rdQuestReward to KcApiQuestClearItemGetBonus for most cases
+/// except for model conversion
 fn convert_kc3rd_quest_reward_to_api(
 	manifest: &ApiManifest,
 	reward: &Kc3rdQuestReward,
@@ -166,9 +168,9 @@ fn convert_kc3rd_quest_reward_to_api(
 				api_item: Some(KcApiQuestClearItemGetBonusItem {
 					api_id: Some(reward.api_id),
 					api_message: Some(format!(
-						"飛行場設営完了! {name}に「基地航空隊」を展開しました!"
+						"飛行場設営完了！　{name}に「基地航空隊」を展開しました！"
 					)),
-					api_message_a: Some(format!("{name}に「基地航空隊」を展開中...")),
+					api_message_a: Some(format!("{name}に「基地航空隊」を展開中…")),
 					..Default::default()
 				}),
 			})
