@@ -47,7 +47,7 @@ pub struct Fleet {
 }
 
 /// Fleet error
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum FleetError {
 	/// Fleet ID out of range
 	#[error("Fleet ID out of range: {0}")]

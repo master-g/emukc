@@ -126,4 +126,6 @@ pub enum KcUseItemType {
 	OverseasWarshipTechnology = 100,
 	/// 夜間熟練搭乗員
 	NightSkilledCrew = 101,
+	/// 航空特別増加食
+	AirSpecialIncreasedRation = 102,
 }

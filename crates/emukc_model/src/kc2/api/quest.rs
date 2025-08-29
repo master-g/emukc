@@ -40,12 +40,13 @@ pub enum KcApiQuestClearItemBonusType {
 	EventAreaUnlock = 99,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct KcApiQuestClearItemGetBonusItem {
 	pub api_id: Option<i64>,
 	pub api_ship_id: Option<i64>,
 	pub api_slotitem_id: Option<i64>,
 	pub api_name: Option<String>,
+	pub api_getmes: Option<String>,
 	/// only use for `AirUnitBase` bonus
 	pub api_message_a: Option<String>,
 	pub api_message: Option<String>,

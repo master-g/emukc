@@ -1,5 +1,6 @@
 pub mod debug;
 pub mod progress;
+pub mod reward;
 
 use serde::{Deserialize, Serialize};
 

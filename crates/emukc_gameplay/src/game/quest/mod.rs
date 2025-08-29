@@ -217,8 +217,10 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		mark_quest_as_completed(&tx, profile_id, quest_id, quest.period).await?;
 
 		// remove quest progress
-		let am = quest.into_active_model();
-		am.delete(&tx).await?;
+		{
+			// let am = quest.into_active_model();
+			// am.delete(&tx).await?;
+		}
 
 		// reconstruct quest tree
 		// this will be called by mainjs, but we do it here to ensure consistency

@@ -1,4 +1,7 @@
-use std::{collections::BTreeSet, sync::LazyLock};
+use std::{
+	collections::BTreeSet,
+	sync::{Arc, LazyLock},
+};
 
 use emukc_cache::prelude::*;
 use emukc_model::kc2::start2::{ApiManifest, ApiMstFurniture};
@@ -6,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
 use crate::{
-	make_list::{CacheList, source::kcs2::gen_path},
+	make_list::{CacheList, batch_check_exists, source::kcs2::gen_path},
 	prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
@@ -58,7 +61,18 @@ pub(super) async fn make(
 	}
 
 	make_outside(mst, list);
-	make_reward_predefined(mst, list);
+
+	match strategy {
+		CacheListMakeStrategy::Minimal => {}
+		CacheListMakeStrategy::Default => {
+			make_reward_predefined(mst, list);
+			// make_extra_greedy("card", mst, cache, list, 16).await?;
+		}
+		CacheListMakeStrategy::Greedy(concurrent) => {
+			make_extra_greedy("reward", mst, cache, list, concurrent).await?;
+			make_extra_greedy("card", mst, cache, list, concurrent).await?;
+		}
+	}
 
 	Ok(())
 }
@@ -126,12 +140,14 @@ fn make_outside(mst: &ApiManifest, list: &mut CacheList) {
 
 static REWARD_PREDEFINED: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	vec![
-		408, 479, 291, 520, 381, 578, 380, 433, 280, 558, 11, 426, 393, 268, 517, 261, 328, 607,
-		292, 277, 458, 286, 382, 533, 588, 612, 628, 416, 557, 589, 501, 325, 293, 518, 581, 395,
-		453, 459, 634, 183, 301, 516, 446, 618, 490, 505, 30, 510, 361, 324, 529, 474, 314, 569,
-		407, 639, 478, 412, 632, 322, 555, 497, 600,
+		11, 30, 183, 261, 268, 277, 280, 286, 291, 292, 293, 301, 314, 322, 324, 325, 328, 361,
+		380, 381, 382, 393, 395, 407, 408, 412, 416, 426, 433, 446, 453, 458, 459, 474, 478, 479,
+		490, 497, 501, 505, 510, 516, 517, 518, 520, 529, 533, 555, 557, 558, 569, 578, 581, 588,
+		589, 600, 607, 612, 618, 628, 632, 634, 639, 640, 650, 656,
 	]
 });
+
+static CARD_PREDEFINED: LazyLock<Vec<i64>> = LazyLock::new(|| vec![311, 334, 486, 487]);
 
 fn make_reward_predefined(mst: &ApiManifest, list: &mut CacheList) {
 	for id in REWARD_PREDEFINED.iter() {
@@ -139,6 +155,38 @@ fn make_reward_predefined(mst: &ApiManifest, list: &mut CacheList) {
 			list.add(gen_furniture_path(*id, "reward", "png"), v.api_version);
 		}
 	}
+
+	for id in CARD_PREDEFINED.iter() {
+		if let Some(v) = mst.api_mst_furniture.iter().find(|v| v.api_id == *id) {
+			list.add(gen_furniture_path(*id, "card", "png"), v.api_version);
+		}
+	}
+}
+
+async fn make_extra_greedy(
+	key: &str,
+	mst: &ApiManifest,
+	cache: &Kache,
+	list: &mut CacheList,
+	concurrent: usize,
+) -> Result<(), KacheError> {
+	let checks: Vec<(String, String)> = mst
+		.api_mst_furniture
+		.iter()
+		.map(|v| (gen_furniture_path(v.api_id, key, "png"), v.api_version.to_string()))
+		.collect();
+
+	let c = Arc::new(cache.clone());
+	let check_result = batch_check_exists(c, checks, concurrent).await?;
+
+	for ((p, v), exists) in check_result {
+		if exists {
+			println!("{p}, {v}");
+			list.add(p, v);
+		}
+	}
+
+	Ok(())
 }
 
 fn gen_furniture_path(id: i64, category: &str, extension: &str) -> String {
