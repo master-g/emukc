@@ -6,7 +6,7 @@ use crate::{
 		KcApiQuestClearItemBonusType, KcApiQuestClearItemGet, KcApiQuestClearItemGetBonus,
 		KcApiQuestClearItemGetBonusItem, KcUseItemType, MaterialCategory,
 	},
-	prelude::{ApiManifest, Kc3rdQuestReward, Kc3rdQuestRewardCategory},
+	prelude::{ApiManifest, Kc3rdQuest, Kc3rdQuestReward, Kc3rdQuestRewardCategory},
 	profile::fleet::{Fleet, FleetError},
 };
 
@@ -21,7 +21,7 @@ pub enum RewardError {
 	InvalidShip(i64),
 }
 
-/// convert Kc3rdQuestReward to KcApiQuestClearItemGetBonus for most cases
+/// convert `Kc3rdQuestReward` to `KcApiQuestClearItemGetBonus` for most cases
 /// except for model conversion
 fn convert_kc3rd_quest_reward_to_api(
 	manifest: &ApiManifest,
@@ -181,7 +181,22 @@ fn convert_kc3rd_quest_reward_to_api(
 	Ok(bonus)
 }
 
-fn get_quest_rewards(
+fn get_model_conversion_quest_rewards(
+	codex: &Codex,
+	quest_manifest: &Kc3rdQuest,
+	choices: Option<Vec<i64>>,
+) -> Result<KcApiQuestClearItemGet, RewardError> {
+	todo!()
+}
+
+/// Get request reward for kcs API
+///
+/// # Arguments
+///
+/// * `codex` - A reference to the Codex instance
+/// * `quest_id` - The ID of the quest
+/// * `choices` - Optional user choices, starts from 0
+pub fn get_quest_rewards(
 	codex: &Codex,
 	quest_id: i64,
 	choices: Option<Vec<i64>>,
@@ -194,7 +209,35 @@ fn get_quest_rewards(
 		quest_manifest.reward_bauxite,
 	];
 
-	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = quest_manifest
+	if quest_manifest.get_model_conversion_info().is_some() {
+		// model conversion quests, need special handling
+		return get_model_conversion_quest_rewards(codex, quest_manifest, choices);
+	}
+
+	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
+	if let Some(user_choices) = choices {
+		if user_choices.len() != quest_manifest.choice_rewards.len() {
+			warn!(
+				"choices length mismatch: expected {}, got {}",
+				quest_manifest.choice_rewards.len(),
+				user_choices.len()
+			);
+		} else {
+			for (choice, reward) in user_choices.iter().zip(quest_manifest.choice_rewards.iter()) {
+				let reward = reward.choices.get(*choice as usize);
+				if let Some(reward) = reward {
+					if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)?
+					{
+						api_bounus.push(bonus);
+					}
+				} else {
+					warn!("invalid choice index: {}", choice);
+				}
+			}
+		}
+	}
+
+	let additional_rewards: Vec<KcApiQuestClearItemGetBonus> = quest_manifest
 		.additional_rewards
 		.iter()
 		.map(|v| convert_kc3rd_quest_reward_to_api(&codex.manifest, v))
@@ -202,6 +245,8 @@ fn get_quest_rewards(
 		.into_iter()
 		.flatten()
 		.collect();
+
+	api_bounus.extend(additional_rewards);
 
 	Ok(KcApiQuestClearItemGet {
 		api_material,

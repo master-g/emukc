@@ -176,19 +176,6 @@ pub enum Kc3rdQuestRewardCategory {
 	AirbaseUnlock = 11,
 }
 
-/*
-impl From<i64> for Kc3rdQuestRewardCategory {
-	fn from(value: i64) -> Self {
-		match value {
-			1 => Self::Slotitem,
-			2 => Self::Ship,
-			3 => Self::Furniture,
-			_ => panic!("Invalid value for Kc3rdQuestRewardCategory: {}", value),
-		}
-	}
-}
-*/
-
 /// Quest choice reward
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Kc3rdQuestChoiceReward {
@@ -540,32 +527,85 @@ impl Kc3rdQuest {
 		Some(results)
 	}
 
+	/// Check if this quest has a slot item reward
+	pub fn has_slot_item_reward(&self) -> bool {
+		let rewards = self
+			.additional_rewards
+			.iter()
+			.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem))
+			.chain(
+				self.choice_rewards
+					.iter()
+					.flat_map(|v| v.choices.iter())
+					.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem)),
+			)
+			.collect::<Vec<_>>();
+
+		!rewards.is_empty()
+	}
+
 	/// Is this quest a model conversion quest?
 	pub fn get_model_conversion_info(&self) -> Option<i64> {
+		if self.category != Kc3rdQuestCategory::Factory {
+			// a model conversion quest should be a factory quest
+			return None;
+		}
+
+		if !self.has_slot_item_reward() {
+			// a model conversion quest should have slot item reward
+			return None;
+		}
+
 		let requirements = match &self.requirements {
 			Kc3rdQuestRequirement::And(cond)
 			| Kc3rdQuestRequirement::OneOf(cond)
 			| Kc3rdQuestRequirement::Sequential(cond) => cond,
 		};
 
-		for cond in requirements {
-			if let Kc3rdQuestCondition::ModelConversion(m) = cond
-				&& let Some(slots) = &m.slots
-			{
-				for slot in slots {
-					match &slot.item.item_type {
-						Kc3rdQuestConditionSlotItemType::Equipment(id) => {
-							return Some(*id);
-						}
-						Kc3rdQuestConditionSlotItemType::Equipments(items) => {
-							if !items.is_empty() {
-								return Some(items[0]);
-							}
-						}
-						_ => return None,
+		let conditions = requirements
+			.iter()
+			.filter_map(|c| match c {
+				Kc3rdQuestCondition::ModelConversion(m) => Some(m),
+				_ => None,
+			})
+			.collect::<Vec<&Kc3rdQuestConditionModelConversion>>();
+
+		if conditions.is_empty() {
+			return None;
+		}
+
+		if conditions.len() > 1 {
+			warn!(
+				"Multiple model conversion conditions found in quest {} -> {}",
+				self.api_no, self.name
+			);
+		}
+
+		// find the first equipment id in the slots
+		let cond = conditions[0];
+		if let Some(slots) = &cond.slots {
+			let mut id_list = Vec::new();
+			for slot in slots {
+				match &slot.item.item_type {
+					Kc3rdQuestConditionSlotItemType::Equipment(id) => {
+						id_list.push(*id);
 					}
+					Kc3rdQuestConditionSlotItemType::Equipments(items) => {
+						if !items.is_empty() {
+							id_list.extend(items);
+						}
+					}
+					_ => return None,
 				}
 			}
+
+			let unique_from: std::collections::HashSet<i64> = id_list.iter().copied().collect();
+
+			if unique_from.is_empty() {
+				return None;
+			}
+
+			return Some(unique_from.iter().next().copied().unwrap_or(0));
 		}
 
 		None

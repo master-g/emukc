@@ -36,7 +36,9 @@ pub fn new_log_builder() -> Builder {
 impl Default for Builder {
 	fn default() -> Self {
 		Self {
-			filter: CustomEnvFilter(EnvFilter::default()),
+			filter: CustomEnvFilter(
+				EnvFilter::builder().parse("info").unwrap_or_else(|_| EnvFilter::default()),
+			),
 			log_to_path: None,
 			source_file: false,
 			line_number: false,
@@ -92,6 +94,16 @@ impl Builder {
 		self
 	}
 
+	/// Set the log level to trace for all modules
+	pub fn with_trace_level(mut self) -> Self {
+		self.filter = CustomEnvFilter(
+			EnvFilter::builder()
+				.parse("trace")
+				.unwrap_or_else(|_| EnvFilter::default().add_directive(Level::TRACE.into())),
+		);
+		self
+	}
+
 	/// Build a tracing dispatcher with the fmt subscriber (logs) and the chosen tracer subscriber
 	pub fn build(self) -> Option<tracing_appender::non_blocking::WorkerGuard> {
 		LogTracer::builder()
@@ -123,6 +135,38 @@ impl Builder {
 
 			None
 		}
+	}
+
+	/// Build a simple tracing dispatcher with the fmt subscriber (logs) only
+	pub fn build_simple(self) {
+		LogTracer::builder()
+			// .with_max_level(log::LevelFilter::Error)
+			.init()
+			.expect("LogTracer failed to init");
+
+		// Use a more permissive filter for simple builds if using default
+		let filter = {
+			let filter_str = self.filter.0.to_string();
+			if filter_str == "info" || filter_str.is_empty() || filter_str == "" {
+				EnvFilter::builder()
+					.parse("trace")
+					.unwrap_or_else(|_| EnvFilter::default().add_directive(Level::TRACE.into()))
+			} else {
+				self.filter.0
+			}
+		};
+
+		let fmt_layer = fmt::layer()
+			.with_level(true)
+			.with_file(self.source_file)
+			.with_line_number(self.line_number)
+			.with_thread_ids(self.thread_id)
+			.with_target(self.target)
+			.with_writer(std::io::stdout)
+			.with_filter(filter);
+
+		let collector = tracing_subscriber::registry().with(fmt_layer);
+		tracing::subscriber::set_global_default(collector).expect("Tracing collect error");
 	}
 }
 
