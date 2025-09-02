@@ -1,6 +1,7 @@
 //! Gameplay errors
 
 use emukc_db::sea_orm;
+use emukc_model::thirdparty::reward::RewardError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -40,4 +41,7 @@ pub enum GameplayError {
 
 	#[error("Quest status invalid: {0}")]
 	QuestStatusInvalid(String),
+
+	#[error(transparent)]
+	Reward(#[from] RewardError),
 }

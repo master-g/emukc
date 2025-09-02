@@ -9,7 +9,7 @@ use emukc_db::{
 use emukc_model::{
 	codex::{Codex, query::FoundInCodex},
 	kc2::KcApiQuestClearItemGet,
-	thirdparty::Kc3rdQuest,
+	thirdparty::{Kc3rdQuest, reward::get_quest_rewards},
 };
 use emukc_time::chrono;
 use update::update_quests_impl;
@@ -218,8 +218,8 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 
 		// remove quest progress
 		{
-			// let am = quest.into_active_model();
-			// am.delete(&tx).await?;
+			let am = quest.into_active_model();
+			am.delete(&tx).await?;
 		}
 
 		// reconstruct quest tree
@@ -228,18 +228,9 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		update_quests_impl(&tx, codex, profile_id).await?;
 
 		// apply rewards
-		let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
+		// let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
 
-		let resp = KcApiQuestClearItemGet {
-			api_material: [
-				quest_manifest.reward_fuel,
-				quest_manifest.reward_ammo,
-				quest_manifest.reward_steel,
-				quest_manifest.reward_bauxite,
-			],
-			api_bounus_count: 0,
-			api_bounus: vec![],
-		};
+		let resp = get_quest_rewards(codex, quest_id, reward_choices)?;
 
 		tx.commit().await?;
 

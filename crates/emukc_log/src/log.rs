@@ -147,7 +147,7 @@ impl Builder {
 		// Use a more permissive filter for simple builds if using default
 		let filter = {
 			let filter_str = self.filter.0.to_string();
-			if filter_str == "info" || filter_str.is_empty() || filter_str == "" {
+			if filter_str == "info" || filter_str.is_empty() {
 				EnvFilter::builder()
 					.parse("trace")
 					.unwrap_or_else(|_| EnvFilter::default().add_directive(Level::TRACE.into()))

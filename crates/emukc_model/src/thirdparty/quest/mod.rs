@@ -1,4 +1,5 @@
 pub mod debug;
+pub mod extra;
 pub mod progress;
 pub mod reward;
 
@@ -428,6 +429,7 @@ pub struct Kc3rdQuestConditionSortie {
 }
 
 impl Kc3rdQuestRequirement {
+	/// Calculate lost badges from quest conditions
 	pub fn lost_badges(&self) -> i64 {
 		match self {
 			Kc3rdQuestRequirement::And(conds) => conds
@@ -451,6 +453,7 @@ impl Kc3rdQuestRequirement {
 }
 
 impl Kc3rdQuest {
+	/// Get bonus flag for quest clear
 	pub fn bonus_flag(&self) -> i64 {
 		for r in &self.choice_rewards {
 			for choice in &r.choices {
@@ -467,6 +470,7 @@ impl Kc3rdQuest {
 		1
 	}
 
+	/// Convert choice rewards to API format
 	pub fn to_api_reward_selection(&self) -> Option<Vec<Vec<KcApiQuestListRewardItem>>> {
 		if self.choice_rewards.is_empty() {
 			return None;
@@ -527,24 +531,55 @@ impl Kc3rdQuest {
 		Some(results)
 	}
 
+	/// Check if this quest has a slot item consumption condition
+	pub fn has_slot_item_consumption(&self) -> bool {
+		match &self.requirements {
+			Kc3rdQuestRequirement::And(conds)
+			| Kc3rdQuestRequirement::OneOf(conds)
+			| Kc3rdQuestRequirement::Sequential(conds) => conds,
+		}
+		.iter()
+		.any(|c| {
+			matches!(c, Kc3rdQuestCondition::SlotItemConsumption(_))
+				|| matches!(c, Kc3rdQuestCondition::ModelConversion(_))
+		})
+	}
+
 	/// Check if this quest has a slot item reward
 	pub fn has_slot_item_reward(&self) -> bool {
 		let rewards = self
 			.additional_rewards
 			.iter()
 			.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem))
-			.chain(
-				self.choice_rewards
-					.iter()
-					.flat_map(|v| v.choices.iter())
-					.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem)),
-			)
+			// .chain(
+			// 	self.choice_rewards
+			// 		.iter()
+			// 		.flat_map(|v| v.choices.iter())
+			// 		.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem)),
+			// )
 			.collect::<Vec<_>>();
 
 		!rewards.is_empty()
 	}
 
-	/// Is this quest a model conversion quest?
+	/// Check if this quest has a use item reward
+	pub fn has_use_item_reward(&self) -> bool {
+		let rewards = self
+			.additional_rewards
+			.iter()
+			.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::UseItem))
+			// .chain(
+			// 	self.choice_rewards
+			// 		.iter()
+			// 		.flat_map(|v| v.choices.iter())
+			// 		.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::UseItem)),
+			// )
+			.collect::<Vec<_>>();
+
+		!rewards.is_empty()
+	}
+
+	/// FIXME: should be refactored
 	pub fn get_model_conversion_info(&self) -> Option<i64> {
 		if self.category != Kc3rdQuestCategory::Factory {
 			// a model conversion quest should be a factory quest
