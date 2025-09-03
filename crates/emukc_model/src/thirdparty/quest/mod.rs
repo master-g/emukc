@@ -539,9 +539,16 @@ impl Kc3rdQuest {
 			| Kc3rdQuestRequirement::Sequential(conds) => conds,
 		}
 		.iter()
-		.any(|c| {
-			matches!(c, Kc3rdQuestCondition::SlotItemConsumption(_))
-				|| matches!(c, Kc3rdQuestCondition::ModelConversion(_))
+		.any(|c| match c {
+			Kc3rdQuestCondition::SlotItemConsumption(c) => c.iter().any(|v| {
+				matches!(
+					v.item_type,
+					Kc3rdQuestConditionSlotItemType::Equipment(_)
+						| Kc3rdQuestConditionSlotItemType::Equipments(_)
+				)
+			}),
+			Kc3rdQuestCondition::ModelConversion(c) => c.slots.is_some(),
+			_ => false,
 		})
 	}
 
@@ -579,68 +586,66 @@ impl Kc3rdQuest {
 		!rewards.is_empty()
 	}
 
-	/// FIXME: should be refactored
-	pub fn get_model_conversion_info(&self) -> Option<i64> {
-		if self.category != Kc3rdQuestCategory::Factory {
-			// a model conversion quest should be a factory quest
-			return None;
-		}
-
-		if !self.has_slot_item_reward() {
-			// a model conversion quest should have slot item reward
-			return None;
-		}
-
-		let requirements = match &self.requirements {
-			Kc3rdQuestRequirement::And(cond)
-			| Kc3rdQuestRequirement::OneOf(cond)
-			| Kc3rdQuestRequirement::Sequential(cond) => cond,
+	/// Extract model conversion information from the quest.
+	pub fn extract_model_conversion_info(&self) -> Option<(i64, i64)> {
+		let conditions: &Vec<Kc3rdQuestCondition> = match &self.requirements {
+			Kc3rdQuestRequirement::And(conds)
+			| Kc3rdQuestRequirement::OneOf(conds)
+			| Kc3rdQuestRequirement::Sequential(conds) => conds,
 		};
 
-		let conditions = requirements
-			.iter()
-			.filter_map(|c| match c {
-				Kc3rdQuestCondition::ModelConversion(m) => Some(m),
-				_ => None,
-			})
-			.collect::<Vec<&Kc3rdQuestConditionModelConversion>>();
+		let mut from_id = 0;
+		for cond in conditions {
+			match cond {
+				Kc3rdQuestCondition::ModelConversion(cond) => {
+					if let Some(cond) = &cond.slots
+						&& let Some(first) = cond.first()
+					{
+						match &first.item.item_type {
+							Kc3rdQuestConditionSlotItemType::Equipment(id) => {
+								from_id = *id;
+								break;
+							}
+							Kc3rdQuestConditionSlotItemType::Equipments(items) => {
+								if let Some(id) = items.first().copied() {
+									from_id = id;
+									break;
+								}
+							}
+							_ => {}
+						}
+					}
+				}
+				Kc3rdQuestCondition::SlotItemConsumption(cond) => {
+					if let Some(first) = cond.first() {
+						match &first.item_type {
+							Kc3rdQuestConditionSlotItemType::Equipment(id) => {
+								from_id = *id;
+								break;
+							}
+							Kc3rdQuestConditionSlotItemType::Equipments(items) => {
+								if let Some(id) = items.first().copied() {
+									from_id = id;
+									break;
+								}
+							}
+							_ => {}
+						}
+					}
+				}
+				_ => {}
+			}
+		}
 
-		if conditions.is_empty() {
+		if from_id == 0 {
+			warn!("no from_id found");
 			return None;
 		}
 
-		if conditions.len() > 1 {
-			warn!(
-				"Multiple model conversion conditions found in quest {} -> {}",
-				self.api_no, self.name
-			);
-		}
-
-		// find the first equipment id in the slots
-		let cond = conditions[0];
-		if let Some(slots) = &cond.slots {
-			let mut id_list = Vec::new();
-			for slot in slots {
-				match &slot.item.item_type {
-					Kc3rdQuestConditionSlotItemType::Equipment(id) => {
-						id_list.push(*id);
-					}
-					Kc3rdQuestConditionSlotItemType::Equipments(items) => {
-						if !items.is_empty() {
-							id_list.extend(items);
-						}
-					}
-					_ => return None,
-				}
+		for reward in self.additional_rewards.iter() {
+			if reward.category == Kc3rdQuestRewardCategory::Slotitem {
+				return Some((from_id, reward.api_id));
 			}
-
-			let unique_from: std::collections::HashSet<i64> = id_list.iter().copied().collect();
-
-			if unique_from.is_empty() {
-				return None;
-			}
-
-			return Some(unique_from.iter().next().copied().unwrap_or(0));
 		}
 
 		None

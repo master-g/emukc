@@ -190,7 +190,6 @@ fn convert_kc3rd_quest_reward_to_api(
 	Ok(bonus)
 }
 
-// 646, 648, 651, 652, 1101, 1105, 1112, 1114, 1130
 fn get_item_conversion_quest_rewards(
 	codex: &Codex,
 	quest_manifest: &Kc3rdQuest,
@@ -275,7 +274,7 @@ fn get_model_conversion_quest_rewards(
 
 	quest_manifest.additional_rewards.iter().for_each(|v| {
 		if let Ok(Some(mut bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
-			slot_item_conversion_extra(codex, quest_manifest.api_no, &mut bonus);
+			slot_item_conversion_extra(codex, quest_manifest, &mut bonus);
 			bonus.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
 			api_bounus.push(bonus);
 		}

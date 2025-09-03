@@ -218,8 +218,10 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 
 		// remove quest progress
 		{
-			let am = quest.into_active_model();
-			am.delete(&tx).await?;
+			let mut am = quest.into_active_model();
+			am.status = ActiveValue::Set(Status::Idle);
+			am.update(&tx).await?;
+			// am.delete(&tx).await?;
 		}
 
 		// reconstruct quest tree
