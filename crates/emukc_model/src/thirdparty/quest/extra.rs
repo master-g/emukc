@@ -123,6 +123,18 @@ pub(super) fn slot_item_conversion_extra(
 			1106 => {
 				format!("精鋭三座水偵隊「{}」配備完了！", to_mst.api_name)
 			}
+			1113 => {
+				format!("「{}」、実戦配備完了！", to_mst.api_name)
+			}
+			1117 | 1141 => {
+				format!("改修型最新水偵「{}」開発完了！", from_mst.api_name)
+			}
+			1123 => {
+				format!("改良三座水偵隊「{}」増備完了！", to_mst.api_name)
+			}
+			1142 => {
+				format!("夜間作戦可能艦攻隊「{}」配備！", to_mst.api_name)
+			}
 			_ => {
 				format!("{}の一部隊が、<br>{}に機種転換完了！", from_mst.api_name, to_mst.api_name)
 			}
