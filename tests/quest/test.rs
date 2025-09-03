@@ -85,12 +85,12 @@ fn dump_all_model_conversion_quest_reward_api_response(codex: &Codex) {
 			Ok(resp) => {
 				// let json = serde_json::to_string(&resp).unwrap();
 				// println!("{}\n", json);
-				if let Some(first) = resp.api_bounus.first() {
-					first.api_item.as_ref().map(|item| {
+				for bonus in resp.api_bounus.iter() {
+					if let Some(item) = &bonus.api_item {
 						if let Some(msg) = &item.api_message {
-							println!("  {msg}");
+							println!("   {msg}");
 						}
-					});
+					}
 				}
 			}
 			Err(e) => {
@@ -111,12 +111,7 @@ fn dump_all_model_conversion_quest_reward_api_response(codex: &Codex) {
 }
 
 fn main() {
-	new_log_builder().with_trace_level().build_simple();
-	trace!("test");
-	debug!("test");
-	info!("test");
-	warn!("test");
-	error!("test");
+	new_log_builder().with_log_level("info").build_simple();
 
 	let codex = load_codex();
 	// print_conversion_quests(&codex);

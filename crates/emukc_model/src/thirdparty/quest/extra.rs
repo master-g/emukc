@@ -45,25 +45,29 @@ pub(super) fn slot_item_conversion_extra(
 	codex: &Codex,
 	quest: &Kc3rdQuest,
 	bonus: &mut KcApiQuestClearItemGetBonus,
-) {
+) -> bool {
+	if bonus.api_type != KcApiQuestClearItemBonusType::SlotItem as i64 {
+		debug!("not a slot item bonus for quest {}", quest.api_no);
+		return false;
+	}
+	let Some(item) = bonus.api_item.as_mut() else {
+		debug!("no bonus item for quest {}", quest.api_no);
+		return false;
+	};
+
 	let Some((from_id, to_id)) = quest.extract_model_conversion_info() else {
 		debug!("no conversion info for quest {}", quest.api_no);
-		return;
+		return false;
 	};
 
 	let Some(from_mst) = codex.manifest.find_slotitem(from_id) else {
 		debug!("no from slotitem mst for quest {} item {}", quest.api_no, from_id);
-		return;
+		return false;
 	};
 
 	let Some(to_mst) = codex.manifest.find_slotitem(to_id) else {
 		debug!("no to slotitem mst for quest {} item {}", quest.api_no, to_id);
-		return;
-	};
-
-	let Some(item) = bonus.api_item.as_mut() else {
-		debug!("no bonus item for quest {}", quest.api_no);
-		return;
+		return false;
 	};
 
 	item.api_id_from = Some(from_id);
@@ -82,7 +86,7 @@ pub(super) fn slot_item_conversion_extra(
 			643 => {
 				format!("「{}」を新規調達完了！", to_mst.api_name)
 			}
-			644 => {
+			644 | 1111 => {
 				format!("「{}」を配備完了！", to_mst.api_name)
 			}
 			649 => {
@@ -107,6 +111,18 @@ pub(super) fn slot_item_conversion_extra(
 			684 => {
 				format!("精鋭航空戦艦艦爆隊「{}」編成完了！", to_mst.api_name)
 			}
+			695 => {
+				format!("「{}」戦力化成功！", to_mst.api_name)
+			}
+			696 => {
+				format!("最精鋭「瑞雲」隊、「{}」編成完了！", to_mst.api_name)
+			}
+			698 => {
+				format!("新鋭対潜哨戒航空戦力、「{}」配備完了！", to_mst.api_name)
+			}
+			1106 => {
+				format!("精鋭三座水偵隊「{}」配備完了！", to_mst.api_name)
+			}
 			_ => {
 				format!("{}の一部隊が、<br>{}に機種転換完了！", from_mst.api_name, to_mst.api_name)
 			}
@@ -121,7 +137,7 @@ pub(super) fn slot_item_conversion_extra(
 		}
 	};
 
-	println!("+++{msg}");
-
 	item.api_message = Some(msg);
+
+	true
 }

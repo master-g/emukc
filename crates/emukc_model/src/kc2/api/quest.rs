@@ -42,17 +42,28 @@ pub enum KcApiQuestClearItemBonusType {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct KcApiQuestClearItemGetBonusItem {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_id: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ship_id: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_slotitem_id: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_name: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_getmes: Option<String>,
 	/// only use for `AirUnitBase` bonus
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_message_a: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_message: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_slotitem_level: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_id_from: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_id_to: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_c_flag: Option<i64>,
 }
 

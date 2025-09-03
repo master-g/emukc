@@ -30,6 +30,48 @@ pub enum RewardError {
 	},
 }
 
+fn safe_convert_use_item_type(id: i64) -> (KcApiQuestClearItemBonusType, i64) {
+	match KcUseItemType::n(id) {
+		Some(typ) => match typ {
+			KcUseItemType::Bucket => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Bucket as i64)
+			}
+			KcUseItemType::Torch => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Torch as i64)
+			}
+			KcUseItemType::DevMaterial => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::DevMat as i64)
+			}
+			KcUseItemType::Screw => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Screw as i64)
+			}
+			KcUseItemType::Fuel => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Fuel as i64)
+			}
+			KcUseItemType::Ammo => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Ammo as i64)
+			}
+			KcUseItemType::Steel => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Steel as i64)
+			}
+			KcUseItemType::Bauxite => {
+				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Bauxite as i64)
+			}
+			KcUseItemType::FCoinBox200 => {
+				(KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox200 as i64)
+			}
+			KcUseItemType::FCoinBox400 => {
+				(KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox400 as i64)
+			}
+			KcUseItemType::FCoinBox700 => {
+				(KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox700 as i64)
+			}
+			_ => (KcApiQuestClearItemBonusType::UseItem, id),
+		},
+		_ => (KcApiQuestClearItemBonusType::UseItem, id),
+	}
+}
+
 /// convert `Kc3rdQuestReward` to `KcApiQuestClearItemGetBonus` for most cases
 /// except for model conversion
 fn convert_kc3rd_quest_reward_to_api(
@@ -77,65 +119,17 @@ fn convert_kc3rd_quest_reward_to_api(
 				..Default::default()
 			}),
 		}),
-		Kc3rdQuestRewardCategory::UseItem => match KcUseItemType::n(reward.api_id) {
-			Some(typ) => {
-				let (api_type, real_id) = match typ {
-					KcUseItemType::Bucket => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Bucket as i64)
-					}
-					KcUseItemType::Torch => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Torch as i64)
-					}
-					KcUseItemType::DevMaterial => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::DevMat as i64)
-					}
-					KcUseItemType::Screw => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Screw as i64)
-					}
-					KcUseItemType::Fuel => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Fuel as i64)
-					}
-					KcUseItemType::Ammo => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Ammo as i64)
-					}
-					KcUseItemType::Steel => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Steel as i64)
-					}
-					KcUseItemType::Bauxite => {
-						(KcApiQuestClearItemBonusType::Material, MaterialCategory::Bauxite as i64)
-					}
-					KcUseItemType::FCoinBox200 => (
-						KcApiQuestClearItemBonusType::FurnitureCoinBox,
-						KcUseItemType::FCoinBox200 as i64,
-					),
-					KcUseItemType::FCoinBox400 => (
-						KcApiQuestClearItemBonusType::FurnitureCoinBox,
-						KcUseItemType::FCoinBox400 as i64,
-					),
-					KcUseItemType::FCoinBox700 => (
-						KcApiQuestClearItemBonusType::FurnitureCoinBox,
-						KcUseItemType::FCoinBox700 as i64,
-					),
-					_ => (KcApiQuestClearItemBonusType::UseItem, reward.api_id),
-				};
-				Some(KcApiQuestClearItemGetBonus {
-					api_type: api_type as i64,
-					api_count: reward.amount,
-					api_item: Some(KcApiQuestClearItemGetBonusItem {
-						api_id: Some(real_id),
-						..Default::default()
-					}),
-				})
-			}
-			_ => Some(KcApiQuestClearItemGetBonus {
-				api_type: KcApiQuestClearItemBonusType::UseItem as i64,
+		Kc3rdQuestRewardCategory::UseItem => {
+			let (api_type, real_id) = safe_convert_use_item_type(reward.api_id);
+			Some(KcApiQuestClearItemGetBonus {
+				api_type: api_type as i64,
 				api_count: reward.amount,
 				api_item: Some(KcApiQuestClearItemGetBonusItem {
-					api_id: Some(reward.api_id),
+					api_id: Some(real_id),
 					..Default::default()
 				}),
-			}),
-		},
+			})
+		}
 		Kc3rdQuestRewardCategory::FleetUnlock => {
 			let fleet = Fleet::new(0, reward.api_id)?;
 			Some(KcApiQuestClearItemGetBonus {
@@ -272,10 +266,15 @@ fn get_model_conversion_quest_rewards(
 		}
 	}
 
+	let mut extra_added = false;
 	quest_manifest.additional_rewards.iter().for_each(|v| {
 		if let Ok(Some(mut bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
-			slot_item_conversion_extra(codex, quest_manifest, &mut bonus);
-			bonus.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
+			if !extra_added {
+				extra_added = slot_item_conversion_extra(codex, quest_manifest, &mut bonus);
+			}
+			if matches!(v.category, Kc3rdQuestRewardCategory::Slotitem) {
+				bonus.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
+			}
 			api_bounus.push(bonus);
 		}
 	});
