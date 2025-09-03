@@ -143,6 +143,7 @@ pub(super) fn slot_item_conversion_extra(
 		match quest.api_no {
 			621 => format!("代替対潜兵装「{}」開発完了！", to_mst.api_name),
 			639 => format!("試製兵装「{}」を獲得しました！", to_mst.api_name),
+			641 => format!("「{}」を調達完了！", to_mst.api_name),
 			_ => {
 				format!("「{}」を「{}」に改造完了！", from_mst.api_name, to_mst.api_name)
 			}
