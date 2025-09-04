@@ -2,10 +2,10 @@
 
 use std::path::Path;
 
+use emukc::log::prelude::*;
 use emukc::model::codex::Codex;
 use emukc::model::thirdparty::Kc3rdQuestConversionMode;
 use emukc::model::thirdparty::reward::get_quest_rewards;
-use emukc::{log::prelude::*, model::thirdparty::Kc3rdQuest};
 use tracing::{debug, error, info, trace, warn};
 
 fn load_codex() -> Codex {
@@ -13,40 +13,38 @@ fn load_codex() -> Codex {
 }
 
 fn dump_all_model_conversion_quest_reward_api_response(codex: &Codex) {
-	codex
-		.quest
-		.values()
-		.filter(|v| {
-			!matches!(v.conversion_mode, Kc3rdQuestConversionMode::None)
-				&& !v.additional_rewards.is_empty()
-		})
-		.for_each(|quest| {
-			println!("{} {}", quest.api_no, quest.name);
+	codex.quest.values().filter(|v| v.is_conversion_quest()).for_each(|quest| {
+		let choices = if quest.choice_rewards.is_empty() {
+			None
+		} else {
+			let list: Vec<i64> = quest.choice_rewards.iter().map(|_| 0).collect();
+			Some(list)
+		};
 
-			let choices = if quest.choice_rewards.is_empty() {
-				None
-			} else {
-				let list: Vec<i64> = quest.choice_rewards.iter().map(|_| 0).collect();
-				Some(list)
-			};
-
-			match get_quest_rewards(codex, quest.api_no, choices) {
-				Ok(resp) => {
-					// let json = serde_json::to_string(&resp).unwrap();
-					// println!("{}\n", json);
-					for bonus in resp.api_bounus.iter() {
-						if let Some(item) = &bonus.api_item {
-							if let Some(msg) = &item.api_message {
-								println!("   {msg}");
-							}
-						}
+		match get_quest_rewards(codex, quest.api_no, choices) {
+			Ok(resp) => {
+				// let json = serde_json::to_string(&resp).unwrap();
+				// println!("{}\n", json);
+				let mut has_msg = false;
+				for bonus in resp.api_bounus.iter() {
+					if let Some(item) = &bonus.api_item
+						&& let Some(msg) = &item.api_message
+					{
+						println!("√ {} {}", quest.api_no, quest.name);
+						println!("    {msg}");
+						has_msg = true;
 					}
 				}
-				Err(e) => {
-					error!("  failed to get rewards: {}", e);
+
+				if !has_msg {
+					println!("🤔 {} {}", quest.api_no, quest.name);
 				}
 			}
-		});
+			Err(e) => {
+				error!("  failed to get rewards: {}", e);
+			}
+		}
+	});
 }
 
 fn dump2(codex: &Codex) {
@@ -83,6 +81,6 @@ fn main() {
 
 	let codex = load_codex();
 	dump_all_model_conversion_quest_reward_api_response(&codex);
-	println!("\n\n\n\n\n\n\n\n");
-	dump2(&codex);
+	// println!("\n\n\n\n\n\n");
+	// dump2(&codex);
 }

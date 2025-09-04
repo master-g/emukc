@@ -7,8 +7,8 @@ use crate::{
 		KcApiQuestClearItemGetBonusItem, KcUseItemType, MaterialCategory,
 	},
 	prelude::{
-		ApiManifest, Kc3rdQuest, Kc3rdQuestConversionMode, Kc3rdQuestReward,
-		Kc3rdQuestRewardCategory, extra::add_extra_to_conversion_or_exchange_bonus,
+		ApiManifest, Kc3rdQuest, Kc3rdQuestReward, Kc3rdQuestRewardCategory,
+		extra::add_extra_to_conversion_or_exchange_bonus,
 	},
 	profile::fleet::{Fleet, FleetError},
 };
@@ -258,9 +258,7 @@ pub fn get_quest_rewards(
 		quest_manifest.reward_bauxite,
 	];
 
-	if !matches!(quest_manifest.conversion_mode, Kc3rdQuestConversionMode::None)
-		&& !quest_manifest.additional_rewards.is_empty()
-	{
+	if quest_manifest.is_conversion_quest() {
 		// model conversion / exchange quest
 		return get_conversion_quest_rewards(codex, quest_manifest, choices);
 	}

@@ -467,6 +467,10 @@ impl Kc3rdQuestRequirement {
 	}
 }
 
+// magic number for quests that are not model conversion / exchange quest
+// but these quests have misleading fields in original source data
+static SKIP_CONVERSION_QUESTS: &[i64] = &[657, 661, 662, 663, 664, 665, 667, 675, 676, 677];
+
 impl Kc3rdQuest {
 	/// Get bonus flag for quest clear
 	pub fn bonus_flag(&self) -> i64 {
@@ -544,6 +548,13 @@ impl Kc3rdQuest {
 		}
 
 		Some(results)
+	}
+
+	/// Check if the quest is a conversion/exchange quest
+	pub fn is_conversion_quest(&self) -> bool {
+		!matches!(self.conversion_mode, Kc3rdQuestConversionMode::None)
+			&& !self.additional_rewards.is_empty()
+			&& !SKIP_CONVERSION_QUESTS.contains(&self.api_no)
 	}
 
 	/// Extract model conversion information from the quest.
