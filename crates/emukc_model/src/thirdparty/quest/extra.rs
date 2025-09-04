@@ -26,9 +26,16 @@ fn handle_aircraft_conversion(
 	bonus: &mut [KcApiQuestClearItemGetBonus],
 ) {
 	// Handle aircraft conversion quests
-	let Some((from_id, to_id)) = quest.extract_model_conversion_info() else {
-		debug!("no conversion info for quest {}", quest.api_no);
-		return;
+	let (from_id, to_id) = match quest.api_no {
+		622 => (143, 143), // special case for quest 622 (no conversion info in quest data)
+		_ => {
+			if let Some((from_id, to_id)) = quest.extract_model_conversion_info() {
+				(from_id, to_id)
+			} else {
+				debug!("no conversion info for quest {}", quest.api_no);
+				return;
+			}
+		}
 	};
 
 	let Some(from_mst) = codex.manifest.find_slotitem(from_id) else {
@@ -40,9 +47,6 @@ fn handle_aircraft_conversion(
 		debug!("no to slotitem mst for quest {} item {}", quest.api_no, from_id);
 		return;
 	};
-
-	println!("{from_id} to {to_id}");
-	println!("{:?}", bonus);
 
 	if let Some(bonus) = bonus
 		.iter_mut()
