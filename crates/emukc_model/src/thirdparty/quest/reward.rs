@@ -7,8 +7,8 @@ use crate::{
 		KcApiQuestClearItemGetBonusItem, KcUseItemType, MaterialCategory,
 	},
 	prelude::{
-		ApiManifest, Kc3rdQuest, Kc3rdQuestReward, Kc3rdQuestRewardCategory,
-		extra::{slot_item_conversion_extra, use_item_conversion_extra},
+		ApiManifest, Kc3rdQuest, Kc3rdQuestConversionMode, Kc3rdQuestReward,
+		Kc3rdQuestRewardCategory, extra::add_extra_to_conversion_or_exchange_bonus,
 	},
 	profile::fleet::{Fleet, FleetError},
 };
@@ -184,7 +184,7 @@ fn convert_kc3rd_quest_reward_to_api(
 	Ok(bonus)
 }
 
-fn get_item_conversion_quest_rewards(
+fn get_conversion_quest_rewards(
 	codex: &Codex,
 	quest_manifest: &Kc3rdQuest,
 	choices: Option<Vec<i64>>,
@@ -215,69 +215,14 @@ fn get_item_conversion_quest_rewards(
 	}
 
 	quest_manifest.additional_rewards.iter().for_each(|v| {
-		if let Ok(Some(mut bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
-			use_item_conversion_extra(codex, quest_manifest.api_no, &mut bonus);
-			bonus.api_type = KcApiQuestClearItemBonusType::ModelChange2 as i64;
+		if let Ok(Some(bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
 			api_bounus.push(bonus);
-		}
-	});
-
-	let result = KcApiQuestClearItemGet {
-		api_material: [
-			quest_manifest.reward_fuel,
-			quest_manifest.reward_ammo,
-			quest_manifest.reward_steel,
-			quest_manifest.reward_bauxite,
-		],
-		api_bounus_count: api_bounus.len() as i64,
-		api_bounus,
-	};
-
-	Ok(result)
-}
-
-fn get_model_conversion_quest_rewards(
-	codex: &Codex,
-	quest_manifest: &Kc3rdQuest,
-	choices: Option<Vec<i64>>,
-) -> Result<KcApiQuestClearItemGet, RewardError> {
-	let choices = choices.unwrap_or_default();
-	if choices.len() != quest_manifest.choice_rewards.len() {
-		warn!(
-			"choices length mismatch: expected {}, got {}",
-			quest_manifest.choice_rewards.len(),
-			choices.len()
-		);
-		return Err(RewardError::ChoicesLengthMismatch {
-			expected: quest_manifest.choice_rewards.len(),
-			got: choices.len(),
-		});
-	}
-
-	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
-	for (choice, reward) in choices.iter().zip(quest_manifest.choice_rewards.iter()) {
-		let reward = reward.choices.get(*choice as usize);
-		if let Some(reward) = reward {
-			if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)? {
-				api_bounus.push(bonus);
-			}
 		} else {
-			warn!("invalid choice index: {}", choice);
-		}
-	}
-
-	let mut extra_added = false;
-	quest_manifest.additional_rewards.iter().for_each(|v| {
-		if let Ok(Some(mut bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
-			if !extra_added {
-				extra_added = slot_item_conversion_extra(codex, quest_manifest, &mut bonus);
-			}
-			if matches!(v.category, Kc3rdQuestRewardCategory::Slotitem) {
-				bonus.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
-			}
-			api_bounus.push(bonus);
+			error!("failed to convert additional reward for quest {}", quest_manifest.api_no);
 		}
 	});
+
+	add_extra_to_conversion_or_exchange_bonus(codex, quest_manifest, &mut api_bounus);
 
 	let result = KcApiQuestClearItemGet {
 		api_material: [
@@ -313,14 +258,11 @@ pub fn get_quest_rewards(
 		quest_manifest.reward_bauxite,
 	];
 
-	if quest_manifest.has_slot_item_consumption() {
-		if quest_manifest.has_slot_item_reward() {
-			// model conversion quest
-			return get_model_conversion_quest_rewards(codex, quest_manifest, choices);
-		} else if quest_manifest.has_use_item_reward() {
-			// item conversion quest
-			return get_item_conversion_quest_rewards(codex, quest_manifest, choices);
-		}
+	if !matches!(quest_manifest.conversion_mode, Kc3rdQuestConversionMode::None)
+		&& !quest_manifest.additional_rewards.is_empty()
+	{
+		// model conversion / exchange quest
+		return get_conversion_quest_rewards(codex, quest_manifest, choices);
 	}
 
 	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();

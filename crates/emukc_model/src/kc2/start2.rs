@@ -579,7 +579,7 @@ impl ApiManifest {
 	pub fn find_slotitem(&self, id: i64) -> Option<&ApiMstSlotitem> {
 		let value = self.api_mst_slotitem.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("slot item {} not found", id);
+			trace!("slot item {} not found", id);
 		}
 		value
 	}
@@ -596,7 +596,7 @@ impl ApiManifest {
 	pub fn find_slotitem_type(&self, id: i64) -> Option<&ApiMstSlotitemEquiptype> {
 		let value = self.api_mst_slotitem_equiptype.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("slot item type {} not found", id);
+			trace!("slot item type {} not found", id);
 		}
 		value
 	}
@@ -613,7 +613,7 @@ impl ApiManifest {
 	pub fn find_ship(&self, id: i64) -> Option<&ApiMstShip> {
 		let value = self.api_mst_ship.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("ship {} not found", id);
+			trace!("ship {} not found", id);
 		}
 		value
 	}
@@ -630,7 +630,7 @@ impl ApiManifest {
 	pub fn find_shipgraph(&self, id: i64) -> Option<&ApiMstShipgraph> {
 		let value = self.api_mst_shipgraph.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("shipgraph {} not found", id);
+			trace!("shipgraph {} not found", id);
 		}
 		value
 	}
@@ -647,7 +647,7 @@ impl ApiManifest {
 	pub fn find_furniture(&self, id: i64) -> Option<&ApiMstFurniture> {
 		let value = self.api_mst_furniture.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("furniture {} not found", id);
+			trace!("furniture {} not found", id);
 		}
 		value
 	}
@@ -664,7 +664,7 @@ impl ApiManifest {
 	pub fn find_useitem(&self, id: i64) -> Option<&ApiMstUseitem> {
 		let value = self.api_mst_useitem.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("use item {} not found", id);
+			trace!("use item {} not found", id);
 		}
 		value
 	}
@@ -677,7 +677,7 @@ impl ApiManifest {
 	pub fn find_payitem(&self, id: i64) -> Option<&ApiMstPayitem> {
 		let value = self.api_mst_payitem.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("pay item {} not found", id);
+			trace!("pay item {} not found", id);
 		}
 		value
 	}
@@ -694,7 +694,7 @@ impl ApiManifest {
 	pub fn find_ship_type(&self, id: i64) -> Option<&ApiMstStype> {
 		let value = self.api_mst_stype.iter().find(|m| m.api_id == id);
 		if value.is_none() {
-			error!("ship type {} not found", id);
+			trace!("ship type {} not found", id);
 		}
 		value
 	}
@@ -711,7 +711,7 @@ impl ApiManifest {
 	pub fn find_ship_class(&self, id: i64) -> Option<&ApiMstShip> {
 		let value = self.api_mst_ship.iter().find(|s| s.api_ctype == id);
 		if value.is_none() {
-			error!("ship class {} not found", id);
+			trace!("ship class {} not found", id);
 		}
 		value
 	}

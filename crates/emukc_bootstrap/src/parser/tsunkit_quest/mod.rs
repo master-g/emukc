@@ -463,7 +463,35 @@ impl TsunkitQuestValue {
 				.unwrap_or_default(),
 			choice_rewards: self.rewards.to_choice_rewards(mst, &self.wiki_id).unwrap_or_default(),
 			requirements: self.requirements.to_requirements(mst),
+			conversion_mode: self.get_conversion_mode(),
 		}
+	}
+
+	fn get_conversion_mode(&self) -> Kc3rdQuestConversionMode {
+		if self.game_id < 600 {
+			// NOTE: quest 318 is mistakenly classified, so we just filter out all pre-600 quests
+			return Kc3rdQuestConversionMode::None;
+		}
+		let lists = match &self.requirements.category {
+			RequirementsCategory::And | RequirementsCategory::Or | RequirementsCategory::Then => {
+				&self.requirements.list
+			}
+			RequirementsCategory::Conversion => return Kc3rdQuestConversionMode::Conversion,
+			RequirementsCategory::Equipexchange => return Kc3rdQuestConversionMode::Exchange,
+			_ => return Kc3rdQuestConversionMode::None,
+		};
+		if let Some(list) = lists {
+			let requirements =
+				list.iter().map(|v| Requirements::from(v.clone())).collect::<Vec<_>>();
+			if requirements.iter().any(|r| r.category == RequirementsCategory::Conversion) {
+				return Kc3rdQuestConversionMode::Conversion;
+			} else if requirements.iter().any(|r| r.category == RequirementsCategory::Equipexchange)
+			{
+				return Kc3rdQuestConversionMode::Exchange;
+			}
+		}
+
+		Kc3rdQuestConversionMode::None
 	}
 }
 

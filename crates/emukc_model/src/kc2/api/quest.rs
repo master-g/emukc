@@ -46,8 +46,8 @@ pub struct KcApiQuestClearItemGetBonusItem {
 	pub api_id: Option<i64>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_ship_id: Option<i64>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub api_slotitem_id: Option<i64>,
+	// #[serde(skip_serializing_if = "Option::is_none")]
+	// pub api_slotitem_id: Option<i64>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_name: Option<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]

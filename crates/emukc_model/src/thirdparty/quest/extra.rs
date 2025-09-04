@@ -4,6 +4,66 @@ use crate::{
 	prelude::Kc3rdQuest,
 };
 
+pub(super) fn add_extra_to_conversion_or_exchange_bonus(
+	codex: &Codex,
+	quest: &Kc3rdQuest,
+	bonus: &mut [KcApiQuestClearItemGetBonus],
+) {
+	match quest.api_no {
+		614 | 615 | 616 | 622 | 626 | 627 | 628 | 629 | 630 | 659 | 660 => {
+			handle_aircraft_conversion(codex, quest, bonus);
+		}
+
+		_ => {
+			debug!("not implement yet");
+		}
+	}
+}
+
+fn handle_aircraft_conversion(
+	codex: &Codex,
+	quest: &Kc3rdQuest,
+	bonus: &mut [KcApiQuestClearItemGetBonus],
+) {
+	// Handle aircraft conversion quests
+	let Some((from_id, to_id)) = quest.extract_model_conversion_info() else {
+		debug!("no conversion info for quest {}", quest.api_no);
+		return;
+	};
+
+	let Some(from_mst) = codex.manifest.find_slotitem(from_id) else {
+		debug!("no from slotitem mst for quest {} item {}", quest.api_no, from_id);
+		return;
+	};
+
+	let Some(to_mst) = codex.manifest.find_slotitem(from_id) else {
+		debug!("no to slotitem mst for quest {} item {}", quest.api_no, from_id);
+		return;
+	};
+
+	println!("{from_id} to {to_id}");
+	println!("{:?}", bonus);
+
+	if let Some(bonus) = bonus
+		.iter_mut()
+		.find(|v| v.api_item.as_ref().is_some_and(|item| item.api_id == Some(to_id)))
+	{
+		bonus.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
+		if let Some(item) = bonus.api_item.as_mut() {
+			item.api_id_from = Some(from_id);
+			item.api_id_to = Some(to_id);
+			item.api_message = Some(format!(
+				"{}の一部隊が、<br>{}に部隊再編完了！",
+				from_mst.api_name, to_mst.api_name
+			));
+		} else {
+			debug!("no bonus item for quest {}", quest.api_no);
+		}
+	} else {
+		debug!("bonus item not found for quest {}", quest.api_no);
+	}
+}
+
 pub(super) fn use_item_conversion_extra(
 	codex: &Codex,
 	quest_id: i64,
@@ -60,20 +120,21 @@ pub(super) fn slot_item_conversion_extra(
 		return false;
 	};
 
-	let Some(from_mst) = codex.manifest.find_slotitem(from_id) else {
-		debug!("no from slotitem mst for quest {} item {}", quest.api_no, from_id);
-		return false;
-	};
-
 	let Some(to_mst) = codex.manifest.find_slotitem(to_id) else {
 		debug!("no to slotitem mst for quest {} item {}", quest.api_no, to_id);
 		return false;
 	};
 
+	let (from_type, from_name) = if let Some(from_mst) = codex.manifest.find_slotitem(from_id) {
+		(from_mst.api_type[4], from_mst.api_name.as_str())
+	} else {
+		(0, "n/a")
+	};
+
 	item.api_id_from = Some(from_id);
 	item.api_id_to = Some(to_id);
 
-	let msg = if from_mst.api_type[4] != 0 && to_mst.api_type[4] != 0 {
+	let msg = if from_type != 0 && to_mst.api_type[4] != 0 {
 		// air craft conversion
 		match quest.api_no {
 			620 => format!(
@@ -81,7 +142,7 @@ pub(super) fn slot_item_conversion_extra(
 				to_mst.api_name
 			),
 			626 | 629 | 630 | 631 | 659 | 660 => {
-				format!("{}の一部隊が、<br>{}に部隊再編完了！", from_mst.api_name, to_mst.api_name)
+				format!("{}の一部隊が、<br>{}に部隊再編完了！", from_name, to_mst.api_name)
 			}
 			643 => {
 				format!("「{}」を新規調達完了！", to_mst.api_name)
@@ -127,7 +188,7 @@ pub(super) fn slot_item_conversion_extra(
 				format!("「{}」、実戦配備完了！", to_mst.api_name)
 			}
 			1117 | 1141 => {
-				format!("改修型最新水偵「{}」開発完了！", from_mst.api_name)
+				format!("改修型最新水偵「{}」開発完了！", from_name)
 			}
 			1123 => {
 				format!("改良三座水偵隊「{}」増備完了！", to_mst.api_name)
@@ -136,7 +197,7 @@ pub(super) fn slot_item_conversion_extra(
 				format!("夜間作戦可能艦攻隊「{}」配備！", to_mst.api_name)
 			}
 			_ => {
-				format!("{}の一部隊が、<br>{}に機種転換完了！", from_mst.api_name, to_mst.api_name)
+				format!("{}の一部隊が、<br>{}に機種転換完了！", from_name, to_mst.api_name)
 			}
 		}
 	} else {
@@ -145,8 +206,22 @@ pub(super) fn slot_item_conversion_extra(
 			639 => format!("試製兵装「{}」を獲得しました！", to_mst.api_name),
 			641 => format!("「{}」を調達完了！", to_mst.api_name),
 			642 => format!("「{}」を追加調達完了！", to_mst.api_name),
+			645 => {
+				format!(
+					"「{}」物資を調達完了！<br>(※使用には補給艦による運用が必要です) ",
+					to_mst.api_name
+				)
+			}
+			658 | 668 => format!("「{}」開発完了！", to_mst.api_name),
+			672 => format!("「{}」創設完了しました！", to_mst.api_name),
+			683 => format!("新型砲熕兵装「{}」を開発完了！", to_mst.api_name),
+			685..=687 => format!("「{}」に改修完了！", to_mst.api_name),
+			1103 => "「新型潜水艦兵装」配備完了！".to_string(),
+			1104 => "「潜水艦電子兵装」配備完了！".to_string(),
+			1108 => format!("調整改良型水中探信儀「{}」増産完了！", to_mst.api_name),
+
 			_ => {
-				format!("「{}」を「{}」に改造完了！", from_mst.api_name, to_mst.api_name)
+				format!("「{}」→「{}」missing text", from_name, to_mst.api_name)
 			}
 		}
 	};

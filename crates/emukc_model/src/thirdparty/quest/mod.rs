@@ -43,6 +43,8 @@ pub struct Kc3rdQuest {
 	pub choice_rewards: Vec<Kc3rdQuestChoiceReward>,
 	/// Quest requirements
 	pub requirements: Kc3rdQuestRequirement,
+	/// Conversion mode
+	pub conversion_mode: Kc3rdQuestConversionMode,
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
@@ -143,6 +145,19 @@ impl Kc3rdQuestPeriod {
 			Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual => KcApiQuestType::Other as i64,
 		}
 	}
+}
+
+/// Quet exchange or conversion type
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Kc3rdQuestConversionMode {
+	/// Model conversion
+	Conversion,
+
+	/// Slot item exchange
+	Exchange,
+
+	/// No conversion or exchange
+	None,
 }
 
 /// Quest reward
@@ -531,61 +546,6 @@ impl Kc3rdQuest {
 		Some(results)
 	}
 
-	/// Check if this quest has a slot item consumption condition
-	pub fn has_slot_item_consumption(&self) -> bool {
-		match &self.requirements {
-			Kc3rdQuestRequirement::And(conds)
-			| Kc3rdQuestRequirement::OneOf(conds)
-			| Kc3rdQuestRequirement::Sequential(conds) => conds,
-		}
-		.iter()
-		.any(|c| match c {
-			Kc3rdQuestCondition::SlotItemConsumption(c) => c.iter().any(|v| {
-				matches!(
-					v.item_type,
-					Kc3rdQuestConditionSlotItemType::Equipment(_)
-						| Kc3rdQuestConditionSlotItemType::Equipments(_)
-				)
-			}),
-			Kc3rdQuestCondition::ModelConversion(c) => c.slots.is_some(),
-			_ => false,
-		})
-	}
-
-	/// Check if this quest has a slot item reward
-	pub fn has_slot_item_reward(&self) -> bool {
-		let rewards = self
-			.additional_rewards
-			.iter()
-			.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem))
-			// .chain(
-			// 	self.choice_rewards
-			// 		.iter()
-			// 		.flat_map(|v| v.choices.iter())
-			// 		.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::Slotitem)),
-			// )
-			.collect::<Vec<_>>();
-
-		!rewards.is_empty()
-	}
-
-	/// Check if this quest has a use item reward
-	pub fn has_use_item_reward(&self) -> bool {
-		let rewards = self
-			.additional_rewards
-			.iter()
-			.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::UseItem))
-			// .chain(
-			// 	self.choice_rewards
-			// 		.iter()
-			// 		.flat_map(|v| v.choices.iter())
-			// 		.filter(|v| matches!(v.category, Kc3rdQuestRewardCategory::UseItem)),
-			// )
-			.collect::<Vec<_>>();
-
-		!rewards.is_empty()
-	}
-
 	/// Extract model conversion information from the quest.
 	pub fn extract_model_conversion_info(&self) -> Option<(i64, i64)> {
 		let conditions: &Vec<Kc3rdQuestCondition> = match &self.requirements {
@@ -635,11 +595,6 @@ impl Kc3rdQuest {
 				}
 				_ => {}
 			}
-		}
-
-		if from_id == 0 {
-			warn!("no from_id found");
-			return None;
 		}
 
 		for reward in self.additional_rewards.iter() {
