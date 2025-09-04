@@ -15,8 +15,8 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
 		handle_aircraft_conversion(codex, quest, bonus);
 	} else if [
 		620, 621, 639, 641, 642, 643, 644, 645, 649, 650, 654, 656, 658, 666, 668, 669, 670, 671,
-		672, 678, 683, 684, 685, 686, 687, 695, 696, 698, 1103, 1104, 1106, 1108, 1111, 1113, 1123,
-		1142,
+		672, 678, 683, 684, 685, 686, 687, 695, 696, 698, 1103, 1104, 1106, 1108, 1109, 1111, 1113,
+		1118, 1123, 1127, 1142,
 	]
 	.contains(&quest.api_no)
 	{
@@ -92,12 +92,15 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
 				format!("精鋭三座水偵隊「{}」配備完了！", to_mst.api_name)
 			}
 			1108 => format!("調整改良型水中探信儀「{}」増産完了！", to_mst.api_name),
+			1109 => format!("上陸支援用小型戦闘艇「{}」配備完了！", to_mst.api_name),
 			1113 => {
 				format!("「{}」、実戦配備完了！", to_mst.api_name)
 			}
+			1118 => format!("対潜迫撃砲「{}」配備完了！", to_mst.api_name),
 			1123 => {
 				format!("改良三座水偵隊「{}」増備完了！", to_mst.api_name)
 			}
+			1127 => format!("改良型艦載煙幕発生装備「{}」開発完了！", to_mst.api_name),
 			1142 => {
 				format!("夜間作戦可能艦攻隊「{}」配備！", to_mst.api_name)
 			}
