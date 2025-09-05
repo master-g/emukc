@@ -469,7 +469,8 @@ impl Kc3rdQuestRequirement {
 
 // magic number for quests that are not model conversion / exchange quest
 // but these quests have misleading fields in original source data
-static SKIP_CONVERSION_QUESTS: &[i64] = &[657, 661, 662, 663, 664, 665, 667, 675, 676, 677];
+static SKIP_CONVERSION_QUESTS: &[i64] =
+	&[657, 661, 662, 663, 664, 665, 667, 675, 676, 677, 1138, 1139, 1140, 1148];
 
 impl Kc3rdQuest {
 	/// Get bonus flag for quest clear

@@ -16,7 +16,7 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
 	} else if [
 		620, 621, 639, 641, 642, 643, 644, 645, 649, 650, 654, 656, 658, 666, 668, 669, 670, 671,
 		672, 678, 683, 684, 685, 686, 687, 695, 696, 698, 1103, 1104, 1106, 1108, 1109, 1111, 1113,
-		1118, 1123, 1127, 1142,
+		1118, 1123, 1127, 1128, 1129, 1132, 1133, 1134, 1137, 1142, 1143, 1145, 1153,
 	]
 	.contains(&quest.api_no)
 	{
@@ -60,7 +60,7 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
 			656 => {
 				format!("第一潜水隊運用航空隊：「{}」の新編成を<br>完了しました！", to_mst.api_name)
 			}
-			658 | 668 => format!("「{}」開発完了！", to_mst.api_name),
+			658 | 668 | 1134 => format!("「{}」開発完了！", to_mst.api_name),
 			666 => {
 				format!("精鋭「瑞雲」隊、{}を編成完了！", to_mst.api_name)
 			}
@@ -101,9 +101,14 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
 				format!("改良三座水偵隊「{}」増備完了！", to_mst.api_name)
 			}
 			1127 => format!("改良型艦載煙幕発生装備「{}」開発完了！", to_mst.api_name),
-			1142 => {
-				format!("夜間作戦可能艦攻隊「{}」配備！", to_mst.api_name)
-			}
+			1128 => format!("改金剛型搭載用改修砲「{}」開発完了！", to_mst.api_name),
+			1129 | 1133 => format!("「{}」配備完了！", to_mst.api_name),
+			1132 => format!("改夕雲型駆逐艦搭載用「{}」配備完了！", to_mst.api_name),
+			1137 => format!("対潜兵装「{}」配備完了！", to_mst.api_name),
+			1142 => format!("夜間作戦可能艦攻隊「{}」配備！", to_mst.api_name),
+			1143 => format!("金剛型改装丙型主砲「{}」開発完了！", to_mst.api_name),
+			1145 => format!("潜水艦搭載用水機「{}」増加配備！", to_mst.api_name),
+			1153 => format!("「{}」増備完了！", to_mst.api_name),
 			_ => {
 				error!("missing extra quest reward info for quest {}", quest.api_no);
 				return;
