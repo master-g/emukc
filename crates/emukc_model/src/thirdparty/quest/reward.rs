@@ -187,7 +187,7 @@ fn convert_kc3rd_quest_reward_to_api(
 fn get_conversion_quest_rewards(
 	codex: &Codex,
 	quest_manifest: &Kc3rdQuest,
-	choices: Option<Vec<i64>>,
+	choices: Option<&[i64]>,
 ) -> Result<KcApiQuestClearItemGet, RewardError> {
 	let choices = choices.unwrap_or_default();
 	if choices.len() != quest_manifest.choice_rewards.len() {
@@ -248,7 +248,7 @@ fn get_conversion_quest_rewards(
 pub fn get_quest_rewards(
 	codex: &Codex,
 	quest_id: i64,
-	choices: Option<Vec<i64>>,
+	choices: Option<&[i64]>,
 ) -> Result<KcApiQuestClearItemGet, RewardError> {
 	let quest_manifest = codex.quest.get(&quest_id).unwrap();
 	let api_material = [

@@ -21,7 +21,7 @@ fn dump_all_model_conversion_quest_reward_api_response(codex: &Codex) {
 			Some(list)
 		};
 
-		match get_quest_rewards(codex, quest.api_no, choices) {
+		match get_quest_rewards(codex, quest.api_no, choices.as_deref()) {
 			Ok(resp) => {
 				// let json = serde_json::to_string(&resp).unwrap();
 				// println!("{}\n", json);

@@ -15,10 +15,13 @@ use emukc_time::chrono;
 use update::update_quests_impl;
 
 use crate::{
-	err::GameplayError, game::quest::record::mark_quest_as_completed, gameplay::HasContext,
+	err::GameplayError,
+	game::quest::{record::mark_quest_as_completed, rewards::claim_quest_rewards},
+	gameplay::HasContext,
 };
 
 mod record;
+mod rewards;
 pub(crate) mod update;
 
 /// A trait for quest related gameplay.
@@ -220,8 +223,8 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		{
 			let mut am = quest.into_active_model();
 			am.status = ActiveValue::Set(Status::Idle);
-			am.update(&tx).await?;
-			// am.delete(&tx).await?;
+			// am.update(&tx).await?;
+			am.delete(&tx).await?;
 		}
 
 		// reconstruct quest tree
@@ -229,10 +232,11 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		let codex = self.codex();
 		update_quests_impl(&tx, codex, profile_id).await?;
 
-		// apply rewards
-		// let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
+		// claim rewards
+		claim_quest_rewards(&tx, codex, profile_id, quest_id, reward_choices.as_deref()).await?;
 
-		let resp = get_quest_rewards(codex, quest_id, reward_choices)?;
+		// get rewards for kcs API response
+		let resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
 
 		tx.commit().await?;
 
