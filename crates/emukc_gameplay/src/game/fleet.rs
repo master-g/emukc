@@ -145,7 +145,11 @@ impl<T: HasContext + ?Sized> FleetOps for T {
 	}
 }
 
-async fn find_fleet<C>(c: &C, profile_id: i64, index: i64) -> Result<fleet::Model, GameplayError>
+pub(crate) async fn find_fleet<C>(
+	c: &C,
+	profile_id: i64,
+	index: i64,
+) -> Result<fleet::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {

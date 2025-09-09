@@ -9,19 +9,22 @@ use emukc_db::{
 use emukc_model::{
 	codex::{Codex, query::FoundInCodex},
 	kc2::KcApiQuestClearItemGet,
-	thirdparty::{Kc3rdQuest, reward::get_quest_rewards},
+	thirdparty::{
+		Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestConditionSlotItemType, Kc3rdQuestRequirement,
+		reward::get_quest_rewards,
+	},
 };
 use emukc_time::chrono;
 use update::update_quests_impl;
 
 use crate::{
 	err::GameplayError,
-	game::quest::{record::mark_quest_as_completed, rewards::claim_quest_rewards},
+	game::quest::{consume::handle_module_conversion, record::mark_quest_as_completed},
 	gameplay::HasContext,
 };
 
+mod consume;
 mod record;
-mod rewards;
 pub(crate) mod update;
 
 /// A trait for quest related gameplay.
@@ -232,8 +235,12 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		let codex = self.codex();
 		update_quests_impl(&tx, codex, profile_id).await?;
 
+		let quest_mst = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
+		// deduct requirements
+		deduct_requirements(&tx, profile_id, quest_mst).await?;
+
 		// claim rewards
-		claim_quest_rewards(&tx, codex, profile_id, quest_id, reward_choices.as_deref()).await?;
+		claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref()).await?;
 
 		// get rewards for kcs API response
 		let resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
@@ -242,6 +249,48 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 
 		Ok(resp)
 	}
+}
+
+async fn deduct_requirements<C>(
+	c: &C,
+	profile_id: i64,
+	quest_mst: &Kc3rdQuest,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let conds = match &quest_mst.requirements {
+		Kc3rdQuestRequirement::And(conds)
+		| Kc3rdQuestRequirement::OneOf(conds)
+		| Kc3rdQuestRequirement::Sequential(conds) => conds,
+	};
+
+	for cond in conds {
+		match cond {
+			Kc3rdQuestCondition::ModelConversion(conversion) => {
+				handle_module_conversion(c, profile_id, conversion).await?;
+			}
+			Kc3rdQuestCondition::ResourceConsumption(res_consumption) => todo!(),
+			Kc3rdQuestCondition::SlotItemConsumption(slotitem_consumptioni) => todo!(),
+			Kc3rdQuestCondition::UseItemConsumption(useitem_consumption) => todo!(),
+			_ => {}
+		}
+	}
+
+	todo!();
+}
+
+async fn claim_rewards<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	quest_mst: &Kc3rdQuest,
+	reward_choices: Option<&[i64]>,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	todo!();
 }
 
 pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(), GameplayError>
