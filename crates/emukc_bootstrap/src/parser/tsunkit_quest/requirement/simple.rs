@@ -13,13 +13,20 @@ impl Requirements {
 
 		match subcategory {
 			RequirementsSubCategory::Battle => {
-				vec![Kc3rdQuestCondition::SortieCount(times)]
+				vec![Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
+					times,
+					..Default::default()
+				})]
 			}
 			RequirementsSubCategory::Equipment => {
-				vec![Kc3rdQuestCondition::SlotItemConstruction(times)]
+				vec![Kc3rdQuestCondition::Factory(
+					Kc3rdQuestConditionFactory::SlotItemConstruction(times),
+				)]
 			}
 			RequirementsSubCategory::Improvement => {
-				vec![Kc3rdQuestCondition::SlotItemImprovement(times)]
+				vec![Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovment(
+					times,
+				))]
 			}
 			RequirementsSubCategory::Modernization => {
 				vec![Kc3rdQuestCondition::Modernization(Kc3rdQuestConditionModernization {
@@ -36,13 +43,15 @@ impl Requirements {
 				vec![Kc3rdQuestCondition::Resupply(times)]
 			}
 			RequirementsSubCategory::Scrapequipment => {
-				vec![Kc3rdQuestCondition::ScrapAnyEquipment(times)]
+				vec![Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyEquipment(times))]
 			}
 			RequirementsSubCategory::Scrapship => {
-				vec![Kc3rdQuestCondition::ScrapAnyShip(times)]
+				vec![Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyShip(times))]
 			}
 			RequirementsSubCategory::Ship => {
-				vec![Kc3rdQuestCondition::Construct(times)]
+				vec![Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::ShipConstruction(
+					times,
+				))]
 			}
 		}
 	}

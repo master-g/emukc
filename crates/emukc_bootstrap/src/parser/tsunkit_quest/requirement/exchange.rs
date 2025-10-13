@@ -17,16 +17,22 @@ impl Requirements {
 		// Scrap
 		if let Some((slot_items, use_items)) = self.extract_scrap(mst) {
 			if !slot_items.is_empty() {
-				conditions.push(Kc3rdQuestCondition::SlotItemScrap(slot_items));
+				conditions.push(Kc3rdQuestCondition::Scrap(
+					Kc3rdQuestConditionScrap::SpecificItems(slot_items),
+				));
 			}
 			if !use_items.is_empty() {
-				conditions.push(Kc3rdQuestCondition::UseItemConsumption(use_items));
+				conditions.push(Kc3rdQuestCondition::Consumption(
+					Kc3rdQuestConditionConsumption::UseItemConsumption(use_items),
+				));
 			}
 		}
 
 		// Consume
 		if let Some(slotitem_consume) = self.extract_slotitem_consume(mst) {
-			conditions.push(Kc3rdQuestCondition::SlotItemConsumption(slotitem_consume));
+			conditions.push(Kc3rdQuestCondition::Consumption(
+				Kc3rdQuestConditionConsumption::SlotItemConsumption(slotitem_consume),
+			));
 		}
 
 		conditions

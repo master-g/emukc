@@ -20,7 +20,7 @@ impl Requirements {
 		} else {
 			KcSortieResult::Any
 		};
-		vec![Kc3rdQuestCondition::Excercise(Kc3rdQuestConditionExcerise {
+		vec![Kc3rdQuestCondition::Excercise(Kc3rdQuestConditionExcercise {
 			times,
 			expect_result,
 			expire_next_day,

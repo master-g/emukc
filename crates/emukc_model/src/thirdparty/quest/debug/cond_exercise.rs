@@ -1,8 +1,8 @@
-use crate::{kc2::start2::ApiManifest, thirdparty::Kc3rdQuestConditionExcerise};
+use crate::{kc2::start2::ApiManifest, thirdparty::Kc3rdQuestConditionExcercise};
 
 use super::Kc3rdQuestDebugJson;
 
-impl Kc3rdQuestDebugJson for Kc3rdQuestConditionExcerise {
+impl Kc3rdQuestDebugJson for Kc3rdQuestConditionExcercise {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
 		let groups = self.groups.as_ref().map(|groups| {
 			groups.iter().map(|g| g.to_json(mst)).collect::<Vec<serde_json::Value>>()

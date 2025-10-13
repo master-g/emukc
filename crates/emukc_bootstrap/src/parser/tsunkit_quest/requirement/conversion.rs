@@ -17,10 +17,14 @@ impl Requirements {
 		// Extract scrap
 		if let Some((slot_items, use_items)) = self.extract_scrap(mst) {
 			if !slot_items.is_empty() {
-				conditions.push(Kc3rdQuestCondition::SlotItemScrap(slot_items));
+				conditions.push(Kc3rdQuestCondition::Scrap(
+					Kc3rdQuestConditionScrap::SpecificItems(slot_items),
+				));
 			}
 			if !use_items.is_empty() {
-				conditions.push(Kc3rdQuestCondition::UseItemConsumption(use_items));
+				conditions.push(Kc3rdQuestCondition::Consumption(
+					Kc3rdQuestConditionConsumption::UseItemConsumption(use_items),
+				));
 			}
 		}
 
@@ -46,17 +50,21 @@ impl Requirements {
 		let banned_secretary = self
 			.secretary_banned
 			.as_ref()
-			.map(|v| Kc3rdQuestConditionShip::Ships(v.ship_id.clone()));
+			.map(|v| Kc3rdQuestConditionShip::Ship(v.ship_id.clone()));
 
 		// Extract slots
 		let slots = self.extract_slots(mst);
 
 		// Extract consume
-		if let Some(useitem_consume) = self.extract_useitem_consume(mst) {
-			conditions.push(Kc3rdQuestCondition::UseItemConsumption(useitem_consume));
+		if let Some(c) = self.extract_useitem_consume(mst) {
+			conditions.push(Kc3rdQuestCondition::Consumption(
+				Kc3rdQuestConditionConsumption::UseItemConsumption(c),
+			));
 		}
-		if let Some(slotitem_consume) = self.extract_slotitem_consume(mst) {
-			conditions.push(Kc3rdQuestCondition::SlotItemConsumption(slotitem_consume));
+		if let Some(c) = self.extract_slotitem_consume(mst) {
+			conditions.push(Kc3rdQuestCondition::Consumption(
+				Kc3rdQuestConditionConsumption::SlotItemConsumption(c),
+			));
 		}
 
 		if secretary.is_none() && banned_secretary.is_none() && slots.is_none() {
@@ -96,7 +104,7 @@ impl Requirements {
 
 					Some(Kc3rdQuestConditionEquipInSlot {
 						item: Kc3rdQuestConditionSlotItem {
-							item_type: Kc3rdQuestConditionSlotItemType::Equipment(api_id),
+							item_type: Kc3rdQuestConditionSlotItemType::single_equipment(api_id),
 							amount: 1,
 							stars,
 							fully_skilled,
@@ -134,7 +142,7 @@ impl Requirements {
 								error!("slot item type not found: {}", id);
 								return None;
 							}
-							Kc3rdQuestConditionSlotItemType::EquipType(id)
+							Kc3rdQuestConditionSlotItemType::single_type(id)
 						}
 						ConsumeCategory::Equipment => {
 							if let Some(m) = mst.find_slotitem(id) {
@@ -143,7 +151,7 @@ impl Requirements {
 								error!("slot item not found: {}", id);
 								return None;
 							}
-							Kc3rdQuestConditionSlotItemType::Equipment(id)
+							Kc3rdQuestConditionSlotItemType::single_equipment(id)
 						}
 						ConsumeCategory::Inventory => return None,
 					};

@@ -51,12 +51,14 @@ impl Requirements {
 
 	pub(super) fn extract_resource_consumption(&self) -> Option<Kc3rdQuestCondition> {
 		self.resources.as_ref().map(|resources| {
-			Kc3rdQuestCondition::ResourceConsumption(Kc3rdQuestConditionMaterialConsumption {
-				fuel: resources[0],
-				ammo: resources[1],
-				steel: resources[2],
-				bauxite: resources[3],
-			})
+			Kc3rdQuestCondition::Consumption(Kc3rdQuestConditionConsumption::Resources(
+				Kc3rdQuestConditionMaterialConsumption {
+					fuel: resources[0],
+					ammo: resources[1],
+					steel: resources[2],
+					bauxite: resources[3],
+				},
+			))
 		})
 	}
 
@@ -76,7 +78,7 @@ impl Requirements {
 						Some(mst) => {
 							debug!("slot item found: {}, {}", mst.api_id, mst.api_name);
 							Some(Kc3rdQuestConditionSlotItem {
-								item_type: Kc3rdQuestConditionSlotItemType::Equipment(id),
+								item_type: Kc3rdQuestConditionSlotItemType::single_equipment(id),
 								amount,
 								stars: 0,
 								fully_skilled: false,
@@ -88,7 +90,7 @@ impl Requirements {
 						Some(mst) => {
 							debug!("slot item type found: {}, {}", mst.api_id, mst.api_name);
 							Some(Kc3rdQuestConditionSlotItem {
-								item_type: Kc3rdQuestConditionSlotItemType::EquipType(id),
+								item_type: Kc3rdQuestConditionSlotItemType::single_type(id),
 								amount,
 								stars: 0,
 								fully_skilled: false,
@@ -110,7 +112,7 @@ impl Requirements {
 		if let Some(res) = self.extract_resource_consumption() {
 			all.push(res);
 		}
-		all.push(Kc3rdQuestCondition::SlotItemScrap(slotitems));
+		all.push(Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(slotitems)));
 
 		all
 	}
@@ -194,7 +196,7 @@ impl Requirements {
 									return None;
 								}
 								Some(Kc3rdQuestConditionSlotItem {
-									item_type: Kc3rdQuestConditionSlotItemType::EquipType(api_id),
+									item_type: Kc3rdQuestConditionSlotItemType::single_type(api_id),
 									amount: c.amount,
 									stars,
 									fully_skilled: false,
@@ -211,7 +213,9 @@ impl Requirements {
 									return None;
 								}
 								Some(Kc3rdQuestConditionSlotItem {
-									item_type: Kc3rdQuestConditionSlotItemType::Equipment(api_id),
+									item_type: Kc3rdQuestConditionSlotItemType::single_equipment(
+										api_id,
+									),
 									amount: c.amount,
 									stars,
 									fully_skilled: false,

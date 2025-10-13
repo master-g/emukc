@@ -22,14 +22,10 @@ where
 	if let Some(slots) = info.slots.as_ref() {
 		for slot in slots {
 			match &slot.item.item_type {
-				Kc3rdQuestConditionSlotItemType::Equipment(id) => {
-					handle_slotitem_consumption(c, profile_id, info, &[*id]).await?;
-				}
-				Kc3rdQuestConditionSlotItemType::Equipments(ids) => {
+				Kc3rdQuestConditionSlotItemType::Equipment(ids) => {
 					handle_slotitem_consumption(c, profile_id, info, ids).await?;
 				}
-				Kc3rdQuestConditionSlotItemType::EquipType(_) => todo!(),
-				Kc3rdQuestConditionSlotItemType::EquipTypes(items) => {
+				Kc3rdQuestConditionSlotItemType::EquipType(items) => {
 					todo!()
 				}
 			}

@@ -220,24 +220,69 @@ impl Default for Kc3rdQuestRequirement {
 /// Quest condition
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestCondition {
+	// Fleet
 	Composition(Kc3rdQuestConditionComposition),
-	Construct(i64),
-	Excercise(Kc3rdQuestConditionExcerise),
-	Expedition(Vec<Kc3rdQuestConditionExpedition>),
-	ModelConversion(Kc3rdQuestConditionModelConversion),
-	Modernization(Kc3rdQuestConditionModernization),
-	Repair(i64),
-	ResourceConsumption(Kc3rdQuestConditionMaterialConsumption),
-	Resupply(i64),
-	ScrapAnyEquipment(i64),
-	ScrapAnyShip(i64),
-	Sink(Kc3rdQuestConditionShip, i64),
-	SlotItemConstruction(i64),
-	SlotItemConsumption(Vec<Kc3rdQuestConditionSlotItem>),
-	SlotItemImprovement(i64),
-	SlotItemScrap(Vec<Kc3rdQuestConditionSlotItem>),
+
+	// Combat
+	Excercise(Kc3rdQuestConditionExcercise),
 	Sortie(Kc3rdQuestConditionSortie),
-	SortieCount(i64),
+	Sink(Kc3rdQuestConditionShip, i64),
+
+	// Expedition
+	Expedition(Vec<Kc3rdQuestConditionExpedition>),
+
+	// Factory
+	Factory(Kc3rdQuestConditionFactory),
+
+	// Scrap
+	Scrap(Kc3rdQuestConditionScrap),
+
+	// Consumption
+	Consumption(Kc3rdQuestConditionConsumption),
+
+	// Other
+	Modernization(Kc3rdQuestConditionModernization),
+	ModelConversion(Kc3rdQuestConditionModelConversion),
+	Repair(i64),
+	Resupply(i64),
+}
+
+/// Factory related condtions
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestConditionFactory {
+	/// Ship construction
+	ShipConstruction(i64),
+
+	/// Slot item construction
+	SlotItemConstruction(i64),
+
+	/// Slot item improvement
+	SlotItemImprovment(i64),
+}
+
+/// Scrap related conditions
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestConditionScrap {
+	/// Any slot item
+	AnyEquipment(i64),
+
+	/// Any ship
+	AnyShip(i64),
+
+	/// Specific slot item
+	SpecificItems(Vec<Kc3rdQuestConditionSlotItem>),
+}
+
+/// Consumption related conditions
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Kc3rdQuestConditionConsumption {
+	/// Material consumption
+	Resources(Kc3rdQuestConditionMaterialConsumption),
+
+	/// Slot item consumption
+	SlotItemConsumption(Vec<Kc3rdQuestConditionSlotItem>),
+
+	/// Use item consumption
 	UseItemConsumption(Vec<Kc3rdQuestConditionUseItemConsumption>),
 }
 
@@ -263,17 +308,21 @@ pub struct Kc3rdQuestConditionUseItemConsumption {
 /// Quest condition slot item type
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestConditionSlotItemType {
-	/// Exact slot item
-	Equipment(i64),
+	/// List of `api_mst_slotitem.api_id`
+	Equipment(Vec<i64>),
 
-	/// One of the slot items
-	Equipments(Vec<i64>),
+	/// Slot item type
+	EquipType(Vec<i64>),
+}
 
-	/// Exact slot item type
-	EquipType(i64),
+impl Kc3rdQuestConditionSlotItemType {
+	pub fn single_equipment(id: i64) -> Self {
+		Self::Equipment(vec![id])
+	}
 
-	/// One of the slot item types
-	EquipTypes(Vec<i64>),
+	pub fn single_type(id: i64) -> Self {
+		Self::EquipType(vec![id])
+	}
 }
 
 /// Quest condition slot item
@@ -307,7 +356,7 @@ pub struct Kc3rdQuestConditionEquipInSlot {
 
 /// Quest condition excercise
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Kc3rdQuestConditionExcerise {
+pub struct Kc3rdQuestConditionExcercise {
 	/// excercise times
 	pub times: i64,
 
@@ -333,24 +382,54 @@ pub enum Kc3rdQuestShipNavy {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Kc3rdQuestConditionShip {
 	Any,
-	Ship(i64),
-	Ships(Vec<i64>),
-	ShipType(i64),
-	ShipTypes(Vec<i64>),
-	ShipClass(i64),
-	ShipClasses(Vec<i64>),
-	Navy(Kc3rdQuestShipNavy),
-	Navies(Vec<Kc3rdQuestShipNavy>),
+	Ship(Vec<i64>),
+	ShipType(Vec<i64>),
+	ShipClass(Vec<i64>),
+	Navy(Vec<Kc3rdQuestShipNavy>),
 	HighSpeed,
 	LowSpeed,
 	Aviation,
 	Carrier,
 }
 
+impl Kc3rdQuestConditionShip {
+	pub fn single_ship(id: i64) -> Self {
+		Self::Ship(vec![id])
+	}
+
+	pub fn single_type(id: i64) -> Self {
+		Self::ShipType(vec![id])
+	}
+
+	pub fn single_class(id: i64) -> Self {
+		Self::ShipClass(vec![id])
+	}
+
+	pub fn single_navy(navy: Kc3rdQuestShipNavy) -> Self {
+		Self::Navy(vec![navy])
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum Kc3rdQuestShipAmount {
-	Exactly(i64),
-	Range(i64, i64),
+pub struct Kc3rdQuestShipAmount {
+	pub min: i64,
+	pub max: i64,
+}
+
+impl Kc3rdQuestShipAmount {
+	pub fn exact(amount: i64) -> Self {
+		Self {
+			min: amount,
+			max: amount,
+		}
+	}
+
+	pub fn range(min: i64, max: i64) -> Self {
+		Self {
+			min,
+			max,
+		}
+	}
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -419,7 +498,7 @@ pub enum Kc3rdQuestConditionSortieMap {
 	AnyOf(Vec<Kc3rdQuestConditionMapInfo>),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct Kc3rdQuestConditionSortie {
 	/// ship group
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -450,15 +529,15 @@ impl Kc3rdQuestRequirement {
 			Kc3rdQuestRequirement::And(conds) => conds
 				.iter()
 				.map(|c| match c {
-					Kc3rdQuestCondition::UseItemConsumption(item) => {
-						item.iter().fold(0, |acc, f| {
-							acc + if f.api_id == KcUseItemType::Medal as i64 {
-								f.amount
-							} else {
-								0
-							}
-						})
-					}
+					Kc3rdQuestCondition::Consumption(
+						Kc3rdQuestConditionConsumption::UseItemConsumption(items),
+					) => items.iter().fold(0, |acc, f| {
+						acc + if f.api_id == KcUseItemType::Medal as i64 {
+							f.amount
+						} else {
+							0
+						}
+					}),
 					_ => 0,
 				})
 				.sum(),
@@ -572,37 +651,21 @@ impl Kc3rdQuest {
 				Kc3rdQuestCondition::ModelConversion(cond) => {
 					if let Some(cond) = &cond.slots
 						&& let Some(first) = cond.first()
+						&& let Kc3rdQuestConditionSlotItemType::Equipment(ids) =
+							&first.item.item_type
 					{
-						match &first.item.item_type {
-							Kc3rdQuestConditionSlotItemType::Equipment(id) => {
-								from_id = *id;
-								break;
-							}
-							Kc3rdQuestConditionSlotItemType::Equipments(items) => {
-								if let Some(id) = items.first().copied() {
-									from_id = id;
-									break;
-								}
-							}
-							_ => {}
-						}
+						from_id = ids.first().copied().unwrap_or(0);
+						break;
 					}
 				}
-				Kc3rdQuestCondition::SlotItemConsumption(cond) => {
-					if let Some(first) = cond.first() {
-						match &first.item_type {
-							Kc3rdQuestConditionSlotItemType::Equipment(id) => {
-								from_id = *id;
-								break;
-							}
-							Kc3rdQuestConditionSlotItemType::Equipments(items) => {
-								if let Some(id) = items.first().copied() {
-									from_id = id;
-									break;
-								}
-							}
-							_ => {}
-						}
+				Kc3rdQuestCondition::Consumption(
+					Kc3rdQuestConditionConsumption::SlotItemConsumption(items),
+				) => {
+					if let Some(first) = items.first()
+						&& let Kc3rdQuestConditionSlotItemType::Equipment(ids) = &first.item_type
+					{
+						from_id = ids.first().copied().unwrap_or(0);
+						break;
 					}
 				}
 				_ => {}

@@ -10,8 +10,7 @@ use emukc_model::{
 	codex::{Codex, query::FoundInCodex},
 	kc2::KcApiQuestClearItemGet,
 	thirdparty::{
-		Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestConditionSlotItemType, Kc3rdQuestRequirement,
-		reward::get_quest_rewards,
+		Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement, reward::get_quest_rewards,
 	},
 };
 use emukc_time::chrono;
@@ -270,9 +269,7 @@ where
 			Kc3rdQuestCondition::ModelConversion(conversion) => {
 				handle_module_conversion(c, profile_id, conversion).await?;
 			}
-			Kc3rdQuestCondition::ResourceConsumption(res_consumption) => todo!(),
-			Kc3rdQuestCondition::SlotItemConsumption(slotitem_consumptioni) => todo!(),
-			Kc3rdQuestCondition::UseItemConsumption(useitem_consumption) => todo!(),
+			Kc3rdQuestCondition::Consumption(res_consumption) => todo!(),
 			_ => {}
 		}
 	}

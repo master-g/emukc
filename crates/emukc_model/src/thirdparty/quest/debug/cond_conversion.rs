@@ -35,13 +35,7 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestConditionEquipInSlot {
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionSlotItem {
 	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
 		let items = match &self.item_type {
-			Kc3rdQuestConditionSlotItemType::Equipment(id) => {
-				mst.find_slotitem(*id).map(|item| item.api_name.clone()).unwrap_or_else(|| {
-					error!("Unknown item ID: {}", id);
-					"n/a".to_string()
-				})
-			}
-			Kc3rdQuestConditionSlotItemType::Equipments(ids) => ids
+			Kc3rdQuestConditionSlotItemType::Equipment(ids) => ids
 				.iter()
 				.map(|id| {
 					mst.find_slotitem(*id).map(|item| item.api_name.clone()).unwrap_or_else(|| {
@@ -51,13 +45,7 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestConditionSlotItem {
 				})
 				.collect::<Vec<String>>()
 				.join(", "),
-			Kc3rdQuestConditionSlotItemType::EquipType(id) => {
-				mst.find_slotitem_type(*id).map(|item| item.api_name.clone()).unwrap_or_else(|| {
-					error!("Unknown item type ID: {}", id);
-					"n/a".to_string()
-				})
-			}
-			Kc3rdQuestConditionSlotItemType::EquipTypes(ids) => ids
+			Kc3rdQuestConditionSlotItemType::EquipType(ids) => ids
 				.iter()
 				.map(|id| {
 					mst.find_slotitem_type(*id).map(|item| item.api_name.clone()).unwrap_or_else(

@@ -13,7 +13,7 @@ impl Requirements {
 		let target_ship = match &self.class_id {
 			Some(class_id) => class_id.to_kc3rd_ship_class(mst),
 			None => match &self.family_id {
-				Some(family_id) => Some(Kc3rdQuestConditionShip::ShipClass(*family_id)),
+				Some(family_id) => Some(Kc3rdQuestConditionShip::single_class(*family_id)),
 				None => {
 					error!("modernization requirement must have a class_id or family_id");
 					return vec![];

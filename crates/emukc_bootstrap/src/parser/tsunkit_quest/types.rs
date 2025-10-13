@@ -9,13 +9,13 @@ impl ClassId {
 		match self {
 			ClassId::Integer(id) => {
 				mst.find_ship(*id)?;
-				Some(Kc3rdQuestConditionShip::Ship(*id))
+				Some(Kc3rdQuestConditionShip::single_ship(*id))
 			}
 			ClassId::IntegerArray(ids) => {
 				if ids.iter().any(|id| mst.find_ship(*id).is_none()) {
 					return None;
 				}
-				Some(Kc3rdQuestConditionShip::Ships(ids.clone()))
+				Some(Kc3rdQuestConditionShip::Ship(ids.clone()))
 			}
 		}
 	}
@@ -24,13 +24,13 @@ impl ClassId {
 		match self {
 			ClassId::Integer(id) => {
 				mst.find_ship_class(*id)?;
-				Some(Kc3rdQuestConditionShip::ShipClass(*id))
+				Some(Kc3rdQuestConditionShip::single_class(*id))
 			}
 			ClassId::IntegerArray(ids) => {
 				if ids.iter().any(|id| mst.find_ship_class(*id).is_none()) {
 					return None;
 				}
-				Some(Kc3rdQuestConditionShip::ShipClasses(ids.clone()))
+				Some(Kc3rdQuestConditionShip::ShipClass(ids.clone()))
 			}
 		}
 	}
@@ -39,35 +39,35 @@ impl ClassId {
 		match self {
 			ClassId::Integer(id) => {
 				mst.find_ship_type(*id)?;
-				Some(Kc3rdQuestConditionShip::ShipType(*id))
+				Some(Kc3rdQuestConditionShip::single_type(*id))
 			}
 			ClassId::IntegerArray(ids) => {
 				if ids.iter().any(|id| mst.find_ship_type(*id).is_none()) {
 					return None;
 				}
-				Some(Kc3rdQuestConditionShip::ShipTypes(ids.clone()))
+				Some(Kc3rdQuestConditionShip::ShipType(ids.clone()))
 			}
 		}
 	}
 
 	pub(super) fn find_ship_group(id: i64) -> Option<Kc3rdQuestConditionShip> {
 		if id > 5000 && id < 6000 {
-			return Some(Kc3rdQuestConditionShip::ShipType(id - 5000));
+			return Some(Kc3rdQuestConditionShip::single_type(id - 5000));
 		}
 		match id {
 			1100 => Some(Kc3rdQuestConditionShip::HighSpeed),
-			4001 => Some(Kc3rdQuestConditionShip::Navy(Kc3rdQuestShipNavy::USN)), // USN
-			4002 => Some(Kc3rdQuestConditionShip::Navy(Kc3rdQuestShipNavy::RN)),  // RN
+			4001 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::USN)), // USN
+			4002 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::RN)),  // RN
 			// TODO: these two might not be correct, but since they always appear together, it's fine
-			4004 => Some(Kc3rdQuestConditionShip::Navy(Kc3rdQuestShipNavy::RNN)), // RNN
-			4005 => Some(Kc3rdQuestConditionShip::Navy(Kc3rdQuestShipNavy::RAN)), // RAN
+			4004 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::RNN)), // RNN
+			4005 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::RAN)), // RAN
 			_ => None,
 		}
 	}
 
 	fn find_ship_groups(ids: &[i64]) -> Option<Kc3rdQuestConditionShip> {
 		if ids.iter().all(|id| *id > 5000 && *id < 6000) {
-			Some(Kc3rdQuestConditionShip::ShipTypes(ids.iter().map(|id| id - 5000).collect()))
+			Some(Kc3rdQuestConditionShip::ShipType(ids.iter().map(|id| id - 5000).collect()))
 		} else if ids.iter().all(|id| *id > 1000 && *id < 2000) {
 			// FIXME: this is a hack, but it's fine for now
 			Some(Kc3rdQuestConditionShip::HighSpeed)
@@ -85,7 +85,7 @@ impl ClassId {
 			if navies.is_empty() {
 				return None;
 			}
-			Some(Kc3rdQuestConditionShip::Navies(navies))
+			Some(Kc3rdQuestConditionShip::Navy(navies))
 		}
 	}
 
@@ -98,14 +98,14 @@ impl ClassId {
 
 	pub(super) fn to_kc3rd_amount(&self) -> Kc3rdQuestShipAmount {
 		match self {
-			ClassId::Integer(id) => Kc3rdQuestShipAmount::Exactly(*id),
+			ClassId::Integer(id) => Kc3rdQuestShipAmount::exact(*id),
 			ClassId::IntegerArray(ids) => {
 				if ids.is_empty() {
-					Kc3rdQuestShipAmount::Exactly(1)
+					Kc3rdQuestShipAmount::exact(1)
 				} else if ids.len() == 1 {
-					Kc3rdQuestShipAmount::Exactly(ids[0])
+					Kc3rdQuestShipAmount::exact(ids[0])
 				} else {
-					Kc3rdQuestShipAmount::Range(ids[0], ids[1])
+					Kc3rdQuestShipAmount::range(ids[0], ids[1])
 				}
 			}
 		}
@@ -141,7 +141,7 @@ impl RequirementsComp {
 				.group_id
 				.iter()
 				.filter_map(|group_id| match ClassId::find_ship_group(*group_id) {
-					Some(Kc3rdQuestConditionShip::Ships(ids)) => Some(ids),
+					Some(Kc3rdQuestConditionShip::Ship(ids)) => Some(ids),
 					_ => None,
 				})
 				.flat_map(std::iter::IntoIterator::into_iter)
@@ -151,7 +151,7 @@ impl RequirementsComp {
 		let amount = if let Some(amt) = &self.amount {
 			amt.to_kc3rd_amount()
 		} else {
-			Kc3rdQuestShipAmount::Exactly(1)
+			Kc3rdQuestShipAmount::exact(1)
 		};
 
 		Some(Kc3rdQuestConditionShipGroup {
