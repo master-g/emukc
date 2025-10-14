@@ -104,7 +104,7 @@ pub struct Kc3rdSlotItemImproveRequirements {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Kc3rdSlotItemImprovment {
+pub struct Kc3rdSlotItemImprovement {
 	/// base material consumption
 	pub base_consumption: Kc3rdSlotItemImproveBaseConsumption,
 
@@ -153,5 +153,5 @@ pub struct Kc3rdSlotItem {
 
 	/// improvement
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub improvement: Option<Kc3rdSlotItemImprovment>,
+	pub improvement: Option<Kc3rdSlotItemImprovement>,
 }

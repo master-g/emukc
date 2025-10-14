@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, path::Path};
 use emukc_model::prelude::{
 	Kc3rdSlotItem, Kc3rdSlotItemAswDamageType, Kc3rdSlotItemImproveBaseConsumption,
 	Kc3rdSlotItemImproveItemConsumption, Kc3rdSlotItemImprovePerLevelConsumption,
-	Kc3rdSlotItemImproveRequirements, Kc3rdSlotItemImproveSecretary, Kc3rdSlotItemImprovment,
+	Kc3rdSlotItemImproveRequirements, Kc3rdSlotItemImproveSecretary, Kc3rdSlotItemImprovement,
 	Kc3rdSlotItemRemodelVariant,
 };
 use serde::{Deserialize, Serialize};
@@ -72,13 +72,13 @@ pub type Secretary2WeekInfo = BTreeMap<String, WeekInfo>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum ImprovmentEquipConsumption {
+pub enum ImprovementEquipConsumption {
 	Bool(bool),
 	Map(BTreeMap<String, i64>),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ImprovmentExtraConsumption {
+pub struct ImprovementExtraConsumption {
 	#[serde(rename = "_development_material")]
 	pub development_material: i64,
 
@@ -86,7 +86,7 @@ pub struct ImprovmentExtraConsumption {
 	pub development_material_x: StringOrInt,
 
 	#[serde(rename = "_equipment")]
-	pub equipment: ImprovmentEquipConsumption,
+	pub equipment: ImprovementEquipConsumption,
 
 	#[serde(rename = "_improvement_material")]
 	pub improvement_material: i64,
@@ -98,7 +98,7 @@ pub struct ImprovmentExtraConsumption {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Product {
-	Level2Consumption(ImprovmentExtraConsumption),
+	Level2Consumption(ImprovementExtraConsumption),
 	Secretary2WeekInfo(Secretary2WeekInfo),
 	Stars(Option<BoolOrInt>),
 }
@@ -238,10 +238,10 @@ fn parse_level_consumption(
 		let mut use_item_consumptions = vec![];
 
 		match &consumption.equipment {
-			ImprovmentEquipConsumption::Bool(true) => {
+			ImprovementEquipConsumption::Bool(true) => {
 				error!("`{}` has equipment improvements, but a `true` is unexpected", mst_id);
 			}
-			ImprovmentEquipConsumption::Map(map) => {
+			ImprovementEquipConsumption::Map(map) => {
 				for (k, v) in map.iter() {
 					if k == "true" {
 						slot_item_consumptions.push(Kc3rdSlotItemImproveItemConsumption {
@@ -474,7 +474,7 @@ pub(super) fn parse(
 						}
 					}
 
-					Some(Kc3rdSlotItemImprovment {
+					Some(Kc3rdSlotItemImprovement {
 						base_consumption,
 						level_consumption: level_consumption_option,
 						remodel_variants: if remodel_variants.is_empty() {

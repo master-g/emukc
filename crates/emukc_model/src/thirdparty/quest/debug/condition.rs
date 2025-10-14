@@ -15,8 +15,8 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestCondition {
 				"type": "COMPOSITION",
 				"composition": comp.to_json(mst),
 			}),
-			Kc3rdQuestCondition::Excercise(info) => serde_json::json!({
-				"type": "EXCERCISE",
+			Kc3rdQuestCondition::Exercise(info) => serde_json::json!({
+				"type": "EXERCISE",
 				"info": info.to_json(mst),
 			}),
 			Kc3rdQuestCondition::Expedition(info) => serde_json::json!({
@@ -61,7 +61,7 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestCondition {
 						"times": n,
 					})
 				}
-				Kc3rdQuestConditionFactory::SlotItemImprovment(n) => {
+				Kc3rdQuestConditionFactory::SlotItemImprovement(n) => {
 					serde_json::json!({
 						"type": "FACTORY_SLOT_ITEM_IMPROVEMENT",
 						"times": n,

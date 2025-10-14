@@ -397,10 +397,10 @@ impl From<TsunkitQuestCategory> for Kc3rdQuestCategory {
 	fn from(value: TsunkitQuestCategory) -> Self {
 		match value {
 			TsunkitQuestCategory::Composition => Kc3rdQuestCategory::Composition,
-			TsunkitQuestCategory::Exercise => Kc3rdQuestCategory::Excercise,
+			TsunkitQuestCategory::Exercise => Kc3rdQuestCategory::Exercise,
 			TsunkitQuestCategory::Expedition => Kc3rdQuestCategory::Expedition,
 			TsunkitQuestCategory::Factory => Kc3rdQuestCategory::Factory,
-			TsunkitQuestCategory::Modernization => Kc3rdQuestCategory::Mordenization,
+			TsunkitQuestCategory::Modernization => Kc3rdQuestCategory::Modernization,
 			TsunkitQuestCategory::Sortie => Kc3rdQuestCategory::Sortie,
 			TsunkitQuestCategory::Supply => Kc3rdQuestCategory::SupplyOrDocking,
 		}

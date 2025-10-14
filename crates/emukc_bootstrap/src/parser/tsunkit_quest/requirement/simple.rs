@@ -24,7 +24,7 @@ impl Requirements {
 				)]
 			}
 			RequirementsSubCategory::Improvement => {
-				vec![Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovment(
+				vec![Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(
 					times,
 				))]
 			}

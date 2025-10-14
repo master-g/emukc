@@ -56,7 +56,7 @@ pub enum Kc3rdQuestCategory {
 	Sortie = 2,
 
 	/// 演習
-	Excercise = 3,
+	Exercise = 3,
 
 	/// 遠征
 	Expedition = 4,
@@ -68,7 +68,7 @@ pub enum Kc3rdQuestCategory {
 	Factory = 6,
 
 	/// 近代化改修
-	Mordenization = 7,
+	Modernization = 7,
 
 	/// 出撃/演習
 	SortieExercises = 8,
@@ -88,11 +88,11 @@ impl From<i64> for Kc3rdQuestCategory {
 		match value {
 			1 => Self::Composition,
 			2 => Self::Sortie,
-			3 => Self::Excercise,
+			3 => Self::Exercise,
 			4 => Self::Expedition,
 			5 => Self::SupplyOrDocking,
 			6 => Self::Factory,
-			7 => Self::Mordenization,
+			7 => Self::Modernization,
 			8 => Self::SortieExercises,
 			9 => Self::Sortie3,
 			10 => Self::Sortie4,
@@ -224,7 +224,7 @@ pub enum Kc3rdQuestCondition {
 	Composition(Kc3rdQuestConditionComposition),
 
 	// Combat
-	Excercise(Kc3rdQuestConditionExcercise),
+	Exercise(Kc3rdQuestConditionExercise),
 	Sortie(Kc3rdQuestConditionSortie),
 	Sink(Kc3rdQuestConditionShip, i64),
 
@@ -257,7 +257,7 @@ pub enum Kc3rdQuestConditionFactory {
 	SlotItemConstruction(i64),
 
 	/// Slot item improvement
-	SlotItemImprovment(i64),
+	SlotItemImprovement(i64),
 }
 
 /// Scrap related conditions
@@ -354,13 +354,13 @@ pub struct Kc3rdQuestConditionEquipInSlot {
 	pub keep_stars: bool,
 }
 
-/// Quest condition excercise
+/// Quest condition exercise
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Kc3rdQuestConditionExcercise {
-	/// excercise times
+pub struct Kc3rdQuestConditionExercise {
+	/// exercise times
 	pub times: i64,
 
-	/// excercise result
+	/// exercise result
 	pub expect_result: KcSortieResult,
 
 	/// will the quest expire next day

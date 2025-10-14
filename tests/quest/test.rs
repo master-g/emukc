@@ -81,6 +81,6 @@ fn main() {
 
 	let codex = load_codex();
 	dump_all_model_conversion_quest_reward_api_response(&codex);
-	// println!("\n\n\n\n\n\n");
-	// dump2(&codex);
+	println!("\n\n\n\n\n\n");
+	dump2(&codex);
 }
