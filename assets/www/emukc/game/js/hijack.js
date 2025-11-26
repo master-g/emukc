@@ -5,11 +5,12 @@ var ConstServerInfo = {};
 ConstServerInfo.Gadget = originWithSlash;
 ConstServerInfo.OSAPI = document.location.host + "&dmmuser_id={{uid}}";
 ConstServerInfo.NETGAME = originWithSlash;
+ConstServerInfo.World = [];
 
 console.log(ConstServerInfo);
 
 for (var i = 1; i <= 20; i++) {
-	ConstServerInfo["World_" + i] = originWithSlash;
+	ConstServerInfo.World.push(originWithSlash);
 }
 
 var ConstURLInfo = {};

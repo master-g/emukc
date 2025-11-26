@@ -26,7 +26,7 @@ pub struct KcwikiShip {
 	#[serde(rename = "_armor_mod")]
 	armor_mod: BoolOrInt,
 	#[serde(rename = "_asw")]
-	asw: Option<i64>,
+	asw: Option<BoolOrInt>,
 	#[serde(rename = "_asw_max")]
 	asw_max: Option<BoolOrInt>,
 	#[serde(rename = "_buildable")]
@@ -42,9 +42,9 @@ pub struct KcwikiShip {
 	#[serde(rename = "_evasion_max")]
 	evasion_max: Option<i64>,
 	#[serde(rename = "_firepower")]
-	firepower: i64,
+	firepower: BoolOrInt,
 	#[serde(rename = "_firepower_max")]
-	firepower_max: i64,
+	firepower_max: BoolOrInt,
 	#[serde(rename = "_firepower_mod")]
 	firepower_mod: BoolOrInt,
 	#[serde(rename = "_fuel")]
@@ -74,7 +74,7 @@ pub struct KcwikiShip {
 	#[serde(rename = "_remodel_to")]
 	remodel_to: BoolOrString,
 	#[serde(rename = "_torpedo")]
-	torpedo: i64,
+	torpedo: BoolOrInt,
 	#[serde(rename = "_torpedo_max")]
 	torpedo_max: BoolOrInt,
 	#[serde(rename = "_torpedo_mod")]
@@ -194,8 +194,13 @@ pub(super) fn parse(
 		}
 
 		let evasion_max: i64 = Into::<Option<i64>>::into(wiki_ship.evasion_max).unwrap_or(0);
-		let aws_max: i64 = if let Some(aws_max) = wiki_ship.asw_max {
+		let asw_max: i64 = if let Some(aws_max) = wiki_ship.asw_max {
 			Into::<Option<i64>>::into(aws_max).unwrap_or(0)
+		} else {
+			0
+		};
+		let asw_min: i64 = if let Some(aws_min) = wiki_ship.asw {
+			Into::<Option<i64>>::into(aws_min).unwrap_or(0)
 		} else {
 			0
 		};
@@ -288,7 +293,7 @@ pub(super) fn parse(
 			Kc3rdShip {
 				api_id,
 				kaih: [wiki_ship.evasion.unwrap_or(0), evasion_max],
-				tais: [wiki_ship.asw.unwrap_or(0), aws_max],
+				tais: [asw_min, asw_max],
 				saku: [wiki_ship.los.unwrap_or(0), wiki_ship.los_max.unwrap_or(0)],
 				luck: [wiki_ship.luck, wiki_ship.luck_max],
 				luck_bonus: if let LuckMod::Double(v) = wiki_ship.luck_mod {
