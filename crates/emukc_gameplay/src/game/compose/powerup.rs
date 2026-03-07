@@ -1,4 +1,4 @@
-use rand::{Rng, SeedableRng, rngs::SmallRng};
+use rand::{rng, RngExt};
 use std::{
 	collections::{BTreeMap, HashMap, HashSet},
 	sync::LazyLock,
@@ -160,8 +160,14 @@ where
 			acc
 		});
 
-	let mut rng = SmallRng::from_os_rng();
-	for (i, v) in base_power_ups.iter_mut().enumerate() {
+	// extra powerup, 0: Luck, 1: HP, 2: ASW
+	let mut extra_luck_powerup: i64 = 0;
+	let mut extra_hp_powerup: i64 = 0;
+	let mut extra_asw_powerup: i64 = 0;
+
+	{
+		let mut rng = rng();
+		for (i, v) in base_power_ups.iter_mut().enumerate() {
 		if *v == 0 || powerup_potentials[i] == 0 {
 			continue;
 		}
@@ -173,11 +179,6 @@ where
 			(vv + (vv + 2) / 5) / 2
 		};
 	}
-
-	// extra powerup, 0: Luck, 1: HP, 2: ASW
-	let mut extra_luck_powerup: i64 = 0;
-	let mut extra_hp_powerup: i64 = 0;
-	let mut extra_asw_powerup: i64 = 0;
 
 	// Maruyu luck bonus
 	{
@@ -336,6 +337,7 @@ where
 			}
 			result.success = true;
 		});
+	}
 	}
 
 	// remove material ships

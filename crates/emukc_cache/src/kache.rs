@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use rand::{SeedableRng, rngs::SmallRng, seq::SliceRandom};
+use rand::{rng, seq::SliceRandom};
 use redb::{Database, ReadableDatabase, TableDefinition};
 use tokio::io::AsyncReadExt;
 
@@ -479,7 +479,7 @@ impl Kache {
 
 		let cdn_list = if shuffle {
 			let mut cloned = cdn_list.clone();
-			let mut rng = SmallRng::from_os_rng();
+			let mut rng = rng();
 			cloned.shuffle(&mut rng);
 			cloned
 		} else {

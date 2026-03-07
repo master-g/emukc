@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use rand::{RngCore, SeedableRng, rngs::SmallRng, seq::IndexedRandom};
+use rand::{rng, RngExt, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;
@@ -92,19 +92,22 @@ pub(super) async fn handler(
 		1
 	};
 
-	let mut r = SmallRng::from_os_rng();
-
-	for _ in 0..upper {
-		let next_u32 = r.next_u32() % 100;
-		if next_u32 % 100 > 30 {
-			let item = pool.choose(&mut r).ok_or(ApiError::Internal(
-				"cannot pick random from slotitem crafting pool".to_owned(),
-			))?;
-			crafted_mst_ids.push(item.api_id);
-		} else {
-			crafted_mst_ids.push(-1);
+	let crafted_mst_ids = {
+		let mut r = rng();
+		let mut ids = Vec::new();
+		for _ in 0..upper {
+			let next_u32 = r.random_range(0..100);
+			if next_u32 > 30 {
+				let item = pool.choose(&mut r).ok_or(ApiError::Internal(
+					"cannot pick random from slotitem crafting pool".to_owned(),
+				))?;
+				ids.push(item.api_id);
+			} else {
+				ids.push(-1);
+			}
 		}
-	}
+		ids
+	};
 
 	let (ids, material) = state.create_slotitem(pid, &crafted_mst_ids, &costs).await?;
 

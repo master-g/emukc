@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use anyhow::Result;
 use axum_server::Handle;
 use tokio::task::JoinHandle;
@@ -9,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 /// * Flush all telemetry data.
 ///
 /// A second signal will force an immediate shutdown.
-pub fn graceful_shutdown(ct: CancellationToken, http_handle: Handle) -> JoinHandle<()> {
+pub fn graceful_shutdown(ct: CancellationToken, http_handle: Handle<SocketAddr>) -> JoinHandle<()> {
 	tokio::spawn(async move {
 		let result = listen().await.expect("Failed to listen to shutdown signal");
 		info!(target: super::LOG_TAG, "{} received. Waiting for graceful shutdown... A second signal will force an immediate shutdown", result);

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rand::{Rng, SeedableRng, rngs::SmallRng, seq::IteratorRandom};
+use rand::{rng, RngExt, seq::IteratorRandom};
 
 use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},
@@ -727,7 +727,7 @@ where
 		}
 		2 => {
 			// irako
-			let mut rng = SmallRng::from_os_rng();
+			let mut rng = rng();
 			let lucky_count = rng.random_range(0..=3);
 			let mut luck_ship_id = vec![ships[0].id];
 			for _ in 0..lucky_count {
@@ -747,7 +747,7 @@ where
 		}
 		3 => {
 			// mamiya + irako
-			let mut rng = SmallRng::from_os_rng();
+			let mut rng = rng();
 			ships.iter_mut().enumerate().for_each(|(i, ship)| {
 				if i == 0 {
 					if ship.condition < 40 {

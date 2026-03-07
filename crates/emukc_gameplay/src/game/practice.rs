@@ -15,7 +15,7 @@ use emukc_time::{
 	KcTime,
 	chrono::{DateTime, Duration, Utc},
 };
-use rand::{Rng, SeedableRng, rngs::SmallRng, seq::IndexedRandom};
+use rand::{rng, RngExt, seq::IndexedRandom};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -284,9 +284,9 @@ where
 	let rival_uid_starts_from = current_uid + 10000;
 	let rival_ship_id_starts_from = current_ship_id + 10000;
 
-	let mut r = SmallRng::from_os_rng();
-
-	let rivals: Vec<Rival> = (1..6)
+	let rivals: Vec<Rival> = {
+		let mut r = rng();
+		(1..6)
 		.map(|i| {
 			let name = format!("Practice Rival {i}");
 			let comment = format!("I am your {i}th rival");
@@ -323,7 +323,8 @@ where
 				},
 			}
 		})
-		.collect();
+		.collect()
+	};
 
 	// remove old records
 

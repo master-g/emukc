@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use rand::{SeedableRng, rngs::SmallRng, seq::IndexedRandom};
+use rand::{rng, RngExt, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;
@@ -83,12 +83,13 @@ pub(super) async fn handler(
 		})
 		.collect();
 
-	let mut r = SmallRng::from_os_rng();
-
-	let ship = pool.choose(&mut r).ok_or(ApiError::Internal(format!(
-		"Failed to choose a ship from the pool of {} ships",
-		pool.len()
-	)))?;
+	let ship = {
+		let mut r = rng();
+		pool.choose(&mut r).ok_or(ApiError::Internal(format!(
+			"Failed to choose a ship from the pool of {} ships",
+			pool.len()
+		)))?
+	};
 
 	state
 		.create_ship(

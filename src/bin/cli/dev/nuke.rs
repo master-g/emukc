@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rand::{SeedableRng, rngs::SmallRng, seq::IndexedRandom};
+use rand::{rng, RngExt, seq::IndexedRandom};
 
 use emukc::{
 	model::profile::furniture::FurnitureConfig,
@@ -51,18 +51,25 @@ async fn add_ship_quietly(state: &State, pid: i64) -> Result<()> {
 
 	let codex = state.codex();
 
-	let mut rng = SmallRng::from_os_rng();
-	let mut i = 0;
-	loop {
-		let mst = codex.manifest.api_mst_ship.choose(&mut rng).unwrap();
-		if codex.ship_extra.contains_key(&mst.api_id) {
-			state.add_ship(pid, mst.api_id).await?;
-			i += 1;
+	let ship_ids: Vec<i64> = {
+		let mut rng = rng();
+		let mut ids = Vec::new();
+		let mut i = 0;
+		loop {
+			let mst = codex.manifest.api_mst_ship.choose(&mut rng).unwrap();
+			if codex.ship_extra.contains_key(&mst.api_id) {
+				ids.push(mst.api_id);
+				i += 1;
+			}
+			if i >= 90 {
+				break;
+			}
 		}
+		ids
+	};
 
-		if i >= 90 {
-			break;
-		}
+	for ship_id in ship_ids {
+		state.add_ship(pid, ship_id).await?;
 	}
 
 	Ok(())

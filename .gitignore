@@ -21,4 +21,7 @@
 # Environment
 .env
 
+# AI slop
+.omc/
+
 emukc.config.toml
