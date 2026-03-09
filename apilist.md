@@ -1,9 +1,8 @@
 # API Check List
 
-```plain
-api_dmm_payment/paycheck
+## Implemented APIs
 
-api_get_member/base_air_corps
+```plain
 api_get_member/basic
 api_get_member/chart_additional_info
 api_get_member/deck
@@ -32,32 +31,6 @@ api_get_member/useitem
 
 api_port/port
 
-api_req_air_corps/change_deployment_base
-api_req_air_corps/change_name
-api_req_air_corps/expand_base
-api_req_air_corps/expand_maintenance_level
-api_req_air_corps/set_action
-api_req_air_corps/set_plane
-api_req_air_corps/supply
-
-api_req_battle_midnight/battle
-api_req_battle_midnight/sp_midnight
-
-api_req_combined_battle/airbattle
-api_req_combined_battle/battle
-api_req_combined_battle/battle_water
-api_req_combined_battle/battleresult
-api_req_combined_battle/each_battle
-api_req_combined_battle/each_battle_water
-api_req_combined_battle/ec_battle
-api_req_combined_battle/ec_midnight_battle
-api_req_combined_battle/ec_night_to_day
-api_req_combined_battle/goback_port
-api_req_combined_battle/ld_airbattle
-api_req_combined_battle/ld_shooting
-api_req_combined_battle/midnight_battle
-api_req_combined_battle/sp_midnight
-
 api_req_furniture/buy
 api_req_furniture/change
 api_req_furniture/music_list
@@ -66,7 +39,7 @@ api_req_furniture/radio_play
 api_req_furniture/set_portbgm
 
 api_req_hensei/change
-api_req_hensei/combined 
+api_req_hensei/combined
 api_req_hensei/preset_delete
 api_req_hensei/preset_expand
 api_req_hensei/preset_register
@@ -103,16 +76,6 @@ api_req_kousyou/preset_dev_items_delete
 api_req_kousyou/preset_dev_items_expand
 api_req_kousyou/preset_dev_items_register
 api_req_kousyou/preset_dev_items_update_name
-api_req_kousyou/remodel_slot
-api_req_kousyou/remodel_slotlist
-api_req_kousyou/remodel_slotlist_detail
-
-api_req_map/air_raid
-api_req_map/anchorage_repair
-api_req_map/next
-api_req_map/select_eventmap_rank
-api_req_map/start
-api_req_map/start_air_base
 
 api_req_member/get_event_selected_reward
 api_req_member/get_incentive
@@ -127,18 +90,9 @@ api_req_member/set_oss_condition
 api_req_member/updatecomment
 api_req_member/updatedeckname
 
-api_req_mission/return_instruction
-api_req_mission/result
-api_req_mission/start
-
 api_req_nyukyo/open_new_dock
 api_req_nyukyo/speedchange
 api_req_nyukyo/start
-
-api_req_practice/battle
-api_req_practice/battle_result
-api_req_practice/change_matching_kind
-api_req_practice/midnight_battle
 
 api_req_quest/clearitemget
 api_req_quest/start
@@ -146,13 +100,120 @@ api_req_quest/stop
 
 api_req_ranking/mxltvkpyuklh
 
-api_req_sortie/airbattle
+api_start2/get_option_setting
+api_start2/getData
+```
+
+## Missing APIs (Not Yet Implemented)
+
+### Core Battle System
+```plain
 api_req_sortie/battle
+api_req_sortie/airbattle
 api_req_sortie/battleresult
 api_req_sortie/goback_port
 api_req_sortie/ld_airbattle
 api_req_sortie/ld_shooting
 
-api_start2/get_option_setting
-api_start2/getData
+api_req_battle_midnight/battle
+api_req_battle_midnight/sp_midnight
+
+api_req_combined_battle/airbattle
+api_req_combined_battle/battle
+api_req_combined_battle/battle_water
+api_req_combined_battle/battleresult
+api_req_combined_battle/each_battle
+api_req_combined_battle/each_battle_water
+api_req_combined_battle/ec_battle
+api_req_combined_battle/ec_midnight_battle
+api_req_combined_battle/ec_night_to_day
+api_req_combined_battle/goback_port
+api_req_combined_battle/ld_airbattle
+api_req_combined_battle/ld_shooting
+api_req_combined_battle/midnight_battle
+api_req_combined_battle/sp_midnight
 ```
+
+### Map & Sortie System
+```plain
+api_req_map/start
+api_req_map/next
+api_req_map/select_eventmap_rank
+api_req_map/air_raid
+api_req_map/anchorage_repair
+api_req_map/start_air_base
+```
+
+### Mission System
+```plain
+api_req_mission/start
+api_req_mission/result
+api_req_mission/return_instruction
+```
+
+### Practice System
+```plain
+api_req_practice/battle
+api_req_practice/battle_result
+api_req_practice/midnight_battle
+api_req_practice/change_matching_kind
+```
+
+### Air Corps System
+```plain
+api_get_member/base_air_corps
+api_req_air_corps/set_plane
+api_req_air_corps/set_action
+api_req_air_corps/supply
+api_req_air_corps/change_name
+api_req_air_corps/change_deployment_base
+api_req_air_corps/expand_base
+api_req_air_corps/expand_maintenance_level
+api_req_air_corps/cond_recovery
+api_port/airCorpsCondRecoveryWithTimer
+```
+
+### Equipment Improvement
+```plain
+api_req_kousyou/remodel_slot
+api_req_kousyou/remodel_slotlist
+api_req_kousyou/remodel_slotlist_detail
+```
+
+### Fleet Preset
+```plain
+api_req_hensei/preset_lock
+api_req_hensei/preset_order_change
+```
+
+### Equipment Preset
+```plain
+api_req_kaisou/preset_slot_update_exslot_flag
+```
+
+### Payment System
+```plain
+api_dmm_payment/paycheck
+```
+
+### Other
+```plain
+api_req_member/registration_sp
+```
+
+## Implementation Priority
+
+### High Priority (Core Gameplay)
+1. **Map & Sortie System** - Required for basic gameplay
+2. **Battle System** - Core combat mechanics
+3. **Mission System** - Expedition functionality
+
+### Medium Priority (Enhanced Features)
+4. **Practice System** - PvP functionality
+5. **Air Corps System** - Event map support
+6. **Equipment Improvement** - Arsenal functionality
+
+### Low Priority (Optional Features)
+7. **Fleet/Equipment Presets** - QoL enhancements
+8. **Payment System** - Monetization
+9. **Misc utilities**
