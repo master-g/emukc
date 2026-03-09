@@ -6,6 +6,10 @@ cache_root = "./z/cache"
 mods_root = "./z/mods"
 # the hostname or ip address to listen for connections on
 bind = "0.0.0.0:27666"
+# TLS certificate file (optional, for HTTPS)
+# tls_cert = "cert.pem"
+# TLS private key file (optional, for HTTPS)
+# tls_key = "key.pem"
 # the proxy to use for fetch missing game resources
 proxy = "socks5://127.0.0.1:1086"
 # html gadgets

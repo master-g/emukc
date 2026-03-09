@@ -81,12 +81,20 @@ pub(super) async fn run(ct: CancellationToken, cfg: &AppConfig, state: &State) -
 	let handle = Handle::new();
 	let shutdown_handler = graceful_shutdown(ct, handle.clone());
 
-	info!(target: LOG_TAG, "listening on: {}", &cfg.bind);
-
-	axum_server::bind(cfg.bind)
-		.handle(handle)
-		.serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
-		.await?;
+	if let (Some(cert), Some(key)) = (&cfg.tls_cert, &cfg.tls_key) {
+		info!(target: LOG_TAG, "listening on: https://{}", &cfg.bind);
+		let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert, key).await?;
+		axum_server::bind_rustls(cfg.bind, tls_config)
+			.handle(handle)
+			.serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
+			.await?;
+	} else {
+		info!(target: LOG_TAG, "listening on: http://{}", &cfg.bind);
+		axum_server::bind(cfg.bind)
+			.handle(handle)
+			.serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
+			.await?;
+	}
 
 	// wait for the shutdown signal
 	let _ = shutdown_handler.await;

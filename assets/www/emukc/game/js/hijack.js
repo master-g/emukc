@@ -47,7 +47,7 @@ function kcsOptions_Save(options) {
 	var vEnd = 2592000;
 	var sPath = "/";
 	var sDomain = "localhost";
-	var bSecure = false;
+	var bSecure = location.protocol === 'https:';
 	docCookies.setItem(sKey, sValue, vEnd, sPath, sDomain, bSecure);
 }
 

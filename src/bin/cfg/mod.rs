@@ -28,6 +28,12 @@ pub struct AppConfig {
 	/// addr to bind the server to
 	pub bind: std::net::SocketAddr,
 
+	/// TLS certificate file path
+	pub tls_cert: Option<PathBuf>,
+
+	/// TLS private key file path
+	pub tls_key: Option<PathBuf>,
+
 	/// Proxy server to use for HTTP requests
 	pub proxy: Option<String>,
 
