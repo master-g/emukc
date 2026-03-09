@@ -14,7 +14,7 @@ mod img;
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	let mut version_file =

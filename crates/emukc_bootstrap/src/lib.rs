@@ -30,7 +30,8 @@ pub mod prelude {
 	pub use crate::download::BootstrapDownloadError;
 	pub use crate::download::download_all;
 	pub use crate::make_list::{
-		CacheListMakeStrategy, errors::CacheListMakingError, make as make_cache_list,
+		CacheListMakeStrategy, config::GreedyConfig, errors::CacheListMakingError,
+		make as make_cache_list,
 	};
 	pub use crate::parser::parse_partial_codex;
 	pub use crate::populate::populate;

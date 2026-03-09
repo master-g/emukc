@@ -10,7 +10,7 @@ mod bgm;
 mod furniture;
 mod gauge;
 mod map;
-mod ship;
+pub(crate) mod ship;
 mod slot;
 mod unversioned;
 mod use_item;
@@ -18,7 +18,7 @@ mod use_item;
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	bgm::make(mst, strategy, list).await?;

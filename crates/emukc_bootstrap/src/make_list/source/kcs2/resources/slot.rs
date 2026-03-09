@@ -15,10 +15,10 @@ use crate::{
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return Ok(());
 	}
 
@@ -30,10 +30,10 @@ pub(super) async fn make(
 			make_btxt_flat(mst, list);
 			make_character(mst, list);
 		}
-		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_enemy_plane_greedy(cache, concurrent, list).await?;
-			make_btxt_flat_greedy(mst, cache, concurrent, list).await?;
-			make_character_greedy(mst, cache, concurrent, list).await?;
+		CacheListMakeStrategy::Greedy(config) => {
+			make_enemy_plane_greedy(cache, config.concurrent, list).await?;
+			make_btxt_flat_greedy(mst, cache, config.concurrent, list).await?;
+			make_character_greedy(mst, cache, config.concurrent, list).await?;
 		}
 		_ => {}
 	};
@@ -106,7 +106,8 @@ async fn make_enemy_plane_greedy(
 		(1..=50).map(|v| (format!("kcs2/resources/plane/e{v:03}.png"), "".to_string())).collect();
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, _), exists) in check_result {
 		if exists {
@@ -145,7 +146,8 @@ async fn make_btxt_flat_greedy(
 		.collect();
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, _), exists) in check_result {
 		if exists {
@@ -224,7 +226,8 @@ async fn make_character_greedy(
 		.collect();
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {

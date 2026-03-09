@@ -83,7 +83,7 @@ async fn prepare_resources(cfg: &AppConfig, state: &State) -> Result<()> {
 		&state.codex,
 		&state.kache,
 		&cache_list_path,
-		strategy,
+		strategy.clone(),
 		true,
 	)
 	.await

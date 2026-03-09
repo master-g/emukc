@@ -43,10 +43,10 @@ struct Popup {
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return Ok(());
 	}
 
@@ -68,9 +68,9 @@ pub(super) async fn make(
 			make_reward_predefined(mst, list);
 			// make_extra_greedy("card", mst, cache, list, 16).await?;
 		}
-		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_extra_greedy("reward", mst, cache, list, concurrent).await?;
-			make_extra_greedy("card", mst, cache, list, concurrent).await?;
+		CacheListMakeStrategy::Greedy(config) => {
+			make_extra_greedy("reward", mst, cache, list, config.concurrent).await?;
+			make_extra_greedy("card", mst, cache, list, config.concurrent).await?;
 		}
 	}
 
@@ -177,7 +177,8 @@ async fn make_extra_greedy(
 		.collect();
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {

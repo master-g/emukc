@@ -5,7 +5,7 @@ use super::{CacheList, CacheListMakeStrategy, errors::CacheListMakingError};
 
 mod gadget_html5;
 mod kcs;
-mod kcs2;
+pub(crate) mod kcs2;
 
 /// Make a list of caches.
 ///
@@ -26,7 +26,7 @@ pub(super) async fn make(
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	gadget_html5::make(&codex.manifest, kache, list).await?;
-	kcs::make(codex, kache, strategy, list).await?;
+	kcs::make(codex, kache, strategy.clone(), list).await?;
 	kcs2::make(&codex.manifest, kache, strategy, list).await?;
 
 	Ok(())

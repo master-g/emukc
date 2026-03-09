@@ -172,13 +172,13 @@ static DEFAULT_MAPS: LazyLock<&[&str]> = LazyLock::new(|| {
 
 pub(super) async fn make(
 	_cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	// get default area maps
 	get_default_areas(list);
 
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return Ok(());
 	}
 

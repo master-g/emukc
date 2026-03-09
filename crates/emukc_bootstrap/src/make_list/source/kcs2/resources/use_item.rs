@@ -11,15 +11,15 @@ use crate::{
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	match strategy {
 		CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {
 			make_useitem(list);
 		}
-		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_useitem_greedy(mst, cache, concurrent, list).await?;
+		CacheListMakeStrategy::Greedy(config) => {
+			make_useitem_greedy(mst, cache, config.concurrent, list).await?;
 		}
 	};
 
@@ -44,7 +44,8 @@ async fn make_useitem_greedy(
 		.collect();
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {

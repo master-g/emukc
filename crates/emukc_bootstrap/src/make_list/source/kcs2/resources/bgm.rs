@@ -31,10 +31,10 @@ static BATTLE_BGM_ID: LazyLock<Vec<i64>> = LazyLock::new(|| {
 
 pub(super) async fn make(
 	mst: &ApiManifest,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return Ok(());
 	}
 

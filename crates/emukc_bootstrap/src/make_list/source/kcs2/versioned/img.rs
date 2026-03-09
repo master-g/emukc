@@ -545,7 +545,7 @@ pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
 	versions: &BTreeMap<String, String>,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
 	for p in LIST.iter() {
@@ -562,8 +562,8 @@ pub(super) async fn make(
 				list.add(format!("kcs2/img/port/friendly_ship/{p}"), v);
 			}
 		}
-		CacheListMakeStrategy::Greedy(concurrency) => {
-			make_greedy(mst, cache, versions, concurrency, list).await?;
+		CacheListMakeStrategy::Greedy(config) => {
+			make_greedy(mst, cache, versions, config.concurrent, list).await?;
 		}
 	}
 	// make_greedy(mst, cache, versions, 16, list).await?;
@@ -592,7 +592,8 @@ async fn make_greedy(
 		.collect();
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, _), exists) in check_result {
 		if exists {

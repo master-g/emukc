@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use emukc_cache::{IntoVersion, Kache, KacheError};
 use emukc_crypto::SuffixUtils;
@@ -9,13 +9,23 @@ use crate::{
 	prelude::CacheListMakingError,
 };
 
+static HOLES_COLLECTOR: LazyLock<Mutex<Vec<String>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+
+pub fn get_holes_report() -> Vec<String> {
+	HOLES_COLLECTOR.lock().unwrap().clone()
+}
+
+pub fn clear_holes_report() {
+	HOLES_COLLECTOR.lock().unwrap().clear();
+}
+
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return Ok(());
 	}
 
@@ -30,13 +40,13 @@ pub(super) async fn make(
 			make_ship_type(mst, list);
 			make_ship_reward_res(mst, list);
 		}
-		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_ship_special_greedy(mst, cache, concurrent, list).await?;
-			make_friend_event_graph_greedy(mst, cache, concurrent, list).await?;
-			make_enemy_graph_greedy(mst, cache, concurrent, list).await?;
-			make_sp_remodel_greedy(mst, cache, concurrent, list).await?;
-			make_ship_type_greedy(mst, cache, concurrent, list).await?;
-			make_ship_reward_res_greedy(mst, cache, concurrent, list).await?;
+		CacheListMakeStrategy::Greedy(config) => {
+			make_ship_special_greedy(mst, cache, config.concurrent, list).await?;
+			make_friend_event_graph_greedy(mst, cache, config.concurrent, list).await?;
+			make_enemy_graph_greedy(mst, cache, config.concurrent, list).await?;
+			make_sp_remodel_greedy(mst, cache, config.concurrent, list).await?;
+			make_ship_type_greedy(mst, cache, config.concurrent, list).await?;
+			make_ship_reward_res_greedy(mst, cache, config.concurrent, list).await?;
 		}
 		_ => {}
 	};
@@ -129,34 +139,64 @@ async fn make_friend_event_graph_greedy(
 	concurrent: usize,
 	list: &mut CacheList,
 ) -> Result<(), KacheError> {
-	let checks: Vec<(String, String)> = mst
-		.api_mst_shipgraph
-		.iter()
-		.filter(|v| v.api_id > 5000)
-		.flat_map(|v| {
-			let ship_id = format!("{0:04}", v.api_id);
-			["character_full", "character_full_dmg", "character_up", "character_up_dmg"].map(
-				|category| {
-					(
-						format!(
-							"kcs2/resources/ship/{category}/{ship_id}_{}.png",
-							SuffixUtils::create(&ship_id, format!("ship_{category}").as_str()),
-						),
-						v.api_version.first().cloned().unwrap_or_default(),
-					)
-				},
-			)
-		})
-		.collect();
+	use std::collections::BTreeMap;
+
+	let mut checks_by_id: BTreeMap<i64, Vec<(String, String, &str)>> = BTreeMap::new();
+
+	for v in mst.api_mst_shipgraph.iter().filter(|v| v.api_id > 5000) {
+		let ship_id = format!("{0:04}", v.api_id);
+		let version = v.api_version.first().cloned().unwrap_or_default();
+
+		for category in ["character_full", "character_full_dmg", "character_up", "character_up_dmg"]
+		{
+			let path = format!(
+				"kcs2/resources/ship/{category}/{ship_id}_{}.png",
+				SuffixUtils::create(&ship_id, format!("ship_{category}").as_str()),
+			);
+			checks_by_id.entry(v.api_id).or_default().push((path, version.clone(), category));
+		}
+	}
+
+	let checks: Vec<(String, String)> =
+		checks_by_id.values().flatten().map(|(p, v, _)| (p.clone(), v.clone())).collect();
 
 	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
-	for ((p, v), exists) in check_result {
-		if exists {
-			println!("{p}, {v}");
-			list.add(p, v);
+	let mut holes_full = vec![];
+	let mut holes_full_dmg = vec![];
+	let mut holes_up = vec![];
+	let mut holes_up_dmg = vec![];
+
+	for (ship_id, checks) in checks_by_id {
+		for (path, version, category) in checks {
+			if let Some(&exists) = check_result.get(&(path.clone(), version.clone())) {
+				if exists {
+					list.add(path, version);
+				} else {
+					match category {
+						"character_full" => holes_full.push(ship_id),
+						"character_full_dmg" => holes_full_dmg.push(ship_id),
+						"character_up" => holes_up.push(ship_id),
+						"character_up_dmg" => holes_up_dmg.push(ship_id),
+						_ => {}
+					}
+				}
+			}
 		}
+	}
+
+	if !holes_full.is_empty()
+		|| !holes_full_dmg.is_empty()
+		|| !holes_up.is_empty()
+		|| !holes_up_dmg.is_empty()
+	{
+		let report = format!(
+			"EVENT_SHIP_HOLES:\n  full: vec!{:?},\n  full_dmg: vec!{:?},\n  up: vec!{:?},\n  up_dmg: vec!{:?},",
+			holes_full, holes_full_dmg, holes_up, holes_up_dmg
+		);
+		HOLES_COLLECTOR.lock().unwrap().push(report);
 	}
 
 	Ok(())
@@ -264,7 +304,8 @@ async fn make_enemy_graph_greedy(
 		.collect();
 
 	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {
@@ -423,7 +464,8 @@ async fn make_ship_special_greedy(
 		.collect();
 
 	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {
@@ -494,7 +536,8 @@ async fn make_sp_remodel_greedy(
 		.collect();
 
 	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {
@@ -577,7 +620,8 @@ async fn make_ship_type_greedy(
 		.collect();
 
 	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {
@@ -639,7 +683,8 @@ async fn make_ship_reward_res_greedy(
 		.collect();
 
 	let c = Arc::new(kache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 
 	for ((p, v), exists) in check_result {
 		if exists {

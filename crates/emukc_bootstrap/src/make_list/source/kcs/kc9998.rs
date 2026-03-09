@@ -12,9 +12,9 @@ static MISSING_IDS: LazyLock<Vec<u64>> =
 pub(super) fn make(
 	cache_source: &Option<CacheSource>,
 	list: &mut CacheList,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 ) {
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return;
 	}
 

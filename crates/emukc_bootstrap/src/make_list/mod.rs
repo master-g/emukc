@@ -12,19 +12,22 @@ use emukc_model::codex::Codex;
 use errors::CacheListMakingError;
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 
+pub mod config;
 pub mod errors;
+pub mod holes_report;
+pub mod progress;
 
 mod source;
 
 /// Strategy for making a cache list.
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CacheListMakeStrategy {
 	/// Default strategy
 	Default,
 	/// Minimal strategy
 	Minimal,
-	/// Greedy strategy
-	Greedy(usize),
+	/// Greedy strategy with configuration
+	Greedy(config::GreedyConfig),
 }
 
 /// A single cache list entry
@@ -111,7 +114,7 @@ pub async fn make(
 
 	let mut list = CacheList::new();
 
-	source::make(codex, kache, strategy, &mut list).await?;
+	source::make(codex, kache, strategy.clone(), &mut list).await?;
 
 	for item in list.items.iter() {
 		let line = serde_json::to_string(item)?;
@@ -129,10 +132,40 @@ pub async fn make(
 
 	info!("cache list made to {:?}", out);
 
+	// Generate holes report for greedy mode
+	if matches!(strategy, CacheListMakeStrategy::Greedy(_)) {
+		let holes_path = out.parent().unwrap_or(std::path::Path::new(".")).join("holes_report.txt");
+		let holes = source::kcs2::resources::ship::get_holes_report();
+		if !holes.is_empty() {
+			let mut holes_file = OpenOptions::new()
+				.write(true)
+				.create(true)
+				.truncate(true)
+				.open(&holes_path)
+				.await?;
+			holes_file.write_all(b"// Generated holes report - copy to source files\n\n").await?;
+			for hole in holes {
+				holes_file.write_all(hole.as_bytes()).await?;
+				holes_file.write_all(b"\n\n").await?;
+			}
+			holes_file.sync_all().await?;
+			info!("holes report saved to {:?}", holes_path);
+		}
+		source::kcs2::resources::ship::clear_holes_report();
+	}
+
 	Ok(())
 }
 
 const MAX_CHECK_SIZE: usize = 32;
+
+/// Helper to extract concurrent value from strategy
+pub(crate) fn get_concurrent(strategy: &CacheListMakeStrategy) -> usize {
+	match strategy {
+		CacheListMakeStrategy::Greedy(config) => config.concurrent,
+		_ => 16,
+	}
+}
 
 /// Check if a list of URLs exist on the remote cache.
 ///
@@ -141,6 +174,7 @@ const MAX_CHECK_SIZE: usize = 32;
 /// * `cache` - The remote cache to check against.
 /// * `urls` - The list of URLs to check.
 /// * `concurrent` - The maximum number of concurrent checks.
+/// * `tracker` - Optional progress tracker.
 ///
 /// # Returns
 ///
@@ -149,10 +183,12 @@ pub async fn batch_check_exists(
 	cache: Arc<Kache>,
 	mut urls: Vec<(String, String)>,
 	concurrent: usize,
+	tracker: Option<Arc<progress::ProgressTracker>>,
 ) -> Result<HashMap<(String, String), bool>, KacheError> {
 	let q = concurrent.clamp(1, MAX_CHECK_SIZE);
 	let mut result: HashMap<(String, String), bool> = HashMap::new();
 	let mut tasks = FuturesUnordered::new();
+	let mut check_count = 0;
 
 	loop {
 		while tasks.len() < q {
@@ -160,8 +196,15 @@ pub async fn batch_check_exists(
 				Some((url, ver)) => {
 					let c = cache.clone();
 					let key = url.clone();
+					let t = tracker.clone();
 					tasks.push(async move {
 						let exists = c.exists_on_remote(&key, &ver).await?;
+						if let Some(tracker) = t {
+							tracker.increment_checked();
+							if exists {
+								tracker.increment_found();
+							}
+						}
 						Ok::<((String, String), bool), KacheError>(((key, ver), exists))
 					});
 				}
@@ -178,6 +221,12 @@ pub async fn batch_check_exists(
 		match tasks.next().await {
 			Some(Ok(((key, ver), exists))) => {
 				result.insert((key, ver), exists);
+				check_count += 1;
+				if let Some(ref t) = tracker {
+					if check_count % 100 == 0 {
+						t.report();
+					}
+				}
 			}
 			Some(Err(err)) => {
 				return Err(err);
@@ -186,6 +235,10 @@ pub async fn batch_check_exists(
 				break;
 			}
 		}
+	}
+
+	if let Some(ref t) = tracker {
+		t.report();
 	}
 
 	Ok(result)

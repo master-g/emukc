@@ -15,10 +15,10 @@ use crate::{
 pub(super) async fn make(
 	mst: &ApiManifest,
 	cache: &Kache,
-	strategy: CacheListMakeStrategy,
+	strategy: &CacheListMakeStrategy,
 	list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	if strategy == CacheListMakeStrategy::Minimal {
+	if *strategy == CacheListMakeStrategy::Minimal {
 		return Ok(());
 	}
 
@@ -28,8 +28,8 @@ pub(super) async fn make(
 			make_special_preset(mst, list);
 		}
 
-		CacheListMakeStrategy::Greedy(concurrent) => {
-			make_special_greedy(mst, cache, concurrent, list).await?;
+		CacheListMakeStrategy::Greedy(config) => {
+			make_special_greedy(mst, cache, config.concurrent, list).await?;
 		}
 		_ => {}
 	};
@@ -228,7 +228,8 @@ async fn make_special_greedy(
 	}
 
 	let c = Arc::new(cache.clone());
-	let check_result = batch_check_exists(c, checks, concurrent).await?;
+	let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
+	let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
 	for ((p, v), exists) in check_result {
 		if exists {
 			if let Some((ship_id, voice_id)) = lookups.get(&p) {

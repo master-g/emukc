@@ -32,7 +32,11 @@ pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result
 	});
 
 	let strategy = if args.greedy {
-		CacheListMakeStrategy::Greedy(args.concurrent.unwrap_or_default())
+		use emukc::bootstrap::prelude::GreedyConfig;
+		let greedy_config = GreedyConfig {
+			concurrent: args.concurrent.unwrap_or(16),
+		};
+		CacheListMakeStrategy::Greedy(greedy_config)
 	} else {
 		CacheListMakeStrategy::Default
 	};

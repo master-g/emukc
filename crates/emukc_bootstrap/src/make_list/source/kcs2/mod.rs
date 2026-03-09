@@ -8,7 +8,7 @@ use crate::{
 };
 
 mod plain;
-mod resources;
+pub(crate) mod resources;
 mod versioned;
 
 pub(super) async fn make(
@@ -19,8 +19,8 @@ pub(super) async fn make(
 ) -> Result<(), CacheListMakingError> {
 	plain::make(kache, list).await?;
 
-	versioned::make(mst, kache, strategy, list).await?;
-	resources::make(mst, kache, strategy, list).await?;
+	versioned::make(mst, kache, &strategy, list).await?;
+	resources::make(mst, kache, &strategy, list).await?;
 
 	Ok(())
 }
