@@ -54,7 +54,7 @@ mime_guess = "2.0.5"
 open = "5.3.3"
 png = "0.18.1"
 rand = { version = "0.10.0", features = ["sys_rng", "std_rng", "thread_rng"] }
-redb = "3.1.0"
+redb = "3.1.1"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", default-features = false, features = [
 	"default-tls",
