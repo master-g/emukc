@@ -131,7 +131,12 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 	let session = state.start_game(&info.access_token.token, 1).await?;
 	let port = cfg.bind.port();
 
-	let url = format!("http://localhost:{port}/emukc?api_token={}", session.session.token);
+	let scheme = if cfg.tls_cert.is_some() && cfg.tls_key.is_some() {
+		"https"
+	} else {
+		"http"
+	};
+	let url = format!("{scheme}://localhost:{port}/emukc?api_token={}", session.session.token);
 	println!("{url}");
 
 	// start server in another thread

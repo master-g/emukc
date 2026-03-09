@@ -1,6 +1,7 @@
 use axum::{Router, routing::post};
 
 mod basic;
+mod chart_additional_info;
 mod deck;
 mod furniture;
 mod kdock;
@@ -12,6 +13,7 @@ mod payitem;
 mod picture_book;
 mod practice;
 mod preset_deck;
+mod preset_dev_items;
 mod preset_slot;
 mod questlist;
 mod record;
@@ -27,6 +29,7 @@ mod useitem;
 pub(super) fn router() -> Router {
 	Router::new()
 		.route("/basic", post(basic::handler))
+		.route("/chart_additional_info", post(chart_additional_info::handler))
 		.route("/deck", post(deck::handler))
 		.route("/furniture", post(furniture::handler))
 		.route("/kdock", post(kdock::handler))
@@ -38,6 +41,7 @@ pub(super) fn router() -> Router {
 		.route("/picture_book", post(picture_book::handler))
 		.route("/practice", post(practice::handler))
 		.route("/preset_deck", post(preset_deck::handler))
+		.route("/preset_dev_items", post(preset_dev_items::handler))
 		.route("/preset_slot", post(preset_slot::handler))
 		.route("/questlist", post(questlist::handler))
 		.route("/record", post(record::handler))

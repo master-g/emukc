@@ -15,6 +15,9 @@ pub struct Model {
 
 	/// preset slot max limit
 	pub slot_limit: i64,
+
+	/// preset dev item max limit
+	pub dev_item_limit: i64,
 }
 
 /// Relation

@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use rand::{rng, RngExt, seq::IndexedRandom};
+use rand::{RngExt, rng, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 
 use emukc_internal::prelude::*;

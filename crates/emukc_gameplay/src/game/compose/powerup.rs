@@ -1,4 +1,4 @@
-use rand::{rng, RngExt};
+use rand::{RngExt, rng};
 use std::{
 	collections::{BTreeMap, HashMap, HashSet},
 	sync::LazyLock,
@@ -168,176 +168,176 @@ where
 	{
 		let mut rng = rng();
 		for (i, v) in base_power_ups.iter_mut().enumerate() {
-		if *v == 0 || powerup_potentials[i] == 0 {
-			continue;
+			if *v == 0 || powerup_potentials[i] == 0 {
+				continue;
+			}
+			let vv = *v;
+			*v = if rng.random_bool(0.5) {
+				result.success = true;
+				vv + ((vv + 1) / 5)
+			} else {
+				(vv + (vv + 2) / 5) / 2
+			};
 		}
-		let vv = *v;
-		*v = if rng.random_bool(0.5) {
-			result.success = true;
-			vv + ((vv + 1) / 5)
-		} else {
-			(vv + (vv + 2) / 5) / 2
-		};
-	}
 
-	// Maruyu luck bonus
-	{
-		// collect all Maruyu from material ships
-		let maruyu_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 163).cloned().collect();
-		let maruyu_kai_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 402).cloned().collect();
-
-		// calculate luck bonus
-		if let Some(rate) =
-			MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
-			&& rng.random_bool(*rate)
+		// Maruyu luck bonus
 		{
-			extra_luck_powerup += (maruyu_ships.len() as f64 * 1.2
-				+ maruyu_kai_ships.len() as f64 * 1.6)
-				.ceil() as i64;
-		}
-	}
+			// collect all Maruyu from material ships
+			let maruyu_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 163).cloned().collect();
+			let maruyu_kai_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 402).cloned().collect();
 
-	// Mizuho/Kamoi HP bonus
-	{
-		// mizuho 瑞穂 451
-		// mizuho kai 瑞穂改 348
-		// kamoi 神威 162
-		// kamoi kai 神威改 499
-		// kamoi kai b 神威改母 500
-		let mizuho_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 451).cloned().collect();
-		let mizuho_kai_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 348).cloned().collect();
-		let kamoi_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 162).cloned().collect();
-		let kamoi_kai_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 499).cloned().collect();
-		let kamoi_kai_b_ships: Vec<ship::Model> =
-			material_ships.iter().filter(|m| m.mst_id == 500).cloned().collect();
-
-		// mizuho/kamoi must be used in pairs
-		let num_of_mizuho = mizuho_ships.len() + mizuho_kai_ships.len();
-		if num_of_mizuho > 1 && [62, 72].contains(&target_ship_mst.api_ctype) {
-			// mizuho can only be used to power up mizuho/kamoi
-			let mut remaining_mizuho = mizuho_ships.len();
-			let remaining_mizuho_kai = mizuho_kai_ships.len();
-			let mut p = 0;
-
-			// pair kai first
-			let pairs_mizuho_kai = remaining_mizuho_kai / 2;
-			p += pairs_mizuho_kai * 80;
-
-			// on kai on base
-			let pairs_mizuho_mizuho_kai = remaining_mizuho.min(remaining_mizuho_kai);
-			p += pairs_mizuho_mizuho_kai * 70;
-			remaining_mizuho -= pairs_mizuho_mizuho_kai;
-
-			// pair base
-			let pairs_mizuho = remaining_mizuho / 2;
-			p += pairs_mizuho * 60;
-
-			let mut bonus = p / 100 * 2;
-			let remaining_p = p % 100;
-			if p > 0 && rng.random_bool(remaining_p as f64 / 100.0) {
-				bonus += 2;
+			// calculate luck bonus
+			if let Some(rate) =
+				MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
+				&& rng.random_bool(*rate)
+			{
+				extra_luck_powerup += (maruyu_ships.len() as f64 * 1.2
+					+ maruyu_kai_ships.len() as f64 * 1.6)
+					.ceil() as i64;
 			}
-
-			extra_hp_powerup += bonus as i64;
 		}
 
-		let num_of_kamoi = kamoi_ships.len() + kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
-		if num_of_kamoi > 1 && [62, 72, 41, 37].contains(&target_ship_mst.api_ctype) {
-			// kamoi can only be used to power up mizuho/kamoi and agano class, and yamato class
-			let mut remaining_kamoi = kamoi_ships.len();
-			let remaining_kamoi_kai = kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
-			let mut p = 0;
+		// Mizuho/Kamoi HP bonus
+		{
+			// mizuho 瑞穂 451
+			// mizuho kai 瑞穂改 348
+			// kamoi 神威 162
+			// kamoi kai 神威改 499
+			// kamoi kai b 神威改母 500
+			let mizuho_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 451).cloned().collect();
+			let mizuho_kai_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 348).cloned().collect();
+			let kamoi_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 162).cloned().collect();
+			let kamoi_kai_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 499).cloned().collect();
+			let kamoi_kai_b_ships: Vec<ship::Model> =
+				material_ships.iter().filter(|m| m.mst_id == 500).cloned().collect();
 
-			// pair kai first
-			let pairs_kamoi_kai = remaining_kamoi_kai / 2;
-			p += pairs_kamoi_kai * 80;
+			// mizuho/kamoi must be used in pairs
+			let num_of_mizuho = mizuho_ships.len() + mizuho_kai_ships.len();
+			if num_of_mizuho > 1 && [62, 72].contains(&target_ship_mst.api_ctype) {
+				// mizuho can only be used to power up mizuho/kamoi
+				let mut remaining_mizuho = mizuho_ships.len();
+				let remaining_mizuho_kai = mizuho_kai_ships.len();
+				let mut p = 0;
 
-			// on kai on base
-			let pairs_kamoi_kamoi_kai = remaining_kamoi.min(remaining_kamoi_kai);
-			p += pairs_kamoi_kamoi_kai * 70;
-			remaining_kamoi -= pairs_kamoi_kamoi_kai;
+				// pair kai first
+				let pairs_mizuho_kai = remaining_mizuho_kai / 2;
+				p += pairs_mizuho_kai * 80;
 
-			// pair base
-			let pairs_kamoi = remaining_kamoi / 2;
-			p += pairs_kamoi * 60;
+				// on kai on base
+				let pairs_mizuho_mizuho_kai = remaining_mizuho.min(remaining_mizuho_kai);
+				p += pairs_mizuho_mizuho_kai * 70;
+				remaining_mizuho -= pairs_mizuho_mizuho_kai;
 
-			let mut bonus = p / 100 * 2;
-			let remaining_p = p % 100;
-			if p > 0 && rng.random_bool(remaining_p as f64 / 100.0) {
-				bonus += 2;
-			}
+				// pair base
+				let pairs_mizuho = remaining_mizuho / 2;
+				p += pairs_mizuho * 60;
 
-			extra_hp_powerup += bonus as i64;
-		}
-	}
-
-	// DE bonus
-	{
-		let de_ships: Vec<DeGroupParam> = material_ships
-			.iter()
-			.filter_map(|s| {
-				let mst = codex.find::<ApiMstShip>(&s.mst_id).ok()?;
-				if mst.api_stype != KcShipType::DE as i64 {
-					None
-				} else {
-					Some((s, mst))
+				let mut bonus = p / 100 * 2;
+				let remaining_p = p % 100;
+				if p > 0 && rng.random_bool(remaining_p as f64 / 100.0) {
+					bonus += 2;
 				}
-			})
-			.map(|(s, mst)| DeGroupParam {
-				id: s.id,
-				mst_id: s.mst_id,
-				ctype: mst.api_ctype,
-			})
-			.collect();
 
-		let ship_id_model_lookup: HashMap<i64, &ship::Model> =
-			material_ships.iter().map(|s| (s.id, s)).collect();
-
-		let grouped = codex.group_de_ships(&de_ships);
-		grouped.hp_pairs.iter().for_each(|(id1, id2)| {
-			let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
-			let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
-			let hp_mod_rate = 26.0 + 0.35 * (lv1 + lv2);
-			if hp_mod_rate > 100.0 || rng.random_bool(hp_mod_rate / 100.0) {
-				extra_hp_powerup += 1;
-			} else {
-				extra_luck_powerup += 1;
+				extra_hp_powerup += bonus as i64;
 			}
 
-			let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
-			if asw_mod_rate > 100.0 || rng.random_bool(asw_mod_rate / 100.0) {
-				extra_asw_powerup += 1;
+			let num_of_kamoi = kamoi_ships.len() + kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
+			if num_of_kamoi > 1 && [62, 72, 41, 37].contains(&target_ship_mst.api_ctype) {
+				// kamoi can only be used to power up mizuho/kamoi and agano class, and yamato class
+				let mut remaining_kamoi = kamoi_ships.len();
+				let remaining_kamoi_kai = kamoi_kai_ships.len() + kamoi_kai_b_ships.len();
+				let mut p = 0;
+
+				// pair kai first
+				let pairs_kamoi_kai = remaining_kamoi_kai / 2;
+				p += pairs_kamoi_kai * 80;
+
+				// on kai on base
+				let pairs_kamoi_kamoi_kai = remaining_kamoi.min(remaining_kamoi_kai);
+				p += pairs_kamoi_kamoi_kai * 70;
+				remaining_kamoi -= pairs_kamoi_kamoi_kai;
+
+				// pair base
+				let pairs_kamoi = remaining_kamoi / 2;
+				p += pairs_kamoi * 60;
+
+				let mut bonus = p / 100 * 2;
+				let remaining_p = p % 100;
+				if p > 0 && rng.random_bool(remaining_p as f64 / 100.0) {
+					bonus += 2;
+				}
+
+				extra_hp_powerup += bonus as i64;
 			}
-			result.success = true;
-		});
-		grouped.other_pairs.iter().for_each(|(id1, id2)| {
-			let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
-			let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
-			let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
-			if asw_mod_rate > 100.0 || rng.random_bool(asw_mod_rate / 100.0) {
-				extra_asw_powerup += 1;
-			} else {
-				extra_luck_powerup += 1;
-			}
-			result.success = true;
-		});
-		grouped.rest.iter().for_each(|id| {
-			let lv = ship_id_model_lookup.get(id).unwrap().level as f64;
-			let luck_mod_rate = 32.0 + 0.7 * lv;
-			if luck_mod_rate > 100.0 || rng.random_bool(luck_mod_rate / 100.0) {
-				extra_luck_powerup += 1;
-			} else {
-				extra_asw_powerup += 1;
-			}
-			result.success = true;
-		});
-	}
+		}
+
+		// DE bonus
+		{
+			let de_ships: Vec<DeGroupParam> = material_ships
+				.iter()
+				.filter_map(|s| {
+					let mst = codex.find::<ApiMstShip>(&s.mst_id).ok()?;
+					if mst.api_stype != KcShipType::DE as i64 {
+						None
+					} else {
+						Some((s, mst))
+					}
+				})
+				.map(|(s, mst)| DeGroupParam {
+					id: s.id,
+					mst_id: s.mst_id,
+					ctype: mst.api_ctype,
+				})
+				.collect();
+
+			let ship_id_model_lookup: HashMap<i64, &ship::Model> =
+				material_ships.iter().map(|s| (s.id, s)).collect();
+
+			let grouped = codex.group_de_ships(&de_ships);
+			grouped.hp_pairs.iter().for_each(|(id1, id2)| {
+				let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
+				let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
+				let hp_mod_rate = 26.0 + 0.35 * (lv1 + lv2);
+				if hp_mod_rate > 100.0 || rng.random_bool(hp_mod_rate / 100.0) {
+					extra_hp_powerup += 1;
+				} else {
+					extra_luck_powerup += 1;
+				}
+
+				let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
+				if asw_mod_rate > 100.0 || rng.random_bool(asw_mod_rate / 100.0) {
+					extra_asw_powerup += 1;
+				}
+				result.success = true;
+			});
+			grouped.other_pairs.iter().for_each(|(id1, id2)| {
+				let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
+				let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
+				let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
+				if asw_mod_rate > 100.0 || rng.random_bool(asw_mod_rate / 100.0) {
+					extra_asw_powerup += 1;
+				} else {
+					extra_luck_powerup += 1;
+				}
+				result.success = true;
+			});
+			grouped.rest.iter().for_each(|id| {
+				let lv = ship_id_model_lookup.get(id).unwrap().level as f64;
+				let luck_mod_rate = 32.0 + 0.7 * lv;
+				if luck_mod_rate > 100.0 || rng.random_bool(luck_mod_rate / 100.0) {
+					extra_luck_powerup += 1;
+				} else {
+					extra_asw_powerup += 1;
+				}
+				result.success = true;
+			});
+		}
 	}
 
 	// remove material ships

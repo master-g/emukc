@@ -5,6 +5,7 @@ api_dmm_payment/paycheck
 
 api_get_member/base_air_corps
 api_get_member/basic
+api_get_member/chart_additional_info
 api_get_member/deck
 api_get_member/furniture
 api_get_member/kdock
@@ -16,6 +17,7 @@ api_get_member/payitem
 api_get_member/picture_book
 api_get_member/practice
 api_get_member/preset_deck
+api_get_member/preset_dev_items
 api_get_member/preset_slot
 api_get_member/questlist
 api_get_member/record
@@ -97,6 +99,10 @@ api_req_kousyou/destroyitem2
 api_req_kousyou/destroyship
 api_req_kousyou/getship
 api_req_kousyou/open_new_dock
+api_req_kousyou/preset_dev_items_delete
+api_req_kousyou/preset_dev_items_expand
+api_req_kousyou/preset_dev_items_register
+api_req_kousyou/preset_dev_items_update_name
 api_req_kousyou/remodel_slot
 api_req_kousyou/remodel_slotlist
 api_req_kousyou/remodel_slotlist_detail

@@ -3,6 +3,7 @@ use sea_orm::entity::prelude::*;
 
 pub mod preset_caps;
 pub mod preset_deck;
+pub mod preset_dev_item;
 pub mod preset_slot;
 
 /// Bootstrap the database with the necessary tables
@@ -21,6 +22,12 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	// slot
 	{
 		let stmt = schema.create_table_from_entity(preset_slot::Entity).if_not_exists().to_owned();
+		db.execute(db.get_database_backend().build(&stmt)).await?;
+	}
+	// dev_item
+	{
+		let stmt =
+			schema.create_table_from_entity(preset_dev_item::Entity).if_not_exists().to_owned();
 		db.execute(db.get_database_backend().build(&stmt)).await?;
 	}
 

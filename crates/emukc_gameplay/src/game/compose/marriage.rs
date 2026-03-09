@@ -3,7 +3,7 @@ use emukc_db::{
 	sea_orm::{ActiveValue, entity::prelude::*},
 };
 use emukc_model::{codex::Codex, kc2::KcUseItemType, prelude::ApiMstShip};
-use rand::{rng, RngExt};
+use rand::{RngExt, rng};
 
 use crate::{
 	err::GameplayError,

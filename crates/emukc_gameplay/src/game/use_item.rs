@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rand::{rng, RngExt, seq::IteratorRandom};
+use rand::{RngExt, rng, seq::IteratorRandom};
 
 use emukc_db::{
 	entity::profile::item::use_item::{self, ActiveModel},

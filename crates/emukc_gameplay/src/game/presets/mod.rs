@@ -3,11 +3,15 @@ use deck::{
 	apply_preset_deck_impl, delete_preset_deck_impl, expand_preset_deck_capacity_impl,
 	find_preset_deck_impl, get_preset_decks_impl, register_preset_deck_impl,
 };
+use dev_item::{
+	delete_preset_dev_item_impl, expand_preset_dev_item_capacity_impl, get_preset_dev_items_impl,
+	register_preset_dev_item_impl, update_preset_dev_item_name_impl,
+};
 use emukc_db::{
 	entity::profile::{
 		fleet,
 		preset::{
-			preset_caps, preset_deck,
+			preset_caps, preset_deck, preset_dev_item,
 			preset_slot::{self},
 		},
 	},
@@ -15,6 +19,7 @@ use emukc_db::{
 };
 use emukc_model::profile::{
 	preset_deck::{PresetDeck, PresetDeckItem},
+	preset_dev_item::{PresetDevItem, PresetDevItemElement},
 	preset_slot::PresetSlot,
 };
 use slot::{
@@ -32,6 +37,7 @@ use super::{
 };
 
 pub(crate) mod deck;
+pub(crate) mod dev_item;
 pub(crate) mod slot;
 
 #[async_trait]
@@ -193,6 +199,34 @@ pub trait PresetOps {
 		preset_no: i64,
 		name: &str,
 	) -> Result<(), GameplayError>;
+
+	/// Get preset dev items
+	async fn get_preset_dev_items(&self, profile_id: i64) -> Result<PresetDevItem, GameplayError>;
+
+	/// Register preset dev item
+	async fn register_preset_dev_item(
+		&self,
+		profile_id: i64,
+		preset: &PresetDevItemElement,
+	) -> Result<preset_dev_item::Model, GameplayError>;
+
+	/// Delete preset dev item
+	async fn delete_preset_dev_item(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError>;
+
+	/// Update preset dev item name
+	async fn update_preset_dev_item_name(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+		name: String,
+	) -> Result<(), GameplayError>;
+
+	/// Expand preset dev item capacity
+	async fn expand_preset_dev_item_capacity(&self, profile_id: i64) -> Result<i64, GameplayError>;
 }
 
 #[async_trait]
@@ -395,6 +429,84 @@ impl<T: HasContext + ?Sized> PresetOps for T {
 
 		Ok(())
 	}
+
+	async fn get_preset_dev_items(&self, profile_id: i64) -> Result<PresetDevItem, GameplayError> {
+		let db = self.db();
+
+		let (caps, items) = get_preset_dev_items_impl(db, profile_id).await?;
+
+		Ok(PresetDevItem {
+			max_num: caps.dev_item_limit,
+			records: items
+				.into_iter()
+				.map(|m| PresetDevItemElement {
+					index: m.index,
+					name: m.name,
+					item1: m.item1,
+					item2: m.item2,
+					item3: m.item3,
+					item4: m.item4,
+				})
+				.collect(),
+		})
+	}
+
+	async fn register_preset_dev_item(
+		&self,
+		profile_id: i64,
+		preset: &PresetDevItemElement,
+	) -> Result<preset_dev_item::Model, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let m = register_preset_dev_item_impl(&tx, profile_id, preset).await?;
+
+		tx.commit().await?;
+
+		Ok(m)
+	}
+
+	async fn delete_preset_dev_item(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		delete_preset_dev_item_impl(&tx, profile_id, preset_no).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn update_preset_dev_item_name(
+		&self,
+		profile_id: i64,
+		preset_no: i64,
+		name: String,
+	) -> Result<(), GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		update_preset_dev_item_name_impl(&tx, profile_id, preset_no, name).await?;
+
+		tx.commit().await?;
+
+		Ok(())
+	}
+
+	async fn expand_preset_dev_item_capacity(&self, profile_id: i64) -> Result<i64, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let new_cap = expand_preset_dev_item_capacity_impl(&tx, profile_id).await?;
+
+		tx.commit().await?;
+
+		Ok(new_cap)
+	}
 }
 
 pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
@@ -405,6 +517,7 @@ where
 		id: ActiveValue::set(profile_id),
 		deck_limit: ActiveValue::set(3),
 		slot_limit: ActiveValue::set(4),
+		dev_item_limit: ActiveValue::set(3),
 	};
 
 	caps_am.insert(c).await?;
@@ -422,6 +535,10 @@ where
 		.await?;
 	preset_slot::Entity::delete_many()
 		.filter(preset_slot::Column::ProfileId.eq(profile_id))
+		.exec(c)
+		.await?;
+	preset_dev_item::Entity::delete_many()
+		.filter(preset_dev_item::Column::ProfileId.eq(profile_id))
 		.exec(c)
 		.await?;
 

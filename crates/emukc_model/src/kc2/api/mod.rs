@@ -243,6 +243,23 @@ pub struct KcApiPresetSlotElement {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KcApiPresetDevItemElement {
+	pub api_preset_no: i64,
+	pub api_name: String,
+	pub api_item1: i64,
+	pub api_item2: i64,
+	pub api_item3: i64,
+	pub api_item4: i64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KcApiPresetDevItem {
+	pub api_max_num: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_preset_items: Option<Vec<KcApiPresetDevItemElement>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KcApiPresetSlot {
 	pub api_max_num: i64,
 	pub api_preset_items: Vec<KcApiPresetSlotElement>,
@@ -727,4 +744,17 @@ pub struct KcApiUseItemResp {
 	pub api_getitem: Option<Vec<KcApiUseItemGetItemElement>>,
 	/// [fuel, ammo, steel, bauxite, torch, bucket, devmat, screw]
 	pub api_material: [i64; 8],
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KcApiDeckParam {
+	pub api_seiku_value: i64,
+	pub api_tp_value: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_atp_value: Option<BTreeMap<String, i64>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KcApiChartAdditionalInfo {
+	pub api_deck_param: Vec<KcApiDeckParam>,
 }

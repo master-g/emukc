@@ -15,7 +15,7 @@ use emukc_time::{
 	KcTime,
 	chrono::{DateTime, Duration, Utc},
 };
-use rand::{rng, RngExt, seq::IndexedRandom};
+use rand::{RngExt, rng, seq::IndexedRandom};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -287,43 +287,43 @@ where
 	let rivals: Vec<Rival> = {
 		let mut r = rng();
 		(1..6)
-		.map(|i| {
-			let name = format!("Practice Rival {i}");
-			let comment = format!("I am your {i}th rival");
-			let rank = r.random_range(1..=10);
-			let flag = r.random_range(1..=3);
-			let ship_mst = api_mst_ship.choose(&mut r).unwrap();
+			.map(|i| {
+				let name = format!("Practice Rival {i}");
+				let comment = format!("I am your {i}th rival");
+				let rank = r.random_range(1..=10);
+				let flag = r.random_range(1..=3);
+				let ship_mst = api_mst_ship.choose(&mut r).unwrap();
 
-			Rival {
-				id: rival_uid_starts_from + i,
-				index: i,
-				name,
-				comment,
-				level: 120 - i,
-				rank: UserHQRank::n(rank).unwrap_or(UserHQRank::Admiral),
-				flag: RivalFlag::n(flag).unwrap_or_default(),
-				status: RivalStatus::Untouched,
-				medals: 10 + i,
-				details: RivalDetail {
-					exp_now: 0,
-					exp_next: 1000,
-					friend: 0,
-					current_ship_count: 299,
-					ship_capacity: 300,
-					current_slot_item_count: 999,
-					slot_item_capacity: 1000,
-					furniture: 123,
-					deck_name: format!("Deck {i}"),
-					ships: vec![RivalShip {
-						id: rival_ship_id_starts_from + i,
-						mst_id: ship_mst.api_id,
-						level: 180,
-						star: 10,
-					}],
-				},
-			}
-		})
-		.collect()
+				Rival {
+					id: rival_uid_starts_from + i,
+					index: i,
+					name,
+					comment,
+					level: 120 - i,
+					rank: UserHQRank::n(rank).unwrap_or(UserHQRank::Admiral),
+					flag: RivalFlag::n(flag).unwrap_or_default(),
+					status: RivalStatus::Untouched,
+					medals: 10 + i,
+					details: RivalDetail {
+						exp_now: 0,
+						exp_next: 1000,
+						friend: 0,
+						current_ship_count: 299,
+						ship_capacity: 300,
+						current_slot_item_count: 999,
+						slot_item_capacity: 1000,
+						furniture: 123,
+						deck_name: format!("Deck {i}"),
+						ships: vec![RivalShip {
+							id: rival_ship_id_starts_from + i,
+							mst_id: ship_mst.api_id,
+							level: 180,
+							star: 10,
+						}],
+					},
+				}
+			})
+			.collect()
 	};
 
 	// remove old records
