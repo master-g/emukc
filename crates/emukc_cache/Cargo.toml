@@ -12,11 +12,17 @@ emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 
 # other
+dashmap.workspace = true
+lru.workspace = true
 rand = { workspace = true, features = ["std_rng"] }
 redb.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3.26.0"
+tokio-test = "0.4"
 
 [lints]
 workspace = true

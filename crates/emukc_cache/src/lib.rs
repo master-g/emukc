@@ -8,11 +8,13 @@
 #[macro_use]
 extern crate tracing;
 
+mod download_lock;
 mod error;
 mod export;
 mod kache;
 mod opt;
 mod ver;
+mod version_cache;
 
 pub use error::Error as KacheError;
 pub use kache::Builder as KacheBuilder;

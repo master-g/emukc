@@ -121,8 +121,13 @@ fn ver_str_cmp(a: &str, b: &str) -> std::cmp::Ordering {
 		return std::cmp::Ordering::Greater;
 	}
 
-	let a_parts: Vec<i32> = a.split('.').map(|s| s.parse().unwrap()).collect();
-	let b_parts: Vec<i32> = b.split('.').map(|s| s.parse().unwrap()).collect();
+	let a_parts: Vec<i32> = a.split('.').filter_map(|s| s.parse().ok()).collect();
+	let b_parts: Vec<i32> = b.split('.').filter_map(|s| s.parse().ok()).collect();
+
+	if a_parts.is_empty() || b_parts.is_empty() {
+		return a.cmp(b);
+	}
+
 	for (a_part, b_part) in a_parts.iter().zip(b_parts.iter()) {
 		match a_part.cmp(b_part) {
 			std::cmp::Ordering::Equal => continue,
@@ -131,4 +136,37 @@ fn ver_str_cmp(a: &str, b: &str) -> std::cmp::Ordering {
 	}
 
 	a_parts.len().cmp(&b_parts.len())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_version_comparison() {
+		assert_eq!(cmp_version("1.2.3", "1.2.4"), std::cmp::Ordering::Less);
+		assert_eq!(cmp_version("1.2.4", "1.2.3"), std::cmp::Ordering::Greater);
+		assert_eq!(cmp_version("1.2.3", "1.2.3"), std::cmp::Ordering::Equal);
+	}
+
+	#[test]
+	fn test_empty_version() {
+		assert_eq!(cmp_version("", "1.0.0"), std::cmp::Ordering::Less);
+		assert_eq!(cmp_version("1.0.0", ""), std::cmp::Ordering::Greater);
+		assert_eq!(cmp_version("", ""), std::cmp::Ordering::Equal);
+	}
+
+	#[test]
+	fn test_invalid_version_fallback() {
+		// When both versions are invalid, fallback to string comparison
+		assert_eq!(cmp_version("abc", "def"), std::cmp::Ordering::Less);
+		// "1.2.3" parses to [1,2,3], "1.2.abc" parses to [1,2], so [1,2,3] > [1,2]
+		assert_eq!(cmp_version("1.2.3", "1.2.abc"), std::cmp::Ordering::Greater);
+	}
+
+	#[test]
+	fn test_different_length_versions() {
+		assert_eq!(cmp_version("1.2", "1.2.0"), std::cmp::Ordering::Less);
+		assert_eq!(cmp_version("1.2.0", "1.2"), std::cmp::Ordering::Greater);
+	}
 }

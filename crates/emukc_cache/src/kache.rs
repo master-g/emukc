@@ -10,10 +10,12 @@ use tokio::io::AsyncReadExt;
 use emukc_network::{client::new_reqwest_client, download, reqwest};
 
 use crate::{
+	download_lock::DownloadLock,
 	error::Error,
 	opt::GetOption,
 	unified_rel_path,
 	ver::{IntoVersion, cmp_version},
+	version_cache::VersionCache,
 };
 
 pub(crate) const KACHE_TABLE: TableDefinition<&str, Option<&str>> =
@@ -40,6 +42,12 @@ pub struct Kache {
 
 	/// Database for storing cache entries.
 	pub(crate) db: Arc<Database>,
+
+	/// In-memory version cache.
+	version_cache: Arc<VersionCache>,
+
+	/// Download lock to prevent concurrent downloads.
+	download_lock: Arc<DownloadLock>,
 }
 
 /// The `Builder` struct is the builder for the `Kache` struct.
@@ -147,6 +155,8 @@ impl Builder {
 		write_txn.commit()?;
 
 		let db = Arc::new(db);
+		let version_cache = Arc::new(VersionCache::new(1000));
+		let download_lock = Arc::new(DownloadLock::new());
 
 		Ok(Kache {
 			cache_root,
@@ -155,6 +165,8 @@ impl Builder {
 			content_cdn,
 			client,
 			db,
+			version_cache,
+			download_lock,
 		})
 	}
 }
@@ -266,19 +278,8 @@ impl Kache {
 	where
 		V: IntoVersion,
 	{
-		let v = if let Some(v) = ver.into_version() {
-			v
-		} else {
-			"".to_string()
-		};
-		let cdn_list = if path.starts_with("gadget_html5")
-			|| path.starts_with("html")
-			|| path.contains("world.html")
-		{
-			&self.gadgets_cdn
-		} else {
-			&self.content_cdn
-		};
+		let v = ver.into_version().unwrap_or_default();
+		let cdn_list = self.select_cdn_list(path);
 
 		if cdn_list.is_empty() {
 			error!("🚫 no available cdn");
@@ -286,19 +287,7 @@ impl Kache {
 		}
 
 		for cdn in cdn_list {
-			let cdn = cdn.trim_end_matches('/');
-			let cdn = if cdn.starts_with("http") {
-				cdn.to_string()
-			} else {
-				format!("http://{cdn}")
-			};
-			let remote_path = path.trim_start_matches('/');
-			let ver = if v.is_empty() {
-				"".to_string()
-			} else {
-				format!("?version={v}")
-			};
-			let url = format!("{cdn}/{remote_path}{ver}");
+			let url = self.build_cdn_url(cdn, path, &v);
 			trace!("🔍 {}", &url);
 
 			match self.client.head(&url).send().await {
@@ -324,6 +313,35 @@ impl Kache {
 		Err(Error::FailedOnAllCdn)
 	}
 
+	/// Select the appropriate CDN list based on the path.
+	fn select_cdn_list(&self, path: &str) -> &Vec<String> {
+		if path.starts_with("gadget_html5")
+			|| path.starts_with("html")
+			|| path.contains("world.html")
+		{
+			&self.gadgets_cdn
+		} else {
+			&self.content_cdn
+		}
+	}
+
+	/// Build a CDN URL from components.
+	fn build_cdn_url(&self, cdn: &str, path: &str, version: &str) -> String {
+		let cdn = cdn.trim_end_matches('/');
+		let cdn = if cdn.starts_with("http") {
+			cdn.to_string()
+		} else {
+			format!("http://{cdn}")
+		};
+		let remote_path = path.trim_start_matches('/');
+		let ver = if version.is_empty() {
+			String::new()
+		} else {
+			format!("?version={version}")
+		};
+		format!("{cdn}/{remote_path}{ver}")
+	}
+
 	/// Find the file in the mods.
 	/// Version will be ignored.
 	#[instrument(skip(self))]
@@ -333,7 +351,7 @@ impl Kache {
 		let local_path = mod_path.join(path);
 		if local_path.exists() {
 			info!("👻 mod found {:?}", local_path);
-			Some(tokio::fs::File::open(local_path).await.unwrap())
+			tokio::fs::File::open(local_path).await.ok()
 		} else {
 			// check for wildcard
 			let ext = local_path.extension()?.to_str()?;
@@ -342,7 +360,7 @@ impl Kache {
 
 			if wildcard_file.exists() {
 				info!("👻 wildcard mod found {wildcard_file:?}");
-				Some(tokio::fs::File::open(wildcard_file).await.unwrap())
+				tokio::fs::File::open(wildcard_file).await.ok()
 			} else {
 				None
 			}
@@ -355,32 +373,28 @@ impl Kache {
 		local_path: &PathBuf,
 		version: &str,
 	) -> Result<tokio::fs::File, Error> {
+		// Fast existence check
 		if !local_path.exists() {
 			trace!("file not found");
-			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
+			return Err(Error::FileNotFound(local_path.display().to_string()));
 		}
 
 		if !Self::is_valid(local_path).await {
 			trace!("invalid file");
-			return Err(Error::InvalidFile(local_path.to_str().unwrap().to_owned()));
+			return Err(Error::InvalidFile(local_path.display().to_string()));
 		}
 
 		let metadata = local_path.metadata()?;
 		if !metadata.is_file() {
 			trace!("not a file");
-			return Err(Error::FileNotFound(local_path.to_str().unwrap().to_owned()));
+			return Err(Error::FileNotFound(local_path.display().to_string()));
 		}
 
-		let read_txn = self.db.begin_read()?;
-		let table = read_txn.open_table(KACHE_TABLE)?;
+		// Async DB read
+		let stored_version = self.read_version_from_db(rel_path).await?;
 
-		let rel_path = unified_rel_path(rel_path);
-
-		let entry = table.get(rel_path.as_str())?;
-
-		if let Some(ver) = entry {
-			let v = ver.value();
-			return match cmp_version(v, version) {
+		if let Some(v) = stored_version {
+			return match cmp_version(v.as_str(), version) {
 				std::cmp::Ordering::Less => {
 					trace!("the required version is newer than the local version");
 					Err(Error::FileExpired(rel_path.to_owned()))
@@ -395,7 +409,6 @@ impl Kache {
 						rel_path, version, v
 					);
 					Err(Error::InvalidFileVersion(rel_path.to_owned()))
-					// return Ok(tokio::fs::File::open(local_path).await?);
 				}
 			};
 		}
@@ -406,8 +419,64 @@ impl Kache {
 			Ok(tokio::fs::File::open(local_path).await?)
 		} else {
 			trace!("required version has no record in local");
-			Err(Error::FileExpired(rel_path))
+			Err(Error::FileExpired(rel_path.to_owned()))
 		}
+	}
+
+	async fn read_version_from_db(&self, rel_path: &str) -> Result<Option<String>, Error> {
+		let rel_path = unified_rel_path(rel_path);
+
+		// Check cache first
+		if let Some(cached) = self.version_cache.get(&rel_path) {
+			return Ok(cached);
+		}
+
+		// Cache miss, query database
+		let db = self.db.clone();
+		let rel_path_clone = rel_path.clone();
+
+		let version = tokio::task::spawn_blocking(move || -> Result<Option<String>, Error> {
+			let read_txn = db.begin_read()?;
+			let table = read_txn.open_table(KACHE_TABLE)?;
+			let entry = table.get(rel_path_clone.as_str())?;
+			Ok(entry.and_then(|v| v.value().map(String::from)))
+		})
+		.await
+		.map_err(|e| Error::Io(std::io::Error::other(e)))??;
+
+		// Update cache
+		self.version_cache.put(rel_path, version.clone());
+
+		Ok(version)
+	}
+
+	async fn write_version_to_db(
+		&self,
+		rel_path: &str,
+		version: Option<&str>,
+	) -> Result<(), Error> {
+		let rel_path = unified_rel_path(rel_path);
+		let version = version.map(String::from);
+		let db = self.db.clone();
+		let rel_path_clone = rel_path.clone();
+		let version_clone = version.clone();
+
+		tokio::task::spawn_blocking(move || -> Result<(), Error> {
+			let write_txn = db.begin_write()?;
+			{
+				let mut table = write_txn.open_table(KACHE_TABLE)?;
+				table.insert(rel_path_clone.as_str(), version_clone.as_deref())?;
+			}
+			write_txn.commit()?;
+			Ok(())
+		})
+		.await
+		.map_err(|e| Error::Io(std::io::Error::other(e)))??;
+
+		// Update cache
+		self.version_cache.put(rel_path, version);
+
+		Ok(())
 	}
 
 	/// Fetch the file from CDN url.
@@ -441,17 +510,11 @@ impl Kache {
 
 		if !Self::is_valid(local_path).await {
 			error!("invalid file: {:?}", local_path);
-			return Err(Error::InvalidFile(local_path.to_str().unwrap().to_owned()));
+			return Err(Error::InvalidFile(local_path.display().to_string()));
 		}
 
-		let rel_path = unified_rel_path(rel_path);
-		let write_txn = self.db.begin_write()?;
-		{
-			let mut table = write_txn.open_table(KACHE_TABLE)?;
-			let v = version.into_version();
-			table.insert(rel_path.as_str(), v.as_deref())?;
-		}
-		write_txn.commit()?;
+		let v = version.into_version();
+		self.write_version_to_db(rel_path, v.as_deref()).await?;
 
 		Ok(tokio::fs::File::open(local_path).await?)
 	}
@@ -463,43 +526,30 @@ impl Kache {
 		version: &str,
 		shuffle: bool,
 	) -> Result<tokio::fs::File, Error> {
-		let cdn_list = if path.starts_with("gadget_html5")
-			|| path.starts_with("html")
-			|| path.contains("world.html")
-		{
-			&self.gadgets_cdn
-		} else {
-			&self.content_cdn
-		};
+		// Acquire download lock to prevent concurrent downloads
+		let _permit = self.download_lock.acquire(path).await;
+
+		// Check if file was downloaded by another request
+		if let Ok(file) = self.find_in_local(path, local_path, version).await {
+			return Ok(file);
+		}
+
+		let cdn_list = self.select_cdn_list(path);
 
 		if cdn_list.is_empty() {
 			error!("🚫 no available cdn");
 			return Err(Error::MissingField("cdn_list".to_owned()));
 		}
 
-		let cdn_list = if shuffle {
-			let mut cloned = cdn_list.clone();
-			let mut rng = rng();
-			cloned.shuffle(&mut rng);
-			cloned
-		} else {
-			cdn_list.to_vec()
-		};
+		// Use indices instead of cloning the list
+		let mut indices: Vec<usize> = (0..cdn_list.len()).collect();
+		if shuffle {
+			indices.shuffle(&mut rng());
+		}
 
-		for cdn in cdn_list {
-			let cdn = cdn.trim_end_matches('/');
-			let cdn = if cdn.starts_with("http") {
-				cdn.to_string()
-			} else {
-				format!("http://{cdn}")
-			};
-			let remote_path = path.trim_start_matches('/');
-			let ver = if version.is_empty() {
-				"".to_string()
-			} else {
-				format!("?version={version}")
-			};
-			let url = format!("{cdn}/{remote_path}{ver}");
+		for idx in indices {
+			let cdn = &cdn_list[idx];
+			let url = self.build_cdn_url(cdn, path, version);
 			info!("🛫 {}", url);
 
 			match self.fetch_from_url(&url, path, local_path, version).await {
@@ -529,7 +579,7 @@ impl Kache {
 			return false;
 		}
 
-		// Check if the file is a HTML file.
+		// HTML files are always valid
 		if path.extension().is_some_and(|ext| ext == "html") {
 			trace!("File is a HTML file: {:?}", path);
 			return true;
@@ -542,20 +592,25 @@ impl Kache {
 			return false;
 		};
 
-		// check if file is empty
 		let Ok(metadata) = file.metadata().await else {
 			return false;
 		};
+
+		// Empty files are valid
 		if metadata.len() == 0 {
 			return true;
 		}
 
-		let mut buffer = [0; 1];
+		// Read first 512 bytes to detect HTML error pages
+		let read_size = 512.min(metadata.len() as usize);
+		let mut buffer = vec![0u8; read_size];
 		if file.read_exact(&mut buffer).await.is_err() {
 			trace!("Failed to read file: {:?}", path);
 			return false;
 		}
 
-		buffer[0] != b'<'
+		// Check if content looks like HTML error page
+		let content = String::from_utf8_lossy(&buffer);
+		!content.contains("<!DOCTYPE html>") && !content.contains("<html")
 	}
 }
