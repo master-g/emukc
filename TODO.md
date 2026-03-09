@@ -9,6 +9,6 @@
 -[x] material self replenish logic
 -[x] replenish ship condition
 -[x] better cache list making, [checkout](https://github.com/Tibowl/KCCacheProxy/blob/master/src/proxy/preload.js)
--[ ] kache sucks, rewrite it
+-[x] kache sucks, rewrite it
 -[ ] rewrite async for with `StreamExt` and `FutureExt`
 -[ ] recalculate quest progress on `start` the quest
