@@ -222,10 +222,10 @@ pub async fn batch_check_exists(
 			Some(Ok(((key, ver), exists))) => {
 				result.insert((key, ver), exists);
 				check_count += 1;
-				if let Some(ref t) = tracker {
-					if check_count % 100 == 0 {
-						t.report();
-					}
+				if let Some(ref t) = tracker
+					&& check_count % 100 == 0
+				{
+					t.report();
 				}
 			}
 			Some(Err(err)) => {

@@ -14,11 +14,14 @@ pub struct HolesReport {
 	pub slot_character: BTreeSet<i64>,
 }
 
+#[allow(dead_code)]
 impl HolesReport {
+	/// Create a new empty holes report
 	pub fn new() -> Self {
 		Self::default()
 	}
 
+	/// Add a missing id to the report
 	pub fn add_missing(&mut self, category: &str, id: i64) {
 		match category {
 			"event_ship_full" => self.event_ship_full.insert(id),
@@ -33,6 +36,7 @@ impl HolesReport {
 		};
 	}
 
+	/// Generate Rust code for the missing ids
 	pub fn generate_rust_code(&self) -> String {
 		let mut output = String::new();
 
@@ -49,19 +53,19 @@ impl HolesReport {
 			);
 			output.push_str(&format!(
 				"    full: vec!{:?},\n",
-				self.event_ship_full.iter().collect::<Vec<_>>()
+				self.event_ship_full.iter().collect::<Vec<_>>().sort()
 			));
 			output.push_str(&format!(
 				"    full_dmg: vec!{:?},\n",
-				self.event_ship_full_dmg.iter().collect::<Vec<_>>()
+				self.event_ship_full_dmg.iter().collect::<Vec<_>>().sort()
 			));
 			output.push_str(&format!(
 				"    up: vec!{:?},\n",
-				self.event_ship_up.iter().collect::<Vec<_>>()
+				self.event_ship_up.iter().collect::<Vec<_>>().sort()
 			));
 			output.push_str(&format!(
 				"    up_dmg: vec!{:?},\n",
-				self.event_ship_up_dmg.iter().collect::<Vec<_>>()
+				self.event_ship_up_dmg.iter().collect::<Vec<_>>().sort()
 			));
 			output.push_str("});\n\n");
 		}
