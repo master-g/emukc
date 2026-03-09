@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use emukc_cache::prelude::*;
+use futures::stream::StreamExt;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::{make_list::CacheList, prelude::CacheListMakingError};
@@ -40,10 +41,10 @@ async fn parse_main_js_version(cache: &Kache) -> Result<String, KacheError> {
 	let mut lines = reader.lines();
 
 	while let Some(line) = lines.next_line().await? {
-		// check if contains version info
 		if let Some(captures) = VERSION_REGEX.captures(&line) {
-			let version = captures.get(1).unwrap().as_str();
-			return Ok(version.to_string());
+			if let Some(version) = captures.get(1) {
+				return Ok(version.as_str().to_string());
+			}
 		}
 	}
 

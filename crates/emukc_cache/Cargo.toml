@@ -21,8 +21,13 @@ tokio.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+criterion = "0.8.2"
 tempfile = "3.26.0"
 tokio-test = "0.4"
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "version_cache_bench"
+harness = false

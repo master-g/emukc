@@ -2,7 +2,7 @@
 
 use emukc_crypto::md5_file;
 use emukc_network::{client::new_reqwest_client, download::DownloadError, reqwest};
-use futures::{StreamExt, stream::FuturesUnordered};
+use futures::{StreamExt, TryStreamExt, stream::FuturesUnordered};
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -133,9 +133,7 @@ pub async fn download_all(
 	}
 
 	// Process remaining tasks
-	while let Some(result) = tasks.next().await {
-		result?;
-	}
+	tasks.try_collect::<Vec<_>>().await?;
 
 	Ok(())
 }
