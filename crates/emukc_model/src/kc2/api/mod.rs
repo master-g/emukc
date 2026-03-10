@@ -106,6 +106,22 @@ pub enum MaterialCategory {
 	Screw = 8,
 }
 
+impl MaterialCategory {
+	pub fn from_id(id: i64) -> Self {
+		match id {
+			1 => Self::Fuel,
+			2 => Self::Ammo,
+			3 => Self::Steel,
+			4 => Self::Bauxite,
+			5 => Self::Torch,
+			6 => Self::Bucket,
+			7 => Self::DevMat,
+			8 => Self::Screw,
+			_ => Self::Fuel,
+		}
+	}
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KcApiMaterialElement {
 	/// User ID

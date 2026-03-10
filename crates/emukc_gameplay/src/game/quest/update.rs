@@ -59,9 +59,11 @@ where
 			should_commit = true;
 			progress::Entity::delete_by_id(quest.id).exec(c).await?;
 		} else {
-			// recalculate progress
-			let mst = codex.find::<Kc3rdQuest>(&quest.quest_id).unwrap();
-			should_commit = recalculate_quest_progress(c, mst, quest).await?;
+			// recalculate progress only for activated quests
+			if quest.status == progress::Status::Activated {
+				let mst = codex.find::<Kc3rdQuest>(&quest.quest_id).unwrap();
+				should_commit = recalculate_quest_progress(c, mst, quest).await?;
+			}
 			in_progress_quest_id.push(quest.quest_id);
 		}
 	}

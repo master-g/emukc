@@ -413,3 +413,17 @@ where
 
 	Ok(())
 }
+
+pub(crate) async fn unlock_large_construction_impl<C>(
+	c: &C,
+	profile_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let mut am = profile.into_active_model();
+	am.large_dock_unlocked = ActiveValue::Set(true);
+	am.update(c).await?;
+	Ok(())
+}

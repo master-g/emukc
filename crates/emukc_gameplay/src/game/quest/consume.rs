@@ -1,14 +1,15 @@
-use emukc_db::{
-	entity::profile::fleet,
-	sea_orm::{ConnectionTrait, EntityTrait},
-};
-use emukc_model::thirdparty::{
-	Kc3rdQuestConditionModelConversion, Kc3rdQuestConditionSlotItemType,
+use emukc_db::sea_orm::ConnectionTrait;
+use emukc_model::{
+	kc2::MaterialCategory,
+	thirdparty::{
+		Kc3rdQuestConditionConsumption, Kc3rdQuestConditionModelConversion,
+		Kc3rdQuestConditionSlotItemType,
+	},
 };
 
 use crate::{
 	err::GameplayError,
-	game::{fleet::find_fleet, ship::find_ship_impl},
+	game::{material::deduct_material_impl, use_item::deduct_use_item_impl},
 };
 
 pub(super) async fn handle_module_conversion<C>(
@@ -25,7 +26,7 @@ where
 				Kc3rdQuestConditionSlotItemType::Equipment(ids) => {
 					handle_slotitem_consumption(c, profile_id, info, ids).await?;
 				}
-				Kc3rdQuestConditionSlotItemType::EquipType(items) => {
+				Kc3rdQuestConditionSlotItemType::EquipType(_items) => {
 					todo!()
 				}
 			}
@@ -36,20 +37,42 @@ where
 }
 
 async fn handle_slotitem_consumption<C>(
-	c: &C,
-	profile_id: i64,
-	info: &Kc3rdQuestConditionModelConversion,
-	id: &[i64],
+	_c: &C,
+	_profile_id: i64,
+	_info: &Kc3rdQuestConditionModelConversion,
+	_id: &[i64],
 ) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
 {
-	// TODO: find slotitem candidates on secretary first
-	if info.secretary.is_some() {
-		let first_fleet = find_fleet(c, profile_id, 1).await?;
-		let secretary = first_fleet.ship_1;
-		let secretary_ship = find_ship_impl(c, secretary).await?;
-	};
+	// TODO: implement slotitem consumption
+	Ok(())
+}
 
+pub(super) async fn handle_consumption<C>(
+	c: &C,
+	profile_id: i64,
+	consumption: &Kc3rdQuestConditionConsumption,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	match consumption {
+		Kc3rdQuestConditionConsumption::Resources(res) => {
+			let mats = vec![
+				(MaterialCategory::Fuel, res.fuel),
+				(MaterialCategory::Ammo, res.ammo),
+				(MaterialCategory::Steel, res.steel),
+				(MaterialCategory::Bauxite, res.bauxite),
+			];
+			deduct_material_impl(c, profile_id, &mats).await?;
+		}
+		Kc3rdQuestConditionConsumption::SlotItemConsumption(_) => {}
+		Kc3rdQuestConditionConsumption::UseItemConsumption(items) => {
+			for item in items {
+				deduct_use_item_impl(c, profile_id, item.api_id, item.amount).await?;
+			}
+		}
+	}
 	Ok(())
 }

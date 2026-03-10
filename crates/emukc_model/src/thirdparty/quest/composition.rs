@@ -92,8 +92,12 @@ fn validate_ship_group(
 		matched_count += 1;
 	}
 
-	// Check amount requirement
-	matched_count >= group.amount.min && matched_count <= group.amount.max
+	// Check amount requirement - must match exactly when min == max
+	if group.amount.min == group.amount.max {
+		matched_count == group.amount.min
+	} else {
+		matched_count >= group.amount.min && matched_count <= group.amount.max
+	}
 }
 
 fn matches_ship(ship: &ShipInstance, condition: &Kc3rdQuestConditionShip, codex: &Codex) -> bool {

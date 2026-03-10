@@ -48,7 +48,6 @@ impl Kc3rdQuestCondition {
 			},
 			Kc3rdQuestCondition::Repair(count) => *count == 0,
 			Kc3rdQuestCondition::Resupply(count) => *count == 0,
-			Kc3rdQuestCondition::Composition(_) => true,
 			_ => false,
 		}
 	}

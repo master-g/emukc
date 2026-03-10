@@ -123,7 +123,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 		Err(_) => {
 			let info = state.sign_up(DEFAULT_NAME, DEFAULT_PASS).await?;
 			state.new_profile(&info.access_token.token, DEFAULT_NAME).await?;
-			add_ship_incentives(&state, 1).await?;
+			// add_ship_incentives(&state, 1).await?;
 			info
 		}
 	};
@@ -161,6 +161,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 	Ok(())
 }
 
+#[allow(dead_code)]
 async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
 	let codex = state.codex();
 

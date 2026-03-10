@@ -18,7 +18,10 @@ use update::update_quests_impl;
 
 use crate::{
 	err::GameplayError,
-	game::quest::{consume::handle_module_conversion, record::mark_quest_as_completed},
+	game::quest::{
+		consume::handle_consumption, consume::handle_module_conversion,
+		record::mark_quest_as_completed,
+	},
 	gameplay::HasContext,
 };
 
@@ -275,12 +278,14 @@ where
 			Kc3rdQuestCondition::ModelConversion(conversion) => {
 				handle_module_conversion(c, profile_id, conversion).await?;
 			}
-			Kc3rdQuestCondition::Consumption(res_consumption) => todo!(),
+			Kc3rdQuestCondition::Consumption(consumption) => {
+				handle_consumption(c, profile_id, consumption).await?;
+			}
 			_ => {}
 		}
 	}
 
-	todo!();
+	Ok(())
 }
 
 async fn claim_rewards<C>(
@@ -293,7 +298,80 @@ async fn claim_rewards<C>(
 where
 	C: ConnectionTrait,
 {
-	todo!();
+	use crate::game::material::add_material_impl;
+	use emukc_model::kc2::MaterialCategory;
+
+	// Add basic materials
+	let basic_mats = vec![
+		(MaterialCategory::Fuel, quest_mst.reward_fuel),
+		(MaterialCategory::Ammo, quest_mst.reward_ammo),
+		(MaterialCategory::Steel, quest_mst.reward_steel),
+		(MaterialCategory::Bauxite, quest_mst.reward_bauxite),
+	];
+	let basic_mats: Vec<_> = basic_mats.into_iter().filter(|(_, amt)| *amt > 0).collect();
+	if !basic_mats.is_empty() {
+		add_material_impl(c, codex, profile_id, &basic_mats).await?;
+	}
+
+	// Process choice rewards
+	if let Some(choices) = reward_choices {
+		for (idx, choice_group) in quest_mst.choice_rewards.iter().enumerate() {
+			if let Some(&choice_idx) = choices.get(idx)
+				&& let Some(reward) = choice_group.choices.get(choice_idx as usize)
+			{
+				apply_single_reward(c, codex, profile_id, reward).await?;
+			}
+		}
+	}
+
+	// Process additional rewards
+	for reward in &quest_mst.additional_rewards {
+		apply_single_reward(c, codex, profile_id, reward).await?;
+	}
+
+	Ok(())
+}
+
+async fn apply_single_reward<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	reward: &emukc_model::thirdparty::Kc3rdQuestReward,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	use crate::game::{
+		basic::unlock_large_construction_impl, fleet::unlock_fleet_impl,
+		material::add_material_impl, ship::add_ship_impl, slot_item::add_slot_item_impl,
+		use_item::add_use_item_impl,
+	};
+	use emukc_model::{kc2::MaterialCategory, thirdparty::Kc3rdQuestRewardCategory};
+
+	match reward.category {
+		Kc3rdQuestRewardCategory::Material => {
+			let mats = vec![(MaterialCategory::from_id(reward.api_id), reward.amount)];
+			add_material_impl(c, codex, profile_id, &mats).await?;
+		}
+		Kc3rdQuestRewardCategory::Slotitem => {
+			add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
+		}
+		Kc3rdQuestRewardCategory::Ship => {
+			add_ship_impl(c, codex, profile_id, reward.api_id).await?;
+		}
+		Kc3rdQuestRewardCategory::UseItem => {
+			add_use_item_impl(c, profile_id, reward.api_id, reward.amount).await?;
+		}
+		Kc3rdQuestRewardCategory::FleetUnlock => {
+			unlock_fleet_impl(c, profile_id, reward.api_id).await?;
+		}
+		Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
+			unlock_large_construction_impl(c, profile_id).await?;
+		}
+		_ => {}
+	}
+
+	Ok(())
 }
 
 pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(), GameplayError>
