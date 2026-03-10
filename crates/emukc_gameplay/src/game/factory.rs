@@ -273,6 +273,9 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 
 		add_material_impl(&tx, codex, profile_id, scrap_materials.as_slice()).await?;
 
+		// Delete the ship from database
+		ship::Entity::delete_by_id(ship_id).exec(&tx).await?;
+
 		tx.commit().await?;
 
 		Ok(())
