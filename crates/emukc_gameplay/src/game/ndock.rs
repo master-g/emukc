@@ -149,10 +149,11 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 		profile_id: i64,
 		ndock_id: i64,
 	) -> Result<(), GameplayError> {
+		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		speed_up_ship_repairation_impl(&tx, profile_id, ndock_id).await?;
+		speed_up_ship_repairation_impl(&tx, codex, profile_id, ndock_id).await?;
 
 		tx.commit().await?;
 
@@ -403,11 +404,21 @@ where
 		am.update(c).await?;
 	}
 
+	// Update quest progress
+	if highspeed {
+		let event = emukc_model::thirdparty::QuestActionEvent::ShipRepaired {
+			ship_id,
+		};
+		crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
+			.await?;
+	}
+
 	Ok(())
 }
 
 pub(crate) async fn speed_up_ship_repairation_impl<C>(
 	c: &C,
+	codex: &Codex,
 	profile_id: i64,
 	ndock_id: i64,
 ) -> Result<(), GameplayError>
@@ -420,13 +431,15 @@ where
 		))
 	})?;
 
+	let ship_id = dock.ship_id;
+
 	// deduct material
 	deduct_material_impl(c, profile_id, &[(MaterialCategory::Bucket, 1)]).await?;
 
-	let ship = ship::Entity::find_by_id(dock.ship_id).one(c).await?.ok_or_else(|| {
+	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
 			"Ship {} not found for repair dock {ndock_id}",
-			dock.ship_id,
+			ship_id,
 		))
 	})?;
 
@@ -452,6 +465,13 @@ where
 
 		am.update(c).await?;
 	}
+
+	// Update quest progress
+	let event = emukc_model::thirdparty::QuestActionEvent::ShipRepaired {
+		ship_id,
+	};
+	crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
+		.await?;
 
 	Ok(())
 }

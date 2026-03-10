@@ -10,6 +10,7 @@ use emukc_model::{
 	codex::Codex,
 	prelude::{Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement},
 	profile::quest::QuestProgressStatus,
+	thirdparty::QuestActionEvent,
 };
 use emukc_time::chrono;
 
@@ -163,4 +164,60 @@ async fn reconstruct_quest_tree(
 		.collect();
 
 	Ok(new_quests)
+}
+
+/// Update quest progress for a game action
+pub(crate) async fn update_quest_progress_for_action<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	event: &QuestActionEvent,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	// 1. Fetch ONLY activated quests
+	let activated_quests = progress::Entity::find()
+		.filter(progress::Column::ProfileId.eq(profile_id))
+		.filter(progress::Column::Status.eq(progress::Status::Activated))
+		.all(c)
+		.await?;
+
+	// 2. For each quest, check if event matches and update
+	for quest in activated_quests {
+		let mut conditions: Vec<Kc3rdQuestCondition> =
+			serde_json::from_value(quest.requirements.clone())?;
+
+		let mut updated = false;
+		for condition in conditions.iter_mut() {
+			if condition.apply_event(event) {
+				updated = true;
+			}
+		}
+
+		if updated {
+			// Reconstruct requirement
+			let requirements = match quest.requirement_type {
+				progress::RequirementType::And => Kc3rdQuestRequirement::And(conditions.clone()),
+				progress::RequirementType::OneOf => {
+					Kc3rdQuestRequirement::OneOf(conditions.clone())
+				}
+				progress::RequirementType::Sequential => {
+					Kc3rdQuestRequirement::Sequential(conditions.clone())
+				}
+			};
+
+			// Get master quest for progress calculation
+			let mst = codex.find::<Kc3rdQuest>(&quest.quest_id)?;
+			let new_progress = requirements.calculate_progress(&mst.requirements);
+
+			// Update database
+			let mut am = quest.into_active_model();
+			am.requirements = ActiveValue::Set(serde_json::to_value(&conditions)?);
+			am.progress = ActiveValue::Set(new_progress.into());
+			am.update(c).await?;
+		}
+	}
+
+	Ok(())
 }

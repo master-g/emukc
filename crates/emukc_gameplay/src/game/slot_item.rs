@@ -438,7 +438,15 @@ where
 			scrap_materials[i].1 += v;
 		});
 
+		let item_mst_id = item.mst_id;
 		item.delete(c).await?;
+
+		// Update quest progress
+		let event = emukc_model::thirdparty::QuestActionEvent::SlotItemScrapped {
+			item_mst_id,
+		};
+		crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
+			.await?;
 	}
 
 	add_material_impl(c, codex, profile_id, &scrap_materials).await?;

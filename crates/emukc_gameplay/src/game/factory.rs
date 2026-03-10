@@ -126,6 +126,18 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 			}
 		}
 
+		// Update quest progress for each item
+		for id in mst_id.iter() {
+			if *id > 0 {
+				let event = emukc_model::thirdparty::QuestActionEvent::SlotItemConstructed {
+					item_mst_id: *id,
+				};
+				crate::game::quest::update::update_quest_progress_for_action(
+					&tx, codex, profile_id, &event,
+				)
+				.await?;
+			}
+		}
 		tx.commit().await?;
 
 		Ok((slot_ids, m))
@@ -181,6 +193,15 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 
 		kdock_am.update(&tx).await?;
 
+		// Update quest progress
+		let event = emukc_model::thirdparty::QuestActionEvent::ShipConstructed {
+			ship_mst_id: mst_id,
+			large,
+		};
+		crate::game::quest::update::update_quest_progress_for_action(
+			&tx, codex, profile_id, &event,
+		)
+		.await?;
 		tx.commit().await?;
 
 		Ok(())
@@ -255,6 +276,14 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
 			})
 			.collect();
 
+			// Update quest progress
+			let event = emukc_model::thirdparty::QuestActionEvent::ShipScrapped {
+				ship_mst_id: ship_model.mst_id,
+			};
+			crate::game::quest::update::update_quest_progress_for_action(
+				&tx, codex, profile_id, &event,
+			)
+			.await?;
 			destroy_items_impl(&tx, codex, profile_id, &slot_ids).await?;
 		}
 

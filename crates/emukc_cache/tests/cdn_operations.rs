@@ -22,10 +22,7 @@ async fn test_multiple_content_cdns() {
 	let temp_dir = TempDir::new().unwrap();
 	let cache = Kache::builder()
 		.with_cache_root(temp_dir.path().to_path_buf())
-		.with_content_cdns(vec![
-			"http://cdn1.com".to_string(),
-			"http://cdn2.com".to_string(),
-		])
+		.with_content_cdns(vec!["http://cdn1.com".to_string(), "http://cdn2.com".to_string()])
 		.with_gadgets_cdn("http://gadgets.com".to_string())
 		.build();
 

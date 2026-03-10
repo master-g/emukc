@@ -106,6 +106,13 @@ where
 
 		let m = am.update(c).await?;
 
+		// Update quest progress
+		let event = emukc_model::thirdparty::QuestActionEvent::ShipResupplied {
+			ship_id: m.id,
+		};
+		crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
+			.await?;
+
 		resp.api_ship.push(KcApiChargeShip {
 			api_id: m.id,
 			api_fuel: m.fuel,

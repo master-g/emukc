@@ -212,9 +212,13 @@ async fn kdock() {
 
 	let dock = context.get_kdock(pid, 2).await.unwrap();
 	assert_eq!(dock.index, 2);
+	assert_eq!(dock.status, ConstructionDockStatus::Idle);
+
+	let dock = context.get_kdock(pid, 3).await.unwrap();
+	assert_eq!(dock.index, 3);
 	assert_eq!(dock.status, ConstructionDockStatus::Locked);
 
-	let dock = context.unlock_kdock(pid, 2).await.unwrap();
+	let dock = context.unlock_kdock(pid, 3).await.unwrap();
 	assert_eq!(dock.status, ConstructionDockStatus::Idle);
 }
 
@@ -232,9 +236,13 @@ async fn ndock() {
 
 	let dock = context.get_ndock(pid, 2).await.unwrap();
 	assert_eq!(dock.index, 2);
+	assert_eq!(dock.status, RepairDockStatus::Idle);
+
+	let dock = context.get_ndock(pid, 3).await.unwrap();
+	assert_eq!(dock.index, 3);
 	assert_eq!(dock.status, RepairDockStatus::Locked);
 
-	let dock = context.unlock_ndock(pid, 2).await.unwrap();
+	let dock = context.unlock_ndock(pid, 3).await.unwrap();
 	assert_eq!(dock.status, RepairDockStatus::Idle);
 }
 
