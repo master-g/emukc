@@ -132,6 +132,12 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 			tx = db.begin().await?;
 		}
 
+		// Validate composition quests
+		update::validate_composition_quests(&tx, codex, profile_id).await?;
+		tx.commit().await?;
+
+		tx = db.begin().await?;
+
 		Ok(quest::progress::Entity::find()
 			.filter(quest::progress::Column::ProfileId.eq(profile_id))
 			.order_by_asc(quest::progress::Column::QuestId)

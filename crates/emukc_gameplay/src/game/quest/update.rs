@@ -221,3 +221,75 @@ where
 
 	Ok(())
 }
+
+/// Validate composition quests when quest list is retrieved
+pub(crate) async fn validate_composition_quests<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	use crate::game::fleet::get_fleets_impl;
+	use crate::game::ship::get_ships_impl;
+	use emukc_model::thirdparty::composition::{ShipInstance, validate_composition};
+
+	// Query all Activated quests
+	let activated_quests = progress::Entity::find()
+		.filter(progress::Column::ProfileId.eq(profile_id))
+		.filter(progress::Column::Status.eq(progress::Status::Activated))
+		.all(c)
+		.await?;
+
+	// Load fleets and ships
+	let fleets = get_fleets_impl(c, profile_id).await?;
+	let (ships, _) = get_ships_impl(c, profile_id).await?;
+
+	// Convert to ShipInstance
+	let ship_instances: Vec<ShipInstance> = ships
+		.iter()
+		.map(|s| ShipInstance {
+			id: s.id,
+			mst_id: s.mst_id,
+			level: s.level,
+		})
+		.collect();
+
+	// Convert fleet models to Fleet
+	let fleet_profiles: Vec<emukc_model::profile::fleet::Fleet> =
+		fleets.iter().map(|f| f.clone().into()).collect();
+
+	// Check each quest
+	for quest in activated_quests {
+		let conditions: Vec<Kc3rdQuestCondition> =
+			serde_json::from_value(quest.requirements.clone())?;
+
+		let mut satisfied = false;
+
+		// Check if any condition is Composition
+		for condition in &conditions {
+			if let Kc3rdQuestCondition::Composition(comp_cond) = condition {
+				// Find matching fleet
+				if let Some(fleet) = fleet_profiles
+					.iter()
+					.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+				{
+					if validate_composition(fleet, &ship_instances, comp_cond, codex) {
+						satisfied = true;
+						break;
+					}
+				}
+			}
+		}
+
+		// Update progress if satisfied
+		if satisfied {
+			let mut am = quest.into_active_model();
+			am.progress = ActiveValue::Set(progress::Progress::Completed);
+			am.update(c).await?;
+		}
+	}
+
+	Ok(())
+}

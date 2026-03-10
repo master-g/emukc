@@ -1,3 +1,4 @@
+pub mod composition;
 pub mod debug;
 pub mod extra;
 pub mod matcher;
@@ -684,4 +685,5 @@ impl Kc3rdQuest {
 }
 
 pub type Kc3rdQuestMap = std::collections::BTreeMap<i64, Kc3rdQuest>;
+pub use composition::{ShipInstance, validate_composition};
 pub use matcher::QuestActionEvent;
