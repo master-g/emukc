@@ -83,10 +83,10 @@ fn validate_ship_group(
 		}
 
 		// Check white list
-		if let Some(white_list) = &group.white_list {
-			if !white_list.contains(&ship.mst_id) {
-				continue;
-			}
+		if let Some(white_list) = &group.white_list
+			&& !white_list.contains(&ship.mst_id)
+		{
+			continue;
 		}
 
 		matched_count += 1;

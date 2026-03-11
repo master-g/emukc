@@ -109,7 +109,6 @@ pub enum MaterialCategory {
 impl MaterialCategory {
 	pub fn from_id(id: i64) -> Self {
 		match id {
-			1 => Self::Fuel,
 			2 => Self::Ammo,
 			3 => Self::Steel,
 			4 => Self::Bauxite,

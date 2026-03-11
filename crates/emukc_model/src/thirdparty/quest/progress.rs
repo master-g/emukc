@@ -16,7 +16,7 @@ impl Kc3rdQuestRequirement {
 				progress_from_ratio(completed, total)
 			}
 			Kc3rdQuestRequirement::OneOf(conditions) => {
-				if conditions.iter().any(|c| c.is_satisfied()) {
+				if conditions.iter().any(Kc3rdQuestCondition::is_satisfied) {
 					QuestProgressStatus::Completed
 				} else {
 					QuestProgressStatus::Empty
@@ -36,28 +36,27 @@ impl Kc3rdQuestRequirement {
 impl Kc3rdQuestCondition {
 	pub fn is_satisfied(&self) -> bool {
 		match self {
-			Kc3rdQuestCondition::Factory(f) => match f {
-				Kc3rdQuestConditionFactory::ShipConstruction(count) => *count == 0,
-				Kc3rdQuestConditionFactory::SlotItemConstruction(count) => *count == 0,
-				Kc3rdQuestConditionFactory::SlotItemImprovement(count) => *count == 0,
-			},
-			Kc3rdQuestCondition::Scrap(s) => match s {
-				Kc3rdQuestConditionScrap::AnyEquipment(count) => *count == 0,
-				Kc3rdQuestConditionScrap::AnyShip(count) => *count == 0,
-				Kc3rdQuestConditionScrap::SpecificItems(_) => false, // not tracked via counters
-			},
-			Kc3rdQuestCondition::Repair(count) => *count == 0,
-			Kc3rdQuestCondition::Resupply(count) => *count == 0,
+			Kc3rdQuestCondition::Factory(
+				Kc3rdQuestConditionFactory::ShipConstruction(count)
+				| Kc3rdQuestConditionFactory::SlotItemConstruction(count)
+				| Kc3rdQuestConditionFactory::SlotItemImprovement(count),
+			)
+			| Kc3rdQuestCondition::Scrap(
+				Kc3rdQuestConditionScrap::AnyEquipment(count)
+				| Kc3rdQuestConditionScrap::AnyShip(count),
+			)
+			| Kc3rdQuestCondition::Repair(count)
+			| Kc3rdQuestCondition::Resupply(count)
+			| Kc3rdQuestCondition::Sink(_, count) => *count == 0,
+			// SpecificItems not tracked via counters; Composition validated separately via fleet check
+			Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(_))
+			| Kc3rdQuestCondition::Composition(_) => false,
 			Kc3rdQuestCondition::Sortie(s) => s.times == 0,
 			Kc3rdQuestCondition::Exercise(e) => e.times == 0,
 			Kc3rdQuestCondition::Expedition(exps) => exps.iter().all(|e| e.times == 0),
-			Kc3rdQuestCondition::Sink(_, count) => *count == 0,
 			Kc3rdQuestCondition::Modernization(m) => m.times == 0,
-			// Composition is validated separately via fleet check, not via counters
-			Kc3rdQuestCondition::Composition(_) => false,
 			// Consumption/ModelConversion are deducted at claim time, always "satisfied" for progress
-			Kc3rdQuestCondition::Consumption(_) => true,
-			Kc3rdQuestCondition::ModelConversion(_) => true,
+			Kc3rdQuestCondition::Consumption(_) | Kc3rdQuestCondition::ModelConversion(_) => true,
 		}
 	}
 }

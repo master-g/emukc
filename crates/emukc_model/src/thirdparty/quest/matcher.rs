@@ -30,45 +30,23 @@ pub enum QuestActionEvent {
 
 impl Kc3rdQuestCondition {
 	pub fn matches_event(&self, event: &QuestActionEvent) -> bool {
-		match (self, event) {
+		matches!(
+			(self, event),
 			(
 				Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::ShipConstruction(_)),
-				QuestActionEvent::ShipConstructed {
-					..
-				},
-			) => true,
-			(
+				QuestActionEvent::ShipConstructed { .. },
+			) | (
 				Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemConstruction(_)),
-				QuestActionEvent::SlotItemConstructed {
-					..
-				},
-			) => true,
-			(
+				QuestActionEvent::SlotItemConstructed { .. },
+			) | (
 				Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyShip(_)),
-				QuestActionEvent::ShipScrapped {
-					..
-				},
-			) => true,
-			(
+				QuestActionEvent::ShipScrapped { .. },
+			) | (
 				Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyEquipment(_)),
-				QuestActionEvent::SlotItemScrapped {
-					..
-				},
-			) => true,
-			(
-				Kc3rdQuestCondition::Repair(_),
-				QuestActionEvent::ShipRepaired {
-					..
-				},
-			) => true,
-			(
-				Kc3rdQuestCondition::Resupply(_),
-				QuestActionEvent::ShipResupplied {
-					..
-				},
-			) => true,
-			_ => false,
-		}
+				QuestActionEvent::SlotItemScrapped { .. },
+			) | (Kc3rdQuestCondition::Repair(_), QuestActionEvent::ShipRepaired { .. },)
+				| (Kc3rdQuestCondition::Resupply(_), QuestActionEvent::ShipResupplied { .. },)
+		)
 	}
 
 	pub fn apply_event(&mut self, event: &QuestActionEvent) -> bool {
@@ -77,31 +55,16 @@ impl Kc3rdQuestCondition {
 		}
 
 		match self {
-			Kc3rdQuestCondition::Factory(f) => match f {
+			Kc3rdQuestCondition::Factory(
 				Kc3rdQuestConditionFactory::ShipConstruction(count)
-				| Kc3rdQuestConditionFactory::SlotItemConstruction(count) => {
-					if *count > 0 {
-						*count -= 1;
-						true
-					} else {
-						false
-					}
-				}
-				_ => false,
-			},
-			Kc3rdQuestCondition::Scrap(s) => match s {
+				| Kc3rdQuestConditionFactory::SlotItemConstruction(count),
+			)
+			| Kc3rdQuestCondition::Scrap(
 				Kc3rdQuestConditionScrap::AnyShip(count)
-				| Kc3rdQuestConditionScrap::AnyEquipment(count) => {
-					if *count > 0 {
-						*count -= 1;
-						true
-					} else {
-						false
-					}
-				}
-				_ => false,
-			},
-			Kc3rdQuestCondition::Repair(count) | Kc3rdQuestCondition::Resupply(count) => {
+				| Kc3rdQuestConditionScrap::AnyEquipment(count),
+			)
+			| Kc3rdQuestCondition::Repair(count)
+			| Kc3rdQuestCondition::Resupply(count) => {
 				if *count > 0 {
 					*count -= 1;
 					true

@@ -84,7 +84,7 @@ pub(super) async fn handler(
 		})
 		.collect();
 
-	let mut crafted_mst_ids: Vec<i64> = Vec::new();
+	let crafted_mst_ids: Vec<i64> = Vec::new();
 
 	let upper = if params.api_multiple_flag == 1 {
 		3

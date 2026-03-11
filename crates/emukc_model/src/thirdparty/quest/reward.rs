@@ -273,17 +273,15 @@ pub fn get_quest_rewards(
 				expected: quest_manifest.choice_rewards.len(),
 				got: user_choices.len(),
 			});
-		} else {
-			for (choice, reward) in user_choices.iter().zip(quest_manifest.choice_rewards.iter()) {
-				let reward = reward.choices.get(*choice as usize);
-				if let Some(reward) = reward {
-					if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)?
-					{
-						api_bounus.push(bonus);
-					}
-				} else {
-					warn!("invalid choice index: {}", choice);
+		}
+		for (choice, reward) in user_choices.iter().zip(quest_manifest.choice_rewards.iter()) {
+			let reward = reward.choices.get(*choice as usize);
+			if let Some(reward) = reward {
+				if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)? {
+					api_bounus.push(bonus);
 				}
+			} else {
+				warn!("invalid choice index: {}", choice);
 			}
 		}
 	}
