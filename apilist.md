@@ -40,12 +40,16 @@ api_req_furniture/set_portbgm
 
 api_req_hensei/change
 api_req_hensei/combined
+api_req_hensei/lock
 api_req_hensei/preset_delete
 api_req_hensei/preset_expand
 api_req_hensei/preset_register
 api_req_hensei/preset_select
 
 api_req_hokyu/charge
+
+api_req_init/firstship
+api_req_init/nickname
 
 api_req_kaisou/can_preset_slot_select
 api_req_kaisou/lock
@@ -56,6 +60,7 @@ api_req_kaisou/preset_slot_delete
 api_req_kaisou/preset_slot_expand
 api_req_kaisou/preset_slot_register
 api_req_kaisou/preset_slot_select
+api_req_kaisou/preset_slot_update_exslot_flag
 api_req_kaisou/preset_slot_update_lock
 api_req_kaisou/preset_slot_update_name
 api_req_kaisou/remodeling
@@ -87,6 +92,7 @@ api_req_member/set_flagship_position
 api_req_member/set_friendly_request
 api_req_member/set_option_setting
 api_req_member/set_oss_condition
+api_req_member/update_tutorial_progress
 api_req_member/updatecomment
 api_req_member/updatedeckname
 
@@ -102,6 +108,9 @@ api_req_ranking/mxltvkpyuklh
 
 api_start2/get_option_setting
 api_start2/getData
+
+api_world/get_worldinfo
+api_world/register
 ```
 
 ## Missing APIs (Not Yet Implemented)
@@ -162,6 +171,7 @@ api_req_practice/change_matching_kind
 ### Air Corps System
 ```plain
 api_get_member/base_air_corps
+api_port/airCorpsCondRecoveryWithTimer
 api_req_air_corps/set_plane
 api_req_air_corps/set_action
 api_req_air_corps/supply
@@ -170,7 +180,6 @@ api_req_air_corps/change_deployment_base
 api_req_air_corps/expand_base
 api_req_air_corps/expand_maintenance_level
 api_req_air_corps/cond_recovery
-api_port/airCorpsCondRecoveryWithTimer
 ```
 
 ### Equipment Improvement
@@ -186,19 +195,14 @@ api_req_hensei/preset_lock
 api_req_hensei/preset_order_change
 ```
 
-### Equipment Preset
+### Ranking
 ```plain
-api_req_kaisou/preset_slot_update_exslot_flag
+api_req_ranking/getlist
 ```
 
 ### Payment System
 ```plain
 api_dmm_payment/paycheck
-```
-
-### Other
-```plain
-api_req_member/registration_sp
 ```
 
 ## Implementation Priority
@@ -214,6 +218,6 @@ api_req_member/registration_sp
 6. **Equipment Improvement** - Arsenal functionality
 
 ### Low Priority (Optional Features)
-7. **Fleet/Equipment Presets** - QoL enhancements
-8. **Payment System** - Monetization
-9. **Misc utilities**
+7. **Fleet Presets** - QoL enhancements (preset_lock, preset_order_change)
+8. **Ranking** - Ranking list display
+9. **Payment System** - Monetization (not needed for emulator)
