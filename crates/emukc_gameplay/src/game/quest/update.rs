@@ -62,7 +62,7 @@ where
 			// recalculate progress only for activated quests
 			if quest.status == progress::Status::Activated {
 				let mst = codex.find::<Kc3rdQuest>(&quest.quest_id).unwrap();
-				should_commit = recalculate_quest_progress(c, mst, quest).await?;
+				should_commit |= recalculate_quest_progress(c, mst, quest).await?;
 			}
 			in_progress_quest_id.push(quest.quest_id);
 		}
@@ -224,7 +224,12 @@ where
 	Ok(())
 }
 
-/// Validate composition quests when quest list is retrieved
+/// Validate composition quests when quest list is retrieved.
+///
+/// Composition conditions are special: they are not tracked via counters but
+/// evaluated in real-time against the current fleet state. This function checks
+/// all activated quests that contain Composition conditions, and updates their
+/// stored progress accordingly (both setting and rolling back).
 pub(crate) async fn validate_composition_quests<C>(
 	c: &C,
 	codex: &Codex,
@@ -267,28 +272,84 @@ where
 		let conditions: Vec<Kc3rdQuestCondition> =
 			serde_json::from_value(quest.requirements.clone())?;
 
-		let mut satisfied = false;
-
-		// Check if any condition is Composition
-		for condition in &conditions {
-			if let Kc3rdQuestCondition::Composition(comp_cond) = condition {
-				// Find matching fleet
-				if let Some(fleet) = fleet_profiles
-					.iter()
-					.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
-				{
-					if validate_composition(fleet, &ship_instances, comp_cond, codex) {
-						satisfied = true;
-						break;
-					}
-				}
-			}
+		// Only process quests that have at least one Composition condition
+		let has_composition =
+			conditions.iter().any(|c| matches!(c, Kc3rdQuestCondition::Composition(_)));
+		if !has_composition {
+			continue;
 		}
 
-		// Update progress if satisfied
-		if satisfied {
+		// Evaluate composition conditions against current fleet
+		let composition_satisfied = match quest.requirement_type {
+			progress::RequirementType::And => {
+				// All composition conditions must be satisfied
+				conditions.iter().all(|cond| {
+					if let Kc3rdQuestCondition::Composition(comp_cond) = cond {
+						fleet_profiles
+							.iter()
+							.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+							.is_some_and(|fleet| {
+								validate_composition(fleet, &ship_instances, comp_cond, codex)
+							})
+					} else {
+						// Non-composition conditions are evaluated elsewhere
+						true
+					}
+				})
+			}
+			progress::RequirementType::OneOf => {
+				// Any composition condition being satisfied is enough
+				conditions.iter().any(|cond| {
+					if let Kc3rdQuestCondition::Composition(comp_cond) = cond {
+						fleet_profiles
+							.iter()
+							.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+							.is_some_and(|fleet| {
+								validate_composition(fleet, &ship_instances, comp_cond, codex)
+							})
+					} else {
+						false
+					}
+				})
+			}
+			progress::RequirementType::Sequential => {
+				// For sequential, check composition conditions in order
+				conditions.iter().all(|cond| {
+					if let Kc3rdQuestCondition::Composition(comp_cond) = cond {
+						fleet_profiles
+							.iter()
+							.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+							.is_some_and(|fleet| {
+								validate_composition(fleet, &ship_instances, comp_cond, codex)
+							})
+					} else {
+						true
+					}
+				})
+			}
+		};
+
+		// For And/Sequential quests with mixed conditions, also check non-composition via is_satisfied
+		let all_non_composition_satisfied = conditions.iter().all(|cond| {
+			if matches!(cond, Kc3rdQuestCondition::Composition(_)) {
+				true // skip composition here, handled above
+			} else {
+				// Use the master quest to check counter-based progress
+				cond.is_satisfied()
+			}
+		});
+
+		let fully_satisfied = composition_satisfied && all_non_composition_satisfied;
+
+		// Update progress: set Completed or rollback
+		if fully_satisfied && quest.progress != progress::Progress::Completed {
 			let mut am = quest.into_active_model();
 			am.progress = ActiveValue::Set(progress::Progress::Completed);
+			am.update(c).await?;
+		} else if !composition_satisfied && quest.progress == progress::Progress::Completed {
+			// Rollback: composition no longer satisfied
+			let mut am = quest.into_active_model();
+			am.progress = ActiveValue::Set(progress::Progress::Empty);
 			am.update(c).await?;
 		}
 	}

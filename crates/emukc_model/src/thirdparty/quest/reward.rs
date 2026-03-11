@@ -28,6 +28,9 @@ pub enum RewardError {
 		expected: usize,
 		got: usize,
 	},
+
+	#[error("quest {0} not found in codex")]
+	QuestNotFound(i64),
 }
 
 fn safe_convert_use_item_type(id: i64) -> (KcApiQuestClearItemBonusType, i64) {
@@ -250,7 +253,7 @@ pub fn get_quest_rewards(
 	quest_id: i64,
 	choices: Option<&[i64]>,
 ) -> Result<KcApiQuestClearItemGet, RewardError> {
-	let quest_manifest = codex.quest.get(&quest_id).unwrap();
+	let quest_manifest = codex.quest.get(&quest_id).ok_or(RewardError::QuestNotFound(quest_id))?;
 	let api_material = [
 		quest_manifest.reward_fuel,
 		quest_manifest.reward_ammo,
@@ -266,11 +269,10 @@ pub fn get_quest_rewards(
 	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
 	if let Some(user_choices) = choices {
 		if user_choices.len() != quest_manifest.choice_rewards.len() {
-			warn!(
-				"choices length mismatch: expected {}, got {}",
-				quest_manifest.choice_rewards.len(),
-				user_choices.len()
-			);
+			return Err(RewardError::ChoicesLengthMismatch {
+				expected: quest_manifest.choice_rewards.len(),
+				got: user_choices.len(),
+			});
 		} else {
 			for (choice, reward) in user_choices.iter().zip(quest_manifest.choice_rewards.iter()) {
 				let reward = reward.choices.get(*choice as usize);

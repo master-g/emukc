@@ -27,7 +27,7 @@ where
 					handle_slotitem_consumption(c, profile_id, info, ids).await?;
 				}
 				Kc3rdQuestConditionSlotItemType::EquipType(_items) => {
-					todo!()
+					tracing::warn!("EquipType slot item consumption not yet implemented");
 				}
 			}
 		}

@@ -133,7 +133,7 @@ mod test {
 		match gen_version_png(text, width, height) {
 			Some(png_data) => {
 				let size = png_data.len();
-				std::fs::write("output.png", png_data).expect("cannot write file");
+				std::fs::write("./target/tmp/output.png", png_data).expect("cannot write file");
 				println!("png size: {}", size);
 			}
 			None => {

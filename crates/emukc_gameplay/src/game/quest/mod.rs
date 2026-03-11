@@ -227,6 +227,18 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 				"quest {quest_id} not found in profile {profile_id}"
 			)))?;
 
+		// validate quest is activated and completed before claiming
+		if quest.status != quest::progress::Status::Activated {
+			return Err(GameplayError::QuestStatusInvalid(format!(
+				"quest {quest_id} in profile {profile_id} is not activated"
+			)));
+		}
+		if quest.progress != quest::progress::Progress::Completed {
+			return Err(GameplayError::QuestStatusInvalid(format!(
+				"quest {quest_id} in profile {profile_id} is not completed"
+			)));
+		}
+
 		// mark as completed
 		mark_quest_as_completed(&tx, profile_id, quest_id, quest.period).await?;
 

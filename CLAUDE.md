@@ -4,172 +4,112 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EmuKC is a Kancolle (Kantai Collection) game server emulator written in Rust. It emulates the game's HTTP API endpoints, allowing clients to interact with a local server instead of the official DMM servers.
+EmuKC is a server-side emulator for the web browser game Kantai Collection (KanColle), written in Rust. It implements the game's API server, allowing a browser client to connect and play against locally-stored game data.
 
-## Architecture
-
-### Layered Architecture
-
-The codebase follows a strict layered architecture for implementing game APIs:
-
-1. **Database Layer** (`emukc_db`) - Raw database operations and schema
-2. **Model Layer** (`emukc_model`) - Data structures and game entities
-3. **Gameplay Layer** (`emukc_gameplay`) - Game logic, rules, and state management
-4. **API Handler Layer** (`src/bin/net/router/kcsapi/`) - HTTP endpoints that call gameplay functions
-
-**Critical Rule**: When implementing new APIs, always follow this flow: database → model → gameplay → API handler. Never skip layers or put game logic directly in API handlers.
-
-### Workspace Crates
-
-- `emukc_app` - Application template and utilities
-- `emukc_bootstrap` - Downloads and parses third-party game data resources
-- `emukc_cache` - Caching implementation for assets and responses
-- `emukc_crypto` - Game-specific cryptographic primitives (not security-focused)
-- `emukc_db` - Database layer using SeaORM with SQLite
-- `emukc_dylib` - Dynamic library for faster incremental builds
-- `emukc_gameplay` - Core game logic and state management
-- `emukc_internal` - Convenience crate that re-exports all other crates
-- `emukc_log` - Logging utilities
-- `emukc_macros` - Procedural macros
-- `emukc_model` - Game data models and structures
-- `emukc_network` - Network utilities
-- `emukc_time` - Time-related utilities
-
-### API Structure
-
-KanColle API endpoints are organized under `src/bin/net/router/kcsapi/` by category:
-- `api_get_member/` - Player data retrieval
-- `api_port/` - Port/home screen data
-- `api_req_furniture/` - Furniture and music
-- `api_req_hensei/` - Fleet composition
-- `api_req_hokyu/` - Resupply
-- `api_req_kaisou/` - Ship modification
-- `api_req_kousyou/` - Construction and arsenal
-- `api_req_member/` - Player actions
-- `api_req_nyukyo/` - Repair dock
-- `api_req_quest/` - Quest/mission system
-- `api_start2/` - Initial game data
-
-See `apilist.md` for implementation status and priorities.
-
-## Development Commands
-
-### Build and Run
+## Build & Development Commands
 
 ```bash
-# Build the project
+# Build
 cargo build
-
-# Build with release optimizations
 cargo build --release
 
-# Run the server (development)
-cargo run --bin emukcd serve
+# Run (requires emukc.config.toml and bootstrapped data)
+cargo run -- serve
 
-# Run with faster incremental builds
-cargo run --features dynamic_linking --bin emukcd serve
-```
+# Quick dev: create account + start server
+cargo run -- new-session -u <username> -p <password>
 
-### Bootstrap
+# Bootstrap game data (downloads manifests/resources)
+cargo run -- bootstrap
 
-Before first run, bootstrap downloads required game data:
-
-```bash
-cargo run --bin emukcd bootstrap
-# or
-emukc bootstrap
-```
-
-### Testing
-
-```bash
 # Run all tests
 cargo test
 
-# Run tests for a specific package
+# Run integration gameplay tests
+cargo test --test gameplay_tests
+
+# Run a specific gameplay test
+cargo test --test gameplay_tests test_composition_exact_match_requirement
+
+# Run crate-level tests
+cargo test -p emukc_cache
 cargo test -p emukc_gameplay
 
-# Run a specific test
-cargo test test_name
-
-# Run tests with output
-cargo test -- --nocapture
-
-# Run examples (integration tests)
+# Run examples (used as manual test harnesses)
 cargo run --example model_loader
-cargo run --example bootstrap_download
 cargo run --example quest_test
+
+# Lint
+cargo clippy --workspace
+
+# Format
+cargo fmt --all
 ```
 
-### Code Quality
+## Architecture
 
-```bash
-# Check code without building
-cargo check
+### Layered Crate Structure
 
-# Run clippy linter
-cargo clippy
+The workspace follows a strict layered architecture. Dependencies flow downward only:
 
-# Format code
-cargo fmt
-
-# Run pre-commit hooks
-pre-commit run --all-files
+```
+emukc (binary)          - CLI + HTTP server (axum)
+  └── emukc_internal    - Re-exports all crates as a unified facade
+      ├── emukc_gameplay  - Game logic traits + implementations
+      ├── emukc_db        - SeaORM entities + SQLite persistence
+      ├── emukc_model     - Data models, API types, third-party data
+      ├── emukc_bootstrap - Downloads and prepares game data files
+      ├── emukc_cache     - Game resource caching (redb key-value store)
+      ├── emukc_network   - HTTP client for fetching remote resources
+      ├── emukc_crypto    - Hashing, token generation
+      ├── emukc_time      - Time utilities (re-exports chrono)
+      ├── emukc_log       - Logging setup (tracing)
+      ├── emukc_macros    - Proc macros
+      └── emukc_app       - Runtime setup (mimalloc, stack size)
 ```
 
-### API Testing
+### Key Architectural Patterns
 
-Use `atac` for interactive API testing:
+**Gameplay trait system** (`emukc_gameplay`): Each game domain (ships, quests, materials, fleets, etc.) defines an async trait (e.g., `ShipOps`, `QuestOps`, `MaterialOps`). All traits have blanket implementations for any type implementing `HasContext`, which provides access to `DbConn` and `Codex`. The top-level `Gameplay` trait composes all domain traits.
 
-```bash
-atac -d doc/.atac
-```
+**Codex** (`emukc_model::codex::Codex`): An in-memory read-only snapshot of all game manifest data (ship stats, equipment data, quest definitions, etc.), loaded from disk at startup. It is the single source of truth for game configuration.
 
-## Implementation Guidelines
+**Database entities** (`emukc_db::entity`): SeaORM entities organized under `entity::user` (accounts, tokens) and `entity::profile` (all per-player game state: ships, items, quests, fleets, settings, etc.).
 
-### Adding New KanColle APIs
+**API response format**: KanColle API responses use a `svdata=` JSON prefix. All KCSAPI handlers return `KcApiResponse` which wraps `api_result`, `api_result_msg`, and `api_data`. See `src/bin/net/resp/kcs.rs`.
 
-When implementing a new KanColle API endpoint (see `apilist.md` for missing APIs):
+### Binary Structure (`src/bin/`)
 
-1. **Database**: Add tables/queries in `crates/emukc_db/`
-2. **Model**: Define data structures in `crates/emukc_model/`
-3. **Gameplay**: Implement game logic in `crates/emukc_gameplay/`
-4. **Handler**: Create HTTP handler in `src/bin/net/router/kcsapi/api_*/`
-5. **Router**: Register route in the appropriate `mod.rs` router
+- `emukcd.rs` - Entry point
+- `cli/` - CLI commands (serve, bootstrap, cache, dev tools)
+- `net/` - HTTP server
+  - `router/kcsapi/` - Game API handlers mirroring KanColle's URL structure (`api_get_member/`, `api_req_kousyou/`, `api_port/`, etc.)
+  - `router/api/v1/` - Custom REST API (auth, debug)
+  - `auth.rs` - Session/token middleware
+  - `resp/` - Response types
 
-Example structure for `api_req_sortie/battle`:
-- Gameplay logic → `crates/emukc_gameplay/src/game/sortie.rs`
-- HTTP handler → `src/bin/net/router/kcsapi/api_req_sortie/battle.rs`
-- Router registration → `src/bin/net/router/kcsapi/mod.rs`
+### Adding a New Game API
 
-### Response Format
+1. **Database**: Add SeaORM entity in `crates/emukc_db/src/entity/profile/`
+2. **Model**: Add API types in `crates/emukc_model/src/kc2/`
+3. **Gameplay**: Add `XxxOps` trait in `crates/emukc_gameplay/src/game/`, with `_impl` functions for reuse, blanket impl on `HasContext`
+4. **Handler**: Add axum handler in `src/bin/net/router/kcsapi/`, register route in the module's `router()` function
 
-All KanColle API responses follow the format:
-```
-svdata={json_response}
-```
+### Gameplay `_impl` Pattern
 
-The `mocking_middleware` in `kcsapi/mod.rs` handles this automatically.
+Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `add_material_impl`) and take a generic `C: ConnectionTrait` parameter. This allows them to participate in database transactions started by the public trait methods and be called from other gameplay modules.
 
-### Authentication
+## Code Style
 
-API endpoints under `/kcsapi/` require authentication via `kcs_api_auth_middleware`. The `/api_world/` endpoints are public (for login/registration).
+- **Rust edition 2024**, stable toolchain, minimum rust-version 1.94.0
+- **Hard tabs** for indentation (see `.rustfmt.toml`)
+- `unsafe_code` is **denied** workspace-wide
+- `missing_docs` is warned
+- Imports use `emukc_internal::prelude::*` in the binary crate for convenience
+- Configuration: `emukc.config.toml` (see `emukc.config.example.toml`)
+- Database: SQLite via SeaORM, in-memory DB (`new_mem_db()`) for tests
+- Pre-commit hooks are expected (see README)
 
-## Configuration
+## Testing Conventions
 
-Server configuration is in `emukc.config.toml`:
-- `bind` - Server address and port
-- `tls_cert` / `tls_key` - HTTPS certificate paths (optional)
-
-See `HTTPS.md` for HTTPS setup instructions.
-
-## Linting Rules
-
-The project enforces strict linting (see `Cargo.toml` workspace.lints):
-- `unsafe_code = "deny"` - No unsafe code allowed
-- `missing_docs = "warn"` - Document public APIs
-- Various clippy warnings for code quality
-
-## Data Sources
-
-Game data is sourced from multiple community projects (see README.md). The bootstrap process downloads and processes this data into the local cache.
+Integration tests live in `tests/gameplay_tests/` and test gameplay logic directly (no HTTP). Each test uses an independent in-memory database. The `Codex` is loaded from `.data/codex` on disk (requires prior bootstrap).

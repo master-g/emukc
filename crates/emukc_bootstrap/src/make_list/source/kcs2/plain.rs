@@ -41,10 +41,10 @@ async fn parse_main_js_version(cache: &Kache) -> Result<String, KacheError> {
 	let mut lines = reader.lines();
 
 	while let Some(line) = lines.next_line().await? {
-		if let Some(captures) = VERSION_REGEX.captures(&line) {
-			if let Some(version) = captures.get(1) {
-				return Ok(version.as_str().to_string());
-			}
+		if let Some(captures) = VERSION_REGEX.captures(&line)
+			&& let Some(version) = captures.get(1)
+		{
+			return Ok(version.as_str().to_string());
 		}
 	}
 
