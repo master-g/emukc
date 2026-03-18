@@ -71,6 +71,9 @@ pub struct Codex {
 	/// thirdparty quest info map.
 	pub quest: thirdparty::Kc3rdQuestMap,
 
+	/// thirdparty expedition condition info map.
+	pub expedition_conditions: thirdparty::Kc3rdExpeditionConditionMap,
+
 	/// game config
 	pub game_cfg: GameConfig,
 
@@ -90,6 +93,7 @@ const PATH_SLOTITEM_EXTRA_INFO: &str = "slotitem_extra_info.json";
 const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
+const PATH_EXPEDITION_CONDITION: &str = "expedition_condition.json";
 const PATH_MUSIC_LIST: &str = "music_list.json";
 const PATH_GAME_CFG: &str = "game_config.json";
 const PATH_CACHE_SOURCE: &str = "cache_source.json";
@@ -182,6 +186,12 @@ impl Codex {
 			data.into_iter().map(|v| (v.api_no, v)).collect()
 		};
 
+		let expedition_conditions = {
+			let path = path.join(PATH_EXPEDITION_CONDITION);
+			let raw = std::fs::read_to_string(&path)?;
+			serde_json::from_str(&raw)?
+		};
+
 		let music_list = {
 			let path = path.join(PATH_MUSIC_LIST);
 			let raw = std::fs::read_to_string(&path)?;
@@ -207,6 +217,7 @@ impl Codex {
 			picturebook_extra,
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
 			quest,
+			expedition_conditions,
 			music_list,
 			game_cfg: Self::load_single_item(path.join(PATH_GAME_CFG))?,
 			cache_source,
@@ -246,10 +257,10 @@ impl Codex {
 		{
 			let path = dst.join(PATH_START2);
 			if path.exists() && !overwrite {
-				warn!("file {} already exists", path.display());
-				return Ok(());
+				warn!("file {} already exists, skipping", path.display());
+			} else {
+				std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
 			}
-			std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
 		}
 		// ship extra
 		{
@@ -312,6 +323,14 @@ impl Codex {
 			}
 			let data = self.quest.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// expedition conditions
+		{
+			let path = dst.join(PATH_EXPEDITION_CONDITION);
+			if path.exists() && !overwrite {
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
+			}
+			std::fs::write(path, serde_json::to_string_pretty(&self.expedition_conditions)?)?;
 		}
 		// game cfg
 		{

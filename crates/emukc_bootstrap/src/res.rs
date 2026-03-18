@@ -81,6 +81,11 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			save_as: "kc3kai_jp_quotes.json",
 			unzip_to: None,
 		},
+		Resource {
+			url: "https://antest1.github.io/kcanotify-gamedata/files/expedition.json",
+			save_as: "kcanotify_expedition.json",
+			unzip_to: None,
+		},
 	]
 });
 

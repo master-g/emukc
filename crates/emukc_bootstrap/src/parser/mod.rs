@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod kc3kai;
+pub mod kcanotify;
 pub mod kccp;
 pub mod kcwiki;
 pub mod kcwikizh_kcdata;
@@ -48,6 +49,12 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	};
 	let quest = parse_tsunkit_quests(dir.join("tsunkit_quests.json"), &manifest, &kccp_quests)?;
 
+	let expedition_conditions = {
+		let path = dir.join("kcanotify_expedition.json");
+		debug!("Parsing KCanotify expedition data from {:?}", path);
+		kcanotify::expedition::parse(&path)?
+	};
+
 	let music_list = music::get()?;
 
 	let mut cache_source = CacheSource::default();
@@ -69,6 +76,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		ship_picturebook,
 		slotitem_extra_info,
 		quest,
+		expedition_conditions,
 		picturebook_extra: Kc3rdPicturebookExtra::default(),
 		navy: KcNavy::default(),
 		game_cfg: GameConfig::default(),

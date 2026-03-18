@@ -15,4 +15,10 @@ pub enum ParseError {
 
 	#[error("key missing: {0}")]
 	KeyMissing(String),
+
+	#[error("parse int error: {0}")]
+	IntParse(String),
+
+	#[error("generic error: {0}")]
+	Generic(String),
 }
