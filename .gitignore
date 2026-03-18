@@ -23,5 +23,6 @@
 
 # AI slop
 .omc/
+.cocoindex_code/
 
 emukc.config.toml
