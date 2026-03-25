@@ -114,13 +114,14 @@ fn parse_flagship_type(cond: &Option<String>) -> Option<i64> {
 /// Parse composition condition expression
 ///
 /// Format: "ship_type-count|ship_type,ship_type-count/..."
-/// - `|` separates OR conditions
-/// - `/` separates AND conditions within an OR branch
+/// - `/` separates OR conditions
+/// - `|` separates AND conditions within an OR branch
 /// - `,` separates alternative ship types for a single requirement
 ///
 /// Examples:
 /// - "3-1" -> 1 light cruiser
-/// - "3-1|2-2" -> 1 light cruiser OR 2 destroyers
+/// - "3-1|2-2" -> 1 light cruiser AND 2 destroyers
+/// - "3-1/2-2" -> 1 light cruiser OR 2 destroyers
 /// - "1,2-3" -> 3 ships of any type OR destroyer
 fn parse_composition(
 	cond: &Option<String>,
@@ -134,10 +135,10 @@ fn parse_composition(
 	}
 
 	cond_str
-		.split('|')
+		.split('/')
 		.map(|alt_str| {
 			let conditions = alt_str
-				.split('/')
+				.split('|')
 				.map(|and_str| parse_ship_type_requirement(and_str.trim()))
 				.collect::<Result<Vec<_>, _>>()?;
 			Ok(Kc3rdCompositionAlternative {
@@ -205,8 +206,19 @@ mod tests {
 	}
 
 	#[test]
-	fn test_parse_composition_or() {
+	fn test_parse_composition_and() {
 		let result = parse_composition(&Some("3-1|2-2".to_string())).unwrap();
+		assert_eq!(result.len(), 1);
+		assert_eq!(result[0].conditions.len(), 2);
+		assert_eq!(result[0].conditions[0].ship_types, vec![3]);
+		assert_eq!(result[0].conditions[0].count, 1);
+		assert_eq!(result[0].conditions[1].ship_types, vec![2]);
+		assert_eq!(result[0].conditions[1].count, 2);
+	}
+
+	#[test]
+	fn test_parse_composition_or() {
+		let result = parse_composition(&Some("3-1/2-2".to_string())).unwrap();
 		assert_eq!(result.len(), 2);
 		// First alternative: 1 light cruiser (type 3)
 		assert_eq!(result[0].conditions[0].ship_types, vec![3]);
@@ -218,26 +230,23 @@ mod tests {
 
 	#[test]
 	fn test_parse_composition_multi_ship_types() {
-		// Expedition 4: "3-1|1,2-2" -> 1 light cruiser OR 2 ships of type 1/2
+		// "3-1|1,2-2" -> 1 light cruiser AND 2 ships of type 1/2
 		let result = parse_composition(&Some("3-1|1,2-2".to_string())).unwrap();
-		assert_eq!(result.len(), 2);
-		// First branch
+		assert_eq!(result.len(), 1);
 		assert_eq!(result[0].conditions[0].ship_types, vec![3]);
-		// Second branch has multiple ship types
-		assert_eq!(result[1].conditions[0].ship_types, vec![1, 2]);
-		assert_eq!(result[1].conditions[0].count, 2);
+		assert_eq!(result[0].conditions[1].ship_types, vec![1, 2]);
+		assert_eq!(result[0].conditions[1].count, 2);
 	}
 
 	#[test]
-	fn test_parse_composition_and() {
-		// AND condition: "2-2/3-1" -> 2 destroyers AND 1 light cruiser
+	fn test_parse_composition_multi_branch_or() {
+		// OR condition: "2-2/3-1" -> 2 destroyers OR 1 light cruiser
 		let result = parse_composition(&Some("2-2/3-1".to_string())).unwrap();
-		assert_eq!(result.len(), 1);
-		assert_eq!(result[0].conditions.len(), 2);
+		assert_eq!(result.len(), 2);
 		assert_eq!(result[0].conditions[0].ship_types, vec![2]);
 		assert_eq!(result[0].conditions[0].count, 2);
-		assert_eq!(result[0].conditions[1].ship_types, vec![3]);
-		assert_eq!(result[0].conditions[1].count, 1);
+		assert_eq!(result[1].conditions[0].ship_types, vec![3]);
+		assert_eq!(result[1].conditions[0].count, 1);
 	}
 
 	#[test]

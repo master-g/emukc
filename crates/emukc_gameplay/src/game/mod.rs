@@ -3,7 +3,9 @@
 pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
 pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
-pub use expedition::ExpeditionOps;
+pub use expedition::{
+	ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
+};
 pub use factory::FactoryOps;
 pub use fleet::FleetOps;
 pub use furniture::FurnitureOps;
@@ -95,5 +97,8 @@ pub mod types {
 	//! The types prelude.
 
 	#[doc(hidden)]
-	pub use crate::game::{PowerupResp, SlotDepriveParams};
+	pub use crate::game::{
+		ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PowerupResp,
+		SlotDepriveParams,
+	};
 }

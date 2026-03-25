@@ -26,6 +26,18 @@ pub enum QuestActionEvent {
 	ShipResupplied {
 		ship_id: i64,
 	},
+	ExpeditionCompleted {
+		mission_id: i64,
+		result: ExpeditionResult,
+		fleet_id: i64,
+	},
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExpeditionResult {
+	Failure = 0,
+	Success = 1,
+	GreatSuccess = 2,
 }
 
 impl Kc3rdQuestCondition {
@@ -46,6 +58,10 @@ impl Kc3rdQuestCondition {
 				QuestActionEvent::SlotItemScrapped { .. },
 			) | (Kc3rdQuestCondition::Repair(_), QuestActionEvent::ShipRepaired { .. },)
 				| (Kc3rdQuestCondition::Resupply(_), QuestActionEvent::ShipResupplied { .. },)
+				| (
+					Kc3rdQuestCondition::Expedition(_),
+					QuestActionEvent::ExpeditionCompleted { .. },
+				)
 		)
 	}
 
@@ -71,6 +87,32 @@ impl Kc3rdQuestCondition {
 				} else {
 					false
 				}
+			}
+			Kc3rdQuestCondition::Expedition(conditions) => {
+				let QuestActionEvent::ExpeditionCompleted {
+					mission_id,
+					..
+				} = event
+				else {
+					return false;
+				};
+
+				for condition in conditions.iter_mut() {
+					let matches = condition.list.as_ref().is_none_or(|allowed_ids| {
+						let mission_id_str = mission_id.to_string();
+						allowed_ids.iter().any(|id| {
+							id == &mission_id_str
+								|| id.parse::<i64>().ok().is_some_and(|v| v == *mission_id)
+						})
+					});
+
+					if matches && condition.times > 0 {
+						condition.times -= 1;
+						return true;
+					}
+				}
+
+				false
 			}
 			_ => false,
 		}

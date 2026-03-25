@@ -4,6 +4,7 @@ use emukc_db::{
 	sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::profile::fleet::Fleet;
+use emukc_time::chrono::Utc;
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -206,7 +207,7 @@ pub(crate) async fn get_fleet_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let fleet = find_fleet(c, profile_id, index).await?;
+	let fleet = normalize_fleet_mission_status(find_fleet(c, profile_id, index).await?, c).await?;
 
 	Ok(fleet.into())
 }
@@ -224,13 +225,36 @@ pub(crate) async fn get_fleets_impl<C>(
 where
 	C: ConnectionTrait,
 {
-	let fleets: Vec<fleet::Model> = fleet::Entity::find()
+	let models: Vec<fleet::Model> = fleet::Entity::find()
 		.filter(fleet::Column::ProfileId.eq(profile_id))
 		.order_by_asc(fleet::Column::Index)
 		.all(c)
 		.await?;
 
+	let mut fleets = Vec::with_capacity(models.len());
+	for model in models {
+		fleets.push(normalize_fleet_mission_status(model, c).await?);
+	}
+
 	Ok(fleets)
+}
+
+async fn normalize_fleet_mission_status<C>(
+	model: fleet::Model,
+	c: &C,
+) -> Result<fleet::Model, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	if model.mission_status == fleet::MissionStatus::InMission
+		&& model.return_time.is_some_and(|return_time| return_time <= Utc::now())
+	{
+		let mut am: fleet::ActiveModel = model.into();
+		am.mission_status = ActiveValue::Set(fleet::MissionStatus::Returning);
+		return Ok(am.update(c).await?);
+	}
+
+	Ok(model)
 }
 
 pub(crate) async fn get_fleet_ships_impl<C>(

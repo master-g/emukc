@@ -3,7 +3,8 @@
 #[cfg(test)]
 mod tests {
 	use emukc_internal::prelude::{
-		Kc3rdQuestCondition, Kc3rdQuestConditionFactory, Kc3rdQuestConditionScrap, QuestActionEvent,
+		ExpeditionResult, Kc3rdQuestCondition, Kc3rdQuestConditionExpedition,
+		Kc3rdQuestConditionFactory, Kc3rdQuestConditionScrap, QuestActionEvent,
 	};
 
 	// --- matches_event tests ---
@@ -70,6 +71,20 @@ mod tests {
 			ship_id: 1,
 		};
 		assert!(!cond.matches_event(&event));
+	}
+
+	#[test]
+	fn test_expedition_matches_expedition_completed_event() {
+		let cond = Kc3rdQuestCondition::Expedition(vec![Kc3rdQuestConditionExpedition {
+			list: Some(vec!["37".to_string()]),
+			times: 1,
+		}]);
+		let event = QuestActionEvent::ExpeditionCompleted {
+			mission_id: 37,
+			result: ExpeditionResult::Success,
+			fleet_id: 1,
+		};
+		assert!(cond.matches_event(&event));
 	}
 
 	// --- apply_event tests ---
@@ -176,5 +191,39 @@ mod tests {
 
 		assert!(!cond.apply_event(&event)); // already 0
 		assert!(cond.is_satisfied());
+	}
+
+	#[test]
+	fn test_apply_expedition_event_decrements_matching_condition() {
+		let mut cond = Kc3rdQuestCondition::Expedition(vec![
+			Kc3rdQuestConditionExpedition {
+				list: Some(vec!["37".to_string(), "38".to_string()]),
+				times: 2,
+			},
+			Kc3rdQuestConditionExpedition {
+				list: None,
+				times: 3,
+			},
+		]);
+		let event = QuestActionEvent::ExpeditionCompleted {
+			mission_id: 37,
+			result: ExpeditionResult::Success,
+			fleet_id: 1,
+		};
+
+		assert!(cond.apply_event(&event));
+		assert_eq!(
+			cond,
+			Kc3rdQuestCondition::Expedition(vec![
+				Kc3rdQuestConditionExpedition {
+					list: Some(vec!["37".to_string(), "38".to_string()]),
+					times: 1,
+				},
+				Kc3rdQuestConditionExpedition {
+					list: None,
+					times: 3,
+				},
+			])
+		);
 	}
 }
