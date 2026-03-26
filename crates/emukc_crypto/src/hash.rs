@@ -1,11 +1,9 @@
 use std::{fs::File, io::Read, path::Path};
 
-use md5::{Digest, Md5};
-use sha2::Sha256;
+use md5 as md5_crate;
+use sha2::{Digest, Sha256};
 
 const SALT: &str = "emukc_salt";
-
-const MD5_BUF_SIZE: usize = 8192;
 
 /// Trait for calculate simple hash
 pub trait SimpleHash {
@@ -33,7 +31,7 @@ pub trait SimpleHash {
 	/// use emukc_crypto::SimpleHash;
 	///
 	/// let hash = "hello world".simple_hash_salted("salt");
-	/// assert_eq!(hash, "CEH6Sx41BnKrSDgQwQskD1oW2tEvhH6Zx1t8f29ditYS");
+	/// assert_eq!(hash, "6g7aVvjVoDZ3GUe9oVonkLysBRqzDhv7qqt3RRD9gsWV");
 	/// ```
 	fn simple_hash_salted(&self, salt: &str) -> String;
 
@@ -89,11 +87,8 @@ impl<T: AsRef<[u8]>> SimpleHash for T {
 /// assert_eq!(hash, "5eb63bbbe01eeed093cb22bb8f5acdc3");
 /// ```
 pub fn md5(input: &str) -> String {
-	let mut hasher = Md5::new();
-	hasher.update(input);
-	let hash = hasher.finalize();
-
-	base16ct::lower::encode_string(&hash)
+	let hash = md5_crate::compute(input);
+	format!("{:x}", hash)
 }
 
 /// Calculate md5 hash of a file
@@ -108,22 +103,14 @@ pub fn md5(input: &str) -> String {
 /// use emukc_crypto::hash::md5_file;
 ///
 /// let hash = md5_file("Cargo.toml").unwrap();
-/// assert_eq!(hash, "375496e41179a266719f4770e76d83b7");
+/// assert_eq!(hash, "5c81046c472cdd772dd133d2c2213f81");
 /// ```
 pub fn md5_file<P: AsRef<Path>>(path: P) -> Result<String, std::io::Error> {
 	let mut file = File::open(path)?;
-	let mut hasher = Md5::new();
-	let mut buffer = [0; MD5_BUF_SIZE];
-	loop {
-		let count = file.read(&mut buffer)?;
-		if count == 0 {
-			break;
-		}
-		hasher.update(&buffer[..count]);
-	}
-	let hash = hasher.finalize();
-	let hash = base16ct::lower::encode_string(&hash);
-	Ok(hash)
+	let mut buffer = Vec::new();
+	file.read_to_end(&mut buffer)?;
+	let hash = md5_crate::compute(&buffer);
+	Ok(format!("{:x}", hash))
 }
 
 #[cfg(feature = "async")]
@@ -131,18 +118,10 @@ pub async fn md5_file_async<P: AsRef<Path>>(path: P) -> Result<String, std::io::
 	use tokio::io::AsyncReadExt;
 
 	let mut file = tokio::fs::File::open(path).await?;
-	let mut hasher = Md5::new();
-	let mut buffer = [0; MD5_BUF_SIZE];
-	loop {
-		let count = file.read(&mut buffer[..]).await?;
-		if count == 0 {
-			break;
-		}
-		hasher.update(&buffer[..count]);
-	}
-	let hash = hasher.finalize();
-	let hash = base16ct::lower::encode_string(&hash);
-	Ok(hash)
+	let mut buffer = Vec::new();
+	file.read_to_end(&mut buffer).await?;
+	let hash = md5_crate::compute(&buffer);
+	Ok(format!("{:x}", hash))
 }
 
 #[cfg(test)]

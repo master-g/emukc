@@ -22,6 +22,9 @@
 .env
 
 # AI slop
+.claude/
+.codex/
+.opencode/
 .omc/
 .cocoindex_code/
 .sisyphus/

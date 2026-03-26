@@ -42,7 +42,7 @@ clap = { version = "4.6.0", features = [
 config = { version = "0.15.22", features = ["toml"] }
 dashmap = "6.1.0"
 enumn = "0.1.14"
-env_logger = "0.11.9"
+env_logger = "0.11.10"
 fontdue = { version = "0.9.3" }
 futures = { version = "0.3.32" }
 futures-util = { version = "0.3.32" }
@@ -52,6 +52,7 @@ http-body-util = "0.1.3"
 inquire = { version = "0.9.4" }
 lru = "0.16.3"
 md-5 = "0.10.6"
+md5 = "0.8.0"
 mime_guess = "2.0.5"
 open = "5.3.3"
 png = "0.18.1"
@@ -73,7 +74,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 serde_urlencoded = "0.7.1"
 serde_yaml = "0.9.34"
-sha2 = { version = "0.10.9", default-features = false }
+sha2 = { version = "0.11.0", default-features = false }
 tera = "1.20.1"
 test-log = { version = "0.2.19", features = ["trace"] }
 thiserror = "2.0.18"
@@ -101,7 +102,7 @@ url = "2.5.8"
 urlencoding = "2.1.3"
 uuid = { version = "1.22.0", features = ["fast-rng", "v4"] }
 validator = { version = "0.20.0", features = ["derive"] }
-zip = { version = "8.2.0" }
+zip = { version = "8.4.0" }
 
 [workspace.lints.clippy]
 doc_markdown = "warn"
@@ -189,6 +190,7 @@ urlencoding = { workspace = true }
 validator = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
+md5 = "0.8.0"
 memory-stats = "1"
 regex = { workspace = true }
 reqwest = { version = "0.12", features = ["json"] }
