@@ -568,9 +568,10 @@ fn expedition_ship_type_requirement_matches(
 	let count = fleet_ships
 		.iter()
 		.filter(|ship| {
-			codex.manifest.find_ship(ship.mst_id).is_some_and(|mst| {
-				condition.ship_types.iter().any(|ship_type| *ship_type == mst.api_stype)
-			})
+			codex
+				.manifest
+				.find_ship(ship.mst_id)
+				.is_some_and(|mst| condition.ship_types.contains(&mst.api_stype))
 		})
 		.count() as i64;
 
@@ -774,7 +775,7 @@ where
 	let mut updated_ships = Vec::with_capacity(ships.len());
 	for ship in ships {
 		let loss = expedition_return_morale_loss(mission_mst);
-		let mut am = ship.clone().into_active_model();
+		let mut am = (*ship).into_active_model();
 		am.condition = ActiveValue::Set((ship.condition - loss).max(0));
 		updated_ships.push(am.update(c).await?);
 	}
@@ -885,11 +886,10 @@ fn type2_over_drum_requirements(code: &str) -> Option<(i64, i64)> {
 	match code {
 		"21" => Some((3, 4)),
 		"24" => Some((1, 2)),
-		"37" => Some((3, 5)),
+		"37" | "E2" => Some((3, 5)),
 		"38" => Some((4, 9)),
 		"40" => Some((1, 5)),
 		"44" => Some((3, 7)),
-		"E2" => Some((3, 5)),
 		_ => None,
 	}
 }
@@ -954,7 +954,7 @@ where
 			GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
 		})?;
 
-		let mut am = ship.clone().into_active_model();
+		let mut am = (*ship).into_active_model();
 		am.fuel = ActiveValue::Set(ship.fuel - cost.fuel);
 		am.ammo = ActiveValue::Set(ship.ammo - cost.ammo);
 		am.update(c).await?;
@@ -1107,8 +1107,7 @@ where
 
 	let base_gain = match result {
 		ExpeditionResult::GreatSuccess => fleet_exp.max(0) * 2,
-		ExpeditionResult::Success => fleet_exp.max(0),
-		ExpeditionResult::Failure => fleet_exp.max(0),
+		ExpeditionResult::Success | ExpeditionResult::Failure => fleet_exp.max(0),
 	};
 
 	for (idx, model) in ships.iter().enumerate() {
@@ -1119,7 +1118,7 @@ where
 		};
 		gains.push(gain);
 
-		let mut updated = model.clone();
+		let mut updated = *model;
 		updated.exp_now += gain;
 
 		let (level, next_exp) = level::exp_to_ship_level(updated.exp_now);

@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 
 use emukc_cache::prelude::*;
-use futures::stream::StreamExt;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::{make_list::CacheList, prelude::CacheListMakingError};

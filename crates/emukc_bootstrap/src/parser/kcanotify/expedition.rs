@@ -1,4 +1,4 @@
-//! KCanotify expedition data parser
+//! `KCanotify` expedition data parser
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -11,7 +11,7 @@ use emukc_model::thirdparty::{
 	Kc3rdExpeditionRequirements, Kc3rdShipTypeRequirement,
 };
 
-/// Parse KCanotify expedition data file
+/// Parse `KCanotify` expedition data file
 pub fn parse(path: impl AsRef<Path>) -> Result<Kc3rdExpeditionConditionMap, ParseError> {
 	let raw = std::fs::read_to_string(path)?;
 	let kcanotify_data: Vec<KCanotifyExpedition> = serde_json::from_str(&raw)?;
@@ -49,7 +49,7 @@ pub fn parse(path: impl AsRef<Path>) -> Result<Kc3rdExpeditionConditionMap, Pars
 	Ok(result)
 }
 
-/// Convert KCanotify data to internal model
+/// Convert `KCanotify` data to internal model
 fn convert_to_internal_model(
 	src: &KCanotifyExpedition,
 ) -> Result<Kc3rdExpeditionCondition, ParseError> {
@@ -150,7 +150,7 @@ fn parse_composition(
 
 /// Parse single ship type requirement
 ///
-/// Format: "ship_types-count" where ship_types can be comma-separated
+/// Format: "ship_types-count" where `ship_types` can be comma-separated
 /// Example: "1,2-3" means 3 ships of type 1 OR type 2
 fn parse_ship_type_requirement(s: &str) -> Result<Kc3rdShipTypeRequirement, ParseError> {
 	let (types_part, count_part) = s.split_once('-').ok_or_else(|| {
@@ -159,7 +159,7 @@ fn parse_ship_type_requirement(s: &str) -> Result<Kc3rdShipTypeRequirement, Pars
 
 	let ship_types = types_part
 		.split(',')
-		.map(|t| t.parse::<i64>())
+		.map(str::parse::<i64>)
 		.collect::<Result<Vec<_>, _>>()
 		.map_err(|e| ParseError::IntParse(e.to_string()))?;
 
@@ -173,7 +173,7 @@ fn parse_ship_type_requirement(s: &str) -> Result<Kc3rdShipTypeRequirement, Pars
 
 /// Parse drum requirements
 ///
-/// Handles both required drums (ship_count + total_count) and optional drums (optional_count)
+/// Handles both required drums (`ship_count` `total_count`) and optional drums (`optional_count`)
 fn parse_drum_requirements(
 	ship_count: Option<i64>,
 	total_count: Option<i64>,

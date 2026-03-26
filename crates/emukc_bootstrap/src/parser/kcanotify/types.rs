@@ -1,8 +1,8 @@
-//! KCanotify expedition data types
+//! `KCanotify` expedition data types
 
 use serde::{Deserialize, Serialize};
 
-/// KCanotify expedition data root structure
+/// `KCanotify` expedition data root structure
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KCanotifyExpedition {
 	/// Expedition number (1-46, 100-115, etc.)
@@ -24,10 +24,10 @@ pub struct KCanotifyExpedition {
 	/// Resource reward [fuel, ammo, steel, bauxite]
 	pub resource: [i64; 4],
 
-	/// Item rewards [[item_id, count], ...]
+	/// Item rewards [[`item_id`, count], ...]
 	pub reward: Vec<[i64; 2]>,
 
-	/// Experience points [admiral_exp, fleet_exp]
+	/// Experience points [`admiral_exp``fleet_exp`xp]
 	pub exp: [i64; 2],
 
 	/// Required number of ships in fleet

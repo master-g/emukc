@@ -261,12 +261,13 @@ pub fn simulate_practice_day_battle(
 		}
 	}
 
-	if any_alive(&friendly) && any_alive(&enemy) && (can_torpedo(&friendly) || can_torpedo(&enemy))
+	if any_alive(&friendly)
+		&& any_alive(&enemy)
+		&& (can_torpedo(&friendly) || can_torpedo(&enemy))
+		&& let Some(round) = simulate_raigeki(&mut friendly, &mut enemy)
 	{
-		if let Some(round) = simulate_raigeki(&mut friendly, &mut enemy) {
-			raigeki = Some(round);
-			hourai_flag[3] = 1;
-		}
+		raigeki = Some(round);
+		hourai_flag[3] = 1;
 	}
 
 	let base_exp = calculate_practice_base_exp(&input.rival);
@@ -295,7 +296,7 @@ pub fn simulate_practice_day_battle(
 		api_ship_lv: enemy.iter().map(|ship| ship.ship.api_lv).collect(),
 		api_e_nowhps: enemy.iter().map(|ship| ship.current_hp.max(0)).collect(),
 		api_e_maxhps: enemy.iter().map(|ship| ship.ship.api_maxhp).collect(),
-		api_eSlot: enemy.iter().map(|ship| enemy_slot_ids(ship)).collect(),
+		api_eSlot: enemy.iter().map(enemy_slot_ids).collect(),
 		api_eParam: enemy
 			.iter()
 			.map(|ship| {
@@ -452,10 +453,8 @@ fn resolve_shelling_round(
 		cl_list.push(vec![1]);
 		damage.push(vec![dealt]);
 
-		if !attacker_enemy {
-			if let Some(attacker) = friendly.get_mut(action.attacker_idx as usize) {
-				attacker.damage_dealt += dealt;
-			}
+		if !attacker_enemy && let Some(attacker) = friendly.get_mut(action.attacker_idx as usize) {
+			attacker.damage_dealt += dealt;
 		}
 	}
 
@@ -602,19 +601,19 @@ fn simulate_kouku(
 	let mut api_edam = vec![0; enemy.len()];
 	let mut api_fdam = vec![0; friendly.len()];
 
-	if friend_planes > 0 {
-		if let Some(target_idx) = enemy.iter().position(|ship| ship.current_hp > 0) {
-			let dealt = 6.min(enemy[target_idx].current_hp.max(0));
-			enemy[target_idx].current_hp -= dealt;
-			api_edam[target_idx] = dealt;
-		}
+	if friend_planes > 0
+		&& let Some(target_idx) = enemy.iter().position(|ship| ship.current_hp > 0)
+	{
+		let dealt = 6.min(enemy[target_idx].current_hp.max(0));
+		enemy[target_idx].current_hp -= dealt;
+		api_edam[target_idx] = dealt;
 	}
-	if enemy_planes > 0 {
-		if let Some(target_idx) = friendly.iter().position(|ship| ship.current_hp > 0) {
-			let dealt = 3.min(friendly[target_idx].current_hp.max(0));
-			friendly[target_idx].current_hp -= dealt;
-			api_fdam[target_idx] = dealt;
-		}
+	if enemy_planes > 0
+		&& let Some(target_idx) = friendly.iter().position(|ship| ship.current_hp > 0)
+	{
+		let dealt = 3.min(friendly[target_idx].current_hp.max(0));
+		friendly[target_idx].current_hp -= dealt;
+		api_fdam[target_idx] = dealt;
 	}
 
 	PracticeKouku {

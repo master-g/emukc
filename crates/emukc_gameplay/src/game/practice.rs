@@ -536,7 +536,7 @@ where
 		let slot_items = slot_items.into_iter().map(std::convert::Into::into).collect();
 
 		result.push(PracticeBattleShipInput {
-			ship: ship.clone().into(),
+			ship: (*ship).into(),
 			slot_items,
 			effect_list: vec![],
 		});
