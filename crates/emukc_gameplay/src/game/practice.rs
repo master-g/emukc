@@ -1,3 +1,8 @@
+use std::{
+	collections::HashMap,
+	sync::{LazyLock, Mutex},
+};
+
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::{
@@ -8,7 +13,7 @@ use emukc_db::{
 };
 use emukc_model::{
 	codex::Codex,
-	kc2::UserHQRank,
+	kc2::{UserHQRank, level},
 	profile::practice::{PracticeConfig, Rival, RivalDetail, RivalFlag, RivalShip, RivalStatus},
 };
 use emukc_time::{
@@ -18,6 +23,20 @@ use emukc_time::{
 use rand::{RngExt, rng, seq::IndexedRandom};
 
 use crate::{err::GameplayError, gameplay::HasContext};
+
+use super::{
+	basic::find_profile,
+	battle::practice::{
+		PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultResponse,
+		PracticeBattleResultSnapshot, PracticeBattleShipInput,
+		build_practice_battle_result_response, simulate_practice_day_battle,
+	},
+	fleet::get_fleet_ships_impl,
+	slot_item::find_slot_items_by_id_impl,
+};
+
+static PENDING_PRACTICE_RESULTS: LazyLock<Mutex<HashMap<i64, PracticeBattleResultSnapshot>>> =
+	LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Practice information.
 #[derive(Debug, Clone)]
@@ -53,6 +72,21 @@ pub trait PracticeOps {
 		profile_id: i64,
 		rival_id: i64,
 	) -> Result<Rival, GameplayError>;
+
+	/// Start a practice day battle.
+	async fn practice_battle(
+		&self,
+		profile_id: i64,
+		deck_id: i64,
+		formation_id: i64,
+		enemy_id: i64,
+	) -> Result<PracticeBattleResponse, GameplayError>;
+
+	/// Get the latest practice battle result.
+	async fn practice_battle_result(
+		&self,
+		profile_id: i64,
+	) -> Result<PracticeBattleResultResponse, GameplayError>;
 }
 
 #[async_trait]
@@ -79,6 +113,69 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 		let rival = get_practice_rival_details_impl(db, profile_id, rival_id).await?;
 
 		Ok(rival)
+	}
+
+	async fn practice_battle(
+		&self,
+		profile_id: i64,
+		deck_id: i64,
+		formation_id: i64,
+		enemy_id: i64,
+	) -> Result<PracticeBattleResponse, GameplayError> {
+		let codex = self.codex();
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let rival = get_practice_rival_details_impl(&tx, profile_id, enemy_id).await?;
+		let profile = find_profile(&tx, profile_id).await?;
+		let friend_ships = get_fleet_ships_impl(&tx, profile_id, deck_id).await?;
+		if friend_ships.is_empty() {
+			return Err(GameplayError::WrongType(format!(
+				"fleet {deck_id} has no ships for practice battle",
+			)));
+		}
+
+		let friend_ships = build_practice_friend_ships(&tx, &friend_ships).await?;
+		let enemy_ships = build_practice_enemy_ships(codex, &rival)?;
+		let input = PracticeBattleInput {
+			deck_id,
+			formation_id,
+			enemy_id,
+			friend_ships,
+			enemy_ships,
+			rival,
+			member_lv: profile.hq_level,
+			member_exp: profile.experience,
+		};
+
+		let (response, snapshot) = simulate_practice_day_battle(codex, input)?;
+		PENDING_PRACTICE_RESULTS.lock().unwrap().insert(profile_id, snapshot);
+
+		tx.commit().await?;
+
+		Ok(response)
+	}
+
+	async fn practice_battle_result(
+		&self,
+		profile_id: i64,
+	) -> Result<PracticeBattleResultResponse, GameplayError> {
+		let db = self.db();
+		let tx = db.begin().await?;
+
+		let snapshot =
+			PENDING_PRACTICE_RESULTS.lock().unwrap().remove(&profile_id).ok_or_else(|| {
+				GameplayError::EntryNotFound(format!(
+					"practice battle result not found for profile {profile_id}",
+				))
+			})?;
+
+		update_practice_result_stats(&tx, profile_id, &snapshot).await?;
+		update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank).await?;
+
+		tx.commit().await?;
+
+		Ok(build_practice_battle_result_response(snapshot))
 	}
 }
 
@@ -419,6 +516,112 @@ fn cal_practice_entry_limit() -> Option<i64> {
 	} else {
 		None
 	}
+}
+
+async fn build_practice_friend_ships<C>(
+	c: &C,
+	friend_ships: &[emukc_db::entity::profile::ship::Model],
+) -> Result<Vec<PracticeBattleShipInput>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let mut result = Vec::with_capacity(friend_ships.len());
+	for ship in friend_ships {
+		let slot_ids =
+			[ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+				.into_iter()
+				.filter(|slot_id| *slot_id > 0)
+				.collect::<Vec<_>>();
+		let slot_items = find_slot_items_by_id_impl(c, &slot_ids).await?;
+		let slot_items = slot_items.into_iter().map(std::convert::Into::into).collect();
+
+		result.push(PracticeBattleShipInput {
+			ship: ship.clone().into(),
+			slot_items,
+			effect_list: vec![],
+		});
+	}
+
+	Ok(result)
+}
+
+fn build_practice_enemy_ships(
+	codex: &Codex,
+	rival: &Rival,
+) -> Result<Vec<PracticeBattleShipInput>, GameplayError> {
+	rival
+		.details
+		.ships
+		.iter()
+		.map(|ship| {
+			let (mut api_ship, slot_items) =
+				codex.new_ship(ship.mst_id).ok_or(GameplayError::ManifestNotFound(ship.mst_id))?;
+			let exp_now = level::ship_level_required_exp(ship.level);
+			let (_, next_exp) = level::exp_to_ship_level(exp_now);
+			api_ship.api_lv = ship.level;
+			api_ship.api_exp = [exp_now, next_exp, 0];
+			codex.cal_ship_status(&mut api_ship, &slot_items)?;
+
+			Ok(PracticeBattleShipInput {
+				ship: api_ship,
+				slot_items,
+				effect_list: vec![0],
+			})
+		})
+		.collect()
+}
+
+async fn update_practice_result_stats<C>(
+	c: &C,
+	profile_id: i64,
+	snapshot: &PracticeBattleResultSnapshot,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let profile = find_profile(c, profile_id).await?;
+	let mut am = profile.into_active_model();
+	am.practice_battles = ActiveValue::Set(am.practice_battles.take().unwrap_or_default() + 1);
+	if matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+		am.practice_battle_wins =
+			ActiveValue::Set(am.practice_battle_wins.take().unwrap_or_default() + 1);
+	}
+	am.update(c).await?;
+	Ok(())
+}
+
+async fn update_rival_status<C>(
+	c: &C,
+	profile_id: i64,
+	enemy_id: i64,
+	win_rank: &str,
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let rival = practice::rival::Entity::find_by_id(enemy_id)
+		.filter(practice::rival::Column::ProfileId.eq(profile_id))
+		.one(c)
+		.await?
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"practice rival {enemy_id} not found for profile {profile_id}",
+			))
+		})?;
+
+	let status = match win_rank {
+		"S" => practice::rival::Status::VictoryRankS,
+		"A" => practice::rival::Status::VictoryRankA,
+		"B" => practice::rival::Status::VictoryRankB,
+		"C" => practice::rival::Status::LostRankC,
+		"D" => practice::rival::Status::LostRankD,
+		_ => practice::rival::Status::LostRankE,
+	};
+
+	let mut am = rival.into_active_model();
+	am.status = ActiveValue::Set(status);
+	am.update(c).await?;
+	Ok(())
 }
 
 /// Initialize practice of user.

@@ -341,8 +341,7 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	}
 	// fleet
 	{
-		let stmt = schema.create_table_from_entity(fleet::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
+		fleet::bootstrap(db).await?;
 	}
 	// furniture
 	{

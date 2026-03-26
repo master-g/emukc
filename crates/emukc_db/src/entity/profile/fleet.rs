@@ -51,6 +51,21 @@ pub struct Model {
 	/// Mission return time
 	pub return_time: Option<DateTime<Utc>>,
 
+	/// Launch-time fleet ship count snapshot for expedition GS calculation
+	pub launch_fleet_ship_count: i64,
+
+	/// Launch-time sparkled ship count snapshot for expedition GS calculation
+	pub launch_sparkled_ship_count: i64,
+
+	/// Launch-time flagship level snapshot for expedition GS calculation
+	pub launch_flagship_level: i64,
+
+	/// Launch-time drum-carrying ship count snapshot for expedition GS calculation
+	pub launch_drum_ship_count: i64,
+
+	/// Launch-time total drum count snapshot for expedition GS calculation
+	pub launch_total_drums: i64,
+
 	/// Ship 1
 	pub ship_1: i64,
 
@@ -125,6 +140,11 @@ impl From<Fleet> for ActiveModel {
 			mission_status: ActiveValue::Set(mission_status),
 			mission_id: ActiveValue::Set(value.mission.as_ref().map(|x| x.id).unwrap_or(0)),
 			return_time: ActiveValue::Set(value.mission.as_ref().and_then(|x| x.return_time)),
+			launch_fleet_ship_count: ActiveValue::Set(0),
+			launch_sparkled_ship_count: ActiveValue::Set(0),
+			launch_flagship_level: ActiveValue::Set(0),
+			launch_drum_ship_count: ActiveValue::Set(0),
+			launch_total_drums: ActiveValue::Set(0),
 			ship_1: ActiveValue::Set(value.ships[0]),
 			ship_2: ActiveValue::Set(value.ships[1]),
 			ship_3: ActiveValue::Set(value.ships[2]),
@@ -160,4 +180,13 @@ impl From<Model> for Fleet {
 			],
 		}
 	}
+}
+
+/// Bootstrap the fleet table.
+pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
+	let schema = sea_orm::Schema::new(db.get_database_backend());
+	let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
+	db.execute(db.get_database_backend().build(&stmt)).await?;
+
+	Ok(())
 }

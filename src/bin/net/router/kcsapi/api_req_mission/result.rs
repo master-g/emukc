@@ -57,7 +57,10 @@ pub(super) async fn handler(
 
 	let mut api_useitem_flag = [0; 2];
 	let mut api_items = [None, None];
-	for (idx, reward) in result.item_rewards.iter().take(2).enumerate() {
+	for (idx, reward) in result.item_rewards.iter().enumerate() {
+		let Some(reward) = reward.as_ref() else {
+			continue;
+		};
 		let (flag, item) = to_api_item(reward);
 		api_useitem_flag[idx] = flag;
 		api_items[idx] = Some(item);

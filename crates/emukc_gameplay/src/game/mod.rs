@@ -1,5 +1,7 @@
 //! Gameplay logic.
 
+pub mod battle;
+
 pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
 pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};

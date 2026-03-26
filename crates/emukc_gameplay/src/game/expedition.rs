@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+
 use emukc_db::{
 	entity::profile::{self, expedition, fleet, item::slot_item, ship},
 	sea_orm::{ActiveValue, IntoActiveModel, QueryFilter, TransactionTrait, entity::prelude::*},
@@ -6,6 +7,7 @@ use emukc_db::{
 use emukc_model::{
 	codex::Codex,
 	kc2::{KcUseItemType, MaterialCategory, level, start2::ApiMstMission},
+	prelude::ApiMstShip,
 	thirdparty::{
 		ExpeditionResult, Kc3rdCompositionAlternative, Kc3rdExpeditionCondition,
 		Kc3rdShipTypeRequirement, QuestActionEvent,
@@ -15,6 +17,7 @@ use emukc_time::{
 	KcTime,
 	chrono::{DateTime, Datelike, Duration, FixedOffset, TimeZone, Utc},
 };
+use rand::{RngExt, rng};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -23,7 +26,7 @@ use super::{
 	fleet::{find_fleet, get_fleet_ships_impl},
 	material::add_material_impl,
 	quest::update::update_quest_progress_for_action,
-	ship::recalculate_ship_status_with_model,
+	ship::{get_ships_impl, recalculate_ship_status_with_model},
 	use_item::add_use_item_impl,
 };
 
@@ -34,7 +37,7 @@ pub struct ExpeditionStartInfo {
 	pub complete_time: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpeditionItemReward {
 	pub item_id: i64,
 	pub count: i64,
@@ -57,7 +60,36 @@ pub struct ExpeditionCompletion {
 	pub quest_name: String,
 	pub quest_level: i64,
 	pub resource_reward: Option<[i64; 4]>,
-	pub item_rewards: Vec<ExpeditionItemReward>,
+	pub item_rewards: [Option<ExpeditionItemReward>; 2],
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ExpeditionSupplyCost {
+	ship_id: i64,
+	fuel: i64,
+	ammo: i64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GreatSuccessType {
+	Type1,
+	Type2,
+	Type3,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExpeditionFailureKind {
+	Recall,
+	Fatigue,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ExpeditionLaunchSnapshot {
+	fleet_ship_count: i64,
+	sparkled_ship_count: i64,
+	flagship_level: i64,
+	drum_ship_count: i64,
+	total_drums: i64,
 }
 
 /// A trait for expedition(mission) related gameplay.
@@ -155,6 +187,9 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 
 		let fleet_ships = get_fleet_ships_impl(&tx, profile_id, fleet_id).await?;
 		validate_expedition_start(&tx, codex, &fleet_ships, expedition_condition).await?;
+		let launch_snapshot = collect_expedition_launch_snapshot(&tx, &fleet_ships).await?;
+		let supply_costs = calculate_expedition_supply_costs(codex, mission_mst, &fleet_ships)?;
+		apply_expedition_supply_costs(&tx, &fleet_ships, &supply_costs).await?;
 
 		let complete_time = Utc::now() + Duration::minutes(mission_mst.api_time);
 
@@ -163,6 +198,11 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 			am.mission_status = ActiveValue::Set(fleet::MissionStatus::InMission);
 			am.mission_id = ActiveValue::Set(mission_id);
 			am.return_time = ActiveValue::Set(Some(complete_time));
+			am.launch_fleet_ship_count = ActiveValue::Set(launch_snapshot.fleet_ship_count);
+			am.launch_sparkled_ship_count = ActiveValue::Set(launch_snapshot.sparkled_ship_count);
+			am.launch_flagship_level = ActiveValue::Set(launch_snapshot.flagship_level);
+			am.launch_drum_ship_count = ActiveValue::Set(launch_snapshot.drum_ship_count);
+			am.launch_total_drums = ActiveValue::Set(launch_snapshot.total_drums);
 			am.update(&tx).await?;
 		}
 
@@ -192,10 +232,37 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 		}
 
 		let now = Utc::now();
-		let result = match fleet_model.mission_status {
-			fleet::MissionStatus::ForceReturning => ExpeditionResult::Failure,
-			fleet::MissionStatus::Returning => ExpeditionResult::Success,
-			fleet::MissionStatus::InMission => {
+		let mission_id = fleet_model.mission_id;
+		let mission_mst = find_mission_mst(codex, mission_id)
+			.ok_or(GameplayError::ManifestNotFound(mission_id))?;
+		let expedition_condition =
+			codex.expedition_conditions.get(&mission_id).ok_or_else(|| {
+				GameplayError::BadManifest(format!("expedition condition {mission_id} not found"))
+			})?;
+		let mission_ships_before_return =
+			get_fleet_ships_with_morale_refresh(&tx, profile_id, fleet_id).await?;
+		let ship_ids: Vec<i64> = mission_ships_before_return.iter().map(|ship| ship.id).collect();
+		let is_recall = fleet_model.mission_status == fleet::MissionStatus::ForceReturning;
+		let launch_snapshot = load_expedition_launch_snapshot(&fleet_model).unwrap_or(
+			collect_expedition_launch_snapshot(&tx, &mission_ships_before_return).await?,
+		);
+		let mission_ships = match fleet_model.mission_status {
+			fleet::MissionStatus::ForceReturning => {
+				let return_time = fleet_model.return_time.ok_or_else(|| {
+					GameplayError::WrongType(format!(
+						"fleet {fleet_id} is missing forced-return time",
+					))
+				})?;
+				if return_time > now {
+					return Err(GameplayError::WrongType(format!(
+						"fleet {fleet_id} forced return from expedition {} is not ready yet",
+						fleet_model.mission_id,
+					)));
+				}
+				apply_expedition_return_morale(&tx, mission_mst, &mission_ships_before_return)
+					.await?
+			}
+			fleet::MissionStatus::Returning | fleet::MissionStatus::InMission => {
 				let return_time = fleet_model.return_time.ok_or_else(|| {
 					GameplayError::WrongType(format!(
 						"fleet {fleet_id} is missing expedition return time",
@@ -207,37 +274,50 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 						fleet_model.mission_id,
 					)));
 				}
-				ExpeditionResult::Success
+				apply_expedition_return_morale(&tx, mission_mst, &mission_ships_before_return)
+					.await?
 			}
 			fleet::MissionStatus::Idle => unreachable!(),
 		};
-
-		let mission_id = fleet_model.mission_id;
-		let mission_mst = find_mission_mst(codex, mission_id)
-			.ok_or(GameplayError::ManifestNotFound(mission_id))?;
-		let expedition_condition =
-			codex.expedition_conditions.get(&mission_id).ok_or_else(|| {
-				GameplayError::BadManifest(format!("expedition condition {mission_id} not found"))
-			})?;
-		let mission_ships = get_fleet_ships_impl(&tx, profile_id, fleet_id).await?;
-		let ship_ids: Vec<i64> = mission_ships.iter().map(|ship| ship.id).collect();
+		let result = match fleet_model.mission_status {
+			fleet::MissionStatus::ForceReturning => ExpeditionResult::Failure,
+			fleet::MissionStatus::Returning | fleet::MissionStatus::InMission => {
+				if mission_ships.iter().any(|ship| ship.condition <= 39) {
+					ExpeditionResult::Failure
+				} else {
+					determine_expedition_success_result(expedition_condition, launch_snapshot)
+				}
+			}
+			fleet::MissionStatus::Idle => unreachable!(),
+		};
+		let failure_kind = match result {
+			ExpeditionResult::Failure if is_recall => Some(ExpeditionFailureKind::Recall),
+			ExpeditionResult::Failure => Some(ExpeditionFailureKind::Fatigue),
+			_ => None,
+		};
 
 		let (profile, ship_exp, ship_exp_after, resource_reward, item_rewards) =
 			if result == ExpeditionResult::Success || result == ExpeditionResult::GreatSuccess {
-				let item_rewards =
-					grant_expedition_rewards(&tx, codex, profile_id, expedition_condition).await?;
-				let profile = apply_profile_expedition_result(
+				let admiral_exp = calculate_expedition_admiral_exp(expedition_condition, result);
+				let resource_reward =
+					calculate_expedition_resource_reward(expedition_condition, result);
+				let item_rewards = grant_expedition_rewards(
 					&tx,
+					codex,
 					profile_id,
-					expedition_condition.admiral_exp,
-					true,
+					expedition_condition,
+					resource_reward,
+					result,
 				)
 				.await?;
+				let profile =
+					apply_profile_expedition_result(&tx, profile_id, admiral_exp, true).await?;
 				let (ship_exp, ship_exp_after) = apply_ship_expedition_exp(
 					&tx,
 					codex,
 					&mission_ships,
 					expedition_condition.fleet_exp,
+					result,
 				)
 				.await?;
 				mark_expedition_completed(&tx, profile_id, mission_id, now).await?;
@@ -249,30 +329,45 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 				};
 				update_quest_progress_for_action(&tx, codex, profile_id, &event).await?;
 
-				(
-					profile,
-					ship_exp,
-					ship_exp_after,
-					Some(expedition_condition.resource_reward),
-					item_rewards,
-				)
+				(profile, ship_exp, ship_exp_after, Some(resource_reward), item_rewards)
 			} else {
-				let profile = apply_profile_expedition_result(&tx, profile_id, 0, false).await?;
-				let ship_exp = vec![0; mission_ships.len()];
-				let ship_exp_after = mission_ships
-					.iter()
-					.map(|ship| {
-						[
-							ship.exp_now,
-							if ship.exp_next > 0 {
-								ship.exp_next
-							} else {
-								-1
-							},
-						]
-					})
-					.collect();
-				(profile, ship_exp, ship_exp_after, None, vec![])
+				match failure_kind.unwrap() {
+					ExpeditionFailureKind::Recall => {
+						let profile =
+							apply_profile_expedition_result(&tx, profile_id, 0, false).await?;
+						let ship_exp = vec![0; mission_ships.len()];
+						let ship_exp_after = mission_ships
+							.iter()
+							.map(|ship| {
+								[
+									ship.exp_now,
+									if ship.exp_next > 0 {
+										ship.exp_next
+									} else {
+										-1
+									},
+								]
+							})
+							.collect();
+						(profile, ship_exp, ship_exp_after, None, [None, None])
+					}
+					ExpeditionFailureKind::Fatigue => {
+						let admiral_exp =
+							calculate_failed_expedition_admiral_exp(expedition_condition);
+						let profile =
+							apply_profile_expedition_result(&tx, profile_id, admiral_exp, false)
+								.await?;
+						let (ship_exp, ship_exp_after) = apply_ship_expedition_exp(
+							&tx,
+							codex,
+							&mission_ships,
+							expedition_condition.fleet_exp,
+							ExpeditionResult::Failure,
+						)
+						.await?;
+						(profile, ship_exp, ship_exp_after, None, [None, None])
+					}
+				}
 			};
 
 		reset_fleet_expedition(&tx, fleet_model).await?;
@@ -291,12 +386,16 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 			fleet_id,
 			result,
 			ship_ids,
-			admiral_exp: if result == ExpeditionResult::Success
-				|| result == ExpeditionResult::GreatSuccess
-			{
-				expedition_condition.admiral_exp
-			} else {
-				0
+			admiral_exp: match failure_kind {
+				Some(ExpeditionFailureKind::Fatigue) => {
+					calculate_failed_expedition_admiral_exp(expedition_condition)
+				}
+				_ if result == ExpeditionResult::Success
+					|| result == ExpeditionResult::GreatSuccess =>
+				{
+					calculate_expedition_admiral_exp(expedition_condition, result)
+				}
+				_ => 0,
 			},
 			member_lv: profile.hq_level,
 			member_exp: profile.experience,
@@ -322,9 +421,18 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
 			));
 		}
 
+		let mission_mst = find_mission_mst(self.codex(), fleet_model.mission_id)
+			.ok_or(GameplayError::ManifestNotFound(fleet_model.mission_id))?;
+		let now = Utc::now();
+		let current_return_time = fleet_model.return_time.ok_or_else(|| {
+			GameplayError::WrongType(format!("fleet {fleet_id} is missing expedition return time",))
+		})?;
+		let forced_return_time =
+			calculate_forced_return_time(now, current_return_time, mission_mst);
+
 		let mut am = fleet_model.into_active_model();
 		am.mission_status = ActiveValue::Set(fleet::MissionStatus::ForceReturning);
-		am.return_time = ActiveValue::Set(Some(Utc::now()));
+		am.return_time = ActiveValue::Set(Some(forced_return_time));
 		am.update(&tx).await?;
 
 		tx.commit().await?;
@@ -345,6 +453,8 @@ where
 	if fleet_ships.is_empty() {
 		return Err(GameplayError::WrongType("fleet is empty".to_string()));
 	}
+
+	validate_expedition_full_supply(codex, fleet_ships)?;
 
 	let requirements = &expedition_condition.requirements;
 	if fleet_ships.len() < requirements.ship_count as usize {
@@ -507,8 +617,350 @@ where
 	Ok((ships_with_drums, total_drums))
 }
 
+async fn collect_expedition_launch_snapshot<C>(
+	c: &C,
+	fleet_ships: &[ship::Model],
+) -> Result<ExpeditionLaunchSnapshot, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let (drum_ship_count, total_drums) = count_drum_canisters(c, fleet_ships).await?;
+	Ok(ExpeditionLaunchSnapshot {
+		fleet_ship_count: fleet_ships.len() as i64,
+		sparkled_ship_count: sparkled_ship_count(fleet_ships),
+		flagship_level: fleet_ships.first().map(|ship| ship.level).unwrap_or_default(),
+		drum_ship_count,
+		total_drums,
+	})
+}
+
+fn load_expedition_launch_snapshot(fleet_model: &fleet::Model) -> Option<ExpeditionLaunchSnapshot> {
+	(fleet_model.launch_fleet_ship_count > 0).then_some(ExpeditionLaunchSnapshot {
+		fleet_ship_count: fleet_model.launch_fleet_ship_count,
+		sparkled_ship_count: fleet_model.launch_sparkled_ship_count,
+		flagship_level: fleet_model.launch_flagship_level,
+		drum_ship_count: fleet_model.launch_drum_ship_count,
+		total_drums: fleet_model.launch_total_drums,
+	})
+}
+
+async fn get_fleet_ships_with_morale_refresh<C>(
+	c: &C,
+	profile_id: i64,
+	fleet_id: i64,
+) -> Result<Vec<ship::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let fleet = find_fleet(c, profile_id, fleet_id).await?;
+	let fleet_ship_ids =
+		[fleet.ship_1, fleet.ship_2, fleet.ship_3, fleet.ship_4, fleet.ship_5, fleet.ship_6];
+	let (ships, _) = get_ships_impl(c, profile_id).await?;
+
+	let mut mission_ships =
+		ships.into_iter().filter(|ship| fleet_ship_ids.contains(&ship.id)).collect::<Vec<_>>();
+	mission_ships.sort_by_key(|ship| {
+		fleet_ship_ids.iter().position(|ship_id| *ship_id == ship.id).unwrap_or(usize::MAX)
+	});
+
+	Ok(mission_ships)
+}
+
 fn find_mission_mst(codex: &Codex, mission_id: i64) -> Option<&ApiMstMission> {
 	codex.manifest.api_mst_mission.iter().find(|mission| mission.api_id == mission_id)
+}
+
+fn validate_expedition_full_supply(
+	codex: &Codex,
+	fleet_ships: &[ship::Model],
+) -> Result<(), GameplayError> {
+	for ship in fleet_ships {
+		let mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
+		let max_fuel = mst.api_fuel_max.ok_or_else(|| {
+			GameplayError::BadManifest(format!(
+				"invalid fuel max for ship ID {}: {:?}",
+				ship.mst_id, mst
+			))
+		})?;
+		let max_ammo = mst.api_bull_max.ok_or_else(|| {
+			GameplayError::BadManifest(format!(
+				"invalid ammo max for ship ID {}: {:?}",
+				ship.mst_id, mst
+			))
+		})?;
+
+		if ship.fuel < max_fuel {
+			return Err(GameplayError::Insufficient(format!(
+				"ship {} is not fully fueled: has {}, needs {}",
+				ship.id, ship.fuel, max_fuel
+			)));
+		}
+		if ship.ammo < max_ammo {
+			return Err(GameplayError::Insufficient(format!(
+				"ship {} is not fully supplied with ammo: has {}, needs {}",
+				ship.id, ship.ammo, max_ammo
+			)));
+		}
+	}
+
+	Ok(())
+}
+
+fn calculate_expedition_supply_costs(
+	codex: &Codex,
+	mission_mst: &ApiMstMission,
+	fleet_ships: &[ship::Model],
+) -> Result<Vec<ExpeditionSupplyCost>, GameplayError> {
+	let mut costs = Vec::with_capacity(fleet_ships.len());
+
+	for ship in fleet_ships {
+		let mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
+		let max_fuel = mst.api_fuel_max.ok_or_else(|| {
+			GameplayError::BadManifest(format!(
+				"invalid fuel max for ship ID {}: {:?}",
+				ship.mst_id, mst
+			))
+		})?;
+		let max_ammo = mst.api_bull_max.ok_or_else(|| {
+			GameplayError::BadManifest(format!(
+				"invalid ammo max for ship ID {}: {:?}",
+				ship.mst_id, mst
+			))
+		})?;
+
+		let fuel = calculate_expedition_supply_cost(max_fuel, mission_mst.api_use_fuel);
+		let ammo = calculate_expedition_supply_cost(max_ammo, mission_mst.api_use_bull);
+
+		costs.push(ExpeditionSupplyCost {
+			ship_id: ship.id,
+			fuel,
+			ammo,
+		});
+	}
+
+	Ok(costs)
+}
+
+fn calculate_expedition_supply_cost(max_supply: i64, ratio: f64) -> i64 {
+	if ratio <= 0.0 || max_supply <= 0 {
+		return 0;
+	}
+
+	let cost = (max_supply as f64 * ratio).floor() as i64;
+	cost.max(1)
+}
+
+fn calculate_forced_return_time(
+	now: DateTime<Utc>,
+	current_return_time: DateTime<Utc>,
+	mission_mst: &ApiMstMission,
+) -> DateTime<Utc> {
+	let total_duration = Duration::minutes(mission_mst.api_time);
+	let remaining = (current_return_time - now).max(Duration::zero());
+	let elapsed = (total_duration - remaining).max(Duration::zero());
+	let forced_duration = std::cmp::min(remaining, elapsed) / 3;
+
+	now + forced_duration
+}
+
+async fn apply_expedition_return_morale<C>(
+	c: &C,
+	mission_mst: &ApiMstMission,
+	ships: &[ship::Model],
+) -> Result<Vec<ship::Model>, GameplayError>
+where
+	C: ConnectionTrait,
+{
+	let mut updated_ships = Vec::with_capacity(ships.len());
+	for ship in ships {
+		let loss = expedition_return_morale_loss(mission_mst);
+		let mut am = ship.clone().into_active_model();
+		am.condition = ActiveValue::Set((ship.condition - loss).max(0));
+		updated_ships.push(am.update(c).await?);
+	}
+
+	Ok(updated_ships)
+}
+
+fn expedition_return_morale_loss(mission_mst: &ApiMstMission) -> i64 {
+	match mission_mst.api_id {
+		33 | 203 => {
+			let mut r = rng();
+			r.random_range(1..=5)
+		}
+		34 | 204 => {
+			let mut r = rng();
+			r.random_range(1..=10)
+		}
+		_ => 3,
+	}
+}
+
+fn determine_expedition_success_result(
+	expedition_condition: &Kc3rdExpeditionCondition,
+	launch_snapshot: ExpeditionLaunchSnapshot,
+) -> ExpeditionResult {
+	let great_success_rate = calculate_great_success_rate(expedition_condition, launch_snapshot);
+	let great_success_rate = great_success_rate.clamp(0.0, 100.0);
+	let mut r = rng();
+	let roll = r.random_range(0.0..100.0);
+
+	if roll < great_success_rate {
+		ExpeditionResult::GreatSuccess
+	} else {
+		ExpeditionResult::Success
+	}
+}
+
+fn calculate_great_success_rate(
+	expedition_condition: &Kc3rdExpeditionCondition,
+	launch_snapshot: ExpeditionLaunchSnapshot,
+) -> f64 {
+	match great_success_type(expedition_condition.code.as_str()) {
+		GreatSuccessType::Type1 => calculate_type1_great_success_rate(
+			launch_snapshot.sparkled_ship_count,
+			launch_snapshot.fleet_ship_count,
+		),
+		GreatSuccessType::Type2 => {
+			let is_over_drum = is_type2_over_drum(expedition_condition, launch_snapshot);
+			calculate_type2_great_success_rate(launch_snapshot.sparkled_ship_count, is_over_drum)
+		}
+		GreatSuccessType::Type3 => calculate_type3_great_success_rate(
+			launch_snapshot.flagship_level,
+			launch_snapshot.sparkled_ship_count,
+		),
+	}
+}
+
+fn great_success_type(code: &str) -> GreatSuccessType {
+	match code {
+		"21" | "24" | "37" | "38" | "40" | "44" | "E2" => GreatSuccessType::Type2,
+		"A2" | "A3" | "A4" | "A5" | "A6" | "B3" | "B4" | "B5" | "41" | "43" | "45" | "E1" => {
+			GreatSuccessType::Type3
+		}
+		_ => GreatSuccessType::Type1,
+	}
+}
+
+fn sparkled_ship_count(fleet_ships: &[ship::Model]) -> i64 {
+	fleet_ships.iter().filter(|ship| ship.condition >= 50).count() as i64
+}
+
+fn calculate_type1_great_success_rate(sparkled_ship_count: i64, fleet_ship_count: i64) -> f64 {
+	if fleet_ship_count == 0 || sparkled_ship_count != fleet_ship_count {
+		return 0.0;
+	}
+
+	(15 * sparkled_ship_count + 21) as f64
+}
+
+fn calculate_type2_great_success_rate(sparkled_ship_count: i64, is_over_drum: bool) -> f64 {
+	let modifier = if is_over_drum {
+		41
+	} else {
+		6
+	};
+	(15 * sparkled_ship_count + modifier) as f64
+}
+
+fn calculate_type3_great_success_rate(flagship_level: i64, sparkled_ship_count: i64) -> f64 {
+	10.0 * (flagship_level.max(0) as f64).sqrt() + 0.1 * (sparkled_ship_count.pow(3) as f64)
+}
+
+fn is_type2_over_drum(
+	expedition_condition: &Kc3rdExpeditionCondition,
+	launch_snapshot: ExpeditionLaunchSnapshot,
+) -> bool {
+	let Some((required_carriers, required_drums)) =
+		type2_over_drum_requirements(expedition_condition.code.as_str())
+	else {
+		return false;
+	};
+
+	launch_snapshot.drum_ship_count >= required_carriers
+		&& launch_snapshot.total_drums >= required_drums
+}
+
+fn type2_over_drum_requirements(code: &str) -> Option<(i64, i64)> {
+	match code {
+		"21" => Some((3, 4)),
+		"24" => Some((1, 2)),
+		"37" => Some((3, 5)),
+		"38" => Some((4, 9)),
+		"40" => Some((1, 5)),
+		"44" => Some((3, 7)),
+		"E2" => Some((3, 5)),
+		_ => None,
+	}
+}
+
+fn calculate_expedition_admiral_exp(
+	expedition_condition: &Kc3rdExpeditionCondition,
+	result: ExpeditionResult,
+) -> i64 {
+	match result {
+		ExpeditionResult::GreatSuccess => expedition_condition.admiral_exp * 2,
+		ExpeditionResult::Success => expedition_condition.admiral_exp,
+		ExpeditionResult::Failure => 0,
+	}
+}
+
+fn calculate_failed_expedition_admiral_exp(expedition_condition: &Kc3rdExpeditionCondition) -> i64 {
+	((expedition_condition.admiral_exp as f64) * 0.3).floor() as i64
+}
+
+fn calculate_expedition_resource_reward(
+	expedition_condition: &Kc3rdExpeditionCondition,
+	result: ExpeditionResult,
+) -> [i64; 4] {
+	match result {
+		ExpeditionResult::GreatSuccess => expedition_condition
+			.resource_reward
+			.map(|amount| ((amount as f64) * 1.5).floor() as i64),
+		ExpeditionResult::Success => expedition_condition.resource_reward,
+		ExpeditionResult::Failure => [0; 4],
+	}
+}
+
+async fn apply_expedition_supply_costs<C>(
+	c: &C,
+	fleet_ships: &[ship::Model],
+	supply_costs: &[ExpeditionSupplyCost],
+) -> Result<(), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	for ship in fleet_ships {
+		let cost = supply_costs.iter().find(|cost| cost.ship_id == ship.id).ok_or_else(|| {
+			GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
+		})?;
+
+		if ship.fuel < cost.fuel {
+			return Err(GameplayError::Insufficient(format!(
+				"ship {} fuel: has {}, needs {}",
+				ship.id, ship.fuel, cost.fuel
+			)));
+		}
+		if ship.ammo < cost.ammo {
+			return Err(GameplayError::Insufficient(format!(
+				"ship {} ammo: has {}, needs {}",
+				ship.id, ship.ammo, cost.ammo
+			)));
+		}
+	}
+
+	for ship in fleet_ships {
+		let cost = supply_costs.iter().find(|cost| cost.ship_id == ship.id).ok_or_else(|| {
+			GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
+		})?;
+
+		let mut am = ship.clone().into_active_model();
+		am.fuel = ActiveValue::Set(ship.fuel - cost.fuel);
+		am.ammo = ActiveValue::Set(ship.ammo - cost.ammo);
+		am.update(c).await?;
+	}
+
+	Ok(())
 }
 
 async fn mark_expedition_started<C>(
@@ -600,6 +1052,11 @@ where
 	am.mission_status = ActiveValue::Set(fleet::MissionStatus::Idle);
 	am.mission_id = ActiveValue::Set(0);
 	am.return_time = ActiveValue::Set(None);
+	am.launch_fleet_ship_count = ActiveValue::Set(0);
+	am.launch_sparkled_ship_count = ActiveValue::Set(0);
+	am.launch_flagship_level = ActiveValue::Set(0);
+	am.launch_drum_ship_count = ActiveValue::Set(0);
+	am.launch_total_drums = ActiveValue::Set(0);
 
 	Ok(am.update(c).await?)
 }
@@ -640,6 +1097,7 @@ async fn apply_ship_expedition_exp<C>(
 	codex: &Codex,
 	ships: &[ship::Model],
 	fleet_exp: i64,
+	result: ExpeditionResult,
 ) -> Result<(Vec<i64>, Vec<[i64; 2]>), GameplayError>
 where
 	C: ConnectionTrait,
@@ -647,8 +1105,18 @@ where
 	let mut gains = Vec::with_capacity(ships.len());
 	let mut after = Vec::with_capacity(ships.len());
 
-	for model in ships {
-		let gain = fleet_exp.max(0);
+	let base_gain = match result {
+		ExpeditionResult::GreatSuccess => fleet_exp.max(0) * 2,
+		ExpeditionResult::Success => fleet_exp.max(0),
+		ExpeditionResult::Failure => fleet_exp.max(0),
+	};
+
+	for (idx, model) in ships.iter().enumerate() {
+		let gain = if idx == 0 {
+			((base_gain as f64) * 1.5).floor() as i64
+		} else {
+			base_gain
+		};
 		gains.push(gain);
 
 		let mut updated = model.clone();
@@ -687,15 +1155,17 @@ async fn grant_expedition_rewards<C>(
 	codex: &Codex,
 	profile_id: i64,
 	expedition_condition: &Kc3rdExpeditionCondition,
-) -> Result<Vec<ExpeditionItemReward>, GameplayError>
+	resource_reward: [i64; 4],
+	result: ExpeditionResult,
+) -> Result<[Option<ExpeditionItemReward>; 2], GameplayError>
 where
 	C: ConnectionTrait,
 {
 	let mats = [
-		(MaterialCategory::Fuel, expedition_condition.resource_reward[0]),
-		(MaterialCategory::Ammo, expedition_condition.resource_reward[1]),
-		(MaterialCategory::Steel, expedition_condition.resource_reward[2]),
-		(MaterialCategory::Bauxite, expedition_condition.resource_reward[3]),
+		(MaterialCategory::Fuel, resource_reward[0]),
+		(MaterialCategory::Ammo, resource_reward[1]),
+		(MaterialCategory::Steel, resource_reward[2]),
+		(MaterialCategory::Bauxite, resource_reward[3]),
 	]
 	.into_iter()
 	.filter(|(_, amount)| *amount > 0)
@@ -705,8 +1175,13 @@ where
 		add_material_impl(c, codex, profile_id, &mats).await?;
 	}
 
-	let mut items = Vec::with_capacity(expedition_condition.item_rewards.len());
-	for reward in &expedition_condition.item_rewards {
+	let planned_rewards = resolve_expedition_item_rewards(expedition_condition, result);
+	let mut items: [Option<ExpeditionItemReward>; 2] = [None, None];
+	for (idx, reward) in planned_rewards.into_iter().enumerate() {
+		let Some(reward) = reward else {
+			continue;
+		};
+
 		match KcUseItemType::n(reward.item_id) {
 			Some(KcUseItemType::Bucket) => {
 				add_material_impl(
@@ -765,7 +1240,7 @@ where
 			.find_useitem(reward.item_id)
 			.map(|item| item.api_name.clone())
 			.unwrap_or_else(|| reward.item_id.to_string());
-		items.push(ExpeditionItemReward {
+		items[idx] = Some(ExpeditionItemReward {
 			item_id: reward.item_id,
 			count: reward.count,
 			name,
@@ -773,6 +1248,67 @@ where
 	}
 
 	Ok(items)
+}
+
+fn resolve_expedition_item_rewards(
+	expedition_condition: &Kc3rdExpeditionCondition,
+	result: ExpeditionResult,
+) -> [Option<ExpeditionItemReward>; 2] {
+	let mut rewards: [Option<ExpeditionItemReward>; 2] = [None, None];
+
+	for (idx, reward) in expedition_condition.item_rewards.iter().take(2).enumerate() {
+		let count = match idx {
+			0 => draw_left_item_reward_count(reward.count, result),
+			1 => draw_right_item_reward_count(reward.count, result),
+			_ => 0,
+		};
+
+		if count > 0 {
+			rewards[idx] = Some(ExpeditionItemReward {
+				item_id: reward.item_id,
+				count,
+				name: String::new(),
+			});
+		}
+	}
+
+	rewards
+}
+
+fn draw_left_item_reward_count(max_count: i64, result: ExpeditionResult) -> i64 {
+	if max_count <= 0 || result == ExpeditionResult::Failure {
+		return 0;
+	}
+
+	let mut r = rng();
+	let roll = r.random_range(0..=max_count);
+	resolve_left_item_reward_count(max_count, result, roll)
+}
+
+fn draw_right_item_reward_count(max_count: i64, result: ExpeditionResult) -> i64 {
+	if max_count <= 0 || result != ExpeditionResult::GreatSuccess {
+		return 0;
+	}
+
+	let mut r = rng();
+	let roll = r.random_range(1..=max_count);
+	resolve_right_item_reward_count(max_count, result, roll)
+}
+
+fn resolve_left_item_reward_count(max_count: i64, result: ExpeditionResult, roll: i64) -> i64 {
+	if max_count <= 0 || result == ExpeditionResult::Failure {
+		return 0;
+	}
+
+	roll.clamp(0, max_count)
+}
+
+fn resolve_right_item_reward_count(max_count: i64, result: ExpeditionResult, roll: i64) -> i64 {
+	if max_count <= 0 || result != ExpeditionResult::GreatSuccess {
+		return 0;
+	}
+
+	roll.clamp(1, max_count)
 }
 
 async fn refresh_monthly_record<C>(
@@ -833,4 +1369,94 @@ where
 		.await?;
 
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn type1_great_success_rate_is_guaranteed_with_six_sparkled() {
+		assert_eq!(calculate_type1_great_success_rate(6, 6), 111.0);
+		assert_eq!(calculate_type1_great_success_rate(5, 6), 0.0);
+	}
+
+	#[test]
+	fn type2_great_success_rate_uses_overdrum_modifier() {
+		assert_eq!(calculate_type2_great_success_rate(4, false), 66.0);
+		assert_eq!(calculate_type2_great_success_rate(4, true), 101.0);
+	}
+
+	#[test]
+	fn type3_great_success_rate_matches_formula() {
+		assert_eq!(calculate_type3_great_success_rate(33, 5).round(), 70.0);
+	}
+
+	#[test]
+	fn great_success_type_mapping_covers_special_codes() {
+		assert_eq!(great_success_type("37"), GreatSuccessType::Type2);
+		assert_eq!(great_success_type("A2"), GreatSuccessType::Type3);
+		assert_eq!(great_success_type("8"), GreatSuccessType::Type1);
+	}
+
+	#[test]
+	fn great_success_reward_multipliers_are_applied() {
+		let expedition_condition = Kc3rdExpeditionCondition {
+			api_id: 8,
+			code: "8".to_string(),
+			area: 1,
+			name: emukc_model::thirdparty::Kc3rdExpeditionName {
+				ja: "test".to_string(),
+				ko: "test".to_string(),
+				en: "test".to_string(),
+				zh_cn: "test".to_string(),
+				zh_tw: "test".to_string(),
+			},
+			time_minutes: 180,
+			resource_reward: [50, 100, 50, 50],
+			item_rewards: vec![],
+			admiral_exp: 120,
+			fleet_exp: 140,
+			requirements: emukc_model::thirdparty::Kc3rdExpeditionRequirements {
+				ship_count: 6,
+				flagship_level: Some(6),
+				fleet_level: None,
+				flagship_type: None,
+				composition: vec![],
+				total_firepower: None,
+				total_asw: None,
+				total_los: None,
+				drum_requirements: None,
+			},
+		};
+
+		assert_eq!(
+			calculate_expedition_resource_reward(
+				&expedition_condition,
+				ExpeditionResult::GreatSuccess
+			),
+			[75, 150, 75, 75]
+		);
+		assert_eq!(
+			calculate_expedition_admiral_exp(&expedition_condition, ExpeditionResult::GreatSuccess),
+			240
+		);
+	}
+
+	#[test]
+	fn left_item_reward_count_uses_zero_to_max_distribution() {
+		assert_eq!(resolve_left_item_reward_count(2, ExpeditionResult::Success, 0), 0);
+		assert_eq!(resolve_left_item_reward_count(2, ExpeditionResult::Success, 1), 1);
+		assert_eq!(resolve_left_item_reward_count(2, ExpeditionResult::Success, 2), 2);
+		assert_eq!(resolve_left_item_reward_count(2, ExpeditionResult::GreatSuccess, 2), 2);
+		assert_eq!(resolve_left_item_reward_count(2, ExpeditionResult::Failure, 2), 0);
+	}
+
+	#[test]
+	fn right_item_reward_count_is_great_success_only() {
+		assert_eq!(resolve_right_item_reward_count(3, ExpeditionResult::Success, 3), 0);
+		assert_eq!(resolve_right_item_reward_count(3, ExpeditionResult::Failure, 3), 0);
+		assert_eq!(resolve_right_item_reward_count(3, ExpeditionResult::GreatSuccess, 1), 1);
+		assert_eq!(resolve_right_item_reward_count(3, ExpeditionResult::GreatSuccess, 3), 3);
+	}
 }

@@ -24,6 +24,7 @@ mod api_req_kousyou;
 mod api_req_member;
 mod api_req_mission;
 mod api_req_nyukyo;
+mod api_req_practice;
 mod api_req_quest;
 mod api_req_ranking;
 mod api_start2;
@@ -45,6 +46,7 @@ pub(super) fn router() -> Router {
 		.merge(Router::new().nest("/api_req_member", api_req_member::router()))
 		.merge(Router::new().nest("/api_req_mission", api_req_mission::router()))
 		.merge(Router::new().nest("/api_req_nyukyo", api_req_nyukyo::router()))
+		.merge(Router::new().nest("/api_req_practice", api_req_practice::router()))
 		.merge(Router::new().nest("/api_req_ranking", api_req_ranking::router()))
 		.merge(Router::new().nest("/api_req_quest", api_req_quest::router()))
 		.merge(Router::new().nest("/api_start2", api_start2::router()))

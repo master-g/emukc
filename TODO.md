@@ -52,6 +52,8 @@
   - [ ] `api_req_mission/start` - start expedition
   - [ ] `api_req_mission/result` - expedition result
   - [ ] `api_req_mission/return_instruction` - recall expedition
+  - [ ] Static expedition unlock table from verified external data
+    Priority: low until a reliable structured data source is available
 
 ## Medium Priority - Enhanced Features
 - [ ] **Practice System** (`api_req_practice/*`)

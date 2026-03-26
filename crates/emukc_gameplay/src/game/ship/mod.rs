@@ -14,7 +14,7 @@ use emukc_model::{
 	codex::Codex,
 	kc2::{KcApiShip, KcApiSlotItem, KcUseItemType},
 };
-use emukc_time::chrono::{DateTime, Utc};
+use emukc_time::chrono::{Duration, Utc};
 
 use super::{
 	picturebook::add_ship_to_picturebook_impl,
@@ -430,17 +430,17 @@ where
 					"morale timer for profile {profile_id} not found"
 				))
 			})?;
-		let last_time_checked = timer.last_time_regen.unwrap_or(DateTime::UNIX_EPOCH);
+		let last_time_checked = timer.last_time_regen.unwrap_or_else(Utc::now);
 		let num_of_3_minutes_passed = (Utc::now() - last_time_checked).num_minutes() / 3;
 
 		debug!("{} mins passed", num_of_3_minutes_passed);
 
-		if num_of_3_minutes_passed > 1 {
+		if num_of_3_minutes_passed > 0 {
 			let morale_gain = num_of_3_minutes_passed * 3;
 			let mut new_ships = vec![];
 			for ship in &ships {
 				let new_cond = if ship.condition < 49 {
-					(ship.condition + morale_gain).max(49)
+					(ship.condition + morale_gain).min(49)
 				} else {
 					ship.condition
 				};
@@ -452,7 +452,9 @@ where
 
 			{
 				let mut am = timer.into_active_model();
-				am.last_time_regen = ActiveValue::Set(Some(Utc::now()));
+				am.last_time_regen = ActiveValue::Set(Some(
+					last_time_checked + Duration::minutes(num_of_3_minutes_passed * 3),
+				));
 				am.update(c).await?;
 			}
 
@@ -829,7 +831,7 @@ where
 	{
 		morale_timer::ActiveModel {
 			id: ActiveValue::Set(profile_id),
-			last_time_regen: ActiveValue::Set(None),
+			last_time_regen: ActiveValue::Set(Some(Utc::now())),
 		}
 		.insert(c)
 		.await?;
