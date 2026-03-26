@@ -13,8 +13,10 @@ use emukc_model::thirdparty::{
 
 /// Parse `KCanotify` expedition data file
 pub fn parse(path: impl AsRef<Path>) -> Result<Kc3rdExpeditionConditionMap, ParseError> {
-	let raw = std::fs::read_to_string(path)?;
-	let kcanotify_data: Vec<KCanotifyExpedition> = serde_json::from_str(&raw)?;
+	let path = path.as_ref();
+	let raw = std::fs::read_to_string(path).map_err(|source| ParseError::io_at(path, source))?;
+	let kcanotify_data: Vec<KCanotifyExpedition> =
+		serde_json::from_str(&raw).map_err(|source| ParseError::json_at(path, source))?;
 
 	let mut seen_ids = HashMap::new();
 	let mut duplicates = Vec::new();

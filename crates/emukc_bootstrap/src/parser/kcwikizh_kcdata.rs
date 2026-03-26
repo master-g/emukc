@@ -35,9 +35,10 @@ fn parse_ship_info(
 	trace!("parsing ship files");
 	for entry in yaml_files {
 		let path = entry.path();
-		let raw = fs::read_to_string(path)?;
+		let raw = fs::read_to_string(&path).map_err(|source| ParseError::io_at(&path, source))?;
 		for doc in serde_yaml::Deserializer::from_str(&raw) {
-			let ship = KcWikiZhShipYaml::deserialize(doc);
+			let ship = KcWikiZhShipYaml::deserialize(doc)
+				.map_err(|source| ParseError::yaml_at(&path, source));
 			if let Ok(ship) = ship {
 				let mst = manifest.api_mst_ship.iter().find(|mst| mst.api_id == ship.data.id);
 				match mst {
@@ -95,9 +96,10 @@ fn parse_ship_class(
 	trace!("parsing ship class files");
 	for entry in yaml_files {
 		let path = entry.path();
-		let raw = fs::read_to_string(path)?;
+		let raw = fs::read_to_string(&path).map_err(|source| ParseError::io_at(&path, source))?;
 		for doc in serde_yaml::Deserializer::from_str(&raw) {
-			let ship = KcWikiZhShipClassYaml::deserialize(doc);
+			let ship = KcWikiZhShipClassYaml::deserialize(doc)
+				.map_err(|source| ParseError::yaml_at(&path, source));
 			if let Ok(ship) = ship {
 				let mst = manifest.api_mst_ship.iter().find(|m| m.api_ctype == ship.data.id);
 				if mst.is_none() {

@@ -171,7 +171,9 @@ fn parse_kcwiki_items(
 	let src = src.as_ref();
 	trace!("parsing kcwiki slotitem extra info: {:?}", src);
 
-	let map: BTreeMap<String, KcwikiSlotitem> = serde_json::from_reader(std::fs::File::open(src)?)?;
+	let file = std::fs::File::open(src).map_err(|source| ParseError::io_at(src, source))?;
+	let map: BTreeMap<String, KcwikiSlotitem> =
+		serde_json::from_reader(file).map_err(|source| ParseError::json_at(src, source))?;
 
 	Ok(map)
 }
@@ -215,7 +217,9 @@ pub(super) fn parse_slotitem_name_mapping(
 		name: String,
 	}
 
-	let map: BTreeMap<String, Entry> = serde_json::from_reader(std::fs::File::open(src)?)?;
+	let file = std::fs::File::open(src).map_err(|source| ParseError::io_at(src, source))?;
+	let map: BTreeMap<String, Entry> =
+		serde_json::from_reader(file).map_err(|source| ParseError::json_at(src, source))?;
 
 	for (k, v) in map.iter() {
 		if k != &v.name {

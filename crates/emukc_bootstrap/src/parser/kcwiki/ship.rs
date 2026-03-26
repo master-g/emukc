@@ -164,7 +164,9 @@ pub(super) fn parse_ship_name_mapping(
 		name: String,
 	}
 
-	let map: BTreeMap<String, Entry> = serde_json::from_reader(std::fs::File::open(src)?)?;
+	let file = std::fs::File::open(src).map_err(|source| ParseError::io_at(src, source))?;
+	let map: BTreeMap<String, Entry> =
+		serde_json::from_reader(file).map_err(|source| ParseError::json_at(src, source))?;
 
 	for (k, v) in map.iter() {
 		if k != &v.name {
@@ -184,7 +186,9 @@ pub(super) fn parse(
 	let src = src.as_ref();
 	trace!("parsing kcwiki ship: {:?}", src);
 
-	let map: BTreeMap<String, KcwikiShip> = serde_json::from_reader(std::fs::File::open(src)?)?;
+	let file = std::fs::File::open(src).map_err(|source| ParseError::io_at(src, source))?;
+	let map: BTreeMap<String, KcwikiShip> =
+		serde_json::from_reader(file).map_err(|source| ParseError::json_at(src, source))?;
 
 	let mut result = BTreeMap::new();
 

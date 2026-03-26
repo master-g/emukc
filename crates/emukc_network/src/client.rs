@@ -22,7 +22,7 @@ pub fn new_reqwest_client(
 		.user_agent(ua.unwrap_or(DEFAULT_UA));
 
 	let builder = if let Some(proxy) = proxy {
-		let proxy = reqwest::Proxy::http(proxy)?;
+		let proxy = reqwest::Proxy::all(proxy)?;
 		builder.proxy(proxy)
 	} else {
 		builder.no_proxy()
@@ -39,5 +39,15 @@ mod tests {
 	async fn test_new_reqwest_client() {
 		let client = new_reqwest_client(None, None).unwrap();
 		client.get("http://w00g.kancolle-server.com/kcs2/world.html").send().await.unwrap();
+	}
+
+	#[test]
+	fn test_new_reqwest_client_accepts_http_proxy() {
+		new_reqwest_client(Some("http://127.0.0.1:1086"), None).unwrap();
+	}
+
+	#[test]
+	fn test_new_reqwest_client_accepts_socks5_proxy() {
+		new_reqwest_client(Some("socks5://127.0.0.1:1086"), None).unwrap();
 	}
 }

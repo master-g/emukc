@@ -33,9 +33,10 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	let dir = dir.as_ref();
 	let manifest = {
 		let path = dir.join("start2.json");
-		let raw = std::fs::read_to_string(&path)?;
+		let raw =
+			std::fs::read_to_string(&path).map_err(|source| ParseError::io_at(&path, source))?;
 		debug!("Parsing manifest from {:?}", path);
-		ApiManifest::from_str(&raw)?
+		ApiManifest::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?
 	};
 
 	let (ship_extra, slotitem_extra_info) = parse_kcwiki(dir, &manifest)?;
@@ -43,9 +44,12 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	let (ship_picturebook, ship_class_name) = parse_kcdata(dir.join("kc_data"), &manifest)?;
 	let kccp_quests = {
 		let path = dir.join("kccp_quests.json");
-		let raw = std::fs::read_to_string(&path)?;
+		let raw =
+			std::fs::read_to_string(&path).map_err(|source| ParseError::io_at(&path, source))?;
 		debug!("Parsing kccp quests from {:?}", path);
-		parse_kccp_quests(&raw)?
+		parse_kccp_quests(&raw).map_err(|source| {
+			ParseError::Generic(format!("failed to parse {}: {source}", path.display()))
+		})?
 	};
 	let quest = parse_tsunkit_quests(dir.join("tsunkit_quests.json"), &manifest, &kccp_quests)?;
 
@@ -60,13 +64,16 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 	let mut cache_source = CacheSource::default();
 	{
 		let path = dir.join("kc3kai_jp_quotes.json");
-		let raw = std::fs::read_to_string(&path)?;
+		let raw =
+			std::fs::read_to_string(&path).map_err(|source| ParseError::io_at(&path, source))?;
 		let cleaned = raw
 			.trim_start_matches('\u{FEFF}') // UTF-8 BOM
 			.trim_start_matches('\u{FFFE}') // UTF-16 BOM
 			.trim_start_matches(['\0', '\x01', '\x02', '\x03', '\x04', '\x05']) // controls
 			.trim_start(); // whitespace
-		parse_kc3kai(cleaned, &mut cache_source)?;
+		parse_kc3kai(cleaned, &mut cache_source).map_err(|source| {
+			ParseError::Generic(format!("failed to parse {}: {source}", path.display()))
+		})?;
 	}
 
 	Ok(Codex {

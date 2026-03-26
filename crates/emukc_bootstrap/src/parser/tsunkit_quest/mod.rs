@@ -511,9 +511,11 @@ pub fn parse(
 	manifest: &ApiManifest,
 	info: &BTreeMap<i64, KccpQuestInfo>,
 ) -> Result<Kc3rdQuestMap, ParseError> {
-	trace!("parsing tsunkit quests, src: {:?}", src.as_ref());
-	let raw = fs::read_to_string(src)?;
-	let raw: TsunkitQuest = serde_json::from_str(&raw)?;
+	let src = src.as_ref();
+	trace!("parsing tsunkit quests, src: {:?}", src);
+	let raw = fs::read_to_string(src).map_err(|source| ParseError::io_at(src, source))?;
+	let raw: TsunkitQuest =
+		serde_json::from_str(&raw).map_err(|source| ParseError::json_at(src, source))?;
 
 	let quests: Vec<Kc3rdQuest> = raw
 		.values()
