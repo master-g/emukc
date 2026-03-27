@@ -5,8 +5,7 @@ use axum::{
 	response::{Html, IntoResponse, Redirect, Response},
 	routing::get,
 };
-use axum_extra::extract::TypedHeader;
-use axum_extra::headers::Host;
+use axum_extra::extract::Host;
 use emukc_internal::prelude::PKG_VERSION;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -30,7 +29,7 @@ pub(super) fn router() -> Router {
 
 // emukc/index.html
 async fn home(
-	TypedHeader(host): TypedHeader<Host>,
+	Host(host): Host,
 	Extension(session): Extension<GameSession>,
 ) -> impl IntoResponse {
 	// prepare html
@@ -87,7 +86,7 @@ struct ViewerQuery {
 
 // emukc/game/*
 async fn game(
-	TypedHeader(host): TypedHeader<Host>,
+	Host(host): Host,
 	Path(path): Path<String>,
 	Query(query): Query<ViewerQuery>,
 ) -> Response {
