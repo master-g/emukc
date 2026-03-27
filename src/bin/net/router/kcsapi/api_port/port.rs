@@ -78,6 +78,7 @@ pub(super) async fn handler(
 
 	let settings = state.get_game_settings(pid).await?;
 	let api_p_bgm_id = settings.api_p_bgm_id;
+	let api_combined_flag = state.get_combined_type(pid).await?;
 	let api_parallel_quest_count = api_basic.api_max_quests;
 	let api_c_flags: Vec<i64> = vec![0]; // event functional flags
 	let api_c_flag2 = 0; // mini event item usage lock flag
@@ -94,6 +95,6 @@ pub(super) async fn handler(
 		api_parallel_quest_count,
 		api_c_flags,
 		api_c_flag2,
-		api_combined_flag: 0,
+		api_combined_flag,
 	}))
 }

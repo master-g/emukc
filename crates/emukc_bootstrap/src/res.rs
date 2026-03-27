@@ -29,7 +29,8 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 	vec![
 		Resource {
 			// category: ResourceCategory::Start2,
-			url: "http://api.kcwiki.moe/start2",
+			// url: "http://api.kcwiki.moe/start2",
+			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/master/api/api_start2.json",
 			save_as: "start2.json",
 			unzip_to: None,
 		},

@@ -49,14 +49,26 @@ pub struct Model {
 	/// Last cleared time
 	pub last_cleared_at: Option<DateTime<Utc>>,
 
+	/// Last reset time
+	pub last_reset_at: Option<DateTime<Utc>>,
+
 	/// Defeat count
 	pub defeat_count: Option<i64>,
 
 	/// Current map HP
 	pub current_hp: Option<i64>,
 
+	/// Current gauge index
+	pub gauge_index: i64,
+
+	/// Map variant key
+	pub variant_key: Option<String>,
+
 	/// Event selected rank
 	pub selected_rank: SelectedRank,
+
+	/// Event state
+	pub event_state: Option<i64>,
 }
 
 /// Relation

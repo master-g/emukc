@@ -1,7 +1,4 @@
-use std::collections::BTreeMap;
-
 use axum::Extension;
-use emukc::{db::entity::profile::map_record, model::profile::map_record::DEFAULT_MAP_RECORDS};
 use serde::{Deserialize, Serialize};
 
 use crate::net::{
@@ -34,23 +31,7 @@ pub(super) async fn handler(
 		.collect();
 	let api_air_base = airbases.into_iter().map(std::convert::Into::into).collect();
 
-	let map_records: BTreeMap<i64, map_record::Model> =
-		state.get_map_records(pid).await?.into_iter().map(|r| (r.id, r)).collect();
-
-	let api_map_info = DEFAULT_MAP_RECORDS
-		.clone()
-		.into_iter()
-		.map(|mut info| {
-			if let Some(record) = map_records.get(&info.id) {
-				info.cleared = record.cleared;
-				if let Some(ctx) = info.defeat_ctx.as_mut() {
-					ctx.defeat_count = record.defeat_count.unwrap_or(0);
-				}
-			}
-
-			info.into()
-		})
-		.collect();
+	let api_map_info = state.get_map_infos(pid).await?;
 
 	Ok(KcApiResponse::success(&Resp {
 		api_air_base,

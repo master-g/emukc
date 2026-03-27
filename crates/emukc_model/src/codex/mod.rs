@@ -15,6 +15,8 @@ pub mod furniture;
 pub mod game_config;
 pub mod group;
 pub mod incentive;
+/// Map catalog and cache parsing support.
+pub mod map;
 pub mod query;
 pub mod repair;
 pub mod ship;
@@ -80,6 +82,9 @@ pub struct Codex {
 	/// Music list
 	pub music_list: Vec<KcApiMusicListElement>,
 
+	/// Map catalog
+	pub maps: map::MapCatalog,
+
 	/// Cache source.
 	pub cache_source: Option<CacheSource>,
 	// TODO: add more limitations.
@@ -95,6 +100,7 @@ const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
 const PATH_EXPEDITION_CONDITION: &str = "expedition_condition.json";
 const PATH_MUSIC_LIST: &str = "music_list.json";
+const PATH_MAP_CATALOG: &str = "map_catalog.json";
 const PATH_GAME_CFG: &str = "game_config.json";
 const PATH_CACHE_SOURCE: &str = "cache_source.json";
 
@@ -208,6 +214,9 @@ impl Codex {
 			None
 		};
 
+		let maps = Self::load_optional_item(path.join(PATH_MAP_CATALOG))?
+			.unwrap_or_else(|| map::MapCatalog::from_manifest(&manifest));
+
 		Ok(Codex {
 			manifest,
 			ship_extra,
@@ -219,6 +228,7 @@ impl Codex {
 			quest,
 			expedition_conditions,
 			music_list,
+			maps,
 			game_cfg: Self::load_single_item(path.join(PATH_GAME_CFG))?,
 			cache_source,
 		})
@@ -350,6 +360,15 @@ impl Codex {
 			std::fs::write(path, serde_json::to_string_pretty(&self.music_list)?)?;
 		}
 
+		// map catalog
+		{
+			let path = dst.join(PATH_MAP_CATALOG);
+			if path.exists() && !overwrite {
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
+			}
+			std::fs::write(path, serde_json::to_string_pretty(&self.maps)?)?;
+		}
+
 		// cache source
 		if let Some(source) = &self.cache_source {
 			let path = dst.join(PATH_CACHE_SOURCE);
@@ -370,5 +389,26 @@ impl Codex {
 		let raw = std::fs::read_to_string(path)?;
 
 		Ok(serde_json::from_str(&raw)?)
+	}
+
+	fn load_optional_item<T>(path: impl AsRef<std::path::Path>) -> Result<Option<T>, CodexError>
+	where
+		T: serde::de::DeserializeOwned,
+	{
+		let path = path.as_ref();
+		if !path.exists() {
+			return Ok(None);
+		}
+		let raw = std::fs::read_to_string(path)?;
+		Ok(Some(serde_json::from_str(&raw)?))
+	}
+
+	/// Populate the in-memory map catalog from a local `kc_data` root.
+	pub fn load_maps_from_kcdata_root(
+		&mut self,
+		kcdata_root: impl AsRef<std::path::Path>,
+	) -> Result<(), CodexError> {
+		self.maps = map::MapCatalog::load_from_kcdata_root(kcdata_root, &self.manifest);
+		Ok(())
 	}
 }

@@ -21,12 +21,14 @@ mod api_req_hokyu;
 mod api_req_init;
 mod api_req_kaisou;
 mod api_req_kousyou;
+mod api_req_map;
 mod api_req_member;
 mod api_req_mission;
 mod api_req_nyukyo;
 mod api_req_practice;
 mod api_req_quest;
 mod api_req_ranking;
+mod api_req_sortie;
 mod api_start2;
 mod api_world;
 
@@ -43,12 +45,14 @@ pub(super) fn router() -> Router {
 		.merge(Router::new().nest("/api_req_hokyu", api_req_hokyu::router()))
 		.merge(Router::new().nest("/api_req_kaisou", api_req_kaisou::router()))
 		.merge(Router::new().nest("/api_req_kousyou", api_req_kousyou::router()))
+		.merge(Router::new().nest("/api_req_map", api_req_map::router()))
 		.merge(Router::new().nest("/api_req_member", api_req_member::router()))
 		.merge(Router::new().nest("/api_req_mission", api_req_mission::router()))
 		.merge(Router::new().nest("/api_req_nyukyo", api_req_nyukyo::router()))
 		.merge(Router::new().nest("/api_req_practice", api_req_practice::router()))
 		.merge(Router::new().nest("/api_req_ranking", api_req_ranking::router()))
 		.merge(Router::new().nest("/api_req_quest", api_req_quest::router()))
+		.merge(Router::new().nest("/api_req_sortie", api_req_sortie::router()))
 		.merge(Router::new().nest("/api_start2", api_start2::router()))
 		.route_layer(middleware::from_fn(kcs_api_auth_middleware))
 		.merge(Router::new().nest("/api_world", api_world::router()))

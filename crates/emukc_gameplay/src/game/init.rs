@@ -43,7 +43,7 @@ where
 	furniture::init(c, profile_id).await?;
 
 	// map
-	map::init(c, profile_id).await?;
+	map::init(c, codex, profile_id).await?;
 
 	// material
 	material::init(c, codex, profile_id).await?;

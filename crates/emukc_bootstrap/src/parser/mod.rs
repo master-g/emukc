@@ -7,17 +7,23 @@ pub mod kccp;
 pub mod kcwiki;
 pub mod kcwikizh_kcdata;
 pub mod music;
+pub mod tsunkit_nav;
 pub mod tsunkit_quest;
 
 use std::str::FromStr;
 
-use emukc_model::{codex::game_config::GameConfig, kc2::navy::KcNavy, prelude::*};
+use emukc_model::{
+	codex::{game_config::GameConfig, map::MapCatalog},
+	kc2::navy::KcNavy,
+	prelude::*,
+};
 
 use error::ParseError;
 pub use kc3kai::parse as parse_kc3kai;
 pub use kccp::quest::parse as parse_kccp_quests;
 pub use kcwiki::parse as parse_kcwiki;
 pub use kcwikizh_kcdata::parse as parse_kcdata;
+pub use tsunkit_nav::parse as parse_tsunkit_nav;
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
 
 /// Parse a partial codex from the given directory.
@@ -76,6 +82,13 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		})?;
 	}
 
+	let tsunkit_root = dir.join("tsunkit_nav");
+	let maps = if tsunkit_root.exists() {
+		parse_tsunkit_nav(tsunkit_root, &manifest)?
+	} else {
+		MapCatalog::load_from_kcdata_root(dir.join("kc_data"), &manifest)
+	};
+
 	Ok(Codex {
 		manifest,
 		ship_extra,
@@ -88,6 +101,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		navy: KcNavy::default(),
 		game_cfg: GameConfig::default(),
 		music_list,
+		maps,
 		cache_source: Some(cache_source),
 	})
 }

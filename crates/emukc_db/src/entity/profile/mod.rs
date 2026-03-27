@@ -102,6 +102,9 @@ pub struct Model {
 	/// Extra supply enabled, sortie
 	pub extra_supply_sortie: bool,
 
+	/// Combined fleet type
+	pub combined_type: i64,
+
 	/// War result
 	pub war_result: i64,
 }
@@ -313,6 +316,7 @@ pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
 		max_quests: ActiveValue::Set(5),
 		extra_supply_expedition: ActiveValue::Set(false),
 		extra_supply_sortie: ActiveValue::Set(false),
+		combined_type: ActiveValue::Set(0),
 		war_result: ActiveValue::Set(0),
 	}
 }
