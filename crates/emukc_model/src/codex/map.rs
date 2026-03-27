@@ -247,7 +247,7 @@ impl MapCatalog {
 		}
 
 		let mut per_map: BTreeMap<i64, BTreeSet<String>> = BTreeMap::new();
-		for ((map_id, variant_key), _) in &raw_variants {
+		for (map_id, variant_key) in raw_variants.keys() {
 			per_map.entry(*map_id).or_default().insert(variant_key.clone());
 		}
 
@@ -598,11 +598,11 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 	let mut assigned_numbers = BTreeMap::new();
 	let mut used_numbers = BTreeSet::new();
 	for key in &all_node_keys {
-		if let Ok(value) = key.parse::<i64>() {
-			if value >= 0 {
-				assigned_numbers.insert(key.to_string(), value);
-				used_numbers.insert(value);
-			}
+		if let Ok(value) = key.parse::<i64>()
+			&& value >= 0
+		{
+			assigned_numbers.insert(key.to_string(), value);
+			used_numbers.insert(value);
 		}
 	}
 
