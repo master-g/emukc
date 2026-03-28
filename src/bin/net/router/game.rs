@@ -1,11 +1,11 @@
 use axum::{
 	Extension, Router,
 	extract::{Path, Query},
+	http::Uri,
 	middleware,
 	response::{Html, IntoResponse, Redirect, Response},
 	routing::get,
 };
-use axum_extra::extract::Host;
 use emukc_internal::prelude::PKG_VERSION;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -28,15 +28,13 @@ pub(super) fn router() -> Router {
 }
 
 // emukc/index.html
-async fn home(
-	Host(host): Host,
-	Extension(session): Extension<GameSession>,
-) -> impl IntoResponse {
+async fn home(uri: Uri, Extension(session): Extension<GameSession>) -> impl IntoResponse {
 	// prepare html
 	let html = GameSiteAssets::get("emukc/index.html").unwrap();
 	let html = std::str::from_utf8(html.data.as_ref()).unwrap();
 
 	// prepare parameters
+	let host = uri.authority().map(|a| a.as_str()).unwrap_or("localhost:8080");
 	let parent = format!("//{host}/netgame/social/");
 	let parent = urlencoding::encode(&parent);
 
@@ -85,11 +83,9 @@ struct ViewerQuery {
 }
 
 // emukc/game/*
-async fn game(
-	Host(host): Host,
-	Path(path): Path<String>,
-	Query(query): Query<ViewerQuery>,
-) -> Response {
+async fn game(uri: Uri, Path(path): Path<String>, Query(query): Query<ViewerQuery>) -> Response {
+	let host = uri.authority().map(|a| a.as_str()).unwrap_or("localhost:8080");
+
 	if path.ends_with("hijack.js") {
 		let uid = query.viewer.unwrap_or(0);
 		return hijack_js(uid).await.into_response();

@@ -23,6 +23,8 @@ mod make_list;
 mod parser;
 mod populate;
 mod res;
+/// Manual Tsunkit download helpers used by examples and one-off tooling.
+pub mod tsunkit_nav_download;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
@@ -33,6 +35,10 @@ pub mod prelude {
 		CacheListMakeStrategy, config::GreedyConfig, errors::CacheListMakingError,
 		make as make_cache_list,
 	};
-	pub use crate::parser::parse_partial_codex;
+	pub use crate::parser::{parse_partial_codex, parse_tsunkit_nav};
 	pub use crate::populate::populate;
+	pub use crate::tsunkit_nav_download::{
+		TsunkitNavDownloadOptions, TsunkitNavDownloadStats, download_tsunkit_nav,
+		download_tsunkit_nav_with_options,
+	};
 }

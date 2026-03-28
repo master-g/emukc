@@ -269,12 +269,21 @@ where
 
 	// Check each quest
 	for quest in activated_quests {
-		let conditions: Vec<Kc3rdQuestCondition> =
+		let stored_conditions: Vec<Kc3rdQuestCondition> =
 			serde_json::from_value(quest.requirements.clone())?;
+		let master_conditions = if let Some(master_quest) = codex.quest.get(&quest.quest_id) {
+			match &master_quest.requirements {
+				Kc3rdQuestRequirement::And(conditions)
+				| Kc3rdQuestRequirement::OneOf(conditions)
+				| Kc3rdQuestRequirement::Sequential(conditions) => conditions.as_slice(),
+			}
+		} else {
+			stored_conditions.as_slice()
+		};
 
 		// Only process quests that have at least one Composition condition
 		let has_composition =
-			conditions.iter().any(|c| matches!(c, Kc3rdQuestCondition::Composition(_)));
+			master_conditions.iter().any(|c| matches!(c, Kc3rdQuestCondition::Composition(_)));
 		if !has_composition {
 			continue;
 		}
@@ -283,11 +292,11 @@ where
 		let composition_satisfied = match quest.requirement_type {
 			progress::RequirementType::And => {
 				// All composition conditions must be satisfied
-				conditions.iter().all(|cond| {
+				master_conditions.iter().all(|cond| {
 					if let Kc3rdQuestCondition::Composition(comp_cond) = cond {
 						fleet_profiles
 							.iter()
-							.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+							.find(|f| f.index == comp_cond.fleet_id || comp_cond.fleet_id == 0)
 							.is_some_and(|fleet| {
 								validate_composition(fleet, &ship_instances, comp_cond, codex)
 							})
@@ -299,11 +308,11 @@ where
 			}
 			progress::RequirementType::OneOf => {
 				// Any composition condition being satisfied is enough
-				conditions.iter().any(|cond| {
+				master_conditions.iter().any(|cond| {
 					if let Kc3rdQuestCondition::Composition(comp_cond) = cond {
 						fleet_profiles
 							.iter()
-							.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+							.find(|f| f.index == comp_cond.fleet_id || comp_cond.fleet_id == 0)
 							.is_some_and(|fleet| {
 								validate_composition(fleet, &ship_instances, comp_cond, codex)
 							})
@@ -314,11 +323,11 @@ where
 			}
 			progress::RequirementType::Sequential => {
 				// For sequential, check composition conditions in order
-				conditions.iter().all(|cond| {
+				master_conditions.iter().all(|cond| {
 					if let Kc3rdQuestCondition::Composition(comp_cond) = cond {
 						fleet_profiles
 							.iter()
-							.find(|f| f.id == comp_cond.fleet_id || comp_cond.fleet_id == 0)
+							.find(|f| f.index == comp_cond.fleet_id || comp_cond.fleet_id == 0)
 							.is_some_and(|fleet| {
 								validate_composition(fleet, &ship_instances, comp_cond, codex)
 							})
@@ -330,7 +339,7 @@ where
 		};
 
 		// For And/Sequential quests with mixed conditions, also check non-composition via is_satisfied
-		let all_non_composition_satisfied = conditions.iter().all(|cond| {
+		let all_non_composition_satisfied = stored_conditions.iter().all(|cond| {
 			if matches!(cond, Kc3rdQuestCondition::Composition(_)) {
 				true // skip composition here, handled above
 			} else {

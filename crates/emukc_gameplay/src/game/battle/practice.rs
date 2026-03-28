@@ -1,5 +1,10 @@
 #![allow(non_snake_case)]
 
+use std::{
+	collections::HashMap,
+	sync::{LazyLock, Mutex},
+};
+
 use serde::Serialize;
 
 use emukc_model::{codex::Codex, kc2::level, profile::practice::Rival};
@@ -7,15 +12,20 @@ use emukc_model::{codex::Codex, kc2::level, profile::practice::Rival};
 use crate::{
 	err::GameplayError,
 	game::battle::core::{
-		BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleOpeningAttack, BattleRaigeki,
-		BattleRuntimeShip, BattleShipInput, EngagementType, simulate_day_battle_v1,
+		BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleNightHougeki,
+		BattleOpeningAttack, BattleRaigeki, BattleRuntimeShip, BattleShipInput, EngagementType,
+		NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
 	},
 };
+
+static PENDING_PRACTICE_BATTLES: LazyLock<Mutex<HashMap<i64, PracticeBattleSession>>> =
+	LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub type PracticeBattleShipInput = BattleShipInput;
 
 #[derive(Debug, Clone)]
 pub struct PracticeBattleInput {
+	pub profile_id: i64,
 	pub deck_id: i64,
 	pub formation_id: i64,
 	pub enemy_id: i64,
@@ -68,6 +78,7 @@ pub struct PracticeBattleResponse {
 #[derive(Debug, Clone)]
 pub struct PracticeBattleResultSnapshot {
 	pub enemy_id: i64,
+	pub friendly_ship_ids: Vec<i64>,
 	pub enemy_ship_ids: Vec<i64>,
 	pub win_rank: String,
 	pub get_exp: i64,
@@ -77,9 +88,21 @@ pub struct PracticeBattleResultSnapshot {
 	pub mvp: i64,
 	pub get_ship_exp: Vec<i64>,
 	pub get_exp_lvup: Vec<Vec<i64>>,
+	pub did_night_battle: bool,
 	pub enemy_level: i64,
 	pub enemy_rank: String,
 	pub enemy_deck_name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PracticeBattleSession {
+	pub profile_id: i64,
+	pub deck_id: i64,
+	pub enemy_id: i64,
+	pub friendly: Vec<BattleRuntimeShip>,
+	pub enemy: Vec<BattleRuntimeShip>,
+	pub formation: [i64; 3],
+	pub outcome: crate::game::battle::core::BattleOutcome,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -104,10 +127,38 @@ pub struct PracticeBattleEnemyInfo {
 	pub api_deck_name: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct PracticeNightBattleResponse {
+	pub api_deck_id: i64,
+	pub api_formation: [i64; 3],
+	pub api_f_nowhps: Vec<i64>,
+	pub api_f_maxhps: Vec<i64>,
+	pub api_fParam: Vec<[i64; 4]>,
+	pub api_ship_ke: Vec<i64>,
+	pub api_ship_lv: Vec<i64>,
+	pub api_e_nowhps: Vec<i64>,
+	pub api_e_maxhps: Vec<i64>,
+	pub api_eSlot: Vec<[i64; 5]>,
+	pub api_eParam: Vec<[i64; 4]>,
+	pub api_smoke_type: i64,
+	pub api_balloon_cell: i64,
+	pub api_atoll_cell: i64,
+	pub api_touch_plane: [i64; 2],
+	pub api_flare_pos: [i64; 2],
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_hougeki: Option<BattleNightHougeki>,
+}
+
 pub fn simulate_practice_day_battle(
 	codex: &Codex,
 	input: PracticeBattleInput,
 ) -> Result<(PracticeBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
+	let friendly_nowhps =
+		input.friend_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
+	let friendly_maxhps =
+		input.friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
+	let enemy_nowhps = input.enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
+	let enemy_maxhps = input.enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
 	let simulation = simulate_day_battle_v1(
 		codex,
 		BattleContext {
@@ -128,8 +179,8 @@ pub fn simulate_practice_day_battle(
 	let response = PracticeBattleResponse {
 		api_deck_id: input.deck_id,
 		api_formation: simulation.packet.formation,
-		api_f_nowhps: simulation.packet.friendly_nowhps,
-		api_f_maxhps: simulation.packet.friendly_maxhps,
+		api_f_nowhps: friendly_nowhps,
+		api_f_maxhps: friendly_maxhps,
 		api_fParam: simulation
 			.friendly
 			.iter()
@@ -144,8 +195,8 @@ pub fn simulate_practice_day_battle(
 			.collect(),
 		api_ship_ke: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
 		api_ship_lv: simulation.enemy.iter().map(|ship| ship.ship.api_lv).collect(),
-		api_e_nowhps: simulation.packet.enemy_nowhps,
-		api_e_maxhps: simulation.packet.enemy_maxhps,
+		api_e_nowhps: enemy_nowhps,
+		api_e_maxhps: enemy_maxhps,
 		api_eSlot: simulation.enemy.iter().map(enemy_slot_ids).collect(),
 		api_eParam: simulation
 			.enemy
@@ -190,6 +241,7 @@ pub fn simulate_practice_day_battle(
 
 	let snapshot = PracticeBattleResultSnapshot {
 		enemy_id: input.enemy_id,
+		friendly_ship_ids: simulation.friendly.iter().map(|ship| ship.ship.api_id).collect(),
 		enemy_ship_ids: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
 		win_rank: simulation.outcome.win_rank,
 		get_exp,
@@ -199,10 +251,28 @@ pub fn simulate_practice_day_battle(
 		mvp: simulation.outcome.mvp,
 		get_ship_exp: ship_exp,
 		get_exp_lvup: ship_lvup,
+		did_night_battle: false,
 		enemy_level: input.rival.level,
 		enemy_rank: input.rival.rank.get_name().to_string(),
 		enemy_deck_name: input.rival.details.deck_name,
 	};
+
+	PENDING_PRACTICE_BATTLES.lock().unwrap().insert(
+		input.profile_id,
+		PracticeBattleSession {
+			profile_id: input.profile_id,
+			deck_id: input.deck_id,
+			enemy_id: input.enemy_id,
+			friendly: simulation.friendly,
+			enemy: simulation.enemy,
+			formation: response.api_formation,
+			outcome: crate::game::battle::core::BattleOutcome {
+				win_rank: snapshot.win_rank.clone(),
+				mvp: snapshot.mvp,
+				can_midnight: response.api_midnight_flag > 0,
+			},
+		},
+	);
 
 	Ok((response, snapshot))
 }
@@ -229,6 +299,56 @@ pub fn build_practice_battle_result_response(
 	}
 }
 
+pub fn simulate_practice_night_battle(
+	codex: &Codex,
+	profile_id: i64,
+) -> Option<(PracticeNightBattleResponse, PracticeBattleResultSnapshot)> {
+	let mut sessions = PENDING_PRACTICE_BATTLES.lock().unwrap();
+	let session = sessions.get_mut(&profile_id)?;
+	if !session.outcome.can_midnight {
+		return None;
+	}
+	let simulation = simulate_night_battle_v1(
+		codex,
+		session.friendly.clone(),
+		session.enemy.clone(),
+		session.formation[0],
+		session.formation[1],
+		EngagementType::from_api_id(session.formation[2]).unwrap_or(EngagementType::SameCourse),
+	);
+	session.friendly = simulation.friendly.clone();
+	session.enemy = simulation.enemy.clone();
+	session.outcome = simulation.outcome.clone();
+
+	let response = build_practice_night_battle_response(session, &simulation.packet);
+	let snapshot = PracticeBattleResultSnapshot {
+		enemy_id: session.enemy_id,
+		friendly_ship_ids: session.friendly.iter().map(|ship| ship.ship.api_id).collect(),
+		enemy_ship_ids: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
+		win_rank: simulation.outcome.win_rank.clone(),
+		get_exp: 0,
+		member_lv: 0,
+		member_exp: 0,
+		get_base_exp: 0,
+		mvp: simulation.outcome.mvp,
+		get_ship_exp: vec![],
+		get_exp_lvup: vec![],
+		did_night_battle: true,
+		enemy_level: session.enemy.first().map(|ship| ship.ship.api_lv).unwrap_or_default(),
+		enemy_rank: String::new(),
+		enemy_deck_name: String::new(),
+	};
+	Some((response, snapshot))
+}
+
+pub fn clear_pending_practice_battle(profile_id: i64) {
+	PENDING_PRACTICE_BATTLES.lock().unwrap().remove(&profile_id);
+}
+
+pub fn pending_practice_battle(profile_id: i64) -> Option<PracticeBattleSession> {
+	PENDING_PRACTICE_BATTLES.lock().unwrap().get(&profile_id).cloned()
+}
+
 fn enemy_slot_ids(ship: &BattleRuntimeShip) -> [i64; 5] {
 	let mut slots = [-1; 5];
 	for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
@@ -237,11 +357,76 @@ fn enemy_slot_ids(ship: &BattleRuntimeShip) -> [i64; 5] {
 	slots
 }
 
+fn enemy_slot_ids_from_input(ship: &PracticeBattleShipInput) -> [i64; 5] {
+	let mut slots = [-1; 5];
+	for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
+		slots[idx] = slot_item.api_slotitem_id;
+	}
+	slots
+}
+
+fn build_practice_night_battle_response(
+	session: &PracticeBattleSession,
+	packet: &NightBattlePacket,
+) -> PracticeNightBattleResponse {
+	PracticeNightBattleResponse {
+		api_deck_id: session.deck_id,
+		api_formation: packet.formation,
+		api_f_nowhps: packet.friendly_nowhps.clone(),
+		api_f_maxhps: packet.friendly_maxhps.clone(),
+		api_fParam: session
+			.friendly
+			.iter()
+			.map(|ship| {
+				[
+					ship.ship.api_karyoku[0],
+					ship.ship.api_raisou[0],
+					ship.ship.api_taiku[0],
+					ship.ship.api_soukou[0],
+				]
+			})
+			.collect(),
+		api_ship_ke: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
+		api_ship_lv: session.enemy.iter().map(|ship| ship.ship.api_lv).collect(),
+		api_e_nowhps: packet.enemy_nowhps.clone(),
+		api_e_maxhps: packet.enemy_maxhps.clone(),
+		api_eSlot: session
+			.enemy
+			.iter()
+			.map(|ship| {
+				enemy_slot_ids_from_input(&PracticeBattleShipInput {
+					ship: ship.ship.clone(),
+					slot_items: ship.slot_items.clone(),
+					effect_list: ship.effect_list.clone(),
+				})
+			})
+			.collect(),
+		api_eParam: session
+			.enemy
+			.iter()
+			.map(|ship| {
+				[
+					ship.ship.api_karyoku[0],
+					ship.ship.api_raisou[0],
+					ship.ship.api_taiku[0],
+					ship.ship.api_soukou[0],
+				]
+			})
+			.collect(),
+		api_smoke_type: 0,
+		api_balloon_cell: 0,
+		api_atoll_cell: 0,
+		api_touch_plane: packet.touch_plane,
+		api_flare_pos: packet.flare_pos,
+		api_hougeki: packet.hougeki.clone(),
+	}
+}
+
 fn calculate_practice_base_exp(rival: &Rival) -> i64 {
 	(rival.level.max(1) * 9).clamp(100, 1200)
 }
 
-fn calculate_admiral_exp(base_exp: i64, win_rank: &str) -> i64 {
+pub(crate) fn calculate_admiral_exp(base_exp: i64, win_rank: &str) -> i64 {
 	match win_rank {
 		"S" => (base_exp as f64 * 0.12).round() as i64,
 		"A" => (base_exp as f64 * 0.1).round() as i64,
@@ -251,7 +436,7 @@ fn calculate_admiral_exp(base_exp: i64, win_rank: &str) -> i64 {
 	}
 }
 
-fn calculate_practice_ship_exp(
+pub(crate) fn calculate_practice_ship_exp(
 	friendly: &[BattleRuntimeShip],
 	base_exp: i64,
 	mvp_idx: i64,
@@ -270,11 +455,35 @@ fn calculate_practice_ship_exp(
 		exp.push(gain);
 
 		let new_exp = ship.ship.api_exp[0] + gain;
-		let (_, next_exp) = level::exp_to_ship_level(new_exp);
-		lvup.push(vec![ship.ship.api_exp[0], next_exp]);
+		lvup.push(build_exp_lvup_vector(ship.ship.api_exp[0], new_exp));
 	}
 
 	(exp, lvup)
+}
+
+fn build_exp_lvup_vector(before_exp: i64, after_exp: i64) -> Vec<i64> {
+	let mut result = vec![before_exp];
+	let (_, mut next_exp) = level::exp_to_ship_level(before_exp);
+	if next_exp <= 0 {
+		result.push(-1);
+		return result;
+	}
+	result.push(next_exp);
+
+	while next_exp > 0 && after_exp >= next_exp {
+		let (_, candidate_next) = level::exp_to_ship_level(next_exp);
+		if candidate_next <= 0 {
+			result.push(-1);
+			break;
+		}
+		if candidate_next == next_exp {
+			break;
+		}
+		result.push(candidate_next);
+		next_exp = candidate_next;
+	}
+
+	result
 }
 
 #[cfg(test)]
@@ -300,6 +509,7 @@ mod tests {
 	fn practice_battle_core_generates_packet_and_result() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let input = PracticeBattleInput {
+			profile_id: 1,
 			deck_id: 1,
 			formation_id: 1,
 			enemy_id: 1,
@@ -334,9 +544,10 @@ mod tests {
 	}
 
 	#[test]
-	fn battle_midnight_flag_stays_disabled_until_night_battle_exists() {
+	fn practice_day_battle_enables_midnight_when_both_sides_survive() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let input = PracticeBattleInput {
+			profile_id: 1,
 			deck_id: 1,
 			formation_id: 5,
 			enemy_id: 1,
@@ -362,6 +573,13 @@ mod tests {
 		};
 
 		let (battle, _) = simulate_practice_day_battle(&codex, input).unwrap();
-		assert_eq!(battle.api_midnight_flag, 0);
+		assert_eq!(battle.api_midnight_flag, 1);
+	}
+
+	#[test]
+	fn exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds() {
+		let before = 48_802;
+		let after = 49_880;
+		assert_eq!(build_exp_lvup_vector(before, after), vec![48_802, 49_600, 52_800]);
 	}
 }

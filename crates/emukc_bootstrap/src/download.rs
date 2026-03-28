@@ -55,6 +55,23 @@ pub enum BootstrapDownloadError {
 		#[source]
 		source: std::io::Error,
 	},
+
+	/// Resource JSON error
+	#[error("bootstrap resource at {} failed while parsing JSON: {source}", path.display())]
+	Json {
+		path: std::path::PathBuf,
+		#[source]
+		source: serde_json::Error,
+	},
+
+	/// Resource timeout
+	#[error("bootstrap resource {save_as} ({url}) timed out after {timeout_secs}s while {action}")]
+	Timeout {
+		url: String,
+		save_as: String,
+		action: &'static str,
+		timeout_secs: u64,
+	},
 }
 
 /// Download all the resources

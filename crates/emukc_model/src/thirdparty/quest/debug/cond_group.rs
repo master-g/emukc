@@ -24,6 +24,7 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestConditionShipGroup {
 			"position": self.position,
 			"lv": self.lv,
 			"amount": self.amount,
+			"other_ships": self.other_ships,
 			"white_list": while_list,
 		})
 	}

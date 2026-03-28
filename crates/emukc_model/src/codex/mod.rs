@@ -8,11 +8,12 @@ use thiserror::Error;
 use crate::{
 	kc2::{self, KcApiMusicListElement},
 	prelude::{CacheSource, Kc3rdPicturebookExtra, Kc3rdPicturebookRW},
-	thirdparty,
+	thirdparty::{self, Kc3rdQuestCondition, Kc3rdQuestConditionShip, Kc3rdQuestRequirement},
 };
 
 pub mod furniture;
 pub mod game_config;
+pub mod generated_map_catalog;
 pub mod group;
 pub mod incentive;
 /// Map catalog and cache parsing support.
@@ -189,7 +190,10 @@ impl Codex {
 			let path = path.join(PATH_QUEST);
 			let raw = std::fs::read_to_string(&path)?;
 			let data: Vec<thirdparty::Kc3rdQuest> = serde_json::from_str(&raw)?;
-			data.into_iter().map(|v| (v.api_no, v)).collect()
+			let mut data: thirdparty::Kc3rdQuestMap =
+				data.into_iter().map(|v| (v.api_no, v)).collect();
+			normalize_loaded_quest_groups(&mut data);
+			data
 		};
 
 		let expedition_conditions = {
@@ -215,6 +219,7 @@ impl Codex {
 		};
 
 		let maps = Self::load_optional_item(path.join(PATH_MAP_CATALOG))?
+			.or_else(generated_map_catalog::load)
 			.unwrap_or_else(|| map::MapCatalog::from_manifest(&manifest));
 
 		Ok(Codex {
@@ -410,5 +415,31 @@ impl Codex {
 	) -> Result<(), CodexError> {
 		self.maps = map::MapCatalog::load_from_kcdata_root(kcdata_root, &self.manifest);
 		Ok(())
+	}
+}
+
+fn normalize_loaded_quest_groups(quests: &mut thirdparty::Kc3rdQuestMap) {
+	for quest in quests.values_mut() {
+		normalize_requirement_groups(&mut quest.requirements);
+	}
+}
+
+fn normalize_requirement_groups(requirement: &mut Kc3rdQuestRequirement) {
+	let conditions = match requirement {
+		Kc3rdQuestRequirement::And(conditions)
+		| Kc3rdQuestRequirement::OneOf(conditions)
+		| Kc3rdQuestRequirement::Sequential(conditions) => conditions,
+	};
+
+	for condition in conditions {
+		let Kc3rdQuestCondition::Composition(composition) = condition else {
+			continue;
+		};
+
+		for group in &mut composition.groups {
+			if matches!(group.ship, Kc3rdQuestConditionShip::Any) {
+				group.other_ships = true;
+			}
+		}
 	}
 }

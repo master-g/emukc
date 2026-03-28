@@ -187,10 +187,12 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 	}
 
 	async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
 		update_quest_status(&tx, profile_id, quest_id, Status::Activated).await?;
+		update::validate_composition_quests(&tx, codex, profile_id).await?;
 
 		tx.commit().await?;
 

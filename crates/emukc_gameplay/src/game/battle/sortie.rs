@@ -8,7 +8,8 @@ use std::{
 use emukc_model::codex::Codex;
 
 use super::core::{
-	BattleContext, BattleOutcome, BattlePacket, BattleSimulation, simulate_day_battle_v1,
+	BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip, BattleSimulation,
+	EngagementType, NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
 };
 
 static PENDING_SORTIE_BATTLES: LazyLock<Mutex<HashMap<i64, SortieBattleSession>>> =
@@ -31,7 +32,16 @@ pub struct SortieBattleSession {
 	pub cell_id: i64,
 	pub friendly_ship_ids: Vec<i64>,
 	pub enemy_ship_ids: Vec<i64>,
+	pub friendly: Vec<BattleRuntimeShip>,
+	pub enemy: Vec<BattleRuntimeShip>,
 	pub packet: BattlePacket,
+	pub outcome: BattleOutcome,
+}
+
+#[derive(Debug, Clone)]
+pub struct SortieNightBattleSession {
+	pub profile_id: i64,
+	pub packet: NightBattlePacket,
 	pub outcome: BattleOutcome,
 }
 
@@ -56,6 +66,41 @@ pub fn take_sortie_day_battle_result(profile_id: i64) -> Option<SortieBattleSess
 	PENDING_SORTIE_BATTLES.lock().unwrap().remove(&profile_id)
 }
 
+pub fn pending_sortie_battle(profile_id: i64) -> Option<SortieBattleSession> {
+	PENDING_SORTIE_BATTLES.lock().unwrap().get(&profile_id).cloned()
+}
+
+pub fn simulate_and_store_sortie_night_battle(
+	codex: &Codex,
+	profile_id: i64,
+	friendly_formation_id: i64,
+	enemy_formation_id: i64,
+	engagement: EngagementType,
+) -> Option<SortieNightBattleSession> {
+	let mut battles = PENDING_SORTIE_BATTLES.lock().unwrap();
+	let session = battles.get_mut(&profile_id)?;
+	let simulation = simulate_night_battle_v1(
+		codex,
+		session.friendly.clone(),
+		session.enemy.clone(),
+		friendly_formation_id,
+		enemy_formation_id,
+		engagement,
+	);
+	session.friendly = simulation.friendly.clone();
+	session.enemy = simulation.enemy.clone();
+	session.outcome = simulation.outcome.clone();
+	session.packet.friendly_nowhps = simulation.packet.friendly_nowhps.clone();
+	session.packet.enemy_nowhps = simulation.packet.enemy_nowhps.clone();
+	session.packet.midnight_flag = 0;
+
+	Some(SortieNightBattleSession {
+		profile_id,
+		packet: simulation.packet,
+		outcome: simulation.outcome,
+	})
+}
+
 fn build_sortie_session(
 	profile_id: i64,
 	deck_id: i64,
@@ -70,6 +115,8 @@ fn build_sortie_session(
 		cell_id,
 		friendly_ship_ids: simulation.friendly.iter().map(|ship| ship.ship.api_id).collect(),
 		enemy_ship_ids: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
+		friendly: simulation.friendly,
+		enemy: simulation.enemy,
 		packet: simulation.packet,
 		outcome: simulation.outcome,
 	}

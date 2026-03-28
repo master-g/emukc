@@ -118,6 +118,7 @@ impl RequirementsComp {
 		mst: &ApiManifest,
 	) -> Option<Kc3rdQuestConditionShipGroup> {
 		let position = self.position.unwrap_or(0);
+		let other_ships = self.otherships.unwrap_or(false);
 		let lv = if let Some(lv) = &self.lv {
 			lv[0]
 		} else {
@@ -148,10 +149,13 @@ impl RequirementsComp {
 				.collect()
 		});
 
-		let amount = if let Some(amt) = &self.amount {
-			amt.to_kc3rd_amount()
-		} else {
-			Kc3rdQuestShipAmount::exact(1)
+		let amount = match &self.amount {
+			Some(ClassId::Integer(0)) if position > 0 => Kc3rdQuestShipAmount::exact(1),
+			Some(ClassId::Integer(id)) if other_ships && position == 0 => {
+				Kc3rdQuestShipAmount::range(*id, 6)
+			}
+			Some(amt) => amt.to_kc3rd_amount(),
+			None => Kc3rdQuestShipAmount::exact(1),
 		};
 
 		Some(Kc3rdQuestConditionShipGroup {
@@ -159,6 +163,7 @@ impl RequirementsComp {
 			amount,
 			lv,
 			position,
+			other_ships,
 			white_list,
 		})
 	}

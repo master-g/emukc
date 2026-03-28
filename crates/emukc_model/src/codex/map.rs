@@ -139,6 +139,19 @@ enum KcDataNode {
 }
 
 impl MapCatalog {
+	pub fn load_baked_or_kcdata_root(
+		kcdata_root: impl AsRef<Path>,
+		manifest: &ApiManifest,
+	) -> Self {
+		let mut catalog = super::generated_map_catalog::load().unwrap_or_default();
+		let fallback = Self::load_from_kcdata_root(kcdata_root, manifest);
+		if catalog.maps.is_empty() {
+			return fallback;
+		}
+		catalog.merge_missing_from(fallback);
+		catalog
+	}
+
 	pub fn from_manifest(manifest: &ApiManifest) -> Self {
 		let defaults = DEFAULT_MAP_RECORDS
 			.iter()
@@ -382,6 +395,20 @@ impl MapCatalog {
 		self.maps.values().collect()
 	}
 
+	fn merge_missing_from(&mut self, other: Self) {
+		for (map_id, other_definition) in other.maps {
+			match self.maps.entry(map_id) {
+				std::collections::btree_map::Entry::Vacant(entry) => {
+					entry.insert(other_definition);
+				}
+				std::collections::btree_map::Entry::Occupied(mut entry) => {
+					merge_definition(entry.get_mut(), other_definition);
+				}
+			}
+		}
+		self.ensure_synthetic_variants();
+	}
+
 	fn ensure_synthetic_variants(&mut self) {
 		for definition in self.maps.values_mut() {
 			if definition.variants.is_empty() {
@@ -411,6 +438,42 @@ impl MapCatalog {
 				);
 			}
 		}
+	}
+}
+
+fn merge_definition(definition: &mut MapDefinition, other: MapDefinition) {
+	if definition.name.is_empty() {
+		definition.name = other.name;
+	}
+	if definition.level <= 0 {
+		definition.level = other.level;
+	}
+	if definition.sally_flag.is_empty() {
+		definition.sally_flag = other.sally_flag;
+	}
+	if !definition.is_event {
+		definition.is_event = other.is_event;
+	}
+	if definition.airbase_count.is_none() {
+		definition.airbase_count = other.airbase_count;
+	}
+	if definition.gauge_type.is_none() {
+		definition.gauge_type = other.gauge_type;
+	}
+	if definition.gauge_count.is_none() {
+		definition.gauge_count = other.gauge_count;
+	}
+	if definition.required_defeat_count.is_none() {
+		definition.required_defeat_count = other.required_defeat_count;
+	}
+	if definition.max_hp.is_none() {
+		definition.max_hp = other.max_hp;
+	}
+	if definition.default_variant.is_empty() {
+		definition.default_variant = other.default_variant;
+	}
+	for (variant_key, variant) in other.variants {
+		definition.variants.entry(variant_key).or_insert(variant);
 	}
 }
 

@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use emukc_db::{
-	entity::profile::map_record,
+	entity::profile::{self, map_record, ship},
 	prelude::new_mem_db,
 	sea_orm::{
 		ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
@@ -56,6 +56,8 @@ async fn sortie_start_battle_result_flow_updates_stats() {
 
 	let ship = context.add_ship(pid, 951).await.unwrap();
 	context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+	let before_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
+	let before_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
 
 	let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
 	assert_eq!(start.api_maparea_id, 1);
@@ -73,6 +75,10 @@ async fn sortie_start_battle_result_flow_updates_stats() {
 
 	let (profile, _) = context.get_user_basic(pid).await.unwrap();
 	assert_eq!(profile.sortie_wins + profile.sortie_loses, 1);
+	let after_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
+	let after_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+	assert_eq!(after_profile.experience, before_profile.experience + result.api_get_exp);
+	assert_eq!(after_ship.exp_now, before_ship.exp_now + result.api_get_ship_exp[1]);
 }
 
 #[tokio::test]

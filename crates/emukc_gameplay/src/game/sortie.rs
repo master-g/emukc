@@ -20,10 +20,14 @@ use crate::{err::GameplayError, gameplay::HasContext};
 use super::{
 	basic::find_profile,
 	battle::{
-		core::{BattleContext, BattleMode, BattlePacket, BattleShipInput, EngagementType},
+		core::{
+			BattleContext, BattleMode, BattleNightHougeki, BattlePacket, BattleShipInput,
+			EngagementType,
+		},
 		practice::PracticeBattleResponse,
 		sortie::{
-			SortieBattleInput, simulate_and_store_sortie_day_battle, take_sortie_day_battle_result,
+			SortieBattleInput, pending_sortie_battle, simulate_and_store_sortie_day_battle,
+			simulate_and_store_sortie_night_battle, take_sortie_day_battle_result,
 		},
 	},
 	fleet::get_fleet_ships_impl,
@@ -31,6 +35,7 @@ use super::{
 		active_map_catalog, ensure_map_records_impl, find_map_definition, find_map_record_impl,
 		refresh_all_map_records_impl,
 	},
+	ship::update_ship_impl,
 	slot_item::find_slot_items_by_id_impl,
 };
 
@@ -97,6 +102,7 @@ pub struct SortieNextResponse {
 
 #[derive(Debug, Clone)]
 struct SortieBattleResultSnapshot {
+	friendly_ship_ids: Vec<i64>,
 	enemy_ship_ids: Vec<i64>,
 	win_rank: String,
 	get_exp: i64,
@@ -140,6 +146,29 @@ pub struct SortieBattleResultResponse {
 	pub api_get_flag: [i64; 3],
 }
 
+#[allow(non_snake_case)]
+#[derive(Debug, Clone, Serialize)]
+pub struct SortieNightBattleResponse {
+	pub api_deck_id: i64,
+	pub api_formation: [i64; 3],
+	pub api_f_nowhps: Vec<i64>,
+	pub api_f_maxhps: Vec<i64>,
+	pub api_fParam: Vec<[i64; 4]>,
+	pub api_ship_ke: Vec<i64>,
+	pub api_ship_lv: Vec<i64>,
+	pub api_e_nowhps: Vec<i64>,
+	pub api_e_maxhps: Vec<i64>,
+	pub api_eSlot: Vec<[i64; 5]>,
+	pub api_eParam: Vec<[i64; 4]>,
+	pub api_smoke_type: i64,
+	pub api_balloon_cell: i64,
+	pub api_atoll_cell: i64,
+	pub api_touch_plane: [i64; 2],
+	pub api_flare_pos: [i64; 2],
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub api_hougeki: Option<BattleNightHougeki>,
+}
+
 #[async_trait]
 pub trait SortieOps {
 	async fn start_sortie(
@@ -167,6 +196,11 @@ pub trait SortieOps {
 		&self,
 		profile_id: i64,
 	) -> Result<SortieBattleResultResponse, GameplayError>;
+
+	async fn sortie_midnight_battle(
+		&self,
+		profile_id: i64,
+	) -> Result<SortieNightBattleResponse, GameplayError>;
 }
 
 #[async_trait]
@@ -421,6 +455,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		PENDING_SORTIE_RESULTS.lock().unwrap().insert(
 			profile_id,
 			SortieBattleResultSnapshot {
+				friendly_ship_ids: session.friendly_ship_ids.clone(),
 				enemy_ship_ids: session.enemy_ship_ids.clone(),
 				win_rank: session.outcome.win_rank.clone(),
 				get_exp,
@@ -487,7 +522,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found"))
 		})?;
 
-		update_sortie_result_stats(&tx, profile_id, &snapshot.win_rank).await?;
+		let snapshot = update_sortie_result_stats(&tx, codex, profile_id, snapshot).await?;
 		let first_clear = apply_sortie_map_result(
 			&tx,
 			profile_id,
@@ -531,6 +566,67 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			api_first_clear: first_clear,
 			api_get_flag: [0, 0, 0],
 		})
+	}
+
+	async fn sortie_midnight_battle(
+		&self,
+		profile_id: i64,
+	) -> Result<SortieNightBattleResponse, GameplayError> {
+		let codex = self.codex();
+		let pending = pending_sortie_battle(profile_id).ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"sortie battle session not found for profile {profile_id}",
+			))
+		})?;
+		if !pending.outcome.can_midnight {
+			return Err(GameplayError::WrongType(
+				"night battle is not available for this sortie battle".to_string(),
+			));
+		}
+
+		let night = simulate_and_store_sortie_night_battle(
+			codex,
+			profile_id,
+			pending.packet.formation[0],
+			pending.packet.formation[1],
+			EngagementType::from_api_id(pending.packet.formation[2])
+				.unwrap_or(EngagementType::SameCourse),
+		)
+		.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"sortie battle session not found for profile {profile_id}",
+			))
+		})?;
+
+		if let Some(snapshot) = PENDING_SORTIE_RESULTS.lock().unwrap().get_mut(&profile_id) {
+			snapshot.win_rank = night.outcome.win_rank.clone();
+			snapshot.mvp = night.outcome.mvp;
+			snapshot.get_exp =
+				calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
+			if let Some(updated) = pending_sortie_battle(profile_id) {
+				let friend_ships = updated
+					.friendly
+					.iter()
+					.cloned()
+					.map(|ship| BattleShipInput {
+						ship: ship.ship,
+						slot_items: ship.slot_items,
+						effect_list: ship.effect_list,
+					})
+					.collect::<Vec<_>>();
+				let (ship_exp, ship_lvup) =
+					calculate_sortie_ship_exp(&friend_ships, snapshot.get_base_exp, snapshot.mvp);
+				snapshot.get_ship_exp = ship_exp;
+				snapshot.get_exp_lvup = ship_lvup;
+			}
+		}
+
+		let current = pending_sortie_battle(profile_id).ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"sortie battle session not found for profile {profile_id}",
+			))
+		})?;
+		Ok(build_sortie_night_battle_response(current.deck_id, &current, night.packet))
 	}
 }
 
@@ -648,8 +744,8 @@ fn build_sortie_battle_response(
 	SortieBattleResponse {
 		api_deck_id: deck_id,
 		api_formation: packet.formation,
-		api_f_nowhps: packet.friendly_nowhps,
-		api_f_maxhps: packet.friendly_maxhps,
+		api_f_nowhps: friend_ships.iter().map(|ship| ship.ship.api_nowhp).collect(),
+		api_f_maxhps: friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect(),
 		api_fParam: friend_ships
 			.iter()
 			.map(|ship| {
@@ -663,8 +759,8 @@ fn build_sortie_battle_response(
 			.collect(),
 		api_ship_ke: enemy_ships.iter().map(|ship| ship.ship.api_ship_id).collect(),
 		api_ship_lv: enemy_ships.iter().map(|ship| ship.ship.api_lv).collect(),
-		api_e_nowhps: packet.enemy_nowhps,
-		api_e_maxhps: packet.enemy_maxhps,
+		api_e_nowhps: enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect(),
+		api_e_maxhps: enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect(),
 		api_eSlot: enemy_ships.iter().map(enemy_slot_ids).collect(),
 		api_eParam: enemy_ships
 			.iter()
@@ -703,6 +799,161 @@ fn build_sortie_battle_response(
 		api_hougeki2: packet.hougeki2,
 		api_hougeki3: packet.hougeki3,
 		api_raigeki: packet.raigeki,
+	}
+}
+
+fn build_sortie_night_battle_response(
+	deck_id: i64,
+	session: &crate::game::battle::sortie::SortieBattleSession,
+	packet: crate::game::battle::core::NightBattlePacket,
+) -> SortieNightBattleResponse {
+	SortieNightBattleResponse {
+		api_deck_id: deck_id,
+		api_formation: packet.formation,
+		api_f_nowhps: packet.friendly_nowhps,
+		api_f_maxhps: packet.friendly_maxhps,
+		api_fParam: session
+			.friendly
+			.iter()
+			.map(|ship| {
+				[
+					ship.ship.api_karyoku[0],
+					ship.ship.api_raisou[0],
+					ship.ship.api_taiku[0],
+					ship.ship.api_soukou[0],
+				]
+			})
+			.collect(),
+		api_ship_ke: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
+		api_ship_lv: session.enemy.iter().map(|ship| ship.ship.api_lv).collect(),
+		api_e_nowhps: packet.enemy_nowhps,
+		api_e_maxhps: packet.enemy_maxhps,
+		api_eSlot: session
+			.enemy
+			.iter()
+			.map(|ship| {
+				enemy_slot_ids(&BattleShipInput {
+					ship: ship.ship.clone(),
+					slot_items: ship.slot_items.clone(),
+					effect_list: ship.effect_list.clone(),
+				})
+			})
+			.collect(),
+		api_eParam: session
+			.enemy
+			.iter()
+			.map(|ship| {
+				[
+					ship.ship.api_karyoku[0],
+					ship.ship.api_raisou[0],
+					ship.ship.api_taiku[0],
+					ship.ship.api_soukou[0],
+				]
+			})
+			.collect(),
+		api_smoke_type: 0,
+		api_balloon_cell: 0,
+		api_atoll_cell: 0,
+		api_touch_plane: packet.touch_plane,
+		api_flare_pos: packet.flare_pos,
+		api_hougeki: packet.hougeki,
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::game::battle::{core::BattleMode, sortie::simulate_and_store_sortie_day_battle};
+	use emukc_db::prelude::new_mem_db;
+	use emukc_model::codex::Codex;
+
+	fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
+		let (mut ship, slot_items) = codex.new_ship(mst_id).unwrap();
+		let exp_now = level::ship_level_required_exp(level);
+		let (_, next_exp) = level::exp_to_ship_level(exp_now);
+		ship.api_lv = level;
+		ship.api_exp = [exp_now, next_exp, 0];
+		codex.cal_ship_status(&mut ship, &slot_items).unwrap();
+		BattleShipInput {
+			ship,
+			slot_items,
+			effect_list: vec![0],
+		}
+	}
+
+	fn weaken_for_midnight(mut ship: BattleShipInput) -> BattleShipInput {
+		ship.ship.api_karyoku[0] = 1;
+		ship.ship.api_raisou[0] = 0;
+		ship.ship.api_soukou[0] = 200;
+		ship
+	}
+
+	#[tokio::test]
+	async fn sortie_midnight_battle_updates_pending_snapshot() {
+		ACTIVE_SORTIES.lock().unwrap().clear();
+		PENDING_SORTIE_RESULTS.lock().unwrap().clear();
+
+		let db = new_mem_db().await.unwrap();
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let context = (db, codex.clone());
+		let profile_id = 42;
+
+		let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
+		let enemy = weaken_for_midnight(sample_ship(&codex, 412, 99));
+		let session = simulate_and_store_sortie_day_battle(
+			&codex,
+			SortieBattleInput {
+				profile_id,
+				deck_id: 1,
+				map_id: 11,
+				cell_id: 1,
+				context: BattleContext {
+					mode: BattleMode::Sortie,
+					friendly_formation_id: 1,
+					enemy_formation_id: 1,
+					engagement: EngagementType::SameCourse,
+					friend_ships: vec![friend.clone()],
+					enemy_ships: vec![enemy.clone()],
+				},
+			},
+		);
+
+		assert_eq!(session.packet.midnight_flag, 1);
+		PENDING_SORTIE_RESULTS.lock().unwrap().insert(
+			profile_id,
+			SortieBattleResultSnapshot {
+				friendly_ship_ids: session.friendly_ship_ids.clone(),
+				enemy_ship_ids: session.enemy_ship_ids.clone(),
+				win_rank: session.outcome.win_rank.clone(),
+				get_exp: 0,
+				member_lv: 1,
+				member_exp: 0,
+				get_base_exp: 30,
+				mvp: session.outcome.mvp,
+				get_ship_exp: vec![],
+				get_exp_lvup: vec![],
+				quest_name: "test".to_string(),
+				quest_level: 1,
+				enemy_level: 1,
+				enemy_rank: "Test".to_string(),
+				enemy_deck_name: "Test".to_string(),
+			},
+		);
+
+		let response = context.sortie_midnight_battle(profile_id).await.unwrap();
+		assert_eq!(response.api_deck_id, 1);
+		assert!(response.api_hougeki.is_some());
+
+		let updated_snapshot =
+			PENDING_SORTIE_RESULTS.lock().unwrap().get(&profile_id).cloned().unwrap();
+		assert!(!updated_snapshot.win_rank.is_empty());
+		assert!(updated_snapshot.mvp >= 1);
+
+		let stored = pending_sortie_battle(profile_id).unwrap();
+		assert_eq!(stored.packet.midnight_flag, 0);
+
+		let _ = take_sortie_day_battle_result(profile_id);
+		PENDING_SORTIE_RESULTS.lock().unwrap().clear();
 	}
 }
 
@@ -747,11 +998,35 @@ fn calculate_sortie_ship_exp(
 		exp.push(gain);
 
 		let new_exp = ship.ship.api_exp[0] + gain;
-		let (_, next_exp) = level::exp_to_ship_level(new_exp);
-		lvup.push(vec![ship.ship.api_exp[0], next_exp]);
+		lvup.push(build_exp_lvup_vector(ship.ship.api_exp[0], new_exp));
 	}
 
 	(exp, lvup)
+}
+
+fn build_exp_lvup_vector(before_exp: i64, after_exp: i64) -> Vec<i64> {
+	let mut result = vec![before_exp];
+	let (_, mut next_exp) = level::exp_to_ship_level(before_exp);
+	if next_exp <= 0 {
+		result.push(-1);
+		return result;
+	}
+	result.push(next_exp);
+
+	while next_exp > 0 && after_exp >= next_exp {
+		let (_, candidate_next) = level::exp_to_ship_level(next_exp);
+		if candidate_next <= 0 {
+			result.push(-1);
+			break;
+		}
+		if candidate_next == next_exp {
+			break;
+		}
+		result.push(candidate_next);
+		next_exp = candidate_next;
+	}
+
+	result
 }
 
 fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
@@ -765,21 +1040,53 @@ fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
 
 async fn update_sortie_result_stats<C>(
 	c: &C,
+	codex: &Codex,
 	profile_id: i64,
-	win_rank: &str,
-) -> Result<(), GameplayError>
+	mut snapshot: SortieBattleResultSnapshot,
+) -> Result<SortieBattleResultSnapshot, GameplayError>
 where
 	C: ConnectionTrait,
 {
 	let profile = find_profile(c, profile_id).await?;
 	let mut am = profile.into_active_model();
-	if matches!(win_rank, "S" | "A" | "B") {
+	let current_exp = am.experience.take().unwrap_or_default();
+	let new_exp = current_exp + snapshot.get_exp;
+	let (hq_level, _) = level::exp_to_hq_level(new_exp);
+	if matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
 		am.sortie_wins = ActiveValue::Set(am.sortie_wins.take().unwrap_or_default() + 1);
 	} else {
 		am.sortie_loses = ActiveValue::Set(am.sortie_loses.take().unwrap_or_default() + 1);
 	}
-	am.update(c).await?;
-	Ok(())
+	am.experience = ActiveValue::Set(new_exp);
+	am.hq_level = ActiveValue::Set(hq_level);
+	let updated_profile = am.update(c).await?;
+
+	for (idx, ship_id) in snapshot.friendly_ship_ids.iter().copied().enumerate() {
+		let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
+		if gain <= 0 {
+			continue;
+		}
+		let ship_model =
+			emukc_db::entity::profile::ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(
+				|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")),
+			)?;
+		let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.clone().into();
+		let new_ship_exp = ship_model.exp_now + gain;
+		let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+		let current_level_exp = level::ship_level_required_exp(ship_level);
+		let progress = if next_exp > current_level_exp {
+			((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
+		} else {
+			0
+		};
+		api_ship.api_lv = ship_level;
+		api_ship.api_exp = [new_ship_exp, next_exp, progress];
+		update_ship_impl(c, codex, &api_ship).await?;
+	}
+
+	snapshot.member_lv = updated_profile.hq_level;
+	snapshot.member_exp = updated_profile.experience;
+	Ok(snapshot)
 }
 
 async fn apply_sortie_map_result<C>(

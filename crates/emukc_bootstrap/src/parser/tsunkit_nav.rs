@@ -111,6 +111,7 @@ struct TsunkitNodeSummaryEntry {
 	battles: i64,
 }
 
+/// Parse a cached `tsunkit_nav` directory into a normalized [`MapCatalog`].
 pub fn parse(root: impl AsRef<Path>, manifest: &ApiManifest) -> Result<MapCatalog, ParseError> {
 	let root = root.as_ref();
 	let map_root = root.join("maps");
@@ -118,7 +119,7 @@ pub fn parse(root: impl AsRef<Path>, manifest: &ApiManifest) -> Result<MapCatalo
 	let enemy_root = root.join("enemycomps");
 	let entries = fs::read_dir(&map_root).map_err(|source| ParseError::io_at(&map_root, source))?;
 
-	let mut catalog = MapCatalog::from_manifest(manifest);
+	let mut catalog = MapCatalog::default();
 
 	for entry in entries.flatten() {
 		let path = entry.path();

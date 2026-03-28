@@ -28,7 +28,7 @@
 - [ ] review tsunkit quest parser edge cases (`parser/tsunkit_quest/types.rs`)
 - [ ] practice system: implement opponent fleet generation (`game/practice.rs`)
 - [ ] ship ops: replace temporary implementation (`game/ship/mod.rs`)
-- [ ] migrate off deprecated `axum_extra::extract::Host` in `net/router/game.rs`
+- [x] migrate off deprecated `axum_extra::extract::Host` in `net/router/game.rs`
 
 ## High Priority - Core Gameplay
 - [ ] **Map & Sortie System** (`api_req_map/*`)

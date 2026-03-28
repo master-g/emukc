@@ -133,6 +133,14 @@ name = "bootstrap_download"
 path = "tests/bootstrap/download.rs"
 
 [[example]]
+name = "tsunkit_map_data_downloader"
+path = "tests/bootstrap/tsunkit_map_data_downloader.rs"
+
+[[example]]
+name = "tsunkit_map_codegen"
+path = "tests/bootstrap/tsunkit_map_codegen.rs"
+
+[[example]]
 name = "dump_tree"
 path = "tests/dump_fs_tree/dump_tree.rs"
 

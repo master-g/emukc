@@ -440,6 +440,8 @@ pub struct Kc3rdQuestConditionShipGroup {
 	pub amount: Kc3rdQuestShipAmount,
 	pub lv: i64,
 	pub position: i64, // 0: any, 1: first, 2: second, etc.
+	#[serde(default)]
+	pub other_ships: bool,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub white_list: Option<Vec<i64>>, // ship id list
 }

@@ -26,6 +26,13 @@ pub use kcwikizh_kcdata::parse as parse_kcdata;
 pub use tsunkit_nav::parse as parse_tsunkit_nav;
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
 
+fn load_map_catalog(
+	dir: &std::path::Path,
+	manifest: &ApiManifest,
+) -> Result<MapCatalog, ParseError> {
+	Ok(MapCatalog::load_baked_or_kcdata_root(dir.join("kc_data"), manifest))
+}
+
 /// Parse a partial codex from the given directory.
 ///
 /// # Arguments
@@ -82,12 +89,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		})?;
 	}
 
-	let tsunkit_root = dir.join("tsunkit_nav");
-	let maps = if tsunkit_root.exists() {
-		parse_tsunkit_nav(tsunkit_root, &manifest)?
-	} else {
-		MapCatalog::load_from_kcdata_root(dir.join("kc_data"), &manifest)
-	};
+	let maps = load_map_catalog(dir, &manifest)?;
 
 	Ok(Codex {
 		manifest,
@@ -104,4 +106,41 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
 		maps,
 		cache_source: Some(cache_source),
 	})
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn load_map_catalog_uses_kcdata_when_baked_catalog_is_empty() {
+		let root = tempfile::tempdir().unwrap();
+		let kcdata_dir = root.path().join("kc_data/_map");
+		std::fs::create_dir_all(&kcdata_dir).unwrap();
+
+		std::fs::write(
+			kcdata_dir.join("0012.yaml"),
+			r#"data:
+  id: 12
+  name: "1-2 fallback"
+  routes:
+    1:
+      to: 1
+    2:
+      from: 1
+      to: 2
+  cells:
+    "1":
+      name: "battle"
+    "2":
+      boss: true
+"#,
+		)
+		.unwrap();
+
+		let catalog = load_map_catalog(root.path(), &ApiManifest::default()).unwrap();
+		let map_12 = catalog.map_definition(12).unwrap();
+
+		assert_eq!(map_12.variant("").unwrap().boss_cell_no, 2);
+	}
 }

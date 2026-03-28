@@ -8,6 +8,7 @@ use emukc_db::{
 	entity::profile::{
 		self,
 		practice::{self, config::RivalType, rival_ship},
+		ship,
 	},
 	sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
@@ -28,10 +29,13 @@ use super::{
 	basic::find_profile,
 	battle::practice::{
 		PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultResponse,
-		PracticeBattleResultSnapshot, PracticeBattleShipInput,
-		build_practice_battle_result_response, simulate_practice_day_battle,
+		PracticeBattleResultSnapshot, PracticeBattleShipInput, PracticeNightBattleResponse,
+		build_practice_battle_result_response, calculate_admiral_exp, calculate_practice_ship_exp,
+		clear_pending_practice_battle, pending_practice_battle, simulate_practice_day_battle,
+		simulate_practice_night_battle,
 	},
 	fleet::get_fleet_ships_impl,
+	ship::update_ship_impl,
 	slot_item::find_slot_items_by_id_impl,
 };
 
@@ -87,6 +91,11 @@ pub trait PracticeOps {
 		&self,
 		profile_id: i64,
 	) -> Result<PracticeBattleResultResponse, GameplayError>;
+
+	async fn practice_midnight_battle(
+		&self,
+		profile_id: i64,
+	) -> Result<PracticeNightBattleResponse, GameplayError>;
 }
 
 #[async_trait]
@@ -138,6 +147,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 		let friend_ships = build_practice_friend_ships(&tx, &friend_ships).await?;
 		let enemy_ships = build_practice_enemy_ships(codex, &rival)?;
 		let input = PracticeBattleInput {
+			profile_id,
 			deck_id,
 			formation_id,
 			enemy_id,
@@ -170,12 +180,40 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 				))
 			})?;
 
-		update_practice_result_stats(&tx, profile_id, &snapshot).await?;
+		let snapshot =
+			update_practice_result_stats(&tx, self.codex(), profile_id, snapshot).await?;
 		update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank).await?;
+		clear_pending_practice_battle(profile_id);
 
 		tx.commit().await?;
 
 		Ok(build_practice_battle_result_response(snapshot))
+	}
+
+	async fn practice_midnight_battle(
+		&self,
+		profile_id: i64,
+	) -> Result<PracticeNightBattleResponse, GameplayError> {
+		let (response, snapshot) = simulate_practice_night_battle(self.codex(), profile_id)
+			.ok_or_else(|| {
+				GameplayError::WrongType("night practice battle is not available".to_string())
+			})?;
+
+		if let Some(existing) = PENDING_PRACTICE_RESULTS.lock().unwrap().get_mut(&profile_id) {
+			let base_exp = existing.get_base_exp;
+			let friend_ships = pending_practice_battle(profile_id)
+				.map(|session| session.friendly)
+				.unwrap_or_default();
+			existing.win_rank = snapshot.win_rank;
+			existing.mvp = snapshot.mvp;
+			existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank);
+			let (ship_exp, ship_lvup) =
+				calculate_practice_ship_exp(&friend_ships, base_exp, existing.mvp);
+			existing.get_ship_exp = ship_exp;
+			existing.get_exp_lvup = ship_lvup;
+		}
+
+		Ok(response)
 	}
 }
 
@@ -573,21 +611,80 @@ fn build_practice_enemy_ships(
 
 async fn update_practice_result_stats<C>(
 	c: &C,
+	codex: &Codex,
 	profile_id: i64,
-	snapshot: &PracticeBattleResultSnapshot,
-) -> Result<(), GameplayError>
+	mut snapshot: PracticeBattleResultSnapshot,
+) -> Result<PracticeBattleResultSnapshot, GameplayError>
 where
 	C: ConnectionTrait,
 {
 	let profile = find_profile(c, profile_id).await?;
 	let mut am = profile.into_active_model();
+	let current_exp = am.experience.take().unwrap_or_default();
+	let new_exp = current_exp + snapshot.get_exp;
+	let (hq_level, _) = level::exp_to_hq_level(new_exp);
 	am.practice_battles = ActiveValue::Set(am.practice_battles.take().unwrap_or_default() + 1);
 	if matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
 		am.practice_battle_wins =
 			ActiveValue::Set(am.practice_battle_wins.take().unwrap_or_default() + 1);
 	}
-	am.update(c).await?;
-	Ok(())
+	am.experience = ActiveValue::Set(new_exp);
+	am.hq_level = ActiveValue::Set(hq_level);
+	let updated_profile = am.update(c).await?;
+	let pending = pending_practice_battle(profile_id);
+
+	for (idx, ship_id) in snapshot.friendly_ship_ids.iter().copied().enumerate() {
+		let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
+		let ship_model = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
+			GameplayError::EntryNotFound(format!("ship with id {ship_id} not found"))
+		})?;
+		let mst = codex.find::<emukc_model::prelude::ApiMstShip>(&ship_model.mst_id)?;
+		let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.clone().into();
+		let new_ship_exp = ship_model.exp_now + gain.max(0);
+		let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+		let current_level_exp = level::ship_level_required_exp(ship_level);
+		let progress = if next_exp > current_level_exp {
+			((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
+		} else {
+			0
+		};
+		api_ship.api_lv = ship_level;
+		api_ship.api_exp = [new_ship_exp, next_exp, progress];
+		api_ship.api_fuel =
+			(ship_model.fuel - practice_fuel_cost(mst.api_fuel_max.unwrap_or(0))).max(0);
+		api_ship.api_bull = (ship_model.ammo
+			- practice_ammo_cost(mst.api_bull_max.unwrap_or(0), snapshot.did_night_battle))
+		.max(0);
+		if let Some(session) = &pending
+			&& let Some(runtime_ship) = session.friendly.get(idx)
+		{
+			api_ship.api_onslot = runtime_ship.ship.api_onslot;
+		}
+		update_ship_impl(c, codex, &api_ship).await?;
+	}
+
+	snapshot.member_lv = updated_profile.hq_level;
+	snapshot.member_exp = updated_profile.experience;
+	Ok(snapshot)
+}
+
+fn practice_fuel_cost(max_fuel: i64) -> i64 {
+	if max_fuel <= 0 {
+		return 0;
+	}
+	(max_fuel / 5).max(1)
+}
+
+fn practice_ammo_cost(max_ammo: i64, did_night_battle: bool) -> i64 {
+	if max_ammo <= 0 {
+		return 0;
+	}
+	let base = (max_ammo / 5).max(1);
+	if did_night_battle {
+		(base * 3 + 1) / 2
+	} else {
+		base
+	}
 }
 
 async fn update_rival_status<C>(

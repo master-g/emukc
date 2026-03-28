@@ -33,6 +33,7 @@ mod tests {
 				},
 				lv: 0,
 				position: 0,
+				other_ships: false,
 				white_list: None,
 			}],
 			fleet_id: 0,
