@@ -107,21 +107,51 @@ where
 		)));
 	}
 
+	let quest_progress = quest.progress;
+	let quest_requirements = quest.requirements.clone();
 	let mut am = quest.into_active_model();
 	am.status = ActiveValue::Set(status);
 	if status == Status::Activated
 		&& let Some(codex) = codex
 		&& let Some(mst) = codex.quest.get(&quest_id)
 	{
-		let conditions = match &mst.requirements {
+		let master_conditions = match &mst.requirements {
 			Kc3rdQuestRequirement::And(conditions)
 			| Kc3rdQuestRequirement::OneOf(conditions)
 			| Kc3rdQuestRequirement::Sequential(conditions) => conditions,
 		};
-		if conditions.iter().any(|condition| matches!(condition, Kc3rdQuestCondition::Exercise(_)))
-			&& am.progress.take() == Some(quest::progress::Progress::Completed)
-		{
-			am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
+
+		let has_exercise = master_conditions
+			.iter()
+			.any(|condition| matches!(condition, Kc3rdQuestCondition::Exercise(_)));
+		if has_exercise {
+			let mut current_conditions: Vec<Kc3rdQuestCondition> =
+				serde_json::from_value(quest_requirements)?;
+			let mut restored_activation_headroom = false;
+			for (current, master) in current_conditions.iter_mut().zip(master_conditions.iter()) {
+				let (Kc3rdQuestCondition::Exercise(current), Kc3rdQuestCondition::Exercise(master)) =
+					(current, master)
+				else {
+					continue;
+				};
+
+				// Inactive exercise quests can preview progress up to 80%, but they still need
+				// one real battle after activation to become claimable.
+				if current.times <= 0
+					&& master.times > 0
+					&& quest_progress != quest::progress::Progress::Completed
+				{
+					current.times = 1;
+					restored_activation_headroom = true;
+				}
+			}
+
+			if restored_activation_headroom {
+				am.requirements = ActiveValue::Set(serde_json::to_value(current_conditions)?);
+			}
+			if quest_progress == quest::progress::Progress::Completed {
+				am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
+			}
 		}
 	}
 

@@ -5,7 +5,9 @@ use std::sync::atomic::{AtomicI64, Ordering};
 use emukc_db::{
 	entity::profile::{self, quest, ship},
 	prelude::new_mem_db,
-	sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter},
+	sea_orm::{
+		ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
+	},
 };
 use emukc_gameplay::prelude::*;
 use emukc_model::{
@@ -318,6 +320,33 @@ async fn practice_battle_result_completes_intro_exercise_quest() {
 }
 
 #[tokio::test]
+async fn practice_battle_result_completes_three_win_exercise_quest_after_three_battles() {
+	let (context, session) = new_game_session().await;
+	let pid = session.profile.id;
+	let quest_id = 303;
+
+	let ships = add_ships_with_type(&context, pid, KcShipType::BB, 6, 99).await;
+	context
+		.update_fleet_ships(pid, 1, &[ships[0], ships[1], ships[2], ships[3], ships[4], ships[5]])
+		.await
+		.unwrap();
+	ensure_started_quest(&context, pid, quest_id).await;
+
+	for _ in 0..3 {
+		let rivals = context.get_practice_rivals(pid).await.unwrap();
+		let enemy_id = rivals.rivals[0].id;
+		context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
+		let result = context.practice_battle_result(pid).await.unwrap();
+		assert!(matches!(result.api_win_rank.as_str(), "S" | "A" | "B"));
+	}
+
+	assert_eq!(
+		quest_progress_of(&context, pid, quest_id).await,
+		quest::progress::Progress::Completed
+	);
+}
+
+#[tokio::test]
 async fn practice_battle_result_decrements_ranked_exercise_quest() {
 	let (context, session) = new_game_session().await;
 	let pid = session.profile.id;
@@ -391,6 +420,44 @@ async fn idle_exercise_quest_accumulates_progress_before_activation() {
 	let after_start = raw_quest_record(&context, pid, quest_id).await;
 	assert_eq!(after_start.status, quest::progress::Status::Activated);
 	assert_eq!(after_start.progress, quest::progress::Progress::Eighty);
+	assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 1);
+}
+
+#[tokio::test]
+async fn idle_exercise_quest_completes_after_activation_and_one_more_battle() {
+	let (context, session) = new_game_session().await;
+	let pid = session.profile.id;
+	let quest_id = 303;
+
+	let ships = add_ships_with_type(&context, pid, KcShipType::BB, 6, 99).await;
+	context
+		.update_fleet_ships(pid, 1, &[ships[0], ships[1], ships[2], ships[3], ships[4], ships[5]])
+		.await
+		.unwrap();
+	ensure_idle_quest(&context, pid, quest_id).await;
+
+	for _ in 0..3 {
+		let rivals = context.get_practice_rivals(pid).await.unwrap();
+		let enemy_id = rivals.rivals[0].id;
+		context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
+		context.practice_battle_result(pid).await.unwrap();
+	}
+
+	assert_eq!(quest_progress_of(&context, pid, quest_id).await, quest::progress::Progress::Eighty);
+	assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 0);
+
+	context.quest_start(pid, quest_id).await.unwrap();
+	assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 1);
+
+	let rivals = context.get_practice_rivals(pid).await.unwrap();
+	let enemy_id = rivals.rivals[0].id;
+	context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
+	context.practice_battle_result(pid).await.unwrap();
+
+	assert_eq!(
+		quest_progress_of(&context, pid, quest_id).await,
+		quest::progress::Progress::Completed
+	);
 }
 
 #[tokio::test]
