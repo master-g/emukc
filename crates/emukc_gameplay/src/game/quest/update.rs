@@ -178,40 +178,60 @@ pub(crate) async fn update_quest_progress_for_action<C>(
 where
 	C: ConnectionTrait,
 {
-	// 1. Fetch ONLY activated quests
-	let activated_quests = progress::Entity::find()
-		.filter(progress::Column::ProfileId.eq(profile_id))
-		.filter(progress::Column::Status.eq(progress::Status::Activated))
-		.all(c)
-		.await?;
+	let include_idle_exercise = matches!(event, QuestActionEvent::ExerciseBattleCompleted { .. });
+
+	let mut query = progress::Entity::find().filter(progress::Column::ProfileId.eq(profile_id));
+	if include_idle_exercise {
+		query = query.filter(
+			progress::Column::Status.is_in([progress::Status::Activated, progress::Status::Idle]),
+		);
+	} else {
+		query = query.filter(progress::Column::Status.eq(progress::Status::Activated));
+	}
+
+	let quests = query.all(c).await?;
 
 	// 2. For each quest, check if event matches and update
-	for quest in activated_quests {
+	for quest in quests {
 		let mut conditions: Vec<Kc3rdQuestCondition> =
 			serde_json::from_value(quest.requirements.clone())?;
+		let mst = codex.find::<Kc3rdQuest>(&quest.quest_id)?;
+		let master_conditions = match (&quest.requirement_type, &mst.requirements) {
+			(progress::RequirementType::And, Kc3rdQuestRequirement::And(conditions)) => {
+				Some(conditions.as_slice())
+			}
+			(progress::RequirementType::OneOf, Kc3rdQuestRequirement::OneOf(conditions)) => {
+				Some(conditions.as_slice())
+			}
+			(
+				progress::RequirementType::Sequential,
+				Kc3rdQuestRequirement::Sequential(conditions),
+			) => Some(conditions.as_slice()),
+			_ => None,
+		};
+		if include_idle_exercise
+			&& quest.status == progress::Status::Idle
+			&& !master_conditions
+				.is_some_and(|conditions| conditions.iter().any(is_exercise_condition))
+		{
+			continue;
+		}
 
 		let mut updated = false;
-		for condition in conditions.iter_mut() {
-			if condition.apply_event(event) {
+		for (idx, condition) in conditions.iter_mut().enumerate() {
+			let master_condition = master_conditions.and_then(|conditions| conditions.get(idx));
+			if condition.apply_event_with_context(event, master_condition, Some(codex)) {
 				updated = true;
 			}
 		}
 
 		if updated {
-			// Reconstruct requirement
-			let requirements = match quest.requirement_type {
-				progress::RequirementType::And => Kc3rdQuestRequirement::And(conditions.clone()),
-				progress::RequirementType::OneOf => {
-					Kc3rdQuestRequirement::OneOf(conditions.clone())
-				}
-				progress::RequirementType::Sequential => {
-					Kc3rdQuestRequirement::Sequential(conditions.clone())
-				}
-			};
-
-			// Get master quest for progress calculation
-			let mst = codex.find::<Kc3rdQuest>(&quest.quest_id)?;
-			let new_progress = requirements.calculate_progress(&mst.requirements);
+			let new_progress = progress_after_event(
+				quest.status,
+				&conditions,
+				&mst.requirements,
+				include_idle_exercise,
+			);
 
 			// Update database
 			let mut am = quest.into_active_model();
@@ -222,6 +242,100 @@ where
 	}
 
 	Ok(())
+}
+
+fn is_exercise_condition(condition: &Kc3rdQuestCondition) -> bool {
+	matches!(condition, Kc3rdQuestCondition::Exercise(_))
+}
+
+fn progress_after_event(
+	status: progress::Status,
+	current_conditions: &[Kc3rdQuestCondition],
+	master_requirements: &Kc3rdQuestRequirement,
+	include_idle_exercise: bool,
+) -> emukc_model::profile::quest::QuestProgressStatus {
+	if include_idle_exercise {
+		if let Some(exercise_progress) =
+			calculate_exercise_progress(current_conditions, master_requirements)
+		{
+			if status == progress::Status::Idle
+				&& exercise_progress == QuestProgressStatus::Completed
+			{
+				QuestProgressStatus::Eighty
+			} else {
+				exercise_progress
+			}
+		} else {
+			let progress = calculate_progress_from_current(current_conditions, master_requirements);
+			if status == progress::Status::Idle && progress == QuestProgressStatus::Completed {
+				QuestProgressStatus::Eighty
+			} else {
+				progress
+			}
+		}
+	} else {
+		calculate_progress_from_current(current_conditions, master_requirements)
+	}
+}
+
+fn calculate_progress_from_current(
+	current_conditions: &[Kc3rdQuestCondition],
+	master_requirements: &Kc3rdQuestRequirement,
+) -> QuestProgressStatus {
+	match master_requirements {
+		Kc3rdQuestRequirement::And(_) => Kc3rdQuestRequirement::And(current_conditions.to_vec())
+			.calculate_progress(master_requirements),
+		Kc3rdQuestRequirement::OneOf(_) => {
+			Kc3rdQuestRequirement::OneOf(current_conditions.to_vec())
+				.calculate_progress(master_requirements)
+		}
+		Kc3rdQuestRequirement::Sequential(_) => {
+			Kc3rdQuestRequirement::Sequential(current_conditions.to_vec())
+				.calculate_progress(master_requirements)
+		}
+	}
+}
+
+fn calculate_exercise_progress(
+	current_conditions: &[Kc3rdQuestCondition],
+	master_requirements: &Kc3rdQuestRequirement,
+) -> Option<QuestProgressStatus> {
+	let master_conditions = match master_requirements {
+		Kc3rdQuestRequirement::And(conditions)
+		| Kc3rdQuestRequirement::OneOf(conditions)
+		| Kc3rdQuestRequirement::Sequential(conditions) => conditions,
+	};
+
+	let mut total = 0_i64;
+	let mut remaining = 0_i64;
+
+	for (current, master) in current_conditions.iter().zip(master_conditions.iter()) {
+		let (Kc3rdQuestCondition::Exercise(current), Kc3rdQuestCondition::Exercise(master)) =
+			(current, master)
+		else {
+			continue;
+		};
+		total += master.times.max(0);
+		remaining += current.times.max(0);
+	}
+
+	if total <= 0 {
+		return None;
+	}
+
+	let completed = total - remaining;
+	let ratio = completed as f64 / total as f64;
+	Some(if ratio >= 1.0 {
+		QuestProgressStatus::Completed
+	} else if ratio >= 0.8 {
+		QuestProgressStatus::Eighty
+	} else if ratio >= 0.5 {
+		QuestProgressStatus::Half
+	} else if ratio > 0.0 {
+		QuestProgressStatus::Half
+	} else {
+		QuestProgressStatus::Empty
+	})
 }
 
 /// Validate composition quests when quest list is retrieved.

@@ -124,6 +124,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 			let info = state.sign_up(DEFAULT_NAME, DEFAULT_PASS).await?;
 			state.new_profile(&info.access_token.token, DEFAULT_NAME).await?;
 			// add_ship_incentives(&state, 1).await?;
+			add_material_incentives(&state, 1).await?;
 			info
 		}
 	};
@@ -157,6 +158,28 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
 
 	// wait for the server to finish
 	server_task.await?;
+
+	Ok(())
+}
+
+#[allow(dead_code)]
+async fn add_material_incentives(state: &State, pid: i64) -> Result<()> {
+	let codex = state.codex();
+
+	let incentives: Vec<KcApiIncentiveItem> = [
+		(MaterialCategory::Fuel as i64, 30000i64),
+		(MaterialCategory::Ammo as i64, 30000i64),
+		(MaterialCategory::Steel as i64, 30000i64),
+		(MaterialCategory::Bauxite as i64, 30000i64),
+		(MaterialCategory::DevMat as i64, 2000i64),
+		(MaterialCategory::Torch as i64, 2000i64),
+		(MaterialCategory::Bucket as i64, 2000i64),
+	]
+	.iter()
+	.filter_map(|(res, amt)| codex.new_incentive_with_material(*res, *amt).ok())
+	.collect();
+
+	state.add_incentive(pid, &incentives).await?;
 
 	Ok(())
 }

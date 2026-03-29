@@ -12,14 +12,14 @@ use serde_json::Value;
 /// ```plain
 /// svdata={
 ///   "api_result": 1,
-///   "api_result_msg": "成功",
-///   "api_data": {}
+///   "api_result_msg": "成功"
 /// }
 /// ```
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KcApiResponse {
 	pub api_result: i32,
 	pub api_result_msg: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_data: Option<Value>,
 	#[serde(flatten)]
 	pub extra: Option<Value>,
@@ -84,7 +84,7 @@ impl KcApiResponse {
 		Self {
 			api_result: 1,
 			api_result_msg: "\u{6210}\u{529f}".to_string(),
-			api_data: Some(serde_json::json!("{}")), // None,
+			api_data: None,
 			extra: None,
 		}
 	}
@@ -103,5 +103,16 @@ impl KcApiResponse {
 impl From<()> for KcApiResponse {
 	fn from(_: ()) -> Self {
 		KcApiResponse::empty()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn empty_response_omits_api_data_field() {
+		let json = serde_json::to_string(&KcApiResponse::empty()).unwrap();
+		assert_eq!(json, r#"{"api_result":1,"api_result_msg":"成功"}"#);
 	}
 }

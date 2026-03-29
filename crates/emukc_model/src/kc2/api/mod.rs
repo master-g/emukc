@@ -138,6 +138,7 @@ pub struct KcApiSlotItem {
 	pub api_locked: i64,
 	pub api_level: i64,
 	/// Airplane lv, exists only if greater than 0
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_alv: Option<i64>,
 }
 
@@ -254,6 +255,7 @@ pub struct KcApiPresetSlotElement {
 	pub api_lock_flag: i64,
 	pub api_slot_ex_flag: i64,
 	pub api_slot_item: Vec<KcApiPresetSlotItemElement>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_slot_item_ex: Option<KcApiPresetSlotItemElement>,
 }
 
@@ -413,6 +415,7 @@ pub struct KcApiUserItem {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct KcApiIncentive {
 	pub api_count: i64,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_item: Option<Vec<KcApiIncentiveItem>>,
 }
 
@@ -447,7 +450,9 @@ pub struct KcApiIncentiveItem {
 	pub api_mst_id: i64,
 
 	/// ship get message, but the game does not use it
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_getmes: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_slotitem_level: Option<i64>,
 
 	/// hidden field for internal use
@@ -487,8 +492,11 @@ pub struct KcApiDistance {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KcApiPlaneInfo {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_cond: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_count: Option<i64>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_max_count: Option<i64>,
 	pub api_slotid: i64,
 	pub api_squadron_id: i64,
@@ -746,6 +754,7 @@ pub struct KcApiUseItemGetItemElement {
 	/// Amount
 	pub api_getcount: i64,
 	/// slot item get
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_slotitem: Option<KcApiSlotItem>,
 }
 
@@ -756,6 +765,7 @@ pub struct KcApiUseItemResp {
 	/// 1: get item, 2: get resources, 3: get both
 	pub api_flag: i64,
 	/// item get
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub api_getitem: Option<Vec<KcApiUseItemGetItemElement>>,
 	/// [fuel, ammo, steel, bauxite, torch, bucket, devmat, screw]
 	pub api_material: [i64; 8],

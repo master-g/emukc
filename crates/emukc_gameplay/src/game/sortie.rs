@@ -8,11 +8,13 @@ use emukc_db::sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::
 use emukc_model::{
 	codex::{
 		Codex,
-		map::{EnemyFleetDefinition, MapDefinition, MapVariantDefinition},
+		map::{EnemyComposition, EnemyFleetDefinition, MapDefinition, MapVariantDefinition},
 	},
-	kc2::{UserHQRank, level},
+	kc2::{KcSortieResultRank, UserHQRank, level},
+	thirdparty::QuestActionEvent,
 };
 use emukc_time::chrono::Utc;
+use rand::{RngExt, rng};
 use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::HasContext};
@@ -35,6 +37,7 @@ use super::{
 		active_map_catalog, ensure_map_records_impl, find_map_definition, find_map_record_impl,
 		refresh_all_map_records_impl,
 	},
+	quest::update::update_quest_progress_for_action,
 	ship::update_ship_impl,
 	slot_item::find_slot_items_by_id_impl,
 };
@@ -169,6 +172,9 @@ pub struct SortieNightBattleResponse {
 	pub api_hougeki: Option<BattleNightHougeki>,
 }
 
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct SortieGobackPortResponse {}
+
 #[async_trait]
 pub trait SortieOps {
 	async fn start_sortie(
@@ -192,6 +198,12 @@ pub trait SortieOps {
 		formation_id: i64,
 	) -> Result<SortieBattleResponse, GameplayError>;
 
+	async fn sortie_airbattle(
+		&self,
+		profile_id: i64,
+		formation_id: i64,
+	) -> Result<SortieBattleResponse, GameplayError>;
+
 	async fn sortie_battle_result(
 		&self,
 		profile_id: i64,
@@ -201,6 +213,16 @@ pub trait SortieOps {
 		&self,
 		profile_id: i64,
 	) -> Result<SortieNightBattleResponse, GameplayError>;
+
+	async fn sortie_sp_midnight_battle(
+		&self,
+		profile_id: i64,
+	) -> Result<SortieNightBattleResponse, GameplayError>;
+
+	async fn sortie_goback_port(
+		&self,
+		profile_id: i64,
+	) -> Result<SortieGobackPortResponse, GameplayError>;
 }
 
 #[async_trait]
@@ -416,13 +438,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		}
 
 		let friend_ships = build_sortie_friend_ships(&tx, &fleet_ships).await?;
-		let enemy_fleet = variant
-			.enemy_fleets
-			.get(&current_cell.cell_no)
-			.cloned()
-			.unwrap_or_else(|| fallback_enemy_fleet(current_cell.cell_no));
+		let enemy_fleet = resolve_sortie_enemy_fleet(active.map_id, variant, current_cell.cell_no);
+		let enemy_composition = select_random_enemy_composition(&enemy_fleet)
+			.unwrap_or_else(|| fallback_enemy_composition(current_cell.cell_no));
 		let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
-			build_sortie_enemy_ships(codex, &definition, &enemy_fleet)?;
+			build_sortie_enemy_ships(codex, &definition, &enemy_fleet, &enemy_composition)?;
 
 		let session = simulate_and_store_sortie_day_battle(
 			codex,
@@ -438,6 +458,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 					engagement: engagement_for_cell(active.map_id, active.current_cell_id),
 					friend_ships: friend_ships.clone(),
 					enemy_ships: enemy_ships.clone(),
+					rng_seed: None,
 				},
 			},
 		);
@@ -478,6 +499,14 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 
 		tx.commit().await?;
 		Ok(response)
+	}
+
+	async fn sortie_airbattle(
+		&self,
+		profile_id: i64,
+		formation_id: i64,
+	) -> Result<SortieBattleResponse, GameplayError> {
+		self.sortie_battle(profile_id, formation_id).await
 	}
 
 	async fn sortie_battle_result(
@@ -531,6 +560,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			&snapshot,
 		)
 		.await?;
+		let quest_event = build_sortie_quest_event(&definition, &active, &snapshot)?;
+		update_quest_progress_for_action(&tx, codex, profile_id, &quest_event).await?;
 
 		tx.commit().await?;
 
@@ -628,6 +659,29 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		})?;
 		Ok(build_sortie_night_battle_response(current.deck_id, &current, night.packet))
 	}
+
+	async fn sortie_sp_midnight_battle(
+		&self,
+		profile_id: i64,
+	) -> Result<SortieNightBattleResponse, GameplayError> {
+		self.sortie_midnight_battle(profile_id).await
+	}
+
+	async fn sortie_goback_port(
+		&self,
+		profile_id: i64,
+	) -> Result<SortieGobackPortResponse, GameplayError> {
+		let removed = ACTIVE_SORTIES.lock().unwrap().remove(&profile_id);
+		if removed.is_none() {
+			return Err(GameplayError::EntryNotFound(format!(
+				"active sortie not found for profile {profile_id}",
+			)));
+		}
+
+		clear_pending_sortie_runtime_state(profile_id);
+
+		Ok(SortieGobackPortResponse::default())
+	}
 }
 
 pub(crate) fn split_map_id(map_id: i64) -> (i64, i64) {
@@ -678,19 +732,8 @@ fn build_sortie_enemy_ships(
 	codex: &Codex,
 	definition: &MapDefinition,
 	enemy_fleet: &EnemyFleetDefinition,
+	composition: &EnemyComposition,
 ) -> Result<(Vec<BattleShipInput>, i64, String, String), GameplayError> {
-	let composition = enemy_fleet.compositions.first().cloned().unwrap_or_else(|| {
-		EnemyFleetDefinition {
-			cell_no: enemy_fleet.cell_no,
-			battle_kind: enemy_fleet.battle_kind,
-			formations: enemy_fleet.formations.clone(),
-			compositions: vec![],
-		}
-		.compositions
-		.into_iter()
-		.next()
-		.unwrap_or_default()
-	});
 	let enemy_level = (definition.level.max(1) * 5 + enemy_fleet.cell_no).max(1);
 	let enemy_rank = UserHQRank::RearAdmiral.get_name().to_string();
 	let enemy_deck_name = format!("{}海域敵艦隊", definition.name);
@@ -722,17 +765,76 @@ fn build_sortie_enemy_ships(
 	Ok((enemy_ships, enemy_level, enemy_rank, enemy_deck_name))
 }
 
+fn resolve_sortie_enemy_fleet(
+	map_id: i64,
+	variant: &MapVariantDefinition,
+	cell_no: i64,
+) -> EnemyFleetDefinition {
+	if let Some(enemy_fleet) = variant.enemy_fleets.get(&cell_no) {
+		return enemy_fleet.clone();
+	}
+
+	warn!(
+		map_id,
+		cell_no, "missing enemy fleet definition for sortie cell; using fallback composition",
+	);
+	fallback_enemy_fleet(cell_no)
+}
+
 fn fallback_enemy_fleet(cell_no: i64) -> EnemyFleetDefinition {
 	EnemyFleetDefinition {
 		cell_no,
 		battle_kind: 1,
 		formations: vec![1],
-		compositions: vec![emukc_model::codex::map::EnemyComposition {
-			comp_id: format!("fallback:{cell_no}"),
-			weight: 1,
-			ship_ids: vec![412],
-		}],
+		compositions: vec![fallback_enemy_composition(cell_no)],
 	}
+}
+
+fn fallback_enemy_composition(cell_no: i64) -> EnemyComposition {
+	EnemyComposition {
+		comp_id: format!("fallback:{cell_no}"),
+		weight: 1,
+		ship_ids: vec![412],
+	}
+}
+
+fn select_random_enemy_composition(enemy_fleet: &EnemyFleetDefinition) -> Option<EnemyComposition> {
+	if enemy_fleet.compositions.is_empty() {
+		return None;
+	}
+
+	let total_weight = enemy_fleet
+		.compositions
+		.iter()
+		.map(|composition| composition.weight.max(1) as u64)
+		.sum::<u64>();
+	if total_weight == 0 {
+		return enemy_fleet.compositions.first().cloned();
+	}
+
+	let mut random = rng();
+	let roll = random.random_range(0..total_weight);
+	select_enemy_composition_for_roll(enemy_fleet, roll).cloned()
+}
+
+fn select_enemy_composition_for_roll(
+	enemy_fleet: &EnemyFleetDefinition,
+	mut roll: u64,
+) -> Option<&EnemyComposition> {
+	for composition in &enemy_fleet.compositions {
+		let weight = composition.weight.max(1) as u64;
+		if roll < weight {
+			return Some(composition);
+		}
+		roll -= weight;
+	}
+
+	enemy_fleet.compositions.last()
+}
+
+fn clear_pending_sortie_runtime_state(profile_id: i64) {
+	PENDING_SORTIE_RESULTS.lock().unwrap().remove(&profile_id);
+	let _ = take_sortie_day_battle_result(profile_id);
 }
 
 fn build_sortie_battle_response(
@@ -860,6 +962,32 @@ fn build_sortie_night_battle_response(
 	}
 }
 
+fn build_sortie_quest_event(
+	definition: &MapDefinition,
+	active: &ActiveSortieState,
+	snapshot: &SortieBattleResultSnapshot,
+) -> Result<QuestActionEvent, GameplayError> {
+	Ok(QuestActionEvent::SortieBattleCompleted {
+		maparea_id: definition.maparea_id,
+		mapinfo_no: definition.mapinfo_no,
+		boss_cell: active.pending_battle_cell_id == Some(active.boss_cell_id),
+		win_rank: parse_sortie_result_rank(&snapshot.win_rank)?,
+		fleet_id: active.deck_id,
+	})
+}
+
+fn parse_sortie_result_rank(win_rank: &str) -> Result<KcSortieResultRank, GameplayError> {
+	match win_rank {
+		"S" => Ok(KcSortieResultRank::S),
+		"A" => Ok(KcSortieResultRank::A),
+		"B" => Ok(KcSortieResultRank::B),
+		"C" => Ok(KcSortieResultRank::C),
+		"D" => Ok(KcSortieResultRank::D),
+		"E" => Ok(KcSortieResultRank::E),
+		_ => Err(GameplayError::WrongType(format!("unexpected sortie result rank `{win_rank}`",))),
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -914,6 +1042,7 @@ mod tests {
 					engagement: EngagementType::SameCourse,
 					friend_ships: vec![friend.clone()],
 					enemy_ships: vec![enemy.clone()],
+					rng_seed: Some(1),
 				},
 			},
 		);
@@ -954,6 +1083,120 @@ mod tests {
 
 		let _ = take_sortie_day_battle_result(profile_id);
 		PENDING_SORTIE_RESULTS.lock().unwrap().clear();
+	}
+
+	#[tokio::test]
+	async fn sortie_sp_midnight_battle_uses_existing_night_flow() {
+		ACTIVE_SORTIES.lock().unwrap().clear();
+		PENDING_SORTIE_RESULTS.lock().unwrap().clear();
+
+		let db = new_mem_db().await.unwrap();
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let context = (db, codex.clone());
+		let profile_id = 84;
+
+		let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
+		let enemy = weaken_for_midnight(sample_ship(&codex, 412, 99));
+		let session = simulate_and_store_sortie_day_battle(
+			&codex,
+			SortieBattleInput {
+				profile_id,
+				deck_id: 1,
+				map_id: 11,
+				cell_id: 1,
+				context: BattleContext {
+					mode: BattleMode::Sortie,
+					friendly_formation_id: 1,
+					enemy_formation_id: 1,
+					engagement: EngagementType::SameCourse,
+					friend_ships: vec![friend.clone()],
+					enemy_ships: vec![enemy.clone()],
+					rng_seed: Some(1),
+				},
+			},
+		);
+
+		PENDING_SORTIE_RESULTS.lock().unwrap().insert(
+			profile_id,
+			SortieBattleResultSnapshot {
+				friendly_ship_ids: session.friendly_ship_ids.clone(),
+				enemy_ship_ids: session.enemy_ship_ids.clone(),
+				win_rank: session.outcome.win_rank.clone(),
+				get_exp: 0,
+				member_lv: 1,
+				member_exp: 0,
+				get_base_exp: 30,
+				mvp: session.outcome.mvp,
+				get_ship_exp: vec![],
+				get_exp_lvup: vec![],
+				quest_name: "test".to_string(),
+				quest_level: 1,
+				enemy_level: 1,
+				enemy_rank: "Test".to_string(),
+				enemy_deck_name: "Test".to_string(),
+			},
+		);
+
+		let response = context.sortie_sp_midnight_battle(profile_id).await.unwrap();
+		assert_eq!(response.api_deck_id, 1);
+		assert!(response.api_hougeki.is_some());
+
+		clear_pending_sortie_runtime_state(profile_id);
+	}
+
+	#[test]
+	fn weighted_enemy_composition_selection_uses_weights() {
+		let enemy_fleet = EnemyFleetDefinition {
+			cell_no: 3,
+			battle_kind: 1,
+			formations: vec![1],
+			compositions: vec![
+				EnemyComposition {
+					comp_id: "light".to_string(),
+					weight: 1,
+					ship_ids: vec![501],
+				},
+				EnemyComposition {
+					comp_id: "heavy".to_string(),
+					weight: 3,
+					ship_ids: vec![502],
+				},
+			],
+		};
+
+		assert_eq!(select_enemy_composition_for_roll(&enemy_fleet, 0).unwrap().comp_id, "light",);
+		assert_eq!(select_enemy_composition_for_roll(&enemy_fleet, 1).unwrap().comp_id, "heavy",);
+		assert_eq!(select_enemy_composition_for_roll(&enemy_fleet, 3).unwrap().comp_id, "heavy",);
+	}
+
+	#[test]
+	fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
+		let mut variant = MapVariantDefinition {
+			variant_key: String::new(),
+			boss_cell_no: 5,
+			cells: vec![],
+			enemy_fleets: HashMap::new().into_iter().collect(),
+		};
+		variant.enemy_fleets.insert(
+			2,
+			EnemyFleetDefinition {
+				cell_no: 2,
+				battle_kind: 1,
+				formations: vec![2],
+				compositions: vec![EnemyComposition {
+					comp_id: "real".to_string(),
+					weight: 1,
+					ship_ids: vec![501, 502],
+				}],
+			},
+		);
+
+		let real = resolve_sortie_enemy_fleet(11, &variant, 2);
+		assert_eq!(real.formations, vec![2]);
+		assert_eq!(real.compositions[0].ship_ids, vec![501, 502]);
+
+		let fallback = resolve_sortie_enemy_fleet(11, &variant, 7);
+		assert_eq!(fallback.compositions[0].ship_ids, vec![412]);
 	}
 }
 

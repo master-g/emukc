@@ -159,6 +159,7 @@ mod tests {
 					engagement: EngagementType::SameCourse,
 					friend_ships: vec![sample_ship(&codex, 89, 99)],
 					enemy_ships: vec![sample_ship(&codex, 412, 99)],
+					rng_seed: Some(1),
 				},
 			},
 		);

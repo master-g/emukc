@@ -32,20 +32,20 @@
 
 ## High Priority - Core Gameplay
 - [ ] **Map & Sortie System** (`api_req_map/*`)
-  - [ ] `api_req_map/start` - sortie start
-  - [ ] `api_req_map/next` - advance to next node
-  - [ ] `api_req_map/select_eventmap_rank` - event difficulty select
+  - [x] `api_req_map/start` - sortie start
+  - [x] `api_req_map/next` - advance to next node
+  - [x] `api_req_map/select_eventmap_rank` - event difficulty select
   - [ ] `api_req_map/air_raid` - air raid on base
   - [ ] `api_req_map/anchorage_repair` - anchorage repair
   - [ ] `api_req_map/start_air_base` - air base sortie
 - [ ] **Battle System** (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_combined_battle/*`)
-  - [ ] `api_req_sortie/battle` - normal day battle
-  - [ ] `api_req_sortie/battleresult` - battle result
+  - [x] `api_req_sortie/battle` - normal day battle
+  - [x] `api_req_sortie/battleresult` - battle result
   - [ ] `api_req_sortie/airbattle` - aerial battle
   - [ ] `api_req_sortie/ld_airbattle` - long-distance aerial battle
   - [ ] `api_req_sortie/ld_shooting` - long-distance shelling
   - [ ] `api_req_sortie/goback_port` - retreat
-  - [ ] `api_req_battle_midnight/battle` - night battle
+  - [x] `api_req_battle_midnight/battle` - night battle
   - [ ] `api_req_battle_midnight/sp_midnight` - night-to-day battle
   - [ ] Combined battle variants (14 endpoints)
 - [ ] **Mission / Expedition System** (`api_req_mission/*`)
@@ -57,9 +57,9 @@
 
 ## Medium Priority - Enhanced Features
 - [ ] **Practice System** (`api_req_practice/*`)
-  - [ ] `api_req_practice/battle` - practice battle
-  - [ ] `api_req_practice/battle_result` - practice result
-  - [ ] `api_req_practice/midnight_battle` - practice night battle
+  - [x] `api_req_practice/battle` - practice battle
+  - [x] `api_req_practice/battle_result` - practice result
+  - [x] `api_req_practice/midnight_battle` - practice night battle
   - [ ] `api_req_practice/change_matching_kind` - change matching type
 - [ ] **Air Corps System** (`api_req_air_corps/*`)
   - [ ] `api_get_member/base_air_corps` - air corps data

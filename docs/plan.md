@@ -5,6 +5,14 @@
 - `tsunkit` map graph and node enemy composition parsing has been moved into `emukc_bootstrap`.
 - Runtime no longer falls back to `temp/tsunkit_nav` or `temp/kc_data`; `emukcd` now consumes codex artifacts only.
 - `tsunkit` is currently treated as a bootstrap-time source, not a runtime source.
+- Single-fleet sortie flow now covers `api_req_map/start`, `api_req_map/next`, day battle, battle result, and standard night battle.
+- Practice flow now covers day battle, result settlement, and night battle on the shared battle core.
+- Sortie enemy selection now uses weighted node compositions instead of always picking the first catalog entry.
+- Fallback enemy fleets are now an explicit degraded path only when codex enemy data is missing.
+- Placeholder single-fleet routes exist for `api_req_sortie/airbattle`, `api_req_sortie/goback_port`, and `api_req_battle_midnight/sp_midnight` on top of the existing sortie state machine.
+- Sortie battle result now emits quest events, so normal single-fleet sortie quests can advance from real battle settlement.
+- Sortie quest matcher now understands map/boss/result conditions, including `All(map)` cycle reset for multi-round quests.
+- Practice battle result now emits exercise quest events, including exercise quests that carry fleet composition requirements.
 
 ## Constraints
 
@@ -14,15 +22,11 @@
 
 ## Next Session
 
-1. Add a bootstrap-stage `tsunkit_nav` fetch/cache workflow that writes local artifacts under a dedicated temp directory.
-2. Fetch and cache three artifact groups: `maps`, `nodesummary`, and per-node `enemycomps`.
-3. Design the fetch strategy around slow `enemycomps` endpoints:
-   - conservative concurrency
-   - retry/timeout policy
-   - resumable or incremental execution
-   - normal-world-first scope before event maps
-4. Wire the new fetch workflow into the existing bootstrap command so it can produce `map_catalog.json` without manual cache preparation.
-5. Verify end-to-end that a fresh bootstrap produces a codex with map graph plus enemy fleets, and that server startup works with only codex artifacts present.
+1. Replace the `airbattle` and `sp_midnight` placeholder aliases with true single-fleet battle variants and battle-specific response shaping.
+2. Define how `goback_port` should interact with partially resolved node state beyond the current runtime cleanup behavior.
+3. Add fixtures for branching maps and multi-variant event maps so enemy fleet selection and route progression are tested against real catalog structure.
+4. Start combined-fleet input modeling so `api_req_combined_battle/*` can reuse the existing battle core instead of forking a parallel implementation.
+5. Revisit sortie quest edge cases around event-map `phase`, `Clear` semantics, and mixed-map repeat quests after the single-fleet battle variants are real.
 
 ## Follow-up
 

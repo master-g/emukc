@@ -7,7 +7,9 @@ use std::{
 
 use serde::Serialize;
 
-use emukc_model::{codex::Codex, kc2::level, profile::practice::Rival};
+use emukc_model::{
+	codex::Codex, kc2::level, profile::practice::Rival, thirdparty::FleetShipSnapshot,
+};
 
 use crate::{
 	err::GameplayError,
@@ -77,8 +79,10 @@ pub struct PracticeBattleResponse {
 
 #[derive(Debug, Clone)]
 pub struct PracticeBattleResultSnapshot {
+	pub deck_id: i64,
 	pub enemy_id: i64,
 	pub friendly_ship_ids: Vec<i64>,
+	pub friendly_fleet_snapshot: Vec<FleetShipSnapshot>,
 	pub enemy_ship_ids: Vec<i64>,
 	pub win_rank: String,
 	pub get_exp: i64,
@@ -168,6 +172,7 @@ pub fn simulate_practice_day_battle(
 			engagement: EngagementType::SameCourse,
 			friend_ships: input.friend_ships,
 			enemy_ships: input.enemy_ships,
+			rng_seed: None,
 		},
 	);
 
@@ -240,8 +245,19 @@ pub fn simulate_practice_day_battle(
 	};
 
 	let snapshot = PracticeBattleResultSnapshot {
+		deck_id: input.deck_id,
 		enemy_id: input.enemy_id,
 		friendly_ship_ids: simulation.friendly.iter().map(|ship| ship.ship.api_id).collect(),
+		friendly_fleet_snapshot: simulation
+			.friendly
+			.iter()
+			.enumerate()
+			.map(|(idx, ship)| FleetShipSnapshot {
+				mst_id: ship.ship.api_ship_id,
+				level: ship.ship.api_lv,
+				position: idx as i64 + 1,
+			})
+			.collect(),
 		enemy_ship_ids: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
 		win_rank: simulation.outcome.win_rank,
 		get_exp,
@@ -322,8 +338,19 @@ pub fn simulate_practice_night_battle(
 
 	let response = build_practice_night_battle_response(session, &simulation.packet);
 	let snapshot = PracticeBattleResultSnapshot {
+		deck_id: session.deck_id,
 		enemy_id: session.enemy_id,
 		friendly_ship_ids: session.friendly.iter().map(|ship| ship.ship.api_id).collect(),
+		friendly_fleet_snapshot: session
+			.friendly
+			.iter()
+			.enumerate()
+			.map(|(idx, ship)| FleetShipSnapshot {
+				mst_id: ship.ship.api_ship_id,
+				level: ship.ship.api_lv,
+				position: idx as i64 + 1,
+			})
+			.collect(),
 		enemy_ship_ids: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
 		win_rank: simulation.outcome.win_rank.clone(),
 		get_exp: 0,

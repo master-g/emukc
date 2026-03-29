@@ -14,6 +14,9 @@ pub struct ApiManifest {
 	pub api_mst_const: ApiMstConst,
 	/// What can be equipped in the extra slot.
 	pub api_mst_equip_exslot: Vec<i64>,
+	/// Extra slot equipment restrictions keyed by ship master ID.
+	#[serde(default)]
+	pub api_mst_equip_limit_exslot: BTreeMap<String, Vec<i64>>,
 	/// What can be equipped in the extra slot, but specific to ship.
 	pub api_mst_equip_exslot_ship: BTreeMap<String, ApiMstEquipExslotShip>,
 	/// What ship can equip.
@@ -719,5 +722,34 @@ impl ApiManifest {
 	/// Find all ally ships.
 	pub fn friend_ships(&self) -> Vec<&ApiMstShip> {
 		self.api_mst_ship.iter().filter(|s| s.api_aftershipid.is_some()).collect()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use std::{fs, path::PathBuf, str::FromStr};
+
+	use super::ApiManifest;
+
+	#[test]
+	fn manifest_keeps_exslot_limit_table_when_reencoded() {
+		let manifest_path =
+			PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/codex/start2.json");
+		let raw = fs::read_to_string(manifest_path).unwrap();
+
+		let manifest = ApiManifest::from_str(&raw).unwrap();
+		assert_eq!(manifest.api_mst_equip_limit_exslot.get("100"), Some(&vec![27]));
+
+		let encoded = serde_json::to_value(&manifest).unwrap();
+		let limits =
+			encoded.get("api_mst_equip_limit_exslot").and_then(|value| value.as_object()).unwrap();
+		assert_eq!(
+			limits
+				.get("100")
+				.and_then(|value| value.as_array())
+				.and_then(|value| value.first())
+				.and_then(|value| value.as_i64()),
+			Some(27)
+		);
 	}
 }

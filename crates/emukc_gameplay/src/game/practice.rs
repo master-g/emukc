@@ -14,8 +14,9 @@ use emukc_db::{
 };
 use emukc_model::{
 	codex::Codex,
-	kc2::{UserHQRank, level},
+	kc2::{KcSortieResultRank, UserHQRank, level},
 	profile::practice::{PracticeConfig, Rival, RivalDetail, RivalFlag, RivalShip, RivalStatus},
+	thirdparty::QuestActionEvent,
 };
 use emukc_time::{
 	KcTime,
@@ -35,6 +36,7 @@ use super::{
 		simulate_practice_night_battle,
 	},
 	fleet::get_fleet_ships_impl,
+	quest::update::update_quest_progress_for_action,
 	ship::update_ship_impl,
 	slot_item::find_slot_items_by_id_impl,
 };
@@ -183,6 +185,8 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 		let snapshot =
 			update_practice_result_stats(&tx, self.codex(), profile_id, snapshot).await?;
 		update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank).await?;
+		let quest_event = build_practice_quest_event(&snapshot)?;
+		update_quest_progress_for_action(&tx, self.codex(), profile_id, &quest_event).await?;
 		clear_pending_practice_battle(profile_id);
 
 		tx.commit().await?;
@@ -214,6 +218,30 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 		}
 
 		Ok(response)
+	}
+}
+
+fn build_practice_quest_event(
+	snapshot: &PracticeBattleResultSnapshot,
+) -> Result<QuestActionEvent, GameplayError> {
+	Ok(QuestActionEvent::ExerciseBattleCompleted {
+		fleet_id: snapshot.deck_id,
+		win_rank: parse_practice_result_rank(&snapshot.win_rank)?,
+		fleet_ships: snapshot.friendly_fleet_snapshot.clone(),
+	})
+}
+
+fn parse_practice_result_rank(win_rank: &str) -> Result<KcSortieResultRank, GameplayError> {
+	match win_rank {
+		"S" => Ok(KcSortieResultRank::S),
+		"A" => Ok(KcSortieResultRank::A),
+		"B" => Ok(KcSortieResultRank::B),
+		"C" => Ok(KcSortieResultRank::C),
+		"D" => Ok(KcSortieResultRank::D),
+		"E" => Ok(KcSortieResultRank::E),
+		_ => {
+			Err(GameplayError::WrongType(format!("unexpected practice result rank `{win_rank}`",)))
+		}
 	}
 }
 

@@ -1,3 +1,4 @@
+use rand::{RngExt, SeedableRng, rng, rngs::StdRng};
 use serde::Serialize;
 
 use emukc_model::{
@@ -90,6 +91,63 @@ pub struct BattleContext {
 	pub engagement: EngagementType,
 	pub friend_ships: Vec<BattleShipInput>,
 	pub enemy_ships: Vec<BattleShipInput>,
+	pub rng_seed: Option<u64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BattlePhase {
+	OpeningTorpedo,
+	DayShelling,
+	ClosingTorpedo,
+	NightShelling,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TargetClass {
+	Surface,
+	Submarine,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AttackCapability {
+	CannotAttack,
+	SurfaceOnly,
+	BothPreferSubmarine,
+}
+
+#[derive(Debug)]
+struct BattleRandom {
+	seeded: Option<StdRng>,
+}
+
+impl BattleRandom {
+	fn new(seed: Option<u64>) -> Self {
+		Self {
+			seeded: seed.map(StdRng::seed_from_u64),
+		}
+	}
+
+	fn choose_index(&mut self, len: usize) -> usize {
+		debug_assert!(len > 0);
+		if let Some(seed) = &mut self.seeded {
+			seed.random_range(0..len)
+		} else {
+			rng().random_range(0..len)
+		}
+	}
+
+	fn roll_scratch_damage(&mut self, current_hp: i64) -> i64 {
+		let current_hp = current_hp.max(1);
+		let random_part = if current_hp <= 1 {
+			0
+		} else if let Some(seed) = &mut self.seeded {
+			seed.random_range(0..current_hp)
+		} else {
+			rng().random_range(0..current_hp)
+		};
+
+		((current_hp as f64) * 0.06 + (random_part as f64) * 0.08).floor().max(1.0) as i64
+	}
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -240,23 +298,15 @@ pub struct NightBattleSimulation {
 	pub outcome: BattleOutcome,
 }
 
-#[derive(Debug, Clone)]
-struct PendingShell {
-	attacker_enemy: bool,
-	attacker_idx: i64,
-	defender_idx: i64,
-	weapon_ids: Vec<i64>,
-	damage: i64,
-}
-
 pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSimulation {
+	let mut random = BattleRandom::new(context.rng_seed);
 	let mut friendly =
 		context.friend_ships.into_iter().map(BattleRuntimeShip::from).collect::<Vec<_>>();
 	let mut enemy =
 		context.enemy_ships.into_iter().map(BattleRuntimeShip::from).collect::<Vec<_>>();
 
 	let mut opening_attack = None;
-	let mut hougeki1 = None;
+	let hougeki1;
 	let mut hougeki2 = None;
 	let hougeki3 = None;
 	let mut raigeki = None;
@@ -272,6 +322,7 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
 	if can_opening_torpedo(codex, &friendly) || can_opening_torpedo(codex, &enemy) {
 		opening_attack = simulate_opening_torpedo(
 			codex,
+			&mut random,
 			&mut friendly,
 			&mut enemy,
 			context.friendly_formation_id,
@@ -283,30 +334,32 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
 		}
 	}
 
-	let shelling_round_1 = simulate_shelling_round(
+	hougeki1 = simulate_shelling_side(
 		codex,
-		&friendly,
-		&enemy,
+		&mut random,
+		&mut friendly,
+		&mut enemy,
 		false,
 		context.friendly_formation_id,
 		context.engagement,
+		BattlePhase::DayShelling,
 	);
-	if let Some(round) = resolve_shelling_round(&mut friendly, &mut enemy, shelling_round_1) {
-		hougeki1 = Some(round);
+	if hougeki1.is_some() {
 		hourai_flag[0] = 1;
 	}
 
 	if any_alive(&friendly) && any_alive(&enemy) {
-		let shelling_round_2 = simulate_shelling_round(
+		hougeki2 = simulate_shelling_side(
 			codex,
-			&enemy,
-			&friendly,
+			&mut random,
+			&mut enemy,
+			&mut friendly,
 			true,
 			context.enemy_formation_id,
 			context.engagement,
+			BattlePhase::DayShelling,
 		);
-		if let Some(round) = resolve_shelling_round(&mut friendly, &mut enemy, shelling_round_2) {
-			hougeki2 = Some(round);
+		if hougeki2.is_some() {
 			hourai_flag[1] = 1;
 		}
 	}
@@ -316,6 +369,7 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
 		&& (can_closing_torpedo(codex, &friendly) || can_closing_torpedo(codex, &enemy))
 		&& let Some(round) = simulate_raigeki(
 			codex,
+			&mut random,
 			&mut friendly,
 			&mut enemy,
 			context.friendly_formation_id,
@@ -379,6 +433,7 @@ pub fn simulate_night_battle_v1(
 	enemy_formation_id: i64,
 	engagement: EngagementType,
 ) -> NightBattleSimulation {
+	let mut random = BattleRandom::new(None);
 	let entry_friendly_nowhps =
 		friendly.iter().map(|ship| ship.current_hp.max(0)).collect::<Vec<_>>();
 	let entry_friendly_maxhps = friendly.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
@@ -386,6 +441,7 @@ pub fn simulate_night_battle_v1(
 	let entry_enemy_maxhps = enemy.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
 	let hougeki = simulate_night_hougeki(
 		codex,
+		&mut random,
 		&mut friendly,
 		&mut enemy,
 		friendly_formation_id,
@@ -424,79 +480,50 @@ pub fn apply_cap(raw_power: f64, cap: f64) -> i64 {
 	}
 }
 
-fn simulate_shelling_round(
+fn simulate_shelling_side(
 	codex: &Codex,
-	attackers: &[BattleRuntimeShip],
-	defenders: &[BattleRuntimeShip],
+	random: &mut BattleRandom,
+	attackers: &mut [BattleRuntimeShip],
+	defenders: &mut [BattleRuntimeShip],
 	attacker_enemy: bool,
 	formation_id: i64,
 	engagement: EngagementType,
-) -> Vec<PendingShell> {
-	let Some(first_alive_defender) = defenders.iter().position(|ship| ship.current_hp > 0) else {
-		return vec![];
-	};
-
-	attackers
-		.iter()
-		.enumerate()
-		.filter(|(_, ship)| can_shell_day_ship(codex, ship))
-		.map(|(idx, ship)| PendingShell {
-			attacker_enemy,
-			attacker_idx: idx as i64,
-			defender_idx: first_alive_defender as i64,
-			weapon_ids: weapon_display_ids(ship),
-			damage: calculate_shelling_damage(
-				ship,
-				&defenders[first_alive_defender],
-				formation_id,
-				engagement,
-			),
-		})
-		.collect()
-}
-
-fn resolve_shelling_round(
-	friendly: &mut [BattleRuntimeShip],
-	enemy: &mut [BattleRuntimeShip],
-	round: Vec<PendingShell>,
+	phase: BattlePhase,
 ) -> Option<BattleHougeki> {
-	if round.is_empty() {
-		return None;
-	}
+	let mut at_eflag = Vec::new();
+	let mut at_list = Vec::new();
+	let mut at_type = Vec::new();
+	let mut df_list = Vec::new();
+	let mut si_list = Vec::new();
+	let mut cl_list = Vec::new();
+	let mut damage = Vec::new();
 
-	let mut at_eflag = Vec::with_capacity(round.len());
-	let mut at_list = Vec::with_capacity(round.len());
-	let mut at_type = Vec::with_capacity(round.len());
-	let mut df_list = Vec::with_capacity(round.len());
-	let mut si_list = Vec::with_capacity(round.len());
-	let mut cl_list = Vec::with_capacity(round.len());
-	let mut damage = Vec::with_capacity(round.len());
-
-	for action in round {
-		let target = if action.attacker_enemy {
-			friendly.get_mut(action.defender_idx as usize)?
-		} else {
-			enemy.get_mut(action.defender_idx as usize)?
+	for (idx, ship) in attackers.iter_mut().enumerate() {
+		if !can_shell_day_ship(codex, ship) {
+			continue;
+		}
+		let Some(target_idx) = select_random_target_index(codex, random, ship, defenders, phase)
+		else {
+			continue;
 		};
-		let dealt = action.damage.min(target.current_hp.max(0));
-		target.current_hp -= dealt;
+		let dealt =
+			calculate_shelling_damage(ship, &defenders[target_idx], formation_id, engagement)
+				.min(defenders[target_idx].current_hp.max(0));
+		defenders[target_idx].current_hp -= dealt;
+		if !attacker_enemy {
+			ship.damage_dealt += dealt;
+		}
 
-		at_eflag.push(i64::from(action.attacker_enemy));
-		at_list.push(action.attacker_idx);
+		at_eflag.push(i64::from(attacker_enemy));
+		at_list.push(idx as i64);
 		at_type.push(0);
-		df_list.push(vec![action.defender_idx]);
-		si_list.push(action.weapon_ids);
+		df_list.push(vec![target_idx as i64]);
+		si_list.push(weapon_display_ids(ship));
 		cl_list.push(vec![1]);
 		damage.push(vec![dealt]);
-
-		if !action.attacker_enemy
-			&& let Some(attacker) = friendly.get_mut(action.attacker_idx as usize)
-		{
-			attacker.damage_dealt += dealt;
-		}
 	}
 
-	Some(BattleHougeki {
+	(!at_list.is_empty()).then_some(BattleHougeki {
 		api_at_eflag: at_eflag,
 		api_at_list: at_list,
 		api_at_type: at_type,
@@ -509,6 +536,7 @@ fn resolve_shelling_round(
 
 fn simulate_opening_torpedo(
 	codex: &Codex,
+	random: &mut BattleRandom,
 	friendly: &mut [BattleRuntimeShip],
 	enemy: &mut [BattleRuntimeShip],
 	friendly_formation_id: i64,
@@ -526,47 +554,45 @@ fn simulate_opening_torpedo(
 	let mut api_eydam_list_items = vec![None; len];
 	let mut happened = false;
 
-	if let Some(target_idx) = enemy.iter().position(|ship| ship.current_hp > 0) {
-		for (idx, ship) in friendly.iter_mut().enumerate() {
-			if !can_opening_torpedo_ship(codex, ship) {
-				continue;
-			}
-			let dealt = calculate_torpedo_damage(
-				ship,
-				&enemy[target_idx],
-				friendly_formation_id,
-				engagement,
-			);
-			let dealt = dealt.min(enemy[target_idx].current_hp.max(0));
-			enemy[target_idx].current_hp -= dealt;
-			ship.damage_dealt += dealt;
-			api_frai_list_items[idx] = Some(vec![target_idx as i64]);
-			api_fcl_list_items[idx] = Some(vec![1]);
-			api_eydam_list_items[idx] = Some(vec![dealt]);
-			api_edam[target_idx] += dealt;
-			happened = true;
+	for (idx, ship) in friendly.iter_mut().enumerate() {
+		if !can_opening_torpedo_ship(codex, ship) {
+			continue;
 		}
+		let Some(target_idx) =
+			select_random_target_index(codex, random, ship, enemy, BattlePhase::OpeningTorpedo)
+		else {
+			continue;
+		};
+		let dealt =
+			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement)
+				.min(enemy[target_idx].current_hp.max(0));
+		enemy[target_idx].current_hp -= dealt;
+		ship.damage_dealt += dealt;
+		api_frai_list_items[idx] = Some(vec![target_idx as i64]);
+		api_fcl_list_items[idx] = Some(vec![1]);
+		api_eydam_list_items[idx] = Some(vec![dealt]);
+		api_edam[target_idx] += dealt;
+		happened = true;
 	}
 
-	if let Some(target_idx) = friendly.iter().position(|ship| ship.current_hp > 0) {
-		for (idx, ship) in enemy.iter_mut().enumerate() {
-			if !can_opening_torpedo_ship(codex, ship) {
-				continue;
-			}
-			let dealt = calculate_torpedo_damage(
-				ship,
-				&friendly[target_idx],
-				enemy_formation_id,
-				engagement,
-			);
-			let dealt = dealt.min(friendly[target_idx].current_hp.max(0));
-			friendly[target_idx].current_hp -= dealt;
-			api_erai_list_items[idx] = Some(vec![target_idx as i64]);
-			api_ecl_list_items[idx] = Some(vec![1]);
-			api_fydam_list_items[idx] = Some(vec![dealt]);
-			api_fdam[target_idx] += dealt;
-			happened = true;
+	for (idx, ship) in enemy.iter_mut().enumerate() {
+		if !can_opening_torpedo_ship(codex, ship) {
+			continue;
 		}
+		let Some(target_idx) =
+			select_random_target_index(codex, random, ship, friendly, BattlePhase::OpeningTorpedo)
+		else {
+			continue;
+		};
+		let dealt =
+			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement)
+				.min(friendly[target_idx].current_hp.max(0));
+		friendly[target_idx].current_hp -= dealt;
+		api_erai_list_items[idx] = Some(vec![target_idx as i64]);
+		api_ecl_list_items[idx] = Some(vec![1]);
+		api_fydam_list_items[idx] = Some(vec![dealt]);
+		api_fdam[target_idx] += dealt;
+		happened = true;
 	}
 
 	happened.then_some(BattleOpeningAttack {
@@ -583,6 +609,7 @@ fn simulate_opening_torpedo(
 
 fn simulate_raigeki(
 	codex: &Codex,
+	random: &mut BattleRandom,
 	friendly: &mut [BattleRuntimeShip],
 	enemy: &mut [BattleRuntimeShip],
 	friendly_formation_id: i64,
@@ -604,8 +631,10 @@ fn simulate_raigeki(
 		if !can_closing_torpedo_ship(codex, ship) {
 			continue;
 		}
-		let Some(target_idx) = enemy.iter().position(|enemy| enemy.current_hp > 0) else {
-			break;
+		let Some(target_idx) =
+			select_random_target_index(codex, random, ship, enemy, BattlePhase::ClosingTorpedo)
+		else {
+			continue;
 		};
 		let dealt =
 			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement)
@@ -623,8 +652,10 @@ fn simulate_raigeki(
 		if !can_closing_torpedo_ship(codex, ship) {
 			continue;
 		}
-		let Some(target_idx) = friendly.iter().position(|friend| friend.current_hp > 0) else {
-			break;
+		let Some(target_idx) =
+			select_random_target_index(codex, random, ship, friendly, BattlePhase::ClosingTorpedo)
+		else {
+			continue;
 		};
 		let dealt =
 			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement)
@@ -901,6 +932,13 @@ fn ship_type(codex: &Codex, ship: &BattleRuntimeShip) -> Option<KcShipType> {
 	KcShipType::n(codex.get_ship_type(ship.ship.api_ship_id) as i32)
 }
 
+fn target_class(codex: &Codex, ship: &BattleRuntimeShip) -> TargetClass {
+	match ship_type(codex, ship) {
+		Some(KcShipType::SS | KcShipType::SSV) => TargetClass::Submarine,
+		_ => TargetClass::Surface,
+	}
+}
+
 fn has_slotitem_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotItemType3) -> bool {
 	ship.slot_items.iter().any(|slot_item| {
 		codex
@@ -956,7 +994,7 @@ fn can_shell_day_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 	}
 
 	match ship_type(codex, ship) {
-		Some(KcShipType::SS | KcShipType::SSV | KcShipType::AS) => false,
+		Some(KcShipType::SS | KcShipType::SSV) => false,
 		Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB) => {
 			total_attack_plane_count(codex, std::slice::from_ref(ship)) > 0
 		}
@@ -979,9 +1017,152 @@ fn can_attack_night_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 						.is_some_and(|mst| is_air_combat_type(mst.api_type[2]))
 				})
 		}
-		Some(KcShipType::SS | KcShipType::SSV | KcShipType::AS) => false,
+		Some(KcShipType::SS | KcShipType::SSV) => false,
 		_ => true,
 	}
+}
+
+fn attack_capability_for_phase(
+	codex: &Codex,
+	ship: &BattleRuntimeShip,
+	phase: BattlePhase,
+) -> AttackCapability {
+	match phase {
+		BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => {
+			if ship.current_hp > 0 && ship.ship.api_raisou[0] > 0 {
+				AttackCapability::SurfaceOnly
+			} else {
+				AttackCapability::CannotAttack
+			}
+		}
+		BattlePhase::DayShelling => {
+			if !can_shell_day_ship(codex, ship) {
+				AttackCapability::CannotAttack
+			} else if can_attack_submarine_day_shelling(codex, ship) {
+				AttackCapability::BothPreferSubmarine
+			} else {
+				AttackCapability::SurfaceOnly
+			}
+		}
+		BattlePhase::NightShelling => {
+			if !can_attack_night_ship(codex, ship) {
+				AttackCapability::CannotAttack
+			} else if can_attack_submarine_night_shelling(codex, ship) {
+				AttackCapability::BothPreferSubmarine
+			} else {
+				AttackCapability::SurfaceOnly
+			}
+		}
+	}
+}
+
+fn can_attack_submarine_day_shelling(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+	if ship.current_hp <= 0 || ship.ship.api_taisen[0] <= 0 {
+		return false;
+	}
+
+	match ship_type(codex, ship) {
+		Some(
+			KcShipType::DE
+			| KcShipType::DD
+			| KcShipType::CL
+			| KcShipType::CLT
+			| KcShipType::CT
+			| KcShipType::AO,
+		) => true,
+		Some(
+			KcShipType::BBV | KcShipType::CAV | KcShipType::AV | KcShipType::LHA | KcShipType::CVL,
+		) => has_active_asw_aircraft(codex, ship),
+		_ => false,
+	}
+}
+
+fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+	if ship.current_hp <= 0 || ship.ship.api_taisen[0] <= 0 {
+		return false;
+	}
+
+	match ship_type(codex, ship) {
+		Some(
+			KcShipType::DE
+			| KcShipType::DD
+			| KcShipType::CL
+			| KcShipType::CLT
+			| KcShipType::CT
+			| KcShipType::AO,
+		) => true,
+		Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB) => {
+			can_attack_night_ship(codex, ship) && has_active_asw_aircraft(codex, ship)
+		}
+		_ => false,
+	}
+}
+
+fn has_active_asw_aircraft(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+	ship.slot_items.iter().zip(ship.ship.api_onslot).any(|(slot_item, onslot)| {
+		let Some(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok() else {
+			return false;
+		};
+		matches!(
+			KcSlotItemType3::n(mst.api_type[2]),
+			Some(
+				KcSlotItemType3::AutoGyro
+					| KcSlotItemType3::AntiSubmarinePatrol
+					| KcSlotItemType3::SeaBasedBomber
+					| KcSlotItemType3::LargeFlyingBoat
+			)
+		) && onslot > 0
+	})
+}
+
+fn select_random_target_index(
+	codex: &Codex,
+	random: &mut BattleRandom,
+	attacker: &BattleRuntimeShip,
+	defenders: &[BattleRuntimeShip],
+	phase: BattlePhase,
+) -> Option<usize> {
+	let alive_targets = defenders
+		.iter()
+		.enumerate()
+		.filter(|(_, ship)| ship.current_hp > 0)
+		.map(|(idx, _)| idx)
+		.collect::<Vec<_>>();
+	if alive_targets.is_empty() {
+		return None;
+	}
+
+	let surface_targets = alive_targets
+		.iter()
+		.copied()
+		.filter(|idx| target_class(codex, &defenders[*idx]) == TargetClass::Surface)
+		.collect::<Vec<_>>();
+	let submarine_targets = alive_targets
+		.iter()
+		.copied()
+		.filter(|idx| target_class(codex, &defenders[*idx]) == TargetClass::Submarine)
+		.collect::<Vec<_>>();
+
+	let candidates = match attack_capability_for_phase(codex, attacker, phase) {
+		AttackCapability::CannotAttack => return None,
+		AttackCapability::SurfaceOnly => surface_targets,
+		AttackCapability::BothPreferSubmarine => {
+			if submarine_targets.is_empty() {
+				surface_targets
+			} else {
+				submarine_targets
+			}
+		}
+	};
+	if candidates.is_empty() {
+		return None;
+	}
+
+	Some(candidates[random.choose_index(candidates.len())])
+}
+
+fn calculate_scratch_damage(random: &mut BattleRandom, current_hp: i64) -> i64 {
+	random.roll_scratch_damage(current_hp).min(current_hp.max(1))
 }
 
 fn apply_plane_losses(codex: &Codex, ships: &mut [BattleRuntimeShip], mut lostcount: i64) {
@@ -1060,6 +1241,7 @@ pub fn calculate_win_rank(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntime
 
 fn simulate_night_hougeki(
 	codex: &Codex,
+	random: &mut BattleRandom,
 	friendly: &mut [BattleRuntimeShip],
 	enemy: &mut [BattleRuntimeShip],
 	friendly_formation_id: i64,
@@ -1079,11 +1261,17 @@ fn simulate_night_hougeki(
 		if !can_attack_night_ship(codex, ship) {
 			continue;
 		}
-		let Some(target_idx) = enemy.iter().position(|target| target.current_hp > 0) else {
-			break;
+		let Some(target_idx) =
+			select_random_target_index(codex, random, ship, enemy, BattlePhase::NightShelling)
+		else {
+			continue;
 		};
-		let dealt = calculate_night_damage(ship, &enemy[target_idx], engagement)
-			.min(enemy[target_idx].current_hp.max(0));
+		let dealt = if target_class(codex, &enemy[target_idx]) == TargetClass::Submarine {
+			calculate_scratch_damage(random, enemy[target_idx].current_hp.max(1))
+		} else {
+			calculate_night_damage(ship, &enemy[target_idx], engagement)
+				.min(enemy[target_idx].current_hp.max(0))
+		};
 		enemy[target_idx].current_hp -= dealt;
 		ship.damage_dealt += dealt;
 		at_eflag.push(0);
@@ -1100,11 +1288,17 @@ fn simulate_night_hougeki(
 		if !can_attack_night_ship(codex, ship) {
 			continue;
 		}
-		let Some(target_idx) = friendly.iter().position(|target| target.current_hp > 0) else {
-			break;
+		let Some(target_idx) =
+			select_random_target_index(codex, random, ship, friendly, BattlePhase::NightShelling)
+		else {
+			continue;
 		};
-		let dealt = calculate_night_damage(ship, &friendly[target_idx], engagement)
-			.min(friendly[target_idx].current_hp.max(0));
+		let dealt = if target_class(codex, &friendly[target_idx]) == TargetClass::Submarine {
+			calculate_scratch_damage(random, friendly[target_idx].current_hp.max(1))
+		} else {
+			calculate_night_damage(ship, &friendly[target_idx], engagement)
+				.min(friendly[target_idx].current_hp.max(0))
+		};
 		friendly[target_idx].current_hp -= dealt;
 		at_eflag.push(1);
 		at_list.push(idx as i64);
@@ -1225,6 +1419,7 @@ mod tests {
 				engagement: EngagementType::SameCourse,
 				friend_ships: vec![friend],
 				enemy_ships: vec![enemy],
+				rng_seed: Some(1),
 			},
 		);
 
@@ -1253,6 +1448,7 @@ mod tests {
 				engagement: EngagementType::SameCourse,
 				friend_ships: vec![carrier],
 				enemy_ships: vec![enemy],
+				rng_seed: Some(1),
 			},
 		);
 
@@ -1281,6 +1477,7 @@ mod tests {
 				engagement: EngagementType::SameCourse,
 				friend_ships: vec![dd, clt],
 				enemy_ships: vec![enemy],
+				rng_seed: Some(1),
 			},
 		);
 
@@ -1312,6 +1509,7 @@ mod tests {
 				engagement: EngagementType::SameCourse,
 				friend_ships: vec![carrier, bb],
 				enemy_ships: vec![enemy],
+				rng_seed: Some(1),
 			},
 		);
 
@@ -1339,5 +1537,121 @@ mod tests {
 
 		let hougeki = simulation.packet.hougeki.unwrap();
 		assert!(hougeki.api_at_eflag.iter().all(|flag| *flag == 1));
+	}
+
+	#[test]
+	fn day_shelling_destroyer_prefers_submarine_targets() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+
+		let attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50));
+		let defenders = vec![
+			BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50)),
+			BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
+		];
+		let mut random = BattleRandom::new(Some(7));
+
+		let target_idx = select_random_target_index(
+			&codex,
+			&mut random,
+			&attacker,
+			&defenders,
+			BattlePhase::DayShelling,
+		)
+		.unwrap();
+
+		assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Submarine);
+	}
+
+	#[test]
+	fn day_shelling_battleship_ignores_submarine_targets() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+
+		let attacker = BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50));
+		let defenders = vec![
+			BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
+			BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50)),
+		];
+		let mut random = BattleRandom::new(Some(7));
+
+		let target_idx = select_random_target_index(
+			&codex,
+			&mut random,
+			&attacker,
+			&defenders,
+			BattlePhase::DayShelling,
+		)
+		.unwrap();
+
+		assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Surface);
+	}
+
+	#[test]
+	fn torpedo_targeting_ignores_submarines() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let clt_mst = first_ship_mst_by_type(&codex, KcShipType::CLT);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+
+		let attacker = BattleRuntimeShip::from(sample_ship(&codex, clt_mst, 50));
+		let mixed_defenders = vec![
+			BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
+			BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50)),
+		];
+		let submarine_only = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
+		let mut random = BattleRandom::new(Some(11));
+
+		let target_idx = select_random_target_index(
+			&codex,
+			&mut random,
+			&attacker,
+			&mixed_defenders,
+			BattlePhase::ClosingTorpedo,
+		)
+		.unwrap();
+		assert_eq!(target_class(&codex, &mixed_defenders[target_idx]), TargetClass::Surface);
+		assert!(
+			select_random_target_index(
+				&codex,
+				&mut random,
+				&attacker,
+				&submarine_only,
+				BattlePhase::OpeningTorpedo,
+			)
+			.is_none()
+		);
+	}
+
+	#[test]
+	fn night_shelling_against_submarines_is_scratch_damage() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+
+		let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
+		let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
+		let enemy_hp = enemy[0].current_hp;
+		let mut random = BattleRandom::new(Some(3));
+
+		let hougeki = simulate_night_hougeki(
+			&codex,
+			&mut random,
+			&mut friendly,
+			&mut enemy,
+			1,
+			1,
+			EngagementType::SameCourse,
+		)
+		.unwrap();
+
+		assert_eq!(hougeki.api_df_list[0], vec![0]);
+		assert!(hougeki.api_damage[0][0] >= 1);
+		assert!(hougeki.api_damage[0][0] < enemy_hp);
+		assert_eq!(enemy[0].current_hp, enemy_hp - hougeki.api_damage[0][0]);
 	}
 }

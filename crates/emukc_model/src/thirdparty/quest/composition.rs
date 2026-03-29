@@ -13,6 +13,21 @@ pub struct ShipInstance {
 	pub level: i64,
 }
 
+/// Battle-independent fleet snapshot for quest validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FleetShipSnapshot {
+	pub mst_id: i64,
+	pub level: i64,
+	pub position: i64,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct CompositionCandidate {
+	position: usize,
+	mst_id: i64,
+	level: i64,
+}
+
 /// Validate if a fleet composition satisfies the quest condition
 pub fn validate_composition(
 	fleet: &Fleet,
@@ -25,22 +40,59 @@ pub fn validate_composition(
 		return false;
 	}
 
-	// Get ships in fleet
-	let fleet_ships: Vec<&ShipInstance> = fleet
+	let fleet_ships: Vec<CompositionCandidate> = fleet
 		.ships
 		.iter()
-		.filter_map(|&ship_id| {
+		.enumerate()
+		.filter_map(|(idx, &ship_id)| {
 			if ship_id > 0 {
-				ships.iter().find(|s| s.id == ship_id)
+				ships.iter().find(|s| s.id == ship_id).map(|ship| CompositionCandidate {
+					position: idx + 1,
+					mst_id: ship.mst_id,
+					level: ship.level,
+				})
 			} else {
 				None
 			}
 		})
 		.collect();
 
+	validate_composition_candidates(&fleet_ships, condition, codex)
+}
+
+/// Validate fleet composition from an ordered snapshot without DB ship ids.
+pub fn validate_composition_snapshot(
+	fleet_id: i64,
+	ships: &[FleetShipSnapshot],
+	condition: &Kc3rdQuestConditionComposition,
+	codex: &Codex,
+) -> bool {
+	if condition.fleet_id > 0 && condition.fleet_id != fleet_id {
+		return false;
+	}
+
+	let mut fleet_ships = ships
+		.iter()
+		.filter(|ship| ship.position > 0)
+		.map(|ship| CompositionCandidate {
+			position: ship.position as usize,
+			mst_id: ship.mst_id,
+			level: ship.level,
+		})
+		.collect::<Vec<_>>();
+	fleet_ships.sort_by_key(|ship| ship.position);
+
+	validate_composition_candidates(&fleet_ships, condition, codex)
+}
+
+fn validate_composition_candidates(
+	fleet_ships: &[CompositionCandidate],
+	condition: &Kc3rdQuestConditionComposition,
+	codex: &Codex,
+) -> bool {
 	// Check disallowed ships
 	if let Some(disallowed) = &condition.disallowed {
-		for ship in &fleet_ships {
+		for ship in fleet_ships {
 			for disallow_cond in disallowed {
 				if matches_ship(ship, disallow_cond, codex) {
 					return false;
@@ -49,28 +101,20 @@ pub fn validate_composition(
 		}
 	}
 
-	let indexed_fleet_ships: Vec<(usize, &ShipInstance)> =
-		fleet_ships.iter().enumerate().map(|(idx, ship)| (idx + 1, *ship)).collect();
 	let mut assigned_counts = vec![0; condition.groups.len()];
 
-	if indexed_fleet_ships.is_empty() {
+	if fleet_ships.is_empty() {
 		return condition.groups.iter().all(|group| {
 			let amount = effective_group_amount(group, 0);
 			amount.min == 0
 		});
 	}
 
-	validate_group_assignment(
-		&indexed_fleet_ships,
-		&condition.groups,
-		codex,
-		0,
-		&mut assigned_counts,
-	)
+	validate_group_assignment(fleet_ships, &condition.groups, codex, 0, &mut assigned_counts)
 }
 
 fn validate_group_assignment(
-	fleet_ships: &[(usize, &ShipInstance)],
+	fleet_ships: &[CompositionCandidate],
 	groups: &[Kc3rdQuestConditionShipGroup],
 	codex: &Codex,
 	next_ship_idx: usize,
@@ -90,8 +134,8 @@ fn validate_group_assignment(
 			continue;
 		}
 
-		let (position, ship) = fleet_ships[next_ship_idx];
-		if !matches_group(ship, position, group, codex) {
+		let ship = &fleet_ships[next_ship_idx];
+		if !matches_group(ship, group, codex) {
 			continue;
 		}
 
@@ -113,7 +157,7 @@ fn validate_group_assignment(
 }
 
 fn can_still_satisfy_groups(
-	fleet_ships: &[(usize, &ShipInstance)],
+	fleet_ships: &[CompositionCandidate],
 	groups: &[Kc3rdQuestConditionShipGroup],
 	codex: &Codex,
 	next_ship_idx: usize,
@@ -128,7 +172,7 @@ fn can_still_satisfy_groups(
 
 		let remaining_matchable = fleet_ships[next_ship_idx..]
 			.iter()
-			.filter(|(position, ship)| matches_group(ship, *position, group, codex))
+			.filter(|ship| matches_group(ship, group, codex))
 			.count() as i64;
 
 		if count + remaining_matchable < amount.min {
@@ -155,13 +199,12 @@ fn effective_group_amount(
 }
 
 fn matches_group(
-	ship: &ShipInstance,
-	position: usize,
+	ship: &CompositionCandidate,
 	group: &Kc3rdQuestConditionShipGroup,
 	codex: &Codex,
 ) -> bool {
 	// Check position requirement
-	if group.position > 0 && position as i64 != group.position {
+	if group.position > 0 && ship.position as i64 != group.position {
 		return false;
 	}
 
@@ -185,7 +228,11 @@ fn matches_group(
 	true
 }
 
-fn matches_ship(ship: &ShipInstance, condition: &Kc3rdQuestConditionShip, codex: &Codex) -> bool {
+fn matches_ship(
+	ship: &CompositionCandidate,
+	condition: &Kc3rdQuestConditionShip,
+	codex: &Codex,
+) -> bool {
 	match condition {
 		Kc3rdQuestConditionShip::Any => true,
 		Kc3rdQuestConditionShip::Ship(ids) => ids.contains(&ship.mst_id),
@@ -230,6 +277,14 @@ mod tests {
 		}
 		fleet.ships = slots;
 		fleet
+	}
+
+	fn snapshot(position: i64, mst_id: i64) -> FleetShipSnapshot {
+		FleetShipSnapshot {
+			mst_id,
+			level: 1,
+			position,
+		}
 	}
 
 	#[test]
@@ -322,5 +377,34 @@ mod tests {
 			&condition,
 			&Codex::default(),
 		));
+	}
+
+	#[test]
+	fn snapshot_validation_uses_positions_instead_of_input_order() {
+		let condition = Kc3rdQuestConditionComposition {
+			groups: vec![
+				Kc3rdQuestConditionShipGroup {
+					ship: Kc3rdQuestConditionShip::Ship(vec![11]),
+					amount: Kc3rdQuestShipAmount::exact(0),
+					lv: 0,
+					position: 1,
+					other_ships: false,
+					white_list: None,
+				},
+				Kc3rdQuestConditionShipGroup {
+					ship: Kc3rdQuestConditionShip::Ship(vec![21, 22]),
+					amount: Kc3rdQuestShipAmount::exact(2),
+					lv: 0,
+					position: 0,
+					other_ships: false,
+					white_list: None,
+				},
+			],
+			disallowed: None,
+			fleet_id: 1,
+		};
+		let snapshots = vec![snapshot(3, 22), snapshot(1, 11), snapshot(2, 21)];
+
+		assert!(validate_composition_snapshot(1, &snapshots, &condition, &Codex::default(),));
 	}
 }

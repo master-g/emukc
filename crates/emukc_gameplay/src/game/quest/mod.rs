@@ -87,6 +87,7 @@ async fn update_quest_status<C>(
 	profile_id: i64,
 	quest_id: i64,
 	status: Status,
+	codex: Option<&Codex>,
 ) -> Result<(), GameplayError>
 where
 	C: ConnectionTrait,
@@ -108,6 +109,21 @@ where
 
 	let mut am = quest.into_active_model();
 	am.status = ActiveValue::Set(status);
+	if status == Status::Activated
+		&& let Some(codex) = codex
+		&& let Some(mst) = codex.quest.get(&quest_id)
+	{
+		let conditions = match &mst.requirements {
+			Kc3rdQuestRequirement::And(conditions)
+			| Kc3rdQuestRequirement::OneOf(conditions)
+			| Kc3rdQuestRequirement::Sequential(conditions) => conditions,
+		};
+		if conditions.iter().any(|condition| matches!(condition, Kc3rdQuestCondition::Exercise(_)))
+			&& am.progress.take() == Some(quest::progress::Progress::Completed)
+		{
+			am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
+		}
+	}
 
 	am.update(c).await?;
 
@@ -191,7 +207,7 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		update_quest_status(&tx, profile_id, quest_id, Status::Activated).await?;
+		update_quest_status(&tx, profile_id, quest_id, Status::Activated, Some(codex)).await?;
 		update::validate_composition_quests(&tx, codex, profile_id).await?;
 
 		tx.commit().await?;
@@ -203,7 +219,7 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		update_quest_status(&tx, profile_id, quest_id, Status::Idle).await?;
+		update_quest_status(&tx, profile_id, quest_id, Status::Idle, None).await?;
 
 		tx.commit().await?;
 

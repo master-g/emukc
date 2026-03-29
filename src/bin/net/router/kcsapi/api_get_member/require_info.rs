@@ -34,8 +34,16 @@ pub(super) async fn handler(
 	state: AppState,
 	Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
-	let codex = &*state.codex;
 	let pid = session.profile.id;
+	let resp = build_require_info_response(state.0.as_ref(), pid).await?;
+	Ok(KcApiResponse::success(&resp))
+}
+
+async fn build_require_info_response<T: GameOps + HasContext + ?Sized>(
+	state: &T,
+	pid: i64,
+) -> Result<Resp, GameplayError> {
+	let codex = state.codex();
 	let (_, api_basic) = state.get_user_basic(pid).await?;
 	let api_furniture = state.get_furnitures(pid).await?;
 	let api_kdock = state.get_kdocks(pid).await?;
@@ -55,7 +63,7 @@ pub(super) async fn handler(
 	let unused_slot_items = state.get_unset_slot_items(pid).await?;
 	let api_unsetslot = codex.convert_unused_slot_items_to_api(&unused_slot_items)?;
 
-	Ok(KcApiResponse::success(&Resp {
+	Ok(Resp {
 		api_basic: UserBasic {
 			api_member_id: api_basic.api_member_id,
 			api_firstflag: api_basic.api_firstflag,
@@ -69,5 +77,70 @@ pub(super) async fn handler(
 		api_slot_item,
 		api_unsetslot,
 		api_useitem,
-	}))
+	})
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::path::PathBuf;
+	use emukc_internal::db::prelude::new_mem_db;
+
+	async fn new_game_session() -> ((emukc_internal::db::sea_orm::DbConn, Codex), StartGameInfo) {
+		let db = new_mem_db().await.unwrap();
+		let codex_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex");
+		let codex = Codex::load_without_cache_source(codex_root).unwrap();
+		let context = (db, codex);
+
+		let account = context.sign_up("test", "1234567").await.unwrap();
+		let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
+		let session =
+			context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+
+		(context, session)
+	}
+
+	#[tokio::test]
+	async fn create_slotitem_is_visible_in_require_info() {
+		let (context, session) = new_game_session().await;
+		let pid = session.profile.id;
+
+		let before = build_require_info_response(&context, pid).await.unwrap();
+		let craftable = context
+			.1
+			.slotitem_extra_info
+			.values()
+			.find(|item| item.craftable)
+			.unwrap()
+			.api_id;
+		let costs = vec![
+			(MaterialCategory::Fuel, 10),
+			(MaterialCategory::Ammo, 10),
+			(MaterialCategory::Steel, 10),
+			(MaterialCategory::Bauxite, 10),
+			(MaterialCategory::DevMat, 1),
+		];
+
+		let (ids, _materials) = context.create_slotitem(pid, &[craftable], &costs).await.unwrap();
+		let created_id = ids[0];
+		assert!(created_id > 0);
+
+		let after = build_require_info_response(&context, pid).await.unwrap();
+		assert_eq!(after.api_slot_item.len(), before.api_slot_item.len() + 1);
+		assert!(after.api_slot_item.iter().any(|item| item.api_id == created_id));
+
+		let type3 = context
+			.1
+			.find::<ApiMstSlotitem>(&craftable)
+			.unwrap()
+			.api_type[2]
+			.to_string();
+		let unset_key = format!("api_slottype{type3}");
+		assert!(
+			after
+				.api_unsetslot
+				.get(&unset_key)
+				.is_some_and(|items| items.contains(&created_id))
+		);
+	}
 }
