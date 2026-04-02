@@ -1,0 +1,52 @@
+{
+  "api_result": 1,
+  "api_result_msg": "\u6210\u529f",
+  "api_data": {
+    "api_cell_data": [
+      { "api_id": 4801, "api_no": 0, "api_color_no": 0, "api_passed": 0 },
+      { "api_id": 4802, "api_no": 1, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 4803, "api_no": 2, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4804, "api_no": 3, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 4805, "api_no": 4, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4806, "api_no": 5, "api_color_no": 5, "api_passed": 1 },
+      { "api_id": 4807, "api_no": 6, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4808, "api_no": 7, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 4809, "api_no": 8, "api_color_no": 5, "api_passed": 1 },
+      { "api_id": 4810, "api_no": 9, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4811, "api_no": 10, "api_color_no": 2, "api_passed": 0 },
+      { "api_id": 4812, "api_no": 11, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4813, "api_no": 12, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4814, "api_no": 13, "api_color_no": 3, "api_passed": 0 },
+      { "api_id": 4815, "api_no": 14, "api_color_no": 3, "api_passed": 0 },
+      { "api_id": 4816, "api_no": 15, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4817, "api_no": 16, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4818, "api_no": 17, "api_color_no": 2, "api_passed": 0 },
+      { "api_id": 4819, "api_no": 18, "api_color_no": 5, "api_passed": 0 },
+      { "api_id": 4820, "api_no": 19, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4821, "api_no": 20, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4822, "api_no": 21, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4823, "api_no": 22, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 4824, "api_no": 23, "api_color_no": 5, "api_passed": 0 },
+      { "api_id": 4825, "api_no": 24, "api_color_no": 5, "api_passed": 0 },
+      { "api_id": 4826, "api_no": 25, "api_color_no": 5, "api_passed": 0 }
+    ],
+    "api_rashin_flg": 0,
+    "api_rashin_id": 0,
+    "api_maparea_id": 7,
+    "api_mapinfo_no": 3,
+    "api_no": 1,
+    "api_color_no": 4,
+    "api_event_id": 6,
+    "api_event_kind": 0,
+    "api_next": 1,
+    "api_bosscell_no": 5,
+    "api_bosscomp": 0,
+    "api_cell_flavor": {
+      "api_type": 0,
+      "api_message": "\u6211\u3001\u30de\u30e9\u30c3\u30ab\u6d77\u5ce1\u306b\u7a81\u5165\u3059\u3002"
+    },
+    "api_airsearch": { "api_plane_type": 0, "api_result": 0 },
+    "api_limit_state": 0,
+    "api_from_no": 0
+  }
+}

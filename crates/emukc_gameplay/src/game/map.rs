@@ -1,10 +1,15 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+	borrow::Cow,
+	collections::{BTreeMap, BTreeSet},
+};
 
 use async_trait::async_trait;
 use emukc_db::{
 	entity::profile::map_record,
 	sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
+#[cfg(test)]
+use emukc_model::codex::map::MapStageDefinition;
 use emukc_model::{
 	codex::{
 		Codex,
@@ -17,7 +22,11 @@ use emukc_time::{KcTime, chrono::Utc};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
-use super::{basic::find_profile, fleet::get_fleet_ships_impl};
+use super::{
+	basic::find_profile,
+	fleet::get_fleet_ships_impl,
+	map_progress::{active_stage_for_record, assign_stage_id, select_stage_id_for_rank},
+};
 
 #[derive(Debug, Clone)]
 pub struct EventMapRankSelection {
@@ -117,11 +126,11 @@ impl<T: HasContext + ?Sized> MapOps for T {
 		let current_hp = record.current_hp;
 		let mut am = record.into_active_model();
 		am.selected_rank = ActiveValue::Set(selected_rank);
-		am.variant_key = ActiveValue::Set(select_variant_key_for_rank(&definition, rank));
+		assign_stage_id(&mut am, select_stage_id_for_rank(&definition, rank));
 		if definition.max_hp.is_some() && current_hp.is_none() {
 			am.current_hp = ActiveValue::Set(definition.max_hp);
 		}
-		am.gauge_index = ActiveValue::Set(definition.gauge_count.unwrap_or(1));
+		am.gauge_index = ActiveValue::Set(1);
 		am.event_state = ActiveValue::Set(Some(1));
 		let updated = am.update(&tx).await?;
 
@@ -242,8 +251,8 @@ where
 			last_reset_at: ActiveValue::Set(Some(now)),
 			defeat_count: ActiveValue::Set(definition.required_defeat_count.map(|_| 0)),
 			current_hp: ActiveValue::Set(definition.max_hp),
-			gauge_index: ActiveValue::Set(definition.gauge_count.unwrap_or(1)),
-			variant_key: ActiveValue::Set(select_variant_key_for_rank(definition, 0)),
+			gauge_index: ActiveValue::Set(1),
+			stage_id: ActiveValue::Set(select_stage_id_for_rank(definition, 0)),
 			selected_rank: ActiveValue::Set(map_record::SelectedRank::NotSet),
 			event_state: ActiveValue::Set(definition.max_hp.map(|_| 1)),
 		}
@@ -285,9 +294,8 @@ where
 			am.last_reset_at = ActiveValue::Set(Some(now));
 			am.defeat_count = ActiveValue::Set(definition.required_defeat_count.map(|_| 0));
 			am.current_hp = ActiveValue::Set(definition.max_hp);
-			am.gauge_index = ActiveValue::Set(definition.gauge_count.unwrap_or(1));
-			am.variant_key =
-				ActiveValue::Set(select_variant_key_for_rank(definition, selected_rank));
+			am.gauge_index = ActiveValue::Set(1);
+			assign_stage_id(&mut am, select_stage_id_for_rank(definition, selected_rank));
 			am.event_state = ActiveValue::Set(definition.max_hp.map(|_| 1));
 			am.update(c).await?;
 		}
@@ -301,21 +309,19 @@ pub(crate) fn find_map_definition(
 	maparea_id: i64,
 	mapinfo_no: i64,
 ) -> Result<MapDefinition, GameplayError> {
-	active_map_catalog(codex).map_definition_by_area_no(maparea_id, mapinfo_no).cloned().ok_or_else(
-		|| {
+	active_map_catalog(codex)
+		.as_ref()
+		.map_definition_by_area_no(maparea_id, mapinfo_no)
+		.cloned()
+		.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!(
 				"map definition not found for {maparea_id}-{mapinfo_no}",
 			))
-		},
-	)
+		})
 }
 
-pub(crate) fn active_map_catalog(codex: &Codex) -> MapCatalog {
-	if codex.maps.maps.is_empty() {
-		MapCatalog::from_manifest(&codex.manifest)
-	} else {
-		codex.maps.clone()
-	}
+pub(crate) fn active_map_catalog(codex: &Codex) -> Cow<'_, MapCatalog> {
+	codex.map_catalog()
 }
 
 pub(crate) fn build_map_infos(codex: &Codex, records: Vec<map_record::Model>) -> Vec<KcApiMapInfo> {
@@ -326,6 +332,7 @@ pub(crate) fn build_map_infos(codex: &Codex, records: Vec<map_record::Model>) ->
 	let catalog = active_map_catalog(codex);
 
 	let mut infos = catalog
+		.as_ref()
 		.known_maps()
 		.into_iter()
 		.filter(|definition| manifest_ids.contains(&definition.map_id))
@@ -341,17 +348,17 @@ pub(crate) fn build_map_infos(codex: &Codex, records: Vec<map_record::Model>) ->
 }
 
 fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcApiMapInfo {
+	let active_stage = active_stage_for_record(definition, record);
+	let required_defeat_count = active_stage
+		.and_then(|stage| stage.required_defeat_count)
+		.or(definition.required_defeat_count);
 	let mut info = KcApiMapInfo {
 		api_id: definition.map_id,
 		api_cleared: record.cleared as i64,
-		api_defeat_count: definition
-			.required_defeat_count
-			.map(|_| record.defeat_count.unwrap_or(0)),
-		api_gauge_num: definition
-			.gauge_count
-			.or_else(|| definition.required_defeat_count.map(|_| 1)),
+		api_defeat_count: required_defeat_count.map(|_| record.defeat_count.unwrap_or(0)),
+		api_gauge_num: definition.gauge_count.or_else(|| required_defeat_count.map(|_| 1)),
 		api_gauge_type: definition.gauge_type,
-		api_required_defeat_count: definition.required_defeat_count,
+		api_required_defeat_count: required_defeat_count,
 		api_air_base_decks: definition.airbase_count,
 		api_eventmap: None,
 		api_s_no: None,
@@ -382,10 +389,6 @@ fn parse_map_select_rank(rank: i64) -> Result<MapSelectRank, GameplayError> {
 		.ok_or_else(|| GameplayError::WrongType(format!("invalid map rank {rank}")))
 }
 
-fn select_variant_key_for_rank(definition: &MapDefinition, _rank: i64) -> Option<String> {
-	(!definition.default_variant.is_empty()).then(|| definition.default_variant.clone())
-}
-
 fn sally_flag_array(definition: &MapDefinition) -> [i64; 3] {
 	let mut result = [0; 3];
 	for (idx, value) in definition.sally_flag.iter().copied().take(3).enumerate() {
@@ -411,4 +414,97 @@ where
 		.await?;
 
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn sample_definition() -> MapDefinition {
+		MapDefinition {
+			map_id: 1,
+			maparea_id: 1,
+			mapinfo_no: 1,
+			name: "test".to_string(),
+			level: 1,
+			sally_flag: vec![],
+			is_event: false,
+			reset_policy: MapResetPolicy::Never,
+			airbase_count: None,
+			gauge_type: None,
+			gauge_count: None,
+			required_defeat_count: None,
+			max_hp: None,
+			default_variant: "legacy".to_string(),
+			rank_stage_ids: BTreeMap::from([(4, "hard".to_string())]),
+			variants: BTreeMap::from([
+				(
+					"legacy".to_string(),
+					MapStageDefinition {
+						variant_key: "legacy".to_string(),
+						..Default::default()
+					},
+				),
+				(
+					"current".to_string(),
+					MapStageDefinition {
+						variant_key: "current".to_string(),
+						..Default::default()
+					},
+				),
+				(
+					"hard".to_string(),
+					MapStageDefinition {
+						variant_key: "hard".to_string(),
+						..Default::default()
+					},
+				),
+			]),
+		}
+	}
+
+	fn sample_record(stage_id: Option<&str>) -> map_record::Model {
+		map_record::Model {
+			id: 1,
+			profile_id: 1,
+			map_id: 1,
+			cleared: false,
+			last_cleared_at: None,
+			last_reset_at: None,
+			defeat_count: None,
+			current_hp: None,
+			gauge_index: 1,
+			stage_id: stage_id.map(ToOwned::to_owned),
+			selected_rank: map_record::SelectedRank::NotSet,
+			event_state: None,
+		}
+	}
+
+	#[test]
+	fn active_stage_for_record_uses_stage_id_when_present() {
+		let definition = sample_definition();
+		let record = sample_record(Some("current"));
+
+		let stage = active_stage_for_record(&definition, &record).unwrap();
+
+		assert_eq!(stage.variant_key, "current");
+	}
+
+	#[test]
+	fn active_stage_for_record_falls_back_to_default_stage() {
+		let definition = sample_definition();
+		let record = sample_record(None);
+
+		let stage = active_stage_for_record(&definition, &record).unwrap();
+
+		assert_eq!(stage.variant_key, "legacy");
+	}
+
+	#[test]
+	fn select_stage_id_for_rank_prefers_rank_specific_mapping() {
+		let definition = sample_definition();
+
+		assert_eq!(select_stage_id_for_rank(&definition, 4).as_deref(), Some("hard"));
+		assert_eq!(select_stage_id_for_rank(&definition, 1).as_deref(), Some("legacy"));
+	}
 }

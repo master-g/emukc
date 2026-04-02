@@ -39,3 +39,21 @@ pub(super) async fn handler(
 		api_map_info,
 	}))
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::net::router::kcsapi::test_utils::{app_state, new_test_context};
+
+	#[tokio::test]
+	async fn handler_returns_runtime_map_catalog_entries() {
+		let context = new_test_context().await;
+		let resp =
+			handler(app_state(&context.state), Extension(context.session.clone())).await.unwrap();
+		let data = resp.api_data.unwrap();
+		let infos = data["api_map_info"].as_array().unwrap();
+
+		assert!(infos.iter().any(|info| info["api_id"] == 11));
+		assert!(infos.iter().any(|info| info["api_id"] == 74));
+	}
+}

@@ -748,7 +748,7 @@ mod tests {
 				.get("100")
 				.and_then(|value| value.as_array())
 				.and_then(|value| value.first())
-				.and_then(|value| value.as_i64()),
+				.and_then(serde_json::Value::as_i64),
 			Some(27)
 		);
 	}

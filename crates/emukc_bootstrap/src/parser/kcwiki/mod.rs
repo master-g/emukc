@@ -1,13 +1,26 @@
 //! `KCWiki` data parser
 
-use emukc_model::prelude::{ApiManifest, Kc3rdShipMap, Kc3rdSlotItemMap};
+use emukc_model::{
+	kc2::start2::{ApiMstShip, ApiMstSlotitem},
+	prelude::{ApiManifest, Kc3rdEnemyShipMap, Kc3rdShipMap, Kc3rdSlotItemMap},
+};
 
 use super::error::ParseError;
 
+mod enemy;
 mod ship;
 mod slot_item;
 mod types;
 mod use_item;
+
+#[derive(Debug)]
+pub struct KcwikiParsed {
+	pub ship_map: Kc3rdShipMap,
+	pub slotitem_map: Kc3rdSlotItemMap,
+	pub enemy_ship_map: Kc3rdEnemyShipMap,
+	pub enemy_manifest_ships: Vec<ApiMstShip>,
+	pub enemy_manifest_slotitems: Vec<ApiMstSlotitem>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 struct ParseContext {
@@ -109,8 +122,14 @@ fn prepare_context(src: impl AsRef<std::path::Path>) -> Result<ParseContext, Par
 pub fn parse(
 	src: impl AsRef<std::path::Path>,
 	_manifest: &ApiManifest,
-) -> Result<(Kc3rdShipMap, Kc3rdSlotItemMap), ParseError> {
-	let context = prepare_context(&src)?;
+) -> Result<KcwikiParsed, ParseError> {
+	let mut context = prepare_context(&src)?;
+
+	let enemy_parsed = {
+		let enemy_json_path = src.as_ref().join("kcwiki_enemy.json");
+		let enemy_equipment_json_path = src.as_ref().join("kcwiki_enemy_equipment.json");
+		enemy::parse(&mut context, _manifest, &enemy_json_path, &enemy_equipment_json_path)?
+	};
 
 	let slot_item_parsed = {
 		let json_path = src.as_ref().join("kcwiki_slotitem.json");
@@ -122,12 +141,19 @@ pub fn parse(
 		ship::parse(&context, &json_path)?
 	};
 
-	Ok((ship_parsed, slot_item_parsed.map))
+	Ok(KcwikiParsed {
+		ship_map: ship_parsed,
+		slotitem_map: slot_item_parsed.map,
+		enemy_ship_map: enemy_parsed.ship_map,
+		enemy_manifest_ships: enemy_parsed.manifest_ships,
+		enemy_manifest_slotitems: enemy_parsed.manifest_slotitems,
+	})
 }
 
 #[cfg(test)]
 mod tests {
 	use crate::parser::kcwiki::{ship, slot_item};
+	use emukc_model::prelude::ApiManifest;
 	use test_log::test;
 
 	fn get_parse_context() -> super::ParseContext {
@@ -167,5 +193,12 @@ mod tests {
 		// save to file
 		std::fs::write("../../.data/temp/kcwiki_ship_parsed.json", raw).unwrap();
 		println!("ship: {}", map.len());
+	}
+
+	#[test]
+	fn test_parse_kcwiki_combined() {
+		let parsed = super::parse("../../.data/temp", &ApiManifest::default()).unwrap();
+		assert!(!parsed.ship_map.is_empty());
+		assert!(!parsed.slotitem_map.is_empty());
 	}
 }

@@ -108,18 +108,18 @@ async fn build_port_response<T: GameOps + ?Sized>(
 	})
 }
 
-	#[cfg(test)]
-	mod tests {
-		use super::*;
-		use std::path::PathBuf;
-		use emukc_internal::{
-			db::{
-				entity::profile::quest,
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use emukc_internal::{
+		db::{
+			entity::profile::quest,
 			prelude::new_mem_db,
 			sea_orm::{ActiveModelTrait, ActiveValue},
 		},
 		time::chrono::Utc,
 	};
+	use std::path::PathBuf;
 
 	async fn new_game_session() -> ((emukc_internal::db::sea_orm::DbConn, Codex), StartGameInfo) {
 		let db = new_mem_db().await.unwrap();

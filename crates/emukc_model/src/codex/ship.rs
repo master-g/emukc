@@ -4,7 +4,7 @@ use crate::{
 	fields::MoveValueToEnd,
 	kc2::{KcApiShip, KcApiSlotItem, level},
 	prelude::{
-		ApiMstShip, ApiMstSlotitem, Kc3rdShip, Kc3rdShipPicturebookInfo,
+		ApiMstShip, ApiMstSlotitem, Kc3rdEnemyShip, Kc3rdShip, Kc3rdShipPicturebookInfo,
 		Kc3rdShipRemodelRequirement,
 	},
 };
@@ -82,6 +82,63 @@ impl Codex {
 			api_taisen: basic.tais,
 			api_sakuteki: basic.saku.to_owned(),
 			api_lucky: basic.luck.to_owned(),
+			api_locked: 0,
+			api_locked_equip: 0,
+			api_sally_area: 0,
+			api_sp_effect_items: None,
+		};
+
+		Some((ship, slot_items))
+	}
+
+	/// Create a new enemy ship instance from enemy bootstrap data.
+	pub fn new_enemy_ship(&self, mst_id: i64) -> Option<(KcApiShip, Vec<KcApiSlotItem>)> {
+		let mst = self.manifest.find_ship(mst_id)?;
+		let basic = self.enemy_ship_extra.get(&mst_id)?;
+
+		let slot_items = basic
+			.slots
+			.iter()
+			.filter(|slot_info| slot_info.item_id > 0)
+			.map(|slot_info| KcApiSlotItem {
+				api_id: 0,
+				api_slotitem_id: slot_info.item_id,
+				api_locked: 0,
+				api_level: 0,
+				api_alv: None,
+			})
+			.collect::<Vec<_>>();
+
+		let ship = KcApiShip {
+			api_id: 0,
+			api_sortno: mst.api_sortno.unwrap_or(mst.api_sort_id),
+			api_ship_id: mst_id,
+			api_lv: 1,
+			api_exp: [0, 0, 0],
+			api_nowhp: basic.hp.max(1),
+			api_maxhp: basic.hp.max(1),
+			api_soku: basic.speed,
+			api_leng: basic.range,
+			api_slot: [-1; 5],
+			api_onslot: basic.maxeq,
+			api_slot_ex: 0,
+			api_kyouka: [0; 7],
+			api_backs: basic.backs,
+			api_fuel: mst.api_fuel_max.unwrap_or(0),
+			api_bull: mst.api_bull_max.unwrap_or(0),
+			api_slotnum: basic.slot_num,
+			api_ndock_time: 0,
+			api_ndock_item: [0, 0],
+			api_srate: 0,
+			api_cond: 49,
+			api_karyoku: [basic.firepower, basic.firepower],
+			api_raisou: [basic.torpedo, basic.torpedo],
+			api_taiku: [basic.aa, basic.aa],
+			api_soukou: [basic.armor, basic.armor],
+			api_kaihi: [basic.evasion, basic.evasion],
+			api_taisen: [basic.asw, basic.asw],
+			api_sakuteki: [basic.los, basic.los],
+			api_lucky: [basic.luck, basic.luck],
 			api_locked: 0,
 			api_locked_equip: 0,
 			api_sally_area: 0,
@@ -476,6 +533,13 @@ impl Codex {
 		self.ship_extra
 			.get(&ship_id)
 			.ok_or(CodexError::NotFound(format!("ship extra ID: {ship_id}")))
+	}
+
+	/// Find the enemy ship extra information.
+	pub fn find_enemy_ship_extra(&self, ship_id: i64) -> Result<&Kc3rdEnemyShip, CodexError> {
+		self.enemy_ship_extra
+			.get(&ship_id)
+			.ok_or(CodexError::NotFound(format!("enemy ship extra ID: {ship_id}")))
 	}
 
 	/// Find the ship after the given ship ID.

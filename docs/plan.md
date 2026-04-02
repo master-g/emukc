@@ -2,9 +2,8 @@
 
 ## Current Status
 
-- `tsunkit` map graph and node enemy composition parsing has been moved into `emukc_bootstrap`.
-- Runtime no longer falls back to `temp/tsunkit_nav` or `temp/kc_data`; `emukcd` now consumes codex artifacts only.
-- `tsunkit` is currently treated as a bootstrap-time source, not a runtime source.
+- `wikiwiki` map extraction and routing parsing now live in `emukc_bootstrap`.
+- Runtime map loading still does `repo wikiwiki catalog + kc_data structural complement`; it is not codex-only yet.
 - Single-fleet sortie flow now covers `api_req_map/start`, `api_req_map/next`, day battle, battle result, and standard night battle.
 - Practice flow now covers day battle, result settlement, and night battle on the shared battle core.
 - Sortie enemy selection now uses weighted node compositions instead of always picking the first catalog entry.
@@ -13,22 +12,26 @@
 - Sortie battle result now emits quest events, so normal single-fleet sortie quests can advance from real battle settlement.
 - Sortie quest matcher now understands map/boss/result conditions, including `All(map)` cycle reset for multi-round quests.
 - Practice battle result now emits exercise quest events, including exercise quests that carry fleet composition requirements.
+- `kc_data` route-only numeric placeholder nodes no longer generate fake runtime cells, and `1-1 map/start` now correctly stays at four cells.
+- Remaining map work is no longer in the wikiwiki route parser: repo asset route rules are now at `0` `Unknown`, `0` `SourceUnknown`, and `0` `parse_warnings`.
+- Remaining battle blocker is data-source, not formula: many early abyssal IDs still have no usable HP/armor/firepower source, so sortie enemy fallback builds `HP=1` enemies.
 
 ## Constraints
 
-- Keep source-specific parsing in `emukc_bootstrap`; do not reintroduce `tsunkit` raw formats into `emukc_model`.
+- Keep source-specific parsing in `emukc_bootstrap`; do not reintroduce raw external HTML formats into `emukc_model`.
 - Keep runtime isolated from non-official external sources.
-- Preserve `kc_data` as a fallback map source when `tsunkit_nav` cache is unavailable.
+- Treat `wikiwiki` as the primary offline semantic source for maps.
+- Treat `kc_data` only as a structural complement source, with `kc_data-only` reserved for explicit degraded mode when the repo-tracked wikiwiki asset is unavailable.
 
 ## Next Session
 
-1. Replace the `airbattle` and `sp_midnight` placeholder aliases with true single-fleet battle variants and battle-specific response shaping.
-2. Define how `goback_port` should interact with partially resolved node state beyond the current runtime cleanup behavior.
-3. Add fixtures for branching maps and multi-variant event maps so enemy fleet selection and route progression are tested against real catalog structure.
-4. Start combined-fleet input modeling so `api_req_combined_battle/*` can reuse the existing battle core instead of forking a parallel implementation.
-5. Revisit sortie quest edge cases around event-map `phase`, `Clear` semantics, and mixed-map repeat quests after the single-fleet battle variants are real.
+1. Keep regression fixtures for the real-page text forms now covered: footnote anchors, residual helper headers, fullwidth-indent probability annotations, and previously source-unknown route lines.
+2. Introduce an enemy master/stat data source into codex/bootstrap and switch `build_sortie_enemy_ship()` to use it before manifest fallback.
+3. Only after enemy stats are stable, continue with `airbattle` / `sp_midnight` specialization and broader sortie battle fidelity work.
 
 ## Follow-up
 
-- Re-evaluate whether `kc_data` should remain as a long-term fallback after `tsunkit_nav` bootstrap becomes stable.
-- Consider adding fixture coverage for a branching map and a multi-node event map after the downloader lands.
+- Add explicit fixture coverage for a map where wikiwiki semantics and `kc_data` structure are both required, so the complement boundary stays regression-tested.
+- Do not introduce an AST runtime unless a concrete wikiwiki rule family can be parsed reliably but cannot be compiled into flat `RouteRule`.
+- Consider whether the repo-tracked wikiwiki asset should eventually move out of `emukc_bootstrap/assets` into a more model-centric generated-data location.
+- Revisit whether runtime should keep merging `kc_data` on startup, or whether that merge should move entirely into offline codex generation once the complement path is stable enough.

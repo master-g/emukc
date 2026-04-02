@@ -1,6 +1,11 @@
 #[doc(hidden)]
+pub mod map;
+#[doc(hidden)]
 pub mod quest;
 
+#[doc(inline)]
+#[allow(unused_imports)]
+pub use map::*;
 #[doc(inline)]
 #[allow(unused_imports)]
 pub use quest::*;

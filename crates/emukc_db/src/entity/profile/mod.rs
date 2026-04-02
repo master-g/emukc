@@ -363,8 +363,7 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 	}
 	// map_record
 	{
-		let stmt = schema.create_table_from_entity(map_record::Entity).if_not_exists().to_owned();
-		db.execute(db.get_database_backend().build(&stmt)).await?;
+		map_record::bootstrap(db).await?;
 	}
 	// material
 	{

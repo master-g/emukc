@@ -12,6 +12,8 @@ pub enum ResourceCategory {
 	KcData,
 	KcWikiSlotItem,
 	KcWikiShip,
+	KcWikiEnemy,
+	KcWikiEnemyEquipment,
 	KcWikiUseItem,
 	ShipsNedb,
 	TsunKitQuests,
@@ -56,6 +58,18 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
 			// category: ResourceCategory::KcWikiShip,
 			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/ship.json",
 			save_as: "kcwiki_ship.json",
+			unzip_to: None,
+		},
+		Resource {
+			// category: ResourceCategory::KcWikiEnemy,
+			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/enemy.json",
+			save_as: "kcwiki_enemy.json",
+			unzip_to: None,
+		},
+		Resource {
+			// category: ResourceCategory::KcWikiEnemyEquipment,
+			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/enemyEquipment.json",
+			save_as: "kcwiki_enemy_equipment.json",
 			unzip_to: None,
 		},
 		Resource {

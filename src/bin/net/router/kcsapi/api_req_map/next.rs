@@ -8,12 +8,14 @@ use crate::net::{
 };
 use emukc_internal::prelude::*;
 
+use super::projection::project_next;
+
 #[derive(Deserialize)]
 pub(super) struct Params {
 	#[serde(default)]
-	api_recovery_type: i64,
+	pub(super) api_recovery_type: i64,
 	#[serde(default)]
-	api_cell_id: Option<i64>,
+	pub(super) api_cell_id: Option<i64>,
 }
 
 pub(super) async fn handler(
@@ -25,5 +27,5 @@ pub(super) async fn handler(
 	let pid = session.profile.id;
 	let resp = state.next_sortie(pid, params.api_cell_id).await?;
 
-	Ok(KcApiResponse::success(&resp))
+	Ok(KcApiResponse::success(&project_next(resp)))
 }

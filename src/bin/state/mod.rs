@@ -57,7 +57,8 @@ impl State {
 
 		// codex
 		let codex_root = cfg.codex_root()?;
-		let codex = Arc::new(Codex::load(&codex_root, load_cache_source)?);
+		let codex = Codex::load(&codex_root, load_cache_source)?;
+		let codex = Arc::new(codex);
 
 		Ok(Self {
 			db,
@@ -76,5 +77,33 @@ impl HasContext for State {
 
 	fn codex(&self) -> &Codex {
 		self.codex.as_ref()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::path::PathBuf;
+
+	#[test]
+	fn codex_load_uses_generated_runtime_map_catalog() {
+		let codex_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex");
+		let codex = Codex::load_without_cache_source(codex_root).unwrap();
+
+		let map_74 = codex.maps.map_definition(74).unwrap();
+		let variant = map_74.variant("").unwrap();
+		assert!(!variant.routing_rules.is_empty());
+		assert!(variant.routing_rules.values().flatten().any(|rule| rule.to_cell_no > 0));
+	}
+
+	#[test]
+	fn generated_runtime_map_catalog_keeps_world_1_1_at_four_cells() {
+		let codex_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex");
+		let codex = Codex::load_without_cache_source(codex_root).unwrap();
+
+		let map_11 = codex.maps.map_definition(11).unwrap();
+		let variant = map_11.variant("").unwrap();
+		let cell_nos = variant.cells.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
+		assert_eq!(cell_nos, vec![0, 1, 2, 3]);
 	}
 }

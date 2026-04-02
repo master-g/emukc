@@ -1,0 +1,37 @@
+{
+  "api_result": 1,
+  "api_result_msg": "\u6210\u529f",
+  "api_data": {
+    "api_cell_data": [
+      { "api_id": 326, "api_no": 0, "api_color_no": 0, "api_passed": 0 },
+      { "api_id": 327, "api_no": 1, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 328, "api_no": 2, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 329, "api_no": 3, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 330, "api_no": 4, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 331, "api_no": 5, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 332, "api_no": 6, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 333, "api_no": 7, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 334, "api_no": 8, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 335, "api_no": 9, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 336, "api_no": 10, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 337, "api_no": 11, "api_color_no": 5, "api_passed": 1 },
+      { "api_id": 338, "api_no": 12, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 339, "api_no": 13, "api_color_no": 4, "api_passed": 1 }
+    ],
+    "api_rashin_flg": 1,
+    "api_rashin_id": 3,
+    "api_maparea_id": 6,
+    "api_mapinfo_no": 1,
+    "api_no": 3,
+    "api_color_no": 4,
+    "api_event_id": 4,
+    "api_event_kind": 1,
+    "api_next": 1,
+    "api_bosscell_no": 11,
+    "api_bosscomp": 1,
+    "api_airsearch": { "api_plane_type": 0, "api_result": 0 },
+    "api_e_deck_info": [{ "api_kind": 2, "api_ship_ids": [1529, 1560, 1527] }],
+    "api_limit_state": 0,
+    "api_from_no": 0
+  }
+}

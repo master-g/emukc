@@ -72,6 +72,10 @@ pub enum BootstrapDownloadError {
 		action: &'static str,
 		timeout_secs: u64,
 	},
+
+	/// Generic bootstrap failure
+	#[error("{0}")]
+	Generic(String),
 }
 
 /// Download all the resources

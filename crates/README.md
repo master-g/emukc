@@ -8,7 +8,7 @@ This crate contains the application template and utilities to build an `EmuKC` a
 
 ## `emukc_bootstrap`
 
-This crate contains the bootstrap logic, such as download and parse third-party resources
+This crate contains the bootstrap logic for volatile third-party resources, plus manual tooling for generating repo-tracked offline assets such as the wikiwiki map catalog.
 
 ## `emukc_cache`
 

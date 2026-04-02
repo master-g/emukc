@@ -20,11 +20,15 @@ extern crate tracing;
 mod db;
 mod download;
 mod make_list;
+mod map_overlay;
+mod map_pipeline;
 mod parser;
 mod populate;
+mod real_map_start_asset;
 mod res;
-/// Manual Tsunkit download helpers used by examples and one-off tooling.
-pub mod tsunkit_nav_download;
+mod wikiwiki_map_asset;
+/// Manual wikiwiki map download helpers used by examples and one-off tooling.
+pub mod wikiwiki_map_download;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
@@ -35,10 +39,27 @@ pub mod prelude {
 		CacheListMakeStrategy, config::GreedyConfig, errors::CacheListMakingError,
 		make as make_cache_list,
 	};
-	pub use crate::parser::{parse_partial_codex, parse_tsunkit_nav};
+	pub use crate::map_overlay::{
+		MapOverlayAcceptedRecord, MapOverlayBuildError, MapOverlayBuildOutput,
+		MapOverlayBuildReport, MapOverlayRejectedRecord,
+		build_public_map_catalog_overlay_from_embedded_real_map_start_assets,
+		build_public_map_catalog_overlay_from_response_saver_dir,
+		repo_public_map_catalog_overlay_path,
+	};
+	pub use crate::map_pipeline::{
+		MapCatalogBuildReport, MapCatalogWikiwikiSource, build_final_map_catalog,
+		build_final_map_catalog_from_repo_assets,
+		build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_report,
+	};
+	pub use crate::parser::{parse_partial_codex, parse_wikiwiki_map, parse_wikiwiki_map_debug};
 	pub use crate::populate::populate;
-	pub use crate::tsunkit_nav_download::{
-		TsunkitNavDownloadOptions, TsunkitNavDownloadStats, download_tsunkit_nav,
-		download_tsunkit_nav_with_options,
+	pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
+	pub use crate::wikiwiki_map_asset::{
+		RepoWikiwikiMapCatalogAsset, RepoWikiwikiMapCatalogSource,
+		load_repo_wikiwiki_map_catalog_asset, repo_wikiwiki_map_catalog_path,
+	};
+	pub use crate::wikiwiki_map_download::{
+		WikiwikiMapDownloadOptions, WikiwikiMapDownloadStats, download_wikiwiki_map,
+		download_wikiwiki_map_with_options, wikiwiki_map_page_url,
 	};
 }

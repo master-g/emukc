@@ -14,10 +14,12 @@ chrono = { workspace = true, features = ["serde"] }
 enumn = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true, features = ["v4", "fast-rng"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
 
 [lints]
 workspace = true

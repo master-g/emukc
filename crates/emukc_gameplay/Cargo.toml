@@ -20,6 +20,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
+emukc_bootstrap = { path = "../emukc_bootstrap" }
 tokio = { workspace = true }
 
 [lints]

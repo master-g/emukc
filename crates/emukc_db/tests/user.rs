@@ -9,7 +9,8 @@ mod test {
 		user::account::Account,
 	};
 	use sea_orm::{
-		ActiveValue, ConnectionTrait, Database, DatabaseConnection, EntityTrait, Statement,
+		ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, Database, DatabaseConnection,
+		EntityTrait, QueryFilter, Statement,
 	};
 
 	#[allow(unused)]
@@ -22,6 +23,9 @@ mod test {
 	#[allow(unused)]
 	async fn bootstrap_db() -> DatabaseConnection {
 		let db_path = temp_dir().join("emukc.db");
+		if db_path.exists() {
+			std::fs::remove_file(&db_path).unwrap();
+		}
 		let sqlite_url = format!("sqlite:{}?mode=rwc", db_path.to_str().unwrap());
 		println!("{:?}", sqlite_url);
 
@@ -39,14 +43,38 @@ mod test {
 		db
 	}
 
+	async fn legacy_map_record_db() -> DatabaseConnection {
+		let db = Database::connect("sqlite::memory:").await.unwrap();
+		db.execute(Statement::from_string(
+			db.get_database_backend(),
+			r#"
+CREATE TABLE "map_record" (
+	"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+	"profile_id" integer NOT NULL,
+	"map_id" integer NOT NULL,
+	"cleared" integer NOT NULL,
+	"last_cleared_at" text NULL,
+	"last_reset_at" text NULL,
+	"defeat_count" integer NULL,
+	"current_hp" integer NULL,
+	"gauge_index" integer NOT NULL,
+	"variant_key" text NULL,
+	"selected_rank" integer NOT NULL,
+	"event_state" integer NULL
+)
+"#
+			.to_string(),
+		))
+		.await
+		.unwrap();
+
+		db
+	}
+
 	#[allow(unused)]
 	async fn new_account(db: &DatabaseConnection, name: &str) -> Account {
 		let account = entity::user::account::Entity::find()
-			.from_raw_sql(Statement::from_sql_and_values(
-				db.get_database_backend(),
-				r#"SELECT * FROM "account" WHERE "name" = ?"#,
-				[name.into()],
-			))
+			.filter(entity::user::account::Column::Name.eq(name))
 			.one(db)
 			.await
 			.unwrap();
@@ -74,11 +102,8 @@ mod test {
 	#[allow(unused)]
 	async fn new_profile(db: &DatabaseConnection, account: &Account, name: &str) -> Profile {
 		let profile = entity::profile::Entity::find()
-			.from_raw_sql(Statement::from_sql_and_values(
-				db.get_database_backend(),
-				r#"SELECT * FROM "profile" WHERE "account_id" = ? AND "name" = ?"#,
-				[account.uid.into(), name.into()],
-			))
+			.filter(entity::profile::Column::AccountId.eq(account.uid))
+			.filter(entity::profile::Column::Name.eq(name))
 			.one(db)
 			.await
 			.unwrap();
@@ -111,11 +136,8 @@ mod test {
 
 		let active_model = entity::profile::item::use_item::ActiveModel::from(user_item.clone());
 		let old_entry = entity::profile::item::use_item::Entity::find()
-			.from_raw_sql(Statement::from_sql_and_values(
-				db.get_database_backend(),
-				r#"SELECT * FROM "use_item" WHERE "profile_id" = ? AND "mst_id" = ?"#,
-				[profile.id.into(), mst_id.into()],
-			))
+			.filter(entity::profile::item::use_item::Column::ProfileId.eq(profile.id))
+			.filter(entity::profile::item::use_item::Column::MstId.eq(mst_id))
 			.one(db)
 			.await
 			.unwrap();
@@ -147,5 +169,54 @@ mod test {
 		assert_eq!(profile.name, "test_profile");
 
 		new_use_item(&db, &profile, 114, 514).await;
+	}
+
+	#[tokio::test]
+	async fn map_record_bootstrap_supports_stage_id_roundtrip() {
+		let db = mem_db().await;
+		let account = new_account(&db, "map-record-account").await;
+		let profile = new_profile(&db, &account, "map-record-profile").await;
+		entity::profile::map_record::ActiveModel {
+			id: ActiveValue::NotSet,
+			profile_id: ActiveValue::Set(profile.id),
+			map_id: ActiveValue::Set(73),
+			cleared: ActiveValue::Set(false),
+			last_cleared_at: ActiveValue::Set(None),
+			last_reset_at: ActiveValue::Set(None),
+			defeat_count: ActiveValue::Set(Some(2)),
+			current_hp: ActiveValue::Set(None),
+			gauge_index: ActiveValue::Set(1),
+			stage_id: ActiveValue::Set(Some("pre_p_unlock".to_string())),
+			selected_rank: ActiveValue::Set(entity::profile::map_record::SelectedRank::NotSet),
+			event_state: ActiveValue::Set(None),
+		}
+		.insert(&db)
+		.await
+		.unwrap();
+
+		let record = entity::profile::map_record::Entity::find().one(&db).await.unwrap().unwrap();
+		assert_eq!(record.stage_id.as_deref(), Some("pre_p_unlock"));
+	}
+
+	#[tokio::test]
+	async fn map_record_bootstrap_migrates_legacy_variant_key_to_stage_id() {
+		let db = legacy_map_record_db().await;
+		db.execute(Statement::from_string(
+			db.get_database_backend(),
+			r#"
+INSERT INTO "map_record"
+	("profile_id", "map_id", "cleared", "gauge_index", "variant_key", "selected_rank")
+VALUES
+	(1, 73, 0, 1, 'pre_p_unlock', 0)
+"#
+			.to_string(),
+		))
+		.await
+		.unwrap();
+
+		entity::bootstrap(&db).await.unwrap();
+
+		let record = entity::profile::map_record::Entity::find().one(&db).await.unwrap().unwrap();
+		assert_eq!(record.stage_id.as_deref(), Some("pre_p_unlock"));
 	}
 }

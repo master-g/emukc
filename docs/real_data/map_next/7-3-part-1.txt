@@ -1,0 +1,62 @@
+curl 'https://w14h.kancolle-server.com/kcsapi/api_req_map/next' \
+  -X POST \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:148.0) Gecko/20100101 Firefox/148.0' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: en-US,en;q=0.9' \
+  -H 'Accept-Encoding: gzip, deflate, br, zstd' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -H 'Origin: https://w14h.kancolle-server.com' \
+  -H 'Sec-GPC: 1' \
+  -H 'Connection: keep-alive' \
+  -H 'Referer: https://w14h.kancolle-server.com/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=6.2.7.0&api_token=abdfbf27bcef2b5f2e0a50aad4c755bdee311052&api_starttime=1775127806409' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'DNT: 1' \
+  -H 'TE: trailers' \
+  --data-raw 'api_token=abdfbf27bcef2b5f2e0a50aad4c755bdee311052&api_verno=1&api_recovery_type=0'
+
+
+svdata={"api_result":1,"api_result_msg":"\u6210\u529f","api_data":{"api_rashin_flg":1,"api_rashin_id":3,"api_maparea_id":7,"api_mapinfo_no":3,"api_no":3,"api_color_no":4,"api_event_id":4,"api_event_kind":1,"api_next":1,"api_bosscell_no":5,"api_bosscomp":0,"api_comment_kind":0,"api_production_kind":0,"api_airsearch":{"api_plane_type":0,"api_result":0},"api_e_deck_info":[{"api_kind":0,"api_ship_ids":[1576,1576,1576]}],"api_limit_state":0}}
+
+
+curl 'https://w14h.kancolle-server.com/kcsapi/api_req_sortie/battle' \
+  --compressed \
+  -X POST \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:148.0) Gecko/20100101 Firefox/148.0' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: en-US,en;q=0.9' \
+  -H 'Accept-Encoding: gzip, deflate, br, zstd' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -H 'Origin: https://w14h.kancolle-server.com' \
+  -H 'Sec-GPC: 1' \
+  -H 'Connection: keep-alive' \
+  -H 'Referer: https://w14h.kancolle-server.com/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=6.2.7.0&api_token=abdfbf27bcef2b5f2e0a50aad4c755bdee311052&api_starttime=1775127806409' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'DNT: 1' \
+  --data-raw 'api_token=abdfbf27bcef2b5f2e0a50aad4c755bdee311052&api_verno=1&api_formation=1&api_recovery_type=0'
+
+svdata={"api_result":1,"api_result_msg":"\u6210\u529f","api_data":{"api_deck_id":1,"api_formation":[1,1,1],"api_f_nowhps":[57,36,40,34],"api_f_maxhps":[57,36,40,37],"api_fParam":[[84,84,72,77],[60,86,72,52],[62,58,48,60],[59,89,59,59]],"api_ship_ke":[1622,1576,1576,1576,1576],"api_ship_lv":[1,1,1,1,1],"api_e_nowhps":[43,37,37,37,37],"api_e_maxhps":[43,37,37,37,37],"api_eSlot":[[1502,1502,1559,-1,-1],[1502,1545,1542,-1,-1],[1502,1545,1542,-1,-1],[1502,1545,1542,-1,-1],[1502,1545,1542,-1,-1]],"api_eParam":[[58,88,44,36],[38,66,32,26],[38,66,32,26],[38,66,32,26],[38,66,32,26]],"api_smoke_type":0,"api_balloon_cell":0,"api_atoll_cell":0,"api_midnight_flag":1,"api_search":[1,5],"api_stage_flag":[1,0,0],"api_kouku":{"api_plane_from":[null,null],"api_stage1":{"api_f_count":0,"api_f_lostcount":0,"api_e_count":0,"api_e_lostcount":0,"api_disp_seiku":1,"api_touch_plane":[-1,-1]},"api_stage2":null,"api_stage3":null},"api_support_flag":0,"api_support_info":null,"api_opening_taisen_flag":0,"api_opening_taisen":null,"api_opening_flag":0,"api_opening_atack":null,"api_hourai_flag":[1,0,0,1],"api_hougeki1":{"api_at_eflag":[0,1,0,1,0,1,0],"api_at_list":[2,1,0,0,1,2,3],"api_at_type":[0,0,0,0,0,0,0],"api_df_list":[[3],[2],[4],[1],[1],[1],[2]],"api_si_list":[[266],[1502],[50],[1502],[267],[1502],[122]],"api_cl_list":[[1],[0],[1],[0],[1],[0],[0]],"api_damage":[[52],[0],[86],[0],[53],[0],[0]]},"api_hougeki2":null,"api_hougeki3":null,"api_raigeki":{"api_frai":[0,2,2,0,-1,-1,-1],"api_fcl":[0,2,1,0,0,0,0],"api_fdam":[5,0,36,0,0,0,0],"api_fydam":[0,110,34,0,0,0,0],"api_erai":[2,-1,0,-1,-1,-1,-1],"api_ecl":[1,0,1,0,0,0,0],"api_edam":[0,0,144,0,0,0,0],"api_eydam":[36,0,5,0,0,0,0]}}}
+
+
+curl 'https://w14h.kancolle-server.com/kcsapi/api_req_sortie/battleresult' \
+  --compressed \
+  -X POST \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:148.0) Gecko/20100101 Firefox/148.0' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: en-US,en;q=0.9' \
+  -H 'Accept-Encoding: gzip, deflate, br, zstd' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -H 'Origin: https://w14h.kancolle-server.com' \
+  -H 'Sec-GPC: 1' \
+  -H 'Connection: keep-alive' \
+  -H 'Referer: https://w14h.kancolle-server.com/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=6.2.7.0&api_token=abdfbf27bcef2b5f2e0a50aad4c755bdee311052&api_starttime=1775127806409' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'DNT: 1' \
+  --data-raw 'api_token=abdfbf27bcef2b5f2e0a50aad4c755bdee311052&api_verno=1&api_btime=89400861&api_l_value%5B0%5D=52&api_l_value%5B1%5D=36&api_l_value%5B2%5D=4&api_l_value%5B3%5D=34&api_l_value3%5B0%5D=0&api_l_value3%5B1%5D=0&api_l_value3%5B2%5D=0&api_l_value3%5B3%5D=0&api_l_value3%5B4%5D=0'
+
+  svdata={"api_result":1,"api_result_msg":"\u6210\u529f","api_data":{"api_ship_id":[1622,1576,1576,1576,1576],"api_win_rank":"S","api_get_exp":320,"api_mvp":1,"api_member_lv":117,"api_member_exp":12584035,"api_get_base_exp":240,"api_get_ship_exp":[-1,864,288,288,288,-1,-1],"api_get_exp_lvup":[[793064,851500],[1477366,1525000],[1164964,1168000],[1295349,1329000]],"api_dests":5,"api_destsf":1,"api_quest_name":"\u30da\u30ca\u30f3\u5cf6\u6c96","api_quest_level":8,"api_enemy_info":{"api_level":"","api_rank":"","api_deck_name":"\u6df1\u6d77\u6771\u65b9\u90e8\u968a \u7cbe\u92ed\u99c6\u9010\u968a"},"api_first_clear":0,"api_mapcell_incentive":0,"api_get_flag":[0,1,0],"api_get_ship":{"api_ship_id":78,"api_ship_type":"\u6226\u8266","api_ship_name":"\u91d1\u525b","api_ship_getmes":"\u82f1\u56fd\u3067\u751f\u307e\u308c\u305f\u5e30\u56fd\u5b50\u5973\u306e\u91d1\u525b\u30c7\u30fc\u30b9\u3002<br>\u30e8\u30ed\u30b7\u30af\u30aa\u30cd\u30ac\u30a4\u30b7\u30de\u30fc\u30b9\uff01"},"api_get_eventflag":0,"api_get_exmap_rate":0,"api_get_exmap_useitem_id":0,"api_escape_flag":0,"api_escape":null,"api_m1":1}}

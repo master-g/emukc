@@ -89,3 +89,68 @@ pub(super) async fn mocking_middleware(
 
 	Ok(next.run(Request::from_parts(parts, body)).await)
 }
+
+#[cfg(test)]
+pub(super) mod test_utils {
+	use super::*;
+	use axum::Extension;
+	use emukc_internal::prelude::*;
+	use std::{path::PathBuf, sync::Arc};
+	use tempfile::TempDir;
+
+	use crate::{net::auth::GameSession, state::State};
+
+	pub(super) struct TestContext {
+		#[allow(dead_code)]
+		pub cache_root: TempDir,
+		pub state: Arc<State>,
+		pub session: GameSession,
+	}
+
+	pub(super) async fn new_test_context() -> TestContext {
+		let cache_root = tempfile::tempdir().unwrap();
+		let db = Arc::new(new_mem_db().await.unwrap());
+		let codex = Codex::load_without_cache_source(
+			PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex"),
+		)
+		.unwrap();
+		let cache_path = cache_root.path().join("cache");
+		std::fs::create_dir_all(&cache_path).unwrap();
+		let kache = Arc::new(
+			Kache::builder()
+				.with_cache_root(cache_path)
+				.with_gadgets_cdn("https://example.invalid/gadgets".to_string())
+				.with_content_cdn("https://example.invalid/content".to_string())
+				.build()
+				.unwrap(),
+		);
+		let state = Arc::new(State {
+			db,
+			kache,
+			codex: Arc::new(codex),
+		});
+
+		let account = state.sign_up("router-test", "1234567").await.unwrap();
+		let profile = state.new_profile(&account.access_token.token, "router-admin").await.unwrap();
+		let session =
+			state.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+
+		TestContext {
+			cache_root,
+			state,
+			session: GameSession {
+				token: session.session.token.clone(),
+				profile: session.profile.clone(),
+			},
+		}
+	}
+
+	pub(super) async fn seed_single_ship_fleet(state: &Arc<State>, profile_id: i64) {
+		let ship = state.add_ship(profile_id, 951).await.unwrap();
+		state.update_fleet_ships(profile_id, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+	}
+
+	pub(super) fn app_state(state: &Arc<State>) -> AppState {
+		Extension(state.clone())
+	}
+}

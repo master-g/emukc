@@ -1,0 +1,48 @@
+{
+  "api_result": 1,
+  "api_result_msg": "\u6210\u529f",
+  "api_data": {
+    "api_cell_data": [
+      { "api_id": 3352, "api_no": 0, "api_color_no": 0, "api_passed": 0 },
+      { "api_id": 3353, "api_no": 1, "api_color_no": 3, "api_passed": 0 },
+      { "api_id": 3354, "api_no": 2, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 3355, "api_no": 3, "api_color_no": 10, "api_passed": 1 },
+      { "api_id": 3356, "api_no": 4, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 3357, "api_no": 5, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 3358, "api_no": 6, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 3359, "api_no": 7, "api_color_no": 2, "api_passed": 0 },
+      { "api_id": 3360, "api_no": 8, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 3361, "api_no": 9, "api_color_no": 7, "api_passed": 0 },
+      { "api_id": 3362, "api_no": 10, "api_color_no": 2, "api_passed": 0 },
+      { "api_id": 3363, "api_no": 11, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 3364, "api_no": 12, "api_color_no": 10, "api_passed": 0 },
+      { "api_id": 3365, "api_no": 13, "api_color_no": 3, "api_passed": 0 },
+      { "api_id": 3366, "api_no": 14, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 3367, "api_no": 15, "api_color_no": 5, "api_passed": 1 },
+      { "api_id": 3368, "api_no": 16, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 3369, "api_no": 17, "api_color_no": 4, "api_passed": 1 },
+      { "api_id": 3370, "api_no": 18, "api_color_no": 4, "api_passed": 0 },
+      { "api_id": 3371, "api_no": 19, "api_color_no": 10, "api_passed": 0 },
+      { "api_id": 3372, "api_no": 20, "api_color_no": 5, "api_passed": 1 },
+      { "api_id": 3373, "api_no": 21, "api_color_no": 5, "api_passed": 1 }
+    ],
+    "api_rashin_flg": 1,
+    "api_rashin_id": 3,
+    "api_maparea_id": 5,
+    "api_mapinfo_no": 2,
+    "api_no": 2,
+    "api_color_no": 4,
+    "api_event_id": 6,
+    "api_event_kind": 0,
+    "api_next": 1,
+    "api_bosscell_no": 15,
+    "api_bosscomp": 1,
+    "api_cell_flavor": {
+      "api_type": 0,
+      "api_message": "\u3053\u308c\u3088\u308a\u6226\u5834\u6d77\u57df\u306b\u7a81\u5165\u3059\u3002\u8266\u968a\u3001\u6226\u95d8\u914d\u7f6e!"
+    },
+    "api_airsearch": { "api_plane_type": 0, "api_result": 0 },
+    "api_limit_state": 0,
+    "api_from_no": 0
+  }
+}

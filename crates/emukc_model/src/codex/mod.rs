@@ -1,6 +1,6 @@
 //! All the data need for running the game logic
 
-use std::{fs::create_dir_all, str::FromStr};
+use std::{borrow::Cow, fs::create_dir_all, str::FromStr};
 
 use game_config::GameConfig;
 use thiserror::Error;
@@ -13,7 +13,6 @@ use crate::{
 
 pub mod furniture;
 pub mod game_config;
-pub mod generated_map_catalog;
 pub mod group;
 pub mod incentive;
 /// Map catalog and cache parsing support.
@@ -65,6 +64,9 @@ pub struct Codex {
 	/// thirdparty slot item extra info map.
 	pub slotitem_extra_info: thirdparty::Kc3rdSlotItemMap,
 
+	/// thirdparty enemy ship extra info map.
+	pub enemy_ship_extra: thirdparty::Kc3rdEnemyShipMap,
+
 	/// thirdparty picturebook extra info.
 	pub picturebook_extra: thirdparty::Kc3rdPicturebookExtra,
 
@@ -96,6 +98,7 @@ const PATH_SHIP_EXTRA: &str = "ship_extra.json";
 const PATH_SHIP_CLASS_NAME: &str = "ship_class_name.json";
 const PATH_SHIP_PICTUREBOOK: &str = "ship_picturebook.json";
 const PATH_SLOTITEM_EXTRA_INFO: &str = "slotitem_extra_info.json";
+const PATH_ENEMY_SHIP_EXTRA: &str = "enemy_ship_extra.json";
 const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
@@ -106,6 +109,18 @@ const PATH_GAME_CFG: &str = "game_config.json";
 const PATH_CACHE_SOURCE: &str = "cache_source.json";
 
 impl Codex {
+	/// Return the active runtime map catalog.
+	///
+	/// When no bootstrap/generated map catalog has been loaded yet, this falls back to a
+	/// manifest-derived synthetic catalog.
+	pub fn map_catalog(&self) -> Cow<'_, map::MapCatalog> {
+		if self.maps.maps.is_empty() {
+			Cow::Owned(map::MapCatalog::from_manifest(&self.manifest))
+		} else {
+			Cow::Borrowed(&self.maps)
+		}
+	}
+
 	/// Load `Codex` instance from directory.
 	///
 	/// the `ApiManifest` is loaded from `dir/start2.json`.
@@ -178,6 +193,12 @@ impl Codex {
 			data.into_iter().map(|v| (v.api_id, v)).collect()
 		};
 
+		let enemy_ship_extra = {
+			let path = path.join(PATH_ENEMY_SHIP_EXTRA);
+			let data: Option<Vec<thirdparty::Kc3rdEnemyShip>> = Self::load_optional_item(path)?;
+			data.unwrap_or_default().into_iter().map(|v| (v.api_id, v)).collect()
+		};
+
 		let picturebook_extra = {
 			let path = path.join(PATH_PICTUREBOOK_EXTRA_INFO);
 			let raw = std::fs::read_to_string(&path)?;
@@ -218,9 +239,7 @@ impl Codex {
 			None
 		};
 
-		let maps = Self::load_optional_item(path.join(PATH_MAP_CATALOG))?
-			.or_else(generated_map_catalog::load)
-			.unwrap_or_else(|| map::MapCatalog::from_manifest(&manifest));
+		let maps = Self::load_single_item(path.join(PATH_MAP_CATALOG))?;
 
 		Ok(Codex {
 			manifest,
@@ -228,6 +247,7 @@ impl Codex {
 			ship_class_name,
 			ship_picturebook,
 			slotitem_extra_info,
+			enemy_ship_extra,
 			picturebook_extra,
 			navy: Self::load_single_item(path.join(PATH_NAVY))?,
 			quest,
@@ -311,6 +331,15 @@ impl Codex {
 				return Err(CodexError::AlreadyExist(path.display().to_string()));
 			}
 			let data = self.slotitem_extra_info.values().collect::<Vec<_>>();
+			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
+		}
+		// enemy ship extra info
+		{
+			let path = dst.join(PATH_ENEMY_SHIP_EXTRA);
+			if path.exists() && !overwrite {
+				return Err(CodexError::AlreadyExist(path.display().to_string()));
+			}
+			let data = self.enemy_ship_extra.values().collect::<Vec<_>>();
 			std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
 		}
 		// picturebook extra info
@@ -407,15 +436,6 @@ impl Codex {
 		let raw = std::fs::read_to_string(path)?;
 		Ok(Some(serde_json::from_str(&raw)?))
 	}
-
-	/// Populate the in-memory map catalog from a local `kc_data` root.
-	pub fn load_maps_from_kcdata_root(
-		&mut self,
-		kcdata_root: impl AsRef<std::path::Path>,
-	) -> Result<(), CodexError> {
-		self.maps = map::MapCatalog::load_from_kcdata_root(kcdata_root, &self.manifest);
-		Ok(())
-	}
 }
 
 fn normalize_loaded_quest_groups(quests: &mut thirdparty::Kc3rdQuestMap) {
@@ -441,5 +461,32 @@ fn normalize_requirement_groups(requirement: &mut Kc3rdQuestRequirement) {
 				group.other_ships = true;
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn load_requires_generated_map_catalog() {
+		let source_root =
+			std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/codex");
+		let temp_root = tempfile::tempdir().unwrap();
+
+		for entry in std::fs::read_dir(&source_root).unwrap().flatten() {
+			let path = entry.path();
+			if !path.is_file() {
+				continue;
+			}
+			let file_name = path.file_name().unwrap();
+			if file_name == std::ffi::OsStr::new(PATH_MAP_CATALOG) {
+				continue;
+			}
+			std::fs::copy(&path, temp_root.path().join(file_name)).unwrap();
+		}
+
+		let error = Codex::load_without_cache_source(temp_root.path()).unwrap_err();
+		assert!(matches!(error, CodexError::Io(_)));
 	}
 }

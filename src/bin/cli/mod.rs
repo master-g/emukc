@@ -13,6 +13,7 @@ mod cache;
 mod dev;
 mod serve;
 mod version;
+mod wikiwiki_map;
 
 const INFO: &str = r#"
 Yet Another Kantai Collection Emulator
@@ -53,6 +54,9 @@ enum Commands {
 
 	#[command(about = "Prepare the bootstrap files")]
 	Bootstrap(bootstrap::BootstrapArgs),
+
+	#[command(about = "Maintain the repo-tracked wikiwiki map catalog")]
+	WikiwikiMap(wikiwiki_map::WikiwikiMapArgs),
 
 	#[command(about = "Cache management")]
 	Cache(cache::CacheArgs),
@@ -191,6 +195,7 @@ pub async fn init() -> ExitCode {
 			Ok(())
 		}
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
+		Some(Commands::WikiwikiMap(args)) => wikiwiki_map::exec(&args).await,
 		Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
 		Some(Commands::Serve(args)) => {
 			let Some(state) = prepare_state(&cfg).await else {

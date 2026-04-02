@@ -127,30 +127,42 @@ where
 		if has_exercise {
 			let mut current_conditions: Vec<Kc3rdQuestCondition> =
 				serde_json::from_value(quest_requirements)?;
-			let mut restored_activation_headroom = false;
-			for (current, master) in current_conditions.iter_mut().zip(master_conditions.iter()) {
-				let (Kc3rdQuestCondition::Exercise(current), Kc3rdQuestCondition::Exercise(master)) =
-					(current, master)
-				else {
-					continue;
-				};
-
-				// Inactive exercise quests can preview progress up to 80%, but they still need
-				// one real battle after activation to become claimable.
-				if current.times <= 0
-					&& master.times > 0
-					&& quest_progress != quest::progress::Progress::Completed
+			if current_conditions.len() != master_conditions.len() {
+				tracing::warn!(
+					quest_id,
+					current = current_conditions.len(),
+					master = master_conditions.len(),
+					"quest condition count mismatch between save and codex, skipping exercise headroom restore"
+				);
+			} else {
+				let mut restored_activation_headroom = false;
+				for (current, master) in current_conditions.iter_mut().zip(master_conditions.iter())
 				{
-					current.times = 1;
-					restored_activation_headroom = true;
-				}
-			}
+					let (
+						Kc3rdQuestCondition::Exercise(current),
+						Kc3rdQuestCondition::Exercise(master),
+					) = (current, master)
+					else {
+						continue;
+					};
 
-			if restored_activation_headroom {
-				am.requirements = ActiveValue::Set(serde_json::to_value(current_conditions)?);
-			}
-			if quest_progress == quest::progress::Progress::Completed {
-				am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
+					// Inactive exercise quests can preview progress up to 80%, but they still need
+					// one real battle after activation to become claimable.
+					if current.times <= 0
+						&& master.times > 0
+						&& quest_progress != quest::progress::Progress::Completed
+					{
+						current.times = 1;
+						restored_activation_headroom = true;
+					}
+				}
+
+				if restored_activation_headroom {
+					am.requirements = ActiveValue::Set(serde_json::to_value(current_conditions)?);
+				}
+				if quest_progress == quest::progress::Progress::Completed {
+					am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
+				}
 			}
 		}
 	}

@@ -3,8 +3,8 @@
 use crate::{
 	kc2::KcApiMusicListElement,
 	prelude::{
-		ApiMstFurniture, ApiMstPayitem, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdQuest,
-		Kc3rdShip, Kc3rdSlotItem,
+		ApiMstFurniture, ApiMstPayitem, ApiMstShip, ApiMstSlotitem, ApiMstUseitem, Kc3rdEnemyShip,
+		Kc3rdQuest, Kc3rdShip, Kc3rdSlotItem,
 	},
 };
 
@@ -81,6 +81,15 @@ impl FoundInCodex for Kc3rdShip {
 
 	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
 		codex.find_ship_extra(*key)
+	}
+}
+
+// Kc3rdEnemyShip
+impl FoundInCodex for Kc3rdEnemyShip {
+	type Key = i64;
+
+	fn find_in_codex<'a>(codex: &'a Codex, key: &'a Self::Key) -> Result<&'a Self, CodexError> {
+		codex.find_enemy_ship_extra(*key)
 	}
 }
 

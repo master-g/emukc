@@ -1,0 +1,5485 @@
+{
+  "maps": {
+    "11": {
+      "map_id": 11,
+      "maparea_id": 1,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3001
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3002
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3003
+            },
+            {
+              "cell_no": 3,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3004
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "12": {
+      "map_id": 12,
+      "maparea_id": 1,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3005
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3006
+            },
+            {
+              "cell_no": 2,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3007
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3008
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3009
+            },
+            {
+              "cell_no": 5,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3010
+            },
+            {
+              "cell_no": 6,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3011
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "13": {
+      "map_id": 13,
+      "maparea_id": 1,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3012
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3013
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3014
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3015
+            },
+            {
+              "cell_no": 4,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3016
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3017
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3018
+            },
+            {
+              "cell_no": 7,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3019
+            },
+            {
+              "cell_no": 8,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3020
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3021
+            },
+            {
+              "cell_no": 10,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3022
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3023
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3024
+            },
+            {
+              "cell_no": 13,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3025
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "14": {
+      "map_id": 14,
+      "maparea_id": 1,
+      "mapinfo_no": 4,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3026
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3027
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3028
+            },
+            {
+              "cell_no": 3,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3029
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3030
+            },
+            {
+              "cell_no": 5,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3031
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3032
+            },
+            {
+              "cell_no": 7,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3033
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3034
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3035
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3036
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3037
+            },
+            {
+              "cell_no": 12,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3038
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3039
+            },
+            {
+              "cell_no": 14,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3040
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3041
+            },
+            {
+              "cell_no": 16,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3042
+            },
+            {
+              "cell_no": 17,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3043
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "15": {
+      "map_id": 15,
+      "maparea_id": 1,
+      "mapinfo_no": 5,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3092
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3093
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3094
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3095
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3096
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3097
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3098
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3099
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3100
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3101
+            },
+            {
+              "cell_no": 10,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3102
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3103
+            },
+            {
+              "cell_no": 12,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3104
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "21": {
+      "map_id": 21,
+      "maparea_id": 2,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3044
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3045
+            },
+            {
+              "cell_no": 2,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3046
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3047
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3048
+            },
+            {
+              "cell_no": 5,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3049
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3050
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3051
+            },
+            {
+              "cell_no": 8,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3052
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3053
+            },
+            {
+              "cell_no": 10,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3054
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3055
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "22": {
+      "map_id": 22,
+      "maparea_id": 2,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3056
+            },
+            {
+              "cell_no": 1,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3057
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3058
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3059
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3060
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3061
+            },
+            {
+              "cell_no": 6,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3062
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3063
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3064
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3065
+            },
+            {
+              "cell_no": 10,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3066
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3067
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3068
+            },
+            {
+              "cell_no": 13,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3069
+            },
+            {
+              "cell_no": 14,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3070
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "23": {
+      "map_id": 23,
+      "maparea_id": 2,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3071
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3072
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3073
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3074
+            },
+            {
+              "cell_no": 4,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3075
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3076
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3077
+            },
+            {
+              "cell_no": 7,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3078
+            },
+            {
+              "cell_no": 8,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3079
+            },
+            {
+              "cell_no": 9,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3080
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3081
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3082
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3083
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3084
+            },
+            {
+              "cell_no": 14,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3085
+            },
+            {
+              "cell_no": 15,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3086
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3087
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3088
+            },
+            {
+              "cell_no": 18,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3089
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3090
+            },
+            {
+              "cell_no": 20,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3091
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "24": {
+      "map_id": 24,
+      "maparea_id": 2,
+      "mapinfo_no": 4,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3105
+            },
+            {
+              "cell_no": 1,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3106
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3107
+            },
+            {
+              "cell_no": 3,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3108
+            },
+            {
+              "cell_no": 4,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3109
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3110
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3111
+            },
+            {
+              "cell_no": 7,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3112
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3113
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3114
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3115
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3116
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3117
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3118
+            },
+            {
+              "cell_no": 14,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3119
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3120
+            },
+            {
+              "cell_no": 16,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3121
+            },
+            {
+              "cell_no": 17,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3122
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3123
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3124
+            },
+            {
+              "cell_no": 20,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3125
+            },
+            {
+              "cell_no": 21,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3126
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "25": {
+      "map_id": 25,
+      "maparea_id": 2,
+      "mapinfo_no": 5,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3127
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3128
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3129
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3130
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3131
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3132
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3133
+            },
+            {
+              "cell_no": 7,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3134
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3135
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3136
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3137
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3138
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3139
+            },
+            {
+              "cell_no": 13,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3140
+            },
+            {
+              "cell_no": 14,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3141
+            },
+            {
+              "cell_no": 15,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3142
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3143
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3144
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3145
+            },
+            {
+              "cell_no": 19,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3146
+            },
+            {
+              "cell_no": 20,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3147
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "31": {
+      "map_id": 31,
+      "maparea_id": 3,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3164
+            },
+            {
+              "cell_no": 1,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3165
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3166
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3167
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3168
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3169
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3170
+            },
+            {
+              "cell_no": 7,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3171
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3172
+            },
+            {
+              "cell_no": 9,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3173
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "32": {
+      "map_id": 32,
+      "maparea_id": 3,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3174
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3175
+            },
+            {
+              "cell_no": 2,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3176
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3177
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3178
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3179
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3180
+            },
+            {
+              "cell_no": 7,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3181
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3182
+            },
+            {
+              "cell_no": 9,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3183
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3184
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3185
+            },
+            {
+              "cell_no": 12,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3186
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3187
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3188
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3189
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "33": {
+      "map_id": 33,
+      "maparea_id": 3,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3190
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3191
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3192
+            },
+            {
+              "cell_no": 3,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3193
+            },
+            {
+              "cell_no": 4,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3194
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3195
+            },
+            {
+              "cell_no": 6,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3196
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3197
+            },
+            {
+              "cell_no": 8,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3198
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3199
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3200
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3201
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3202
+            },
+            {
+              "cell_no": 13,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3203
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3204
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3205
+            },
+            {
+              "cell_no": 16,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3206
+            },
+            {
+              "cell_no": 17,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3207
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "34": {
+      "map_id": 34,
+      "maparea_id": 3,
+      "mapinfo_no": 4,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3208
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3209
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3210
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3211
+            },
+            {
+              "cell_no": 4,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3212
+            },
+            {
+              "cell_no": 5,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3213
+            },
+            {
+              "cell_no": 6,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3214
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3215
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3216
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3217
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3218
+            },
+            {
+              "cell_no": 11,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3219
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3220
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3221
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3222
+            },
+            {
+              "cell_no": 15,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3223
+            },
+            {
+              "cell_no": 16,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3224
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3225
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3226
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3227
+            },
+            {
+              "cell_no": 20,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3228
+            },
+            {
+              "cell_no": 21,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3229
+            },
+            {
+              "cell_no": 22,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3230
+            },
+            {
+              "cell_no": 23,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3231
+            },
+            {
+              "cell_no": 24,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3232
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "35": {
+      "map_id": 35,
+      "maparea_id": 3,
+      "mapinfo_no": 5,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 310
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 311
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 312
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 313
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 314
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 315
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 316
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 317
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 318
+            },
+            {
+              "cell_no": 9,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 319
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 320
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 321
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 322
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 323
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 324
+            },
+            {
+              "cell_no": 15,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 325
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "41": {
+      "map_id": 41,
+      "maparea_id": 4,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3233
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3234
+            },
+            {
+              "cell_no": 2,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3235
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3236
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3237
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3238
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3239
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3240
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3241
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3242
+            },
+            {
+              "cell_no": 10,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3243
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3244
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3245
+            },
+            {
+              "cell_no": 13,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3246
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "42": {
+      "map_id": 42,
+      "maparea_id": 4,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3247
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3248
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3249
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3250
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3251
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3252
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3253
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3254
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3255
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3256
+            },
+            {
+              "cell_no": 10,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3257
+            },
+            {
+              "cell_no": 11,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3258
+            },
+            {
+              "cell_no": 12,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3259
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3260
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3261
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3262
+            },
+            {
+              "cell_no": 16,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3263
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "43": {
+      "map_id": 43,
+      "maparea_id": 4,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3264
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3265
+            },
+            {
+              "cell_no": 2,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3266
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3267
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3268
+            },
+            {
+              "cell_no": 5,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3269
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3270
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3271
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3272
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3273
+            },
+            {
+              "cell_no": 10,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3274
+            },
+            {
+              "cell_no": 11,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3275
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3276
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3277
+            },
+            {
+              "cell_no": 14,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3278
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3279
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3280
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3281
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3282
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3283
+            },
+            {
+              "cell_no": 20,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3284
+            },
+            {
+              "cell_no": 21,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3285
+            },
+            {
+              "cell_no": 22,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3286
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "44": {
+      "map_id": 44,
+      "maparea_id": 4,
+      "mapinfo_no": 4,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3287
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3288
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3289
+            },
+            {
+              "cell_no": 3,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3290
+            },
+            {
+              "cell_no": 4,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3291
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3292
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3293
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3294
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3295
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3296
+            },
+            {
+              "cell_no": 10,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3297
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3298
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3299
+            },
+            {
+              "cell_no": 13,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3300
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3301
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3302
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3303
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3304
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "45": {
+      "map_id": 45,
+      "maparea_id": 4,
+      "mapinfo_no": 5,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3305
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3306
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3307
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3308
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3309
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3310
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3311
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3312
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3313
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3314
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3315
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3316
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3317
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3318
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3319
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3320
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3321
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3322
+            },
+            {
+              "cell_no": 18,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3323
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3324
+            },
+            {
+              "cell_no": 20,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3325
+            },
+            {
+              "cell_no": 21,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3326
+            },
+            {
+              "cell_no": 22,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3327
+            },
+            {
+              "cell_no": 23,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3328
+            },
+            {
+              "cell_no": 24,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3329
+            },
+            {
+              "cell_no": 25,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3330
+            },
+            {
+              "cell_no": 26,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3331
+            },
+            {
+              "cell_no": 27,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3332
+            },
+            {
+              "cell_no": 28,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3333
+            },
+            {
+              "cell_no": 29,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3334
+            },
+            {
+              "cell_no": 30,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3335
+            },
+            {
+              "cell_no": 31,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3336
+            },
+            {
+              "cell_no": 32,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3337
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "51": {
+      "map_id": 51,
+      "maparea_id": 5,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3338
+            },
+            {
+              "cell_no": 1,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3339
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3340
+            },
+            {
+              "cell_no": 3,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3341
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3342
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3343
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3344
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3345
+            },
+            {
+              "cell_no": 8,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3346
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3347
+            },
+            {
+              "cell_no": 10,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3348
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3349
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3350
+            },
+            {
+              "cell_no": 13,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3351
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "52": {
+      "map_id": 52,
+      "maparea_id": 5,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3352
+            },
+            {
+              "cell_no": 1,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3353
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3354
+            },
+            {
+              "cell_no": 3,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3355
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3356
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3357
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3358
+            },
+            {
+              "cell_no": 7,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3359
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3360
+            },
+            {
+              "cell_no": 9,
+              "color_no": 7,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3361
+            },
+            {
+              "cell_no": 10,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3362
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3363
+            },
+            {
+              "cell_no": 12,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3364
+            },
+            {
+              "cell_no": 13,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3365
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3366
+            },
+            {
+              "cell_no": 15,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3367
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3368
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3369
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3370
+            },
+            {
+              "cell_no": 19,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3371
+            },
+            {
+              "cell_no": 20,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3372
+            },
+            {
+              "cell_no": 21,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3373
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "53": {
+      "map_id": 53,
+      "maparea_id": 5,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3374
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3375
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3376
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3377
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3378
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3379
+            },
+            {
+              "cell_no": 6,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3380
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3381
+            },
+            {
+              "cell_no": 8,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3382
+            },
+            {
+              "cell_no": 9,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3383
+            },
+            {
+              "cell_no": 10,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3384
+            },
+            {
+              "cell_no": 11,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3385
+            },
+            {
+              "cell_no": 12,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3386
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3387
+            },
+            {
+              "cell_no": 14,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3388
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3389
+            },
+            {
+              "cell_no": 16,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3390
+            },
+            {
+              "cell_no": 17,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3391
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3392
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3393
+            },
+            {
+              "cell_no": 20,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3394
+            },
+            {
+              "cell_no": 21,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3395
+            },
+            {
+              "cell_no": 22,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3396
+            },
+            {
+              "cell_no": 23,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3397
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "54": {
+      "map_id": 54,
+      "maparea_id": 5,
+      "mapinfo_no": 4,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3398
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3399
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3400
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3401
+            },
+            {
+              "cell_no": 4,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3402
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3403
+            },
+            {
+              "cell_no": 6,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3404
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3405
+            },
+            {
+              "cell_no": 8,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3406
+            },
+            {
+              "cell_no": 9,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3407
+            },
+            {
+              "cell_no": 10,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3408
+            },
+            {
+              "cell_no": 11,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3409
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3410
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3411
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3412
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3413
+            },
+            {
+              "cell_no": 16,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3414
+            },
+            {
+              "cell_no": 17,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3415
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3416
+            },
+            {
+              "cell_no": 19,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3417
+            },
+            {
+              "cell_no": 20,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3418
+            },
+            {
+              "cell_no": 21,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3419
+            },
+            {
+              "cell_no": 22,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3420
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "55": {
+      "map_id": 55,
+      "maparea_id": 5,
+      "mapinfo_no": 5,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3421
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3422
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3423
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3424
+            },
+            {
+              "cell_no": 4,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3425
+            },
+            {
+              "cell_no": 5,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3426
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3427
+            },
+            {
+              "cell_no": 7,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3428
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3429
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3430
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3431
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3432
+            },
+            {
+              "cell_no": 12,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3433
+            },
+            {
+              "cell_no": 13,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3434
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3435
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3436
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3437
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3438
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3439
+            },
+            {
+              "cell_no": 19,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3440
+            },
+            {
+              "cell_no": 20,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3441
+            },
+            {
+              "cell_no": 21,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3442
+            },
+            {
+              "cell_no": 22,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3443
+            },
+            {
+              "cell_no": 23,
+              "color_no": 11,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3444
+            },
+            {
+              "cell_no": 24,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3445
+            },
+            {
+              "cell_no": 25,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3446
+            },
+            {
+              "cell_no": 26,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3447
+            },
+            {
+              "cell_no": 27,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3448
+            },
+            {
+              "cell_no": 28,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3449
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "61": {
+      "map_id": 61,
+      "maparea_id": 6,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 326
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 327
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 328
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 329
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 330
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 331
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 332
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 333
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 334
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 335
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 336
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 337
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 338
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 339
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "62": {
+      "map_id": 62,
+      "maparea_id": 6,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 340
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 341
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 342
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 343
+            },
+            {
+              "cell_no": 4,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 344
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 345
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 346
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 347
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 348
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 349
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 350
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 351
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 352
+            },
+            {
+              "cell_no": 13,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 353
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 354
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 355
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 356
+            },
+            {
+              "cell_no": 17,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 357
+            },
+            {
+              "cell_no": 18,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 358
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "63": {
+      "map_id": 63,
+      "maparea_id": 6,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 397
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 398
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 399
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 400
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 401
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 402
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 403
+            },
+            {
+              "cell_no": 7,
+              "color_no": 9,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 404
+            },
+            {
+              "cell_no": 8,
+              "color_no": 9,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 405
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 406
+            },
+            {
+              "cell_no": 10,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 407
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 408
+            },
+            {
+              "cell_no": 12,
+              "color_no": 9,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 409
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "64": {
+      "map_id": 64,
+      "maparea_id": 6,
+      "mapinfo_no": 4,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 411
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 412,
+              "distance": 1
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 413,
+              "distance": 1
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 414,
+              "distance": 3
+            },
+            {
+              "cell_no": 4,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 415,
+              "distance": 2
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 416,
+              "distance": 2
+            },
+            {
+              "cell_no": 6,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 417,
+              "distance": 4
+            },
+            {
+              "cell_no": 7,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 418,
+              "distance": 3
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 419,
+              "distance": 7
+            },
+            {
+              "cell_no": 9,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 420,
+              "distance": 6
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 421,
+              "distance": 6
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 422,
+              "distance": 7
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 423,
+              "distance": 7
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 424,
+              "distance": 8
+            },
+            {
+              "cell_no": 14,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 425,
+              "distance": 5
+            },
+            {
+              "cell_no": 15,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 426,
+              "distance": 2
+            },
+            {
+              "cell_no": 16,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 427,
+              "distance": 2
+            },
+            {
+              "cell_no": 17,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 428,
+              "distance": 2
+            },
+            {
+              "cell_no": 18,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 429,
+              "distance": 6
+            },
+            {
+              "cell_no": 19,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 430,
+              "distance": 6
+            },
+            {
+              "cell_no": 20,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 431,
+              "distance": 5
+            },
+            {
+              "cell_no": 21,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 432,
+              "distance": 5
+            },
+            {
+              "cell_no": 22,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 433
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "65": {
+      "map_id": 65,
+      "maparea_id": 6,
+      "mapinfo_no": 5,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 434
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 435,
+              "distance": 1
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 436,
+              "distance": 1
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 437,
+              "distance": 2
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 438,
+              "distance": 3
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 439,
+              "distance": 3
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 440,
+              "distance": 2
+            },
+            {
+              "cell_no": 7,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 441,
+              "distance": 4
+            },
+            {
+              "cell_no": 8,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 442,
+              "distance": 4
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 443,
+              "distance": 3
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 444,
+              "distance": 4
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 445,
+              "distance": 5
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 446,
+              "distance": 5
+            },
+            {
+              "cell_no": 13,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 447,
+              "distance": 5
+            },
+            {
+              "cell_no": 14,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 448,
+              "distance": 2
+            },
+            {
+              "cell_no": 15,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 449,
+              "distance": 4
+            },
+            {
+              "cell_no": 16,
+              "color_no": 10,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 450,
+              "distance": 4
+            },
+            {
+              "cell_no": 17,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 451,
+              "distance": 3
+            },
+            {
+              "cell_no": 18,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 452,
+              "distance": 5
+            },
+            {
+              "cell_no": 19,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 456
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "71": {
+      "map_id": 71,
+      "maparea_id": 7,
+      "mapinfo_no": 1,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3148
+            },
+            {
+              "cell_no": 1,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3149
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3150
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3151
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3152
+            },
+            {
+              "cell_no": 5,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3153
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3154
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3155
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3156
+            },
+            {
+              "cell_no": 9,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3157
+            },
+            {
+              "cell_no": 10,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3158
+            },
+            {
+              "cell_no": 11,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3159
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3160
+            },
+            {
+              "cell_no": 13,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3161
+            },
+            {
+              "cell_no": 14,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3162
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3163
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "72": {
+      "map_id": 72,
+      "maparea_id": 7,
+      "mapinfo_no": 2,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3642
+            },
+            {
+              "cell_no": 1,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3643
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3644
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3645
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3646
+            },
+            {
+              "cell_no": 5,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3647
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3648
+            },
+            {
+              "cell_no": 7,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3649
+            },
+            {
+              "cell_no": 8,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3650
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 3651
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    },
+    "73": {
+      "map_id": 73,
+      "maparea_id": 7,
+      "mapinfo_no": 3,
+      "name": "",
+      "level": 0,
+      "sally_flag": [],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "default_variant": "",
+      "variants": {
+        "pre_p_unlock": {
+          "variant_key": "pre_p_unlock",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4801
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4802
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4803
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4804
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4805
+            },
+            {
+              "cell_no": 5,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4806
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4807
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4808
+            },
+            {
+              "cell_no": 8,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4809
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        }
+      }
+    }
+  }
+}

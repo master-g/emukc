@@ -3,6 +3,8 @@
 #[doc(hidden)]
 mod cache;
 #[doc(hidden)]
+mod enemy;
+#[doc(hidden)]
 pub mod expedition;
 #[doc(hidden)]
 mod picturebook;
@@ -18,6 +20,10 @@ mod slotitem;
 #[doc(inline)]
 #[allow(unused_imports)]
 pub use cache::*;
+
+#[doc(inline)]
+#[allow(unused_imports)]
+pub use enemy::*;
 
 #[doc(inline)]
 #[allow(unused_imports)]

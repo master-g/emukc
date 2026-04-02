@@ -83,8 +83,8 @@ async fn build_require_info_response<T: GameOps + HasContext + ?Sized>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use std::path::PathBuf;
 	use emukc_internal::db::prelude::new_mem_db;
+	use std::path::PathBuf;
 
 	async fn new_game_session() -> ((emukc_internal::db::sea_orm::DbConn, Codex), StartGameInfo) {
 		let db = new_mem_db().await.unwrap();
@@ -106,13 +106,8 @@ mod tests {
 		let pid = session.profile.id;
 
 		let before = build_require_info_response(&context, pid).await.unwrap();
-		let craftable = context
-			.1
-			.slotitem_extra_info
-			.values()
-			.find(|item| item.craftable)
-			.unwrap()
-			.api_id;
+		let craftable =
+			context.1.slotitem_extra_info.values().find(|item| item.craftable).unwrap().api_id;
 		let costs = vec![
 			(MaterialCategory::Fuel, 10),
 			(MaterialCategory::Ammo, 10),
@@ -129,18 +124,10 @@ mod tests {
 		assert_eq!(after.api_slot_item.len(), before.api_slot_item.len() + 1);
 		assert!(after.api_slot_item.iter().any(|item| item.api_id == created_id));
 
-		let type3 = context
-			.1
-			.find::<ApiMstSlotitem>(&craftable)
-			.unwrap()
-			.api_type[2]
-			.to_string();
+		let type3 = context.1.find::<ApiMstSlotitem>(&craftable).unwrap().api_type[2].to_string();
 		let unset_key = format!("api_slottype{type3}");
 		assert!(
-			after
-				.api_unsetslot
-				.get(&unset_key)
-				.is_some_and(|items| items.contains(&created_id))
+			after.api_unsetslot.get(&unset_key).is_some_and(|items| items.contains(&created_id))
 		);
 	}
 }

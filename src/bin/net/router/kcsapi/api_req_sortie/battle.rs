@@ -10,15 +10,15 @@ use emukc_internal::prelude::*;
 
 #[derive(Deserialize)]
 pub(super) struct Params {
-	api_formation: i64,
+	pub(super) api_formation: i64,
 	#[serde(default)]
-	api_recovery_type: i64,
+	pub(super) api_recovery_type: i64,
 	#[serde(default)]
-	api_supply_flag: Option<i64>,
+	pub(super) api_supply_flag: Option<i64>,
 	#[serde(default)]
-	api_ration_flag: Option<i64>,
+	pub(super) api_ration_flag: Option<i64>,
 	#[serde(default)]
-	api_smoke_flag: Option<i64>,
+	pub(super) api_smoke_flag: Option<i64>,
 }
 
 pub(super) async fn handler(

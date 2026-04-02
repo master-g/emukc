@@ -25,7 +25,10 @@ pub use quest::QuestOps;
 pub use settings::SettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
-pub use sortie::SortieOps;
+pub use sortie::{
+	SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieNextResponse, SortieOps,
+	SortieStartResponse,
+};
 pub use use_item::UseItemOps;
 
 use crate::gameplay::HasContext;
@@ -43,6 +46,8 @@ mod incentive;
 mod init;
 mod kdock;
 mod map;
+mod map_progress;
+mod map_route;
 mod material;
 mod ndock;
 mod pay_item;
@@ -54,6 +59,7 @@ mod settings;
 mod ship;
 mod slot_item;
 mod sortie;
+mod sortie_result;
 mod use_item;
 
 /// A trait for gameplay logic.
@@ -104,6 +110,7 @@ pub mod types {
 	#[doc(hidden)]
 	pub use crate::game::{
 		ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PowerupResp,
-		SlotDepriveParams,
+		SlotDepriveParams, SortieAirSearch, SortieCellData, SortieEnemyDeckPreview,
+		SortieNextResponse, SortieStartResponse,
 	};
 }
