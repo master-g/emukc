@@ -2,6 +2,16 @@
 
 > 战斗系统按可落地的增量阶段推进，而不是一次性实现完整 KC 全战斗域。
 
+## Immediate Repair Track
+
+当前最紧急的 battle 工作不是继续扩机制覆盖面，而是先修复会让客户端崩溃的非法 payload：
+
+- 错误的 `api_si_list` / 攻击类型组合
+- manifest 中不存在的敌舰装备 ID
+- fallback 敌舰的 `api_onslot` / `api_eSlot` 不一致
+
+详见：[`data-fidelity-fix.md`](./data-fidelity-fix.md)
+
 ## Current Baseline
 
 仓库当前真实状态：
