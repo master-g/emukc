@@ -29,6 +29,7 @@ pub use sortie::{
 	SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
 	SortieNextResponse, SortieOps, SortieStartResponse,
 };
+pub use sortie_store::SortieStore;
 pub use use_item::UseItemOps;
 
 use crate::gameplay::HasContext;
@@ -60,6 +61,7 @@ mod ship;
 mod slot_item;
 mod sortie;
 mod sortie_result;
+pub(crate) mod sortie_store;
 mod use_item;
 
 /// A trait for gameplay logic.

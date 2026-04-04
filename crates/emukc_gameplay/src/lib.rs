@@ -27,6 +27,7 @@ pub mod prelude {
 		err::GameplayError,
 		game::ops::*,
 		game::types::*,
+		game::SortieStore,
 		gameplay::{Gameplay, HasContext},
 		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
 	};

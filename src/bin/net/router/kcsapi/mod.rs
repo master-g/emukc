@@ -128,6 +128,7 @@ pub(super) mod test_utils {
 			db,
 			kache,
 			codex: Arc::new(codex),
+			sortie_store: Arc::new(SortieStore::new()),
 		});
 
 		let account = state.sign_up("router-test", "1234567").await.unwrap();

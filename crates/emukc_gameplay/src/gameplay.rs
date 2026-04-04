@@ -7,7 +7,7 @@ use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
 use crate::{
-	game::GameOps,
+	game::{GameOps, SortieStore, sortie_store::GLOBAL_SORTIE_STORE},
 	user::{AccountOps, ProfileOps},
 };
 
@@ -18,6 +18,14 @@ pub trait HasContext: Send + Sync {
 
 	/// Get the game's codex.
 	fn codex(&self) -> &Codex;
+
+	/// Get the sortie runtime store.
+	///
+	/// Defaults to a process-global instance.  Override this to provide
+	/// instance-scoped isolation (e.g., in tests or multi-tenant runtimes).
+	fn sortie_store(&self) -> &SortieStore {
+		&GLOBAL_SORTIE_STORE
+	}
 }
 
 /// Gameplay trait for the game's data and logic.

@@ -5,7 +5,7 @@ use std::{fs::create_dir, sync::Arc};
 use anyhow::bail;
 use emukc_internal::{
 	db::sea_orm::DbConn,
-	prelude::{Codex, HasContext, Kache, prepare},
+	prelude::{Codex, HasContext, Kache, SortieStore, prepare},
 };
 
 use crate::cfg::AppConfig;
@@ -23,6 +23,9 @@ pub struct State {
 
 	/// Codex instance
 	pub codex: Arc<Codex>,
+
+	/// Sortie runtime state store (instance-scoped)
+	pub sortie_store: Arc<SortieStore>,
 }
 
 impl State {
@@ -64,6 +67,7 @@ impl State {
 			db,
 			kache,
 			codex,
+			sortie_store: Arc::new(SortieStore::new()),
 		})
 	}
 }
@@ -77,6 +81,10 @@ impl HasContext for State {
 
 	fn codex(&self) -> &Codex {
 		self.codex.as_ref()
+	}
+
+	fn sortie_store(&self) -> &SortieStore {
+		self.sortie_store.as_ref()
 	}
 }
 
