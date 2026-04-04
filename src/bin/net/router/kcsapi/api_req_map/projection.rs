@@ -1,6 +1,7 @@
 use emukc_internal::prelude::{
-	KcApiMapAirSearch, KcApiMapCellData, KcApiMapEnemyDeckInfo, KcApiMapNext, KcApiMapStart,
-	SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieNextResponse,
+	KcApiMapAirSearch, KcApiMapCellData, KcApiMapEnemyDeckInfo, KcApiMapHappening,
+	KcApiMapItemGet, KcApiMapNext, KcApiMapStart, SortieAirSearch, SortieCellData,
+	SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
 	SortieStartResponse,
 };
 
@@ -25,6 +26,8 @@ pub(super) fn project_start(response: SortieStartResponse) -> KcApiMapStart {
 		api_e_deck_info: response
 			.enemy_deck_preview
 			.map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
+		api_itemget: None,
+		api_happening: None,
 	}
 }
 
@@ -49,6 +52,10 @@ pub(super) fn project_next(response: SortieNextResponse) -> KcApiMapNext {
 			.enemy_deck_preview
 			.map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
 		api_limit_state: response.limit_state,
+		api_itemget: response
+			.itemget
+			.map(|items| items.into_iter().map(project_itemget).collect()),
+		api_happening: response.happening.map(project_happening),
 	}
 }
 
@@ -73,5 +80,31 @@ fn project_enemy_deck_preview(preview: SortieEnemyDeckPreview) -> KcApiMapEnemyD
 	KcApiMapEnemyDeckInfo {
 		api_kind: preview.kind,
 		api_ship_ids: preview.ship_ids,
+	}
+}
+
+const RESOURCE_NAMES: [&str; 5] = ["", "燃料", "弾薬", "鋼材", "ボーキサイト"];
+
+fn project_itemget(item: SortieItemGet) -> KcApiMapItemGet {
+	let name = RESOURCE_NAMES
+		.get(item.resource_type as usize)
+		.unwrap_or(&"")
+		.to_string();
+	KcApiMapItemGet {
+		api_id: item.resource_type,
+		api_getcount: item.amount,
+		api_name: name,
+		api_icon_id: item.resource_type,
+		api_usemst: 0,
+	}
+}
+
+fn project_happening(h: SortieHappening) -> KcApiMapHappening {
+	KcApiMapHappening {
+		api_type: h.resource_type,
+		api_count: h.amount,
+		api_dentan: i64::from(h.radar_reduced),
+		api_mst_id: 0,
+		api_icon_id: h.resource_type,
 	}
 }

@@ -26,8 +26,8 @@ pub use settings::SettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
 pub use sortie::{
-	SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieNextResponse, SortieOps,
-	SortieStartResponse,
+	SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
+	SortieNextResponse, SortieOps, SortieStartResponse,
 };
 pub use use_item::UseItemOps;
 
@@ -111,6 +111,6 @@ pub mod types {
 	pub use crate::game::{
 		ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PowerupResp,
 		SlotDepriveParams, SortieAirSearch, SortieCellData, SortieEnemyDeckPreview,
-		SortieNextResponse, SortieStartResponse,
+		SortieHappening, SortieItemGet, SortieNextResponse, SortieStartResponse,
 	};
 }

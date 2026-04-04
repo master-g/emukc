@@ -4,21 +4,19 @@ use std::{
 };
 
 use async_trait::async_trait;
-use emukc_db::entity::profile::ship;
+use emukc_db::entity::profile::{item::slot_item, ship};
 use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
 #[cfg(test)]
-use emukc_model::codex::map::{
-	MapCellDefinition, RouteOperator, RoutePredicate, RouteRule, SpeedClass,
-};
+use emukc_model::codex::map::{RouteOperator, RoutePredicate, RouteRule, SpeedClass};
 use emukc_model::{
 	codex::{
 		Codex,
 		map::{
-			EnemyComposition, EnemyFleetDefinition, MapDefinition, MapStageDefinition,
-			MapVariantDefinition,
+			EnemyComposition, EnemyFleetDefinition, MapCellDefinition, MapDefinition,
+			MapStageDefinition, MapVariantDefinition,
 		},
 	},
-	kc2::{KcApiShip, KcApiSlotItem, UserHQRank, level, start2::ApiMstShip},
+	kc2::{KcApiShip, KcApiSlotItem, MaterialCategory, UserHQRank, level, start2::ApiMstShip},
 };
 #[cfg(test)]
 use emukc_time::chrono::Utc;
@@ -54,6 +52,7 @@ use super::{
 	},
 	map_progress::resolve_record_stage_id,
 	map_route::{FleetRouteContext, FleetRouteShipEntry, evaluate_route_destination},
+	material::{add_material_impl, deduct_material_impl, get_mat_impl},
 	quest::update::update_quest_progress_for_action,
 	slot_item::find_slot_items_by_id_impl,
 	sortie_result::{
@@ -128,6 +127,23 @@ pub struct SortieStartResponse {
 	pub enemy_deck_preview: Option<Vec<SortieEnemyDeckPreview>>,
 }
 
+/// Resource acquisition at a non-battle node.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SortieItemGet {
+	/// Resource type: 1=fuel, 2=ammo, 3=steel, 4=bauxite
+	pub resource_type: i64,
+	pub amount: i64,
+}
+
+/// Maelstrom (渦潮) resource loss.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SortieHappening {
+	/// Resource type: 1=fuel, 2=ammo
+	pub resource_type: i64,
+	pub amount: i64,
+	pub radar_reduced: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SortieNextResponse {
 	pub rashin_flg: bool,
@@ -147,6 +163,8 @@ pub struct SortieNextResponse {
 	pub airsearch: Option<SortieAirSearch>,
 	pub enemy_deck_preview: Option<Vec<SortieEnemyDeckPreview>>,
 	pub limit_state: Option<i64>,
+	pub itemget: Option<Vec<SortieItemGet>>,
+	pub happening: Option<SortieHappening>,
 }
 
 #[allow(non_snake_case)]
@@ -383,6 +401,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			state.locked_enemy_composition = locked_enemy_composition.clone();
 		});
 
+		// Resolve non-battle node effects (resource gain / maelstrom loss).
+		let tx = db.begin().await?;
+		let (itemget, happening) =
+			resolve_non_battle_node_effect(&tx, codex, profile_id, next, &fleet_ships).await?;
+		tx.commit().await?;
+
 		let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
 		Ok(SortieNextResponse {
 			rashin_flg: current.next_cells.len() > 1,
@@ -409,6 +433,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 				.map(build_enemy_deck_preview)
 				.filter(|preview| !preview.is_empty()),
 			limit_state: Some(0),
+			itemget,
+			happening,
 		})
 	}
 
@@ -603,6 +629,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			snapshot.get_exp =
 				calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
 			if let Some(updated) = pending_sortie_battle(profile_id) {
+				snapshot.friendly_nowhps =
+					updated.friendly.iter().map(|f| f.current_hp.max(0)).collect();
 				let friend_ships = updated
 					.friendly
 					.iter()
@@ -709,6 +737,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			SortieBattleResultSnapshot {
 				friendly_ship_ids: day_session.friendly_ship_ids.clone(),
 				enemy_ship_ids: day_session.enemy_ship_ids.clone(),
+				friendly_nowhps: pending_sortie_battle(profile_id)
+					.map(|s| s.friendly.iter().map(|f| f.current_hp.max(0)).collect())
+					.unwrap_or_default(),
 				win_rank: night_session.outcome.win_rank.clone(),
 				get_exp,
 				member_lv: profile.hq_level,
@@ -861,6 +892,7 @@ async fn sortie_battle_impl(
 		SortieBattleResultSnapshot {
 			friendly_ship_ids: session.friendly_ship_ids.clone(),
 			enemy_ship_ids: session.enemy_ship_ids.clone(),
+			friendly_nowhps: session.friendly.iter().map(|f| f.current_hp.max(0)).collect(),
 			win_rank: session.outcome.win_rank.clone(),
 			get_exp,
 			member_lv: profile.hq_level,
@@ -943,6 +975,102 @@ fn select_locked_enemy_composition(
 
 fn sortie_bosscomp(stage: &MapStageDefinition) -> bool {
 	stage.enemy_fleets.contains_key(&stage.boss_cell_no)
+}
+
+/// `KanColle` `event_id` values for non-battle cells:
+/// 0 = start, 1 = no event, 2 = resource obtain, 3 = maelstrom (渦潮),
+/// 4 = normal battle, 5 = boss, 6 = imaginary (気のせい), 7 = air battle.
+///
+/// Resolve resource acquisition or maelstrom loss for the given cell.
+/// Only `event_kind`=0 cells produce effects; battle cells are handled elsewhere.
+async fn resolve_non_battle_node_effect<C>(
+	c: &C,
+	codex: &Codex,
+	profile_id: i64,
+	cell: &MapCellDefinition,
+	fleet_ships: &[ship::Model],
+) -> Result<(Option<Vec<SortieItemGet>>, Option<SortieHappening>), GameplayError>
+where
+	C: ConnectionTrait,
+{
+	if cell.event_kind != 0 {
+		return Ok((None, None));
+	}
+
+	match cell.event_id {
+		2 => {
+			// Resource acquisition node: award a resource based on map area.
+			// Resource type cycles by color_no: 2=fuel, 3=ammo, 4=steel, 5=bauxite.
+			let resource_type = match cell.color_no {
+				2 => 1_i64, // green → fuel
+				3 => 2,     // red → ammo
+				6 => 3,     // grey → steel
+				_ => 4,     // yellow/etc → bauxite
+			};
+			// Amount is proportional to fleet size (5-15 per ship).
+			let base_amount = (fleet_ships.len() as i64) * 10;
+			let amount = (base_amount + (cell.cell_no % 5) * 3).max(5);
+			let category = MaterialCategory::from_id(resource_type);
+			let _ = add_material_impl(c, codex, profile_id, &[(category, amount)]).await?;
+			Ok((
+				Some(vec![SortieItemGet {
+					resource_type,
+					amount,
+				}]),
+				None,
+			))
+		}
+		3 => {
+			// Maelstrom (渦潮): lose fuel or ammo.
+			// Type: fuel (api_type=1) or ammo (api_type=2), determined by color_no.
+			let resource_type = if cell.color_no == 4 { 2 } else { 1 }; // purple=ammo, else=fuel
+			let mat = get_mat_impl(c, profile_id).await?;
+			let stock = if resource_type == 1 {
+				mat.fuel
+			} else {
+				mat.ammo
+			};
+			// Base loss is ~20-40% of current stock (simplified).
+			let base_loss = (stock * 3 / 10).max(1);
+			// Radar (電探, type3=12/13/93) reduces loss by ~50%.
+			let slot_ids: Vec<i64> = fleet_ships
+				.iter()
+				.flat_map(|s| [s.slot_1, s.slot_2, s.slot_3, s.slot_4, s.slot_5])
+				.filter(|&id| id > 0)
+				.collect();
+			let has_radar = if slot_ids.is_empty() {
+				false
+			} else {
+				slot_item::Entity::find()
+					.filter(slot_item::Column::Id.is_in(slot_ids))
+					.filter(slot_item::Column::Type3.is_in([12_i64, 13, 93]))
+					.count(c)
+					.await? > 0
+			};
+			let (actual_loss, radar_reduced) = if has_radar {
+				((base_loss + 1) / 2, true)
+			} else {
+				(base_loss, false)
+			};
+			let final_loss = actual_loss.min(stock);
+			if final_loss > 0 {
+				let category = MaterialCategory::from_id(resource_type);
+				let _ = deduct_material_impl(c, profile_id, &[(category, final_loss)]).await?;
+			}
+			Ok((
+				None,
+				Some(SortieHappening {
+					resource_type,
+					amount: final_loss,
+					radar_reduced,
+				}),
+			))
+		}
+		_ => {
+			// event_id 0 (start), 1 (nothing), 6 (imaginary) — no effect
+			Ok((None, None))
+		}
+	}
 }
 
 async fn build_fleet_route_context<C>(
@@ -1566,6 +1694,7 @@ mod tests {
 		SortieBattleResultSnapshot {
 			friendly_ship_ids: vec![],
 			enemy_ship_ids: vec![],
+			friendly_nowhps: vec![],
 			win_rank: "S".to_string(),
 			get_exp: 0,
 			member_lv: 0,
@@ -1721,6 +1850,7 @@ mod tests {
 			SortieBattleResultSnapshot {
 				friendly_ship_ids: session.friendly_ship_ids.clone(),
 				enemy_ship_ids: session.enemy_ship_ids.clone(),
+				friendly_nowhps: session.friendly.iter().map(|f| f.current_hp.max(0)).collect(),
 				win_rank: session.outcome.win_rank.clone(),
 				get_exp: 0,
 				member_lv: 1,

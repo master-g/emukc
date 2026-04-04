@@ -28,6 +28,7 @@ use super::{
 pub(super) struct SortieBattleResultSnapshot {
 	pub(super) friendly_ship_ids: Vec<i64>,
 	pub(super) enemy_ship_ids: Vec<i64>,
+	pub(super) friendly_nowhps: Vec<i64>,
 	pub(super) win_rank: String,
 	pub(super) get_exp: i64,
 	pub(super) member_lv: i64,
@@ -269,24 +270,44 @@ where
 	let updated_profile = am.update(c).await?;
 
 	for (idx, ship_id) in snapshot.friendly_ship_ids.iter().copied().enumerate() {
-		let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
-		if gain <= 0 {
-			continue;
-		}
 		let ship_model = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 			GameplayError::EntryNotFound(format!("ship with id {ship_id} not found"))
 		})?;
 		let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.clone().into();
-		let new_ship_exp = ship_model.exp_now + gain;
-		let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
-		let current_level_exp = level::ship_level_required_exp(ship_level);
-		let progress = if next_exp > current_level_exp {
-			((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
-		} else {
-			0
-		};
-		api_ship.api_lv = ship_level;
-		api_ship.api_exp = [new_ship_exp, next_exp, progress];
+
+		// Apply battle damage: update HP from battle result.
+		if let Some(&final_hp) = snapshot.friendly_nowhps.get(idx) {
+			api_ship.api_nowhp = final_hp.max(0);
+		}
+
+		// Consume fuel and ammo: 20% of max per battle node.
+		if let Ok(mst) =
+			codex.find::<emukc_model::kc2::start2::ApiMstShip>(&api_ship.api_ship_id)
+		{
+			let fuel_max = mst.api_fuel_max.unwrap_or(0);
+			let ammo_max = mst.api_bull_max.unwrap_or(0);
+			let fuel_cost = (fuel_max * 2 / 10).max(1);
+			let ammo_cost = (ammo_max * 2 / 10).max(1);
+			api_ship.api_fuel = (api_ship.api_fuel - fuel_cost).max(0);
+			api_ship.api_bull = (api_ship.api_bull - ammo_cost).max(0);
+		}
+
+		// Apply EXP gain.
+		let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
+		if gain > 0 {
+			let new_ship_exp = ship_model.exp_now + gain;
+			let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+			let current_level_exp = level::ship_level_required_exp(ship_level);
+			let progress = if next_exp > current_level_exp {
+				((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp))
+					.clamp(0, 99)
+			} else {
+				0
+			};
+			api_ship.api_lv = ship_level;
+			api_ship.api_exp = [new_ship_exp, next_exp, progress];
+		}
+
 		update_ship_impl(c, codex, &api_ship).await?;
 	}
 
@@ -407,6 +428,7 @@ mod tests {
 		SortieBattleResultSnapshot {
 			friendly_ship_ids: vec![],
 			enemy_ship_ids: vec![],
+			friendly_nowhps: vec![],
 			win_rank: win_rank.to_string(),
 			get_exp: 0,
 			member_lv: 0,

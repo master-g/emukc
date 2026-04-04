@@ -33,8 +33,11 @@
 ## High Priority - Core Gameplay
 - [ ] **Map & Sortie System** (`api_req_map/*`)
   - [x] `api_req_map/start` - sortie start
-  - [x] `api_req_map/next` - advance to next node
+  - [x] `api_req_map/next` - advance to next node (with non-battle node effects)
   - [x] `api_req_map/select_eventmap_rank` - event difficulty select
+  - [x] Non-battle node effects: resource acquisition, maelstrom (渦潮) with radar reduction
+  - [x] Battle damage persistence: ship HP updated after battle result
+  - [x] Sortie resource consumption: fuel/ammo per battle node
   - [ ] `api_req_map/air_raid` - air raid on base
   - [ ] `api_req_map/anchorage_repair` - anchorage repair
   - [ ] `api_req_map/start_air_base` - air base sortie
