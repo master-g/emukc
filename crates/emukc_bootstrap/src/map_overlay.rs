@@ -176,6 +176,81 @@ mod tests {
 		catalog
 	}
 
+	fn sample_7_3_catalog() -> MapCatalog {
+		fn cell(cell_no: i64) -> emukc_model::codex::map::MapCellDefinition {
+			emukc_model::codex::map::MapCellDefinition {
+				cell_no,
+				color_no: 0,
+				event_id: 0,
+				event_kind: 0,
+				next_cells: Vec::new(),
+				master_cell_id: None,
+				distance: None,
+			}
+		}
+
+		fn variant(
+			variant_key: &str,
+			cells: std::ops::RangeInclusive<i64>,
+			clear_to_variant_key: Option<&str>,
+		) -> MapVariantDefinition {
+			MapVariantDefinition {
+				variant_key: variant_key.to_string(),
+				boss_cell_no: 5,
+				cells: cells.map(cell).collect(),
+				routing_rules: BTreeMap::new(),
+				enemy_fleets: BTreeMap::new(),
+				ship_drops: BTreeMap::new(),
+				required_defeat_count: None,
+				clear_to_variant_key: clear_to_variant_key.map(ToOwned::to_owned),
+				parse_warnings: Vec::new(),
+			}
+		}
+
+		let mut catalog = MapCatalog::default();
+		catalog.maps.insert(
+			73,
+			MapDefinition {
+				map_id: 73,
+				maparea_id: 7,
+				mapinfo_no: 3,
+				name: "7-3".to_string(),
+				level: 1,
+				sally_flag: vec![],
+				is_event: false,
+				reset_policy: Default::default(),
+				airbase_count: None,
+				gauge_type: None,
+				gauge_count: Some(2),
+				required_defeat_count: Some(3),
+				max_hp: None,
+				default_variant: "pre_p_unlock".to_string(),
+				rank_stage_ids: BTreeMap::new(),
+				variants: BTreeMap::from([
+					(
+						"pre_p_unlock".to_string(),
+						variant("pre_p_unlock", 0..=16, Some("post_p_unlock")),
+					),
+					("post_p_unlock".to_string(), variant("post_p_unlock", 0..=16, None)),
+				]),
+			},
+		);
+		catalog
+	}
+
+	fn embedded_capture(name: &'static str) -> capture::CapturedMapStart {
+		let raw_json = match name {
+			"map_7-3.json" => include_str!("../assets/real_map_start_data/map_7-3.json"),
+			"map_7-3-part2.json" => {
+				include_str!("../assets/real_map_start_data/map_7-3-part2.json")
+			}
+			_ => panic!("unsupported embedded capture: {name}"),
+		};
+		let asset = RealMapStartAsset::new(name, raw_json);
+		let (_, capture) = capture::load_embedded_real_map_start_capture(&asset).unwrap();
+		capture.unwrap()
+	}
+
 	#[test]
 	fn parses_embedded_real_map_start_fixture() {
 		let asset = RealMapStartAsset::new(
@@ -368,5 +443,50 @@ mod tests {
 		let stage_id = matching::choose_stage_match(&definition, &capture).unwrap();
 
 		assert_eq!(stage_id, "pre_p_unlock");
+	}
+
+	#[test]
+	fn real_7_3_start_assets_match_pre_and_post_variants_with_phase_hint() {
+		let catalog = sample_7_3_catalog();
+		let definition = catalog.map_definition(73).unwrap();
+
+		let pre = embedded_capture("map_7-3.json");
+		let post = embedded_capture("map_7-3-part2.json");
+
+		assert_eq!(matching::choose_stage_match(definition, &pre).unwrap(), "pre_p_unlock");
+		assert_eq!(matching::choose_stage_match(definition, &post).unwrap(), "post_p_unlock");
+	}
+
+	#[test]
+	fn overlay_build_covers_both_7_3_stages_from_real_assets() {
+		let output = build_public_map_catalog_overlay_from_embedded_real_map_start_assets(
+			&sample_7_3_catalog(),
+			&[
+				RealMapStartAsset::new(
+					"map_7-3.json",
+					include_str!("../assets/real_map_start_data/map_7-3.json"),
+				),
+				RealMapStartAsset::new(
+					"map_7-3-part2.json",
+					include_str!("../assets/real_map_start_data/map_7-3-part2.json"),
+				),
+			],
+		)
+		.unwrap();
+
+		assert_eq!(output.report.accepted_records.len(), 2);
+		assert!(output.report.rejected_records.is_empty());
+		assert_eq!(output.report.covered_stage_count, 2);
+		assert!(output.report.uncovered_stages.is_empty());
+
+		let overlay = output.overlay.map_definition(73).unwrap();
+		let pre = overlay.variant("pre_p_unlock").unwrap();
+		let post = overlay.variant("post_p_unlock").unwrap();
+
+		assert_eq!(pre.cells.len(), 9);
+		assert_eq!(post.cells.len(), 26);
+		assert_eq!(pre.cell(8).unwrap().master_cell_id, Some(4809));
+		assert_eq!(post.cell(17).unwrap().master_cell_id, Some(4818));
+		assert_eq!(post.cell(25).unwrap().master_cell_id, Some(4826));
 	}
 }

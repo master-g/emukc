@@ -4,6 +4,8 @@ mod airbattle;
 mod battle;
 mod battleresult;
 mod goback_port;
+mod ld_airbattle;
+mod ld_shooting;
 
 pub(super) fn router() -> Router {
 	Router::new()
@@ -11,6 +13,8 @@ pub(super) fn router() -> Router {
 		.route("/battle", post(battle::handler))
 		.route("/battleresult", post(battleresult::handler))
 		.route("/goback_port", post(goback_port::handler))
+		.route("/ld_airbattle", post(ld_airbattle::handler))
+		.route("/ld_shooting", post(ld_shooting::handler))
 }
 
 #[cfg(test)]
@@ -62,5 +66,94 @@ mod tests {
 				.await
 				.unwrap();
 		assert_eq!(goback.api_result, 1);
+	}
+
+	#[tokio::test]
+	async fn airbattle_handler_returns_packet_with_no_shelling() {
+		let context = new_test_context().await;
+		let pid = context.session.profile.id;
+		seed_single_ship_fleet(&context.state, pid).await;
+
+		context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+
+		let resp = airbattle::handler(
+			app_state(&context.state),
+			Extension(context.session.clone()),
+			Form(airbattle::Params {
+				api_formation: 1,
+				api_recovery_type: 0,
+				api_supply_flag: None,
+				api_ration_flag: None,
+				api_smoke_flag: None,
+			}),
+		)
+		.await
+		.unwrap();
+		let data = resp.api_data.unwrap();
+		assert_eq!(data["api_deck_id"], 1);
+		// AirBattle mode: shelling and torpedo should be absent
+		let hourai = data["api_hourai_flag"].as_array().unwrap();
+		assert_eq!(hourai[0].as_i64().unwrap(), 0, "hougeki1 should not run in airbattle");
+		assert_eq!(hourai[3].as_i64().unwrap(), 0, "raigeki should not run in airbattle");
+	}
+
+	#[tokio::test]
+	async fn ld_airbattle_handler_disallows_midnight() {
+		let context = new_test_context().await;
+		let pid = context.session.profile.id;
+		seed_single_ship_fleet(&context.state, pid).await;
+
+		context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+
+		let resp = ld_airbattle::handler(
+			app_state(&context.state),
+			Extension(context.session.clone()),
+			Form(ld_airbattle::Params {
+				api_formation: 1,
+				api_recovery_type: 0,
+				api_supply_flag: None,
+				api_ration_flag: None,
+				api_smoke_flag: None,
+			}),
+		)
+		.await
+		.unwrap();
+		let data = resp.api_data.unwrap();
+		assert_eq!(data["api_deck_id"], 1);
+		assert_eq!(
+			data["api_midnight_flag"].as_i64().unwrap(),
+			0,
+			"LdAirBattle must not allow midnight"
+		);
+	}
+
+	#[tokio::test]
+	async fn ld_shooting_handler_disallows_midnight() {
+		let context = new_test_context().await;
+		let pid = context.session.profile.id;
+		seed_single_ship_fleet(&context.state, pid).await;
+
+		context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+
+		let resp = ld_shooting::handler(
+			app_state(&context.state),
+			Extension(context.session.clone()),
+			Form(ld_shooting::Params {
+				api_formation: 1,
+				api_recovery_type: 0,
+				api_supply_flag: None,
+				api_ration_flag: None,
+				api_smoke_flag: None,
+			}),
+		)
+		.await
+		.unwrap();
+		let data = resp.api_data.unwrap();
+		assert_eq!(data["api_deck_id"], 1);
+		assert_eq!(
+			data["api_midnight_flag"].as_i64().unwrap(),
+			0,
+			"LdShooting must not allow midnight"
+		);
 	}
 }

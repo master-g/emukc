@@ -5399,6 +5399,222 @@
       "max_hp": null,
       "default_variant": "",
       "variants": {
+        "post_p_unlock": {
+          "variant_key": "post_p_unlock",
+          "boss_cell_no": 0,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4801
+            },
+            {
+              "cell_no": 1,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4802
+            },
+            {
+              "cell_no": 2,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4803
+            },
+            {
+              "cell_no": 3,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4804
+            },
+            {
+              "cell_no": 4,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4805
+            },
+            {
+              "cell_no": 5,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4806
+            },
+            {
+              "cell_no": 6,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4807
+            },
+            {
+              "cell_no": 7,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4808
+            },
+            {
+              "cell_no": 8,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4809
+            },
+            {
+              "cell_no": 9,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4810
+            },
+            {
+              "cell_no": 10,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4811
+            },
+            {
+              "cell_no": 11,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4812
+            },
+            {
+              "cell_no": 12,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4813
+            },
+            {
+              "cell_no": 13,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4814
+            },
+            {
+              "cell_no": 14,
+              "color_no": 3,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4815
+            },
+            {
+              "cell_no": 15,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4816
+            },
+            {
+              "cell_no": 16,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4817
+            },
+            {
+              "cell_no": 17,
+              "color_no": 2,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4818
+            },
+            {
+              "cell_no": 18,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4819
+            },
+            {
+              "cell_no": 19,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4820
+            },
+            {
+              "cell_no": 20,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4821
+            },
+            {
+              "cell_no": 21,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4822
+            },
+            {
+              "cell_no": 22,
+              "color_no": 4,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4823
+            },
+            {
+              "cell_no": 23,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4824
+            },
+            {
+              "cell_no": 24,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4825
+            },
+            {
+              "cell_no": 25,
+              "color_no": 5,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "master_cell_id": 4826
+            }
+          ],
+          "routing_rules": {},
+          "enemy_fleets": {}
+        },
         "pre_p_unlock": {
           "variant_key": "pre_p_unlock",
           "boss_cell_no": 0,

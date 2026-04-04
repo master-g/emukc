@@ -68,6 +68,7 @@ pub const EMBEDDED_REAL_MAP_START_ASSETS: &[RealMapStartAsset] = real_map_start_
 	"map_7-1.json",
 	"map_7-2.json",
 	"map_7-3.json",
+	"map_7-3-part2.json",
 	"map_7-4.json",
 	"map_7-5.json",
 );

@@ -78,6 +78,31 @@ pub(super) fn choose_stage_match(
 	match best_subset.len() {
 		1 => Ok(best_subset[0].clone()),
 		0 => Err("no_matching_stage".to_string()),
-		_ => Err(format!("ambiguous_stage_match:{}", best_subset.join(","))),
+		_ => choose_clear_transition_subset_match(definition, &captured, &best_subset)
+			.ok_or_else(|| format!("ambiguous_stage_match:{}", best_subset.join(","))),
 	}
+}
+
+fn choose_clear_transition_subset_match(
+	definition: &MapDefinition,
+	captured: &BTreeSet<i64>,
+	candidates: &[String],
+) -> Option<String> {
+	let candidate_ids = candidates.iter().map(String::as_str).collect::<BTreeSet<_>>();
+	let transition_targets = definition
+		.variants
+		.iter()
+		.filter_map(|(stage_id, stage)| {
+			let target = stage.clear_to_variant_key.as_deref()?;
+			if !candidate_ids.contains(stage_id.as_str()) || !candidate_ids.contains(target) {
+				return None;
+			}
+
+			let stage_cells = stage.cells.iter().map(|cell| cell.cell_no).collect::<BTreeSet<_>>();
+			(captured.is_superset(&stage_cells) && captured.len() > stage_cells.len())
+				.then_some(target.to_string())
+		})
+		.collect::<BTreeSet<_>>();
+
+	(transition_targets.len() == 1).then(|| transition_targets.into_iter().next().unwrap())
 }

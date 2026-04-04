@@ -15,7 +15,8 @@ use crate::{
 	err::GameplayError,
 	game::battle::core::{
 		BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleNightHougeki,
-		BattleOpeningAttack, BattleRaigeki, BattleRuntimeShip, BattleShipInput, EngagementType,
+		BattleOpeningAttack, BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleType,
+		EngagementType,
 		NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
 	},
 };
@@ -167,6 +168,7 @@ pub fn simulate_practice_day_battle(
 		codex,
 		BattleContext {
 			mode: BattleMode::Practice,
+			battle_type: BattleType::Normal,
 			friendly_formation_id: input.formation_id,
 			enemy_formation_id: 1,
 			engagement: EngagementType::SameCourse,
@@ -573,6 +575,20 @@ mod tests {
 	#[test]
 	fn practice_day_battle_enables_midnight_when_both_sides_survive() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let mut friend = sample_ship(&codex, 79, 1);
+		friend.ship.api_karyoku[0] = 1;
+		friend.ship.api_raisou[0] = 0;
+		friend.ship.api_soukou[0] = 200;
+		friend.ship.api_nowhp = 200;
+		friend.ship.api_maxhp = 200;
+
+		let mut enemy = sample_ship(&codex, 412, 99);
+		enemy.ship.api_karyoku[0] = 1;
+		enemy.ship.api_raisou[0] = 0;
+		enemy.ship.api_soukou[0] = 200;
+		enemy.ship.api_nowhp = 200;
+		enemy.ship.api_maxhp = 200;
+
 		let input = PracticeBattleInput {
 			profile_id: 1,
 			deck_id: 1,
@@ -580,8 +596,8 @@ mod tests {
 			enemy_id: 1,
 			member_lv: 120,
 			member_exp: 123456,
-			friend_ships: vec![sample_ship(&codex, 79, 1)],
-			enemy_ships: vec![sample_ship(&codex, 412, 99)],
+			friend_ships: vec![friend],
+			enemy_ships: vec![enemy],
 			rival: Rival {
 				id: 1,
 				index: 1,

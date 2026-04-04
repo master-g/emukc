@@ -12,6 +12,7 @@ pub enum BoolOrString {
 pub enum BoolOrInt {
 	Bool(bool),
 	Int(i64),
+	Float(f64),
 }
 
 impl From<BoolOrInt> for Option<i64> {
@@ -19,6 +20,7 @@ impl From<BoolOrInt> for Option<i64> {
 		match b {
 			BoolOrInt::Bool(_) => None,
 			BoolOrInt::Int(i) => Some(i),
+			BoolOrInt::Float(f) => Some(f as i64),
 		}
 	}
 }
@@ -28,6 +30,7 @@ impl From<BoolOrInt> for i64 {
 		match b {
 			BoolOrInt::Bool(_) => 0,
 			BoolOrInt::Int(i) => i,
+			BoolOrInt::Float(f) => f as i64,
 		}
 	}
 }

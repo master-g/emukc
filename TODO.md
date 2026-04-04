@@ -41,12 +41,12 @@
 - [ ] **Battle System** (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_combined_battle/*`)
   - [x] `api_req_sortie/battle` - normal day battle
   - [x] `api_req_sortie/battleresult` - battle result
-  - [ ] `api_req_sortie/airbattle` - aerial battle
-  - [ ] `api_req_sortie/ld_airbattle` - long-distance aerial battle
-  - [ ] `api_req_sortie/ld_shooting` - long-distance shelling
-  - [ ] `api_req_sortie/goback_port` - retreat
+  - [x] `api_req_sortie/airbattle` - aerial battle (partial: core sim, no combined)
+  - [x] `api_req_sortie/ld_airbattle` - long-distance aerial battle (partial: core sim, no combined)
+  - [x] `api_req_sortie/ld_shooting` - long-distance shelling (partial: core sim, no combined)
+  - [x] `api_req_sortie/goback_port` - retreat
   - [x] `api_req_battle_midnight/battle` - night battle
-  - [ ] `api_req_battle_midnight/sp_midnight` - night-to-day battle
+  - [x] `api_req_battle_midnight/sp_midnight` - night-start battle (partial: core sim, no combined)
   - [ ] Combined battle variants (14 endpoints)
 - [ ] **Mission / Expedition System** (`api_req_mission/*`)
   - [ ] `api_req_mission/start` - start expedition

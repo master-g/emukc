@@ -79,44 +79,44 @@ struct KcwikiEnemyShip {
 	#[serde(rename = "_japanese_name")]
 	japanese_name: String,
 
-	#[serde(rename = "_reading", default)]
+	#[serde(rename = "_reading", default, deserialize_with = "nullable_string")]
 	reading: String,
 
 	#[serde(rename = "_type")]
 	ship_type: i64,
 
-	#[serde(rename = "_hp")]
-	hp: BoolOrInt,
+	#[serde(rename = "_hp", default)]
+	hp: Option<BoolOrInt>,
 
-	#[serde(rename = "_firepower")]
-	firepower: BoolOrInt,
+	#[serde(rename = "_firepower", default)]
+	firepower: Option<BoolOrInt>,
 
-	#[serde(rename = "_torpedo")]
-	torpedo: BoolOrInt,
+	#[serde(rename = "_torpedo", default)]
+	torpedo: Option<BoolOrInt>,
 
-	#[serde(rename = "_aa")]
-	aa: BoolOrInt,
+	#[serde(rename = "_aa", default)]
+	aa: Option<BoolOrInt>,
 
-	#[serde(rename = "_armor")]
-	armor: BoolOrInt,
+	#[serde(rename = "_armor", default)]
+	armor: Option<BoolOrInt>,
 
-	#[serde(rename = "_evasion")]
-	evasion: BoolOrInt,
+	#[serde(rename = "_evasion", default)]
+	evasion: Option<BoolOrInt>,
 
-	#[serde(rename = "_asw")]
-	asw: BoolOrInt,
+	#[serde(rename = "_asw", default)]
+	asw: Option<BoolOrInt>,
 
-	#[serde(rename = "_los")]
-	los: BoolOrInt,
+	#[serde(rename = "_los", default)]
+	los: Option<BoolOrInt>,
 
-	#[serde(rename = "_luck")]
-	luck: BoolOrInt,
+	#[serde(rename = "_luck", default)]
+	luck: Option<BoolOrInt>,
 
-	#[serde(rename = "_speed")]
-	speed: BoolOrInt,
+	#[serde(rename = "_speed", default)]
+	speed: Option<BoolOrInt>,
 
-	#[serde(rename = "_range")]
-	range: BoolOrInt,
+	#[serde(rename = "_range", default)]
+	range: Option<BoolOrInt>,
 
 	#[serde(rename = "_rarity", default)]
 	rarity: Option<BoolOrInt>,
@@ -126,6 +126,13 @@ struct KcwikiEnemyShip {
 
 	#[serde(rename = "_equipment", default)]
 	equipment: Vec<KcwikiEnemyEquipmentSlot>,
+}
+
+fn nullable_string<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+	D: serde::Deserializer<'de>,
+{
+	Option::<String>::deserialize(deserializer).map(|opt| opt.unwrap_or_default())
 }
 
 fn normalize_opt_i64(value: Option<BoolOrInt>) -> i64 {
@@ -287,17 +294,17 @@ fn parse_enemy_ships(
 				},
 				stype: ship.ship_type,
 				ctype: mst.map(|entry| entry.api_ctype).unwrap_or_default(),
-				hp: ship.hp.into(),
-				firepower: ship.firepower.into(),
-				torpedo: ship.torpedo.into(),
-				aa: ship.aa.into(),
-				armor: ship.armor.into(),
-				evasion: ship.evasion.into(),
-				asw: ship.asw.into(),
-				los: ship.los.into(),
-				luck: ship.luck.into(),
-				speed: ship.speed.into(),
-				range: ship.range.into(),
+				hp: normalize_opt_i64(ship.hp),
+				firepower: normalize_opt_i64(ship.firepower),
+				torpedo: normalize_opt_i64(ship.torpedo),
+				aa: normalize_opt_i64(ship.aa),
+				armor: normalize_opt_i64(ship.armor),
+				evasion: normalize_opt_i64(ship.evasion),
+				asw: normalize_opt_i64(ship.asw),
+				los: normalize_opt_i64(ship.los),
+				luck: normalize_opt_i64(ship.luck),
+				speed: normalize_opt_i64(ship.speed),
+				range: normalize_opt_i64(ship.range),
 				rarity,
 				backs,
 				slot_num: ship.equipment.len().min(5) as i64,
@@ -344,6 +351,9 @@ pub(super) fn parse(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use emukc_model::codex::Codex;
+
+	use std::str::FromStr as _;
 
 	#[test]
 	fn parse_enemy_data_enriches_missing_equipment_and_ship_stats() {
@@ -464,5 +474,97 @@ mod tests {
 		assert_eq!(parsed.manifest_ships[0].api_maxeq, Some([0, 12, 0, 0, 0]));
 		assert_eq!(parsed.manifest_ships[0].api_slot_num, 3);
 		assert_eq!(context.find_slotitem_id("Abyssal Night Cat Fighter II"), Some(601));
+
+		let mut codex = Codex::default();
+		codex.manifest = manifest.clone();
+		for ship in parsed.manifest_ships.iter().cloned() {
+			codex.manifest.api_mst_ship.retain(|existing| existing.api_id != ship.api_id);
+			codex.manifest.api_mst_ship.push(ship);
+		}
+		for slotitem in parsed.manifest_slotitems.iter().cloned() {
+			codex.manifest.api_mst_slotitem.retain(|existing| existing.api_id != slotitem.api_id);
+			codex.manifest.api_mst_slotitem.push(slotitem);
+		}
+		codex.enemy_ship_extra = parsed.ship_map.clone();
+
+		let save_root = tempfile::tempdir().unwrap();
+		codex.save(save_root.path(), true).unwrap();
+		assert!(save_root.path().join("enemy_ship_extra.json").exists());
+
+		let loaded = Codex::load_without_cache_source(save_root.path()).unwrap();
+		let loaded_enemy = loaded.enemy_ship_extra.get(&1501).unwrap();
+		assert_eq!(loaded_enemy.hp, 20);
+		assert_eq!(loaded_enemy.maxeq, [0, 12, 0, 0, 0]);
+		assert_eq!(loaded.manifest.find_ship(1501).unwrap().api_taik, Some([20, 20]));
+	}
+
+	/// Verify that real kcwiki data produces valid enemy entries for all map-referenced enemies.
+	/// Skipped if bootstrap data files are not present.
+	#[test]
+	fn real_kcwiki_enemy_coverage_for_map_compositions() {
+		let data_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+			.parent()
+			.unwrap()
+			.parent()
+			.unwrap()
+			.join(".data/temp");
+		let enemy_path = data_dir.join("kcwiki_enemy.json");
+		let enemy_equipment_path = data_dir.join("kcwiki_enemy_equipment.json");
+		let manifest_path = data_dir
+			.parent()
+			.unwrap()
+			.join("codex")
+			.join("start2.json");
+
+		if !enemy_path.exists() || !enemy_equipment_path.exists() || !manifest_path.exists() {
+			eprintln!("Skipping real kcwiki enemy coverage test (data files not present)");
+			return;
+		}
+
+		let raw = std::fs::read_to_string(&manifest_path).unwrap();
+		let manifest = ApiManifest::from_str(&raw).unwrap();
+		let mut context = super::super::prepare_context(&data_dir).unwrap();
+
+		let parsed = parse(&mut context, &manifest, &enemy_path, &enemy_equipment_path).unwrap();
+		assert!(
+			parsed.ship_map.len() > 800,
+			"expected 800+ enemies, got {}",
+			parsed.ship_map.len()
+		);
+
+		// Build codex with enemy data
+		let mut codex = Codex::default();
+		codex.manifest = manifest;
+		for ship in parsed.manifest_ships.iter().cloned() {
+			codex.manifest.api_mst_ship.retain(|e| e.api_id != ship.api_id);
+			codex.manifest.api_mst_ship.push(ship);
+		}
+		for slotitem in parsed.manifest_slotitems.iter().cloned() {
+			codex.manifest.api_mst_slotitem.retain(|e| e.api_id != slotitem.api_id);
+			codex.manifest.api_mst_slotitem.push(slotitem);
+		}
+		codex.enemy_ship_extra = parsed.ship_map.clone();
+
+		// Verify new_enemy_ship returns Tier 1 for every parsed enemy
+		let mut tier1_count = 0;
+		for (&ship_id, enemy_data) in &parsed.ship_map {
+			let result = codex.new_enemy_ship(ship_id);
+			assert!(
+				result.is_some(),
+				"new_enemy_ship({ship_id}) returned None for {}",
+				enemy_data.name
+			);
+			let (ship, slot_items) = result.unwrap();
+			assert_eq!(ship.api_nowhp, enemy_data.hp, "HP mismatch for {ship_id}");
+			assert_eq!(ship.api_karyoku[0], enemy_data.firepower, "FP mismatch for {ship_id}");
+			assert_eq!(ship.api_soukou[0], enemy_data.armor, "Armor mismatch for {ship_id}");
+			assert_eq!(slot_items.len(), enemy_data.slots.len(), "Slot count mismatch for {ship_id}");
+			tier1_count += 1;
+		}
+
+		eprintln!(
+			"Tier 1 enemy coverage: {tier1_count}/{} parsed enemies verified",
+			parsed.ship_map.len()
+		);
 	}
 }

@@ -33,7 +33,7 @@ pub(super) async fn handler(
 		params.api_smoke_flag,
 	);
 	let pid = session.profile.id;
-	let resp = state.sortie_airbattle(pid, params.api_formation).await?;
+	let resp = state.sortie_ld_shooting(pid, params.api_formation).await?;
 
 	Ok(KcApiResponse::success(&resp))
 }
