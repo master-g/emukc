@@ -283,12 +283,16 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 				definition.map_id,
 			))
 		})?;
-		let first_cell = stage.first_progress_cell_no().ok_or_else(|| {
-			GameplayError::WrongType(format!(
-				"map {} has no navigable first cell",
+		let cell_0 = stage.cell(0).ok_or_else(|| {
+			GameplayError::EntryNotFound(format!(
+				"cell_0 not found for map {}",
 				definition.map_id,
 			))
 		})?;
+		let mut route_context = build_fleet_route_context(&tx, codex, &fleet_ships).await?;
+		route_context.visited_cell_ids.insert(0);
+		let first_cell =
+			evaluate_route_destination(cell_0, stage, &route_context, None)?;
 		let current_cell = stage
 			.cell(first_cell)
 			.ok_or_else(|| GameplayError::EntryNotFound(format!("cell {first_cell} not found")))?;
@@ -649,7 +653,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 					})
 					.collect::<Vec<_>>();
 				let (ship_exp, ship_lvup) =
-					calculate_sortie_ship_exp(&friend_ships, snapshot.get_base_exp, snapshot.mvp);
+					calculate_sortie_ship_exp(&friend_ships, snapshot.get_base_exp, snapshot.mvp, &snapshot.friendly_nowhps);
 				snapshot.get_ship_exp = ship_exp;
 				snapshot.get_exp_lvup = ship_lvup;
 			}
@@ -703,8 +707,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		}
 
 		let friend_ships = build_sortie_friend_ships(&tx, &fleet_ships).await?;
-		let enemy_fleet =
-			resolve_sortie_enemy_fleet(active.map_id, stage, active.current_cell_id);
+		let enemy_fleet = resolve_sortie_enemy_fleet(active.map_id, stage, active.current_cell_id);
 		let enemy_composition = active
 			.locked_enemy_composition
 			.clone()
@@ -725,6 +728,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 				context: BattleContext {
 					mode: BattleMode::Sortie,
 					battle_type: BattleType::Normal,
+					is_sortie: true,
 					friendly_formation_id: formation_id,
 					enemy_formation_id,
 					engagement: engagement_for_cell(active.map_id, active.current_cell_id),
@@ -738,16 +742,17 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 
 		let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
 		let get_exp = calculate_battle_admiral_exp(base_exp, &night_session.outcome.win_rank);
+		let friendly_nowhps: Vec<i64> = pending_sortie_battle(store, profile_id)
+			.map(|s| s.friendly.iter().map(|f| f.current_hp.max(0)).collect())
+			.unwrap_or_default();
 		let (ship_exp, ship_lvup) =
-			calculate_sortie_ship_exp(&friend_ships, base_exp, night_session.outcome.mvp);
+			calculate_sortie_ship_exp(&friend_ships, base_exp, night_session.outcome.mvp, &friendly_nowhps);
 		store.insert_pending_result(
 			profile_id,
 			SortieBattleResultSnapshot {
 				friendly_ship_ids: day_session.friendly_ship_ids.clone(),
 				enemy_ship_ids: day_session.enemy_ship_ids.clone(),
-				friendly_nowhps: pending_sortie_battle(store, profile_id)
-					.map(|s| s.friendly.iter().map(|f| f.current_hp.max(0)).collect())
-					.unwrap_or_default(),
+				friendly_nowhps,
 				win_rank: night_session.outcome.win_rank.clone(),
 				get_exp,
 				member_lv: profile.hq_level,
@@ -774,11 +779,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		})?;
 
 		tx.commit().await?;
-		Ok(build_sortie_night_battle_response(
-			current.deck_id,
-			&current,
-			night_session.packet,
-		))
+		Ok(build_sortie_night_battle_response(current.deck_id, &current, night_session.packet))
 	}
 
 	async fn sortie_goback_port(
@@ -810,9 +811,7 @@ async fn sortie_battle_impl(
 	let tx = db.begin().await?;
 
 	let mut active = store.get_active_sortie(profile_id).ok_or_else(|| {
-		GameplayError::EntryNotFound(format!(
-			"active sortie not found for profile {profile_id}",
-		))
+		GameplayError::EntryNotFound(format!("active sortie not found for profile {profile_id}",))
 	})?;
 	if active.pending_battle_cell_id.is_some() {
 		return Err(GameplayError::WrongType("sortie battle already pending".to_string()));
@@ -877,6 +876,7 @@ async fn sortie_battle_impl(
 			context: BattleContext {
 				mode: BattleMode::Sortie,
 				battle_type,
+				is_sortie: true,
 				friendly_formation_id: formation_id,
 				enemy_formation_id: enemy_fleet.formations.first().copied().unwrap_or(1),
 				engagement: engagement_for_cell(active.map_id, active.current_cell_id),
@@ -889,8 +889,9 @@ async fn sortie_battle_impl(
 
 	let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
 	let get_exp = calculate_battle_admiral_exp(base_exp, &session.outcome.win_rank);
+	let friendly_nowhps: Vec<i64> = session.friendly.iter().map(|f| f.current_hp.max(0)).collect();
 	let (ship_exp, ship_lvup) =
-		calculate_sortie_ship_exp(&friend_ships, base_exp, session.outcome.mvp);
+		calculate_sortie_ship_exp(&friend_ships, base_exp, session.outcome.mvp, &friendly_nowhps);
 	let response = build_sortie_battle_response(
 		active.deck_id,
 		friend_ships,
@@ -902,7 +903,7 @@ async fn sortie_battle_impl(
 		SortieBattleResultSnapshot {
 			friendly_ship_ids: session.friendly_ship_ids.clone(),
 			enemy_ship_ids: session.enemy_ship_ids.clone(),
-			friendly_nowhps: session.friendly.iter().map(|f| f.current_hp.max(0)).collect(),
+			friendly_nowhps,
 			win_rank: session.outcome.win_rank.clone(),
 			get_exp,
 			member_lv: profile.hq_level,
@@ -1033,7 +1034,11 @@ where
 		3 => {
 			// Maelstrom (渦潮): lose fuel or ammo.
 			// Type: fuel (api_type=1) or ammo (api_type=2), determined by color_no.
-			let resource_type = if cell.color_no == 4 { 2 } else { 1 }; // purple=ammo, else=fuel
+			let resource_type = if cell.color_no == 4 {
+				2
+			} else {
+				1
+			}; // purple=ammo, else=fuel
 			let mat = get_mat_impl(c, profile_id).await?;
 			let stock = if resource_type == 1 {
 				mat.fuel
@@ -1239,6 +1244,9 @@ fn build_sortie_enemy_ship(
 		api_ship.api_lv = enemy_level;
 		api_ship.api_exp = [exp_now, next_exp, 0];
 		codex.cal_ship_status(&mut api_ship, &slot_items)?;
+		for (idx, slot_item) in slot_items.iter().take(5).enumerate() {
+			api_ship.api_slot[idx] = slot_item.api_slotitem_id;
+		}
 		return Ok(BattleShipInput {
 			ship: api_ship,
 			slot_items,
@@ -1257,7 +1265,6 @@ fn build_sortie_enemy_ship(
 struct ManifestOnlyEnemyStats {
 	sortno: i64,
 	hp: [i64; 2],
-	onslot: [i64; 5],
 	firepower: [i64; 2],
 	torpedo: [i64; 2],
 	aa: [i64; 2],
@@ -1300,7 +1307,7 @@ fn build_manifest_only_sortie_enemy_ship(
 		api_soku: mst.api_soku,
 		api_leng: fallback.range,
 		api_slot: [-1; 5],
-		api_onslot: fallback.onslot,
+		api_onslot: [0; 5],
 		api_slot_ex: 0,
 		api_kyouka: [0; 7],
 		api_backs: fallback.backs,
@@ -1334,10 +1341,10 @@ fn build_manifest_only_sortie_enemy_ship(
 
 fn manifest_only_enemy_stats(mst: &ApiMstShip) -> ManifestOnlyEnemyStats {
 	let mut missing_fields = Vec::new();
+	let _ = manifest_onslot_or_default(mst.api_maxeq, "api_maxeq", &mut missing_fields);
 	ManifestOnlyEnemyStats {
 		sortno: mst.api_sortno.unwrap_or(mst.api_sort_id),
 		hp: manifest_pair_or_default(mst.api_taik, [1, 1], "api_taik", &mut missing_fields),
-		onslot: manifest_onslot_or_default(mst.api_maxeq, "api_maxeq", &mut missing_fields),
 		firepower: manifest_pair_or_default(mst.api_houg, [0, 0], "api_houg", &mut missing_fields),
 		torpedo: manifest_pair_or_default(mst.api_raig, [0, 0], "api_raig", &mut missing_fields),
 		aa: manifest_pair_or_default(mst.api_tyku, [0, 0], "api_tyku", &mut missing_fields),
@@ -1589,8 +1596,13 @@ fn build_sortie_night_battle_response(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use std::collections::HashMap;
-	use crate::game::battle::{core::{BattleMode, BattleType}, sortie::{simulate_and_store_sortie_day_battle, simulate_and_store_sortie_sp_midnight_battle, pending_sortie_battle}};
+	use crate::game::battle::{
+		core::{BattleMode, BattleType},
+		sortie::{
+			pending_sortie_battle, simulate_and_store_sortie_day_battle,
+			simulate_and_store_sortie_sp_midnight_battle,
+		},
+	};
 	use crate::prelude::*;
 	use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
 	use emukc_db::{
@@ -1604,6 +1616,7 @@ mod tests {
 		codex::Codex,
 		prelude::{ApiMstShip, Kc3rdEnemyShip, Kc3rdEnemyShipSlotInfo},
 	};
+	use std::collections::HashMap;
 
 	fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
 		let (mut ship, slot_items) = codex.new_ship(mst_id).unwrap();
@@ -1736,6 +1749,17 @@ mod tests {
 	}
 
 	#[test]
+	fn build_sortie_enemy_ship_drops_enemy_slots_missing_from_manifest() {
+		let mut codex = enemy_test_codex();
+		let enemy_extra = codex.enemy_ship_extra.get_mut(&19991).unwrap();
+		enemy_extra.slots[0].item_id = 999999;
+
+		let enemy = build_sortie_enemy_ship(&codex, 19991, 45).unwrap();
+		assert_eq!(enemy.ship.api_onslot, [0, 6, 0, 0, 0]);
+		assert_eq!(enemy_slot_ids(&enemy), [-1, 525, -1, -1, -1]);
+	}
+
+	#[test]
 	fn build_sortie_enemy_ship_falls_back_to_ship_extra_data_when_enemy_bootstrap_is_missing() {
 		let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let ship_id = 518;
@@ -1777,7 +1801,7 @@ mod tests {
 				mst.api_tais.map(|[stat]| [stat, stat]).unwrap_or([0, 0]),
 			);
 			assert_eq!(enemy.ship.api_lucky, mst.api_luck.unwrap_or([0, 0]));
-			assert_eq!(enemy.ship.api_onslot, mst.api_maxeq.unwrap_or([0; 5]));
+			assert_eq!(enemy.ship.api_onslot, [0; 5]);
 			assert!(enemy.slot_items.is_empty());
 		}
 	}
@@ -1819,7 +1843,7 @@ mod tests {
 		assert_eq!(enemy.ship.api_soukou, [20, 20]);
 		assert_eq!(enemy.ship.api_taisen, [30, 30]);
 		assert_eq!(enemy.ship.api_lucky, [5, 5]);
-		assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
+		assert_eq!(enemy.ship.api_onslot, [0; 5]);
 		assert!(enemy.slot_items.is_empty());
 	}
 
@@ -1847,6 +1871,7 @@ mod tests {
 				context: BattleContext {
 					mode: BattleMode::Sortie,
 					battle_type: BattleType::Normal,
+					is_sortie: true,
 					friendly_formation_id: 1,
 					enemy_formation_id: 1,
 					engagement: EngagementType::SameCourse,
@@ -1918,6 +1943,7 @@ mod tests {
 				context: BattleContext {
 					mode: BattleMode::Sortie,
 					battle_type: BattleType::Normal,
+					is_sortie: true,
 					friendly_formation_id: 1,
 					enemy_formation_id: 1,
 					engagement: EngagementType::SameCourse,
@@ -2885,6 +2911,15 @@ mod tests {
 }
 
 fn enemy_slot_ids(ship: &BattleShipInput) -> [i64; 5] {
+	if ship.ship.api_slot.iter().any(|slot| *slot > 0) {
+		let mut slots = [-1; 5];
+		for (idx, slot) in ship.ship.api_slot.iter().take(5).enumerate() {
+			if *slot > 0 {
+				slots[idx] = *slot;
+			}
+		}
+		return slots;
+	}
 	let mut slots = [-1; 5];
 	for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
 		slots[idx] = slot_item.api_slotitem_id;

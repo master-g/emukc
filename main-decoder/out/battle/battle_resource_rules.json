@@ -1,0 +1,4589 @@
+{
+  "scriptVersion": "6.2.7.0",
+  "summary": {
+    "moduleCount": 196,
+    "resourceRuleCount": 241,
+    "explicitResourcePathCount": 0,
+    "shipResourceRuleCount": 86,
+    "slotitemResourceRuleCount": 67,
+    "textureProviderRuleCount": 88
+  },
+  "rules": [
+    {
+      "id": "10021:getShip:full:this._mst_id:true",
+      "moduleId": "10021",
+      "readableName": "TaskFlagShipDamaged",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "10021:getTexture:MAP_FLAGSHIP_DAMAGE",
+      "moduleId": "10021",
+      "readableName": "TaskFlagShipDamaged",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "MAP_FLAGSHIP_DAMAGE",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "10572:getTexture:GameData",
+      "moduleId": "10572",
+      "readableName": "ResultView",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "GameData",
+      "textureIds": [
+        57
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "result",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "11039:getSlotitem:card:_0x5858a5.id",
+      "moduleId": "11039",
+      "readableName": "MeltIntoSprite",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x5858a5.id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "11575:getTexture:COMMON_MISC",
+      "moduleId": "11575",
+      "readableName": "BannerRibbon",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        111,
+        112
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "12922:getSlotitem:airunit_banner:_0x135df6.mst_id",
+      "moduleId": "12922",
+      "readableName": "AirUnitPanel",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "airunit_banner",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x135df6.mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "12922:getTexture:SALLY_AIRUNIT",
+      "moduleId": "12922",
+      "readableName": "AirUnitPanel",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "SALLY_AIRUNIT",
+      "textureIds": [
+        8
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "13090:getSlotitem:card:self._mst_id",
+      "moduleId": "13090",
+      "readableName": "TaskShowSlotCard",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "1474:getTexture:BATTLE_MAIN",
+      "moduleId": "1474",
+      "readableName": "CutinDanchakuCanvas",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        149,
+        154,
+        156
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "17172:getShip:full:_0x5c8430:_0x37214f",
+      "moduleId": "17172",
+      "readableName": "PowerUpAnimation",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x5c8430",
+      "damagedSource": "_0x37214f",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "17265:getShip:card:ship_mstid:_0x40c3a1",
+      "moduleId": "17265",
+      "readableName": "KaizoAnimationMain",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "card",
+      "textureIds": [],
+      "shipMstIdSource": "ship_mstid",
+      "damagedSource": "_0x40c3a1",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "17265:getShip:full:ship_mstid:_0x40c3a1",
+      "moduleId": "17265",
+      "readableName": "KaizoAnimationMain",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "ship_mstid",
+      "damagedSource": "_0x40c3a1",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "17265:getTexture:REMODEL_ANIMATION",
+      "moduleId": "17265",
+      "readableName": "KaizoAnimationMain",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REMODEL_ANIMATION",
+      "textureIds": [
+        10
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "17733:getShip:card:_0x132b49:_0x2444fb",
+      "moduleId": "17733",
+      "readableName": "ShipCard",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "card",
+      "textureIds": [],
+      "shipMstIdSource": "_0x132b49",
+      "damagedSource": "_0x2444fb",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "17733:getTexture:COMMON_MISC",
+      "moduleId": "17733",
+      "readableName": "ShipCard",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        37,
+        38,
+        96,
+        97,
+        99,
+        100,
+        101,
+        120,
+        121
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "18168:getShip:banner:_0x3b5051:_0x471e0f",
+      "moduleId": "18168",
+      "readableName": "RepairShipBanner",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0x3b5051",
+      "damagedSource": "_0x471e0f",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "18168:getTexture:COMMON_MISC",
+      "moduleId": "18168",
+      "readableName": "RepairShipBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        116
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "19281:getShip:reward_icon:_0x3594cb.mst_id:false",
+      "moduleId": "19281",
+      "readableName": "TaskEventRewardsSelect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "reward_icon",
+      "textureIds": [],
+      "shipMstIdSource": "_0x3594cb.mst_id",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "19281:getSlotitem:card:_0x3594cb.mst_id",
+      "moduleId": "19281",
+      "readableName": "TaskEventRewardsSelect",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x3594cb.mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "19639:getShip:full:_0x330a78:damaged",
+      "moduleId": "19639",
+      "readableName": "TaskExp",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x330a78",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "19639:getShip:full:_0x3fe4c0:damaged",
+      "moduleId": "19639",
+      "readableName": "TaskExp",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x3fe4c0",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "20324:getSlotitem:card:_0x16ced7",
+      "moduleId": "20324",
+      "readableName": "ModelChangeTask",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x16ced7"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20324:getSlotitem:card:_0x399e40",
+      "moduleId": "20324",
+      "readableName": "ModelChangeTask",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x399e40"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20324:getTexture:COMMON_MISC",
+      "moduleId": "20324",
+      "readableName": "ModelChangeTask",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        41,
+        54
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20473:getShip:card:_0x556542:false",
+      "moduleId": "20473",
+      "readableName": "ShipDetailContent",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "card",
+      "textureIds": [],
+      "shipMstIdSource": "_0x556542",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "20473:getShip:character_full:_0x556542:false",
+      "moduleId": "20473",
+      "readableName": "ShipDetailContent",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "character_full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x556542",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "20473:getShip:character_full:_0x556542:true",
+      "moduleId": "20473",
+      "readableName": "ShipDetailContent",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "character_full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x556542",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "20473:getShip:character_up:_0x556542:false",
+      "moduleId": "20473",
+      "readableName": "ShipDetailContent",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "character_up",
+      "textureIds": [],
+      "shipMstIdSource": "_0x556542",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "20473:getShip:character_up:_0x556542:true",
+      "moduleId": "20473",
+      "readableName": "ShipDetailContent",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "character_up",
+      "textureIds": [],
+      "shipMstIdSource": "_0x556542",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "2067:getShip:full:_0x249e29:damaged",
+      "moduleId": "2067",
+      "readableName": "TaskFormationSelect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x249e29",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "2067:getTexture:MAP_TELOP",
+      "moduleId": "2067",
+      "readableName": "TaskFormationSelect",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "MAP_TELOP",
+      "textureIds": [
+        2,
+        4,
+        5
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20894:getShip:full:this.ship_mstid:this.ship_damaged",
+      "moduleId": "20894",
+      "readableName": "CutinAntiAircraft",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "this.ship_mstid",
+      "damagedSource": "this.ship_damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20894:getSlotitem:btxt_flat:this.slot_mstids[0]",
+      "moduleId": "20894",
+      "readableName": "CutinAntiAircraft",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this.slot_mstids[0]"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20894:getSlotitem:btxt_flat:this.slot_mstids[1]",
+      "moduleId": "20894",
+      "readableName": "CutinAntiAircraft",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this.slot_mstids[1]"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20894:getSlotitem:btxt_flat:this.slot_mstids[2]",
+      "moduleId": "20894",
+      "readableName": "CutinAntiAircraft",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this.slot_mstids[2]"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "20894:getTexture:BATTLE_CUTIN_ANTI_AIR",
+      "moduleId": "20894",
+      "readableName": "CutinAntiAircraft",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_CUTIN_ANTI_AIR",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "21541:getShip:full:_0x45d322:true",
+      "moduleId": "21541",
+      "readableName": "TaskEnemyDamageCutin",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x45d322",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "21541:getTexture:BATTLE_CUTIN_DAMAGE",
+      "moduleId": "21541",
+      "readableName": "TaskEnemyDamageCutin",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_CUTIN_DAMAGE",
+      "textureIds": [
+        0,
+        1,
+        100
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "26431:getSlotitem:btxt_flat:_0x237b2e",
+      "moduleId": "26431",
+      "readableName": "CutinCanvasSpSRD",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x237b2e"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "26431:getSlotitem:btxt_flat:_0x499d25",
+      "moduleId": "26431",
+      "readableName": "CutinCanvasSpSRD",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x499d25"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "26431:getSlotitem:btxt_flat:_0xcc2575",
+      "moduleId": "26431",
+      "readableName": "CutinCanvasSpSRD",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0xcc2575"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "27793:getShip:banner:_0xda4966.mstID:_0xda4966.isDamaged()",
+      "moduleId": "27793",
+      "readableName": "ShipDragging",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0xda4966.mstID",
+      "damagedSource": "_0xda4966.isDamaged()",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "29168:getShip:card:_0x1d9625:false",
+      "moduleId": "29168",
+      "readableName": "TaskRewardDialogShip",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "card",
+      "textureIds": [],
+      "shipMstIdSource": "_0x1d9625",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "30503:getTexture:PRAC_MAIN",
+      "moduleId": "30503",
+      "readableName": "StartAnimationTask",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "PRAC_MAIN",
+      "textureIds": [
+        5,
+        6
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "30843:getTexture:ORGANIZE_MAIN",
+      "moduleId": "30843",
+      "readableName": "PresetExpansionSlot",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ORGANIZE_MAIN",
+      "textureIds": [
+        2,
+        3,
+        29,
+        33
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "3087:getShip:full:_0x130987:false",
+      "moduleId": "3087",
+      "readableName": "BonusShip",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x130987",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "31394:getShip:banner:this._mst_id:_0x3424ca",
+      "moduleId": "31394",
+      "readableName": "AnchorageRepairShipBanner",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x3424ca",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "31394:getTexture:MAP_ANCHORAGE_REPAIR",
+      "moduleId": "31394",
+      "readableName": "AnchorageRepairShipBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "MAP_ANCHORAGE_REPAIR",
+      "textureIds": [
+        7,
+        8,
+        9
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "31394:getTexture:this",
+      "moduleId": "31394",
+      "readableName": "AnchorageRepairShipBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "this",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "31930:getSlotitem:card:_0x2fbe4b._0x52a741",
+      "moduleId": "31930",
+      "readableName": "RewardAnimationMultiSlot",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x2fbe4b._0x52a741"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "31930:getTexture:ARSENAL_ANIMATION",
+      "moduleId": "31930",
+      "readableName": "RewardAnimationMultiSlot",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ARSENAL_ANIMATION",
+      "textureIds": [
+        1
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "32611:getShip:full:_0x4d7bf0:damaged",
+      "moduleId": "32611",
+      "readableName": "CutinDouble4",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x4d7bf0",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "32961:getTexture:COMMON_MAIN",
+      "moduleId": "32961",
+      "readableName": "BannerSmoke",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        33
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "334:getTexture:BATTLE_MAIN",
+      "moduleId": "334",
+      "readableName": "CutinStatusBox",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        62
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "33787:getTexture:BATTLE_RESULT_MAIN",
+      "moduleId": "33787",
+      "readableName": "BannerInfoEnemy",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_RESULT_MAIN",
+      "textureIds": [
+        7,
+        8
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "34931:getSlotitem:card:_0x3a5543",
+      "moduleId": "34931",
+      "readableName": "BonusSlot",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x3a5543"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "35601:getShip:full:_0x49c908[0]:false",
+      "moduleId": "35601",
+      "readableName": "SpKaizoIntro",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x49c908[0]",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "35601:getShip:sp_remodel/silhouette:_0x49c908[1]:false",
+      "moduleId": "35601",
+      "readableName": "SpKaizoIntro",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "sp_remodel/silhouette",
+      "textureIds": [],
+      "shipMstIdSource": "_0x49c908[1]",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "35773:getShip:full:_0x3567f4:damaged",
+      "moduleId": "35773",
+      "readableName": "PhaseAllyOpening",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x3567f4",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "35773:getShip:full:_0x4d7334:damaged",
+      "moduleId": "35773",
+      "readableName": "PhaseAllyOpening",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x4d7334",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "35773:getShip:full:_0x5ade6c:damaged",
+      "moduleId": "35773",
+      "readableName": "PhaseAllyOpening",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x5ade6c",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "3609:getShip:album_status:_0x29aa2b:false",
+      "moduleId": "3609",
+      "readableName": "ShipDetailPanel",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "album_status",
+      "textureIds": [],
+      "shipMstIdSource": "_0x29aa2b",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "3609:getTexture:ALBUM_MAIN",
+      "moduleId": "3609",
+      "readableName": "ShipDetailPanel",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ALBUM_MAIN",
+      "textureIds": [
+        22,
+        134,
+        135
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "37638:getShip:banner:_0x98c583:_0x344bb0",
+      "moduleId": "37638",
+      "readableName": "ShipBanner",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0x98c583",
+      "damagedSource": "_0x344bb0",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "37638:getTexture:COMMON_MISC",
+      "moduleId": "37638",
+      "readableName": "ShipBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        6
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "38083:getShip:full:_0x416205:damaged",
+      "moduleId": "38083",
+      "readableName": "TaskFormationSelectCombined",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x416205",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "38083:getTexture:MAP_TELOP",
+      "moduleId": "38083",
+      "readableName": "TaskFormationSelectCombined",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "MAP_TELOP",
+      "textureIds": [
+        2,
+        4,
+        5
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "38083:getTexture:SALLY_JIN",
+      "moduleId": "38083",
+      "readableName": "TaskFormationSelectCombined",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "SALLY_JIN",
+      "textureIds": [
+        18,
+        38,
+        43
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "38287:getSlotitem:card:_0x441d40",
+      "moduleId": "38287",
+      "readableName": "MeltIntoTask",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x441d40"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "38287:getTexture:COMMON_MISC",
+      "moduleId": "38287",
+      "readableName": "MeltIntoTask",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        124
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "38661:getShip:card_round:_0x46924f:false",
+      "moduleId": "38661",
+      "readableName": "RewardSelectDialogShipBtnOld",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "card_round",
+      "textureIds": [],
+      "shipMstIdSource": "_0x46924f",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "4146:getShip:full:self._mst_id:_0x5c5fa6",
+      "moduleId": "4146",
+      "readableName": "TaskGouchinCutinRepair",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "self._mst_id",
+      "damagedSource": "_0x5c5fa6",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "4146:getSlotitem:card:slotitemMstID",
+      "moduleId": "4146",
+      "readableName": "TaskGouchinCutinRepair",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "slotitemMstID"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "4146:getTexture:BATTLE_CUTIN_GOUCHIN",
+      "moduleId": "4146",
+      "readableName": "TaskGouchinCutinRepair",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_CUTIN_GOUCHIN",
+      "textureIds": [
+        3,
+        8,
+        9,
+        10
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "4146:getTexture:COMMON_MISC",
+      "moduleId": "4146",
+      "readableName": "TaskGouchinCutinRepair",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        74
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "41940:getTexture:ALBUM_MAIN",
+      "moduleId": "41940",
+      "readableName": "MainItemShip",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ALBUM_MAIN",
+      "textureIds": [
+        15,
+        19
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "42613:getTexture:BATTLE_RESULT_MAIN",
+      "moduleId": "42613",
+      "readableName": "TaskInit",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_RESULT_MAIN",
+      "textureIds": [
+        67
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "43136:getShip:full:_0x56ea11:damaged",
+      "moduleId": "43136",
+      "readableName": "CutinSSAttack",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x56ea11",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "43136:getShip:special:shipModel.mst_id:shipModel.isDamaged()",
+      "moduleId": "43136",
+      "readableName": "CutinSSAttack",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "special",
+      "textureIds": [],
+      "shipMstIdSource": "shipModel.mst_id",
+      "damagedSource": "shipModel.isDamaged()",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "43201:getShip:full:this._ship_mst_id:this._ship_damaged",
+      "moduleId": "43201",
+      "readableName": "AnimFlagShip",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "this._ship_damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "43367:getShip:special:_0x46587d:false",
+      "moduleId": "43367",
+      "readableName": "CutinYamatoAttack",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "special",
+      "textureIds": [],
+      "shipMstIdSource": "_0x46587d",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "43367:getTexture:BATTLE_MAIN",
+      "moduleId": "43367",
+      "readableName": "CutinYamatoAttack",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "4487:getTexture:COMMON_EVENT",
+      "moduleId": "4487",
+      "readableName": "BannerPlate",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_EVENT",
+      "textureIds": [
+        4,
+        5,
+        7,
+        9,
+        11,
+        13,
+        16,
+        18,
+        20,
+        22,
+        24,
+        26,
+        28,
+        30
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "4487:getTexture:this",
+      "moduleId": "4487",
+      "readableName": "BannerPlate",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "this",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "44896:getShip:card:self._mst_id:false",
+      "moduleId": "44896",
+      "readableName": "TaskShowShipCard",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "card",
+      "textureIds": [],
+      "shipMstIdSource": "self._mst_id",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "46091:getShip:reward_card:_0x3d0573:false",
+      "moduleId": "46091",
+      "readableName": "RewardSelectDialogShipBtn",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "reward_card",
+      "textureIds": [],
+      "shipMstIdSource": "_0x3d0573",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "46351:getTexture:BATTLE_MAIN",
+      "moduleId": "46351",
+      "readableName": "BannerBabble",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        120
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "46595:getShip:full:_0x7d979f:damaged",
+      "moduleId": "46595",
+      "readableName": "CutinDouble2",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x7d979f",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "46682:getSlotitem:item_up:_0x117612",
+      "moduleId": "46682",
+      "readableName": "Plane",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x117612"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "46903:getTexture:BATTLE_RESULT_MAIN",
+      "moduleId": "46903",
+      "readableName": "ResultDialog",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_RESULT_MAIN",
+      "textureIds": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        57,
+        58
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "result",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "46997:getShip:full:_0x14be7d:true",
+      "moduleId": "46997",
+      "readableName": "TaskDamageCutin",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x14be7d",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "46997:getTexture:BATTLE_CUTIN_DAMAGE",
+      "moduleId": "46997",
+      "readableName": "TaskDamageCutin",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_CUTIN_DAMAGE",
+      "textureIds": [
+        0,
+        1,
+        100
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "47629:getTexture:BATTLE_MAIN",
+      "moduleId": "47629",
+      "readableName": "DamageNumber",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        21,
+        22
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "48579:getShip:full:_0x2c3ba6:damaged",
+      "moduleId": "48579",
+      "readableName": "CutinKuboDay",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x2c3ba6",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "50402:getShip:sp_remodel/text_remodel_mes:_0x452155.mstID:false",
+      "moduleId": "50402",
+      "readableName": "SpKaizoConfirm",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "sp_remodel/text_remodel_mes",
+      "textureIds": [],
+      "shipMstIdSource": "_0x452155.mstID",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "50402:getTexture:REMODEL_GRADEUP",
+      "moduleId": "50402",
+      "readableName": "SpKaizoConfirm",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REMODEL_GRADEUP",
+      "textureIds": [
+        1,
+        4,
+        9,
+        23
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "50527:getShip:full:_0x25fc30:damaged",
+      "moduleId": "50527",
+      "readableName": "CutinKuboNight",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x25fc30",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "night",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "51724:getShip:banner3:_0x2d963d:false",
+      "moduleId": "51724",
+      "readableName": "EnemyDeckSilhouette",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner3",
+      "textureIds": [],
+      "shipMstIdSource": "_0x2d963d",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "51724:getShip:banner3:_0x37bc34:false",
+      "moduleId": "51724",
+      "readableName": "EnemyDeckSilhouette",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner3",
+      "textureIds": [],
+      "shipMstIdSource": "_0x37bc34",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "51724:getTexture:COMMON_MISC",
+      "moduleId": "51724",
+      "readableName": "EnemyDeckSilhouette",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        6
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "51724:getTexture:MAP_ENEMY_BANNERFRAMES",
+      "moduleId": "51724",
+      "readableName": "EnemyDeckSilhouette",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "MAP_ENEMY_BANNERFRAMES",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "51968:getSlotitem:airunit_banner:self._mst_id",
+      "moduleId": "51968",
+      "readableName": "AirUnitPanelItem",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "airunit_banner",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "51968:getSlotitem:airunit_name:self._mst_id",
+      "moduleId": "51968",
+      "readableName": "AirUnitPanelItem",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "airunit_name",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "51968:getTexture:SALLY_AIRUNIT",
+      "moduleId": "51968",
+      "readableName": "AirUnitPanelItem",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "SALLY_AIRUNIT",
+      "textureIds": [
+        47,
+        73,
+        74,
+        185,
+        189,
+        190,
+        191,
+        192,
+        194
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "53285:getSlotitem:statustop_item:_0x54c7af",
+      "moduleId": "53285",
+      "readableName": "SlotDetailPanel",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "statustop_item",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x54c7af"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "53285:getTexture:ALBUM_MAIN",
+      "moduleId": "53285",
+      "readableName": "SlotDetailPanel",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ALBUM_MAIN",
+      "textureIds": [
+        22,
+        134,
+        135
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "54482:getTexture:BATTLE_MAIN",
+      "moduleId": "54482",
+      "readableName": "BannerContent",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        53,
+        92
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "54758:getTexture:REVAMP_BOX",
+      "moduleId": "54758",
+      "readableName": "RecipeBox",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REVAMP_BOX",
+      "textureIds": [
+        0,
+        5,
+        6,
+        7,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        32,
+        33,
+        34
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "54934:getTexture:COMMON_MISC",
+      "moduleId": "54934",
+      "readableName": "BannerTired",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        39,
+        40,
+        120,
+        121
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "55177:getTexture:COMMON_MAIN",
+      "moduleId": "55177",
+      "readableName": "ChangeConfirmFromOtherShip",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        46
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "55177:getTexture:REMODEL_MAIN",
+      "moduleId": "55177",
+      "readableName": "ChangeConfirmFromOtherShip",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REMODEL_MAIN",
+      "textureIds": [
+        0,
+        6,
+        48
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "55226:getShip:full:_0x223c2d:damaged",
+      "moduleId": "55226",
+      "readableName": "CutinDouble1",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x223c2d",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "56230:getShip:icon_box:_0x4ea190.mst_id:false",
+      "moduleId": "56230",
+      "readableName": "TaskUseGiftBox",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "icon_box",
+      "textureIds": [],
+      "shipMstIdSource": "_0x4ea190.mst_id",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "56230:getSlotitem:card:_0x4ea190.mst_id",
+      "moduleId": "56230",
+      "readableName": "TaskUseGiftBox",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x4ea190.mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "56434:getSlotitem:btxt_flat:_0x1e3204",
+      "moduleId": "56434",
+      "readableName": "CutinCanvasSpSR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x1e3204"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "56434:getSlotitem:btxt_flat:_0x407e6d",
+      "moduleId": "56434",
+      "readableName": "CutinCanvasSpSR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x407e6d"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "56434:getSlotitem:item_up:_0x11195d",
+      "moduleId": "56434",
+      "readableName": "CutinCanvasSpSR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x11195d"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "56434:getSlotitem:item_up:_0x2d36ee",
+      "moduleId": "56434",
+      "readableName": "CutinCanvasSpSR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x2d36ee"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner_g:this._mst_id:true",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner_g",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner:this._mst_id:_0x1400e4",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x1400e4",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner:this._mst_id:_0x594b17",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x594b17",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner2_g:this._mst_id:true",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner2_g",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner2:this._mst_id:_0x4debbb",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner2",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x4debbb",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner3_g:this._mst_id:true",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner3_g",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getShip:banner3:this._mst_id:_0x329cb4",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner3",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x329cb4",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getTexture:BATTLE_MAIN",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "56817:getTexture:this",
+      "moduleId": "56817",
+      "readableName": "BannerImage",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "this",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "58423:getTexture:ARSENAL_MAIN",
+      "moduleId": "58423",
+      "readableName": "ShipDisassemblyContainer",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ARSENAL_MAIN",
+      "textureIds": [
+        11
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "58423:getTexture:COMMON_MAIN",
+      "moduleId": "58423",
+      "readableName": "ShipDisassemblyContainer",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        1,
+        67
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "58441:getShip:full:this._ship_mst_id:this._ship_damaged",
+      "moduleId": "58441",
+      "readableName": "CutinResourcesPreloadTask",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "this._ship_damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "58441:getSlotitem:item_on:_0x1bff35",
+      "moduleId": "58441",
+      "readableName": "CutinResourcesPreloadTask",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_on",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x1bff35"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "58441:getSlotitem:item_up:_0x1bff35",
+      "moduleId": "58441",
+      "readableName": "CutinResourcesPreloadTask",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x1bff35"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "60988:getSlotitem:card:_0x17deae",
+      "moduleId": "60988",
+      "readableName": "SlotDetailContent",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x17deae"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "60988:getSlotitem:item_character:_0x17deae",
+      "moduleId": "60988",
+      "readableName": "SlotDetailContent",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_character",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x17deae"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "60988:getSlotitem:item_on:_0x17deae",
+      "moduleId": "60988",
+      "readableName": "SlotDetailContent",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_on",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x17deae"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "60988:getSlotitem:item_on2:_0x17deae",
+      "moduleId": "60988",
+      "readableName": "SlotDetailContent",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_on2",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x17deae"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "60988:getSlotitem:item_up:_0x17deae",
+      "moduleId": "60988",
+      "readableName": "SlotDetailContent",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x17deae"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "60988:getSlotitem:item_up2:_0x17deae",
+      "moduleId": "60988",
+      "readableName": "SlotDetailContent",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up2",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x17deae"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "62174:getShip:full:_0x2463c6:false",
+      "moduleId": "62174",
+      "readableName": "TaskRevampStart",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x2463c6",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "62174:getTexture:REVAMP_BOX",
+      "moduleId": "62174",
+      "readableName": "TaskRevampStart",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REVAMP_BOX",
+      "textureIds": [
+        4
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "62473:getShip:full:_0x1844d1:damaged",
+      "moduleId": "62473",
+      "readableName": "TaskFormationSelect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x1844d1",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "63476:getSlotitem:card:_0x26731f",
+      "moduleId": "63476",
+      "readableName": "RewardSelectDialogSlotitemBtn",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x26731f"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "63476:getTexture:COMMON_SELECTABLE_REWARD",
+      "moduleId": "63476",
+      "readableName": "RewardSelectDialogSlotitemBtn",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_SELECTABLE_REWARD",
+      "textureIds": [
+        5
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "63552:getTexture:COMMON_MISC",
+      "moduleId": "63552",
+      "readableName": "BannerRibbonLong",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        181,
+        182
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "64289:getShip:supply_character:_0x39323a:_0x1f7999",
+      "moduleId": "64289",
+      "readableName": "LongShipBanner",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "supply_character",
+      "textureIds": [],
+      "shipMstIdSource": "_0x39323a",
+      "damagedSource": "_0x1f7999",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "64289:getTexture:COMMON_MAIN",
+      "moduleId": "64289",
+      "readableName": "LongShipBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        0,
+        19
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "64289:getTexture:COMMON_MISC",
+      "moduleId": "64289",
+      "readableName": "LongShipBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        39,
+        40,
+        102,
+        103,
+        104,
+        105,
+        106,
+        113,
+        116,
+        117,
+        120,
+        121
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "66157:getSlotitem:btxt_flat:_0x203d24",
+      "moduleId": "66157",
+      "readableName": "CutinCanvasSpSSF",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x203d24"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "66157:getSlotitem:btxt_flat:_0x4d1b5d",
+      "moduleId": "66157",
+      "readableName": "CutinCanvasSpSSF",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x4d1b5d"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "66157:getSlotitem:btxt_flat:_0x55e6d1",
+      "moduleId": "66157",
+      "readableName": "CutinCanvasSpSSF",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x55e6d1"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "66157:getSlotitem:item_up:_0x1cd356",
+      "moduleId": "66157",
+      "readableName": "CutinCanvasSpSSF",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x1cd356"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "66157:getSlotitem:item_up:_0x496bc2",
+      "moduleId": "66157",
+      "readableName": "CutinCanvasSpSSF",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x496bc2"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "66157:getSlotitem:item_up:_0x544e42",
+      "moduleId": "66157",
+      "readableName": "CutinCanvasSpSSF",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x544e42"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "66609:getSlotitem:btxt_flat:_0x2a3b3d",
+      "moduleId": "66609",
+      "readableName": "CutinCanvasSpSuirai",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x2a3b3d"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "66609:getSlotitem:btxt_flat:_0x360e5f",
+      "moduleId": "66609",
+      "readableName": "CutinCanvasSpSuirai",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x360e5f"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "66609:getSlotitem:btxt_flat:_0x56fd18",
+      "moduleId": "66609",
+      "readableName": "CutinCanvasSpSuirai",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x56fd18"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "66609:getTexture:BATTLE_MAIN",
+      "moduleId": "66609",
+      "readableName": "CutinCanvasSpSuirai",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        119
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "68173:getShip:full:this._mst_id:!![]",
+      "moduleId": "68173",
+      "readableName": "TaskGouchinCutin",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "!![]",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "68173:getTexture:BATTLE_CUTIN_GOUCHIN",
+      "moduleId": "68173",
+      "readableName": "TaskGouchinCutin",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_CUTIN_GOUCHIN",
+      "textureIds": [
+        2,
+        11,
+        12
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "68249:getTexture:COMMON_MAIN",
+      "moduleId": "68249",
+      "readableName": "LongShipBannerContainer",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        20
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "68432:getShip:full:_0xe73e0d:false",
+      "moduleId": "68432",
+      "readableName": "CutinKongoAttack",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0xe73e0d",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "68432:getTexture:BATTLE_MAIN",
+      "moduleId": "68432",
+      "readableName": "CutinKongoAttack",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "69595:getSlotitem:btxt_flat:_0x15d9f1",
+      "moduleId": "69595",
+      "readableName": "CutinCanvasSpRDJ",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x15d9f1"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "69595:getSlotitem:btxt_flat:_0x27b360",
+      "moduleId": "69595",
+      "readableName": "CutinCanvasSpRDJ",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x27b360"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "69595:getSlotitem:btxt_flat:_0x396bc9",
+      "moduleId": "69595",
+      "readableName": "CutinCanvasSpRDJ",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x396bc9"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "69595:getTexture:BATTLE_MAIN",
+      "moduleId": "69595",
+      "readableName": "CutinCanvasSpRDJ",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        119
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "69917:getTexture:COMMON_MISC",
+      "moduleId": "69917",
+      "readableName": "ResourceManager",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        6
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "70041:getSlotitem:card:_0x15d2e9",
+      "moduleId": "70041",
+      "readableName": "TaskRewardDialogSlotitem",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x15d2e9"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "7248:getShip:sp_remodel/full_x2:_0x20ad90:false",
+      "moduleId": "7248",
+      "readableName": "SpecialRemodelStartStage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "sp_remodel/full_x2",
+      "textureIds": [],
+      "shipMstIdSource": "_0x20ad90",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "7248:getShip:sp_remodel/text_class:_0x20ad90:false",
+      "moduleId": "7248",
+      "readableName": "SpecialRemodelStartStage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "sp_remodel/text_class",
+      "textureIds": [],
+      "shipMstIdSource": "_0x20ad90",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "7248:getShip:sp_remodel/text_name:_0x20ad90:false",
+      "moduleId": "7248",
+      "readableName": "SpecialRemodelStartStage",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "sp_remodel/text_name",
+      "textureIds": [],
+      "shipMstIdSource": "_0x20ad90",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "72878:getShip:banner_g:_0x1cc1f4:true",
+      "moduleId": "72878",
+      "readableName": "ShipBannerClone",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner_g",
+      "textureIds": [],
+      "shipMstIdSource": "_0x1cc1f4",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "72878:getShip:banner:_0x1cc1f4:false",
+      "moduleId": "72878",
+      "readableName": "ShipBannerClone",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0x1cc1f4",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "72878:getShip:banner:_0x1cc1f4:true",
+      "moduleId": "72878",
+      "readableName": "ShipBannerClone",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0x1cc1f4",
+      "damagedSource": "true",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "73359:getTexture:BATTLE_RESULT_MAIN",
+      "moduleId": "73359",
+      "readableName": "BannerInfoFriend",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_RESULT_MAIN",
+      "textureIds": [
+        9,
+        62,
+        72
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "73747:getTexture:COMMON_MAIN",
+      "moduleId": "73747",
+      "readableName": "BannerLockSlot",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        41,
+        42
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "7438:getShip:special:this._attacker.mst_id:this._attacker.isDamaged()",
+      "moduleId": "7438",
+      "readableName": "CutinZRK",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "special",
+      "textureIds": [],
+      "shipMstIdSource": "this._attacker.mst_id",
+      "damagedSource": "this._attacker.isDamaged()",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "7438:getSlotitem:btxt_flat:this._mainArmamentMstID",
+      "moduleId": "7438",
+      "readableName": "CutinZRK",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this._mainArmamentMstID"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "7438:getSlotitem:item_up:this._mainArmamentMstID",
+      "moduleId": "7438",
+      "readableName": "CutinZRK",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this._mainArmamentMstID"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "7438:getSlotitem:item_up:this._zuiunMstId",
+      "moduleId": "7438",
+      "readableName": "CutinZRK",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this._zuiunMstId"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "7438:getTexture:BATTLE_ZRK",
+      "moduleId": "7438",
+      "readableName": "CutinZRK",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_ZRK",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "75803:getSlotitem:btxt_flat:_0x202cee",
+      "moduleId": "75803",
+      "readableName": "CutinCanvasSpRR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x202cee"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "75803:getSlotitem:btxt_flat:_0x33b0d3",
+      "moduleId": "75803",
+      "readableName": "CutinCanvasSpRR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x33b0d3"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "75803:getSlotitem:item_up:_0x3771b6",
+      "moduleId": "75803",
+      "readableName": "CutinCanvasSpRR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x3771b6"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "75803:getSlotitem:item_up:_0x481ab9",
+      "moduleId": "75803",
+      "readableName": "CutinCanvasSpRR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x481ab9"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "75803:getSlotitem:item_up:_0x522c84",
+      "moduleId": "75803",
+      "readableName": "CutinCanvasSpRR",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x522c84"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "75803:getTexture:BATTLE_MAIN",
+      "moduleId": "75803",
+      "readableName": "CutinCanvasSpRR",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        119
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "76095:getShip:full:_0x87b2d:false",
+      "moduleId": "76095",
+      "readableName": "TaskBossCutin",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x87b2d",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "77076:getTexture:COMMON_MISC",
+      "moduleId": "77076",
+      "readableName": "BannerSoot",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        102,
+        103,
+        104
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "77190:getTexture:ORGANIZE_MAIN",
+      "moduleId": "77190",
+      "readableName": "PresetEditSlot",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "ORGANIZE_MAIN",
+      "textureIds": [
+        1,
+        4,
+        5,
+        29,
+        33
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "77357:getSlotitem:btxt_flat:_0x20b7e8",
+      "moduleId": "77357",
+      "readableName": "CutinTelop",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x20b7e8"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "77469:getTexture:COMMON_MISC",
+      "moduleId": "77469",
+      "readableName": "PanelDeckSelect",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        188
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "77469:getTexture:SALLY_PRACTICE",
+      "moduleId": "77469",
+      "readableName": "PanelDeckSelect",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "SALLY_PRACTICE",
+      "textureIds": [
+        29,
+        33,
+        35
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "78084:getShip:remodel:_0x32e446:damaged",
+      "moduleId": "78084",
+      "readableName": "KaizoDetailHeader",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "remodel",
+      "textureIds": [],
+      "shipMstIdSource": "_0x32e446",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "78084:getTexture:REMODEL_GRADEUP",
+      "moduleId": "78084",
+      "readableName": "KaizoDetailHeader",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REMODEL_GRADEUP",
+      "textureIds": [
+        10,
+        11,
+        12
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "80135:getShip:icon_box:_0x156dc1.mst_id:false",
+      "moduleId": "80135",
+      "readableName": "TaskRewardSelect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "icon_box",
+      "textureIds": [],
+      "shipMstIdSource": "_0x156dc1.mst_id",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "80135:getShip:reward_icon:_0x156dc1.mst_id:false",
+      "moduleId": "80135",
+      "readableName": "TaskRewardSelect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "reward_icon",
+      "textureIds": [],
+      "shipMstIdSource": "_0x156dc1.mst_id",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "80135:getSlotitem:card:_0x156dc1.mst_id",
+      "moduleId": "80135",
+      "readableName": "TaskRewardSelect",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x156dc1.mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "80845:getShip:full:_0x9ae5ea.mstID:_0x9ae5ea.isDamaged()",
+      "moduleId": "80845",
+      "readableName": "TaskExpeditionResultShow",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x9ae5ea.mstID",
+      "damagedSource": "_0x9ae5ea.isDamaged()",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "result",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "80845:getTexture:COMMON_EXPEDITION",
+      "moduleId": "80845",
+      "readableName": "TaskExpeditionResultShow",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_EXPEDITION",
+      "textureIds": [
+        2,
+        7,
+        8,
+        9,
+        10
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "result",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "80937:getTexture:COMMON_MISC",
+      "moduleId": "80937",
+      "readableName": "BannerIcon",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        106,
+        116,
+        118
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "8263:getSlotitem:remodel:_0x5843e3",
+      "moduleId": "8263",
+      "readableName": "AirUnitChangeConfirmPanel",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "remodel",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x5843e3"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "8263:getTexture:SALLY_AIRUNIT",
+      "moduleId": "8263",
+      "readableName": "AirUnitChangeConfirmPanel",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "SALLY_AIRUNIT",
+      "textureIds": [
+        9,
+        10,
+        35,
+        36,
+        37,
+        39,
+        44,
+        45,
+        46,
+        157,
+        171,
+        172
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "82850:getShip:full:_0x53e83f:_0x3d8500",
+      "moduleId": "82850",
+      "readableName": "CellTaskFancy",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x53e83f",
+      "damagedSource": "_0x3d8500",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "83645:getShip:full:_0xe3e9e9:damaged",
+      "moduleId": "83645",
+      "readableName": "CutinAttack",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0xe3e9e9",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "85270:getShip:full:mst_id:false",
+      "moduleId": "85270",
+      "readableName": "RewardAnimationShip",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "mst_id",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "85373:getShip:full:_0x20d929:damaged",
+      "moduleId": "85373",
+      "readableName": "Content",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x20d929",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "85373:getTexture:PRAC_MAIN",
+      "moduleId": "85373",
+      "readableName": "Content",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "PRAC_MAIN",
+      "textureIds": [
+        0,
+        1
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "85426:getShip:full:self.shipModel.mstID:false",
+      "moduleId": "85426",
+      "readableName": "MarriageAnimation",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "self.shipModel.mstID",
+      "damagedSource": "false",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "85426:getTexture:WEDDING_MARRIAGE",
+      "moduleId": "85426",
+      "readableName": "MarriageAnimation",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "WEDDING_MARRIAGE",
+      "textureIds": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "85426:getTexture:WEDDING_MARRIAGE_BG",
+      "moduleId": "85426",
+      "readableName": "MarriageAnimation",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "WEDDING_MARRIAGE_BG",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "86156:getShip:full:_0x51f93:damaged",
+      "moduleId": "86156",
+      "readableName": "TaskReplenishmentEffect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x51f93",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "86156:getShip:full:_0x573605:damaged",
+      "moduleId": "86156",
+      "readableName": "TaskReplenishmentEffect",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x573605",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "86346:getSlotitem:btxt_flat:_0x23033a",
+      "moduleId": "86346",
+      "readableName": "CutinCanvasSpYusou",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x23033a"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "86346:getSlotitem:btxt_flat:_0x24c490",
+      "moduleId": "86346",
+      "readableName": "CutinCanvasSpYusou",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x24c490"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "86346:getSlotitem:btxt_flat:_0x2ef56f",
+      "moduleId": "86346",
+      "readableName": "CutinCanvasSpYusou",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x2ef56f"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "86346:getTexture:BATTLE_MAIN",
+      "moduleId": "86346",
+      "readableName": "CutinCanvasSpYusou",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        119
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "86523:getShip:banner:_0x139556.mst_id:_0x139556.damaged",
+      "moduleId": "86523",
+      "readableName": "TaskSupportDeckCutin",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0x139556.mst_id",
+      "damagedSource": "_0x139556.damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "86523:getShip:banner:_0x33407a.mst_id:_0x33407a.damaged",
+      "moduleId": "86523",
+      "readableName": "TaskSupportDeckCutin",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "banner",
+      "textureIds": [],
+      "shipMstIdSource": "_0x33407a.mst_id",
+      "damagedSource": "_0x33407a.damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "86614:getTexture:REMODEL_ANIMATION",
+      "moduleId": "86614",
+      "readableName": "CutinBar",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "REMODEL_ANIMATION",
+      "textureIds": [
+        0,
+        1
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "88436:getTexture:BATTLE_MAIN",
+      "moduleId": "88436",
+      "readableName": "CutinKuboDayCanvas",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        70,
+        71,
+        77,
+        78,
+        79
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "88436:getTexture:this",
+      "moduleId": "88436",
+      "readableName": "CutinKuboDayCanvas",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "this",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "89916:getSlotitem:item_up:_0x6f1be6",
+      "moduleId": "89916",
+      "readableName": "PhaseSakuteki",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "item_up",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "_0x6f1be6"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "89916:getTexture:BATTLE_MAIN",
+      "moduleId": "89916",
+      "readableName": "PhaseSakuteki",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        35,
+        61,
+        96
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "90627:getTexture:BATTLE_MAIN",
+      "moduleId": "90627",
+      "readableName": "BannerInfoLayer",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        148,
+        152
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "92410:getSlotitem:card:this._after_item_id",
+      "moduleId": "92410",
+      "readableName": "ChangeSlotitemLayer",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this._after_item_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "92410:getSlotitem:card:this._before_item_id",
+      "moduleId": "92410",
+      "readableName": "ChangeSlotitemLayer",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "this._before_item_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "92410:getTexture:COMMON_MISC",
+      "moduleId": "92410",
+      "readableName": "ChangeSlotitemLayer",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        128
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "94663:getShip:full:_0x2da9de:damaged",
+      "moduleId": "94663",
+      "readableName": "PhaseAllyOpening",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x2da9de",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "94663:getShip:full:_0x33404a:damaged",
+      "moduleId": "94663",
+      "readableName": "PhaseAllyOpening",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x33404a",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "94663:getShip:full:_0x417283:damaged",
+      "moduleId": "94663",
+      "readableName": "PhaseAllyOpening",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x417283",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "ship-resource"
+      ]
+    },
+    {
+      "id": "95403:getSlotitem:btxt_flat:mst.mstID",
+      "moduleId": "95403",
+      "readableName": "CutinKuboNightCanvas",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "btxt_flat",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "mst.mstID"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "night",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "95403:getTexture:BATTLE_MAIN",
+      "moduleId": "95403",
+      "readableName": "CutinKuboNightCanvas",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        77,
+        78,
+        79
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "night",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "96928:getSlotitem:airunit_fairy:self._mst_id",
+      "moduleId": "96928",
+      "readableName": "AirUnitPanelBanner",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "airunit_fairy",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "96928:getTexture:SALLY_AIRUNIT",
+      "moduleId": "96928",
+      "readableName": "AirUnitPanelBanner",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "SALLY_AIRUNIT",
+      "textureIds": [
+        2,
+        184
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "slotitem-resource",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "99411:getShip:full:_0x9e7e46:damaged",
+      "moduleId": "99411",
+      "readableName": "CutinSpSR",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x9e7e46",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "99469:getSlotitem:card:mst_id",
+      "moduleId": "99469",
+      "readableName": "RewardAnimationSlot",
+      "resourceKind": "slotitem",
+      "action": "getSlotitem",
+      "targetType": "card",
+      "textureIds": [],
+      "slotMstIdSources": [
+        "mst_id"
+      ],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "slotitem-resource"
+      ]
+    },
+    {
+      "id": "99547:getTexture:BATTLE_MAIN",
+      "moduleId": "99547",
+      "readableName": "BannerFrame",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        47,
+        48,
+        49,
+        50,
+        51
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "99547:getTexture:BATTLE_MAIN2",
+      "moduleId": "99547",
+      "readableName": "BannerFrame",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "BATTLE_MAIN2",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "99547:getTexture:this",
+      "moduleId": "99547",
+      "readableName": "BannerFrame",
+      "resourceKind": "texture-provider",
+      "action": "getTexture",
+      "provider": "this",
+      "textureIds": [],
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "banner",
+        "battle",
+        "texture-provider"
+      ]
+    },
+    {
+      "id": "99929:getShip:full:_0x47c11f:damaged",
+      "moduleId": "99929",
+      "readableName": "CutinSpRR",
+      "resourceKind": "ship",
+      "action": "getShip",
+      "targetType": "full",
+      "textureIds": [],
+      "shipMstIdSource": "_0x47c11f",
+      "damagedSource": "damaged",
+      "slotMstIdSources": [],
+      "explicitPaths": [],
+      "triggerHints": [
+        "battle",
+        "cutin",
+        "ship-resource",
+        "slotitem-resource"
+      ]
+    }
+  ]
+}

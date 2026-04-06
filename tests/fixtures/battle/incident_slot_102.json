@@ -1,0 +1,61 @@
+{
+  "api_atoll_cell": 0,
+  "api_balloon_cell": 0,
+  "api_deck_id": 1,
+  "api_eParam": [[6, 16, 6, 7], [6, 16, 6, 7]],
+  "api_eSlot": [[1502, 513, -1, -1, -1], [1502, 513, -1, -1, -1]],
+  "api_e_effect_list": [[0], [0]],
+  "api_e_maxhps": [24, 24],
+  "api_e_nowhps": [24, 24],
+  "api_fParam": [[15, 27, 16, 6], [104, 0, 36, 75], [0, 5, 33, 29]],
+  "api_f_maxhps": [15, 80, 71],
+  "api_f_nowhps": [15, 80, 71],
+  "api_formation": [1, 1, 2],
+  "api_hougeki1": {
+    "api_at_eflag": [0, 0],
+    "api_at_list": [0, 1],
+    "api_at_type": [0, 0],
+    "api_cl_list": [[1], [1]],
+    "api_damage": [[11], [13]],
+    "api_df_list": [[0], [0]],
+    "api_si_list": [[2, 147], [102, 8]]
+  },
+  "api_hourai_flag": [1, 0, 0, 0],
+  "api_kouku": {
+    "api_plane_from": [[3], []],
+    "api_stage1": {
+      "api_disp_seiku": 1,
+      "api_e_count": 0,
+      "api_e_lostcount": 0,
+      "api_f_count": 99,
+      "api_f_lostcount": 0,
+      "api_touch_plane": [-1, -1]
+    },
+    "api_stage2": {
+      "api_e_count": 0,
+      "api_e_lostcount": 0,
+      "api_f_count": 99,
+      "api_f_lostcount": 2
+    },
+    "api_stage3": {
+      "api_e_sp_list": [null, null],
+      "api_ebak_flag": [0, 1],
+      "api_ecl_flag": [0, 1],
+      "api_edam": [0, 24],
+      "api_erai_flag": [0, 1],
+      "api_f_sp_list": [null, null, null],
+      "api_fbak_flag": [0, 0, 0],
+      "api_fcl_flag": [0, 0, 0],
+      "api_fdam": [0, 0, 0],
+      "api_frai_flag": [0, 0, 0]
+    }
+  },
+  "api_midnight_flag": 0,
+  "api_opening_flag": 0,
+  "api_opening_taisen_flag": 0,
+  "api_search": [1, 1],
+  "api_ship_ke": [1503, 1503],
+  "api_ship_lv": [7, 7],
+  "api_smoke_type": 0,
+  "api_stage_flag": [1, 1, 1]
+}

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::{ndock, ship},
+	entity::profile::{material, ndock, ship},
 	sea_orm::{
 		ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, TryIntoModel,
 		entity::prelude::*,
@@ -10,7 +10,7 @@ use emukc_model::{
 	codex::{Codex, repair::RepairCost},
 	kc2::{KcUseItemType, MaterialCategory},
 	prelude::ApiMstShip,
-	profile::ndock::RepairDock,
+	profile::{material::Material, ndock::RepairDock},
 };
 use emukc_time::chrono;
 
@@ -68,7 +68,7 @@ pub trait NDockOps {
 		ndock_id: i64,
 		ship_id: i64,
 		highspeed: bool,
-	) -> Result<(), GameplayError>;
+	) -> Result<Option<Material>, GameplayError>;
 
 	/// Speed up ship repairation.
 	///
@@ -76,11 +76,13 @@ pub trait NDockOps {
 	///
 	/// - `profile_id`: The profile ID.
 	/// - `ndock_id`: The repair dock ID.
+	///
+	/// Returns the updated material after deducting the bucket.
 	async fn speed_up_ship_repairation(
 		&self,
 		profile_id: i64,
 		ndock_id: i64,
-	) -> Result<(), GameplayError>;
+	) -> Result<Material, GameplayError>;
 }
 
 #[async_trait]
@@ -132,32 +134,32 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 		ndock_id: i64,
 		ship_id: i64,
 		highspeed: bool,
-	) -> Result<(), GameplayError> {
+	) -> Result<Option<Material>, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
+		let m = ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
 
 		tx.commit().await?;
 
-		Ok(())
+		Ok(m.map(Into::into))
 	}
 
 	async fn speed_up_ship_repairation(
 		&self,
 		profile_id: i64,
 		ndock_id: i64,
-	) -> Result<(), GameplayError> {
+	) -> Result<Material, GameplayError> {
 		let codex = self.codex();
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		speed_up_ship_repairation_impl(&tx, codex, profile_id, ndock_id).await?;
+		let m: Material = speed_up_ship_repairation_impl(&tx, codex, profile_id, ndock_id).await?.into();
 
 		tx.commit().await?;
 
-		Ok(())
+		Ok(m)
 	}
 }
 
@@ -320,7 +322,7 @@ pub(crate) async fn ndock_start_repair_impl<C>(
 	ndock_id: i64,
 	ship_id: i64,
 	highspeed: bool,
-) -> Result<(), GameplayError>
+) -> Result<Option<material::Model>, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -374,13 +376,11 @@ where
 	}
 
 	// deduct material
-	{
-		let mut material_cost = vec![(MaterialCategory::Fuel, docking_cost.fuel_cost)];
-		if highspeed {
-			material_cost.push((MaterialCategory::Bucket, 1));
-		}
-		deduct_material_impl(c, profile_id, &material_cost).await?;
+	let mut material_cost = vec![(MaterialCategory::Fuel, docking_cost.fuel_cost)];
+	if highspeed {
+		material_cost.push((MaterialCategory::Bucket, 1));
 	}
+	let material = deduct_material_impl(c, profile_id, &material_cost).await?;
 
 	// update ndock model
 	{
@@ -413,7 +413,7 @@ where
 			.await?;
 	}
 
-	Ok(())
+	Ok(if highspeed { Some(material) } else { None })
 }
 
 pub(crate) async fn speed_up_ship_repairation_impl<C>(
@@ -421,7 +421,7 @@ pub(crate) async fn speed_up_ship_repairation_impl<C>(
 	codex: &Codex,
 	profile_id: i64,
 	ndock_id: i64,
-) -> Result<(), GameplayError>
+) -> Result<material::Model, GameplayError>
 where
 	C: ConnectionTrait,
 {
@@ -434,7 +434,8 @@ where
 	let ship_id = dock.ship_id;
 
 	// deduct material
-	deduct_material_impl(c, profile_id, &[(MaterialCategory::Bucket, 1)]).await?;
+	let material =
+		deduct_material_impl(c, profile_id, &[(MaterialCategory::Bucket, 1)]).await?;
 
 	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(
@@ -473,7 +474,7 @@ where
 	crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
 		.await?;
 
-	Ok(())
+	Ok(material)
 }
 
 /// Initialize repair docks for a profile.

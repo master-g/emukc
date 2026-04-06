@@ -375,9 +375,10 @@ async fn practice_battle_result_decrements_group_exercise_quest_when_composition
 	let pid = session.profile.id;
 	let quest_id = 320;
 
-	let ships = add_ships_with_type(&context, pid, KcShipType::DD, 4, 99).await;
+	let dds = add_ships_with_type(&context, pid, KcShipType::DD, 4, 99).await;
+	let bbs = add_ships_with_type(&context, pid, KcShipType::BB, 2, 99).await;
 	context
-		.update_fleet_ships(pid, 1, &[ships[0], ships[1], ships[2], ships[3], -1, -1])
+		.update_fleet_ships(pid, 1, &[bbs[0], dds[0], dds[1], dds[2], dds[3], bbs[1]])
 		.await
 		.unwrap();
 	ensure_started_quest(&context, pid, quest_id).await;
@@ -466,9 +467,10 @@ async fn idle_group_exercise_quest_shows_initial_progress_after_matching_battle(
 	let pid = session.profile.id;
 	let quest_id = 320;
 
-	let ships = add_ships_with_type(&context, pid, KcShipType::DD, 4, 99).await;
+	let dds = add_ships_with_type(&context, pid, KcShipType::DD, 4, 99).await;
+	let bbs = add_ships_with_type(&context, pid, KcShipType::BB, 2, 99).await;
 	context
-		.update_fleet_ships(pid, 1, &[ships[0], ships[1], ships[2], ships[3], -1, -1])
+		.update_fleet_ships(pid, 1, &[bbs[0], dds[0], dds[1], dds[2], dds[3], bbs[1]])
 		.await
 		.unwrap();
 	ensure_idle_quest(&context, pid, quest_id).await;

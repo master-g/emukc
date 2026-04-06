@@ -15,6 +15,11 @@ pub(super) struct Params {
 	api_highspeed: i64,
 }
 
+#[derive(Serialize)]
+struct Resp {
+	api_material: Vec<i64>,
+}
+
 pub(super) async fn handler(
 	state: AppState,
 	Extension(session): Extension<GameSession>,
@@ -22,9 +27,17 @@ pub(super) async fn handler(
 ) -> KcApiResult {
 	let pid = session.profile.id;
 
-	state
+	let material = state
 		.ndock_start_repair(pid, params.api_ndock_id, params.api_ship_id, params.api_highspeed == 1)
 		.await?;
 
-	Ok(KcApiResponse::empty())
+	if let Some(material) = material {
+		let api_material: Vec<KcApiMaterialElement> = material.into();
+		let api_material: Vec<i64> = api_material.into_iter().map(|v| v.api_value).collect();
+		Ok(KcApiResponse::success(&Resp {
+			api_material,
+		}))
+	} else {
+		Ok(KcApiResponse::empty())
+	}
 }

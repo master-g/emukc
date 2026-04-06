@@ -1,0 +1,25 @@
+{
+  "name": "main-decoder",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "decode": "bun run src/cli.ts",
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "build": "bun build ./src/cli.ts --outdir ./dist --target bun"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.28.5",
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "@babel/types": "^7.28.5",
+    "js-beautify": "^1.15.4"
+  },
+  "devDependencies": {
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
