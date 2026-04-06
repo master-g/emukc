@@ -8,6 +8,7 @@ use serve::ServeArgs;
 use crate::{cfg::AppConfig, cli::dev::add_quest, state::State};
 
 mod auto;
+mod battle;
 mod bootstrap;
 mod cache;
 mod dev;
@@ -54,6 +55,9 @@ enum Commands {
 
 	#[command(about = "Prepare the bootstrap files")]
 	Bootstrap(bootstrap::BootstrapArgs),
+
+	#[command(about = "Validate and diagnose battle payloads with client-derived rules")]
+	Battle(battle::BattleArgs),
 
 	#[command(about = "Maintain the repo-tracked wikiwiki map catalog")]
 	WikiwikiMap(wikiwiki_map::WikiwikiMapArgs),
@@ -194,6 +198,7 @@ pub async fn init() -> ExitCode {
 			}
 			Ok(())
 		}
+		Some(Commands::Battle(args)) => battle::exec(&args, &cfg).await,
 		Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
 		Some(Commands::WikiwikiMap(args)) => wikiwiki_map::exec(&args).await,
 		Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,

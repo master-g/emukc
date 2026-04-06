@@ -510,11 +510,7 @@ mod tests {
 			.join(".data/temp");
 		let enemy_path = data_dir.join("kcwiki_enemy.json");
 		let enemy_equipment_path = data_dir.join("kcwiki_enemy_equipment.json");
-		let manifest_path = data_dir
-			.parent()
-			.unwrap()
-			.join("codex")
-			.join("start2.json");
+		let manifest_path = data_dir.parent().unwrap().join("codex").join("start2.json");
 
 		if !enemy_path.exists() || !enemy_equipment_path.exists() || !manifest_path.exists() {
 			eprintln!("Skipping real kcwiki enemy coverage test (data files not present)");
@@ -558,7 +554,11 @@ mod tests {
 			assert_eq!(ship.api_nowhp, enemy_data.hp, "HP mismatch for {ship_id}");
 			assert_eq!(ship.api_karyoku[0], enemy_data.firepower, "FP mismatch for {ship_id}");
 			assert_eq!(ship.api_soukou[0], enemy_data.armor, "Armor mismatch for {ship_id}");
-			assert_eq!(slot_items.len(), enemy_data.slots.len(), "Slot count mismatch for {ship_id}");
+			assert_eq!(
+				slot_items.len(),
+				enemy_data.slots.len(),
+				"Slot count mismatch for {ship_id}"
+			);
 			tier1_count += 1;
 		}
 

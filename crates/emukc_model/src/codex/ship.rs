@@ -96,18 +96,35 @@ impl Codex {
 		let mst = self.manifest.find_ship(mst_id)?;
 		let basic = self.enemy_ship_extra.get(&mst_id)?;
 
-		let slot_items = basic
-			.slots
-			.iter()
-			.filter(|slot_info| slot_info.item_id > 0)
-			.map(|slot_info| KcApiSlotItem {
+		let mut onslot = basic.maxeq;
+		let mut slot_ids = [-1; 5];
+		let mut slot_items = Vec::new();
+		for (idx, slot_info) in basic.slots.iter().enumerate() {
+			if slot_info.item_id <= 0 {
+				onslot[idx] = 0;
+				continue;
+			}
+
+			if self.manifest.find_slotitem(slot_info.item_id).is_none() {
+				warn!(
+					ship_id = mst_id,
+					slot_index = idx,
+					slot_item_id = slot_info.item_id,
+					"enemy bootstrap slot item missing from manifest, dropping from runtime enemy ship",
+				);
+				onslot[idx] = 0;
+				continue;
+			}
+
+			slot_ids[idx] = slot_info.item_id;
+			slot_items.push(KcApiSlotItem {
 				api_id: 0,
 				api_slotitem_id: slot_info.item_id,
 				api_locked: 0,
 				api_level: 0,
 				api_alv: None,
-			})
-			.collect::<Vec<_>>();
+			});
+		}
 
 		let ship = KcApiShip {
 			api_id: 0,
@@ -119,8 +136,8 @@ impl Codex {
 			api_maxhp: basic.hp.max(1),
 			api_soku: basic.speed,
 			api_leng: basic.range,
-			api_slot: [-1; 5],
-			api_onslot: basic.maxeq,
+			api_slot: slot_ids,
+			api_onslot: onslot,
 			api_slot_ex: 0,
 			api_kyouka: [0; 7],
 			api_backs: basic.backs,

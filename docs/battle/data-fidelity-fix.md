@@ -60,6 +60,21 @@
 
 先把 battle payload 收到“客户端可稳定消费”的状态，再继续推进 fidelity。
 
+## Current Status
+
+已完成：
+
+- `api_si_list` 不再统一回退到“前两个槽位”，而是按昼战炮击 / 对潜 / 夜战上下文选择展示装备
+- `102 -> slot/btxt_flat` 这类事故已被固定为回归样例，并可通过 battle incident analyzer 解释
+- `new_enemy_ship()` 会过滤 manifest 中不存在的敌舰装备 ID
+- manifest-only fallback 敌舰现在返回 `api_onslot = [0; 5]`
+
+仍待继续收紧：
+
+- 更多昼战 / 夜战 cutin 的展示装备细则
+- 更正式的 battle display rule table
+- 敌舰 stat source 的完整化
+
 ## Fix Tracks
 
 ### Track 1. Context-aware `api_si_list`

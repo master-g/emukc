@@ -9,6 +9,48 @@ use emukc_model::{
 	},
 };
 
+const DAY_SURFACE_DISPLAY_TYPES: &[KcSlotItemType3] = &[
+	KcSlotItemType3::SmallCaliberMainGun,
+	KcSlotItemType3::MediumCaliberMainGun,
+	KcSlotItemType3::LargeCaliberMainGun,
+	KcSlotItemType3::SecondaryGun,
+	KcSlotItemType3::LargeCaliberMainGun2,
+	KcSlotItemType3::SecondaryGun2,
+	KcSlotItemType3::Torpedo,
+	KcSlotItemType3::SubmarineTorpedo,
+	KcSlotItemType3::CarrierBasedDiveBomber,
+	KcSlotItemType3::CarrierBasedTorpedoBomber,
+	KcSlotItemType3::SeaBasedBomber,
+	KcSlotItemType3::JetFighterBomber,
+	KcSlotItemType3::JetAttacker,
+];
+
+const ASW_DISPLAY_TYPES: &[KcSlotItemType3] = &[
+	KcSlotItemType3::Sonar,
+	KcSlotItemType3::LargeSonar,
+	KcSlotItemType3::DepthCharge,
+	KcSlotItemType3::AutoGyro,
+	KcSlotItemType3::AntiSubmarinePatrol,
+	KcSlotItemType3::SeaBasedBomber,
+	KcSlotItemType3::LargeFlyingBoat,
+];
+
+const NIGHT_MAIN_GUN_TYPES: &[KcSlotItemType3] = &[
+	KcSlotItemType3::SmallCaliberMainGun,
+	KcSlotItemType3::MediumCaliberMainGun,
+	KcSlotItemType3::LargeCaliberMainGun,
+	KcSlotItemType3::LargeCaliberMainGun2,
+];
+
+const NIGHT_SECONDARY_GUN_TYPES: &[KcSlotItemType3] =
+	&[KcSlotItemType3::SecondaryGun, KcSlotItemType3::SecondaryGun2];
+
+const NIGHT_TORPEDO_TYPES: &[KcSlotItemType3] =
+	&[KcSlotItemType3::Torpedo, KcSlotItemType3::SubmarineTorpedo];
+
+const RADAR_DISPLAY_TYPES: &[KcSlotItemType3] =
+	&[KcSlotItemType3::SmallRadar, KcSlotItemType3::LargeRadar, KcSlotItemType3::LargeRadar2];
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleMode {
@@ -80,19 +122,98 @@ pub struct BattleRuntimeShip {
 	pub ship: KcApiShip,
 	pub slot_items: Vec<KcApiSlotItem>,
 	pub effect_list: Vec<i64>,
-	pub current_hp: i64,
+	/// Current HP — only mutable through [`apply_damage`](Self::apply_damage).
+	current_hp: i64,
+	/// HP at the start of this battle node (before any combat phases).
+	/// Used to determine sinking protection eligibility.
+	pub entry_hp: i64,
 	pub damage_dealt: i64,
+	/// Whether this ship belongs to the player (friendly) side.
+	is_friendly: bool,
+	/// Whether this battle is a sortie (true) or practice (false).
+	/// Sinking protection only applies during sorties.
+	is_sortie: bool,
+}
+
+impl BattleRuntimeShip {
+	/// Create a runtime ship for battle simulation.
+	pub fn new(input: BattleShipInput, is_friendly: bool, is_sortie: bool) -> Self {
+		Self {
+			current_hp: input.ship.api_nowhp,
+			entry_hp: input.ship.api_nowhp,
+			damage_dealt: 0,
+			ship: input.ship,
+			slot_items: input.slot_items,
+			effect_list: input.effect_list,
+			is_friendly,
+			is_sortie,
+		}
+	}
+
+	/// Current HP (read-only).
+	pub fn hp(&self) -> i64 {
+		self.current_hp
+	}
+
+	pub fn is_alive(&self) -> bool {
+		self.current_hp > 0
+	}
+
+	pub fn is_sunk(&self) -> bool {
+		self.current_hp <= 0
+	}
+
+	/// Apply damage with sinking protection (轟沈ストッパー).
+	///
+	/// In real KanColle:
+	/// - Friendly ships that were **not** in taiha (HP ≤ 25% max) at the start of
+	///   the battle node cannot be sunk. Lethal damage is replaced with
+	///   proportional damage: `floor(0.5 * H + 0.3 * rand(0..H))`.
+	/// - The flagship (index 0) can **never** be sunk regardless of HP state.
+	/// - Protection only applies to friendly ships during sorties (not practice).
+	///
+	/// Returns the actual damage dealt (after any protection replacement).
+	pub fn apply_damage(
+		&mut self,
+		random: &mut BattleRandom,
+		raw_damage: i64,
+		ship_index: usize,
+	) -> i64 {
+		if self.is_sunk() {
+			return 0;
+		}
+
+		let effective = raw_damage.min(self.current_hp);
+
+		// Sinking protection only applies to friendly ships during sorties.
+		if self.is_friendly && self.is_sortie && effective >= self.current_hp {
+			let is_flagship = ship_index == 0;
+			// Taiha threshold: HP ≤ 25% of max at node entry.
+			let was_taiha_at_entry = self.entry_hp * 4 <= self.ship.api_maxhp;
+			let is_protected = is_flagship || !was_taiha_at_entry;
+
+			if is_protected {
+				// Replace lethal damage with proportional damage (割合ダメージ).
+				// Formula: floor(0.5 * H + 0.3 * rand(0..H)), clamped to [0, H-1].
+				let h = self.current_hp;
+				let rand_part = if h > 1 { random.roll_range(0, h) } else { 0 };
+				let proportional = (0.5 * h as f64 + 0.3 * rand_part as f64).floor() as i64;
+				let dealt = proportional.clamp(0, h - 1);
+				self.current_hp -= dealt;
+				return dealt;
+			}
+		}
+
+		self.current_hp -= effective;
+		effective
+	}
 }
 
 impl From<BattleShipInput> for BattleRuntimeShip {
-	fn from(ship: BattleShipInput) -> Self {
-		Self {
-			current_hp: ship.ship.api_nowhp,
-			damage_dealt: 0,
-			ship: ship.ship,
-			slot_items: ship.slot_items,
-			effect_list: ship.effect_list,
-		}
+	/// Convenience conversion for tests and non-protection contexts.
+	/// Defaults to enemy ship in non-sortie (no sinking protection).
+	fn from(input: BattleShipInput) -> Self {
+		Self::new(input, false, false)
 	}
 }
 
@@ -100,6 +221,9 @@ impl From<BattleShipInput> for BattleRuntimeShip {
 pub struct BattleContext {
 	pub mode: BattleMode,
 	pub battle_type: BattleType,
+	/// Whether this is a sortie battle (true) or practice (false).
+	/// Sinking protection only applies during sorties.
+	pub is_sortie: bool,
 	pub friendly_formation_id: i64,
 	pub enemy_formation_id: i64,
 	pub engagement: EngagementType,
@@ -238,6 +362,18 @@ impl BattleRandom {
 			rng().random_range(0u32..10001) as f64 / 10000.0
 		};
 		min + r * (max - min)
+	}
+
+	/// Return a random i64 in `[min, max)`.  Handles `min >= max` gracefully.
+	fn roll_range(&mut self, min: i64, max: i64) -> i64 {
+		if min >= max {
+			return min;
+		}
+		if let Some(seed) = &mut self.seeded {
+			seed.random_range(min..max)
+		} else {
+			rng().random_range(min..max)
+		}
 	}
 }
 
@@ -391,13 +527,21 @@ pub struct NightBattleSimulation {
 
 pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSimulation {
 	let mut random = BattleRandom::new(context.rng_seed);
-	let mut friendly =
-		context.friend_ships.into_iter().map(BattleRuntimeShip::from).collect::<Vec<_>>();
-	let mut enemy =
-		context.enemy_ships.into_iter().map(BattleRuntimeShip::from).collect::<Vec<_>>();
+	let is_sortie = context.is_sortie;
+	let mut friendly = context
+		.friend_ships
+		.into_iter()
+		.map(|s| BattleRuntimeShip::new(s, true, is_sortie))
+		.collect::<Vec<_>>();
+	let mut enemy = context
+		.enemy_ships
+		.into_iter()
+		.map(|s| BattleRuntimeShip::new(s, false, is_sortie))
+		.collect::<Vec<_>>();
 
 	let battle_type = context.battle_type;
-	let run_kouku = matches!(battle_type, BattleType::Normal | BattleType::AirBattle | BattleType::LdAirBattle);
+	let run_kouku =
+		matches!(battle_type, BattleType::Normal | BattleType::AirBattle | BattleType::LdAirBattle);
 	let run_oasw = matches!(battle_type, BattleType::Normal | BattleType::AirBattle);
 	let run_shelling = matches!(battle_type, BattleType::Normal | BattleType::LdShooting);
 	let run_torpedo = matches!(battle_type, BattleType::Normal);
@@ -433,8 +577,7 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
 		opening_taisen_flag = i64::from(opening_taisen.is_some());
 	}
 
-	if run_torpedo
-		&& (can_opening_torpedo(codex, &friendly) || can_opening_torpedo(codex, &enemy))
+	if run_torpedo && (can_opening_torpedo(codex, &friendly) || can_opening_torpedo(codex, &enemy))
 	{
 		opening_attack = simulate_opening_torpedo(
 			codex,
@@ -510,9 +653,9 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
 			context.enemy_formation_id,
 			context.engagement.api_id(),
 		],
-		friendly_nowhps: friendly.iter().map(|ship| ship.current_hp.max(0)).collect(),
+		friendly_nowhps: friendly.iter().map(|ship| ship.hp().max(0)).collect(),
 		friendly_maxhps: friendly.iter().map(|ship| ship.ship.api_maxhp).collect(),
-		enemy_nowhps: enemy.iter().map(|ship| ship.current_hp.max(0)).collect(),
+		enemy_nowhps: enemy.iter().map(|ship| ship.hp().max(0)).collect(),
 		enemy_maxhps: enemy.iter().map(|ship| ship.ship.api_maxhp).collect(),
 		smoke_type: 0,
 		balloon_cell: 0,
@@ -538,7 +681,8 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
 		can_midnight,
 	};
 
-	let _ = context.mode;
+	verify_protected_ships_alive(&friendly);
+
 	BattleSimulation {
 		friendly,
 		enemy,
@@ -557,9 +701,9 @@ pub fn simulate_night_battle_v1(
 ) -> NightBattleSimulation {
 	let mut random = BattleRandom::new(None);
 	let entry_friendly_nowhps =
-		friendly.iter().map(|ship| ship.current_hp.max(0)).collect::<Vec<_>>();
+		friendly.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
 	let entry_friendly_maxhps = friendly.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
-	let entry_enemy_nowhps = enemy.iter().map(|ship| ship.current_hp.max(0)).collect::<Vec<_>>();
+	let entry_enemy_nowhps = enemy.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
 	let entry_enemy_maxhps = enemy.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
 	let hougeki = simulate_night_hougeki(
 		codex,
@@ -585,6 +729,8 @@ pub fn simulate_night_battle_v1(
 		flare_pos: [-1, -1],
 		hougeki,
 	};
+
+	verify_protected_ships_alive(&friendly);
 
 	NightBattleSimulation {
 		friendly,
@@ -629,22 +775,25 @@ fn simulate_shelling_side(
 			continue;
 		};
 		let is_asw_attack = target_class(codex, &defenders[target_idx]) == TargetClass::Submarine;
-		let dealt = if is_asw_attack {
+		let raw = if is_asw_attack {
 			calculate_asw_damage(codex, ship, &defenders[target_idx], formation_id, engagement)
 		} else {
 			calculate_shelling_damage(ship, &defenders[target_idx], formation_id, engagement)
-		}
-		.min(defenders[target_idx].current_hp.max(0));
-		defenders[target_idx].current_hp -= dealt;
+		};
+		let dealt = defenders[target_idx].apply_damage(random, raw, target_idx);
 		if !attacker_enemy {
 			ship.damage_dealt += dealt;
 		}
 
 		at_eflag.push(i64::from(attacker_enemy));
 		at_list.push(idx as i64);
-		at_type.push(if is_asw_attack { 7 } else { 0 });
+		at_type.push(if is_asw_attack {
+			7
+		} else {
+			0
+		});
 		df_list.push(vec![target_idx as i64]);
-		si_list.push(weapon_display_ids(ship));
+		si_list.push(day_attack_display_ids(codex, ship, is_asw_attack));
 		cl_list.push(vec![1]);
 		damage.push(vec![dealt]);
 	}
@@ -689,14 +838,14 @@ fn simulate_opening_torpedo(
 		else {
 			continue;
 		};
+		let raw =
+			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
 		let dealt =
-			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement)
-				.min(enemy[target_idx].current_hp.max(0));
-		enemy[target_idx].current_hp -= dealt;
+			enemy[target_idx].apply_damage(random, raw, target_idx);
 		ship.damage_dealt += dealt;
 		api_frai_list_items[idx] = Some(vec![target_idx as i64]);
 		api_fcl_list_items[idx] = Some(vec![1]);
-		api_eydam_list_items[idx] = Some(vec![dealt]);
+		api_fydam_list_items[idx] = Some(vec![dealt]);
 		api_edam[target_idx] += dealt;
 		happened = true;
 	}
@@ -710,13 +859,13 @@ fn simulate_opening_torpedo(
 		else {
 			continue;
 		};
+		let raw =
+			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
 		let dealt =
-			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement)
-				.min(friendly[target_idx].current_hp.max(0));
-		friendly[target_idx].current_hp -= dealt;
+			friendly[target_idx].apply_damage(random, raw, target_idx);
 		api_erai_list_items[idx] = Some(vec![target_idx as i64]);
 		api_ecl_list_items[idx] = Some(vec![1]);
-		api_fydam_list_items[idx] = Some(vec![dealt]);
+		api_eydam_list_items[idx] = Some(vec![dealt]);
 		api_fdam[target_idx] += dealt;
 		happened = true;
 	}
@@ -762,14 +911,14 @@ fn simulate_raigeki(
 		else {
 			continue;
 		};
+		let raw =
+			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
 		let dealt =
-			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement)
-				.min(enemy[target_idx].current_hp.max(0));
-		enemy[target_idx].current_hp -= dealt;
+			enemy[target_idx].apply_damage(random, raw, target_idx);
 		ship.damage_dealt += dealt;
 		api_frai[idx] = target_idx as i64;
 		api_fcl[idx] = 1;
-		api_eydam[idx] = dealt;
+		api_fydam[idx] = dealt;
 		api_edam[target_idx] += dealt;
 		happened = true;
 	}
@@ -783,13 +932,13 @@ fn simulate_raigeki(
 		else {
 			continue;
 		};
+		let raw =
+			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
 		let dealt =
-			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement)
-				.min(friendly[target_idx].current_hp.max(0));
-		friendly[target_idx].current_hp -= dealt;
+			friendly[target_idx].apply_damage(random, raw, target_idx);
 		api_erai[idx] = target_idx as i64;
 		api_ecl[idx] = 1;
-		api_fydam[idx] = dealt;
+		api_eydam[idx] = dealt;
 		api_fdam[target_idx] += dealt;
 		happened = true;
 	}
@@ -929,12 +1078,12 @@ fn simulate_kouku(
 
 	if total_attack_plane_count(codex, friendly) > 0 {
 		let alive_targets: Vec<usize> =
-			enemy.iter().enumerate().filter(|(_, s)| s.current_hp > 0).map(|(i, _)| i).collect();
+			enemy.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
 		if !alive_targets.is_empty() {
 			let target_idx = alive_targets[random.choose_index(alive_targets.len())];
 			let damage = calculate_airstrike_damage(codex, friendly, &enemy[target_idx]);
-			let dealt = damage.min(enemy[target_idx].current_hp.max(0));
-			enemy[target_idx].current_hp -= dealt;
+			let dealt =
+				enemy[target_idx].apply_damage(random, damage, target_idx);
 			api_edam[target_idx] = dealt;
 			api_ebak_flag[target_idx] = 1;
 			api_erai_flag[target_idx] = 1;
@@ -946,17 +1095,13 @@ fn simulate_kouku(
 	}
 
 	if total_attack_plane_count(codex, enemy) > 0 {
-		let alive_targets: Vec<usize> = friendly
-			.iter()
-			.enumerate()
-			.filter(|(_, s)| s.current_hp > 0)
-			.map(|(i, _)| i)
-			.collect();
+		let alive_targets: Vec<usize> =
+			friendly.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
 		if !alive_targets.is_empty() {
 			let target_idx = alive_targets[random.choose_index(alive_targets.len())];
 			let damage = calculate_airstrike_damage(codex, enemy, &friendly[target_idx]);
-			let dealt = damage.min(friendly[target_idx].current_hp.max(0));
-			friendly[target_idx].current_hp -= dealt;
+			let dealt =
+				friendly[target_idx].apply_damage(random, damage, target_idx);
 			api_fdam[target_idx] = dealt;
 			api_fbak_flag[target_idx] = 1;
 			api_fcl_flag[target_idx] = 1;
@@ -1068,7 +1213,7 @@ fn asw_formation_modifier(formation_id: i64) -> f64 {
 
 /// Check if a ship can perform OASW (opening anti-submarine warfare).
 fn can_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 {
+	if ship.is_sunk() {
 		return false;
 	}
 	let asw = ship.ship.api_taisen[0];
@@ -1083,11 +1228,7 @@ fn can_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 		}
 		// DD/CL/CT/CLT/AO: ASW ≥ 100 + sonar
 		Some(
-			KcShipType::DD
-			| KcShipType::CL
-			| KcShipType::CT
-			| KcShipType::CLT
-			| KcShipType::AO,
+			KcShipType::DD | KcShipType::CL | KcShipType::CT | KcShipType::CLT | KcShipType::AO,
 		) => {
 			asw >= 100
 				&& (has_slotitem_type(codex, ship, KcSlotItemType3::Sonar)
@@ -1166,8 +1307,7 @@ fn calculate_asw_damage(
 	};
 
 	let synergy = asw_synergy_modifier(codex, attacker);
-	let raw_power =
-		(base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + type_bonus) * synergy;
+	let raw_power = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + type_bonus) * synergy;
 	let modified = raw_power * asw_formation_modifier(formation_id) * engagement.modifier();
 	let capped = apply_cap(modified, 170.0) as f64;
 	let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
@@ -1200,17 +1340,22 @@ fn simulate_opening_taisen(
 		let Some(target_idx) = select_submarine_target(codex, random, enemy) else {
 			continue;
 		};
+		let raw = calculate_asw_damage(
+			codex,
+			ship,
+			&enemy[target_idx],
+			friendly_formation_id,
+			engagement,
+		);
 		let dealt =
-			calculate_asw_damage(codex, ship, &enemy[target_idx], friendly_formation_id, engagement)
-				.min(enemy[target_idx].current_hp.max(0));
-		enemy[target_idx].current_hp -= dealt;
+			enemy[target_idx].apply_damage(random, raw, target_idx);
 		ship.damage_dealt += dealt;
 
 		at_eflag.push(0);
 		at_list.push(idx as i64);
 		at_type.push(7); // ASW attack type
 		df_list.push(vec![target_idx as i64]);
-		si_list.push(weapon_display_ids(ship));
+		si_list.push(day_attack_display_ids(codex, ship, true));
 		cl_list.push(vec![1]);
 		damage.push(vec![dealt]);
 	}
@@ -1223,16 +1368,21 @@ fn simulate_opening_taisen(
 		let Some(target_idx) = select_submarine_target(codex, random, friendly) else {
 			continue;
 		};
+		let raw = calculate_asw_damage(
+			codex,
+			ship,
+			&friendly[target_idx],
+			enemy_formation_id,
+			engagement,
+		);
 		let dealt =
-			calculate_asw_damage(codex, ship, &friendly[target_idx], enemy_formation_id, engagement)
-				.min(friendly[target_idx].current_hp.max(0));
-		friendly[target_idx].current_hp -= dealt;
+			friendly[target_idx].apply_damage(random, raw, target_idx);
 
 		at_eflag.push(1);
 		at_list.push(idx as i64);
 		at_type.push(7);
 		df_list.push(vec![target_idx as i64]);
-		si_list.push(weapon_display_ids(ship));
+		si_list.push(day_attack_display_ids(codex, ship, true));
 		cl_list.push(vec![1]);
 		damage.push(vec![dealt]);
 	}
@@ -1258,7 +1408,7 @@ fn select_submarine_target(
 		.iter()
 		.enumerate()
 		.filter(|(_, ship)| {
-			ship.current_hp > 0 && target_class(codex, ship) == TargetClass::Submarine
+			ship.is_alive() && target_class(codex, ship) == TargetClass::Submarine
 		})
 		.map(|(idx, _)| idx)
 		.collect();
@@ -1336,13 +1486,134 @@ fn first_touch_plane(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<i64> 
 	})
 }
 
-pub fn weapon_display_ids(ship: &BattleRuntimeShip) -> Vec<i64> {
-	let ids = ship
-		.slot_items
+fn slotitem_mst<'a>(codex: &'a Codex, slot_item: &'a KcApiSlotItem) -> Option<&'a ApiMstSlotitem> {
+	codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok()
+}
+
+fn is_day_surface_display_type(slot_type: KcSlotItemType3) -> bool {
+	DAY_SURFACE_DISPLAY_TYPES.contains(&slot_type)
+}
+
+fn is_asw_display_slotitem(codex: &Codex, slot_item: &KcApiSlotItem) -> bool {
+	let Some(mst) = slotitem_mst(codex, slot_item) else {
+		return false;
+	};
+	let Some(slot_type) = KcSlotItemType3::n(mst.api_type[2]) else {
+		return false;
+	};
+
+	ASW_DISPLAY_TYPES.contains(&slot_type)
+		|| (slot_type == KcSlotItemType3::CarrierBasedTorpedoBomber && mst.api_tais > 0)
+}
+
+fn collect_asw_display_ids(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<i64> {
+	ship.slot_items
 		.iter()
+		.filter(|slot_item| is_asw_display_slotitem(codex, slot_item))
 		.map(|slot_item| slot_item.api_slotitem_id)
-		.take(2)
-		.collect::<Vec<_>>();
+		.collect()
+}
+
+fn is_night_main_gun_type(slot_type: KcSlotItemType3) -> bool {
+	NIGHT_MAIN_GUN_TYPES.contains(&slot_type)
+}
+
+fn is_night_secondary_gun_type(slot_type: KcSlotItemType3) -> bool {
+	NIGHT_SECONDARY_GUN_TYPES.contains(&slot_type)
+}
+
+fn is_night_torpedo_type(slot_type: KcSlotItemType3) -> bool {
+	NIGHT_TORPEDO_TYPES.contains(&slot_type)
+}
+
+fn is_radar_type(slot_type: KcSlotItemType3) -> bool {
+	RADAR_DISPLAY_TYPES.contains(&slot_type)
+}
+
+fn collect_matching_slot_ids(
+	codex: &Codex,
+	ship: &BattleRuntimeShip,
+	matcher: impl Fn(KcSlotItemType3, &ApiMstSlotitem) -> bool,
+) -> Vec<i64> {
+	ship.slot_items
+		.iter()
+		.filter_map(|slot_item| {
+			let mst = slotitem_mst(codex, slot_item)?;
+			let slot_type = KcSlotItemType3::n(mst.api_type[2])?;
+			matcher(slot_type, mst).then_some(slot_item.api_slotitem_id)
+		})
+		.collect()
+}
+
+fn first_or_default(ids: Vec<i64>) -> Vec<i64> {
+	if ids.is_empty() {
+		vec![-1]
+	} else {
+		vec![ids[0]]
+	}
+}
+
+fn extend_limit(target: &mut Vec<i64>, source: &[i64], limit: usize) {
+	for id in source {
+		if target.len() >= limit {
+			break;
+		}
+		target.push(*id);
+	}
+}
+
+fn day_attack_display_ids(
+	codex: &Codex,
+	ship: &BattleRuntimeShip,
+	is_submarine_target: bool,
+) -> Vec<i64> {
+	if is_submarine_target {
+		let asw_ids = collect_asw_display_ids(codex, ship);
+		if !asw_ids.is_empty() {
+			return first_or_default(asw_ids);
+		}
+	}
+
+	let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _mst| {
+		is_day_surface_display_type(slot_type)
+	});
+	first_or_default(surface_ids)
+}
+
+fn night_attack_display_ids(
+	codex: &Codex,
+	ship: &BattleRuntimeShip,
+	attack_type: NightAttackType,
+) -> Vec<i64> {
+	let main_guns =
+		collect_matching_slot_ids(codex, ship, |slot_type, _mst| is_night_main_gun_type(slot_type));
+	let torpedoes =
+		collect_matching_slot_ids(codex, ship, |slot_type, _mst| is_night_torpedo_type(slot_type));
+	let secondary_guns = collect_matching_slot_ids(codex, ship, |slot_type, _mst| {
+		is_night_secondary_gun_type(slot_type)
+	});
+	let radars = collect_matching_slot_ids(codex, ship, |slot_type, _mst| is_radar_type(slot_type));
+	let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _mst| {
+		is_day_surface_display_type(slot_type)
+	});
+
+	let mut ids = Vec::new();
+	match attack_type {
+		NightAttackType::MainMainMain => extend_limit(&mut ids, &main_guns, 3),
+		NightAttackType::MainMainSec => {
+			extend_limit(&mut ids, &main_guns, 2);
+			extend_limit(&mut ids, &secondary_guns, 3);
+		}
+		NightAttackType::MainTorpRadar => {
+			extend_limit(&mut ids, &main_guns, 1);
+			extend_limit(&mut ids, &torpedoes, 2);
+			extend_limit(&mut ids, &radars, 3);
+		}
+		NightAttackType::TorpTorpTorp => extend_limit(&mut ids, &torpedoes, 3),
+		NightAttackType::DoubleAttack => extend_limit(&mut ids, &surface_ids, 2),
+		NightAttackType::Normal => extend_limit(&mut ids, &surface_ids, 1),
+	}
+
 	if ids.is_empty() {
 		vec![-1]
 	} else {
@@ -1359,7 +1630,7 @@ fn can_closing_torpedo(codex: &Codex, ships: &[BattleRuntimeShip]) -> bool {
 }
 
 pub fn any_alive(ships: &[BattleRuntimeShip]) -> bool {
-	ships.iter().any(|ship| ship.current_hp > 0)
+	ships.iter().any(|ship| ship.is_alive())
 }
 
 fn is_air_combat_type(slotitem_type: i64) -> bool {
@@ -1456,7 +1727,7 @@ fn has_slotitem_id(ship: &BattleRuntimeShip, wanted: i64) -> bool {
 }
 
 fn can_opening_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 || ship.ship.api_raisou[0] <= 0 {
+	if ship.is_sunk() || ship.ship.api_raisou[0] <= 0 {
 		return false;
 	}
 
@@ -1467,7 +1738,7 @@ fn can_opening_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 }
 
 fn can_closing_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 || ship.ship.api_raisou[0] <= 0 {
+	if ship.is_sunk() || ship.ship.api_raisou[0] <= 0 {
 		return false;
 	}
 
@@ -1491,7 +1762,7 @@ fn can_closing_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 }
 
 fn can_shell_day_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 {
+	if ship.is_sunk() {
 		return false;
 	}
 
@@ -1505,7 +1776,7 @@ fn can_shell_day_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 }
 
 fn can_attack_night_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 {
+	if ship.is_sunk() {
 		return false;
 	}
 
@@ -1531,7 +1802,7 @@ fn attack_capability_for_phase(
 ) -> AttackCapability {
 	match phase {
 		BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => {
-			if ship.current_hp > 0 && ship.ship.api_raisou[0] > 0 {
+			if ship.is_alive() && ship.ship.api_raisou[0] > 0 {
 				AttackCapability::SurfaceOnly
 			} else {
 				AttackCapability::CannotAttack
@@ -1559,7 +1830,7 @@ fn attack_capability_for_phase(
 }
 
 fn can_attack_submarine_day_shelling(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 || ship.ship.api_taisen[0] <= 0 {
+	if ship.is_sunk() || ship.ship.api_taisen[0] <= 0 {
 		return false;
 	}
 
@@ -1580,7 +1851,7 @@ fn can_attack_submarine_day_shelling(codex: &Codex, ship: &BattleRuntimeShip) ->
 }
 
 fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-	if ship.current_hp <= 0 || ship.ship.api_taisen[0] <= 0 {
+	if ship.is_sunk() || ship.ship.api_taisen[0] <= 0 {
 		return false;
 	}
 
@@ -1627,7 +1898,7 @@ fn select_random_target_index(
 	let alive_targets = defenders
 		.iter()
 		.enumerate()
-		.filter(|(_, ship)| ship.current_hp > 0)
+		.filter(|(_, ship)| ship.is_alive())
 		.map(|(idx, _)| idx)
 		.collect::<Vec<_>>();
 	if alive_targets.is_empty() {
@@ -1708,26 +1979,38 @@ pub fn calculate_mvp(friendly: &[BattleRuntimeShip]) -> i64 {
 
 pub fn calculate_win_rank(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntimeShip]) -> String {
 	let enemy_total_hp: i64 = enemy.iter().map(|ship| ship.ship.api_maxhp).sum();
-	let enemy_remaining_hp: i64 = enemy.iter().map(|ship| ship.current_hp.max(0)).sum();
+	let enemy_remaining_hp: i64 = enemy.iter().map(|ship| ship.hp().max(0)).sum();
 	let friend_total_hp: i64 = friendly.iter().map(|ship| ship.ship.api_maxhp).sum();
-	let friend_remaining_hp: i64 = friendly.iter().map(|ship| ship.current_hp.max(0)).sum();
-	let enemy_sunk = enemy.iter().all(|ship| ship.current_hp <= 0);
-	let friend_lost = friendly.iter().all(|ship| ship.current_hp <= 0);
+	let friend_remaining_hp: i64 = friendly.iter().map(|ship| ship.hp().max(0)).sum();
+	let enemy_all_sunk = enemy.iter().all(|ship| ship.is_sunk());
+	let friend_all_sunk = friendly.iter().all(|ship| ship.is_sunk());
+	let friend_sunk_count = friendly.iter().filter(|ship| ship.is_sunk()).count();
+	let friend_count = friendly.len();
 	let enemy_damage_rate =
 		(enemy_total_hp - enemy_remaining_hp) as f64 / enemy_total_hp.max(1) as f64;
 	let friend_damage_rate =
 		(friend_total_hp - friend_remaining_hp) as f64 / friend_total_hp.max(1) as f64;
 
-	let rank = if enemy_sunk {
+	let rank = if friend_all_sunk {
+		KcSortieResultRank::E
+	} else if enemy_all_sunk && friend_sunk_count == 0 {
 		KcSortieResultRank::S
-	} else if enemy_damage_rate >= 0.7 {
+	} else if enemy_all_sunk {
+		// All enemy sunk but we lost ships → downgrade to A
 		KcSortieResultRank::A
+	} else if friend_sunk_count * 2 >= friend_count && friend_count > 1 {
+		// Half or more friendly ships sunk → D
+		KcSortieResultRank::D
+	} else if enemy_damage_rate >= 0.7 {
+		if friend_sunk_count > 0 {
+			KcSortieResultRank::B
+		} else {
+			KcSortieResultRank::A
+		}
 	} else if enemy_damage_rate > friend_damage_rate {
 		KcSortieResultRank::B
-	} else if !friend_lost {
-		KcSortieResultRank::C
 	} else {
-		KcSortieResultRank::D
+		KcSortieResultRank::C
 	};
 
 	match rank {
@@ -1745,11 +2028,11 @@ pub fn calculate_win_rank(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntime
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NightAttackType {
 	Normal,
-	DoubleAttack,   // 連撃: 2 hits × 1.2×
-	MainMainMain,   // 主主主CI: 1 hit × 2.0×
-	MainMainSec,    // 主主副CI: 1 hit × 1.75×
-	TorpTorpTorp,   // 鱼鱼鱼CI: 2 hits × 1.3×
-	MainTorpRadar,  // 主鱼電CI: 1 hit × 1.625×
+	DoubleAttack,  // 連撃: 2 hits × 1.2×
+	MainMainMain,  // 主主主CI: 1 hit × 2.0×
+	MainMainSec,   // 主主副CI: 1 hit × 1.75×
+	TorpTorpTorp,  // 鱼鱼鱼CI: 2 hits × 1.3×
+	MainTorpRadar, // 主鱼電CI: 1 hit × 1.625×
 }
 
 impl NightAttackType {
@@ -1879,10 +2162,18 @@ fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAtt
 }
 
 /// Calculate night CI trigger rate.
-fn night_ci_trigger_rate(ship: &BattleRuntimeShip, ci_type: NightAttackType, is_flagship: bool) -> f64 {
+fn night_ci_trigger_rate(
+	ship: &BattleRuntimeShip,
+	ci_type: NightAttackType,
+	is_flagship: bool,
+) -> f64 {
 	let coefficient = ci_type.ci_coefficient();
 	if coefficient <= 0.0 {
-		return if ci_type == NightAttackType::DoubleAttack { 0.99 } else { 0.0 };
+		return if ci_type == NightAttackType::DoubleAttack {
+			0.99
+		} else {
+			0.0
+		};
 	}
 
 	let luck = ship.ship.api_lucky[0].max(0) as f64;
@@ -1894,7 +2185,11 @@ fn night_ci_trigger_rate(ship: &BattleRuntimeShip, ci_type: NightAttackType, is_
 		65.0 + (luck - 50.0).sqrt() + (0.8 * level.sqrt()).floor()
 	};
 
-	let modifier = if is_flagship { 15.0 } else { 0.0 };
+	let modifier = if is_flagship {
+		15.0
+	} else {
+		0.0
+	};
 	// Chuuha modifier omitted for simplicity (would need HP check)
 
 	let total = ci_value + modifier;
@@ -1931,8 +2226,7 @@ fn resolve_night_attack(
 		let sec_guns = count_secondary_guns(codex, ship);
 		let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
 			+ count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
-		if (main_guns >= 2) || (main_guns >= 1 && sec_guns >= 1) || (main_guns >= 1 && torps >= 1)
-		{
+		if (main_guns >= 2) || (main_guns >= 1 && sec_guns >= 1) || (main_guns >= 1 && torps >= 1) {
 			NightAttackType::DoubleAttack
 		} else {
 			NightAttackType::Normal
@@ -1977,14 +2271,14 @@ fn simulate_night_hougeki(
 		let mut total_dealt = 0i64;
 
 		for _ in 0..hits {
-			let dealt = if is_submarine {
-				calculate_scratch_damage(random, enemy[target_idx].current_hp.max(1))
+			let raw = if is_submarine {
+				calculate_scratch_damage(random, enemy[target_idx].hp().max(1))
 			} else {
 				let base = calculate_night_damage(ship, &enemy[target_idx], engagement);
-				let modified = (base as f64 * multiplier).floor() as i64;
-				modified.min(enemy[target_idx].current_hp.max(0))
+				(base as f64 * multiplier).floor() as i64
 			};
-			enemy[target_idx].current_hp -= dealt;
+			let dealt =
+				enemy[target_idx].apply_damage(random, raw, target_idx);
 			total_dealt += dealt;
 			hit_damages.push(dealt);
 			hit_cls.push(1i64);
@@ -1995,7 +2289,7 @@ fn simulate_night_hougeki(
 		at_list.push(idx as i64);
 		n_mother_list.push(0);
 		df_list.push(vec![target_idx as i64; hits]);
-		si_list.push(weapon_display_ids(ship));
+		si_list.push(night_attack_display_ids(codex, ship, attack_type));
 		cl_list.push(hit_cls);
 		sp_list.push(attack_type.api_sp_list());
 		damage.push(hit_damages);
@@ -2019,14 +2313,14 @@ fn simulate_night_hougeki(
 		let mut hit_cls = Vec::new();
 
 		for _ in 0..hits {
-			let dealt = if is_submarine {
-				calculate_scratch_damage(random, friendly[target_idx].current_hp.max(1))
+			let raw = if is_submarine {
+				calculate_scratch_damage(random, friendly[target_idx].hp().max(1))
 			} else {
 				let base = calculate_night_damage(ship, &friendly[target_idx], engagement);
-				let modified = (base as f64 * multiplier).floor() as i64;
-				modified.min(friendly[target_idx].current_hp.max(0))
+				(base as f64 * multiplier).floor() as i64
 			};
-			friendly[target_idx].current_hp -= dealt;
+			let dealt =
+				friendly[target_idx].apply_damage(random, raw, target_idx);
 			hit_damages.push(dealt);
 			hit_cls.push(1i64);
 		}
@@ -2035,7 +2329,7 @@ fn simulate_night_hougeki(
 		at_list.push(idx as i64);
 		n_mother_list.push(0);
 		df_list.push(vec![target_idx as i64; hits]);
-		si_list.push(weapon_display_ids(ship));
+		si_list.push(night_attack_display_ids(codex, ship, attack_type));
 		cl_list.push(hit_cls);
 		sp_list.push(attack_type.api_sp_list());
 		damage.push(hit_damages);
@@ -2056,6 +2350,29 @@ fn simulate_night_hougeki(
 		api_sp_list: sp_list,
 		api_damage: damage,
 	})
+}
+
+/// Post-simulation integrity check: verifies that protected friendly ships
+/// (non-taiha at entry + flagship) have HP ≥ 1.
+/// Panics in debug builds if a protected ship was incorrectly sunk.
+fn verify_protected_ships_alive(ships: &[BattleRuntimeShip]) {
+	for (idx, ship) in ships.iter().enumerate() {
+		if !ship.is_friendly || !ship.is_sortie {
+			continue;
+		}
+		let was_taiha = ship.entry_hp * 4 <= ship.ship.api_maxhp;
+		let is_protected = idx == 0 || !was_taiha;
+		if is_protected {
+			debug_assert!(
+				ship.hp() >= 1,
+				"BUG: protected ship at index {} has hp={}, entry_hp={}, maxhp={}",
+				idx,
+				ship.hp(),
+				ship.entry_hp,
+				ship.ship.api_maxhp
+			);
+		}
+	}
 }
 
 #[cfg(test)]
@@ -2107,6 +2424,16 @@ mod tests {
 		}
 	}
 
+	fn slotitem_mst_id_by_name(codex: &Codex, name: &str) -> i64 {
+		codex
+			.manifest
+			.api_mst_slotitem
+			.iter()
+			.find(|mst| mst.api_name == name)
+			.map(|mst| mst.api_id)
+			.unwrap()
+	}
+
 	#[test]
 	fn day_shelling_cap_matches_reference_example() {
 		assert_eq!(apply_cap(250.0, 220.0), 225);
@@ -2146,6 +2473,7 @@ mod tests {
 			BattleContext {
 				mode: BattleMode::Sortie,
 				battle_type: BattleType::Normal,
+				is_sortie: true,
 				friendly_formation_id: 1,
 				enemy_formation_id: 1,
 				engagement: EngagementType::SameCourse,
@@ -2176,6 +2504,7 @@ mod tests {
 			BattleContext {
 				mode: BattleMode::Practice,
 				battle_type: BattleType::Normal,
+				is_sortie: false,
 				friendly_formation_id: 1,
 				enemy_formation_id: 1,
 				engagement: EngagementType::SameCourse,
@@ -2206,6 +2535,7 @@ mod tests {
 			BattleContext {
 				mode: BattleMode::Practice,
 				battle_type: BattleType::Normal,
+				is_sortie: false,
 				friendly_formation_id: 1,
 				enemy_formation_id: 1,
 				engagement: EngagementType::SameCourse,
@@ -2239,6 +2569,7 @@ mod tests {
 			BattleContext {
 				mode: BattleMode::Practice,
 				battle_type: BattleType::Normal,
+				is_sortie: false,
 				friendly_formation_id: 1,
 				enemy_formation_id: 1,
 				engagement: EngagementType::SameCourse,
@@ -2327,6 +2658,37 @@ mod tests {
 	}
 
 	#[test]
+	fn day_shelling_display_ids_skip_non_attack_equipment_like_night_recon() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+		let night_recon_mst_id = slotitem_mst_id_by_name(&codex, "九八式水上偵察機(夜偵)");
+		let main_gun_mst_id =
+			first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+
+		let mut ship = sample_ship(&codex, bb_mst, 50);
+		ship.slot_items =
+			vec![slotitem_with_mst_id(night_recon_mst_id), slotitem_with_mst_id(main_gun_mst_id)];
+		let runtime_ship = BattleRuntimeShip::from(ship);
+
+		assert_eq!(day_attack_display_ids(&codex, &runtime_ship, false), vec![main_gun_mst_id]);
+	}
+
+	#[test]
+	fn day_asw_display_ids_ignore_night_recon_when_valid_asw_equipment_exists() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
+		let night_recon_mst_id = slotitem_mst_id_by_name(&codex, "九八式水上偵察機(夜偵)");
+		let sonar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar);
+
+		let mut ship = sample_ship(&codex, bbv_mst, 50);
+		ship.slot_items =
+			vec![slotitem_with_mst_id(night_recon_mst_id), slotitem_with_mst_id(sonar_mst_id)];
+		let runtime_ship = BattleRuntimeShip::from(ship);
+
+		assert_eq!(day_attack_display_ids(&codex, &runtime_ship, true), vec![sonar_mst_id]);
+	}
+
+	#[test]
 	fn torpedo_targeting_ignores_submarines() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
@@ -2370,7 +2732,7 @@ mod tests {
 
 		let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
 		let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
-		let enemy_hp = enemy[0].current_hp;
+		let enemy_hp = enemy[0].hp();
 		let mut random = BattleRandom::new(Some(3));
 
 		let hougeki = simulate_night_hougeki(
@@ -2387,7 +2749,7 @@ mod tests {
 		assert_eq!(hougeki.api_df_list[0], vec![0]);
 		assert!(hougeki.api_damage[0][0] >= 1);
 		assert!(hougeki.api_damage[0][0] < enemy_hp);
-		assert_eq!(enemy[0].current_hp, enemy_hp - hougeki.api_damage[0][0]);
+		assert_eq!(enemy[0].hp(), enemy_hp - hougeki.api_damage[0][0]);
 	}
 
 	#[test]
@@ -2438,11 +2800,13 @@ mod tests {
 	#[test]
 	fn fighter_power_calculates_from_equipment_aa_and_slot_count() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-		let fighter_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
+		let fighter_mst_id =
+			first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
 		let fighter_mst = codex.manifest.find_slotitem(fighter_mst_id).unwrap();
 		let aa = fighter_mst.api_tyku;
 
-		let mut ship_input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 50);
+		let mut ship_input =
+			sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 50);
 		ship_input.ship.api_onslot = [18, 0, 0, 0, 0];
 		ship_input.slot_items = vec![slotitem_with_mst_id(fighter_mst_id)];
 
@@ -2533,7 +2897,8 @@ mod tests {
 		enemy.ship.api_nowhp = 200;
 		enemy.ship.api_maxhp = 200;
 
-		let friendly_fp = calculate_fighter_power(&codex, &[BattleRuntimeShip::from(friend.clone())]);
+		let friendly_fp =
+			calculate_fighter_power(&codex, &[BattleRuntimeShip::from(friend.clone())]);
 		assert!(friendly_fp > 0, "CVL with fighter should have positive fighter power");
 
 		let mut friendly = vec![BattleRuntimeShip::from(friend)];
@@ -2632,8 +2997,7 @@ mod tests {
 		// With a single depth charge: projector=true, dc=true → synergy = 1.1
 		let base_asw = (80.0 - equip_asw).max(0.0);
 		let synergy = 1.1; // single DepthCharge counts as both projector and charge
-		let expected_raw =
-			(base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + 13.0) * synergy;
+		let expected_raw = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + 13.0) * synergy;
 		let expected_capped = apply_cap(expected_raw, 170.0) as f64;
 		let expected_dmg = (expected_capped - 10.0 * 0.7).floor().max(1.0) as i64;
 		assert_eq!(dmg, expected_dmg);
@@ -2680,6 +3044,7 @@ mod tests {
 		let context = BattleContext {
 			mode: BattleMode::Sortie,
 			battle_type: BattleType::Normal,
+			is_sortie: true,
 			friendly_formation_id: 1,
 			enemy_formation_id: 1,
 			engagement: EngagementType::SameCourse,
@@ -2702,7 +3067,8 @@ mod tests {
 	fn night_ci_triple_main_gun_detects_as_main_main_main() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
-		let main_gun_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+		let main_gun_mst_id =
+			first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
 
 		let mut ship = sample_ship(&codex, bb_mst, 99);
 		ship.slot_items = vec![
@@ -2724,10 +3090,8 @@ mod tests {
 		let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
 
 		let mut ship = sample_ship(&codex, dd_mst, 99);
-		ship.slot_items = vec![
-			slotitem_with_mst_id(torp_mst_id),
-			slotitem_with_mst_id(torp_mst_id),
-		];
+		ship.slot_items =
+			vec![slotitem_with_mst_id(torp_mst_id), slotitem_with_mst_id(torp_mst_id)];
 		let rt = BattleRuntimeShip::from(ship);
 		let attack = detect_night_attack_type(&codex, &rt);
 		assert_eq!(attack, NightAttackType::TorpTorpTorp);
@@ -2739,7 +3103,8 @@ mod tests {
 	fn night_ci_main_main_secondary_detects_correctly() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
-		let main_gun_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+		let main_gun_mst_id =
+			first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
 		let sec_gun_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SecondaryGun);
 
 		let mut ship = sample_ship(&codex, bb_mst, 99);
@@ -2758,14 +3123,13 @@ mod tests {
 	fn night_double_attack_with_main_and_torpedo() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-		let main_gun_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
+		let main_gun_mst_id =
+			first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
 		let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
 
 		let mut ship = sample_ship(&codex, dd_mst, 99);
-		ship.slot_items = vec![
-			slotitem_with_mst_id(main_gun_mst_id),
-			slotitem_with_mst_id(torp_mst_id),
-		];
+		ship.slot_items =
+			vec![slotitem_with_mst_id(main_gun_mst_id), slotitem_with_mst_id(torp_mst_id)];
 		let rt = BattleRuntimeShip::from(ship);
 		// main×1 + torp×1 + no radar → no CI, but qualifies for double attack
 		let attack = detect_night_attack_type(&codex, &rt);
@@ -2809,10 +3173,8 @@ mod tests {
 		friend.ship.api_soukou[0] = 200;
 		friend.ship.api_nowhp = 200;
 		friend.ship.api_maxhp = 200;
-		friend.slot_items = vec![
-			slotitem_with_mst_id(torp_mst_id),
-			slotitem_with_mst_id(torp_mst_id),
-		];
+		friend.slot_items =
+			vec![slotitem_with_mst_id(torp_mst_id), slotitem_with_mst_id(torp_mst_id)];
 
 		let mut enemy_ship = sample_ship(&codex, dd_mst, 50);
 		enemy_ship.ship.api_soukou[0] = 10;
@@ -2829,7 +3191,8 @@ mod tests {
 			&mut random,
 			&mut friendly,
 			&mut enemies,
-			1, 1,
+			1,
+			1,
 			EngagementType::SameCourse,
 		)
 		.unwrap();
@@ -2853,6 +3216,7 @@ mod tests {
 			BattleContext {
 				mode: BattleMode::Sortie,
 				battle_type: BattleType::AirBattle,
+				is_sortie: true,
 				friendly_formation_id: 1,
 				enemy_formation_id: 1,
 				engagement: EngagementType::SameCourse,
@@ -2866,7 +3230,10 @@ mod tests {
 		assert!(simulation.packet.hougeki1.is_none(), "airbattle should skip shelling");
 		assert!(simulation.packet.hougeki2.is_none());
 		assert!(simulation.packet.raigeki.is_none(), "airbattle should skip closing torpedo");
-		assert!(simulation.packet.opening_attack.is_none(), "airbattle should skip opening torpedo");
+		assert!(
+			simulation.packet.opening_attack.is_none(),
+			"airbattle should skip opening torpedo"
+		);
 		assert_eq!(simulation.packet.hourai_flag, [0, 0, 0, 0]);
 	}
 
@@ -2889,6 +3256,7 @@ mod tests {
 			BattleContext {
 				mode: BattleMode::Sortie,
 				battle_type: BattleType::AirBattle,
+				is_sortie: true,
 				friendly_formation_id: 1,
 				enemy_formation_id: 1,
 				engagement: EngagementType::SameCourse,
@@ -2901,5 +3269,153 @@ mod tests {
 		// Kouku should still execute
 		assert!(simulation.packet.kouku.is_some(), "airbattle should still run kouku");
 		assert_eq!(simulation.packet.stage_flag, [1, 1, 1]);
+	}
+
+	#[test]
+	fn sinking_protection_saves_non_taiha_ship_in_sortie() {
+		let mut random = BattleRandom::new(Some(42));
+		let mut ship = make_test_ship(30, 30, 30, 40);
+		let dealt = ship.apply_damage(&mut random, 999, 1);
+		assert!(ship.hp() >= 1, "ship must survive with sinking protection");
+		assert!(dealt < 30, "dealt damage must be less than current HP");
+	}
+
+	#[test]
+	fn flagship_always_survives_even_when_taiha() {
+		let mut random = BattleRandom::new(Some(42));
+		let mut ship = make_test_ship(5, 5, 5, 40);
+		let dealt = ship.apply_damage(&mut random, 999, 0);
+		assert!(ship.hp() >= 1, "flagship must always survive");
+		assert!(dealt < 5);
+	}
+
+	#[test]
+	fn taiha_advance_ship_can_be_sunk() {
+		let mut random = BattleRandom::new(Some(42));
+		let mut ship = make_test_ship(5, 5, 5, 40);
+		let dealt = ship.apply_damage(&mut random, 999, 1);
+		assert_eq!(ship.hp(), 0, "taiha-advance ship should be sunk");
+		assert_eq!(dealt, 5);
+	}
+
+	#[test]
+	fn practice_never_triggers_sinking_protection() {
+		let mut random = BattleRandom::new(Some(42));
+		let mut ship = make_test_ship_ctx(30, 30, 30, 40, true, false);
+		let dealt = ship.apply_damage(&mut random, 999, 1);
+		assert_eq!(ship.hp(), 0, "practice uses normal damage clamping");
+		assert_eq!(dealt, 30);
+	}
+
+	#[test]
+	fn enemy_ships_never_get_sinking_protection() {
+		let mut random = BattleRandom::new(Some(42));
+		let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
+		let dealt = ship.apply_damage(&mut random, 999, 0);
+		assert_eq!(ship.hp(), 0, "enemy ships should be sinkable");
+		assert_eq!(dealt, 30);
+	}
+
+	#[test]
+	fn win_rank_s_requires_no_friendly_sinking() {
+		let friendly = vec![make_test_ship(40, 40, 30, 40)];
+		let enemy = vec![make_test_ship(40, 40, 0, 40)];
+		assert_eq!(calculate_win_rank(&friendly, &enemy), "S");
+	}
+
+	#[test]
+	fn win_rank_downgraded_to_a_when_friendly_sunk() {
+		let friendly = vec![
+			make_test_ship(40, 40, 30, 40),
+			make_test_ship(30, 30, 0, 30),
+		];
+		let enemy = vec![make_test_ship(40, 40, 0, 40)];
+		assert_eq!(calculate_win_rank(&friendly, &enemy), "A");
+	}
+
+	#[test]
+	fn win_rank_e_when_all_friendly_sunk() {
+		let friendly = vec![make_test_ship(40, 40, 0, 40)];
+		let enemy = vec![make_test_ship(40, 40, 20, 40)];
+		assert_eq!(calculate_win_rank(&friendly, &enemy), "E");
+	}
+
+	#[test]
+	fn win_rank_d_when_half_friendly_sunk() {
+		let friendly = vec![
+			make_test_ship(40, 40, 30, 40),
+			make_test_ship(30, 30, 0, 30),
+		];
+		let enemy = vec![make_test_ship(40, 40, 35, 40)];
+		assert_eq!(calculate_win_rank(&friendly, &enemy), "D");
+	}
+
+	fn make_test_ship(
+		nowhp: i64,
+		entry_hp: i64,
+		current_hp: i64,
+		maxhp: i64,
+	) -> BattleRuntimeShip {
+		make_test_ship_ctx(nowhp, entry_hp, current_hp, maxhp, true, true)
+	}
+
+	fn make_test_ship_ctx(
+		nowhp: i64,
+		entry_hp: i64,
+		current_hp: i64,
+		maxhp: i64,
+		is_friendly: bool,
+		is_sortie: bool,
+	) -> BattleRuntimeShip {
+		let mut ship = BattleRuntimeShip::new(
+			BattleShipInput {
+				ship: test_api_ship(nowhp, maxhp),
+				slot_items: vec![],
+				effect_list: vec![],
+			},
+			is_friendly,
+			is_sortie,
+		);
+		ship.entry_hp = entry_hp;
+		ship.current_hp = current_hp;
+		ship
+	}
+
+	fn test_api_ship(nowhp: i64, maxhp: i64) -> KcApiShip {
+		KcApiShip {
+			api_id: 1,
+			api_sortno: 1,
+			api_ship_id: 1,
+			api_lv: 1,
+			api_exp: [0, 0, 0],
+			api_nowhp: nowhp,
+			api_maxhp: maxhp,
+			api_soku: 10,
+			api_leng: 1,
+			api_slot: [-1; 5],
+			api_onslot: [0; 5],
+			api_slot_ex: 0,
+			api_kyouka: [0; 7],
+			api_backs: 1,
+			api_fuel: 0,
+			api_bull: 0,
+			api_slotnum: 4,
+			api_ndock_time: 0,
+			api_ndock_item: [0; 2],
+			api_srate: 0,
+			api_cond: 49,
+			api_karyoku: [0; 2],
+			api_raisou: [0; 2],
+			api_taiku: [0; 2],
+			api_soukou: [0; 2],
+			api_kaihi: [0; 2],
+			api_taisen: [0; 2],
+			api_sakuteki: [0; 2],
+			api_lucky: [0; 2],
+			api_locked: 0,
+			api_locked_equip: 0,
+			api_sally_area: 0,
+			api_sp_effect_items: None,
+		}
 	}
 }

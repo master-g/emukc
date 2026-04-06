@@ -14,8 +14,7 @@ use std::{
 };
 
 use super::{
-	battle::sortie::SortieBattleSession,
-	sortie::ActiveSortieState,
+	battle::sortie::SortieBattleSession, sortie::ActiveSortieState,
 	sortie_result::SortieBattleResultSnapshot,
 };
 

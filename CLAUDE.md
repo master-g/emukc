@@ -41,13 +41,32 @@ cargo test --test gameplay_tests
 # Run a specific gameplay test
 cargo test --test gameplay_tests test_composition_exact_match_requirement
 
+# Run battle validation tests
+cargo test -p emukc_gameplay sortie_battle_response_passes_battle_rule_validation
+cargo test -p emukc_gameplay sortie_battle_validation_reports_invalid_enemy_ids
+
+# Validate a battle payload against client-derived rules
+cargo run -- battle validate --input <battle.json>
+
+# Diagnose a missing battle resource incident
+cargo run -- battle analyze-incident --input <battle.json> --missing-url <url>
+
 # Run crate-level tests
 cargo test -p emukc_cache
 cargo test -p emukc_gameplay
+cargo test -p emukc_bootstrap battle_rules
 
 # Run examples (used as manual test harnesses)
 cargo run --example model_loader
-cargo run --example quest_test
+cargo run --example bootstrap_download
+cargo run --example dump_tree
+cargo run --example kache_test
+
+# main-decoder (Bun + TypeScript)
+cd main-decoder && bun run check
+cd main-decoder && bun test
+cd main-decoder && bun run decode
+cd main-decoder && bun run decode -- --sync-battle-assets
 
 # Lint
 cargo clippy --workspace
@@ -91,12 +110,32 @@ emukc (binary)          - CLI + HTTP server (axum)
 ### Binary Structure (`src/bin/`)
 
 - `emukcd.rs` - Entry point
-- `cli/` - CLI commands (serve, bootstrap, cache, dev tools)
+- `cli/` - CLI commands (serve, bootstrap, cache, battle diagnostics, dev tools)
 - `net/` - HTTP server
   - `router/kcsapi/` - Game API handlers mirroring KanColle's URL structure (`api_get_member/`, `api_req_kousyou/`, `api_port/`, etc.)
   - `router/api/v1/` - Custom REST API (auth, debug)
   - `auth.rs` - Session/token middleware
   - `resp/` - Response types
+
+### Client-Derived Battle Validation
+
+The repo now includes a tracked `main-decoder/` subproject that decodes `main.js` and extracts battle knowledge assets. These assets are synced into `crates/emukc_bootstrap/assets/` and then consumed by Rust-side battle diagnostics.
+
+Key battle assets:
+- `crates/emukc_bootstrap/assets/battle_protocol_fields.json`
+- `crates/emukc_bootstrap/assets/battle_resource_rules.json`
+- `crates/emukc_bootstrap/assets/battle_module_index.json`
+- `crates/emukc_bootstrap/assets/battle_slot_resource_triggers.json`
+
+Important boundary:
+- `validate_day_battle_response(...)` and `analyze_day_battle_incident(...)` are explicit diagnostic tools, not runtime auto-checks.
+- If you need battle diagnosis, use the `battle` CLI commands. Do not assume sortie/practice handlers run these checks automatically.
+
+Typical workflow for a bad battle payload:
+1. Save the KC API response or `api_data` JSON to a file.
+2. Run `cargo run -- battle validate --input <battle.json>`.
+3. If a client tried to load a missing resource, run `cargo run -- battle analyze-incident --input <battle.json> --missing-url <url>`.
+4. If battle knowledge changed, refresh with `cd main-decoder && bun run decode -- --sync-battle-assets`.
 
 ### Adding a New Game API
 
@@ -123,3 +162,7 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 ## Testing Conventions
 
 Integration tests live in `tests/gameplay_tests/` and test gameplay logic directly (no HTTP). Each test uses an independent in-memory database. The `Codex` is loaded from `.data/codex` on disk (requires prior bootstrap).
+
+Battle diagnostics also have two dedicated test layers:
+- `main-decoder/test/` for TypeScript-side battle knowledge extraction
+- `crates/emukc_bootstrap/src/battle_rules.rs` for Rust-side validator / incident analysis

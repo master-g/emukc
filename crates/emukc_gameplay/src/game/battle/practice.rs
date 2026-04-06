@@ -16,8 +16,7 @@ use crate::{
 	game::battle::core::{
 		BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleNightHougeki,
 		BattleOpeningAttack, BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleType,
-		EngagementType,
-		NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
+		EngagementType, NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
 	},
 };
 
@@ -169,6 +168,7 @@ pub fn simulate_practice_day_battle(
 		BattleContext {
 			mode: BattleMode::Practice,
 			battle_type: BattleType::Normal,
+			is_sortie: false,
 			friendly_formation_id: input.formation_id,
 			enemy_formation_id: 1,
 			engagement: EngagementType::SameCourse,
@@ -379,6 +379,15 @@ pub fn pending_practice_battle(profile_id: i64) -> Option<PracticeBattleSession>
 }
 
 fn enemy_slot_ids(ship: &BattleRuntimeShip) -> [i64; 5] {
+	if ship.ship.api_slot.iter().any(|slot| *slot > 0) {
+		let mut slots = [-1; 5];
+		for (idx, slot) in ship.ship.api_slot.iter().take(5).enumerate() {
+			if *slot > 0 {
+				slots[idx] = *slot;
+			}
+		}
+		return slots;
+	}
 	let mut slots = [-1; 5];
 	for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
 		slots[idx] = slot_item.api_slotitem_id;
@@ -387,6 +396,15 @@ fn enemy_slot_ids(ship: &BattleRuntimeShip) -> [i64; 5] {
 }
 
 fn enemy_slot_ids_from_input(ship: &PracticeBattleShipInput) -> [i64; 5] {
+	if ship.ship.api_slot.iter().any(|slot| *slot > 0) {
+		let mut slots = [-1; 5];
+		for (idx, slot) in ship.ship.api_slot.iter().take(5).enumerate() {
+			if *slot > 0 {
+				slots[idx] = *slot;
+			}
+		}
+		return slots;
+	}
 	let mut slots = [-1; 5];
 	for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
 		slots[idx] = slot_item.api_slotitem_id;

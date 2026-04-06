@@ -64,10 +64,7 @@ pub fn take_sortie_day_battle_result(
 	store.take_pending_battle(profile_id)
 }
 
-pub fn pending_sortie_battle(
-	store: &SortieStore,
-	profile_id: i64,
-) -> Option<SortieBattleSession> {
+pub fn pending_sortie_battle(store: &SortieStore, profile_id: i64) -> Option<SortieBattleSession> {
 	store.get_pending_battle(profile_id)
 }
 
@@ -126,9 +123,9 @@ pub fn simulate_and_store_sortie_sp_midnight_battle(
 	let friendly_formation_id = context.friendly_formation_id;
 	let engagement = context.engagement;
 	let friendly: Vec<BattleRuntimeShip> =
-		context.friend_ships.into_iter().map(BattleRuntimeShip::from).collect();
+		context.friend_ships.into_iter().map(|s| BattleRuntimeShip::new(s, true, true)).collect();
 	let enemy: Vec<BattleRuntimeShip> =
-		context.enemy_ships.into_iter().map(BattleRuntimeShip::from).collect();
+		context.enemy_ships.into_iter().map(|s| BattleRuntimeShip::new(s, false, true)).collect();
 
 	// Create a minimal day session to anchor the night battle
 	let day_session = SortieBattleSession {
@@ -142,9 +139,9 @@ pub fn simulate_and_store_sortie_sp_midnight_battle(
 		enemy: enemy.clone(),
 		packet: BattlePacket {
 			formation: [friendly_formation_id, enemy_formation_id, engagement.api_id()],
-			friendly_nowhps: friendly.iter().map(|s| s.current_hp).collect(),
+			friendly_nowhps: friendly.iter().map(|s| s.hp()).collect(),
 			friendly_maxhps: friendly.iter().map(|s| s.ship.api_maxhp).collect(),
-			enemy_nowhps: enemy.iter().map(|s| s.current_hp).collect(),
+			enemy_nowhps: enemy.iter().map(|s| s.hp()).collect(),
 			enemy_maxhps: enemy.iter().map(|s| s.ship.api_maxhp).collect(),
 			smoke_type: 0,
 			balloon_cell: 0,
@@ -224,7 +221,7 @@ fn build_sortie_session(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::game::battle::core::{BattleMode, BattleType, BattleShipInput, EngagementType};
+	use crate::game::battle::core::{BattleMode, BattleShipInput, BattleType, EngagementType};
 	use emukc_model::kc2::level;
 
 	fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
@@ -256,6 +253,7 @@ mod tests {
 				context: BattleContext {
 					mode: BattleMode::Sortie,
 					battle_type: BattleType::Normal,
+					is_sortie: true,
 					friendly_formation_id: 1,
 					enemy_formation_id: 1,
 					engagement: EngagementType::SameCourse,

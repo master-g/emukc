@@ -641,7 +641,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 				calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
 			if let Some(updated) = pending_sortie_battle(store, profile_id) {
 				snapshot.friendly_nowhps =
-					updated.friendly.iter().map(|f| f.current_hp.max(0)).collect();
+					updated.friendly.iter().map(|f| f.hp().max(0)).collect();
 				let friend_ships = updated
 					.friendly
 					.iter()
@@ -743,7 +743,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
 		let get_exp = calculate_battle_admiral_exp(base_exp, &night_session.outcome.win_rank);
 		let friendly_nowhps: Vec<i64> = pending_sortie_battle(store, profile_id)
-			.map(|s| s.friendly.iter().map(|f| f.current_hp.max(0)).collect())
+			.map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
 			.unwrap_or_default();
 		let (ship_exp, ship_lvup) =
 			calculate_sortie_ship_exp(&friend_ships, base_exp, night_session.outcome.mvp, &friendly_nowhps);
@@ -889,7 +889,7 @@ async fn sortie_battle_impl(
 
 	let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
 	let get_exp = calculate_battle_admiral_exp(base_exp, &session.outcome.win_rank);
-	let friendly_nowhps: Vec<i64> = session.friendly.iter().map(|f| f.current_hp.max(0)).collect();
+	let friendly_nowhps: Vec<i64> = session.friendly.iter().map(|f| f.hp().max(0)).collect();
 	let (ship_exp, ship_lvup) =
 		calculate_sortie_ship_exp(&friend_ships, base_exp, session.outcome.mvp, &friendly_nowhps);
 	let response = build_sortie_battle_response(
@@ -1888,7 +1888,7 @@ mod tests {
 			SortieBattleResultSnapshot {
 				friendly_ship_ids: session.friendly_ship_ids.clone(),
 				enemy_ship_ids: session.enemy_ship_ids.clone(),
-				friendly_nowhps: session.friendly.iter().map(|f| f.current_hp.max(0)).collect(),
+				friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
 				win_rank: session.outcome.win_rank.clone(),
 				get_exp: 0,
 				member_lv: 1,

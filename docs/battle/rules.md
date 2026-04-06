@@ -26,6 +26,11 @@
 | `targeting.torpedo_ignores_submarine` | `OpeningTorpedo`, `ClosingTorpedo` | 雷击阶段只在水面目标集合中选取目标，不会攻击潜水舰 | `B` | `en.kancollewiki.net/Shooting_Order_and_Targeting`, 社区实现对照 | Implemented |
 | `targeting.surface_asw_prefers_submarine.night` | `NightShelling` | 具备夜间对潜能力的轻型水面舰，面对混编舰队时优先选潜水目标 | `C` | `en.kancollewiki.net/Shooting_Order_and_Targeting` 夜战条目, 社区资料 | Implemented |
 | `damage.submarine_targeted_by_night_shelling_is_scratch` | `NightShelling` | 夜战普通炮击命中潜水舰时按 scratch damage 处理，而非普通夜战火力公式 | `C` | `en.kancollewiki.net/Shooting_Order_and_Targeting` | Implemented |
+| `display.day_shelling_excludes_non_attack_equipment` | `DayShelling` | 昼战炮击的 `api_si_list` 只暴露与当前攻击直接相关的展示装备，不再回退到“前两个槽位” | `B` | decoded `PhaseHougeki`, 事故样例 `102 -> btxt_flat`, 本地回归测试 | Implemented |
+| `display.day_asw_prefers_asw_equipment` | `DayShelling`, `OpeningTaisen` | 对潜攻击的 `api_si_list` 优先使用声纳 / 爆雷 / 对潜机等 ASW 装备，不混入夜侦等无关装备 | `B` | decoded `PhaseHougeki`, `wikiwiki.jp`, 本地回归测试 | Implemented |
+| `display.night_attack_matches_attack_type` | `NightShelling` | 夜战 `api_si_list` 按 `NightAttackType` 返回主炮 / 副炮 / 鱼雷 / 雷达组合，不再沿用昼战展示逻辑 | `B` | decoded `PhaseHougeki`, `wikiwiki.jp`, 本地 CI/连击测试 | Implemented |
+| `enemy.manifest_unknown_slot_is_dropped` | `SortieEnemyBuild` | 敌舰 bootstrap 装备若不存在于当前 manifest，则在 runtime 中丢弃并清零对应 onslot | `B` | 本地回归测试, runtime warning 设计 | Implemented |
+| `enemy.manifest_only_fallback_zeroes_onslot_when_slots_missing` | `SortieEnemyBuild` | manifest-only fallback 敌舰在没有装备数据时必须返回 `api_onslot = [0; 5]`，保持响应内部自洽 | `B` | 本地回归测试, decoded consumer constraints | Implemented |
 
 ## First-Batch Ship Capability Model
 
@@ -45,6 +50,8 @@
 
 ## Follow-up
 
+- 将 day/night 展示装备规则迁移为更正式的结构化规则表，减少 battle core 中的硬编码分支
+- 为 `api_si_list` 建立 incident corpus，沉淀更多“客户端会崩”的黄金样例
 - 复核夜间对潜优先级与 scratch damage 的精确公式，提升到 `B/A`
 - 引入 `Installation` 目标类和对陆/对海合法目标区分
 - 补充 `CVL`、`BBV`、`CAV`、`AV`、`LHA` 的装备级例外表

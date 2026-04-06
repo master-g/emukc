@@ -183,6 +183,10 @@ static BTXT_FLAT_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 	]
 });
 
+pub(crate) fn has_btxt_flat_coverage(slot_id: i64) -> bool {
+	BTXT_FLAT_IDS.contains(&slot_id)
+}
+
 fn make_btxt_flat(api: &ApiManifest, list: &mut CacheList) {
 	for id in BTXT_FLAT_IDS.iter() {
 		let item_id = format!("{id:04}");

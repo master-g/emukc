@@ -25,9 +25,9 @@ pub mod prelude {
 	#[doc(hidden)]
 	pub use crate::{
 		err::GameplayError,
+		game::SortieStore,
 		game::ops::*,
 		game::types::*,
-		game::SortieStore,
 		gameplay::{Gameplay, HasContext},
 		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
 	};

@@ -7,6 +7,7 @@ use emukc_cache::Kache;
 use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
+	battle_rules::append_battle_rule_provider_assets,
 	make_list::{CacheList, batch_check_exists},
 	prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
@@ -554,6 +555,7 @@ pub(super) async fn make(
 
 		list.add(format!("kcs2/img/{p}"), version);
 	}
+	append_battle_rule_provider_assets(versions, list)?;
 
 	match strategy {
 		CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {

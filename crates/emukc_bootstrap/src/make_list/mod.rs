@@ -19,6 +19,8 @@ pub mod progress;
 
 mod source;
 
+pub(crate) use source::kcs2::resources::slot::has_btxt_flat_coverage;
+
 /// Strategy for making a cache list.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CacheListMakeStrategy {

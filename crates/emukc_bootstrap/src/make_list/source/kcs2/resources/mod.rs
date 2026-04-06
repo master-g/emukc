@@ -11,7 +11,7 @@ mod furniture;
 mod gauge;
 mod map;
 pub(crate) mod ship;
-mod slot;
+pub(crate) mod slot;
 mod unversioned;
 mod use_item;
 

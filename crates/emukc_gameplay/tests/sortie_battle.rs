@@ -596,3 +596,54 @@ async fn combined_type_is_persisted_after_validation() {
 	assert_eq!(context.set_combined_type(pid, 1).await.unwrap(), 1);
 	assert_eq!(context.get_combined_type(pid).await.unwrap(), 1);
 }
+
+#[tokio::test]
+async fn sortie_battle_response_passes_battle_rule_validation() {
+	let (context, session) = new_game_session().await;
+	let pid = session.profile.id;
+	let ship = context.add_ship(pid, 951).await.unwrap();
+	context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+	context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+	let battle = context.sortie_battle(pid, 1).await.unwrap();
+	let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+	let report = emukc_bootstrap::prelude::validate_day_battle_response(
+		&context.1.manifest,
+		&battle,
+		&assets,
+	)
+	.unwrap();
+
+	assert!(!report.has_errors(), "unexpected validation findings: {:?}", report.findings);
+	assert!(
+		!report.expected_resources.is_empty(),
+		"validator should infer at least one expected resource"
+	);
+}
+
+#[tokio::test]
+async fn sortie_battle_validation_reports_invalid_enemy_ids() {
+	let (context, session) = new_game_session().await;
+	let pid = session.profile.id;
+	let ship = context.add_ship(pid, 951).await.unwrap();
+	context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+	context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+	let battle = context.sortie_battle(pid, 1).await.unwrap();
+	let mut raw = serde_json::to_value(&battle).unwrap();
+	raw["api_ship_ke"][0] = serde_json::json!(999999);
+	raw["api_eSlot"][0][0] = serde_json::json!(888888);
+
+	let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+	let report =
+		emukc_bootstrap::prelude::validate_day_battle_response(&context.1.manifest, &raw, &assets)
+			.unwrap();
+
+	assert!(report.has_errors(), "mutated battle response should fail validation");
+	assert!(report.findings.iter().any(|finding| {
+		finding.kind == emukc_bootstrap::prelude::BattleValidationFindingKind::UnknownShipMstId
+	}));
+	assert!(report.findings.iter().any(|finding| {
+		finding.kind == emukc_bootstrap::prelude::BattleValidationFindingKind::UnknownSlotitemMstId
+	}));
+}
