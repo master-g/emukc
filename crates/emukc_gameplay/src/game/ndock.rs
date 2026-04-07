@@ -139,7 +139,8 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let m = ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
+		let m =
+			ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
 
 		tx.commit().await?;
 
@@ -155,7 +156,8 @@ impl<T: HasContext + ?Sized> NDockOps for T {
 		let db = self.db();
 		let tx = db.begin().await?;
 
-		let m: Material = speed_up_ship_repairation_impl(&tx, codex, profile_id, ndock_id).await?.into();
+		let m: Material =
+			speed_up_ship_repairation_impl(&tx, codex, profile_id, ndock_id).await?.into();
 
 		tx.commit().await?;
 
@@ -413,7 +415,11 @@ where
 			.await?;
 	}
 
-	Ok(if highspeed { Some(material) } else { None })
+	Ok(if highspeed {
+		Some(material)
+	} else {
+		None
+	})
 }
 
 pub(crate) async fn speed_up_ship_repairation_impl<C>(
@@ -434,8 +440,7 @@ where
 	let ship_id = dock.ship_id;
 
 	// deduct material
-	let material =
-		deduct_material_impl(c, profile_id, &[(MaterialCategory::Bucket, 1)]).await?;
+	let material = deduct_material_impl(c, profile_id, &[(MaterialCategory::Bucket, 1)]).await?;
 
 	let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
 		GameplayError::EntryNotFound(format!(

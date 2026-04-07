@@ -284,15 +284,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			))
 		})?;
 		let cell_0 = stage.cell(0).ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"cell_0 not found for map {}",
-				definition.map_id,
-			))
+			GameplayError::EntryNotFound(format!("cell_0 not found for map {}", definition.map_id,))
 		})?;
 		let mut route_context = build_fleet_route_context(&tx, codex, &fleet_ships).await?;
 		route_context.visited_cell_ids.insert(0);
-		let first_cell =
-			evaluate_route_destination(cell_0, stage, &route_context, None)?;
+		let first_cell = evaluate_route_destination(cell_0, stage, &route_context, None)?;
 		let current_cell = stage
 			.cell(first_cell)
 			.ok_or_else(|| GameplayError::EntryNotFound(format!("cell {first_cell} not found")))?;
@@ -640,8 +636,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 			snapshot.get_exp =
 				calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
 			if let Some(updated) = pending_sortie_battle(store, profile_id) {
-				snapshot.friendly_nowhps =
-					updated.friendly.iter().map(|f| f.hp().max(0)).collect();
+				snapshot.friendly_nowhps = updated.friendly.iter().map(|f| f.hp().max(0)).collect();
 				let friend_ships = updated
 					.friendly
 					.iter()
@@ -652,8 +647,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 						effect_list: ship.effect_list,
 					})
 					.collect::<Vec<_>>();
-				let (ship_exp, ship_lvup) =
-					calculate_sortie_ship_exp(&friend_ships, snapshot.get_base_exp, snapshot.mvp, &snapshot.friendly_nowhps);
+				let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
+					&friend_ships,
+					snapshot.get_base_exp,
+					snapshot.mvp,
+					&snapshot.friendly_nowhps,
+				);
 				snapshot.get_ship_exp = ship_exp;
 				snapshot.get_exp_lvup = ship_lvup;
 			}
@@ -745,8 +744,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 		let friendly_nowhps: Vec<i64> = pending_sortie_battle(store, profile_id)
 			.map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
 			.unwrap_or_default();
-		let (ship_exp, ship_lvup) =
-			calculate_sortie_ship_exp(&friend_ships, base_exp, night_session.outcome.mvp, &friendly_nowhps);
+		let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
+			&friend_ships,
+			base_exp,
+			night_session.outcome.mvp,
+			&friendly_nowhps,
+		);
 		store.insert_pending_result(
 			profile_id,
 			SortieBattleResultSnapshot {
