@@ -45,7 +45,7 @@ pub(crate) fn evaluate_route_destination(
 ) -> Result<i64, GameplayError> {
 	let Some(rules) = stage.routing_rules.get(&current.cell_no).filter(|rules| !rules.is_empty())
 	else {
-		return select_route_from_cells(current, selected_cell_id);
+		return select_route_from_cells(current, stage, selected_cell_id);
 	};
 
 	let mut fallback_rules = Vec::<&RouteRule>::new();
@@ -197,6 +197,7 @@ pub(crate) fn evaluate_route_destination(
 
 fn select_route_from_cells(
 	current: &MapCellDefinition,
+	stage: &MapStageDefinition,
 	selected_cell_id: Option<i64>,
 ) -> Result<i64, GameplayError> {
 	if let Some(selected_cell_id) = selected_cell_id {
@@ -208,7 +209,29 @@ fn select_route_from_cells(
 		}
 		Ok(selected_cell_id)
 	} else {
-		Ok(current.next_cells[0])
+		match current.next_cells.as_slice() {
+			[] => Err(GameplayError::WrongType(format!(
+				"cell {} has no executable route",
+				current.cell_no,
+			))),
+			[only] => Ok(*only),
+			_ if current.cell_no == 0 => {
+				let inferred_start = stage.parse_warnings.iter().any(|warning| {
+					warning == "missing_start_routes"
+						|| warning.starts_with("inferred_multi_root_start")
+				});
+				if inferred_start {
+					return Err(GameplayError::WrongType(
+						"cell 0 requires explicit start routing rules for multiple targets"
+							.to_string(),
+					));
+				}
+				let mut random = rng();
+				let index = random.random_range(0..current.next_cells.len());
+				Ok(current.next_cells[index])
+			}
+			_ => Ok(current.next_cells[0]),
+		}
 	}
 }
 

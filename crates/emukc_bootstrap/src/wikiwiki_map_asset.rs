@@ -61,6 +61,8 @@ fn load_repo_wikiwiki_map_catalog_asset_from(
 
 #[cfg(test)]
 mod tests {
+	use emukc_model::codex::map::{MapCatalog, RoutePredicate};
+
 	use super::*;
 
 	#[test]
@@ -83,5 +85,59 @@ mod tests {
 
 		assert_eq!(asset.source, RepoWikiwikiMapCatalogSource::Embedded);
 		assert!(asset.raw_json().contains("\"maps\""));
+	}
+
+	#[test]
+	fn repo_asset_limits_route_history_rules_to_known_normal_maps() {
+		let asset = load_repo_wikiwiki_map_catalog_asset().unwrap();
+		let catalog = serde_json::from_str::<MapCatalog>(asset.raw_json()).unwrap();
+		let mut visited_rules = Vec::new();
+
+		for definition in catalog.maps.values() {
+			for (variant_key, variant) in &definition.variants {
+				for (from_cell_no, rules) in &variant.routing_rules {
+					for rule in rules {
+						match &rule.predicate {
+							RoutePredicate::VisitedNode {
+								cell_nos,
+								visited,
+							} => {
+								visited_rules.push((
+									definition.map_id,
+									variant_key.clone(),
+									*from_cell_no,
+									rule.to_cell_no,
+									*visited,
+									cell_nos.clone(),
+								));
+							}
+							RoutePredicate::VisitedNodeLabel {
+								node_labels,
+								..
+							} => {
+								panic!(
+									"runtime asset still contains label-based route-history predicate on map {} variant `{}`: {node_labels:?}",
+									definition.map_id, variant_key,
+								);
+							}
+							_ => {}
+						}
+					}
+				}
+			}
+		}
+
+		visited_rules.sort();
+		// Guardrail: if this list changes, re-audit whether sortie-wide visited-node history
+		// remains sufficient or if we need a first-class direct arrival-edge predicate.
+		assert_eq!(
+			visited_rules,
+			vec![
+				(45, String::new(), 9, 10, true, vec![3]),
+				(55, String::new(), 10, 15, true, vec![13]),
+				(55, String::new(), 13, 15, true, vec![10]),
+				(74, String::new(), 7, 9, true, vec![4]),
+			]
+		);
 	}
 }

@@ -1763,6 +1763,36 @@ mod tests {
 	}
 
 	#[test]
+	fn build_sortie_enemy_ship_uses_enemy_bootstrap_when_manifest_entry_is_missing() {
+		let mut codex = enemy_test_codex();
+		codex.manifest.api_mst_ship.retain(|ship| ship.api_id != 19991);
+		assert!(codex.manifest.find_ship(19991).is_none());
+		assert!(codex.new_ship(19991).is_none());
+
+		let (bootstrap_ship, bootstrap_slots) = codex.new_enemy_ship(19991).unwrap();
+		assert_eq!(bootstrap_ship.api_sortno, 19991);
+		assert_eq!(bootstrap_ship.api_fuel, 0);
+		assert_eq!(bootstrap_ship.api_bull, 0);
+		assert_eq!(bootstrap_ship.api_onslot, [18, 6, 0, 0, 0]);
+		assert_eq!(
+			bootstrap_slots.iter().map(|slot| slot.api_slotitem_id).collect::<Vec<_>>(),
+			vec![1519, 525]
+		);
+
+		let enemy = build_sortie_enemy_ship(&codex, 19991, 45).unwrap();
+		assert_eq!(enemy.ship.api_ship_id, 19991);
+		assert_eq!(enemy.ship.api_sortno, 19991);
+		assert_eq!(enemy.ship.api_fuel, 0);
+		assert_eq!(enemy.ship.api_bull, 0);
+		assert_eq!(enemy.ship.api_nowhp, 45);
+		assert_eq!(enemy.ship.api_karyoku, [35, 35]);
+		assert_eq!(enemy.ship.api_taiku, [40, 40]);
+		assert_eq!(enemy.ship.api_taisen, [30, 30]);
+		assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
+		assert_eq!(enemy_slot_ids(&enemy), [1519, 525, -1, -1, -1]);
+	}
+
+	#[test]
 	fn build_sortie_enemy_ship_falls_back_to_ship_extra_data_when_enemy_bootstrap_is_missing() {
 		let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let ship_id = 518;
@@ -2261,6 +2291,7 @@ mod tests {
 			event_id: 4,
 			event_kind: 1,
 			next_cells: vec![2, 3],
+			node_label: None,
 			master_cell_id: None,
 			distance: None,
 		};
@@ -2329,6 +2360,7 @@ mod tests {
 			event_id: 4,
 			event_kind: 1,
 			next_cells: vec![2, 3],
+			node_label: None,
 			master_cell_id: None,
 			distance: None,
 		};
@@ -2391,6 +2423,7 @@ mod tests {
 			event_id: 4,
 			event_kind: 1,
 			next_cells: vec![2, 3],
+			node_label: None,
 			master_cell_id: None,
 			distance: None,
 		};
@@ -2446,6 +2479,7 @@ mod tests {
 			event_id: 4,
 			event_kind: 1,
 			next_cells: vec![2, 3],
+			node_label: None,
 			master_cell_id: None,
 			distance: None,
 		};
@@ -2509,6 +2543,99 @@ mod tests {
 
 		let next = evaluate_route_destination(&current, &variant, &context, None).unwrap();
 		assert_eq!(next, 2);
+	}
+
+	#[test]
+	fn cell_zero_uses_explicit_start_rules_before_static_next_cells() {
+		let current = MapCellDefinition {
+			cell_no: 0,
+			color_no: 0,
+			event_id: 0,
+			event_kind: 0,
+			next_cells: vec![1, 2],
+			node_label: Some("Start".to_string()),
+			master_cell_id: None,
+			distance: None,
+		};
+		let variant = MapVariantDefinition {
+			variant_key: String::new(),
+			boss_cell_no: 2,
+			cells: vec![
+				current.clone(),
+				MapCellDefinition {
+					cell_no: 1,
+					color_no: 4,
+					event_id: 4,
+					event_kind: 1,
+					next_cells: vec![],
+					node_label: Some("A".to_string()),
+					master_cell_id: None,
+					distance: None,
+				},
+				MapCellDefinition {
+					cell_no: 2,
+					color_no: 5,
+					event_id: 5,
+					event_kind: 1,
+					next_cells: vec![],
+					node_label: Some("C".to_string()),
+					master_cell_id: None,
+					distance: None,
+				},
+			],
+			routing_rules: BTreeMap::from([(
+				0,
+				vec![RouteRule {
+					from_cell_no: 0,
+					to_cell_no: 2,
+					priority: 0,
+					weight: None,
+					probability_pct: None,
+					predicate: RoutePredicate::Always,
+					raw_text: "出撃".to_string(),
+				}],
+			)]),
+			enemy_fleets: BTreeMap::new(),
+			ship_drops: BTreeMap::new(),
+			required_defeat_count: None,
+			clear_to_variant_key: None,
+			parse_warnings: Vec::new(),
+		};
+
+		let next =
+			evaluate_route_destination(&current, &variant, &FleetRouteContext::default(), None)
+				.unwrap();
+		assert_eq!(next, 2);
+	}
+
+	#[test]
+	fn ambiguous_cell_zero_without_rules_is_rejected() {
+		let current = MapCellDefinition {
+			cell_no: 0,
+			color_no: 0,
+			event_id: 0,
+			event_kind: 0,
+			next_cells: vec![1, 2],
+			node_label: Some("Start".to_string()),
+			master_cell_id: None,
+			distance: None,
+		};
+		let variant = MapVariantDefinition {
+			variant_key: String::new(),
+			boss_cell_no: 2,
+			cells: vec![current.clone()],
+			routing_rules: BTreeMap::new(),
+			enemy_fleets: BTreeMap::new(),
+			ship_drops: BTreeMap::new(),
+			required_defeat_count: None,
+			clear_to_variant_key: None,
+			parse_warnings: vec!["missing_start_routes".to_string()],
+		};
+
+		let error =
+			evaluate_route_destination(&current, &variant, &FleetRouteContext::default(), None)
+				.unwrap_err();
+		assert!(error.to_string().contains("explicit start routing rules"));
 	}
 
 	#[tokio::test]

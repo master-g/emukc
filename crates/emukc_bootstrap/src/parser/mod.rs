@@ -336,6 +336,7 @@ mod tests {
 							event_id: 0,
 							event_kind: 0,
 							next_cells: vec![],
+							node_label: Some("Start".to_string()),
 							master_cell_id: None,
 							distance: None,
 						}],
@@ -363,6 +364,241 @@ mod tests {
 				.iter()
 				.any(|cell| cell.cell_no == 2 && cell.event_id == 5 && cell.color_no == 5)
 		);
+	}
+
+	#[test]
+	fn load_map_catalog_prefers_kcdata_structural_start_over_inferred_wikiwiki_start() {
+		let root = tempfile::tempdir().unwrap();
+		let kcdata_dir = root.path().join("kc_data/_map");
+		std::fs::create_dir_all(&kcdata_dir).unwrap();
+
+		std::fs::write(
+			kcdata_dir.join("0012.yaml"),
+			r#"data:
+  id: 12
+  name: "1-2 fallback"
+  routes:
+    1:
+      to: 1
+    2:
+      to: 3
+    3:
+      from: 1
+      to: 2
+    4:
+      from: 2
+      to: 3
+  cells:
+    "1":
+      name: "battle"
+    "2":
+      name: "battle"
+    "3":
+      boss: true
+"#,
+		)
+		.unwrap();
+
+		let mut overlay = MapCatalog::default();
+		overlay.maps.insert(
+			12,
+			MapDefinition {
+				map_id: 12,
+				maparea_id: 1,
+				mapinfo_no: 2,
+				name: "1-2 wikiwiki".to_string(),
+				level: 1,
+				sally_flag: vec![],
+				is_event: false,
+				reset_policy: Default::default(),
+				airbase_count: None,
+				gauge_type: None,
+				gauge_count: None,
+				required_defeat_count: None,
+				max_hp: None,
+				default_variant: String::new(),
+				rank_stage_ids: BTreeMap::new(),
+				variants: BTreeMap::from([(
+					String::new(),
+					emukc_model::codex::map::MapVariantDefinition {
+						variant_key: String::new(),
+						boss_cell_no: 3,
+						cells: vec![
+							MapCellDefinition {
+								cell_no: 0,
+								color_no: 0,
+								event_id: 0,
+								event_kind: 0,
+								next_cells: vec![1, 2],
+								node_label: Some("Start".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+							MapCellDefinition {
+								cell_no: 1,
+								color_no: 4,
+								event_id: 4,
+								event_kind: 1,
+								next_cells: vec![2],
+								node_label: Some("A".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+							MapCellDefinition {
+								cell_no: 2,
+								color_no: 4,
+								event_id: 4,
+								event_kind: 1,
+								next_cells: vec![],
+								node_label: Some("B".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+						],
+						routing_rules: BTreeMap::new(),
+						enemy_fleets: BTreeMap::new(),
+						ship_drops: BTreeMap::new(),
+						required_defeat_count: None,
+						clear_to_variant_key: None,
+						parse_warnings: vec!["inferred_multi_root_start:1,2".to_string()],
+					},
+				)]),
+			},
+		);
+
+		let catalog =
+			build_final_map_catalog(root.path(), &ApiManifest::default(), Some(overlay)).unwrap();
+		let stage = catalog.map_definition(12).unwrap().variant("").unwrap();
+
+		assert_eq!(stage.cell(0).unwrap().next_cells, vec![1, 3]);
+		assert!(stage.parse_warnings.iter().any(|warning| warning == "structural_start_fallback"));
+		assert!(
+			stage
+				.parse_warnings
+				.iter()
+				.all(|warning| !warning.starts_with("inferred_multi_root_start"))
+		);
+	}
+
+	#[test]
+	fn load_map_catalog_aligns_kcdata_semantics_by_node_label() {
+		let root = tempfile::tempdir().unwrap();
+		let kcdata_dir = root.path().join("kc_data/_map");
+		std::fs::create_dir_all(&kcdata_dir).unwrap();
+
+		std::fs::write(
+			kcdata_dir.join("0012.yaml"),
+			r#"data:
+  id: 12
+  name: "1-2 semantic fallback"
+  routes:
+    1:
+      to: A
+    2:
+      to: C
+    3:
+      from: A
+      to: B
+    4:
+      from: B
+      to: C
+  cells:
+    A:
+      name: "battle"
+    B:
+      name: "battle"
+    C:
+      boss: true
+"#,
+		)
+		.unwrap();
+
+		let mut overlay = MapCatalog::default();
+		overlay.maps.insert(
+			12,
+			MapDefinition {
+				map_id: 12,
+				maparea_id: 1,
+				mapinfo_no: 2,
+				name: "1-2 wikiwiki".to_string(),
+				level: 1,
+				sally_flag: vec![],
+				is_event: false,
+				reset_policy: Default::default(),
+				airbase_count: None,
+				gauge_type: None,
+				gauge_count: None,
+				required_defeat_count: None,
+				max_hp: None,
+				default_variant: String::new(),
+				rank_stage_ids: BTreeMap::new(),
+				variants: BTreeMap::from([(
+					String::new(),
+					emukc_model::codex::map::MapVariantDefinition {
+						variant_key: String::new(),
+						boss_cell_no: 0,
+						cells: vec![
+							MapCellDefinition {
+								cell_no: 0,
+								color_no: 0,
+								event_id: 0,
+								event_kind: 0,
+								next_cells: vec![1, 2],
+								node_label: Some("Start".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+							MapCellDefinition {
+								cell_no: 1,
+								color_no: 4,
+								event_id: 4,
+								event_kind: 1,
+								next_cells: vec![2],
+								node_label: Some("A".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+							MapCellDefinition {
+								cell_no: 2,
+								color_no: 4,
+								event_id: 4,
+								event_kind: 1,
+								next_cells: vec![],
+								node_label: Some("B".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+							MapCellDefinition {
+								cell_no: 3,
+								color_no: 0,
+								event_id: 0,
+								event_kind: 0,
+								next_cells: vec![],
+								node_label: Some("C".to_string()),
+								master_cell_id: None,
+								distance: None,
+							},
+						],
+						routing_rules: BTreeMap::new(),
+						enemy_fleets: BTreeMap::new(),
+						ship_drops: BTreeMap::new(),
+						required_defeat_count: None,
+						clear_to_variant_key: None,
+						parse_warnings: vec!["inferred_multi_root_start:1,2".to_string()],
+					},
+				)]),
+			},
+		);
+
+		let catalog =
+			build_final_map_catalog(root.path(), &ApiManifest::default(), Some(overlay)).unwrap();
+		let stage = catalog.map_definition(12).unwrap().variant("").unwrap();
+
+		assert_eq!(stage.cell(0).unwrap().next_cells, vec![1, 3]);
+		assert_eq!(stage.boss_cell_no, 3);
+		assert_eq!(stage.cell(3).unwrap().event_id, 5);
+		assert_eq!(stage.cell(3).unwrap().color_no, 5);
+		assert!(stage.parse_warnings.iter().any(|warning| warning == "structural_start_fallback"));
 	}
 
 	#[test]
@@ -402,6 +638,7 @@ mod tests {
 								event_id: 0,
 								event_kind: 0,
 								next_cells: vec![1],
+								node_label: Some("Start".to_string()),
 								master_cell_id: None,
 								distance: None,
 							},
@@ -411,6 +648,7 @@ mod tests {
 								event_id: 4,
 								event_kind: 1,
 								next_cells: vec![2, 3],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},
@@ -420,6 +658,7 @@ mod tests {
 								event_id: 4,
 								event_kind: 1,
 								next_cells: vec![],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},
@@ -429,6 +668,7 @@ mod tests {
 								event_id: 5,
 								event_kind: 1,
 								next_cells: vec![],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},

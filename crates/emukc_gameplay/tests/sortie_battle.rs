@@ -38,11 +38,14 @@ async fn mock_context_with_maps() -> (emukc_db::sea_orm::DbConn, Codex) {
 	(db, codex)
 }
 
+/// Rebuild `codex.maps` from the repo-tracked wikiwiki asset instead of trusting the
+/// bootstrap snapshot already stored in `.data/codex/map_catalog.json`.
 async fn mock_context_with_repo_wikiwiki_maps() -> (emukc_db::sea_orm::DbConn, Codex) {
 	let db = new_mem_db().await.unwrap();
 	let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 	let asset_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 		.join("../../crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json");
+	assert!(asset_path.exists(), "missing repo wikiwiki map asset: {}", asset_path.display());
 	let raw = std::fs::read_to_string(asset_path).unwrap();
 	let wikiwiki_catalog = serde_json::from_str(&raw).unwrap();
 	let data_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp");
@@ -243,10 +246,9 @@ async fn quest_progress_of(
 		.progress
 }
 
-fn path_to_boss(codex: &Codex, map_id: i64) -> Vec<i64> {
+fn path_to_boss(codex: &Codex, map_id: i64, start_cell_no: i64) -> Option<Vec<i64>> {
 	let definition = codex.maps.map_definition(map_id).unwrap();
 	let variant = definition.variant("").unwrap();
-	let start = variant.first_progress_cell_no().unwrap();
 	let boss = variant.boss_cell_no;
 
 	fn dfs(
@@ -275,8 +277,69 @@ fn path_to_boss(codex: &Codex, map_id: i64) -> Vec<i64> {
 	}
 
 	let mut path = Vec::new();
-	assert!(dfs(variant, start, boss, &mut path));
-	path
+	dfs(variant, start_cell_no, boss, &mut path).then_some(path)
+}
+
+async fn start_sortie_with_boss_path(
+	context: &(emukc_db::sea_orm::DbConn, Codex),
+	profile_id: i64,
+	deck_id: i64,
+	maparea_id: i64,
+	mapinfo_no: i64,
+	formation_id: i64,
+	map_id: i64,
+) -> (SortieStartResponse, Vec<i64>) {
+	for _ in 0..16 {
+		let start = context
+			.start_sortie(profile_id, deck_id, maparea_id, mapinfo_no, formation_id)
+			.await
+			.unwrap();
+		if let Some(path) = advance_sortie_to_boss(context, profile_id, map_id, start.cell_no).await
+		{
+			return (start, path);
+		}
+		context.sortie_goback_port(profile_id).await.unwrap();
+	}
+	panic!("failed to roll a boss-reachable start path for map {map_id}");
+}
+
+async fn advance_sortie_to_boss(
+	context: &(emukc_db::sea_orm::DbConn, Codex),
+	profile_id: i64,
+	map_id: i64,
+	start_cell_no: i64,
+) -> Option<Vec<i64>> {
+	let definition = context.1.maps.map_definition(map_id)?;
+	let variant = definition.variant("")?;
+	let boss = variant.boss_cell_no;
+	let mut current = start_cell_no;
+	let mut path = vec![current];
+	let mut visited = std::collections::BTreeSet::from([current]);
+
+	while current != boss {
+		let cell = variant.cell(current)?;
+		let mut candidates = cell.next_cells.clone();
+		candidates.sort_by_key(|next| path_to_boss(&context.1, map_id, *next).is_none());
+		let mut advanced = None;
+		for next in candidates {
+			if visited.contains(&next) {
+				continue;
+			}
+			match context.next_sortie(profile_id, Some(next)).await {
+				Ok(response) => {
+					advanced = Some(response.cell_no);
+					break;
+				}
+				Err(_) => continue,
+			}
+		}
+		let next = advanced?;
+		visited.insert(next);
+		path.push(next);
+		current = next;
+	}
+
+	Some(path)
 }
 
 #[tokio::test]
@@ -406,14 +469,10 @@ async fn sortie_battle_result_advances_boss_quest_on_real_boss_node() {
 	context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
 	ensure_started_quest(&context, pid, quest_id).await;
 
-	let start = context.start_sortie(pid, 1, maparea_id, mapinfo_no, 1).await.unwrap();
-	let path = path_to_boss(&context.1, map_id);
+	let (start, path) =
+		start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, 1, map_id).await;
 	assert_eq!(start.cell_no, path[0]);
 	assert_eq!(start.boss_cell_no, *path.last().unwrap());
-	for next_cell in path.iter().skip(1) {
-		let next = context.next_sortie(pid, Some(*next_cell)).await.unwrap();
-		assert_eq!(next.cell_no, *next_cell);
-	}
 
 	let battle = context.sortie_battle(pid, 1).await.unwrap();
 	assert!(battle.api_eParam.iter().any(|param| param.iter().any(|value| *value > 0)));
@@ -441,14 +500,10 @@ async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
 	context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
 	ensure_started_quest(&context, pid, quest_id).await;
 
-	let start = context.start_sortie(pid, 1, maparea_id, mapinfo_no, 1).await.unwrap();
-	let path = path_to_boss(&context.1, map_id);
+	let (start, path) =
+		start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, 1, map_id).await;
 	assert_eq!(start.cell_no, path[0]);
 	assert_eq!(start.boss_cell_no, *path.last().unwrap());
-	for next_cell in path.iter().skip(1) {
-		let next = context.next_sortie(pid, Some(*next_cell)).await.unwrap();
-		assert_eq!(next.cell_no, *next_cell);
-	}
 
 	context.sortie_battle(pid, 1).await.unwrap();
 	context.sortie_battle_result(pid).await.unwrap();
@@ -488,6 +543,28 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
 	assert!(expected_drop_ship_ids.contains(&drop.api_ship_id));
 	assert_eq!(ships_after.len(), ships_before.len() + 1);
 	assert!(ships_after.iter().any(|ship| ship.api_ship_id == drop.api_ship_id));
+}
+
+#[tokio::test]
+async fn repo_wikiwiki_map_enemy_ids_are_covered_by_enemy_bootstrap_data() {
+	let (_, codex) = mock_context_with_repo_wikiwiki_maps().await;
+	let missing = codex
+		.maps
+		.maps
+		.values()
+		.flat_map(|definition| definition.variants.values())
+		.flat_map(|variant| variant.enemy_fleets.values())
+		.flat_map(|fleet| fleet.compositions.iter())
+		.flat_map(|composition| composition.ship_ids.iter().copied())
+		.collect::<std::collections::BTreeSet<_>>()
+		.into_iter()
+		.filter(|ship_id| codex.new_enemy_ship(*ship_id).is_none())
+		.collect::<Vec<_>>();
+
+	assert!(
+		missing.is_empty(),
+		"repo wikiwiki map enemy ids missing enemy bootstrap coverage: {missing:?}"
+	);
 }
 
 #[tokio::test]

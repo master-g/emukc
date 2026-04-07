@@ -391,6 +391,61 @@ fn parse_fixture_catalog_with_probability_routes_ignores_route_footnote_anchor()
 }
 
 #[test]
+fn parse_fixture_catalog_preserves_explicit_start_routes() {
+	let root = tempfile::tempdir().unwrap();
+	let pages = root.path().join("pages");
+	std::fs::create_dir_all(&pages).unwrap();
+	std::fs::write(
+		pages.join("1-1.html"),
+		r#"
+<html><body>
+<table>
+  <tr><th>分岐点</th><th>ルート</th><th>移動条件</th></tr>
+  <tr><td rowspan="3">出撃</td><td>A</td><td rowspan="3">A:B:C=30%:40%:30%</td></tr>
+  <tr><td>B</td></tr>
+  <tr><td>C</td></tr>
+</table>
+<table>
+  <tr><th>出現場所</th><th>パターン</th><th>EXP</th><th>出現艦船</th><th>陣形</th></tr>
+  <tr><td>A：</td><td>パターン1</td><td>10</td><td>駆逐イ級</td><td>単縦陣</td></tr>
+  <tr><td>B：</td><td>パターン1</td><td>15</td><td>駆逐ロ級</td><td>単縦陣</td></tr>
+  <tr><td>C：ボス</td><td>パターン1</td><td>20</td><td>軽巡ホ級flagship、駆逐イ級</td><td>複縦陣</td></tr>
+</table>
+</body></html>
+"#,
+	)
+	.unwrap();
+
+	let debug_catalog = parse_debug(root.path(), &manifest_fixture()).unwrap();
+	let wiki_map = debug_catalog.maps.get(&11).unwrap();
+	let variant = only_variant(wiki_map);
+	assert!(variant.nodes.iter().all(|node| node.label != "Start"));
+	assert_eq!(
+		variant
+			.routing_rules
+			.iter()
+			.filter(|rule| rule.from_cell_no == 0)
+			.map(|rule| rule.to_cell_no)
+			.collect::<BTreeSet<_>>(),
+		BTreeSet::from([1, 2, 3])
+	);
+
+	let catalog = parse(root.path(), &manifest_fixture()).unwrap();
+	let stage = catalog.map_definition(11).unwrap().variant("").unwrap();
+	let start = stage.cell(0).unwrap();
+	assert_eq!(start.node_label.as_deref(), Some("Start"));
+	assert_eq!(start.next_cells, vec![1, 2, 3]);
+	assert_eq!(stage.routing_rules.get(&0).map(Vec::len), Some(3));
+	assert!(
+		stage
+			.parse_warnings
+			.iter()
+			.all(|warning| !warning.starts_with("inferred_multi_root_start"))
+	);
+	assert_eq!(stage.first_progress_cell_no(), None);
+}
+
+#[test]
 fn parse_fixture_catalog_with_executable_route_predicates() {
 	let root = tempfile::tempdir().unwrap();
 	let pages = root.path().join("pages");
@@ -1951,6 +2006,26 @@ fn parse_route_table_hardcodes_unknown_los_split_to_weighted_random() {
 			RoutePredicate::Unknown { .. } | RoutePredicate::SourceUnknown { .. }
 		)
 	}));
+}
+
+#[test]
+fn parse_route_table_treats_unbiased_random_as_executable_routes() {
+	let ship_types = ShipTypeResolver::new(&manifest_fixture());
+	let ships = ShipResolver::new(&manifest_fixture());
+	let mut warnings = Vec::new();
+	let rows = vec![
+		vec!["分岐点".to_string(), "ルート".to_string(), "移動条件".to_string()],
+		vec!["A".to_string(), "B".to_string(), "ランダム（片寄りなし）".to_string()],
+		vec!["A".to_string(), "C".to_string(), "ランダム（片寄りなし）".to_string()],
+	];
+
+	let drafts = parse_route_table(&rows, &ship_types, &ships, &mut warnings).unwrap();
+
+	assert!(warnings.is_empty());
+	assert_eq!(drafts.len(), 2);
+	assert!(drafts.iter().all(|draft| matches!(draft.predicate, RoutePredicate::Always)));
+	assert!(drafts.iter().all(|draft| draft.probability_pct.is_none()));
+	assert!(drafts.iter().map(|draft| draft.to_label.as_str()).eq(["B", "C"].into_iter()));
 }
 
 #[test]

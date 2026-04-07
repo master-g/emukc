@@ -13,7 +13,7 @@ use super::{
 	CompiledRouteClause, EnemyNodeRows, RouteClauseAst, RouteConditionLine, RouteRuleDraft,
 	RouteTableSection, SELECTOR_FOLD_CONTAINER, SELECTOR_TABLE, ShipResolver, ShipTypeResolver,
 	WikiwikiNodeDefinition, direct_child_tables, direct_child_with_class, find_header_index,
-	normalize_text, parse_named_pair_contains_predicate, parse_node_label,
+	is_entry_node_label, normalize_text, parse_named_pair_contains_predicate, parse_node_label,
 	parse_ship_selector_count_clause, parse_ship_type_count_clause, parse_specific_ship_id_list,
 	parse_specific_ship_list, predicate_for_contains_selector, predicate_for_only_selector,
 	resolve_route_selector, sanitize_route_text, table_to_grid,
@@ -346,14 +346,22 @@ pub(super) fn build_nodes(
 	let mut ordered_labels = Vec::<String>::new();
 
 	for rule in route_rules {
-		if !ordered_labels.contains(&rule.from_label) {
+		if !is_entry_node_label(&rule.from_label) && !ordered_labels.contains(&rule.from_label) {
 			ordered_labels.push(rule.from_label.clone());
 		}
-		if !ordered_labels.contains(&rule.to_label) {
+		if !is_entry_node_label(&rule.to_label) && !ordered_labels.contains(&rule.to_label) {
 			ordered_labels.push(rule.to_label.clone());
 		}
-		graph.entry(rule.from_label.clone()).or_default().insert(rule.to_label.clone());
-		targets.insert(rule.to_label.clone());
+		if !is_entry_node_label(&rule.from_label) {
+			graph.entry(rule.from_label.clone()).or_default();
+		}
+		if !is_entry_node_label(&rule.to_label) {
+			graph.entry(rule.to_label.clone()).or_default();
+		}
+		if !is_entry_node_label(&rule.from_label) && !is_entry_node_label(&rule.to_label) {
+			graph.entry(rule.from_label.clone()).or_default().insert(rule.to_label.clone());
+			targets.insert(rule.to_label.clone());
+		}
 	}
 
 	for node_label in enemy_nodes.keys() {
@@ -657,6 +665,15 @@ fn parse_route_condition_text(
 	}
 	let text = sanitize_route_text(raw_text);
 	if text.is_empty() || matches!(text.as_str(), "それ以外" | "固定" | "能動分岐") {
+		return vec![CompiledRouteClause {
+			target_label: row_target.to_string(),
+			probability_pct: None,
+			predicate: RoutePredicate::Always,
+			random_placeholder: false,
+		}];
+	}
+	if matches!(text.as_str(), "ランダム（片寄りなし）" | "ランダム(片寄りなし)")
+	{
 		return vec![CompiledRouteClause {
 			target_label: row_target.to_string(),
 			probability_pct: None,

@@ -1,85 +1,157 @@
 # EmuKC Battle System Plan
 
-> 战斗系统按可落地的增量阶段推进，而不是一次性实现完整 KC 全战斗域。
-
-## Immediate Repair Track
-
-当前最紧急的 battle 工作不是继续扩机制覆盖面，而是先修复会让客户端崩溃的非法 payload：
-
-- 错误的 `api_si_list` / 攻击类型组合
-- manifest 中不存在的敌舰装备 ID
-- fallback 敌舰的 `api_onslot` / `api_eSlot` 不一致
-
-详见：[`data-fidelity-fix.md`](./data-fidelity-fix.md)
+> 这份文档描述 battle 子系统的**当前实际基线**与下一阶段工作，不再复述已经被实现掉的旧计划。
 
 ## Current Baseline
 
-仓库当前真实状态：
+### Core engine
 
-- 已有一套**演习昼战**模拟，入口在 `practice_battle`。
-- `battle` 模块已抽出通用昼战核心，可被演习和未来 sortie 复用。
-- 已新增最小 `sortie` battle session 脚手架，用于承载正式出击接线。
-- 尚未实现夜战、对潜、联合舰队、基地航空队、PT 小鬼群和完整地图战斗流。
-- sortie 敌编成来源目前只有“节点敌舰 `ship_ids`”，敌舰属性源并不完整。
-- 早期 abyssal ID 如 `1501`、`1502`、`1503`、`1505` 在当前 `start2` manifest 中缺少 `api_taik` / `api_houg` / `api_souk` / `api_maxeq`，同时也没有对应 `ship_extra`，因此 battle fallback 会把它们构造成 `HP=1` 的敌舰。
+- practice 与 sortie 现在共享同一套 battle core
+- battle context 已区分 `BattleMode::Practice` / `BattleMode::Sortie`
+- 当前 day battle type 已覆盖：
+	- `Normal`
+	- `AirBattle`
+	- `LdAirBattle`
+	- `LdShooting`
 
-研究文档 `research.md` 仍作为公式与机制来源，但只在进入当前阶段的范围内落地。
+### Implemented phase coverage
 
-## Current Risks
+- 航空战 / 开幕航空战
+- 开幕对潜（OASW）
+- 开幕雷击
+- 昼战炮击
+- 闭幕雷击
+- 夜战连击 / CI 的基础展示与结算
+- sortie `sp_midnight`（夜战点直接开夜战）
 
-- 现有 sortie battle 还不能视为“可玩”。地图推进和战斗接线已经贯通，但敌舰 stat source 缺失会让实际战斗结果严重失真。
-- 当前问题不是单一公式误差，而是数据源缺口。只要敌舰属性仍来自 `[1, 1]` fallback，命中、伤害、胜败判定、经验都不可信。
-- `build_sortie_enemy_ship()` 当前优先调用 `codex.new_ship()`，查不到时退回 manifest，并使用 `mst.api_taik.unwrap_or([1, 1])`。这条退路对 abyssal 早期 ID 会稳定地产生 `HP=1`。
+### Safety and settlement invariants already fixed
 
-## Phase 1
+- 出击战中，**非大破入场**的己方舰不会在本战被击沉
+- 旗舰不会沉
+- 该保护只对 sortie friendly side 生效；演习和敌方都不会触发
+- 友军沉舰会影响胜利评级，不再把“己方沉船”算成 `S`
+- 已沉舰不会继续拿 ship EXP，也不会像正常存活舰那样参与返港结算语义
 
-目标：建立**正式出击可复用**的单舰队昼战骨架。
+### Data-fidelity fixes already landed
 
-已完成：
+- `api_si_list` 已按 attack context 选择展示装备，而不是盲目回退前两个槽位
+- 敌舰 bootstrap 装备若不存在于当前 manifest，会在 runtime 丢弃并同步清零对应 `onslot`
+- manifest-only fallback 敌舰在缺装备数据时返回自洽的 `api_onslot = [0; 5]`
+- torpedo payload direction 已修正：
+	- friendly dealt damage -> `api_fydam` / `api_fydam_list_items`
+	- enemy dealt damage -> `api_eydam` / `api_eydam_list_items`
 
-- `battle/core.rs`
-  - 通用 `BattleContext`
-  - `BattlePacket` / `BattleOutcome`
-  - 单舰队昼战 `simulate_day_battle_v1`
-  - 昼战炮击 cap 220 / 雷击 cap 180
-  - 阵形与交战形态修正的 v1 实现
-- `battle/practice.rs`
-  - 演习改为调用通用 battle core
-  - 保持原有演习 API 包结构
-- `battle/sortie.rs`
-  - 最小 sortie battle session 存储与读取脚手架
+## What Is No Longer The Main Problem
 
-剩余：
+下列问题已经不是当前 battle 子系统的主缺口：
 
-- 将 sortie battle session 接到实际 `map` / `api_req_sortie` 流程
-- 细化昼战命中、暴击、目标选择与更准确的 armor/random 行为
-- 为正式出击设计 battle/result 两步式 API 映射
-- 引入敌舰有效 stat source，替换当前对 abyssal 的 `HP=1` fallback
+- 沉船保护缺失导致昼战直接击沉
+- 被击沉后仍吃经验并像正常舰一样返港
+- torpedo damage payload 左右方向写反
+- `cell_0` 起点错误导致单舰队常规图一开场就飞离航道
 
-## Phase 2
+这些都已经有代码与测试落地。
 
-目标：补全单舰队战斗中的主要昼夜分支。
+## Current Real Gaps
 
-- 夜战入口与 `api_midnight_flag`
-- 夜战普通攻击与 CI 基础实现
-- 对潜攻击与 OASW 触发
-- 航空战阶段从“占位实现”升级为制空与阶段伤害模型
-- 更完整的胜败判定与战果结算
-- 将敌舰装备、火力、装甲、耐久与等级统一挂到可复用 enemy master 数据源，而不是临时从 manifest 拼接
+### 1. Enemy master-data source is still too weak
 
-## Phase 3
+当前 sortie battle 能从 map catalog 拿到 enemy ship IDs，而且**repo-tracked normal map 里出现的敌舰 ID 当前都能命中 `enemy_ship_extra`**。
 
-目标：覆盖高复杂度机制与特殊敌我交互。
+但 battle-ready 敌舰数据源仍没有完全收敛，问题主要变成了：
 
-- 联合舰队
-- 基地航空队
-- PT 小鬼群
-- 支援舰队
-- 特殊装备协同与舰种特攻
+- 这条覆盖是否能稳定扩展到后续新增 normal maps / event maps
+- 一旦落回 `manifest-only fallback`，退化路径是否还足够可控
 
-## Guardrails
+运行时仍然存在：
 
-- 演习 API 兼容性优先，battle core 重构不能破坏现有 `practice` 客户端流程。
-- 新机制优先落在通用 `battle` 层，再由 `practice` / `sortie` 各自映射到响应。
-- 只有进入当前 phase 的机制才进入 DoD，其余内容保留在研究文档中，避免范围蔓延。
-- 在敌舰 stat source 完成之前，不应把当前 sortie battle 结果当成“接近真实 KC 战斗”的基线。
+- `codex.new_enemy_ship(ship_id)` 成功时走 enemy bootstrap data
+- `codex.new_ship(ship_id)` 成功时走完整构建
+- 失败时退回 manifest-only fallback
+
+所以真正限制 fidelity 的第一问题已经变成：
+
+- 如何把当前 enemy bootstrap coverage 稳定守住，并继续缩小 manifest-only fallback 的适用面
+
+### 2. Advanced battle topologies are still missing
+
+当前 battle baseline 仍以**单舰队常规战斗**为主。下面这些还没有完整落地：
+
+- combined fleet battle
+- base air sortie / LBAS
+- support expedition
+- 更完整的 event / special topology handling
+
+### 3. Target taxonomy is still incomplete
+
+虽然对潜 / 非对潜 / 雷击目标约束已经有第一批规则，但更完整的目标分类仍未建完，例如：
+
+- `Installation`
+- `PT`
+- 更细粒度的对陆 / 对海合法目标约束
+
+battle core 现在已经有第一阶段显式分类：`SurfaceShip` / `Installation` / `PT` / `Submarine`。
+当前真正未完成的是 attacker-side legality 仍主要只按 “submarine vs surface-like” 分桶，还没有把对陆 / 对海差异正式接进去。
+
+### 4. Display / response rules are still partly hardcoded
+
+`api_si_list` 已经从最危险的错误里走出来，但 battle core 里仍有不少“规则已知、实现仍偏硬编码”的分支。
+
+这会限制：
+
+- 新 battle type 扩展
+- 事故复盘
+- 和 decoded client rules 的逐项对表
+
+## Next Work Tracks
+
+### Track 1. Introduce a real enemy battle-data source
+
+目标：
+
+- 让常规 abyssal / event enemy 的 battle-ready stats、装备、onslot、特殊属性有稳定来源
+- 减少 manifest-only fallback 的覆盖面
+
+产出预期：
+
+- 当前 normal-map coverage 被回归测试守住，后续新增 map / enemy 数据不会悄悄退回 manifest-only fallback
+- enemy build path 不再以“尽量自洽”为目标，而能在更大范围内接近线上真实值
+
+### Track 2. Complete target legality / taxonomy
+
+目标：
+
+- 在现有 `Installation` / `PT` taxonomy 之上，把对陆 / 对海目标合法性纳入统一规则层
+- 为后续 combined / support / event battle 打基础
+
+### Track 3. Move more response logic into structured rules
+
+目标：
+
+- 减少 `api_si_list`、attack display、phase-specific payload 的硬编码
+- 建立更明确的规则表和 incident corpus
+
+### Track 4. Expand topology coverage
+
+目标：
+
+- combined fleet
+- support expedition
+- LBAS
+- 更多 night / air / special battle path
+
+## Relationship To Map Work
+
+map 子系统本轮已经把“起点不忠实”这个大问题压下去了。battle 下一阶段最值得做的，不是再修 start routing，而是：
+
+1. 利用更稳定的 map enemy encounter 数据
+2. 补齐 battle-ready 敌舰属性来源
+3. 在此基础上继续扩展 advanced battle coverage
+
+## Recommended Validation
+
+```bash
+cargo test -p emukc_gameplay
+cargo test -p emukc_gameplay --test sortie_battle
+cargo run -- battle validate --input <battle.json>
+```

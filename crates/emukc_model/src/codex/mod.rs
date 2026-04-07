@@ -113,6 +113,10 @@ impl Codex {
 	///
 	/// When no bootstrap/generated map catalog has been loaded yet, this falls back to a
 	/// manifest-derived synthetic catalog.
+	///
+	/// Note that `self.maps` is loaded from the on-disk codex snapshot. Local edits to
+	/// `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json` do not change this view until
+	/// the runtime codex is regenerated, or tests explicitly rebuild maps from the repo asset.
 	pub fn map_catalog(&self) -> Cow<'_, map::MapCatalog> {
 		if self.maps.maps.is_empty() {
 			Cow::Owned(map::MapCatalog::from_manifest(&self.manifest))

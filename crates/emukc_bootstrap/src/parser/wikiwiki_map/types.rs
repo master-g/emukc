@@ -3,6 +3,12 @@ use std::collections::BTreeMap;
 use emukc_model::codex::map::{EnemyComposition, RoutePredicate, RouteRule, ShipDropDefinition};
 use serde::{Deserialize, Serialize};
 
+pub(super) const ENTRY_NODE_LABEL: &str = "Start";
+
+pub(super) fn is_entry_node_label(label: &str) -> bool {
+	label == ENTRY_NODE_LABEL
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Normalized wikiwiki.jp map extraction output keyed by in-game map ID.
 pub struct WikiwikiMapCatalog {

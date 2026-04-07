@@ -34,7 +34,7 @@ static SELECTOR_ROW: LazyLock<Selector> =
 static SELECTOR_CELL: LazyLock<Selector> =
 	LazyLock::new(|| Selector::parse("th, td").expect("valid cell selector"));
 static RE_NODE_LABEL: LazyLock<Regex> =
-	LazyLock::new(|| Regex::new(r"([A-Z][A-Z0-9]?|Start)").expect("valid node label regex"));
+	LazyLock::new(|| Regex::new(r"([A-Z][A-Z0-9]?)").expect("valid node label regex"));
 static RE_MULTIPLIER: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(r"^(?P<name>.+?)[x×](?P<count>\d+)$").expect("valid ship multiplier regex")
 });
@@ -128,11 +128,12 @@ impl WikiwikiMapCatalog {
 				.variants
 				.into_iter()
 				.map(|(variant_key, variant)| {
-					let node_labels_to_cell = variant
+					let mut node_labels_to_cell = variant
 						.nodes
 						.iter()
 						.map(|node| (node.label.clone(), node.cell_no))
 						.collect::<BTreeMap<_, _>>();
+					node_labels_to_cell.insert(ENTRY_NODE_LABEL.to_string(), 0);
 					let mut routing_rules = BTreeMap::<i64, Vec<RouteRule>>::new();
 					for rule in &variant.routing_rules {
 						let mut rule = rule.clone();
@@ -144,7 +145,7 @@ impl WikiwikiMapCatalog {
 						rules.sort_by_key(|rule| rule.priority);
 					}
 
-					let root_targets = variant
+					let inferred_root_targets = variant
 						.nodes
 						.iter()
 						.filter(|node| {
@@ -154,6 +155,35 @@ impl WikiwikiMapCatalog {
 						})
 						.map(|node| node.cell_no)
 						.collect::<Vec<_>>();
+					let mut parse_warnings = variant.parse_warnings;
+					let start_targets = routing_rules
+						.get(&0)
+						.map(|rules| ordered_route_targets(rules))
+						.filter(|targets| !targets.is_empty())
+						.unwrap_or_else(|| {
+							if inferred_root_targets.len() > 1 {
+								parse_warnings.push(format!(
+									"inferred_multi_root_start:{}",
+									inferred_root_targets
+										.iter()
+										.map(i64::to_string)
+										.collect::<Vec<_>>()
+										.join(",")
+								));
+							}
+							if inferred_root_targets.is_empty() && !variant.nodes.is_empty() {
+								parse_warnings.push("missing_start_routes".to_string());
+							}
+							if inferred_root_targets.is_empty() {
+								variant
+									.nodes
+									.first()
+									.map(|node| vec![node.cell_no])
+									.unwrap_or_default()
+							} else {
+								inferred_root_targets
+							}
+						});
 
 					let mut cells = Vec::with_capacity(variant.nodes.len() + 1);
 					cells.push(MapCellDefinition {
@@ -161,11 +191,8 @@ impl WikiwikiMapCatalog {
 						color_no: 0,
 						event_id: 0,
 						event_kind: 0,
-						next_cells: if root_targets.is_empty() {
-							variant.nodes.first().map(|node| vec![node.cell_no]).unwrap_or_default()
-						} else {
-							root_targets
-						},
+						next_cells: start_targets,
+						node_label: Some(ENTRY_NODE_LABEL.to_string()),
 						master_cell_id: None,
 						distance: None,
 					});
@@ -199,6 +226,7 @@ impl WikiwikiMapCatalog {
 							event_id,
 							event_kind,
 							next_cells: node.next_cells.clone(),
+							node_label: Some(node.label.clone()),
 							master_cell_id: None,
 							distance: None,
 						});
@@ -235,7 +263,7 @@ impl WikiwikiMapCatalog {
 							ship_drops: variant.ship_drops,
 							required_defeat_count: variant.required_defeat_count,
 							clear_to_variant_key: variant.clear_to_variant_key,
-							parse_warnings: variant.parse_warnings,
+							parse_warnings,
 						},
 					)
 				})
@@ -318,6 +346,8 @@ fn parse_map_page(
 		let nodes = build_nodes(&route_rules, &enemy_nodes);
 		let node_to_cell =
 			nodes.iter().map(|node| (node.label.clone(), node.cell_no)).collect::<BTreeMap<_, _>>();
+		let mut node_to_cell = node_to_cell;
+		node_to_cell.insert(ENTRY_NODE_LABEL.to_string(), 0);
 		let routing_rules = route_rules
 			.into_iter()
 			.filter_map(|rule| {
@@ -414,6 +444,17 @@ fn parse_map_page(
 fn compact_enemy_composition(mut composition: EnemyComposition) -> EnemyComposition {
 	composition.raw_ship_names.clear();
 	composition
+}
+
+fn ordered_route_targets(rules: &[RouteRule]) -> Vec<i64> {
+	let mut seen = std::collections::BTreeSet::new();
+	let mut targets = Vec::new();
+	for rule in rules {
+		if seen.insert(rule.to_cell_no) {
+			targets.push(rule.to_cell_no);
+		}
+	}
+	targets
 }
 
 fn rewrite_route_predicate_labels(

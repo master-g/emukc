@@ -17,6 +17,24 @@ cargo test --test gameplay_tests quest
 cargo test --test gameplay_tests test_composition_exact_match_requirement
 ```
 
+## Data Freshness
+
+Gameplay tests usually load `.data/codex`, which is a snapshot written by bootstrap. If you
+change `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json`, those tests will keep seeing the
+old map catalog until the runtime codex is refreshed.
+
+- **Repo asset**: `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json`
+- **Runtime snapshot**: `.data/codex/map_catalog.json`
+
+Typical workflow for map-data work:
+
+1. Update parser / asset
+2. Regenerate the repo asset if needed
+3. Refresh the runtime codex before running tests that load `.data/codex`
+
+When a test needs the current repo-tracked wikiwiki asset immediately, prefer a helper that
+rebuilds `codex.maps` from the repo asset instead of relying on the stale `.data/codex` snapshot.
+
 ## Test Structure
 
 ```
@@ -56,6 +74,8 @@ fn test_feature() {
     assert_eq!(actual, expected);
 }
 ```
+
+For map-routing work, this only sees the latest data after the codex snapshot is refreshed.
 
 ## Test Principles
 

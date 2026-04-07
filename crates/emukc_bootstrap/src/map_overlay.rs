@@ -132,6 +132,7 @@ mod tests {
 								event_id: 0,
 								event_kind: 0,
 								next_cells: vec![1],
+								node_label: Some("Start".to_string()),
 								master_cell_id: None,
 								distance: None,
 							},
@@ -141,6 +142,7 @@ mod tests {
 								event_id: 4,
 								event_kind: 1,
 								next_cells: vec![2, 3],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},
@@ -150,6 +152,7 @@ mod tests {
 								event_id: 4,
 								event_kind: 1,
 								next_cells: vec![],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},
@@ -159,6 +162,7 @@ mod tests {
 								event_id: 5,
 								event_kind: 1,
 								next_cells: vec![],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},
@@ -184,6 +188,7 @@ mod tests {
 				event_id: 0,
 				event_kind: 0,
 				next_cells: Vec::new(),
+				node_label: None,
 				master_cell_id: None,
 				distance: None,
 			}
@@ -349,6 +354,7 @@ mod tests {
 								event_id: 0,
 								event_kind: 0,
 								next_cells: Vec::new(),
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							})
@@ -406,6 +412,7 @@ mod tests {
 								event_id: 0,
 								event_kind: 0,
 								next_cells: Vec::new(),
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							})
@@ -424,6 +431,7 @@ mod tests {
 								event_id: 0,
 								event_kind: 0,
 								next_cells: Vec::new(),
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							})

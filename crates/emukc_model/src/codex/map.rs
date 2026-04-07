@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 mod debug;
 mod merge;
@@ -127,6 +127,7 @@ impl MapCatalog {
 								event_id: 0,
 								event_kind: 0,
 								next_cells: vec![1],
+								node_label: Some("Start".to_string()),
 								master_cell_id: None,
 								distance: None,
 							},
@@ -136,6 +137,7 @@ impl MapCatalog {
 								event_id: 5,
 								event_kind: 1,
 								next_cells: vec![],
+								node_label: None,
 								master_cell_id: None,
 								distance: None,
 							},
@@ -200,9 +202,19 @@ impl MapVariantDefinition {
 	}
 
 	pub fn first_progress_cell_no(&self) -> Option<i64> {
-		self.cell(0)
-			.and_then(|start| start.next_cells.first().copied())
-			.or_else(|| self.cells.iter().find(|cell| cell.cell_no > 0).map(|cell| cell.cell_no))
+		if let Some(rules) = self.routing_rules.get(&0).filter(|rules| !rules.is_empty()) {
+			let targets = rules.iter().map(|rule| rule.to_cell_no).collect::<BTreeSet<_>>();
+			return (targets.len() == 1).then(|| targets.into_iter().next()).flatten();
+		}
+		if let Some(start) = self.cell(0) {
+			return match start.next_cells.as_slice() {
+				[only] => Some(*only),
+				_ => None,
+			};
+		}
+		let mut cells = self.cells.iter().filter(|cell| cell.cell_no > 0).map(|cell| cell.cell_no);
+		let first = cells.next()?;
+		cells.next().is_none().then_some(first)
 	}
 }
 

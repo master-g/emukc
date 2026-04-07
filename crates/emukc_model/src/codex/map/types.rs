@@ -80,6 +80,8 @@ pub struct MapCellDefinition {
 	pub event_kind: i64,
 	pub next_cells: Vec<i64>,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub node_label: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub master_cell_id: Option<i64>,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub distance: Option<i64>,

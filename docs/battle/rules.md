@@ -31,6 +31,11 @@
 | `display.night_attack_matches_attack_type` | `NightShelling` | 夜战 `api_si_list` 按 `NightAttackType` 返回主炮 / 副炮 / 鱼雷 / 雷达组合，不再沿用昼战展示逻辑 | `B` | decoded `PhaseHougeki`, `wikiwiki.jp`, 本地 CI/连击测试 | Implemented |
 | `enemy.manifest_unknown_slot_is_dropped` | `SortieEnemyBuild` | 敌舰 bootstrap 装备若不存在于当前 manifest，则在 runtime 中丢弃并清零对应 onslot | `B` | 本地回归测试, runtime warning 设计 | Implemented |
 | `enemy.manifest_only_fallback_zeroes_onslot_when_slots_missing` | `SortieEnemyBuild` | manifest-only fallback 敌舰在没有装备数据时必须返回 `api_onslot = [0; 5]`，保持响应内部自洽 | `B` | 本地回归测试, decoded consumer constraints | Implemented |
+| `survival.sortie_non_taiha_sinking_protection` | `DamageApplication` | 出击战中，非大破入场的己方舰若受到致死伤害，不会在该战中被击沉；旗舰始终受保护 | `A` | `wikiwiki.jp` 轟沈ストッパー条目, 本地回归测试 | Implemented |
+| `survival.practice_and_enemy_do_not_use_sinking_protection` | `DamageApplication` | 沉船保护只对 sortie friendly side 生效；演习与敌方结算不应用该保护 | `A` | `wikiwiki.jp`, 本地回归测试 | Implemented |
+| `result.friendly_sinking_downgrades_win_rank` | `BattleResult` | 友军沉舰会影响胜利评级；己方沉舰时不能判定为 `S`，并按沉舰数量降到 `A/D/E` | `B` | `wikiwiki.jp`, 本地 battle result 回归测试 | Implemented |
+| `result.sunk_friendly_ship_gets_no_exp` | `BattleResult` | 已沉友军舰不会继续获得 ship EXP，也不应以正常存活舰语义参与 sortie settlement | `A` | `wikiwiki.jp`, 本地回归测试 | Implemented |
+| `payload.torpedo_damage_fields_are_directional` | `OpeningTorpedo`, `ClosingTorpedo` | 友军造成的雷击伤害写入 `api_fydam*`，敌军造成的雷击伤害写入 `api_eydam*`，二者不可互换 | `A` | decoded client behavior, 本地 torpedo payload 回归测试 | Implemented |
 
 ## First-Batch Ship Capability Model
 
@@ -48,11 +53,20 @@
 
 `AS`（潜水母舰）当前按水面舰处理，不进入潜水目标类。
 
+当前已显式落地的目标分类（safe slice）：
+
+- `SurfaceShip`
+- `Installation`
+- `PT`
+- `Submarine`
+
+当前 legality 仍保持安全默认：`Installation` 与 `PT` 先并入 surface-like bucket，继续沿用现有 day / night / torpedo 的分桶；后续再单独补齐对陆 / 对海合法目标差异。
+
 ## Follow-up
 
-- 将 day/night 展示装备规则迁移为更正式的结构化规则表，减少 battle core 中的硬编码分支
-- 为 `api_si_list` 建立 incident corpus，沉淀更多“客户端会崩”的黄金样例
+- 引入真正 battle-ready 的 enemy master-data source，减少 manifest-only fallback
+- 将 day/night 展示装备规则继续迁移为更正式的结构化规则表，减少 battle core 中的硬编码分支
+- 为 `api_si_list` 与 phase payload 建立更大的 incident corpus，沉淀更多“客户端会崩”的黄金样例
 - 复核夜间对潜优先级与 scratch damage 的精确公式，提升到 `B/A`
-- 引入 `Installation` 目标类和对陆/对海合法目标区分
-- 补充 `CVL`、`BBV`、`CAV`、`AV`、`LHA` 的装备级例外表
-- 将 `airbattle`、`sp_midnight`、combined battle 迁移到同一规则层
+- 基于已落地的 `Installation` / `PT` taxonomy，继续补齐对陆 / 对海合法目标区分
+- 扩展 combined battle、support expedition、LBAS 等 advanced topology

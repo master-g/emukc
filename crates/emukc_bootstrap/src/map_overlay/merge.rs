@@ -180,6 +180,7 @@ fn merge_capture_into_overlay(
 						event_id: 0,
 						event_kind: 0,
 						next_cells: Vec::new(),
+						node_label: None,
 						master_cell_id: Some(captured_cell.master_cell_id),
 						distance: captured_cell.distance,
 					},

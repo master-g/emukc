@@ -1,227 +1,134 @@
-# Map / Enemy Data Research
+# KanColle Map / Route Research
 
-这份文档只记录**当前仓库代码和当前 repo asset 已经证实的事实**，不再保留早期调研里已经过时的设计草案。
+> 这份文档记录当前 map 子系统在 EmuKC 里的实际数据链路，以及它和 battle 子系统之间还剩哪些 fidelity gap。
 
 ## TL;DR
 
-- 地图主语义源已经是 `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json`。
-- `bootstrap` 会优先加载这份 repo asset，再用 `kc_data` 补 wikiwiki 未覆盖的结构。
-- 当前 runtime 已能按 cell/route/enemy_fleet/ship_drop 走完整个常规图主链路。
-- 当前地图敌舰**编成 ID** 已经可用，但敌舰**完整属性与敌装**仍然不完整。
+- 当前 map runtime 主要依赖 repo-tracked `wikiwiki_map_catalog.json`，并已经恢复了显式起点语义。
+- `kc_data` 现在主要承担两类职责：
+	- 补 wikiwiki 没覆盖到的结构化地图元数据
+	- 在 wikiwiki 起点规则缺失时，为 `cell_0` 提供结构化 start fallback
+- 当前 asset 状态是 **130 maps / 131 variants**；其中 **7** 个 variant 仍带 warning，`Unknown = 4`、`SourceUnknown = 0`。
+- map 侧最明显的 “起点后直接飞到 A” 问题已经修复；battle 侧的主要 fidelity 风险已转向**敌方属性/装备数据源不足**。
 
-## 当前地图数据链路
+## Current Data Path
 
-当前代码的实际链路在这些文件里：
+### 1. Bootstrap builds the semantic map catalog
 
-- `crates/emukc_bootstrap/src/parser/mod.rs`
-- `crates/emukc_bootstrap/src/parser/wikiwiki_map/mod.rs`
-- `crates/emukc_bootstrap/src/parser/wikiwiki_map/enemy.rs`
-- `crates/emukc_bootstrap/src/parser/wikiwiki_map/resolver.rs`
-- `crates/emukc_model/src/codex/map.rs`
-- `crates/emukc_gameplay/src/game/sortie.rs`
+当前主链路：
 
-按执行顺序看：
+1. 解析 wikiwiki route / enemy / drop 资料
+2. 生成 repo-tracked `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json`
+3. runtime 加载该 catalog 作为常规图 map semantics 的主来源
+4. 用 `kc_data` 和 public overlay 补结构信息与缺失信息
 
-1. `parse_partial_codex()` 读取 `start2.json`、`kcwiki_*`、`kc_data` 等输入。
-2. `load_map_catalog()` 优先加载 repo-tracked 的 `wikiwiki_map_catalog.json`。
-3. 如果 wikiwiki asset 缺图，再用 `kc_data` 做结构补全，而不是反过来。
-4. `Codex.maps` 在运行时提供 `MapCatalog`。
-5. `sortie` 逻辑直接消费 `MapVariantDefinition` 的 `cells`、`routing_rules`、`enemy_fleets`、`ship_drops`。
+这意味着：
 
-## 当前 repo asset 已覆盖的内容
+- wikiwiki 负责**分歧语义、敌舰编成、掉落等“玩法语义”**
+- `kc_data` 负责**结构化 cell 元数据与 start-edge 兜底**
 
-直接检查 `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json`，当前状态是：
+### 2. Start routing is now first-class data
 
-- `36` 张地图
-- `37` 个 variant
-- `Unknown = 0`
-- `SourceUnknown = 0`
-- `parse_warnings = 0`
+起点处理已经不再靠 graph-root 猜测，而是：
 
-也就是说，当前 asset 已经覆盖：
+- 统一把 `出撃` / `出撃ポイント` / `スタート` / `Start` 规范化为 `Start`
+- 把显式起点规则编译成 `routing_rules[0]`
+- 把起点 label 保留到 runtime `MapCellDefinition.node_label`
+- wikiwiki 起点缺失时，由 `kc_data` start edge 做 `structural_start_fallback`
 
-- 地图 cell 结构
-- route rule
-- variant / gauge / clear transition
-- enemy fleet composition
-- ship drop
+当前 repo asset 中：
 
-这也是当前 `sortie` 链路可以直接依赖 repo asset 的原因。
+- “多起点但没有任何 start rule，只能 runtime 硬猜”的残留数已经是 **0**
 
-## 敌舰编成数据现在是怎么来的
+### 3. Runtime uses the compiled catalog directly
 
-### 1. wikiwiki 敌编成表已经能落到 `ship_ids`
+sortie runtime 现在直接消费：
 
-`crates/emukc_bootstrap/src/parser/wikiwiki_map/enemy.rs` 会解析 wikiwiki 的敌编成表，产出：
+- `cells`
+- `routing_rules`
+- `enemy_fleets`
+- `ship_drops`
 
-- `EnemyFleetDefinition`
-- `EnemyComposition`
-- `EnemyComposition.ship_ids`
+`start_sortie()` 与 `next_sortie()` 都走同一套 route evaluator，而不是对 `cell_0` 做特殊“取第一个 next cell”的旧逻辑。
 
-也就是说，地图层已经不再只是“某格有敌人”，而是已经有“这一格可能出现哪些敌舰 ID 组合”。
+## Current Asset State
 
-### 2. 敌舰名称到 ship id 的映射来自 manifest
+### Coverage snapshot
 
-`crates/emukc_bootstrap/src/parser/wikiwiki_map/resolver.rs` 的 `ShipResolver::new()` 会从 `ApiManifest.api_mst_ship` 建立名字索引。
+- maps: **130**
+- variants: **131**
+- variants with warnings: **7**
+- `Unknown` predicates: **4**
+- `SourceUnknown` predicates: **0**
+- `structural_start_fallback`: **3**
 
-它不是硬编码敌舰名表，而是直接基于：
+结论：
 
-- `api_name`
-- `api_yomi`
+- 常规图的**起点 fidelity 问题已经从系统性缺陷降到少量 warning / prose 覆盖问题**
+- 剩余 map fidelity 的主要工作已经不是“补 start routing”，而是“继续减少 unsupported route prose / predicate”
 
-生成可匹配 label，所以 wikiwiki 敌舰名能被解析到 master ship id。
+## Enemy Data and Battle Integration
 
-### 3. runtime 已经会用这些 `ship_ids` 生成敌舰
+### What map data already gives battle
 
-`crates/emukc_gameplay/src/game/sortie.rs` 的关键路径是：
+当前 map catalog 已经能稳定提供：
 
-- `resolve_sortie_enemy_fleet()`
-- `select_random_enemy_composition()`
-- `build_sortie_enemy_ships()`
-- `build_sortie_enemy_ship()`
+- encounter cell 结构
+- enemy fleet compositions（以 ship ID 为主）
+- drop candidates
+- 分歧语义与到达路径
 
-也就是说，现在战斗里敌舰已经不是纯粹按 map/world 范围硬编码数量，而是会优先使用地图资产里的真实 `EnemyComposition.ship_ids`。
+这对 sortie / battle 对接已经足够支撑：
 
-## 当前敌舰属性链路的真实状态
+- 进入哪一格
+- 这一格刷哪组敌编成
+- 这一战结束后可能出现哪些掉落
 
-### 1. runtime 会优先尝试 `codex.new_ship(ship_id)`
+### What map data does **not** solve
 
-`build_sortie_enemy_ship()` 先调用 `codex.new_ship(ship_id)`。
+map catalog 并不会自动补齐 battle 所需的完整敌舰属性。当前 `build_sortie_enemy_ship()` 仍然是：
 
-这条路径依赖：
+1. 先尝试 `codex.new_enemy_ship(ship_id)`
+2. 再尝试 `codex.new_ship(ship_id)`
+3. 失败时退回 manifest-only fallback
 
-- `manifest.find_ship(ship_id)`
-- `ship_extra.get(&ship_id)`
+这意味着 battle 侧仍然受限于：
 
-也就是说，想走“完整 ship 实例”这条路，敌舰不仅要在 `api_mst_ship` 里存在，还要在 `ship_extra` 里有额外属性和初始装备信息。
+- 当前 repo-tracked normal map 中出现的敌舰 ID 已经被 `enemy_ship_extra` 全覆盖
+- 但这条覆盖还需要被持续守住，并扩展到未来新增 map / enemy corpus
+- 一旦落回 manifest-only fallback，敌方装备 / slot / onslot 细节仍会退化
+- 某些 battle payload 因此仍只能做到“自洽”，还做不到“完全像线上”
 
-### 2. 如果 `ship_extra` 不存在，会退化到 manifest-only fallback
+因此，**map fidelity 的主问题已经不是 route graph；battle fidelity 的主问题则变成“如何稳定守住并扩展当前 enemy bootstrap coverage，同时继续压缩 fallback 退化面”**。
 
-当 `codex.new_ship(ship_id)` 失败时，代码会退化成只用 `manifest.find_ship(ship_id)` 构建一个最小 `KcApiShip`：
+## What Is Solved vs. What Remains
 
-- `api_taik` 不存在时，HP 退成 `1`
-- `api_houg` / `api_raig` / `api_tyku` / `api_souk` 不存在时，全部退成 `0`
-- `slot_items` 为空，所以 `api_eSlot` 最终会是全 `-1`
-- `api_onslot` 只有 `api_maxeq` 有值时才会带上
+### Already solved
 
-所以当前链路虽然“能生成敌舰对象”，但不等于“已经拿到了完整敌舰属性”。
+- 显式起点 `出撃` / `出撃ポイント` 已进入 AST
+- `cell_0` 不再默认跳到 alphabetically / numerically first node
+- `MapCellDefinition` 保留 `node_label`
+- repo asset 中 “inferred multi-root start without rule” 已清零
+- boss-route 类测试已经按 runtime-valid path 运行
 
-## 基于当前本地数据的核验结果
+### Still open
 
-我对当前 repo asset 和本地 `.data/codex` 做了实际核验，结论如下。
+- `Unknown = 4`：仍有少量 wikiwiki 路由文本没有结构化
+- strict immediate-arrival-sensitive routing 尚未进入 IR；当前 repo asset 里只有 4 条 `VisitedNode` route-history 规则（4-5 / 5-5 / 7-4），现有 `visited_cell_ids` 已可表达
+- 通用 cross-source merge 仍主要依赖 `cell_no`，`node_label` 只是保留下来，还不是权威 join key
+- battle 侧仍缺少稳定、完整的 enemy master-data source
 
-### 1. 当前地图资产里一共用到了 83 个敌舰 ID
+## Practical Reading of the Current System
 
-样例来自 `wikiwiki_map_catalog.json`：
+如果要理解当前 map/battle 边界，可以按下面的方式看：
 
-- `1-1:A:パターン1 -> [1501]`
-- `1-1:A:パターン2 -> [1502]`
-- `1-1:A:パターン3 -> [1503]`
-- `1-1:B:パターン1 -> [1501, 1501]`
+- **Map subsystem**：已经能较忠实地决定“舰队会去哪里、会遇到谁”
+- **Battle subsystem**：已经能在现有单舰队框架下较稳定地结算“这一战怎么打”，并修掉了沉船保护、torpedo payload direction 等重大错误
+- **Remaining fidelity gap**：主要集中在“敌方完整战斗属性从哪里来”以及“更复杂 route prose / arrival context 规则如何结构化”
 
-### 2. 这 83 个敌舰 ID 全都存在于 `start2.api_mst_ship`
+## Recommended Next Work
 
-这一点很重要：**当前 bootstrap 已经足够支撑“地图敌编成 -> 敌舰 master id”**。
-
-换句话说，当前并不存在“wikiwiki 解析出了 ship id，但 runtime manifest 根本找不到”的问题。
-
-### 3. 但这 83 个敌舰 ID 在 `ship_extra.json` 里是 `0/83`
-
-核验结果是：
-
-- `83/83` 存在于 `.data/codex/start2.json`
-- `0/83` 存在于 `.data/codex/ship_extra.json`
-
-这意味着当前 enemy ship 基本走不到 `codex.new_ship()` 的完整路径。
-
-### 4. 当前 `start2` 对这批敌舰只给了“身份字段”，没给战斗主属性
-
-对当前 asset 里出现的这 83 个敌舰 ID，`start2.api_mst_ship` 的字段覆盖是：
-
-- 始终存在：`api_name`、`api_yomi`、`api_stype`、`api_ctype`、`api_soku`、`api_slot_num`、`api_sort_id`
-- 当前本地数据里全部缺失：`api_taik`、`api_houg`、`api_raig`、`api_tyku`、`api_souk`、`api_maxeq`
-
-这意味着当前 integrated bootstrap 数据**足够知道“这是谁”**，但**不够知道“它具体有多少血、火力、装甲、搭载、敌装”**。
-
-## 现有 bootstrap 输入为什么还不够
-
-### 1. `kcwiki_ship.json` 这条链路今天没有补上敌舰 `ship_extra`
-
-当前 `kcwiki` parser 在：
-
-- `crates/emukc_bootstrap/src/parser/kcwiki/mod.rs`
-- `crates/emukc_bootstrap/src/parser/kcwiki/ship.rs`
-
-它确实会生成 `ship_extra`，但当前结果里没有覆盖地图使用到的敌舰 ID。
-
-因此，对“敌舰完整属性”这个问题来说，`kcwiki_ship.json` 在**当前实现**下还不能满足需求。
-
-### 2. `kc_data` 明确把非 ally ship 排除在 ship info 之外
-
-`crates/emukc_bootstrap/src/parser/kcwikizh_kcdata.rs` 在解析 `_ship` 时会跳过 `api_aftershipid.is_none()` 的条目。
-
-对 manifest 来说，这基本就是把敌舰排除掉了。
-
-所以 `kc_data` 当前只补：
-
-- ally ship picturebook / class name 一类信息
-
-它不是敌舰属性源。
-
-### 3. `ships.nedb` 虽然下载了，但当前没有进入解析链
-
-`crates/emukc_bootstrap/src/res.rs` 会下载 `ships.nedb`，但当前代码里没有 parser 消费它。
-
-因此它目前只是“下载到了磁盘”，不是“已经进入 Codex 的敌舰属性输入”。
-
-## 结论：当前 bootstrap 数据源能否满足需求
-
-### 如果需求只是“拿到敌舰编成”
-
-**可以。**
-
-当前链路已经满足：
-
-- 每格敌编成
-- 编成里的敌舰 master id
-- 基本身份字段（名字、舰种、舰型、速度、slot 数）
-
-### 如果需求是“拿到敌舰完整属性并真实用于战斗”
-
-**还不可以。**
-
-当前链路缺的是：
-
-- HP
-- 火力 / 雷装 / 对空 / 装甲
-- 搭载量
-- 敌方装备列表
-- 能稳定生成非空 `api_eParam`
-- 能稳定生成真实 `api_eSlot`
-
-所以更准确的说法是：
-
-> 当前 bootstrap 已经能满足“地图敌编成”和“敌舰 ID 解析”，但还不能满足“真实敌舰属性/敌装”的需求。
-
-## 建议的下一步
-
-如果下一阶段目标是把 sortie battle 的敌舰从“manifest-only fallback”推进到“真实属性 + 真实敌装”，建议按这个顺序做：
-
-1. 明确新增一条**敌舰专用 master data** 输入，而不是继续复用 ally `ship_extra`。
-2. 优先考虑把 `kcwiki/kancolle-data` 的 `wiki/enemy.json` / `wiki/enemyEquipment.json` 接进 bootstrap。
-3. 在 `emukc_model` 里新增敌舰额外数据模型，不和 ally `Kc3rdShip` 强绑。
-4. 让 `build_sortie_enemy_ship()` 优先消费这份 enemy extra，再回填 `api_eParam` / `api_eSlot`。
-
-## 代码参考
-
-- `crates/emukc_bootstrap/src/parser/mod.rs`
-- `crates/emukc_bootstrap/src/parser/wikiwiki_map/mod.rs`
-- `crates/emukc_bootstrap/src/parser/wikiwiki_map/enemy.rs`
-- `crates/emukc_bootstrap/src/parser/wikiwiki_map/resolver.rs`
-- `crates/emukc_bootstrap/src/parser/kcwiki/mod.rs`
-- `crates/emukc_bootstrap/src/parser/kcwiki/ship.rs`
-- `crates/emukc_bootstrap/src/parser/kcwikizh_kcdata.rs`
-- `crates/emukc_bootstrap/src/res.rs`
-- `crates/emukc_model/src/codex/map.rs`
-- `crates/emukc_model/src/codex/ship.rs`
-- `crates/emukc_gameplay/src/game/sortie.rs`
+1. 继续消化 `Unknown` route predicates，降低 `variants_with_warnings`
+2. 把 `node_label` 从“保留信息”推进到“更稳定的 merge identity”
+3. 继续扩展 battle-ready 的敌方属性/装备数据源覆盖面，并缩小 manifest-only fallback
+4. 再考虑 combined / event / arrival-context 这类高阶 fidelity 议题

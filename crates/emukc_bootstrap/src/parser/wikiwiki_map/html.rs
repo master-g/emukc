@@ -4,8 +4,8 @@ use regex::Regex;
 use scraper::{ElementRef, Html};
 
 use super::{
-	RE_NODE_LABEL, SELECTOR_CELL, SELECTOR_FOLD_CONTAINER, SELECTOR_ROW, SELECTOR_TABLE,
-	normalize_text,
+	ENTRY_NODE_LABEL, RE_NODE_LABEL, SELECTOR_CELL, SELECTOR_FOLD_CONTAINER, SELECTOR_ROW,
+	SELECTOR_TABLE, normalize_text,
 };
 
 pub(super) fn direct_child_with_class<'a>(
@@ -169,8 +169,16 @@ pub(super) fn parse_span_attr(cell: &ElementRef<'_>, attr: &str) -> usize {
 }
 
 pub(super) fn parse_node_label(text: &str) -> Option<String> {
+	let normalized = normalize_text(text)
+		.trim_matches(|ch: char| matches!(ch, ':' | '：' | '→' | '-' | ' '))
+		.to_string();
+	if matches!(normalized.as_str(), "出撃" | "出撃ポイント" | "スタート")
+		|| normalized.eq_ignore_ascii_case(ENTRY_NODE_LABEL)
+	{
+		return Some(ENTRY_NODE_LABEL.to_string());
+	}
 	RE_NODE_LABEL
-		.captures(text)
+		.captures(&normalized)
 		.and_then(|caps| caps.get(1))
 		.map(|value| value.as_str().to_string())
 }

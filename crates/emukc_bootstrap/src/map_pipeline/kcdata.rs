@@ -387,6 +387,11 @@ fn build_variant_definition(
 			event_id,
 			event_kind,
 			next_cells,
+			node_label: if spot.no == 0 {
+				Some("Start".to_string())
+			} else {
+				Some(spot.no.to_string())
+			},
 			master_cell_id: None,
 			distance: None,
 		});
@@ -468,6 +473,7 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 		event_id: 0,
 		event_kind: 0,
 		next_cells: start_targets,
+		node_label: Some("Start".to_string()),
 		master_cell_id: None,
 		distance: None,
 	});
@@ -501,6 +507,7 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 			event_id,
 			event_kind,
 			next_cells,
+			node_label: Some(key.clone()),
 			master_cell_id: None,
 			distance: None,
 		});

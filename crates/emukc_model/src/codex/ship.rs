@@ -93,8 +93,14 @@ impl Codex {
 
 	/// Create a new enemy ship instance from enemy bootstrap data.
 	pub fn new_enemy_ship(&self, mst_id: i64) -> Option<(KcApiShip, Vec<KcApiSlotItem>)> {
-		let mst = self.manifest.find_ship(mst_id)?;
 		let basic = self.enemy_ship_extra.get(&mst_id)?;
+		let mst = self.manifest.find_ship(mst_id);
+		if mst.is_none() {
+			warn!(
+				ship_id = mst_id,
+				"enemy bootstrap manifest entry missing; building runtime enemy from enemy_ship_extra only",
+			);
+		}
 
 		let mut onslot = basic.maxeq;
 		let mut slot_ids = [-1; 5];
@@ -128,7 +134,9 @@ impl Codex {
 
 		let ship = KcApiShip {
 			api_id: 0,
-			api_sortno: mst.api_sortno.unwrap_or(mst.api_sort_id),
+			api_sortno: mst
+				.map(|entry| entry.api_sortno.unwrap_or(entry.api_sort_id))
+				.unwrap_or(mst_id),
 			api_ship_id: mst_id,
 			api_lv: 1,
 			api_exp: [0, 0, 0],
@@ -141,8 +149,8 @@ impl Codex {
 			api_slot_ex: 0,
 			api_kyouka: [0; 7],
 			api_backs: basic.backs,
-			api_fuel: mst.api_fuel_max.unwrap_or(0),
-			api_bull: mst.api_bull_max.unwrap_or(0),
+			api_fuel: mst.and_then(|entry| entry.api_fuel_max).unwrap_or(0),
+			api_bull: mst.and_then(|entry| entry.api_bull_max).unwrap_or(0),
 			api_slotnum: basic.slot_num,
 			api_ndock_time: 0,
 			api_ndock_item: [0, 0],

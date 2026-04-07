@@ -5,7 +5,7 @@ use emukc_model::{
 	codex::Codex,
 	kc2::{
 		KcApiShip, KcApiSlotItem, KcShipType, KcSlotItemType3, KcSortieResultRank,
-		start2::ApiMstSlotitem,
+		start2::{ApiMstShip, ApiMstSlotitem},
 	},
 };
 
@@ -50,6 +50,10 @@ const NIGHT_TORPEDO_TYPES: &[KcSlotItemType3] =
 
 const RADAR_DISPLAY_TYPES: &[KcSlotItemType3] =
 	&[KcSlotItemType3::SmallRadar, KcSlotItemType3::LargeRadar, KcSlotItemType3::LargeRadar2];
+
+const PT_TARGET_NAME_MARKERS: &[&str] = &["PT小鬼群", "Schnellboot小鬼群"];
+const INSTALLATION_TARGET_NAME_MARKERS: &[&str] =
+	&["砲台", "飛行場", "港湾", "離島", "集積地", "泊地", "要塞", "トーチカ"];
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -247,8 +251,20 @@ enum BattlePhase {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TargetClass {
-	Surface,
+	SurfaceShip,
+	Installation,
+	PtBoat,
 	Submarine,
+}
+
+impl TargetClass {
+	const fn is_submarine(self) -> bool {
+		matches!(self, Self::Submarine)
+	}
+
+	const fn is_surface_like(self) -> bool {
+		!self.is_submarine()
+	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -467,6 +483,85 @@ pub struct BattleRaigeki {
 	pub api_ecl: Vec<i64>,
 	pub api_edam: Vec<i64>,
 	pub api_eydam: Vec<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TorpedoAttackerSide {
+	Friendly,
+	Enemy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TorpedoHit {
+	attacker_index: usize,
+	defender_index: usize,
+	damage: i64,
+}
+
+impl BattleOpeningAttack {
+	fn blank(len: usize) -> Self {
+		Self {
+			api_frai_list_items: vec![None; len],
+			api_fcl_list_items: vec![None; len],
+			api_fdam: vec![0; len],
+			api_fydam_list_items: vec![None; len],
+			api_erai_list_items: vec![None; len],
+			api_ecl_list_items: vec![None; len],
+			api_edam: vec![0; len],
+			api_eydam_list_items: vec![None; len],
+		}
+	}
+
+	fn record_torpedo_hit(&mut self, attacker_side: TorpedoAttackerSide, hit: TorpedoHit) {
+		match attacker_side {
+			TorpedoAttackerSide::Friendly => {
+				self.api_frai_list_items[hit.attacker_index] =
+					Some(vec![hit.defender_index as i64]);
+				self.api_fcl_list_items[hit.attacker_index] = Some(vec![1]);
+				self.api_fydam_list_items[hit.attacker_index] = Some(vec![hit.damage]);
+				self.api_edam[hit.defender_index] += hit.damage;
+			}
+			TorpedoAttackerSide::Enemy => {
+				self.api_erai_list_items[hit.attacker_index] =
+					Some(vec![hit.defender_index as i64]);
+				self.api_ecl_list_items[hit.attacker_index] = Some(vec![1]);
+				self.api_eydam_list_items[hit.attacker_index] = Some(vec![hit.damage]);
+				self.api_fdam[hit.defender_index] += hit.damage;
+			}
+		}
+	}
+}
+
+impl BattleRaigeki {
+	fn blank(len: usize) -> Self {
+		Self {
+			api_frai: vec![-1; len],
+			api_fcl: vec![0; len],
+			api_fdam: vec![0; len],
+			api_fydam: vec![0; len],
+			api_erai: vec![-1; len],
+			api_ecl: vec![0; len],
+			api_edam: vec![0; len],
+			api_eydam: vec![0; len],
+		}
+	}
+
+	fn record_torpedo_hit(&mut self, attacker_side: TorpedoAttackerSide, hit: TorpedoHit) {
+		match attacker_side {
+			TorpedoAttackerSide::Friendly => {
+				self.api_frai[hit.attacker_index] = hit.defender_index as i64;
+				self.api_fcl[hit.attacker_index] = 1;
+				self.api_fydam[hit.attacker_index] = hit.damage;
+				self.api_edam[hit.defender_index] += hit.damage;
+			}
+			TorpedoAttackerSide::Enemy => {
+				self.api_erai[hit.attacker_index] = hit.defender_index as i64;
+				self.api_ecl[hit.attacker_index] = 1;
+				self.api_eydam[hit.attacker_index] = hit.damage;
+				self.api_fdam[hit.defender_index] += hit.damage;
+			}
+		}
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -778,7 +873,7 @@ fn simulate_shelling_side(
 		else {
 			continue;
 		};
-		let is_asw_attack = target_class(codex, &defenders[target_idx]) == TargetClass::Submarine;
+		let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
 		let raw = if is_asw_attack {
 			calculate_asw_damage(codex, ship, &defenders[target_idx], formation_id, engagement)
 		} else {
@@ -822,15 +917,7 @@ fn simulate_opening_torpedo(
 	enemy_formation_id: i64,
 	engagement: EngagementType,
 ) -> Option<BattleOpeningAttack> {
-	let len = 7;
-	let mut api_frai_list_items = vec![None; len];
-	let mut api_fcl_list_items = vec![None; len];
-	let mut api_fdam = vec![0; len];
-	let mut api_fydam_list_items = vec![None; len];
-	let mut api_erai_list_items = vec![None; len];
-	let mut api_ecl_list_items = vec![None; len];
-	let mut api_edam = vec![0; len];
-	let mut api_eydam_list_items = vec![None; len];
+	let mut payload = BattleOpeningAttack::blank(7);
 	let mut happened = false;
 
 	for (idx, ship) in friendly.iter_mut().enumerate() {
@@ -846,10 +933,14 @@ fn simulate_opening_torpedo(
 			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
 		let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
 		ship.damage_dealt += dealt;
-		api_frai_list_items[idx] = Some(vec![target_idx as i64]);
-		api_fcl_list_items[idx] = Some(vec![1]);
-		api_fydam_list_items[idx] = Some(vec![dealt]);
-		api_edam[target_idx] += dealt;
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Friendly,
+			TorpedoHit {
+				attacker_index: idx,
+				defender_index: target_idx,
+				damage: dealt,
+			},
+		);
 		happened = true;
 	}
 
@@ -865,23 +956,18 @@ fn simulate_opening_torpedo(
 		let raw =
 			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
 		let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
-		api_erai_list_items[idx] = Some(vec![target_idx as i64]);
-		api_ecl_list_items[idx] = Some(vec![1]);
-		api_eydam_list_items[idx] = Some(vec![dealt]);
-		api_fdam[target_idx] += dealt;
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Enemy,
+			TorpedoHit {
+				attacker_index: idx,
+				defender_index: target_idx,
+				damage: dealt,
+			},
+		);
 		happened = true;
 	}
 
-	happened.then_some(BattleOpeningAttack {
-		api_frai_list_items,
-		api_fcl_list_items,
-		api_fdam,
-		api_fydam_list_items,
-		api_erai_list_items,
-		api_ecl_list_items,
-		api_edam,
-		api_eydam_list_items,
-	})
+	happened.then_some(payload)
 }
 
 fn simulate_raigeki(
@@ -893,15 +979,7 @@ fn simulate_raigeki(
 	enemy_formation_id: i64,
 	engagement: EngagementType,
 ) -> Option<BattleRaigeki> {
-	let len = 7;
-	let mut api_frai = vec![-1; len];
-	let mut api_fcl = vec![0; len];
-	let mut api_fdam = vec![0; len];
-	let mut api_fydam = vec![0; len];
-	let mut api_erai = vec![-1; len];
-	let mut api_ecl = vec![0; len];
-	let mut api_edam = vec![0; len];
-	let mut api_eydam = vec![0; len];
+	let mut payload = BattleRaigeki::blank(7);
 	let mut happened = false;
 
 	for (idx, ship) in friendly.iter_mut().enumerate() {
@@ -917,10 +995,14 @@ fn simulate_raigeki(
 			calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
 		let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
 		ship.damage_dealt += dealt;
-		api_frai[idx] = target_idx as i64;
-		api_fcl[idx] = 1;
-		api_fydam[idx] = dealt;
-		api_edam[target_idx] += dealt;
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Friendly,
+			TorpedoHit {
+				attacker_index: idx,
+				defender_index: target_idx,
+				damage: dealt,
+			},
+		);
 		happened = true;
 	}
 
@@ -936,23 +1018,18 @@ fn simulate_raigeki(
 		let raw =
 			calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
 		let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
-		api_erai[idx] = target_idx as i64;
-		api_ecl[idx] = 1;
-		api_eydam[idx] = dealt;
-		api_fdam[target_idx] += dealt;
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Enemy,
+			TorpedoHit {
+				attacker_index: idx,
+				defender_index: target_idx,
+				damage: dealt,
+			},
+		);
 		happened = true;
 	}
 
-	happened.then_some(BattleRaigeki {
-		api_frai,
-		api_fcl,
-		api_fdam,
-		api_fydam,
-		api_erai,
-		api_ecl,
-		api_edam,
-		api_eydam,
-	})
+	happened.then_some(payload)
 }
 
 fn is_fighter_power_type(slotitem_type: i64) -> bool {
@@ -1403,7 +1480,7 @@ fn select_submarine_target(
 	let subs: Vec<usize> = defenders
 		.iter()
 		.enumerate()
-		.filter(|(_, ship)| ship.is_alive() && target_class(codex, ship) == TargetClass::Submarine)
+		.filter(|(_, ship)| ship.is_alive() && target_class(codex, ship).is_submarine())
 		.map(|(idx, _)| idx)
 		.collect();
 
@@ -1695,15 +1772,37 @@ fn best_bomber_index(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<usize
 		.map(|(idx, _)| idx)
 }
 
+fn ship_mst<'a>(codex: &'a Codex, ship: &'a BattleRuntimeShip) -> Option<&'a ApiMstShip> {
+	codex.find::<ApiMstShip>(&ship.ship.api_ship_id).ok()
+}
+
 fn ship_type(codex: &Codex, ship: &BattleRuntimeShip) -> Option<KcShipType> {
-	KcShipType::n(codex.get_ship_type(ship.ship.api_ship_id) as i32)
+	ship_mst(codex, ship).and_then(|mst| KcShipType::n(mst.api_stype as i32))
+}
+
+fn is_pt_target_name(name: &str) -> bool {
+	PT_TARGET_NAME_MARKERS.iter().any(|marker| name.contains(marker))
+}
+
+fn is_installation_target_name(name: &str) -> bool {
+	INSTALLATION_TARGET_NAME_MARKERS.iter().any(|marker| name.contains(marker))
 }
 
 fn target_class(codex: &Codex, ship: &BattleRuntimeShip) -> TargetClass {
-	match ship_type(codex, ship) {
-		Some(KcShipType::SS | KcShipType::SSV) => TargetClass::Submarine,
-		_ => TargetClass::Surface,
+	if matches!(ship_type(codex, ship), Some(KcShipType::SS | KcShipType::SSV)) {
+		return TargetClass::Submarine;
 	}
+
+	if let Some(name) = ship_mst(codex, ship).map(|mst| mst.api_name.as_str()) {
+		if is_pt_target_name(name) {
+			return TargetClass::PtBoat;
+		}
+		if is_installation_target_name(name) {
+			return TargetClass::Installation;
+		}
+	}
+
+	TargetClass::SurfaceShip
 }
 
 fn has_slotitem_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotItemType3) -> bool {
@@ -1899,23 +1998,23 @@ fn select_random_target_index(
 		return None;
 	}
 
-	let surface_targets = alive_targets
+	let surface_like_targets = alive_targets
 		.iter()
 		.copied()
-		.filter(|idx| target_class(codex, &defenders[*idx]) == TargetClass::Surface)
+		.filter(|idx| target_class(codex, &defenders[*idx]).is_surface_like())
 		.collect::<Vec<_>>();
 	let submarine_targets = alive_targets
 		.iter()
 		.copied()
-		.filter(|idx| target_class(codex, &defenders[*idx]) == TargetClass::Submarine)
+		.filter(|idx| target_class(codex, &defenders[*idx]).is_submarine())
 		.collect::<Vec<_>>();
 
 	let candidates = match attack_capability_for_phase(codex, attacker, phase) {
 		AttackCapability::CannotAttack => return None,
-		AttackCapability::SurfaceOnly => surface_targets,
+		AttackCapability::SurfaceOnly => surface_like_targets,
 		AttackCapability::BothPreferSubmarine => {
 			if submarine_targets.is_empty() {
-				surface_targets
+				surface_like_targets
 			} else {
 				submarine_targets
 			}
@@ -2255,7 +2354,7 @@ fn simulate_night_hougeki(
 		else {
 			continue;
 		};
-		let is_submarine = target_class(codex, &enemy[target_idx]) == TargetClass::Submarine;
+		let is_submarine = target_class(codex, &enemy[target_idx]).is_submarine();
 		let attack_type = resolve_night_attack(codex, random, ship, idx == 0, is_submarine);
 		let hits = attack_type.hit_count();
 		let multiplier = attack_type.damage_multiplier();
@@ -2297,7 +2396,7 @@ fn simulate_night_hougeki(
 		else {
 			continue;
 		};
-		let is_submarine = target_class(codex, &friendly[target_idx]) == TargetClass::Submarine;
+		let is_submarine = target_class(codex, &friendly[target_idx]).is_submarine();
 		let attack_type = resolve_night_attack(codex, random, ship, idx == 0, is_submarine);
 		let hits = attack_type.hit_count();
 		let multiplier = attack_type.damage_multiplier();
@@ -2426,6 +2525,16 @@ mod tests {
 			.unwrap()
 	}
 
+	fn ship_mst_id_by_name(codex: &Codex, name: &str) -> i64 {
+		codex
+			.manifest
+			.api_mst_ship
+			.iter()
+			.find(|mst| mst.api_name == name)
+			.map(|mst| mst.api_id)
+			.unwrap()
+	}
+
 	#[test]
 	fn day_shelling_cap_matches_reference_example() {
 		assert_eq!(apply_cap(250.0, 220.0), 225);
@@ -2543,6 +2652,37 @@ mod tests {
 	}
 
 	#[test]
+	fn opening_torpedo_payload_builder_routes_damage_by_attacker_side() {
+		let mut payload = BattleOpeningAttack::blank(2);
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Friendly,
+			TorpedoHit {
+				attacker_index: 1,
+				defender_index: 0,
+				damage: 21,
+			},
+		);
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Enemy,
+			TorpedoHit {
+				attacker_index: 0,
+				defender_index: 1,
+				damage: 34,
+			},
+		);
+		let opening = payload;
+
+		assert_eq!(opening.api_frai_list_items[1], Some(vec![0]));
+		assert_eq!(opening.api_fydam_list_items[1], Some(vec![21]));
+		assert_eq!(opening.api_eydam_list_items[1], None);
+		assert_eq!(opening.api_edam[0], 21);
+		assert_eq!(opening.api_erai_list_items[0], Some(vec![1]));
+		assert_eq!(opening.api_eydam_list_items[0], Some(vec![34]));
+		assert_eq!(opening.api_fydam_list_items[0], None);
+		assert_eq!(opening.api_fdam[1], 34);
+	}
+
+	#[test]
 	fn opening_torpedo_friendly_damage_uses_fydam_list_items() {
 		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
 		let clt_mst = first_ship_mst_by_type(&codex, KcShipType::CLT);
@@ -2598,6 +2738,37 @@ mod tests {
 		assert_eq!(opening.api_eydam_list_items[0], Some(vec![dealt]));
 		assert_eq!(opening.api_fydam_list_items[0], None);
 		assert_eq!(friendly[0].hp(), friendly[0].ship.api_nowhp - dealt);
+	}
+
+	#[test]
+	fn raigeki_payload_builder_routes_damage_by_attacker_side() {
+		let mut payload = BattleRaigeki::blank(2);
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Friendly,
+			TorpedoHit {
+				attacker_index: 1,
+				defender_index: 0,
+				damage: 21,
+			},
+		);
+		payload.record_torpedo_hit(
+			TorpedoAttackerSide::Enemy,
+			TorpedoHit {
+				attacker_index: 0,
+				defender_index: 1,
+				damage: 34,
+			},
+		);
+		let raigeki = payload;
+
+		assert_eq!(raigeki.api_frai[1], 0);
+		assert_eq!(raigeki.api_fydam[1], 21);
+		assert_eq!(raigeki.api_eydam[1], 0);
+		assert_eq!(raigeki.api_edam[0], 21);
+		assert_eq!(raigeki.api_erai[0], 1);
+		assert_eq!(raigeki.api_eydam[0], 34);
+		assert_eq!(raigeki.api_fydam[0], 0);
+		assert_eq!(raigeki.api_fdam[1], 34);
 	}
 
 	#[test]
@@ -2704,7 +2875,90 @@ mod tests {
 		)
 		.unwrap();
 
-		assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Surface);
+		assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::SurfaceShip);
+	}
+
+	#[test]
+	fn target_taxonomy_classifies_pt_and_installation_targets_explicitly() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+		let pt_mst = ship_mst_id_by_name(&codex, "PT小鬼群");
+		let installation_mst = ship_mst_id_by_name(&codex, "飛行場姫");
+
+		let surface = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50));
+		let submarine = BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50));
+
+		let mut pt = sample_ship(&codex, dd_mst, 50);
+		pt.ship.api_ship_id = pt_mst;
+		let pt = BattleRuntimeShip::from(pt);
+
+		let mut installation = sample_ship(&codex, dd_mst, 50);
+		installation.ship.api_ship_id = installation_mst;
+		let installation = BattleRuntimeShip::from(installation);
+
+		assert_eq!(target_class(&codex, &surface), TargetClass::SurfaceShip);
+		assert_eq!(target_class(&codex, &submarine), TargetClass::Submarine);
+		assert_eq!(target_class(&codex, &pt), TargetClass::PtBoat);
+		assert_eq!(target_class(&codex, &installation), TargetClass::Installation);
+	}
+
+	#[test]
+	fn surface_only_targeting_keeps_pt_targets_in_surface_bucket() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+		let pt_mst = ship_mst_id_by_name(&codex, "PT小鬼群");
+
+		let attacker = BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50));
+		let mut pt = sample_ship(&codex, dd_mst, 50);
+		pt.ship.api_ship_id = pt_mst;
+		let defenders = vec![
+			BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
+			BattleRuntimeShip::from(pt),
+		];
+		let mut random = BattleRandom::new(Some(13));
+
+		let target_idx = select_random_target_index(
+			&codex,
+			&mut random,
+			&attacker,
+			&defenders,
+			BattlePhase::DayShelling,
+		)
+		.unwrap();
+
+		assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::PtBoat);
+	}
+
+	#[test]
+	fn torpedo_targeting_keeps_installations_in_surface_bucket_for_now() {
+		let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+		let clt_mst = first_ship_mst_by_type(&codex, KcShipType::CLT);
+		let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+		let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+		let installation_mst = ship_mst_id_by_name(&codex, "飛行場姫");
+
+		let attacker = BattleRuntimeShip::from(sample_ship(&codex, clt_mst, 50));
+		let mut installation = sample_ship(&codex, dd_mst, 50);
+		installation.ship.api_ship_id = installation_mst;
+		let defenders = vec![
+			BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
+			BattleRuntimeShip::from(installation),
+		];
+		let mut random = BattleRandom::new(Some(17));
+
+		let target_idx = select_random_target_index(
+			&codex,
+			&mut random,
+			&attacker,
+			&defenders,
+			BattlePhase::ClosingTorpedo,
+		)
+		.unwrap();
+
+		assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Installation);
 	}
 
 	#[test]
@@ -2761,7 +3015,7 @@ mod tests {
 			BattlePhase::ClosingTorpedo,
 		)
 		.unwrap();
-		assert_eq!(target_class(&codex, &mixed_defenders[target_idx]), TargetClass::Surface);
+		assert_eq!(target_class(&codex, &mixed_defenders[target_idx]), TargetClass::SurfaceShip);
 		assert!(
 			select_random_target_index(
 				&codex,
