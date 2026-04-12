@@ -1,5 +1,5 @@
 {
-  "scriptVersion": "6.2.7.0",
+  "scriptVersion": "6.2.8.0",
   "summary": {
     "moduleCount": 196,
     "protocolFieldCount": 63
@@ -291,12 +291,12 @@
       ]
     },
     {
-      "id": "72987:api_support_airatack:object:_0x15511f",
+      "id": "72987:api_support_airatack:object:_0x15442e",
       "moduleId": "72987",
       "readableName": "RawNightBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x15511f",
+      "sourceObject": "_0x15442e",
       "conditional": false,
       "phases": [
         "day",
@@ -304,12 +304,12 @@
       ]
     },
     {
-      "id": "72987:api_support_airatack:object:_0x71b9d9",
+      "id": "72987:api_support_airatack:object:_0x1ebac1",
       "moduleId": "72987",
       "readableName": "RawNightBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x71b9d9",
+      "sourceObject": "_0x1ebac1",
       "conditional": false,
       "phases": [
         "day",
@@ -317,12 +317,12 @@
       ]
     },
     {
-      "id": "72987:api_support_hourai:object:_0x28df96",
+      "id": "72987:api_support_hourai:object:_0x3bfa01",
       "moduleId": "72987",
       "readableName": "RawNightBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x28df96",
+      "sourceObject": "_0x3bfa01",
       "conditional": false,
       "phases": [
         "day",
@@ -330,12 +330,12 @@
       ]
     },
     {
-      "id": "72987:api_support_hourai:object:_0x478ec0",
+      "id": "72987:api_support_hourai:object:_0x8fb52",
       "moduleId": "72987",
       "readableName": "RawNightBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x478ec0",
+      "sourceObject": "_0x8fb52",
       "conditional": false,
       "phases": [
         "day",
@@ -548,24 +548,24 @@
       ]
     },
     {
-      "id": "83034:api_support_airatack:object:_0x538861",
+      "id": "83034:api_support_airatack:object:_0x246edc",
       "moduleId": "83034",
       "readableName": "RawDayBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x538861",
+      "sourceObject": "_0x246edc",
       "conditional": false,
       "phases": [
         "day"
       ]
     },
     {
-      "id": "83034:api_support_airatack:object:_0x5d987a",
+      "id": "83034:api_support_airatack:object:_0x449ada",
       "moduleId": "83034",
       "readableName": "RawDayBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x5d987a",
+      "sourceObject": "_0x449ada",
       "conditional": false,
       "phases": [
         "day"
@@ -584,24 +584,24 @@
       ]
     },
     {
-      "id": "83034:api_support_hourai:object:_0x19fc85",
+      "id": "83034:api_support_hourai:object:_0x3caae8",
       "moduleId": "83034",
       "readableName": "RawDayBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x19fc85",
+      "sourceObject": "_0x3caae8",
       "conditional": false,
       "phases": [
         "day"
       ]
     },
     {
-      "id": "83034:api_support_hourai:object:_0x3f22fa",
+      "id": "83034:api_support_hourai:object:_0x41cb9e",
       "moduleId": "83034",
       "readableName": "RawDayBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x3f22fa",
+      "sourceObject": "_0x41cb9e",
       "conditional": false,
       "phases": [
         "day"

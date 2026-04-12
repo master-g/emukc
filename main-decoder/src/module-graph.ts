@@ -3,6 +3,7 @@ import { parse } from "@babel/parser";
 import traverse, { type NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 
+import { annotateEnumLiterals } from "./enum-restore.ts";
 import { formatJavaScript } from "./format.ts";
 import type {
   CleanupTier,
@@ -114,6 +115,8 @@ interface ReadabilityTransformResult {
 
 type RenameableFunctionPath = NodePath<t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression>;
 type CleanupRuleName =
+  | "enum-annotate"
+  | "hex-literals"
   | "param-rename"
   | "local-rename"
   | "sequence-expression-split"
@@ -1346,6 +1349,13 @@ function deriveBindingNameFromMemberExpression(expression: t.MemberExpression): 
     }
   }
 
+  if (t.isIdentifier(expression.object) && !expression.computed) {
+    const propertyName = normalizePropertyName(expression.property, expression.computed);
+    if (propertyName !== undefined) {
+      return toPropertyBindingName(propertyName);
+    }
+  }
+
   return undefined;
 }
 
@@ -1592,6 +1602,21 @@ function normalizeLegacySequenceIfTests(ast: t.File, readableName?: string): num
   return transformCount;
 }
 
+function normalizeHexLiterals(ast: t.File): number {
+  let transformCount = 0;
+  traverse(ast, {
+    NumericLiteral(path: NodePath<t.NumericLiteral>) {
+      const raw = path.node.extra?.raw;
+      if (typeof raw !== "string" || !raw.startsWith("0x") && !raw.startsWith("0X")) {
+        return;
+      }
+      path.node.extra = { ...path.node.extra, raw: String(path.node.value) };
+      transformCount += 1;
+    },
+  });
+  return transformCount;
+}
+
 function pushAppliedRule(appliedRules: CleanupRuleName[], rule: CleanupRuleName, count: number): void {
   if (count > 0) {
     appliedRules.push(rule);
@@ -1604,6 +1629,28 @@ function applyReadabilityTransforms(
   readableName?: string,
 ): ReadabilityTransformResult {
   if (cleanupTier === "none") {
+    const ast = parseFactoryFile(factorySource);
+    const hexLiteralCount = normalizeHexLiterals(ast);
+    if (hexLiteralCount > 0) {
+      const source = generateFactorySource(ast);
+      const obfuscatedIdentifierCount = countObfuscatedIdentifiers(source);
+      return {
+        source,
+        cleanupTier,
+        localRenameCount: 0,
+        bodyNormalizationCount: 0,
+        beforeObfuscatedIdentifierCount: obfuscatedIdentifierCount,
+        afterObfuscatedIdentifierCount: obfuscatedIdentifierCount,
+        hotspotCleanup: {
+          beforeObfuscatedIdentifierCount: obfuscatedIdentifierCount,
+          afterObfuscatedIdentifierCount: obfuscatedIdentifierCount,
+          obfuscatedIdentifierDelta: 0,
+          localRenameCount: 0,
+          bodyNormalizationCount: 0,
+          appliedRules: ["hex-literals" as CleanupRuleName],
+        },
+      };
+    }
     const obfuscatedIdentifierCount = countObfuscatedIdentifiers(factorySource);
     return {
       source: factorySource,
@@ -1653,18 +1700,26 @@ function applyReadabilityTransforms(
   pushAppliedRule(appliedRules, "param-rename", paramRenameCount);
   pushAppliedRule(appliedRules, "local-rename", directLocalRenameCount);
 
+  const hexLiteralCount = normalizeHexLiterals(ast);
+  pushAppliedRule(appliedRules, "hex-literals", hexLiteralCount);
+
+  const enumAnnotationCount = annotateEnumLiterals(ast);
+  pushAppliedRule(appliedRules, "enum-annotate", enumAnnotationCount);
+
   let bodyNormalizationCount = 0;
+  const expressionSplitCount = normalizeSequenceExpressionStatements(ast);
+  const returnSplitCount = normalizeSequenceReturnStatements(ast);
+  pushAppliedRule(appliedRules, "sequence-expression-split", expressionSplitCount);
+  pushAppliedRule(appliedRules, "sequence-return-split", returnSplitCount);
+  bodyNormalizationCount += expressionSplitCount + returnSplitCount;
+
   if (cleanupTier === "priority-body") {
-    const expressionSplitCount = normalizeSequenceExpressionStatements(ast);
-    const returnSplitCount = normalizeSequenceReturnStatements(ast);
     const legacyIfSplitCount = normalizeLegacySequenceIfTests(ast, readableName);
-    bodyNormalizationCount = expressionSplitCount + returnSplitCount + legacyIfSplitCount;
-    pushAppliedRule(appliedRules, "sequence-expression-split", expressionSplitCount);
-    pushAppliedRule(appliedRules, "sequence-return-split", returnSplitCount);
+    bodyNormalizationCount += legacyIfSplitCount;
     pushAppliedRule(appliedRules, "legacy-sequence-if-split", legacyIfSplitCount);
   }
 
-  const source = localRenameCount > 0 || bodyNormalizationCount > 0 ? generateFactorySource(ast) : factorySource;
+  const source = localRenameCount > 0 || bodyNormalizationCount > 0 || hexLiteralCount > 0 || enumAnnotationCount > 0 ? generateFactorySource(ast) : factorySource;
   const afterObfuscatedIdentifierCount = countObfuscatedIdentifiers(source);
 
   return {

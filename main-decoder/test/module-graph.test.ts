@@ -192,3 +192,109 @@ exports.ConsumerView = ConsumerView;
   expect(consumer.source).toContain("var confirmViewModule = require(501);");
   expect(consumer.source).toContain("var confirmViewModule2 = require(502);");
 });
+
+test("normalizes hex literals to decimal in module output", () => {
+  const source = buildModuleTableSource({
+    601: `
+function HexView(_0xabc) {
+  var x = 0x0;
+  var y = 0xFF;
+  if (0x1 == _0xabc) return 0x64;
+  if (0x191 == _0xabc || 0x190 == _0xabc) return 0x12c;
+  return x + y;
+}
+exports.HexView = HexView;
+`,
+  });
+
+  const module = getModuleByReadableName(source, "HexView");
+
+  expect(module.source).toContain("var x = 0;");
+  expect(module.source).toContain("var y = 255;");
+  expect(module.source).toContain("if (1 == _0xabc)");
+  expect(module.source).toContain("return 100;");
+  expect(module.source).toContain("YAMATO_B");
+  expect(module.source).toContain("YAMATO_A");
+  expect(module.source).toContain("return 300;");
+});
+
+test("splits sequence expressions and returns in named-game (non-priority) modules", () => {
+  const source = buildModuleTableSource({
+    701: `
+function SimpleView() {
+  var a = 1, b = 2;
+  a += 1, b += 2, this._result = a + b;
+  return a += 10, b += 20, a + b;
+}
+exports.SimpleView = SimpleView;
+`,
+  });
+
+  const module = getModuleByReadableName(source, "SimpleView");
+
+  expect(module.cleanupTier).toBe("named-game");
+  expect(module.hotspotCleanup?.appliedRules).toContain("sequence-expression-split");
+  expect(module.hotspotCleanup?.appliedRules).toContain("sequence-return-split");
+  expect(module.source).toContain("a += 1;");
+  expect(module.source).toContain("b += 2;");
+  expect(module.source).toContain("this._result = a + b;");
+  expect(module.source).toContain("a += 10;");
+  expect(module.source).toContain("b += 20;");
+  expect(module.source).toContain("return a + b;");
+  expect(module.source).not.toContain("a += 1, b += 2, this._result");
+  expect(module.source).not.toContain("return a += 10, b += 20,");
+});
+
+test("annotates known enum values in comparison contexts", () => {
+  const source = buildModuleTableSource({
+    801: `
+function BattleView(data) {
+  if (100 == data.type) return "nelson";
+  if (101 === data.type) return "nagato";
+  if (102 != data.type) return "not_mutsu";
+  if (103 !== data.type) return "not_colorado";
+  if (400 == data.type || 401 == data.type) return "yamato";
+  if (200 == data.type) return "zuiun";
+  if (1000 == data.type) return "sp_type4";
+  if (6 == data.type) return "kubo";
+  return "unknown";
+}
+exports.BattleView = BattleView;
+`,
+  });
+
+  const module = getModuleByReadableName(source, "BattleView");
+
+  expect(module.source).toMatch(/100\s*\/\*\s*NELSON_TOUCH\s*\*\//);
+  expect(module.source).toMatch(/101\s*\/\*\s*NAGATO\s*\*\//);
+  expect(module.source).toMatch(/102\s*\/\*\s*MUTSU\s*\*\//);
+  expect(module.source).toMatch(/103\s*\/\*\s*COLORADO\s*\*\//);
+  expect(module.source).toMatch(/400\s*\/\*\s*YAMATO_A\s*\*\//);
+  expect(module.source).toMatch(/401\s*\/\*\s*YAMATO_B\s*\*\//);
+  expect(module.source).toMatch(/200\s*\/\*\s*ZUIUN_CUTIN\s*\*\//);
+  expect(module.source).toMatch(/1000\s*\/\*\s*SP_TYPE4\s*\*\//);
+  expect(module.source).toMatch(/6\s*\/\*\s*KUBO_CI\s*\*\//);
+  expect(module.hotspotCleanup?.appliedRules).toContain("enum-annotate");
+});
+
+test("renames locals assigned from readable and obfuscated object property access", () => {
+  const source = buildModuleTableSource({
+    901: `
+function ObjAccessView(scene, data) {
+  var _0xaa1 = scene.data;
+  var _0xaa2 = data.type;
+  var _0xaa3 = data.list;
+  var _0xaa4 = _0xaa2.items;
+  return _0xaa1 + _0xaa2 + _0xaa3 + _0xaa4;
+}
+exports.ObjAccessView = ObjAccessView;
+`,
+  });
+
+  const module = getModuleByReadableName(source, "ObjAccessView");
+
+  expect(module.source).toContain("var data2 = scene.data;");
+  expect(module.source).toContain("var type = data.type;");
+  expect(module.source).toContain("var list = data.list;");
+  expect(module.source).toContain("var items = type.items;");
+});
