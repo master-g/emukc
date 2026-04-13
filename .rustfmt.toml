@@ -3,7 +3,8 @@
 # -----------------------------------
 
 edition = "2024"
-hard_tabs = true
+hard_tabs = false
+tab_spaces = 4
 merge_derives = true
 reorder_imports = true
 reorder_modules = true

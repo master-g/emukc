@@ -656,7 +656,7 @@ const DEFAULT_MUSIC_LIST: &str = r#"
 "#;
 
 pub fn get() -> Result<Vec<KcApiMusicListElement>, ParseError> {
-	let result: Vec<KcApiMusicListElement> = serde_json::from_str(DEFAULT_MUSIC_LIST)?;
+    let result: Vec<KcApiMusicListElement> = serde_json::from_str(DEFAULT_MUSIC_LIST)?;
 
-	Ok(result)
+    Ok(result)
 }

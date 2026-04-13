@@ -3,16 +3,16 @@ use crate::{kc2::start2::ApiManifest, thirdparty::Kc3rdQuestConditionExercise};
 use super::Kc3rdQuestDebugJson;
 
 impl Kc3rdQuestDebugJson for Kc3rdQuestConditionExercise {
-	fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
-		let groups = self.groups.as_ref().map(|groups| {
-			groups.iter().map(|g| g.to_json(mst)).collect::<Vec<serde_json::Value>>()
-		});
+    fn to_json(&self, mst: &ApiManifest) -> serde_json::Value {
+        let groups = self.groups.as_ref().map(|groups| {
+            groups.iter().map(|g| g.to_json(mst)).collect::<Vec<serde_json::Value>>()
+        });
 
-		serde_json::json!({
-			"times": self.times,
-			"expect": self.expect_result,
-			"daily": self.expire_next_day,
-			"groups": groups,
-		})
-	}
+        serde_json::json!({
+            "times": self.times,
+            "expect": self.expect_result,
+            "daily": self.expire_next_day,
+            "groups": groups,
+        })
+    }
 }

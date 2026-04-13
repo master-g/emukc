@@ -31,14 +31,14 @@ pub use password::PasswordCrypto;
 pub use suffix_utils::SuffixUtils;
 
 pub mod prelude {
-	//! The `emukc_crypto` crate prelude.
-	#[doc(hidden)]
-	pub use crate::{PasswordCrypto, SimpleHash, md5, md5_file};
+    //! The `emukc_crypto` crate prelude.
+    #[doc(hidden)]
+    pub use crate::{PasswordCrypto, SimpleHash, md5, md5_file};
 
-	#[cfg(feature = "async")]
-	#[doc(hidden)]
-	pub use crate::md5_file_async;
+    #[cfg(feature = "async")]
+    #[doc(hidden)]
+    pub use crate::md5_file_async;
 
-	#[doc(hidden)]
-	pub use crate::SuffixUtils;
+    #[doc(hidden)]
+    pub use crate::SuffixUtils;
 }

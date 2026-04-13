@@ -2,9 +2,9 @@ use axum::{Extension, Form};
 use serde::Deserialize;
 
 use crate::net::{
-	AppState,
-	auth::GameSession,
-	resp::{KcApiResponse, KcApiResult},
+    AppState,
+    auth::GameSession,
+    resp::{KcApiResponse, KcApiResult},
 };
 use emukc_internal::prelude::*;
 
@@ -12,20 +12,20 @@ use super::projection::project_next;
 
 #[derive(Deserialize)]
 pub(super) struct Params {
-	#[serde(default)]
-	pub(super) api_recovery_type: i64,
-	#[serde(default)]
-	pub(super) api_cell_id: Option<i64>,
+    #[serde(default)]
+    pub(super) api_recovery_type: i64,
+    #[serde(default)]
+    pub(super) api_cell_id: Option<i64>,
 }
 
 pub(super) async fn handler(
-	state: AppState,
-	Extension(session): Extension<GameSession>,
-	Form(params): Form<Params>,
+    state: AppState,
+    Extension(session): Extension<GameSession>,
+    Form(params): Form<Params>,
 ) -> KcApiResult {
-	let _ = params.api_recovery_type;
-	let pid = session.profile.id;
-	let resp = state.next_sortie(pid, params.api_cell_id).await?;
+    let _ = params.api_recovery_type;
+    let pid = session.profile.id;
+    let resp = state.next_sortie(pid, params.api_cell_id).await?;
 
-	Ok(KcApiResponse::success(&project_next(resp)))
+    Ok(KcApiResponse::success(&project_next(resp)))
 }

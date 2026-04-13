@@ -20,15 +20,15 @@ pub mod gameplay;
 pub use game::ops as game_ops;
 
 pub mod prelude {
-	//! The `emukc_gameplay` crate prelude.
+    //! The `emukc_gameplay` crate prelude.
 
-	#[doc(hidden)]
-	pub use crate::{
-		err::GameplayError,
-		game::SortieStore,
-		game::ops::*,
-		game::types::*,
-		gameplay::{Gameplay, HasContext},
-		user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
-	};
+    #[doc(hidden)]
+    pub use crate::{
+        err::GameplayError,
+        game::SortieStore,
+        game::ops::*,
+        game::types::*,
+        gameplay::{Gameplay, HasContext},
+        user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
+    };
 }

@@ -7,5 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #588 | 6:15 PM | 🔵 | Codebase architecture analysis completed for OpenSpec planning | ~848 |
 | #587 | 6:14 PM | 🔵 | OpenSpec infrastructure analysis and planning phase completed | ~750 |
+| #584 | 6:13 PM | 🔵 | Repository OpenSpec readiness assessment completed via agent exploration | ~669 |
+| #581 | " | 🔵 | Repository OpenSpec readiness assessment completed | ~565 |
 </claude-mem-context>

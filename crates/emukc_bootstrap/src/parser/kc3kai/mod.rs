@@ -5,7 +5,7 @@ use crate::parser::error::ParseError;
 pub mod quote;
 
 pub fn parse(raw: &str, cache: &mut CacheSource) -> Result<(), ParseError> {
-	quote::parse(raw, cache)?;
+    quote::parse(raw, cache)?;
 
-	Ok(())
+    Ok(())
 }

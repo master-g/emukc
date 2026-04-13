@@ -11,6 +11,6 @@ pub use sea_orm;
 
 /// prelude module for `emukc_db`
 pub mod prelude {
-	#[doc(hidden)]
-	pub use crate::mem::new_mem_db;
+    #[doc(hidden)]
+    pub use crate::mem::new_mem_db;
 }

@@ -15,7 +15,7 @@ pub mod download;
 pub use reqwest;
 
 pub mod prelude {
-	//! The `emukc_network` crate prelude.
-	#[doc(hidden)]
-	pub use crate::client::new_reqwest_client;
+    //! The `emukc_network` crate prelude.
+    #[doc(hidden)]
+    pub use crate::client::new_reqwest_client;
 }

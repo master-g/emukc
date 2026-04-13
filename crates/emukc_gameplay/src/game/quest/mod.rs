@@ -1,28 +1,28 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::{
-		expedition,
-		quest::{self, progress::Status},
-	},
-	sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
+    entity::profile::{
+        expedition,
+        quest::{self, progress::Status},
+    },
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
-	codex::{Codex, query::FoundInCodex},
-	kc2::KcApiQuestClearItemGet,
-	thirdparty::{
-		Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement, reward::get_quest_rewards,
-	},
+    codex::{Codex, query::FoundInCodex},
+    kc2::KcApiQuestClearItemGet,
+    thirdparty::{
+        Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement, reward::get_quest_rewards,
+    },
 };
 use emukc_time::chrono;
 use update::update_quests_impl;
 
 use crate::{
-	err::GameplayError,
-	game::quest::{
-		consume::handle_consumption, consume::handle_module_conversion,
-		record::mark_quest_as_completed,
-	},
-	gameplay::HasContext,
+    err::GameplayError,
+    game::quest::{
+        consume::handle_consumption, consume::handle_module_conversion,
+        record::mark_quest_as_completed,
+    },
+    gameplay::HasContext,
 };
 
 mod consume;
@@ -32,445 +32,445 @@ pub(crate) mod update;
 /// A trait for quest related gameplay.
 #[async_trait]
 pub trait QuestOps {
-	/// Get all quest records of a profile.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	async fn get_quest_records(
-		&self,
-		profile_id: i64,
-	) -> Result<Vec<quest::progress::Model>, GameplayError>;
+    /// Get all quest records of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    async fn get_quest_records(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<quest::progress::Model>, GameplayError>;
 
-	/// Add a quest to a profile.
-	/// for debugging only
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `quest_id`: The quest ID.
-	async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
+    /// Add a quest to a profile.
+    /// for debugging only
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
 
-	/// Start a quest for a profile.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `quest_id`: The quest ID.
-	async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
+    /// Start a quest for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
 
-	/// Stop a quest for a profile.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `quest_id`: The quest ID.
-	async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
+    /// Stop a quest for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
 
-	/// Clear a quest and claim its reward for a profile.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `quest_id`: The quest ID.
-	/// - `reward_choices`: The reward choices, if any.
-	async fn quest_clear_and_claim_reward(
-		&self,
-		profile_id: i64,
-		quest_id: i64,
-		reward_choices: Option<Vec<i64>>,
-	) -> Result<KcApiQuestClearItemGet, GameplayError>;
+    /// Clear a quest and claim its reward for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    /// - `reward_choices`: The reward choices, if any.
+    async fn quest_clear_and_claim_reward(
+        &self,
+        profile_id: i64,
+        quest_id: i64,
+        reward_choices: Option<Vec<i64>>,
+    ) -> Result<KcApiQuestClearItemGet, GameplayError>;
 }
 
 async fn update_quest_status<C>(
-	c: &C,
-	profile_id: i64,
-	quest_id: i64,
-	status: Status,
-	codex: Option<&Codex>,
+    c: &C,
+    profile_id: i64,
+    quest_id: i64,
+    status: Status,
+    codex: Option<&Codex>,
 ) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let quest = quest::progress::Entity::find()
-		.filter(quest::progress::Column::ProfileId.eq(profile_id))
-		.filter(quest::progress::Column::QuestId.eq(quest_id))
-		.one(c)
-		.await?
-		.ok_or(GameplayError::EntryNotFound(format!(
-			"quest {quest_id} not found in profile {profile_id}"
-		)))?;
+    let quest = quest::progress::Entity::find()
+        .filter(quest::progress::Column::ProfileId.eq(profile_id))
+        .filter(quest::progress::Column::QuestId.eq(quest_id))
+        .one(c)
+        .await?
+        .ok_or(GameplayError::EntryNotFound(format!(
+            "quest {quest_id} not found in profile {profile_id}"
+        )))?;
 
-	if quest.status == status {
-		return Err(GameplayError::QuestStatusInvalid(format!(
-			"quest {quest_id} in profile {profile_id} is already in status {status:?}"
-		)));
-	}
+    if quest.status == status {
+        return Err(GameplayError::QuestStatusInvalid(format!(
+            "quest {quest_id} in profile {profile_id} is already in status {status:?}"
+        )));
+    }
 
-	let quest_progress = quest.progress;
-	let quest_requirements = quest.requirements.clone();
-	let mut am = quest.into_active_model();
-	am.status = ActiveValue::Set(status);
-	if status == Status::Activated
-		&& let Some(codex) = codex
-		&& let Some(mst) = codex.quest.get(&quest_id)
-	{
-		let master_conditions = match &mst.requirements {
-			Kc3rdQuestRequirement::And(conditions)
-			| Kc3rdQuestRequirement::OneOf(conditions)
-			| Kc3rdQuestRequirement::Sequential(conditions) => conditions,
-		};
+    let quest_progress = quest.progress;
+    let quest_requirements = quest.requirements.clone();
+    let mut am = quest.into_active_model();
+    am.status = ActiveValue::Set(status);
+    if status == Status::Activated
+        && let Some(codex) = codex
+        && let Some(mst) = codex.quest.get(&quest_id)
+    {
+        let master_conditions = match &mst.requirements {
+            Kc3rdQuestRequirement::And(conditions)
+            | Kc3rdQuestRequirement::OneOf(conditions)
+            | Kc3rdQuestRequirement::Sequential(conditions) => conditions,
+        };
 
-		let has_exercise = master_conditions
-			.iter()
-			.any(|condition| matches!(condition, Kc3rdQuestCondition::Exercise(_)));
-		if has_exercise {
-			let mut current_conditions: Vec<Kc3rdQuestCondition> =
-				serde_json::from_value(quest_requirements)?;
-			if current_conditions.len() != master_conditions.len() {
-				tracing::warn!(
-					quest_id,
-					current = current_conditions.len(),
-					master = master_conditions.len(),
-					"quest condition count mismatch between save and codex, skipping exercise headroom restore"
-				);
-			} else {
-				let mut restored_activation_headroom = false;
-				for (current, master) in current_conditions.iter_mut().zip(master_conditions.iter())
-				{
-					let (
-						Kc3rdQuestCondition::Exercise(current),
-						Kc3rdQuestCondition::Exercise(master),
-					) = (current, master)
-					else {
-						continue;
-					};
+        let has_exercise = master_conditions
+            .iter()
+            .any(|condition| matches!(condition, Kc3rdQuestCondition::Exercise(_)));
+        if has_exercise {
+            let mut current_conditions: Vec<Kc3rdQuestCondition> =
+                serde_json::from_value(quest_requirements)?;
+            if current_conditions.len() != master_conditions.len() {
+                tracing::warn!(
+                    quest_id,
+                    current = current_conditions.len(),
+                    master = master_conditions.len(),
+                    "quest condition count mismatch between save and codex, skipping exercise headroom restore"
+                );
+            } else {
+                let mut restored_activation_headroom = false;
+                for (current, master) in current_conditions.iter_mut().zip(master_conditions.iter())
+                {
+                    let (
+                        Kc3rdQuestCondition::Exercise(current),
+                        Kc3rdQuestCondition::Exercise(master),
+                    ) = (current, master)
+                    else {
+                        continue;
+                    };
 
-					// Inactive exercise quests can preview progress up to 80%, but they still need
-					// one real battle after activation to become claimable.
-					if current.times <= 0
-						&& master.times > 0
-						&& quest_progress != quest::progress::Progress::Completed
-					{
-						current.times = 1;
-						restored_activation_headroom = true;
-					}
-				}
+                    // Inactive exercise quests can preview progress up to 80%, but they still need
+                    // one real battle after activation to become claimable.
+                    if current.times <= 0
+                        && master.times > 0
+                        && quest_progress != quest::progress::Progress::Completed
+                    {
+                        current.times = 1;
+                        restored_activation_headroom = true;
+                    }
+                }
 
-				if restored_activation_headroom {
-					am.requirements = ActiveValue::Set(serde_json::to_value(current_conditions)?);
-				}
-				if quest_progress == quest::progress::Progress::Completed {
-					am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
-				}
-			}
-		}
-	}
+                if restored_activation_headroom {
+                    am.requirements = ActiveValue::Set(serde_json::to_value(current_conditions)?);
+                }
+                if quest_progress == quest::progress::Progress::Completed {
+                    am.progress = ActiveValue::Set(quest::progress::Progress::Eighty);
+                }
+            }
+        }
+    }
 
-	am.update(c).await?;
+    am.update(c).await?;
 
-	Ok(())
+    Ok(())
 }
 
 #[async_trait]
 impl<T: HasContext + ?Sized> QuestOps for T {
-	/// Get all quest records of a profile.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	async fn get_quest_records(
-		&self,
-		profile_id: i64,
-	) -> Result<Vec<quest::progress::Model>, GameplayError> {
-		let codex = self.codex();
-		let db = self.db();
-		let mut tx = db.begin().await?;
+    /// Get all quest records of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    async fn get_quest_records(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<quest::progress::Model>, GameplayError> {
+        let codex = self.codex();
+        let db = self.db();
+        let mut tx = db.begin().await?;
 
-		if update_quests_impl(&tx, codex, profile_id).await? {
-			tx.commit().await?;
+        if update_quests_impl(&tx, codex, profile_id).await? {
+            tx.commit().await?;
 
-			tx = db.begin().await?;
-		}
+            tx = db.begin().await?;
+        }
 
-		// Validate composition quests
-		update::validate_composition_quests(&tx, codex, profile_id).await?;
-		tx.commit().await?;
+        // Validate composition quests
+        update::validate_composition_quests(&tx, codex, profile_id).await?;
+        tx.commit().await?;
 
-		tx = db.begin().await?;
+        tx = db.begin().await?;
 
-		Ok(quest::progress::Entity::find()
-			.filter(quest::progress::Column::ProfileId.eq(profile_id))
-			.order_by_asc(quest::progress::Column::QuestId)
-			.all(&tx)
-			.await?)
-	}
+        Ok(quest::progress::Entity::find()
+            .filter(quest::progress::Column::ProfileId.eq(profile_id))
+            .order_by_asc(quest::progress::Column::QuestId)
+            .all(&tx)
+            .await?)
+    }
 
-	async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
-		let db = self.db();
-		let tx = db.begin().await?;
+    async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        let db = self.db();
+        let tx = db.begin().await?;
 
-		let codex = self.codex();
-		let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
+        let codex = self.codex();
+        let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
 
-		let (requirements, typ) = match &quest_manifest.requirements {
-			emukc_model::thirdparty::Kc3rdQuestRequirement::And(kc3rd_quest_conditions) => {
-				(kc3rd_quest_conditions, quest::progress::RequirementType::And)
-			}
-			emukc_model::thirdparty::Kc3rdQuestRequirement::OneOf(kc3rd_quest_conditions) => {
-				(kc3rd_quest_conditions, quest::progress::RequirementType::OneOf)
-			}
-			emukc_model::thirdparty::Kc3rdQuestRequirement::Sequential(kc3rd_quest_conditions) => {
-				(kc3rd_quest_conditions, quest::progress::RequirementType::Sequential)
-			}
-		};
+        let (requirements, typ) = match &quest_manifest.requirements {
+            emukc_model::thirdparty::Kc3rdQuestRequirement::And(kc3rd_quest_conditions) => {
+                (kc3rd_quest_conditions, quest::progress::RequirementType::And)
+            }
+            emukc_model::thirdparty::Kc3rdQuestRequirement::OneOf(kc3rd_quest_conditions) => {
+                (kc3rd_quest_conditions, quest::progress::RequirementType::OneOf)
+            }
+            emukc_model::thirdparty::Kc3rdQuestRequirement::Sequential(kc3rd_quest_conditions) => {
+                (kc3rd_quest_conditions, quest::progress::RequirementType::Sequential)
+            }
+        };
 
-		let am = quest::progress::ActiveModel {
-			id: ActiveValue::NotSet,
-			profile_id: ActiveValue::Set(profile_id),
-			quest_id: ActiveValue::Set(quest_id),
-			status: ActiveValue::Set(Status::Idle),
-			progress: ActiveValue::Set(quest::progress::Progress::Completed),
-			period: ActiveValue::Set(quest_manifest.period.into()),
-			start_since: ActiveValue::Set(chrono::Utc::now()),
-			requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
-			requirement_type: ActiveValue::Set(typ),
-		};
+        let am = quest::progress::ActiveModel {
+            id: ActiveValue::NotSet,
+            profile_id: ActiveValue::Set(profile_id),
+            quest_id: ActiveValue::Set(quest_id),
+            status: ActiveValue::Set(Status::Idle),
+            progress: ActiveValue::Set(quest::progress::Progress::Completed),
+            period: ActiveValue::Set(quest_manifest.period.into()),
+            start_since: ActiveValue::Set(chrono::Utc::now()),
+            requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
+            requirement_type: ActiveValue::Set(typ),
+        };
 
-		am.insert(&tx).await?;
+        am.insert(&tx).await?;
 
-		tx.commit().await?;
+        tx.commit().await?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
-		let codex = self.codex();
-		let db = self.db();
-		let tx = db.begin().await?;
+    async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        let codex = self.codex();
+        let db = self.db();
+        let tx = db.begin().await?;
 
-		update_quest_status(&tx, profile_id, quest_id, Status::Activated, Some(codex)).await?;
-		update::validate_composition_quests(&tx, codex, profile_id).await?;
+        update_quest_status(&tx, profile_id, quest_id, Status::Activated, Some(codex)).await?;
+        update::validate_composition_quests(&tx, codex, profile_id).await?;
 
-		tx.commit().await?;
+        tx.commit().await?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
-		let db = self.db();
-		let tx = db.begin().await?;
+    async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        let db = self.db();
+        let tx = db.begin().await?;
 
-		update_quest_status(&tx, profile_id, quest_id, Status::Idle, None).await?;
+        update_quest_status(&tx, profile_id, quest_id, Status::Idle, None).await?;
 
-		tx.commit().await?;
+        tx.commit().await?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 
-	async fn quest_clear_and_claim_reward(
-		&self,
-		profile_id: i64,
-		quest_id: i64,
-		reward_choices: Option<Vec<i64>>,
-	) -> Result<KcApiQuestClearItemGet, GameplayError> {
-		let db = self.db();
-		let tx = db.begin().await?;
+    async fn quest_clear_and_claim_reward(
+        &self,
+        profile_id: i64,
+        quest_id: i64,
+        reward_choices: Option<Vec<i64>>,
+    ) -> Result<KcApiQuestClearItemGet, GameplayError> {
+        let db = self.db();
+        let tx = db.begin().await?;
 
-		// find the quest
-		let quest = quest::progress::Entity::find()
-			.filter(quest::progress::Column::ProfileId.eq(profile_id))
-			.filter(quest::progress::Column::QuestId.eq(quest_id))
-			.one(&tx)
-			.await?
-			.ok_or(GameplayError::EntryNotFound(format!(
-				"quest {quest_id} not found in profile {profile_id}"
-			)))?;
+        // find the quest
+        let quest = quest::progress::Entity::find()
+            .filter(quest::progress::Column::ProfileId.eq(profile_id))
+            .filter(quest::progress::Column::QuestId.eq(quest_id))
+            .one(&tx)
+            .await?
+            .ok_or(GameplayError::EntryNotFound(format!(
+                "quest {quest_id} not found in profile {profile_id}"
+            )))?;
 
-		// validate quest is activated and completed before claiming
-		if quest.status != quest::progress::Status::Activated {
-			return Err(GameplayError::QuestStatusInvalid(format!(
-				"quest {quest_id} in profile {profile_id} is not activated"
-			)));
-		}
-		if quest.progress != quest::progress::Progress::Completed {
-			return Err(GameplayError::QuestStatusInvalid(format!(
-				"quest {quest_id} in profile {profile_id} is not completed"
-			)));
-		}
+        // validate quest is activated and completed before claiming
+        if quest.status != quest::progress::Status::Activated {
+            return Err(GameplayError::QuestStatusInvalid(format!(
+                "quest {quest_id} in profile {profile_id} is not activated"
+            )));
+        }
+        if quest.progress != quest::progress::Progress::Completed {
+            return Err(GameplayError::QuestStatusInvalid(format!(
+                "quest {quest_id} in profile {profile_id} is not completed"
+            )));
+        }
 
-		// mark as completed
-		mark_quest_as_completed(&tx, profile_id, quest_id, quest.period).await?;
+        // mark as completed
+        mark_quest_as_completed(&tx, profile_id, quest_id, quest.period).await?;
 
-		// remove quest progress
-		{
-			let mut am = quest.into_active_model();
-			am.status = ActiveValue::Set(Status::Idle);
-			// am.update(&tx).await?;
-			am.delete(&tx).await?;
-		}
+        // remove quest progress
+        {
+            let mut am = quest.into_active_model();
+            am.status = ActiveValue::Set(Status::Idle);
+            // am.update(&tx).await?;
+            am.delete(&tx).await?;
+        }
 
-		// reconstruct quest tree
-		// this will be called by mainjs, but we do it here to ensure consistency
-		let codex = self.codex();
-		update_quests_impl(&tx, codex, profile_id).await?;
+        // reconstruct quest tree
+        // this will be called by mainjs, but we do it here to ensure consistency
+        let codex = self.codex();
+        update_quests_impl(&tx, codex, profile_id).await?;
 
-		let quest_mst = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
-		// deduct requirements
-		deduct_requirements(&tx, profile_id, quest_mst).await?;
+        let quest_mst = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
+        // deduct requirements
+        deduct_requirements(&tx, profile_id, quest_mst).await?;
 
-		// claim rewards
-		claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref()).await?;
+        // claim rewards
+        claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref()).await?;
 
-		// get rewards for kcs API response
-		let resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
+        // get rewards for kcs API response
+        let resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
 
-		tx.commit().await?;
+        tx.commit().await?;
 
-		Ok(resp)
-	}
+        Ok(resp)
+    }
 }
 
 async fn deduct_requirements<C>(
-	c: &C,
-	profile_id: i64,
-	quest_mst: &Kc3rdQuest,
+    c: &C,
+    profile_id: i64,
+    quest_mst: &Kc3rdQuest,
 ) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let conds = match &quest_mst.requirements {
-		Kc3rdQuestRequirement::And(conds)
-		| Kc3rdQuestRequirement::OneOf(conds)
-		| Kc3rdQuestRequirement::Sequential(conds) => conds,
-	};
+    let conds = match &quest_mst.requirements {
+        Kc3rdQuestRequirement::And(conds)
+        | Kc3rdQuestRequirement::OneOf(conds)
+        | Kc3rdQuestRequirement::Sequential(conds) => conds,
+    };
 
-	for cond in conds {
-		match cond {
-			Kc3rdQuestCondition::ModelConversion(conversion) => {
-				handle_module_conversion(c, profile_id, conversion).await?;
-			}
-			Kc3rdQuestCondition::Consumption(consumption) => {
-				handle_consumption(c, profile_id, consumption).await?;
-			}
-			_ => {}
-		}
-	}
+    for cond in conds {
+        match cond {
+            Kc3rdQuestCondition::ModelConversion(conversion) => {
+                handle_module_conversion(c, profile_id, conversion).await?;
+            }
+            Kc3rdQuestCondition::Consumption(consumption) => {
+                handle_consumption(c, profile_id, consumption).await?;
+            }
+            _ => {}
+        }
+    }
 
-	Ok(())
+    Ok(())
 }
 
 async fn claim_rewards<C>(
-	c: &C,
-	codex: &Codex,
-	profile_id: i64,
-	quest_mst: &Kc3rdQuest,
-	reward_choices: Option<&[i64]>,
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    quest_mst: &Kc3rdQuest,
+    reward_choices: Option<&[i64]>,
 ) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	use crate::game::material::add_material_impl;
-	use emukc_model::kc2::MaterialCategory;
+    use crate::game::material::add_material_impl;
+    use emukc_model::kc2::MaterialCategory;
 
-	// Add basic materials
-	let basic_mats = vec![
-		(MaterialCategory::Fuel, quest_mst.reward_fuel),
-		(MaterialCategory::Ammo, quest_mst.reward_ammo),
-		(MaterialCategory::Steel, quest_mst.reward_steel),
-		(MaterialCategory::Bauxite, quest_mst.reward_bauxite),
-	];
-	let basic_mats: Vec<_> = basic_mats.into_iter().filter(|(_, amt)| *amt > 0).collect();
-	if !basic_mats.is_empty() {
-		add_material_impl(c, codex, profile_id, &basic_mats).await?;
-	}
+    // Add basic materials
+    let basic_mats = vec![
+        (MaterialCategory::Fuel, quest_mst.reward_fuel),
+        (MaterialCategory::Ammo, quest_mst.reward_ammo),
+        (MaterialCategory::Steel, quest_mst.reward_steel),
+        (MaterialCategory::Bauxite, quest_mst.reward_bauxite),
+    ];
+    let basic_mats: Vec<_> = basic_mats.into_iter().filter(|(_, amt)| *amt > 0).collect();
+    if !basic_mats.is_empty() {
+        add_material_impl(c, codex, profile_id, &basic_mats).await?;
+    }
 
-	// Process choice rewards
-	if let Some(choices) = reward_choices {
-		for (idx, choice_group) in quest_mst.choice_rewards.iter().enumerate() {
-			if let Some(&choice_idx) = choices.get(idx)
-				&& let Some(reward) = choice_group.choices.get(choice_idx as usize)
-			{
-				apply_single_reward(c, codex, profile_id, reward).await?;
-			}
-		}
-	}
+    // Process choice rewards
+    if let Some(choices) = reward_choices {
+        for (idx, choice_group) in quest_mst.choice_rewards.iter().enumerate() {
+            if let Some(&choice_idx) = choices.get(idx)
+                && let Some(reward) = choice_group.choices.get(choice_idx as usize)
+            {
+                apply_single_reward(c, codex, profile_id, reward).await?;
+            }
+        }
+    }
 
-	// Process additional rewards
-	for reward in &quest_mst.additional_rewards {
-		apply_single_reward(c, codex, profile_id, reward).await?;
-	}
+    // Process additional rewards
+    for reward in &quest_mst.additional_rewards {
+        apply_single_reward(c, codex, profile_id, reward).await?;
+    }
 
-	Ok(())
+    Ok(())
 }
 
 async fn apply_single_reward<C>(
-	c: &C,
-	codex: &Codex,
-	profile_id: i64,
-	reward: &emukc_model::thirdparty::Kc3rdQuestReward,
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    reward: &emukc_model::thirdparty::Kc3rdQuestReward,
 ) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	use crate::game::{
-		basic::unlock_large_construction_impl, fleet::unlock_fleet_impl,
-		material::add_material_impl, ship::add_ship_impl, slot_item::add_slot_item_impl,
-		use_item::add_use_item_impl,
-	};
-	use emukc_model::{kc2::MaterialCategory, thirdparty::Kc3rdQuestRewardCategory};
+    use crate::game::{
+        basic::unlock_large_construction_impl, fleet::unlock_fleet_impl,
+        material::add_material_impl, ship::add_ship_impl, slot_item::add_slot_item_impl,
+        use_item::add_use_item_impl,
+    };
+    use emukc_model::{kc2::MaterialCategory, thirdparty::Kc3rdQuestRewardCategory};
 
-	match reward.category {
-		Kc3rdQuestRewardCategory::Material => {
-			let mats = vec![(MaterialCategory::from_id(reward.api_id), reward.amount)];
-			add_material_impl(c, codex, profile_id, &mats).await?;
-		}
-		Kc3rdQuestRewardCategory::Slotitem => {
-			add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
-		}
-		Kc3rdQuestRewardCategory::Ship => {
-			add_ship_impl(c, codex, profile_id, reward.api_id).await?;
-		}
-		Kc3rdQuestRewardCategory::UseItem => {
-			add_use_item_impl(c, profile_id, reward.api_id, reward.amount).await?;
-		}
-		Kc3rdQuestRewardCategory::FleetUnlock => {
-			unlock_fleet_impl(c, profile_id, reward.api_id).await?;
-		}
-		Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
-			unlock_large_construction_impl(c, profile_id).await?;
-		}
-		_ => {}
-	}
+    match reward.category {
+        Kc3rdQuestRewardCategory::Material => {
+            let mats = vec![(MaterialCategory::from_id(reward.api_id), reward.amount)];
+            add_material_impl(c, codex, profile_id, &mats).await?;
+        }
+        Kc3rdQuestRewardCategory::Slotitem => {
+            add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
+        }
+        Kc3rdQuestRewardCategory::Ship => {
+            add_ship_impl(c, codex, profile_id, reward.api_id).await?;
+        }
+        Kc3rdQuestRewardCategory::UseItem => {
+            add_use_item_impl(c, profile_id, reward.api_id, reward.amount).await?;
+        }
+        Kc3rdQuestRewardCategory::FleetUnlock => {
+            unlock_fleet_impl(c, profile_id, reward.api_id).await?;
+        }
+        Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
+            unlock_large_construction_impl(c, profile_id).await?;
+        }
+        _ => {}
+    }
 
-	Ok(())
+    Ok(())
 }
 
 pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	update_quests_impl(c, codex, profile_id).await?;
+    update_quests_impl(c, codex, profile_id).await?;
 
-	Ok(())
+    Ok(())
 }
 
 pub(super) async fn wipe<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	quest::oneshot::Entity::delete_many()
-		.filter(expedition::Column::ProfileId.eq(profile_id))
-		.exec(c)
-		.await?;
-	quest::periodic::Entity::delete_many()
-		.filter(expedition::Column::ProfileId.eq(profile_id))
-		.exec(c)
-		.await?;
-	quest::progress::Entity::delete_many()
-		.filter(expedition::Column::ProfileId.eq(profile_id))
-		.exec(c)
-		.await?;
+    quest::oneshot::Entity::delete_many()
+        .filter(expedition::Column::ProfileId.eq(profile_id))
+        .exec(c)
+        .await?;
+    quest::periodic::Entity::delete_many()
+        .filter(expedition::Column::ProfileId.eq(profile_id))
+        .exec(c)
+        .await?;
+    quest::progress::Entity::delete_many()
+        .filter(expedition::Column::ProfileId.eq(profile_id))
+        .exec(c)
+        .await?;
 
-	Ok(())
+    Ok(())
 }

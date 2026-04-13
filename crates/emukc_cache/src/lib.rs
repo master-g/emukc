@@ -27,8 +27,8 @@ pub use ver::{IntoVersion, NoVersion};
 /// This function replaces backslashes with forward slashes and
 /// trims leading slashes from the path.
 pub fn unified_rel_path(path: &str) -> String {
-	// unify the path to be relative
-	path.replace('\\', "/").trim_start_matches('/').to_owned()
+    // unify the path to be relative
+    path.replace('\\', "/").trim_start_matches('/').to_owned()
 }
 
 /// The `emukc_cache` crate prelude.
@@ -36,10 +36,10 @@ pub fn unified_rel_path(path: &str) -> String {
 /// This module re-exports the core types and traits of the crate
 /// for convenient importing with a global import: `use emukc_cache::prelude::*;`
 pub mod prelude {
-	pub use crate::GetOption;
-	pub use crate::IntoVersion;
-	pub use crate::Kache;
-	pub use crate::KacheBuilder;
-	pub use crate::KacheError;
-	pub use crate::NoVersion;
+    pub use crate::GetOption;
+    pub use crate::IntoVersion;
+    pub use crate::Kache;
+    pub use crate::KacheBuilder;
+    pub use crate::KacheError;
+    pub use crate::NoVersion;
 }

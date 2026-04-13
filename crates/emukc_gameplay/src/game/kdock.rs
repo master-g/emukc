@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use emukc_db::{
-	entity::profile::kdock,
-	sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
+    entity::profile::kdock,
+    sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{kc2::KcUseItemType, profile::kdock::ConstructionDock};
 
@@ -12,112 +12,112 @@ use super::use_item::deduct_use_item_impl;
 /// A trait for construction dock related gameplay.
 #[async_trait]
 pub trait KDockOps {
-	/// Unlock new construction dock.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `index`: The construction dock index, must be one of 2, 3, 4.
-	async fn unlock_kdock(
-		&self,
-		profile_id: i64,
-		index: i64,
-	) -> Result<ConstructionDock, GameplayError>;
+    /// Unlock new construction dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The construction dock index, must be one of 2, 3, 4.
+    async fn unlock_kdock(
+        &self,
+        profile_id: i64,
+        index: i64,
+    ) -> Result<ConstructionDock, GameplayError>;
 
-	/// Get single construction dock.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	/// - `index`: The construction dock index, must be one of 1, 2, 3, 4.
-	async fn get_kdock(
-		&self,
-		profile_id: i64,
-		index: i64,
-	) -> Result<ConstructionDock, GameplayError>;
+    /// Get single construction dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The construction dock index, must be one of 1, 2, 3, 4.
+    async fn get_kdock(
+        &self,
+        profile_id: i64,
+        index: i64,
+    ) -> Result<ConstructionDock, GameplayError>;
 
-	/// Get all construction docks.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError>;
+    /// Get all construction docks.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError>;
 
-	/// Expand construction dock.
-	///
-	/// # Parameters
-	///
-	/// - `profile_id`: The profile ID.
-	async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError>;
+    /// Expand construction dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError>;
 }
 
 #[async_trait]
 impl<T: HasContext + ?Sized> KDockOps for T {
-	async fn unlock_kdock(
-		&self,
-		profile_id: i64,
-		index: i64,
-	) -> Result<ConstructionDock, GameplayError> {
-		let db = self.db();
-		let tx = db.begin().await?;
+    async fn unlock_kdock(
+        &self,
+        profile_id: i64,
+        index: i64,
+    ) -> Result<ConstructionDock, GameplayError> {
+        let db = self.db();
+        let tx = db.begin().await?;
 
-		let m = unlock_kdock_impl(&tx, profile_id, index).await?;
+        let m = unlock_kdock_impl(&tx, profile_id, index).await?;
 
-		tx.commit().await?;
+        tx.commit().await?;
 
-		Ok(m.into())
-	}
+        Ok(m.into())
+    }
 
-	async fn get_kdock(
-		&self,
-		profile_id: i64,
-		index: i64,
-	) -> Result<ConstructionDock, GameplayError> {
-		let db = self.db();
-		let dock = get_kdock_impl(db, profile_id, index).await?;
+    async fn get_kdock(
+        &self,
+        profile_id: i64,
+        index: i64,
+    ) -> Result<ConstructionDock, GameplayError> {
+        let db = self.db();
+        let dock = get_kdock_impl(db, profile_id, index).await?;
 
-		Ok(dock)
-	}
+        Ok(dock)
+    }
 
-	async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError> {
-		let db = self.db();
-		let docks = get_kdocks_impl(db, profile_id).await?;
+    async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError> {
+        let db = self.db();
+        let docks = get_kdocks_impl(db, profile_id).await?;
 
-		Ok(docks.into_iter().map(std::convert::Into::into).collect())
-	}
+        Ok(docks.into_iter().map(std::convert::Into::into).collect())
+    }
 
-	async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
-		let db = self.db();
-		let tx = db.begin().await?;
+    async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
+        let db = self.db();
+        let tx = db.begin().await?;
 
-		expand_construction_dock_impl(&tx, profile_id).await?;
+        expand_construction_dock_impl(&tx, profile_id).await?;
 
-		tx.commit().await?;
+        tx.commit().await?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 }
 
 pub(super) async fn find_kdock_impl<C>(
-	c: &C,
-	profile_id: i64,
-	index: i64,
+    c: &C,
+    profile_id: i64,
+    index: i64,
 ) -> Result<kdock::Model, GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let dock = kdock::Entity::find()
-		.filter(kdock::Column::ProfileId.eq(profile_id))
-		.filter(kdock::Column::Index.eq(index))
-		.one(c)
-		.await?
-		.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"Construction dock {index} not found for profile {profile_id}",
-			))
-		})?;
+    let dock = kdock::Entity::find()
+        .filter(kdock::Column::ProfileId.eq(profile_id))
+        .filter(kdock::Column::Index.eq(index))
+        .one(c)
+        .await?
+        .ok_or_else(|| {
+            GameplayError::EntryNotFound(format!(
+                "Construction dock {index} not found for profile {profile_id}",
+            ))
+        })?;
 
-	Ok(dock)
+    Ok(dock)
 }
 
 /// Unlock new construction dock.
@@ -128,21 +128,21 @@ where
 /// - `index`: The construction dock index, must be one of 2, 3, 4.
 #[allow(unused)]
 pub(crate) async fn unlock_kdock_impl<C>(
-	c: &C,
-	profile_id: i64,
-	index: i64,
+    c: &C,
+    profile_id: i64,
+    index: i64,
 ) -> Result<kdock::Model, GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let dock = find_kdock_impl(c, profile_id, index).await?;
+    let dock = find_kdock_impl(c, profile_id, index).await?;
 
-	let mut am: kdock::ActiveModel = dock.into();
-	am.status = ActiveValue::Set(kdock::Status::Idle);
+    let mut am: kdock::ActiveModel = dock.into();
+    am.status = ActiveValue::Set(kdock::Status::Idle);
 
-	let m = am.save(c).await?;
+    let m = am.save(c).await?;
 
-	Ok(m.try_into_model()?)
+    Ok(m.try_into_model()?)
 }
 
 /// Get single construction dock.
@@ -153,16 +153,16 @@ where
 /// - `index`: The construction dock index, must be one of 1, 2, 3, 4.
 #[allow(unused)]
 pub(crate) async fn get_kdock_impl<C>(
-	c: &C,
-	profile_id: i64,
-	index: i64,
+    c: &C,
+    profile_id: i64,
+    index: i64,
 ) -> Result<ConstructionDock, GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let dock = find_kdock_impl(c, profile_id, index).await?;
+    let dock = find_kdock_impl(c, profile_id, index).await?;
 
-	Ok(dock.into())
+    Ok(dock.into())
 }
 
 /// Get all construction docks.
@@ -172,48 +172,48 @@ where
 /// - `profile_id`: The profile ID.
 #[allow(unused)]
 pub(crate) async fn get_kdocks_impl<C>(
-	c: &C,
-	profile_id: i64,
+    c: &C,
+    profile_id: i64,
 ) -> Result<Vec<kdock::Model>, GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let docks: Vec<kdock::Model> = kdock::Entity::find()
-		.filter(kdock::Column::ProfileId.eq(profile_id))
-		.order_by_asc(kdock::Column::Index)
-		.all(c)
-		.await?;
+    let docks: Vec<kdock::Model> = kdock::Entity::find()
+        .filter(kdock::Column::ProfileId.eq(profile_id))
+        .order_by_asc(kdock::Column::Index)
+        .all(c)
+        .await?;
 
-	Ok(docks)
+    Ok(docks)
 }
 
 pub(crate) async fn expand_construction_dock_impl<C>(
-	c: &C,
-	profile_id: i64,
+    c: &C,
+    profile_id: i64,
 ) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let dock = kdock::Entity::find()
-		.filter(kdock::Column::ProfileId.eq(profile_id))
-		.filter(kdock::Column::Status.eq(kdock::Status::Locked))
-		.order_by_asc(kdock::Column::Index)
-		.one(c)
-		.await?
-		.ok_or_else(|| {
-			GameplayError::EntryNotFound(format!(
-				"no locked construction dock not found for profile {profile_id}",
-			))
-		})?;
+    let dock = kdock::Entity::find()
+        .filter(kdock::Column::ProfileId.eq(profile_id))
+        .filter(kdock::Column::Status.eq(kdock::Status::Locked))
+        .order_by_asc(kdock::Column::Index)
+        .one(c)
+        .await?
+        .ok_or_else(|| {
+            GameplayError::EntryNotFound(format!(
+                "no locked construction dock not found for profile {profile_id}",
+            ))
+        })?;
 
-	deduct_use_item_impl(c, profile_id, KcUseItemType::DockKey as i64, 1).await?;
+    deduct_use_item_impl(c, profile_id, KcUseItemType::DockKey as i64, 1).await?;
 
-	let mut am: kdock::ActiveModel = dock.into();
-	am.status = ActiveValue::Set(kdock::Status::Idle);
+    let mut am: kdock::ActiveModel = dock.into();
+    am.status = ActiveValue::Set(kdock::Status::Idle);
 
-	am.save(c).await?;
+    am.save(c).await?;
 
-	Ok(())
+    Ok(())
 }
 
 /// Initialize construction docks for a profile.
@@ -224,39 +224,39 @@ where
 /// - `profile_id`: The profile ID.
 pub(super) async fn init<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	let models: Vec<kdock::ActiveModel> = [1, 2, 3, 4]
-		.iter()
-		.map(|i| {
-			let dock = ConstructionDock::new(profile_id, *i).unwrap();
-			kdock::ActiveModel {
-				id: ActiveValue::NotSet,
-				profile_id: ActiveValue::Set(profile_id),
-				index: ActiveValue::Set(*i),
-				status: ActiveValue::Set(dock.status.into()),
-				ship_id: ActiveValue::Set(0),
-				complete_time: ActiveValue::Set(None),
-				is_large: ActiveValue::Set(false),
-				fuel: ActiveValue::Set(0),
-				ammo: ActiveValue::Set(0),
-				steel: ActiveValue::Set(0),
-				bauxite: ActiveValue::Set(0),
-				devmat: ActiveValue::Set(0),
-			}
-		})
-		.collect();
+    let models: Vec<kdock::ActiveModel> = [1, 2, 3, 4]
+        .iter()
+        .map(|i| {
+            let dock = ConstructionDock::new(profile_id, *i).unwrap();
+            kdock::ActiveModel {
+                id: ActiveValue::NotSet,
+                profile_id: ActiveValue::Set(profile_id),
+                index: ActiveValue::Set(*i),
+                status: ActiveValue::Set(dock.status.into()),
+                ship_id: ActiveValue::Set(0),
+                complete_time: ActiveValue::Set(None),
+                is_large: ActiveValue::Set(false),
+                fuel: ActiveValue::Set(0),
+                ammo: ActiveValue::Set(0),
+                steel: ActiveValue::Set(0),
+                bauxite: ActiveValue::Set(0),
+                devmat: ActiveValue::Set(0),
+            }
+        })
+        .collect();
 
-	kdock::Entity::insert_many(models).exec(c).await?;
+    kdock::Entity::insert_many(models).exec(c).await?;
 
-	Ok(())
+    Ok(())
 }
 
 pub(super) async fn wipe_kdock_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
-	C: ConnectionTrait,
+    C: ConnectionTrait,
 {
-	kdock::Entity::delete_many().filter(kdock::Column::ProfileId.eq(profile_id)).exec(c).await?;
+    kdock::Entity::delete_many().filter(kdock::Column::ProfileId.eq(profile_id)).exec(c).await?;
 
-	Ok(())
+    Ok(())
 }

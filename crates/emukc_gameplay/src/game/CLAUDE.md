@@ -13,4 +13,22 @@
 | #596 | 6:18 PM | 🔵 | Quest and slot item trait implementations documented for OpenSpec capability analysis | ~988 |
 | #593 | 6:17 PM | 🔵 | Domain module structure analysis completed for OpenSpec capability identification | ~709 |
 | #592 | " | 🔵 | Gameplay trait system architecture documented for OpenSpec capability mapping | ~799 |
+
+### Apr 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #813 | 8:57 PM | 🟣 | is_map_unlocked_by_default logic refined for EO and event maps | ~299 |
+| #785 | 8:40 PM | 🔵 | Test helper sample_record updated with unlocked field | ~214 |
+| #769 | 8:21 PM | 🔵 | Test code examination shows unlocked field added to ActiveModel initialization | ~255 |
+| #755 | 8:12 PM | 🟣 | api_next_map_ids added to battle result response | ~270 |
+| #754 | 8:07 PM | 🔵 | import statements updated in sortie.rs for unlock functionality | ~267 |
+| #751 | 8:04 PM | 🟣 | Map unlock check added to start_sortie function | ~259 |
+| #748 | 8:03 PM | 🔵 | check_and_unlock_dependencies_impl function implementation found | ~241 |
+| #743 | 7:58 PM | 🟣 | is_map_unlocked_by_default function implemented in map.rs | ~300 |
+| #739 | 7:56 PM | 🔵 | apply_sortie_map_result function identified as unlock cascade trigger point | ~303 |
+| #738 | 7:55 PM | 🔵 | sortie_result.rs examined for unlock cascade integration point | ~295 |
+| #737 | 7:54 PM | 🔵 | build_map_infos function examined for unlocked filtering | ~273 |
+| #736 | 7:51 PM | 🟣 | ensure_map_records_impl updated with unlock state initialization | ~299 |
+| #735 | 7:49 PM | 🔵 | ensure_map_records_impl function examined for unlock state initialization | ~322 |
 </claude-mem-context>

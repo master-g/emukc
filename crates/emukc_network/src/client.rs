@@ -13,41 +13,41 @@ const DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 ///
 /// A new reqwest client, or an error if the client could not be created
 pub fn new_reqwest_client(
-	proxy: Option<&str>,
-	ua: Option<&str>,
+    proxy: Option<&str>,
+    ua: Option<&str>,
 ) -> Result<reqwest::Client, reqwest::Error> {
-	let builder = reqwest::Client::builder()
-		.danger_accept_invalid_certs(true)
-		.pool_max_idle_per_host(0)
-		.user_agent(ua.unwrap_or(DEFAULT_UA));
+    let builder = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .pool_max_idle_per_host(0)
+        .user_agent(ua.unwrap_or(DEFAULT_UA));
 
-	let builder = if let Some(proxy) = proxy {
-		let proxy = reqwest::Proxy::all(proxy)?;
-		builder.proxy(proxy)
-	} else {
-		builder.no_proxy()
-	};
+    let builder = if let Some(proxy) = proxy {
+        let proxy = reqwest::Proxy::all(proxy)?;
+        builder.proxy(proxy)
+    } else {
+        builder.no_proxy()
+    };
 
-	builder.build()
+    builder.build()
 }
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[tokio::test]
-	async fn test_new_reqwest_client() {
-		let client = new_reqwest_client(None, None).unwrap();
-		client.get("http://w00g.kancolle-server.com/kcs2/world.html").send().await.unwrap();
-	}
+    #[tokio::test]
+    async fn test_new_reqwest_client() {
+        let client = new_reqwest_client(None, None).unwrap();
+        client.get("http://w00g.kancolle-server.com/kcs2/world.html").send().await.unwrap();
+    }
 
-	#[test]
-	fn test_new_reqwest_client_accepts_http_proxy() {
-		new_reqwest_client(Some("http://127.0.0.1:1086"), None).unwrap();
-	}
+    #[test]
+    fn test_new_reqwest_client_accepts_http_proxy() {
+        new_reqwest_client(Some("http://127.0.0.1:1086"), None).unwrap();
+    }
 
-	#[test]
-	fn test_new_reqwest_client_accepts_socks5_proxy() {
-		new_reqwest_client(Some("socks5://127.0.0.1:1086"), None).unwrap();
-	}
+    #[test]
+    fn test_new_reqwest_client_accepts_socks5_proxy() {
+        new_reqwest_client(Some("socks5://127.0.0.1:1086"), None).unwrap();
+    }
 }

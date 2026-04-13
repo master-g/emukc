@@ -9,4 +9,10 @@
 |----|------|---|-------|------|
 | #605 | 6:21 PM | 🔵 | Gameplay operations and testing infrastructure analysis completed for OpenSpec planning | ~1118 |
 | #604 | " | 🔵 | Comprehensive repository analysis completed for OpenSpec infrastructure planning | ~1122 |
+
+### Apr 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #733 | 7:46 PM | 🟣 | MapRecord model updated with unlocked field | ~266 |
 </claude-mem-context>

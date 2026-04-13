@@ -7,109 +7,109 @@ use serde::{Deserialize, Serialize};
 #[allow(unused)]
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ResourceCategory {
-	Start2,
-	KccpQuests,
-	KcData,
-	KcWikiSlotItem,
-	KcWikiShip,
-	KcWikiEnemy,
-	KcWikiEnemyEquipment,
-	KcWikiUseItem,
-	ShipsNedb,
-	TsunKitQuests,
-	KC3KaiQuotes,
+    Start2,
+    KccpQuests,
+    KcData,
+    KcWikiSlotItem,
+    KcWikiShip,
+    KcWikiEnemy,
+    KcWikiEnemyEquipment,
+    KcWikiUseItem,
+    ShipsNedb,
+    TsunKitQuests,
+    KC3KaiQuotes,
 }
 
 #[derive(Debug)]
 pub struct Resource<'a> {
-	pub url: &'a str,
-	pub save_as: &'a str,
-	pub unzip_to: Option<&'a str>,
+    pub url: &'a str,
+    pub save_as: &'a str,
+    pub unzip_to: Option<&'a str>,
 }
 
 pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
-	vec![
-		Resource {
-			// category: ResourceCategory::Start2,
-			// url: "http://api.kcwiki.moe/start2",
-			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/master/api/api_start2.json",
-			save_as: "start2.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::KccpQuests,
-			url: "https://raw.githubusercontent.com/Oradimi/KanColle-English-Patch-KCCP/master/EN-patch/kcs2/js/main.js/ignore-raw_text_translations/ignore-_quests.json",
-			save_as: "kccp_quests.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::KcData,
-			url: "https://github.com/kcwikizh/kcdata/archive/refs/heads/gh-pages.zip",
-			save_as: "kc_data.zip",
-			unzip_to: Some("kc_data"),
-		},
-		Resource {
-			// category: ResourceCategory::KcWikiSlotItem,
-			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/equipment.json",
-			save_as: "kcwiki_slotitem.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::KcWikiShip,
-			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/ship.json",
-			save_as: "kcwiki_ship.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::KcWikiEnemy,
-			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/enemy.json",
-			save_as: "kcwiki_enemy.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::KcWikiEnemyEquipment,
-			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/enemyEquipment.json",
-			save_as: "kcwiki_enemy_equipment.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::KcWikiUseItem,
-			url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/item.json",
-			save_as: "kcwiki_useitem.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::ShipsNedb,
-			url: "https://raw.githubusercontent.com/kcwikizh/WhoCallsTheFleet-DB/master/db/ships.nedb",
-			save_as: "ships.nedb",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::TsunKitQuests,
-			url: "https://raw.githubusercontent.com/planetarian/TsunKitQuests/main/quests.json",
-			save_as: "tsunkit_quests.json",
-			unzip_to: None,
-		},
-		Resource {
-			// category: ResourceCategory::TsunKitQuests,
-			url: "https://raw.githubusercontent.com/KC3Kai/kc3-translations/master/data/jp/quotes.json",
-			save_as: "kc3kai_jp_quotes.json",
-			unzip_to: None,
-		},
-		Resource {
-			url: "https://antest1.github.io/kcanotify-gamedata/files/expedition.json",
-			save_as: "kcanotify_expedition.json",
-			unzip_to: None,
-		},
-	]
+    vec![
+        Resource {
+            // category: ResourceCategory::Start2,
+            // url: "http://api.kcwiki.moe/start2",
+            url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/master/api/api_start2.json",
+            save_as: "start2.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::KccpQuests,
+            url: "https://raw.githubusercontent.com/Oradimi/KanColle-English-Patch-KCCP/master/EN-patch/kcs2/js/main.js/ignore-raw_text_translations/ignore-_quests.json",
+            save_as: "kccp_quests.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::KcData,
+            url: "https://github.com/kcwikizh/kcdata/archive/refs/heads/gh-pages.zip",
+            save_as: "kc_data.zip",
+            unzip_to: Some("kc_data"),
+        },
+        Resource {
+            // category: ResourceCategory::KcWikiSlotItem,
+            url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/equipment.json",
+            save_as: "kcwiki_slotitem.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::KcWikiShip,
+            url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/ship.json",
+            save_as: "kcwiki_ship.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::KcWikiEnemy,
+            url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/enemy.json",
+            save_as: "kcwiki_enemy.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::KcWikiEnemyEquipment,
+            url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/enemyEquipment.json",
+            save_as: "kcwiki_enemy_equipment.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::KcWikiUseItem,
+            url: "https://raw.githubusercontent.com/kcwiki/kancolle-data/refs/heads/master/wiki/item.json",
+            save_as: "kcwiki_useitem.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::ShipsNedb,
+            url: "https://raw.githubusercontent.com/kcwikizh/WhoCallsTheFleet-DB/master/db/ships.nedb",
+            save_as: "ships.nedb",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::TsunKitQuests,
+            url: "https://raw.githubusercontent.com/planetarian/TsunKitQuests/main/quests.json",
+            save_as: "tsunkit_quests.json",
+            unzip_to: None,
+        },
+        Resource {
+            // category: ResourceCategory::TsunKitQuests,
+            url: "https://raw.githubusercontent.com/KC3Kai/kc3-translations/master/data/jp/quotes.json",
+            save_as: "kc3kai_jp_quotes.json",
+            unzip_to: None,
+        },
+        Resource {
+            url: "https://antest1.github.io/kcanotify-gamedata/files/expedition.json",
+            save_as: "kcanotify_expedition.json",
+            unzip_to: None,
+        },
+    ]
 });
 
 #[cfg(test)]
 mod test {
-	#[test]
-	fn test_res_list() {
-		super::RES_LIST.iter().for_each(|res| {
-			println!("{:?}", res);
-		});
-	}
+    #[test]
+    fn test_res_list() {
+        super::RES_LIST.iter().for_each(|res| {
+            println!("{:?}", res);
+        });
+    }
 }

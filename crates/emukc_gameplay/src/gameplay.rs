@@ -7,25 +7,25 @@ use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
 use crate::{
-	game::{GameOps, SortieStore, sortie_store::GLOBAL_SORTIE_STORE},
-	user::{AccountOps, ProfileOps},
+    game::{GameOps, SortieStore, sortie_store::GLOBAL_SORTIE_STORE},
+    user::{AccountOps, ProfileOps},
 };
 
 /// A trait for types that have a database connection and a codex.
 pub trait HasContext: Send + Sync {
-	/// Get the database connection.
-	fn db(&self) -> &DbConn;
+    /// Get the database connection.
+    fn db(&self) -> &DbConn;
 
-	/// Get the game's codex.
-	fn codex(&self) -> &Codex;
+    /// Get the game's codex.
+    fn codex(&self) -> &Codex;
 
-	/// Get the sortie runtime store.
-	///
-	/// Defaults to a process-global instance.  Override this to provide
-	/// instance-scoped isolation (e.g., in tests or multi-tenant runtimes).
-	fn sortie_store(&self) -> &SortieStore {
-		&GLOBAL_SORTIE_STORE
-	}
+    /// Get the sortie runtime store.
+    ///
+    /// Defaults to a process-global instance.  Override this to provide
+    /// instance-scoped isolation (e.g., in tests or multi-tenant runtimes).
+    fn sortie_store(&self) -> &SortieStore {
+        &GLOBAL_SORTIE_STORE
+    }
 }
 
 /// Gameplay trait for the game's data and logic.
@@ -38,41 +38,41 @@ impl<T: HasContext + ?Sized> Gameplay for T {}
 
 /// Blanket implementation of `HasContext` for a tuple of `Arc<DbConn>` and `Arc<Codex>`.
 impl HasContext for (Arc<DbConn>, Arc<Codex>) {
-	fn db(&self) -> &DbConn {
-		self.0.as_ref()
-	}
+    fn db(&self) -> &DbConn {
+        self.0.as_ref()
+    }
 
-	fn codex(&self) -> &Codex {
-		self.1.as_ref()
-	}
+    fn codex(&self) -> &Codex {
+        self.1.as_ref()
+    }
 }
 
 impl HasContext for (Arc<Codex>, Arc<DbConn>) {
-	fn db(&self) -> &DbConn {
-		self.1.as_ref()
-	}
+    fn db(&self) -> &DbConn {
+        self.1.as_ref()
+    }
 
-	fn codex(&self) -> &Codex {
-		self.0.as_ref()
-	}
+    fn codex(&self) -> &Codex {
+        self.0.as_ref()
+    }
 }
 
 impl HasContext for (DbConn, Codex) {
-	fn db(&self) -> &DbConn {
-		&self.0
-	}
+    fn db(&self) -> &DbConn {
+        &self.0
+    }
 
-	fn codex(&self) -> &Codex {
-		&self.1
-	}
+    fn codex(&self) -> &Codex {
+        &self.1
+    }
 }
 
 impl HasContext for (Codex, DbConn) {
-	fn db(&self) -> &DbConn {
-		&self.1
-	}
+    fn db(&self) -> &DbConn {
+        &self.1
+    }
 
-	fn codex(&self) -> &Codex {
-		&self.0
-	}
+    fn codex(&self) -> &Codex {
+        &self.0
+    }
 }

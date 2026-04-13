@@ -1,244 +1,244 @@
 use thiserror::Error;
 
 use crate::{
-	codex::Codex,
-	kc2::{
-		KcApiQuestClearItemBonusType, KcApiQuestClearItemGet, KcApiQuestClearItemGetBonus,
-		KcApiQuestClearItemGetBonusItem, KcUseItemType, MaterialCategory,
-	},
-	prelude::{
-		ApiManifest, Kc3rdQuest, Kc3rdQuestReward, Kc3rdQuestRewardCategory,
-		extra::add_extra_to_conversion_or_exchange_bonus,
-	},
-	profile::fleet::{Fleet, FleetError},
+    codex::Codex,
+    kc2::{
+        KcApiQuestClearItemBonusType, KcApiQuestClearItemGet, KcApiQuestClearItemGetBonus,
+        KcApiQuestClearItemGetBonusItem, KcUseItemType, MaterialCategory,
+    },
+    prelude::{
+        ApiManifest, Kc3rdQuest, Kc3rdQuestReward, Kc3rdQuestRewardCategory,
+        extra::add_extra_to_conversion_or_exchange_bonus,
+    },
+    profile::fleet::{Fleet, FleetError},
 };
 
 #[derive(Error, Debug, Clone)]
 pub enum RewardError {
-	/// Invalid fleet info in the quest rewards
-	#[error(transparent)]
-	InvalidFleet(#[from] FleetError),
+    /// Invalid fleet info in the quest rewards
+    #[error(transparent)]
+    InvalidFleet(#[from] FleetError),
 
-	/// Invalid ship info in the quest rewards
-	#[error("invalid ship id {0}")]
-	InvalidShip(i64),
+    /// Invalid ship info in the quest rewards
+    #[error("invalid ship id {0}")]
+    InvalidShip(i64),
 
-	#[error("user choices length mismatch: expected {expected}, got {got}")]
-	ChoicesLengthMismatch {
-		expected: usize,
-		got: usize,
-	},
+    #[error("user choices length mismatch: expected {expected}, got {got}")]
+    ChoicesLengthMismatch {
+        expected: usize,
+        got: usize,
+    },
 
-	#[error("quest {0} not found in codex")]
-	QuestNotFound(i64),
+    #[error("quest {0} not found in codex")]
+    QuestNotFound(i64),
 }
 
 fn safe_convert_use_item_type(id: i64) -> (KcApiQuestClearItemBonusType, i64) {
-	match KcUseItemType::n(id) {
-		Some(typ) => match typ {
-			KcUseItemType::Bucket => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Bucket as i64)
-			}
-			KcUseItemType::Torch => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Torch as i64)
-			}
-			KcUseItemType::DevMaterial => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::DevMat as i64)
-			}
-			KcUseItemType::Screw => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Screw as i64)
-			}
-			KcUseItemType::Fuel => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Fuel as i64)
-			}
-			KcUseItemType::Ammo => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Ammo as i64)
-			}
-			KcUseItemType::Steel => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Steel as i64)
-			}
-			KcUseItemType::Bauxite => {
-				(KcApiQuestClearItemBonusType::Material, MaterialCategory::Bauxite as i64)
-			}
-			KcUseItemType::FCoinBox200 => {
-				(KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox200 as i64)
-			}
-			KcUseItemType::FCoinBox400 => {
-				(KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox400 as i64)
-			}
-			KcUseItemType::FCoinBox700 => {
-				(KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox700 as i64)
-			}
-			_ => (KcApiQuestClearItemBonusType::UseItem, id),
-		},
-		_ => (KcApiQuestClearItemBonusType::UseItem, id),
-	}
+    match KcUseItemType::n(id) {
+        Some(typ) => match typ {
+            KcUseItemType::Bucket => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Bucket as i64)
+            }
+            KcUseItemType::Torch => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Torch as i64)
+            }
+            KcUseItemType::DevMaterial => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::DevMat as i64)
+            }
+            KcUseItemType::Screw => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Screw as i64)
+            }
+            KcUseItemType::Fuel => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Fuel as i64)
+            }
+            KcUseItemType::Ammo => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Ammo as i64)
+            }
+            KcUseItemType::Steel => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Steel as i64)
+            }
+            KcUseItemType::Bauxite => {
+                (KcApiQuestClearItemBonusType::Material, MaterialCategory::Bauxite as i64)
+            }
+            KcUseItemType::FCoinBox200 => {
+                (KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox200 as i64)
+            }
+            KcUseItemType::FCoinBox400 => {
+                (KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox400 as i64)
+            }
+            KcUseItemType::FCoinBox700 => {
+                (KcApiQuestClearItemBonusType::FurnitureCoinBox, KcUseItemType::FCoinBox700 as i64)
+            }
+            _ => (KcApiQuestClearItemBonusType::UseItem, id),
+        },
+        _ => (KcApiQuestClearItemBonusType::UseItem, id),
+    }
 }
 
 /// convert `Kc3rdQuestReward` to `KcApiQuestClearItemGetBonus` for most cases
 /// except for model conversion
 fn convert_kc3rd_quest_reward_to_api(
-	manifest: &ApiManifest,
-	reward: &Kc3rdQuestReward,
+    manifest: &ApiManifest,
+    reward: &Kc3rdQuestReward,
 ) -> Result<Option<KcApiQuestClearItemGetBonus>, RewardError> {
-	let bonus = match reward.category {
-		Kc3rdQuestRewardCategory::Material => Some(KcApiQuestClearItemGetBonus {
-			api_type: KcApiQuestClearItemBonusType::Material as i64,
-			api_count: reward.amount,
-			api_item: Some(KcApiQuestClearItemGetBonusItem {
-				api_id: Some(reward.api_id),
-				..Default::default()
-			}),
-		}),
-		Kc3rdQuestRewardCategory::Slotitem => Some(KcApiQuestClearItemGetBonus {
-			api_type: KcApiQuestClearItemBonusType::SlotItem as i64,
-			api_count: reward.amount,
-			api_item: Some(KcApiQuestClearItemGetBonusItem {
-				api_id: Some(reward.api_id),
-				api_slotitem_level: (reward.stars > 0).then_some(reward.stars),
-				..Default::default()
-			}),
-		}),
-		Kc3rdQuestRewardCategory::Ship => {
-			let ship_mst =
-				manifest.find_ship(reward.api_id).ok_or(RewardError::InvalidShip(reward.api_id))?;
+    let bonus = match reward.category {
+        Kc3rdQuestRewardCategory::Material => Some(KcApiQuestClearItemGetBonus {
+            api_type: KcApiQuestClearItemBonusType::Material as i64,
+            api_count: reward.amount,
+            api_item: Some(KcApiQuestClearItemGetBonusItem {
+                api_id: Some(reward.api_id),
+                ..Default::default()
+            }),
+        }),
+        Kc3rdQuestRewardCategory::Slotitem => Some(KcApiQuestClearItemGetBonus {
+            api_type: KcApiQuestClearItemBonusType::SlotItem as i64,
+            api_count: reward.amount,
+            api_item: Some(KcApiQuestClearItemGetBonusItem {
+                api_id: Some(reward.api_id),
+                api_slotitem_level: (reward.stars > 0).then_some(reward.stars),
+                ..Default::default()
+            }),
+        }),
+        Kc3rdQuestRewardCategory::Ship => {
+            let ship_mst =
+                manifest.find_ship(reward.api_id).ok_or(RewardError::InvalidShip(reward.api_id))?;
 
-			Some(KcApiQuestClearItemGetBonus {
-				api_type: KcApiQuestClearItemBonusType::ShipBonus as i64,
-				api_count: reward.amount,
-				api_item: Some(KcApiQuestClearItemGetBonusItem {
-					api_ship_id: Some(reward.api_id),
-					api_name: Some(ship_mst.api_name.clone()),
-					api_getmes: ship_mst.api_getmes.clone(),
-					..Default::default()
-				}),
-			})
-		}
-		Kc3rdQuestRewardCategory::Furniture => Some(KcApiQuestClearItemGetBonus {
-			api_type: KcApiQuestClearItemBonusType::Furniture as i64,
-			api_count: 1,
-			api_item: Some(KcApiQuestClearItemGetBonusItem {
-				api_id: Some(reward.api_id),
-				..Default::default()
-			}),
-		}),
-		Kc3rdQuestRewardCategory::UseItem => {
-			let (api_type, real_id) = safe_convert_use_item_type(reward.api_id);
-			Some(KcApiQuestClearItemGetBonus {
-				api_type: api_type as i64,
-				api_count: reward.amount,
-				api_item: Some(KcApiQuestClearItemGetBonusItem {
-					api_id: Some(real_id),
-					..Default::default()
-				}),
-			})
-		}
-		Kc3rdQuestRewardCategory::FleetUnlock => {
-			let fleet = Fleet::new(0, reward.api_id)?;
-			Some(KcApiQuestClearItemGetBonus {
-				api_type: KcApiQuestClearItemBonusType::UnlockDeck as i64,
-				api_count: 1,
-				api_item: Some(KcApiQuestClearItemGetBonusItem {
-					api_id: Some(reward.api_id),
-					api_name: Some(fleet.name),
-					..Default::default()
-				}),
-			})
-		}
-		Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
-			Some(KcApiQuestClearItemGetBonus {
-				api_type: KcApiQuestClearItemBonusType::UnlockLargeBuild as i64,
-				api_count: 0,
-				api_item: None,
-			})
-		}
-		Kc3rdQuestRewardCategory::WarResult => Some(KcApiQuestClearItemGetBonus {
-			api_type: KcApiQuestClearItemBonusType::WarResult as i64,
-			api_count: reward.amount,
-			api_item: None,
-		}),
-		Kc3rdQuestRewardCategory::ExpeditionSupplyUnlock => Some(KcApiQuestClearItemGetBonus {
-			api_type: KcApiQuestClearItemBonusType::ExtraSupply as i64,
-			api_count: 0,
-			api_item: None,
-		}),
-		Kc3rdQuestRewardCategory::AirbaseUnlock => {
-			let name = match reward.api_id {
-				6 => "中部海域",
-				7 => "南西海域",
-				_ => "fixme: unknow airbase",
-			};
-			Some(KcApiQuestClearItemGetBonus {
-				api_type: KcApiQuestClearItemBonusType::AirUnitBase as i64,
-				api_count: 0,
-				api_item: Some(KcApiQuestClearItemGetBonusItem {
-					api_id: Some(reward.api_id),
-					api_message: Some(format!(
-						"飛行場設営完了！　{name}に「基地航空隊」を展開しました！"
-					)),
-					api_message_a: Some(format!("{name}に「基地航空隊」を展開中…")),
-					..Default::default()
-				}),
-			})
-		}
-		Kc3rdQuestRewardCategory::FactoryImprovementUnlock => None,
-	};
+            Some(KcApiQuestClearItemGetBonus {
+                api_type: KcApiQuestClearItemBonusType::ShipBonus as i64,
+                api_count: reward.amount,
+                api_item: Some(KcApiQuestClearItemGetBonusItem {
+                    api_ship_id: Some(reward.api_id),
+                    api_name: Some(ship_mst.api_name.clone()),
+                    api_getmes: ship_mst.api_getmes.clone(),
+                    ..Default::default()
+                }),
+            })
+        }
+        Kc3rdQuestRewardCategory::Furniture => Some(KcApiQuestClearItemGetBonus {
+            api_type: KcApiQuestClearItemBonusType::Furniture as i64,
+            api_count: 1,
+            api_item: Some(KcApiQuestClearItemGetBonusItem {
+                api_id: Some(reward.api_id),
+                ..Default::default()
+            }),
+        }),
+        Kc3rdQuestRewardCategory::UseItem => {
+            let (api_type, real_id) = safe_convert_use_item_type(reward.api_id);
+            Some(KcApiQuestClearItemGetBonus {
+                api_type: api_type as i64,
+                api_count: reward.amount,
+                api_item: Some(KcApiQuestClearItemGetBonusItem {
+                    api_id: Some(real_id),
+                    ..Default::default()
+                }),
+            })
+        }
+        Kc3rdQuestRewardCategory::FleetUnlock => {
+            let fleet = Fleet::new(0, reward.api_id)?;
+            Some(KcApiQuestClearItemGetBonus {
+                api_type: KcApiQuestClearItemBonusType::UnlockDeck as i64,
+                api_count: 1,
+                api_item: Some(KcApiQuestClearItemGetBonusItem {
+                    api_id: Some(reward.api_id),
+                    api_name: Some(fleet.name),
+                    ..Default::default()
+                }),
+            })
+        }
+        Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
+            Some(KcApiQuestClearItemGetBonus {
+                api_type: KcApiQuestClearItemBonusType::UnlockLargeBuild as i64,
+                api_count: 0,
+                api_item: None,
+            })
+        }
+        Kc3rdQuestRewardCategory::WarResult => Some(KcApiQuestClearItemGetBonus {
+            api_type: KcApiQuestClearItemBonusType::WarResult as i64,
+            api_count: reward.amount,
+            api_item: None,
+        }),
+        Kc3rdQuestRewardCategory::ExpeditionSupplyUnlock => Some(KcApiQuestClearItemGetBonus {
+            api_type: KcApiQuestClearItemBonusType::ExtraSupply as i64,
+            api_count: 0,
+            api_item: None,
+        }),
+        Kc3rdQuestRewardCategory::AirbaseUnlock => {
+            let name = match reward.api_id {
+                6 => "中部海域",
+                7 => "南西海域",
+                _ => "fixme: unknow airbase",
+            };
+            Some(KcApiQuestClearItemGetBonus {
+                api_type: KcApiQuestClearItemBonusType::AirUnitBase as i64,
+                api_count: 0,
+                api_item: Some(KcApiQuestClearItemGetBonusItem {
+                    api_id: Some(reward.api_id),
+                    api_message: Some(format!(
+                        "飛行場設営完了！　{name}に「基地航空隊」を展開しました！"
+                    )),
+                    api_message_a: Some(format!("{name}に「基地航空隊」を展開中…")),
+                    ..Default::default()
+                }),
+            })
+        }
+        Kc3rdQuestRewardCategory::FactoryImprovementUnlock => None,
+    };
 
-	Ok(bonus)
+    Ok(bonus)
 }
 
 fn get_conversion_quest_rewards(
-	codex: &Codex,
-	quest_manifest: &Kc3rdQuest,
-	choices: Option<&[i64]>,
+    codex: &Codex,
+    quest_manifest: &Kc3rdQuest,
+    choices: Option<&[i64]>,
 ) -> Result<KcApiQuestClearItemGet, RewardError> {
-	let choices = choices.unwrap_or_default();
-	if choices.len() != quest_manifest.choice_rewards.len() {
-		warn!(
-			"choices length mismatch: expected {}, got {}",
-			quest_manifest.choice_rewards.len(),
-			choices.len()
-		);
-		return Err(RewardError::ChoicesLengthMismatch {
-			expected: quest_manifest.choice_rewards.len(),
-			got: choices.len(),
-		});
-	}
+    let choices = choices.unwrap_or_default();
+    if choices.len() != quest_manifest.choice_rewards.len() {
+        warn!(
+            "choices length mismatch: expected {}, got {}",
+            quest_manifest.choice_rewards.len(),
+            choices.len()
+        );
+        return Err(RewardError::ChoicesLengthMismatch {
+            expected: quest_manifest.choice_rewards.len(),
+            got: choices.len(),
+        });
+    }
 
-	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
-	for (choice, reward) in choices.iter().zip(quest_manifest.choice_rewards.iter()) {
-		let reward = reward.choices.get(*choice as usize);
-		if let Some(reward) = reward {
-			if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)? {
-				api_bounus.push(bonus);
-			}
-		} else {
-			warn!("invalid choice index: {}", choice);
-		}
-	}
+    let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
+    for (choice, reward) in choices.iter().zip(quest_manifest.choice_rewards.iter()) {
+        let reward = reward.choices.get(*choice as usize);
+        if let Some(reward) = reward {
+            if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)? {
+                api_bounus.push(bonus);
+            }
+        } else {
+            warn!("invalid choice index: {}", choice);
+        }
+    }
 
-	quest_manifest.additional_rewards.iter().for_each(|v| {
-		if let Ok(Some(bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
-			api_bounus.push(bonus);
-		} else {
-			error!("failed to convert additional reward for quest {}", quest_manifest.api_no);
-		}
-	});
+    quest_manifest.additional_rewards.iter().for_each(|v| {
+        if let Ok(Some(bonus)) = convert_kc3rd_quest_reward_to_api(&codex.manifest, v) {
+            api_bounus.push(bonus);
+        } else {
+            error!("failed to convert additional reward for quest {}", quest_manifest.api_no);
+        }
+    });
 
-	add_extra_to_conversion_or_exchange_bonus(codex, quest_manifest, &mut api_bounus);
+    add_extra_to_conversion_or_exchange_bonus(codex, quest_manifest, &mut api_bounus);
 
-	let result = KcApiQuestClearItemGet {
-		api_material: [
-			quest_manifest.reward_fuel,
-			quest_manifest.reward_ammo,
-			quest_manifest.reward_steel,
-			quest_manifest.reward_bauxite,
-		],
-		api_bounus_count: api_bounus.len() as i64,
-		api_bounus,
-	};
+    let result = KcApiQuestClearItemGet {
+        api_material: [
+            quest_manifest.reward_fuel,
+            quest_manifest.reward_ammo,
+            quest_manifest.reward_steel,
+            quest_manifest.reward_bauxite,
+        ],
+        api_bounus_count: api_bounus.len() as i64,
+        api_bounus,
+    };
 
-	Ok(result)
+    Ok(result)
 }
 
 /// Get request reward for kcs API
@@ -249,57 +249,57 @@ fn get_conversion_quest_rewards(
 /// * `quest_id` - The ID of the quest
 /// * `choices` - Optional user choices, starts from 0
 pub fn get_quest_rewards(
-	codex: &Codex,
-	quest_id: i64,
-	choices: Option<&[i64]>,
+    codex: &Codex,
+    quest_id: i64,
+    choices: Option<&[i64]>,
 ) -> Result<KcApiQuestClearItemGet, RewardError> {
-	let quest_manifest = codex.quest.get(&quest_id).ok_or(RewardError::QuestNotFound(quest_id))?;
-	let api_material = [
-		quest_manifest.reward_fuel,
-		quest_manifest.reward_ammo,
-		quest_manifest.reward_steel,
-		quest_manifest.reward_bauxite,
-	];
+    let quest_manifest = codex.quest.get(&quest_id).ok_or(RewardError::QuestNotFound(quest_id))?;
+    let api_material = [
+        quest_manifest.reward_fuel,
+        quest_manifest.reward_ammo,
+        quest_manifest.reward_steel,
+        quest_manifest.reward_bauxite,
+    ];
 
-	if quest_manifest.is_conversion_quest() {
-		// model conversion / exchange quest
-		return get_conversion_quest_rewards(codex, quest_manifest, choices);
-	}
+    if quest_manifest.is_conversion_quest() {
+        // model conversion / exchange quest
+        return get_conversion_quest_rewards(codex, quest_manifest, choices);
+    }
 
-	let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
-	if let Some(user_choices) = choices {
-		if user_choices.len() != quest_manifest.choice_rewards.len() {
-			return Err(RewardError::ChoicesLengthMismatch {
-				expected: quest_manifest.choice_rewards.len(),
-				got: user_choices.len(),
-			});
-		}
-		for (choice, reward) in user_choices.iter().zip(quest_manifest.choice_rewards.iter()) {
-			let reward = reward.choices.get(*choice as usize);
-			if let Some(reward) = reward {
-				if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)? {
-					api_bounus.push(bonus);
-				}
-			} else {
-				warn!("invalid choice index: {}", choice);
-			}
-		}
-	}
+    let mut api_bounus: Vec<KcApiQuestClearItemGetBonus> = Vec::new();
+    if let Some(user_choices) = choices {
+        if user_choices.len() != quest_manifest.choice_rewards.len() {
+            return Err(RewardError::ChoicesLengthMismatch {
+                expected: quest_manifest.choice_rewards.len(),
+                got: user_choices.len(),
+            });
+        }
+        for (choice, reward) in user_choices.iter().zip(quest_manifest.choice_rewards.iter()) {
+            let reward = reward.choices.get(*choice as usize);
+            if let Some(reward) = reward {
+                if let Some(bonus) = convert_kc3rd_quest_reward_to_api(&codex.manifest, reward)? {
+                    api_bounus.push(bonus);
+                }
+            } else {
+                warn!("invalid choice index: {}", choice);
+            }
+        }
+    }
 
-	let additional_rewards: Vec<KcApiQuestClearItemGetBonus> = quest_manifest
-		.additional_rewards
-		.iter()
-		.map(|v| convert_kc3rd_quest_reward_to_api(&codex.manifest, v))
-		.collect::<Result<Vec<Option<KcApiQuestClearItemGetBonus>>, RewardError>>()?
-		.into_iter()
-		.flatten()
-		.collect();
+    let additional_rewards: Vec<KcApiQuestClearItemGetBonus> = quest_manifest
+        .additional_rewards
+        .iter()
+        .map(|v| convert_kc3rd_quest_reward_to_api(&codex.manifest, v))
+        .collect::<Result<Vec<Option<KcApiQuestClearItemGetBonus>>, RewardError>>()?
+        .into_iter()
+        .flatten()
+        .collect();
 
-	api_bounus.extend(additional_rewards);
+    api_bounus.extend(additional_rewards);
 
-	Ok(KcApiQuestClearItemGet {
-		api_material,
-		api_bounus_count: api_bounus.len() as i64,
-		api_bounus,
-	})
+    Ok(KcApiQuestClearItemGet {
+        api_material,
+        api_bounus_count: api_bounus.len() as i64,
+        api_bounus,
+    })
 }

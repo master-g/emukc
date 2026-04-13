@@ -33,46 +33,46 @@ pub mod wikiwiki_map_download;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
-	pub use crate::battle_rules::{
-		BattleIncidentReport, BattleIncidentTriggerMatch, BattleKnowledgeAssetSources,
-		BattleKnowledgeAssets, BattleModuleIndexAsset, BattleModuleKnowledge,
-		BattleProtocolFieldRule, BattleProtocolFieldsAsset, BattleResourceRule,
-		BattleResourceRulesAsset, BattleSlotResourceTrigger, BattleSlotResourceTriggersAsset,
-		BattleValidationFinding, BattleValidationFindingKind, BattleValidationReport,
-		BattleValidationSeverity, ExpectedBattleResource, RepoBattleKnowledgeSource,
-		analyze_day_battle_incident, load_repo_battle_knowledge_assets,
-		repo_battle_module_index_path, repo_battle_protocol_fields_path,
-		repo_battle_resource_rules_path, repo_battle_slot_resource_triggers_path,
-		validate_day_battle_response,
-	};
-	pub use crate::db::{DbBootstrapError, prepare};
-	pub use crate::download::BootstrapDownloadError;
-	pub use crate::download::download_all;
-	pub use crate::make_list::{
-		CacheListMakeStrategy, config::GreedyConfig, errors::CacheListMakingError,
-		make as make_cache_list,
-	};
-	pub use crate::map_overlay::{
-		MapOverlayAcceptedRecord, MapOverlayBuildError, MapOverlayBuildOutput,
-		MapOverlayBuildReport, MapOverlayRejectedRecord,
-		build_public_map_catalog_overlay_from_embedded_real_map_start_assets,
-		build_public_map_catalog_overlay_from_response_saver_dir,
-		repo_public_map_catalog_overlay_path,
-	};
-	pub use crate::map_pipeline::{
-		MapCatalogBuildReport, MapCatalogWikiwikiSource, build_final_map_catalog,
-		build_final_map_catalog_from_repo_assets,
-		build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_report,
-	};
-	pub use crate::parser::{parse_partial_codex, parse_wikiwiki_map, parse_wikiwiki_map_debug};
-	pub use crate::populate::populate;
-	pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
-	pub use crate::wikiwiki_map_asset::{
-		RepoWikiwikiMapCatalogAsset, RepoWikiwikiMapCatalogSource,
-		load_repo_wikiwiki_map_catalog_asset, repo_wikiwiki_map_catalog_path,
-	};
-	pub use crate::wikiwiki_map_download::{
-		WikiwikiMapDownloadOptions, WikiwikiMapDownloadStats, download_wikiwiki_map,
-		download_wikiwiki_map_with_options, wikiwiki_map_page_url,
-	};
+    pub use crate::battle_rules::{
+        BattleIncidentReport, BattleIncidentTriggerMatch, BattleKnowledgeAssetSources,
+        BattleKnowledgeAssets, BattleModuleIndexAsset, BattleModuleKnowledge,
+        BattleProtocolFieldRule, BattleProtocolFieldsAsset, BattleResourceRule,
+        BattleResourceRulesAsset, BattleSlotResourceTrigger, BattleSlotResourceTriggersAsset,
+        BattleValidationFinding, BattleValidationFindingKind, BattleValidationReport,
+        BattleValidationSeverity, ExpectedBattleResource, RepoBattleKnowledgeSource,
+        analyze_day_battle_incident, load_repo_battle_knowledge_assets,
+        repo_battle_module_index_path, repo_battle_protocol_fields_path,
+        repo_battle_resource_rules_path, repo_battle_slot_resource_triggers_path,
+        validate_day_battle_response,
+    };
+    pub use crate::db::{DbBootstrapError, prepare};
+    pub use crate::download::BootstrapDownloadError;
+    pub use crate::download::download_all;
+    pub use crate::make_list::{
+        CacheListMakeStrategy, config::GreedyConfig, errors::CacheListMakingError,
+        make as make_cache_list,
+    };
+    pub use crate::map_overlay::{
+        MapOverlayAcceptedRecord, MapOverlayBuildError, MapOverlayBuildOutput,
+        MapOverlayBuildReport, MapOverlayRejectedRecord,
+        build_public_map_catalog_overlay_from_embedded_real_map_start_assets,
+        build_public_map_catalog_overlay_from_response_saver_dir,
+        repo_public_map_catalog_overlay_path,
+    };
+    pub use crate::map_pipeline::{
+        MapCatalogBuildReport, MapCatalogWikiwikiSource, build_final_map_catalog,
+        build_final_map_catalog_from_repo_assets,
+        build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_report,
+    };
+    pub use crate::parser::{parse_partial_codex, parse_wikiwiki_map, parse_wikiwiki_map_debug};
+    pub use crate::populate::populate;
+    pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
+    pub use crate::wikiwiki_map_asset::{
+        RepoWikiwikiMapCatalogAsset, RepoWikiwikiMapCatalogSource,
+        load_repo_wikiwiki_map_catalog_asset, repo_wikiwiki_map_catalog_path,
+    };
+    pub use crate::wikiwiki_map_download::{
+        WikiwikiMapDownloadOptions, WikiwikiMapDownloadStats, download_wikiwiki_map,
+        download_wikiwiki_map_with_options, wikiwiki_map_page_url,
+    };
 }

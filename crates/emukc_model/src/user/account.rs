@@ -4,37 +4,37 @@ use serde::{Deserialize, Serialize};
 /// Account holds the user's account information in `EmuKC`.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Account {
-	/// User ID
-	pub uid: i64,
+    /// User ID
+    pub uid: i64,
 
-	/// User name
-	pub name: String,
+    /// User name
+    pub name: String,
 
-	/// Hashed password
-	pub secret: String,
+    /// Hashed password
+    pub secret: String,
 
-	/// Account creation time
-	pub create_time: DateTime<Utc>,
+    /// Account creation time
+    pub create_time: DateTime<Utc>,
 
-	/// Last login time
-	pub last_login: DateTime<Utc>,
+    /// Last login time
+    pub last_login: DateTime<Utc>,
 }
 
 impl Account {
-	/// Create a new account
-	///
-	/// # Arguments
-	///
-	/// * `uid` - User ID
-	/// * `name` - User name
-	/// * `secret` - Hashed password
-	pub fn new(uid: i64, name: String, secret: String) -> Self {
-		Self {
-			uid,
-			name,
-			secret,
-			create_time: Utc::now(),
-			last_login: Utc::now(),
-		}
-	}
+    /// Create a new account
+    ///
+    /// # Arguments
+    ///
+    /// * `uid` - User ID
+    /// * `name` - User name
+    /// * `secret` - Hashed password
+    pub fn new(uid: i64, name: String, secret: String) -> Self {
+        Self {
+            uid,
+            name,
+            secret,
+            create_time: Utc::now(),
+            last_login: Utc::now(),
+        }
+    }
 }

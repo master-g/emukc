@@ -38,15 +38,15 @@ pub mod user_item;
 /// User profile
 #[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Debug, Default)]
 pub struct Profile {
-	/// Account id
-	pub account_id: i64,
+    /// Account id
+    pub account_id: i64,
 
-	/// Profile id
-	pub id: i64,
+    /// Profile id
+    pub id: i64,
 
-	/// World id
-	pub world_id: i64,
+    /// World id
+    pub world_id: i64,
 
-	/// Profile name
-	pub name: String,
+    /// Profile name
+    pub name: String,
 }

@@ -12,7 +12,7 @@ extern crate tracing;
 pub mod log;
 
 pub mod prelude {
-	//! The `emukc_log` crate prelude.
-	#[doc(hidden)]
-	pub use crate::log::{Builder, new_log_builder};
+    //! The `emukc_log` crate prelude.
+    #[doc(hidden)]
+    pub use crate::log::{Builder, new_log_builder};
 }

@@ -6,46 +6,46 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use crate::{make_list::CacheList, prelude::CacheListMakingError};
 
 static PLAIN_RES: LazyLock<&[&str]> = LazyLock::new(|| {
-	&[
-		"css/fonts.css",
-		"js/world.js",
-		"hc.html",
-		"world.html",
-		"resources/font/A-OTF-UDShinGoPro-Light.woff2",
-		"resources/font/A-OTF-UDShinGoPro-Regular.woff2",
-	]
+    &[
+        "css/fonts.css",
+        "js/world.js",
+        "hc.html",
+        "world.html",
+        "resources/font/A-OTF-UDShinGoPro-Light.woff2",
+        "resources/font/A-OTF-UDShinGoPro-Regular.woff2",
+    ]
 });
 
 static VERSION_REGEX: LazyLock<regex::Regex> =
-	LazyLock::new(|| regex::Regex::new(r#"VersionInfo\.scriptVesion\s*=\s*"([^"]+)";"#).unwrap());
+    LazyLock::new(|| regex::Regex::new(r#"VersionInfo\.scriptVesion\s*=\s*"([^"]+)";"#).unwrap());
 
 pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), CacheListMakingError> {
-	for res in PLAIN_RES.iter() {
-		list.add_unversioned(format!("kcs2/{res}"));
-	}
+    for res in PLAIN_RES.iter() {
+        list.add_unversioned(format!("kcs2/{res}"));
+    }
 
-	let mainjs_ver = parse_main_js_version(cache).await?;
-	debug!("main.js version: {mainjs_ver}");
-	list.add("kcs2/js/main.js".to_string(), &mainjs_ver);
+    let mainjs_ver = parse_main_js_version(cache).await?;
+    debug!("main.js version: {mainjs_ver}");
+    list.add("kcs2/js/main.js".to_string(), &mainjs_ver);
 
-	Ok(())
+    Ok(())
 }
 
 async fn parse_main_js_version(cache: &Kache) -> Result<String, KacheError> {
-	let version_const_file = cache
-		.get_with_opt("gadget_html5/js/kcs_const.js", NoVersion, &GetOption::new_remote_only())
-		.await?;
+    let version_const_file = cache
+        .get_with_opt("gadget_html5/js/kcs_const.js", NoVersion, &GetOption::new_remote_only())
+        .await?;
 
-	let reader = BufReader::new(version_const_file);
-	let mut lines = reader.lines();
+    let reader = BufReader::new(version_const_file);
+    let mut lines = reader.lines();
 
-	while let Some(line) = lines.next_line().await? {
-		if let Some(captures) = VERSION_REGEX.captures(&line)
-			&& let Some(version) = captures.get(1)
-		{
-			return Ok(version.as_str().to_string());
-		}
-	}
+    while let Some(line) = lines.next_line().await? {
+        if let Some(captures) = VERSION_REGEX.captures(&line)
+            && let Some(version) = captures.get(1)
+        {
+            return Ok(version.as_str().to_string());
+        }
+    }
 
-	Err(KacheError::InvalidFile("kcs_const.js has no version info".to_string()))
+    Err(KacheError::InvalidFile("kcs_const.js has no version info".to_string()))
 }

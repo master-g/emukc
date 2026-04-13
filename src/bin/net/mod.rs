@@ -7,17 +7,17 @@ use signal::graceful_shutdown;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceBuilder;
 use tower_http::{
-	ServiceBuilderExt,
-	add_extension::AddExtensionLayer,
-	compression::CompressionLayer,
-	cors::{Any, CorsLayer},
-	request_id::MakeRequestUuid,
-	trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+    ServiceBuilderExt,
+    add_extension::AddExtensionLayer,
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+    request_id::MakeRequestUuid,
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
 };
 
 use crate::{
-	cfg::AppConfig,
-	state::{State, StateArc},
+    cfg::AppConfig,
+    state::{State, StateArc},
 };
 
 mod assets;
@@ -42,64 +42,64 @@ type AppState = Extension<StateArc>;
 /// * `cfg` - The application configuration.
 /// * `state` - The application state.
 pub(super) async fn run(ct: CancellationToken, cfg: &AppConfig, state: &State) -> Result<()> {
-	// axum service
-	let service = ServiceBuilder::new()
-		.catch_panic()
-		.set_x_request_id(MakeRequestUuid)
-		.propagate_x_request_id();
+    // axum service
+    let service = ServiceBuilder::new()
+        .catch_panic()
+        .set_x_request_id(MakeRequestUuid)
+        .propagate_x_request_id();
 
-	let state = StateArc::new(state.clone());
+    let state = StateArc::new(state.clone());
 
-	let service = service
-		.layer(CompressionLayer::new().br(true).deflate(true).gzip(true).zstd(true))
-		.layer(AddExtensionLayer::new(state))
-		.layer(
-			TraceLayer::new_for_http()
-				.make_span_with(DefaultMakeSpan::new().include_headers(false))
-				.on_response(DefaultOnResponse::new().include_headers(false)),
-		)
-		.layer(header::add_version_header())
-		.layer(
-			CorsLayer::new()
-				.allow_origin(Any)
-				.allow_methods([
-					http::Method::GET,
-					http::Method::PUT,
-					http::Method::POST,
-					http::Method::DELETE,
-					http::Method::PATCH,
-					http::Method::OPTIONS,
-				])
-				.allow_headers(Any)
-				.max_age(std::time::Duration::from_secs(86400)),
-		); // CORS;
+    let service = service
+        .layer(CompressionLayer::new().br(true).deflate(true).gzip(true).zstd(true))
+        .layer(AddExtensionLayer::new(state))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().include_headers(false))
+                .on_response(DefaultOnResponse::new().include_headers(false)),
+        )
+        .layer(header::add_version_header())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods([
+                    http::Method::GET,
+                    http::Method::PUT,
+                    http::Method::POST,
+                    http::Method::DELETE,
+                    http::Method::PATCH,
+                    http::Method::OPTIONS,
+                ])
+                .allow_headers(Any)
+                .max_age(std::time::Duration::from_secs(86400)),
+        ); // CORS;
 
-	// axum app
-	let axum_app = router::new().layer(service);
+    // axum app
+    let axum_app = router::new().layer(service);
 
-	// graceful shutdown
-	let handle = Handle::new();
-	let shutdown_handler = graceful_shutdown(ct, handle.clone());
+    // graceful shutdown
+    let handle = Handle::new();
+    let shutdown_handler = graceful_shutdown(ct, handle.clone());
 
-	if let (Some(cert), Some(key)) = (&cfg.tls_cert, &cfg.tls_key) {
-		info!(target: LOG_TAG, "listening on: https://{}", &cfg.bind);
-		let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert, key).await?;
-		axum_server::bind_rustls(cfg.bind, tls_config)
-			.handle(handle)
-			.serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
-			.await?;
-	} else {
-		info!(target: LOG_TAG, "listening on: http://{}", &cfg.bind);
-		axum_server::bind(cfg.bind)
-			.handle(handle)
-			.serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
-			.await?;
-	}
+    if let (Some(cert), Some(key)) = (&cfg.tls_cert, &cfg.tls_key) {
+        info!(target: LOG_TAG, "listening on: https://{}", &cfg.bind);
+        let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert, key).await?;
+        axum_server::bind_rustls(cfg.bind, tls_config)
+            .handle(handle)
+            .serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
+            .await?;
+    } else {
+        info!(target: LOG_TAG, "listening on: http://{}", &cfg.bind);
+        axum_server::bind(cfg.bind)
+            .handle(handle)
+            .serve(axum_app.into_make_service_with_connect_info::<SocketAddr>())
+            .await?;
+    }
 
-	// wait for the shutdown signal
-	let _ = shutdown_handler.await;
+    // wait for the shutdown signal
+    let _ = shutdown_handler.await;
 
-	info!(target: LOG_TAG, "server stopped. Goodbye!");
+    info!(target: LOG_TAG, "server stopped. Goodbye!");
 
-	Ok(())
+    Ok(())
 }

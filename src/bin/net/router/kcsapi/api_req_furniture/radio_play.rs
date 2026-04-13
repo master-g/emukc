@@ -1,9 +1,9 @@
 use axum::Extension;
 
 use crate::net::{
-	AppState,
-	auth::GameSession,
-	resp::{KcApiResponse, KcApiResult},
+    AppState,
+    auth::GameSession,
+    resp::{KcApiResponse, KcApiResult},
 };
 use emukc_internal::prelude::*;
 
@@ -11,12 +11,12 @@ use emukc_internal::prelude::*;
 /// By looking into `main.js`, this API is called when player click on some furniture (e.g. 318, 319)
 /// which will play a hiss sound, and if the port's bgm is not default(101), then this API will be called
 pub(super) async fn handler(
-	state: AppState,
-	Extension(session): Extension<GameSession>,
+    state: AppState,
+    Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
-	let pid = session.profile.id;
+    let pid = session.profile.id;
 
-	state.update_port_bgm(pid, 101).await?;
+    state.update_port_bgm(pid, 101).await?;
 
-	Ok(KcApiResponse::empty())
+    Ok(KcApiResponse::empty())
 }

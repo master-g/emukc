@@ -17,5 +17,5 @@ mod net;
 mod state;
 
 fn main() -> ExitCode {
-	with_enough_stack(cli::init())
+    with_enough_stack(cli::init())
 }

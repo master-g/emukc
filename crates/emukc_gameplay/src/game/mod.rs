@@ -6,7 +6,7 @@ pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
 pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
 pub use expedition::{
-	ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
+    ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
 };
 pub use factory::FactoryOps;
 pub use fleet::FleetOps;
@@ -26,8 +26,8 @@ pub use settings::SettingsOps;
 pub use ship::ShipOps;
 pub use slot_item::SlotItemOps;
 pub use sortie::{
-	SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
-	SortieNextResponse, SortieOps, SortieStartResponse,
+    SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
+    SortieNextResponse, SortieOps, SortieStartResponse,
 };
 pub use sortie_store::SortieStore;
 pub use use_item::UseItemOps;
@@ -67,28 +67,28 @@ mod use_item;
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
 pub trait GameOps:
-	BasicOps
-	+ AirbaseOps
-	+ ComposeOps
-	+ ExpeditionOps
-	+ FactoryOps
-	+ FleetOps
-	+ FurnitureOps
-	+ SettingsOps
-	+ IncentiveOps
-	+ KDockOps
-	+ MapOps
-	+ MaterialOps
-	+ NDockOps
-	+ PayItemOps
-	+ PictureBookOps
-	+ PracticeOps
-	+ PresetOps
-	+ QuestOps
-	+ ShipOps
-	+ SlotItemOps
-	+ SortieOps
-	+ UseItemOps
+    BasicOps
+    + AirbaseOps
+    + ComposeOps
+    + ExpeditionOps
+    + FactoryOps
+    + FleetOps
+    + FurnitureOps
+    + SettingsOps
+    + IncentiveOps
+    + KDockOps
+    + MapOps
+    + MaterialOps
+    + NDockOps
+    + PayItemOps
+    + PictureBookOps
+    + PracticeOps
+    + PresetOps
+    + QuestOps
+    + ShipOps
+    + SlotItemOps
+    + SortieOps
+    + UseItemOps
 {
 }
 
@@ -96,23 +96,23 @@ pub trait GameOps:
 impl<T: HasContext + ?Sized> GameOps for T {}
 
 pub mod ops {
-	//! The ops traits prelude.
+    //! The ops traits prelude.
 
-	#[doc(hidden)]
-	pub use crate::game::{
-		AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps,
-		GameOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps, PictureBookOps,
-		PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
-	};
+    #[doc(hidden)]
+    pub use crate::game::{
+        AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FleetOps, FurnitureOps,
+        GameOps, IncentiveOps, KDockOps, MapOps, MaterialOps, NDockOps, PayItemOps, PictureBookOps,
+        PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
+    };
 }
 
 pub mod types {
-	//! The types prelude.
+    //! The types prelude.
 
-	#[doc(hidden)]
-	pub use crate::game::{
-		ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PowerupResp,
-		SlotDepriveParams, SortieAirSearch, SortieCellData, SortieEnemyDeckPreview,
-		SortieHappening, SortieItemGet, SortieNextResponse, SortieStartResponse,
-	};
+    #[doc(hidden)]
+    pub use crate::game::{
+        ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PowerupResp,
+        SlotDepriveParams, SortieAirSearch, SortieCellData, SortieEnemyDeckPreview,
+        SortieHappening, SortieItemGet, SortieNextResponse, SortieStartResponse,
+    };
 }

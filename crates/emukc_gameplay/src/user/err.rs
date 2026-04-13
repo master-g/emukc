@@ -4,36 +4,36 @@ use crate::err::GameplayError;
 
 #[derive(Debug, Error)]
 pub enum UserError {
-	#[error("The username is already taken.")]
-	UsernameTaken,
+    #[error("The username is already taken.")]
+    UsernameTaken,
 
-	#[error("Username too short.")]
-	UsernameTooShort,
+    #[error("Username too short.")]
+    UsernameTooShort,
 
-	#[error("Password too short.")]
-	PasswordTooShort,
+    #[error("Password too short.")]
+    PasswordTooShort,
 
-	#[error("Invalid username or password.")]
-	InvalidUsernameOrPassword,
+    #[error("Invalid username or password.")]
+    InvalidUsernameOrPassword,
 
-	#[error("Token invalid.")]
-	TokenInvalid,
+    #[error("Token invalid.")]
+    TokenInvalid,
 
-	#[error("Token expired.")]
-	TokenExpired,
+    #[error("Token expired.")]
+    TokenExpired,
 
-	#[error("User not found.")]
-	UserNotFound,
+    #[error("User not found.")]
+    UserNotFound,
 
-	#[error("Profile not found.")]
-	ProfileNotFound,
+    #[error("Profile not found.")]
+    ProfileNotFound,
 
-	#[error("Profile already exists.")]
-	ProfileExists,
+    #[error("Profile already exists.")]
+    ProfileExists,
 
-	#[error("Database error: {0}")]
-	Db(#[from] emukc_db::sea_orm::DbErr),
+    #[error("Database error: {0}")]
+    Db(#[from] emukc_db::sea_orm::DbErr),
 
-	#[error("Gameplay error: {0}")]
-	Gameplay(#[from] GameplayError),
+    #[error("Gameplay error: {0}")]
+    Gameplay(#[from] GameplayError),
 }

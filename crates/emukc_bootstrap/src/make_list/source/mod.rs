@@ -20,14 +20,14 @@ pub(crate) mod kcs2;
 ///
 /// A result indicating success or failure.
 pub(super) async fn make(
-	codex: &Codex,
-	kache: &Kache,
-	strategy: CacheListMakeStrategy,
-	list: &mut CacheList,
+    codex: &Codex,
+    kache: &Kache,
+    strategy: CacheListMakeStrategy,
+    list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-	gadget_html5::make(&codex.manifest, kache, list).await?;
-	kcs::make(codex, kache, strategy.clone(), list).await?;
-	kcs2::make(&codex.manifest, kache, strategy, list).await?;
+    gadget_html5::make(&codex.manifest, kache, list).await?;
+    kcs::make(codex, kache, strategy.clone(), list).await?;
+    kcs2::make(&codex.manifest, kache, strategy, list).await?;
 
-	Ok(())
+    Ok(())
 }
