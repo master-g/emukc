@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #791 | 8:43 PM | 🟣 | build_regular_prerequisites visibility changed to pub(crate) | ~229 |
 | #729 | 7:37 PM | 🔵 | MapCatalog structure examined for prerequisite implementation | ~257 |
 </claude-mem-context>

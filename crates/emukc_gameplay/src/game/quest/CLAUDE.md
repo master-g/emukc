@@ -8,4 +8,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #596 | 6:18 PM | 🔵 | Quest and slot item trait implementations documented for OpenSpec capability analysis | ~988 |
+
+### Apr 14, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #840 | 11:08 AM | 🔵 | Gameplay Module Changes Revealed | ~183 |
 </claude-mem-context>

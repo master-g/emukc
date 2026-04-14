@@ -9,4 +9,10 @@
 |----|------|---|-------|------|
 | #597 | 6:18 PM | 🔵 | Gameplay and user module structure documented for OpenSpec architecture understanding | ~822 |
 | #595 | 6:17 PM | 🔵 | KCSAPI router and domain structure analyzed for OpenSpec planning | ~885 |
+
+### Apr 14, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #840 | 11:08 AM | 🔵 | Gameplay Module Changes Revealed | ~183 |
 </claude-mem-context>
