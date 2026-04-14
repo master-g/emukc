@@ -617,14 +617,14 @@ mod tests {
     }
 
     #[test]
-    fn dependents_of_map_14_returns_21() {
+    fn dependents_of_map_14_returns_15_and_21() {
         let codex = load_codex();
         let catalog = codex.map_catalog();
 
         let mut deps = catalog.dependents_of(14);
         deps.sort();
-        // EO maps (1-5, 1-6) are not in prerequisites table, only 2-1 depends on 1-4
-        assert_eq!(deps, vec![21]);
+        // 1-5 (EO) and 2-1 both depend on 1-4
+        assert_eq!(deps, vec![15, 21]);
     }
 
     #[test]

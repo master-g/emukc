@@ -248,13 +248,13 @@ fn compose_map_id(maparea_id: i64, mapinfo_no: i64) -> i64 {
 /// - 1-1 has no prerequisite (always unlocked)
 /// - Same area sequential: N-M requires N-(M-1) cleared
 /// - Cross-area: clearing area boss (N-4) unlocks (N+1)-1
-/// - EO maps (N-5, N-6, ...) are not included (future work)
+/// - EO maps (N-5, N-6, ...) require the preceding map in the same area
 pub(crate) fn build_regular_prerequisites() -> HashMap<i64, i64> {
     let mut prereqs = HashMap::new();
 
-    // Same-area sequential: N-2 requires N-1, N-3 requires N-2, N-4 requires N-3
+    // Same-area sequential: N-2 requires N-1, N-3 requires N-2, ..., including EO maps
     for area in 1..=7 {
-        for no in 2..=4 {
+        for no in 2..=9 {
             prereqs.insert(compose_map_id(area, no), compose_map_id(area, no - 1));
         }
     }
@@ -281,5 +281,51 @@ fn extract_max_hp(map: &ApiMstMapinfo) -> Option<i64> {
             _ => None,
         }),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn regular_map_prerequisites() {
+        let prereqs = build_regular_prerequisites();
+        // 1-2 requires 1-1
+        assert_eq!(prereqs.get(&12), Some(&11));
+        // 2-1 requires 1-4
+        assert_eq!(prereqs.get(&21), Some(&14));
+        // 1-1 has no prerequisite
+        assert_eq!(prereqs.get(&11), None);
+    }
+
+    #[test]
+    fn eo_map_prerequisites() {
+        let prereqs = build_regular_prerequisites();
+        // 1-5 (EO) requires 1-4
+        assert_eq!(prereqs.get(&15), Some(&14));
+        // 1-6 requires 1-5
+        assert_eq!(prereqs.get(&16), Some(&15));
+        // 2-5 requires 2-4
+        assert_eq!(prereqs.get(&25), Some(&24));
+        // 3-5 requires 3-4
+        assert_eq!(prereqs.get(&35), Some(&34));
+        // 7-5 requires 7-4
+        assert_eq!(prereqs.get(&75), Some(&74));
+    }
+
+    #[test]
+    fn all_areas_have_eo_chains() {
+        let prereqs = build_regular_prerequisites();
+        for area in 1..=7 {
+            // Each area should have prerequisites for maps 2-9
+            for no in 2..=9 {
+                let map_id = compose_map_id(area, no);
+                assert!(
+                    prereqs.contains_key(&map_id),
+                    "area {area} map no {no} (map_id={map_id}) should have a prerequisite"
+                );
+            }
+        }
     }
 }

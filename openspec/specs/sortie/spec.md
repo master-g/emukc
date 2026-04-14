@@ -28,6 +28,10 @@ SortieStore keyed to the profile. Implemented via SortieOps.
 - WHEN any ship in the selected fleet has HP of 0 (sunk)
 - THEN the operation fails
 
+#### Scenario: Sortie start with locked map
+- WHEN the specified map has `unlocked = false` for the player
+- THEN the operation fails with an error response
+
 ### Requirement: Map Navigation (next)
 After starting, the player SHALL advance through map cells via the next operation.
 
@@ -125,6 +129,15 @@ After battle(s), the result SHALL be claimed via sortie_battle_result.
 - THEN the ship is marked as sunk in the result
 - THEN sunk ships may be excluded from certain post-battle processing
 
+#### Scenario: Map clear unlocks new maps
+- WHEN a map is cleared for the first time and the clear triggers prerequisite satisfaction for other maps
+- THEN those maps are set to `unlocked = true`
+- THEN the battle result response includes `api_next_map_ids` containing the IDs of newly unlocked maps
+
+#### Scenario: Map clear with no new unlocks
+- WHEN a map is cleared but no new maps are unlocked (all dependents already unlocked or no dependents)
+- THEN `api_next_map_ids` is absent from the battle result response
+
 ### Requirement: Sortie Conclusion
 The sortie SHALL end by retreating (goback_port) or completing the map.
 
@@ -145,10 +158,17 @@ Implemented via MapOps.
 #### Scenario: Map records initialization
 - WHEN map records are first accessed for a profile
 - THEN records are created for all maps defined in the Codex
+- THEN only map 1-1 has `unlocked = true`; all others have `unlocked = false`
 
 #### Scenario: Map progress update
 - WHEN a map stage is cleared during sortie
 - THEN the corresponding map_record is updated with the new clear state
+- THEN dependent maps are checked and unlocked if their prerequisite is now satisfied
+
+#### Scenario: Mapinfo filtering by unlock
+- WHEN `api_get_member/mapinfo` is called
+- THEN only maps with `unlocked = true` are included in the response
+- THEN locked maps are completely absent from the response (not returned with a locked flag)
 
 ### Requirement: Event Map Rank Selection
 Event maps SHALL allow difficulty rank selection.

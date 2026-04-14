@@ -1443,6 +1443,7 @@ dependencies = [
  "emukc_db",
  "emukc_model",
  "emukc_time",
+ "parking_lot",
  "rand 0.10.0",
  "serde",
  "serde_json",

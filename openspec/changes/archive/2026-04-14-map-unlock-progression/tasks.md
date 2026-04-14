@@ -44,6 +44,6 @@
 
 ## 7. Manual Verification
 
-- [ ] 7.1 `cargo run -- serve` — verify new account mapinfo only shows 1-1
-- [ ] 7.2 Clear 1-1 boss, verify mapinfo now includes 1-2
-- [ ] 7.3 Attempt sortie to 1-2 before clearing 1-1, verify rejection
+- [x] 7.1 `cargo run -- serve` — verify new account mapinfo only shows 1-1
+- [x] 7.2 Clear 1-1 boss, verify mapinfo now includes 1-2
+- [x] 7.3 Attempt sortie to 1-2 before clearing 1-1, verify rejection

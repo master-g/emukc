@@ -10,8 +10,10 @@
 use std::{
     collections::HashMap,
     fmt,
-    sync::{LazyLock, Mutex},
+    sync::LazyLock,
 };
+
+use parking_lot::Mutex;
 
 use super::{
     battle::sortie::SortieBattleSession, sortie::ActiveSortieState,
@@ -38,11 +40,11 @@ impl SortieStore {
     // ── active sorties ──────────────────────────────────────────────
 
     pub(super) fn get_active_sortie(&self, profile_id: i64) -> Option<ActiveSortieState> {
-        self.active_sorties.lock().unwrap().get(&profile_id).cloned()
+        self.active_sorties.lock().get(&profile_id).cloned()
     }
 
     pub(super) fn insert_active_sortie(&self, profile_id: i64, state: ActiveSortieState) {
-        self.active_sorties.lock().unwrap().insert(profile_id, state);
+        self.active_sorties.lock().insert(profile_id, state);
     }
 
     pub(super) fn modify_active_sortie(
@@ -50,11 +52,11 @@ impl SortieStore {
         profile_id: i64,
         f: impl FnOnce(&mut ActiveSortieState),
     ) {
-        self.active_sorties.lock().unwrap().entry(profile_id).and_modify(f);
+        self.active_sorties.lock().entry(profile_id).and_modify(f);
     }
 
     pub(super) fn remove_active_sortie(&self, profile_id: i64) -> Option<ActiveSortieState> {
-        self.active_sorties.lock().unwrap().remove(&profile_id)
+        self.active_sorties.lock().remove(&profile_id)
     }
 
     // ── pending results ─────────────────────────────────────────────
@@ -63,7 +65,7 @@ impl SortieStore {
         &self,
         profile_id: i64,
     ) -> Option<SortieBattleResultSnapshot> {
-        self.pending_results.lock().unwrap().remove(&profile_id)
+        self.pending_results.lock().remove(&profile_id)
     }
 
     pub(super) fn insert_pending_result(
@@ -71,7 +73,7 @@ impl SortieStore {
         profile_id: i64,
         snapshot: SortieBattleResultSnapshot,
     ) {
-        self.pending_results.lock().unwrap().insert(profile_id, snapshot);
+        self.pending_results.lock().insert(profile_id, snapshot);
     }
 
     pub(super) fn with_pending_result_mut(
@@ -79,7 +81,7 @@ impl SortieStore {
         profile_id: i64,
         f: impl FnOnce(&mut SortieBattleResultSnapshot),
     ) {
-        if let Some(snapshot) = self.pending_results.lock().unwrap().get_mut(&profile_id) {
+        if let Some(snapshot) = self.pending_results.lock().get_mut(&profile_id) {
             f(snapshot);
         }
     }
@@ -87,15 +89,15 @@ impl SortieStore {
     // ── pending battles ─────────────────────────────────────────────
 
     pub(super) fn get_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
-        self.pending_battles.lock().unwrap().get(&profile_id).cloned()
+        self.pending_battles.lock().get(&profile_id).cloned()
     }
 
     pub(super) fn insert_pending_battle(&self, profile_id: i64, session: SortieBattleSession) {
-        self.pending_battles.lock().unwrap().insert(profile_id, session);
+        self.pending_battles.lock().insert(profile_id, session);
     }
 
     pub(super) fn take_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
-        self.pending_battles.lock().unwrap().remove(&profile_id)
+        self.pending_battles.lock().remove(&profile_id)
     }
 
     pub(super) fn with_pending_battle_mut(
@@ -103,16 +105,16 @@ impl SortieStore {
         profile_id: i64,
         f: impl FnOnce(&mut SortieBattleSession),
     ) {
-        if let Some(session) = self.pending_battles.lock().unwrap().get_mut(&profile_id) {
+        if let Some(session) = self.pending_battles.lock().get_mut(&profile_id) {
             f(session);
         }
     }
 
     /// Clear all runtime state.
     pub fn clear(&self) {
-        self.active_sorties.lock().unwrap().clear();
-        self.pending_results.lock().unwrap().clear();
-        self.pending_battles.lock().unwrap().clear();
+        self.active_sorties.lock().clear();
+        self.pending_results.lock().clear();
+        self.pending_battles.lock().clear();
     }
 }
 

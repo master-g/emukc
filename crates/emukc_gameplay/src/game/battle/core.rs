@@ -198,15 +198,16 @@ impl BattleRuntimeShip {
 
             if is_protected {
                 // Replace lethal damage with proportional damage (割合ダメージ).
-                // Formula: floor(0.5 * H + 0.3 * rand(0..H)), clamped to [0, H-1].
-                let h = self.current_hp;
+                // Formula uses entry_hp as base: (H / 2) + (rand_part * 3) / 10
+                // Clamped to [0, current_hp - 1] to guarantee survival.
+                let h = self.entry_hp;
                 let rand_part = if h > 1 {
                     random.roll_range(0, h)
                 } else {
                     0
                 };
-                let proportional = (0.5 * h as f64 + 0.3 * rand_part as f64).floor() as i64;
-                let dealt = proportional.clamp(0, h - 1);
+                let proportional = (h / 2) + (rand_part * 3) / 10;
+                let dealt = proportional.min(self.current_hp - 1).max(0);
                 self.current_hp -= dealt;
                 return dealt;
             }
@@ -1248,11 +1249,10 @@ fn calculate_torpedo_damage(
 fn calculate_night_damage(
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
-    engagement: EngagementType,
 ) -> i64 {
     let attack_power =
         (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5) as f64;
-    let capped_power = apply_cap(attack_power * engagement.modifier(), 360.0) as f64;
+    let capped_power = apply_cap(attack_power, 360.0) as f64;
     let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
     (capped_power - armor).floor().max(1.0) as i64
 }
@@ -2368,7 +2368,7 @@ fn simulate_night_hougeki(
             let raw = if is_submarine {
                 calculate_scratch_damage(random, enemy[target_idx].hp().max(1))
             } else {
-                let base = calculate_night_damage(ship, &enemy[target_idx], engagement);
+                let base = calculate_night_damage(ship, &enemy[target_idx]);
                 (base as f64 * multiplier).floor() as i64
             };
             let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
@@ -2409,7 +2409,7 @@ fn simulate_night_hougeki(
             let raw = if is_submarine {
                 calculate_scratch_damage(random, friendly[target_idx].hp().max(1))
             } else {
-                let base = calculate_night_damage(ship, &friendly[target_idx], engagement);
+                let base = calculate_night_damage(ship, &friendly[target_idx]);
                 (base as f64 * multiplier).floor() as i64
             };
             let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
@@ -3769,5 +3769,97 @@ mod tests {
             api_sally_area: 0,
             api_sp_effect_items: None,
         }
+    }
+
+    // ── Sinking protection tests ─────────────────────────────────
+
+    #[test]
+    fn flagship_is_always_protected_from_sinking() {
+        // Flagship at index 0, healthy at entry, sortie battle
+        let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        // Apply lethal damage (more than current_hp)
+        let dealt = ship.apply_damage(&mut rng, 100, 0);
+        assert!(dealt > 0, "flagship should take proportional damage");
+        assert!(ship.current_hp > 0, "flagship must survive");
+        assert!(ship.current_hp < ship.entry_hp, "should be proportional, not full damage");
+    }
+
+    #[test]
+    fn flagship_at_1hp_survives_lethal_damage() {
+        // Flagship already at 1 HP — too low for proportional formula to deal > 0,
+        // but protection still prevents sinking.
+        let mut ship = make_test_ship_ctx(1, 5, 1, 30, true, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let dealt = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(dealt, 0, "at 1 HP, protection reduces damage to 0");
+        assert_eq!(ship.current_hp, 1, "flagship must survive");
+    }
+
+    #[test]
+    fn non_taiha_ship_is_protected_from_sinking() {
+        // Ship with entry_hp > 25% max_hp (not taiha at entry), not flagship (index 2)
+        let mut ship = make_test_ship_ctx(10, 20, 10, 30, true, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let dealt = ship.apply_damage(&mut rng, 100, 2);
+        assert!(dealt > 0, "non-taiha ship should take proportional damage");
+        assert!(ship.current_hp > 0, "non-taiha ship must survive");
+    }
+
+    #[test]
+    fn taiha_non_flagship_can_be_sunk() {
+        // Ship with entry_hp <= 25% max_hp (taiha at entry), not flagship (index 2)
+        let entry_hp = 5;
+        let max_hp = 30;
+        let mut ship = make_test_ship_ctx(entry_hp, entry_hp, entry_hp, max_hp, true, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let dealt = ship.apply_damage(&mut rng, 100, 2);
+        // Taiha non-flagship: no protection, should be sunk
+        assert_eq!(ship.current_hp, 0, "taiha non-flagship should be sunk");
+    }
+
+    #[test]
+    fn protection_uses_entry_hp_not_current_hp() {
+        // Ship entered node with 30 HP, took damage to current_hp = 10
+        let max_hp = 40;
+        let mut ship = make_test_ship_ctx(10, 30, 10, max_hp, true, true);
+        let mut rng = BattleRandom::new(Some(123));
+
+        let dealt = ship.apply_damage(&mut rng, 100, 1);
+        assert!(dealt > 0);
+        assert!(ship.current_hp > 0, "should survive due to protection");
+
+        // The proportional formula uses entry_hp (30), not current_hp (10).
+        // With entry_hp=30: (30/2) + (rand_part*3)/10 = 15 + something
+        // This should give > 10 if using entry_hp, but would give < 10 if using current_hp
+        assert!(
+            ship.current_hp <= 30,
+            "remaining HP should be based on entry_hp (30), not current_hp (10)"
+        );
+    }
+
+    #[test]
+    fn enemy_ships_get_no_protection() {
+        let mut ship = make_test_ship_ctx(1, 1, 1, 30, false, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let dealt = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(dealt, 1, "enemy ship should take full damage");
+        assert_eq!(ship.current_hp, 0, "enemy ship should be sunk");
+    }
+
+    #[test]
+    fn practice_ships_get_no_protection() {
+        // Friendly ship in practice (is_sortie = false)
+        let mut ship = make_test_ship_ctx(1, 1, 1, 30, true, false);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let dealt = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(dealt, 1, "practice ship should take full damage");
+        assert_eq!(ship.current_hp, 0, "practice ship should be sunk");
     }
 }

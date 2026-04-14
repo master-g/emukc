@@ -445,7 +445,7 @@ pub(crate) fn select_route_target_for_roll(
         }
         roll -= *weight;
     }
-    weights.keys().next().copied()
+    weights.keys().last().copied()
 }
 
 fn route_predicate_key(predicate: &RoutePredicate) -> String {
@@ -459,5 +459,53 @@ impl RoutePredicateEval {
         } else {
             Self::NotMatched
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn select_route_target_roll_equals_total_weight_returns_last_key() {
+        let mut weights = BTreeMap::new();
+        weights.insert(2, 30);
+        weights.insert(5, 50);
+        weights.insert(7, 20);
+
+        let total: u64 = weights.values().sum();
+        let result = select_route_target_for_roll(&weights, total);
+        assert_eq!(result, Some(7), "roll == total weight should return last key");
+    }
+
+    #[test]
+    fn select_route_target_roll_zero_returns_first_key() {
+        let mut weights = BTreeMap::new();
+        weights.insert(2, 30);
+        weights.insert(5, 50);
+
+        let result = select_route_target_for_roll(&weights, 0);
+        assert_eq!(result, Some(2));
+    }
+
+    #[test]
+    fn select_route_target_roll_within_first_weight() {
+        let mut weights = BTreeMap::new();
+        weights.insert(2, 30);
+        weights.insert(5, 50);
+
+        let result = select_route_target_for_roll(&weights, 25);
+        assert_eq!(result, Some(2));
+    }
+
+    #[test]
+    fn select_route_target_roll_at_boundary() {
+        let mut weights = BTreeMap::new();
+        weights.insert(2, 30);
+        weights.insert(5, 50);
+        weights.insert(7, 20);
+
+        let result = select_route_target_for_roll(&weights, 30);
+        assert_eq!(result, Some(5));
     }
 }
