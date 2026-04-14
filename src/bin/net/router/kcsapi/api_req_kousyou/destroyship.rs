@@ -9,19 +9,20 @@ use crate::net::{
     resp::{KcApiResponse, KcApiResult},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub(super) struct Params {
-    /// ship id to destroy
-    api_ship_id: i64,
+    /// ship id(s) to destroy, comma-separated for batch
+    api_ship_id: String,
 
     /// 0: keep equipment, 1: destroy equipment
     api_slot_dest_flag: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize)]
 struct Resp {
     api_material: Vec<i64>,
-    api_unset_list: KcApiUnsetSlot,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    api_unset_list: Option<KcApiUnsetSlot>,
 }
 
 pub(super) async fn handler(
@@ -30,13 +31,24 @@ pub(super) async fn handler(
     Form(params): Form<Params>,
 ) -> KcApiResult {
     let pid = session.profile.id;
-    let codex = state.codex();
+    let keep_equipment = params.api_slot_dest_flag == 0;
 
-    state.destroy_ship(pid, params.api_ship_id, params.api_slot_dest_flag == 0).await?;
+    for ship_id_str in params.api_ship_id.split(',') {
+        let ship_id: i64 = ship_id_str
+            .parse()
+            .map_err(|_| GameplayError::WrongType(format!("invalid ship id: {ship_id_str}")))?;
+        state.destroy_ship(pid, ship_id, keep_equipment).await?;
+    }
 
     let materials = state.get_materials(pid).await?;
-    let unset_slots = state.get_unset_slot_items(pid).await?;
-    let api_unset_list: KcApiUnsetSlot = codex.convert_unused_slot_items_to_api(&unset_slots)?;
+
+    let api_unset_list = if keep_equipment {
+        let codex = state.codex();
+        let unset_slots = state.get_unset_slot_items(pid).await?;
+        Some(codex.convert_unused_slot_items_to_api(&unset_slots)?)
+    } else {
+        None
+    };
 
     Ok(KcApiResponse::success(&Resp {
         api_material: vec![materials.fuel, materials.ammo, materials.steel, materials.bauxite],

@@ -1,5 +1,5 @@
 use axum::{Extension, Form};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::net::{
     AppState,
@@ -8,16 +8,11 @@ use crate::net::{
 };
 use emukc_internal::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub(super) struct Params {
     api_ndock_id: i64,
     api_ship_id: i64,
     api_highspeed: i64,
-}
-
-#[derive(Serialize)]
-struct Resp {
-    api_material: Vec<i64>,
 }
 
 pub(super) async fn handler(
@@ -27,17 +22,9 @@ pub(super) async fn handler(
 ) -> KcApiResult {
     let pid = session.profile.id;
 
-    let material = state
+    state
         .ndock_start_repair(pid, params.api_ndock_id, params.api_ship_id, params.api_highspeed == 1)
         .await?;
 
-    if let Some(material) = material {
-        let api_material: Vec<KcApiMaterialElement> = material.into();
-        let api_material: Vec<i64> = api_material.into_iter().map(|v| v.api_value).collect();
-        Ok(KcApiResponse::success(&Resp {
-            api_material,
-        }))
-    } else {
-        Ok(KcApiResponse::empty())
-    }
+    Ok(KcApiResponse::empty())
 }
