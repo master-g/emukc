@@ -580,8 +580,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             None
         };
 
-        tx.commit().await?;
-
+        // Update in-memory store before commit so crash between commit and
+        // store update cannot leave DB persisted but memory stale.
         let should_finish_sortie =
             current_cell.cell_no == active.boss_cell_id || current_cell.next_cells.is_empty();
         if should_finish_sortie {
@@ -591,6 +591,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 state.pending_battle_cell_id = None;
             });
         }
+
+        tx.commit().await?;
 
         Ok(SortieBattleResultResponse {
             api_ship_id: snapshot.enemy_ship_ids,

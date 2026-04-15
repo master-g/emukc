@@ -220,10 +220,11 @@ impl BattleRuntimeShip {
 
 #[cfg(test)]
 impl From<BattleShipInput> for BattleRuntimeShip {
-    /// Convenience conversion for tests and non-protection contexts.
-    /// Defaults to enemy ship in non-sortie (no sinking protection).
+    /// Convenience conversion for tests.
+    /// Defaults to friendly sortie ship (sinking protection enabled).
+    /// Use `BattleRuntimeShip::new(input, is_enemy, is_sortie)` for specific contexts.
     fn from(input: BattleShipInput) -> Self {
-        Self::new(input, false, false)
+        Self::new(input, false, true)
     }
 }
 

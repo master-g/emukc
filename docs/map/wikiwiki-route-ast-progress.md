@@ -1,6 +1,6 @@
 # Wikiwiki Route Parser Status
 
-> 这份文档只记录 route parser / runtime map IR 的当前状态。敌舰与 battle 侧的联动见 `docs/map/kancolle-map-research.md` 和 `docs/battle/plan.md`。
+> 这份文档只记录 route parser / runtime map IR 的当前状态。敌舰与 battle 侧的联动见 `plan.md`。
 
 ## TL;DR
 
