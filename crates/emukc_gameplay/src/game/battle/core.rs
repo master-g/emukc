@@ -176,15 +176,16 @@ impl BattleRuntimeShip {
     /// - The flagship (index 0) can **never** be sunk regardless of HP state.
     /// - Protection only applies to friendly ships during sorties (not practice).
     ///
-    /// Returns the actual damage dealt (after any protection replacement).
+    /// Returns `(raw_damage, effective_damage)` where raw is the input damage
+    /// and effective is the HP actually subtracted (after clamping/protection).
     fn apply_damage(
         &mut self,
         random: &mut BattleRandom,
         raw_damage: i64,
         ship_index: usize,
-    ) -> i64 {
+    ) -> (i64, i64) {
         if self.is_sunk() {
-            return 0;
+            return (0, 0);
         }
 
         let effective = raw_damage.min(self.current_hp);
@@ -209,12 +210,12 @@ impl BattleRuntimeShip {
                 let proportional = (h / 2) + (rand_part * 3) / 10;
                 let dealt = proportional.min(self.current_hp - 1).max(0);
                 self.current_hp -= dealt;
-                return dealt;
+                return (raw_damage, dealt);
             }
         }
 
         self.current_hp -= effective;
-        effective
+        (raw_damage, effective)
     }
 }
 
@@ -882,7 +883,7 @@ fn simulate_shelling_side(
         } else {
             calculate_shelling_damage(ship, &defenders[target_idx], formation_id, engagement)
         };
-        let dealt = defenders[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, dealt) = defenders[target_idx].apply_damage(random, raw, target_idx);
         if !attacker_enemy {
             ship.damage_dealt += dealt;
         }
@@ -897,7 +898,7 @@ fn simulate_shelling_side(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, is_asw_attack));
         cl_list.push(vec![1]);
-        damage.push(vec![dealt]);
+        damage.push(vec![raw_dealt]);
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {
@@ -934,14 +935,14 @@ fn simulate_opening_torpedo(
         };
         let raw =
             calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
-        let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: dealt,
+                damage: raw_dealt,
             },
         );
         happened = true;
@@ -958,13 +959,13 @@ fn simulate_opening_torpedo(
         };
         let raw =
             calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
-        let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: dealt,
+                damage: raw_dealt,
             },
         );
         happened = true;
@@ -996,14 +997,14 @@ fn simulate_raigeki(
         };
         let raw =
             calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
-        let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: dealt,
+                damage: raw_dealt,
             },
         );
         happened = true;
@@ -1020,13 +1021,13 @@ fn simulate_raigeki(
         };
         let raw =
             calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
-        let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: dealt,
+                damage: raw_dealt,
             },
         );
         happened = true;
@@ -1162,8 +1163,8 @@ fn simulate_kouku(
         if !alive_targets.is_empty() {
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
             let damage = calculate_airstrike_damage(codex, friendly, &enemy[target_idx]);
-            let dealt = enemy[target_idx].apply_damage(random, damage, target_idx);
-            api_edam[target_idx] = dealt;
+            let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, damage, target_idx);
+            api_edam[target_idx] = raw_dealt;
             api_ebak_flag[target_idx] = 1;
             api_erai_flag[target_idx] = 1;
             // Attribute damage to the ship with highest bomb power contribution
@@ -1179,8 +1180,8 @@ fn simulate_kouku(
         if !alive_targets.is_empty() {
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
             let damage = calculate_airstrike_damage(codex, enemy, &friendly[target_idx]);
-            let dealt = friendly[target_idx].apply_damage(random, damage, target_idx);
-            api_fdam[target_idx] = dealt;
+            let (raw_dealt, _) = friendly[target_idx].apply_damage(random, damage, target_idx);
+            api_fdam[target_idx] = raw_dealt;
             api_fbak_flag[target_idx] = 1;
             api_fcl_flag[target_idx] = 1;
             api_frai_flag[target_idx] = 1;
@@ -1424,7 +1425,7 @@ fn simulate_opening_taisen(
             friendly_formation_id,
             engagement,
         );
-        let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
 
         at_eflag.push(0);
@@ -1433,7 +1434,7 @@ fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, true));
         cl_list.push(vec![1]);
-        damage.push(vec![dealt]);
+        damage.push(vec![raw_dealt]);
     }
 
     // Enemy OASW attacks
@@ -1451,7 +1452,7 @@ fn simulate_opening_taisen(
             enemy_formation_id,
             engagement,
         );
-        let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
+        let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
 
         at_eflag.push(1);
         at_list.push(idx as i64);
@@ -1459,7 +1460,7 @@ fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, true));
         cl_list.push(vec![1]);
-        damage.push(vec![dealt]);
+        damage.push(vec![raw_dealt]);
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {
@@ -2372,9 +2373,9 @@ fn simulate_night_hougeki(
                 let base = calculate_night_damage(ship, &enemy[target_idx]);
                 (base as f64 * multiplier).floor() as i64
             };
-            let dealt = enemy[target_idx].apply_damage(random, raw, target_idx);
+            let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
             total_dealt += dealt;
-            hit_damages.push(dealt);
+            hit_damages.push(raw_dealt);
             hit_cls.push(1i64);
         }
         ship.damage_dealt += total_dealt;
@@ -2413,8 +2414,8 @@ fn simulate_night_hougeki(
                 let base = calculate_night_damage(ship, &friendly[target_idx]);
                 (base as f64 * multiplier).floor() as i64
             };
-            let dealt = friendly[target_idx].apply_damage(random, raw, target_idx);
-            hit_damages.push(dealt);
+            let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
+            hit_damages.push(raw_dealt);
             hit_cls.push(1i64);
         }
 
@@ -3639,45 +3640,50 @@ mod tests {
     fn sinking_protection_saves_non_taiha_ship_in_sortie() {
         let mut random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship(30, 30, 30, 40);
-        let dealt = ship.apply_damage(&mut random, 999, 1);
+        let (raw, effective) = ship.apply_damage(&mut random, 999, 1);
         assert!(ship.hp() >= 1, "ship must survive with sinking protection");
-        assert!(dealt < 30, "dealt damage must be less than current HP");
+        assert!(effective < 30, "effective damage must be less than current HP");
+        assert_eq!(raw, 999, "raw should show full input damage");
     }
 
     #[test]
     fn flagship_always_survives_even_when_taiha() {
         let mut random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship(5, 5, 5, 40);
-        let dealt = ship.apply_damage(&mut random, 999, 0);
+        let (raw, effective) = ship.apply_damage(&mut random, 999, 0);
         assert!(ship.hp() >= 1, "flagship must always survive");
-        assert!(dealt < 5);
+        assert!(effective < 5);
+        assert_eq!(raw, 999);
     }
 
     #[test]
     fn taiha_advance_ship_can_be_sunk() {
         let mut random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship(5, 5, 5, 40);
-        let dealt = ship.apply_damage(&mut random, 999, 1);
+        let (raw, effective) = ship.apply_damage(&mut random, 999, 1);
         assert_eq!(ship.hp(), 0, "taiha-advance ship should be sunk");
-        assert_eq!(dealt, 5);
+        assert_eq!(effective, 5);
+        assert_eq!(raw, 999);
     }
 
     #[test]
     fn practice_never_triggers_sinking_protection() {
         let mut random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, true, false);
-        let dealt = ship.apply_damage(&mut random, 999, 1);
+        let (raw, effective) = ship.apply_damage(&mut random, 999, 1);
         assert_eq!(ship.hp(), 0, "practice uses normal damage clamping");
-        assert_eq!(dealt, 30);
+        assert_eq!(effective, 30);
+        assert_eq!(raw, 999);
     }
 
     #[test]
     fn enemy_ships_never_get_sinking_protection() {
         let mut random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
-        let dealt = ship.apply_damage(&mut random, 999, 0);
+        let (raw, effective) = ship.apply_damage(&mut random, 999, 0);
         assert_eq!(ship.hp(), 0, "enemy ships should be sinkable");
-        assert_eq!(dealt, 30);
+        assert_eq!(effective, 30);
+        assert_eq!(raw, 999);
     }
 
     #[test]
@@ -3781,10 +3787,11 @@ mod tests {
         let mut rng = BattleRandom::new(Some(42));
 
         // Apply lethal damage (more than current_hp)
-        let dealt = ship.apply_damage(&mut rng, 100, 0);
-        assert!(dealt > 0, "flagship should take proportional damage");
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert!(effective > 0, "flagship should take proportional damage");
         assert!(ship.current_hp > 0, "flagship must survive");
         assert!(ship.current_hp < ship.entry_hp, "should be proportional, not full damage");
+        assert_eq!(raw, 100, "raw should show full input");
     }
 
     #[test]
@@ -3794,9 +3801,10 @@ mod tests {
         let mut ship = make_test_ship_ctx(1, 5, 1, 30, true, true);
         let mut rng = BattleRandom::new(Some(42));
 
-        let dealt = ship.apply_damage(&mut rng, 100, 0);
-        assert_eq!(dealt, 0, "at 1 HP, protection reduces damage to 0");
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(effective, 0, "at 1 HP, protection reduces damage to 0");
         assert_eq!(ship.current_hp, 1, "flagship must survive");
+        assert_eq!(raw, 100);
     }
 
     #[test]
@@ -3805,9 +3813,10 @@ mod tests {
         let mut ship = make_test_ship_ctx(10, 20, 10, 30, true, true);
         let mut rng = BattleRandom::new(Some(42));
 
-        let dealt = ship.apply_damage(&mut rng, 100, 2);
-        assert!(dealt > 0, "non-taiha ship should take proportional damage");
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 2);
+        assert!(effective > 0, "non-taiha ship should take proportional damage");
         assert!(ship.current_hp > 0, "non-taiha ship must survive");
+        assert_eq!(raw, 100);
     }
 
     #[test]
@@ -3818,9 +3827,11 @@ mod tests {
         let mut ship = make_test_ship_ctx(entry_hp, entry_hp, entry_hp, max_hp, true, true);
         let mut rng = BattleRandom::new(Some(42));
 
-        let dealt = ship.apply_damage(&mut rng, 100, 2);
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 2);
         // Taiha non-flagship: no protection, should be sunk
         assert_eq!(ship.current_hp, 0, "taiha non-flagship should be sunk");
+        assert_eq!(effective, 5);
+        assert_eq!(raw, 100);
     }
 
     #[test]
@@ -3830,8 +3841,8 @@ mod tests {
         let mut ship = make_test_ship_ctx(10, 30, 10, max_hp, true, true);
         let mut rng = BattleRandom::new(Some(123));
 
-        let dealt = ship.apply_damage(&mut rng, 100, 1);
-        assert!(dealt > 0);
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 1);
+        assert!(effective > 0);
         assert!(ship.current_hp > 0, "should survive due to protection");
 
         // The proportional formula uses entry_hp (30), not current_hp (10).
@@ -3841,6 +3852,7 @@ mod tests {
             ship.current_hp <= 30,
             "remaining HP should be based on entry_hp (30), not current_hp (10)"
         );
+        assert_eq!(raw, 100);
     }
 
     #[test]
@@ -3848,8 +3860,9 @@ mod tests {
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, false, true);
         let mut rng = BattleRandom::new(Some(42));
 
-        let dealt = ship.apply_damage(&mut rng, 100, 0);
-        assert_eq!(dealt, 1, "enemy ship should take full damage");
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(effective, 1, "enemy ship should take full effective damage");
+        assert_eq!(raw, 100, "raw should show overkill");
         assert_eq!(ship.current_hp, 0, "enemy ship should be sunk");
     }
 
@@ -3859,8 +3872,31 @@ mod tests {
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, true, false);
         let mut rng = BattleRandom::new(Some(42));
 
-        let dealt = ship.apply_damage(&mut rng, 100, 0);
-        assert_eq!(dealt, 1, "practice ship should take full damage");
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(effective, 1, "practice ship should take full effective damage");
+        assert_eq!(raw, 100, "raw should show overkill");
         assert_eq!(ship.current_hp, 0, "practice ship should be sunk");
+    }
+
+    #[test]
+    fn overkill_shows_raw_damage() {
+        let mut ship = make_test_ship_ctx(5, 5, 5, 30, false, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(raw, 100, "raw should show full input damage");
+        assert_eq!(effective, 5, "effective capped to current HP");
+        assert_eq!(ship.current_hp, 0, "ship should be sunk");
+    }
+
+    #[test]
+    fn protection_shows_raw_but_reduces_hp_proportionally() {
+        let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
+        let mut rng = BattleRandom::new(Some(42));
+
+        let (raw, effective) = ship.apply_damage(&mut rng, 200, 0);
+        assert_eq!(raw, 200, "raw should show full lethal input");
+        assert!(effective < 10, "effective should be proportional, not lethal");
+        assert!(ship.current_hp > 0, "flagship must survive");
     }
 }

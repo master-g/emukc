@@ -76,6 +76,8 @@ the battle subsystem. Implemented via SortieOps::sortie_battle.
 - THEN the battle simulation produces: aerial phase (optional), shelling phases, torpedo phase
 - THEN battle damage is recorded in the SortieStore as a pending result
 - THEN the response includes api_hourai_flag indicating which phases occurred
+- THEN all damage fields in the response (api_damage, api_fydam/eydam, api_fdam/edam) SHALL contain raw (pre-clamp) damage values, allowing overkill display
+- THEN HP tracking SHALL use effective (clamped) damage internally
 
 #### Scenario: Air battle (airbattle)
 - WHEN the cell event type calls for an airbattle
