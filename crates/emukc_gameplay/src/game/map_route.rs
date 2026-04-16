@@ -49,7 +49,7 @@ pub(crate) fn evaluate_route_destination(
     };
 
     let mut fallback_rules = Vec::<&RouteRule>::new();
-    let mut matched_groups = BTreeMap::<String, (i64, Vec<&RouteRule>)>::new();
+    let mut matched_groups = BTreeMap::<&str, (i64, Vec<&RouteRule>)>::new();
     let mut saw_source_unknown = false;
     let mut saw_unsupported = false;
     for rule in rules {
@@ -448,8 +448,33 @@ pub(crate) fn select_route_target_for_roll(
     weights.keys().last().copied()
 }
 
-fn route_predicate_key(predicate: &RoutePredicate) -> String {
-    serde_json::to_string(predicate).unwrap_or_else(|_| format!("{predicate:?}"))
+fn route_predicate_key(predicate: &RoutePredicate) -> &'static str {
+    match predicate {
+        RoutePredicate::Always => "always",
+        RoutePredicate::VisitedNode { .. } => "visited_node",
+        RoutePredicate::VisitedNodeLabel { .. } => "visited_node_label",
+        RoutePredicate::FleetSize { .. } => "fleet_size",
+        RoutePredicate::EquipmentCount { .. } => "equipment_count",
+        RoutePredicate::ShipTypeCount { .. } => "ship_type_count",
+        RoutePredicate::FlagshipShipType { .. } => "flagship_ship_type",
+        RoutePredicate::FlagshipShipId { .. } => "flagship_ship_id",
+        RoutePredicate::ContainsShipType { .. } => "contains_ship_type",
+        RoutePredicate::ContainsShipId { .. } => "contains_ship_id",
+        RoutePredicate::ContainsShipSet { .. } => "contains_ship_set",
+        RoutePredicate::OnlyShipTypes { .. } => "only_ship_types",
+        RoutePredicate::OnlyShipSet { .. } => "only_ship_set",
+        RoutePredicate::ShipSetCount { .. } => "ship_set_count",
+        RoutePredicate::ShipSetSpeedCount { .. } => "ship_set_speed_count",
+        RoutePredicate::Speed { .. } => "speed",
+        RoutePredicate::LoS { .. } => "los",
+        RoutePredicate::DrumCanisterCount { .. } => "drum_canister_count",
+        RoutePredicate::And(_) => "and",
+        RoutePredicate::Or(_) => "or",
+        RoutePredicate::Not(_) => "not",
+        RoutePredicate::FleetSizeWeightedRandom { .. } => "fleet_size_weighted_random",
+        RoutePredicate::Unknown { .. } => "unknown",
+        RoutePredicate::SourceUnknown { .. } => "source_unknown",
+    }
 }
 
 impl RoutePredicateEval {

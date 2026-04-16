@@ -3072,6 +3072,58 @@ mod tests {
         assert_eq!(record.event_state, Some(2));
         assert!(record.last_cleared_at.is_some());
     }
+
+    #[tokio::test]
+    async fn clearing_map_1_1_unlocks_dependents_via_cascade() {
+        let db = new_mem_db().await.unwrap();
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let context = (db, codex);
+        let account = context.sign_up("cascade-test", "1234567").await.unwrap();
+        let profile =
+            context.new_profile(&account.access_token.token, "cascade-tester").await.unwrap();
+        let session =
+            context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+        let profile_id = session.profile.id;
+
+        let catalog = active_map_catalog(&context.1);
+        let deps = catalog.dependents_of(11);
+        assert!(!deps.is_empty(), "1-1 should have dependents");
+
+        // Verify dependents start locked
+        for &dep_id in &deps {
+            let rec = find_map_record_impl(&context.0, profile_id, dep_id).await.unwrap();
+            assert!(!rec.unlocked, "dependent {dep_id} should start locked");
+        }
+
+        // Simulate Boss win on 1-1 through the actual cascade
+        let definition = catalog.as_ref().map_definition(11).unwrap();
+        let stage = definition.stage(&String::new()).unwrap();
+        let snapshot = successful_boss_snapshot();
+
+        let first_clear = apply_sortie_map_result(
+            &context.0,
+            profile_id,
+            definition,
+            stage,
+            true, // boss cell
+            &snapshot,
+        )
+        .await
+        .unwrap();
+        assert_eq!(first_clear, 1, "first clear should return 1");
+
+        let unlocked =
+            check_and_unlock_dependencies_impl(&context.0, &context.1, profile_id, 11)
+                .await
+                .unwrap();
+        assert!(!unlocked.is_empty(), "should unlock at least one map");
+
+        // Verify dependents are now unlocked
+        for &dep_id in &deps {
+            let rec = find_map_record_impl(&context.0, profile_id, dep_id).await.unwrap();
+            assert!(rec.unlocked, "dependent {dep_id} should be unlocked after clearing 1-1");
+        }
+    }
 }
 
 fn enemy_slot_ids(ship: &BattleShipInput) -> [i64; 5] {
