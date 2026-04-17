@@ -54,6 +54,7 @@ mod tests {
         let infos = data["api_map_info"].as_array().unwrap();
 
         assert!(infos.iter().any(|info| info["api_id"] == 11));
-        assert!(infos.iter().any(|info| info["api_id"] == 74));
+        // EO/event maps are unlock-gated and not visible to fresh profiles.
+        assert!(!infos.iter().any(|info| info["api_id"] == 74));
     }
 }

@@ -14,7 +14,7 @@ use emukc_model::{
 use crate::{
     err::GameplayError,
     game::battle::core::{
-        BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleNightHougeki,
+        AirState, BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleNightHougeki,
         BattleOpeningAttack, BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleType,
         EngagementType, NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
     },
@@ -107,6 +107,7 @@ pub struct PracticeBattleSession {
     pub enemy: Vec<BattleRuntimeShip>,
     pub formation: [i64; 3],
     pub outcome: crate::game::battle::core::BattleOutcome,
+    pub air_state: Option<AirState>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -182,6 +183,12 @@ pub fn simulate_practice_day_battle(
     let get_exp = calculate_admiral_exp(base_exp, &simulation.outcome.win_rank);
     let (ship_exp, ship_lvup) =
         calculate_practice_ship_exp(&simulation.friendly, base_exp, simulation.outcome.mvp);
+
+    let air_state = simulation
+        .packet
+        .kouku
+        .as_ref()
+        .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
 
     let response = PracticeBattleResponse {
         api_deck_id: input.deck_id,
@@ -289,6 +296,7 @@ pub fn simulate_practice_day_battle(
                 mvp: snapshot.mvp,
                 can_midnight: response.api_midnight_flag > 0,
             },
+            air_state,
         },
     );
 
@@ -333,7 +341,7 @@ pub fn simulate_practice_night_battle(
         session.formation[0],
         session.formation[1],
         EngagementType::from_api_id(session.formation[2]).unwrap_or(EngagementType::SameCourse),
-        None,
+        session.air_state.as_ref(),
     );
     session.friendly = simulation.friendly.clone();
     session.enemy = simulation.enemy.clone();

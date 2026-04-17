@@ -76,7 +76,14 @@ pub fn simulate_and_store_sortie_night_battle(
     enemy_formation_id: i64,
     engagement: EngagementType,
 ) -> Option<SortieNightBattleSession> {
+    use crate::game::battle::core::AirState;
+
     let session = store.get_pending_battle(profile_id)?;
+    let air_state = session
+        .packet
+        .kouku
+        .as_ref()
+        .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
     let simulation = simulate_night_battle_v1(
         codex,
         session.friendly.clone(),
@@ -84,7 +91,7 @@ pub fn simulate_and_store_sortie_night_battle(
         friendly_formation_id,
         enemy_formation_id,
         engagement,
-        None,
+        air_state.as_ref(),
     );
     store.with_pending_battle_mut(profile_id, |s| {
         s.friendly = simulation.friendly.clone();

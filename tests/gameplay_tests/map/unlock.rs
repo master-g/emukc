@@ -48,10 +48,10 @@ mod tests {
 
     #[tokio::test]
     async fn clearing_1_1_unlocks_1_2() {
-        // Cascade logic tested in crate-internal test
-        // (sortie.rs::clearing_map_1_1_unlocks_dependents_via_cascade).
-        // This test verifies the public-facing behavior: after clearing 1-1,
-        // mapinfo should include newly unlocked maps.
+        // Verifies the public API path: after clearing 1-1 through the
+        // sortie flow, get_map_infos should include newly unlocked maps.
+        // The cascade logic itself is also tested in the crate-internal
+        // test clearing_map_1_1_unlocks_dependents_via_cascade.
 
         let context = new_context().await;
         let pid = new_profile(&context).await;
@@ -60,6 +60,41 @@ mod tests {
         let infos = context.get_map_infos(pid).await.unwrap();
         let map_ids: Vec<i64> = infos.iter().map(|info| info.api_id).collect();
         assert_eq!(map_ids, vec![11], "expected only map 1-1 for new account");
+
+        // Set up fleet
+        let mut fleet_slots = [-1; 6];
+        for slot in &mut fleet_slots {
+            *slot = context.add_ship(pid, 951).await.unwrap().api_id;
+        }
+        context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
+
+        // Start sortie to map 1-1
+        let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        let mut current_cell = start.cell_no;
+        let boss_cell = start.boss_cell_no;
+
+        // Navigate through cells and battle until boss is defeated
+        loop {
+            // Battle at current cell (event_kind == 1 means battle)
+            let _battle = context.sortie_battle(pid, 1).await.unwrap();
+            let result = context.sortie_battle_result(pid).await.unwrap();
+
+            if current_cell == boss_cell || result.api_first_clear > 0 {
+                break;
+            }
+
+            // Advance to next cell
+            let next = context.next_sortie(pid, None).await.unwrap();
+            current_cell = next.cell_no;
+        }
+
+        // After clearing 1-1, mapinfo should include newly unlocked maps
+        let infos = context.get_map_infos(pid).await.unwrap();
+        let map_ids: Vec<i64> = infos.iter().map(|info| info.api_id).collect();
+        assert!(
+            map_ids.contains(&12),
+            "expected map 1-2 unlocked after clearing 1-1, got: {map_ids:?}"
+        );
     }
 
     #[tokio::test]

@@ -580,8 +580,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             None
         };
 
-        // Update in-memory store before commit so crash between commit and
-        // store update cannot leave DB persisted but memory stale.
+        tx.commit().await?;
+
+        // Update in-memory store after commit so a failed transaction cannot
+        // leave the store in a state inconsistent with the database.
+        // On crash after commit: store is stale but DB is correct, and the
+        // store is rebuilt from DB state on restart.
         let should_finish_sortie =
             current_cell.cell_no == active.boss_cell_id || current_cell.next_cells.is_empty();
         if should_finish_sortie {
@@ -591,8 +595,6 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 state.pending_battle_cell_id = None;
             });
         }
-
-        tx.commit().await?;
 
         Ok(SortieBattleResultResponse {
             api_ship_id: snapshot.enemy_ship_ids,
@@ -3101,21 +3103,16 @@ mod tests {
         let snapshot = successful_boss_snapshot();
 
         let first_clear = apply_sortie_map_result(
-            &context.0,
-            profile_id,
-            definition,
-            stage,
-            true, // boss cell
+            &context.0, profile_id, definition, stage, true, // boss cell
             &snapshot,
         )
         .await
         .unwrap();
         assert_eq!(first_clear, 1, "first clear should return 1");
 
-        let unlocked =
-            check_and_unlock_dependencies_impl(&context.0, &context.1, profile_id, 11)
-                .await
-                .unwrap();
+        let unlocked = check_and_unlock_dependencies_impl(&context.0, &context.1, profile_id, 11)
+            .await
+            .unwrap();
         assert!(!unlocked.is_empty(), "should unlock at least one map");
 
         // Verify dependents are now unlocked

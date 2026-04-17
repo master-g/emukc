@@ -7,11 +7,7 @@
 //! contexts keep working.  The binary-crate [`State`] overrides it with an
 //! instance-scoped store, giving each route-test its own isolated copy.
 
-use std::{
-    collections::HashMap,
-    fmt,
-    sync::LazyLock,
-};
+use std::{collections::HashMap, fmt, sync::LazyLock};
 
 use parking_lot::Mutex;
 
