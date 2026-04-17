@@ -333,6 +333,7 @@ pub fn simulate_practice_night_battle(
         session.formation[0],
         session.formation[1],
         EngagementType::from_api_id(session.formation[2]).unwrap_or(EngagementType::SameCourse),
+        None,
     );
     session.friendly = simulation.friendly.clone();
     session.enemy = simulation.enemy.clone();

@@ -84,6 +84,7 @@ pub fn simulate_and_store_sortie_night_battle(
         friendly_formation_id,
         enemy_formation_id,
         engagement,
+        None,
     );
     store.with_pending_battle_mut(profile_id, |s| {
         s.friendly = simulation.friendly.clone();
@@ -176,6 +177,7 @@ pub fn simulate_and_store_sortie_sp_midnight_battle(
         friendly_formation_id,
         enemy_formation_id,
         engagement,
+        None,
     );
 
     // Update the stored day session with night results

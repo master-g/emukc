@@ -1,7 +1,7 @@
 # EmuKC Plan
 
 > Merged from `docs/plan.md`, `docs/audit.md`, and `docs/battle/plan.md`.
-> Last updated: 2026-04-16
+> Last updated: 2026-04-17
 
 ## Current Status
 
@@ -23,6 +23,7 @@
 - **Sortie durability gap fix** (2026-04-15): Store update moved before `tx.commit()` so crash cannot leave DB persisted but memory stale.
 - **Route predicate key optimization** (2026-04-16): `route_predicate_key` replaced JSON serialization with discriminant-based `match` returning `&str`. Zero allocations, no serde dependency.
 - **Unlock cascade test** (2026-04-16): `clearing_map_1_1_unlocks_dependents_via_cascade` crate-internal test exercises `apply_sortie_map_result` → `check_and_unlock_dependencies_impl` cascade. External test simplified to verify public `get_map_infos` behavior only.
+- **Enemy battle-data source** (2026-04-17, verified): `enemy_ship_extra` codex field holds 841 abyssal ship entries from kcwiki bootstrap. `build_sortie_enemy_ship()` uses 3-tier fallback: enemy_extra → ship_extra → manifest. Enemy DD torpedo stats (api_raisou) populated correctly from bootstrap data. Gap #1 (Enemy DD torpedo) and Gap #2 (Enemy master-data) resolved.
 
 ## Constraints
 
@@ -37,8 +38,8 @@
 
 | # | Gap | Impact | Priority |
 |---|-----|--------|----------|
-| 1 | **Enemy DDs skip torpedo** | 雷撃戦 phase: many enemy DDs have `api_raisou=[0,0]` due to manifest fallback | High |
-| 2 | **Enemy master-data source** | Many abyssal IDs have HP=1 via manifest fallback; limits battle fidelity | High |
+| 1 | ~~Enemy DDs skip torpedo~~ | **RESOLVED** (2026-04-17): 841 enemy ships in `enemy_ship_extra` | — |
+| 2 | ~~Enemy master-data source~~ | **RESOLVED** (2026-04-17): kcwiki bootstrap + 3-tier fallback | — |
 | 3 | **Day battle formula accuracy** | Missing: 改修強化, CV special formula, CL 軽砲補正, armor × 0.7/0.55 simplification | Medium-High |
 | 4 | **Missing special OASW** | Isuzu K2 / Tatsuta K2 等無条件 OASW 未実装 | Medium |
 | 5 | **Target taxonomy** | Attacker-side land/surface legality not fully wired | Medium |
@@ -50,9 +51,9 @@
 
 ## Next Tracks
 
-### Track 1: Enemy Battle-Data Source
+### Track 1: Enemy Battle-Data Source (COMPLETED 2026-04-17)
 
-Introduce enemy master/stat data source into codex/bootstrap. Switch `build_sortie_enemy_ship()` to use it before manifest fallback. Add regression tests for normal-map enemy coverage.
+`enemy_ship_extra` codex field with 841 abyssal entries. `build_sortie_enemy_ship()` uses 3-tier fallback: enemy_extra → ship_extra → manifest. Regression tests cover all fallback paths.
 
 Only after enemy stats are stable: `airbattle` / `sp_midnight` specialization and broader sortie fidelity.
 

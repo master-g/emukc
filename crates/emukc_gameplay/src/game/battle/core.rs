@@ -271,7 +271,7 @@ impl TargetClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AirState {
+pub(crate) enum AirState {
     Supremacy,
     Superiority,
     Parity,
@@ -802,6 +802,7 @@ pub fn simulate_night_battle_v1(
     friendly_formation_id: i64,
     enemy_formation_id: i64,
     engagement: EngagementType,
+    air_state: Option<&AirState>,
 ) -> NightBattleSimulation {
     let mut random = BattleRandom::new(None);
     let entry_friendly_nowhps = friendly.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
@@ -816,6 +817,7 @@ pub fn simulate_night_battle_v1(
         friendly_formation_id,
         enemy_formation_id,
         engagement,
+        air_state,
     );
     let outcome = BattleOutcome {
         win_rank: calculate_win_rank(&friendly, &enemy),
@@ -844,11 +846,71 @@ pub fn simulate_night_battle_v1(
 }
 
 pub fn apply_cap(raw_power: f64, cap: f64) -> i64 {
-    if raw_power <= cap {
-        raw_power.floor() as i64
-    } else {
-        (cap + (raw_power - cap).sqrt().floor()).floor() as i64
-    }
+	if raw_power <= cap {
+		raw_power.floor() as i64
+	} else {
+		(cap + (raw_power - cap).sqrt().floor()).floor() as i64
+	}
+}
+
+/// Calculate defense power using the randomized formula:
+/// `floor(0.7 × A_t + 0.6 × random(0, floor(A_t) − 1))`
+///
+/// When armor ≤ 1, the random range is empty, so the result is just `floor(0.7 × A_t)`.
+fn calculate_defense_power(random: &mut BattleRandom, armor_stat: i64) -> f64 {
+	let a = armor_stat.max(0) as f64;
+	let rand_part = if armor_stat > 1 {
+		random.roll_range(0, armor_stat) as f64
+	} else {
+		0.0
+	};
+	(0.7 * a + 0.6 * rand_part).floor()
+}
+
+/// Calculate the damage state modifier based on attacker's HP ratio.
+///
+/// Returns a pre-cap multiplier:
+/// - Normal (>75% HP): 1.0
+/// - Chuuha (25–75% HP): 0.7 for shelling/ASW, 0.8 for torpedo
+/// - Taiha (<25% HP): 0.4 for shelling/ASW, 0.0 for torpedo
+fn damage_state_modifier(current_hp: i64, max_hp: i64, phase: BattlePhase) -> f64 {
+	if max_hp <= 0 {
+		return 1.0;
+	}
+	// HP ratio threshold: chuuha is ≤75%, taiha is ≤25%
+	let hp_ratio = current_hp as f64 / max_hp as f64;
+	if hp_ratio <= 0.25 {
+		match phase {
+			BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => 0.0,
+			_ => 0.4,
+		}
+	} else if hp_ratio <= 0.75 {
+		match phase {
+			BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => 0.8,
+			_ => 0.7,
+		}
+	} else {
+		1.0
+	}
+}
+
+/// Resolve final damage after capping, applying defense and scratch damage logic.
+///
+/// If `capped_power < defense`, returns scratch (proportional) damage instead of minimum 1.
+fn resolve_damage(
+	random: &mut BattleRandom,
+	capped_power: f64,
+	defense: f64,
+	target_hp: i64,
+) -> i64 {
+	if capped_power <= 0.0 {
+		return 0;
+	}
+	if capped_power < defense {
+		calculate_scratch_damage(random, target_hp.max(1))
+	} else {
+		(capped_power - defense).floor().max(0.0) as i64
+	}
 }
 
 fn simulate_shelling_side(
@@ -879,9 +941,9 @@ fn simulate_shelling_side(
         };
         let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
         let raw = if is_asw_attack {
-            calculate_asw_damage(codex, ship, &defenders[target_idx], formation_id, engagement)
+            calculate_asw_damage(codex, random, ship, &defenders[target_idx], formation_id, engagement)
         } else {
-            calculate_shelling_damage(ship, &defenders[target_idx], formation_id, engagement)
+            calculate_shelling_damage(codex, random, ship, &defenders[target_idx], formation_id, engagement)
         };
         let (raw_dealt, dealt) = defenders[target_idx].apply_damage(random, raw, target_idx);
         if !attacker_enemy {
@@ -934,7 +996,7 @@ fn simulate_opening_torpedo(
             continue;
         };
         let raw =
-            calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
+            calculate_torpedo_damage(codex, random, ship, &enemy[target_idx], friendly_formation_id, engagement, BattlePhase::OpeningTorpedo);
         let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
         payload.record_torpedo_hit(
@@ -958,7 +1020,7 @@ fn simulate_opening_torpedo(
             continue;
         };
         let raw =
-            calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
+            calculate_torpedo_damage(codex, random, ship, &friendly[target_idx], enemy_formation_id, engagement, BattlePhase::OpeningTorpedo);
         let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
@@ -996,7 +1058,7 @@ fn simulate_raigeki(
             continue;
         };
         let raw =
-            calculate_torpedo_damage(ship, &enemy[target_idx], friendly_formation_id, engagement);
+            calculate_torpedo_damage(codex, random, ship, &enemy[target_idx], friendly_formation_id, engagement, BattlePhase::ClosingTorpedo);
         let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
         payload.record_torpedo_hit(
@@ -1020,7 +1082,7 @@ fn simulate_raigeki(
             continue;
         };
         let raw =
-            calculate_torpedo_damage(ship, &friendly[target_idx], enemy_formation_id, engagement);
+            calculate_torpedo_damage(codex, random, ship, &friendly[target_idx], enemy_formation_id, engagement, BattlePhase::ClosingTorpedo);
         let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
@@ -1071,39 +1133,40 @@ fn calculate_fighter_power(codex: &Codex, ships: &[BattleRuntimeShip]) -> i64 {
 }
 
 fn calculate_airstrike_damage(
-    codex: &Codex,
-    attacker_ships: &[BattleRuntimeShip],
-    defender: &BattleRuntimeShip,
+	codex: &Codex,
+	random: &mut BattleRandom,
+	attacker_ships: &[BattleRuntimeShip],
+	defender: &BattleRuntimeShip,
 ) -> i64 {
-    let total_bomb_power: f64 = attacker_ships
-        .iter()
-        .flat_map(|ship| ship.slot_items.iter().zip(ship.ship.api_onslot))
-        .filter_map(|(slot_item, onslot)| {
-            if onslot <= 0 {
-                return None;
-            }
-            let mst = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok()?;
-            if !is_airstrike_attack_type(mst.api_type[2]) {
-                return None;
-            }
-            let is_torpedo_bomber = KcSlotItemType3::n(mst.api_type[2])
-                == Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
-            let stat = if is_torpedo_bomber {
-                mst.api_raig.max(0) as f64
-            } else {
-                mst.api_baku.max(0) as f64
-            };
-            Some(stat * (onslot as f64).sqrt())
-        })
-        .sum();
+	let total_bomb_power: f64 = attacker_ships
+		.iter()
+		.flat_map(|ship| ship.slot_items.iter().zip(ship.ship.api_onslot))
+		.filter_map(|(slot_item, onslot)| {
+			if onslot <= 0 {
+				return None;
+			}
+			let mst = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok()?;
+			if !is_airstrike_attack_type(mst.api_type[2]) {
+				return None;
+			}
+			let is_torpedo_bomber = KcSlotItemType3::n(mst.api_type[2])
+				== Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
+			let stat = if is_torpedo_bomber {
+				mst.api_raig.max(0) as f64
+			} else {
+				mst.api_baku.max(0) as f64
+			};
+			Some(stat * (onslot as f64).sqrt())
+		})
+		.sum();
 
-    if total_bomb_power <= 0.0 {
-        return 0;
-    }
-    let raw_power = total_bomb_power + 25.0;
-    let capped = apply_cap(raw_power, 170.0) as f64;
-    let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.6;
-    (capped - armor).floor().max(1.0) as i64
+	if total_bomb_power <= 0.0 {
+		return 0;
+	}
+	let raw_power = total_bomb_power + 25.0;
+	let capped = apply_cap(raw_power, 170.0) as f64;
+	let defense = calculate_defense_power(random, defender.ship.api_soukou[0]);
+	resolve_damage(random, capped, defense, defender.hp())
 }
 
 fn simulate_kouku(
@@ -1162,7 +1225,7 @@ fn simulate_kouku(
             enemy.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
         if !alive_targets.is_empty() {
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
-            let damage = calculate_airstrike_damage(codex, friendly, &enemy[target_idx]);
+            let damage = calculate_airstrike_damage(codex, random, friendly, &enemy[target_idx]);
             let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, damage, target_idx);
             api_edam[target_idx] = raw_dealt;
             api_ebak_flag[target_idx] = 1;
@@ -1179,7 +1242,7 @@ fn simulate_kouku(
             friendly.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
         if !alive_targets.is_empty() {
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
-            let damage = calculate_airstrike_damage(codex, enemy, &friendly[target_idx]);
+            let damage = calculate_airstrike_damage(codex, random, enemy, &friendly[target_idx]);
             let (raw_dealt, _) = friendly[target_idx].apply_damage(random, damage, target_idx);
             api_fdam[target_idx] = raw_dealt;
             api_fbak_flag[target_idx] = 1;
@@ -1223,40 +1286,123 @@ fn simulate_kouku(
 }
 
 fn calculate_shelling_damage(
-    attacker: &BattleRuntimeShip,
-    defender: &BattleRuntimeShip,
-    formation_id: i64,
-    engagement: EngagementType,
+	codex: &Codex,
+	random: &mut BattleRandom,
+	attacker: &BattleRuntimeShip,
+	defender: &BattleRuntimeShip,
+	formation_id: i64,
+	engagement: EngagementType,
 ) -> i64 {
-    let attack_power = (attacker.ship.api_karyoku[0].max(0) as f64 + 5.0)
-        * shelling_formation_modifier(formation_id);
-    let capped_power = apply_cap(attack_power * engagement.modifier(), 220.0) as f64;
-    let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
-    (capped_power - armor).floor().max(1.0) as i64
+	let basic_power = if is_cv_type(codex, attacker) {
+		let bomber_count = bomber_slot_count(codex, attacker);
+		if bomber_count > 0 {
+			1.5 * bomber_count as f64 + 55.0
+		} else {
+			attacker.ship.api_karyoku[0].max(0) as f64 + 5.0
+		}
+	} else {
+		attacker.ship.api_karyoku[0].max(0) as f64 + 5.0
+	};
+	let bonus = improvement_bonus_day(codex, attacker) + light_gun_bonus(codex, attacker);
+	let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
+	let pre_cap = (basic_power + bonus) * shelling_formation_modifier(formation_id) * engagement.modifier() * dmg_state;
+	let capped_power = apply_cap(pre_cap, 220.0) as f64;
+	let defense = calculate_defense_power(random, defender.ship.api_soukou[0]);
+	resolve_damage(random, capped_power, defense, defender.hp())
+}
+
+fn is_cv_type(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+	matches!(ship_type(codex, ship), Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB))
+}
+
+fn bomber_slot_count(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+	const BOMBER_TYPES: &[KcSlotItemType3] = &[
+		KcSlotItemType3::CarrierBasedDiveBomber,
+		KcSlotItemType3::CarrierBasedTorpedoBomber,
+	];
+	ship.slot_items
+		.iter()
+		.filter(|si| {
+			codex
+				.find::<ApiMstSlotitem>(&si.api_slotitem_id)
+				.ok()
+				.and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
+				.map_or(false, |t| BOMBER_TYPES.contains(&t))
+		})
+		.count() as i64
+}
+
+fn light_gun_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+	if !matches!(ship_type(codex, ship), Some(KcShipType::CL | KcShipType::CLT)) {
+		return 0.0;
+	}
+	let single = ship
+		.slot_items
+		.iter()
+		.filter(|si| {
+			codex
+				.find::<ApiMstSlotitem>(&si.api_slotitem_id)
+				.ok()
+				.and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
+				== Some(KcSlotItemType3::SmallCaliberMainGun)
+		})
+		.count() as f64;
+	let twin = ship
+		.slot_items
+		.iter()
+		.filter(|si| {
+			codex
+				.find::<ApiMstSlotitem>(&si.api_slotitem_id)
+				.ok()
+				.and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
+				== Some(KcSlotItemType3::MediumCaliberMainGun)
+		})
+		.count() as f64;
+	single.sqrt() + 2.0 * twin.sqrt()
 }
 
 fn calculate_torpedo_damage(
-    attacker: &BattleRuntimeShip,
-    defender: &BattleRuntimeShip,
-    formation_id: i64,
-    engagement: EngagementType,
+	codex: &Codex,
+	random: &mut BattleRandom,
+	attacker: &BattleRuntimeShip,
+	defender: &BattleRuntimeShip,
+	formation_id: i64,
+	engagement: EngagementType,
+	phase: BattlePhase,
 ) -> i64 {
-    let attack_power = (attacker.ship.api_raisou[0].max(0) as f64 + 5.0)
-        * torpedo_formation_modifier(formation_id);
-    let capped_power = apply_cap(attack_power * engagement.modifier(), 180.0) as f64;
-    let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.55;
-    (capped_power - armor).floor().max(1.0) as i64
+	let basic_power = attacker.ship.api_raisou[0].max(0) as f64 + improvement_bonus_torpedo(codex, attacker);
+	let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, phase);
+	let pre_cap = basic_power * torpedo_formation_modifier(formation_id) * engagement.modifier() * dmg_state;
+	let capped_power = apply_cap(pre_cap, 180.0) as f64;
+	let defense = calculate_defense_power(random, defender.ship.api_soukou[0]);
+	resolve_damage(random, capped_power, defense, defender.hp())
 }
 
 fn calculate_night_damage(
-    attacker: &BattleRuntimeShip,
-    defender: &BattleRuntimeShip,
+	codex: &Codex,
+	random: &mut BattleRandom,
+	attacker: &BattleRuntimeShip,
+	defender: &BattleRuntimeShip,
+	air_state: Option<&AirState>,
 ) -> i64 {
-    let attack_power =
-        (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5) as f64;
-    let capped_power = apply_cap(attack_power, 360.0) as f64;
-    let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
-    (capped_power - armor).floor().max(1.0) as i64
+	let basic_power =
+		(attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5) as f64
+			+ improvement_bonus_night(codex, attacker)
+			+ night_recon_bonus(codex, attacker, air_state);
+	let capped_power = apply_cap(basic_power, 360.0) as f64;
+	let defense = calculate_defense_power(random, defender.ship.api_soukou[0]);
+	resolve_damage(random, capped_power, defense, defender.hp())
+}
+
+fn night_recon_bonus(codex: &Codex, ship: &BattleRuntimeShip, air_state: Option<&AirState>) -> f64 {
+	if !has_slotitem_type(codex, ship, KcSlotItemType3::SeaBasedRecon) {
+		return 0.0;
+	}
+	match air_state {
+		Some(AirState::Supremacy) => 9.0,
+		Some(AirState::Superiority) => 7.0,
+		_ => 5.0,
+	}
 }
 
 fn shelling_formation_modifier(formation_id: i64) -> f64 {
@@ -1339,6 +1485,61 @@ fn equipment_asw_total(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         .sum()
 }
 
+/// Day shelling improvement bonus: sum of √(★) per weapon equipment.
+fn improvement_bonus_day(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+	const WEAPON_TYPES: &[KcSlotItemType3] = &[
+		KcSlotItemType3::SmallCaliberMainGun,
+		KcSlotItemType3::MediumCaliberMainGun,
+		KcSlotItemType3::LargeCaliberMainGun,
+		KcSlotItemType3::SecondaryGun,
+		KcSlotItemType3::Torpedo,
+		KcSlotItemType3::CarrierBasedDiveBomber,
+		KcSlotItemType3::CarrierBasedTorpedoBomber,
+		KcSlotItemType3::SeaBasedBomber,
+		KcSlotItemType3::LargeCaliberMainGun2,
+		KcSlotItemType3::SecondaryGun2,
+	];
+	ship.slot_items
+		.iter()
+		.filter_map(|si| {
+			if si.api_level <= 0 {
+				return None;
+			}
+			codex
+				.find::<ApiMstSlotitem>(&si.api_slotitem_id)
+				.ok()
+				.and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
+				.filter(|t| WEAPON_TYPES.contains(t))
+				.map(|_| (si.api_level as f64).sqrt())
+		})
+		.sum()
+}
+
+/// Torpedo improvement bonus: sum of ★ × 1.2 per torpedo equipment.
+fn improvement_bonus_torpedo(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+	const TORPEDO_TYPES: &[KcSlotItemType3] =
+		&[KcSlotItemType3::Torpedo, KcSlotItemType3::SubmarineTorpedo];
+	ship.slot_items
+		.iter()
+		.filter_map(|si| {
+			if si.api_level <= 0 {
+				return None;
+			}
+			codex
+				.find::<ApiMstSlotitem>(&si.api_slotitem_id)
+				.ok()
+				.and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
+				.filter(|t| TORPEDO_TYPES.contains(t))
+				.map(|_| si.api_level as f64 * 1.2)
+		})
+		.sum()
+}
+
+/// Night battle improvement bonus: same formula as day (√★ per weapon).
+fn improvement_bonus_night(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+	improvement_bonus_day(codex, ship)
+}
+
 /// Determine ASW equipment synergy multiplier.
 fn asw_synergy_modifier(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     let has_sonar = has_slotitem_type(codex, ship, KcSlotItemType3::Sonar);
@@ -1367,6 +1568,7 @@ fn asw_synergy_modifier(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
 /// Calculate ASW damage against a submarine target.
 fn calculate_asw_damage(
     codex: &Codex,
+    random: &mut BattleRandom,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
     formation_id: i64,
@@ -1386,10 +1588,32 @@ fn calculate_asw_damage(
 
     let synergy = asw_synergy_modifier(codex, attacker);
     let raw_power = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + type_bonus) * synergy;
-    let modified = raw_power * asw_formation_modifier(formation_id) * engagement.modifier();
+    let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
+    let modified = raw_power * asw_formation_modifier(formation_id) * engagement.modifier() * dmg_state;
     let capped = apply_cap(modified, 170.0) as f64;
-    let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
-    (capped - armor).floor().max(1.0) as i64
+    let defense = calculate_defense_power(random, defender.ship.api_soukou[0]);
+    let armor_reduction = depth_charge_armor_reduction(codex, attacker);
+    let adjusted_defense = (defense - armor_reduction).max(0.0);
+    resolve_damage(random, capped, adjusted_defense, defender.hp())
+}
+
+fn depth_charge_armor_reduction(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    ship.slot_items
+        .iter()
+        .filter_map(|si| {
+            let mst = codex.find::<ApiMstSlotitem>(&si.api_slotitem_id).ok()?;
+            let type3 = KcSlotItemType3::n(mst.api_type[2])?;
+            if type3 != KcSlotItemType3::DepthCharge {
+                return None;
+            }
+            let asw = mst.api_tais.max(0) as f64;
+            if asw > 2.0 {
+                Some((asw - 2.0).sqrt())
+            } else {
+                None
+            }
+        })
+        .sum()
 }
 
 /// Simulate the opening ASW phase (先制対潜).
@@ -1420,6 +1644,7 @@ fn simulate_opening_taisen(
         };
         let raw = calculate_asw_damage(
             codex,
+            random,
             ship,
             &enemy[target_idx],
             friendly_formation_id,
@@ -1447,6 +1672,7 @@ fn simulate_opening_taisen(
         };
         let raw = calculate_asw_damage(
             codex,
+            random,
             ship,
             &friendly[target_idx],
             enemy_formation_id,
@@ -2338,6 +2564,7 @@ fn simulate_night_hougeki(
     friendly_formation_id: i64,
     enemy_formation_id: i64,
     engagement: EngagementType,
+    air_state: Option<&AirState>,
 ) -> Option<BattleNightHougeki> {
     let mut at_eflag = Vec::new();
     let mut at_list = Vec::new();
@@ -2370,7 +2597,7 @@ fn simulate_night_hougeki(
             let raw = if is_submarine {
                 calculate_scratch_damage(random, enemy[target_idx].hp().max(1))
             } else {
-                let base = calculate_night_damage(ship, &enemy[target_idx]);
+                let base = calculate_night_damage(codex, random, ship, &enemy[target_idx], air_state);
                 (base as f64 * multiplier).floor() as i64
             };
             let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
@@ -2411,7 +2638,7 @@ fn simulate_night_hougeki(
             let raw = if is_submarine {
                 calculate_scratch_damage(random, friendly[target_idx].hp().max(1))
             } else {
-                let base = calculate_night_damage(ship, &friendly[target_idx]);
+                let base = calculate_night_damage(codex, random, ship, &friendly[target_idx], air_state);
                 (base as f64 * multiplier).floor() as i64
             };
             let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
@@ -2433,7 +2660,7 @@ fn simulate_night_hougeki(
         return None;
     }
 
-    let _ = (friendly_formation_id, enemy_formation_id);
+    let _ = (friendly_formation_id, enemy_formation_id, engagement);
     Some(BattleNightHougeki {
         api_at_eflag: at_eflag,
         api_at_list: at_list,
@@ -2547,14 +2774,16 @@ mod tests {
     #[test]
     fn battle_context_applies_formation_and_engagement() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, 89, 99));
-        let mut defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut random = BattleRandom::new(Some(42));
+        let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 99));
+        let defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
         attacker.ship.api_karyoku[0] = 180;
-        defender.ship.api_soukou[0] = 20;
+        // Use a large enough firepower to guarantee capped_power > defense even with RNG
         let normal_damage =
-            calculate_shelling_damage(&attacker, &defender, 1, EngagementType::SameCourse);
+            calculate_shelling_damage(&codex, &mut random, &attacker, &defender, 1, EngagementType::SameCourse);
         let penalized_damage =
-            calculate_shelling_damage(&attacker, &defender, 5, EngagementType::TDisadvantage);
+            calculate_shelling_damage(&codex, &mut random, &attacker, &defender, 5, EngagementType::TDisadvantage);
 
         assert!(normal_damage > penalized_damage);
     }
@@ -2823,6 +3052,7 @@ mod tests {
             1,
             1,
             EngagementType::SameCourse,
+            None,
         );
 
         let hougeki = simulation.packet.hougeki.unwrap();
@@ -3108,6 +3338,7 @@ mod tests {
             1,
             1,
             EngagementType::SameCourse,
+            None,
         )
         .unwrap();
 
@@ -3348,8 +3579,10 @@ mod tests {
         defender_input.ship.api_soukou[0] = 10;
         let defender = BattleRuntimeShip::from(defender_input);
 
+        let mut random = BattleRandom::new(Some(42));
         let dmg = calculate_asw_damage(
             &codex,
+            &mut random,
             &attacker,
             &defender,
             1, // line ahead
@@ -3364,8 +3597,11 @@ mod tests {
         let synergy = 1.1; // single DepthCharge counts as both projector and charge
         let expected_raw = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + 13.0) * synergy;
         let expected_capped = apply_cap(expected_raw, 170.0) as f64;
-        let expected_dmg = (expected_capped - 10.0 * 0.7).floor().max(1.0) as i64;
-        assert_eq!(dmg, expected_dmg);
+        // Defense is now randomized; just verify damage is positive and reasonable
+        // With armor 10, defense range is [7, 13] so damage should be in a range
+        let max_defense: f64 = (0.7_f64 * 10.0 + 0.6 * 9.0).floor(); // max possible defense = 12.4 → 12
+        assert!(dmg >= (expected_capped - max_defense).floor() as i64);
+        assert!(dmg <= expected_capped as i64);
     }
 
     #[test]
@@ -3559,6 +3795,7 @@ mod tests {
             1,
             1,
             EngagementType::SameCourse,
+            None,
         )
         .unwrap();
 
@@ -3898,5 +4135,137 @@ mod tests {
         assert_eq!(raw, 200, "raw should show full lethal input");
         assert!(effective < 10, "effective should be proportional, not lethal");
         assert!(ship.current_hp > 0, "flagship must survive");
+    }
+
+    #[test]
+    fn defense_power_randomized_range() {
+        // With armor 100, defense should be in range [floor(0.7*100), floor(0.7*100 + 0.6*99)]
+        // = [70, 129]
+        let min_armor = 1;
+        let mut rng = BattleRandom::new(Some(12345));
+        let mut min_val = i64::MAX;
+        let mut max_val = i64::MIN;
+        for _ in 0..1000 {
+            let def = calculate_defense_power(&mut rng, 100) as i64;
+            min_val = min_val.min(def);
+            max_val = max_val.max(def);
+        }
+        assert!(min_val >= 70, "min defense {min_val} should be >= 70");
+        assert!(max_val <= 129, "max defense {max_val} should be <= 129");
+        assert!(min_val < max_val, "defense should vary with RNG");
+
+        // Edge case: armor 0
+        let def = calculate_defense_power(&mut rng, 0);
+        assert_eq!(def as i64, 0);
+
+        // Edge case: armor 1
+        let def = calculate_defense_power(&mut rng, 1);
+        assert_eq!(def as i64, 0); // floor(0.7) = 0
+
+        // Drop the unused warning
+        let _ = min_armor;
+    }
+
+    #[test]
+    fn damage_state_modifier_thresholds() {
+        // Normal: HP > 75% of max
+        assert!((damage_state_modifier(80, 100, BattlePhase::DayShelling) - 1.0).abs() < f64::EPSILON);
+        assert!((damage_state_modifier(76, 100, BattlePhase::DayShelling) - 1.0).abs() < f64::EPSILON);
+
+        // Chuuha: 25% < HP <= 75%
+        assert!((damage_state_modifier(75, 100, BattlePhase::DayShelling) - 0.7).abs() < f64::EPSILON);
+        assert!((damage_state_modifier(50, 100, BattlePhase::DayShelling) - 0.7).abs() < f64::EPSILON);
+        assert!((damage_state_modifier(26, 100, BattlePhase::DayShelling) - 0.7).abs() < f64::EPSILON);
+
+        // Torpedo chuuha: 0.8
+        assert!((damage_state_modifier(75, 100, BattlePhase::OpeningTorpedo) - 0.8).abs() < f64::EPSILON);
+        assert!((damage_state_modifier(50, 100, BattlePhase::ClosingTorpedo) - 0.8).abs() < f64::EPSILON);
+
+        // Taiha: HP <= 25%
+        assert!((damage_state_modifier(25, 100, BattlePhase::DayShelling) - 0.4).abs() < f64::EPSILON);
+        assert!((damage_state_modifier(10, 100, BattlePhase::DayShelling) - 0.4).abs() < f64::EPSILON);
+        // ASW taiha: 0.4
+        assert!((damage_state_modifier(25, 100, BattlePhase::DayShelling) - 0.4).abs() < f64::EPSILON);
+
+        // Torpedo taiha: 0.0
+        assert!((damage_state_modifier(25, 100, BattlePhase::OpeningTorpedo) - 0.0).abs() < f64::EPSILON);
+        assert!((damage_state_modifier(10, 100, BattlePhase::ClosingTorpedo) - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn scratch_damage_triggers_when_attack_below_defense() {
+        // Create a weak attacker and strong defender to force scratch damage
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut random = BattleRandom::new(Some(99));
+        let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 1)); // weak DD
+        let defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99)); // strong abyssal
+        attacker.ship.api_karyoku[0] = 10; // very low firepower
+        // With FP=10, base=15, capped=~15. Defense with armor ~80 is 56-103.
+        // This should trigger scratch damage.
+        let dmg = calculate_shelling_damage(&codex, &mut random, &attacker, &defender, 1, EngagementType::SameCourse);
+        // Scratch damage is proportional to target HP: 0.06*H + 0.08*rand(0,H-1)
+        // It should be much less than capped_power - defense (which would be negative)
+        assert!(dmg >= 1, "scratch damage should be at least 1");
+        assert!(dmg < 50, "scratch damage should be small (proportional to HP)");
+    }
+
+    #[test]
+    fn normal_damage_when_attack_above_defense() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut random = BattleRandom::new(Some(99));
+        let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 99));
+        let mut defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
+        attacker.ship.api_karyoku[0] = 200; // strong firepower
+        defender.ship.api_soukou[0] = 10; // low armor
+        let dmg = calculate_shelling_damage(&codex, &mut random, &attacker, &defender, 1, EngagementType::SameCourse);
+        // capped ~205, defense ~7-13, so damage should be 192-198
+        assert!(dmg > 100, "normal damage should be large: got {dmg}");
+    }
+
+    #[test]
+    fn torpedo_base_power_without_plus_five() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut random = BattleRandom::new(Some(42));
+        let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, 89, 99));
+        let mut defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
+        attacker.ship.api_raisou[0] = 100;
+        defender.ship.api_soukou[0] = 10;
+        let dmg = calculate_torpedo_damage(
+            &codex,
+            &mut random,
+            &attacker,
+            &defender,
+            1,
+            EngagementType::SameCourse,
+            BattlePhase::OpeningTorpedo,
+        );
+        // Basic power = 100 (NOT 105). After formation (1.0) and engagement (1.0), capped at 100.
+        // Defense with armor 10: ~7-13. Damage ~87-93.
+        // If +5 was still there: basic=105, damage ~92-98.
+        assert!(dmg < 100, "torpedo damage should be < 100 without +5: got {dmg}");
+        assert!(dmg > 50, "torpedo damage should still be significant: got {dmg}");
+    }
+
+    #[test]
+    fn taiha_torpedo_deals_zero_not_scratch() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut random = BattleRandom::new(Some(42));
+        let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, 89, 99));
+        let defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
+        attacker.ship.api_raisou[0] = 100;
+        // Simulate taiha: 10 HP out of ~30-40 max → HP ratio well below 25%
+        attacker.current_hp = 1;
+        let dmg = calculate_torpedo_damage(
+            &codex,
+            &mut random,
+            &attacker,
+            &defender,
+            1,
+            EngagementType::SameCourse,
+            BattlePhase::OpeningTorpedo,
+        );
+        assert_eq!(dmg, 0, "taiha torpedo should deal 0 damage, got {dmg}");
     }
 }
