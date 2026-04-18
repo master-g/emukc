@@ -5,7 +5,8 @@ use crate::kc2::{KcSortieResult, KcSortieResultRank};
 use crate::thirdparty::{
     FleetShipSnapshot, Kc3rdQuestCondition, Kc3rdQuestConditionComposition,
     Kc3rdQuestConditionExercise, Kc3rdQuestConditionFactory, Kc3rdQuestConditionMapInfo,
-    Kc3rdQuestConditionScrap, Kc3rdQuestConditionSortie, Kc3rdQuestConditionSortieMap,
+    Kc3rdQuestConditionScrap, Kc3rdQuestConditionShip, Kc3rdQuestConditionSlotItemType,
+    Kc3rdQuestConditionSortie, Kc3rdQuestConditionSortieMap,
     validate_composition_snapshot,
 };
 
@@ -24,6 +25,7 @@ pub enum QuestActionEvent {
     },
     SlotItemScrapped {
         item_mst_id: i64,
+        stars: i64,
     },
     ShipRepaired {
         ship_id: i64,
@@ -47,6 +49,17 @@ pub enum QuestActionEvent {
         boss_cell: bool,
         win_rank: KcSortieResultRank,
         fleet_id: i64,
+    },
+    ModernizationCompleted {
+        target_ship_mst_id: i64,
+        material_ship_mst_ids: Vec<i64>,
+    },
+    EnemyShipSunk {
+        ship_stype: i64,
+    },
+    SlotItemImproved {
+        item_mst_id: i64,
+        stars: i64,
     },
 }
 
@@ -73,7 +86,18 @@ impl Kc3rdQuestCondition {
             ) | (
                 Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyEquipment(_)),
                 QuestActionEvent::SlotItemScrapped { .. },
-            ) | (Kc3rdQuestCondition::Repair(_), QuestActionEvent::ShipRepaired { .. },)
+            )
+            | (
+                Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(_)),
+                QuestActionEvent::SlotItemScrapped { .. },
+            )
+            | (Kc3rdQuestCondition::Modernization(_), QuestActionEvent::ModernizationCompleted { .. })
+            | (Kc3rdQuestCondition::Sink(_, _), QuestActionEvent::EnemyShipSunk { .. })
+            | (
+                Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(_)),
+                QuestActionEvent::SlotItemImproved { .. },
+            )
+            | (Kc3rdQuestCondition::Repair(_), QuestActionEvent::ShipRepaired { .. },)
                 | (Kc3rdQuestCondition::Resupply(_), QuestActionEvent::ShipResupplied { .. },)
                 | (
                     Kc3rdQuestCondition::Exercise(_),
@@ -201,6 +225,41 @@ impl Kc3rdQuestCondition {
                     *fleet_id,
                     Some(master_condition),
                 )
+            }
+            Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(items)) => {
+                let QuestActionEvent::SlotItemScrapped { item_mst_id, stars } = event else {
+                    return false;
+                };
+                apply_specific_items_event(items, *item_mst_id, *stars, codex)
+            }
+            Kc3rdQuestCondition::Modernization(condition) => {
+                let QuestActionEvent::ModernizationCompleted {
+                    target_ship_mst_id,
+                    material_ship_mst_ids,
+                } = event
+                else {
+                    return false;
+                };
+                apply_modernization_event(condition, codex, *target_ship_mst_id, material_ship_mst_ids)
+            }
+            Kc3rdQuestCondition::Sink(ship_cond, count) => {
+                let QuestActionEvent::EnemyShipSunk { ship_stype } = event else {
+                    return false;
+                };
+                if *count > 0 && ship_matches_stype(ship_cond, codex, *ship_stype) {
+                    *count -= 1;
+                    true
+                } else {
+                    false
+                }
+            }
+            Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(count)) => {
+                if *count > 0 {
+                    *count -= 1;
+                    true
+                } else {
+                    false
+                }
             }
             _ => false,
         }
@@ -344,6 +403,116 @@ fn reset_sortie_cycle(
         return;
     };
     condition.map = master_condition.map.clone();
+}
+
+fn apply_specific_items_event(
+    items: &mut [super::Kc3rdQuestConditionSlotItem],
+    item_mst_id: i64,
+    stars: i64,
+    codex: Option<&Codex>,
+) -> bool {
+    for item in items.iter_mut() {
+        if item.amount <= 0 {
+            continue;
+        }
+        if stars < item.stars {
+            continue;
+        }
+        let matches = match &item.item_type {
+            Kc3rdQuestConditionSlotItemType::Equipment(ids) => ids.contains(&item_mst_id),
+            Kc3rdQuestConditionSlotItemType::EquipType(types) => {
+                let Some(codex) = codex else {
+                    continue;
+                };
+                codex
+                    .manifest
+                    .api_mst_slotitem
+                    .iter()
+                    .find(|mst| mst.api_id == item_mst_id)
+                    .is_some_and(|mst| types.contains(&mst.api_type[3]))
+            }
+        };
+        if matches {
+            item.amount -= 1;
+            return true;
+        }
+    }
+    false
+}
+
+fn apply_modernization_event(
+    condition: &mut super::Kc3rdQuestConditionModernization,
+    codex: Option<&Codex>,
+    target_ship_mst_id: i64,
+    material_ship_mst_ids: &[i64],
+) -> bool {
+    if condition.times <= 0 {
+        return false;
+    }
+    let target_matches = ship_matches_mst_id(&condition.target_ship, codex, target_ship_mst_id);
+    if !target_matches {
+        return false;
+    }
+    let matching_count = material_ship_mst_ids
+        .iter()
+        .filter(|&&mst_id| ship_matches_mst_id(&condition.material_ship, codex, mst_id))
+        .count();
+    if matching_count < condition.batch_size as usize {
+        return false;
+    }
+    condition.times -= 1;
+    true
+}
+
+fn ship_matches_stype(cond: &Kc3rdQuestConditionShip, codex: Option<&Codex>, stype: i64) -> bool {
+    match cond {
+        Kc3rdQuestConditionShip::Any => true,
+        Kc3rdQuestConditionShip::ShipType(types) => types.contains(&stype),
+        _ => {
+            let Some(codex) = codex else {
+                return false;
+            };
+            let Some(mst) = codex
+                .manifest
+                .api_mst_ship
+                .iter()
+                .find(|m| m.api_stype == stype)
+            else {
+                return false;
+            };
+            ship_matches_mst_id(cond, Some(codex), mst.api_id)
+        }
+    }
+}
+
+fn ship_matches_mst_id(cond: &Kc3rdQuestConditionShip, codex: Option<&Codex>, mst_id: i64) -> bool {
+    match cond {
+        Kc3rdQuestConditionShip::Any => true,
+        Kc3rdQuestConditionShip::Ship(ids) => ids.contains(&mst_id),
+        Kc3rdQuestConditionShip::ShipType(types) => {
+            let Some(codex) = codex else {
+                return false;
+            };
+            codex
+                .manifest
+                .api_mst_ship
+                .iter()
+                .find(|m| m.api_id == mst_id)
+                .is_some_and(|m| types.contains(&(m.api_stype as i64)))
+        }
+        Kc3rdQuestConditionShip::ShipClass(classes) => {
+            let Some(codex) = codex else {
+                return false;
+            };
+            codex
+                .manifest
+                .api_mst_ship
+                .iter()
+                .find(|m| m.api_id == mst_id)
+                .is_some_and(|m| classes.contains(&(m.api_ctype as i64)))
+        }
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -588,5 +757,256 @@ mod tests {
             None,
             Some(&codex),
         ));
+    }
+
+    // --- SpecificItems tests ---
+
+    #[test]
+    fn specific_items_matches_slot_item_scrapped() {
+        let cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![]));
+        let event = QuestActionEvent::SlotItemScrapped {
+            item_mst_id: 42,
+            stars: 0,
+        };
+        assert!(cond.matches_event(&event));
+    }
+
+    #[test]
+    fn specific_items_apply_equipment_match() {
+        use crate::thirdparty::{Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType};
+        let mut cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![
+            Kc3rdQuestConditionSlotItem {
+                item_type: Kc3rdQuestConditionSlotItemType::Equipment(vec![42, 43]),
+                amount: 2,
+                stars: 0,
+                fully_skilled: false,
+            },
+        ]));
+        assert!(cond.apply_event(&QuestActionEvent::SlotItemScrapped {
+            item_mst_id: 42,
+            stars: 0,
+        }));
+        let Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(items)) = cond
+        else {
+            panic!("expected specific items");
+        };
+        assert_eq!(items[0].amount, 1);
+    }
+
+    #[test]
+    fn specific_items_apply_equipment_no_match() {
+        use crate::thirdparty::{Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType};
+        let mut cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![
+            Kc3rdQuestConditionSlotItem {
+                item_type: Kc3rdQuestConditionSlotItemType::Equipment(vec![42]),
+                amount: 1,
+                stars: 0,
+                fully_skilled: false,
+            },
+        ]));
+        assert!(!cond.apply_event(&QuestActionEvent::SlotItemScrapped {
+            item_mst_id: 99,
+            stars: 0,
+        }));
+    }
+
+    #[test]
+    fn specific_items_apply_stars_threshold() {
+        use crate::thirdparty::{Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType};
+        let mut cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![
+            Kc3rdQuestConditionSlotItem {
+                item_type: Kc3rdQuestConditionSlotItemType::Equipment(vec![42]),
+                amount: 1,
+                stars: 5,
+                fully_skilled: false,
+            },
+        ]));
+        // stars too low
+        assert!(!cond.apply_event(&QuestActionEvent::SlotItemScrapped {
+            item_mst_id: 42,
+            stars: 3,
+        }));
+        // stars meets threshold
+        assert!(cond.apply_event(&QuestActionEvent::SlotItemScrapped {
+            item_mst_id: 42,
+            stars: 5,
+        }));
+    }
+
+    #[test]
+    fn specific_items_apply_equip_type_with_codex() {
+        use crate::thirdparty::{Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // Find a slot item and its api_type[3]
+        let some_item = codex.manifest.api_mst_slotitem.first().unwrap();
+        let type3 = some_item.api_type[3];
+        let item_id = some_item.api_id;
+
+        let mut cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![
+            Kc3rdQuestConditionSlotItem {
+                item_type: Kc3rdQuestConditionSlotItemType::EquipType(vec![type3]),
+                amount: 1,
+                stars: 0,
+                fully_skilled: false,
+            },
+        ]));
+        assert!(cond.apply_event_with_context(
+            &QuestActionEvent::SlotItemScrapped {
+                item_mst_id: item_id,
+                stars: 0,
+            },
+            None,
+            Some(&codex),
+        ));
+    }
+
+    // --- Modernization tests ---
+
+    #[test]
+    fn modernization_matches_event() {
+        let cond = Kc3rdQuestCondition::Modernization(super::super::Kc3rdQuestConditionModernization {
+            target_ship: Kc3rdQuestConditionShip::Any,
+            material_ship: Kc3rdQuestConditionShip::Any,
+            batch_size: 2,
+            times: 1,
+        });
+        let event = QuestActionEvent::ModernizationCompleted {
+            target_ship_mst_id: 1,
+            material_ship_mst_ids: vec![2, 3],
+        };
+        assert!(cond.matches_event(&event));
+    }
+
+    #[test]
+    fn modernization_apply_requires_enough_matching_materials() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, crate::kc2::KcShipType::DD);
+        let cl_mst = first_ship_mst_by_type(&codex, crate::kc2::KcShipType::CL);
+
+        let mut cond = Kc3rdQuestCondition::Modernization(super::super::Kc3rdQuestConditionModernization {
+            target_ship: Kc3rdQuestConditionShip::Any,
+            material_ship: Kc3rdQuestConditionShip::ShipType(vec![2]), // DD
+            batch_size: 2,
+            times: 1,
+        });
+
+        // Only 1 DD out of 4 materials — should NOT progress
+        assert!(!cond.apply_event_with_context(
+            &QuestActionEvent::ModernizationCompleted {
+                target_ship_mst_id: cl_mst,
+                material_ship_mst_ids: vec![dd_mst, cl_mst, cl_mst, cl_mst],
+            },
+            None,
+            Some(&codex),
+        ));
+
+        // 2 DDs out of 4 materials — should progress
+        assert!(cond.apply_event_with_context(
+            &QuestActionEvent::ModernizationCompleted {
+                target_ship_mst_id: cl_mst,
+                material_ship_mst_ids: vec![dd_mst, dd_mst, cl_mst, cl_mst],
+            },
+            None,
+            Some(&codex),
+        ));
+    }
+
+    #[test]
+    fn modernization_apply_validates_target_ship() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, crate::kc2::KcShipType::DD);
+        let cl_mst = first_ship_mst_by_type(&codex, crate::kc2::KcShipType::CL);
+
+        let mut cond = Kc3rdQuestCondition::Modernization(super::super::Kc3rdQuestConditionModernization {
+            target_ship: Kc3rdQuestConditionShip::ShipType(vec![2]), // DD only
+            material_ship: Kc3rdQuestConditionShip::Any,
+            batch_size: 1,
+            times: 1,
+        });
+
+        // Target is CL, quest requires DD target — should fail
+        assert!(!cond.apply_event_with_context(
+            &QuestActionEvent::ModernizationCompleted {
+                target_ship_mst_id: cl_mst,
+                material_ship_mst_ids: vec![dd_mst],
+            },
+            None,
+            Some(&codex),
+        ));
+
+        // Target is DD — should succeed
+        assert!(cond.apply_event_with_context(
+            &QuestActionEvent::ModernizationCompleted {
+                target_ship_mst_id: dd_mst,
+                material_ship_mst_ids: vec![dd_mst],
+            },
+            None,
+            Some(&codex),
+        ));
+    }
+
+    // --- Sink tests ---
+
+    #[test]
+    fn sink_matches_enemy_ship_sunk() {
+        let cond = Kc3rdQuestCondition::Sink(Kc3rdQuestConditionShip::ShipType(vec![11]), 3);
+        let event = QuestActionEvent::EnemyShipSunk { ship_stype: 11 };
+        assert!(cond.matches_event(&event));
+    }
+
+    #[test]
+    fn sink_apply_decrements_on_stype_match() {
+        let mut cond = Kc3rdQuestCondition::Sink(Kc3rdQuestConditionShip::ShipType(vec![11]), 3);
+        assert!(cond.apply_event(&QuestActionEvent::EnemyShipSunk { ship_stype: 11 }));
+        let Kc3rdQuestCondition::Sink(_, count) = cond else { panic!("expected sink") };
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn sink_apply_no_decrement_on_stype_mismatch() {
+        let mut cond = Kc3rdQuestCondition::Sink(Kc3rdQuestConditionShip::ShipType(vec![11]), 3);
+        assert!(!cond.apply_event(&QuestActionEvent::EnemyShipSunk { ship_stype: 2 }));
+    }
+
+    #[test]
+    fn sink_apply_any_matches_all() {
+        let mut cond = Kc3rdQuestCondition::Sink(Kc3rdQuestConditionShip::Any, 2);
+        assert!(cond.apply_event(&QuestActionEvent::EnemyShipSunk { ship_stype: 99 }));
+        let Kc3rdQuestCondition::Sink(_, count) = cond else { panic!("expected sink") };
+        assert_eq!(count, 1);
+    }
+
+    // --- SlotItemImproved tests ---
+
+    #[test]
+    fn slot_item_improvement_matches_slot_item_improved() {
+        let cond = Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(3));
+        let event = QuestActionEvent::SlotItemImproved {
+            item_mst_id: 42,
+            stars: 5,
+        };
+        assert!(cond.matches_event(&event));
+    }
+
+    #[test]
+    fn slot_item_improvement_apply_decrements() {
+        let mut cond = Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(2));
+        assert!(cond.apply_event(&QuestActionEvent::SlotItemImproved {
+            item_mst_id: 42,
+            stars: 5,
+        }));
+        assert_eq!(
+            cond,
+            Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(1))
+        );
+    }
+
+    #[test]
+    fn slot_item_improvement_no_decrement_at_zero() {
+        let mut cond = Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(0));
+        assert!(!cond.apply_event(&QuestActionEvent::SlotItemImproved {
+            item_mst_id: 42,
+            stars: 5,
+        }));
     }
 }

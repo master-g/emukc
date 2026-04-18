@@ -48,9 +48,11 @@ impl Kc3rdQuestCondition {
             | Kc3rdQuestCondition::Repair(count)
             | Kc3rdQuestCondition::Resupply(count)
             | Kc3rdQuestCondition::Sink(_, count) => *count == 0,
-            // SpecificItems not tracked via counters; Composition validated separately via fleet check
-            Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(_))
-            | Kc3rdQuestCondition::Composition(_) => false,
+            // Composition validated separately via fleet check
+            Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(items)) => {
+                items.iter().all(|item| item.amount == 0)
+            }
+            Kc3rdQuestCondition::Composition(_) => false,
             Kc3rdQuestCondition::Sortie(s) => s.times == 0,
             Kc3rdQuestCondition::Exercise(e) => e.times == 0,
             Kc3rdQuestCondition::Expedition(exps) => exps.iter().all(|e| e.times == 0),

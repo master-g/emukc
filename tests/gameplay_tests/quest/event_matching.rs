@@ -42,6 +42,7 @@ mod tests {
         let cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyEquipment(5));
         let event = QuestActionEvent::SlotItemScrapped {
             item_mst_id: 20,
+            stars: 0,
         };
         assert!(cond.matches_event(&event));
     }
@@ -171,6 +172,7 @@ mod tests {
         let mut cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyEquipment(3));
         let event = QuestActionEvent::SlotItemScrapped {
             item_mst_id: 20,
+            stars: 0,
         };
         assert!(cond.apply_event(&event));
         assert_eq!(cond, Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::AnyEquipment(2)));

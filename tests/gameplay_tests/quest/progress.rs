@@ -51,8 +51,29 @@ mod tests {
     }
 
     #[test]
-    fn test_scrap_specific_items_never_satisfied() {
+    fn test_scrap_specific_items_satisfied_when_all_amounts_zero() {
+        use emukc_internal::prelude::{Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType};
         let cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![]));
+        assert!(cond.is_satisfied());
+
+        let cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![
+            Kc3rdQuestConditionSlotItem {
+                item_type: Kc3rdQuestConditionSlotItemType::single_equipment(42),
+                amount: 0,
+                stars: 0,
+                fully_skilled: false,
+            },
+        ]));
+        assert!(cond.is_satisfied());
+
+        let cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![
+            Kc3rdQuestConditionSlotItem {
+                item_type: Kc3rdQuestConditionSlotItemType::single_equipment(42),
+                amount: 1,
+                stars: 0,
+                fully_skilled: false,
+            },
+        ]));
         assert!(!cond.is_satisfied());
     }
 

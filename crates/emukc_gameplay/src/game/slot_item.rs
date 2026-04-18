@@ -439,11 +439,13 @@ where
         });
 
         let item_mst_id = item.mst_id;
+        let item_level = item.level;
         item.delete(c).await?;
 
         // Update quest progress
         let event = emukc_model::thirdparty::QuestActionEvent::SlotItemScrapped {
             item_mst_id,
+            stars: item_level,
         };
         crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
             .await?;
