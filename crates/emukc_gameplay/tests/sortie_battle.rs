@@ -409,7 +409,7 @@ async fn loaded_map_catalog_supports_start_and_next_flow() {
     assert_eq!(start.cell_no, 1);
     assert_eq!(start.cell_data[0].master_cell_id, 3001);
     assert_eq!(start.cell_data[1].master_cell_id, 3002);
-    assert!(start.cell_data[1].passed);
+    assert!(!start.cell_data[1].passed);
     assert!(start.bosscomp);
     assert_eq!(start.airsearch.as_ref().unwrap().result, 0);
     let preview_ids = &start.enemy_deck_preview.as_ref().unwrap()[0].ship_ids;

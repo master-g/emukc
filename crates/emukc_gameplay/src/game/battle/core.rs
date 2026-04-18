@@ -964,7 +964,7 @@ fn simulate_shelling_side(
                 engagement,
             )
         };
-        let (raw_dealt, dealt) = defenders[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = defenders[target_idx].apply_damage(random, raw, target_idx);
         if !attacker_enemy {
             ship.damage_dealt += dealt;
         }
@@ -979,7 +979,7 @@ fn simulate_shelling_side(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, is_asw_attack));
         cl_list.push(vec![1]);
-        damage.push(vec![raw_dealt]);
+        damage.push(vec![dealt]);
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {
@@ -1023,14 +1023,14 @@ fn simulate_opening_torpedo(
             engagement,
             BattlePhase::OpeningTorpedo,
         );
-        let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: raw_dealt,
+                damage: dealt,
             },
         );
         happened = true;
@@ -1054,13 +1054,13 @@ fn simulate_opening_torpedo(
             engagement,
             BattlePhase::OpeningTorpedo,
         );
-        let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = friendly[target_idx].apply_damage(random, raw, target_idx);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: raw_dealt,
+                damage: dealt,
             },
         );
         happened = true;
@@ -1099,14 +1099,14 @@ fn simulate_raigeki(
             engagement,
             BattlePhase::ClosingTorpedo,
         );
-        let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: raw_dealt,
+                damage: dealt,
             },
         );
         happened = true;
@@ -1130,13 +1130,13 @@ fn simulate_raigeki(
             engagement,
             BattlePhase::ClosingTorpedo,
         );
-        let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = friendly[target_idx].apply_damage(random, raw, target_idx);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: raw_dealt,
+                damage: dealt,
             },
         );
         happened = true;
@@ -1273,8 +1273,8 @@ fn simulate_kouku(
         if !alive_targets.is_empty() {
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
             let damage = calculate_airstrike_damage(codex, random, friendly, &enemy[target_idx]);
-            let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, damage, target_idx);
-            api_edam[target_idx] = raw_dealt;
+            let (_, dealt) = enemy[target_idx].apply_damage(random, damage, target_idx);
+            api_edam[target_idx] = dealt;
             api_ebak_flag[target_idx] = 1;
             api_erai_flag[target_idx] = 1;
             // Attribute damage to the ship with highest bomb power contribution
@@ -1290,8 +1290,8 @@ fn simulate_kouku(
         if !alive_targets.is_empty() {
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
             let damage = calculate_airstrike_damage(codex, random, enemy, &friendly[target_idx]);
-            let (raw_dealt, _) = friendly[target_idx].apply_damage(random, damage, target_idx);
-            api_fdam[target_idx] = raw_dealt;
+            let (_, dealt) = friendly[target_idx].apply_damage(random, damage, target_idx);
+            api_fdam[target_idx] = dealt;
             api_fbak_flag[target_idx] = 1;
             api_fcl_flag[target_idx] = 1;
             api_frai_flag[target_idx] = 1;
@@ -1710,7 +1710,7 @@ fn simulate_opening_taisen(
             friendly_formation_id,
             engagement,
         );
-        let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
         ship.damage_dealt += dealt;
 
         at_eflag.push(0);
@@ -1719,7 +1719,7 @@ fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, true));
         cl_list.push(vec![1]);
-        damage.push(vec![raw_dealt]);
+        damage.push(vec![dealt]);
     }
 
     // Enemy OASW attacks
@@ -1738,7 +1738,7 @@ fn simulate_opening_taisen(
             enemy_formation_id,
             engagement,
         );
-        let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
+        let (_, dealt) = friendly[target_idx].apply_damage(random, raw, target_idx);
 
         at_eflag.push(1);
         at_list.push(idx as i64);
@@ -1746,7 +1746,7 @@ fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, true));
         cl_list.push(vec![1]);
-        damage.push(vec![raw_dealt]);
+        damage.push(vec![dealt]);
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {
@@ -2661,9 +2661,9 @@ fn simulate_night_hougeki(
                     calculate_night_damage(codex, random, ship, &enemy[target_idx], air_state);
                 (base as f64 * multiplier).floor() as i64
             };
-            let (raw_dealt, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
+            let (_, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
             total_dealt += dealt;
-            hit_damages.push(raw_dealt);
+            hit_damages.push(dealt);
             hit_cls.push(1i64);
         }
         ship.damage_dealt += total_dealt;
@@ -2703,8 +2703,8 @@ fn simulate_night_hougeki(
                     calculate_night_damage(codex, random, ship, &friendly[target_idx], air_state);
                 (base as f64 * multiplier).floor() as i64
             };
-            let (raw_dealt, _) = friendly[target_idx].apply_damage(random, raw, target_idx);
-            hit_damages.push(raw_dealt);
+            let (_, dealt) = friendly[target_idx].apply_damage(random, raw, target_idx);
+            hit_damages.push(dealt);
             hit_cls.push(1i64);
         }
 

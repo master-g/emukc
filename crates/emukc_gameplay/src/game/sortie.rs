@@ -991,7 +991,7 @@ fn build_sortie_cell_data(map_id: i64, stage: &MapStageDefinition) -> Vec<Sortie
             master_cell_id: cell.master_cell_id.unwrap_or(map_id * 100 + cell.cell_no),
             cell_no: cell.cell_no,
             color_no: cell.color_no,
-            passed: cell.cell_no > 0,
+            passed: false,
             distance: cell.distance,
         })
         .collect()
