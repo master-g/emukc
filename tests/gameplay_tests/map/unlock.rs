@@ -52,6 +52,10 @@ mod tests {
         // sortie flow, get_map_infos should include newly unlocked maps.
         // The cascade logic itself is also tested in the crate-internal
         // test clearing_map_1_1_unlocks_dependents_via_cascade.
+        //
+        // Retries sorties until the boss is reached and defeated. Map 1-1
+        // has a dead-end non-boss cell, so routing may end the sortie before
+        // reaching the boss.
 
         let context = new_context().await;
         let pid = new_profile(&context).await;
@@ -68,25 +72,34 @@ mod tests {
         }
         context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
 
-        // Start sortie to map 1-1
-        let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
-        let mut current_cell = start.cell_no;
-        let boss_cell = start.boss_cell_no;
+        // Retry sorties until boss is defeated and map clears
+        let mut cleared = false;
+        for _attempt in 0..10 {
+            let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+            let mut current_cell = start.cell_no;
+            let boss_cell = start.boss_cell_no;
 
-        // Navigate through cells and battle until boss is defeated
-        loop {
-            // Battle at current cell (event_kind == 1 means battle)
-            let _battle = context.sortie_battle(pid, 1).await.unwrap();
-            let result = context.sortie_battle_result(pid).await.unwrap();
+            loop {
+                let _battle = context.sortie_battle(pid, 1).await.unwrap();
+                let result = context.sortie_battle_result(pid).await.unwrap();
 
-            if current_cell == boss_cell || result.api_first_clear > 0 {
-                break;
+                if current_cell == boss_cell || result.api_first_clear > 0 {
+                    cleared = result.api_first_clear > 0;
+                    break;
+                }
+
+                // Advance to next cell; if sortie ended (dead-end cell), start a new sortie
+                match context.next_sortie(pid, None).await {
+                    Ok(next) => current_cell = next.cell_no,
+                    Err(_) => break, // sortie ended — dead-end or no more cells
+                }
             }
 
-            // Advance to next cell
-            let next = context.next_sortie(pid, None).await.unwrap();
-            current_cell = next.cell_no;
+            if cleared {
+                break;
+            }
         }
+        assert!(cleared, "boss should be defeated within a few sorties");
 
         // After clearing 1-1, mapinfo should include newly unlocked maps
         let infos = context.get_map_infos(pid).await.unwrap();

@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use emukc_crypto::rng;
 use emukc_model::codex::map::{
     MapCellDefinition, MapStageDefinition, RouteOperator, RoutePredicate, RouteRule, SpeedClass,
 };
-use rand::{RngExt, rng};
 
 use crate::err::GameplayError;
 
@@ -188,8 +188,7 @@ pub(crate) fn evaluate_route_destination(
         });
     }
 
-    let mut random = rng();
-    let roll = random.random_range(0..total_weight);
+    let roll = rng::u64(0..total_weight);
     select_route_target_for_roll(&weights, roll).ok_or_else(|| {
         GameplayError::WrongType(format!("cell {} has no executable route", current.cell_no))
     })
@@ -226,8 +225,7 @@ fn select_route_from_cells(
                             .to_string(),
                     ));
                 }
-                let mut random = rng();
-                let index = random.random_range(0..current.next_cells.len());
+                let index = rng::usize(0..current.next_cells.len());
                 Ok(current.next_cells[index])
             }
             _ => Ok(current.next_cells[0]),

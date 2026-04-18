@@ -1,4 +1,4 @@
-use rand::{RngExt, rng};
+use emukc_crypto::rng;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     sync::LazyLock,
@@ -166,13 +166,12 @@ where
     let mut extra_asw_powerup: i64 = 0;
 
     {
-        let mut rng = rng();
         for (i, v) in base_power_ups.iter_mut().enumerate() {
             if *v == 0 || powerup_potentials[i] == 0 {
                 continue;
             }
             let vv = *v;
-            *v = if rng.random_bool(0.5) {
+            *v = if rng::bool(0.5) {
                 result.success = true;
                 vv + ((vv + 1) / 5)
             } else {
@@ -191,7 +190,7 @@ where
             // calculate luck bonus
             if let Some(rate) =
                 MARUYU_CHART.get(&(maruyu_ships.len() as i64, maruyu_kai_ships.len() as i64))
-                && rng.random_bool(*rate)
+                && rng::bool(*rate)
             {
                 extra_luck_powerup += (maruyu_ships.len() as f64 * 1.2
                     + maruyu_kai_ships.len() as f64 * 1.6)
@@ -240,7 +239,7 @@ where
 
                 let mut bonus = p / 100 * 2;
                 let remaining_p = p % 100;
-                if p > 0 && rng.random_bool(remaining_p as f64 / 100.0) {
+                if p > 0 && rng::bool(remaining_p as f64 / 100.0) {
                     bonus += 2;
                 }
 
@@ -269,7 +268,7 @@ where
 
                 let mut bonus = p / 100 * 2;
                 let remaining_p = p % 100;
-                if p > 0 && rng.random_bool(remaining_p as f64 / 100.0) {
+                if p > 0 && rng::bool(remaining_p as f64 / 100.0) {
                     bonus += 2;
                 }
 
@@ -304,14 +303,14 @@ where
                 let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
                 let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
                 let hp_mod_rate = 26.0 + 0.35 * (lv1 + lv2);
-                if hp_mod_rate > 100.0 || rng.random_bool(hp_mod_rate / 100.0) {
+                if hp_mod_rate > 100.0 || rng::bool(hp_mod_rate / 100.0) {
                     extra_hp_powerup += 1;
                 } else {
                     extra_luck_powerup += 1;
                 }
 
                 let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
-                if asw_mod_rate > 100.0 || rng.random_bool(asw_mod_rate / 100.0) {
+                if asw_mod_rate > 100.0 || rng::bool(asw_mod_rate / 100.0) {
                     extra_asw_powerup += 1;
                 }
                 result.success = true;
@@ -320,7 +319,7 @@ where
                 let lv1 = ship_id_model_lookup.get(id1).unwrap().level as f64;
                 let lv2 = ship_id_model_lookup.get(id2).unwrap().level as f64;
                 let asw_mod_rate = 10.0 + 0.40 * (lv1 + lv2);
-                if asw_mod_rate > 100.0 || rng.random_bool(asw_mod_rate / 100.0) {
+                if asw_mod_rate > 100.0 || rng::bool(asw_mod_rate / 100.0) {
                     extra_asw_powerup += 1;
                 } else {
                     extra_luck_powerup += 1;
@@ -330,7 +329,7 @@ where
             grouped.rest.iter().for_each(|id| {
                 let lv = ship_id_model_lookup.get(id).unwrap().level as f64;
                 let luck_mod_rate = 32.0 + 0.7 * lv;
-                if luck_mod_rate > 100.0 || rng.random_bool(luck_mod_rate / 100.0) {
+                if luck_mod_rate > 100.0 || rng::bool(luck_mod_rate / 100.0) {
                     extra_luck_powerup += 1;
                 } else {
                     extra_asw_powerup += 1;

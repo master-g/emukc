@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rand::{RngExt, rng, seq::IteratorRandom};
+use emukc_crypto::rng;
 
 use emukc_db::{
     entity::profile::item::use_item::{self, ActiveModel},
@@ -727,11 +727,10 @@ where
         }
         2 => {
             // irako
-            let mut rng = rng();
-            let lucky_count = rng.random_range(0..=3);
+            let lucky_count = rng::i64_inclusive(0..=3);
             let mut luck_ship_id = vec![ships[0].id];
             for _ in 0..lucky_count {
-                let id = ships.iter().skip(1).choose(&mut rng).unwrap().id;
+                let id = rng::choose_iter(ships.iter().skip(1)).unwrap().id;
                 if !luck_ship_id.contains(&id) {
                     luck_ship_id.push(id);
                 }
@@ -747,7 +746,6 @@ where
         }
         3 => {
             // mamiya + irako
-            let mut rng = rng();
             ships.iter_mut().enumerate().for_each(|(i, ship)| {
                 if i == 0 {
                     if ship.condition < 40 {
@@ -759,7 +757,7 @@ where
                     if ship.condition < 40 {
                         ship.condition = 40;
                     }
-                    ship.condition += rng.random_range(20..=31);
+                    ship.condition += rng::i64_inclusive(20..=31);
                 }
                 ship.condition = ship.condition.min(100);
             });

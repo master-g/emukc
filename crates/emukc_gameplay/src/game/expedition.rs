@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 
+use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::{self, expedition, fleet, item::slot_item, ship},
     sea_orm::{ActiveValue, IntoActiveModel, QueryFilter, TransactionTrait, entity::prelude::*},
@@ -17,7 +18,6 @@ use emukc_time::{
     KcTime,
     chrono::{DateTime, Datelike, Duration, FixedOffset, TimeZone, Utc},
 };
-use rand::{RngExt, rng};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -785,14 +785,8 @@ where
 
 fn expedition_return_morale_loss(mission_mst: &ApiMstMission) -> i64 {
     match mission_mst.api_id {
-        33 | 203 => {
-            let mut r = rng();
-            r.random_range(1..=5)
-        }
-        34 | 204 => {
-            let mut r = rng();
-            r.random_range(1..=10)
-        }
+        33 | 203 => rng::i64_inclusive(1..=5),
+        34 | 204 => rng::i64_inclusive(1..=10),
         _ => 3,
     }
 }
@@ -803,8 +797,7 @@ fn determine_expedition_success_result(
 ) -> ExpeditionResult {
     let great_success_rate = calculate_great_success_rate(expedition_condition, launch_snapshot);
     let great_success_rate = great_success_rate.clamp(0.0, 100.0);
-    let mut r = rng();
-    let roll = r.random_range(0.0..100.0);
+    let roll = rng::f64_range(0.0, 100.0);
 
     if roll < great_success_rate {
         ExpeditionResult::GreatSuccess
@@ -1279,8 +1272,7 @@ fn draw_left_item_reward_count(max_count: i64, result: ExpeditionResult) -> i64 
         return 0;
     }
 
-    let mut r = rng();
-    let roll = r.random_range(0..=max_count);
+    let roll = rng::i64_inclusive(0..=max_count);
     resolve_left_item_reward_count(max_count, result, roll)
 }
 
@@ -1289,8 +1281,7 @@ fn draw_right_item_reward_count(max_count: i64, result: ExpeditionResult) -> i64
         return 0;
     }
 
-    let mut r = rng();
-    let roll = r.random_range(1..=max_count);
+    let roll = rng::i64_inclusive(1..=max_count);
     resolve_right_item_reward_count(max_count, result, roll)
 }
 

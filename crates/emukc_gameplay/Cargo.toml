@@ -14,7 +14,6 @@ emukc_time = { path = "../emukc_time" }
 # other
 async-trait = { workspace = true }
 parking_lot = { workspace = true }
-rand = { workspace = true, features = ["std_rng"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

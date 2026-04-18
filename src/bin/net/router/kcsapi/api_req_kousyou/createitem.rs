@@ -1,8 +1,7 @@
 use axum::{Extension, Form};
-use rand::{RngExt, rng, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::prelude::*;
+use emukc_internal::{crypto::rng, prelude::*};
 
 use crate::net::{
     AppState,
@@ -93,12 +92,11 @@ pub(super) async fn handler(
     };
 
     let crafted_mst_ids = {
-        let mut r = rng();
         let mut ids = Vec::new();
         for _ in 0..upper {
-            let next_u32 = r.random_range(0..100);
+            let next_u32 = rng::u32(0..100);
             if next_u32 > 30 {
-                let item = pool.choose(&mut r).ok_or(ApiError::Internal(
+                let item = rng::choose(&pool).ok_or(ApiError::Internal(
                     "cannot pick random from slotitem crafting pool".to_owned(),
                 ))?;
                 ids.push(item.api_id);

@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use rand::{rng, seq::SliceRandom};
+use emukc_crypto::rng;
 use redb::{Database, ReadableDatabase, TableDefinition};
 use tokio::io::AsyncReadExt;
 
@@ -544,7 +544,7 @@ impl Kache {
         // Use indices instead of cloning the list
         let mut indices: Vec<usize> = (0..cdn_list.len()).collect();
         if shuffle {
-            indices.shuffle(&mut rng());
+            rng::shuffle(&mut indices);
         }
 
         for idx in indices {

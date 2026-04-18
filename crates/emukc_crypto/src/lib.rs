@@ -10,6 +10,7 @@
 pub mod hash;
 #[doc(hidden)]
 pub mod password;
+pub mod rng;
 #[doc(hidden)]
 pub mod suffix_utils;
 

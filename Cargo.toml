@@ -53,12 +53,12 @@ http-body-util = "0.1.3"
 inquire = { version = "0.9.4" }
 lru = "0.16.3"
 md-5 = "0.11.0"
+fastrand = "2"
 md5 = "0.8.0"
 mime_guess = "2.0.5"
 open = "5.3.3"
 parking_lot = "0.12"
 png = "0.18.1"
-rand = { version = "0.10.0", features = ["sys_rng", "std_rng", "thread_rng"] }
 redb = "4.0.0"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", default-features = false, features = [
@@ -164,7 +164,6 @@ inquire = { workspace = true }
 mime_guess = { workspace = true }
 open = { workspace = true }
 png = { workspace = true }
-rand = { workspace = true, features = ["std_rng"] }
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

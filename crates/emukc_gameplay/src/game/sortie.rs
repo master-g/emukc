@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
+use emukc_crypto::rng;
 use emukc_db::entity::profile::{item::slot_item, ship};
 use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
 #[cfg(test)]
@@ -17,7 +18,6 @@ use emukc_model::{
 };
 #[cfg(test)]
 use emukc_time::chrono::Utc;
-use rand::{RngExt, rng};
 use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::HasContext};
@@ -1475,8 +1475,7 @@ fn select_random_enemy_composition(enemy_fleet: &EnemyFleetDefinition) -> Option
         return enemy_fleet.compositions.first().cloned();
     }
 
-    let mut random = rng();
-    let roll = random.random_range(0..total_weight);
+    let roll = rng::u64(0..total_weight);
     select_enemy_composition_for_roll(enemy_fleet, roll).cloned()
 }
 

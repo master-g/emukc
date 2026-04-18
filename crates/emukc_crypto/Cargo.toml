@@ -8,6 +8,7 @@ rust-version.workspace = true
 base16ct = { workspace = true, features = ["alloc"] }
 bcrypt = { workspace = true }
 bs58 = { workspace = true }
+fastrand = { workspace = true }
 md5 = { workspace = true }
 regex = { workspace = true }
 sha2 = { workspace = true, default-features = false }

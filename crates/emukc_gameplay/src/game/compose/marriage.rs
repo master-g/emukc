@@ -1,9 +1,9 @@
+use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::ship,
     sea_orm::{ActiveValue, entity::prelude::*},
 };
 use emukc_model::{codex::Codex, kc2::KcUseItemType, prelude::ApiMstShip};
-use rand::{RngExt, rng};
 
 use crate::{
     err::GameplayError,
@@ -43,10 +43,7 @@ where
 
     // update ship status
     ship.level = 100;
-    ship.mod_luck = {
-        let mut rng = rng();
-        rng.random_range(3..=6)
-    };
+    ship.mod_luck = rng::i64_inclusive(3..=6);
 
     ship.fuel = mst.api_fuel_max.unwrap_or(0);
     ship.ammo = mst.api_bull_max.unwrap_or(0);

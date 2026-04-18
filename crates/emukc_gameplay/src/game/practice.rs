@@ -4,6 +4,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::{
         self,
@@ -22,7 +23,6 @@ use emukc_time::{
     KcTime,
     chrono::{DateTime, Duration, Utc},
 };
-use rand::{RngExt, rng, seq::IndexedRandom};
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
@@ -448,14 +448,13 @@ where
     let rival_ship_id_starts_from = current_ship_id + 10000;
 
     let rivals: Vec<Rival> = {
-        let mut r = rng();
         (1..6)
             .map(|i| {
                 let name = format!("Practice Rival {i}");
                 let comment = format!("I am your {i}th rival");
-                let rank = r.random_range(1..=10);
-                let flag = r.random_range(1..=3);
-                let ship_mst = api_mst_ship.choose(&mut r).unwrap();
+                let rank = rng::i64_inclusive(1..=10);
+                let flag = rng::i64_inclusive(1..=3);
+                let ship_mst = rng::choose(&api_mst_ship).unwrap();
 
                 Rival {
                     id: rival_uid_starts_from + i,

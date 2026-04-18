@@ -1,3 +1,4 @@
+use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::ship,
     sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait, IntoActiveModel},
@@ -11,7 +12,6 @@ use emukc_model::{
     thirdparty::QuestActionEvent,
 };
 use emukc_time::chrono::Utc;
-use rand::{RngExt, rng};
 use serde::Serialize;
 
 use crate::err::GameplayError;
@@ -219,10 +219,7 @@ where
         return Ok(None);
     }
 
-    let selected = {
-        let mut random = rng();
-        candidates[random.random_range(0..candidates.len())]
-    };
+    let selected = { candidates[rng::usize(0..candidates.len())] };
     let mst = codex
         .manifest
         .find_ship(selected.ship_id)

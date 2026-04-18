@@ -1,8 +1,7 @@
 use axum::{Extension, Form};
-use rand::{rng, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::prelude::*;
+use emukc_internal::{crypto::rng, prelude::*};
 
 use crate::net::{
     AppState,
@@ -84,8 +83,7 @@ pub(super) async fn handler(
         .collect();
 
     let ship = {
-        let mut r = rng();
-        pool.choose(&mut r).ok_or(ApiError::Internal(format!(
+        rng::choose(&pool).ok_or(ApiError::Internal(format!(
             "Failed to choose a ship from the pool of {} ships",
             pool.len()
         )))?

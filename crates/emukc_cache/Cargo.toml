@@ -14,7 +14,6 @@ emukc_network = { path = "../emukc_network" }
 # other
 dashmap.workspace = true
 lru.workspace = true
-rand = { workspace = true, features = ["std_rng"] }
 redb.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

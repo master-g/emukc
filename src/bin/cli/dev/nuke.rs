@@ -1,5 +1,4 @@
 use anyhow::Result;
-use rand::{rng, seq::IndexedRandom};
 
 use emukc::{
     model::profile::furniture::FurnitureConfig,
@@ -9,6 +8,7 @@ use emukc::{
         UseItemOps,
     },
 };
+use emukc_internal::crypto::rng;
 
 use crate::{cfg::AppConfig, state::State};
 
@@ -52,11 +52,10 @@ async fn add_ship_quietly(state: &State, pid: i64) -> Result<()> {
     let codex = state.codex();
 
     let ship_ids: Vec<i64> = {
-        let mut rng = rng();
         let mut ids = Vec::new();
         let mut i = 0;
         loop {
-            let mst = codex.manifest.api_mst_ship.choose(&mut rng).unwrap();
+            let mst = rng::choose(&codex.manifest.api_mst_ship).unwrap();
             if codex.ship_extra.contains_key(&mst.api_id) {
                 ids.push(mst.api_id);
                 i += 1;
