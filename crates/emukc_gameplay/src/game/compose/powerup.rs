@@ -395,8 +395,13 @@ where
         target_ship_mst_id: target_ship.mst_id,
         material_ship_mst_ids: material_ships.iter().map(|s| s.mst_id).collect(),
     };
-    crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &quest_event)
-        .await?;
+    crate::game::quest::update::update_quest_progress_for_action(
+        c,
+        codex,
+        profile_id,
+        &quest_event,
+    )
+    .await?;
 
     Ok(result)
 }

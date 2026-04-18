@@ -52,7 +52,9 @@ mod tests {
 
     #[test]
     fn test_scrap_specific_items_satisfied_when_all_amounts_zero() {
-        use emukc_internal::prelude::{Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType};
+        use emukc_internal::prelude::{
+            Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType,
+        };
         let cond = Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(vec![]));
         assert!(cond.is_satisfied());
 

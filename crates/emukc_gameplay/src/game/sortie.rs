@@ -572,7 +572,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         for (i, &hp) in snapshot.enemy_nowhps.iter().enumerate() {
             if hp <= 0 {
                 if let Some(&stype) = snapshot.enemy_ship_types.get(i) {
-                    let sink_event = QuestActionEvent::EnemyShipSunk { ship_stype: stype };
+                    let sink_event = QuestActionEvent::EnemyShipSunk {
+                        ship_stype: stype,
+                    };
                     update_quest_progress_for_action(&tx, codex, profile_id, &sink_event).await?;
                 }
             }
@@ -791,7 +793,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 friendly_ship_ids: day_session.friendly_ship_ids.clone(),
                 enemy_ship_ids: day_session.enemy_ship_ids.clone(),
                 friendly_nowhps,
-                enemy_ship_types: day_session.enemy_ship_ids.iter().map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0)).collect(),
+                enemy_ship_types: day_session
+                    .enemy_ship_ids
+                    .iter()
+                    .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
+                    .collect(),
                 enemy_nowhps: night_session.packet.enemy_nowhps.clone(),
                 win_rank: night_session.outcome.win_rank.clone(),
                 get_exp,
@@ -944,7 +950,11 @@ async fn sortie_battle_impl(
             friendly_ship_ids: session.friendly_ship_ids.clone(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps,
-            enemy_ship_types: session.enemy_ship_ids.iter().map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0)).collect(),
+            enemy_ship_types: session
+                .enemy_ship_ids
+                .iter()
+                .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
+                .collect(),
             enemy_nowhps: session.packet.enemy_nowhps.clone(),
             win_rank: session.outcome.win_rank.clone(),
             get_exp,
@@ -1967,7 +1977,11 @@ mod tests {
                 friendly_ship_ids: session.friendly_ship_ids.clone(),
                 enemy_ship_ids: session.enemy_ship_ids.clone(),
                 friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
-                enemy_ship_types: session.enemy_ship_ids.iter().map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0)).collect(),
+                enemy_ship_types: session
+                    .enemy_ship_ids
+                    .iter()
+                    .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
+                    .collect(),
                 enemy_nowhps: session.packet.enemy_nowhps.clone(),
                 win_rank: session.outcome.win_rank.clone(),
                 get_exp: 0,
