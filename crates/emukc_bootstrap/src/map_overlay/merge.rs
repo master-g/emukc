@@ -107,6 +107,18 @@ pub(super) fn build_public_map_catalog_overlay_from_captures(
     }
 }
 
+fn infer_event_from_color(color_no: i64) -> (i64, i64) {
+    match color_no {
+        0 => (0, 0),
+        2 => (2, 0),
+        3 => (3, 0),
+        4 => (4, 1),
+        5 => (5, 1),
+        n if n >= 6 => (n, 1),
+        _ => (0, 0),
+    }
+}
+
 fn merge_capture_into_overlay(
     overlay: &mut MapCatalog,
     definition: &MapDefinition,
@@ -148,6 +160,10 @@ fn merge_capture_into_overlay(
     let mut cells =
         stage.cells.iter().cloned().map(|cell| (cell.cell_no, cell)).collect::<BTreeMap<_, _>>();
 
+    if capture.boss_cell_no > 0 {
+        stage.boss_cell_no = capture.boss_cell_no;
+    }
+
     for captured_cell in &capture.cells {
         match cells.get_mut(&captured_cell.cell_no) {
             Some(existing) => {
@@ -169,16 +185,20 @@ fn merge_capture_into_overlay(
                 }
                 if existing.color_no <= 0 && captured_cell.color_no > 0 {
                     existing.color_no = captured_cell.color_no;
+                    let (event_id, event_kind) = infer_event_from_color(captured_cell.color_no);
+                    existing.event_id = event_id;
+                    existing.event_kind = event_kind;
                 }
             }
             None => {
+                let (event_id, event_kind) = infer_event_from_color(captured_cell.color_no);
                 cells.insert(
                     captured_cell.cell_no,
                     emukc_model::codex::map::MapCellDefinition {
                         cell_no: captured_cell.cell_no,
                         color_no: captured_cell.color_no,
-                        event_id: 0,
-                        event_kind: 0,
+                        event_id,
+                        event_kind,
                         next_cells: Vec::new(),
                         node_label: None,
                         master_cell_id: Some(captured_cell.master_cell_id),

@@ -123,7 +123,7 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
         Err(_) => {
             let info = state.sign_up(DEFAULT_NAME, DEFAULT_PASS).await?;
             state.new_profile(&info.access_token.token, DEFAULT_NAME).await?;
-            // add_ship_incentives(&state, 1).await?;
+            add_ship_incentives(&state, 1).await?;
             add_material_incentives(&state, 1).await?;
             info
         }
@@ -189,13 +189,10 @@ async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
     let codex = state.codex();
 
     let ship_incentives: Vec<KcApiIncentiveItem> = [
-        (50, "島風改"),
-        (184, "大鯨"),
-        (951, "天津風改二"),
-        (299, "Scamp"),
-        (892, "Drum"),
-        (1005, "Minneapolis改"),
-        (916, "大和改二重"),
+        // Training cruisers (練習巡洋艦, stype=21)
+        (154, "香取"),
+        (465, "鹿島"),
+        (953, "朝日"),
     ]
     .iter()
     .filter_map(|(sid, _)| codex.new_incentive_with_ship(*sid).ok())

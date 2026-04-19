@@ -5,11 +5,10 @@ use emukc_model::{codex::map::MapCatalog, kc2::start2::ApiManifest};
 use crate::parser::error::ParseError;
 
 mod assemble;
-mod kcdata;
 mod report;
 mod sources;
 
-pub use report::{MapCatalogBuildReport, MapCatalogWikiwikiSource};
+pub use report::{MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource};
 
 /// Build the final runtime `MapCatalog` from explicit normalized inputs.
 pub fn build_final_map_catalog(

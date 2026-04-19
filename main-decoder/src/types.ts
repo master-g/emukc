@@ -282,6 +282,7 @@ export interface PipelineOptions {
   maxPasses?: number;
   writeOutputs?: boolean;
   syncBattleAssets?: boolean;
+  syncResourceManifest?: boolean;
 }
 
 export interface PipelineArtifacts {
@@ -315,12 +316,23 @@ export interface DecodeSummary {
   };
 }
 
+export interface ResourceManifestSummary {
+  totalEntries: number;
+  shipEntryCount: number;
+  slotitemEntryCount: number;
+  textureProviderEntryCount: number;
+  explicitPathEntryCount: number;
+  totalExplicitPaths: number;
+  modulesCovered: number;
+}
+
 export interface PipelineResult {
   loaded: LoadedSources;
   sections: BundleSections;
   decoded: DecodedBundle;
   moduleGraph: ModuleGraph;
   battleKnowledge: BattleKnowledge;
+  resourceManifestSummary?: ResourceManifestSummary;
   summary: DecodeSummary;
   artifacts?: PipelineArtifacts;
 }

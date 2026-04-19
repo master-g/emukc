@@ -70,7 +70,7 @@ fn merge_variant_definition(definition: &mut MapVariantDefinition, other: MapVar
     });
     let other_start =
         other.cells.iter().find(|cell| cell.cell_no == 0).map(|cell| cell.next_cells.clone());
-    if definition.boss_cell_no <= 0 {
+    if other.boss_cell_no > 0 {
         definition.boss_cell_no = other.boss_cell_no;
     }
     if definition.required_defeat_count.is_none() {
@@ -216,15 +216,11 @@ fn merge_cells(cells: &mut Vec<MapCellDefinition>, other_cells: Vec<MapCellDefin
             }
             std::collections::btree_map::Entry::Occupied(mut entry) => {
                 let cell = entry.get_mut();
-                if cell.color_no <= 0 && other.color_no > 0 {
+                if other.color_no > 0 {
                     cell.color_no = other.color_no;
                 }
-                if cell.event_id <= 0 && other.event_id > 0 {
-                    cell.event_id = other.event_id;
-                }
-                if cell.event_kind <= 0 && other.event_kind > 0 {
-                    cell.event_kind = other.event_kind;
-                }
+                cell.event_id = other.event_id;
+                cell.event_kind = other.event_kind;
                 if cell.next_cells.is_empty() && !other.next_cells.is_empty() {
                     cell.next_cells = other.next_cells;
                 }
@@ -273,12 +269,12 @@ mod tests {
     fn merge_variant_definition_remaps_secondary_cells_by_node_label() {
         let mut definition = MapVariantDefinition {
             variant_key: String::new(),
-            boss_cell_no: 0,
+            boss_cell_no: 7,
             cells: vec![
                 cell(0, "Start", vec![], 0, 0, 0),
-                cell(1, "A", vec![], 0, 0, 0),
-                cell(2, "B", vec![], 0, 0, 0),
-                cell(3, "C", vec![], 0, 0, 0),
+                cell(1, "A", vec![], 2, 0, 2),
+                cell(2, "B", vec![], 3, 0, 3),
+                cell(3, "C", vec![], 4, 1, 4),
             ],
             routing_rules: BTreeMap::new(),
             enemy_fleets: BTreeMap::new(),
@@ -343,7 +339,20 @@ mod tests {
         assert_eq!(definition.cell(1).unwrap().next_cells, vec![2]);
         assert_eq!(definition.cell(2).unwrap().next_cells, vec![3]);
         assert_eq!(definition.cell(3).unwrap().event_id, 5);
+        // boss_cell_no: last-non-zero-wins — primary had 7, secondary had 1 (remapped to 3 via label) → 3 overwrites 7
         assert_eq!(definition.boss_cell_no, 3);
+        // color_no: last-non-zero-wins — primary had 2/3/4, secondary had 4/4/5 → secondary overwrites
+        assert_eq!(definition.cell(1).unwrap().color_no, 4);
+        assert_eq!(definition.cell(2).unwrap().color_no, 4);
+        assert_eq!(definition.cell(3).unwrap().color_no, 5);
+        // event_id: unconditional overwrite — secondary always wins
+        assert_eq!(definition.cell(1).unwrap().event_id, 4);
+        assert_eq!(definition.cell(2).unwrap().event_id, 4);
+        assert_eq!(definition.cell(3).unwrap().event_id, 5);
+        // event_kind: unconditional overwrite — secondary's 1 overwrites primary's 0
+        assert_eq!(definition.cell(1).unwrap().event_kind, 1);
+        assert_eq!(definition.cell(2).unwrap().event_kind, 1);
+        assert_eq!(definition.cell(3).unwrap().event_kind, 1);
         assert_eq!(definition.routing_rules.get(&1).unwrap()[0].to_cell_no, 2);
         assert_eq!(definition.routing_rules.get(&2).unwrap()[0].to_cell_no, 3);
         assert!(definition.enemy_fleets.contains_key(&3));

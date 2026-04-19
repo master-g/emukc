@@ -198,10 +198,16 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         &self,
         profile_id: i64,
     ) -> Result<PracticeNightBattleResponse, GameplayError> {
-        let (response, snapshot) = simulate_practice_night_battle(self.codex(), profile_id)
-            .ok_or_else(|| {
+        let codex = self.codex();
+        let (response, snapshot) =
+            simulate_practice_night_battle(codex, profile_id).ok_or_else(|| {
                 GameplayError::WrongType("night practice battle is not available".to_string())
             })?;
+
+        let ct_flagship = pending_practice_battle(profile_id)
+            .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
+            .and_then(|sid| codex.manifest.find_ship(sid))
+            .is_some_and(|m| m.api_stype == 21);
 
         if let Some(existing) = PENDING_PRACTICE_RESULTS.lock().unwrap().get_mut(&profile_id) {
             let base_exp = existing.get_base_exp;
@@ -212,7 +218,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             existing.mvp = snapshot.mvp;
             existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank);
             let (ship_exp, ship_lvup) =
-                calculate_practice_ship_exp(&friend_ships, base_exp, existing.mvp);
+                calculate_practice_ship_exp(&friend_ships, base_exp, existing.mvp, ct_flagship);
             existing.get_ship_exp = ship_exp;
             existing.get_exp_lvup = ship_lvup;
         }

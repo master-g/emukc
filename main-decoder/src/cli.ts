@@ -11,6 +11,7 @@ Options:
   --out <path>         Output directory
   --max-passes <n>     Maximum decode passes (default: ${DEFAULT_MAX_PASSES})
   --sync-battle-assets Sync battle JSON assets into ../crates/emukc_bootstrap/assets
+  --sync-resource-manifest Extract resource manifest from all modules and sync
   --no-write           Do not write output artifacts
   --help               Show this help message
 
@@ -73,6 +74,9 @@ export function parseArgs(args: string[]): PipelineOptions & { help?: boolean } 
       }
       case "--sync-battle-assets":
         options.syncBattleAssets = true;
+        break;
+      case "--sync-resource-manifest":
+        options.syncResourceManifest = true;
         break;
       case "--no-write":
         options.writeOutputs = false;
@@ -159,6 +163,10 @@ export async function runCli(args: string[] = Bun.argv.slice(2)): Promise<void> 
     console.log(`Artifacts written to: ${result.loaded.paths.outputDir}`);
     if (options.syncBattleAssets === true) {
       console.log("Battle assets synced to: ../crates/emukc_bootstrap/assets");
+    }
+    if (options.syncResourceManifest === true && result.resourceManifestSummary !== undefined) {
+      const s = result.resourceManifestSummary;
+      console.log(`Resource manifest synced: ${s.totalEntries} entries (${s.shipEntryCount} ship, ${s.slotitemEntryCount} slotitem, ${s.textureProviderEntryCount} texture, ${s.totalExplicitPaths} explicit paths) from ${s.modulesCovered} modules`);
     }
   }
 }

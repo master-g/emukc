@@ -105,21 +105,26 @@ pub(super) fn calculate_sortie_ship_exp(
     base_exp: i64,
     mvp_idx: i64,
     friendly_nowhps: &[i64],
+    ct_flagship: bool,
 ) -> (Vec<i64>, Vec<Vec<i64>>) {
     let mut exp = vec![-1];
     let mut lvup = Vec::with_capacity(friend_ships.len());
+    let ct_mult = if ct_flagship {
+        300
+    } else {
+        1
+    };
 
     for (idx, ship) in friend_ships.iter().enumerate() {
         // Sunk ships (HP <= 0) do not receive experience
-        let is_sunk = friendly_nowhps.get(idx).copied().unwrap_or(1) <= 0;
-        let gain = if is_sunk {
+        let gain = if friendly_nowhps.get(idx).copied().unwrap_or(1) <= 0 {
             0
         } else if idx as i64 + 1 == mvp_idx {
-            base_exp * 2
+            base_exp * 2 * ct_mult
         } else if idx == 0 {
-            ((base_exp as f64) * 1.5).floor() as i64
+            ((base_exp as f64) * 1.5).floor() as i64 * ct_mult
         } else {
-            base_exp
+            base_exp * ct_mult
         };
         exp.push(gain);
 

@@ -60,8 +60,8 @@ pub mod prelude {
         repo_public_map_catalog_overlay_path,
     };
     pub use crate::map_pipeline::{
-        MapCatalogBuildReport, MapCatalogWikiwikiSource, build_final_map_catalog,
-        build_final_map_catalog_from_repo_assets,
+        MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource,
+        build_final_map_catalog, build_final_map_catalog_from_repo_assets,
         build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_report,
     };
     pub use crate::parser::{parse_partial_codex, parse_wikiwiki_map, parse_wikiwiki_map_debug};

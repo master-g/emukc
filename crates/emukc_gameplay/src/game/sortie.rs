@@ -320,8 +320,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let _ = formation_id;
         Ok(SortieStartResponse {
             cell_data: build_sortie_cell_data(definition.map_id, stage),
-            rashin_flg: false,
-            rashin_id: 0,
+            rashin_flg: cell_0.next_cells.len() > 1,
+            rashin_id: if cell_0.next_cells.len() > 1 {
+                1
+            } else {
+                0
+            },
             maparea_id,
             mapinfo_no,
             cell_no: current_cell.cell_no,
@@ -667,6 +671,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             ))
         })?;
 
+        let ct_flagship = pending_sortie_battle(store, profile_id)
+            .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
+            .and_then(|sid| codex.manifest.find_ship(sid))
+            .is_some_and(|m| m.api_stype == 21);
+
         store.with_pending_result_mut(profile_id, |snapshot| {
             snapshot.win_rank = night.outcome.win_rank.clone();
             snapshot.mvp = night.outcome.mvp;
@@ -689,6 +698,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                     snapshot.get_base_exp,
                     snapshot.mvp,
                     &snapshot.friendly_nowhps,
+                    ct_flagship,
                 );
                 snapshot.get_ship_exp = ship_exp;
                 snapshot.get_exp_lvup = ship_lvup;
@@ -781,11 +791,16 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let friendly_nowhps: Vec<i64> = pending_sortie_battle(store, profile_id)
             .map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
             .unwrap_or_default();
+        let ct_flagship = friend_ships
+            .first()
+            .and_then(|s| codex.manifest.find_ship(s.ship.api_ship_id))
+            .is_some_and(|m| m.api_stype == 21);
         let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
             &friend_ships,
             base_exp,
             night_session.outcome.mvp,
             &friendly_nowhps,
+            ct_flagship,
         );
         store.insert_pending_result(
             profile_id,
@@ -936,8 +951,17 @@ async fn sortie_battle_impl(
     let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
     let get_exp = calculate_battle_admiral_exp(base_exp, &session.outcome.win_rank);
     let friendly_nowhps: Vec<i64> = session.friendly.iter().map(|f| f.hp().max(0)).collect();
-    let (ship_exp, ship_lvup) =
-        calculate_sortie_ship_exp(&friend_ships, base_exp, session.outcome.mvp, &friendly_nowhps);
+    let ct_flagship = friend_ships
+        .first()
+        .and_then(|s| codex.manifest.find_ship(s.ship.api_ship_id))
+        .is_some_and(|m| m.api_stype == 21);
+    let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
+        &friend_ships,
+        base_exp,
+        session.outcome.mvp,
+        &friendly_nowhps,
+        ct_flagship,
+    );
     let response = build_sortie_battle_response(
         active.deck_id,
         friend_ships,
@@ -991,7 +1015,7 @@ fn build_sortie_cell_data(map_id: i64, stage: &MapStageDefinition) -> Vec<Sortie
             master_cell_id: cell.master_cell_id.unwrap_or(map_id * 100 + cell.cell_no),
             cell_no: cell.cell_no,
             color_no: cell.color_no,
-            passed: false,
+            passed: cell.cell_no != 0,
             distance: cell.distance,
         })
         .collect()

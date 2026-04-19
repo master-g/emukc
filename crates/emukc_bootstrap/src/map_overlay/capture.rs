@@ -36,6 +36,7 @@ pub(super) struct CapturedMapCell {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct CapturedMapStart {
     pub(super) map_id: i64,
+    pub(super) boss_cell_no: i64,
     pub(super) request_path: Option<String>,
     pub(super) cells: Vec<CapturedMapCell>,
 }
@@ -136,6 +137,7 @@ fn extract_map_start_capture_from_response_saver(
     validate_cells(&cells)?;
     Ok(CapturedMapStart {
         map_id: maparea_id * 10 + mapinfo_no,
+        boss_cell_no: 0,
         request_path: Some(record.path.clone()),
         cells,
     })
@@ -153,6 +155,7 @@ fn extract_map_start_capture_from_api_data(
         .ok_or_else(|| "missing_maparea_id".to_string())?;
     let mapinfo_no = parse_i64(api_data.get("api_mapinfo_no"))
         .ok_or_else(|| "missing_mapinfo_no".to_string())?;
+    let boss_cell_no = parse_i64(api_data.get("api_bosscell_no")).unwrap_or(0);
     let cells = api_data
         .get("api_cell_data")
         .and_then(|value| value.as_array())
@@ -164,6 +167,7 @@ fn extract_map_start_capture_from_api_data(
     validate_cells(&cells)?;
     Ok(CapturedMapStart {
         map_id: maparea_id * 10 + mapinfo_no,
+        boss_cell_no,
         request_path: Some("/kcsapi/api_req_map/start".to_string()),
         cells,
     })

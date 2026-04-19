@@ -11,6 +11,7 @@ import { decodeBundle } from "./decode.ts";
 import { formatJavaScript } from "./format.ts";
 import { loadLocalSources, writeTextFile } from "./io.ts";
 import { extractModuleGraph } from "./module-graph.ts";
+import { extractResourceManifest } from "./resource-manifest.ts";
 import { splitBundle } from "./split.ts";
 import type { PipelineArtifacts, PipelineOptions, PipelineResult } from "./types.ts";
 
@@ -88,6 +89,10 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_module_index.json"), `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_slot_resource_triggers.json"), `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
   }
+  if (options.syncResourceManifest === true) {
+    const manifest = extractResourceManifest(result.moduleGraph);
+    await writeTextFile(resolve(bootstrapAssetsDir, "resource_manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  }
   await Promise.all(
     result.moduleGraph.modules.map(module => writeTextFile(resolve(modulesDir, module.fileName), module.source)),
   );
@@ -102,12 +107,17 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
   const moduleGraph = extractModuleGraph(decoded.decodedSource);
   const battleKnowledge = extractBattleKnowledge(moduleGraph);
 
+  const resourceManifest = options.syncResourceManifest === true
+    ? extractResourceManifest(moduleGraph)
+    : undefined;
+
   const result: PipelineResult = {
     loaded,
     sections,
     decoded,
     moduleGraph,
     battleKnowledge,
+    resourceManifestSummary: resourceManifest?.summary,
     summary: {
       scriptVersion: loaded.scriptVersion,
       decoderFunctionName: sections.decoderFunctionName,

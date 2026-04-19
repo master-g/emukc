@@ -1,0 +1,9992 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-19T02:40:02.112Z",
+  "summary": {
+    "totalEntries": 416,
+    "shipEntryCount": 144,
+    "slotitemEntryCount": 144,
+    "textureProviderEntryCount": 127,
+    "explicitPathEntryCount": 1,
+    "totalExplicitPaths": 37,
+    "modulesCovered": 790
+  },
+  "entries": [
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "self.shipModel.mstID",
+      "damagedSource": "false",
+      "moduleIds": [
+        "85426"
+      ],
+      "moduleNames": [
+        "MarriageAnimation"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "61953"
+      ],
+      "moduleNames": [
+        "TaskBonusShip"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x1d0f2d",
+      "damagedSource": "false",
+      "moduleIds": [
+        "3087"
+      ],
+      "moduleNames": [
+        "BonusShip"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "card",
+      "shipMstIdSource": "_0x39be80",
+      "damagedSource": "false",
+      "moduleIds": [
+        "29168"
+      ],
+      "moduleNames": [
+        "TaskRewardDialogShip"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "card",
+      "shipMstIdSource": "_0x39be80",
+      "damagedSource": "false",
+      "moduleIds": [
+        "29168"
+      ],
+      "moduleNames": [
+        "TaskRewardDialogShip"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "reward_icon",
+      "shipMstIdSource": "_0x5da0c6.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "19281"
+      ],
+      "moduleNames": [
+        "TaskEventRewardsSelect"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "card_round",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "icon_box",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "reward_card",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "reward_icon",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "reward_card",
+      "shipMstIdSource": "_0x20348a",
+      "damagedSource": "false",
+      "moduleIds": [
+        "46091"
+      ],
+      "moduleNames": [
+        "RewardSelectDialogShipBtn"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "card_round",
+      "shipMstIdSource": "_0x201e87",
+      "damagedSource": "false",
+      "moduleIds": [
+        "38661"
+      ],
+      "moduleNames": [
+        "RewardSelectDialogShipBtnOld"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "supply_character",
+      "shipMstIdSource": "_0x20d0e3",
+      "damagedSource": "_0x5ec49f",
+      "moduleIds": [
+        "64289"
+      ],
+      "moduleNames": [
+        "LongShipBanner"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "_0x1ffb1a",
+      "damagedSource": "_0x56d23a",
+      "moduleIds": [
+        "37638"
+      ],
+      "moduleNames": [
+        "ShipBanner"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "card",
+      "shipMstIdSource": "_0x139a42",
+      "damagedSource": "_0x1a3f79",
+      "moduleIds": [
+        "17733"
+      ],
+      "moduleNames": [
+        "ShipCard"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "mstID",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "48059",
+        "80845"
+      ],
+      "moduleNames": [
+        "PreInitializeTask",
+        "TaskExpeditionResultShow"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "shipMstIdSource": "mstID",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "80845"
+      ],
+      "moduleNames": [
+        "TaskExpeditionResultShow"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "ship_mstid",
+      "damagedSource": "_0x747b59",
+      "moduleIds": [
+        "17265"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "card",
+      "shipMstIdSource": "ship_mstid",
+      "damagedSource": "_0x747b59",
+      "moduleIds": [
+        "17265"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "ship_mstid",
+      "damagedSource": "_0x747b59",
+      "moduleIds": [
+        "17265"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "card",
+      "shipMstIdSource": "ship_mstid",
+      "damagedSource": "_0x747b59",
+      "moduleIds": [
+        "17265"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0xe5cd4",
+      "damagedSource": "_0x27eaf9",
+      "moduleIds": [
+        "17172"
+      ],
+      "moduleNames": [
+        "PowerUpAnimation"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0xe5cd4",
+      "damagedSource": "_0x27eaf9",
+      "moduleIds": [
+        "17172"
+      ],
+      "moduleNames": [
+        "PowerUpAnimation"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x2dc552[0]",
+      "damagedSource": "false",
+      "moduleIds": [
+        "35601"
+      ],
+      "moduleNames": [
+        "SpKaizoIntro"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/silhouette",
+      "shipMstIdSource": "_0x2dc552[1]",
+      "damagedSource": "false",
+      "moduleIds": [
+        "35601"
+      ],
+      "moduleNames": [
+        "SpKaizoIntro"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x2dc552[0]",
+      "damagedSource": "false",
+      "moduleIds": [
+        "35601"
+      ],
+      "moduleNames": [
+        "SpKaizoIntro"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/silhouette",
+      "shipMstIdSource": "_0x2dc552[1]",
+      "damagedSource": "false",
+      "moduleIds": [
+        "35601"
+      ],
+      "moduleNames": [
+        "SpKaizoIntro"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/full_x2",
+      "shipMstIdSource": "_0x3e5c95.mstID",
+      "damagedSource": "false",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/text_class",
+      "shipMstIdSource": "_0x3e5c95.mstID",
+      "damagedSource": "false",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/text_name",
+      "shipMstIdSource": "_0x3e5c95.mstID",
+      "damagedSource": "false",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "remodel",
+      "shipMstIdSource": "mstID",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "78084"
+      ],
+      "moduleNames": [
+        "KaizoDetailHeader"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/text_remodel_mes",
+      "shipMstIdSource": "_0x66f3a6.mstID",
+      "damagedSource": "false",
+      "moduleIds": [
+        "50402"
+      ],
+      "moduleNames": [
+        "SpKaizoConfirm"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/text_remodel_mes",
+      "shipMstIdSource": "_0x66f3a6.mstID",
+      "damagedSource": "false",
+      "moduleIds": [
+        "50402"
+      ],
+      "moduleNames": [
+        "SpKaizoConfirm"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/full_x2",
+      "shipMstIdSource": "_0x15acd1",
+      "damagedSource": "false",
+      "moduleIds": [
+        "7248"
+      ],
+      "moduleNames": [
+        "SpecialRemodelStartStage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/text_class",
+      "shipMstIdSource": "_0x15acd1",
+      "damagedSource": "false",
+      "moduleIds": [
+        "7248"
+      ],
+      "moduleNames": [
+        "SpecialRemodelStartStage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/text_name",
+      "shipMstIdSource": "_0x15acd1",
+      "damagedSource": "false",
+      "moduleIds": [
+        "7248"
+      ],
+      "moduleNames": [
+        "SpecialRemodelStartStage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "_0x3be5c3",
+      "damagedSource": "_0x6d8be2",
+      "moduleIds": [
+        "18168"
+      ],
+      "moduleNames": [
+        "RepairShipBanner"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "85270"
+      ],
+      "moduleNames": [
+        "RewardAnimationShip"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "card",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "44896"
+      ],
+      "moduleNames": [
+        "TaskShowShipCard"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "card",
+      "shipMstIdSource": "self._mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "44896"
+      ],
+      "moduleNames": [
+        "TaskShowShipCard"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "album_status",
+      "shipMstIdSource": "_0x50a9ca[0]",
+      "damagedSource": "false",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "card",
+      "shipMstIdSource": "_0x15118b",
+      "damagedSource": "false",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "character_full",
+      "shipMstIdSource": "_0x15118b",
+      "damagedSource": "false",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "character_up",
+      "shipMstIdSource": "_0x15118b",
+      "damagedSource": "false",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "character_full",
+      "shipMstIdSource": "_0x15118b",
+      "damagedSource": "true",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "character_up",
+      "shipMstIdSource": "_0x15118b",
+      "damagedSource": "true",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "card",
+      "shipMstIdSource": "_0xa2cdd0",
+      "damagedSource": "false",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "character_full",
+      "shipMstIdSource": "_0xa2cdd0",
+      "damagedSource": "false",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "character_up",
+      "shipMstIdSource": "_0xa2cdd0",
+      "damagedSource": "false",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "character_full",
+      "shipMstIdSource": "_0xa2cdd0",
+      "damagedSource": "true",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "character_up",
+      "shipMstIdSource": "_0xa2cdd0",
+      "damagedSource": "true",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "album_status",
+      "shipMstIdSource": "_0x3200b2",
+      "damagedSource": "false",
+      "moduleIds": [
+        "3609"
+      ],
+      "moduleNames": [
+        "ShipDetailPanel"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "icon_box",
+      "shipMstIdSource": "_0x31f37d.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "56230"
+      ],
+      "moduleNames": [
+        "TaskUseGiftBox"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "reward_icon",
+      "shipMstIdSource": "_0x3d1397.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "80135"
+      ],
+      "moduleNames": [
+        "TaskRewardSelect"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "icon_box",
+      "shipMstIdSource": "_0x3d1397.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "80135"
+      ],
+      "moduleNames": [
+        "TaskRewardSelect"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x26d8c6",
+      "damagedSource": "false",
+      "moduleIds": [
+        "62174"
+      ],
+      "moduleNames": [
+        "TaskRevampStart"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x26d8c6",
+      "damagedSource": "false",
+      "moduleIds": [
+        "62174"
+      ],
+      "moduleNames": [
+        "TaskRevampStart"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "mst_id",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "85373",
+        "62473",
+        "2067",
+        "38083",
+        "94663",
+        "35773",
+        "19639"
+      ],
+      "moduleNames": [
+        "Content",
+        "TaskFormationSelect",
+        "TaskFormationSelect",
+        "TaskFormationSelectCombined",
+        "PhaseAllyOpening",
+        "PhaseAllyOpening",
+        "TaskExp"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "moduleIds": [
+        "10021"
+      ],
+      "moduleNames": [
+        "TaskFlagShipDamaged"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x2d6274",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "86156"
+      ],
+      "moduleNames": [
+        "TaskReplenishmentEffect"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x9f5012",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "86156"
+      ],
+      "moduleNames": [
+        "TaskReplenishmentEffect"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "this._ship_damaged",
+      "moduleIds": [
+        "43201",
+        "58441",
+        "45950"
+      ],
+      "moduleNames": [
+        "AnimFlagShip",
+        "CutinResourcesPreloadTask",
+        "module-45950.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "this._ship_damaged",
+      "moduleIds": [
+        "43201",
+        "58441",
+        "45950"
+      ],
+      "moduleNames": [
+        "AnimFlagShip",
+        "CutinResourcesPreloadTask",
+        "module-45950.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "mst_id",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "82850"
+      ],
+      "moduleNames": [
+        "CellTaskFancy"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x2f1ec0",
+      "damagedSource": "_0x156792",
+      "moduleIds": [
+        "82850"
+      ],
+      "moduleNames": [
+        "CellTaskFancy"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "87371"
+      ],
+      "moduleNames": [
+        "module-87371.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "87371"
+      ],
+      "moduleNames": [
+        "module-87371.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "shipMstIdSource": "_0x290c87",
+      "damagedSource": "false",
+      "moduleIds": [
+        "87371"
+      ],
+      "moduleNames": [
+        "module-87371.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "shipMstIdSource": "_0x290c87",
+      "damagedSource": "true",
+      "moduleIds": [
+        "87371"
+      ],
+      "moduleNames": [
+        "module-87371.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x1a83bb",
+      "moduleIds": [
+        "31394"
+      ],
+      "moduleNames": [
+        "AnchorageRepairShipBanner"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner3",
+      "shipMstIdSource": "_0x505243",
+      "damagedSource": "false",
+      "moduleIds": [
+        "51724"
+      ],
+      "moduleNames": [
+        "EnemyDeckSilhouette"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner3",
+      "shipMstIdSource": "_0x5580ff",
+      "damagedSource": "false",
+      "moduleIds": [
+        "51724"
+      ],
+      "moduleNames": [
+        "EnemyDeckSilhouette"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "moduleIds": [
+        "68173"
+      ],
+      "moduleNames": [
+        "TaskGouchinCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "self._mst_id",
+      "damagedSource": "_0x4dce0f",
+      "moduleIds": [
+        "4146"
+      ],
+      "moduleNames": [
+        "TaskGouchinCutinRepair"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x967c48",
+      "moduleIds": [
+        "4146"
+      ],
+      "moduleNames": [
+        "TaskGouchinCutinRepair"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x44268e",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "94663"
+      ],
+      "moduleNames": [
+        "PhaseAllyOpening"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "shipMstIdSource": "mst_id",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "94663",
+        "35773"
+      ],
+      "moduleNames": [
+        "PhaseAllyOpening",
+        "PhaseAllyOpening"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "shipMstIdSource": "mst_id",
+      "damagedSource": "true",
+      "moduleIds": [
+        "94663",
+        "35773"
+      ],
+      "moduleNames": [
+        "PhaseAllyOpening",
+        "PhaseAllyOpening"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "this._damaged",
+      "moduleIds": [
+        "40637",
+        "38538"
+      ],
+      "moduleNames": [
+        "module-40637.js",
+        "module-38538.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "this._damaged",
+      "moduleIds": [
+        "40637",
+        "38538"
+      ],
+      "moduleNames": [
+        "module-40637.js",
+        "module-38538.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x150e70",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "35773"
+      ],
+      "moduleNames": [
+        "PhaseAllyOpening"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x258ecb",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "83645"
+      ],
+      "moduleNames": [
+        "CutinAttack"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "special",
+      "shipMstIdSource": "_0x463b8c",
+      "damagedSource": "false",
+      "moduleIds": [
+        "51225"
+      ],
+      "moduleNames": [
+        "module-51225.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x55803e",
+      "damagedSource": "_0x3edd8f",
+      "moduleIds": [
+        "51225"
+      ],
+      "moduleNames": [
+        "module-51225.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers[0].mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "51225",
+        "68432",
+        "84085",
+        "6148",
+        "425",
+        "2212",
+        "94206"
+      ],
+      "moduleNames": [
+        "module-51225.js",
+        "CutinKongoAttack",
+        "module-84085.js",
+        "module-6148.js",
+        "module-425.js",
+        "module-2212.js",
+        "module-94206.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "this._attackers[0].mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "51225",
+        "84085",
+        "6148",
+        "425"
+      ],
+      "moduleNames": [
+        "module-51225.js",
+        "module-84085.js",
+        "module-6148.js",
+        "module-425.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers._0x39f3be.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "51225"
+      ],
+      "moduleNames": [
+        "module-51225.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x4636fd",
+      "damagedSource": "_0x76fa8",
+      "moduleIds": [
+        "13292"
+      ],
+      "moduleNames": [
+        "module-13292.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x5d91cc",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "55226"
+      ],
+      "moduleNames": [
+        "CutinDouble1"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x3d6675",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "46595"
+      ],
+      "moduleNames": [
+        "CutinDouble2"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x417b32",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "32611"
+      ],
+      "moduleNames": [
+        "CutinDouble4"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "this._ship_mstid",
+      "damagedSource": "this._ship_damaged",
+      "moduleIds": [
+        "54018"
+      ],
+      "moduleNames": [
+        "module-54018.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0xef0bbf",
+      "damagedSource": "false",
+      "moduleIds": [
+        "68432"
+      ],
+      "moduleNames": [
+        "CutinKongoAttack"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers._0xf8248e.mst_id",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "68432"
+      ],
+      "moduleNames": [
+        "CutinKongoAttack"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x5c1867",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "48579"
+      ],
+      "moduleNames": [
+        "CutinKuboDay"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x5f4c68",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "50527"
+      ],
+      "moduleNames": [
+        "CutinKuboNight"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "special",
+      "shipMstIdSource": "self._attackers[0].mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "84085",
+        "6148",
+        "425"
+      ],
+      "moduleNames": [
+        "module-84085.js",
+        "module-6148.js",
+        "module-425.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x1cc438",
+      "damagedSource": "_0x2d1ab5",
+      "moduleIds": [
+        "84085"
+      ],
+      "moduleNames": [
+        "module-84085.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "special",
+      "shipMstIdSource": "_0x1cc438",
+      "damagedSource": "false",
+      "moduleIds": [
+        "84085"
+      ],
+      "moduleNames": [
+        "module-84085.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "this._attackers._0x1523ea.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "84085"
+      ],
+      "moduleNames": [
+        "module-84085.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers._0x1523ea.mst_id",
+      "damagedSource": "_0x3623f8",
+      "moduleIds": [
+        "84085"
+      ],
+      "moduleNames": [
+        "module-84085.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x1900f8",
+      "damagedSource": "_0x12aa63",
+      "moduleIds": [
+        "6148"
+      ],
+      "moduleNames": [
+        "module-6148.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "special",
+      "shipMstIdSource": "_0x1900f8",
+      "damagedSource": "false",
+      "moduleIds": [
+        "6148"
+      ],
+      "moduleNames": [
+        "module-6148.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "this._attackers._0x5919a2.mst_id",
+      "damagedSource": "_0x305d4f",
+      "moduleIds": [
+        "6148"
+      ],
+      "moduleNames": [
+        "module-6148.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers._0x5919a2.mst_id",
+      "damagedSource": "_0x305d4f",
+      "moduleIds": [
+        "6148"
+      ],
+      "moduleNames": [
+        "module-6148.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x460724",
+      "damagedSource": "_0x1664e6",
+      "moduleIds": [
+        "425"
+      ],
+      "moduleNames": [
+        "module-425.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x138b32",
+      "damagedSource": "_0x3a6452",
+      "moduleIds": [
+        "2212"
+      ],
+      "moduleNames": [
+        "module-2212.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers._0x33754.mst_id",
+      "damagedSource": "_0x45d4f2",
+      "moduleIds": [
+        "2212"
+      ],
+      "moduleNames": [
+        "module-2212.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x279134",
+      "damagedSource": "_0x293b35",
+      "moduleIds": [
+        "94206"
+      ],
+      "moduleNames": [
+        "module-94206.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._attackers._0x41fc90.mst_id",
+      "damagedSource": "_0x49cf62",
+      "moduleIds": [
+        "94206"
+      ],
+      "moduleNames": [
+        "module-94206.js"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x1087bb",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "43136"
+      ],
+      "moduleNames": [
+        "CutinSSAttack"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x23f026",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinSpRR"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x3b5772",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "99411"
+      ],
+      "moduleNames": [
+        "CutinSpSR"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x143282",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "_0x143282",
+      "damagedSource": "false",
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x84729a",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "_0x84729a",
+      "damagedSource": "false",
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "special",
+      "shipMstIdSource": "_0x2d5cfd",
+      "damagedSource": "false",
+      "moduleIds": [
+        "43367"
+      ],
+      "moduleNames": [
+        "CutinYamatoAttack"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "this._attackers._0xf669b.mst_id",
+      "damagedSource": "false",
+      "moduleIds": [
+        "43367"
+      ],
+      "moduleNames": [
+        "CutinYamatoAttack"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "this._damaged",
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x3bd149",
+      "damagedSource": "damaged",
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "shipMstIdSource": "_0x3bd149",
+      "damagedSource": "false",
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this._ship_mst_id",
+      "damagedSource": "this._damaged",
+      "moduleIds": [
+        "17325"
+      ],
+      "moduleNames": [
+        "PreloadCutinFunnel"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x12c77b",
+      "damagedSource": "false",
+      "moduleIds": [
+        "76095"
+      ],
+      "moduleNames": [
+        "TaskBossCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x17db72",
+      "damagedSource": "false",
+      "moduleIds": [
+        "76095"
+      ],
+      "moduleNames": [
+        "TaskBossCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x5cae20",
+      "damagedSource": "true",
+      "moduleIds": [
+        "46997"
+      ],
+      "moduleNames": [
+        "TaskDamageCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x1123ac",
+      "damagedSource": "true",
+      "moduleIds": [
+        "46997"
+      ],
+      "moduleNames": [
+        "TaskDamageCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "_0x550e64",
+      "damagedSource": "true",
+      "moduleIds": [
+        "21541"
+      ],
+      "moduleNames": [
+        "TaskEnemyDamageCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "_0x4ba467",
+      "damagedSource": "true",
+      "moduleIds": [
+        "21541"
+      ],
+      "moduleNames": [
+        "TaskEnemyDamageCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "shipMstIdSource": "_0x4633f1.mst_id",
+      "damagedSource": "_0x4633f1.damaged",
+      "moduleIds": [
+        "86523"
+      ],
+      "moduleNames": [
+        "TaskSupportDeckCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "_0xe2becb.mst_id",
+      "damagedSource": "_0xe2becb.damaged",
+      "moduleIds": [
+        "86523"
+      ],
+      "moduleNames": [
+        "TaskSupportDeckCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "_0x208ddb.mst_id",
+      "damagedSource": "_0x208ddb.damaged",
+      "moduleIds": [
+        "86523"
+      ],
+      "moduleNames": [
+        "TaskSupportDeckCutin"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner_g",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x56e57e",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x5d60bd",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner2_g",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner2",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x192546",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner3_g",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "true",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner3",
+      "shipMstIdSource": "this._mst_id",
+      "damagedSource": "_0x40e0a1",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "shipMstIdSource": "this.ship_mstid",
+      "damagedSource": "this.ship_damaged",
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "full",
+      "shipMstIdSource": "this.ship_mstid",
+      "damagedSource": "this.ship_damaged",
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner_g",
+      "shipMstIdSource": "_0xd9f27",
+      "damagedSource": "true",
+      "moduleIds": [
+        "72878"
+      ],
+      "moduleNames": [
+        "ShipBannerClone"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "_0xd9f27",
+      "damagedSource": "true",
+      "moduleIds": [
+        "72878"
+      ],
+      "moduleNames": [
+        "ShipBannerClone"
+      ]
+    },
+    {
+      "kind": "ship",
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "shipMstIdSource": "_0xd9f27",
+      "damagedSource": "false",
+      "moduleIds": [
+        "72878"
+      ],
+      "moduleNames": [
+        "ShipBannerClone"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "this._mst_id"
+      ],
+      "moduleIds": [
+        "75223",
+        "22027",
+        "13090"
+      ],
+      "moduleNames": [
+        "TaskBonusSlot",
+        "TaskLoadResources",
+        "TaskShowSlotCard"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x454fce"
+      ],
+      "moduleIds": [
+        "34931"
+      ],
+      "moduleNames": [
+        "BonusSlot"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x4ffa6d"
+      ],
+      "moduleIds": [
+        "20324"
+      ],
+      "moduleNames": [
+        "ModelChangeTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x4b7bfd"
+      ],
+      "moduleIds": [
+        "20324"
+      ],
+      "moduleNames": [
+        "ModelChangeTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0xf86671"
+      ],
+      "moduleIds": [
+        "20324"
+      ],
+      "moduleNames": [
+        "ModelChangeTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x74267d"
+      ],
+      "moduleIds": [
+        "20324"
+      ],
+      "moduleNames": [
+        "ModelChangeTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x43a6b0"
+      ],
+      "moduleIds": [
+        "38287"
+      ],
+      "moduleNames": [
+        "MeltIntoTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0xaa643f.id"
+      ],
+      "moduleIds": [
+        "11039"
+      ],
+      "moduleNames": [
+        "MeltIntoSprite"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x46349f.id"
+      ],
+      "moduleIds": [
+        "11039"
+      ],
+      "moduleNames": [
+        "MeltIntoSprite"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x14e26f"
+      ],
+      "moduleIds": [
+        "70041"
+      ],
+      "moduleNames": [
+        "TaskRewardDialogSlotitem"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x14e26f"
+      ],
+      "moduleIds": [
+        "70041"
+      ],
+      "moduleNames": [
+        "TaskRewardDialogSlotitem"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x5da0c6.mst_id"
+      ],
+      "moduleIds": [
+        "19281"
+      ],
+      "moduleNames": [
+        "TaskEventRewardsSelect"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x2f4335"
+      ],
+      "moduleIds": [
+        "63476"
+      ],
+      "moduleNames": [
+        "RewardSelectDialogSlotitemBtn"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x19210d"
+      ],
+      "moduleIds": [
+        "31930"
+      ],
+      "moduleNames": [
+        "RewardAnimationMultiSlot"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x8aa8b3._0x515b69"
+      ],
+      "moduleIds": [
+        "31930"
+      ],
+      "moduleNames": [
+        "RewardAnimationMultiSlot"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "mst_id"
+      ],
+      "moduleIds": [
+        "99469"
+      ],
+      "moduleNames": [
+        "RewardAnimationSlot"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_banner",
+      "slotMstIdSources": [
+        "_0x20f800._mst_id"
+      ],
+      "moduleIds": [
+        "25832"
+      ],
+      "moduleNames": [
+        "module-25832.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "remodel",
+      "slotMstIdSources": [
+        "_0x346c83"
+      ],
+      "moduleIds": [
+        "8263"
+      ],
+      "moduleNames": [
+        "AirUnitChangeConfirmPanel"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_banner",
+      "slotMstIdSources": [
+        "_0x5b5c8f.mst_id"
+      ],
+      "moduleIds": [
+        "12922"
+      ],
+      "moduleNames": [
+        "AirUnitPanel"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_fairy",
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "moduleIds": [
+        "96928"
+      ],
+      "moduleNames": [
+        "AirUnitPanelBanner"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_banner",
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "moduleIds": [
+        "51968"
+      ],
+      "moduleNames": [
+        "AirUnitPanelItem"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_name",
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "moduleIds": [
+        "51968"
+      ],
+      "moduleNames": [
+        "AirUnitPanelItem"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "self._mst_id"
+      ],
+      "moduleIds": [
+        "13090"
+      ],
+      "moduleNames": [
+        "TaskShowSlotCard"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "statustop_item",
+      "slotMstIdSources": [
+        "_0x863dac[0]"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x37d3f1"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x37d3f1"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_on",
+      "slotMstIdSources": [
+        "_0x37d3f1"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_character",
+      "slotMstIdSources": [
+        "_0x37d3f1"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up2",
+      "slotMstIdSources": [
+        "_0x37d3f1"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_on2",
+      "slotMstIdSources": [
+        "_0x37d3f1"
+      ],
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x38046a"
+      ],
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up2",
+      "slotMstIdSources": [
+        "_0x38046a"
+      ],
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_on2",
+      "slotMstIdSources": [
+        "_0x38046a"
+      ],
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x38046a"
+      ],
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_on",
+      "slotMstIdSources": [
+        "_0x38046a"
+      ],
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_character",
+      "slotMstIdSources": [
+        "_0x38046a"
+      ],
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "statustop_item",
+      "slotMstIdSources": [
+        "_0x5a6058"
+      ],
+      "moduleIds": [
+        "53285"
+      ],
+      "moduleNames": [
+        "SlotDetailPanel"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x31f37d.mst_id"
+      ],
+      "moduleIds": [
+        "56230"
+      ],
+      "moduleNames": [
+        "TaskUseGiftBox"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x3d1397.mst_id"
+      ],
+      "moduleIds": [
+        "80135"
+      ],
+      "moduleNames": [
+        "TaskRewardSelect"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x16d899"
+      ],
+      "moduleIds": [
+        "53456"
+      ],
+      "moduleNames": [
+        "TaskChangeSlotitem"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "_0x555e9d"
+      ],
+      "moduleIds": [
+        "53456"
+      ],
+      "moduleNames": [
+        "TaskChangeSlotitem"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "this._after_item_id"
+      ],
+      "moduleIds": [
+        "92410"
+      ],
+      "moduleNames": [
+        "ChangeSlotitemLayer"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "this._before_item_id"
+      ],
+      "moduleIds": [
+        "92410"
+      ],
+      "moduleNames": [
+        "ChangeSlotitemLayer"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "slotitemMstID"
+      ],
+      "moduleIds": [
+        "4146"
+      ],
+      "moduleNames": [
+        "TaskGouchinCutinRepair"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "slotMstIdSources": [
+        "slotitemMstID"
+      ],
+      "moduleIds": [
+        "4146"
+      ],
+      "moduleNames": [
+        "TaskGouchinCutinRepair"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "mst_id"
+      ],
+      "moduleIds": [
+        "89916"
+      ],
+      "moduleNames": [
+        "PhaseSakuteki"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "mst_id"
+      ],
+      "moduleIds": [
+        "89916"
+      ],
+      "moduleNames": [
+        "PhaseSakuteki"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot.mstID"
+      ],
+      "moduleIds": [
+        "83645"
+      ],
+      "moduleNames": [
+        "CutinAttack"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._slot1.mstID"
+      ],
+      "moduleIds": [
+        "13292"
+      ],
+      "moduleNames": [
+        "module-13292.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._slot2.mstID"
+      ],
+      "moduleIds": [
+        "13292"
+      ],
+      "moduleNames": [
+        "module-13292.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot1.mstID"
+      ],
+      "moduleIds": [
+        "13292"
+      ],
+      "moduleNames": [
+        "module-13292.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot2.mstID"
+      ],
+      "moduleIds": [
+        "13292"
+      ],
+      "moduleNames": [
+        "module-13292.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot1.mstID"
+      ],
+      "moduleIds": [
+        "95484"
+      ],
+      "moduleNames": [
+        "CutinDouble"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot2.mstID"
+      ],
+      "moduleIds": [
+        "95484"
+      ],
+      "moduleNames": [
+        "CutinDouble"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_on",
+      "slotMstIdSources": [
+        "_0x33ba6f"
+      ],
+      "moduleIds": [
+        "58441"
+      ],
+      "moduleNames": [
+        "CutinResourcesPreloadTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x33ba6f"
+      ],
+      "moduleIds": [
+        "58441"
+      ],
+      "moduleNames": [
+        "CutinResourcesPreloadTask"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x294695"
+      ],
+      "moduleIds": [
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x294695"
+      ],
+      "moduleIds": [
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x52638f"
+      ],
+      "moduleIds": [
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x52638f"
+      ],
+      "moduleIds": [
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x2f3679"
+      ],
+      "moduleIds": [
+        "99411"
+      ],
+      "moduleNames": [
+        "CutinSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x2f3679"
+      ],
+      "moduleIds": [
+        "99411"
+      ],
+      "moduleNames": [
+        "CutinSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x22398f"
+      ],
+      "moduleIds": [
+        "99411"
+      ],
+      "moduleNames": [
+        "CutinSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x22398f"
+      ],
+      "moduleIds": [
+        "99411"
+      ],
+      "moduleNames": [
+        "CutinSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x5c4d7e"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x5c4d7e"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x1c411e"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x1c411e"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x33a864"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x33a864"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x4218c1"
+      ],
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x4218c1"
+      ],
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x44fbd8"
+      ],
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x44fbd8"
+      ],
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x28c89a"
+      ],
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x28c89a"
+      ],
+      "moduleIds": [
+        "11166"
+      ],
+      "moduleNames": [
+        "CutinSpSSS"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._mainArmamentMstID"
+      ],
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._zuiunMstId"
+      ],
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._mainArmamentMstID"
+      ],
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._plane_mst_id"
+      ],
+      "moduleIds": [
+        "7438",
+        "69780"
+      ],
+      "moduleNames": [
+        "CutinZRK",
+        "PreloadCutinDanchaku"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._slot_mst_id"
+      ],
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot_mst_id"
+      ],
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x26f90a"
+      ],
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x26f90a"
+      ],
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x4622c7"
+      ],
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x4622c7"
+      ],
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x4a99f5"
+      ],
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x4a99f5"
+      ],
+      "moduleIds": [
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinZuiunNight"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._slot_mst_id1"
+      ],
+      "moduleIds": [
+        "69780",
+        "16699"
+      ],
+      "moduleNames": [
+        "PreloadCutinDanchaku",
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot_mst_id1"
+      ],
+      "moduleIds": [
+        "69780",
+        "16699"
+      ],
+      "moduleNames": [
+        "PreloadCutinDanchaku",
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._slot_mst_id2"
+      ],
+      "moduleIds": [
+        "69780",
+        "16699"
+      ],
+      "moduleNames": [
+        "PreloadCutinDanchaku",
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot_mst_id2"
+      ],
+      "moduleIds": [
+        "69780",
+        "16699"
+      ],
+      "moduleNames": [
+        "PreloadCutinDanchaku",
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._plane1"
+      ],
+      "moduleIds": [
+        "17325"
+      ],
+      "moduleNames": [
+        "PreloadCutinFunnel"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._plane2"
+      ],
+      "moduleIds": [
+        "17325"
+      ],
+      "moduleNames": [
+        "PreloadCutinFunnel"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._plane3"
+      ],
+      "moduleIds": [
+        "17325"
+      ],
+      "moduleNames": [
+        "PreloadCutinFunnel"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._slot_mst_id3"
+      ],
+      "moduleIds": [
+        "16699"
+      ],
+      "moduleNames": [
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this._slot_mst_id3"
+      ],
+      "moduleIds": [
+        "16699"
+      ],
+      "moduleNames": [
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._plane_f"
+      ],
+      "moduleIds": [
+        "43705"
+      ],
+      "moduleNames": [
+        "TaskShowTouchPlane"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "this._plane_e"
+      ],
+      "moduleIds": [
+        "43705"
+      ],
+      "moduleNames": [
+        "TaskShowTouchPlane"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x3f2865"
+      ],
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this.slot_mstids[2]"
+      ],
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this.slot_mstids[1]"
+      ],
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "this.slot_mstids[0]"
+      ],
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x3ebbf9"
+      ],
+      "moduleIds": [
+        "69595"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRDJ"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x12b4e1"
+      ],
+      "moduleIds": [
+        "69595"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRDJ"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x1c8bdc"
+      ],
+      "moduleIds": [
+        "69595"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRDJ"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0xe05f93"
+      ],
+      "moduleIds": [
+        "75803"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x3e6cf5"
+      ],
+      "moduleIds": [
+        "75803"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x342a1c"
+      ],
+      "moduleIds": [
+        "75803"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x48fe04"
+      ],
+      "moduleIds": [
+        "75803"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x419297"
+      ],
+      "moduleIds": [
+        "75803"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x3bee5f"
+      ],
+      "moduleIds": [
+        "56434"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x100ea0"
+      ],
+      "moduleIds": [
+        "56434"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x1ee4ea"
+      ],
+      "moduleIds": [
+        "56434"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x24f786"
+      ],
+      "moduleIds": [
+        "56434"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSR"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x76a94e"
+      ],
+      "moduleIds": [
+        "26431"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSRD"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x1aa920"
+      ],
+      "moduleIds": [
+        "26431"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSRD"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x52a2cb"
+      ],
+      "moduleIds": [
+        "26431"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSRD"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x130989"
+      ],
+      "moduleIds": [
+        "66157"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x5e14b9"
+      ],
+      "moduleIds": [
+        "66157"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x1af0ec"
+      ],
+      "moduleIds": [
+        "66157"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x2c4799"
+      ],
+      "moduleIds": [
+        "66157"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x3d2565"
+      ],
+      "moduleIds": [
+        "66157"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x14fbb6"
+      ],
+      "moduleIds": [
+        "66157"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x1c4920"
+      ],
+      "moduleIds": [
+        "41768"
+      ],
+      "moduleNames": [
+        "module-41768.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x187c3c"
+      ],
+      "moduleIds": [
+        "41768"
+      ],
+      "moduleNames": [
+        "module-41768.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x5c1e8d"
+      ],
+      "moduleIds": [
+        "41768"
+      ],
+      "moduleNames": [
+        "module-41768.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x4a817d"
+      ],
+      "moduleIds": [
+        "41768"
+      ],
+      "moduleNames": [
+        "module-41768.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x5aa8d6"
+      ],
+      "moduleIds": [
+        "41768"
+      ],
+      "moduleNames": [
+        "module-41768.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x1bf568"
+      ],
+      "moduleIds": [
+        "41768"
+      ],
+      "moduleNames": [
+        "module-41768.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x280247"
+      ],
+      "moduleIds": [
+        "66609"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSuirai"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x51a7ed"
+      ],
+      "moduleIds": [
+        "66609"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSuirai"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x7ea7ae"
+      ],
+      "moduleIds": [
+        "66609"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpSuirai"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x25d338"
+      ],
+      "moduleIds": [
+        "86346"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpYusou"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x49fc1b"
+      ],
+      "moduleIds": [
+        "86346"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpYusou"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x51b071"
+      ],
+      "moduleIds": [
+        "86346"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpYusou"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "mst.mstID"
+      ],
+      "moduleIds": [
+        "95403"
+      ],
+      "moduleNames": [
+        "CutinKuboNightCanvas"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x1c1dee"
+      ],
+      "moduleIds": [
+        "77357"
+      ],
+      "moduleNames": [
+        "CutinTelop"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x169a0b"
+      ],
+      "moduleIds": [
+        "87110"
+      ],
+      "moduleNames": [
+        "module-87110.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x1d7bca"
+      ],
+      "moduleIds": [
+        "87110"
+      ],
+      "moduleNames": [
+        "module-87110.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x2a9e84"
+      ],
+      "moduleIds": [
+        "87110"
+      ],
+      "moduleNames": [
+        "module-87110.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x2bbe49"
+      ],
+      "moduleIds": [
+        "87110"
+      ],
+      "moduleNames": [
+        "module-87110.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0xa3f313"
+      ],
+      "moduleIds": [
+        "87110"
+      ],
+      "moduleNames": [
+        "module-87110.js"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x493bd9"
+      ],
+      "moduleIds": [
+        "46682"
+      ],
+      "moduleNames": [
+        "Plane"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "WEDDING_MARRIAGE",
+      "textureIds": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "moduleIds": [
+        "85426"
+      ],
+      "moduleNames": [
+        "MarriageAnimation"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "WEDDING_MARRIAGE_BG",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "moduleIds": [
+        "85426"
+      ],
+      "moduleNames": [
+        "MarriageAnimation"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_MISC",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        16,
+        17,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        111,
+        112,
+        113,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        140,
+        141,
+        152,
+        153,
+        154,
+        155,
+        156,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189
+      ],
+      "moduleIds": [
+        "69917",
+        "65082",
+        "91078",
+        "75293",
+        "49635",
+        "59490",
+        "67102",
+        "20324",
+        "38287",
+        "29499",
+        "61279",
+        "61638",
+        "80149",
+        "13774",
+        "57070",
+        "81987",
+        "85937",
+        "35837",
+        "94341",
+        "66285",
+        "79007",
+        "17248",
+        "84272",
+        "7344",
+        "38204",
+        "64289",
+        "12700",
+        "62106",
+        "32717",
+        "65890",
+        "37638",
+        "17733",
+        "43905",
+        "80937",
+        "11575",
+        "63552",
+        "77076",
+        "54934",
+        "55233",
+        "14995",
+        "62814",
+        "27510",
+        "60883",
+        "20962",
+        "32825",
+        "375",
+        "12518",
+        "68256",
+        "31366",
+        "92507",
+        "32895",
+        "89173",
+        "45544",
+        "73020",
+        "6672",
+        "2613",
+        "36083",
+        "92274",
+        "26236",
+        "18168",
+        "49109",
+        "33639",
+        "74204",
+        "80641",
+        "77469",
+        "6597",
+        "48679",
+        "70365",
+        "54857",
+        "42264",
+        "96611",
+        "92410",
+        "51724",
+        "4146",
+        "79018",
+        "21576",
+        "103",
+        "24303"
+      ],
+      "moduleNames": [
+        "ResourceManager",
+        "BonusInsert",
+        "BonusInsertParticle",
+        "BonusInsertWave",
+        "BonusParticle",
+        "Kaikyo",
+        "AirunitBaseOpenTask",
+        "ModelChangeTask",
+        "MeltIntoTask",
+        "ModelChangeMessageBox",
+        "ModelChangeParticleLayer",
+        "TaskRewardDialogDeck",
+        "TaskRewardDialogExtraSupply",
+        "TaskRewardDialogLargeBuild",
+        "TaskRewardDialogMap",
+        "RewardDialog",
+        "AirPlaneLevel",
+        "module-35837.js",
+        "CombinedView",
+        "DeckIndexEmblem",
+        "ExpeditionResult",
+        "FurnitureThumbnail",
+        "GaugeHorizontal",
+        "GearBtnHome",
+        "GearBtnNext",
+        "LongShipBanner",
+        "MaterialMeterView",
+        "RankIcon",
+        "module-32717.js",
+        "Sakura",
+        "ShipBanner",
+        "ShipCard",
+        "ShipInDeckFlag",
+        "BannerIcon",
+        "BannerRibbon",
+        "BannerRibbonLong",
+        "BannerSoot",
+        "BannerTired",
+        "BackBtn",
+        "GetIcon",
+        "MedalIcon",
+        "MessageBox",
+        "PhaseTitle",
+        "module-20962.js",
+        "SupplyFloor",
+        "module-375.js",
+        "Tutorial",
+        "CombineDragging",
+        "module-31366.js",
+        "ShipChangeConfirm",
+        "ShipChoiceView",
+        "ShipDetailView",
+        "CombineGuideView",
+        "DeckSelectView",
+        "MaterialMeterViewS",
+        "module-2613.js",
+        "DeckSelectView",
+        "SelectShipView",
+        "module-26236.js",
+        "RepairShipBanner",
+        "RepairShipChoiceView",
+        "DisassemblyAnimation",
+        "CompDeckBtns",
+        "PanelDeckSelect",
+        "PanelDeckSelect",
+        "TaskExtendAirUnit",
+        "PanelDeckSelect",
+        "ViewInfo",
+        "ViewRanking",
+        "ItemScene",
+        "DutyScene",
+        "ChangeSlotitemLayer",
+        "EnemyDeckSilhouette",
+        "TaskGouchinCutinRepair",
+        "TaskMapOpen",
+        "TaskRank",
+        "BonusTelop",
+        "ParticleLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_RESULT_SANMA_FES",
+      "textureIds": [
+        0,
+        1,
+        3
+      ],
+      "moduleIds": [
+        "75293",
+        "103"
+      ],
+      "moduleNames": [
+        "BonusInsertWave",
+        "BonusTelop"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_SHOGO",
+      "textureIds": [],
+      "moduleIds": [
+        "6110"
+      ],
+      "moduleNames": [
+        "Shogo"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "JUKEBOX_COMMON",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        18
+      ],
+      "moduleIds": [
+        "60674",
+        "87436",
+        "30567"
+      ],
+      "moduleNames": [
+        "JukeBoxConfirm",
+        "JukeBoxDisp",
+        "JukeBoxList"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_SENKA",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "moduleIds": [
+        "62085"
+      ],
+      "moduleNames": [
+        "TaskRewardDialogWarResult"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_SELECTABLE_EVENT_REWARD",
+      "textureIds": [
+        0,
+        1,
+        2,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "moduleIds": [
+        "9925",
+        "62877"
+      ],
+      "moduleNames": [
+        "EventRewardSelectConfirm",
+        "module-62877.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_STARS",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "moduleIds": [
+        "32200",
+        "63865"
+      ],
+      "moduleNames": [
+        "LevelStarSmall",
+        "LevelStar"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_SELECTABLE_REWARD",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "moduleIds": [
+        "24158",
+        "91974",
+        "83827",
+        "11353",
+        "63476",
+        "25556"
+      ],
+      "moduleNames": [
+        "RewardSelectConfirm",
+        "module-91974.js",
+        "RewardSelectDialogFurnitureAlert",
+        "RewardSelectDialogFurnitureBtn",
+        "RewardSelectDialogSlotitemBtn",
+        "RewardSelectDialogUseitemBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_REWARD_COUNT",
+      "textureIds": [
+        0,
+        30
+      ],
+      "moduleIds": [
+        "58350"
+      ],
+      "moduleNames": [
+        "RewardSelectDialogCount"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70
+      ],
+      "moduleIds": [
+        "18626",
+        "65065",
+        "64289",
+        "1893",
+        "39759",
+        "43341",
+        "20843",
+        "85636",
+        "97638",
+        "79522",
+        "73747",
+        "32961",
+        "5834",
+        "55322",
+        "67270",
+        "68249",
+        "7572",
+        "60029",
+        "92507",
+        "32895",
+        "89173",
+        "25125",
+        "34738",
+        "83892",
+        "65108",
+        "55503",
+        "51690",
+        "1107",
+        "34603",
+        "30603",
+        "57828",
+        "92274",
+        "65223",
+        "96644",
+        "36609",
+        "68493",
+        "61367",
+        "71787",
+        "86872",
+        "44172",
+        "5247",
+        "26236",
+        "18994",
+        "61762",
+        "12061",
+        "55177",
+        "59699",
+        "71087",
+        "810",
+        "43224",
+        "49109",
+        "5346",
+        "97651",
+        "3376",
+        "97819",
+        "25004",
+        "93572",
+        "76138",
+        "69235",
+        "72914",
+        "58423",
+        "43452",
+        "43791",
+        "47000",
+        "24681",
+        "68531",
+        "21977"
+      ],
+      "moduleNames": [
+        "BaseKirakira",
+        "module-65065.js",
+        "LongShipBanner",
+        "PagerView",
+        "PlusNumberImage",
+        "ShateiImage",
+        "ShipSortButton",
+        "ShipSpeedImage",
+        "SlotItemLevel",
+        "StarRateView",
+        "BannerLockSlot",
+        "BannerSmoke",
+        "PreInitializeTask",
+        "BackgroundLayer",
+        "ExpGaugeView",
+        "LongShipBannerContainer",
+        "PresetEditLayer",
+        "PresetExpansionLayer",
+        "ShipChangeConfirm",
+        "ShipChoiceView",
+        "ShipDetailView",
+        "ShipParameterView",
+        "SlotItemSlotContainer",
+        "SlotItemSlotView",
+        "SupplyScene",
+        "DeckSupplyBanner",
+        "HeaderMain",
+        "HeaderSupply",
+        "ShipParameter",
+        "SimpleSlotItemSlot",
+        "TitleBar",
+        "SelectShipView",
+        "KaizoConfirm",
+        "KaizoDetail",
+        "MiniPager",
+        "OtherShipList",
+        "PowerUpEdit",
+        "PowerUpHeader",
+        "PowerUpStartConfirm",
+        "PresetSlotItemSlot",
+        "ShipList",
+        "module-26236.js",
+        "SlotItemSlot",
+        "SlotItemSlotBox",
+        "ChangeConfirm",
+        "ChangeConfirmFromOtherShip",
+        "ListHeader",
+        "SlotItemList",
+        "ListItem",
+        "MainView",
+        "RepairShipChoiceView",
+        "RepairShipConfigView",
+        "UseHiSpeedRepairConfirmView",
+        "UseRepairConfirmView",
+        "Burner",
+        "HighSpeedConfirmView",
+        "module-93572.js",
+        "MaterialAmountContainerShip",
+        "module-69235.js",
+        "ShipDisassemblyChoice",
+        "ShipDisassemblyContainer",
+        "ShipListItem",
+        "SlotDisassemblyChoice",
+        "SlotDisassemblyContainer",
+        "SlotListItem",
+        "TopBarLayer",
+        "Pager"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_EXPEDITION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "moduleIds": [
+        "12259",
+        "79007",
+        "80845",
+        "9733"
+      ],
+      "moduleNames": [
+        "ExpeditionCutin",
+        "ExpeditionResult",
+        "TaskExpeditionResultShow",
+        "SupportDeckCutin"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_ANIMATION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "moduleIds": [
+        "50740",
+        "45974",
+        "36779",
+        "47600",
+        "67716"
+      ],
+      "moduleNames": [
+        "FailedPenguin",
+        "PowerUpAnimationFailed",
+        "PreInitializeTask",
+        "RewardAnimationMultiSlotFailed",
+        "RewardAnimationSlotFailed"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "gauge",
+      "textureIds": [],
+      "moduleIds": [
+        "84272",
+        "5709"
+      ],
+      "moduleNames": [
+        "GaugeHorizontal",
+        "GaugeVertical"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "TITLE_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "moduleIds": [
+        "52045",
+        "93139",
+        "81531",
+        "97443"
+      ],
+      "moduleNames": [
+        "Pukapuka",
+        "KiraLayer",
+        "TitleView1",
+        "TitleView2"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_SHUTTER",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "moduleIds": [
+        "7570"
+      ],
+      "moduleNames": [
+        "Shutter"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_SORT",
+      "textureIds": [
+        0,
+        1,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        104,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210
+      ],
+      "moduleIds": [
+        "17261",
+        "36779",
+        "71087",
+        "5201"
+      ],
+      "moduleNames": [
+        "SlotItemFilterView",
+        "PreInitializeTask",
+        "SlotItemList",
+        "PreInitializeTask"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "this",
+      "textureIds": [
+        0
+      ],
+      "moduleIds": [
+        "17261",
+        "4487",
+        "46101",
+        "58392",
+        "11360",
+        "87399",
+        "59027",
+        "80051",
+        "52250",
+        "1719",
+        "92209",
+        "90875",
+        "12135",
+        "55105",
+        "46226",
+        "53900",
+        "57491",
+        "4638",
+        "12185",
+        "63508",
+        "27890",
+        "39642",
+        "31394",
+        "62833",
+        "4279",
+        "7640",
+        "20240",
+        "99547",
+        "56817",
+        "88436",
+        "80828"
+      ],
+      "moduleNames": [
+        "SlotItemFilterView",
+        "BannerPlate",
+        "CircleContentSkin1",
+        "CircleContentWithSwitching",
+        "RingMenuBtnImg",
+        "RingMenuBtnImgOn",
+        "SlotDisassemblyFilterView",
+        "CompDropItemIcon",
+        "CompLackAlerts",
+        "FormationBoxCombined",
+        "OperationSelectView",
+        "AirBaseAreaBtn",
+        "AirBaseStatusTxt",
+        "AirUnitCountTxt",
+        "AirBaseView",
+        "SlotParamsContainer",
+        "FurnitureTypeBtn",
+        "TabContainer",
+        "module-12185.js",
+        "TabBtn",
+        "DutyCategoryFilterTabContainer",
+        "TabContainer",
+        "AnchorageRepairShipBanner",
+        "SmokeButton",
+        "SpotPointImage",
+        "PhaseRation",
+        "Explosion",
+        "BannerFrame",
+        "BannerImage",
+        "CutinKuboDayCanvas",
+        "LayerTitle"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_EVENT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "moduleIds": [
+        "4487",
+        "81535",
+        "93258",
+        "20922",
+        "68894",
+        "53940"
+      ],
+      "moduleNames": [
+        "BannerPlate",
+        "EventTag",
+        "EventAreaIconBtn",
+        "ExpeditionEventAreaIconBtn",
+        "CompUpperBar",
+        "AreaIcon"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SKIN_1",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "moduleIds": [
+        "7072",
+        "54750",
+        "46101",
+        "69219"
+      ],
+      "moduleNames": [
+        "ExpeditionAlert",
+        "UpperBar",
+        "CircleContentSkin1",
+        "FrameLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SKIN_2",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37
+      ],
+      "moduleIds": [
+        "7072",
+        "54750",
+        "61787",
+        "69219"
+      ],
+      "moduleNames": [
+        "ExpeditionAlert",
+        "UpperBar",
+        "CircleContentSkin2",
+        "FrameLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SKIN_3",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37
+      ],
+      "moduleIds": [
+        "7072",
+        "54750",
+        "17711",
+        "69219"
+      ],
+      "moduleNames": [
+        "ExpeditionAlert",
+        "UpperBar",
+        "module-17711.js",
+        "FrameLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SKIN_3K_HUKI",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "7072"
+      ],
+      "moduleNames": [
+        "ExpeditionAlert"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SHIPS",
+      "textureIds": [],
+      "moduleIds": [
+        "7072"
+      ],
+      "moduleNames": [
+        "ExpeditionAlert"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_FRIENDLY_REQUEST",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "moduleIds": [
+        "26496"
+      ],
+      "moduleNames": [
+        "FriendlyRequest"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        17,
+        18
+      ],
+      "moduleIds": [
+        "21786",
+        "88002",
+        "16374"
+      ],
+      "moduleNames": [
+        "LogBox",
+        "CompCombinedAlert",
+        "ClockLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_OPTION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "moduleIds": [
+        "49327"
+      ],
+      "moduleNames": [
+        "Option"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SIDEMENU",
+      "textureIds": [
+        0,
+        1,
+        2,
+        15,
+        25,
+        26
+      ],
+      "moduleIds": [
+        "72508"
+      ],
+      "moduleNames": [
+        "SideMenu"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_TUTORIAL",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "moduleIds": [
+        "12518"
+      ],
+      "moduleNames": [
+        "Tutorial"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SKIN_3K",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "moduleIds": [
+        "54750",
+        "17711",
+        "69219"
+      ],
+      "moduleNames": [
+        "UpperBar",
+        "module-17711.js",
+        "FrameLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_SKIN_CIRCLE_2",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "moduleIds": [
+        "58392"
+      ],
+      "moduleNames": [
+        "CircleContentWithSwitching"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PORT_RINGMENU",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        13,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        31
+      ],
+      "moduleIds": [
+        "20129",
+        "59767",
+        "11360",
+        "87399",
+        "16162",
+        "33193"
+      ],
+      "moduleNames": [
+        "RingMenuBtnBgOn",
+        "RingMenuBtnDescription",
+        "RingMenuBtnImg",
+        "RingMenuBtnImgOn",
+        "RingMenuBtnSally",
+        "RingMenuWaves"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "_DIALOG",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "moduleIds": [
+        "7665"
+      ],
+      "moduleNames": [
+        "module-7665.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "_ANIMATION",
+      "textureIds": [
+        0,
+        1
+      ],
+      "moduleIds": [
+        "7665"
+      ],
+      "moduleNames": [
+        "module-7665.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ],
+      "moduleIds": [
+        "5834",
+        "35901",
+        "32478",
+        "51194",
+        "31253",
+        "64006",
+        "83539",
+        "77190",
+        "30843",
+        "59825",
+        "16658",
+        "72457",
+        "34924",
+        "92507",
+        "32895",
+        "1369",
+        "44233",
+        "39559",
+        "3749",
+        "21770",
+        "87581",
+        "86606",
+        "29053",
+        "72516",
+        "45544",
+        "60267"
+      ],
+      "moduleNames": [
+        "PreInitializeTask",
+        "TaskCheckCombineStateAndRepair",
+        "BreakDeckView",
+        "EditNameArea",
+        "ExtensionPresetConfirm",
+        "module-64006.js",
+        "PresetButtonLayer",
+        "PresetEditSlot",
+        "PresetExpansionSlot",
+        "PresetExtensionView",
+        "PresetLockBtn",
+        "module-72457.js",
+        "PresetTitle",
+        "ShipChangeConfirm",
+        "ShipChoiceView",
+        "ShipInfo",
+        "ShipSlot",
+        "ShipSlotLayer",
+        "ShipSlotShutter",
+        "SweetsButton",
+        "SweetsSelectView",
+        "UseSweetConfirm",
+        "module-29053.js",
+        "CombineConfirmDialog",
+        "CombineGuideView",
+        "CombineTypeSelectDialog"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_SHIP",
+      "textureIds": [
+        0
+      ],
+      "moduleIds": [
+        "5834",
+        "72457"
+      ],
+      "moduleNames": [
+        "PreInitializeTask",
+        "module-72457.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_MAMIYA_ANIMATION_COMMON",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "97993"
+      ],
+      "moduleNames": [
+        "TaskAnimationMamiyaIrako"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_MAMIYA_ANIMATION_XMAS",
+      "textureIds": [
+        0
+      ],
+      "moduleIds": [
+        "97993"
+      ],
+      "moduleNames": [
+        "TaskAnimationMamiyaIrako"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_MAMIYA_ANIMATION_SUMMER",
+      "textureIds": [
+        0
+      ],
+      "moduleIds": [
+        "97993"
+      ],
+      "moduleNames": [
+        "TaskAnimationMamiyaIrako"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_MAMIYA_ANIMATION_DEFAULT",
+      "textureIds": [
+        0
+      ],
+      "moduleIds": [
+        "97993"
+      ],
+      "moduleNames": [
+        "TaskAnimationMamiyaIrako"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_FILTER",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
+      ],
+      "moduleIds": [
+        "32895",
+        "56189"
+      ],
+      "moduleNames": [
+        "ShipChoiceView",
+        "ShipSortButton"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ORGANIZE_RENGO",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "moduleIds": [
+        "29053",
+        "72516",
+        "60267"
+      ],
+      "moduleNames": [
+        "module-29053.js",
+        "CombineConfirmDialog",
+        "CombineTypeSelectDialog"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SUPPLY_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "moduleIds": [
+        "65108",
+        "74146",
+        "55503",
+        "1107",
+        "46403",
+        "2613",
+        "50284",
+        "88630",
+        "60486",
+        "75411",
+        "78314",
+        "5330",
+        "70865",
+        "44924"
+      ],
+      "moduleNames": [
+        "SupplyScene",
+        "PreInitializeTask",
+        "DeckSupplyBanner",
+        "HeaderSupply",
+        "MaterialCounterView",
+        "module-2613.js",
+        "OtherSupplyListItem",
+        "SupplyAircraftButton",
+        "SupplyAllButton",
+        "SupplyAllButton2",
+        "SupplyCheckBox",
+        "SupplySelectAllButton",
+        "SupplyShowcaseView",
+        "SupplyTypeSelectButton"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REMODEL_ANIMATION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        8,
+        9,
+        10
+      ],
+      "moduleIds": [
+        "17265",
+        "18540",
+        "36779",
+        "86614",
+        "10430"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain",
+        "PowerUpAnimationSuccess",
+        "PreInitializeTask",
+        "CutinBar",
+        "PowerElement"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REMODEL_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "moduleIds": [
+        "36779",
+        "8817",
+        "2016",
+        "87095",
+        "96644",
+        "15864",
+        "25903",
+        "68493",
+        "17193",
+        "23112",
+        "19645",
+        "61355",
+        "79955",
+        "78335",
+        "24169",
+        "26236",
+        "18994",
+        "12061",
+        "55177",
+        "52383",
+        "29386",
+        "28726",
+        "810"
+      ],
+      "moduleNames": [
+        "PreInitializeTask",
+        "module-8817.js",
+        "ShipSlot",
+        "ExtensionConfirm",
+        "KaizoDetail",
+        "MarriageAlert",
+        "MarriageConfirm",
+        "OtherShipList",
+        "DetachAllButton",
+        "DetachButton",
+        "ExtensionButton",
+        "ExtraSlotItemSlot",
+        "KaizoButton",
+        "KindaikaButton",
+        "MarriageButton",
+        "module-26236.js",
+        "SlotItemSlot",
+        "ChangeConfirm",
+        "ChangeConfirmFromOtherShip",
+        "ChangeListSwitch",
+        "InUseMarker",
+        "SlotItemDragging",
+        "ListItem"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REMODEL_POWERUP",
+      "textureIds": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        17,
+        18,
+        20,
+        21,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        46
+      ],
+      "moduleIds": [
+        "36779",
+        "77473",
+        "70245",
+        "68493",
+        "69702",
+        "61367",
+        "71787",
+        "86872",
+        "66088",
+        "11363",
+        "5436",
+        "36078",
+        "5247"
+      ],
+      "moduleNames": [
+        "PreInitializeTask",
+        "IconCategory",
+        "ShipParameterChecker",
+        "OtherShipList",
+        "module-69702.js",
+        "PowerUpEdit",
+        "PowerUpHeader",
+        "PowerUpStartConfirm",
+        "ShipInfoBox",
+        "StarRate",
+        "StartButton",
+        "TargetShipBox",
+        "ShipList"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REMODEL_GRADEUP",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "moduleIds": [
+        "36779",
+        "65223",
+        "96644",
+        "78084",
+        "54045",
+        "16618",
+        "50402",
+        "86872"
+      ],
+      "moduleNames": [
+        "PreInitializeTask",
+        "KaizoConfirm",
+        "KaizoDetail",
+        "KaizoDetailHeader",
+        "KaizoDetailShipPanel",
+        "KaizoStartButton",
+        "SpKaizoConfirm",
+        "PowerUpStartConfirm"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REMODEL_PUMPKIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "moduleIds": [
+        "61367",
+        "65390"
+      ],
+      "moduleNames": [
+        "PowerUpEdit",
+        "Pumpkin"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REMODEL_PRESET",
+      "textureIds": [
+        2,
+        6,
+        10,
+        11,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44
+      ],
+      "moduleIds": [
+        "60282",
+        "57722",
+        "93211",
+        "58886",
+        "96014",
+        "26571",
+        "44172",
+        "93490",
+        "16934",
+        "25188",
+        "10333",
+        "20624",
+        "90996",
+        "18013",
+        "60769",
+        "37518"
+      ],
+      "moduleNames": [
+        "ExtensionPresetConfirm",
+        "PresetDeployItem",
+        "module-93211.js",
+        "PresetSaveItem",
+        "PresetSaveLayer",
+        "PresetSlotExpandItem",
+        "PresetSlotItemSlot",
+        "BackBtn",
+        "Btn",
+        "EditNameArea",
+        "module-10333.js",
+        "LockBtn",
+        "PresetSlotItemSlotBox",
+        "ScrollLayer",
+        "DeployPresetButton",
+        "SavePresetButton"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REPAIR_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "moduleIds": [
+        "13412",
+        "34668",
+        "34493",
+        "4864",
+        "43224",
+        "36805",
+        "49109",
+        "5346",
+        "20789",
+        "97651",
+        "69859",
+        "3376"
+      ],
+      "moduleNames": [
+        "CraneAnimation",
+        "WireHand",
+        "EmptyDock",
+        "ExtensionDock",
+        "MainView",
+        "RepairHpGaugeView",
+        "RepairShipChoiceView",
+        "RepairShipConfigView",
+        "ShipInDock",
+        "UseHiSpeedRepairConfirmView",
+        "UseItemButton",
+        "UseRepairConfirmView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REPAIR_SORT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "moduleIds": [
+        "80856"
+      ],
+      "moduleNames": [
+        "ShipSortButton"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        129,
+        130,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        168,
+        170,
+        172
+      ],
+      "moduleIds": [
+        "33639",
+        "47600",
+        "67716",
+        "5201",
+        "97819",
+        "40583",
+        "728",
+        "53733",
+        "70878",
+        "98822",
+        "53712",
+        "25004",
+        "8961",
+        "49542",
+        "44622",
+        "43807",
+        "59264",
+        "92420",
+        "93572",
+        "84123",
+        "76138",
+        "69235",
+        "1354",
+        "44639",
+        "56428",
+        "26223",
+        "81579",
+        "88566",
+        "84402",
+        "29270",
+        "72914",
+        "56472",
+        "58423",
+        "43452",
+        "56968",
+        "43791",
+        "84231",
+        "47000",
+        "24681",
+        "58001",
+        "68531"
+      ],
+      "moduleNames": [
+        "DisassemblyAnimation",
+        "RewardAnimationMultiSlotFailed",
+        "RewardAnimationSlotFailed",
+        "PreInitializeTask",
+        "Burner",
+        "module-40583.js",
+        "CheckBtnAll",
+        "DisassemblyMaterialItem",
+        "GetButton",
+        "GreenStarParticle",
+        "Hammer",
+        "HighSpeedConfirmView",
+        "HighSpeedToggle",
+        "KDockStateView",
+        "KDockView",
+        "LargeBuildConfirm",
+        "LargeBuildShip",
+        "LargeBuildStage",
+        "module-93572.js",
+        "LargeConfigureMaterialView",
+        "MaterialAmountContainerShip",
+        "module-69235.js",
+        "MaterialAmountView",
+        "MaterialIconText",
+        "MenuLayer",
+        "MultipleDevelopToggle",
+        "NoDockView",
+        "NormalBuildShip",
+        "NormalBuildStage",
+        "SelectButton",
+        "ShipDisassemblyChoice",
+        "ShipDisassemblyConfirm",
+        "ShipDisassemblyContainer",
+        "ShipListItem",
+        "ShopButton",
+        "SlotDisassemblyChoice",
+        "SlotDisassemblyConfirm",
+        "SlotDisassemblyContainer",
+        "SlotListItem",
+        "Spanner",
+        "TopBarLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_ANIMATION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "moduleIds": [
+        "73461",
+        "29753",
+        "46138",
+        "31930",
+        "47600",
+        "5201",
+        "98807",
+        "89211"
+      ],
+      "moduleNames": [
+        "MaterialCircleRollAnimation",
+        "ReceiveAnimation",
+        "RecieveMultiAnimation",
+        "RewardAnimationMultiSlot",
+        "RewardAnimationMultiSlotFailed",
+        "PreInitializeTask",
+        "LeafDashes",
+        "ScatterCircleParticle"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_SKIN_1",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "7626"
+      ],
+      "moduleNames": [
+        "module-7626.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_SKIN_2",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "7626"
+      ],
+      "moduleNames": [
+        "module-7626.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_SKIN_3",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "7626"
+      ],
+      "moduleNames": [
+        "module-7626.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_DEVELOP_PRESET",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        21,
+        22
+      ],
+      "moduleIds": [
+        "87130",
+        "130",
+        "65184",
+        "28113",
+        "20568",
+        "24499",
+        "89196",
+        "50288",
+        "10820",
+        "20482"
+      ],
+      "moduleNames": [
+        "ExpansionPresetConfirm",
+        "module-130.js",
+        "PresetDevelopOpenBtn",
+        "module-28113.js",
+        "PresetDevelopSlotExpandItem",
+        "Btn",
+        "EditNameArea",
+        "MaterialBox",
+        "MiniArrowBtn",
+        "TriangleBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ARSENAL_SORT",
+      "textureIds": [
+        0,
+        1,
+        18,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        209
+      ],
+      "moduleIds": [
+        "59027"
+      ],
+      "moduleNames": [
+        "SlotDisassemblyFilterView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_MAP_PARTS",
+      "textureIds": [
+        0,
+        1,
+        2,
+        15,
+        16,
+        17,
+        18
+      ],
+      "moduleIds": [
+        "17094",
+        "81578",
+        "80051",
+        "76624",
+        "6307"
+      ],
+      "moduleNames": [
+        "SallyAnimationTask",
+        "CompCompass",
+        "CompDropItemIcon",
+        "CompMessageBox",
+        "module-6307.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_COMMON",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "moduleIds": [
+        "83859",
+        "4951",
+        "63320",
+        "76582",
+        "18710",
+        "52250",
+        "28694",
+        "98685",
+        "89007",
+        "10798",
+        "34389",
+        "63685",
+        "54138",
+        "80641",
+        "82401",
+        "59887",
+        "48679",
+        "14917",
+        "54075",
+        "15805",
+        "91928"
+      ],
+      "moduleNames": [
+        "ViewTop",
+        "AlertBalloon",
+        "BtnDicision",
+        "CompArrow2",
+        "CompBannerLevel",
+        "CompLackAlerts",
+        "CompSwitchBtns",
+        "Rader",
+        "TempSupplyBox",
+        "TempSupplyBtn",
+        "module-34389.js",
+        "ExpeditionList",
+        "ExpeditionStage",
+        "PanelDeckSelect",
+        "ViewMainBase",
+        "CloseBtn",
+        "PanelDeckSelect",
+        "PanelDetail",
+        "ViewMain",
+        "BtnShop",
+        "BtnShop2"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_TOP",
+      "textureIds": [
+        0,
+        3,
+        7,
+        10
+      ],
+      "moduleIds": [
+        "83859"
+      ],
+      "moduleNames": [
+        "ViewTop"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_JIN",
+      "textureIds": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43
+      ],
+      "moduleIds": [
+        "2673",
+        "1719",
+        "51978",
+        "38083"
+      ],
+      "moduleNames": [
+        "FormationBox",
+        "FormationBoxCombined",
+        "FormationPoint",
+        "TaskFormationSelectCombined"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_EVENT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        9,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "moduleIds": [
+        "12030",
+        "72478",
+        "74564",
+        "25107",
+        "42661",
+        "92209",
+        "68434",
+        "2235",
+        "83135",
+        "24760",
+        "75993"
+      ],
+      "moduleNames": [
+        "ShowIntroAlertSecondDialogTask",
+        "IntroAlertDialog",
+        "MapIntroBoard",
+        "MapIntroDialog",
+        "OperationSelectConfirmDialog",
+        "OperationSelectView",
+        "EventMapThumbnail",
+        "EventMapThumbnailLocked",
+        "EventLayoutBase",
+        "BtnBack",
+        "BtnNext"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_EVENT_SECOND",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "moduleIds": [
+        "12030",
+        "75993"
+      ],
+      "moduleNames": [
+        "ShowIntroAlertSecondDialogTask",
+        "BtnNext"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_STRATEGYMAP",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43
+      ],
+      "moduleIds": [
+        "31560"
+      ],
+      "moduleNames": [
+        "StrategyMap"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_STRATEGYMAP_SECOND",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44
+      ],
+      "moduleIds": [
+        "31560"
+      ],
+      "moduleNames": [
+        "StrategyMap"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_AIRUNIT",
+      "textureIds": [
+        2,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        176,
+        177,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205
+      ],
+      "moduleIds": [
+        "42776",
+        "25832",
+        "6597",
+        "4960",
+        "59640",
+        "28544",
+        "8263",
+        "89233",
+        "62895",
+        "42718",
+        "51138",
+        "37693",
+        "12922",
+        "96928",
+        "51968",
+        "20296",
+        "59690",
+        "55315",
+        "22150",
+        "21134",
+        "89496",
+        "15156",
+        "70010",
+        "92715",
+        "29293",
+        "99827",
+        "54156",
+        "31166",
+        "9627",
+        "81146",
+        "7463",
+        "49288",
+        "54234",
+        "79114"
+      ],
+      "moduleNames": [
+        "AirUnitBtn",
+        "module-25832.js",
+        "TaskExtendAirUnit",
+        "AirUnitDetailBox",
+        "ExpandConfirm",
+        "AirUnitBtn",
+        "AirUnitChangeConfirmPanel",
+        "AirUnitExtendBtn",
+        "module-62895.js",
+        "AirUnitListItemExtraLayer",
+        "AirUnitListPager",
+        "AirUnitListTab",
+        "AirUnitPanel",
+        "AirUnitPanelBanner",
+        "AirUnitPanelItem",
+        "AirUnitPanelItemDetailInfoPanel",
+        "AirUnitPanelItemFatigueIcon",
+        "AirUnitPanelItemLevelIcon",
+        "AirUnitPanelItemRelocationLayer",
+        "AirUnitPanelItemSkillLevelIcon",
+        "AirUnitPanelItemSupplyButton",
+        "AirUnitPanelRecoveryBtn",
+        "AirUnitPanelSupplyAllBtn",
+        "AirUnitPanelTab",
+        "AirUnitPanelTabContainer",
+        "AirUnitPanelWoodenTag",
+        "AirUnitSupplyPanel",
+        "AirUnitSupplyPanelTitle",
+        "AirPlaneSkillLevel",
+        "SlotitemLevel",
+        "AirUnitAppointmentPoint",
+        "AirUnitAppointmentTitle",
+        "AirUnitPanel",
+        "PanelCancelBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_EXPEDITION",
+      "textureIds": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        28,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        53,
+        54,
+        55,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        80,
+        81,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        105,
+        111,
+        132,
+        133,
+        134,
+        135,
+        136
+      ],
+      "moduleIds": [
+        "6986",
+        "34389",
+        "63685",
+        "56682",
+        "54138",
+        "80641",
+        "51470",
+        "17570",
+        "16950",
+        "77698"
+      ],
+      "moduleNames": [
+        "CancelExpeditionTask",
+        "module-34389.js",
+        "ExpeditionList",
+        "ExpeditionListItem",
+        "ExpeditionStage",
+        "PanelDeckSelect",
+        "module-51470.js",
+        "BtnGo",
+        "CompDrumCount",
+        "CompSupportBoatCount"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_PRACTICE",
+      "textureIds": [
+        0,
+        1,
+        2,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "moduleIds": [
+        "77469",
+        "82401",
+        "33531",
+        "47241",
+        "19502",
+        "48447",
+        "78251",
+        "94890",
+        "51602",
+        "40444",
+        "64621"
+      ],
+      "moduleNames": [
+        "PanelDeckSelect",
+        "ViewMainBase",
+        "BackBtn",
+        "BtnMatchingSelect",
+        "CompFlag",
+        "CompRank",
+        "CompRivalDeck",
+        "CompRivalShip",
+        "GoPracticeBtn",
+        "StartPracticeBtn",
+        "UserinfoPanelBG"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_AIRBASE_MAINT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "moduleIds": [
+        "35569",
+        "90875",
+        "44013",
+        "58302",
+        "86245",
+        "12135",
+        "55105",
+        "4960",
+        "59640",
+        "23204",
+        "80531"
+      ],
+      "moduleNames": [
+        "TaskExpandAirBaseLvConfirm",
+        "AirBaseAreaBtn",
+        "AirBaseLvTxt",
+        "module-58302.js",
+        "AirBaseMaintPanel",
+        "AirBaseStatusTxt",
+        "AirUnitCountTxt",
+        "AirUnitDetailBox",
+        "ExpandConfirm",
+        "SetupTeamIcon",
+        "module-80531.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "SALLY_SORTIE",
+      "textureIds": [
+        0,
+        1,
+        2,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        29,
+        30,
+        31,
+        32,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "moduleIds": [
+        "14917",
+        "54075",
+        "36552",
+        "24760",
+        "24895",
+        "75993",
+        "64285",
+        "50815",
+        "28686",
+        "84742",
+        "90758"
+      ],
+      "moduleNames": [
+        "PanelDetail",
+        "ViewMain",
+        "AirUnitBadge",
+        "BtnBack",
+        "BtnGo",
+        "BtnNext",
+        "ClearBadge",
+        "CompAreaIcons",
+        "MapThumbnail",
+        "MapThumbnailLocked",
+        "MapThumbnailLockedCloud"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "self",
+      "textureIds": [],
+      "moduleIds": [
+        "15156",
+        "62833",
+        "20240"
+      ],
+      "moduleNames": [
+        "AirUnitPanelRecoveryBtn",
+        "SmokeButton",
+        "Explosion"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_AREA_ICON",
+      "textureIds": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10,
+        12
+      ],
+      "moduleIds": [
+        "78211",
+        "68894",
+        "53940"
+      ],
+      "moduleNames": [
+        "AreaIconBtn",
+        "CompUpperBar",
+        "AreaIcon"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "RECORD_MENU",
+      "textureIds": [
+        0,
+        1,
+        2,
+        4,
+        5
+      ],
+      "moduleIds": [
+        "35141",
+        "5136"
+      ],
+      "moduleNames": [
+        "TaskTop",
+        "ViewTop"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "RECORD_PARTS",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        15,
+        16,
+        17,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        29,
+        30,
+        31,
+        32,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        44
+      ],
+      "moduleIds": [
+        "35141",
+        "70365",
+        "54857"
+      ],
+      "moduleNames": [
+        "TaskTop",
+        "ViewInfo",
+        "ViewRanking"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "RECORD_AIRBASE_MAINT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "moduleIds": [
+        "59907",
+        "46226"
+      ],
+      "moduleNames": [
+        "AirBaseMaintPanel",
+        "AirBaseView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "RECORD_MINI",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "68172",
+        "56871"
+      ],
+      "moduleNames": [
+        "RecordMiniChara",
+        "RecordKiraLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ALBUM_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        133,
+        134,
+        135,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        158,
+        159,
+        160,
+        161,
+        162
+      ],
+      "moduleIds": [
+        "28567",
+        "83406",
+        "64109",
+        "3415",
+        "41940",
+        "20955",
+        "51205",
+        "32430",
+        "75943",
+        "66099",
+        "3609",
+        "2383",
+        "53285",
+        "18261",
+        "53900",
+        "8262",
+        "17622",
+        "90144",
+        "32667"
+      ],
+      "moduleNames": [
+        "MainContainer",
+        "MainView",
+        "AlbumModeSwitchBtn",
+        "DetailPanelNumbers",
+        "MainItemShip",
+        "MainItemSlot",
+        "MiniChara",
+        "MovieBtn",
+        "module-75943.js",
+        "Pager",
+        "ShipDetailPanel",
+        "ShipDetailStatusBox",
+        "SlotDetailPanel",
+        "module-18261.js",
+        "SlotParamsContainer",
+        "StockNumberDisplay",
+        "TabBtnContainer",
+        "VoiceBtn",
+        "extraVoiceBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_MENU_1",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "moduleIds": [
+        "42264",
+        "63508"
+      ],
+      "moduleNames": [
+        "ItemScene",
+        "TabBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_MENU_2",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "moduleIds": [
+        "42264",
+        "63508"
+      ],
+      "moduleNames": [
+        "ItemScene",
+        "TabBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_MENU_3",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "moduleIds": [
+        "42264",
+        "63508"
+      ],
+      "moduleNames": [
+        "ItemScene",
+        "TabBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_FSHOP",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        37,
+        38,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56
+      ],
+      "moduleIds": [
+        "40348",
+        "61016",
+        "54784",
+        "16810",
+        "63686",
+        "57491",
+        "85635",
+        "16274",
+        "41767",
+        "88505",
+        "18681",
+        "68195",
+        "55697"
+      ],
+      "moduleNames": [
+        "FurnitureShopMain",
+        "TaskExchange",
+        "TaskExchangeHighGrade",
+        "FShopListView",
+        "FurnitureShopMainView",
+        "FurnitureTypeBtn",
+        "BackBtn",
+        "CoinBox",
+        "ExchangeBtn",
+        "FShopDetailPanel",
+        "FShopListPanel",
+        "Thumbnail",
+        "FBoxUseDialog"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        35,
+        36,
+        37,
+        38
+      ],
+      "moduleIds": [
+        "58651",
+        "55697",
+        "4",
+        "64887",
+        "32773",
+        "4638",
+        "12185",
+        "8615",
+        "15203",
+        "94838",
+        "8981"
+      ],
+      "moduleNames": [
+        "ItemListMain",
+        "FBoxUseDialog",
+        "TaskItemOverflowConfirm",
+        "OwnedItemListMain",
+        "PurchasedItemListMain",
+        "TabContainer",
+        "module-12185.js",
+        "OwnedItemDetailPanel",
+        "PickupBtn",
+        "PurchasedItemDetailPanel",
+        "UseBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_MEDAL",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "moduleIds": [
+        "79384",
+        "69763",
+        "44345",
+        "5630"
+      ],
+      "moduleNames": [
+        "ConfirmRemodelPlanView",
+        "ConfirmView",
+        "ConfirmViewBase",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_PRESENTBOX",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "moduleIds": [
+        "42937",
+        "61060"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_MEDAL_KOU",
+      "textureIds": [
+        0,
+        1,
+        2
+      ],
+      "moduleIds": [
+        "84327",
+        "17456"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_HISHIMOCHI",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "moduleIds": [
+        "27420",
+        "70662"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_SANMA",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "moduleIds": [
+        "93414",
+        "28226",
+        "63980"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "SelectItemView",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_SETSUBUN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "moduleIds": [
+        "93848",
+        "73586",
+        "47837",
+        "76740"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "SelectItemView2",
+        "SelectItemView3",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_PUMPKIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29
+      ],
+      "moduleIds": [
+        "3619",
+        "90802",
+        "71215"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "SelectView",
+        "TopView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ILIST_TERUTERUBOZU",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "moduleIds": [
+        "49785",
+        "66079"
+      ],
+      "moduleNames": [
+        "ConfirmView",
+        "module-66079.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_ISHOP",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "moduleIds": [
+        "35672",
+        "67789",
+        "14681",
+        "83544",
+        "41103",
+        "37903"
+      ],
+      "moduleNames": [
+        "ItemShopMain",
+        "module-67789.js",
+        "NormalItemShopMain",
+        "SpecialItemShopMain",
+        "TabContainer",
+        "ItemIcon"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "ITEM_COMMON",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "moduleIds": [
+        "3151",
+        "47592",
+        "7703"
+      ],
+      "moduleNames": [
+        "TaskPurchased",
+        "BackBtn",
+        "MiniChara"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "INTERIOR_PARTS",
+      "textureIds": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        26,
+        29,
+        32,
+        35,
+        38,
+        41
+      ],
+      "moduleIds": [
+        "35628",
+        "92329"
+      ],
+      "moduleNames": [
+        "TaskTop",
+        "ViewTop"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "DUTY_MAIN",
+      "textureIds": [
+        0,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        53,
+        54,
+        55,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71
+      ],
+      "moduleIds": [
+        "96611",
+        "94860",
+        "27890",
+        "22339",
+        "71592",
+        "41394",
+        "39642"
+      ],
+      "moduleNames": [
+        "DutyScene",
+        "AlertLayer",
+        "DutyCategoryFilterTabContainer",
+        "DutyMainView",
+        "ListItem",
+        "MiniChara",
+        "TabContainer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REVAMP_BOX",
+      "textureIds": [
+        0,
+        4,
+        5,
+        6,
+        7,
+        8,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        32,
+        33,
+        34
+      ],
+      "moduleIds": [
+        "62174",
+        "54758",
+        "25805",
+        "97753",
+        "91976",
+        "71843"
+      ],
+      "moduleNames": [
+        "TaskRevampStart",
+        "RecipeBox",
+        "IconSlotLevel",
+        "IconStars",
+        "MaterialBox",
+        "ToggleBtn"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REVAMP_MAIN",
+      "textureIds": [
+        0,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "moduleIds": [
+        "1746",
+        "60102",
+        "47117",
+        "73252",
+        "88225",
+        "16512",
+        "61057"
+      ],
+      "moduleNames": [
+        "MessageBalloons",
+        "RevampAkashi",
+        "RevampConfirm",
+        "ViewMain",
+        "CircleEffectLayer",
+        "ParticleLayer",
+        "ShootingStarLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "REVAMP_LIST",
+      "textureIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "moduleIds": [
+        "19831",
+        "26448",
+        "4785"
+      ],
+      "moduleNames": [
+        "module-19831.js",
+        "SlotitemNormal",
+        "PagerNormal"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "PRAC_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "moduleIds": [
+        "30503",
+        "85373",
+        "37843",
+        "72806",
+        "31792"
+      ],
+      "moduleNames": [
+        "StartAnimationTask",
+        "Content",
+        "Panel",
+        "PracticeTitleBar",
+        "ShipElement"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_TELOP",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "moduleIds": [
+        "94224",
+        "83817",
+        "2067",
+        "38083",
+        "36564"
+      ],
+      "moduleNames": [
+        "AirRaidResultTelop",
+        "AirRaidTelop",
+        "TaskFormationSelect",
+        "TaskFormationSelectCombined",
+        "TaskShowMapEndView"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_DECISION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "moduleIds": [
+        "96792",
+        "80372",
+        "98284",
+        "24",
+        "31531"
+      ],
+      "moduleNames": [
+        "EscapeGoeiView",
+        "EscapeTankanView",
+        "TaskMarchRetreatSelect",
+        "TaskTaihaShingunSelect",
+        "WaveBtnBase"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_CELL_EVENT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "moduleIds": [
+        "15710",
+        "75595",
+        "94999",
+        "31717",
+        "79258",
+        "912",
+        "6934",
+        "4997",
+        "24289",
+        "68526",
+        "10294",
+        "23261",
+        "71349",
+        "7331",
+        "45835",
+        "37842",
+        "16383"
+      ],
+      "moduleNames": [
+        "module-15710.js",
+        "module-75595.js",
+        "TaskLandingBalloon612",
+        "module-31717.js",
+        "TaskReplenishmentBuff",
+        "module-912.js",
+        "AnimPlane",
+        "CellTaskAirReconnaissance",
+        "CellTaskAnchor",
+        "module-68526.js",
+        "CellTaskHappening",
+        "CellTaskLanding",
+        "AirReconnaissanceBalloon",
+        "BranchBalloon",
+        "module-45835.js",
+        "module-37842.js",
+        "NumericalDisplay"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_FLAGSHIP_DAMAGE",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "moduleIds": [
+        "10021"
+      ],
+      "moduleNames": [
+        "TaskFlagShipDamaged"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_MAIN",
+      "textureIds": [
+        0,
+        1,
+        12,
+        13,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69
+      ],
+      "moduleIds": [
+        "6307",
+        "73553",
+        "97723",
+        "92752",
+        "68894",
+        "5709",
+        "20701",
+        "20385",
+        "62833",
+        "4279",
+        "86059"
+      ],
+      "moduleNames": [
+        "module-6307.js",
+        "CellWave",
+        "CompShipIcon",
+        "CompShipWave",
+        "CompUpperBar",
+        "GaugeVertical",
+        "LandingFlag",
+        "MapPlane",
+        "SmokeButton",
+        "SpotPointImage",
+        "AirBaseLayer"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "FAIRY",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "moduleIds": [
+        "6307"
+      ],
+      "moduleNames": [
+        "module-6307.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_ANCHORAGE_REPAIR",
+      "textureIds": [
+        7,
+        8,
+        9,
+        10,
+        15,
+        16,
+        17
+      ],
+      "moduleIds": [
+        "71214",
+        "87371",
+        "31394"
+      ],
+      "moduleNames": [
+        "AnchorageRepairCompleteLayer",
+        "module-87371.js",
+        "AnchorageRepairShipBanner"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_ENEMY_BANNERFRAMES",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "moduleIds": [
+        "51724"
+      ],
+      "moduleNames": [
+        "EnemyDeckSilhouette"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_EVENT_ANIME",
+      "textureIds": [],
+      "moduleIds": [
+        "83177"
+      ],
+      "moduleNames": [
+        "MapAnime445"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MAP_EVENT_ANIME_483",
+      "textureIds": [],
+      "moduleIds": [
+        "84114"
+      ],
+      "moduleNames": [
+        "MapAnime483"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        21,
+        22,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        77,
+        78,
+        79,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        148,
+        149,
+        151,
+        152,
+        154,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175
+      ],
+      "moduleIds": [
+        "88807",
+        "86489",
+        "7640",
+        "58715",
+        "97478",
+        "89916",
+        "37936",
+        "16885",
+        "45675",
+        "62880",
+        "8765",
+        "51225",
+        "68432",
+        "84085",
+        "6148",
+        "425",
+        "2212",
+        "94206",
+        "43367",
+        "98986",
+        "22879",
+        "93530",
+        "21583",
+        "44007",
+        "13614",
+        "60744",
+        "75481",
+        "9187",
+        "30781",
+        "5660",
+        "82327",
+        "47629",
+        "13792",
+        "98066",
+        "80547",
+        "69605",
+        "48919",
+        "9733",
+        "65865",
+        "31911",
+        "6658",
+        "14246",
+        "46351",
+        "54482",
+        "99547",
+        "56817",
+        "29248",
+        "67377",
+        "69595",
+        "75803",
+        "66609",
+        "86346",
+        "1474",
+        "88436",
+        "95403",
+        "334",
+        "54427",
+        "66423",
+        "90627",
+        "79734",
+        "76694",
+        "80828"
+      ],
+      "moduleNames": [
+        "Plane",
+        "PhaseAttackBakurai",
+        "PhaseRation",
+        "PhaseSupportHou",
+        "PhaseSupportRai",
+        "PhaseSakuteki",
+        "TaskGoNightBattleSelect",
+        "TaskAirWarAntiAircraft",
+        "TaskAirWarAntiAircraftExplosion",
+        "TaskAirWarRescue",
+        "TaskAirWarShowSeiku",
+        "module-51225.js",
+        "CutinKongoAttack",
+        "module-84085.js",
+        "module-6148.js",
+        "module-425.js",
+        "module-2212.js",
+        "module-94206.js",
+        "CutinYamatoAttack",
+        "AnimAntiAircraftFunshin",
+        "AnimAntiAircraftFunshinKai2",
+        "AnimAntiAircraftKoukaku",
+        "AnimAntiAircraftSanshikidan",
+        "AnimAntiAircraftSanshikidan2",
+        "TaskKakuzaLanding",
+        "TaskBannerParticle",
+        "TaskRocketFire",
+        "TaskRocketHit",
+        "AntiAircraftFire",
+        "Bomb",
+        "Daihatsu",
+        "DamageNumber",
+        "Missile",
+        "Picket",
+        "Rader",
+        "Shield",
+        "SubMarineWave",
+        "SupportDeckCutin",
+        "module-65865.js",
+        "TorpedoWaterColumn",
+        "TouchPlane",
+        "WaterColumn",
+        "BannerBabble",
+        "BannerContent",
+        "BannerFrame",
+        "BannerImage",
+        "DummyHPFrame",
+        "module-67377.js",
+        "CutinCanvasSpRDJ",
+        "CutinCanvasSpRR",
+        "CutinCanvasSpSuirai",
+        "CutinCanvasSpYusou",
+        "CutinDanchakuCanvas",
+        "CutinKuboDayCanvas",
+        "CutinKuboNightCanvas",
+        "CutinStatusBox",
+        "IntensiveLines",
+        "Wave",
+        "BannerInfoLayer",
+        "LayerInfo",
+        "LayerSmoke",
+        "LayerTitle"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_CUTIN_GOUCHIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "moduleIds": [
+        "55268",
+        "68173",
+        "4146",
+        "84992"
+      ],
+      "moduleNames": [
+        "GouchinCutinView",
+        "TaskGouchinCutin",
+        "TaskGouchinCutinRepair",
+        "TaskGouchinCutinText"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_NIGHT",
+      "textureIds": [
+        0,
+        6
+      ],
+      "moduleIds": [
+        "69110",
+        "39149",
+        "95060",
+        "96345",
+        "28445"
+      ],
+      "moduleNames": [
+        "PhaseZuiunNightAttack",
+        "PhaseOpening",
+        "TaskMain",
+        "TaskFlareAnimation",
+        "SearchLight"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_JIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "moduleIds": [
+        "80472"
+      ],
+      "moduleNames": [
+        "PhaseFormation"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_ZRK",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "moduleIds": [
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinZRK"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_AIRUNIT",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "moduleIds": [
+        "81138",
+        "24741"
+      ],
+      "moduleNames": [
+        "TaskAirUnitAttackStartTelop",
+        "AirUnitAttackResultTelop"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_CUTIN_DAMAGE",
+      "textureIds": [
+        0,
+        1,
+        100
+      ],
+      "moduleIds": [
+        "46997",
+        "21541",
+        "42691"
+      ],
+      "moduleNames": [
+        "TaskDamageCutin",
+        "TaskEnemyDamageCutin",
+        "module-42691.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "COMMON_EXPLOSION",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "moduleIds": [
+        "20240"
+      ],
+      "moduleNames": [
+        "Explosion"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_MAIN2",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "moduleIds": [
+        "99547"
+      ],
+      "moduleNames": [
+        "BannerFrame"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_CUTIN_ANTI_AIR",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "moduleIds": [
+        "20894"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_BALLOON",
+      "textureIds": [],
+      "moduleIds": [
+        "17317"
+      ],
+      "moduleNames": [
+        "LayerBalloon"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_RESULT_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        20,
+        21,
+        22,
+        23,
+        32,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81
+      ],
+      "moduleIds": [
+        "2808",
+        "10979",
+        "87613",
+        "42613",
+        "79018",
+        "21576",
+        "30286",
+        "33787",
+        "73359",
+        "103",
+        "41660",
+        "327",
+        "38846",
+        "21859",
+        "13530",
+        "14274",
+        "46903",
+        "83994",
+        "11843"
+      ],
+      "moduleNames": [
+        "LayerBG",
+        "LayerTitle",
+        "TaskEventBonus",
+        "TaskInit",
+        "TaskMapOpen",
+        "TaskRank",
+        "PanelExp",
+        "BannerInfoEnemy",
+        "BannerInfoFriend",
+        "BonusTelop",
+        "DeckInfo",
+        "DeckInfoPanelEnemy",
+        "DeckInfoPanelFriend",
+        "ExtraResultPanel",
+        "KamihubukiLayer",
+        "MVPCoin",
+        "ResultDialog",
+        "ResultDialogNum",
+        "ResultDialogNumLight"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_RESULT_EVENT_BASE",
+      "textureIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "moduleIds": [
+        "87613",
+        "14627"
+      ],
+      "moduleNames": [
+        "TaskEventBonus",
+        "module-14627.js"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "BATTLE_RESULT_LANDING_612",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "moduleIds": [
+        "2077"
+      ],
+      "moduleNames": [
+        "ResultDialog612"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "TUTORIAL_MAIN",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        23,
+        24,
+        25
+      ],
+      "moduleIds": [
+        "87420",
+        "42030",
+        "30019",
+        "10510",
+        "26319",
+        "27631",
+        "63945"
+      ],
+      "moduleNames": [
+        "ViewMain",
+        "MessageBoxView",
+        "SceneExplain1",
+        "SceneExplain2",
+        "SceneExplain3",
+        "SceneInputName",
+        "SceneSelectShip"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "MINIGAME_GOTSHEEP",
+      "textureIds": [],
+      "moduleIds": [
+        "80329"
+      ],
+      "moduleNames": [
+        "GameData"
+      ]
+    },
+    {
+      "kind": "texture-provider",
+      "provider": "GameData",
+      "textureIds": [
+        0,
+        1,
+        12,
+        13,
+        29,
+        30,
+        32,
+        33,
+        34,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        57,
+        71,
+        72
+      ],
+      "moduleIds": [
+        "55801",
+        "10572",
+        "38246",
+        "99749",
+        "10429",
+        "23482",
+        "46838",
+        "29076",
+        "98466",
+        "23695",
+        "70471",
+        "94662",
+        "12149",
+        "51255",
+        "92926",
+        "54326",
+        "66993"
+      ],
+      "moduleNames": [
+        "LoadTask",
+        "ResultView",
+        "UIContainer",
+        "Enemy",
+        "ExplosionParticleContainer",
+        "ForceStopButton",
+        "Gauge",
+        "GotHitEffect",
+        "GotLemon",
+        "Gotsheep",
+        "KamihubukiLayer",
+        "ScoreBoard",
+        "module-12149.js",
+        "ShusuiButton",
+        "SimpleEffectContainer",
+        "StageCutinView",
+        "StageNo"
+      ]
+    },
+    {
+      "kind": "explicit-path",
+      "paths": [
+        "resources/area/airunit/",
+        "resources/area/airunit_extend_confirm/",
+        "resources/area/sally/",
+        "resources/bgm/",
+        "resources/friendly_panel/e",
+        "resources/friendly_panel/ship/",
+        "resources/friendly_panel/ship_image.json",
+        "resources/furniture/",
+        "resources/furniture/outside/",
+        "resources/furniture/scripts/",
+        "resources/gauge/",
+        "resources/map/",
+        "resources/plane/",
+        "resources/se/",
+        "resources/setsubun_panel/ship/",
+        "resources/setsubun_panel/ship_image.json",
+        "resources/ship/",
+        "resources/ship/sp_remodel/animation_key/",
+        "resources/slot/",
+        "resources/stype/etext/",
+        "resources/stype/etext/sp001.png",
+        "resources/stype/etext/sp002.png",
+        "resources/stype/etext/sp003.png",
+        "resources/stype/etext/sp004.png",
+        "resources/stype/etext/sp005.png",
+        "resources/stype/etext/sp006.png",
+        "resources/stype/etext/sp007.png",
+        "resources/stype/etext/sp008.png",
+        "resources/stype/etext/sp009.png",
+        "resources/stype/etext/sp010.png",
+        "resources/stype/etext/sp011.png",
+        "resources/stype/etext/sp012.png",
+        "resources/useitem/card/",
+        "resources/useitem/card_/",
+        "resources/voice",
+        "resources/voice/",
+        "resources/world/"
+      ],
+      "moduleIds": [
+        "15478",
+        "21994",
+        "51479",
+        "20137",
+        "48059",
+        "37760",
+        "79787",
+        "69917",
+        "84159",
+        "16576",
+        "49148",
+        "55242",
+        "51963",
+        "2156",
+        "94996",
+        "24960",
+        "51932",
+        "70723",
+        "6695",
+        "59611",
+        "1136",
+        "6597",
+        "96928",
+        "23076",
+        "88807"
+      ],
+      "moduleNames": [
+        "FurnitureLoader",
+        "FurniturePopupLayer",
+        "module-51479.js",
+        "ShipLoader",
+        "PreInitializeTask",
+        "SlotLoader",
+        "UseitemLoader",
+        "ResourceManager",
+        "SoundManager",
+        "VoiceManager",
+        "SetsubunRManager",
+        "FAnimationData",
+        "FurnitureOutside",
+        "MapThumbnailImage",
+        "TaskCreateMap",
+        "EventTaskCellOpen",
+        "WorldTextImage",
+        "SE",
+        "TaskLoadResources",
+        "TaskKaizo",
+        "AreaTextImage",
+        "TaskExtendAirUnit",
+        "AirUnitPanelBanner",
+        "EngStypeView",
+        "Plane"
+      ]
+    }
+  ]
+}

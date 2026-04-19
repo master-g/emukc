@@ -181,8 +181,17 @@ pub fn simulate_practice_day_battle(
 
     let base_exp = calculate_practice_base_exp(&input.rival);
     let get_exp = calculate_admiral_exp(base_exp, &simulation.outcome.win_rank);
-    let (ship_exp, ship_lvup) =
-        calculate_practice_ship_exp(&simulation.friendly, base_exp, simulation.outcome.mvp);
+    let ct_flagship = simulation
+        .friendly
+        .first()
+        .and_then(|s| codex.manifest.find_ship(s.ship.api_ship_id))
+        .is_some_and(|m| m.api_stype == 21);
+    let (ship_exp, ship_lvup) = calculate_practice_ship_exp(
+        &simulation.friendly,
+        base_exp,
+        simulation.outcome.mvp,
+        ct_flagship,
+    );
 
     let air_state = simulation
         .packet
@@ -496,17 +505,23 @@ pub(crate) fn calculate_practice_ship_exp(
     friendly: &[BattleRuntimeShip],
     base_exp: i64,
     mvp_idx: i64,
+    ct_flagship: bool,
 ) -> (Vec<i64>, Vec<Vec<i64>>) {
     let mut exp = vec![-1];
     let mut lvup = Vec::with_capacity(friendly.len());
+    let ct_mult = if ct_flagship {
+        300
+    } else {
+        1
+    };
 
     for (idx, ship) in friendly.iter().enumerate() {
         let gain = if idx as i64 + 1 == mvp_idx {
-            base_exp * 2
+            base_exp * 2 * ct_mult
         } else if idx == 0 {
-            ((base_exp as f64) * 1.5).floor() as i64
+            ((base_exp as f64) * 1.5).floor() as i64 * ct_mult
         } else {
-            base_exp
+            base_exp * ct_mult
         };
         exp.push(gain);
 
