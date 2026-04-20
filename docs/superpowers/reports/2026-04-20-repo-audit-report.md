@@ -48,7 +48,33 @@ Judgment: The branch is beyond pure prototype status and should be treated as an
 
 ## Architectural Rationality
 
+Score: 74/100
+Rating: Good
+
+What is working:
+- Workspace crate splitting is directionally correct, with clear domain labels across gameplay, model, database, and runtime layers.
+- `Gameplay` is built around context traits (`HasContext` plus composed ops traits), which keeps domain logic reusable and test-oriented instead of HTTP-bound.
+- The entry layer remains relatively thin (`src/bin/emukcd.rs` bootstrap and router composition in `src/bin/net/router/kcsapi/mod.rs`), which is a positive architectural sign.
+
+What is straining:
+- `emukc_internal` is convenient, but it currently acts as a broad umbrella facade that can blur explicit dependency boundaries at usage sites.
+- Gameplay owns most of the hard domain logic, and `battle/core.rs` at 4,481 lines is dramatically larger than nearby gameplay modules, which is now an architecture smell.
+- Large-file concentration increases coupling and change blast radius inside the domain core even when crate-level layering looks clean.
+
+Judgment: The current crate layering is still helping more than hurting because boundaries between runtime entry, shared facade, and gameplay domain are visible and mostly coherent. However, the benefit margin is narrowing as oversized domain files accumulate, so the architecture remains net-positive only if the team now decomposes stressed gameplay internals instead of continuing to scale through a single dominant core file.
+
 ## Domain Modeling Quality
+
+Score: 71/100
+Rating: Promising but stressed
+
+Key observations:
+- Battle logic is the most advanced domain area and the most stressed one, with rich behavior concentrated in gameplay battle resolution and settlement flows.
+- Route, sortie, and quest logic exist as distinct concepts (`map_route`, `sortie_result`, `quest/update`) rather than only endpoint glue, which indicates real domain modeling intent.
+- Correctness fixes in recent commits and associated regression coverage show active model refinement, especially around battle outcomes, progression, and unlock-sensitive behaviors.
+- The size of `battle/core.rs` signals concentration risk: the logic is real domain logic, but too much of it is packed into one file.
+
+Judgment: The project has a reusable domain model foundation rather than a pure case-by-case API shim, because key gameplay concepts are represented in dedicated modules and exercised through integration behavior. At the same time, it is still accumulating case-by-case complexity inside the battle core, so reuse exists but is under structural stress and will degrade if decomposition does not keep pace.
 
 ## Engineering Maturity
 
