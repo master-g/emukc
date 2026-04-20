@@ -15,6 +15,7 @@ use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 pub mod config;
 pub mod errors;
 pub mod holes_report;
+pub mod manifest;
 pub mod progress;
 
 mod source;
@@ -30,6 +31,8 @@ pub enum CacheListMakeStrategy {
     Minimal,
     /// Greedy strategy with configuration
     Greedy(config::GreedyConfig),
+    /// Manifest strategy — uses resource_manifest.json
+    Manifest,
 }
 
 /// A single cache list entry

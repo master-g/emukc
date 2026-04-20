@@ -21,6 +21,7 @@ pub(super) async fn make(
         CacheListMakeStrategy::Greedy(config) => {
             make_useitem_greedy(mst, cache, config.concurrent, list).await?;
         }
+        _ => {}
     };
 
     Ok(())

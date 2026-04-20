@@ -18,6 +18,10 @@ pub(super) struct MakeListArguments {
     #[arg(long)]
     pub greedy: bool,
 
+    #[arg(help = "Use resource manifest instead of hardcoded lists")]
+    #[arg(long)]
+    pub manifest: bool,
+
     #[arg(help = "Concurrency level")]
     #[arg(long)]
     pub concurrent: Option<usize>,
@@ -31,7 +35,9 @@ pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result
         config.cache_root.join("cache_resources.nedb").to_string_lossy().into_owned()
     });
 
-    let strategy = if args.greedy {
+    let strategy = if args.manifest {
+        CacheListMakeStrategy::Manifest
+    } else if args.greedy {
         use emukc::bootstrap::prelude::GreedyConfig;
         let greedy_config = GreedyConfig {
             concurrent: args.concurrent.unwrap_or(16),

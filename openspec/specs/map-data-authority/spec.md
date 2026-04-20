@@ -1,12 +1,4 @@
-## Purpose
-
-Per-field authority merge for map cell metadata in the map catalog assembly
-pipeline. Each metadata field (color_no, event_id, event_kind, boss_cell_no)
-has a designated authoritative source. The assembly order (wikiwiki → overlay →
-stat.json) determines which source wins, with later sources having higher
-authority for metadata fields.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Field-authority merge for map cell metadata
 The map catalog assembly pipeline SHALL use "last non-zero wins" merge for cell metadata fields (`color_no`, `event_id`, `event_kind`) and variant-level `boss_cell_no`. When a later source provides a non-zero value, it SHALL overwrite the current value regardless of what earlier sources provided. Routing fields (`next_cells`, `node_label`, `routing_rules`, `enemy_fleets`, `ship_drops`) SHALL continue using fill-missing semantics.
@@ -91,6 +83,6 @@ The public overlay capture process SHALL extract `boss_cell_no` from real KC API
 - **THEN** the assembled variant has `boss_cell_no = 10` (wikiwiki value preserved, zero doesn't overwrite)
 
 #### Scenario: Overlay asset regenerated after code changes
-- **WHEN** capture.rs or merge.rs are modified to add boss_cell_no or event inference
+- **WHEN` capture.rs or merge.rs are modified to add boss_cell_no or event inference
 - **THEN** `cargo run -- wikiwiki-map build-overlays` MUST be run to regenerate `crates/emukc_bootstrap/assets/public_map_catalog_overlays.json`
 - **THEN** the regenerated asset is committed to the repo

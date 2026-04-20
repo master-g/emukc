@@ -22,4 +22,8 @@ pub enum CacheListMakingError {
     /// File already exists
     #[error("file already exists: {0}")]
     FileExists(std::path::PathBuf),
+
+    /// Other error
+    #[error("{0}")]
+    Other(String),
 }

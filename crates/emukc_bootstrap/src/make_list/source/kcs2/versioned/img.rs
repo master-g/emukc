@@ -567,6 +567,7 @@ pub(super) async fn make(
         CacheListMakeStrategy::Greedy(config) => {
             make_greedy(mst, cache, versions, config.concurrent, list).await?;
         }
+        _ => {}
     }
     // make_greedy(mst, cache, versions, 16, list).await?;
 
