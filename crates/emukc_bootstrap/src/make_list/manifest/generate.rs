@@ -6,6 +6,19 @@ use super::resolve;
 use super::types::{ManifestEntryKind, ResourceManifestEntry};
 use crate::make_list::CacheList;
 
+/// Mapping from base ship target types to their damage variant target types.
+const SHIP_DAMAGE_VARIANTS: &[(&str, &[&str])] = &[
+    ("banner", &["banner_dmg", "banner_g_dmg", "banner_g"]),
+    ("banner2", &["banner2_dmg", "banner2_g_dmg", "banner2_g"]),
+    ("banner3", &["banner3_g_dmg", "banner3_g"]),
+    ("card", &["card_dmg"]),
+    ("full", &["full_dmg"]),
+    ("character_full", &["character_full_dmg"]),
+    ("character_up", &["character_up_dmg"]),
+    ("remodel", &["remodel_dmg"]),
+    ("supply_character", &["supply_character_dmg"]),
+];
+
 /// Ship target types that use the standard `{category}/{id:04}_{suffix}.png` pattern.
 const SHIP_STANDARD_CATEGORIES: &[&str] = &[
     "album_status",
@@ -68,6 +81,15 @@ const SLOT_STANDARD_CATEGORIES: &[&str] = &[
     "item_character",
 ];
 
+/// Look up damage variant target types for a base type. Returns empty slice if none.
+fn get_damage_variants(base_type: &str) -> &[&str] {
+    SHIP_DAMAGE_VARIANTS
+        .iter()
+        .find(|(base, _)| *base == base_type)
+        .map(|(_, variants)| *variants)
+        .unwrap_or(&[])
+}
+
 pub(crate) fn generate_entry_paths(
     entry: &ResourceManifestEntry,
     mst: &ApiManifest,
@@ -99,6 +121,7 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
     let damaged = entry.damaged_source.as_deref().and_then(resolve::resolve_damaged);
 
     let target = entry.target_type.as_str();
+    let variants = get_damage_variants(target);
 
     for id in ship_ids {
         let ship_id = format!("{id:04}");
@@ -127,29 +150,49 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
                 continue;
             };
 
-            let category = if damaged.unwrap_or(false) {
-                "full_dmg"
-            } else {
-                "full"
-            };
-            let suffix = SuffixUtils::create(&ship_id, format!("ship_{category}").as_str());
-            list.add(
-                format!(
-                    "kcs2/resources/ship/{category}/{ship_id}_{suffix}_{}.png",
-                    graph.api_filename
-                ),
-                version.as_ref(),
-            );
+            let gen_base = !matches!(damaged, Some(true));
+            let gen_dmg = !matches!(damaged, Some(false));
+
+            for (cat, should_gen) in [("full", gen_base), ("full_dmg", gen_dmg)] {
+                if !should_gen {
+                    continue;
+                }
+                let suffix = SuffixUtils::create(&ship_id, format!("ship_{cat}").as_str());
+                list.add(
+                    format!(
+                        "kcs2/resources/ship/{cat}/{ship_id}_{suffix}_{}.png",
+                        graph.api_filename
+                    ),
+                    version.as_ref(),
+                );
+            }
             continue;
         }
 
         // Standard category pattern
         if SHIP_STANDARD_CATEGORIES.contains(&target) {
-            let suffix = SuffixUtils::create(&ship_id, format!("ship_{target}").as_str());
-            list.add(
-                format!("kcs2/resources/ship/{target}/{ship_id}_{suffix}.png"),
-                version.as_ref(),
-            );
+            let gen_base = !matches!(damaged, Some(true));
+            let gen_variants = damaged.is_none() && !variants.is_empty();
+
+            // Generate base path
+            if gen_base {
+                let suffix = SuffixUtils::create(&ship_id, format!("ship_{target}").as_str());
+                list.add(
+                    format!("kcs2/resources/ship/{target}/{ship_id}_{suffix}.png"),
+                    version.as_ref(),
+                );
+            }
+
+            // Generate damage variant paths
+            if gen_variants {
+                for variant in variants {
+                    let suffix = SuffixUtils::create(&ship_id, format!("ship_{variant}").as_str());
+                    list.add(
+                        format!("kcs2/resources/ship/{variant}/{ship_id}_{suffix}.png"),
+                        version.as_ref(),
+                    );
+                }
+            }
         } else {
             warn!("Unknown ship target type: {target}");
         }
@@ -337,5 +380,76 @@ mod tests {
 
         assert_eq!(list.items.len(), 1);
         assert!(list.items.iter().any(|i| i.path.contains("sp001.png")));
+    }
+
+    #[test]
+    fn test_get_damage_variants_banner() {
+        assert_eq!(get_damage_variants("banner"), ["banner_dmg", "banner_g_dmg", "banner_g"]);
+    }
+
+    #[test]
+    fn test_get_damage_variants_card() {
+        assert_eq!(get_damage_variants("card"), ["card_dmg"]);
+    }
+
+    #[test]
+    fn test_get_damage_variants_unknown() {
+        assert!(get_damage_variants("album_status").is_empty());
+        assert!(get_damage_variants("special").is_empty());
+    }
+
+    #[test]
+    fn test_ship_damaged_false_produces_only_base() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("banner", "this._mst_id", Some("false"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.iter().any(|p| p.contains("ship/banner/")));
+        assert!(!paths.iter().any(|p| p.contains("ship/banner_dmg/")));
+        assert!(!paths.iter().any(|p| p.contains("ship/banner_g/")));
+        assert!(!paths.iter().any(|p| p.contains("ship/banner_g_dmg/")));
+    }
+
+    #[test]
+    fn test_ship_damaged_variable_produces_base_and_variants() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("banner", "this._mst_id", Some("_0x1a3f79"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.iter().any(|p| p.contains("ship/banner/")));
+        assert!(paths.iter().any(|p| p.contains("ship/banner_dmg/")));
+        assert!(paths.iter().any(|p| p.contains("ship/banner_g/")));
+        assert!(paths.iter().any(|p| p.contains("ship/banner_g_dmg/")));
+        // Only 1 friendly ship (id=1), so 4 paths total (base + 3 variants)
+        assert_eq!(list.items.len(), 4);
+    }
+
+    #[test]
+    fn test_ship_damaged_true_produces_only_damage_variant() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        // full with damagedSource=true should produce only full_dmg
+        let entry = make_ship_entry("full", "this._mst_id", Some("true"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        assert!(!paths.iter().any(|p| p.contains("ship/full/") && !p.contains("full_dmg")));
+        assert!(paths.iter().any(|p| p.contains("ship/full_dmg/")));
+    }
+
+    #[test]
+    fn test_ship_no_variants_category_unaffected() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("album_status", "this._mst_id", Some("_0x1a3f79"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        // No damage variants for album_status, so only base path regardless of damagedSource
+        assert_eq!(list.items.len(), 1);
+        assert!(list.items.iter().any(|i| i.path.contains("ship/album_status/")));
     }
 }
