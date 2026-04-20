@@ -463,6 +463,7 @@ fn build_practice_night_battle_response(
                     ship: ship.ship.clone(),
                     slot_items: ship.slot_items.clone(),
                     effect_list: ship.effect_list.clone(),
+                    married: false,
                 })
             })
             .collect(),
@@ -516,7 +517,9 @@ pub(crate) fn calculate_practice_ship_exp(
     };
 
     for (idx, ship) in friendly.iter().enumerate() {
-        let gain = if idx as i64 + 1 == mvp_idx {
+        let gain = if !ship.married && ship.ship.api_lv >= 99 {
+            0
+        } else if idx as i64 + 1 == mvp_idx {
             base_exp * 2 * ct_mult
         } else if idx == 0 {
             ((base_exp as f64) * 1.5).floor() as i64 * ct_mult
@@ -573,6 +576,7 @@ mod tests {
             ship,
             slot_items,
             effect_list: vec![0],
+            married: false,
         }
     }
 

@@ -116,8 +116,10 @@ pub(super) fn calculate_sortie_ship_exp(
     };
 
     for (idx, ship) in friend_ships.iter().enumerate() {
-        // Sunk ships (HP <= 0) do not receive experience
+        // Sunk ships (HP <= 0) or unmarried ships at level 99+ do not receive experience
         let gain = if friendly_nowhps.get(idx).copied().unwrap_or(1) <= 0 {
+            0
+        } else if !ship.married && ship.ship.api_lv >= 99 {
             0
         } else if idx as i64 + 1 == mvp_idx {
             base_exp * 2 * ct_mult

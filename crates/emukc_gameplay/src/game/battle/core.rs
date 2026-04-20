@@ -119,6 +119,7 @@ pub struct BattleShipInput {
     pub ship: KcApiShip,
     pub slot_items: Vec<KcApiSlotItem>,
     pub effect_list: Vec<i64>,
+    pub married: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +138,7 @@ pub struct BattleRuntimeShip {
     /// Whether this battle is a sortie (true) or practice (false).
     /// Sinking protection only applies during sorties.
     is_sortie: bool,
+    pub married: bool,
 }
 
 impl BattleRuntimeShip {
@@ -151,6 +153,7 @@ impl BattleRuntimeShip {
             effect_list: input.effect_list,
             is_friendly,
             is_sortie,
+            married: input.married,
         }
     }
 
@@ -1179,43 +1182,135 @@ fn calculate_fighter_power(codex: &Codex, ships: &[BattleRuntimeShip]) -> i64 {
         .sum()
 }
 
-fn calculate_airstrike_damage(
+fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     random: &BattleRandom,
-    attacker_ships: &[BattleRuntimeShip],
+    slot_item: &KcApiSlotItem,
+    onslot: i64,
     defender: &BattleRuntimeShip,
 ) -> i64 {
-    let total_bomb_power: f64 = attacker_ships
-        .iter()
-        .flat_map(|ship| ship.slot_items.iter().zip(ship.ship.api_onslot))
-        .filter_map(|(slot_item, onslot)| {
-            if onslot <= 0 {
-                return None;
-            }
-            let mst = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok()?;
-            if !is_airstrike_attack_type(mst.api_type[2]) {
-                return None;
-            }
-            let is_torpedo_bomber = KcSlotItemType3::n(mst.api_type[2])
-                == Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
-            let stat = if is_torpedo_bomber {
-                mst.api_raig.max(0) as f64
-            } else {
-                mst.api_baku.max(0) as f64
-            };
-            Some(stat * (onslot as f64).sqrt())
-        })
-        .sum();
-
-    if total_bomb_power <= 0.0 {
+    if onslot <= 0 {
         return 0;
     }
-    let raw_power = total_bomb_power + 25.0;
+    let mst = match codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) {
+        Ok(m) => m,
+        Err(_) => return 0,
+    };
+    if !is_airstrike_attack_type(mst.api_type[2]) {
+        return 0;
+    }
+    let is_torpedo_bomber =
+        KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
+    let stat = if is_torpedo_bomber {
+        mst.api_raig.max(0) as f64
+    } else {
+        mst.api_baku.max(0) as f64
+    };
+    let bomb_power = stat * (onslot as f64).sqrt();
+    if bomb_power <= 0.0 {
+        return 0;
+    }
+    let raw_power = bomb_power + 25.0;
     let capped = apply_cap(raw_power, 170.0) as f64;
     let defense = calculate_defense_power(random, defender.ship.api_soukou[0]);
     resolve_damage(random, capped, defense, defender.hp())
 }
 
+fn execute_airstrike_phase(
+    codex: &Codex,
+    random: &BattleRandom,
+    attackers: &mut [BattleRuntimeShip],
+    defenders: &mut [BattleRuntimeShip],
+    is_enemy_side: bool,
+    damage_out: &mut [i64],
+    bak_flag: &mut [i64],
+    rai_flag: &mut [i64],
+) {
+    let alive_targets: Vec<usize> =
+        defenders.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
+    if alive_targets.is_empty() {
+        return;
+    }
+
+    // Phase 1: Dive bombing — iterate per bomber slot (non-torpedo types)
+    for ship in attackers.iter_mut() {
+        for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
+            let onslot = ship.ship.api_onslot.get(slot_idx).copied().unwrap_or(0);
+            if onslot <= 0 {
+                continue;
+            }
+            let mst = match codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            let type3 = match KcSlotItemType3::n(mst.api_type[2]) {
+                Some(t) => t,
+                None => continue,
+            };
+            if !is_airstrike_attack_type(mst.api_type[2]) {
+                continue;
+            }
+            if type3 == KcSlotItemType3::CarrierBasedTorpedoBomber {
+                continue;
+            }
+
+            let target_idx = alive_targets[random.choose_index(alive_targets.len())];
+            let damage = calculate_single_slot_airstrike_damage(
+                codex,
+                random,
+                slot_item,
+                onslot,
+                &defenders[target_idx],
+            );
+            if damage > 0 {
+                let (_, dealt) = defenders[target_idx].apply_damage(random, damage, target_idx);
+                damage_out[target_idx] += dealt;
+                bak_flag[target_idx] = 1;
+            }
+        }
+    }
+
+    // Phase 2: Torpedo bombing — iterate per torpedo bomber slot
+    for ship in attackers.iter_mut() {
+        for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
+            let onslot = ship.ship.api_onslot.get(slot_idx).copied().unwrap_or(0);
+            if onslot <= 0 {
+                continue;
+            }
+            let mst = match codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            if KcSlotItemType3::n(mst.api_type[2])
+                != Some(KcSlotItemType3::CarrierBasedTorpedoBomber)
+            {
+                continue;
+            }
+
+            let target_idx = alive_targets[random.choose_index(alive_targets.len())];
+            let damage = calculate_single_slot_airstrike_damage(
+                codex,
+                random,
+                slot_item,
+                onslot,
+                &defenders[target_idx],
+            );
+            if damage > 0 {
+                let (_, dealt) = defenders[target_idx].apply_damage(random, damage, target_idx);
+                damage_out[target_idx] += dealt;
+                rai_flag[target_idx] = 1;
+            }
+        }
+    }
+
+    // Attribute total damage to best bomber ship (for statistics)
+    if !is_enemy_side {
+        if let Some(best_idx) = best_bomber_index(codex, attackers) {
+            let total: i64 = damage_out.iter().sum();
+            attackers[best_idx].damage_dealt += total;
+        }
+    }
+}
 fn simulate_kouku(
     codex: &Codex,
     friendly: &mut [BattleRuntimeShip],
@@ -1267,36 +1362,29 @@ fn simulate_kouku(
     let mut api_fbak_flag = vec![0i64; friendly.len()];
     let mut api_fcl_flag = vec![0i64; friendly.len()];
 
-    if total_attack_plane_count(codex, friendly) > 0 {
-        let alive_targets: Vec<usize> =
-            enemy.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
-        if !alive_targets.is_empty() {
-            let target_idx = alive_targets[random.choose_index(alive_targets.len())];
-            let damage = calculate_airstrike_damage(codex, random, friendly, &enemy[target_idx]);
-            let (_, dealt) = enemy[target_idx].apply_damage(random, damage, target_idx);
-            api_edam[target_idx] = dealt;
-            api_ebak_flag[target_idx] = 1;
-            api_erai_flag[target_idx] = 1;
-            // Attribute damage to the ship with highest bomb power contribution
-            if let Some(best_idx) = best_bomber_index(codex, friendly) {
-                friendly[best_idx].damage_dealt += dealt;
-            }
-        }
-    }
-
-    if total_attack_plane_count(codex, enemy) > 0 {
-        let alive_targets: Vec<usize> =
-            friendly.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
-        if !alive_targets.is_empty() {
-            let target_idx = alive_targets[random.choose_index(alive_targets.len())];
-            let damage = calculate_airstrike_damage(codex, random, enemy, &friendly[target_idx]);
-            let (_, dealt) = friendly[target_idx].apply_damage(random, damage, target_idx);
-            api_fdam[target_idx] = dealt;
-            api_fbak_flag[target_idx] = 1;
-            api_fcl_flag[target_idx] = 1;
-            api_frai_flag[target_idx] = 1;
-        }
-    }
+    // Stage 3: Per-slot bombing — split into dive bombing and torpedo bombing phases
+    // Each bomber slot independently selects a random alive target.
+    execute_airstrike_phase(
+        codex,
+        random,
+        friendly,
+        enemy,
+        false,
+        &mut api_edam,
+        &mut api_ebak_flag,
+        &mut api_erai_flag,
+    );
+    execute_airstrike_phase(
+        codex,
+        random,
+        enemy,
+        friendly,
+        true,
+        &mut api_fdam,
+        &mut api_fbak_flag,
+        &mut api_frai_flag,
+    );
+    api_fcl_flag = api_fdam.iter().map(|&d| i64::from(d > 0)).collect();
 
     BattleKouku {
         api_plane_from: [attack_plane_from(codex, friendly), attack_plane_from(codex, enemy)],
@@ -2774,6 +2862,7 @@ mod tests {
             ship,
             slot_items,
             effect_list: vec![0],
+            married: false,
         }
     }
 
@@ -4042,6 +4131,7 @@ mod tests {
                 ship: test_api_ship(nowhp, maxhp),
                 slot_items: vec![],
                 effect_list: vec![],
+                married: false,
             },
             is_friendly,
             is_sortie,

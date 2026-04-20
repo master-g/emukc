@@ -610,6 +610,7 @@ where
             ship: (*ship).into(),
             slot_items,
             effect_list: vec![],
+            married: ship.married,
         });
     }
 
@@ -637,6 +638,7 @@ fn build_practice_enemy_ships(
                 ship: api_ship,
                 slot_items,
                 effect_list: vec![0],
+                married: false,
             })
         })
         .collect()

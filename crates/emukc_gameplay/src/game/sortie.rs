@@ -691,6 +691,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                         ship: ship.ship,
                         slot_items: ship.slot_items,
                         effect_list: ship.effect_list,
+                        married: ship.married,
                     })
                     .collect::<Vec<_>>();
                 let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
@@ -1268,6 +1269,7 @@ where
             ship: (*ship).into(),
             slot_items,
             effect_list: vec![],
+            married: ship.married,
         });
     }
 
@@ -1311,6 +1313,7 @@ fn build_sortie_enemy_ship(
             ship: api_ship,
             slot_items,
             effect_list: vec![0],
+            married: false,
         });
     }
 
@@ -1328,6 +1331,7 @@ fn build_sortie_enemy_ship(
             ship: api_ship,
             slot_items,
             effect_list: vec![0],
+            married: false,
         });
     }
 
@@ -1417,6 +1421,7 @@ fn build_manifest_only_sortie_enemy_ship(
         ship: api_ship,
         slot_items: Vec::<KcApiSlotItem>::new(),
         effect_list: vec![0],
+        married: false,
     }
 }
 
@@ -1649,6 +1654,7 @@ fn build_sortie_night_battle_response(
                     ship: ship.ship.clone(),
                     slot_items: ship.slot_items.clone(),
                     effect_list: ship.effect_list.clone(),
+                    married: false,
                 })
             })
             .collect(),
@@ -1709,6 +1715,7 @@ mod tests {
             ship,
             slot_items,
             effect_list: vec![0],
+            married: false,
         }
     }
 

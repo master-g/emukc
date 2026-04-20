@@ -174,6 +174,7 @@ async fn add_material_incentives(state: &State, pid: i64) -> Result<()> {
         (MaterialCategory::DevMat as i64, 2000i64),
         (MaterialCategory::Torch as i64, 2000i64),
         (MaterialCategory::Bucket as i64, 2000i64),
+        (MaterialCategory::Screw as i64, 2000i64),
     ]
     .iter()
     .filter_map(|(res, amt)| codex.new_incentive_with_material(*res, *amt).ok())

@@ -244,6 +244,7 @@ mod tests {
             ship,
             slot_items,
             effect_list: vec![0],
+            married: false,
         }
     }
 

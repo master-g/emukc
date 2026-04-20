@@ -172,7 +172,7 @@ where
             .await?;
 
             item.api_id = m.id;
-            new_ship.api_onslot[i] = m.id;
+            new_ship.api_slot[i] = m.id;
         }
     }
 

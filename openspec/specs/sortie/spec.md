@@ -140,6 +140,16 @@ After battle(s), the result SHALL be claimed via sortie_battle_result.
 - WHEN a map is cleared but no new maps are unlocked (all dependents already unlocked or no dependents)
 - THEN `api_next_map_ids` is absent from the battle result response
 
+#### Scenario: Level 99 cap on experience gain (unmarried)
+- WHEN a surviving ship has `married == false` in the database and `api_lv >= 99`
+- THEN that ship receives 0 experience from the battle
+- THEN the experience gain field in the response is 0 for that ship
+- THEN no level-up processing occurs for that ship
+
+#### Scenario: Married ship receives experience past 99
+- WHEN a surviving ship has `married == true` in the database
+- THEN that ship receives normal experience from the battle regardless of level
+
 ### Requirement: Sortie Conclusion
 The sortie SHALL end by retreating (goback_port) or completing the map.
 
@@ -197,6 +207,10 @@ fleet. Implemented via PracticeOps.
 - WHEN the practice result is processed
 - THEN experience is awarded based on practice rules
 - THEN quest progress is updated for exercise-related quest conditions
+
+#### Scenario: Practice level 99 cap on experience gain (unmarried)
+- WHEN a surviving ship in practice has `married == false` and `api_lv >= 99`
+- THEN that ship receives 0 experience from the practice battle
 
 ### Requirement: Map cell data correctness
 
