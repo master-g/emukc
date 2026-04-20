@@ -32,16 +32,16 @@ Audit perspective: Senior Rust engineer and large-application architect
 
 ## Delivery Completeness
 
-Score: 7.2/10
+Score: 72/100
 Rating: Functional but fragile
 
-The repository currently supports end-to-end local startup (`emukc bootstrap` then `emukc serve`) and a meaningful gameplay slice: single-fleet sortie start/next, day and standard night battle resolution, practice flow, and map-clear unlock progression surfaced through runtime APIs. At the system level, recent commits and plan/audit artifacts show active remediation in battle math, RNG schema work, quest/event handling, and bug-fix concentration on route keys, night recon typing, air-state handling, and sortie durability consistency.
+The repository currently supports end-to-end local startup (`emukc bootstrap` then `emukc serve`) and a meaningful gameplay slice: single-fleet sortie start/next, day and standard night battle resolution, practice flow, and map-clear unlock progression surfaced through runtime APIs. At the system level, the implementation and test suite show those loops exercising profile/session setup, battle/result settlement, next-node advancement, quest progress, and unlock state transitions, while the planning artifacts still show major feature-surface gaps in advanced battle topologies.
 
 Evidence:
 - `README.md` documents a complete bootstrap + serve local execution path (`emukc bootstrap`, `emukc serve`, then browser open).
-- `docs/plan.md` marks single-fleet sortie flow as implemented (`api_req_map/start`, `api_req_map/next`, day battle, result, standard night battle).
-- `docs/plan.md` marks practice flow as implemented, including day battle, night battle, and result settlement on the shared battle core.
-- `docs/plan.md` records map unlock progression as implemented (unlock-gated map visibility and `api_next_map_ids` clear propagation, plus unlock tests).
+- `crates/emukc_gameplay/tests/sortie_battle.rs` includes direct integration coverage for single-fleet sortie flow, including `sortie_start_battle_result_flow_updates_stats`, `next_sortie`, air battle reuse, ship drop settlement, and battle-response validation.
+- `crates/emukc_gameplay/tests/practice_battle.rs` includes direct integration coverage for practice flow, including `practice_battle_and_result_flow_updates_rival_status`, result settlement, resource consumption, and exercise quest progression across repeated battles.
+- `tests/gameplay_tests/map/unlock.rs` verifies the public unlock path: a new profile only sees 1-1, clearing 1-1 through repeated sortie/battle/result calls unlocks 1-2 in `get_map_infos`, and sortie to a locked map fails.
 - `docs/plan.md` also lists combined fleet / LBAS / support as a large remaining gap (14+ endpoints, major feature gap), confirming readiness limits.
 
 Judgment: The branch is beyond pure prototype status and should be treated as an internally usable, feature-partial validation build. It is functionally playable for a constrained single-fleet core loop, but still structurally fragile for broad production-like expansion because high-impact combat correctness and major battle-topology capabilities remain incomplete.
