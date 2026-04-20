@@ -117,12 +117,12 @@ Judgment: The repository can continue targeted internal validation work, but it 
 ## Structural Issues
 
 ### P0
-- Battle correctness is still under-controlled: formula gaps, special OASW/taxonomy omissions, and missing behavioral/resource validation create persistent correctness risk, and further major feature expansion should pause until verification hardens.
+- Battle correctness control is still insufficient for safe expansion: behavioral and resource-level verification are not yet strong enough to reliably catch invalid battle behavior, so major feature expansion should remain paused until that control layer hardens.
 - Core battle/domain logic is too concentrated in `crates/emukc_gameplay/src/game/battle/core.rs`, which increases change blast radius and makes next-stage fidelity work materially harder to reason about.
 
 ### P1
-- Combined fleet, LBAS, and support expedition require cross-cutting changes across battle modeling, settlement, and API surface, so treating them as additive endpoint work would compound current structural debt.
-- Codex/data freshness and battle knowledge synchronization remain operationally fragile, which can hide routing or behavior regressions behind stale assets and weaken confidence in results.
+- The remaining fidelity backlog, especially day-battle formula gaps plus special OASW and taxonomy omissions, will materially raise the cost and defect rate of future extensions if it continues to accumulate.
+- Combined fleet, LBAS, and support expedition remain a large cross-cutting expansion burden, and codex/data freshness fragility further weakens confidence when validating those larger changes.
 
 ### P2
 - Display/response rules and arrival-context routing are still partly hardcoded or incomplete, adding local maintenance friction without yet being the primary expansion blocker.
