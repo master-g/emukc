@@ -78,7 +78,29 @@ Judgment: The project has a reusable domain model foundation rather than a pure 
 
 ## Engineering Maturity
 
+Score: 69/100
+Rating: Disciplined but incomplete
+What is in place:
+- `pre-commit` enforces `cargo fmt --check` and `cargo clippy` (`-W warnings`) for Rust changes before commit.
+- Test coverage exists in multiple layers: repository-level integration tests under `tests/` and crate-local tests in `emukc_cache`, `emukc_db`, and gameplay-heavy suites like `crates/emukc_gameplay/tests/sortie_battle.rs`.
+- Benchmarking is present via Criterion (`crates/emukc_cache/benches/version_cache_bench.rs`), giving at least one concrete performance signal.
+What is missing:
+- battle verification is still incomplete for this domain: `docs/plan.md` explicitly treats V2 behavioral and V3 resource validation as ongoing track work, not a finished enforcement layer.
+- codex snapshot freshness is an operational risk (`tests/README.md`): `.data/codex` can drift from repo-tracked assets and produce misleading test outcomes unless manually refreshed.
+- The current gates are strong on style/lint and broad test execution, but weak on always-on domain invariants for combat legality/resource consistency across incident classes.
+Judgment: The repository has moved beyond ad hoc process and now applies repeatable tooling discipline, but it does not yet enforce correctness systematically end to end. For battle semantics and data freshness, it still depends too much on careful authors remembering validation assumptions, especially around battle verification depth and codex refresh hygiene.
+
 ## Technology Selection Fit
+
+Score: 84/100
+Rating: Good fit
+Assessment:
+- Rust is a strong fit for correctness-heavy emulator logic where deterministic state transitions and strict typing reduce accidental behavior drift.
+- The multi-crate workspace structure matches the current repository shape and keeps `gameplay`, `db`, `model`, `bootstrap`, and cache concerns reasonably separable.
+- `axum` + `tokio` is a practical server-side combination for async API handling and iterative local validation in this project.
+- `sqlite` + `SeaORM` is acceptable for the current stage: it supports rapid iteration and testability, even if it is not the final scaling story.
+- The dominant risks are domain-complexity management problems (especially battle verification scope and codex/data handling), not fashionable-stack misalignment problems.
+Judgment: The stack matches the current project stage and team operating model well: it is pragmatic, productive, and technically coherent for internal validation and correctness hardening. Near-term leverage comes from deepening verification and domain controls rather than replacing core technologies.
 
 ## Evolution Risk Control
 
