@@ -16,12 +16,12 @@ Audit perspective: Senior Rust engineer and large-application architect
 
 | Dimension | Score | Rating | Key Reason |
 | --- | ---: | --- | --- |
-| Delivery Completeness |  |  |  |
-| Architectural Rationality |  |  |  |
-| Domain Modeling Quality |  |  |  |
-| Engineering Maturity |  |  |  |
-| Technology Selection Fit |  |  |  |
-| Evolution Risk Control |  |  |  |
+| Delivery Completeness | 72 | Functional but fragile | Playable core loop exists, but major topology is still missing. |
+| Architectural Rationality | 74 | Good | Crate layering is coherent, but battle logic is over-concentrated. |
+| Domain Modeling Quality | 71 | Promising but stressed | Real gameplay models exist, but battle complexity is concentrating quickly. |
+| Engineering Maturity | 69 | Disciplined but incomplete | Tooling exists, but end-to-end battle verification is still incomplete. |
+| Technology Selection Fit | 84 | Good fit | Rust workspace and runtime stack fit the emulator stage well. |
+| Evolution Risk Control | 58 | Risky but manageable | Next-stage fidelity pressure currently exceeds verification maturity. |
 
 ## Context
 
@@ -104,20 +104,86 @@ Judgment: The stack matches the current project stage well: it is pragmatic, pro
 
 ## Evolution Risk Control
 
+Score: 58/100
+Rating: Risky but manageable
+
+Current risk drivers:
+- Remaining day-battle fidelity work, special OASW, and taxonomy corrections are increasing pressure on an already dense battle model.
+- Combined fleet, LBAS, and support expedition are cross-cutting topology expansions, not small additive features.
+- Validation is incomplete beyond structural checks, so the expanding correctness surface has more room to generate silent regressions.
+
+Judgment: The repository can continue targeted internal validation work, but it cannot safely absorb the next wave of gameplay complexity as straight feature accretion. Upcoming battle-fidelity work will add more interacting rule branches to a model that is already heavily concentrated, and combined fleet, LBAS, and support would widen both architecture and runtime-state complexity across many endpoints. Because behavioral and resource-level validation are still unfinished, future regressions will be harder to detect and localize. The risk is therefore mixed rather than purely architectural: concentrated battle logic is one problem, but the larger issue is that correctness surface area is growing faster than the repo’s ability to verify it. Major topology expansion should pause until verification hardening materially improves control.
+
 ## Structural Issues
 
 ### P0
+- Battle correctness is still under-controlled: formula gaps, special OASW/taxonomy omissions, and missing behavioral/resource validation create persistent correctness risk, and further major feature expansion should pause until verification hardens.
+- Core battle/domain logic is too concentrated in `crates/emukc_gameplay/src/game/battle/core.rs`, which increases change blast radius and makes next-stage fidelity work materially harder to reason about.
 
 ### P1
+- Combined fleet, LBAS, and support expedition require cross-cutting changes across battle modeling, settlement, and API surface, so treating them as additive endpoint work would compound current structural debt.
+- Codex/data freshness and battle knowledge synchronization remain operationally fragile, which can hide routing or behavior regressions behind stale assets and weaken confidence in results.
 
 ### P2
+- Display/response rules and arrival-context routing are still partly hardcoded or incomplete, adding local maintenance friction without yet being the primary expansion blocker.
+- Test and benchmark coverage exists but remains uneven across crates and subsystems, limiting trend visibility more than near-term delivery.
 
 ## Recommended Roadmap
 
 ### Immediate Actions
+- Freeze further major combined-fleet, LBAS, and support expansion until battle verification and invariants are hardened.
+- Treat battle correctness hardening as a dedicated workstream: close the highest-impact day-battle, special OASW, and taxonomy gaps with regression coverage.
+- Start decomposing `crates/emukc_gameplay/src/game/battle/core.rs` around stable simulation boundaries so the next changes land into smaller control surfaces.
 
 ### Next-Stage Mandatory Improvements
+- Implement behavioral validation for phase ordering, attacker legality, `api_si_list`, HP delta accounting, win rank, and MVP consistency.
+- Implement resource-existence validation tied to battle slot/resource trigger data and make stale-asset detection part of the normal refresh workflow.
+- Design combined fleet, LBAS, and support around explicit topology abstractions and settlement contracts instead of extending single-fleet assumptions in place.
 
 ### Deferrable Improvements
+- Normalize the remaining display/response-rule hardcoding after correctness and topology hardening stabilize.
+- Expand broader benchmark and property-style coverage once the validation model and battle-module boundaries stop shifting.
 
 ## Appendix: Evidence Commands
+
+### Delivery
+```bash
+sed -n '1,220p' README.md
+sed -n '1,260p' docs/plan.md
+sed -n '1,220p' docs/audit.md
+sed -n '1,220p' tests/README.md
+git log --oneline -n 20
+find tests -type f | sort | xargs wc -l | tail -n 20
+```
+
+### Architecture
+```bash
+sed -n '1,260p' Cargo.toml
+sed -n '1,220p' crates/emukc_internal/src/lib.rs
+sed -n '1,260p' crates/emukc_gameplay/src/gameplay.rs
+sed -n '1,120p' src/bin/emukcd.rs
+sed -n '1,220p' src/bin/net/router/kcsapi/mod.rs
+wc -l \
+  crates/emukc_gameplay/src/game/battle/core.rs \
+  crates/emukc_gameplay/src/game/map_route.rs \
+  crates/emukc_gameplay/src/game/sortie_result.rs \
+  crates/emukc_gameplay/src/game/quest/update.rs \
+  crates/emukc_model/src/codex/mod.rs
+```
+
+### Engineering Maturity
+```bash
+sed -n '1,220p' .pre-commit-config.yaml
+sed -n '1,220p' .rustfmt.toml
+sed -n '1,220p' tests/README.md
+sed -n '1,260p' docs/plan.md
+find crates -path '*/tests/*' -o -path '*/benches/*' -type f | sort | sed -n '1,200p'
+sed -n '1,220p' crates/emukc_cache/benches/version_cache_bench.rs
+```
+
+### Risk
+```bash
+sed -n '1,260p' docs/plan.md
+sed -n '1,220p' docs/audit.md
+sed -n '1,260p' docs/superpowers/specs/2026-04-20-repo-audit-design.md
+```
