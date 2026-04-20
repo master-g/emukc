@@ -106,13 +106,14 @@ pub(super) fn calculate_sortie_ship_exp(
     mvp_idx: i64,
     friendly_nowhps: &[i64],
     ct_flagship: bool,
+    ct_exp_boost: f64,
 ) -> (Vec<i64>, Vec<Vec<i64>>) {
     let mut exp = vec![-1];
     let mut lvup = Vec::with_capacity(friend_ships.len());
     let ct_mult = if ct_flagship {
-        300
+        ct_exp_boost
     } else {
-        1
+        1.0
     };
 
     for (idx, ship) in friend_ships.iter().enumerate() {
@@ -122,11 +123,11 @@ pub(super) fn calculate_sortie_ship_exp(
         } else if !ship.married && ship.ship.api_lv >= 99 {
             0
         } else if idx as i64 + 1 == mvp_idx {
-            base_exp * 2 * ct_mult
+            (base_exp as f64 * 2.0 * ct_mult).floor() as i64
         } else if idx == 0 {
-            ((base_exp as f64) * 1.5).floor() as i64 * ct_mult
+            (base_exp as f64 * 1.5 * ct_mult).floor() as i64
         } else {
-            base_exp * ct_mult
+            (base_exp as f64 * ct_mult).floor() as i64
         };
         exp.push(gain);
 

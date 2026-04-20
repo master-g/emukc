@@ -218,7 +218,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             existing.mvp = snapshot.mvp;
             existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank);
             let (ship_exp, ship_lvup) =
-                calculate_practice_ship_exp(&friend_ships, base_exp, existing.mvp, ct_flagship);
+                calculate_practice_ship_exp(&friend_ships, base_exp, existing.mvp, ct_flagship, codex.game_cfg.exp.ct_exp_boost, codex.game_cfg.exp.practice_exp_boost);
             existing.get_ship_exp = ship_exp;
             existing.get_exp_lvup = ship_lvup;
         }

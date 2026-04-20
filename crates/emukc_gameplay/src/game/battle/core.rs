@@ -1226,12 +1226,6 @@ fn execute_airstrike_phase(
     bak_flag: &mut [i64],
     rai_flag: &mut [i64],
 ) {
-    let alive_targets: Vec<usize> =
-        defenders.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
-    if alive_targets.is_empty() {
-        return;
-    }
-
     // Phase 1: Dive bombing — iterate per bomber slot (non-torpedo types)
     for ship in attackers.iter_mut() {
         for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
@@ -1254,6 +1248,11 @@ fn execute_airstrike_phase(
                 continue;
             }
 
+            let alive_targets: Vec<usize> =
+                defenders.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
+            if alive_targets.is_empty() {
+                continue;
+            }
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
             let damage = calculate_single_slot_airstrike_damage(
                 codex,
@@ -1287,6 +1286,11 @@ fn execute_airstrike_phase(
                 continue;
             }
 
+            let alive_targets: Vec<usize> =
+                defenders.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
+            if alive_targets.is_empty() {
+                continue;
+            }
             let target_idx = alive_targets[random.choose_index(alive_targets.len())];
             let damage = calculate_single_slot_airstrike_damage(
                 codex,

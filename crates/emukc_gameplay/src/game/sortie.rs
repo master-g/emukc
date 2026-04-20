@@ -700,6 +700,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                     snapshot.mvp,
                     &snapshot.friendly_nowhps,
                     ct_flagship,
+                    codex.game_cfg.exp.ct_exp_boost,
                 );
                 snapshot.get_ship_exp = ship_exp;
                 snapshot.get_exp_lvup = ship_lvup;
@@ -802,6 +803,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             night_session.outcome.mvp,
             &friendly_nowhps,
             ct_flagship,
+            codex.game_cfg.exp.ct_exp_boost,
         );
         store.insert_pending_result(
             profile_id,
@@ -962,6 +964,7 @@ async fn sortie_battle_impl(
         session.outcome.mvp,
         &friendly_nowhps,
         ct_flagship,
+        codex.game_cfg.exp.ct_exp_boost,
     );
     let response = build_sortie_battle_response(
         active.deck_id,
@@ -1016,7 +1019,7 @@ fn build_sortie_cell_data(map_id: i64, stage: &MapStageDefinition) -> Vec<Sortie
             master_cell_id: cell.master_cell_id.unwrap_or(map_id * 100 + cell.cell_no),
             cell_no: cell.cell_no,
             color_no: cell.color_no,
-            passed: cell.cell_no != 0,
+            passed: false,
             distance: cell.distance,
         })
         .collect()

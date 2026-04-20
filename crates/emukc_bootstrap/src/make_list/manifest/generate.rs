@@ -172,7 +172,7 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
         // Standard category pattern
         if SHIP_STANDARD_CATEGORIES.contains(&target) {
             let gen_base = !matches!(damaged, Some(true));
-            let gen_variants = damaged.is_none() && !variants.is_empty();
+            let gen_variants = damaged != Some(false) && !variants.is_empty();
 
             // Generate base path
             if gen_base {
@@ -451,5 +451,55 @@ mod tests {
         // No damage variants for album_status, so only base path regardless of damagedSource
         assert_eq!(list.items.len(), 1);
         assert!(list.items.iter().any(|i| i.path.contains("ship/album_status/")));
+    }
+
+    #[test]
+    fn test_ship_standard_category_damaged_true_produces_only_damage_variants() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        // character_full with damagedSource=true: only damage variants, no base
+        let entry = make_ship_entry("character_full", "this._mst_id", Some("true"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        // Should NOT contain undamaged base path
+        assert!(!paths.iter().any(|p| p.contains("ship/character_full/") && !p.contains("_dmg")));
+        // Should contain damage variant
+        assert!(paths.iter().any(|p| p.contains("ship/character_full_dmg/")));
+    }
+
+    #[test]
+    fn test_ship_standard_category_damaged_false_produces_only_base() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        // banner with damagedSource=false: only base, no variants
+        let entry = make_ship_entry("banner", "this._mst_id", Some("false"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        // Should contain base path
+        assert!(paths.iter().any(|p| p.contains("ship/banner/") && !p.contains("_dmg") && !p.contains("_g")));
+        // Should NOT contain damage variants
+        assert!(!paths.iter().any(|p| p.contains("ship/banner_dmg/")));
+        assert!(!paths.iter().any(|p| p.contains("ship/banner_g/")));
+    }
+
+    #[test]
+    fn test_ship_standard_category_variable_damaged_produces_base_and_variants() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        // banner with variable damagedSource: base + all variants
+        let entry = make_ship_entry("banner", "this._mst_id", Some("_0x1a3f79"));
+        generate_entry_paths(&entry, &mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        // Should contain base
+        assert!(paths.iter().any(|p| p.contains("ship/banner/") && !p.contains("_dmg") && !p.contains("_g")));
+        // Should contain all variants
+        assert!(paths.iter().any(|p| p.contains("ship/banner_dmg/")));
+        assert!(paths.iter().any(|p| p.contains("ship/banner_g_dmg/")));
+        assert!(paths.iter().any(|p| p.contains("ship/banner_g/")));
+        // banner has 3 variants + 1 base = 4 paths
+        assert_eq!(list.items.len(), 4);
     }
 }

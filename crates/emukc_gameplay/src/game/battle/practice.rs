@@ -191,6 +191,8 @@ pub fn simulate_practice_day_battle(
         base_exp,
         simulation.outcome.mvp,
         ct_flagship,
+        codex.game_cfg.exp.ct_exp_boost,
+        codex.game_cfg.exp.practice_exp_boost,
     );
 
     let air_state = simulation
@@ -507,24 +509,26 @@ pub(crate) fn calculate_practice_ship_exp(
     base_exp: i64,
     mvp_idx: i64,
     ct_flagship: bool,
+    ct_exp_boost: f64,
+    practice_exp_boost: f64,
 ) -> (Vec<i64>, Vec<Vec<i64>>) {
     let mut exp = vec![-1];
     let mut lvup = Vec::with_capacity(friendly.len());
     let ct_mult = if ct_flagship {
-        300
+        ct_exp_boost
     } else {
-        1
+        1.0
     };
 
     for (idx, ship) in friendly.iter().enumerate() {
         let gain = if !ship.married && ship.ship.api_lv >= 99 {
             0
         } else if idx as i64 + 1 == mvp_idx {
-            base_exp * 2 * ct_mult
+            (base_exp as f64 * 2.0 * ct_mult * practice_exp_boost).floor() as i64
         } else if idx == 0 {
-            ((base_exp as f64) * 1.5).floor() as i64 * ct_mult
+            (base_exp as f64 * 1.5 * ct_mult * practice_exp_boost).floor() as i64
         } else {
-            base_exp * ct_mult
+            (base_exp as f64 * ct_mult * practice_exp_boost).floor() as i64
         };
         exp.push(gain);
 
