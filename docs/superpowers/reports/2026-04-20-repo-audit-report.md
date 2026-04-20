@@ -52,16 +52,16 @@ Score: 74/100
 Rating: Good
 
 What is working:
-- Workspace crate splitting is directionally correct, with clear domain labels across gameplay, model, database, and runtime layers.
-- `Gameplay` is built around context traits (`HasContext` plus composed ops traits), which keeps domain logic reusable and test-oriented instead of HTTP-bound.
-- The entry layer remains relatively thin (`src/bin/emukcd.rs` bootstrap and router composition in `src/bin/net/router/kcsapi/mod.rs`), which is a positive architectural sign.
+- Workspace crate splitting is directionally correct: `Cargo.toml` defines `[workspace] members = ["crates/*"]`, and crate labels like `emukc_gameplay`, `emukc_model`, and `emukc_db` map to clear domain boundaries.
+- `Gameplay` in `crates/emukc_gameplay/src/gameplay.rs` is built around `HasContext` plus composed ops traits (`AccountOps`, `ProfileOps`, `GameOps`), keeping domain logic reusable and test-oriented instead of HTTP-bound.
+- The entry layer remains relatively thin: `src/bin/emukcd.rs` is bootstrap wiring, while `src/bin/net/router/kcsapi/mod.rs` primarily composes route modules and middleware.
 
 What is straining:
-- `emukc_internal` is convenient, but it currently acts as a broad umbrella facade that can blur explicit dependency boundaries at usage sites.
-- Gameplay owns most of the hard domain logic, and `battle/core.rs` at 4,481 lines is dramatically larger than nearby gameplay modules, which is now an architecture smell.
-- Large-file concentration increases coupling and change blast radius inside the domain core even when crate-level layering looks clean.
+- `emukc_internal` is convenient, but `crates/emukc_internal/src/lib.rs` re-exports a wide surface (`app`, `bootstrap`, `cache`, `db`, `gameplay`, `model`, `network`, etc.), so usage sites can lose explicit boundary signals.
+- Gameplay owns most of the hard domain logic, and `crates/emukc_gameplay/src/game/battle/core.rs` at 4,481 lines is dramatically larger than nearby modules like `crates/emukc_gameplay/src/game/map_route.rs` (668), `crates/emukc_gameplay/src/game/sortie_result.rs` (539), and `crates/emukc_gameplay/src/game/quest/update.rs` (481).
+- Large-file concentration in `crates/emukc_gameplay/src/game/battle/core.rs` increases coupling and change blast radius inside the domain core even though crate-level layering in `Cargo.toml` looks clean.
 
-Judgment: The current crate layering is still helping more than hurting because boundaries between runtime entry, shared facade, and gameplay domain are visible and mostly coherent. However, the benefit margin is narrowing as oversized domain files accumulate, so the architecture remains net-positive only if the team now decomposes stressed gameplay internals instead of continuing to scale through a single dominant core file.
+Judgment: The current crate layering is still helping more than hurting because boundaries between runtime entry (`src/bin/emukcd.rs`), shared facade (`crates/emukc_internal/src/lib.rs`), and gameplay domain (`crates/emukc_gameplay/src/gameplay.rs`) remain visible and coherent. The margin is narrower than before, with architectural strain concentrated in the oversized `crates/emukc_gameplay/src/game/battle/core.rs`.
 
 ## Domain Modeling Quality
 
@@ -69,12 +69,12 @@ Score: 71/100
 Rating: Promising but stressed
 
 Key observations:
-- Battle logic is the most advanced domain area and the most stressed one, with rich behavior concentrated in gameplay battle resolution and settlement flows.
-- Route, sortie, and quest logic exist as distinct concepts (`map_route`, `sortie_result`, `quest/update`) rather than only endpoint glue, which indicates real domain modeling intent.
-- Correctness fixes in recent commits and associated regression coverage show active model refinement, especially around battle outcomes, progression, and unlock-sensitive behaviors.
-- The size of `battle/core.rs` signals concentration risk: the logic is real domain logic, but too much of it is packed into one file.
+- Battle logic is the most advanced and most stressed domain area, with major behavior concentrated in `crates/emukc_gameplay/src/game/battle/core.rs` (battle resolution and settlement paths).
+- Route, sortie, and quest logic are modeled as distinct concepts in `crates/emukc_gameplay/src/game/map_route.rs`, `crates/emukc_gameplay/src/game/sortie_result.rs`, and `crates/emukc_gameplay/src/game/quest/update.rs`, not only as endpoint glue.
+- Correctness fixes in recent commits are reflected in regression-oriented coverage already anchored in this report (`crates/emukc_gameplay/tests/sortie_battle.rs`, `crates/emukc_gameplay/tests/practice_battle.rs`, `tests/gameplay_tests/map/unlock.rs`), indicating active model refinement around outcomes and progression.
+- The size of `crates/emukc_gameplay/src/game/battle/core.rs` (4,481) versus nearby domain files (481-668) signals concentration risk even though the logic itself is real domain logic.
 
-Judgment: The project has a reusable domain model foundation rather than a pure case-by-case API shim, because key gameplay concepts are represented in dedicated modules and exercised through integration behavior. At the same time, it is still accumulating case-by-case complexity inside the battle core, so reuse exists but is under structural stress and will degrade if decomposition does not keep pace.
+Judgment: The project has a reusable domain model foundation rather than a pure case-by-case API shim, because key gameplay concepts are represented in dedicated modules and exercised through integration behavior. At the same time, complexity is accumulating unevenly inside `crates/emukc_gameplay/src/game/battle/core.rs`, so current reuse quality is real but structurally stressed.
 
 ## Engineering Maturity
 
