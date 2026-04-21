@@ -37,29 +37,19 @@ impl Default for DockingConfig {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExpConfig {
     /// CT flagship exp multiplier for sortie.
-    #[serde(default = "default_ct_exp_boost")]
     pub ct_exp_boost: f64,
 
     /// Additional exp multiplier for practice battles.
-    #[serde(default = "default_f64_1")]
     pub practice_exp_boost: f64,
 }
 
 impl Default for ExpConfig {
     fn default() -> Self {
         Self {
-            ct_exp_boost: default_ct_exp_boost(),
-            practice_exp_boost: default_f64_1(),
+            ct_exp_boost: 1.0,
+            practice_exp_boost: 1.0,
         }
     }
-}
-
-fn default_ct_exp_boost() -> f64 {
-    1.0
-}
-
-fn default_f64_1() -> f64 {
-    1.0
 }
 
 /// Game configuration.
