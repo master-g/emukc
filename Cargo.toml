@@ -2,7 +2,7 @@
 name = "emukc"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.94.1"
+rust-version = "1.85.0"
 description = "A simple emulator for the web browser game: Kantai Collection"
 homepage = "https://github.com/master-g/emukc.git"
 repository = "https://github.com/master-g/emukc"
@@ -20,7 +20,7 @@ exclude = ["benches"]
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.94.1"
+rust-version = "1.85.0"
 
 [workspace.dependencies]
 anyhow = "1.0.102"
