@@ -52,8 +52,8 @@ pub(super) async fn handler(
 
     let pool: Vec<Kc3rdShip> = codex
         .ship_extra
-        .iter()
-        .filter_map(|(_, info)| {
+        .values()
+        .filter_map(|info| {
             if !info.buildable || (params.api_large_flag == 0 && !info.buildable_lsc) {
                 None
             } else {

@@ -73,8 +73,8 @@ pub(super) async fn handler(
 
     let pool: Vec<Kc3rdSlotItem> = codex
         .slotitem_extra_info
-        .iter()
-        .filter_map(|(_, info)| {
+        .values()
+        .filter_map(|info| {
             if !info.craftable {
                 None
             } else {

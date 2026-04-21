@@ -146,11 +146,9 @@ impl Kc3rdQuestCondition {
             )
             | Kc3rdQuestCondition::Repair(count)
             | Kc3rdQuestCondition::Resupply(count) => {
-                if *count > 0 {
+                *count > 0 && {
                     *count -= 1;
                     true
-                } else {
-                    false
                 }
             }
             Kc3rdQuestCondition::Expedition(conditions) => {

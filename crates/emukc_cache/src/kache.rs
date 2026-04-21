@@ -390,6 +390,12 @@ impl Kache {
             return Err(Error::FileNotFound(local_path.display().to_string()));
         }
 
+        // No specific version requested — serve whatever is local
+        if version.is_empty() {
+            trace!("no version requested, serving local file");
+            return Ok(tokio::fs::File::open(local_path).await?);
+        }
+
         // Async DB read
         let stored_version = self.read_version_from_db(rel_path).await?;
 

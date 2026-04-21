@@ -235,7 +235,7 @@ where
         });
     // lower level items first
     unset_mst_lv_lookup.iter_mut().for_each(|(_, v)| {
-        v.sort_by(|a, b| a.level.cmp(&b.level));
+        v.sort_by_key(|item| item.level);
     });
 
     let mut new_equip_ids = [-1i64; 5];
