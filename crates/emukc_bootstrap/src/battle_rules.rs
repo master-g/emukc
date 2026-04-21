@@ -519,9 +519,7 @@ fn push_error(
     });
 }
 
-fn as_object<'a>(
-    value: &'a serde_json::Value,
-) -> Option<&'a serde_json::Map<String, serde_json::Value>> {
+fn as_object(value: &serde_json::Value) -> Option<&serde_json::Map<String, serde_json::Value>> {
     value.as_object()
 }
 
@@ -537,30 +535,22 @@ fn read_i64_array(
     field: &str,
     report: &mut BattleValidationReport,
 ) -> Option<Vec<i64>> {
-    let values = match object.get(field) {
-        Some(value) => value,
-        None => {
-            push_missing_field(report, field, format!("battle response is missing `{field}`"));
-            return None;
-        }
+    let Some(values) = object.get(field) else {
+        push_missing_field(report, field, format!("battle response is missing `{field}`"));
+        return None;
     };
-    let array = match values.as_array() {
-        Some(array) => array,
-        None => {
-            push_invalid_shape(report, field, format!("`{field}` is expected to be an array"));
-            return None;
-        }
+    let Some(array) = values.as_array() else {
+        push_invalid_shape(report, field, format!("`{field}` is expected to be an array"));
+        return None;
     };
 
     let mut numbers = Vec::with_capacity(array.len());
     for value in array {
-        match value.as_i64() {
-            Some(number) => numbers.push(number),
-            None => {
-                push_invalid_shape(report, field, format!("`{field}` must contain only integers"));
-                return None;
-            }
-        }
+        let Some(number) = value.as_i64() else {
+            push_invalid_shape(report, field, format!("`{field}` must contain only integers"));
+            return None;
+        };
+        numbers.push(number);
     }
 
     Some(numbers)
@@ -571,21 +561,16 @@ fn read_i64_field(
     field: &str,
     report: &mut BattleValidationReport,
 ) -> Option<i64> {
-    let value = match object.get(field) {
-        Some(value) => value,
-        None => {
-            push_missing_field(report, field, format!("battle response is missing `{field}`"));
-            return None;
-        }
+    let Some(value) = object.get(field) else {
+        push_missing_field(report, field, format!("battle response is missing `{field}`"));
+        return None;
     };
 
-    match value.as_i64() {
-        Some(number) => Some(number),
-        None => {
-            push_invalid_shape(report, field, format!("`{field}` is expected to be an integer"));
-            None
-        }
-    }
+    let Some(number) = value.as_i64() else {
+        push_invalid_shape(report, field, format!("`{field}` is expected to be an integer"));
+        return None;
+    };
+    Some(number)
 }
 
 fn array_len(
@@ -593,12 +578,9 @@ fn array_len(
     field: &str,
     report: &mut BattleValidationReport,
 ) -> Option<usize> {
-    let values = match object.get(field) {
-        Some(value) => value,
-        None => {
-            push_missing_field(report, field, format!("battle response is missing `{field}`"));
-            return None;
-        }
+    let Some(values) = object.get(field) else {
+        push_missing_field(report, field, format!("battle response is missing `{field}`"));
+        return None;
     };
     match values.as_array() {
         Some(array) => Some(array.len()),

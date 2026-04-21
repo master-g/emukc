@@ -307,7 +307,7 @@ mod tests {
             source: "test".to_string(),
             target_type: target.to_string(),
             ship_mst_id_source: Some(source.to_string()),
-            damaged_source: damaged.map(|s| s.to_string()),
+            damaged_source: damaged.map(std::string::ToString::to_string),
             slot_mst_id_sources: None,
             provider: None,
             texture_ids: None,
@@ -478,7 +478,11 @@ mod tests {
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         // Should contain base path
-        assert!(paths.iter().any(|p| p.contains("ship/banner/") && !p.contains("_dmg") && !p.contains("_g")));
+        assert!(
+            paths
+                .iter()
+                .any(|p| p.contains("ship/banner/") && !p.contains("_dmg") && !p.contains("_g"))
+        );
         // Should NOT contain damage variants
         assert!(!paths.iter().any(|p| p.contains("ship/banner_dmg/")));
         assert!(!paths.iter().any(|p| p.contains("ship/banner_g/")));
@@ -494,7 +498,11 @@ mod tests {
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         // Should contain base
-        assert!(paths.iter().any(|p| p.contains("ship/banner/") && !p.contains("_dmg") && !p.contains("_g")));
+        assert!(
+            paths
+                .iter()
+                .any(|p| p.contains("ship/banner/") && !p.contains("_dmg") && !p.contains("_g"))
+        );
         // Should contain all variants
         assert!(paths.iter().any(|p| p.contains("ship/banner_dmg/")));
         assert!(paths.iter().any(|p| p.contains("ship/banner_g_dmg/")));

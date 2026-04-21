@@ -53,10 +53,9 @@ impl From<GameplayError> for ApiError {
             }
             GameplayError::ShipCreationFailed(e) => Self::Internal(e.to_string()),
             GameplayError::Codex(e) => Self::Internal(e.to_string()),
-            GameplayError::EntryNotFound(e) => Self::NotFound(e),
+            GameplayError::EntryNotFound(e) | GameplayError::Locked(e) => Self::NotFound(e),
             GameplayError::Json(e) => Self::Internal(e.to_string()),
             GameplayError::Reward(e) => Self::Internal(e.to_string()),
-            GameplayError::Locked(e) => Self::NotFound(e),
         }
     }
 }

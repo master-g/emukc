@@ -14,7 +14,7 @@ use emukc_model::{
 use crate::{
     err::GameplayError,
     game::battle::core::{
-        AirState, BattleContext, BattleHougeki, BattleKouku, BattleMode, BattleNightHougeki,
+        AirState, BattleContext, BattleHougeki, BattleKouku, BattleNightHougeki,
         BattleOpeningAttack, BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleType,
         EngagementType, NightBattlePacket, simulate_day_battle_v1, simulate_night_battle_v1,
     },
@@ -167,7 +167,6 @@ pub fn simulate_practice_day_battle(
     let simulation = simulate_day_battle_v1(
         codex,
         BattleContext {
-            mode: BattleMode::Practice,
             battle_type: BattleType::Normal,
             is_sortie: false,
             friendly_formation_id: input.formation_id,

@@ -32,21 +32,6 @@ impl From<AswDamageType> for Kc3rdSlotItemAswDamageType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EquipBonus {
-    #[serde(rename = "_aa", skip_serializing_if = "Option::is_none")]
-    pub aa: Option<i64>,
-
-    #[serde(rename = "_evasion", skip_serializing_if = "Option::is_none")]
-    pub evasion: Option<i64>,
-
-    #[serde(rename = "_firepower", skip_serializing_if = "Option::is_none")]
-    pub firepower: Option<i64>,
-
-    #[serde(rename = "_torpedo", skip_serializing_if = "Option::is_none")]
-    pub torpedo: Option<i64>,
-}
-
 // pub type EquipBonusMap = std::collections::BTreeMap<String, EquipBonus>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

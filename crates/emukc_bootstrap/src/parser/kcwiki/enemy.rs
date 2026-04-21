@@ -132,7 +132,7 @@ fn nullable_string<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    Option::<String>::deserialize(deserializer).map(|opt| opt.unwrap_or_default())
+    Option::<String>::deserialize(deserializer).map(std::option::Option::unwrap_or_default)
 }
 
 fn normalize_opt_i64(value: Option<BoolOrInt>) -> i64 {
@@ -475,8 +475,11 @@ mod tests {
         assert_eq!(parsed.manifest_ships[0].api_slot_num, 3);
         assert_eq!(context.find_slotitem_id("Abyssal Night Cat Fighter II"), Some(601));
 
-        let mut codex = Codex::default();
-        codex.manifest = manifest.clone();
+        let mut codex = Codex {
+            manifest: manifest.clone(),
+            enemy_ship_extra: parsed.ship_map.clone(),
+            ..Default::default()
+        };
         for ship in parsed.manifest_ships.iter().cloned() {
             codex.manifest.api_mst_ship.retain(|existing| existing.api_id != ship.api_id);
             codex.manifest.api_mst_ship.push(ship);
@@ -485,7 +488,6 @@ mod tests {
             codex.manifest.api_mst_slotitem.retain(|existing| existing.api_id != slotitem.api_id);
             codex.manifest.api_mst_slotitem.push(slotitem);
         }
-        codex.enemy_ship_extra = parsed.ship_map.clone();
 
         let save_root = tempfile::tempdir().unwrap();
         codex.save(save_root.path(), true).unwrap();
@@ -529,8 +531,11 @@ mod tests {
         );
 
         // Build codex with enemy data
-        let mut codex = Codex::default();
-        codex.manifest = manifest;
+        let mut codex = Codex {
+            manifest,
+            enemy_ship_extra: parsed.ship_map.clone(),
+            ..Default::default()
+        };
         for ship in parsed.manifest_ships.iter().cloned() {
             codex.manifest.api_mst_ship.retain(|e| e.api_id != ship.api_id);
             codex.manifest.api_mst_ship.push(ship);
@@ -539,7 +544,6 @@ mod tests {
             codex.manifest.api_mst_slotitem.retain(|e| e.api_id != slotitem.api_id);
             codex.manifest.api_mst_slotitem.push(slotitem);
         }
-        codex.enemy_ship_extra = parsed.ship_map.clone();
 
         // Verify new_enemy_ship returns Tier 1 for every parsed enemy
         let mut tier1_count = 0;

@@ -142,7 +142,7 @@ where
     Ok(())
 }
 
-/// Add `unlocked` column to existing map_record tables.
+/// Add `unlocked` column to existing `map_record` tables.
 /// Defaults to `true` for migration safety (existing accounts keep access).
 async fn migrate_unlocked_column(
     db: &sea_orm::DatabaseConnection,

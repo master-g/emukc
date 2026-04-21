@@ -19,22 +19,6 @@ mod tests {
         session.profile.id
     }
 
-    async fn find_record(
-        context: &(emukc_internal::db::sea_orm::DbConn, Codex),
-        pid: i64,
-        map_id: i64,
-    ) -> emukc_internal::db::entity::profile::map_record::Model {
-        use emukc_internal::db::entity::profile::map_record;
-        use emukc_internal::db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-        map_record::Entity::find()
-            .filter(map_record::Column::ProfileId.eq(pid))
-            .filter(map_record::Column::MapId.eq(map_id))
-            .one(&context.0)
-            .await
-            .unwrap()
-            .unwrap()
-    }
-
     #[tokio::test]
     async fn new_profile_mapinfo_only_shows_map_1_1() {
         let context = new_context().await;

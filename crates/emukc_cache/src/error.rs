@@ -53,7 +53,7 @@ pub enum Error {
 
     /// Download error.
     #[error(transparent)]
-    Download(#[from] download::DownloadError),
+    Download(Box<download::DownloadError>),
 
     /// Failed on all CDN.
     #[error("failed on all CDN")]
@@ -62,4 +62,10 @@ pub enum Error {
     /// Reqwest error.
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
+}
+
+impl From<download::DownloadError> for Error {
+    fn from(e: download::DownloadError) -> Self {
+        Self::Download(Box::new(e))
+    }
 }

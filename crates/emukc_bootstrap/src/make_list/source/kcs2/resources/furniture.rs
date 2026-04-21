@@ -63,7 +63,6 @@ pub(super) async fn make(
     make_outside(mst, list);
 
     match strategy {
-        CacheListMakeStrategy::Minimal => {}
         CacheListMakeStrategy::Default => {
             make_reward_predefined(mst, list);
             // make_extra_greedy("card", mst, cache, list, 16).await?;

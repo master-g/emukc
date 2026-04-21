@@ -89,7 +89,7 @@ impl MapCatalog {
         self.prerequisites.get(&map_id).copied()
     }
 
-    /// Returns all map IDs whose prerequisite is the given map_id.
+    /// Returns all map IDs whose prerequisite is the given `map_id`.
     pub fn dependents_of(&self, map_id: i64) -> Vec<i64> {
         self.prerequisites
             .iter()

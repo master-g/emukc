@@ -33,7 +33,7 @@ pub(super) struct ResolvedMapSources {
 
 pub(super) fn load_explicit_source_set(
     data_root: &Path,
-    manifest: &ApiManifest,
+    _manifest: &ApiManifest,
     wikiwiki_catalog: Option<MapCatalog>,
 ) -> Result<ResolvedMapSources, ParseError> {
     let wikiwiki_map_count =
@@ -60,7 +60,7 @@ pub(super) fn load_explicit_source_set(
 
 pub(super) fn load_repo_source_set(
     data_root: &Path,
-    manifest: &ApiManifest,
+    _manifest: &ApiManifest,
 ) -> Result<ResolvedMapSources, ParseError> {
     let (wikiwiki_source, wikiwiki_catalog) = load_repo_wikiwiki_map_catalog()?;
     let wikiwiki_map_count =
@@ -119,7 +119,7 @@ fn load_repo_wikiwiki_map_catalog()
     }
 }
 
-/// Load stat catalog from cache or download. Returns (catalog, map_count, from_cache).
+/// Load stat catalog from cache or download. Returns (catalog, `map_count`, `from_cache`).
 fn load_stat_catalog(data_root: &Path) -> (Option<MapCatalog>, usize, bool) {
     let cache_path = data_root.join(STAT_JSON_FILENAME);
 
@@ -185,11 +185,11 @@ fn download_stat_json(_cache_path: &Path) -> Result<String, String> {
     })
 }
 
-/// Parse stat.json into a MapCatalog.
+/// Parse stat.json into a `MapCatalog`.
 ///
 /// stat.json format: `{ "map_id": { "label": { "cell_id": "label", "event_id": N, "event_kind": N } } }`
 ///
-/// Each map becomes a MapDefinition with a single "" variant. Each cell gets
+/// Each map becomes a `MapDefinition` with a single "" variant. Each cell gets
 /// `node_label = Some(label)` and `event_id`/`event_kind` from stat data.
 /// Cell numbers are assigned sequentially starting from 1 (label-based matching
 /// happens during assembly merge via `semantic_cell_no_map`).

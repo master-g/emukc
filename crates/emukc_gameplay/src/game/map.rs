@@ -425,18 +425,6 @@ where
     Ok(newly_unlocked)
 }
 
-pub(crate) async fn is_map_unlocked_impl<C>(
-    c: &C,
-    profile_id: i64,
-    map_id: i64,
-) -> Result<bool, GameplayError>
-where
-    C: ConnectionTrait,
-{
-    let record = find_map_record_impl(c, profile_id, map_id).await?;
-    Ok(record.unlocked)
-}
-
 fn is_map_unlocked_by_default(codex: &Codex, map_id: i64, existing: &BTreeSet<i64>) -> bool {
     let catalog = active_map_catalog(codex);
     match catalog.prerequisite_for(map_id) {

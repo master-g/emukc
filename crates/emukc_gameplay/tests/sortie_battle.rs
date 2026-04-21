@@ -30,14 +30,6 @@ async fn mock_context() -> (emukc_db::sea_orm::DbConn, Codex) {
     (db, codex)
 }
 
-async fn mock_context_with_maps() -> (emukc_db::sea_orm::DbConn, Codex) {
-    let db = new_mem_db().await.unwrap();
-    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let data_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp");
-    codex.maps = build_final_map_catalog(&data_root, &codex.manifest, None).unwrap();
-    (db, codex)
-}
-
 /// Rebuild `codex.maps` from the repo-tracked wikiwiki asset instead of trusting the
 /// bootstrap snapshot already stored in `.data/codex/map_catalog.json`.
 async fn mock_context_with_repo_wikiwiki_maps() -> (emukc_db::sea_orm::DbConn, Codex) {
@@ -155,22 +147,6 @@ async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInf
     (context, session)
 }
 
-async fn new_game_session_with_maps() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
-    let context = mock_context_with_maps().await;
-
-    let account = context.sign_up("test", "1234567").await.unwrap();
-    let extra_profiles = PROFILE_ID_BUMP.fetch_add(1, Ordering::Relaxed);
-    for idx in 0..extra_profiles {
-        let name = format!("warmup-maps-{extra_profiles}-{idx}");
-        context.new_profile(&account.access_token.token, &name).await.unwrap();
-    }
-    let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
-    let session =
-        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-
-    (context, session)
-}
-
 async fn new_game_session_with_repo_wikiwiki_maps()
 -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
     let context = mock_context_with_repo_wikiwiki_maps().await;
@@ -193,7 +169,6 @@ async fn ensure_map_unlocked(
     profile_id: i64,
     map_id: i64,
 ) {
-    use emukc_db::sea_orm::QuerySelect;
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
         .filter(map_record::Column::MapId.eq(map_id))
@@ -414,7 +389,7 @@ async fn loaded_map_catalog_supports_start_and_next_flow() {
     assert_eq!(start.airsearch.as_ref().unwrap().result, 0);
     let preview_ids = &start.enemy_deck_preview.as_ref().unwrap()[0].ship_ids;
     assert_eq!(preview_ids.len(), 1);
-    assert!(matches!(preview_ids[0], 1501 | 1502 | 1503));
+    assert!(matches!(preview_ids[0], 1501..=1503));
 
     let next = context.next_sortie(pid, Some(2)).await.unwrap();
     assert_eq!(next.from_cell_no, 1);

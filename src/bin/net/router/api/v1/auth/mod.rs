@@ -56,19 +56,6 @@ struct AuthResponse {
     refresh_token: Token,
 }
 
-#[derive(Serialize, Deserialize, Debug, Validate)]
-struct RenewRequest {
-    #[validate(length(equal = 44))]
-    access_token: String,
-    #[validate(length(equal = 44))]
-    refresh_token: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct RenewResponse {
-    access_token: Token,
-}
-
 async fn sign_in(
     state: AppState,
     Json(params): Json<SignParameter>,

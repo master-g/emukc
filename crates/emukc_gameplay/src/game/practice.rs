@@ -217,8 +217,14 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             existing.win_rank = snapshot.win_rank;
             existing.mvp = snapshot.mvp;
             existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank);
-            let (ship_exp, ship_lvup) =
-                calculate_practice_ship_exp(&friend_ships, base_exp, existing.mvp, ct_flagship, codex.game_cfg.exp.ct_exp_boost, codex.game_cfg.exp.practice_exp_boost);
+            let (ship_exp, ship_lvup) = calculate_practice_ship_exp(
+                &friend_ships,
+                base_exp,
+                existing.mvp,
+                ct_flagship,
+                codex.game_cfg.exp.ct_exp_boost,
+                codex.game_cfg.exp.practice_exp_boost,
+            );
             existing.get_ship_exp = ship_exp;
             existing.get_exp_lvup = ship_lvup;
         }
@@ -674,7 +680,7 @@ where
             GameplayError::EntryNotFound(format!("ship with id {ship_id} not found"))
         })?;
         let mst = codex.find::<emukc_model::prelude::ApiMstShip>(&ship_model.mst_id)?;
-        let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.clone().into();
+        let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.into();
         let new_ship_exp = ship_model.exp_now + gain.max(0);
         let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
         let current_level_exp = level::ship_level_required_exp(ship_level);

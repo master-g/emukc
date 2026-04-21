@@ -31,7 +31,7 @@ pub enum CacheListMakeStrategy {
     Minimal,
     /// Greedy strategy with configuration
     Greedy(config::GreedyConfig),
-    /// Manifest strategy — uses resource_manifest.json
+    /// Manifest strategy — uses `resource_manifest.json`
     Manifest,
 }
 
@@ -163,14 +163,6 @@ pub async fn make(
 }
 
 const MAX_CHECK_SIZE: usize = 32;
-
-/// Helper to extract concurrent value from strategy
-pub(crate) fn get_concurrent(strategy: &CacheListMakeStrategy) -> usize {
-    match strategy {
-        CacheListMakeStrategy::Greedy(config) => config.concurrent,
-        _ => 16,
-    }
-}
 
 /// Check if a list of URLs exist on the remote cache.
 ///

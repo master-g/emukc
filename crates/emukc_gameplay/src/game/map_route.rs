@@ -455,7 +455,7 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "vn:{}:{}",
-                cell_nos.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","),
+                cell_nos.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(","),
                 visited
             )
         }
@@ -476,7 +476,11 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "ec:{}:{op:?}:{value}",
-                slotitem_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                slotitem_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
             )
         }
         RoutePredicate::ShipTypeCount {
@@ -486,7 +490,11 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "stc:{}:{op:?}:{value}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
             )
         }
         RoutePredicate::FlagshipShipType {
@@ -494,26 +502,40 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "fst:{}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
             )
         }
         RoutePredicate::FlagshipShipId {
             ship_ids,
         } => {
-            format!("fsi:{}", ship_ids.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","))
+            format!(
+                "fsi:{}",
+                ship_ids.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")
+            )
         }
         RoutePredicate::ContainsShipType {
             ship_types,
         } => {
             format!(
                 "cst:{}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
             )
         }
         RoutePredicate::ContainsShipId {
             ship_ids,
         } => {
-            format!("csi:{}", ship_ids.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","))
+            format!(
+                "csi:{}",
+                ship_ids.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")
+            )
         }
         RoutePredicate::ContainsShipSet {
             ship_types,
@@ -521,8 +543,12 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "css:{}:{}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","),
-                ship_ids.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(","),
+                ship_ids.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")
             )
         }
         RoutePredicate::OnlyShipTypes {
@@ -530,7 +556,11 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "ost:{}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
             )
         }
         RoutePredicate::OnlyShipSet {
@@ -539,8 +569,12 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "oss:{}:{}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","),
-                ship_ids.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(","),
+                ship_ids.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")
             )
         }
         RoutePredicate::ShipSetCount {
@@ -551,8 +585,12 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "ssc:{}:{}:{op:?}:{value}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","),
-                ship_ids.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(","),
+                ship_ids.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")
             )
         }
         RoutePredicate::ShipSetSpeedCount {
@@ -565,8 +603,12 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => {
             format!(
                 "sssc:{}:{}:{speed_op:?}:{speed_class:?}:{op:?}:{value}",
-                ship_types.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(","),
-                ship_ids.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
+                ship_types
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(","),
+                ship_ids.iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")
             )
         }
         RoutePredicate::Speed {

@@ -227,7 +227,7 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
     let before_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
     let before_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
 
-    let mut damaged = before_ship.clone().into_active_model();
+    let mut damaged = before_ship.into_active_model();
     damaged.hp_now = ActiveValue::Set((before_ship.hp_now - 3).max(1));
     damaged.exp_now = ActiveValue::Set(before_ship.exp_next - 1);
     damaged.exp_progress = ActiveValue::Set(99);

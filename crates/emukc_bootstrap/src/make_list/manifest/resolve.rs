@@ -1,7 +1,7 @@
 use emukc_model::kc2::start2::ApiManifest;
 
 /// Resolve a ship MST ID source expression to concrete ship IDs.
-/// Known patterns map to "all friendly ships" (ships with api_sortno or api_aftershipid).
+/// Known patterns map to "all friendly ships" (ships with `api_sortno` or `api_aftershipid`).
 /// Unknown patterns emit a warning and return empty.
 pub(crate) fn resolve_ship_ids(source: &str, mst: &ApiManifest) -> Vec<i64> {
     if is_universal_ship_source(source) {

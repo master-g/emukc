@@ -197,13 +197,9 @@ where
             serde_json::from_value(quest.requirements.clone())?;
         let mst = codex.find::<Kc3rdQuest>(&quest.quest_id)?;
         let master_conditions = match (&quest.requirement_type, &mst.requirements) {
-            (progress::RequirementType::And, Kc3rdQuestRequirement::And(conditions)) => {
-                Some(conditions.as_slice())
-            }
-            (progress::RequirementType::OneOf, Kc3rdQuestRequirement::OneOf(conditions)) => {
-                Some(conditions.as_slice())
-            }
-            (
+            (progress::RequirementType::And, Kc3rdQuestRequirement::And(conditions))
+            | (progress::RequirementType::OneOf, Kc3rdQuestRequirement::OneOf(conditions))
+            | (
                 progress::RequirementType::Sequential,
                 Kc3rdQuestRequirement::Sequential(conditions),
             ) => Some(conditions.as_slice()),
@@ -329,8 +325,6 @@ fn calculate_exercise_progress(
         QuestProgressStatus::Completed
     } else if ratio >= 0.8 {
         QuestProgressStatus::Eighty
-    } else if ratio >= 0.5 {
-        QuestProgressStatus::Half
     } else if ratio > 0.0 {
         QuestProgressStatus::Half
     } else {

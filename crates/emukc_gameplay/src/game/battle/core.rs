@@ -55,11 +55,27 @@ const PT_TARGET_NAME_MARKERS: &[&str] = &["PT小鬼群", "Schnellboot小鬼群"]
 const INSTALLATION_TARGET_NAME_MARKERS: &[&str] =
     &["砲台", "飛行場", "港湾", "離島", "集積地", "泊地", "要塞", "トーチカ"];
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BattleMode {
-    Practice,
-    Sortie,
+/// Parameters for a shelling side simulation.
+struct ShellingParams {
+    attacker_is_enemy: bool,
+    formation_id: i64,
+    engagement: EngagementType,
+    phase: BattlePhase,
+}
+
+/// Mutable output buffers for an airstrike phase.
+struct AirstrikeOutput<'a> {
+    damage: &'a mut [i64],
+    bak_flag: &'a mut [i64],
+    rai_flag: &'a mut [i64],
+}
+
+/// Parameters for night battle shelling simulation.
+struct NightBattleParams<'a> {
+    friendly_formation_id: i64,
+    enemy_formation_id: i64,
+    engagement: EngagementType,
+    air_state: Option<&'a AirState>,
 }
 
 /// Controls which phases execute in a day battle simulation.
@@ -172,7 +188,7 @@ impl BattleRuntimeShip {
 
     /// Apply damage with sinking protection (轟沈ストッパー).
     ///
-    /// In real KanColle:
+    /// In real `KanColle`:
     /// - Friendly ships that were **not** in taiha (HP ≤ 25% max) at the start of
     ///   the battle node cannot be sunk. Lethal damage is replaced with
     ///   proportional damage: `floor(0.5 * H + 0.3 * rand(0..H))`.
@@ -234,7 +250,6 @@ impl From<BattleShipInput> for BattleRuntimeShip {
 
 #[derive(Debug, Clone)]
 pub struct BattleContext {
-    pub mode: BattleMode,
     pub battle_type: BattleType,
     /// Whether this is a sortie battle (true) or practice (false).
     /// Sinking protection only applies during sorties.
@@ -584,9 +599,7 @@ impl BattleRaigeki {
 pub struct BattlePacket {
     pub formation: [i64; 3],
     pub friendly_nowhps: Vec<i64>,
-    pub friendly_maxhps: Vec<i64>,
     pub enemy_nowhps: Vec<i64>,
-    pub enemy_maxhps: Vec<i64>,
     pub smoke_type: i64,
     pub balloon_cell: i64,
     pub atoll_cell: i64,
@@ -715,10 +728,12 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
             &random,
             &mut friendly,
             &mut enemy,
-            false,
-            context.friendly_formation_id,
-            context.engagement,
-            BattlePhase::DayShelling,
+            &ShellingParams {
+                attacker_is_enemy: false,
+                formation_id: context.friendly_formation_id,
+                engagement: context.engagement,
+                phase: BattlePhase::DayShelling,
+            },
         );
         if hougeki1.is_some() {
             hourai_flag[0] = 1;
@@ -730,10 +745,12 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
                 &random,
                 &mut enemy,
                 &mut friendly,
-                true,
-                context.enemy_formation_id,
-                context.engagement,
-                BattlePhase::DayShelling,
+                &ShellingParams {
+                    attacker_is_enemy: true,
+                    formation_id: context.enemy_formation_id,
+                    engagement: context.engagement,
+                    phase: BattlePhase::DayShelling,
+                },
             );
             if hougeki2.is_some() {
                 hourai_flag[1] = 1;
@@ -771,9 +788,7 @@ pub fn simulate_day_battle_v1(codex: &Codex, context: BattleContext) -> BattleSi
             context.engagement.api_id(),
         ],
         friendly_nowhps: friendly.iter().map(|ship| ship.hp().max(0)).collect(),
-        friendly_maxhps: friendly.iter().map(|ship| ship.ship.api_maxhp).collect(),
         enemy_nowhps: enemy.iter().map(|ship| ship.hp().max(0)).collect(),
-        enemy_maxhps: enemy.iter().map(|ship| ship.ship.api_maxhp).collect(),
         smoke_type: 0,
         balloon_cell: 0,
         atoll_cell: 0,
@@ -827,10 +842,12 @@ pub fn simulate_night_battle_v1(
         &random,
         &mut friendly,
         &mut enemy,
-        friendly_formation_id,
-        enemy_formation_id,
-        engagement,
-        air_state,
+        &NightBattleParams {
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            air_state,
+        },
     );
     let outcome = BattleOutcome {
         win_rank: calculate_win_rank(&friendly, &enemy),
@@ -926,10 +943,7 @@ fn simulate_shelling_side(
     random: &BattleRandom,
     attackers: &mut [BattleRuntimeShip],
     defenders: &mut [BattleRuntimeShip],
-    attacker_enemy: bool,
-    formation_id: i64,
-    engagement: EngagementType,
-    phase: BattlePhase,
+    params: &ShellingParams,
 ) -> Option<BattleHougeki> {
     let mut at_eflag = Vec::new();
     let mut at_list = Vec::new();
@@ -943,7 +957,8 @@ fn simulate_shelling_side(
         if !can_shell_day_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) = select_random_target_index(codex, random, ship, defenders, phase)
+        let Some(target_idx) =
+            select_random_target_index(codex, random, ship, defenders, params.phase)
         else {
             continue;
         };
@@ -954,8 +969,8 @@ fn simulate_shelling_side(
                 random,
                 ship,
                 &defenders[target_idx],
-                formation_id,
-                engagement,
+                params.formation_id,
+                params.engagement,
             )
         } else {
             calculate_shelling_damage(
@@ -963,16 +978,16 @@ fn simulate_shelling_side(
                 random,
                 ship,
                 &defenders[target_idx],
-                formation_id,
-                engagement,
+                params.formation_id,
+                params.engagement,
             )
         };
         let (_, dealt) = defenders[target_idx].apply_damage(random, raw, target_idx);
-        if !attacker_enemy {
+        if !params.attacker_is_enemy {
             ship.damage_dealt += dealt;
         }
 
-        at_eflag.push(i64::from(attacker_enemy));
+        at_eflag.push(i64::from(params.attacker_is_enemy));
         at_list.push(idx as i64);
         at_type.push(if is_asw_attack {
             7
@@ -1192,9 +1207,8 @@ fn calculate_single_slot_airstrike_damage(
     if onslot <= 0 {
         return 0;
     }
-    let mst = match codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) {
-        Ok(m) => m,
-        Err(_) => return 0,
+    let Ok(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) else {
+        return 0;
     };
     if !is_airstrike_attack_type(mst.api_type[2]) {
         return 0;
@@ -1222,9 +1236,7 @@ fn execute_airstrike_phase(
     attackers: &mut [BattleRuntimeShip],
     defenders: &mut [BattleRuntimeShip],
     is_enemy_side: bool,
-    damage_out: &mut [i64],
-    bak_flag: &mut [i64],
-    rai_flag: &mut [i64],
+    output: &mut AirstrikeOutput,
 ) {
     // Phase 1: Dive bombing — iterate per bomber slot (non-torpedo types)
     for ship in attackers.iter_mut() {
@@ -1233,13 +1245,11 @@ fn execute_airstrike_phase(
             if onslot <= 0 {
                 continue;
             }
-            let mst = match codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) {
-                Ok(m) => m,
-                Err(_) => continue,
+            let Ok(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) else {
+                continue;
             };
-            let type3 = match KcSlotItemType3::n(mst.api_type[2]) {
-                Some(t) => t,
-                None => continue,
+            let Some(type3) = KcSlotItemType3::n(mst.api_type[2]) else {
+                continue;
             };
             if !is_airstrike_attack_type(mst.api_type[2]) {
                 continue;
@@ -1248,8 +1258,12 @@ fn execute_airstrike_phase(
                 continue;
             }
 
-            let alive_targets: Vec<usize> =
-                defenders.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
+            let alive_targets: Vec<usize> = defenders
+                .iter()
+                .enumerate()
+                .filter(|(_, s)| s.is_alive())
+                .map(|(i, _)| i)
+                .collect();
             if alive_targets.is_empty() {
                 continue;
             }
@@ -1263,8 +1277,8 @@ fn execute_airstrike_phase(
             );
             if damage > 0 {
                 let (_, dealt) = defenders[target_idx].apply_damage(random, damage, target_idx);
-                damage_out[target_idx] += dealt;
-                bak_flag[target_idx] = 1;
+                output.damage[target_idx] += dealt;
+                output.bak_flag[target_idx] = 1;
             }
         }
     }
@@ -1276,9 +1290,8 @@ fn execute_airstrike_phase(
             if onslot <= 0 {
                 continue;
             }
-            let mst = match codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) {
-                Ok(m) => m,
-                Err(_) => continue,
+            let Ok(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) else {
+                continue;
             };
             if KcSlotItemType3::n(mst.api_type[2])
                 != Some(KcSlotItemType3::CarrierBasedTorpedoBomber)
@@ -1286,8 +1299,12 @@ fn execute_airstrike_phase(
                 continue;
             }
 
-            let alive_targets: Vec<usize> =
-                defenders.iter().enumerate().filter(|(_, s)| s.is_alive()).map(|(i, _)| i).collect();
+            let alive_targets: Vec<usize> = defenders
+                .iter()
+                .enumerate()
+                .filter(|(_, s)| s.is_alive())
+                .map(|(i, _)| i)
+                .collect();
             if alive_targets.is_empty() {
                 continue;
             }
@@ -1301,18 +1318,16 @@ fn execute_airstrike_phase(
             );
             if damage > 0 {
                 let (_, dealt) = defenders[target_idx].apply_damage(random, damage, target_idx);
-                damage_out[target_idx] += dealt;
-                rai_flag[target_idx] = 1;
+                output.damage[target_idx] += dealt;
+                output.rai_flag[target_idx] = 1;
             }
         }
     }
 
     // Attribute total damage to best bomber ship (for statistics)
-    if !is_enemy_side {
-        if let Some(best_idx) = best_bomber_index(codex, attackers) {
-            let total: i64 = damage_out.iter().sum();
-            attackers[best_idx].damage_dealt += total;
-        }
+    if !is_enemy_side && let Some(best_idx) = best_bomber_index(codex, attackers) {
+        let total: i64 = output.damage.iter().sum();
+        attackers[best_idx].damage_dealt += total;
     }
 }
 fn simulate_kouku(
@@ -1374,9 +1389,11 @@ fn simulate_kouku(
         friendly,
         enemy,
         false,
-        &mut api_edam,
-        &mut api_ebak_flag,
-        &mut api_erai_flag,
+        &mut AirstrikeOutput {
+            damage: &mut api_edam,
+            bak_flag: &mut api_ebak_flag,
+            rai_flag: &mut api_erai_flag,
+        },
     );
     execute_airstrike_phase(
         codex,
@@ -1384,9 +1401,11 @@ fn simulate_kouku(
         enemy,
         friendly,
         true,
-        &mut api_fdam,
-        &mut api_fbak_flag,
-        &mut api_frai_flag,
+        &mut AirstrikeOutput {
+            damage: &mut api_fdam,
+            bak_flag: &mut api_fbak_flag,
+            rai_flag: &mut api_frai_flag,
+        },
     );
     api_fcl_flag = api_fdam.iter().map(|&d| i64::from(d > 0)).collect();
 
@@ -1468,7 +1487,7 @@ fn bomber_slot_count(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
                 .find::<ApiMstSlotitem>(&si.api_slotitem_id)
                 .ok()
                 .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .map_or(false, |t| BOMBER_TYPES.contains(&t))
+                .is_some_and(|t| BOMBER_TYPES.contains(&t))
         })
         .count() as i64
 }
@@ -2082,7 +2101,7 @@ fn can_closing_torpedo(codex: &Codex, ships: &[BattleRuntimeShip]) -> bool {
 }
 
 pub fn any_alive(ships: &[BattleRuntimeShip]) -> bool {
-    ships.iter().any(|ship| ship.is_alive())
+    ships.iter().any(BattleRuntimeShip::is_alive)
 }
 
 fn is_air_combat_type(slotitem_type: i64) -> bool {
@@ -2456,8 +2475,8 @@ pub fn calculate_win_rank(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntime
     let enemy_remaining_hp: i64 = enemy.iter().map(|ship| ship.hp().max(0)).sum();
     let friend_total_hp: i64 = friendly.iter().map(|ship| ship.ship.api_maxhp).sum();
     let friend_remaining_hp: i64 = friendly.iter().map(|ship| ship.hp().max(0)).sum();
-    let enemy_all_sunk = enemy.iter().all(|ship| ship.is_sunk());
-    let friend_all_sunk = friendly.iter().all(|ship| ship.is_sunk());
+    let enemy_all_sunk = enemy.iter().all(BattleRuntimeShip::is_sunk);
+    let friend_all_sunk = friendly.iter().all(BattleRuntimeShip::is_sunk);
     let friend_sunk_count = friendly.iter().filter(|ship| ship.is_sunk()).count();
     let friend_count = friendly.len();
     let enemy_damage_rate =
@@ -2713,10 +2732,7 @@ fn simulate_night_hougeki(
     random: &BattleRandom,
     friendly: &mut [BattleRuntimeShip],
     enemy: &mut [BattleRuntimeShip],
-    friendly_formation_id: i64,
-    enemy_formation_id: i64,
-    engagement: EngagementType,
-    air_state: Option<&AirState>,
+    params: &NightBattleParams,
 ) -> Option<BattleNightHougeki> {
     let mut at_eflag = Vec::new();
     let mut at_list = Vec::new();
@@ -2749,8 +2765,13 @@ fn simulate_night_hougeki(
             let raw = if is_submarine {
                 calculate_scratch_damage(random, enemy[target_idx].hp().max(1))
             } else {
-                let base =
-                    calculate_night_damage(codex, random, ship, &enemy[target_idx], air_state);
+                let base = calculate_night_damage(
+                    codex,
+                    random,
+                    ship,
+                    &enemy[target_idx],
+                    params.air_state,
+                );
                 (base as f64 * multiplier).floor() as i64
             };
             let (_, dealt) = enemy[target_idx].apply_damage(random, raw, target_idx);
@@ -2791,8 +2812,13 @@ fn simulate_night_hougeki(
             let raw = if is_submarine {
                 calculate_scratch_damage(random, friendly[target_idx].hp().max(1))
             } else {
-                let base =
-                    calculate_night_damage(codex, random, ship, &friendly[target_idx], air_state);
+                let base = calculate_night_damage(
+                    codex,
+                    random,
+                    ship,
+                    &friendly[target_idx],
+                    params.air_state,
+                );
                 (base as f64 * multiplier).floor() as i64
             };
             let (_, dealt) = friendly[target_idx].apply_damage(random, raw, target_idx);
@@ -2814,7 +2840,7 @@ fn simulate_night_hougeki(
         return None;
     }
 
-    let _ = (friendly_formation_id, enemy_formation_id, engagement);
+    let _ = (params.friendly_formation_id, params.enemy_formation_id, params.engagement);
     Some(BattleNightHougeki {
         api_at_eflag: at_eflag,
         api_at_list: at_list,
@@ -2930,7 +2956,7 @@ mod tests {
     fn battle_context_applies_formation_and_engagement() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 99));
         let defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
         attacker.ship.api_karyoku[0] = 180;
@@ -2971,7 +2997,6 @@ mod tests {
         let simulation = simulate_day_battle_v1(
             &codex,
             BattleContext {
-                mode: BattleMode::Sortie,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -3002,7 +3027,6 @@ mod tests {
         let simulation = simulate_day_battle_v1(
             &codex,
             BattleContext {
-                mode: BattleMode::Practice,
                 battle_type: BattleType::Normal,
                 is_sortie: false,
                 friendly_formation_id: 1,
@@ -3033,7 +3057,6 @@ mod tests {
         let simulation = simulate_day_battle_v1(
             &codex,
             BattleContext {
-                mode: BattleMode::Practice,
                 battle_type: BattleType::Normal,
                 is_sortie: false,
                 friendly_formation_id: 1,
@@ -3089,7 +3112,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, clt_mst, 50))];
         let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
-        let mut random = BattleRandom::new(Some(1));
+        let random = BattleRandom::new(Some(1));
 
         let opening = simulate_opening_torpedo(
             &codex,
@@ -3118,7 +3141,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
         let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, clt_mst, 50))];
-        let mut random = BattleRandom::new(Some(1));
+        let random = BattleRandom::new(Some(1));
 
         let opening = simulate_opening_torpedo(
             &codex,
@@ -3187,7 +3210,6 @@ mod tests {
         let simulation = simulate_day_battle_v1(
             &codex,
             BattleContext {
-                mode: BattleMode::Practice,
                 battle_type: BattleType::Normal,
                 is_sortie: false,
                 friendly_formation_id: 1,
@@ -3238,7 +3260,7 @@ mod tests {
             BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50)),
             BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
         ];
-        let mut random = BattleRandom::new(Some(7));
+        let random = BattleRandom::new(Some(7));
 
         let target_idx = select_random_target_index(
             &codex,
@@ -3264,7 +3286,7 @@ mod tests {
             BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
             BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50)),
         ];
-        let mut random = BattleRandom::new(Some(7));
+        let random = BattleRandom::new(Some(7));
 
         let target_idx = select_random_target_index(
             &codex,
@@ -3318,7 +3340,7 @@ mod tests {
             BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
             BattleRuntimeShip::from(pt),
         ];
-        let mut random = BattleRandom::new(Some(13));
+        let random = BattleRandom::new(Some(13));
 
         let target_idx = select_random_target_index(
             &codex,
@@ -3347,7 +3369,7 @@ mod tests {
             BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
             BattleRuntimeShip::from(installation),
         ];
-        let mut random = BattleRandom::new(Some(17));
+        let random = BattleRandom::new(Some(17));
 
         let target_idx = select_random_target_index(
             &codex,
@@ -3405,7 +3427,7 @@ mod tests {
             BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50)),
         ];
         let submarine_only = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
-        let mut random = BattleRandom::new(Some(11));
+        let random = BattleRandom::new(Some(11));
 
         let target_idx = select_random_target_index(
             &codex,
@@ -3436,7 +3458,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
         let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
-        let mut random = BattleRandom::new(Some(1));
+        let random = BattleRandom::new(Some(1));
 
         let raigeki = simulate_raigeki(
             &codex,
@@ -3465,7 +3487,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
         let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
-        let mut random = BattleRandom::new(Some(1));
+        let random = BattleRandom::new(Some(1));
 
         let raigeki = simulate_raigeki(
             &codex,
@@ -3495,17 +3517,19 @@ mod tests {
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
         let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
         let enemy_hp = enemy[0].hp();
-        let mut random = BattleRandom::new(Some(3));
+        let random = BattleRandom::new(Some(3));
 
         let hougeki = simulate_night_hougeki(
             &codex,
             &random,
             &mut friendly,
             &mut enemy,
-            1,
-            1,
-            EngagementType::SameCourse,
-            None,
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                air_state: None,
+            },
         )
         .unwrap();
 
@@ -3595,7 +3619,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &random);
 
@@ -3626,7 +3650,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &random);
 
@@ -3666,7 +3690,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &random);
         assert_eq!(kouku.api_stage1.api_disp_seiku, 1); // supremacy
@@ -3746,7 +3770,7 @@ mod tests {
         defender_input.ship.api_soukou[0] = 10;
         let defender = BattleRuntimeShip::from(defender_input);
 
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let dmg = calculate_asw_damage(
             &codex,
             &random,
@@ -3781,7 +3805,7 @@ mod tests {
             BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50)),
             BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50)),
         ];
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
 
         // Should always select index 1 (the submarine), never index 0 (the DD)
         for _ in 0..10 {
@@ -3810,7 +3834,6 @@ mod tests {
         enemy.ship.api_maxhp = 30;
 
         let context = BattleContext {
-            mode: BattleMode::Sortie,
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,
@@ -3952,17 +3975,19 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
         let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
 
         let hougeki = simulate_night_hougeki(
             &codex,
             &random,
             &mut friendly,
             &mut enemies,
-            1,
-            1,
-            EngagementType::SameCourse,
-            None,
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                air_state: None,
+            },
         )
         .unwrap();
 
@@ -3983,7 +4008,6 @@ mod tests {
         let simulation = simulate_day_battle_v1(
             &codex,
             BattleContext {
-                mode: BattleMode::Sortie,
                 battle_type: BattleType::AirBattle,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -4023,7 +4047,6 @@ mod tests {
         let simulation = simulate_day_battle_v1(
             &codex,
             BattleContext {
-                mode: BattleMode::Sortie,
                 battle_type: BattleType::AirBattle,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -4042,7 +4065,7 @@ mod tests {
 
     #[test]
     fn sinking_protection_saves_non_taiha_ship_in_sortie() {
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship(30, 30, 30, 40);
         let (raw, effective) = ship.apply_damage(&random, 999, 1);
         assert!(ship.hp() >= 1, "ship must survive with sinking protection");
@@ -4052,7 +4075,7 @@ mod tests {
 
     #[test]
     fn flagship_always_survives_even_when_taiha() {
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship(5, 5, 5, 40);
         let (raw, effective) = ship.apply_damage(&random, 999, 0);
         assert!(ship.hp() >= 1, "flagship must always survive");
@@ -4062,7 +4085,7 @@ mod tests {
 
     #[test]
     fn taiha_advance_ship_can_be_sunk() {
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship(5, 5, 5, 40);
         let (raw, effective) = ship.apply_damage(&random, 999, 1);
         assert_eq!(ship.hp(), 0, "taiha-advance ship should be sunk");
@@ -4072,7 +4095,7 @@ mod tests {
 
     #[test]
     fn practice_never_triggers_sinking_protection() {
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, true, false);
         let (raw, effective) = ship.apply_damage(&random, 999, 1);
         assert_eq!(ship.hp(), 0, "practice uses normal damage clamping");
@@ -4082,7 +4105,7 @@ mod tests {
 
     #[test]
     fn enemy_ships_never_get_sinking_protection() {
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
         let (raw, effective) = ship.apply_damage(&random, 999, 0);
         assert_eq!(ship.hp(), 0, "enemy ships should be sinkable");
@@ -4189,10 +4212,10 @@ mod tests {
     fn flagship_is_always_protected_from_sinking() {
         // Flagship at index 0, healthy at entry, sortie battle
         let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
         // Apply lethal damage (more than current_hp)
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 0);
         assert!(effective > 0, "flagship should take proportional damage");
         assert!(ship.current_hp > 0, "flagship must survive");
         assert!(ship.current_hp < ship.entry_hp, "should be proportional, not full damage");
@@ -4204,9 +4227,9 @@ mod tests {
         // Flagship already at 1 HP — too low for proportional formula to deal > 0,
         // but protection still prevents sinking.
         let mut ship = make_test_ship_ctx(1, 5, 1, 30, true, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 0);
         assert_eq!(effective, 0, "at 1 HP, protection reduces damage to 0");
         assert_eq!(ship.current_hp, 1, "flagship must survive");
         assert_eq!(raw, 100);
@@ -4216,9 +4239,9 @@ mod tests {
     fn non_taiha_ship_is_protected_from_sinking() {
         // Ship with entry_hp > 25% max_hp (not taiha at entry), not flagship (index 2)
         let mut ship = make_test_ship_ctx(10, 20, 10, 30, true, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 2);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 2);
         assert!(effective > 0, "non-taiha ship should take proportional damage");
         assert!(ship.current_hp > 0, "non-taiha ship must survive");
         assert_eq!(raw, 100);
@@ -4230,9 +4253,9 @@ mod tests {
         let entry_hp = 5;
         let max_hp = 30;
         let mut ship = make_test_ship_ctx(entry_hp, entry_hp, entry_hp, max_hp, true, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 2);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 2);
         // Taiha non-flagship: no protection, should be sunk
         assert_eq!(ship.current_hp, 0, "taiha non-flagship should be sunk");
         assert_eq!(effective, 5);
@@ -4244,9 +4267,9 @@ mod tests {
         // Ship entered node with 30 HP, took damage to current_hp = 10
         let max_hp = 40;
         let mut ship = make_test_ship_ctx(10, 30, 10, max_hp, true, true);
-        let mut rng = BattleRandom::new(Some(123));
+        let rng = BattleRandom::new(Some(123));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 1);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 1);
         assert!(effective > 0);
         assert!(ship.current_hp > 0, "should survive due to protection");
 
@@ -4263,9 +4286,9 @@ mod tests {
     #[test]
     fn enemy_ships_get_no_protection() {
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, false, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 0);
         assert_eq!(effective, 1, "enemy ship should take full effective damage");
         assert_eq!(raw, 100, "raw should show overkill");
         assert_eq!(ship.current_hp, 0, "enemy ship should be sunk");
@@ -4275,9 +4298,9 @@ mod tests {
     fn practice_ships_get_no_protection() {
         // Friendly ship in practice (is_sortie = false)
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, true, false);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 0);
         assert_eq!(effective, 1, "practice ship should take full effective damage");
         assert_eq!(raw, 100, "raw should show overkill");
         assert_eq!(ship.current_hp, 0, "practice ship should be sunk");
@@ -4286,9 +4309,9 @@ mod tests {
     #[test]
     fn overkill_shows_raw_damage() {
         let mut ship = make_test_ship_ctx(5, 5, 5, 30, false, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        let (raw, effective) = ship.apply_damage(&rng, 100, 0);
         assert_eq!(raw, 100, "raw should show full input damage");
         assert_eq!(effective, 5, "effective capped to current HP");
         assert_eq!(ship.current_hp, 0, "ship should be sunk");
@@ -4297,9 +4320,9 @@ mod tests {
     #[test]
     fn protection_shows_raw_but_reduces_hp_proportionally() {
         let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
-        let mut rng = BattleRandom::new(Some(42));
+        let rng = BattleRandom::new(Some(42));
 
-        let (raw, effective) = ship.apply_damage(&mut rng, 200, 0);
+        let (raw, effective) = ship.apply_damage(&rng, 200, 0);
         assert_eq!(raw, 200, "raw should show full lethal input");
         assert!(effective < 10, "effective should be proportional, not lethal");
         assert!(ship.current_hp > 0, "flagship must survive");
@@ -4310,11 +4333,11 @@ mod tests {
         // With armor 100, defense should be in range [floor(0.7*100), floor(0.7*100 + 0.6*99)]
         // = [70, 129]
         let min_armor = 1;
-        let mut rng = BattleRandom::new(Some(12345));
+        let rng = BattleRandom::new(Some(12345));
         let mut min_val = i64::MAX;
         let mut max_val = i64::MIN;
         for _ in 0..1000 {
-            let def = calculate_defense_power(&mut rng, 100) as i64;
+            let def = calculate_defense_power(&rng, 100) as i64;
             min_val = min_val.min(def);
             max_val = max_val.max(def);
         }
@@ -4323,11 +4346,11 @@ mod tests {
         assert!(min_val < max_val, "defense should vary with RNG");
 
         // Edge case: armor 0
-        let def = calculate_defense_power(&mut rng, 0);
+        let def = calculate_defense_power(&rng, 0);
         assert_eq!(def as i64, 0);
 
         // Edge case: armor 1
-        let def = calculate_defense_power(&mut rng, 1);
+        let def = calculate_defense_power(&rng, 1);
         assert_eq!(def as i64, 0); // floor(0.7) = 0
 
         // Drop the unused warning
@@ -4393,7 +4416,7 @@ mod tests {
         // Create a weak attacker and strong defender to force scratch damage
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let mut random = BattleRandom::new(Some(99));
+        let random = BattleRandom::new(Some(99));
         let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 1)); // weak DD
         let defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99)); // strong abyssal
         attacker.ship.api_karyoku[0] = 10; // very low firepower
@@ -4417,7 +4440,7 @@ mod tests {
     fn normal_damage_when_attack_above_defense() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let mut random = BattleRandom::new(Some(99));
+        let random = BattleRandom::new(Some(99));
         let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 99));
         let mut defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
         attacker.ship.api_karyoku[0] = 200; // strong firepower
@@ -4437,7 +4460,7 @@ mod tests {
     #[test]
     fn torpedo_base_power_without_plus_five() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, 89, 99));
         let mut defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
         attacker.ship.api_raisou[0] = 100;
@@ -4461,7 +4484,7 @@ mod tests {
     #[test]
     fn taiha_torpedo_deals_zero_not_scratch() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let mut random = BattleRandom::new(Some(42));
+        let random = BattleRandom::new(Some(42));
         let mut attacker = BattleRuntimeShip::from(sample_ship(&codex, 89, 99));
         let defender = BattleRuntimeShip::from(sample_ship(&codex, 412, 99));
         attacker.ship.api_raisou[0] = 100;

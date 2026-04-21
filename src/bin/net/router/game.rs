@@ -34,7 +34,7 @@ async fn home(uri: Uri, Extension(session): Extension<GameSession>) -> impl Into
     let html = std::str::from_utf8(html.data.as_ref()).unwrap();
 
     // prepare parameters
-    let host = uri.authority().map(|a| a.as_str()).unwrap_or("localhost:8080");
+    let host = uri.authority().map(http::uri::Authority::as_str).unwrap_or("localhost:8080");
     let parent = format!("//{host}/netgame/social/");
     let parent = urlencoding::encode(&parent);
 
@@ -84,7 +84,7 @@ struct ViewerQuery {
 
 // emukc/game/*
 async fn game(uri: Uri, Path(path): Path<String>, Query(query): Query<ViewerQuery>) -> Response {
-    let host = uri.authority().map(|a| a.as_str()).unwrap_or("localhost:8080");
+    let host = uri.authority().map(http::uri::Authority::as_str).unwrap_or("localhost:8080");
 
     if path.ends_with("hijack.js") {
         let uid = query.viewer.unwrap_or(0);

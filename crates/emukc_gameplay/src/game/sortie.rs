@@ -35,8 +35,8 @@ use super::{
     basic::find_profile,
     battle::{
         core::{
-            BattleContext, BattleMode, BattleNightHougeki, BattlePacket, BattleShipInput,
-            BattleType, EngagementType,
+            BattleContext, BattleNightHougeki, BattlePacket, BattleShipInput, BattleType,
+            EngagementType,
         },
         practice::PracticeBattleResponse,
         sortie::{
@@ -574,13 +574,13 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 
         // Fire EnemyShipSunk events for each sunk enemy ship
         for (i, &hp) in snapshot.enemy_nowhps.iter().enumerate() {
-            if hp <= 0 {
-                if let Some(&stype) = snapshot.enemy_ship_types.get(i) {
-                    let sink_event = QuestActionEvent::EnemyShipSunk {
-                        ship_stype: stype,
-                    };
-                    update_quest_progress_for_action(&tx, codex, profile_id, &sink_event).await?;
-                }
+            if hp <= 0
+                && let Some(&stype) = snapshot.enemy_ship_types.get(i)
+            {
+                let sink_event = QuestActionEvent::EnemyShipSunk {
+                    ship_stype: stype,
+                };
+                update_quest_progress_for_action(&tx, codex, profile_id, &sink_event).await?;
             }
         }
 
@@ -774,7 +774,6 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 map_id: active.map_id,
                 cell_id: active.current_cell_id,
                 context: BattleContext {
-                    mode: BattleMode::Sortie,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: formation_id,
@@ -938,7 +937,6 @@ async fn sortie_battle_impl(
             map_id: active.map_id,
             cell_id: active.current_cell_id,
             context: BattleContext {
-                mode: BattleMode::Sortie,
                 battle_type,
                 is_sortie: true,
                 friendly_formation_id: formation_id,
@@ -1682,11 +1680,37 @@ fn build_sortie_night_battle_response(
     }
 }
 
+fn enemy_slot_ids(ship: &BattleShipInput) -> [i64; 5] {
+    if ship.ship.api_slot.iter().any(|slot| *slot > 0) {
+        let mut slots = [-1; 5];
+        for (idx, slot) in ship.ship.api_slot.iter().take(5).enumerate() {
+            if *slot > 0 {
+                slots[idx] = *slot;
+            }
+        }
+        return slots;
+    }
+    let mut slots = [-1; 5];
+    for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
+        slots[idx] = slot_item.api_slotitem_id;
+    }
+    slots
+}
+
+fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
+    match (map_id + cell_id).rem_euclid(4) {
+        1 => EngagementType::HeadOn,
+        2 => EngagementType::TAdvantage,
+        3 => EngagementType::TDisadvantage,
+        _ => EngagementType::SameCourse,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::game::battle::{
-        core::{BattleMode, BattleType},
+        core::BattleType,
         sortie::{
             pending_sortie_battle, simulate_and_store_sortie_day_battle,
             simulate_and_store_sortie_sp_midnight_battle,
@@ -1991,7 +2015,6 @@ mod tests {
                 map_id: 11,
                 cell_id: 1,
                 context: BattleContext {
-                    mode: BattleMode::Sortie,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 1,
@@ -2069,7 +2092,6 @@ mod tests {
                 map_id: 11,
                 cell_id: 1,
                 context: BattleContext {
-                    mode: BattleMode::Sortie,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 1,
@@ -3165,7 +3187,7 @@ mod tests {
 
         // Simulate Boss win on 1-1 through the actual cascade
         let definition = catalog.as_ref().map_definition(11).unwrap();
-        let stage = definition.stage(&String::new()).unwrap();
+        let stage = definition.stage("").unwrap();
         let snapshot = successful_boss_snapshot();
 
         let first_clear = apply_sortie_map_result(
@@ -3186,31 +3208,5 @@ mod tests {
             let rec = find_map_record_impl(&context.0, profile_id, dep_id).await.unwrap();
             assert!(rec.unlocked, "dependent {dep_id} should be unlocked after clearing 1-1");
         }
-    }
-}
-
-fn enemy_slot_ids(ship: &BattleShipInput) -> [i64; 5] {
-    if ship.ship.api_slot.iter().any(|slot| *slot > 0) {
-        let mut slots = [-1; 5];
-        for (idx, slot) in ship.ship.api_slot.iter().take(5).enumerate() {
-            if *slot > 0 {
-                slots[idx] = *slot;
-            }
-        }
-        return slots;
-    }
-    let mut slots = [-1; 5];
-    for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
-        slots[idx] = slot_item.api_slotitem_id;
-    }
-    slots
-}
-
-fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
-    match (map_id + cell_id).rem_euclid(4) {
-        1 => EngagementType::HeadOn,
-        2 => EngagementType::TAdvantage,
-        3 => EngagementType::TDisadvantage,
-        _ => EngagementType::SameCourse,
     }
 }

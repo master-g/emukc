@@ -109,9 +109,9 @@ pub fn simulate_and_store_sortie_night_battle(
     })
 }
 
-/// Creates and stores a sortie session for a night-start (sp_midnight) battle.
+/// Creates and stores a sortie session for a night-start (`sp_midnight`) battle.
 ///
-/// Unlike normal midnight which continues from a day battle, sp_midnight has
+/// Unlike normal midnight which continues from a day battle, `sp_midnight` has
 /// no preceding day battle. We construct a minimal day packet (no combat phases)
 /// and immediately run the night simulation.
 pub fn simulate_and_store_sortie_sp_midnight_battle(
@@ -147,10 +147,8 @@ pub fn simulate_and_store_sortie_sp_midnight_battle(
         enemy: enemy.clone(),
         packet: BattlePacket {
             formation: [friendly_formation_id, enemy_formation_id, engagement.api_id()],
-            friendly_nowhps: friendly.iter().map(|s| s.hp()).collect(),
-            friendly_maxhps: friendly.iter().map(|s| s.ship.api_maxhp).collect(),
-            enemy_nowhps: enemy.iter().map(|s| s.hp()).collect(),
-            enemy_maxhps: enemy.iter().map(|s| s.ship.api_maxhp).collect(),
+            friendly_nowhps: friendly.iter().map(super::core::BattleRuntimeShip::hp).collect(),
+            enemy_nowhps: enemy.iter().map(super::core::BattleRuntimeShip::hp).collect(),
             smoke_type: 0,
             balloon_cell: 0,
             atoll_cell: 0,
@@ -230,7 +228,7 @@ fn build_sortie_session(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::battle::core::{BattleMode, BattleShipInput, BattleType, EngagementType};
+    use crate::game::battle::core::{BattleShipInput, BattleType, EngagementType};
     use emukc_model::kc2::level;
 
     fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
@@ -261,7 +259,6 @@ mod tests {
                 map_id: 11,
                 cell_id: 3,
                 context: BattleContext {
-                    mode: BattleMode::Sortie,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 1,

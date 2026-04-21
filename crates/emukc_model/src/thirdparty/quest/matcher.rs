@@ -137,7 +137,8 @@ impl Kc3rdQuestCondition {
         match self {
             Kc3rdQuestCondition::Factory(
                 Kc3rdQuestConditionFactory::ShipConstruction(count)
-                | Kc3rdQuestConditionFactory::SlotItemConstruction(count),
+                | Kc3rdQuestConditionFactory::SlotItemConstruction(count)
+                | Kc3rdQuestConditionFactory::SlotItemImprovement(count),
             )
             | Kc3rdQuestCondition::Scrap(
                 Kc3rdQuestConditionScrap::AnyShip(count)
@@ -260,16 +261,6 @@ impl Kc3rdQuestCondition {
                     return false;
                 };
                 if *count > 0 && ship_matches_stype(ship_cond, codex, *ship_stype) {
-                    *count -= 1;
-                    true
-                } else {
-                    false
-                }
-            }
-            Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::SlotItemImprovement(
-                count,
-            )) => {
-                if *count > 0 {
                     *count -= 1;
                     true
                 } else {
@@ -509,7 +500,7 @@ fn ship_matches_mst_id(cond: &Kc3rdQuestConditionShip, codex: Option<&Codex>, ms
                 .api_mst_ship
                 .iter()
                 .find(|m| m.api_id == mst_id)
-                .is_some_and(|m| types.contains(&(m.api_stype as i64)))
+                .is_some_and(|m| types.contains(&m.api_stype))
         }
         Kc3rdQuestConditionShip::ShipClass(classes) => {
             let Some(codex) = codex else {
@@ -520,7 +511,7 @@ fn ship_matches_mst_id(cond: &Kc3rdQuestConditionShip, codex: Option<&Codex>, ms
                 .api_mst_ship
                 .iter()
                 .find(|m| m.api_id == mst_id)
-                .is_some_and(|m| classes.contains(&(m.api_ctype as i64)))
+                .is_some_and(|m| classes.contains(&m.api_ctype))
         }
         _ => false,
     }

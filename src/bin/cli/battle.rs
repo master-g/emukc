@@ -1,4 +1,7 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Subcommand};
@@ -137,7 +140,7 @@ fn count_errors(report: &BattleValidationReport) -> usize {
         .count()
 }
 
-fn print_validation_report(input: &PathBuf, report: &BattleValidationReport) {
+fn print_validation_report(input: &std::path::Path, report: &BattleValidationReport) {
     let error_count = count_errors(report);
     let warning_count = report.findings.len().saturating_sub(error_count);
 
@@ -171,7 +174,7 @@ fn print_validation_report(input: &PathBuf, report: &BattleValidationReport) {
     }
 }
 
-fn print_incident_report(input: &PathBuf, report: &BattleIncidentReport) {
+fn print_incident_report(input: &Path, report: &BattleIncidentReport) {
     print_validation_report(input, &report.validation);
     if let Some(path) = &report.missing_resource_path {
         println!("missing resource: {}", path);

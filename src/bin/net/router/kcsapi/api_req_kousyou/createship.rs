@@ -30,26 +30,6 @@ pub(super) struct Params {
     api_large_flag: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Resp {
-    api_create_flag: i64,
-    api_get_items: Vec<GetItem>,
-    api_material: Vec<i64>,
-    api_unset_items: Option<Vec<UnsetItem>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct GetItem {
-    api_id: i64,
-    api_slotitem_id: i64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct UnsetItem {
-    api_slot_list: Vec<i64>,
-    api_type3: i64,
-}
-
 pub(super) async fn handler(
     state: AppState,
     Extension(session): Extension<GameSession>,
