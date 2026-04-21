@@ -58,3 +58,21 @@ async fn test_no_version() {
     let result = cache.get_with_opt("test.png", "", &opt).await;
     assert!(result.is_ok());
 }
+
+/// Regression: DB has a stored version but the request arrives without one.
+/// Before the fix, find_in_local compared stored > "" → InvalidFileVersion,
+/// causing unnecessary re-downloads on every first access.
+#[tokio::test]
+async fn test_version_rollback_no_version_requested() {
+    let (cache, temp) = setup_test_cache();
+
+    // Simulate populate: file exists locally with a stored version
+    let file_path = temp.path().join("test.png");
+    std::fs::write(&file_path, b"test data").unwrap();
+    cache.set_version("test.png", Some("1.5")).await.unwrap();
+
+    // Client requests without version → should serve the file, not error
+    let opt = emukc_cache::GetOption::new().disable_remote();
+    let result = cache.get_with_opt("test.png", "", &opt).await;
+    assert!(result.is_ok(), "expected Ok, got {:?}", result.err());
+}

@@ -456,11 +456,8 @@ impl Kache {
         Ok(version)
     }
 
-    async fn write_version_to_db(
-        &self,
-        rel_path: &str,
-        version: Option<&str>,
-    ) -> Result<(), Error> {
+    /// Write a version record for a cached resource.
+    pub async fn set_version(&self, rel_path: &str, version: Option<&str>) -> Result<(), Error> {
         let rel_path = unified_rel_path(rel_path);
         let version = version.map(String::from);
         let db = self.db.clone();
@@ -520,7 +517,7 @@ impl Kache {
         }
 
         let v = version.into_version();
-        self.write_version_to_db(rel_path, v.as_deref()).await?;
+        self.set_version(rel_path, v.as_deref()).await?;
 
         Ok(tokio::fs::File::open(local_path).await?)
     }
