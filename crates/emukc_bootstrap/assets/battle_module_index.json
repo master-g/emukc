@@ -1,9 +1,9 @@
 {
-  "scriptVersion": "6.2.7.0",
+  "scriptVersion": "6.2.8.0",
   "summary": {
     "moduleCount": 196,
     "protocolFieldCount": 63,
-    "resourceRuleCount": 241
+    "resourceRuleCount": 236
   },
   "modules": [
     {
@@ -113,7 +113,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "11039:getSlotitem:card:_0x5858a5.id"
+        "11039:getSlotitem:card:_0x46349f.id"
       ],
       "explicitResourcePaths": []
     },
@@ -319,7 +319,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "12922:getSlotitem:airunit_banner:_0x135df6.mst_id",
+        "12922:getSlotitem:airunit_banner:_0x5b5c8f.mst_id",
         "12922:getTexture:SALLY_AIRUNIT"
       ],
       "explicitResourcePaths": []
@@ -590,7 +590,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "17172:getShip:full:_0x5c8430:_0x37214f"
+        "17172:getShip:full:_0xe5cd4:_0x27eaf9"
       ],
       "explicitResourcePaths": []
     },
@@ -646,8 +646,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "17265:getShip:card:ship_mstid:_0x40c3a1",
-        "17265:getShip:full:ship_mstid:_0x40c3a1",
+        "17265:getShip:card:ship_mstid:_0x747b59",
+        "17265:getShip:full:ship_mstid:_0x747b59",
         "17265:getTexture:REMODEL_ANIMATION"
       ],
       "explicitResourcePaths": []
@@ -719,7 +719,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "17733:getShip:card:_0x132b49:_0x2444fb",
+        "17733:getShip:card:_0x139a42:_0x1a3f79",
         "17733:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -822,7 +822,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "18168:getShip:banner:_0x3b5051:_0x471e0f",
+        "18168:getShip:banner:_0x3be5c3:_0x6d8be2",
         "18168:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -864,8 +864,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "19281:getShip:reward_icon:_0x3594cb.mst_id:false",
-        "19281:getSlotitem:card:_0x3594cb.mst_id"
+        "19281:getShip:reward_icon:_0x5da0c6.mst_id:false",
+        "19281:getSlotitem:card:_0x5da0c6.mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -926,8 +926,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "19639:getShip:full:_0x330a78:damaged",
-        "19639:getShip:full:_0x3fe4c0:damaged"
+        "19639:getShip:full:mst_id:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -1065,8 +1064,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "20324:getSlotitem:card:_0x16ced7",
-        "20324:getSlotitem:card:_0x399e40",
+        "20324:getSlotitem:card:_0x74267d",
+        "20324:getSlotitem:card:_0xf86671",
         "20324:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -1122,11 +1121,11 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "20473:getShip:card:_0x556542:false",
-        "20473:getShip:character_full:_0x556542:false",
-        "20473:getShip:character_full:_0x556542:true",
-        "20473:getShip:character_up:_0x556542:false",
-        "20473:getShip:character_up:_0x556542:true"
+        "20473:getShip:card:_0xa2cdd0:false",
+        "20473:getShip:character_full:_0xa2cdd0:false",
+        "20473:getShip:character_full:_0xa2cdd0:true",
+        "20473:getShip:character_up:_0xa2cdd0:false",
+        "20473:getShip:character_up:_0xa2cdd0:true"
       ],
       "explicitResourcePaths": []
     },
@@ -1207,7 +1206,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "2067:getShip:full:_0x249e29:damaged",
+        "2067:getShip:full:mst_id:damaged",
         "2067:getTexture:MAP_TELOP"
       ],
       "explicitResourcePaths": []
@@ -1340,7 +1339,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "21541:getShip:full:_0x45d322:true",
+        "21541:getShip:full:_0x4ba467:true",
         "21541:getTexture:BATTLE_CUTIN_DAMAGE"
       ],
       "explicitResourcePaths": []
@@ -1508,9 +1507,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "26431:getSlotitem:btxt_flat:_0x237b2e",
-        "26431:getSlotitem:btxt_flat:_0x499d25",
-        "26431:getSlotitem:btxt_flat:_0xcc2575"
+        "26431:getSlotitem:btxt_flat:_0x1aa920",
+        "26431:getSlotitem:btxt_flat:_0x52a2cb",
+        "26431:getSlotitem:btxt_flat:_0x76a94e"
       ],
       "explicitResourcePaths": []
     },
@@ -1602,7 +1601,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "27793:getShip:banner:_0xda4966.mstID:_0xda4966.isDamaged()"
+        "27793:getShip:banner:_0x5a761c.mstID:_0x5a761c.isDamaged()"
       ],
       "explicitResourcePaths": []
     },
@@ -1691,7 +1690,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "29168:getShip:card:_0x1d9625:false"
+        "29168:getShip:card:_0x39be80:false"
       ],
       "explicitResourcePaths": []
     },
@@ -1825,7 +1824,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "3087:getShip:full:_0x130987:false"
+        "3087:getShip:full:_0x1d0f2d:false"
       ],
       "explicitResourcePaths": []
     },
@@ -1873,7 +1872,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "31394:getShip:banner:this._mst_id:_0x3424ca",
+        "31394:getShip:banner:this._mst_id:_0x1a83bb",
         "31394:getTexture:MAP_ANCHORAGE_REPAIR",
         "31394:getTexture:this"
       ],
@@ -1926,7 +1925,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "31930:getSlotitem:card:_0x2fbe4b._0x52a741",
+        "31930:getSlotitem:card:_0x8aa8b3._0x515b69",
         "31930:getTexture:ARSENAL_ANIMATION"
       ],
       "explicitResourcePaths": []
@@ -1964,7 +1963,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "32611:getShip:full:_0x4d7bf0:damaged"
+        "32611:getShip:full:_0x417b32:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -2165,7 +2164,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "34931:getSlotitem:card:_0x3a5543"
+        "34931:getSlotitem:card:_0x454fce"
       ],
       "explicitResourcePaths": []
     },
@@ -2202,8 +2201,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "35601:getShip:full:_0x49c908[0]:false",
-        "35601:getShip:sp_remodel/silhouette:_0x49c908[1]:false"
+        "35601:getShip:full:_0x2dc552[0]:false",
+        "35601:getShip:sp_remodel/silhouette:_0x2dc552[1]:false"
       ],
       "explicitResourcePaths": []
     },
@@ -2256,9 +2255,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "35773:getShip:full:_0x3567f4:damaged",
-        "35773:getShip:full:_0x4d7334:damaged",
-        "35773:getShip:full:_0x5ade6c:damaged"
+        "35773:getShip:full:mst_id:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -2306,7 +2303,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "3609:getShip:album_status:_0x29aa2b:false",
+        "3609:getShip:album_status:_0x3200b2:false",
         "3609:getTexture:ALBUM_MAIN"
       ],
       "explicitResourcePaths": []
@@ -2428,7 +2425,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "37638:getShip:banner:_0x98c583:_0x344bb0",
+        "37638:getShip:banner:_0x1ffb1a:_0x56d23a",
         "37638:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -2554,7 +2551,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "38083:getShip:full:_0x416205:damaged",
+        "38083:getShip:full:mst_id:damaged",
         "38083:getTexture:MAP_TELOP",
         "38083:getTexture:SALLY_JIN"
       ],
@@ -2618,7 +2615,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "38287:getSlotitem:card:_0x441d40",
+        "38287:getSlotitem:card:_0x43a6b0",
         "38287:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -2640,7 +2637,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "38661:getShip:card_round:_0x46924f:false"
+        "38661:getShip:card_round:_0x201e87:false"
       ],
       "explicitResourcePaths": []
     },
@@ -2860,7 +2857,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "4146:getShip:full:self._mst_id:_0x5c5fa6",
+        "4146:getShip:full:self._mst_id:_0x4dce0f",
         "4146:getSlotitem:card:slotitemMstID",
         "4146:getTexture:BATTLE_CUTIN_GOUCHIN",
         "4146:getTexture:COMMON_MISC"
@@ -2989,7 +2986,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "43136:getShip:full:_0x56ea11:damaged",
+        "43136:getShip:full:_0x1087bb:damaged",
         "43136:getShip:special:shipModel.mst_id:shipModel.isDamaged()"
       ],
       "explicitResourcePaths": []
@@ -3061,7 +3058,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "43367:getShip:special:_0x46587d:false",
+        "43367:getShip:special:_0x2d5cfd:false",
         "43367:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -3167,7 +3164,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "46091:getShip:reward_card:_0x3d0573:false"
+        "46091:getShip:reward_card:_0x20348a:false"
       ],
       "explicitResourcePaths": []
     },
@@ -3231,7 +3228,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "46595:getShip:full:_0x7d979f:damaged"
+        "46595:getShip:full:_0x3d6675:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -3268,7 +3265,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "46682:getSlotitem:item_up:_0x117612"
+        "46682:getSlotitem:item_up:_0x493bd9"
       ],
       "explicitResourcePaths": []
     },
@@ -3415,7 +3412,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "46997:getShip:full:_0x14be7d:true",
+        "46997:getShip:full:_0x1123ac:true",
         "46997:getTexture:BATTLE_CUTIN_DAMAGE"
       ],
       "explicitResourcePaths": []
@@ -3687,7 +3684,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "48579:getShip:full:_0x2c3ba6:damaged"
+        "48579:getShip:full:_0x5c1867:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -3791,7 +3788,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "50402:getShip:sp_remodel/text_remodel_mes:_0x452155.mstID:false",
+        "50402:getShip:sp_remodel/text_remodel_mes:_0x66f3a6.mstID:false",
         "50402:getTexture:REMODEL_GRADEUP"
       ],
       "explicitResourcePaths": []
@@ -3843,7 +3840,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "50527:getShip:full:_0x25fc30:damaged"
+        "50527:getShip:full:_0x5f4c68:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -3881,8 +3878,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "51724:getShip:banner3:_0x2d963d:false",
-        "51724:getShip:banner3:_0x37bc34:false",
+        "51724:getShip:banner3:_0x505243:false",
+        "51724:getShip:banner3:_0x5580ff:false",
         "51724:getTexture:COMMON_MISC",
         "51724:getTexture:MAP_ENEMY_BANNERFRAMES"
       ],
@@ -3989,7 +3986,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "53285:getSlotitem:statustop_item:_0x54c7af",
+        "53285:getSlotitem:statustop_item:_0x5a6058",
         "53285:getTexture:ALBUM_MAIN"
       ],
       "explicitResourcePaths": []
@@ -4290,7 +4287,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "55226:getShip:full:_0x223c2d:damaged"
+        "55226:getShip:full:_0x5d91cc:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -4339,8 +4336,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "56230:getShip:icon_box:_0x4ea190.mst_id:false",
-        "56230:getSlotitem:card:_0x4ea190.mst_id"
+        "56230:getShip:icon_box:_0x31f37d.mst_id:false",
+        "56230:getSlotitem:card:_0x31f37d.mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -4378,10 +4375,10 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "56434:getSlotitem:btxt_flat:_0x1e3204",
-        "56434:getSlotitem:btxt_flat:_0x407e6d",
-        "56434:getSlotitem:item_up:_0x11195d",
-        "56434:getSlotitem:item_up:_0x2d36ee"
+        "56434:getSlotitem:btxt_flat:_0x100ea0",
+        "56434:getSlotitem:btxt_flat:_0x24f786",
+        "56434:getSlotitem:item_up:_0x1ee4ea",
+        "56434:getSlotitem:item_up:_0x3bee5f"
       ],
       "explicitResourcePaths": []
     },
@@ -4429,12 +4426,12 @@
       "protocolFields": [],
       "resourceRuleIds": [
         "56817:getShip:banner_g:this._mst_id:true",
-        "56817:getShip:banner:this._mst_id:_0x1400e4",
-        "56817:getShip:banner:this._mst_id:_0x594b17",
+        "56817:getShip:banner:this._mst_id:_0x56e57e",
+        "56817:getShip:banner:this._mst_id:_0x5d60bd",
         "56817:getShip:banner2_g:this._mst_id:true",
-        "56817:getShip:banner2:this._mst_id:_0x4debbb",
+        "56817:getShip:banner2:this._mst_id:_0x192546",
         "56817:getShip:banner3_g:this._mst_id:true",
-        "56817:getShip:banner3:this._mst_id:_0x329cb4",
+        "56817:getShip:banner3:this._mst_id:_0x40e0a1",
         "56817:getTexture:BATTLE_MAIN",
         "56817:getTexture:this"
       ],
@@ -4612,8 +4609,8 @@
       "protocolFields": [],
       "resourceRuleIds": [
         "58441:getShip:full:this._ship_mst_id:this._ship_damaged",
-        "58441:getSlotitem:item_on:_0x1bff35",
-        "58441:getSlotitem:item_up:_0x1bff35"
+        "58441:getSlotitem:item_on:_0x33ba6f",
+        "58441:getSlotitem:item_up:_0x33ba6f"
       ],
       "explicitResourcePaths": []
     },
@@ -4823,12 +4820,12 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "60988:getSlotitem:card:_0x17deae",
-        "60988:getSlotitem:item_character:_0x17deae",
-        "60988:getSlotitem:item_on:_0x17deae",
-        "60988:getSlotitem:item_on2:_0x17deae",
-        "60988:getSlotitem:item_up:_0x17deae",
-        "60988:getSlotitem:item_up2:_0x17deae"
+        "60988:getSlotitem:card:_0x38046a",
+        "60988:getSlotitem:item_character:_0x38046a",
+        "60988:getSlotitem:item_on:_0x38046a",
+        "60988:getSlotitem:item_on2:_0x38046a",
+        "60988:getSlotitem:item_up:_0x38046a",
+        "60988:getSlotitem:item_up2:_0x38046a"
       ],
       "explicitResourcePaths": []
     },
@@ -4930,7 +4927,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "62174:getShip:full:_0x2463c6:false",
+        "62174:getShip:full:_0x26d8c6:false",
         "62174:getTexture:REVAMP_BOX"
       ],
       "explicitResourcePaths": []
@@ -4968,7 +4965,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "62473:getShip:full:_0x1844d1:damaged"
+        "62473:getShip:full:mst_id:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -4994,7 +4991,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "63476:getSlotitem:card:_0x26731f",
+        "63476:getSlotitem:card:_0x2f4335",
         "63476:getTexture:COMMON_SELECTABLE_REWARD"
       ],
       "explicitResourcePaths": []
@@ -5092,7 +5089,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "64289:getShip:supply_character:_0x39323a:_0x1f7999",
+        "64289:getShip:supply_character:_0x20d0e3:_0x5ec49f",
         "64289:getTexture:COMMON_MAIN",
         "64289:getTexture:COMMON_MISC"
       ],
@@ -5346,12 +5343,12 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "66157:getSlotitem:btxt_flat:_0x203d24",
-        "66157:getSlotitem:btxt_flat:_0x4d1b5d",
-        "66157:getSlotitem:btxt_flat:_0x55e6d1",
-        "66157:getSlotitem:item_up:_0x1cd356",
-        "66157:getSlotitem:item_up:_0x496bc2",
-        "66157:getSlotitem:item_up:_0x544e42"
+        "66157:getSlotitem:btxt_flat:_0x14fbb6",
+        "66157:getSlotitem:btxt_flat:_0x2c4799",
+        "66157:getSlotitem:btxt_flat:_0x3d2565",
+        "66157:getSlotitem:item_up:_0x130989",
+        "66157:getSlotitem:item_up:_0x1af0ec",
+        "66157:getSlotitem:item_up:_0x5e14b9"
       ],
       "explicitResourcePaths": []
     },
@@ -5412,9 +5409,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "66609:getSlotitem:btxt_flat:_0x2a3b3d",
-        "66609:getSlotitem:btxt_flat:_0x360e5f",
-        "66609:getSlotitem:btxt_flat:_0x56fd18",
+        "66609:getSlotitem:btxt_flat:_0x280247",
+        "66609:getSlotitem:btxt_flat:_0x51a7ed",
+        "66609:getSlotitem:btxt_flat:_0x7ea7ae",
         "66609:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -5607,7 +5604,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "68432:getShip:full:_0xe73e0d:false",
+        "68432:getShip:full:_0xef0bbf:false",
         "68432:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -5738,9 +5735,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "69595:getSlotitem:btxt_flat:_0x15d9f1",
-        "69595:getSlotitem:btxt_flat:_0x27b360",
-        "69595:getSlotitem:btxt_flat:_0x396bc9",
+        "69595:getSlotitem:btxt_flat:_0x12b4e1",
+        "69595:getSlotitem:btxt_flat:_0x1c8bdc",
+        "69595:getSlotitem:btxt_flat:_0x3ebbf9",
         "69595:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -5870,7 +5867,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "70041:getSlotitem:card:_0x15d2e9"
+        "70041:getSlotitem:card:_0x14e26f"
       ],
       "explicitResourcePaths": []
     },
@@ -5987,9 +5984,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "7248:getShip:sp_remodel/full_x2:_0x20ad90:false",
-        "7248:getShip:sp_remodel/text_class:_0x20ad90:false",
-        "7248:getShip:sp_remodel/text_name:_0x20ad90:false"
+        "7248:getShip:sp_remodel/full_x2:_0x15acd1:false",
+        "7248:getShip:sp_remodel/text_class:_0x15acd1:false",
+        "7248:getShip:sp_remodel/text_name:_0x15acd1:false"
       ],
       "explicitResourcePaths": []
     },
@@ -6038,9 +6035,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "72878:getShip:banner_g:_0x1cc1f4:true",
-        "72878:getShip:banner:_0x1cc1f4:false",
-        "72878:getShip:banner:_0x1cc1f4:true"
+        "72878:getShip:banner_g:_0xd9f27:true",
+        "72878:getShip:banner:_0xd9f27:false",
+        "72878:getShip:banner:_0xd9f27:true"
       ],
       "explicitResourcePaths": []
     },
@@ -6083,10 +6080,10 @@
         "72987:api_n_hougeki2:object:this._o",
         "72987:api_n_support_flag:number:this._o",
         "72987:api_n_support_info:object:this._o",
-        "72987:api_support_airatack:object:_0x15511f",
-        "72987:api_support_airatack:object:_0x71b9d9",
-        "72987:api_support_hourai:object:_0x28df96",
-        "72987:api_support_hourai:object:_0x478ec0",
+        "72987:api_support_airatack:object:_0x15442e",
+        "72987:api_support_airatack:object:_0x1ebac1",
+        "72987:api_support_hourai:object:_0x3bfa01",
+        "72987:api_support_hourai:object:_0x8fb52",
         "72987:api_touch_plane:numArray:this._o"
       ],
       "resourceRuleIds": [],
@@ -6304,11 +6301,11 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "75803:getSlotitem:btxt_flat:_0x202cee",
-        "75803:getSlotitem:btxt_flat:_0x33b0d3",
-        "75803:getSlotitem:item_up:_0x3771b6",
-        "75803:getSlotitem:item_up:_0x481ab9",
-        "75803:getSlotitem:item_up:_0x522c84",
+        "75803:getSlotitem:btxt_flat:_0x419297",
+        "75803:getSlotitem:btxt_flat:_0x48fe04",
+        "75803:getSlotitem:item_up:_0x342a1c",
+        "75803:getSlotitem:item_up:_0x3e6cf5",
+        "75803:getSlotitem:item_up:_0xe05f93",
         "75803:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -6351,7 +6348,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "76095:getShip:full:_0x87b2d:false"
+        "76095:getShip:full:_0x17db72:false"
       ],
       "explicitResourcePaths": []
     },
@@ -6453,7 +6450,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "77357:getSlotitem:btxt_flat:_0x20b7e8"
+        "77357:getSlotitem:btxt_flat:_0x1c1dee"
       ],
       "explicitResourcePaths": []
     },
@@ -6588,7 +6585,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "78084:getShip:remodel:_0x32e446:damaged",
+        "78084:getShip:remodel:mstID:damaged",
         "78084:getTexture:REMODEL_GRADEUP"
       ],
       "explicitResourcePaths": []
@@ -6715,9 +6712,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "80135:getShip:icon_box:_0x156dc1.mst_id:false",
-        "80135:getShip:reward_icon:_0x156dc1.mst_id:false",
-        "80135:getSlotitem:card:_0x156dc1.mst_id"
+        "80135:getShip:icon_box:_0x3d1397.mst_id:false",
+        "80135:getShip:reward_icon:_0x3d1397.mst_id:false",
+        "80135:getSlotitem:card:_0x3d1397.mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -6783,7 +6780,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "80845:getShip:full:_0x9ae5ea.mstID:_0x9ae5ea.isDamaged()",
+        "80845:getShip:full:_0x340ecc.mstID:_0x340ecc.isDamaged()",
         "80845:getTexture:COMMON_EXPEDITION"
       ],
       "explicitResourcePaths": []
@@ -6852,7 +6849,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "8263:getSlotitem:remodel:_0x5843e3",
+        "8263:getSlotitem:remodel:_0x346c83",
         "8263:getTexture:SALLY_AIRUNIT"
       ],
       "explicitResourcePaths": []
@@ -6936,7 +6933,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "82850:getShip:full:_0x53e83f:_0x3d8500"
+        "82850:getShip:full:_0x2f1ec0:_0x156792"
       ],
       "explicitResourcePaths": []
     },
@@ -7009,11 +7006,11 @@
         "83034:api_opening_taisen:objectArray:this._o",
         "83034:api_raigeki:object:this._o",
         "83034:api_stage_flag:numArray:this._o",
-        "83034:api_support_airatack:object:_0x538861",
-        "83034:api_support_airatack:object:_0x5d987a",
+        "83034:api_support_airatack:object:_0x246edc",
+        "83034:api_support_airatack:object:_0x449ada",
         "83034:api_support_flag:number:this._o",
-        "83034:api_support_hourai:object:_0x19fc85",
-        "83034:api_support_hourai:object:_0x3f22fa",
+        "83034:api_support_hourai:object:_0x3caae8",
+        "83034:api_support_hourai:object:_0x41cb9e",
         "83034:api_support_info:object:this._o"
       ],
       "resourceRuleIds": [],
@@ -7089,7 +7086,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "83645:getShip:full:_0xe3e9e9:damaged"
+        "83645:getShip:full:_0x258ecb:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -7155,7 +7152,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "85373:getShip:full:_0x20d929:damaged",
+        "85373:getShip:full:mst_id:damaged",
         "85373:getTexture:PRAC_MAIN"
       ],
       "explicitResourcePaths": []
@@ -7302,8 +7299,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "86156:getShip:full:_0x51f93:damaged",
-        "86156:getShip:full:_0x573605:damaged"
+        "86156:getShip:full:_0x2d6274:damaged",
+        "86156:getShip:full:_0x9f5012:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -7386,9 +7383,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "86346:getSlotitem:btxt_flat:_0x23033a",
-        "86346:getSlotitem:btxt_flat:_0x24c490",
-        "86346:getSlotitem:btxt_flat:_0x2ef56f",
+        "86346:getSlotitem:btxt_flat:_0x25d338",
+        "86346:getSlotitem:btxt_flat:_0x49fc1b",
+        "86346:getSlotitem:btxt_flat:_0x51b071",
         "86346:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -7434,8 +7431,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "86523:getShip:banner:_0x139556.mst_id:_0x139556.damaged",
-        "86523:getShip:banner:_0x33407a.mst_id:_0x33407a.damaged"
+        "86523:getShip:banner:_0x208ddb.mst_id:_0x208ddb.damaged",
+        "86523:getShip:banner:_0xe2becb.mst_id:_0xe2becb.damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -7761,7 +7758,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "89916:getSlotitem:item_up:_0x6f1be6",
+        "89916:getSlotitem:item_up:mst_id",
         "89916:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -8097,9 +8094,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "94663:getShip:full:_0x2da9de:damaged",
-        "94663:getShip:full:_0x33404a:damaged",
-        "94663:getShip:full:_0x417283:damaged"
+        "94663:getShip:full:mst_id:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -8304,7 +8299,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "99411:getShip:full:_0x9e7e46:damaged"
+        "99411:getShip:full:_0x3b5772:damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -8419,7 +8414,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "99929:getShip:full:_0x47c11f:damaged"
+        "99929:getShip:full:_0x23f026:damaged"
       ],
       "explicitResourcePaths": []
     }

@@ -128,19 +128,19 @@ unsafe_op_in_unsafe_fn = "warn"
 
 [[example]]
 name = "model_loader"
-path = "tests/model/load.rs"
+path = "examples/model_loader.rs"
 
 [[example]]
 name = "bootstrap_download"
-path = "tests/bootstrap/download.rs"
+path = "examples/bootstrap_download.rs"
 
 [[example]]
 name = "dump_tree"
-path = "tests/dump_fs_tree/dump_tree.rs"
+path = "examples/dump_tree.rs"
 
 [[example]]
 name = "kache_test"
-path = "tests/kache/test.rs"
+path = "examples/kache_test.rs"
 
 [dependencies]
 anyhow = { workspace = true }

@@ -10,6 +10,7 @@ export { decodeBundle } from "./decode.ts";
 export { formatJavaScript } from "./format.ts";
 export { extractScriptVersion, loadLocalSources, resolveSourcePaths } from "./io.ts";
 export { extractModuleGraph } from "./module-graph.ts";
+export { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
 export { extractResourceManifest } from "./resource-manifest.ts";
 export type { ResourceManifest, ResourceManifestEntry, ResourceManifestShipEntry, ResourceManifestSlotitemEntry, ResourceManifestTextureProviderEntry, ResourceManifestExplicitPathEntry } from "./resource-manifest.ts";
 export { runDecodePipeline } from "./pipeline.ts";
@@ -47,5 +48,7 @@ export type {
   PipelineArtifacts,
   PipelineOptions,
   PipelineResult,
+  ResourceCategoriesAsset,
+  ResourceCategoryEntry,
   SourcePaths,
 } from "./types.ts";

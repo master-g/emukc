@@ -281,6 +281,7 @@ export interface PipelineOptions {
   outputDir?: string;
   maxPasses?: number;
   writeOutputs?: boolean;
+  syncAssets?: boolean;
   syncBattleAssets?: boolean;
   syncResourceManifest?: boolean;
 }
@@ -297,6 +298,8 @@ export interface PipelineArtifacts {
   battleResourceRulesFile: string;
   battleModuleIndexFile: string;
   battleSlotResourceTriggersFile: string;
+  resourcesDir: string;
+  resourceCategoriesFile: string;
   modulesDir: string;
 }
 
@@ -326,12 +329,54 @@ export interface ResourceManifestSummary {
   modulesCovered: number;
 }
 
+export type ResourceCategorySource =
+  | "resources.getShip"
+  | "ShipLoader.add"
+  | "resources.getSlotitem"
+  | "SlotLoader.add"
+  | "explicit-path";
+
+export interface ResourceCategoryEntry {
+  source: ResourceCategorySource;
+  targetType: string;
+  moduleIds: string[];
+  moduleNames: string[];
+}
+
+export interface ResourceCategoriesAsset {
+  version: 1;
+  generatedAt: string;
+  scriptVersion: string;
+  summary: {
+    shipTargetTypeCount: number;
+    slotTargetTypeCount: number;
+    spRemodelSubcategoryCount: number;
+    shipGenerationGroupCount: number;
+    slotGenerationGroupCount: number;
+  };
+  shipTargetTypes: ResourceCategoryEntry[];
+  slotTargetTypes: ResourceCategoryEntry[];
+  shipGenerationGroups: {
+    defaultFriendly: string[];
+    defaultAbyssal: string[];
+    friendGraph: string[];
+    enemyGraph: string[];
+  };
+  slotGenerationGroups: {
+    default: string[];
+    baga: string[];
+    airunit: string[];
+  };
+  spRemodelSubcategories: string[];
+}
+
 export interface PipelineResult {
   loaded: LoadedSources;
   sections: BundleSections;
   decoded: DecodedBundle;
   moduleGraph: ModuleGraph;
   battleKnowledge: BattleKnowledge;
+  resourceCategories: ResourceCategoriesAsset;
   resourceManifestSummary?: ResourceManifestSummary;
   summary: DecodeSummary;
   artifacts?: PipelineArtifacts;

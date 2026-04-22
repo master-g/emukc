@@ -4,6 +4,8 @@
 
 Integration test framework for gameplay API logic to prevent regressions. Tests directly invoke gameplay layer without HTTP server.
 
+Runnable samples live under `examples/` and should be invoked with `cargo run --example <name>`.
+
 ## Running Tests
 
 ```bash
@@ -38,12 +40,21 @@ rebuilds `codex.maps` from the repo asset instead of relying on the stale `.data
 ## Test Structure
 
 ```
+examples/
+├── bootstrap_download.rs          # Bootstrap download example
+├── dump_tree.rs                   # Filesystem tree example
+├── kache_test.rs                  # Cache fetch example
+└── model_loader.rs                # Manifest/model loading example
+
 tests/
 ├── gameplay_tests.rs               # Test entry point
 ├── gameplay_tests/
 │   └── quest/
 │       ├── mod.rs
 │       └── composition.rs          # Quest composition tests
+├── fixtures/
+│   └── battle/
+│       └── incident_slot_102.json  # Test fixture data
 └── README.md
 ```
 
@@ -62,6 +73,12 @@ tests/
 1. Create file: `tests/gameplay_tests/<module>/<test_name>.rs`
 2. Add to `tests/gameplay_tests/<module>/mod.rs`: `mod <test_name>;`
 3. Add to `tests/gameplay_tests.rs` if new module: `#[path = "gameplay_tests/<module>/mod.rs"] mod <module>;`
+
+### Add a New Example
+
+1. Create a file under `examples/`
+2. Add or update the `[[example]]` entry in `Cargo.toml` if a custom path is needed
+3. Run it with `cargo run --example <name>`
 
 ### Example Test
 

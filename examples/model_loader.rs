@@ -1,4 +1,4 @@
-//! A test for loading a JSON file into a model.
+//! An example of loading a JSON file into a model.
 
 use std::{str::FromStr, sync::LazyLock};
 

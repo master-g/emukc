@@ -11,6 +11,7 @@ import { decodeBundle } from "./decode.ts";
 import { formatJavaScript } from "./format.ts";
 import { loadLocalSources, writeTextFile } from "./io.ts";
 import { extractModuleGraph } from "./module-graph.ts";
+import { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
 import { extractResourceManifest } from "./resource-manifest.ts";
 import { splitBundle } from "./split.ts";
 import type { PipelineArtifacts, PipelineOptions, PipelineResult } from "./types.ts";
@@ -19,6 +20,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   const { outputDir } = result.loaded.paths;
   const modulesDir = resolve(outputDir, "modules");
   const battleDir = resolve(outputDir, "battle");
+  const resourcesDir = resolve(outputDir, "resources");
   const bootstrapAssetsDir = resolve(import.meta.dir, "../../crates/emukc_bootstrap/assets");
   const artifacts: PipelineArtifacts = {
     versionFile: resolve(outputDir, "version.txt"),
@@ -32,6 +34,8 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     battleResourceRulesFile: resolve(battleDir, "battle_resource_rules.json"),
     battleModuleIndexFile: resolve(battleDir, "battle_module_index.json"),
     battleSlotResourceTriggersFile: resolve(battleDir, "battle_slot_resource_triggers.json"),
+    resourcesDir,
+    resourceCategoriesFile: resolve(resourcesDir, "resource_categories.json"),
     modulesDir,
   };
 
@@ -83,11 +87,15 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   await writeTextFile(artifacts.battleResourceRulesFile, `${JSON.stringify(battleResourceRulesAsset, null, 2)}\n`);
   await writeTextFile(artifacts.battleModuleIndexFile, `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
   await writeTextFile(artifacts.battleSlotResourceTriggersFile, `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
+  await writeTextFile(artifacts.resourceCategoriesFile, `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
   if (options.syncBattleAssets === true) {
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_protocol_fields.json"), `${JSON.stringify(battleProtocolFieldsAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_resource_rules.json"), `${JSON.stringify(battleResourceRulesAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_module_index.json"), `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_slot_resource_triggers.json"), `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
+  }
+  if (options.syncAssets === true) {
+    await writeTextFile(resolve(bootstrapAssetsDir, "resource_categories.json"), `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
   }
   if (options.syncResourceManifest === true) {
     const manifest = extractResourceManifest(result.moduleGraph);
@@ -106,6 +114,7 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
   const decoded = decodeBundle(sections, { maxPasses: options.maxPasses });
   const moduleGraph = extractModuleGraph(decoded.decodedSource);
   const battleKnowledge = extractBattleKnowledge(moduleGraph);
+  const resourceCategories = toResourceCategoriesAsset(loaded.scriptVersion, extractResourceCategories(moduleGraph));
 
   const resourceManifest = options.syncResourceManifest === true
     ? extractResourceManifest(moduleGraph)
@@ -117,6 +126,7 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
     decoded,
     moduleGraph,
     battleKnowledge,
+    resourceCategories,
     resourceManifestSummary: resourceManifest?.summary,
     summary: {
       scriptVersion: loaded.scriptVersion,
