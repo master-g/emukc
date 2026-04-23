@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-23T11:47:02.678Z",
+  "scriptVersion": "6.2.8.0",
+  "coverageMode": "mainjs-observed",
+  "summary": {
+    "shipCategoryCount": 5,
+    "slotitemCategoryCount": 2,
+    "resolvedCategoryCount": 0,
+    "unresolvedCategoryCount": 7
+  },
+  "shipIdSets": {
+    "specialShips": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    },
+    "spRemodelShips": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    },
+    "spRemodelMessageShips": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    },
+    "cardRoundShips": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    },
+    "rewardShips": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    }
+  },
+  "slotitemIdSets": {
+    "btxtFlatIds": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    },
+    "itemUpIds": {
+      "coverageMode": "unresolved",
+      "ids": [],
+      "moduleIds": [],
+      "moduleNames": []
+    }
+  },
+  "unresolvedKeys": [
+    "specialShips",
+    "spRemodelShips",
+    "spRemodelMessageShips",
+    "cardRoundShips",
+    "rewardShips",
+    "btxtFlatIds",
+    "itemUpIds"
+  ]
+}

@@ -1,0 +1,1523 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-23T11:47:02.576Z",
+  "scriptVersion": "6.2.8.0",
+  "summary": {
+    "shipTargetTypeCount": 36,
+    "slotTargetTypeCount": 13,
+    "spRemodelSubcategoryCount": 6,
+    "shipGenerationGroupCount": 25,
+    "slotGenerationGroupCount": 14
+  },
+  "shipTargetTypes": [
+    {
+      "source": "resources.getShip",
+      "targetType": "album_status",
+      "moduleIds": [
+        "3609"
+      ],
+      "moduleNames": [
+        "ShipDetailPanel"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "album_status",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "banner",
+      "moduleIds": [
+        "30843",
+        "37638",
+        "77190"
+      ],
+      "moduleNames": [
+        "PresetEditSlot",
+        "PresetExpansionSlot",
+        "ShipBanner"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner",
+      "moduleIds": [
+        "18168",
+        "27793",
+        "31394",
+        "37638",
+        "56817",
+        "72878",
+        "86523"
+      ],
+      "moduleNames": [
+        "AnchorageRepairShipBanner",
+        "BannerImage",
+        "RepairShipBanner",
+        "ShipBanner",
+        "ShipBannerClone",
+        "ShipDragging",
+        "TaskSupportDeckCutin"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "banner",
+      "moduleIds": [
+        "11409",
+        "32703",
+        "35773",
+        "68686",
+        "70461",
+        "80845",
+        "86523",
+        "87371",
+        "94663"
+      ],
+      "moduleNames": [
+        "EscapeGoeiTask",
+        "EscapeTankanTask",
+        "PhaseAllyOpening",
+        "PreInitializeTask",
+        "TaskExpeditionEndCutin",
+        "TaskExpeditionResultShow",
+        "TaskSupportDeckCutin",
+        "module-87371.js"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner_dmg",
+      "moduleIds": [
+        "18168",
+        "27793",
+        "31394",
+        "37638",
+        "56817",
+        "72878",
+        "86523"
+      ],
+      "moduleNames": [
+        "AnchorageRepairShipBanner",
+        "BannerImage",
+        "RepairShipBanner",
+        "ShipBanner",
+        "ShipBannerClone",
+        "ShipDragging",
+        "TaskSupportDeckCutin"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "banner_dmg",
+      "moduleIds": [
+        "11409",
+        "32703",
+        "35773",
+        "68686",
+        "70461",
+        "80845",
+        "86523",
+        "87371",
+        "94663"
+      ],
+      "moduleNames": [
+        "EscapeGoeiTask",
+        "EscapeTankanTask",
+        "PhaseAllyOpening",
+        "PreInitializeTask",
+        "TaskExpeditionEndCutin",
+        "TaskExpeditionResultShow",
+        "TaskSupportDeckCutin",
+        "module-87371.js"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner_g_dmg",
+      "moduleIds": [
+        "56817",
+        "72878"
+      ],
+      "moduleNames": [
+        "BannerImage",
+        "ShipBannerClone"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner2",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner2_dmg",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner2_g_dmg",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "banner3",
+      "moduleIds": [
+        "51724"
+      ],
+      "moduleNames": [
+        "EnemyDeckSilhouette"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner3",
+      "moduleIds": [
+        "51724",
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage",
+        "EnemyDeckSilhouette"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner3_dmg",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "banner3_g_dmg",
+      "moduleIds": [
+        "56817"
+      ],
+      "moduleNames": [
+        "BannerImage"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "card",
+      "moduleIds": [
+        "17733",
+        "41940"
+      ],
+      "moduleNames": [
+        "MainItemShip",
+        "ShipCard"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "card",
+      "moduleIds": [
+        "17265",
+        "17733",
+        "20473",
+        "29168",
+        "44896"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain",
+        "ShipCard",
+        "ShipDetailContent",
+        "TaskRewardDialogShip",
+        "TaskShowShipCard"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "card",
+      "moduleIds": [
+        "17265",
+        "17775",
+        "29168",
+        "44896"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain",
+        "TaskRewardDialogShip",
+        "TaskShowShipCard",
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "card_dmg",
+      "moduleIds": [
+        "17265",
+        "17733"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain",
+        "ShipCard"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "card_dmg",
+      "moduleIds": [
+        "17265"
+      ],
+      "moduleNames": [
+        "KaizoAnimationMain"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "card_round",
+      "moduleIds": [
+        "38661"
+      ],
+      "moduleNames": [
+        "RewardSelectDialogShipBtnOld"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "card_round",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "character_full",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "character_full",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "character_full_dmg",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "character_full_dmg",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "character_up",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "character_up",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "character_up_dmg",
+      "moduleIds": [
+        "20473"
+      ],
+      "moduleNames": [
+        "ShipDetailContent"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "character_up_dmg",
+      "moduleIds": [
+        "17775"
+      ],
+      "moduleNames": [
+        "TaskShowShipDetail"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "full",
+      "moduleIds": [
+        "13292",
+        "17172",
+        "17265",
+        "19639",
+        "2067",
+        "20894",
+        "2212",
+        "3087",
+        "32611",
+        "35601",
+        "35773",
+        "38083",
+        "38538",
+        "40637",
+        "4146",
+        "425",
+        "43136",
+        "43201",
+        "45950",
+        "46595",
+        "48579",
+        "50527",
+        "51225",
+        "54018",
+        "55226",
+        "58441",
+        "6148",
+        "62174",
+        "62473",
+        "68173",
+        "68432",
+        "76095",
+        "80845",
+        "82850",
+        "83645",
+        "84085",
+        "85270",
+        "85373",
+        "85426",
+        "86156",
+        "87371",
+        "94206",
+        "94663",
+        "99411",
+        "99929"
+      ],
+      "moduleNames": [
+        "AnimFlagShip",
+        "BonusShip",
+        "CellTaskFancy",
+        "Content",
+        "CutinAntiAircraft",
+        "CutinAttack",
+        "CutinDouble1",
+        "CutinDouble2",
+        "CutinDouble4",
+        "CutinKongoAttack",
+        "CutinKuboDay",
+        "CutinKuboNight",
+        "CutinResourcesPreloadTask",
+        "CutinSSAttack",
+        "CutinSpRR",
+        "CutinSpSR",
+        "KaizoAnimationMain",
+        "MarriageAnimation",
+        "PhaseAllyOpening",
+        "PowerUpAnimation",
+        "RewardAnimationShip",
+        "SpKaizoIntro",
+        "TaskBossCutin",
+        "TaskExp",
+        "TaskExpeditionResultShow",
+        "TaskFormationSelect",
+        "TaskFormationSelectCombined",
+        "TaskGouchinCutin",
+        "TaskGouchinCutinRepair",
+        "TaskReplenishmentEffect",
+        "TaskRevampStart",
+        "module-13292.js",
+        "module-2212.js",
+        "module-38538.js",
+        "module-40637.js",
+        "module-425.js",
+        "module-45950.js",
+        "module-51225.js",
+        "module-54018.js",
+        "module-6148.js",
+        "module-84085.js",
+        "module-87371.js",
+        "module-94206.js"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "full",
+      "moduleIds": [
+        "11166",
+        "16699",
+        "17172",
+        "17265",
+        "17325",
+        "19639",
+        "20894",
+        "2212",
+        "25955",
+        "30503",
+        "35601",
+        "35773",
+        "38538",
+        "40637",
+        "4146",
+        "425",
+        "43136",
+        "43201",
+        "45950",
+        "48059",
+        "51225",
+        "58441",
+        "6148",
+        "61953",
+        "62174",
+        "68432",
+        "69780",
+        "76095",
+        "80845",
+        "82850",
+        "83645",
+        "84085",
+        "86156",
+        "87371",
+        "93634",
+        "94206",
+        "94663",
+        "95484",
+        "99411",
+        "99929"
+      ],
+      "moduleNames": [
+        "AnimFlagShip",
+        "CellTaskFancy",
+        "CutinAntiAircraft",
+        "CutinAttack",
+        "CutinDouble",
+        "CutinKongoAttack",
+        "CutinResourcesPreloadTask",
+        "CutinSSAttack",
+        "CutinSpRR",
+        "CutinSpSR",
+        "CutinSpSSF",
+        "CutinSpSSS",
+        "CutinZuiunNight",
+        "KaizoAnimationMain",
+        "PhaseAllyOpening",
+        "PowerUpAnimation",
+        "PreInitializeTask",
+        "PreloadCutinDanchaku",
+        "PreloadCutinFunnel",
+        "PreloadCutinKubo",
+        "SpKaizoIntro",
+        "StartAnimationTask",
+        "TaskBonusShip",
+        "TaskBossCutin",
+        "TaskExp",
+        "TaskExpeditionResultShow",
+        "TaskGouchinCutinRepair",
+        "TaskReplenishmentEffect",
+        "TaskRevampStart",
+        "module-2212.js",
+        "module-38538.js",
+        "module-40637.js",
+        "module-425.js",
+        "module-45950.js",
+        "module-51225.js",
+        "module-6148.js",
+        "module-84085.js",
+        "module-87371.js",
+        "module-94206.js"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "full_dmg",
+      "moduleIds": [
+        "10021",
+        "13292",
+        "17172",
+        "17265",
+        "19639",
+        "2067",
+        "20894",
+        "21541",
+        "2212",
+        "32611",
+        "35773",
+        "38083",
+        "38538",
+        "40637",
+        "4146",
+        "425",
+        "43136",
+        "43201",
+        "45950",
+        "46595",
+        "46997",
+        "48579",
+        "50527",
+        "51225",
+        "54018",
+        "55226",
+        "58441",
+        "6148",
+        "62473",
+        "68173",
+        "80845",
+        "82850",
+        "83645",
+        "84085",
+        "85373",
+        "86156",
+        "94206",
+        "94663",
+        "99411",
+        "99929"
+      ],
+      "moduleNames": [
+        "AnimFlagShip",
+        "CellTaskFancy",
+        "Content",
+        "CutinAntiAircraft",
+        "CutinAttack",
+        "CutinDouble1",
+        "CutinDouble2",
+        "CutinDouble4",
+        "CutinKuboDay",
+        "CutinKuboNight",
+        "CutinResourcesPreloadTask",
+        "CutinSSAttack",
+        "CutinSpRR",
+        "CutinSpSR",
+        "KaizoAnimationMain",
+        "PhaseAllyOpening",
+        "PowerUpAnimation",
+        "TaskDamageCutin",
+        "TaskEnemyDamageCutin",
+        "TaskExp",
+        "TaskExpeditionResultShow",
+        "TaskFlagShipDamaged",
+        "TaskFormationSelect",
+        "TaskFormationSelectCombined",
+        "TaskGouchinCutin",
+        "TaskGouchinCutinRepair",
+        "TaskReplenishmentEffect",
+        "module-13292.js",
+        "module-2212.js",
+        "module-38538.js",
+        "module-40637.js",
+        "module-425.js",
+        "module-45950.js",
+        "module-51225.js",
+        "module-54018.js",
+        "module-6148.js",
+        "module-84085.js",
+        "module-94206.js"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "full_dmg",
+      "moduleIds": [
+        "11166",
+        "16699",
+        "17172",
+        "17265",
+        "17325",
+        "19639",
+        "20894",
+        "21541",
+        "2212",
+        "25955",
+        "30503",
+        "35773",
+        "38538",
+        "40637",
+        "4146",
+        "425",
+        "43136",
+        "43201",
+        "45950",
+        "46997",
+        "48059",
+        "58441",
+        "6148",
+        "68173",
+        "68432",
+        "69780",
+        "80845",
+        "82850",
+        "83645",
+        "84085",
+        "86156",
+        "93634",
+        "94206",
+        "94663",
+        "95484",
+        "99411",
+        "99929"
+      ],
+      "moduleNames": [
+        "AnimFlagShip",
+        "CellTaskFancy",
+        "CutinAntiAircraft",
+        "CutinAttack",
+        "CutinDouble",
+        "CutinKongoAttack",
+        "CutinResourcesPreloadTask",
+        "CutinSSAttack",
+        "CutinSpRR",
+        "CutinSpSR",
+        "CutinSpSSF",
+        "CutinSpSSS",
+        "CutinZuiunNight",
+        "KaizoAnimationMain",
+        "PhaseAllyOpening",
+        "PowerUpAnimation",
+        "PreInitializeTask",
+        "PreloadCutinDanchaku",
+        "PreloadCutinFunnel",
+        "PreloadCutinKubo",
+        "StartAnimationTask",
+        "TaskDamageCutin",
+        "TaskEnemyDamageCutin",
+        "TaskExp",
+        "TaskExpeditionResultShow",
+        "TaskGouchinCutin",
+        "TaskGouchinCutinRepair",
+        "TaskReplenishmentEffect",
+        "module-2212.js",
+        "module-38538.js",
+        "module-40637.js",
+        "module-425.js",
+        "module-45950.js",
+        "module-6148.js",
+        "module-84085.js",
+        "module-94206.js"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "icon_box",
+      "moduleIds": [
+        "56230",
+        "80135"
+      ],
+      "moduleNames": [
+        "TaskRewardSelect",
+        "TaskUseGiftBox"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "icon_box",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "power_up",
+      "moduleIds": [
+        "66034"
+      ],
+      "moduleNames": [
+        "TaskKindaika"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "power_up",
+      "moduleIds": [
+        "66034"
+      ],
+      "moduleNames": [
+        "TaskKindaika"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "power_up_dmg",
+      "moduleIds": [
+        "66034"
+      ],
+      "moduleNames": [
+        "TaskKindaika"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "remodel",
+      "moduleIds": [
+        "78084"
+      ],
+      "moduleNames": [
+        "KaizoDetailHeader"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "remodel",
+      "moduleIds": [
+        "78084"
+      ],
+      "moduleNames": [
+        "KaizoDetailHeader"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "remodel_dmg",
+      "moduleIds": [
+        "78084"
+      ],
+      "moduleNames": [
+        "KaizoDetailHeader"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "reward_card",
+      "moduleIds": [
+        "46091"
+      ],
+      "moduleNames": [
+        "RewardSelectDialogShipBtn"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "reward_card",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "reward_icon",
+      "moduleIds": [
+        "19281",
+        "80135"
+      ],
+      "moduleNames": [
+        "TaskEventRewardsSelect",
+        "TaskRewardSelect"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "reward_icon",
+      "moduleIds": [
+        "22027"
+      ],
+      "moduleNames": [
+        "TaskLoadResources"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "sp_remodel/animation_key",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/full_x2",
+      "moduleIds": [
+        "7248"
+      ],
+      "moduleNames": [
+        "SpecialRemodelStartStage"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/full_x2",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/silhouette",
+      "moduleIds": [
+        "35601"
+      ],
+      "moduleNames": [
+        "SpKaizoIntro"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/silhouette",
+      "moduleIds": [
+        "35601"
+      ],
+      "moduleNames": [
+        "SpKaizoIntro"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/text_class",
+      "moduleIds": [
+        "7248"
+      ],
+      "moduleNames": [
+        "SpecialRemodelStartStage"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/text_class",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/text_name",
+      "moduleIds": [
+        "7248"
+      ],
+      "moduleNames": [
+        "SpecialRemodelStartStage"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/text_name",
+      "moduleIds": [
+        "59611"
+      ],
+      "moduleNames": [
+        "TaskKaizo"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "sp_remodel/text_remodel_mes",
+      "moduleIds": [
+        "50402"
+      ],
+      "moduleNames": [
+        "SpKaizoConfirm"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "sp_remodel/text_remodel_mes",
+      "moduleIds": [
+        "50402"
+      ],
+      "moduleNames": [
+        "SpKaizoConfirm"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "special",
+      "moduleIds": [
+        "425",
+        "43136",
+        "43367",
+        "51225",
+        "6148",
+        "7438",
+        "84085"
+      ],
+      "moduleNames": [
+        "CutinSSAttack",
+        "CutinYamatoAttack",
+        "CutinZRK",
+        "module-425.js",
+        "module-51225.js",
+        "module-6148.js",
+        "module-84085.js"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "special",
+      "moduleIds": [
+        "11166",
+        "25955",
+        "425",
+        "43136",
+        "43367",
+        "51225",
+        "6148",
+        "7438",
+        "84085",
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinSSAttack",
+        "CutinSpSSF",
+        "CutinSpSSS",
+        "CutinYamatoAttack",
+        "CutinZRK",
+        "CutinZuiunNight",
+        "module-425.js",
+        "module-51225.js",
+        "module-6148.js",
+        "module-84085.js"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "special_dmg",
+      "moduleIds": [
+        "43136",
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinSSAttack",
+        "CutinZRK"
+      ]
+    },
+    {
+      "source": "ShipLoader.add",
+      "targetType": "special_dmg",
+      "moduleIds": [
+        "43136",
+        "6148",
+        "7438"
+      ],
+      "moduleNames": [
+        "CutinSSAttack",
+        "CutinZRK",
+        "module-6148.js"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "supply_character",
+      "moduleIds": [
+        "64289"
+      ],
+      "moduleNames": [
+        "LongShipBanner"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "supply_character",
+      "moduleIds": [
+        "64289"
+      ],
+      "moduleNames": [
+        "LongShipBanner"
+      ]
+    },
+    {
+      "source": "resources.getShip",
+      "targetType": "supply_character_dmg",
+      "moduleIds": [
+        "64289"
+      ],
+      "moduleNames": [
+        "LongShipBanner"
+      ]
+    }
+  ],
+  "slotTargetTypes": [
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_banner",
+      "moduleIds": [
+        "12922",
+        "25832",
+        "51968"
+      ],
+      "moduleNames": [
+        "AirUnitPanel",
+        "AirUnitPanelItem",
+        "module-25832.js"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_fairy",
+      "moduleIds": [
+        "96928"
+      ],
+      "moduleNames": [
+        "AirUnitPanelBanner"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "airunit_name",
+      "moduleIds": [
+        "51968"
+      ],
+      "moduleNames": [
+        "AirUnitPanelItem"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "btxt_flat",
+      "moduleIds": [
+        "13292",
+        "20894",
+        "26431",
+        "41768",
+        "56434",
+        "66157",
+        "66609",
+        "69595",
+        "7438",
+        "75803",
+        "77357",
+        "86346",
+        "87110",
+        "95403"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft",
+        "CutinCanvasSpRDJ",
+        "CutinCanvasSpRR",
+        "CutinCanvasSpSR",
+        "CutinCanvasSpSRD",
+        "CutinCanvasSpSSF",
+        "CutinCanvasSpSuirai",
+        "CutinCanvasSpYusou",
+        "CutinKuboNightCanvas",
+        "CutinTelop",
+        "CutinZRK",
+        "module-13292.js",
+        "module-41768.js",
+        "module-87110.js"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "moduleIds": [
+        "11166",
+        "16699",
+        "20894",
+        "25955",
+        "69780",
+        "7438",
+        "83645",
+        "93634",
+        "95484",
+        "99411",
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinAntiAircraft",
+        "CutinAttack",
+        "CutinDouble",
+        "CutinSpRR",
+        "CutinSpSR",
+        "CutinSpSSF",
+        "CutinSpSSS",
+        "CutinZRK",
+        "CutinZuiunNight",
+        "PreloadCutinDanchaku",
+        "PreloadCutinKubo"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "card",
+      "moduleIds": [
+        "11039",
+        "13090",
+        "19281",
+        "20324",
+        "31930",
+        "34931",
+        "38287",
+        "4146",
+        "56230",
+        "60988",
+        "63476",
+        "70041",
+        "80135",
+        "92410",
+        "99469"
+      ],
+      "moduleNames": [
+        "BonusSlot",
+        "ChangeSlotitemLayer",
+        "MeltIntoSprite",
+        "MeltIntoTask",
+        "ModelChangeTask",
+        "RewardAnimationMultiSlot",
+        "RewardAnimationSlot",
+        "RewardSelectDialogSlotitemBtn",
+        "SlotDetailContent",
+        "TaskEventRewardsSelect",
+        "TaskGouchinCutinRepair",
+        "TaskRewardDialogSlotitem",
+        "TaskRewardSelect",
+        "TaskShowSlotCard",
+        "TaskUseGiftBox"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "card",
+      "moduleIds": [
+        "11039",
+        "13090",
+        "20324",
+        "22027",
+        "31930",
+        "40545",
+        "4146",
+        "53456",
+        "70041",
+        "75223"
+      ],
+      "moduleNames": [
+        "MeltIntoSprite",
+        "ModelChangeTask",
+        "RewardAnimationMultiSlot",
+        "TaskBonusSlot",
+        "TaskChangeSlotitem",
+        "TaskGouchinCutinRepair",
+        "TaskLoadResources",
+        "TaskRewardDialogSlotitem",
+        "TaskShowSlotCard",
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "card_t",
+      "moduleIds": [
+        "20955"
+      ],
+      "moduleNames": [
+        "MainItemSlot"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "item_character",
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "item_character",
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "item_on",
+      "moduleIds": [
+        "84231"
+      ],
+      "moduleNames": [
+        "SlotDisassemblyConfirm"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "item_on",
+      "moduleIds": [
+        "58441",
+        "60988"
+      ],
+      "moduleNames": [
+        "CutinResourcesPreloadTask",
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "item_on",
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "item_on2",
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "item_on2",
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "item_up",
+      "moduleIds": [
+        "13292",
+        "41768",
+        "46682",
+        "56434",
+        "58441",
+        "60988",
+        "66157",
+        "7438",
+        "75803",
+        "87110",
+        "89916"
+      ],
+      "moduleNames": [
+        "CutinCanvasSpRR",
+        "CutinCanvasSpSR",
+        "CutinCanvasSpSSF",
+        "CutinResourcesPreloadTask",
+        "CutinZRK",
+        "PhaseSakuteki",
+        "Plane",
+        "SlotDetailContent",
+        "module-13292.js",
+        "module-41768.js",
+        "module-87110.js"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "moduleIds": [
+        "11166",
+        "16699",
+        "17325",
+        "25955",
+        "40545",
+        "43705",
+        "69780",
+        "7438",
+        "89916",
+        "93634",
+        "99411",
+        "99929"
+      ],
+      "moduleNames": [
+        "CutinSpRR",
+        "CutinSpSR",
+        "CutinSpSSF",
+        "CutinSpSSS",
+        "CutinZRK",
+        "CutinZuiunNight",
+        "PhaseSakuteki",
+        "PreloadCutinDanchaku",
+        "PreloadCutinFunnel",
+        "PreloadCutinKubo",
+        "TaskShowSlotDetail",
+        "TaskShowTouchPlane"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "item_up2",
+      "moduleIds": [
+        "60988"
+      ],
+      "moduleNames": [
+        "SlotDetailContent"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "item_up2",
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    },
+    {
+      "source": "explicit-path",
+      "targetType": "remodel",
+      "moduleIds": [
+        "12061",
+        "8263"
+      ],
+      "moduleNames": [
+        "AirUnitChangeConfirmPanel",
+        "ChangeConfirm"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "remodel",
+      "moduleIds": [
+        "8263"
+      ],
+      "moduleNames": [
+        "AirUnitChangeConfirmPanel"
+      ]
+    },
+    {
+      "source": "resources.getSlotitem",
+      "targetType": "statustop_item",
+      "moduleIds": [
+        "53285"
+      ],
+      "moduleNames": [
+        "SlotDetailPanel"
+      ]
+    },
+    {
+      "source": "SlotLoader.add",
+      "targetType": "statustop_item",
+      "moduleIds": [
+        "40545"
+      ],
+      "moduleNames": [
+        "TaskShowSlotDetail"
+      ]
+    }
+  ],
+  "shipGenerationGroups": {
+    "defaultFriendly": [
+      "album_status",
+      "banner",
+      "banner2",
+      "banner2_dmg",
+      "banner2_g_dmg",
+      "banner_dmg",
+      "banner_g_dmg",
+      "card",
+      "card_dmg",
+      "power_up",
+      "remodel",
+      "remodel_dmg",
+      "supply_character",
+      "supply_character_dmg"
+    ],
+    "defaultAbyssal": [
+      "banner",
+      "banner3",
+      "banner3_g_dmg"
+    ],
+    "friendGraph": [
+      "full",
+      "full_dmg",
+      "character_full",
+      "character_full_dmg",
+      "character_up",
+      "character_up_dmg"
+    ],
+    "enemyGraph": [
+      "full",
+      "full_dmg"
+    ]
+  },
+  "slotGenerationGroups": {
+    "default": [
+      "card",
+      "card_t",
+      "item_on",
+      "item_up",
+      "remodel",
+      "statustop_item"
+    ],
+    "baga": [
+      "card",
+      "card_t",
+      "item_on",
+      "remodel",
+      "statustop_item"
+    ],
+    "airunit": [
+      "airunit_banner",
+      "airunit_fairy",
+      "airunit_name"
+    ]
+  },
+  "spRemodelSubcategories": [
+    "animation_key",
+    "full_x2",
+    "silhouette",
+    "text_class",
+    "text_name",
+    "text_remodel_mes"
+  ]
+}

@@ -10,6 +10,7 @@ Options:
   --main <path>        Path to main.js
   --out <path>         Output directory
   --max-passes <n>     Maximum decode passes (default: ${DEFAULT_MAX_PASSES})
+  --sync-assets        Sync decoder coverage assets and battle assets into ../crates/emukc_bootstrap/assets
   --sync-battle-assets Sync battle JSON assets into ../crates/emukc_bootstrap/assets
   --sync-resource-manifest Extract resource manifest from all modules and sync
   --no-write           Do not write output artifacts
@@ -75,6 +76,11 @@ export function parseArgs(args: string[]): PipelineOptions & { help?: boolean } 
       case "--sync-battle-assets":
         options.syncBattleAssets = true;
         break;
+      case "--sync-assets":
+        options.syncAssets = true;
+        options.syncBattleAssets = true;
+        options.syncResourceManifest = true;
+        break;
       case "--sync-resource-manifest":
         options.syncResourceManifest = true;
         break;
@@ -132,6 +138,18 @@ export async function runCli(args: string[] = Bun.argv.slice(2)): Promise<void> 
   console.log(`Battle knowledge modules: ${result.summary.battleKnowledge.moduleCount}`);
   console.log(`Battle protocol fields: ${result.summary.battleKnowledge.protocolFieldCount}`);
   console.log(`Battle resource rules: ${result.summary.battleKnowledge.resourceRuleCount}`);
+  console.log(`Decoder ship id-sets resolved: ${result.summary.decoderCoverageAssets.shipIdSetResolvedCount}`);
+  console.log(`Decoder ship id-sets unresolved: ${result.summary.decoderCoverageAssets.shipIdSetUnresolvedCount}`);
+  console.log(`Decoder slot id-sets resolved: ${result.summary.decoderCoverageAssets.slotIdSetResolvedCount}`);
+  console.log(`Decoder slot id-sets unresolved: ${result.summary.decoderCoverageAssets.slotIdSetUnresolvedCount}`);
+  console.log(`Decoder SE ids: ${result.summary.decoderCoverageAssets.seIdCount}`);
+  console.log(`Decoder port BGM ids: ${result.summary.decoderCoverageAssets.portBgmIdCount}`);
+  console.log(`Decoder battle BGM ids: ${result.summary.decoderCoverageAssets.battleBgmIdCount}`);
+  console.log(`Decoder tutorial voice stems: ${result.summary.decoderCoverageAssets.tutorialVoiceStemCount}`);
+  console.log(`Decoder map default files: ${result.summary.decoderCoverageAssets.mapDefaultFileCount}`);
+  console.log(`Decoder map event files: ${result.summary.decoderCoverageAssets.mapEventFileCount}`);
+  console.log(`Decoder useitem card ids: ${result.summary.decoderCoverageAssets.useItemCardIdCount}`);
+  console.log(`Decoder useitem underline ids: ${result.summary.decoderCoverageAssets.useItemUnderlineIdCount}`);
   if (result.summary.moduleGraph.hotspotCleanupTotals.moduleCount > 0) {
     console.log(`Hotspot local renames: ${result.summary.moduleGraph.hotspotCleanupTotals.localRenameCount}`);
     console.log(`Hotspot body normalizations: ${result.summary.moduleGraph.hotspotCleanupTotals.bodyNormalizationCount}`);
@@ -161,6 +179,9 @@ export async function runCli(args: string[] = Bun.argv.slice(2)): Promise<void> 
 
   if (result.artifacts !== undefined) {
     console.log(`Artifacts written to: ${result.loaded.paths.outputDir}`);
+    if (options.syncAssets === true) {
+      console.log("Decoder coverage assets synced to: ../crates/emukc_bootstrap/assets");
+    }
     if (options.syncBattleAssets === true) {
       console.log("Battle assets synced to: ../crates/emukc_bootstrap/assets");
     }

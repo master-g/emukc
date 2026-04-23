@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-23T11:47:02.709Z",
+  "scriptVersion": "6.2.8.0",
+  "summary": {
+    "mapDefaultFileCount": 0,
+    "mapEventFileCount": 0,
+    "furnitureCategoryCount": 2,
+    "useItemCardIdCount": 0,
+    "useItemUnderlineIdCount": 0,
+    "areaSallyIdCount": 0,
+    "areaAirunitIdCount": 0,
+    "worldSelectFileCount": 0
+  },
+  "map": {
+    "defaultFiles": {
+      "coverageMode": "unresolved",
+      "files": []
+    },
+    "eventFiles": {
+      "coverageMode": "unresolved",
+      "files": []
+    }
+  },
+  "furniture": {
+    "categories": [
+      "outside",
+      "scripts"
+    ],
+    "explicitPaths": [
+      "resources/furniture/outside/",
+      "resources/furniture/scripts/"
+    ]
+  },
+  "useItem": {
+    "cardIds": {
+      "coverageMode": "unresolved",
+      "ids": []
+    },
+    "underlineIds": {
+      "coverageMode": "unresolved",
+      "ids": []
+    }
+  },
+  "area": {
+    "sallyIds": {
+      "coverageMode": "unresolved",
+      "ids": []
+    },
+    "airunitIds": {
+      "coverageMode": "unresolved",
+      "ids": []
+    },
+    "airunitExtendConfirmIds": {
+      "coverageMode": "unresolved",
+      "ids": []
+    }
+  },
+  "worldSelect": {
+    "files": []
+  }
+}

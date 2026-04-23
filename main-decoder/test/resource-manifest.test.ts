@@ -40,7 +40,8 @@ describe("extractResourceManifest — ship resources", () => {
 		const graph = makeGraph([makeModule({ id: "m1", source })]);
 		const manifest = extractResourceManifest(graph);
 
-		expect(manifest.version).toBe(1);
+		expect(manifest.version).toBe(2);
+		expect(manifest.pathRules.shipStandardCategories).toContain("banner");
 		expect(manifest.entries).toHaveLength(1);
 		expect(manifest.entries[0]!.kind).toBe("ship");
 		const entry = manifest.entries.find((e): e is Extract<typeof e, { kind: "ship" }> => e.kind === "ship");
@@ -200,6 +201,7 @@ describe("extractResourceManifest — empty modules", () => {
 		const manifest = extractResourceManifest(graph);
 
 		expect(manifest.entries).toHaveLength(0);
+		expect(manifest.pathRules.btxtFlatSlotIds.length).toBeGreaterThan(300);
 		expect(manifest.summary.totalEntries).toBe(0);
 		expect(manifest.summary.modulesCovered).toBe(0);
 	});

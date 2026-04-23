@@ -49,7 +49,11 @@ pub mod prelude {
     pub use crate::download::BootstrapDownloadError;
     pub use crate::download::download_all;
     pub use crate::make_list::{
-        CacheListMakeStrategy, config::GreedyConfig, errors::CacheListMakingError,
+        CacheListComparisonReport, CacheListItem, CacheListMakeStrategy, CacheListPathPrefixCount,
+        build_cache_list_items, build_cache_list_items_with_manifest_path,
+        build_cache_list_items_with_rules_path, build_cache_list_paths,
+        build_cache_list_paths_with_manifest_path, build_cache_list_paths_with_rules_path,
+        compare_cache_list_path_sets, config::GreedyConfig, errors::CacheListMakingError,
         make as make_cache_list,
     };
     pub use crate::map_overlay::{

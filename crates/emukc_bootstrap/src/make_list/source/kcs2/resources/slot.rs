@@ -8,6 +8,7 @@ use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
 
 use crate::{
+    make_list::manifest::{PathRules, ResourceCategoriesAsset, btxt_flat_coverage, path_rules},
     make_list::{CacheList, batch_check_exists},
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
@@ -96,6 +97,57 @@ fn make_default(mst: &ApiManifest, list: &mut CacheList) {
     }
 }
 
+pub(crate) fn make_manifest_category_extensions(
+    mst: &ApiManifest,
+    list: &mut CacheList,
+    categories: Option<&ResourceCategoriesAsset>,
+) {
+    let Some(categories) = categories else {
+        return;
+    };
+    let has_card_t =
+        categories.slot_generation_groups.default.iter().any(|category| category == "card_t")
+            || categories.slot_generation_groups.baga.iter().any(|category| category == "card_t");
+    if !has_card_t {
+        return;
+    }
+
+    for slot in mst.api_mst_slotitem.iter().filter(|slot| slot.api_sortno > 0) {
+        let item_id = format!("{:04}", slot.api_id);
+        let key = SuffixUtils::create(&item_id, "slot_card_t");
+        list.add(format!("kcs2/resources/slot/card_t/{item_id}_{key}.png"), slot.api_version);
+    }
+}
+
+pub(crate) fn make_manifest_plane_extensions(
+    mst: &ApiManifest,
+    list: &mut CacheList,
+    rules: Option<&PathRules>,
+) {
+    let mut plane_slots: BTreeMap<i64, &ApiMstSlotitem> = BTreeMap::new();
+    for slot in mst.api_mst_slotitem.iter() {
+        if let Some(key) =
+            (slot.api_type[4] != 0 && slot.api_sortno > 0).then_some(slot.api_type[4])
+        {
+            plane_slots
+                .entry(key)
+                .and_modify(|entry| {
+                    if entry.api_version.is_none() && slot.api_version.is_some() {
+                        *entry = slot;
+                    }
+                })
+                .or_insert(slot);
+        }
+    }
+
+    for (id, slot) in plane_slots.iter() {
+        list.add(format!("kcs2/resources/plane/{id:03}.png"), slot.api_version)
+            .add(format!("kcs2/resources/plane/r{id:03}.png"), slot.api_version);
+    }
+
+    make_enemy_plane_with_rules(list, rules);
+}
+
 #[allow(unused)]
 async fn make_enemy_plane_greedy(
     cache: &Kache,
@@ -122,6 +174,18 @@ async fn make_enemy_plane_greedy(
 const ENEMY_PLANE_MAX_ID: usize = 25;
 
 fn make_enemy_plane(list: &mut CacheList) {
+    make_enemy_plane_with_rules(list, path_rules());
+}
+
+fn make_enemy_plane_with_rules(list: &mut CacheList, rules: Option<&PathRules>) {
+    if let Some(rules) = rules.filter(|rules| !rules.enemy_plane_ids.is_empty()) {
+        for id in &rules.enemy_plane_ids {
+            let p = format!("kcs2/resources/plane/e{id:03}.png");
+            list.add_unversioned(p);
+        }
+        return;
+    }
+
     for i in 1..=ENEMY_PLANE_MAX_ID {
         let p = format!("kcs2/resources/plane/e{i:03}.png");
         list.add_unversioned(p);
@@ -184,15 +248,29 @@ static BTXT_FLAT_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 });
 
 pub(crate) fn has_btxt_flat_coverage(slot_id: i64) -> bool {
+    if let Some(coverage) = btxt_flat_coverage() {
+        return coverage.contains(&slot_id);
+    }
+
     BTXT_FLAT_IDS.contains(&slot_id)
 }
 
 fn make_btxt_flat(api: &ApiManifest, list: &mut CacheList) {
-    for id in BTXT_FLAT_IDS.iter() {
+    make_btxt_flat_with_rules(api, list, path_rules());
+}
+
+fn make_btxt_flat_with_rules(api: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
+    let rules = rules.filter(|rules| !rules.btxt_flat_slot_ids.is_empty());
+    let ids =
+        rules.map(|rules| rules.btxt_flat_slot_ids.as_slice()).unwrap_or(BTXT_FLAT_IDS.as_slice());
+
+    for id in ids.iter() {
         let item_id = format!("{id:04}");
         let key = SuffixUtils::create(&item_id, "slot_btxt_flat");
-        let ver =
-            api.api_mst_slotitem.iter().find(|v| v.api_id == *id).unwrap().api_version.unwrap_or(1);
+        let Some(slotitem) = api.api_mst_slotitem.iter().find(|v| v.api_id == *id) else {
+            continue;
+        };
+        let ver = slotitem.api_version.unwrap_or(1);
         list.add(format!("kcs2/resources/slot/btxt_flat/{item_id}_{key}.png"), format!("{ver}"));
     }
 }
@@ -200,8 +278,18 @@ fn make_btxt_flat(api: &ApiManifest, list: &mut CacheList) {
 static CHARACTER_HOLES: LazyLock<Vec<i64>> = LazyLock::new(|| vec![42]);
 
 fn make_character(mst: &ApiManifest, list: &mut CacheList) {
+    make_character_with_rules(mst, list, path_rules());
+}
+
+fn make_character_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
+    let rules = rules.filter(|rules| !rules.character_hole_ids.is_empty());
+
     for m in mst.api_mst_slotitem.iter() {
-        if m.api_sortno == 0 || CHARACTER_HOLES.contains(&m.api_id) {
+        let is_hole = rules
+            .map(|rules| rules.character_hole_ids.contains(&m.api_id))
+            .unwrap_or_else(|| CHARACTER_HOLES.contains(&m.api_id));
+
+        if m.api_sortno == 0 || is_hole {
             continue;
         }
 
@@ -241,4 +329,85 @@ async fn make_character_greedy(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::make_list::manifest::{ShipPathHoles, load_resource_manifest};
+
+    fn make_manifest() -> ApiManifest {
+        ApiManifest {
+            api_mst_slotitem: vec![
+                ApiMstSlotitem {
+                    api_id: 1,
+                    api_sortno: 1,
+                    api_type: [0, 0, 0, 0, 1],
+                    api_version: Some(1),
+                    ..Default::default()
+                },
+                ApiMstSlotitem {
+                    api_id: 42,
+                    api_sortno: 1,
+                    api_type: [0, 0, 0, 0, 0],
+                    api_version: Some(1),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        }
+    }
+
+    fn make_rules() -> PathRules {
+        let manifest = load_resource_manifest().unwrap();
+        manifest.path_rules.unwrap_or_else(|| PathRules {
+            enemy_plane_ids: (1..=25).collect(),
+            btxt_flat_slot_ids: BTXT_FLAT_IDS.to_vec(),
+            character_hole_ids: CHARACTER_HOLES.to_vec(),
+            event_ship_holes: ShipPathHoles::default(),
+            enemy_ship_holes: ShipPathHoles::default(),
+            ..Default::default()
+        })
+    }
+
+    #[test]
+    fn test_real_manifest_path_rules_match_slot_constants() {
+        let rules = make_rules();
+        assert_eq!(rules.enemy_plane_ids, (1..=ENEMY_PLANE_MAX_ID as i64).collect::<Vec<_>>());
+        assert_eq!(rules.btxt_flat_slot_ids, BTXT_FLAT_IDS.to_vec());
+        assert_eq!(rules.character_hole_ids, CHARACTER_HOLES.to_vec());
+    }
+
+    #[test]
+    fn test_has_btxt_flat_coverage_matches_constant_fallback_for_manifest_rules() {
+        let manifest = load_resource_manifest().unwrap();
+        crate::make_list::manifest::populate_path_rules_locks(&manifest);
+
+        for id in BTXT_FLAT_IDS.iter() {
+            assert_eq!(has_btxt_flat_coverage(*id), BTXT_FLAT_IDS.contains(id));
+        }
+
+        assert!(!has_btxt_flat_coverage(999_999));
+    }
+
+    #[test]
+    fn test_default_slot_outputs_match_with_and_without_path_rules() {
+        let mst = make_manifest();
+        let rules = make_rules();
+
+        let mut fallback_list = CacheList::new();
+        make_enemy_plane_with_rules(&mut fallback_list, None);
+        make_btxt_flat_with_rules(&mst, &mut fallback_list, None);
+        make_character_with_rules(&mst, &mut fallback_list, None);
+
+        let mut rule_list = CacheList::new();
+        make_enemy_plane_with_rules(&mut rule_list, Some(&rules));
+        make_btxt_flat_with_rules(&mst, &mut rule_list, Some(&rules));
+        make_character_with_rules(&mst, &mut rule_list, Some(&rules));
+
+        let fallback_paths =
+            fallback_list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        let rule_paths = rule_list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(rule_paths, fallback_paths);
+    }
 }

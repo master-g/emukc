@@ -24,7 +24,9 @@ pub(super) async fn make(
 
     make_preset(mst, list);
     match strategy {
-        CacheListMakeStrategy::Default => {
+        CacheListMakeStrategy::Default
+        | CacheListMakeStrategy::Manifest
+        | CacheListMakeStrategy::Rules => {
             make_special_preset(mst, list);
         }
 

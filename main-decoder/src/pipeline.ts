@@ -11,8 +11,12 @@ import { decodeBundle } from "./decode.ts";
 import { formatJavaScript } from "./format.ts";
 import { loadLocalSources, writeTextFile } from "./io.ts";
 import { extractModuleGraph } from "./module-graph.ts";
+import { extractAudioResources, toAudioResourcesAsset } from "./audio-resources.ts";
+import { extractCacheRules, toCacheRulesAsset } from "./cache-rules.ts";
 import { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
+import { extractResourceIdSets, toResourceIdSetsAsset } from "./resource-id-sets.ts";
 import { extractResourceManifest } from "./resource-manifest.ts";
+import { extractUiResources, toUiResourcesAsset } from "./ui-resources.ts";
 import { splitBundle } from "./split.ts";
 import type { PipelineArtifacts, PipelineOptions, PipelineResult } from "./types.ts";
 
@@ -36,6 +40,11 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     battleSlotResourceTriggersFile: resolve(battleDir, "battle_slot_resource_triggers.json"),
     resourcesDir,
     resourceCategoriesFile: resolve(resourcesDir, "resource_categories.json"),
+    resourceIdSetsFile: resolve(resourcesDir, "resource_id_sets.json"),
+    audioResourcesFile: resolve(resourcesDir, "audio_resources.json"),
+    cacheRulesFile: resolve(resourcesDir, "cache_rules.json"),
+    uiResourcesFile: resolve(resourcesDir, "ui_resources.json"),
+    resourceManifestFile: undefined,
     modulesDir,
   };
 
@@ -88,6 +97,14 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   await writeTextFile(artifacts.battleModuleIndexFile, `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
   await writeTextFile(artifacts.battleSlotResourceTriggersFile, `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
   await writeTextFile(artifacts.resourceCategoriesFile, `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
+  await writeTextFile(artifacts.resourceIdSetsFile, `${JSON.stringify(result.resourceIdSets, null, 2)}\n`);
+  await writeTextFile(artifacts.audioResourcesFile, `${JSON.stringify(result.audioResources, null, 2)}\n`);
+  await writeTextFile(artifacts.cacheRulesFile, `${JSON.stringify(result.cacheRules, null, 2)}\n`);
+  await writeTextFile(artifacts.uiResourcesFile, `${JSON.stringify(result.uiResources, null, 2)}\n`);
+  if (result.resourceManifest !== undefined) {
+    artifacts.resourceManifestFile = resolve(resourcesDir, "resource_manifest.json");
+    await writeTextFile(artifacts.resourceManifestFile, `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
+  }
   if (options.syncBattleAssets === true) {
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_protocol_fields.json"), `${JSON.stringify(battleProtocolFieldsAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_resource_rules.json"), `${JSON.stringify(battleResourceRulesAsset, null, 2)}\n`);
@@ -96,6 +113,10 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   }
   if (options.syncAssets === true) {
     await writeTextFile(resolve(bootstrapAssetsDir, "resource_categories.json"), `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "resource_id_sets.json"), `${JSON.stringify(result.resourceIdSets, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "audio_resources.json"), `${JSON.stringify(result.audioResources, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "cache_rules.json"), `${JSON.stringify(result.cacheRules, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "ui_resources.json"), `${JSON.stringify(result.uiResources, null, 2)}\n`);
   }
   if (options.syncResourceManifest === true) {
     const manifest = extractResourceManifest(result.moduleGraph);
@@ -115,9 +136,16 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
   const moduleGraph = extractModuleGraph(decoded.decodedSource);
   const battleKnowledge = extractBattleKnowledge(moduleGraph);
   const resourceCategories = toResourceCategoriesAsset(loaded.scriptVersion, extractResourceCategories(moduleGraph));
-
-  const resourceManifest = options.syncResourceManifest === true
-    ? extractResourceManifest(moduleGraph)
+  const resourceManifest = extractResourceManifest(moduleGraph);
+  const resourceIdSets = toResourceIdSetsAsset(loaded.scriptVersion, extractResourceIdSets(moduleGraph));
+  const audioResources = toAudioResourcesAsset(loaded.scriptVersion, extractAudioResources(moduleGraph));
+  const cacheRules = toCacheRulesAsset(loaded.scriptVersion, extractCacheRules(moduleGraph), {
+    resourceManifest,
+    resourceCategories,
+  });
+  const uiResources = toUiResourcesAsset(loaded.scriptVersion, extractUiResources(moduleGraph));
+  const emittedResourceManifest = options.syncResourceManifest === true || options.emitResourceManifest === true
+    ? resourceManifest
     : undefined;
 
   const result: PipelineResult = {
@@ -127,7 +155,12 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
     moduleGraph,
     battleKnowledge,
     resourceCategories,
-    resourceManifestSummary: resourceManifest?.summary,
+    resourceIdSets,
+    audioResources,
+    cacheRules,
+    uiResources,
+    resourceManifest: emittedResourceManifest,
+    resourceManifestSummary: resourceManifest.summary,
     summary: {
       scriptVersion: loaded.scriptVersion,
       decoderFunctionName: sections.decoderFunctionName,
@@ -138,6 +171,20 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
       assessment: decoded.assessment,
       moduleGraph: moduleGraph.summary,
       battleKnowledge: battleKnowledge.summary,
+      decoderCoverageAssets: {
+        shipIdSetResolvedCount: Object.values(resourceIdSets.shipIdSets).filter(entry => entry.coverageMode !== "unresolved").length,
+        shipIdSetUnresolvedCount: Object.values(resourceIdSets.shipIdSets).filter(entry => entry.coverageMode === "unresolved").length,
+        slotIdSetResolvedCount: Object.values(resourceIdSets.slotitemIdSets).filter(entry => entry.coverageMode !== "unresolved").length,
+        slotIdSetUnresolvedCount: Object.values(resourceIdSets.slotitemIdSets).filter(entry => entry.coverageMode === "unresolved").length,
+        seIdCount: resourceIdSets.coverageMode === "mainjs-observed" ? audioResources.seIds.ids.length : 0,
+        portBgmIdCount: audioResources.bgm.portIds.ids.length,
+        battleBgmIdCount: audioResources.bgm.battleIds.ids.length,
+        tutorialVoiceStemCount: audioResources.voice.tutorialVoiceStems.length,
+        mapDefaultFileCount: uiResources.map.defaultFiles.files.length,
+        mapEventFileCount: uiResources.map.eventFiles.files.length,
+        useItemCardIdCount: uiResources.useItem.cardIds.ids.length,
+        useItemUnderlineIdCount: uiResources.useItem.underlineIds.ids.length,
+      },
       inputPaths: {
         kcConstPath: loaded.paths.kcConstPath,
         mainJsPath: loaded.paths.mainJsPath,

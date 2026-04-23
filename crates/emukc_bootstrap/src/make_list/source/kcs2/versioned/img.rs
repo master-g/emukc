@@ -558,7 +558,10 @@ pub(super) async fn make(
     append_battle_rule_provider_assets(versions, list)?;
 
     match strategy {
-        CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {
+        CacheListMakeStrategy::Default
+        | CacheListMakeStrategy::Minimal
+        | CacheListMakeStrategy::Manifest
+        | CacheListMakeStrategy::Rules => {
             let v = versions.get("port");
             for p in FRIENDLY_SHIPS.iter() {
                 list.add(format!("kcs2/img/port/friendly_ship/{p}"), v);
@@ -567,7 +570,6 @@ pub(super) async fn make(
         CacheListMakeStrategy::Greedy(config) => {
             make_greedy(mst, cache, versions, config.concurrent, list).await?;
         }
-        _ => {}
     }
     // make_greedy(mst, cache, versions, 16, list).await?;
 

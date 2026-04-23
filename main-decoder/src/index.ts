@@ -10,12 +10,23 @@ export { decodeBundle } from "./decode.ts";
 export { formatJavaScript } from "./format.ts";
 export { extractScriptVersion, loadLocalSources, resolveSourcePaths } from "./io.ts";
 export { extractModuleGraph } from "./module-graph.ts";
+export { extractAudioResources, toAudioResourcesAsset } from "./audio-resources.ts";
+export { extractCacheRules, toCacheRulesAsset } from "./cache-rules.ts";
 export { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
+export { extractResourceIdSets, toResourceIdSetsAsset } from "./resource-id-sets.ts";
 export { extractResourceManifest } from "./resource-manifest.ts";
 export type { ResourceManifest, ResourceManifestEntry, ResourceManifestShipEntry, ResourceManifestSlotitemEntry, ResourceManifestTextureProviderEntry, ResourceManifestExplicitPathEntry } from "./resource-manifest.ts";
 export { runDecodePipeline } from "./pipeline.ts";
 export { splitBundle } from "./split.ts";
+export { extractUiResources, toUiResourcesAsset } from "./ui-resources.ts";
 export type {
+  AudioResourcesAsset,
+  CacheRuleBtxtFlatRule,
+  CacheRuleItemUpRule,
+  CacheRuleProvenance,
+  CacheRuleSpecialCase,
+  CacheRuleSpecialShipRule,
+  CacheRulesAsset,
   BattleKnowledge,
   BattleKnowledgeModuleDependency,
   BattleKnowledgeSummary,
@@ -49,6 +60,10 @@ export type {
   PipelineOptions,
   PipelineResult,
   ResourceCategoriesAsset,
+  ResourceCoverageMode,
   ResourceCategoryEntry,
+  ResourceIdSetEntry,
+  ResourceIdSetsAsset,
   SourcePaths,
+  UiResourcesAsset,
 } from "./types.ts";

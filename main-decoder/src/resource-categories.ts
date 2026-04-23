@@ -256,6 +256,8 @@ export function extractResourceCategories(moduleGraph: ModuleGraph): ExtractedRe
 			&& !source.includes("getSlotitem")
 			&& !source.includes("ShipLoader")
 			&& !source.includes("SlotLoader")
+			&& !source.includes("TaskLoadShipResource")
+			&& !source.includes("TaskLoadSlotResource")
 			&& !source.includes("resources/ship/")
 			&& !source.includes("resources/slot/")
 			&& !source.includes("kcs2/resources/ship/")
@@ -275,10 +277,14 @@ export function extractResourceCategories(moduleGraph: ModuleGraph): ExtractedRe
 
 		const shipLoaderBindings = new Set<string>();
 		const slotLoaderBindings = new Set<string>();
+		const stringBindings = new Map<string, string>();
 
 		traverse(ast, {
 			VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
 				if (!t.isIdentifier(path.node.id) || path.node.init == null || !t.isNewExpression(path.node.init)) {
+					if (t.isIdentifier(path.node.id) && t.isStringLiteral(path.node.init)) {
+						stringBindings.set(path.node.id.name, path.node.init.value);
+					}
 					return;
 				}
 
@@ -331,12 +337,19 @@ export function extractResourceCategories(moduleGraph: ModuleGraph): ExtractedRe
 				if (normalizedCalleeChain.endsWith("resources.getShip") || normalizedCalleeChain.endsWith("ShipLoader.add")) {
 					const damagedArg = path.node.arguments[1];
 					const typeArg = path.node.arguments[2];
-					if (typeArg !== undefined && !t.isSpreadElement(typeArg) && t.isStringLiteral(typeArg)) {
-						for (const targetType of normalizeShipCategoryTargets(typeArg.value, damagedArg)) {
+					const targetType = typeArg !== undefined && !t.isSpreadElement(typeArg)
+						? t.isStringLiteral(typeArg)
+							? typeArg.value
+							: t.isIdentifier(typeArg)
+								? stringBindings.get(typeArg.name)
+								: undefined
+						: undefined;
+					if (targetType !== undefined) {
+						for (const normalizedTargetType of normalizeShipCategoryTargets(targetType, damagedArg)) {
 							addCategory(
 								shipCategories,
 								normalizedCalleeChain.endsWith("resources.getShip") ? "resources.getShip" : "ShipLoader.add",
-								targetType,
+								normalizedTargetType,
 								module,
 							);
 						}
@@ -346,14 +359,47 @@ export function extractResourceCategories(moduleGraph: ModuleGraph): ExtractedRe
 
 				if (normalizedCalleeChain.endsWith("resources.getSlotitem") || normalizedCalleeChain.endsWith("SlotLoader.add")) {
 					const typeArg = path.node.arguments[1];
-					if (typeArg !== undefined && !t.isSpreadElement(typeArg) && t.isStringLiteral(typeArg)) {
+					const targetType = typeArg !== undefined && !t.isSpreadElement(typeArg)
+						? t.isStringLiteral(typeArg)
+							? typeArg.value
+							: t.isIdentifier(typeArg)
+								? stringBindings.get(typeArg.name)
+								: undefined
+						: undefined;
+					if (targetType !== undefined) {
 						addCategory(
 							slotCategories,
 							normalizedCalleeChain.endsWith("resources.getSlotitem") ? "resources.getSlotitem" : "SlotLoader.add",
-							typeArg.value,
+							targetType,
 							module,
 						);
 					}
+				}
+			},
+			NewExpression(path: NodePath<t.NewExpression>) {
+				const calleeName = getCallExpressionChain(path.node.callee)
+					?? (t.isIdentifier(path.node.callee) ? path.node.callee.name : undefined);
+				if (calleeName === undefined) {
+					return;
+				}
+
+				const targetArg = path.node.arguments[0];
+				const targetType = targetArg !== undefined && !t.isSpreadElement(targetArg)
+					? t.isStringLiteral(targetArg)
+						? targetArg.value
+						: t.isIdentifier(targetArg)
+							? stringBindings.get(targetArg.name)
+							: undefined
+					: undefined;
+				if (targetType === undefined) {
+					return;
+				}
+
+				if (calleeName.endsWith("TaskLoadShipResource")) {
+					addCategory(shipCategories, "explicit-path", targetType, module);
+				}
+				if (calleeName.endsWith("TaskLoadSlotResource")) {
+					addCategory(slotCategories, "explicit-path", targetType, module);
 				}
 			},
 		});

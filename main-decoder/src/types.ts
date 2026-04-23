@@ -1,3 +1,5 @@
+import type { ResourceManifest } from "./resource-manifest.ts";
+
 export interface SourcePaths {
   kcConstPath: string;
   mainJsPath: string;
@@ -281,6 +283,7 @@ export interface PipelineOptions {
   outputDir?: string;
   maxPasses?: number;
   writeOutputs?: boolean;
+  emitResourceManifest?: boolean;
   syncAssets?: boolean;
   syncBattleAssets?: boolean;
   syncResourceManifest?: boolean;
@@ -300,6 +303,11 @@ export interface PipelineArtifacts {
   battleSlotResourceTriggersFile: string;
   resourcesDir: string;
   resourceCategoriesFile: string;
+  resourceIdSetsFile: string;
+  audioResourcesFile: string;
+  cacheRulesFile: string;
+  uiResourcesFile: string;
+  resourceManifestFile?: string;
   modulesDir: string;
 }
 
@@ -313,6 +321,20 @@ export interface DecodeSummary {
   assessment: DecodeAssessment;
   moduleGraph: ModuleGraphSummary;
   battleKnowledge: BattleKnowledgeSummary;
+  decoderCoverageAssets: {
+    shipIdSetResolvedCount: number;
+    shipIdSetUnresolvedCount: number;
+    slotIdSetResolvedCount: number;
+    slotIdSetUnresolvedCount: number;
+    seIdCount: number;
+    portBgmIdCount: number;
+    battleBgmIdCount: number;
+    tutorialVoiceStemCount: number;
+    mapDefaultFileCount: number;
+    mapEventFileCount: number;
+    useItemCardIdCount: number;
+    useItemUnderlineIdCount: number;
+  };
   inputPaths: {
     kcConstPath: string;
     mainJsPath: string;
@@ -370,6 +392,170 @@ export interface ResourceCategoriesAsset {
   spRemodelSubcategories: string[];
 }
 
+export type ResourceCoverageMode = "observed-complete" | "partial" | "unresolved";
+
+export interface ResourceIdSetEntry {
+  coverageMode: ResourceCoverageMode;
+  ids: number[];
+  moduleIds: string[];
+  moduleNames: string[];
+}
+
+export interface ResourceIdSetsAsset {
+  version: 1;
+  generatedAt: string;
+  scriptVersion: string;
+  coverageMode: "mainjs-observed";
+  summary: {
+    shipCategoryCount: number;
+    slotitemCategoryCount: number;
+    resolvedCategoryCount: number;
+    unresolvedCategoryCount: number;
+  };
+  shipIdSets: {
+    specialShips: ResourceIdSetEntry;
+    spRemodelShips: ResourceIdSetEntry;
+    spRemodelMessageShips: ResourceIdSetEntry;
+    cardRoundShips: ResourceIdSetEntry;
+    rewardShips: ResourceIdSetEntry;
+  };
+  slotitemIdSets: {
+    btxtFlatIds: ResourceIdSetEntry;
+    itemUpIds: ResourceIdSetEntry;
+  };
+  unresolvedKeys: string[];
+}
+
+export interface CacheRuleProvenance {
+  moduleIds: string[];
+  moduleNames: string[];
+}
+
+export interface CacheRuleSpecialCase {
+  damaged: boolean;
+  shipIds: number[];
+}
+
+export interface CacheRuleSpecialShipRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "special_cases";
+  cases: CacheRuleSpecialCase[];
+}
+
+export interface CacheRuleItemUpRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "item_up_normalization";
+  replaceMap: Record<string, number>;
+  enemySlotBorder?: number;
+  exclude: Array<{ type: string; mstId: number }>;
+}
+
+export interface CacheRuleBtxtFlatRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "btxt_flat_non_enemy_runtime_slots";
+  excludeEnemyItems: boolean;
+}
+
+export interface CacheRulesAsset {
+  version: 1;
+  generatedAt: string;
+  scriptVersion: string;
+  summary: {
+    shipRuleCount: number;
+    slotRuleCount: number;
+    observedCompleteRuleCount: number;
+    partialRuleCount: number;
+    unresolvedRuleCount: number;
+  };
+  resourceManifest: ResourceManifest;
+  resourceCategories: ResourceCategoriesAsset;
+  shipRules: {
+    special: CacheRuleSpecialShipRule;
+  };
+  slotRules: {
+    itemUp: CacheRuleItemUpRule;
+    btxtFlat: CacheRuleBtxtFlatRule;
+  };
+  unresolvedRules: string[];
+}
+
+export interface AudioResourceIdGroup {
+  coverageMode: ResourceCoverageMode;
+  ids: number[];
+}
+
+export interface AudioResourcesAsset {
+  version: 1;
+  generatedAt: string;
+  scriptVersion: string;
+  summary: {
+    seIdCount: number;
+    portBgmIdCount: number;
+    battleBgmIdCount: number;
+    fanfareBgmIdCount: number;
+    tutorialVoiceStemCount: number;
+    explicitPathCount: number;
+  };
+  seIds: AudioResourceIdGroup;
+  bgm: {
+    fanfareIds: AudioResourceIdGroup;
+    portIds: AudioResourceIdGroup;
+    battleIds: AudioResourceIdGroup;
+  };
+  voice: {
+    titlecallCategories: string[];
+    tutorialVoiceStems: string[];
+    explicitFiles: string[];
+  };
+  explicitPaths: string[];
+}
+
+export interface UiResourcePathGroup {
+  coverageMode: ResourceCoverageMode;
+  files: string[];
+}
+
+export interface UiResourceIdGroup {
+  coverageMode: ResourceCoverageMode;
+  ids: string[];
+}
+
+export interface UiResourcesAsset {
+  version: 1;
+  generatedAt: string;
+  scriptVersion: string;
+  summary: {
+    mapDefaultFileCount: number;
+    mapEventFileCount: number;
+    furnitureCategoryCount: number;
+    useItemCardIdCount: number;
+    useItemUnderlineIdCount: number;
+    areaSallyIdCount: number;
+    areaAirunitIdCount: number;
+    worldSelectFileCount: number;
+  };
+  map: {
+    defaultFiles: UiResourcePathGroup;
+    eventFiles: UiResourcePathGroup;
+  };
+  furniture: {
+    categories: string[];
+    explicitPaths: string[];
+  };
+  useItem: {
+    cardIds: UiResourceIdGroup;
+    underlineIds: UiResourceIdGroup;
+  };
+  area: {
+    sallyIds: UiResourceIdGroup;
+    airunitIds: UiResourceIdGroup;
+    airunitExtendConfirmIds: UiResourceIdGroup;
+  };
+  worldSelect: {
+    files: string[];
+  };
+}
+
 export interface PipelineResult {
   loaded: LoadedSources;
   sections: BundleSections;
@@ -377,6 +563,11 @@ export interface PipelineResult {
   moduleGraph: ModuleGraph;
   battleKnowledge: BattleKnowledge;
   resourceCategories: ResourceCategoriesAsset;
+  resourceIdSets: ResourceIdSetsAsset;
+  audioResources: AudioResourcesAsset;
+  cacheRules: CacheRulesAsset;
+  uiResources: UiResourcesAsset;
+  resourceManifest?: unknown;
   resourceManifestSummary?: ResourceManifestSummary;
   summary: DecodeSummary;
   artifacts?: PipelineArtifacts;

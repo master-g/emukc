@@ -15,13 +15,15 @@ pub(super) async fn make(
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
     match strategy {
-        CacheListMakeStrategy::Default | CacheListMakeStrategy::Minimal => {
+        CacheListMakeStrategy::Default
+        | CacheListMakeStrategy::Minimal
+        | CacheListMakeStrategy::Manifest
+        | CacheListMakeStrategy::Rules => {
             make_useitem(list);
         }
         CacheListMakeStrategy::Greedy(config) => {
             make_useitem_greedy(mst, cache, config.concurrent, list).await?;
         }
-        _ => {}
     };
 
     Ok(())

@@ -1,9 +1,12 @@
 use emukc_cache::IntoVersion;
 use emukc_crypto::SuffixUtils;
-use emukc_model::kc2::start2::ApiManifest;
+use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
 
 use super::resolve;
-use super::types::{ManifestEntryKind, ResourceManifestEntry};
+use super::types::{
+    CacheRulesAsset, DecoderCoverageAssets, ManifestEntryKind, PathRules, ResourceCoverageMode,
+    ResourceIdSetEntry, ResourceManifestEntry,
+};
 use crate::make_list::CacheList;
 
 /// Mapping from base ship target types to their damage variant target types.
@@ -90,14 +93,333 @@ fn get_damage_variants(base_type: &str) -> &[&str] {
         .unwrap_or(&[])
 }
 
+fn should_use_observed_ids(entry: &ResourceIdSetEntry) -> bool {
+    entry.coverage_mode == ResourceCoverageMode::ObservedComplete && !entry.ids.is_empty()
+}
+
+fn pick_longest_id_set(candidates: [Option<Vec<i64>>; 3]) -> Option<Vec<i64>> {
+    let mut best: Option<Vec<i64>> = None;
+    for ids in candidates.into_iter().flatten() {
+        if best.as_ref().is_none_or(|current| ids.len() > current.len()) {
+            best = Some(ids);
+        }
+    }
+    best
+}
+
+fn sparse_ship_ids_from_rules(target: &str, path_rules: Option<&PathRules>) -> Option<Vec<i64>> {
+    let rules = path_rules?;
+    let ids = match target {
+        "special" => &rules.special_ships,
+        "card_round" | "icon_box" => &rules.card_rounds,
+        "reward_card" | "reward_icon" => &rules.reward_ships,
+        "sp_remodel/text_remodel_mes" => &rules.sp_remodel_mes,
+        t if t.starts_with("sp_remodel/") => &rules.sp_remodel_ships,
+        _ => return None,
+    };
+    (!ids.is_empty()).then(|| ids.clone())
+}
+
+fn sparse_ship_ids_from_decoder(
+    target: &str,
+    decoder_assets: Option<&DecoderCoverageAssets>,
+) -> Option<Vec<i64>> {
+    let id_sets = decoder_assets.and_then(|assets| assets.resource_id_sets.as_ref())?;
+    let entry = match target {
+        "special" => &id_sets.ship_id_sets.special_ships,
+        "card_round" | "icon_box" => &id_sets.ship_id_sets.card_round_ships,
+        "reward_card" | "reward_icon" => &id_sets.ship_id_sets.reward_ships,
+        "sp_remodel/text_remodel_mes" => &id_sets.ship_id_sets.sp_remodel_message_ships,
+        t if t.starts_with("sp_remodel/") => &id_sets.ship_id_sets.sp_remodel_ships,
+        _ => return None,
+    };
+    should_use_observed_ids(entry).then(|| entry.ids.clone())
+}
+
+fn sparse_ship_ids_from_cache_rules(
+    target: &str,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Option<Vec<i64>> {
+    if target != "special" {
+        return None;
+    }
+
+    let rule = &cache_rules?.ship_rules.special;
+    if rule.coverage_mode == ResourceCoverageMode::Unresolved {
+        return None;
+    }
+
+    let mut ids = rule
+        .cases
+        .iter()
+        .filter(|case| !case.damaged)
+        .flat_map(|case| case.ship_ids.iter().copied())
+        .collect::<Vec<_>>();
+    ids.sort_unstable();
+    ids.dedup();
+    (!ids.is_empty()).then_some(ids)
+}
+
+fn default_group_ship_ids_from_categories(
+    target: &str,
+    mst: &ApiManifest,
+    categories: &super::types::ResourceCategoriesAsset,
+) -> Option<Vec<i64>> {
+    let groups = &categories.ship_generation_groups;
+    let mut ids = Vec::new();
+
+    if groups.default_friendly.iter().any(|category| category == target) {
+        ids.extend(
+            mst.api_mst_ship
+                .iter()
+                .filter(|ship| ship.api_aftershipid.is_some())
+                .map(|ship| ship.api_id),
+        );
+    }
+
+    if groups.default_abyssal.iter().any(|category| category == target) {
+        ids.extend(
+            mst.api_mst_ship
+                .iter()
+                .filter(|ship| ship.api_aftershipid.is_none())
+                .map(|ship| ship.api_id),
+        );
+    }
+
+    ids.sort_unstable();
+    ids.dedup();
+    (!ids.is_empty()).then_some(ids)
+}
+
+fn default_group_ship_ids_from_cache_rules(
+    target: &str,
+    mst: &ApiManifest,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Option<Vec<i64>> {
+    default_group_ship_ids_from_categories(target, mst, &cache_rules?.resource_categories)
+}
+
+fn graph_group_ship_ids_from_cache_rules(
+    target: &str,
+    mst: &ApiManifest,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Option<Vec<i64>> {
+    let groups = &cache_rules?.resource_categories.ship_generation_groups;
+    let mut ids = Vec::new();
+
+    let uses_friend_graph = groups.friend_graph.iter().any(|category| category == target);
+    let uses_enemy_graph = groups.enemy_graph.iter().any(|category| category == target);
+
+    if uses_friend_graph {
+        ids.extend(
+            mst.api_mst_shipgraph
+                .iter()
+                .filter(|graph| graph.api_sortno.is_some() && !graph.api_version.is_empty())
+                .map(|graph| graph.api_id),
+        );
+
+        if matches!(
+            target,
+            "character_full" | "character_full_dmg" | "character_up" | "character_up_dmg"
+        ) {
+            ids.extend(
+                mst.api_mst_shipgraph
+                    .iter()
+                    .filter(|graph| graph.api_id > 5000)
+                    .map(|graph| graph.api_id),
+            );
+        }
+    }
+
+    if uses_enemy_graph {
+        ids.extend(
+            mst.api_mst_shipgraph
+                .iter()
+                .filter(|graph| graph.api_sortno.is_none() && graph.api_id < 5000)
+                .map(|graph| graph.api_id),
+        );
+    }
+
+    ids.sort_unstable();
+    ids.dedup();
+    (!ids.is_empty()).then_some(ids)
+}
+
+fn should_skip_ship_category(
+    ship_id: i64,
+    category: &str,
+    graph: Option<&emukc_model::kc2::start2::ApiMstShipgraph>,
+    path_rules: Option<&PathRules>,
+) -> bool {
+    let Some(graph) = graph else {
+        return false;
+    };
+    let Some(rules) = path_rules else {
+        return false;
+    };
+
+    if ship_id > 5000 {
+        return match category {
+            "character_full" => rules.event_ship_holes.full.contains(&ship_id),
+            "character_full_dmg" => rules.event_ship_holes.full_dmg.contains(&ship_id),
+            "character_up" => rules.event_ship_holes.up.contains(&ship_id),
+            "character_up_dmg" => rules.event_ship_holes.up_dmg.contains(&ship_id),
+            _ => false,
+        };
+    }
+
+    if graph.api_sortno.is_none() {
+        return match category {
+            "full" => rules.enemy_ship_holes.full.contains(&ship_id),
+            "full_dmg" => rules.enemy_ship_holes.full_dmg.contains(&ship_id),
+            _ => false,
+        };
+    }
+
+    false
+}
+
+fn resolve_ship_ids_for_target(
+    source: &str,
+    target: &str,
+    mst: &ApiManifest,
+    path_rules: Option<&PathRules>,
+    decoder_assets: Option<&DecoderCoverageAssets>,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Vec<i64> {
+    pick_longest_id_set([
+        sparse_ship_ids_from_cache_rules(target, cache_rules),
+        sparse_ship_ids_from_decoder(target, decoder_assets),
+        sparse_ship_ids_from_rules(target, path_rules),
+    ])
+    .or_else(|| default_group_ship_ids_from_cache_rules(target, mst, cache_rules))
+    .or_else(|| graph_group_ship_ids_from_cache_rules(target, mst, cache_rules))
+    .unwrap_or_else(|| resolve::resolve_ship_ids(source, mst))
+}
+
+fn airunit_slot_ids(mst: &ApiManifest) -> Vec<i64> {
+    let mut plane_slots: std::collections::BTreeMap<i64, &ApiMstSlotitem> =
+        std::collections::BTreeMap::new();
+    for slot in mst.api_mst_slotitem.iter() {
+        if let Some(key) =
+            (slot.api_type[4] != 0 && slot.api_sortno > 0).then_some(slot.api_type[4])
+        {
+            plane_slots
+                .entry(key)
+                .and_modify(|entry| {
+                    if entry.api_version.is_none() && slot.api_version.is_some() {
+                        *entry = slot;
+                    }
+                })
+                .or_insert(slot);
+        }
+    }
+    plane_slots.values().map(|slot| slot.api_id).collect()
+}
+
+fn resolve_slot_ids_for_target(
+    sources: &[String],
+    target: &str,
+    mst: &ApiManifest,
+    path_rules: Option<&PathRules>,
+    decoder_assets: Option<&DecoderCoverageAssets>,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Vec<i64> {
+    if target == "item_up" {
+        if let Some(rule) = cache_rules
+            .map(|rules| &rules.slot_rules.item_up)
+            .filter(|rule| rule.coverage_mode != ResourceCoverageMode::Unresolved)
+        {
+            let exclude = rule
+                .exclude
+                .iter()
+                .filter(|entry| entry.type_ == "item_up")
+                .map(|entry| entry.mst_id)
+                .collect::<std::collections::BTreeSet<_>>();
+            let mut ids = resolve::resolve_slotitem_ids(sources, mst)
+                .into_iter()
+                .filter(|slot_id| !exclude.contains(slot_id))
+                .map(|slot_id| {
+                    if let Some(replaced) = rule.replace_map.get(&slot_id.to_string()) {
+                        *replaced
+                    } else if let Some(border) = rule.enemy_slot_border {
+                        if slot_id > border {
+                            slot_id - border
+                        } else {
+                            slot_id
+                        }
+                    } else {
+                        slot_id
+                    }
+                })
+                .filter(|slot_id| *slot_id > 0)
+                .collect::<Vec<_>>();
+            ids.sort_unstable();
+            ids.dedup();
+            if !ids.is_empty() {
+                return ids;
+            }
+        }
+    }
+
+    if target == "btxt_flat" {
+        if let Some(ids) = pick_longest_id_set([
+            None,
+            decoder_assets
+                .and_then(|assets| assets.resource_id_sets.as_ref())
+                .map(|id_sets| &id_sets.slotitem_id_sets.btxt_flat_ids)
+                .filter(|entry| should_use_observed_ids(entry))
+                .map(|entry| entry.ids.clone()),
+            path_rules
+                .filter(|rules| !rules.btxt_flat_slot_ids.is_empty())
+                .map(|rules| rules.btxt_flat_slot_ids.clone()),
+        ]) {
+            return ids;
+        }
+
+        if let Some(rule) = cache_rules.map(|rules| &rules.slot_rules.btxt_flat).filter(|rule| {
+            rule.coverage_mode != ResourceCoverageMode::Unresolved && rule.exclude_enemy_items
+        }) {
+            let enemy_slot_border = cache_rules
+                .and_then(|rules| rules.slot_rules.item_up.enemy_slot_border)
+                .unwrap_or(i64::MAX);
+            let mut ids = mst
+                .api_mst_slotitem
+                .iter()
+                .filter(|slot| slot.api_sortno > 0 && slot.api_id <= enemy_slot_border)
+                .map(|slot| slot.api_id)
+                .collect::<Vec<_>>();
+            if !ids.is_empty() {
+                ids.sort_unstable();
+                ids.dedup();
+                let _ = rule;
+                return ids;
+            }
+        }
+    }
+
+    if matches!(target, "airunit_banner" | "airunit_fairy" | "airunit_name") {
+        return airunit_slot_ids(mst);
+    }
+
+    resolve::resolve_slotitem_ids(sources, mst)
+}
+
 pub(crate) fn generate_entry_paths(
     entry: &ResourceManifestEntry,
     mst: &ApiManifest,
+    path_rules: Option<&PathRules>,
+    decoder_assets: Option<&DecoderCoverageAssets>,
+    cache_rules: Option<&CacheRulesAsset>,
     list: &mut CacheList,
 ) {
     match entry.kind {
-        ManifestEntryKind::Ship => generate_ship_paths(entry, mst, list),
-        ManifestEntryKind::Slotitem => generate_slotitem_paths(entry, mst, list),
+        ManifestEntryKind::Ship => {
+            generate_ship_paths(entry, mst, path_rules, decoder_assets, cache_rules, list);
+        }
+        ManifestEntryKind::Slotitem => {
+            generate_slotitem_paths(entry, mst, path_rules, decoder_assets, cache_rules, list);
+        }
         ManifestEntryKind::ExplicitPath => generate_explicit_paths(entry, list),
         ManifestEntryKind::TextureProvider => {
             // Deferred to future phase
@@ -108,12 +430,26 @@ pub(crate) fn generate_entry_paths(
     }
 }
 
-fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &mut CacheList) {
+fn generate_ship_paths(
+    entry: &ResourceManifestEntry,
+    mst: &ApiManifest,
+    path_rules: Option<&PathRules>,
+    decoder_assets: Option<&DecoderCoverageAssets>,
+    cache_rules: Option<&CacheRulesAsset>,
+    list: &mut CacheList,
+) {
     let Some(ref source) = entry.ship_mst_id_source else {
         return;
     };
 
-    let ship_ids = resolve::resolve_ship_ids(source, mst);
+    let ship_ids = resolve_ship_ids_for_target(
+        source,
+        entry.target_type.as_str(),
+        mst,
+        path_rules,
+        decoder_assets,
+        cache_rules,
+    );
     if ship_ids.is_empty() {
         return;
     }
@@ -121,7 +457,11 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
     let damaged = entry.damaged_source.as_deref().and_then(resolve::resolve_damaged);
 
     let target = entry.target_type.as_str();
-    let variants = get_damage_variants(target);
+    let variants = path_rules
+        .and_then(|rules| rules.ship_damage_variants.get(target))
+        .filter(|variants| !variants.is_empty())
+        .map(|variants| variants.iter().map(String::as_str).collect::<Vec<_>>())
+        .unwrap_or_else(|| get_damage_variants(target).to_vec());
 
     for id in ship_ids {
         let ship_id = format!("{id:04}");
@@ -144,7 +484,17 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
         }
 
         // Check if this is a full/full_dmg category (uses api_filename)
-        if SHIP_FULL_CATEGORIES.contains(&target) {
+        let uses_full_categories = path_rules
+            .map(|rules| {
+                if rules.ship_full_categories.is_empty() {
+                    SHIP_FULL_CATEGORIES.contains(&target)
+                } else {
+                    rules.ship_full_categories.iter().any(|category| category == target)
+                }
+            })
+            .unwrap_or_else(|| SHIP_FULL_CATEGORIES.contains(&target));
+
+        if uses_full_categories {
             let graph = mst.api_mst_shipgraph.iter().find(|g| g.api_id == id);
             let Some(graph) = graph else {
                 continue;
@@ -155,6 +505,9 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
 
             for (cat, should_gen) in [("full", gen_base), ("full_dmg", gen_dmg)] {
                 if !should_gen {
+                    continue;
+                }
+                if should_skip_ship_category(id, cat, Some(graph), path_rules) {
                     continue;
                 }
                 let suffix = SuffixUtils::create(&ship_id, format!("ship_{cat}").as_str());
@@ -170,12 +523,29 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
         }
 
         // Standard category pattern
-        if SHIP_STANDARD_CATEGORIES.contains(&target) {
+        let uses_standard_categories = path_rules
+            .map(|rules| {
+                if rules.ship_standard_categories.is_empty() {
+                    SHIP_STANDARD_CATEGORIES.contains(&target)
+                } else {
+                    rules.ship_standard_categories.iter().any(|category| category == target)
+                }
+            })
+            .unwrap_or_else(|| SHIP_STANDARD_CATEGORIES.contains(&target));
+
+        if uses_standard_categories {
             let gen_base = !matches!(damaged, Some(true));
             let gen_variants = damaged != Some(false) && !variants.is_empty();
 
             // Generate base path
-            if gen_base {
+            if gen_base
+                && !should_skip_ship_category(
+                    id,
+                    target,
+                    mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
+                    path_rules,
+                )
+            {
                 let suffix = SuffixUtils::create(&ship_id, format!("ship_{target}").as_str());
                 list.add(
                     format!("kcs2/resources/ship/{target}/{ship_id}_{suffix}.png"),
@@ -185,7 +555,15 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
 
             // Generate damage variant paths
             if gen_variants {
-                for variant in variants {
+                for variant in &variants {
+                    if should_skip_ship_category(
+                        id,
+                        variant,
+                        mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
+                        path_rules,
+                    ) {
+                        continue;
+                    }
                     let suffix = SuffixUtils::create(&ship_id, format!("ship_{variant}").as_str());
                     list.add(
                         format!("kcs2/resources/ship/{variant}/{ship_id}_{suffix}.png"),
@@ -199,9 +577,23 @@ fn generate_ship_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &
     }
 }
 
-fn generate_slotitem_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, list: &mut CacheList) {
+fn generate_slotitem_paths(
+    entry: &ResourceManifestEntry,
+    mst: &ApiManifest,
+    path_rules: Option<&PathRules>,
+    decoder_assets: Option<&DecoderCoverageAssets>,
+    cache_rules: Option<&CacheRulesAsset>,
+    list: &mut CacheList,
+) {
     let sources = entry.slot_mst_id_sources.as_deref().unwrap_or(&[]);
-    let slot_ids = resolve::resolve_slotitem_ids(sources, mst);
+    let slot_ids = resolve_slot_ids_for_target(
+        sources,
+        entry.target_type.as_str(),
+        mst,
+        path_rules,
+        decoder_assets,
+        cache_rules,
+    );
     if slot_ids.is_empty() {
         return;
     }
@@ -214,7 +606,17 @@ fn generate_slotitem_paths(entry: &ResourceManifestEntry, mst: &ApiManifest, lis
         let version =
             mst.api_mst_slotitem.iter().find(|s| s.api_id == id).and_then(|s| s.api_version);
 
-        if SLOT_STANDARD_CATEGORIES.contains(&target) {
+        let uses_standard_categories = path_rules
+            .map(|rules| {
+                if rules.slot_standard_categories.is_empty() {
+                    SLOT_STANDARD_CATEGORIES.contains(&target)
+                } else {
+                    rules.slot_standard_categories.iter().any(|category| category == target)
+                }
+            })
+            .unwrap_or_else(|| SLOT_STANDARD_CATEGORIES.contains(&target));
+
+        if uses_standard_categories {
             let suffix = SuffixUtils::create(&item_id, format!("slot_{target}").as_str());
             list.add(format!("kcs2/resources/slot/{target}/{item_id}_{suffix}.png"), version);
         } else {
@@ -255,6 +657,12 @@ fn generate_explicit_paths(entry: &ResourceManifestEntry, list: &mut CacheList) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::make_list::manifest::load_resource_manifest;
+    use crate::make_list::manifest::types::{
+        CacheRuleBtxtFlatRule, CacheRuleExcludeEntry, CacheRuleItemUpRule, CacheRuleShipRules,
+        CacheRuleSlotRules, CacheRuleSpecialCase, CacheRuleSpecialShipRule, CacheRulesAsset,
+        PathRules, ResourceCategoriesAsset, ResourceManifest, ShipGenerationGroups, ShipPathHoles,
+    };
     use emukc_model::kc2::start2::{ApiMstShip, ApiMstShipgraph, ApiMstSlotitem};
 
     fn make_minimal_manifest() -> ApiManifest {
@@ -323,7 +731,7 @@ mod tests {
         let mst = make_minimal_manifest();
         let mut list = CacheList::new();
         let entry = make_ship_entry("banner", "this._mst_id", Some("false"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         assert!(!list.items.is_empty());
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
@@ -348,11 +756,86 @@ mod tests {
             module_names: vec![],
             other: Default::default(),
         };
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         assert!(!list.items.is_empty());
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         assert!(paths.iter().any(|p| p.contains("slot/card/")));
+    }
+
+    #[test]
+    fn test_real_manifest_path_rules_match_generate_constants() {
+        let rules = load_resource_manifest()
+            .unwrap()
+            .path_rules
+            .expect("real manifest should include pathRules");
+
+        let expected_damage_variants = SHIP_DAMAGE_VARIANTS
+            .iter()
+            .map(|(base, variants)| {
+                (
+                    (*base).to_string(),
+                    variants.iter().map(|variant| (*variant).to_string()).collect::<Vec<_>>(),
+                )
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+
+        assert_eq!(rules.ship_damage_variants, expected_damage_variants);
+        assert_eq!(
+            rules.ship_standard_categories,
+            SHIP_STANDARD_CATEGORIES
+                .iter()
+                .map(|category| (*category).to_string())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            rules.ship_full_categories,
+            SHIP_FULL_CATEGORIES.iter().map(|category| (*category).to_string()).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            rules.slot_standard_categories,
+            SLOT_STANDARD_CATEGORIES
+                .iter()
+                .map(|category| (*category).to_string())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_generate_entry_paths_with_and_without_path_rules_match() {
+        let mst = make_minimal_manifest();
+        let rules = load_resource_manifest()
+            .unwrap()
+            .path_rules
+            .expect("real manifest should include pathRules");
+        let ship_entry = make_ship_entry("banner", "this._mst_id", Some("_0x1a3f79"));
+        let slot_entry = ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "card".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["this._mst_id".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+
+        let mut fallback_list = CacheList::new();
+        generate_entry_paths(&ship_entry, &mst, None, None, None, &mut fallback_list);
+        generate_entry_paths(&slot_entry, &mst, None, None, None, &mut fallback_list);
+
+        let mut rule_list = CacheList::new();
+        generate_entry_paths(&ship_entry, &mst, Some(&rules), None, None, &mut rule_list);
+        generate_entry_paths(&slot_entry, &mst, Some(&rules), None, None, &mut rule_list);
+
+        let fallback_paths =
+            fallback_list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        let rule_paths = rule_list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(rule_paths, fallback_paths);
     }
 
     #[test]
@@ -376,7 +859,7 @@ mod tests {
             module_names: vec![],
             other: Default::default(),
         };
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         assert_eq!(list.items.len(), 1);
         assert!(list.items.iter().any(|i| i.path.contains("sp001.png")));
@@ -403,7 +886,7 @@ mod tests {
         let mst = make_minimal_manifest();
         let mut list = CacheList::new();
         let entry = make_ship_entry("banner", "this._mst_id", Some("false"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         assert!(paths.iter().any(|p| p.contains("ship/banner/")));
@@ -417,7 +900,7 @@ mod tests {
         let mst = make_minimal_manifest();
         let mut list = CacheList::new();
         let entry = make_ship_entry("banner", "this._mst_id", Some("_0x1a3f79"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         assert!(paths.iter().any(|p| p.contains("ship/banner/")));
@@ -434,7 +917,7 @@ mod tests {
         let mut list = CacheList::new();
         // full with damagedSource=true should produce only full_dmg
         let entry = make_ship_entry("full", "this._mst_id", Some("true"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         assert!(!paths.iter().any(|p| p.contains("ship/full/") && !p.contains("full_dmg")));
@@ -446,7 +929,7 @@ mod tests {
         let mst = make_minimal_manifest();
         let mut list = CacheList::new();
         let entry = make_ship_entry("album_status", "this._mst_id", Some("_0x1a3f79"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         // No damage variants for album_status, so only base path regardless of damagedSource
         assert_eq!(list.items.len(), 1);
@@ -459,7 +942,7 @@ mod tests {
         let mut list = CacheList::new();
         // character_full with damagedSource=true: only damage variants, no base
         let entry = make_ship_entry("character_full", "this._mst_id", Some("true"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         // Should NOT contain undamaged base path
@@ -474,7 +957,7 @@ mod tests {
         let mut list = CacheList::new();
         // banner with damagedSource=false: only base, no variants
         let entry = make_ship_entry("banner", "this._mst_id", Some("false"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         // Should contain base path
@@ -494,7 +977,7 @@ mod tests {
         let mut list = CacheList::new();
         // banner with variable damagedSource: base + all variants
         let entry = make_ship_entry("banner", "this._mst_id", Some("_0x1a3f79"));
-        generate_entry_paths(&entry, &mst, &mut list);
+        generate_entry_paths(&entry, &mst, None, None, None, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         // Should contain base
@@ -509,5 +992,468 @@ mod tests {
         assert!(paths.iter().any(|p| p.contains("ship/banner_g/")));
         // banner has 3 variants + 1 base = 4 paths
         assert_eq!(list.items.len(), 4);
+    }
+
+    fn make_cache_rules_asset() -> CacheRulesAsset {
+        CacheRulesAsset {
+            version: 1,
+            generated_at: "2026-04-23T00:00:00Z".to_string(),
+            script_version: "6.2.8.0".to_string(),
+            summary: Default::default(),
+            resource_manifest: ResourceManifest {
+                version: 2,
+                generated_at: "2026-04-23T00:00:00Z".to_string(),
+                summary: Default::default(),
+                path_rules: None,
+                entries: vec![],
+            },
+            resource_categories: ResourceCategoriesAsset::default(),
+            ship_rules: CacheRuleShipRules {
+                special: CacheRuleSpecialShipRule {
+                    coverage_mode: ResourceCoverageMode::ObservedComplete,
+                    kind: "special_cases".to_string(),
+                    cases: vec![CacheRuleSpecialCase {
+                        damaged: false,
+                        ship_ids: vec![1],
+                    }],
+                    module_ids: vec!["m1".to_string()],
+                    module_names: vec!["special-module".to_string()],
+                },
+            },
+            slot_rules: CacheRuleSlotRules {
+                item_up: CacheRuleItemUpRule {
+                    coverage_mode: ResourceCoverageMode::ObservedComplete,
+                    kind: "item_up_normalization".to_string(),
+                    replace_map: std::collections::BTreeMap::from([
+                        ("1501".to_string(), 1),
+                        ("1502".to_string(), 2),
+                    ]),
+                    enemy_slot_border: Some(1500),
+                    exclude: vec![CacheRuleExcludeEntry {
+                        type_: "item_up".to_string(),
+                        mst_id: 1503,
+                    }],
+                    module_ids: vec!["m2".to_string()],
+                    module_names: vec!["slot-loader".to_string()],
+                },
+                btxt_flat: CacheRuleBtxtFlatRule {
+                    coverage_mode: ResourceCoverageMode::ObservedComplete,
+                    kind: "btxt_flat_non_enemy_runtime_slots".to_string(),
+                    exclude_enemy_items: true,
+                    module_ids: vec!["m3".to_string()],
+                    module_names: vec!["btxt-module".to_string()],
+                },
+            },
+            unresolved_rules: vec![],
+        }
+    }
+
+    #[test]
+    fn test_cache_rules_special_overrides_universal_ship_resolution() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("special", "this._mst_id", Some("false"));
+        let cache_rules = make_cache_rules_asset();
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].contains("ship/special/0001_"));
+    }
+
+    #[test]
+    fn test_cache_rules_default_friendly_categories_exclude_abyssal_ship_ids() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_ship[1].api_sortno = Some(1500);
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("album_status", "this._mst_id", Some("false"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            default_friendly: vec!["album_status".to_string()],
+            ..Default::default()
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].contains("ship/album_status/0001_"));
+        assert!(!paths.iter().any(|path| path.contains("ship/album_status/1500_")));
+    }
+
+    #[test]
+    fn test_cache_rules_default_abyssal_categories_exclude_friendly_ship_ids() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_ship[1].api_sortno = Some(1500);
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("banner3", "this._mst_id", Some("false"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            default_abyssal: vec!["banner3".to_string()],
+            ..Default::default()
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 1);
+        assert!(paths.iter().any(|path| path.contains("ship/banner3/1500_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/banner3/0001_")));
+    }
+
+    #[test]
+    fn test_cache_rules_special_prefers_manifest_path_rule_ids_when_available() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_ship.push(ApiMstShip {
+            api_id: 2,
+            api_sortno: Some(2),
+            api_aftershipid: Some("3".to_string()),
+            api_name: "SecondShip".to_string(),
+            ..Default::default()
+        });
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 2,
+            api_sortno: Some(2),
+            api_filename: "2".to_string(),
+            api_version: vec!["1".to_string()],
+            ..Default::default()
+        });
+
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("special", "this._mst_id", Some("false"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_manifest.path_rules = Some(PathRules {
+            special_ships: vec![1, 2],
+            ..Default::default()
+        });
+
+        generate_entry_paths(
+            &entry,
+            &mst,
+            cache_rules.resource_manifest.path_rules.as_ref(),
+            None,
+            Some(&cache_rules),
+            &mut list,
+        );
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 2);
+        assert!(paths.iter().any(|path| path.contains("ship/special/0001_")));
+        assert!(paths.iter().any(|path| path.contains("ship/special/0002_")));
+    }
+
+    #[test]
+    fn test_cache_rules_character_full_uses_graph_selectors_and_event_holes() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_ship[1].api_sortno = Some(1500);
+        mst.api_mst_ship.push(ApiMstShip {
+            api_id: 2,
+            api_sortno: Some(2),
+            api_aftershipid: Some("3".to_string()),
+            api_name: "NoGraphVersion".to_string(),
+            ..Default::default()
+        });
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 2,
+            api_sortno: Some(2),
+            api_filename: "2".to_string(),
+            api_version: vec![],
+            ..Default::default()
+        });
+        mst.api_mst_ship.push(ApiMstShip {
+            api_id: 6000,
+            api_sortno: None,
+            api_aftershipid: Some("6001".to_string()),
+            api_name: "EventShip".to_string(),
+            ..Default::default()
+        });
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 6000,
+            api_sortno: None,
+            api_filename: "6000".to_string(),
+            api_version: vec![],
+            ..Default::default()
+        });
+        mst.api_mst_ship.push(ApiMstShip {
+            api_id: 6001,
+            api_sortno: None,
+            api_aftershipid: Some("6002".to_string()),
+            api_name: "EventHole".to_string(),
+            ..Default::default()
+        });
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 6001,
+            api_sortno: None,
+            api_filename: "6001".to_string(),
+            api_version: vec![],
+            ..Default::default()
+        });
+
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("character_full", "this._mst_id", Some("false"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            friend_graph: vec!["character_full".to_string()],
+            ..Default::default()
+        };
+        cache_rules.resource_manifest.path_rules = Some(PathRules {
+            event_ship_holes: ShipPathHoles {
+                full: vec![6001],
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+
+        generate_entry_paths(
+            &entry,
+            &mst,
+            cache_rules.resource_manifest.path_rules.as_ref(),
+            None,
+            Some(&cache_rules),
+            &mut list,
+        );
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 2);
+        assert!(paths.iter().any(|path| path.contains("ship/character_full/0001_")));
+        assert!(paths.iter().any(|path| path.contains("ship/character_full/6000_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/character_full/0002_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/character_full/1500_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/character_full/6001_")));
+    }
+
+    #[test]
+    fn test_cache_rules_full_dmg_uses_graph_selectors_and_enemy_holes() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_ship[1].api_sortno = Some(1500);
+        mst.api_mst_shipgraph[1].api_version = vec!["1".to_string()];
+        mst.api_mst_ship.push(ApiMstShip {
+            api_id: 1501,
+            api_sortno: Some(1501),
+            api_aftershipid: None,
+            api_name: "EnemyHole".to_string(),
+            ..Default::default()
+        });
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 1501,
+            api_sortno: None,
+            api_filename: "1501".to_string(),
+            api_version: vec!["1".to_string()],
+            ..Default::default()
+        });
+        mst.api_mst_ship.push(ApiMstShip {
+            api_id: 6000,
+            api_sortno: None,
+            api_aftershipid: Some("6001".to_string()),
+            api_name: "EventShip".to_string(),
+            ..Default::default()
+        });
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 6000,
+            api_sortno: None,
+            api_filename: "6000".to_string(),
+            api_version: vec!["1".to_string()],
+            ..Default::default()
+        });
+
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("full", "this._mst_id", Some("true"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            friend_graph: vec!["full".to_string()],
+            enemy_graph: vec!["full".to_string()],
+            ..Default::default()
+        };
+        cache_rules.resource_manifest.path_rules = Some(PathRules {
+            enemy_ship_holes: ShipPathHoles {
+                full_dmg: vec![1501],
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+
+        generate_entry_paths(
+            &entry,
+            &mst,
+            cache_rules.resource_manifest.path_rules.as_ref(),
+            None,
+            Some(&cache_rules),
+            &mut list,
+        );
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 2);
+        assert!(paths.iter().any(|path| path.contains("ship/full_dmg/0001_")));
+        assert!(paths.iter().any(|path| path.contains("ship/full_dmg/1500_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/full_dmg/1501_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/full_dmg/6000_")));
+    }
+
+    #[test]
+    fn test_cache_rules_item_up_normalizes_enemy_slot_ids() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_slotitem = vec![
+            ApiMstSlotitem {
+                api_id: 1,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 2,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 1501,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 1502,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 1503,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+        ];
+        let mut list = CacheList::new();
+        let cache_rules = make_cache_rules_asset();
+        let entry = ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "item_up".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["this._slot1.mstID".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|path| path.contains("slot/item_up/0001_")));
+        assert!(paths.iter().any(|path| path.contains("slot/item_up/0002_")));
+        assert!(!paths.iter().any(|path| path.contains("slot/item_up/1501_")));
+        assert!(!paths.iter().any(|path| path.contains("slot/item_up/1503_")));
+    }
+
+    #[test]
+    fn test_cache_rules_btxt_flat_limits_to_non_enemy_slot_ids() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_slotitem = vec![
+            ApiMstSlotitem {
+                api_id: 1,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 2,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 1501,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+        ];
+        let mut list = CacheList::new();
+        let cache_rules = make_cache_rules_asset();
+        let entry = ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "btxt_flat".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["this._slot1.mstID".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|path| path.contains("slot/btxt_flat/0001_")));
+        assert!(paths.iter().any(|path| path.contains("slot/btxt_flat/0002_")));
+        assert!(!paths.iter().any(|path| path.contains("slot/btxt_flat/1501_")));
+    }
+
+    #[test]
+    fn test_cache_rules_btxt_flat_prefers_manifest_path_rule_ids_when_available() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_slotitem = vec![
+            ApiMstSlotitem {
+                api_id: 1,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 2,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 1501,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+        ];
+        let mut list = CacheList::new();
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_manifest.path_rules = Some(PathRules {
+            btxt_flat_slot_ids: vec![2],
+            ..Default::default()
+        });
+        let entry = ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "btxt_flat".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["this._slot1.mstID".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+
+        generate_entry_paths(
+            &entry,
+            &mst,
+            cache_rules.resource_manifest.path_rules.as_ref(),
+            None,
+            Some(&cache_rules),
+            &mut list,
+        );
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].contains("slot/btxt_flat/0002_"));
     }
 }

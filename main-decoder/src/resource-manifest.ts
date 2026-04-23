@@ -2,6 +2,7 @@ import { parse } from "@babel/parser";
 import traverse, { type NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 
+import { buildPathRules, type ResourceManifestPathRules } from "./path-rules.ts";
 import type { ModuleArtifact, ModuleGraph } from "./types.ts";
 
 // --- Types ---
@@ -47,8 +48,9 @@ export type ResourceManifestEntry =
 	| ResourceManifestExplicitPathEntry;
 
 export interface ResourceManifest {
-	version: 1;
+	version: 2;
 	generatedAt: string;
+	pathRules: ResourceManifestPathRules;
 	summary: {
 		totalEntries: number;
 		shipEntryCount: number;
@@ -449,8 +451,9 @@ export function extractResourceManifest(moduleGraph: ModuleGraph): ResourceManif
 	const pathEntries = entries.filter((e): e is ResourceManifestExplicitPathEntry => e.kind === "explicit-path");
 
 	return {
-		version: 1,
+		version: 2,
 		generatedAt: new Date().toISOString(),
+		pathRules: buildPathRules(),
 		summary: {
 			totalEntries: entries.length,
 			shipEntryCount: shipEntries.length,

@@ -25,6 +25,23 @@ pub(super) async fn make(
     Ok(())
 }
 
+pub(super) async fn make_manifest_support(
+    mst: &ApiManifest,
+    kache: &Kache,
+    list: &mut CacheList,
+    decoder_assets: Option<&crate::make_list::manifest::DecoderCoverageAssets>,
+    categories: Option<&crate::make_list::manifest::ResourceCategoriesAsset>,
+    rules: Option<&crate::make_list::manifest::PathRules>,
+) -> Result<(), CacheListMakingError> {
+    let strategy = CacheListMakeStrategy::Manifest;
+
+    plain::make(kache, list).await?;
+    versioned::make(mst, kache, &strategy, list).await?;
+    resources::make_manifest_support(mst, kache, list, decoder_assets, categories, rules).await?;
+
+    Ok(())
+}
+
 fn gen_path(id: i64, padding: u8, folder: &str, category: &str, extension: &str) -> String {
     let id = if padding == 3 {
         format!("{id:03}")

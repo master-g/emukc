@@ -14,3 +14,11 @@ test("parseArgs enables explicit battle asset syncing", () => {
 
   expect(options.syncBattleAssets).toBe(true);
 });
+
+test("parseArgs enables consolidated asset syncing", () => {
+  const options = parseArgs(["--sync-assets"]);
+
+  expect(options.syncAssets).toBe(true);
+  expect(options.syncBattleAssets).toBe(true);
+  expect(options.syncResourceManifest).toBe(true);
+});

@@ -137,6 +137,24 @@ describe("extractResourceCategories", () => {
 		expect(extracted.shipTargetTypes.map(entry => entry.targetType)).toEqual(["banner_g_dmg", "full", "full_dmg"]);
 	});
 
+	test("resolves target types through string literal bindings", () => {
+		const graph = makeGraph([
+			makeModule({
+				id: "m4c",
+				source: wrapModule(`
+					var shipTarget = "power_up";
+					var slotTarget = "card_t";
+					resources.getShip(shipId, damaged, shipTarget);
+					resources.getSlotitem(slotId, slotTarget);
+				`),
+			}),
+		]);
+
+		const extracted = extractResourceCategories(graph);
+		expect(extracted.shipTargetTypes.some(entry => entry.targetType === "power_up")).toBe(true);
+		expect(extracted.slotTargetTypes.some(entry => entry.targetType === "card_t")).toBe(true);
+	});
+
 	test("converts extracted data into a synced asset shape", () => {
 		const graph = makeGraph([
 			makeModule({ id: "m5", source: wrapModule(`resources.getShip(shipId, false, "special")`) }),

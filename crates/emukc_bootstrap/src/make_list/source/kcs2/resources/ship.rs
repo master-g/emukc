@@ -5,6 +5,7 @@ use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
+    make_list::manifest::{PathRules, ResourceCategoriesAsset, ShipPathHoles, path_rules},
     make_list::{CacheList, CacheListMakeStrategy, batch_check_exists},
     prelude::CacheListMakingError,
 };
@@ -202,14 +203,25 @@ async fn make_friend_event_graph_greedy(
     Ok(())
 }
 
-struct ShipEventHoles {
-    full: Vec<i64>,
-    full_dmg: Vec<i64>,
-    up: Vec<i64>,
-    up_dmg: Vec<i64>,
+fn has_ship_holes(holes: &ShipPathHoles) -> bool {
+    !holes.full.is_empty()
+        || !holes.full_dmg.is_empty()
+        || !holes.up.is_empty()
+        || !holes.up_dmg.is_empty()
 }
 
-static EVENT_SHIP_HOLES: LazyLock<ShipEventHoles> = LazyLock::new(|| ShipEventHoles {
+fn select_holes<'a>(
+    rules_holes: Option<&'a ShipPathHoles>,
+    fallback: &'a ShipPathHoles,
+) -> &'a ShipPathHoles {
+    rules_holes.filter(|holes| has_ship_holes(holes)).unwrap_or(fallback)
+}
+
+fn select_ids<'a>(rules_ids: Option<&'a [i64]>, fallback: &'a [i64]) -> &'a [i64] {
+    rules_ids.filter(|ids| !ids.is_empty()).unwrap_or(fallback)
+}
+
+static EVENT_SHIP_HOLES: LazyLock<ShipPathHoles> = LazyLock::new(|| ShipPathHoles {
     full: vec![
         5358, 5514, 5526, 5527, 5530, 5531, 5532, 5534, 5536, 5848, 5849, 5850, 5851, 5852, 5853,
         6233, 6234, 6235, 6236, 6237, 6238, 6239, 6240, 6241, 6242,
@@ -235,7 +247,77 @@ static EVENT_SHIP_HOLES: LazyLock<ShipEventHoles> = LazyLock::new(|| ShipEventHo
 });
 
 fn make_friend_event_graph(mst: &ApiManifest, list: &mut CacheList) {
-    let holes = &EVENT_SHIP_HOLES;
+    make_friend_event_graph_with_rules(mst, list, path_rules());
+}
+
+pub(crate) fn make_manifest_category_extensions(
+    mst: &ApiManifest,
+    list: &mut CacheList,
+    rules: Option<&PathRules>,
+    categories: Option<&ResourceCategoriesAsset>,
+) {
+    let Some(categories) = categories else {
+        return;
+    };
+
+    if categories
+        .ship_generation_groups
+        .default_friendly
+        .iter()
+        .any(|category| category == "power_up")
+    {
+        for ship in mst.api_mst_ship.iter().filter(|ship| ship.api_aftershipid.is_some()) {
+            let ship_id = format!("{:04}", ship.api_id);
+            let version = mst
+                .api_mst_shipgraph
+                .iter()
+                .find(|graph| graph.api_id == ship.api_id)
+                .and_then(|graph| graph.api_version.first());
+            list.add(
+                format!(
+                    "kcs2/resources/ship/power_up/{ship_id}_{}.png",
+                    SuffixUtils::create(&ship_id, "ship_power_up")
+                ),
+                version,
+            );
+        }
+    }
+
+    let has_character_graphs =
+        categories.ship_generation_groups.friend_graph.iter().any(|category| {
+            matches!(
+                category.as_str(),
+                "character_full" | "character_full_dmg" | "character_up" | "character_up_dmg"
+            )
+        });
+    if has_character_graphs {
+        make_friend_event_graph_with_rules(mst, list, rules);
+    }
+
+    if categories.sp_remodel_subcategories.iter().any(|category| category == "animation_key") {
+        let ship_ids = rules
+            .filter(|rules| !rules.sp_remodel_ships.is_empty())
+            .map(|rules| rules.sp_remodel_ships.as_slice())
+            .unwrap_or(SP_REMODEL_SHIPS.as_slice());
+        for id in ship_ids {
+            list.add(
+                format!("kcs2/resources/ship/sp_remodel/animation_key/{id:04}_remodel.json"),
+                mst.find_shipgraph(*id).and_then(|graph| graph.api_version.first()),
+            );
+        }
+    }
+}
+
+pub(crate) fn make_manifest_type_extensions(mst: &ApiManifest, list: &mut CacheList) {
+    make_ship_type(mst, list);
+}
+
+fn make_friend_event_graph_with_rules(
+    mst: &ApiManifest,
+    list: &mut CacheList,
+    rules: Option<&PathRules>,
+) {
+    let holes = select_holes(rules.map(|rules| &rules.event_ship_holes), &EVENT_SHIP_HOLES);
     for graph in mst.api_mst_shipgraph.iter() {
         if graph.api_id < 5000 {
             continue;
@@ -313,7 +395,7 @@ async fn make_enemy_graph_greedy(
     Ok(())
 }
 
-static ENEMY_SHIP_HOLES: LazyLock<ShipEventHoles> = LazyLock::new(|| ShipEventHoles {
+static ENEMY_SHIP_HOLES: LazyLock<ShipPathHoles> = LazyLock::new(|| ShipPathHoles {
     full: vec![1563, 1568, 1569, 1580, 1593, 1596],
     full_dmg: vec![
         1556, 1557, 1563, 1568, 1569, 1580, 1593, 1596, 1650, 1651, 1652, 1673, 1674, 1675, 1679,
@@ -332,7 +414,12 @@ static ENEMY_SHIP_HOLES: LazyLock<ShipEventHoles> = LazyLock::new(|| ShipEventHo
 
 #[allow(unused)]
 fn make_enemy_graph(mst: &ApiManifest, list: &mut CacheList) {
-    let holes = &ENEMY_SHIP_HOLES;
+    make_enemy_graph_with_rules(mst, list, path_rules());
+}
+
+#[allow(unused)]
+fn make_enemy_graph_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
+    let holes = select_holes(rules.map(|rules| &rules.enemy_ship_holes), &ENEMY_SHIP_HOLES);
     for graph in mst.api_mst_shipgraph.iter() {
         if graph.api_sortno.is_some() || graph.api_id >= 5000 {
             continue;
@@ -372,7 +459,18 @@ static SPECIAL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 });
 
 fn make_ship_special(mst: &ApiManifest, list: &mut CacheList) {
-    SPECIAL_SHIPS.iter().filter_map(|id| mst.find_shipgraph(*id)).for_each(|graph| {
+    make_ship_special_with_rules(mst, list, path_rules());
+}
+
+fn make_ship_special_with_rules(
+    mst: &ApiManifest,
+    list: &mut CacheList,
+    rules: Option<&PathRules>,
+) {
+    let special_ships =
+        select_ids(rules.map(|rules| rules.special_ships.as_slice()), SPECIAL_SHIPS.as_slice());
+
+    special_ships.iter().filter_map(|id| mst.find_shipgraph(*id)).for_each(|graph| {
         let ship_id = format!("{0:04}", graph.api_id);
         let p = format!(
             "kcs2/resources/ship/special/{ship_id}_{}.png",
@@ -509,7 +607,19 @@ static SP_REMODEL_MES: LazyLock<Vec<i64>> = LazyLock::new(|| {
 
 #[allow(unused)]
 fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
-    for id in SP_REMODEL_SHIPS.iter() {
+    make_sp_remodel_with_rules(mst, list, path_rules());
+}
+
+#[allow(unused)]
+fn make_sp_remodel_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
+    let sp_remodel_ships = select_ids(
+        rules.map(|rules| rules.sp_remodel_ships.as_slice()),
+        SP_REMODEL_SHIPS.as_slice(),
+    );
+    let sp_remodel_mes =
+        select_ids(rules.map(|rules| rules.sp_remodel_mes.as_slice()), SP_REMODEL_MES.as_slice());
+
+    for id in sp_remodel_ships.iter() {
         let Some(graph) = mst.find_shipgraph(*id) else {
             continue;
         };
@@ -528,7 +638,7 @@ fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
             .add(format!("kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{name_key}.png"), v);
     }
 
-    for id in SP_REMODEL_MES.iter() {
+    for id in sp_remodel_mes.iter() {
         let Some(graph) = mst.find_shipgraph(*id) else {
             continue;
         };
@@ -647,7 +757,20 @@ static REWARDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
 });
 
 fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
-    for id in CARD_ROUNDS.iter() {
+    make_ship_reward_res_with_rules(mst, list, path_rules());
+}
+
+fn make_ship_reward_res_with_rules(
+    mst: &ApiManifest,
+    list: &mut CacheList,
+    rules: Option<&PathRules>,
+) {
+    let card_rounds =
+        select_ids(rules.map(|rules| rules.card_rounds.as_slice()), CARD_ROUNDS.as_slice());
+    let reward_ships =
+        select_ids(rules.map(|rules| rules.reward_ships.as_slice()), REWARDS.as_slice());
+
+    for id in card_rounds.iter() {
         let Some(graph) = mst.find_shipgraph(*id) else {
             continue;
         };
@@ -661,7 +784,7 @@ fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
         list.add(format!("kcs2/resources/ship/icon_box/{ship_id}_{key}.png"), v);
     }
 
-    for id in REWARDS.iter() {
+    for id in reward_ships.iter() {
         let Some(graph) = mst.find_shipgraph(*id) else {
             continue;
         };
@@ -679,6 +802,46 @@ fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::make_list::manifest::load_resource_manifest;
+    use emukc_model::kc2::start2::ApiMstShipgraph;
+
+    fn make_graph(
+        api_id: i64,
+        sortno: Option<i64>,
+        version: &str,
+        filename: &str,
+    ) -> ApiMstShipgraph {
+        ApiMstShipgraph {
+            api_id,
+            api_sortno: sortno,
+            api_version: vec![version.to_string()],
+            api_filename: filename.to_string(),
+            ..Default::default()
+        }
+    }
+
+    fn make_manifest() -> ApiManifest {
+        ApiManifest {
+            api_mst_shipgraph: vec![
+                make_graph(5358, Some(1), "1", "5358"),
+                make_graph(1563, None, "1", "1563"),
+                make_graph(639, Some(1), "1", "639"),
+                make_graph(501, Some(1), "1", "501"),
+                make_graph(73, Some(1), "1", "73"),
+                make_graph(524, Some(1), "1", "524"),
+                make_graph(525, Some(1), "1", "525"),
+                make_graph(900, Some(1), "1", "900"),
+            ],
+            ..Default::default()
+        }
+    }
+
+    fn make_rules() -> PathRules {
+        load_resource_manifest()
+            .unwrap()
+            .path_rules
+            .expect("real manifest should include pathRules")
+    }
 
     #[test]
     fn test_full() {
@@ -717,5 +880,42 @@ mod tests {
                 key
             );
         }
+    }
+
+    #[test]
+    fn test_real_manifest_path_rules_match_ship_constants() {
+        let rules = make_rules();
+        assert_eq!(rules.event_ship_holes, EVENT_SHIP_HOLES.clone());
+        assert_eq!(rules.enemy_ship_holes, ENEMY_SHIP_HOLES.clone());
+        assert_eq!(rules.special_ships, SPECIAL_SHIPS.to_vec());
+        assert_eq!(rules.sp_remodel_ships, SP_REMODEL_SHIPS.to_vec());
+        assert_eq!(rules.sp_remodel_mes, SP_REMODEL_MES.to_vec());
+        assert_eq!(rules.card_rounds, CARD_ROUNDS.to_vec());
+        assert_eq!(rules.reward_ships, REWARDS.to_vec());
+    }
+
+    #[test]
+    fn test_default_ship_outputs_match_with_and_without_path_rules() {
+        let mst = make_manifest();
+        let rules = make_rules();
+
+        let mut fallback_list = CacheList::new();
+        make_friend_event_graph_with_rules(&mst, &mut fallback_list, None);
+        make_enemy_graph_with_rules(&mst, &mut fallback_list, None);
+        make_ship_special_with_rules(&mst, &mut fallback_list, None);
+        make_sp_remodel_with_rules(&mst, &mut fallback_list, None);
+        make_ship_reward_res_with_rules(&mst, &mut fallback_list, None);
+
+        let mut rule_list = CacheList::new();
+        make_friend_event_graph_with_rules(&mst, &mut rule_list, Some(&rules));
+        make_enemy_graph_with_rules(&mst, &mut rule_list, Some(&rules));
+        make_ship_special_with_rules(&mst, &mut rule_list, Some(&rules));
+        make_sp_remodel_with_rules(&mst, &mut rule_list, Some(&rules));
+        make_ship_reward_res_with_rules(&mst, &mut rule_list, Some(&rules));
+
+        let fallback_paths =
+            fallback_list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        let rule_paths = rule_list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(rule_paths, fallback_paths);
     }
 }

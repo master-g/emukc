@@ -33,9 +33,28 @@ Running `bun run decode` writes artifacts into `./out/`:
 - `battle/battle_resource_rules.json`
 - `battle/battle_module_index.json`
 - `battle/battle_slot_resource_triggers.json`
+- `resources/audio_resources.json`
+- `resources/cache_rules.json`
+- `resources/resource_categories.json`
+- `resources/resource_id_sets.json`
+- `resources/resource_manifest.json` (when resource-manifest extraction is enabled)
+- `resources/ui_resources.json`
 - `modules/*.js`
 
 By default `bun run decode` only updates `./out/`.
+
+When `--sync-resource-manifest` is enabled, the decoded manifest is also synced into:
+
+- `../crates/emukc_bootstrap/assets/resource_manifest.json`
+
+When `--sync-assets` is enabled, the decoder coverage assets are also synced into:
+
+- `../crates/emukc_bootstrap/assets/resource_manifest.json`
+- `../crates/emukc_bootstrap/assets/resource_categories.json`
+- `../crates/emukc_bootstrap/assets/resource_id_sets.json`
+- `../crates/emukc_bootstrap/assets/audio_resources.json`
+- `../crates/emukc_bootstrap/assets/cache_rules.json`
+- `../crates/emukc_bootstrap/assets/ui_resources.json`
 
 Use `--sync-battle-assets` when you explicitly want to sync the current battle knowledge assets into:
 
@@ -70,5 +89,7 @@ The module graph now includes:
 
 ```bash
 bun run decode -- --main ../z/cache/kcs2/js/main.js --const ../z/cache/gadget_html5/js/kcs_const.js --out ./out --max-passes 8
+bun run decode -- --sync-assets
 bun run decode -- --sync-battle-assets
+bun run decode -- --sync-resource-manifest
 ```

@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync, existsSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { runDecodePipeline } from "../src/pipeline.ts";
 
@@ -107,3 +110,33 @@ test("decodes the current cached main.js", async () => {
   expect(shipChoiceView?.source).toContain("return ShipChoiceView;");
   expect(portApi?.moduleKind).toBe("game");
 });
+
+test("writes resource manifest as a normal output artifact when requested", async () => {
+  const outputDir = mkdtempSync(join(tmpdir(), "emukc-decoder-"));
+  const result = await runDecodePipeline({
+    outputDir,
+    writeOutputs: true,
+    emitResourceManifest: true,
+  } as any);
+
+  expect(result.artifacts?.resourceManifestFile).toBeDefined();
+  expect(existsSync(result.artifacts!.resourceManifestFile)).toBe(true);
+
+  const manifest = JSON.parse(readFileSync(result.artifacts!.resourceManifestFile, "utf8"));
+  expect(manifest.version).toBeGreaterThanOrEqual(2);
+  expect(Array.isArray(manifest.entries)).toBe(true);
+  expect(existsSync(result.artifacts!.resourceCategoriesFile)).toBe(true);
+  expect(existsSync(result.artifacts!.resourceIdSetsFile)).toBe(true);
+  expect(existsSync(result.artifacts!.audioResourcesFile)).toBe(true);
+  expect(existsSync(result.artifacts!.cacheRulesFile)).toBe(true);
+  expect(existsSync(result.artifacts!.uiResourcesFile)).toBe(true);
+
+  const resourceIdSets = JSON.parse(readFileSync(result.artifacts!.resourceIdSetsFile, "utf8"));
+  const audioResources = JSON.parse(readFileSync(result.artifacts!.audioResourcesFile, "utf8"));
+  const cacheRules = JSON.parse(readFileSync(result.artifacts!.cacheRulesFile, "utf8"));
+  const uiResources = JSON.parse(readFileSync(result.artifacts!.uiResourcesFile, "utf8"));
+  expect(resourceIdSets.version).toBe(1);
+  expect(audioResources.version).toBe(1);
+  expect(cacheRules.version).toBe(1);
+  expect(uiResources.version).toBe(1);
+}, 120000);
