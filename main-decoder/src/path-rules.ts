@@ -114,6 +114,8 @@ export function buildPathRules(): ResourceManifestPathRules {
 		return cachedPathRules;
 	}
 
+	// Path rules remain a parity/fallback bridge for legacy Rust generators.
+	// Canonical ship/slot semantic truth for banner/item alias families now lives in cache-rules.ts.
 	const generateRs = readRepoFile("crates", "emukc_bootstrap", "src", "make_list", "manifest", "generate.rs");
 	const slotRs = readRepoFile("crates", "emukc_bootstrap", "src", "make_list", "source", "kcs2", "resources", "slot.rs");
 	const shipRs = readRepoFile("crates", "emukc_bootstrap", "src", "make_list", "source", "kcs2", "resources", "ship.rs");

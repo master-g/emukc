@@ -6,13 +6,22 @@ pub(crate) mod resolve;
 mod types;
 
 pub(crate) use loader::{
-    load_cache_rules, load_cache_rules_from_path, load_decoder_coverage_assets,
+    load_cache_rules_bundle, load_cache_rules_bundle_from_path, load_decoder_coverage_assets,
     load_decoder_coverage_assets_from_manifest_path, load_resource_manifest,
     load_resource_manifest_from_path,
 };
 pub(crate) use types::{
-    CacheRulesAsset, DecoderCoverageAssets, PathRules, ResourceCategoriesAsset, ResourceManifest,
+    CacheRuleShipVoiceFormula, CacheRuleShipVoiceRule, CacheRuleSoundBucketRule,
+    CacheRuleSoundRules, DecoderCoverageAssets, DecoderRulesBundle, PathRules,
+    ResourceCategoriesAsset, ResourceCoverageMode, ResourceManifest, ResourceTemplateFamily,
+    ResourceTemplateInput, ResourceTemplatePlaceholderFormat, ResourceTemplateSegmentKind,
     ShipPathHoles,
+};
+
+#[cfg(test)]
+pub(crate) use types::{
+    ResourceTemplateDomain, ResourceTemplateProvenance, ResourceTemplateRange,
+    ResourceTemplateSegment, ResourceTemplatesAsset,
 };
 
 pub(crate) static PATH_RULES: OnceLock<PathRules> = OnceLock::new();

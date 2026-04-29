@@ -16,6 +16,7 @@ import { extractCacheRules, toCacheRulesAsset } from "./cache-rules.ts";
 import { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
 import { extractResourceIdSets, toResourceIdSetsAsset } from "./resource-id-sets.ts";
 import { extractResourceManifest } from "./resource-manifest.ts";
+import { extractResourceTemplates, toResourceTemplatesAsset } from "./resource-templates.ts";
 import { extractUiResources, toUiResourcesAsset } from "./ui-resources.ts";
 import { splitBundle } from "./split.ts";
 import type { PipelineArtifacts, PipelineOptions, PipelineResult } from "./types.ts";
@@ -44,6 +45,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     audioResourcesFile: resolve(resourcesDir, "audio_resources.json"),
     cacheRulesFile: resolve(resourcesDir, "cache_rules.json"),
     uiResourcesFile: resolve(resourcesDir, "ui_resources.json"),
+    resourceTemplatesFile: resolve(resourcesDir, "resource_templates.json"),
     resourceManifestFile: undefined,
     modulesDir,
   };
@@ -101,6 +103,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   await writeTextFile(artifacts.audioResourcesFile, `${JSON.stringify(result.audioResources, null, 2)}\n`);
   await writeTextFile(artifacts.cacheRulesFile, `${JSON.stringify(result.cacheRules, null, 2)}\n`);
   await writeTextFile(artifacts.uiResourcesFile, `${JSON.stringify(result.uiResources, null, 2)}\n`);
+  await writeTextFile(artifacts.resourceTemplatesFile, `${JSON.stringify(result.resourceTemplates, null, 2)}\n`);
   if (result.resourceManifest !== undefined) {
     artifacts.resourceManifestFile = resolve(resourcesDir, "resource_manifest.json");
     await writeTextFile(artifacts.resourceManifestFile, `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
@@ -117,6 +120,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     await writeTextFile(resolve(bootstrapAssetsDir, "audio_resources.json"), `${JSON.stringify(result.audioResources, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "cache_rules.json"), `${JSON.stringify(result.cacheRules, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "ui_resources.json"), `${JSON.stringify(result.uiResources, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "resource_templates.json"), `${JSON.stringify(result.resourceTemplates, null, 2)}\n`);
   }
   if (options.syncResourceManifest === true) {
     const manifest = extractResourceManifest(result.moduleGraph);
@@ -139,11 +143,18 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
   const resourceManifest = extractResourceManifest(moduleGraph);
   const resourceIdSets = toResourceIdSetsAsset(loaded.scriptVersion, extractResourceIdSets(moduleGraph));
   const audioResources = toAudioResourcesAsset(loaded.scriptVersion, extractAudioResources(moduleGraph));
+  const resourceTemplates = toResourceTemplatesAsset(loaded.scriptVersion, extractResourceTemplates(
+    moduleGraph,
+    loaded.worldSource === undefined ? [] : [loaded.worldSource],
+  ));
   const cacheRules = toCacheRulesAsset(loaded.scriptVersion, extractCacheRules(moduleGraph), {
     resourceManifest,
     resourceCategories,
   });
-  const uiResources = toUiResourcesAsset(loaded.scriptVersion, extractUiResources(moduleGraph));
+  const uiResources = toUiResourcesAsset(loaded.scriptVersion, extractUiResources(
+    moduleGraph,
+    loaded.worldSource === undefined ? [] : [loaded.worldSource],
+  ));
   const emittedResourceManifest = options.syncResourceManifest === true || options.emitResourceManifest === true
     ? resourceManifest
     : undefined;
@@ -159,6 +170,7 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
     audioResources,
     cacheRules,
     uiResources,
+    resourceTemplates,
     resourceManifest: emittedResourceManifest,
     resourceManifestSummary: resourceManifest.summary,
     summary: {
@@ -184,10 +196,12 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
         mapEventFileCount: uiResources.map.eventFiles.files.length,
         useItemCardIdCount: uiResources.useItem.cardIds.ids.length,
         useItemUnderlineIdCount: uiResources.useItem.underlineIds.ids.length,
+        templateFamilyCount: resourceTemplates.summary.familyCount,
       },
       inputPaths: {
         kcConstPath: loaded.paths.kcConstPath,
         mainJsPath: loaded.paths.mainJsPath,
+        worldJsPath: loaded.paths.worldJsPath,
       },
     },
   };

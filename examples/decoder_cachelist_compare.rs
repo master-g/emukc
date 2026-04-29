@@ -135,6 +135,80 @@ fn print_domain_section(report: &CacheListComparisonReport) {
     }
 }
 
+fn print_authority_section(report: &CacheListComparisonReport) {
+    if report.migration_ready.is_none() {
+        return;
+    }
+
+    println!("Decoder-first authority");
+    println!("  rule-authored candidate paths: {}", report.rule_authored_candidate_count);
+    println!("  fallback-authored candidate paths: {}", report.fallback_authored_candidate_count);
+    println!(
+        "  sound rule-authored candidate paths: {}",
+        report.sound_rule_authored_candidate_count
+    );
+    println!(
+        "  sound fallback-authored candidate paths: {}",
+        report.sound_fallback_authored_candidate_count
+    );
+    if !report.sound_fallback_authored_candidate_prefixes.is_empty() {
+        println!("  sound fallback residual prefixes:");
+        for row in &report.sound_fallback_authored_candidate_prefixes {
+            println!("    {:>6}  {}", row.count, row.prefix);
+        }
+    }
+    if !report.template_rule_authored_candidate_families.is_empty() {
+        println!("  template-backed rule-authored families:");
+        for row in &report.template_rule_authored_candidate_families {
+            println!("    {:>6}  {}", row.count, row.prefix);
+        }
+    }
+    if !report.template_fallback_authored_candidate_families.is_empty() {
+        println!("  template-backed fallback residual families:");
+        for row in &report.template_fallback_authored_candidate_families {
+            println!("    {:>6}  {}", row.count, row.prefix);
+        }
+    }
+    if !report.template_fallback_residual_reasons.is_empty() {
+        println!("  template-backed fallback residual reasons:");
+        for row in &report.template_fallback_residual_reasons {
+            println!("    {:>6}  {}  {}: {}", row.count, row.family, row.kind, row.reason);
+        }
+    }
+    if !report.fallback_authored_candidate_prefixes.is_empty() {
+        println!("  fallback residual prefixes:");
+        for row in &report.fallback_authored_candidate_prefixes {
+            println!("    {:>6}  {}", row.count, row.prefix);
+        }
+    }
+    if !report.repo_fallback_bundle_assets.is_empty() {
+        println!(
+            "  repo fallback bundle assets: {}",
+            report.repo_fallback_bundle_assets.join(", ")
+        );
+    }
+    if !report.missing_bundle_assets.is_empty() {
+        println!("  missing bundle assets: {}", report.missing_bundle_assets.join(", "));
+    }
+    if !report.unresolved_rule_blockers.is_empty() {
+        println!("  unresolved rule blockers: {}", report.unresolved_rule_blockers.join(", "));
+    }
+    println!(
+        "  migration ready: {}",
+        if report.migration_ready == Some(true) {
+            "yes"
+        } else {
+            "no"
+        }
+    );
+    if !report.migration_blockers.is_empty() {
+        println!("  migration blockers:");
+        for blocker in &report.migration_blockers {
+            println!("    {blocker}");
+        }
+    }
+}
+
 fn build_kache(cfg: &ExampleConfig) -> anyhow::Result<Kache> {
     Kache::builder()
         .with_cache_root(cfg.cache_root.clone())
@@ -164,21 +238,29 @@ fn main() -> anyhow::Result<()> {
 
         let baseline_strategy = args.baseline.into_make_strategy(args.concurrent);
         let baseline_paths = build_cache_list_paths(&codex, &kache, baseline_strategy).await?;
-        let candidate_paths = if let Some(rules_path) = &args.rules {
-            build_cache_list_paths_with_rules_path(&codex, &kache, rules_path).await?
+        let (candidate_paths, candidate_diagnostics) = if let Some(rules_path) = &args.rules {
+            let output =
+                build_cache_list_path_output_with_rules_path(&codex, &kache, rules_path).await?;
+            (output.paths, Some(output.diagnostics))
         } else {
             let manifest_path = args.manifest.as_ref().ok_or_else(|| {
                 anyhow::anyhow!("--manifest is required when --rules is not provided")
             })?;
-            build_cache_list_paths_with_manifest_path(
-                &codex,
-                &kache,
-                CacheListMakeStrategy::Manifest,
-                manifest_path,
+            (
+                build_cache_list_paths_with_manifest_path(
+                    &codex,
+                    &kache,
+                    CacheListMakeStrategy::Manifest,
+                    manifest_path,
+                )
+                .await?,
+                None,
             )
-            .await?
         };
-        let report = compare_cache_list_path_sets(&baseline_paths, &candidate_paths);
+        let mut report = compare_cache_list_path_sets(&baseline_paths, &candidate_paths);
+        if let Some(diagnostics) = &candidate_diagnostics {
+            apply_candidate_build_diagnostics(&mut report, diagnostics);
+        }
 
         println!("Baseline strategy: {:?}", args.baseline);
         if let Some(manifest_path) = &args.manifest {
@@ -209,6 +291,8 @@ fn main() -> anyhow::Result<()> {
         );
         println!();
         print_domain_section(&report);
+        println!();
+        print_authority_section(&report);
         println!();
         print_path_samples(
             "Sample baseline-only paths",

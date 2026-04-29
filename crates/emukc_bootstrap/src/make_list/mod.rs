@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     path::Path,
     sync::Arc,
 };
@@ -53,11 +53,60 @@ pub struct CacheListItem {
     pub version: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum CacheListAuthorityStage {
+    FallbackAuthored,
+    RuleAuthored,
+}
+
+#[derive(Debug, Clone, Default)]
+struct CacheListAuthorityTracker {
+    path_stages: BTreeMap<String, CacheListAuthorityStage>,
+    unresolved_rule_blockers: BTreeSet<String>,
+    repo_fallback_bundle_assets: BTreeSet<String>,
+    missing_bundle_assets: BTreeSet<String>,
+}
+
+/// Sideband diagnostics describing how a cache list candidate was produced.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CacheListBuildDiagnostics {
+    /// Number of unique candidate paths authored directly by decoder rules.
+    pub rule_authored_count: usize,
+    /// Full sorted rule-authored candidate paths.
+    pub rule_authored_paths: Vec<String>,
+    /// Number of unique candidate paths that required legacy fallback generation.
+    pub fallback_authored_count: usize,
+    /// Full sorted fallback-authored candidate paths.
+    pub fallback_authored_paths: Vec<String>,
+    /// Fallback-authored counts grouped by normalized path prefix.
+    pub fallback_authored_prefixes: Vec<CacheListPathPrefixCount>,
+    /// Template-backed fallback residual reasons grouped by family.
+    pub template_fallback_residual_reasons: Vec<CacheListTemplateResidualReason>,
+    /// Decoder rule keys still unresolved for this candidate build.
+    pub unresolved_rule_blockers: Vec<String>,
+    /// Decoder bundle assets satisfied only through repo fallback instead of sibling outputs.
+    pub repo_fallback_bundle_assets: Vec<String>,
+    /// Decoder bundle assets unavailable from both sibling and repo locations.
+    pub missing_bundle_assets: Vec<String>,
+}
+
+/// In-memory path-set build result plus decoder-first diagnostics.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CacheListPathBuildOutput {
+    /// Unique generated resource paths.
+    pub paths: BTreeSet<String>,
+    /// Sideband decoder-first diagnostics for the generated path set.
+    pub diagnostics: CacheListBuildDiagnostics,
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct CacheList {
     pub items: BTreeSet<CacheListItem>,
 
     next_id: i64,
+    current_authority_stage: Option<CacheListAuthorityStage>,
+    authority_tracker: CacheListAuthorityTracker,
 }
 
 impl CacheList {
@@ -65,11 +114,14 @@ impl CacheList {
         Self {
             items: BTreeSet::new(),
             next_id: 0,
+            current_authority_stage: None,
+            authority_tracker: CacheListAuthorityTracker::default(),
         }
     }
 
     pub fn add(&mut self, path: String, version: impl IntoVersion) -> &mut Self {
         let version = version.into_version();
+        self.record_path_authority(&path);
         let item = CacheListItem {
             id: self.next_id,
             path,
@@ -82,6 +134,7 @@ impl CacheList {
     }
 
     pub fn add_unversioned(&mut self, path: String) -> &mut Self {
+        self.record_path_authority(&path);
         let item = CacheListItem {
             id: self.next_id,
             path,
@@ -93,12 +146,107 @@ impl CacheList {
         self
     }
 
+    pub(crate) fn set_authority_stage(
+        &mut self,
+        stage: Option<CacheListAuthorityStage>,
+    ) -> Option<CacheListAuthorityStage> {
+        std::mem::replace(&mut self.current_authority_stage, stage)
+    }
+
+    pub(crate) fn record_unresolved_rule_blockers(
+        &mut self,
+        blockers: impl IntoIterator<Item = impl Into<String>>,
+    ) {
+        self.authority_tracker
+            .unresolved_rule_blockers
+            .extend(blockers.into_iter().map(Into::into));
+    }
+
+    pub(crate) fn record_repo_fallback_bundle_assets(
+        &mut self,
+        assets: impl IntoIterator<Item = impl Into<String>>,
+    ) {
+        self.authority_tracker
+            .repo_fallback_bundle_assets
+            .extend(assets.into_iter().map(Into::into));
+    }
+
+    pub(crate) fn record_missing_bundle_assets(
+        &mut self,
+        assets: impl IntoIterator<Item = impl Into<String>>,
+    ) {
+        self.authority_tracker.missing_bundle_assets.extend(assets.into_iter().map(Into::into));
+    }
+
     fn into_items(self) -> Vec<CacheListItem> {
         self.items.into_iter().collect()
     }
 
     fn into_path_set(self) -> BTreeSet<String> {
         self.items.into_iter().map(|item| item.path).collect()
+    }
+
+    fn into_path_build_output(self) -> CacheListPathBuildOutput {
+        let CacheList {
+            items,
+            next_id: _,
+            current_authority_stage: _,
+            authority_tracker,
+        } = self;
+        let paths = items.into_iter().map(|item| item.path).collect::<BTreeSet<_>>();
+        let rule_authored_paths = authority_tracker
+            .path_stages
+            .iter()
+            .filter(|(_, stage)| **stage == CacheListAuthorityStage::RuleAuthored)
+            .map(|(path, _)| path.clone())
+            .collect::<BTreeSet<_>>();
+        let fallback_authored_paths = authority_tracker
+            .path_stages
+            .iter()
+            .filter(|(_, stage)| **stage == CacheListAuthorityStage::FallbackAuthored)
+            .map(|(path, _)| path.clone())
+            .collect::<BTreeSet<_>>();
+
+        CacheListPathBuildOutput {
+            paths,
+            diagnostics: CacheListBuildDiagnostics {
+                rule_authored_count: rule_authored_paths.len(),
+                rule_authored_paths: rule_authored_paths.iter().cloned().collect(),
+                fallback_authored_count: fallback_authored_paths.len(),
+                fallback_authored_paths: fallback_authored_paths.iter().cloned().collect(),
+                fallback_authored_prefixes: group_paths_by_prefix(&fallback_authored_paths),
+                template_fallback_residual_reasons: template_residual_reasons(
+                    &fallback_authored_paths,
+                ),
+                unresolved_rule_blockers: authority_tracker
+                    .unresolved_rule_blockers
+                    .iter()
+                    .cloned()
+                    .collect(),
+                repo_fallback_bundle_assets: authority_tracker
+                    .repo_fallback_bundle_assets
+                    .iter()
+                    .cloned()
+                    .collect(),
+                missing_bundle_assets: authority_tracker
+                    .missing_bundle_assets
+                    .iter()
+                    .cloned()
+                    .collect(),
+            },
+        }
+    }
+
+    fn record_path_authority(&mut self, path: &str) {
+        let Some(stage) = self.current_authority_stage else {
+            return;
+        };
+        match self.authority_tracker.path_stages.get(path).copied() {
+            Some(existing) if existing >= stage => {}
+            _ => {
+                self.authority_tracker.path_stages.insert(path.to_string(), stage);
+            }
+        }
     }
 }
 
@@ -109,6 +257,35 @@ pub struct CacheListPathPrefixCount {
     pub prefix: String,
     /// Number of paths in the bucket.
     pub count: usize,
+}
+
+/// Stable reason category for template-backed fallback residuals.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum CacheListTemplateResidualReasonKind {
+    MissingDescriptorEvidence,
+    PartialCoverage,
+    UnavailableRuntimeInput,
+    UncoveredResidualMembership,
+}
+
+impl std::fmt::Display for CacheListTemplateResidualReasonKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(template_residual_kind_label(*self))
+    }
+}
+
+/// Template-backed fallback residual reason grouped by family.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CacheListTemplateResidualReason {
+    /// Stable template family label.
+    pub family: String,
+    /// Number of fallback-authored paths in the family.
+    pub count: usize,
+    /// Machine-readable residual category.
+    pub kind: CacheListTemplateResidualReasonKind,
+    /// Human-readable reason.
+    pub reason: String,
 }
 
 /// Domain-level overlap metrics.
@@ -149,6 +326,34 @@ pub struct CacheListComparisonReport {
     pub candidate_only_prefixes: Vec<CacheListPathPrefixCount>,
     /// Domain-level coverage metrics for major cache-list domains.
     pub domain_coverages: Vec<CacheListDomainCoverage>,
+    /// Number of candidate paths authored directly by decoder rules.
+    pub rule_authored_candidate_count: usize,
+    /// Number of candidate paths authored through legacy fallback stages.
+    pub fallback_authored_candidate_count: usize,
+    /// Fallback-authored candidate counts grouped by normalized path prefix.
+    pub fallback_authored_candidate_prefixes: Vec<CacheListPathPrefixCount>,
+    /// Number of `kcs/sound/*` candidate paths authored directly by decoder rules.
+    pub sound_rule_authored_candidate_count: usize,
+    /// Number of `kcs/sound/*` candidate paths still authored through fallback.
+    pub sound_fallback_authored_candidate_count: usize,
+    /// Fallback-authored `kcs/sound/*` counts grouped by normalized path prefix.
+    pub sound_fallback_authored_candidate_prefixes: Vec<CacheListPathPrefixCount>,
+    /// Template-backed rule-authored candidate counts grouped by family.
+    pub template_rule_authored_candidate_families: Vec<CacheListPathPrefixCount>,
+    /// Template-backed fallback-authored candidate counts grouped by family.
+    pub template_fallback_authored_candidate_families: Vec<CacheListPathPrefixCount>,
+    /// Template-backed fallback residual reasons grouped by family.
+    pub template_fallback_residual_reasons: Vec<CacheListTemplateResidualReason>,
+    /// Decoder rule keys or bundle conditions still blocking migration.
+    pub unresolved_rule_blockers: Vec<String>,
+    /// Optional decoder bundle assets satisfied only through repo fallback.
+    pub repo_fallback_bundle_assets: Vec<String>,
+    /// Optional decoder bundle assets unavailable from both sibling and repo locations.
+    pub missing_bundle_assets: Vec<String>,
+    /// Explicit migration blocker summary for decoder-first default-switch planning.
+    pub migration_blockers: Vec<String>,
+    /// Whether the candidate is migration-ready for measured domains.
+    pub migration_ready: Option<bool>,
 }
 
 fn round_pct(value: f64) -> f64 {
@@ -209,6 +414,122 @@ fn classify_domain(path: &str) -> &'static str {
     } else {
         "other"
     }
+}
+
+fn classify_template_family(path: &str) -> Option<&'static str> {
+    if path.starts_with("kcs2/resources/map/") {
+        Some("map")
+    } else if path.starts_with("kcs2/resources/gauge/") {
+        Some("gauge")
+    } else if path.starts_with("kcs2/resources/furniture/") {
+        Some("furniture")
+    } else if path.starts_with("kcs2/resources/bgm/") {
+        Some("bgm")
+    } else if path.starts_with("kcs/sound/kc9998/") {
+        Some("sound.kc9998")
+    } else if path.starts_with("kcs2/resources/voice/titlecall_") {
+        Some("voice.titlecall")
+    } else if path.starts_with("kcs2/resources/useitem/card/") {
+        Some("useitem.card")
+    } else if path.starts_with("kcs2/resources/useitem/card_/") {
+        Some("useitem.card_")
+    } else if path.starts_with("kcs2/resources/area/") {
+        Some("area")
+    } else if path.starts_with("kcs2/resources/worldselect/") {
+        Some("worldselect")
+    } else {
+        None
+    }
+}
+
+fn group_template_paths_by_family(
+    paths: impl IntoIterator<Item = impl AsRef<str>>,
+) -> Vec<CacheListPathPrefixCount> {
+    let mut counts = HashMap::<String, usize>::new();
+    for path in paths {
+        if let Some(family) = classify_template_family(path.as_ref()) {
+            *counts.entry(family.to_string()).or_default() += 1;
+        }
+    }
+    let mut grouped = counts
+        .into_iter()
+        .map(|(prefix, count)| CacheListPathPrefixCount {
+            prefix,
+            count,
+        })
+        .collect::<Vec<_>>();
+    grouped.sort_by(|left, right| {
+        right.count.cmp(&left.count).then_with(|| left.prefix.cmp(&right.prefix))
+    });
+    grouped
+}
+
+fn template_residual_reason_for_family(
+    family: &str,
+) -> Option<(CacheListTemplateResidualReasonKind, &'static str)> {
+    match family {
+        "map" => Some((
+            CacheListTemplateResidualReasonKind::PartialCoverage,
+            "decoder templates cover manifest map base and sidecar subsets, but fallback still owns unproven default/event map variants",
+        )),
+        "gauge" => Some((
+            CacheListTemplateResidualReasonKind::PartialCoverage,
+            "decoder templates cover manifest gauge JSON paths, but gauge image sidecars and event variants require additional runtime evidence",
+        )),
+        "sound.kc9998" => Some((
+            CacheListTemplateResidualReasonKind::UnavailableRuntimeInput,
+            "kc9998 path shape is decoder-backed, but full membership requires a validated cache-source sound bucket",
+        )),
+        "bgm" => Some((
+            CacheListTemplateResidualReasonKind::UncoveredResidualMembership,
+            "manifest.bgm and manifest.mapbgm cover decoder-owned BGM paths, but legacy static battle BGM ids remain outside those inputs",
+        )),
+        "useitem.card" | "useitem.card_" => Some((
+            CacheListTemplateResidualReasonKind::PartialCoverage,
+            "decoder UI evidence covers observed useitem ids, but fallback still owns residual card ids outside the observed subset",
+        )),
+        "area" => Some((
+            CacheListTemplateResidualReasonKind::PartialCoverage,
+            "decoder and manifest evidence cover observed area paths, but fallback still owns residual area variants",
+        )),
+        "furniture" => Some((
+            CacheListTemplateResidualReasonKind::UncoveredResidualMembership,
+            "decoder furniture templates cover observed categories, but fallback still owns residual furniture members outside those descriptors",
+        )),
+        "voice.titlecall" | "worldselect" => Some((
+            CacheListTemplateResidualReasonKind::PartialCoverage,
+            "decoder template range covers the known generated subset, but fallback residuals indicate uncovered members",
+        )),
+        _ => None,
+    }
+}
+
+fn template_residual_kind_label(kind: CacheListTemplateResidualReasonKind) -> &'static str {
+    match kind {
+        CacheListTemplateResidualReasonKind::MissingDescriptorEvidence => {
+            "missing-descriptor-evidence"
+        }
+        CacheListTemplateResidualReasonKind::PartialCoverage => "partial-coverage",
+        CacheListTemplateResidualReasonKind::UnavailableRuntimeInput => "unavailable-runtime-input",
+        CacheListTemplateResidualReasonKind::UncoveredResidualMembership => {
+            "uncovered-residual-membership"
+        }
+    }
+}
+
+fn template_residual_reasons(paths: &BTreeSet<String>) -> Vec<CacheListTemplateResidualReason> {
+    group_template_paths_by_family(paths.iter())
+        .into_iter()
+        .filter_map(|row| {
+            let (kind, reason) = template_residual_reason_for_family(row.prefix.as_str())?;
+            Some(CacheListTemplateResidualReason {
+                family: row.prefix,
+                count: row.count,
+                kind,
+                reason: reason.to_string(),
+            })
+        })
+        .collect()
 }
 
 fn compute_domain_coverages(
@@ -282,7 +603,120 @@ pub fn compare_cache_list_path_sets(
         baseline_only_prefixes: group_paths_by_prefix(&baseline_only),
         candidate_only_prefixes: group_paths_by_prefix(&candidate_only),
         domain_coverages: compute_domain_coverages(baseline, candidate),
+        rule_authored_candidate_count: 0,
+        fallback_authored_candidate_count: 0,
+        fallback_authored_candidate_prefixes: Vec::new(),
+        sound_rule_authored_candidate_count: 0,
+        sound_fallback_authored_candidate_count: 0,
+        sound_fallback_authored_candidate_prefixes: Vec::new(),
+        template_rule_authored_candidate_families: Vec::new(),
+        template_fallback_authored_candidate_families: Vec::new(),
+        template_fallback_residual_reasons: Vec::new(),
+        unresolved_rule_blockers: Vec::new(),
+        repo_fallback_bundle_assets: Vec::new(),
+        missing_bundle_assets: Vec::new(),
+        migration_blockers: Vec::new(),
+        migration_ready: None,
     }
+}
+
+/// Apply decoder-first build diagnostics to a comparison report and derive migration readiness.
+pub fn apply_candidate_build_diagnostics(
+    report: &mut CacheListComparisonReport,
+    diagnostics: &CacheListBuildDiagnostics,
+) {
+    let sound_rule_authored_paths = diagnostics
+        .rule_authored_paths
+        .iter()
+        .filter(|path| path.starts_with("kcs/sound/"))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let sound_fallback_authored_paths = diagnostics
+        .fallback_authored_paths
+        .iter()
+        .filter(|path| path.starts_with("kcs/sound/"))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+
+    report.rule_authored_candidate_count = diagnostics.rule_authored_count;
+    report.fallback_authored_candidate_count = diagnostics.fallback_authored_count;
+    report.fallback_authored_candidate_prefixes = diagnostics.fallback_authored_prefixes.clone();
+    report.sound_rule_authored_candidate_count = sound_rule_authored_paths.len();
+    report.sound_fallback_authored_candidate_count = sound_fallback_authored_paths.len();
+    report.sound_fallback_authored_candidate_prefixes =
+        group_paths_by_prefix(&sound_fallback_authored_paths);
+    report.template_rule_authored_candidate_families =
+        group_template_paths_by_family(diagnostics.rule_authored_paths.iter());
+    report.template_fallback_authored_candidate_families =
+        group_template_paths_by_family(diagnostics.fallback_authored_paths.iter());
+    report.template_fallback_residual_reasons =
+        if diagnostics.template_fallback_residual_reasons.is_empty() {
+            let fallback_paths =
+                diagnostics.fallback_authored_paths.iter().cloned().collect::<BTreeSet<_>>();
+            template_residual_reasons(&fallback_paths)
+        } else {
+            diagnostics.template_fallback_residual_reasons.clone()
+        };
+    report.unresolved_rule_blockers = diagnostics.unresolved_rule_blockers.clone();
+    report.repo_fallback_bundle_assets = diagnostics.repo_fallback_bundle_assets.clone();
+    report.missing_bundle_assets = diagnostics.missing_bundle_assets.clone();
+    report.migration_blockers = collect_migration_blockers(report);
+    report.migration_ready = Some(report.migration_blockers.is_empty());
+}
+
+fn collect_migration_blockers(report: &CacheListComparisonReport) -> Vec<String> {
+    let mut blockers = Vec::new();
+
+    if report.baseline_only_count > 0 {
+        blockers.push(format!("baseline-only paths: {}", report.baseline_only_count));
+    }
+    if report.fallback_authored_candidate_count > 0 {
+        blockers.push(format!(
+            "fallback-authored candidate paths: {}",
+            report.fallback_authored_candidate_count
+        ));
+    }
+    if !report.unresolved_rule_blockers.is_empty() {
+        blockers.push(format!(
+            "unresolved rule blockers: {}",
+            report.unresolved_rule_blockers.join(", ")
+        ));
+    }
+    if !report.template_fallback_residual_reasons.is_empty() {
+        let families = report
+            .template_fallback_residual_reasons
+            .iter()
+            .map(|reason| {
+                format!(
+                    "{} ({}): {}: {}",
+                    reason.family,
+                    reason.count,
+                    template_residual_kind_label(reason.kind),
+                    reason.reason
+                )
+            })
+            .collect::<Vec<_>>();
+        blockers.push(format!("template-backed fallback residuals: {}", families.join("; ")));
+    } else if !report.template_fallback_authored_candidate_families.is_empty() {
+        let families = report
+            .template_fallback_authored_candidate_families
+            .iter()
+            .map(|family| format!("{} ({})", family.prefix, family.count))
+            .collect::<Vec<_>>();
+        blockers.push(format!("template-backed fallback residuals: {}", families.join(", ")));
+    }
+    if !report.repo_fallback_bundle_assets.is_empty() {
+        blockers.push(format!(
+            "repo fallback bundle assets: {}",
+            report.repo_fallback_bundle_assets.join(", ")
+        ));
+    }
+    if !report.missing_bundle_assets.is_empty() {
+        blockers
+            .push(format!("missing bundle assets: {}", report.missing_bundle_assets.join(", ")));
+    }
+
+    blockers
 }
 
 async fn build_list(
@@ -291,7 +725,7 @@ async fn build_list(
     strategy: CacheListMakeStrategy,
     manifest_override: Option<&manifest::ResourceManifest>,
     decoder_assets_override: Option<&manifest::DecoderCoverageAssets>,
-    cache_rules_override: Option<&manifest::CacheRulesAsset>,
+    rules_bundle_override: Option<&manifest::DecoderRulesBundle>,
 ) -> Result<CacheList, CacheListMakingError> {
     let mut list = CacheList::new();
     source::make(
@@ -300,7 +734,7 @@ async fn build_list(
         strategy,
         manifest_override,
         decoder_assets_override,
-        cache_rules_override,
+        rules_bundle_override,
         &mut list,
     )
     .await?;
@@ -359,10 +793,7 @@ pub async fn build_cache_list_paths_with_rules_path(
     kache: &Kache,
     rules_path: impl AsRef<Path>,
 ) -> Result<BTreeSet<String>, CacheListMakingError> {
-    let cache_rules = manifest::load_cache_rules_from_path(rules_path)?;
-    Ok(build_list(codex, kache, CacheListMakeStrategy::Rules, None, None, Some(&cache_rules))
-        .await?
-        .into_path_set())
+    Ok(build_cache_list_path_output_with_rules_path(codex, kache, rules_path).await?.paths)
 }
 
 /// Build a cache-list item list in memory with an explicit cache-rules override.
@@ -371,10 +802,22 @@ pub async fn build_cache_list_items_with_rules_path(
     kache: &Kache,
     rules_path: impl AsRef<Path>,
 ) -> Result<Vec<CacheListItem>, CacheListMakingError> {
-    let cache_rules = manifest::load_cache_rules_from_path(rules_path)?;
-    Ok(build_list(codex, kache, CacheListMakeStrategy::Rules, None, None, Some(&cache_rules))
+    let rules_bundle = manifest::load_cache_rules_bundle_from_path(rules_path)?;
+    Ok(build_list(codex, kache, CacheListMakeStrategy::Rules, None, None, Some(&rules_bundle))
         .await?
         .into_items())
+}
+
+/// Build a cache-list path set plus decoder-first diagnostics in memory with an explicit cache-rules override.
+pub async fn build_cache_list_path_output_with_rules_path(
+    codex: &Codex,
+    kache: &Kache,
+    rules_path: impl AsRef<Path>,
+) -> Result<CacheListPathBuildOutput, CacheListMakingError> {
+    let rules_bundle = manifest::load_cache_rules_bundle_from_path(rules_path)?;
+    Ok(build_list(codex, kache, CacheListMakeStrategy::Rules, None, None, Some(&rules_bundle))
+        .await?
+        .into_path_build_output())
 }
 
 /// Make a cache list.
@@ -701,6 +1144,32 @@ mod tests {
     }
 
     #[test]
+    fn cache_list_path_build_output_reports_authority_diagnostics() {
+        let mut list = CacheList::new();
+        let previous = list.set_authority_stage(Some(CacheListAuthorityStage::RuleAuthored));
+        list.add_unversioned("kcs2/resources/se/999.mp3".to_string());
+        list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
+        list.add_unversioned("gadget_html5/js/kcs_const.js".to_string());
+        list.record_unresolved_rule_blockers(["ship.targetSemantics"]);
+        list.record_repo_fallback_bundle_assets(["resource_categories.json"]);
+        list.set_authority_stage(previous);
+
+        let output = list.into_path_build_output();
+
+        assert!(output.paths.contains("kcs2/resources/se/999.mp3"));
+        assert_eq!(output.diagnostics.rule_authored_count, 1);
+        assert_eq!(output.diagnostics.fallback_authored_count, 1);
+        assert_eq!(
+            output.diagnostics.unresolved_rule_blockers,
+            vec!["ship.targetSemantics".to_string()]
+        );
+        assert_eq!(
+            output.diagnostics.repo_fallback_bundle_assets,
+            vec!["resource_categories.json".to_string()]
+        );
+    }
+
+    #[test]
     fn compare_cache_list_report_counts_overlap_and_prefix_deltas() {
         let baseline = BTreeSet::from([
             "gadget_html5/js/kcs_const.js".to_string(),
@@ -734,5 +1203,180 @@ mod tests {
         );
         assert_eq!(report.baseline_only_prefixes[0].prefix, "kcs2/resources/slot/card");
         assert_eq!(report.candidate_only_prefixes[0].prefix, "kcs2/resources/ship/banner");
+    }
+
+    #[test]
+    fn apply_candidate_build_diagnostics_marks_migration_blockers() {
+        let baseline = BTreeSet::from(["kcs2/resources/ship/full/0001.png".to_string()]);
+        let candidate = BTreeSet::from(["kcs2/resources/ship/banner/0001.png".to_string()]);
+        let mut report = compare_cache_list_path_sets(&baseline, &candidate);
+        let diagnostics = CacheListBuildDiagnostics {
+            rule_authored_count: 10,
+            rule_authored_paths: Vec::new(),
+            fallback_authored_count: 3,
+            fallback_authored_paths: vec![
+                "gadget_html5/js/kcs_const.js".to_string(),
+                "kcs2/resources/stype/etext/001.png".to_string(),
+                "kcs2/resources/stype/etext/002.png".to_string(),
+            ],
+            fallback_authored_prefixes: vec![CacheListPathPrefixCount {
+                prefix: "kcs2/resources/stype/etext".to_string(),
+                count: 2,
+            }],
+            template_fallback_residual_reasons: Vec::new(),
+            unresolved_rule_blockers: vec!["ship.targetSemantics".to_string()],
+            repo_fallback_bundle_assets: vec!["ui_resources.json".to_string()],
+            missing_bundle_assets: vec!["audio_resources.json".to_string()],
+        };
+
+        apply_candidate_build_diagnostics(&mut report, &diagnostics);
+
+        assert_eq!(report.rule_authored_candidate_count, 10);
+        assert_eq!(report.fallback_authored_candidate_count, 3);
+        assert_eq!(report.sound_rule_authored_candidate_count, 0);
+        assert_eq!(report.sound_fallback_authored_candidate_count, 0);
+        assert_eq!(
+            report.fallback_authored_candidate_prefixes,
+            diagnostics.fallback_authored_prefixes
+        );
+        assert_eq!(report.migration_ready, Some(false));
+        assert!(report.migration_blockers.contains(&"baseline-only paths: 1".to_string()));
+        assert!(
+            report.migration_blockers.contains(&"fallback-authored candidate paths: 3".to_string())
+        );
+        assert!(
+            report
+                .migration_blockers
+                .contains(&"unresolved rule blockers: ship.targetSemantics".to_string())
+        );
+        assert!(
+            report
+                .migration_blockers
+                .contains(&"repo fallback bundle assets: ui_resources.json".to_string())
+        );
+        assert!(
+            report
+                .migration_blockers
+                .contains(&"missing bundle assets: audio_resources.json".to_string())
+        );
+    }
+
+    #[test]
+    fn apply_candidate_build_diagnostics_marks_migration_ready_when_clear() {
+        let baseline = BTreeSet::from(["kcs2/resources/ship/full/0001.png".to_string()]);
+        let candidate = BTreeSet::from(["kcs2/resources/ship/full/0001.png".to_string()]);
+        let mut report = compare_cache_list_path_sets(&baseline, &candidate);
+        let diagnostics = CacheListBuildDiagnostics {
+            rule_authored_count: 1,
+            ..Default::default()
+        };
+
+        apply_candidate_build_diagnostics(&mut report, &diagnostics);
+
+        assert_eq!(report.rule_authored_candidate_count, 1);
+        assert_eq!(report.fallback_authored_candidate_count, 0);
+        assert_eq!(report.sound_rule_authored_candidate_count, 0);
+        assert_eq!(report.sound_fallback_authored_candidate_count, 0);
+        assert_eq!(report.migration_ready, Some(true));
+        assert!(report.migration_blockers.is_empty());
+    }
+
+    #[test]
+    fn apply_candidate_build_diagnostics_tracks_sound_counts() {
+        let baseline = BTreeSet::new();
+        let candidate = BTreeSet::from(["kcs/sound/kc9999/11.mp3".to_string()]);
+        let mut report = compare_cache_list_path_sets(&baseline, &candidate);
+        let diagnostics = CacheListBuildDiagnostics {
+            rule_authored_count: 2,
+            rule_authored_paths: vec![
+                "kcs/sound/kc9999/11.mp3".to_string(),
+                "kcs/sound/kc9998/22.mp3".to_string(),
+            ],
+            fallback_authored_count: 2,
+            fallback_authored_paths: vec![
+                "kcs/sound/kc9997/33.mp3".to_string(),
+                "gadget_html5/js/kcs_const.js".to_string(),
+            ],
+            fallback_authored_prefixes: vec![CacheListPathPrefixCount {
+                prefix: "kcs/sound/kc9997".to_string(),
+                count: 1,
+            }],
+            template_fallback_residual_reasons: Vec::new(),
+            unresolved_rule_blockers: Vec::new(),
+            repo_fallback_bundle_assets: Vec::new(),
+            missing_bundle_assets: Vec::new(),
+        };
+
+        apply_candidate_build_diagnostics(&mut report, &diagnostics);
+
+        assert_eq!(report.sound_rule_authored_candidate_count, 2);
+        assert_eq!(report.sound_fallback_authored_candidate_count, 1);
+        assert_eq!(
+            report.sound_fallback_authored_candidate_prefixes,
+            vec![CacheListPathPrefixCount {
+                prefix: "kcs/sound/kc9997".to_string(),
+                count: 1,
+            }]
+        );
+    }
+
+    #[test]
+    fn apply_candidate_build_diagnostics_tracks_template_families() {
+        let baseline = BTreeSet::from(["kcs2/resources/map/001/01.png".to_string()]);
+        let candidate = baseline.clone();
+        let mut report = compare_cache_list_path_sets(&baseline, &candidate);
+        let diagnostics = CacheListBuildDiagnostics {
+            rule_authored_count: 2,
+            rule_authored_paths: vec![
+                "kcs2/resources/map/001/01.png".to_string(),
+                "kcs2/resources/voice/titlecall_1/001.mp3".to_string(),
+            ],
+            fallback_authored_count: 1,
+            fallback_authored_paths: vec![
+                "kcs2/resources/furniture/normal/001_0001.png".to_string(),
+            ],
+            fallback_authored_prefixes: vec![CacheListPathPrefixCount {
+                prefix: "kcs2/resources/furniture/normal".to_string(),
+                count: 1,
+            }],
+            ..Default::default()
+        };
+
+        apply_candidate_build_diagnostics(&mut report, &diagnostics);
+
+        assert_eq!(
+            report.template_rule_authored_candidate_families,
+            vec![
+                CacheListPathPrefixCount {
+                    prefix: "map".to_string(),
+                    count: 1,
+                },
+                CacheListPathPrefixCount {
+                    prefix: "voice.titlecall".to_string(),
+                    count: 1,
+                },
+            ]
+        );
+        assert_eq!(
+            report.template_fallback_authored_candidate_families,
+            vec![CacheListPathPrefixCount {
+                prefix: "furniture".to_string(),
+                count: 1,
+            }]
+        );
+        assert_eq!(
+            report.template_fallback_residual_reasons,
+            vec![CacheListTemplateResidualReason {
+                family: "furniture".to_string(),
+                count: 1,
+                kind: CacheListTemplateResidualReasonKind::UncoveredResidualMembership,
+                reason: "decoder furniture templates cover observed categories, but fallback still owns residual furniture members outside those descriptors".to_string(),
+            }]
+        );
+        assert!(report.migration_blockers.iter().any(|blocker| {
+            blocker.contains(
+                "template-backed fallback residuals: furniture (1): uncovered-residual-membership",
+            )
+        }));
     }
 }

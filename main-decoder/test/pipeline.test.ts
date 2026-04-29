@@ -120,9 +120,11 @@ test("writes resource manifest as a normal output artifact when requested", asyn
   } as any);
 
   expect(result.artifacts?.resourceManifestFile).toBeDefined();
-  expect(existsSync(result.artifacts!.resourceManifestFile)).toBe(true);
+  const resourceManifestFile = result.artifacts!.resourceManifestFile;
+  expect(resourceManifestFile).toBeDefined();
+  expect(existsSync(resourceManifestFile!)).toBe(true);
 
-  const manifest = JSON.parse(readFileSync(result.artifacts!.resourceManifestFile, "utf8"));
+  const manifest = JSON.parse(readFileSync(resourceManifestFile!, "utf8"));
   expect(manifest.version).toBeGreaterThanOrEqual(2);
   expect(Array.isArray(manifest.entries)).toBe(true);
   expect(existsSync(result.artifacts!.resourceCategoriesFile)).toBe(true);
@@ -130,13 +132,28 @@ test("writes resource manifest as a normal output artifact when requested", asyn
   expect(existsSync(result.artifacts!.audioResourcesFile)).toBe(true);
   expect(existsSync(result.artifacts!.cacheRulesFile)).toBe(true);
   expect(existsSync(result.artifacts!.uiResourcesFile)).toBe(true);
+  expect(existsSync(result.artifacts!.resourceTemplatesFile)).toBe(true);
 
   const resourceIdSets = JSON.parse(readFileSync(result.artifacts!.resourceIdSetsFile, "utf8"));
   const audioResources = JSON.parse(readFileSync(result.artifacts!.audioResourcesFile, "utf8"));
   const cacheRules = JSON.parse(readFileSync(result.artifacts!.cacheRulesFile, "utf8"));
   const uiResources = JSON.parse(readFileSync(result.artifacts!.uiResourcesFile, "utf8"));
+  const resourceTemplates = JSON.parse(readFileSync(result.artifacts!.resourceTemplatesFile, "utf8"));
   expect(resourceIdSets.version).toBe(1);
   expect(audioResources.version).toBe(1);
   expect(cacheRules.version).toBe(1);
   expect(uiResources.version).toBe(1);
+  expect(resourceTemplates.version).toBe(1);
+  expect(resourceTemplates.summary.familyCount).toBeGreaterThan(0);
+  expect(resourceTemplates.families.some((family: any) => family.key === "map.base")).toBe(true);
+  expect(resourceTemplates.families.some((family: any) => family.key === "area.sally")).toBe(true);
+  expect(resourceTemplates.families.some((family: any) => family.key === "area.airunit")).toBe(true);
+  expect(resourceTemplates.families.some((family: any) => family.key === "useitem.card")).toBe(true);
+  expect(audioResources.voice.explicitFiles.length).toBeGreaterThan(0);
+  expect(audioResources.bgm.fanfareIds.ids.length).toBeGreaterThan(0);
+  expect(uiResources.furniture.categories).toEqual(expect.arrayContaining(["normal", "movable", "scripts", "thumbnail"]));
+  expect(uiResources.useItem.cardIds.ids.length).toBeGreaterThan(0);
+  expect(uiResources.useItem.underlineIds.ids.length).toBeGreaterThan(0);
+  expect(uiResources.worldSelect.files.length).toBeGreaterThan(0);
+  expect(uiResources.furniture.explicitPaths).not.toContain("resources/furniture/outside/");
 }, 120000);

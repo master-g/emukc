@@ -3,6 +3,7 @@ import type { ResourceManifest } from "./resource-manifest.ts";
 export interface SourcePaths {
   kcConstPath: string;
   mainJsPath: string;
+  worldJsPath: string;
   outputDir: string;
 }
 
@@ -10,6 +11,7 @@ export interface LoadedSources {
   paths: SourcePaths;
   kcConstSource: string;
   mainSource: string;
+  worldSource?: string;
   scriptVersion: string;
 }
 
@@ -280,6 +282,7 @@ export interface DecodeOptions {
 export interface PipelineOptions {
   kcConstPath?: string;
   mainJsPath?: string;
+  worldJsPath?: string;
   outputDir?: string;
   maxPasses?: number;
   writeOutputs?: boolean;
@@ -307,6 +310,7 @@ export interface PipelineArtifacts {
   audioResourcesFile: string;
   cacheRulesFile: string;
   uiResourcesFile: string;
+  resourceTemplatesFile: string;
   resourceManifestFile?: string;
   modulesDir: string;
 }
@@ -334,10 +338,12 @@ export interface DecodeSummary {
     mapEventFileCount: number;
     useItemCardIdCount: number;
     useItemUnderlineIdCount: number;
+    templateFamilyCount: number;
   };
   inputPaths: {
     kcConstPath: string;
     mainJsPath: string;
+    worldJsPath: string;
   };
 }
 
@@ -394,6 +400,93 @@ export interface ResourceCategoriesAsset {
 
 export type ResourceCoverageMode = "observed-complete" | "partial" | "unresolved";
 
+export type ResourceTemplateBlockerKind =
+  | "missing-descriptor-evidence"
+  | "partial-coverage"
+  | "unavailable-runtime-input"
+  | "uncovered-residual-membership";
+
+export type ResourceTemplateDomain =
+  | "map"
+  | "gauge"
+  | "furniture"
+  | "bgm"
+  | "sound"
+  | "voice"
+  | "useitem"
+  | "area"
+  | "worldselect"
+  | "se";
+
+export type ResourceTemplateInput =
+  | "manifest.mapinfo"
+  | "manifest.mapbgm"
+  | "manifest.bgm"
+  | "manifest.furniture"
+  | "manifest.useitem"
+  | "cache-source.sound-bucket"
+  | "decoder.audio"
+  | "decoder.ui"
+  | "decoder.template-range";
+
+export interface ResourceTemplateLiteralSegment {
+  kind: "literal";
+  value: string;
+}
+
+export interface ResourceTemplatePlaceholderSegment {
+  kind: "placeholder";
+  name: string;
+  format?: "number" | "pad2" | "pad3" | "raw";
+}
+
+export type ResourceTemplateSegment =
+  | ResourceTemplateLiteralSegment
+  | ResourceTemplatePlaceholderSegment;
+
+export interface ResourceTemplateRange {
+  start: number;
+  end: number;
+  pad?: number;
+}
+
+export interface ResourceTemplateProvenance {
+  moduleIds: string[];
+  moduleNames: string[];
+}
+
+export interface ResourceTemplateCompletenessBlocker {
+  kind: ResourceTemplateBlockerKind;
+  reason: string;
+  requiredInputs?: ResourceTemplateInput[];
+}
+
+export interface ResourceTemplateFamily {
+  key: string;
+  domain: ResourceTemplateDomain;
+  outputPrefix: string;
+  pathTemplate: ResourceTemplateSegment[];
+  requiredInputs: ResourceTemplateInput[];
+  coverageMode: ResourceCoverageMode;
+  provenance: ResourceTemplateProvenance;
+  completenessBlockers?: ResourceTemplateCompletenessBlocker[];
+  range?: ResourceTemplateRange;
+}
+
+export interface ResourceTemplatesAsset {
+  version: 1;
+  generatedAt: string;
+  scriptVersion: string;
+  summary: {
+    familyCount: number;
+    observedCompleteFamilyCount: number;
+    partialFamilyCount: number;
+    unresolvedFamilyCount: number;
+  };
+  families: ResourceTemplateFamily[];
+  unresolvedFamilies: string[];
+}
+
 export interface ResourceIdSetEntry {
   coverageMode: ResourceCoverageMode;
   ids: number[];
@@ -442,6 +535,22 @@ export interface CacheRuleSpecialShipRule extends CacheRuleProvenance {
   cases: CacheRuleSpecialCase[];
 }
 
+export type CacheRuleShipSelectorScope = "default-friendly" | "default-abyssal";
+export type CacheRuleDamagedState = "false" | "true" | "variable";
+
+export interface CacheRuleShipTargetSemanticCase {
+  rawTargetType: string;
+  selectorScope: CacheRuleShipSelectorScope;
+  damagedState: CacheRuleDamagedState;
+  targetTypes: string[];
+}
+
+export interface CacheRuleShipTargetSemanticsRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "ship_target_semantics";
+  cases: CacheRuleShipTargetSemanticCase[];
+}
+
 export interface CacheRuleItemUpRule extends CacheRuleProvenance {
   coverageMode: ResourceCoverageMode;
   kind: "item_up_normalization";
@@ -456,6 +565,43 @@ export interface CacheRuleBtxtFlatRule extends CacheRuleProvenance {
   excludeEnemyItems: boolean;
 }
 
+export interface CacheRuleObservedSlotSubsetRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "observed_slot_subset";
+  ids: number[];
+}
+
+export interface CacheRuleShipVoiceFormula {
+  base: number;
+  multiplier: number;
+  shipIdOffset: number;
+  modulo: number;
+  maxFormulaVoiceId: number;
+  voiceDiffs: number[];
+}
+
+export interface CacheRuleShipVoiceRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "ship_voice_formula";
+  formula?: CacheRuleShipVoiceFormula;
+  requiredShipGraphFields: string[];
+  baseVoiceIds: number[];
+  beLeftVoiceIds: number[];
+  beLeftTiredVoiceIds: number[];
+  timeSignalStartVoiceId?: number;
+  timeSignalVoiceCount?: number;
+  specialArtShipIds: number[];
+  specialVoiceIds: number[];
+}
+
+export interface CacheRuleSoundBucketRule extends CacheRuleProvenance {
+  coverageMode: ResourceCoverageMode;
+  kind: "sound_bucket";
+  bucket: "9997" | "9998" | "9999";
+  voiceIds: number[];
+  hasDynamicVoiceIds: boolean;
+}
+
 export interface CacheRulesAsset {
   version: 1;
   generatedAt: string;
@@ -463,6 +609,7 @@ export interface CacheRulesAsset {
   summary: {
     shipRuleCount: number;
     slotRuleCount: number;
+    soundRuleCount: number;
     observedCompleteRuleCount: number;
     partialRuleCount: number;
     unresolvedRuleCount: number;
@@ -471,10 +618,19 @@ export interface CacheRulesAsset {
   resourceCategories: ResourceCategoriesAsset;
   shipRules: {
     special: CacheRuleSpecialShipRule;
+    targetSemantics: CacheRuleShipTargetSemanticsRule;
   };
   slotRules: {
     itemUp: CacheRuleItemUpRule;
     btxtFlat: CacheRuleBtxtFlatRule;
+    itemUp2: CacheRuleObservedSlotSubsetRule;
+    itemOn2: CacheRuleObservedSlotSubsetRule;
+  };
+  soundRules: {
+    shipVoices: CacheRuleShipVoiceRule;
+    kc9997: CacheRuleSoundBucketRule;
+    kc9998: CacheRuleSoundBucketRule;
+    kc9999: CacheRuleSoundBucketRule;
   };
   unresolvedRules: string[];
 }
@@ -567,6 +723,7 @@ export interface PipelineResult {
   audioResources: AudioResourcesAsset;
   cacheRules: CacheRulesAsset;
   uiResources: UiResourcesAsset;
+  resourceTemplates: ResourceTemplatesAsset;
   resourceManifest?: unknown;
   resourceManifestSummary?: ResourceManifestSummary;
   summary: DecodeSummary;

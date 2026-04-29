@@ -1,4 +1,4 @@
-export { DEFAULT_KCS_CONST_PATH, DEFAULT_MAIN_JS_PATH, DEFAULT_MAX_PASSES, DEFAULT_OUTPUT_DIR } from "./defaults.ts";
+export { DEFAULT_KCS_CONST_PATH, DEFAULT_MAIN_JS_PATH, DEFAULT_MAX_PASSES, DEFAULT_OUTPUT_DIR, DEFAULT_WORLD_JS_PATH } from "./defaults.ts";
 export {
   extractBattleKnowledge,
   toBattleModuleIndexAsset,
@@ -15,6 +15,7 @@ export { extractCacheRules, toCacheRulesAsset } from "./cache-rules.ts";
 export { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
 export { extractResourceIdSets, toResourceIdSetsAsset } from "./resource-id-sets.ts";
 export { extractResourceManifest } from "./resource-manifest.ts";
+export { extractResourceTemplates, toResourceTemplatesAsset } from "./resource-templates.ts";
 export type { ResourceManifest, ResourceManifestEntry, ResourceManifestShipEntry, ResourceManifestSlotitemEntry, ResourceManifestTextureProviderEntry, ResourceManifestExplicitPathEntry } from "./resource-manifest.ts";
 export { runDecodePipeline } from "./pipeline.ts";
 export { splitBundle } from "./split.ts";
@@ -64,6 +65,12 @@ export type {
   ResourceCategoryEntry,
   ResourceIdSetEntry,
   ResourceIdSetsAsset,
+  ResourceTemplateDomain,
+  ResourceTemplateFamily,
+  ResourceTemplateInput,
+  ResourceTemplateProvenance,
+  ResourceTemplateSegment,
+  ResourceTemplatesAsset,
   SourcePaths,
   UiResourcesAsset,
 } from "./types.ts";

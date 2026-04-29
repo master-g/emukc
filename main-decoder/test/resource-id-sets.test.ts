@@ -53,6 +53,26 @@ describe("extractResourceIdSets", () => {
 		expect(extracted.shipIdSets.specialShips.coverageMode).toBe("partial");
 	});
 
+	test("captures ship ids from ternary special-case branches", () => {
+		const graph = makeGraph([
+			makeModule({
+				id: "m-ternary",
+				source: wrapModule(`
+					var shipMstId = attacker.mst_id;
+					var damaged = attacker.isDamaged();
+					(571 != shipMstId && 576 != shipMstId || 0 != damaged)
+						? shipLoader.add(shipMstId, damaged, "full")
+						: shipLoader.add(shipMstId, false, "special");
+				`),
+			}),
+		]);
+
+		const extracted = extractResourceIdSets(graph);
+		expect(extracted.shipIdSets.specialShips.ids.has(571)).toBe(true);
+		expect(extracted.shipIdSets.specialShips.ids.has(576)).toBe(true);
+		expect(extracted.shipIdSets.specialShips.coverageMode).toBe("partial");
+	});
+
 	test("captures direct numeric ship ids for reward-style categories", () => {
 		const graph = makeGraph([
 			makeModule({

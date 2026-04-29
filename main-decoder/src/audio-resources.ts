@@ -7,6 +7,7 @@ interface ExtractedAudioResources {
 	fanfareBgmIds: Set<number>;
 	tutorialVoiceStems: Set<string>;
 	titlecallCategories: Set<string>;
+	titlecallFileCounts: Map<string, number>;
 	explicitPaths: Set<string>;
 	explicitVoiceFiles: Set<string>;
 }
@@ -17,6 +18,20 @@ function addNumericMatches(target: Set<number>, source: string, pattern: RegExp)
 		if (Number.isInteger(value) && value > 0) {
 			target.add(value);
 		}
+	}
+}
+
+function addTitlecallRange(
+	targetCounts: Map<string, number>,
+	category: string,
+	count: number,
+): void {
+	if (!Number.isInteger(count) || count <= 0) {
+		return;
+	}
+	const existing = targetCounts.get(category) ?? 0;
+	if (count > existing) {
+		targetCounts.set(category, count);
 	}
 }
 
@@ -32,6 +47,7 @@ export function extractAudioResources(moduleGraph: ModuleGraph): ExtractedAudioR
 		fanfareBgmIds: new Set(),
 		tutorialVoiceStems: new Set(),
 		titlecallCategories: new Set(),
+		titlecallFileCounts: new Map(),
 		explicitPaths: new Set(),
 		explicitVoiceFiles: new Set(),
 	};
@@ -45,6 +61,8 @@ export function extractAudioResources(moduleGraph: ModuleGraph): ExtractedAudioR
 			&& !source.includes("tutorial-play-voice")
 			&& !source.includes("titlecall_")
 			&& !source.includes(".sound.bgm.play")
+			&& !source.includes("sound.bgm.play(")
+			&& !source.includes("sound.bgm.playBattleBGM(")
 			&& !source.includes(".SE.play")
 		) {
 			continue;
@@ -53,7 +71,19 @@ export function extractAudioResources(moduleGraph: ModuleGraph): ExtractedAudioR
 		addNumericMatches(extracted.seIds, source, /\bSE\.play\("(\d+)"\)/g);
 		addNumericMatches(extracted.portBgmIds, source, /\bbgm\.play\((\d+),[^)]*"port"/g);
 		addNumericMatches(extracted.battleBgmIds, source, /\bbgm\.play\((\d+),[^)]*"battle"/g);
+		addNumericMatches(extracted.fanfareBgmIds, source, /\bbgm\.play\((\d+),[^)]*"fanfare"/g);
+		addNumericMatches(extracted.battleBgmIds, source, /\bbgm\.playBattleBGM\((\d+)/g);
 		addNumericMatches(extracted.fanfareBgmIds, source, /resources\/bgm\/fanfare\/(\d+)\.mp3/g);
+		for (const match of source.matchAll(/\bbgm\.play\((\d+)(?:,\s*[^)]*)?\)/g)) {
+			const value = Number.parseInt(match[1] ?? "", 10);
+			if (!Number.isInteger(value) || value <= 0) {
+				continue;
+			}
+			const fullCall = match[0] ?? "";
+			if (!fullCall.includes('"battle"') && !fullCall.includes('"fanfare"') && !fullCall.includes('"port"')) {
+				extracted.portBgmIds.add(value);
+			}
+		}
 
 		for (const match of source.matchAll(/tutorial-play-voice",\s*"tutorial",\s*"([0-9A-Za-z_]+)"/g)) {
 			const value = match[1];
@@ -69,11 +99,33 @@ export function extractAudioResources(moduleGraph: ModuleGraph): ExtractedAudioR
 			}
 		}
 
+		if (source.includes("titlecall_1")) {
+			addTitlecallRange(
+				extracted.titlecallFileCounts,
+				"titlecall_1",
+				source.includes("Math.floor(103 * Math.random()) + 1") ? 103 : 0,
+			);
+		}
+		if (source.includes("titlecall_2")) {
+			addTitlecallRange(
+				extracted.titlecallFileCounts,
+				"titlecall_2",
+				source.includes("Math.floor(64 * Math.random()) + 1") ? 64 : 0,
+			);
+		}
+
 		for (const match of source.matchAll(/resources\/(?:se|bgm|voice)\/[A-Za-z0-9_./-]+/g)) {
 			extracted.explicitPaths.add(match[0]);
 			if (match[0].startsWith("resources/voice/") && match[0].endsWith(".mp3")) {
 				extracted.explicitVoiceFiles.add(match[0].slice("resources/voice/".length));
 			}
+		}
+	}
+
+	for (const [category, count] of extracted.titlecallFileCounts) {
+		extracted.titlecallCategories.add(category);
+		for (let index = 1; index <= count; index += 1) {
+			extracted.explicitVoiceFiles.add(`${category}/${index.toString().padStart(3, "0")}.mp3`);
 		}
 	}
 

@@ -1,20 +1,39 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-23T11:47:02.678Z",
+  "generatedAt": "2026-04-27T03:53:16.135Z",
   "scriptVersion": "6.2.8.0",
   "coverageMode": "mainjs-observed",
   "summary": {
     "shipCategoryCount": 5,
     "slotitemCategoryCount": 2,
-    "resolvedCategoryCount": 0,
-    "unresolvedCategoryCount": 7
+    "resolvedCategoryCount": 1,
+    "unresolvedCategoryCount": 6
   },
   "shipIdSets": {
     "specialShips": {
-      "coverageMode": "unresolved",
-      "ids": [],
-      "moduleIds": [],
-      "moduleNames": []
+      "coverageMode": "partial",
+      "ids": [
+        541,
+        571,
+        572,
+        573,
+        576,
+        577,
+        601,
+        913,
+        918,
+        1496
+      ],
+      "moduleIds": [
+        "11166",
+        "25955",
+        "93634"
+      ],
+      "moduleNames": [
+        "CutinSpSSF",
+        "CutinSpSSS",
+        "CutinZuiunNight"
+      ]
     },
     "spRemodelShips": {
       "coverageMode": "unresolved",
@@ -56,7 +75,6 @@
     }
   },
   "unresolvedKeys": [
-    "specialShips",
     "spRemodelShips",
     "spRemodelMessageShips",
     "cardRoundShips",

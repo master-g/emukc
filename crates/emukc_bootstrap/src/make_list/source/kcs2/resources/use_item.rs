@@ -75,6 +75,18 @@ static CARD_UNDERLINE_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     ]
 });
 
+pub(super) fn is_default_card_id(id: &str) -> bool {
+    parse_id(id).is_some_and(|id| CARD_IDS.contains(&id))
+}
+
+pub(super) fn is_default_underline_id(id: &str) -> bool {
+    parse_id(id).is_some_and(|id| CARD_UNDERLINE_IDS.contains(&id))
+}
+
+fn parse_id(id: &str) -> Option<i64> {
+    id.parse::<i64>().ok()
+}
+
 fn make_useitem(list: &mut CacheList) {
     for id in CARD_IDS.iter() {
         let p = format!("kcs2/resources/useitem/card/{id:03}.png");

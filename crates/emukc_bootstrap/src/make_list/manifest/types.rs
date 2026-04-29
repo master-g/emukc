@@ -130,6 +130,16 @@ pub(crate) enum ResourceCoverageMode {
     ObservedComplete,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ResourceTemplateBlockerKind {
+    #[default]
+    MissingDescriptorEvidence,
+    PartialCoverage,
+    UnavailableRuntimeInput,
+    UncoveredResidualMembership,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ResourceIdSetEntry {
@@ -309,6 +319,135 @@ pub(crate) struct UiResourcesAsset {
     pub world_select: UiWorldSelectAsset,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ResourceTemplateDomain {
+    #[default]
+    Map,
+    Gauge,
+    Furniture,
+    Bgm,
+    Sound,
+    Voice,
+    Useitem,
+    Area,
+    Worldselect,
+    Se,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ResourceTemplateInput {
+    #[default]
+    #[serde(rename = "manifest.mapinfo")]
+    ManifestMapinfo,
+    #[serde(rename = "manifest.mapbgm")]
+    ManifestMapbgm,
+    #[serde(rename = "manifest.bgm")]
+    ManifestBgm,
+    #[serde(rename = "manifest.furniture")]
+    ManifestFurniture,
+    #[serde(rename = "manifest.useitem")]
+    ManifestUseitem,
+    #[serde(rename = "cache-source.sound-bucket")]
+    CacheSourceSoundBucket,
+    #[serde(rename = "decoder.audio")]
+    DecoderAudio,
+    #[serde(rename = "decoder.ui")]
+    DecoderUi,
+    #[serde(rename = "decoder.template-range")]
+    DecoderTemplateRange,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ResourceTemplateSegmentKind {
+    #[default]
+    Literal,
+    Placeholder,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ResourceTemplatePlaceholderFormat {
+    Number,
+    Pad2,
+    Pad3,
+    #[default]
+    Raw,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ResourceTemplateSegment {
+    pub kind: ResourceTemplateSegmentKind,
+    #[serde(default)]
+    pub value: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub format: Option<ResourceTemplatePlaceholderFormat>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ResourceTemplateRange {
+    pub start: i64,
+    pub end: i64,
+    #[serde(default)]
+    pub pad: Option<usize>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ResourceTemplateProvenance {
+    #[serde(default)]
+    pub module_ids: Vec<String>,
+    #[serde(default)]
+    pub module_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ResourceTemplateCompletenessBlocker {
+    pub kind: ResourceTemplateBlockerKind,
+    pub reason: String,
+    #[serde(default)]
+    pub required_inputs: Vec<ResourceTemplateInput>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ResourceTemplateFamily {
+    pub key: String,
+    pub domain: ResourceTemplateDomain,
+    pub output_prefix: String,
+    #[serde(default)]
+    pub path_template: Vec<ResourceTemplateSegment>,
+    #[serde(default)]
+    pub required_inputs: Vec<ResourceTemplateInput>,
+    #[serde(default)]
+    pub coverage_mode: ResourceCoverageMode,
+    #[serde(default)]
+    pub provenance: ResourceTemplateProvenance,
+    #[serde(default)]
+    pub completeness_blockers: Vec<ResourceTemplateCompletenessBlocker>,
+    #[serde(default)]
+    pub range: Option<ResourceTemplateRange>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ResourceTemplatesAsset {
+    pub version: i64,
+    pub generated_at: String,
+    pub script_version: String,
+    #[serde(default)]
+    pub families: Vec<ResourceTemplateFamily>,
+    #[serde(default)]
+    pub unresolved_families: Vec<String>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CacheRuleSummary {
@@ -316,6 +455,8 @@ pub(crate) struct CacheRuleSummary {
     pub ship_rule_count: i64,
     #[serde(default)]
     pub slot_rule_count: i64,
+    #[serde(default)]
+    pub sound_rule_count: i64,
     #[serde(default)]
     pub observed_complete_rule_count: i64,
     #[serde(default)]
@@ -342,6 +483,53 @@ pub(crate) struct CacheRuleSpecialShipRule {
     pub kind: String,
     #[serde(default)]
     pub cases: Vec<CacheRuleSpecialCase>,
+    #[serde(default)]
+    pub module_ids: Vec<String>,
+    #[serde(default)]
+    pub module_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum CacheRuleShipSelectorScope {
+    #[default]
+    #[serde(rename = "default-friendly")]
+    DefaultFriendly,
+    #[serde(rename = "default-abyssal")]
+    DefaultAbyssal,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum CacheRuleDamagedState {
+    False,
+    True,
+    #[default]
+    Variable,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleShipTargetSemanticCase {
+    #[serde(default)]
+    pub raw_target_type: String,
+    #[serde(default)]
+    pub selector_scope: CacheRuleShipSelectorScope,
+    #[serde(default)]
+    pub damaged_state: CacheRuleDamagedState,
+    #[serde(default)]
+    pub target_types: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleShipTargetSemanticsRule {
+    #[serde(default)]
+    pub coverage_mode: ResourceCoverageMode,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub cases: Vec<CacheRuleShipTargetSemanticCase>,
     #[serde(default)]
     pub module_ids: Vec<String>,
     #[serde(default)]
@@ -393,9 +581,93 @@ pub(crate) struct CacheRuleBtxtFlatRule {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleObservedSlotSubsetRule {
+    #[serde(default)]
+    pub coverage_mode: ResourceCoverageMode,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub ids: Vec<i64>,
+    #[serde(default)]
+    pub module_ids: Vec<String>,
+    #[serde(default)]
+    pub module_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleShipVoiceFormula {
+    #[serde(default)]
+    pub base: i64,
+    #[serde(default)]
+    pub multiplier: i64,
+    #[serde(default)]
+    pub ship_id_offset: i64,
+    #[serde(default)]
+    pub modulo: i64,
+    #[serde(default)]
+    pub max_formula_voice_id: i64,
+    #[serde(default)]
+    pub voice_diffs: Vec<i64>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleShipVoiceRule {
+    #[serde(default)]
+    pub coverage_mode: ResourceCoverageMode,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub formula: Option<CacheRuleShipVoiceFormula>,
+    #[serde(default)]
+    pub required_ship_graph_fields: Vec<String>,
+    #[serde(default)]
+    pub base_voice_ids: Vec<i64>,
+    #[serde(default)]
+    pub be_left_voice_ids: Vec<i64>,
+    #[serde(default)]
+    pub be_left_tired_voice_ids: Vec<i64>,
+    #[serde(default)]
+    pub time_signal_start_voice_id: Option<i64>,
+    #[serde(default)]
+    pub time_signal_voice_count: Option<i64>,
+    #[serde(default)]
+    pub special_art_ship_ids: Vec<i64>,
+    #[serde(default)]
+    pub special_voice_ids: Vec<i64>,
+    #[serde(default)]
+    pub module_ids: Vec<String>,
+    #[serde(default)]
+    pub module_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleSoundBucketRule {
+    #[serde(default)]
+    pub coverage_mode: ResourceCoverageMode,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub bucket: String,
+    #[serde(default)]
+    pub voice_ids: Vec<i64>,
+    #[serde(default)]
+    pub has_dynamic_voice_ids: bool,
+    #[serde(default)]
+    pub module_ids: Vec<String>,
+    #[serde(default)]
+    pub module_names: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct CacheRuleShipRules {
     #[serde(default)]
     pub special: CacheRuleSpecialShipRule,
+    #[serde(default)]
+    pub target_semantics: CacheRuleShipTargetSemanticsRule,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -405,6 +677,23 @@ pub(crate) struct CacheRuleSlotRules {
     pub item_up: CacheRuleItemUpRule,
     #[serde(default)]
     pub btxt_flat: CacheRuleBtxtFlatRule,
+    #[serde(default)]
+    pub item_up2: CacheRuleObservedSlotSubsetRule,
+    #[serde(default)]
+    pub item_on2: CacheRuleObservedSlotSubsetRule,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CacheRuleSoundRules {
+    #[serde(default)]
+    pub ship_voices: CacheRuleShipVoiceRule,
+    #[serde(default)]
+    pub kc9997: CacheRuleSoundBucketRule,
+    #[serde(default)]
+    pub kc9998: CacheRuleSoundBucketRule,
+    #[serde(default)]
+    pub kc9999: CacheRuleSoundBucketRule,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -413,6 +702,80 @@ pub(crate) struct DecoderCoverageAssets {
     pub resource_id_sets: Option<ResourceIdSetsAsset>,
     pub audio_resources: Option<AudioResourcesAsset>,
     pub ui_resources: Option<UiResourcesAsset>,
+    pub resource_templates: Option<ResourceTemplatesAsset>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum DecoderAssetSource {
+    #[default]
+    Missing,
+    Sibling,
+    Repo,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DecoderCoverageAssetSources {
+    #[serde(default)]
+    pub resource_categories: DecoderAssetSource,
+    #[serde(default)]
+    pub resource_id_sets: DecoderAssetSource,
+    #[serde(default)]
+    pub audio_resources: DecoderAssetSource,
+    #[serde(default)]
+    pub ui_resources: DecoderAssetSource,
+    #[serde(default)]
+    pub resource_templates: DecoderAssetSource,
+}
+
+impl DecoderCoverageAssetSources {
+    pub(crate) fn missing_asset_names(&self) -> Vec<&'static str> {
+        let mut missing = Vec::new();
+        if self.resource_categories == DecoderAssetSource::Missing {
+            missing.push("resource_categories.json");
+        }
+        if self.resource_id_sets == DecoderAssetSource::Missing {
+            missing.push("resource_id_sets.json");
+        }
+        if self.audio_resources == DecoderAssetSource::Missing {
+            missing.push("audio_resources.json");
+        }
+        if self.ui_resources == DecoderAssetSource::Missing {
+            missing.push("ui_resources.json");
+        }
+        if self.resource_templates == DecoderAssetSource::Missing {
+            missing.push("resource_templates.json");
+        }
+        missing
+    }
+
+    pub(crate) fn repo_fallback_asset_names(&self) -> Vec<&'static str> {
+        let mut repo = Vec::new();
+        if self.resource_categories == DecoderAssetSource::Repo {
+            repo.push("resource_categories.json");
+        }
+        if self.resource_id_sets == DecoderAssetSource::Repo {
+            repo.push("resource_id_sets.json");
+        }
+        if self.audio_resources == DecoderAssetSource::Repo {
+            repo.push("audio_resources.json");
+        }
+        if self.ui_resources == DecoderAssetSource::Repo {
+            repo.push("ui_resources.json");
+        }
+        if self.resource_templates == DecoderAssetSource::Repo {
+            repo.push("resource_templates.json");
+        }
+        repo
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct DecoderRulesBundle {
+    pub cache_rules: CacheRulesAsset,
+    pub decoder_assets: DecoderCoverageAssets,
+    pub decoder_asset_sources: DecoderCoverageAssetSources,
 }
 
 /// The resource manifest root.
@@ -448,6 +811,8 @@ pub(crate) struct CacheRulesAsset {
     pub ship_rules: CacheRuleShipRules,
     #[serde(default)]
     pub slot_rules: CacheRuleSlotRules,
+    #[serde(default)]
+    pub sound_rules: CacheRuleSoundRules,
     #[serde(default)]
     pub unresolved_rules: Vec<String>,
 }

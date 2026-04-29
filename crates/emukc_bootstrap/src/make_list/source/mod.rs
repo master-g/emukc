@@ -1,7 +1,10 @@
 use emukc_cache::Kache;
 use emukc_model::codex::Codex;
 
-use super::{CacheList, CacheListMakeStrategy, errors::CacheListMakingError, manifest};
+use super::{
+    CacheList, CacheListAuthorityStage, CacheListMakeStrategy, errors::CacheListMakingError,
+    manifest,
+};
 
 mod gadget_html5;
 mod kcs;
@@ -25,10 +28,16 @@ pub(super) async fn make(
     strategy: CacheListMakeStrategy,
     manifest_override: Option<&manifest::ResourceManifest>,
     decoder_assets_override: Option<&manifest::DecoderCoverageAssets>,
-    cache_rules_override: Option<&manifest::CacheRulesAsset>,
+    rules_bundle_override: Option<&manifest::DecoderRulesBundle>,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-    gadget_html5::make(&codex.manifest, kache, list).await?;
+    if strategy == CacheListMakeStrategy::Rules {
+        let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
+        gadget_html5::make(&codex.manifest, kache, list).await?;
+        list.set_authority_stage(previous);
+    } else {
+        gadget_html5::make(&codex.manifest, kache, list).await?;
+    }
 
     if strategy == CacheListMakeStrategy::Manifest {
         let owned_decoder_assets;
@@ -39,7 +48,7 @@ pub(super) async fn make(
             &owned_decoder_assets
         };
         make_manifest(&codex.manifest, manifest_override, decoder_assets_override, list)?;
-        kcs::make(codex, kache, CacheListMakeStrategy::Manifest, list).await?;
+        kcs::make(codex, kache, CacheListMakeStrategy::Manifest, None, list).await?;
         let categories = decoder_assets.resource_categories.as_ref();
         kcs2::make_manifest_support(
             &codex.manifest,
@@ -51,22 +60,42 @@ pub(super) async fn make(
         )
         .await?;
     } else if strategy == CacheListMakeStrategy::Rules {
-        let owned_cache_rules;
-        let cache_rules = if let Some(cache_rules) = cache_rules_override {
-            cache_rules
+        let owned_rules_bundle;
+        let rules_bundle = if let Some(rules_bundle) = rules_bundle_override {
+            rules_bundle
         } else {
-            owned_cache_rules = manifest::load_cache_rules()?;
-            &owned_cache_rules
+            owned_rules_bundle = manifest::load_cache_rules_bundle()?;
+            &owned_rules_bundle
         };
-        make_cache_rules(&codex.manifest, cache_rules, list)?;
-        kcs::make(codex, kache, CacheListMakeStrategy::Rules, list).await?;
+        list.record_unresolved_rule_blockers(rules_bundle.cache_rules.unresolved_rules.clone());
+        list.record_repo_fallback_bundle_assets(
+            rules_bundle
+                .decoder_asset_sources
+                .repo_fallback_asset_names()
+                .into_iter()
+                .map(str::to_string),
+        );
+        list.record_missing_bundle_assets(
+            rules_bundle
+                .decoder_asset_sources
+                .missing_asset_names()
+                .into_iter()
+                .map(str::to_string),
+        );
+
+        let previous = list.set_authority_stage(Some(CacheListAuthorityStage::RuleAuthored));
+        make_cache_rules(&codex.manifest, rules_bundle, list)?;
+        list.set_authority_stage(previous);
+
+        kcs::make(codex, kache, CacheListMakeStrategy::Rules, Some(rules_bundle), list).await?;
+
         kcs2::make_manifest_support(
             &codex.manifest,
             kache,
             list,
-            None,
-            Some(&cache_rules.resource_categories),
-            cache_rules.resource_manifest.path_rules.as_ref(),
+            Some(&rules_bundle.decoder_assets),
+            Some(&rules_bundle.cache_rules.resource_categories),
+            rules_bundle.cache_rules.resource_manifest.path_rules.as_ref(),
         )
         .await?;
     } else {
@@ -82,7 +111,7 @@ pub(super) async fn make(
                 }
             }
         }
-        kcs::make(codex, kache, strategy.clone(), list).await?;
+        kcs::make(codex, kache, strategy.clone(), None, list).await?;
         kcs2::make(&codex.manifest, kache, strategy, list).await?;
     }
 
@@ -91,15 +120,25 @@ pub(super) async fn make(
 
 fn make_cache_rules(
     mst: &emukc_model::kc2::start2::ApiManifest,
-    cache_rules: &manifest::CacheRulesAsset,
+    rules_bundle: &manifest::DecoderRulesBundle,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
+    let cache_rules = &rules_bundle.cache_rules;
     manifest::populate_path_rules_locks(&cache_rules.resource_manifest);
 
     info!(
-        "Loaded cache rules: ship rules {}, slot rules {}",
-        cache_rules.summary.ship_rule_count, cache_rules.summary.slot_rule_count
+        "Loaded cache rules: ship rules {}, slot rules {}, sound rules {}",
+        cache_rules.summary.ship_rule_count,
+        cache_rules.summary.slot_rule_count,
+        cache_rules.summary.sound_rule_count
     );
+    let missing_assets = rules_bundle.decoder_asset_sources.missing_asset_names();
+    if !missing_assets.is_empty() {
+        warn!(
+            "Decoder rules bundle is missing optional sibling assets: {}",
+            missing_assets.join(", ")
+        );
+    }
 
     for entry in &cache_rules.resource_manifest.entries {
         manifest::generate::generate_entry_paths(

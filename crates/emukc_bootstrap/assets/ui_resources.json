@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-23T11:47:02.709Z",
+  "generatedAt": "2026-04-27T03:53:16.401Z",
   "scriptVersion": "6.2.8.0",
   "summary": {
     "mapDefaultFileCount": 0,
     "mapEventFileCount": 0,
-    "furnitureCategoryCount": 2,
-    "useItemCardIdCount": 0,
-    "useItemUnderlineIdCount": 0,
+    "furnitureCategoryCount": 8,
+    "useItemCardIdCount": 16,
+    "useItemUnderlineIdCount": 16,
     "areaSallyIdCount": 0,
     "areaAirunitIdCount": 0,
-    "worldSelectFileCount": 0
+    "worldSelectFileCount": 48
   },
   "map": {
     "defaultFiles": {
@@ -24,22 +24,59 @@
   },
   "furniture": {
     "categories": [
+      "card",
+      "movable",
+      "normal",
       "outside",
-      "scripts"
+      "picture",
+      "reward",
+      "scripts",
+      "thumbnail"
     ],
-    "explicitPaths": [
-      "resources/furniture/outside/",
-      "resources/furniture/scripts/"
-    ]
+    "explicitPaths": []
   },
   "useItem": {
     "cardIds": {
-      "coverageMode": "unresolved",
-      "ids": []
+      "coverageMode": "partial",
+      "ids": [
+        "036",
+        "042",
+        "045",
+        "046",
+        "073",
+        "075",
+        "121",
+        "180",
+        "238",
+        "328",
+        "373",
+        "395",
+        "446",
+        "450",
+        "453",
+        "546"
+      ]
     },
     "underlineIds": {
-      "coverageMode": "unresolved",
-      "ids": []
+      "coverageMode": "partial",
+      "ids": [
+        "004",
+        "009",
+        "011",
+        "019",
+        "023",
+        "026",
+        "028",
+        "037",
+        "039",
+        "040",
+        "046",
+        "075",
+        "102",
+        "106",
+        "169",
+        "500"
+      ]
     }
   },
   "area": {
@@ -57,6 +94,55 @@
     }
   },
   "worldSelect": {
-    "files": []
+    "files": [
+      "bg.jpg",
+      "btn_chinjyufu1.png",
+      "btn_chinjyufu10.png",
+      "btn_chinjyufu10_off.png",
+      "btn_chinjyufu11.png",
+      "btn_chinjyufu11_off.png",
+      "btn_chinjyufu12.png",
+      "btn_chinjyufu12_off.png",
+      "btn_chinjyufu13.png",
+      "btn_chinjyufu13_off.png",
+      "btn_chinjyufu14.png",
+      "btn_chinjyufu14_off.png",
+      "btn_chinjyufu15.png",
+      "btn_chinjyufu15_off.png",
+      "btn_chinjyufu16.png",
+      "btn_chinjyufu16_off.png",
+      "btn_chinjyufu17.png",
+      "btn_chinjyufu17_off.png",
+      "btn_chinjyufu18.png",
+      "btn_chinjyufu18_off.png",
+      "btn_chinjyufu19.png",
+      "btn_chinjyufu19_off.png",
+      "btn_chinjyufu1_off.png",
+      "btn_chinjyufu2.png",
+      "btn_chinjyufu20.png",
+      "btn_chinjyufu20_off.png",
+      "btn_chinjyufu2_off.png",
+      "btn_chinjyufu3.png",
+      "btn_chinjyufu3_off.png",
+      "btn_chinjyufu4.png",
+      "btn_chinjyufu4_off.png",
+      "btn_chinjyufu5.png",
+      "btn_chinjyufu5_off.png",
+      "btn_chinjyufu6.png",
+      "btn_chinjyufu6_off.png",
+      "btn_chinjyufu7.png",
+      "btn_chinjyufu7_off.png",
+      "btn_chinjyufu8.png",
+      "btn_chinjyufu8_off.png",
+      "btn_chinjyufu9.png",
+      "btn_chinjyufu9_off.png",
+      "btn_chinjyufu_on.png",
+      "error.png",
+      "gauge20.png",
+      "gauge20_gray.png",
+      "limit.png",
+      "title20_icon.png",
+      "title20_select.png"
+    ]
   }
 }

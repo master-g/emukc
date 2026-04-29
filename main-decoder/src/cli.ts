@@ -1,4 +1,4 @@
-import { DEFAULT_KCS_CONST_PATH, DEFAULT_MAIN_JS_PATH, DEFAULT_MAX_PASSES, DEFAULT_OUTPUT_DIR } from "./defaults.ts";
+import { DEFAULT_KCS_CONST_PATH, DEFAULT_MAIN_JS_PATH, DEFAULT_MAX_PASSES, DEFAULT_OUTPUT_DIR, DEFAULT_WORLD_JS_PATH } from "./defaults.ts";
 import { runDecodePipeline } from "./pipeline.ts";
 import type { PipelineOptions } from "./types.ts";
 
@@ -8,6 +8,7 @@ function printHelp(): void {
 Options:
   --const <path>       Path to kcs_const.js
   --main <path>        Path to main.js
+  --world <path>       Path to world.js for world-select resources
   --out <path>         Output directory
   --max-passes <n>     Maximum decode passes (default: ${DEFAULT_MAX_PASSES})
   --sync-assets        Sync decoder coverage assets and battle assets into ../crates/emukc_bootstrap/assets
@@ -19,6 +20,7 @@ Options:
 Defaults:
   --const ${DEFAULT_KCS_CONST_PATH}
   --main  ${DEFAULT_MAIN_JS_PATH}
+  --world ${DEFAULT_WORLD_JS_PATH}
   --out   ${DEFAULT_OUTPUT_DIR}`);
 }
 
@@ -52,6 +54,15 @@ export function parseArgs(args: string[]): PipelineOptions & { help?: boolean } 
           throw new Error("--main requires a path");
         }
         options.mainJsPath = value;
+        index += 1;
+        break;
+      }
+      case "--world": {
+        const value = args[index + 1];
+        if (value === undefined) {
+          throw new Error("--world requires a path");
+        }
+        options.worldJsPath = value;
         index += 1;
         break;
       }

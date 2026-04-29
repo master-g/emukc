@@ -4,8 +4,8 @@ use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
 
 use super::resolve;
 use super::types::{
-    CacheRulesAsset, DecoderCoverageAssets, ManifestEntryKind, PathRules, ResourceCoverageMode,
-    ResourceIdSetEntry, ResourceManifestEntry,
+    CacheRuleDamagedState, CacheRuleShipSelectorScope, CacheRulesAsset, DecoderCoverageAssets,
+    ManifestEntryKind, PathRules, ResourceCoverageMode, ResourceIdSetEntry, ResourceManifestEntry,
 };
 use crate::make_list::CacheList;
 
@@ -245,6 +245,84 @@ fn graph_group_ship_ids_from_cache_rules(
     (!ids.is_empty()).then_some(ids)
 }
 
+fn damaged_state_from_option(damaged: Option<bool>) -> CacheRuleDamagedState {
+    match damaged {
+        Some(false) => CacheRuleDamagedState::False,
+        Some(true) => CacheRuleDamagedState::True,
+        None => CacheRuleDamagedState::Variable,
+    }
+}
+
+fn ship_selector_scope_for_id(
+    ship_id: i64,
+    mst: &ApiManifest,
+) -> Option<CacheRuleShipSelectorScope> {
+    let ship = mst.api_mst_ship.iter().find(|ship| ship.api_id == ship_id)?;
+    if ship.api_aftershipid.is_some() {
+        Some(CacheRuleShipSelectorScope::DefaultFriendly)
+    } else {
+        Some(CacheRuleShipSelectorScope::DefaultAbyssal)
+    }
+}
+
+fn has_ship_target_semantics(target: &str, cache_rules: Option<&CacheRulesAsset>) -> bool {
+    let Some(rule) = cache_rules
+        .map(|rules| &rules.ship_rules.target_semantics)
+        .filter(|rule| rule.coverage_mode != ResourceCoverageMode::Unresolved)
+    else {
+        return false;
+    };
+
+    rule.cases.iter().any(|case| case.raw_target_type == target)
+}
+
+fn ship_semantic_targets_for_id(
+    target: &str,
+    damaged: Option<bool>,
+    ship_id: i64,
+    mst: &ApiManifest,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Option<Vec<String>> {
+    let rule = cache_rules
+        .map(|rules| &rules.ship_rules.target_semantics)
+        .filter(|rule| rule.coverage_mode != ResourceCoverageMode::Unresolved)?;
+
+    let has_cases = rule.cases.iter().any(|case| case.raw_target_type == target);
+    if !has_cases {
+        return None;
+    }
+
+    let scope = ship_selector_scope_for_id(ship_id, mst);
+    let damaged_state = damaged_state_from_option(damaged);
+    let mut target_types = rule
+        .cases
+        .iter()
+        .filter(|case| {
+            case.raw_target_type == target
+                && scope.as_ref().is_some_and(|scope| &case.selector_scope == scope)
+                && case.damaged_state == damaged_state
+        })
+        .flat_map(|case| case.target_types.iter().cloned())
+        .collect::<Vec<_>>();
+    target_types.sort();
+    target_types.dedup();
+    Some(target_types)
+}
+
+fn observed_slot_subset_from_cache_rules(
+    target: &str,
+    cache_rules: Option<&CacheRulesAsset>,
+) -> Option<Vec<i64>> {
+    let rule = match target {
+        "item_up2" => &cache_rules?.slot_rules.item_up2,
+        "item_on2" => &cache_rules?.slot_rules.item_on2,
+        _ => return None,
+    };
+
+    (rule.coverage_mode == ResourceCoverageMode::ObservedComplete && !rule.ids.is_empty())
+        .then(|| rule.ids.clone())
+}
+
 fn should_skip_ship_category(
     ship_id: i64,
     category: &str,
@@ -325,6 +403,10 @@ fn resolve_slot_ids_for_target(
     decoder_assets: Option<&DecoderCoverageAssets>,
     cache_rules: Option<&CacheRulesAsset>,
 ) -> Vec<i64> {
+    if let Some(ids) = observed_slot_subset_from_cache_rules(target, cache_rules) {
+        return ids;
+    }
+
     if target == "item_up" {
         if let Some(rule) = cache_rules
             .map(|rules| &rules.slot_rules.item_up)
@@ -480,6 +562,31 @@ fn generate_ship_paths(
                 format!("kcs2/resources/ship/{target}/{ship_id}_{suffix}.png"),
                 version.as_ref(),
             );
+            continue;
+        }
+
+        if has_ship_target_semantics(target, cache_rules) {
+            let semantic_targets =
+                ship_semantic_targets_for_id(target, damaged, id, mst, cache_rules)
+                    .unwrap_or_default();
+
+            for semantic_target in semantic_targets {
+                if should_skip_ship_category(
+                    id,
+                    semantic_target.as_str(),
+                    mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
+                    path_rules,
+                ) {
+                    continue;
+                }
+
+                let suffix =
+                    SuffixUtils::create(&ship_id, format!("ship_{semantic_target}").as_str());
+                list.add(
+                    format!("kcs2/resources/ship/{semantic_target}/{ship_id}_{suffix}.png"),
+                    version.as_ref(),
+                );
+            }
             continue;
         }
 
@@ -659,9 +766,11 @@ mod tests {
     use super::*;
     use crate::make_list::manifest::load_resource_manifest;
     use crate::make_list::manifest::types::{
-        CacheRuleBtxtFlatRule, CacheRuleExcludeEntry, CacheRuleItemUpRule, CacheRuleShipRules,
-        CacheRuleSlotRules, CacheRuleSpecialCase, CacheRuleSpecialShipRule, CacheRulesAsset,
-        PathRules, ResourceCategoriesAsset, ResourceManifest, ShipGenerationGroups, ShipPathHoles,
+        CacheRuleBtxtFlatRule, CacheRuleDamagedState, CacheRuleExcludeEntry, CacheRuleItemUpRule,
+        CacheRuleObservedSlotSubsetRule, CacheRuleShipRules, CacheRuleShipSelectorScope,
+        CacheRuleShipTargetSemanticCase, CacheRuleShipTargetSemanticsRule, CacheRuleSlotRules,
+        CacheRuleSpecialCase, CacheRuleSpecialShipRule, CacheRulesAsset, PathRules,
+        ResourceCategoriesAsset, ResourceManifest, ShipGenerationGroups, ShipPathHoles,
     };
     use emukc_model::kc2::start2::{ApiMstShip, ApiMstShipgraph, ApiMstSlotitem};
 
@@ -1019,6 +1128,7 @@ mod tests {
                     module_ids: vec!["m1".to_string()],
                     module_names: vec!["special-module".to_string()],
                 },
+                target_semantics: CacheRuleShipTargetSemanticsRule::default(),
             },
             slot_rules: CacheRuleSlotRules {
                 item_up: CacheRuleItemUpRule {
@@ -1043,9 +1153,138 @@ mod tests {
                     module_ids: vec!["m3".to_string()],
                     module_names: vec!["btxt-module".to_string()],
                 },
+                item_up2: CacheRuleObservedSlotSubsetRule::default(),
+                item_on2: CacheRuleObservedSlotSubsetRule::default(),
             },
+            sound_rules: Default::default(),
             unresolved_rules: vec![],
         }
+    }
+
+    #[test]
+    fn test_cache_rules_banner_semantics_limit_variants_by_scope() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("banner", "this._mst_id", Some("_0x1a3f79"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            default_friendly: vec!["banner".to_string()],
+            default_abyssal: vec!["banner".to_string()],
+            ..Default::default()
+        };
+        cache_rules.ship_rules.target_semantics = CacheRuleShipTargetSemanticsRule {
+            coverage_mode: ResourceCoverageMode::ObservedComplete,
+            kind: "ship_target_semantics".to_string(),
+            cases: vec![
+                CacheRuleShipTargetSemanticCase {
+                    raw_target_type: "banner".to_string(),
+                    selector_scope: CacheRuleShipSelectorScope::DefaultFriendly,
+                    damaged_state: CacheRuleDamagedState::Variable,
+                    target_types: vec!["banner".to_string(), "banner_dmg".to_string()],
+                },
+                CacheRuleShipTargetSemanticCase {
+                    raw_target_type: "banner".to_string(),
+                    selector_scope: CacheRuleShipSelectorScope::DefaultAbyssal,
+                    damaged_state: CacheRuleDamagedState::Variable,
+                    target_types: vec!["banner".to_string()],
+                },
+            ],
+            module_ids: vec![],
+            module_names: vec![],
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|path| path.contains("ship/banner/0001_")));
+        assert!(paths.iter().any(|path| path.contains("ship/banner_dmg/0001_")));
+        assert!(paths.iter().any(|path| path.contains("ship/banner/1500_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/banner_dmg/1500_")));
+        assert!(!paths.iter().any(|path| path.contains("ship/banner_g/")));
+        assert!(!paths.iter().any(|path| path.contains("ship/banner_g_dmg/")));
+    }
+
+    #[test]
+    fn test_cache_rules_banner_g_semantics_remap_to_canonical_target() {
+        let mst = make_minimal_manifest();
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("banner_g", "this._mst_id", Some("true"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.ship_rules.target_semantics = CacheRuleShipTargetSemanticsRule {
+            coverage_mode: ResourceCoverageMode::ObservedComplete,
+            kind: "ship_target_semantics".to_string(),
+            cases: vec![CacheRuleShipTargetSemanticCase {
+                raw_target_type: "banner_g".to_string(),
+                selector_scope: CacheRuleShipSelectorScope::DefaultFriendly,
+                damaged_state: CacheRuleDamagedState::True,
+                target_types: vec!["banner_g_dmg".to_string()],
+            }],
+            module_ids: vec![],
+            module_names: vec![],
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].contains("ship/banner_g_dmg/0001_"));
+    }
+
+    #[test]
+    fn test_cache_rules_item_up2_uses_observed_subset_ids() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_slotitem = vec![
+            ApiMstSlotitem {
+                api_id: 1,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 525,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 526,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+        ];
+
+        let mut list = CacheList::new();
+        let entry = ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "item_up2".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["_0x37d3f1".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.slot_rules.item_up2 = CacheRuleObservedSlotSubsetRule {
+            coverage_mode: ResourceCoverageMode::ObservedComplete,
+            kind: "observed_slot_subset".to_string(),
+            ids: vec![525, 526],
+            module_ids: vec![],
+            module_names: vec![],
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert_eq!(paths.len(), 2);
+        assert!(paths.iter().any(|path| path.contains("slot/item_up2/0525_")));
+        assert!(paths.iter().any(|path| path.contains("slot/item_up2/0526_")));
+        assert!(!paths.iter().any(|path| path.contains("slot/item_up2/0001_")));
     }
 
     #[test]

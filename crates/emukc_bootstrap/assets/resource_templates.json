@@ -1,0 +1,934 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-27T03:53:16.219Z",
+  "scriptVersion": "6.2.8.0",
+  "summary": {
+    "familyCount": 21,
+    "observedCompleteFamilyCount": 12,
+    "partialFamilyCount": 9,
+    "unresolvedFamilyCount": 0
+  },
+  "families": [
+    {
+      "key": "area.airunit",
+      "domain": "area",
+      "outputPrefix": "kcs2/resources/area/airunit",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/area/"
+        },
+        {
+          "kind": "literal",
+          "value": "airunit"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "areaId",
+          "format": "raw"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.mapinfo"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "96928"
+        ],
+        "moduleNames": [
+          "AirUnitPanelBanner"
+        ]
+      }
+    },
+    {
+      "key": "area.airunit_extend_confirm",
+      "domain": "area",
+      "outputPrefix": "kcs2/resources/area/airunit_extend_confirm",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/area/"
+        },
+        {
+          "kind": "literal",
+          "value": "airunit_extend_confirm"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "areaId",
+          "format": "raw"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.mapinfo"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "6597"
+        ],
+        "moduleNames": [
+          "TaskExtendAirUnit"
+        ]
+      }
+    },
+    {
+      "key": "area.sally",
+      "domain": "area",
+      "outputPrefix": "kcs2/resources/area/sally",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/area/"
+        },
+        {
+          "kind": "literal",
+          "value": "sally"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "areaId",
+          "format": "raw"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.mapinfo"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "1136"
+        ],
+        "moduleNames": [
+          "AreaTextImage"
+        ]
+      }
+    },
+    {
+      "key": "bgm.category",
+      "domain": "bgm",
+      "outputPrefix": "kcs2/resources/bgm",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/bgm/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "category",
+          "format": "raw"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "bgmId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": ".mp3"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.bgm",
+        "manifest.mapbgm"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "84159"
+        ],
+        "moduleNames": [
+          "SoundManager"
+        ]
+      }
+    },
+    {
+      "key": "furniture.card",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/card",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "card"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "15478",
+          "19281",
+          "5529",
+          "56230",
+          "80135"
+        ],
+        "moduleNames": [
+          "BonusFurniture",
+          "FurnitureLoader",
+          "TaskEventRewardsSelect",
+          "TaskRewardSelect",
+          "TaskUseGiftBox"
+        ]
+      }
+    },
+    {
+      "key": "furniture.movable",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/movable",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "movable"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "15478",
+          "55242"
+        ],
+        "moduleNames": [
+          "FAnimationData",
+          "FurnitureLoader"
+        ]
+      }
+    },
+    {
+      "key": "furniture.normal",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/normal",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "normal"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "15478",
+          "35628",
+          "55242"
+        ],
+        "moduleNames": [
+          "FAnimationData",
+          "FurnitureLoader",
+          "TaskTop"
+        ]
+      }
+    },
+    {
+      "key": "furniture.outside",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/outside",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "outside"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "15478",
+          "51963"
+        ],
+        "moduleNames": [
+          "FurnitureLoader",
+          "FurnitureOutside"
+        ]
+      }
+    },
+    {
+      "key": "furniture.picture",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/picture",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "picture"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "15478",
+          "21994"
+        ],
+        "moduleNames": [
+          "FurnitureLoader",
+          "FurniturePopupLayer"
+        ]
+      }
+    },
+    {
+      "key": "furniture.reward",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/reward",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "reward"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "11353",
+          "19281",
+          "50493",
+          "56230",
+          "80135"
+        ],
+        "moduleNames": [
+          "RewardSelectDialogFurnitureBtn",
+          "TaskEventRewardsSelect",
+          "TaskRewardDialogFurniture",
+          "TaskRewardSelect",
+          "TaskUseGiftBox"
+        ]
+      }
+    },
+    {
+      "key": "furniture.scripts",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/scripts",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "scripts"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "55242"
+        ],
+        "moduleNames": [
+          "FAnimationData"
+        ]
+      }
+    },
+    {
+      "key": "furniture.thumbnail",
+      "domain": "furniture",
+      "outputPrefix": "kcs2/resources/furniture/thumbnail",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/furniture/"
+        },
+        {
+          "kind": "literal",
+          "value": "thumbnail"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "furnitureId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.furniture"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "15478",
+          "35628"
+        ],
+        "moduleNames": [
+          "FurnitureLoader",
+          "TaskTop"
+        ]
+      }
+    },
+    {
+      "key": "gauge.map",
+      "domain": "gauge",
+      "outputPrefix": "kcs2/resources/gauge",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/gauge/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "areaId",
+          "format": "pad3"
+        },
+        {
+          "kind": "placeholder",
+          "name": "mapNo",
+          "format": "pad2"
+        },
+        {
+          "kind": "placeholder",
+          "name": "variant",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.mapinfo"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "11039",
+          "24960",
+          "28686",
+          "34389",
+          "37638",
+          "49148",
+          "51479",
+          "56682",
+          "58441",
+          "6695",
+          "79018",
+          "94996"
+        ],
+        "moduleNames": [
+          "CutinResourcesPreloadTask",
+          "EventTaskCellOpen",
+          "ExpeditionListItem",
+          "MapThumbnail",
+          "MeltIntoSprite",
+          "SetsubunRManager",
+          "ShipBanner",
+          "TaskCreateMap",
+          "TaskLoadResources",
+          "TaskMapOpen",
+          "module-34389.js",
+          "module-51479.js"
+        ]
+      },
+      "completenessBlockers": [
+        {
+          "kind": "partial-coverage",
+          "reason": "Decoded modules prove gauge map path shape, but gauge image sidecars and event variants require cache-resident gauge JSON or a richer map variant input.",
+          "requiredInputs": [
+            "manifest.mapinfo"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "map.base",
+      "domain": "map",
+      "outputPrefix": "kcs2/resources/map",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/map/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "areaId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "mapNo",
+          "format": "pad2"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.mapinfo"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "2156",
+          "24960",
+          "94996"
+        ],
+        "moduleNames": [
+          "EventTaskCellOpen",
+          "MapThumbnailImage",
+          "TaskCreateMap"
+        ]
+      }
+    },
+    {
+      "key": "map.info",
+      "domain": "map",
+      "outputPrefix": "kcs2/resources/map",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/map/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "areaId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "mapNo",
+          "format": "pad2"
+        },
+        {
+          "kind": "placeholder",
+          "name": "suffix",
+          "format": "raw"
+        }
+      ],
+      "requiredInputs": [
+        "manifest.mapinfo"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "2156",
+          "24960",
+          "94996"
+        ],
+        "moduleNames": [
+          "EventTaskCellOpen",
+          "MapThumbnailImage",
+          "TaskCreateMap"
+        ]
+      },
+      "completenessBlockers": [
+        {
+          "kind": "partial-coverage",
+          "reason": "Decoded modules prove map sidecar path shape, but suffix membership and event/default variants are not fully proven from manifest.mapinfo alone.",
+          "requiredInputs": [
+            "manifest.mapinfo"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "sound.kc9998",
+      "domain": "sound",
+      "outputPrefix": "kcs/sound/kc9998",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs/sound/kc9998/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "voiceId",
+          "format": "number"
+        },
+        {
+          "kind": "literal",
+          "value": ".mp3"
+        }
+      ],
+      "requiredInputs": [
+        "cache-source.sound-bucket"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "16576",
+          "21541",
+          "34581",
+          "50614",
+          "58262",
+          "6934",
+          "76095",
+          "97926"
+        ],
+        "moduleNames": [
+          "AnimPlane",
+          "PhaseAttackBase",
+          "PhaseDamageCutin",
+          "PhaseEnding",
+          "TaskBossCutin",
+          "TaskEnemyDamageCutin",
+          "VoiceManager"
+        ]
+      },
+      "completenessBlockers": [
+        {
+          "kind": "unavailable-runtime-input",
+          "reason": "Decoded modules prove the kc9998 bucket path shape, but full membership depends on the cache-source sound bucket input.",
+          "requiredInputs": [
+            "cache-source.sound-bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "useitem.card",
+      "domain": "useitem",
+      "outputPrefix": "kcs2/resources/useitem/card",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/useitem/card/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "useitemId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "decoder.ui"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "79787"
+        ],
+        "moduleNames": [
+          "UseitemLoader"
+        ]
+      }
+    },
+    {
+      "key": "useitem.card_",
+      "domain": "useitem",
+      "outputPrefix": "kcs2/resources/useitem/card_",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/useitem/card_/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "useitemId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "decoder.ui"
+      ],
+      "coverageMode": "partial",
+      "provenance": {
+        "moduleIds": [
+          "79787"
+        ],
+        "moduleNames": [
+          "UseitemLoader"
+        ]
+      }
+    },
+    {
+      "key": "voice.titlecall_1",
+      "domain": "voice",
+      "outputPrefix": "kcs2/resources/voice/titlecall_1",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/voice/titlecall_1/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "voiceId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": ".mp3"
+        }
+      ],
+      "requiredInputs": [
+        "decoder.template-range"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "93788"
+        ],
+        "moduleNames": [
+          "AppInitializeTask"
+        ]
+      },
+      "range": {
+        "start": 1,
+        "end": 103,
+        "pad": 3
+      }
+    },
+    {
+      "key": "voice.titlecall_2",
+      "domain": "voice",
+      "outputPrefix": "kcs2/resources/voice/titlecall_2",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/voice/titlecall_2/"
+        },
+        {
+          "kind": "placeholder",
+          "name": "voiceId",
+          "format": "pad3"
+        },
+        {
+          "kind": "literal",
+          "value": ".mp3"
+        }
+      ],
+      "requiredInputs": [
+        "decoder.template-range"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "93788"
+        ],
+        "moduleNames": [
+          "AppInitializeTask"
+        ]
+      },
+      "range": {
+        "start": 1,
+        "end": 64,
+        "pad": 3
+      }
+    },
+    {
+      "key": "worldselect.chinjufu-buttons",
+      "domain": "worldselect",
+      "outputPrefix": "kcs2/resources/worldselect",
+      "pathTemplate": [
+        {
+          "kind": "literal",
+          "value": "kcs2/resources/worldselect/btn_chinjyufu"
+        },
+        {
+          "kind": "placeholder",
+          "name": "worldId",
+          "format": "number"
+        },
+        {
+          "kind": "placeholder",
+          "name": "state",
+          "format": "raw"
+        },
+        {
+          "kind": "literal",
+          "value": ".png"
+        }
+      ],
+      "requiredInputs": [
+        "decoder.template-range"
+      ],
+      "coverageMode": "observed-complete",
+      "provenance": {
+        "moduleIds": [
+          "world.js"
+        ],
+        "moduleNames": [
+          "world.js"
+        ]
+      },
+      "range": {
+        "start": 1,
+        "end": 20
+      }
+    }
+  ],
+  "unresolvedFamilies": []
+}

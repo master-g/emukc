@@ -33,10 +33,56 @@ static WORLD_SELECT: LazyLock<&[&str]> = LazyLock::new(|| {
         "error.png",
         "gauge20.png",
         "gauge20_gray.png",
+        "limit.png",
         "title20_icon.png",
         "title20_select.png",
     ]
 });
+
+pub(super) fn is_default_se_id(id: i64) -> bool {
+    let Ok(id) = u32::try_from(id) else {
+        return false;
+    };
+    SE.contains(&id)
+}
+
+pub(super) fn is_default_tutorial_voice_stem(stem: &str) -> bool {
+    TUTORIAL_VOICE.contains(&stem)
+}
+
+pub(super) fn is_default_voice_file(file: &str) -> bool {
+    let Some((category, name)) = file.split_once('/') else {
+        return false;
+    };
+    let Some(stem) = name.strip_suffix(".mp3") else {
+        return false;
+    };
+    if category == "tutorial" {
+        return is_default_tutorial_voice_stem(stem);
+    }
+    let Ok(id) = stem.parse::<u32>() else {
+        return false;
+    };
+
+    match category {
+        "titlecall_1" => (1..=103).contains(&id),
+        "titlecall_2" => (1..=64).contains(&id),
+        _ => false,
+    }
+}
+
+pub(super) fn is_default_world_select_file(file: &str) -> bool {
+    if WORLD_SELECT.contains(&file) || file == "btn_chinjyufu_on.png" {
+        return true;
+    }
+
+    let Some(stem) = file.strip_prefix("btn_chinjyufu") else {
+        return false;
+    };
+    let stem = stem.strip_suffix(".png").unwrap_or(stem);
+    let stem = stem.strip_suffix("_off").unwrap_or(stem);
+    stem.parse::<u32>().is_ok_and(|id| (1..=20).contains(&id))
+}
 
 pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingError> {
     for se in SE.iter() {
@@ -64,6 +110,7 @@ pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingErro
 
     for i in 1..=20 {
         list.add_unversioned(format!("kcs2/resources/worldselect/btn_chinjyufu{i}.png"));
+        list.add_unversioned(format!("kcs2/resources/worldselect/btn_chinjyufu{i}_off.png"));
     }
     list.add_unversioned("kcs2/resources/worldselect/btn_chinjyufu_on.png".to_string());
 

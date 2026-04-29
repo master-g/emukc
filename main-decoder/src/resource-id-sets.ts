@@ -153,15 +153,28 @@ function collectComparisonNumbers(
 	const leftIsSlot = leftSource !== undefined && trackedSlotIds.has(leftSource);
 	const rightIsSlot = rightSource !== undefined && trackedSlotIds.has(rightSource);
 
-	if ((leftIsShip || rightIsShip) && isNumericLiteralLike(leftIsShip ? expression.right : expression.left)) {
-		return { shipIds: [(leftIsShip ? expression.right : expression.left).value], slotIds: [] };
+	const shipCandidate = leftIsShip ? expression.right : expression.left;
+	if ((leftIsShip || rightIsShip) && isNumericLiteralLike(shipCandidate)) {
+		return { shipIds: [shipCandidate.value], slotIds: [] };
 	}
 
-	if ((leftIsSlot || rightIsSlot) && isNumericLiteralLike(leftIsSlot ? expression.right : expression.left)) {
-		return { shipIds: [], slotIds: [(leftIsSlot ? expression.right : expression.left).value] };
+	const slotCandidate = leftIsSlot ? expression.right : expression.left;
+	if ((leftIsSlot || rightIsSlot) && isNumericLiteralLike(slotCandidate)) {
+		return { shipIds: [], slotIds: [slotCandidate.value] };
 	}
 
 	return { shipIds: [], slotIds: [] };
+}
+
+function collectSpecialCaseShipIdsFromSource(source: string): number[] {
+	const ids = new Set<number>();
+	for (const match of source.matchAll(/([0-9]+)\s*!=\s*[A-Za-z0-9_.$]+/g)) {
+		const value = Number.parseInt(match[1] ?? "0", 10);
+		if (Number.isInteger(value) && value > 0) {
+			ids.add(value);
+		}
+	}
+	return [...ids].sort((left, right) => left - right);
 }
 
 function isShipCallForTarget(path: NodePath<t.CallExpression>, targetType: string): boolean {
@@ -320,6 +333,12 @@ export function extractResourceIdSets(moduleGraph: ModuleGraph): ExtractedResour
 				}
 			},
 		});
+
+		if (source.includes('"special"') && source.includes('"full"') && source.includes("?")) {
+			for (const shipId of collectSpecialCaseShipIdsFromSource(source)) {
+				addObservedId(extracted.shipIdSets.specialShips, shipId, module);
+			}
+		}
 	}
 
 	return extracted;

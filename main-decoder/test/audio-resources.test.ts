@@ -46,6 +46,49 @@ describe("extractAudioResources", () => {
 		expect(extracted.tutorialVoiceStems.has("023_a")).toBe(true);
 	});
 
+	test("captures titlecall ranges as explicit voice files", () => {
+		const graph = makeGraph([
+			makeModule("a-titlecall", `
+				var titleCall1 = Math.floor(103 * Math.random()) + 1;
+				sound.voice.play("titlecall_1", titleCall1, onEnd);
+				var titleCall2 = Math.floor(64 * Math.random()) + 1;
+				sound.voice.play("titlecall_2", titleCall2, onEnd);
+			`),
+		]);
+
+		const asset = toAudioResourcesAsset("6.2.8.0", extractAudioResources(graph));
+		expect(asset.voice.explicitFiles).toContain("titlecall_1/001.mp3");
+		expect(asset.voice.explicitFiles).toContain("titlecall_1/103.mp3");
+		expect(asset.voice.explicitFiles).toContain("titlecall_2/001.mp3");
+		expect(asset.voice.explicitFiles).toContain("titlecall_2/064.mp3");
+	});
+
+	test("captures fanfare and battle BGM ids from sound manager calls", () => {
+		const graph = makeGraph([
+			makeModule("a-bgm", `
+				sound.bgm.play(3, false, 0, "fanfare");
+				sound.bgm.playBattleBGM(132);
+			`),
+		]);
+
+		const extracted = extractAudioResources(graph);
+		expect(extracted.fanfareBgmIds.has(3)).toBe(true);
+		expect(extracted.battleBgmIds.has(132)).toBe(true);
+	});
+
+	test("captures uncategorized numeric bgm.play calls as port coverage", () => {
+		const graph = makeGraph([
+			makeModule("a-port-bgm", `
+				sound.bgm.play(102);
+				sound.bgm.play(125, true, 0);
+			`),
+		]);
+
+		const extracted = extractAudioResources(graph);
+		expect(extracted.portBgmIds.has(102)).toBe(true);
+		expect(extracted.portBgmIds.has(125)).toBe(true);
+	});
+
 	test("captures titlecall categories and explicit voice paths", () => {
 		const graph = makeGraph([
 			makeModule("a2", `

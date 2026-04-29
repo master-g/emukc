@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { DEFAULT_KCS_CONST_PATH, DEFAULT_MAIN_JS_PATH, DEFAULT_OUTPUT_DIR } from "./defaults.ts";
+import { DEFAULT_KCS_CONST_PATH, DEFAULT_MAIN_JS_PATH, DEFAULT_OUTPUT_DIR, DEFAULT_WORLD_JS_PATH } from "./defaults.ts";
 import type { LoadedSources, PipelineOptions, SourcePaths } from "./types.ts";
 
 const SCRIPT_VERSION_RE = /scriptVesion\s*=\s*["']([^"'\\\r\n]+)["']|scriptVersion\s*=\s*["']([^"'\\\r\n]+)["']/;
@@ -15,10 +15,20 @@ async function readRequiredText(path: string): Promise<string> {
   return await file.text();
 }
 
+async function readOptionalText(path: string): Promise<string | undefined> {
+  const file = Bun.file(path);
+  if (!(await file.exists())) {
+    return undefined;
+  }
+
+  return await file.text();
+}
+
 export function resolveSourcePaths(options: PipelineOptions = {}): SourcePaths {
   return {
     kcConstPath: resolve(options.kcConstPath ?? DEFAULT_KCS_CONST_PATH),
     mainJsPath: resolve(options.mainJsPath ?? DEFAULT_MAIN_JS_PATH),
+    worldJsPath: resolve(options.worldJsPath ?? DEFAULT_WORLD_JS_PATH),
     outputDir: resolve(options.outputDir ?? DEFAULT_OUTPUT_DIR),
   };
 }
@@ -36,15 +46,17 @@ export function extractScriptVersion(kcConstSource: string): string {
 
 export async function loadLocalSources(options: PipelineOptions = {}): Promise<LoadedSources> {
   const paths = resolveSourcePaths(options);
-  const [kcConstSource, mainSource] = await Promise.all([
+  const [kcConstSource, mainSource, worldSource] = await Promise.all([
     readRequiredText(paths.kcConstPath),
     readRequiredText(paths.mainJsPath),
+    readOptionalText(paths.worldJsPath),
   ]);
 
   return {
     paths,
     kcConstSource,
     mainSource,
+    worldSource,
     scriptVersion: extractScriptVersion(kcConstSource),
   };
 }

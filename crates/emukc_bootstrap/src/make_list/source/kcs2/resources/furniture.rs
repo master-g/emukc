@@ -65,6 +65,7 @@ pub(super) async fn make(
     match strategy {
         CacheListMakeStrategy::Default | CacheListMakeStrategy::Manifest => {
             make_reward_predefined(mst, list);
+            make_card_predefined(mst, list);
             // make_extra_greedy("card", mst, cache, list, 16).await?;
         }
         CacheListMakeStrategy::Greedy(config) => {
@@ -72,6 +73,44 @@ pub(super) async fn make(
             make_extra_greedy("card", mst, cache, list, config.concurrent).await?;
         }
         _ => {}
+    }
+
+    Ok(())
+}
+
+pub(super) async fn make_decoder_categories(
+    mst: &ApiManifest,
+    cache: &Kache,
+    list: &mut CacheList,
+    categories: &[String],
+) -> Result<(), CacheListMakingError> {
+    let has_category = |name: &str| categories.iter().any(|category| category == name);
+    let needs_scripts = has_category("scripts") || has_category("picture");
+
+    for entry in mst.api_mst_furniture.iter() {
+        if entry.api_active_flag == 1 {
+            if needs_scripts {
+                make_scripts(entry, cache, list).await?;
+            }
+            if has_category("movable") {
+                make_movable(entry, list);
+            }
+            if has_category("thumbnail") {
+                list.add(gen_furniture_path(entry.api_id, "thumbnail", "png"), entry.api_version);
+            }
+        } else if has_category("normal") {
+            make_normal(entry, list).await;
+        }
+    }
+
+    if has_category("outside") {
+        make_outside(mst, list);
+    }
+    if has_category("reward") {
+        make_reward_predefined(mst, list);
+    }
+    if has_category("card") {
+        make_card_predefined(mst, list);
     }
 
     Ok(())
@@ -155,7 +194,9 @@ fn make_reward_predefined(mst: &ApiManifest, list: &mut CacheList) {
             list.add(gen_furniture_path(*id, "reward", "png"), v.api_version);
         }
     }
+}
 
+fn make_card_predefined(mst: &ApiManifest, list: &mut CacheList) {
     for id in CARD_PREDEFINED.iter() {
         if let Some(v) = mst.api_mst_furniture.iter().find(|v| v.api_id == *id) {
             list.add(gen_furniture_path(*id, "card", "png"), v.api_version);

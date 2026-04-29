@@ -9,6 +9,10 @@ use crate::{make_list::CacheList, prelude::CacheListMakeStrategy};
 static MISSING_IDS: LazyLock<Vec<u64>> =
     LazyLock::new(|| vec![555213521, 555213531, 555213530, 555213541]);
 
+pub(super) fn is_missing_id(id: u64) -> bool {
+    MISSING_IDS.contains(&id)
+}
+
 pub(super) fn make(
     cache_source: &Option<CacheSource>,
     list: &mut CacheList,
@@ -20,7 +24,7 @@ pub(super) fn make(
 
     if let Some(source) = cache_source {
         source.voices.abyssal.iter().for_each(|id| {
-            if !MISSING_IDS.contains(id) {
+            if !is_missing_id(*id) {
                 list.add_unversioned(format!("kcs/sound/kc9998/{id}.mp3"));
             }
         });

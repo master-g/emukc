@@ -3,7 +3,7 @@ use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
-    make_list::{CacheList, CacheListMakeStrategy},
+    make_list::{CacheList, CacheListAuthorityStage, CacheListMakeStrategy},
     prelude::CacheListMakingError,
 };
 
@@ -35,8 +35,11 @@ pub(super) async fn make_manifest_support(
 ) -> Result<(), CacheListMakingError> {
     let strategy = CacheListMakeStrategy::Manifest;
 
+    let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
     plain::make(kache, list).await?;
     versioned::make(mst, kache, &strategy, list).await?;
+    list.set_authority_stage(previous);
+
     resources::make_manifest_support(mst, kache, list, decoder_assets, categories, rules).await?;
 
     Ok(())
