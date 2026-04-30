@@ -560,6 +560,12 @@ impl Kache {
                     info!("🛬 {}", url);
                     return Ok(f);
                 }
+                Err(Error::Download(ref de))
+                    if matches!(de.as_ref(), download::DownloadError::FileNotFound { .. }) =>
+                {
+                    warn!("🚫 404 on {}, skipping remaining CDNs", url);
+                    return Err(Error::FailedOnAllCdn);
+                }
                 Err(e) => {
                     error!("💥 url:{}, err:{:?}", url, e);
                 }

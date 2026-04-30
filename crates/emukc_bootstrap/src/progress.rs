@@ -88,9 +88,7 @@ pub fn new_spinner(message: &str) -> Option<ProgressBar> {
 /// Create a stats bar registered with a [`MultiProgress`] from the start.
 pub fn new_stats_bar_on_mp(max_concurrent: usize, mp: &MultiProgress) -> ProgressBar {
     let pb = mp.add(ProgressBar::new(0));
-    pb.set_style(
-        ProgressStyle::with_template("{msg}").expect("invalid stats style template"),
-    );
+    pb.set_style(ProgressStyle::with_template("{msg}").expect("invalid stats style template"));
     pb.set_message(format!("0/{max_concurrent} active │ 0 errors"));
     pb.enable_steady_tick(Duration::from_millis(200));
     pb
@@ -103,9 +101,7 @@ pub fn new_stats_bar(max_concurrent: usize) -> Option<ProgressBar> {
     }
 
     let pb = ProgressBar::new(0);
-    pb.set_style(
-        ProgressStyle::with_template("{msg}").expect("invalid stats style template"),
-    );
+    pb.set_style(ProgressStyle::with_template("{msg}").expect("invalid stats style template"));
     pb.set_message(format!("0/{max_concurrent} active │ 0 errors"));
     pb.enable_steady_tick(Duration::from_millis(200));
     Some(pb)
@@ -116,10 +112,10 @@ pub fn update_stats_message(pb: &ProgressBar, active: usize, max_concurrent: usi
 }
 
 pub fn log_with_mp(mp: &Option<MultiProgress>, f: impl FnOnce()) {
-	match mp {
-		Some(mp) => mp.suspend(f),
-		None => f(),
-	}
+    match mp {
+        Some(mp) => mp.suspend(f),
+        None => f(),
+    }
 }
 
 pub fn new_multi_progress() -> Option<MultiProgress> {

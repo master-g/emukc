@@ -51,7 +51,9 @@ impl ProgressTracker {
         if let Some(ref pb) = self.pb {
             let checked = self.checked.load(Ordering::Relaxed);
             let found = self.found.load(Ordering::Relaxed);
-            pb.finish_with_message(format!("Checking resources  done ({checked} checked, {found} found)"));
+            pb.finish_with_message(format!(
+                "Checking resources  done ({checked} checked, {found} found)"
+            ));
         }
     }
 }

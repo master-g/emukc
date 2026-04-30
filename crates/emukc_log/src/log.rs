@@ -139,9 +139,7 @@ impl Builder {
             let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
             let file_layer =
                 fmt::layer().with_ansi(false).with_writer(non_blocking).with_filter(self.filter.0);
-            let collector = tracing_subscriber::registry()
-                .with(fmt_layer)
-                .with(file_layer);
+            let collector = tracing_subscriber::registry().with(fmt_layer).with(file_layer);
             tracing::subscriber::set_global_default(collector).expect("Tracing collect error");
 
             Some(guard)

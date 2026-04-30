@@ -39,18 +39,26 @@ pub enum CacheListMakeStrategy {
 }
 
 /// A single cache list entry
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct CacheListItem {
-    /// resource id
-    #[serde(rename = "_id")]
-    pub id: i64,
-
     /// resource path
     pub path: String,
 
     /// Resource version
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+}
+
+impl Ord for CacheListItem {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.path.cmp(&other.path).then_with(|| self.version.cmp(&other.version))
+    }
+}
+
+impl PartialOrd for CacheListItem {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
@@ -104,7 +112,6 @@ pub struct CacheListPathBuildOutput {
 pub(crate) struct CacheList {
     pub items: BTreeSet<CacheListItem>,
 
-    next_id: i64,
     current_authority_stage: Option<CacheListAuthorityStage>,
     authority_tracker: CacheListAuthorityTracker,
 }
@@ -113,7 +120,6 @@ impl CacheList {
     pub fn new() -> Self {
         Self {
             items: BTreeSet::new(),
-            next_id: 0,
             current_authority_stage: None,
             authority_tracker: CacheListAuthorityTracker::default(),
         }
@@ -123,12 +129,10 @@ impl CacheList {
         let version = version.into_version();
         self.record_path_authority(&path);
         let item = CacheListItem {
-            id: self.next_id,
             path,
             version,
         };
         self.items.insert(item);
-        self.next_id += 1;
 
         self
     }
@@ -136,12 +140,10 @@ impl CacheList {
     pub fn add_unversioned(&mut self, path: String) -> &mut Self {
         self.record_path_authority(&path);
         let item = CacheListItem {
-            id: self.next_id,
             path,
             version: None,
         };
         self.items.insert(item);
-        self.next_id += 1;
 
         self
     }
@@ -189,7 +191,6 @@ impl CacheList {
     fn into_path_build_output(self) -> CacheListPathBuildOutput {
         let CacheList {
             items,
-            next_id: _,
             current_authority_stage: _,
             authority_tracker,
         } = self;

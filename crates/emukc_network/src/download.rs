@@ -259,11 +259,19 @@ impl Request {
                     source,
                 })?;
             if !head.status().is_success() {
-                error!("HEAD request failed with status code: {}", head.status());
+                let status = head.status();
+                error!("HEAD request failed with status code: {}", status);
+                if status == http::StatusCode::NOT_FOUND {
+                    return Err(DownloadError::FileNotFound {
+                        url: request_url.clone(),
+                        save_as: requested_save_as.clone(),
+                        final_url: String::new(),
+                    });
+                }
                 return Err(DownloadError::HeaderCheckFailed {
                     url: request_url.clone(),
                     save_as: requested_save_as.clone(),
-                    status: head.status(),
+                    status,
                 });
             }
         }
