@@ -20,42 +20,45 @@ pub(super) async fn make(
     rules_bundle: Option<&manifest::DecoderRulesBundle>,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-    if strategy == CacheListMakeStrategy::Rules {
-        let sound_rules = rules_bundle.map(|rules_bundle| &rules_bundle.cache_rules.sound_rules);
-        if let Some(rules_bundle) = rules_bundle {
-            let previous = list.set_authority_stage(Some(CacheListAuthorityStage::RuleAuthored));
-            sound_rules::make(
-                &codex.manifest,
-                &codex.cache_source,
-                &rules_bundle.cache_rules.sound_rules,
-                Some(&rules_bundle.decoder_assets),
-                list,
-            );
-            list.set_authority_stage(previous);
-        }
-
+    if strategy == CacheListMakeStrategy::Manifest {
         let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
-        if !has_complete_sound_rule(sound_rules.map(|rules| &rules.kc9997)) {
-            kc9997::make(&codex.cache_source, list).await?;
-        }
-        if !has_complete_sound_rule(sound_rules.map(|rules| &rules.kc9998)) {
-            kc9998::make(&codex.cache_source, list, &strategy);
-        }
-        if !has_complete_sound_rule(sound_rules.map(|rules| &rules.kc9999)) {
-            kc9999::make(&codex.cache_source, list).await?;
-        }
-        purchase::make(&codex.manifest, list);
-        if !has_complete_ship_voice_rule(sound_rules) {
-            voice::make(&codex.manifest, cache, &strategy, list).await?;
-        }
-        list.set_authority_stage(previous);
-    } else {
         kc9997::make(&codex.cache_source, list).await?;
         kc9998::make(&codex.cache_source, list, &strategy);
         kc9999::make(&codex.cache_source, list).await?;
         purchase::make(&codex.manifest, list);
         voice::make(&codex.manifest, cache, &strategy, list).await?;
+        list.set_authority_stage(previous);
+        return Ok(());
     }
+
+    let sound_rules = rules_bundle.map(|rules_bundle| &rules_bundle.cache_rules.sound_rules);
+    if let Some(rules_bundle) = rules_bundle {
+        let previous = list.set_authority_stage(Some(CacheListAuthorityStage::RuleAuthored));
+        sound_rules::make(
+            &codex.manifest,
+            &codex.cache_source,
+            &rules_bundle.cache_rules.sound_rules,
+            Some(&rules_bundle.decoder_assets),
+            list,
+        );
+        list.set_authority_stage(previous);
+    }
+
+    let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
+    if !has_complete_sound_rule(sound_rules.map(|rules| &rules.kc9997)) {
+        kc9997::make(&codex.cache_source, list).await?;
+    }
+    if !has_complete_sound_rule(sound_rules.map(|rules| &rules.kc9998)) {
+        kc9998::make(&codex.cache_source, list, &strategy);
+    }
+    if !has_complete_sound_rule(sound_rules.map(|rules| &rules.kc9999)) {
+        kc9999::make(&codex.cache_source, list).await?;
+    }
+    purchase::make(&codex.manifest, list);
+    if !has_complete_ship_voice_rule(sound_rules) {
+        voice::make(&codex.manifest, cache, &strategy, list).await?;
+    }
+    list.set_authority_stage(previous);
 
     Ok(())
 }

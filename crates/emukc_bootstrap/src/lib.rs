@@ -48,6 +48,7 @@ pub mod prelude {
     pub use crate::db::{DbBootstrapError, prepare};
     pub use crate::download::BootstrapDownloadError;
     pub use crate::download::download_all;
+    pub use crate::download::download_web_assets;
     pub use crate::make_list::{
         CacheListBuildDiagnostics, CacheListComparisonReport, CacheListItem, CacheListMakeStrategy,
         CacheListPathBuildOutput, CacheListPathPrefixCount, apply_candidate_build_diagnostics,

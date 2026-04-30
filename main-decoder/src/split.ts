@@ -3,29 +3,41 @@ import type { BundleSections } from "./types.ts";
 const WRAPPER_START_RE = /,\s*!\s*function\(/;
 const HELPER_FUNCTION_RE = /function\s+(_0x[0-9a-fA-F]+)\s*\(/g;
 const BASE64_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=";
-const DECODER_FUNCTION_START_RE = /^function\s+(_0x[0-9a-fA-F]+)\s*\(/;
 const STRING_TABLE_FUNCTION_RE = /function\s+(_0x[0-9a-fA-F]+)\s*\(\)\s*\{/g;
 
-function findDecoderInPrefix(prefixSource: string): { decoderFunctionName: string; helperFunctionNames: string[] } | undefined {
-	const decoderMatch = DECODER_FUNCTION_START_RE.exec(prefixSource);
-	if (decoderMatch === null) {
-		return undefined;
+function findDecoderInPrefix(prefixSource: string): { decoderFunctionName: string; helperFunctionNames: string[]; hasBase64: boolean } | undefined {
+	// Find all function _0x... definitions in the prefix (not just at line start)
+	const allFnMatches = [...prefixSource.matchAll(/\bfunction\s+(_0x[0-9a-fA-F]+)\s*\(/g)];
+
+	// Identify the decoder: the function whose body contains the base64 alphabet
+	let decoderFunctionName: string | undefined;
+	let hasBase64 = false;
+	for (const match of allFnMatches) {
+		const name = match[1];
+		if (name === undefined) continue;
+		const window = prefixSource.slice(match.index, match.index + 100000);
+		if (window.includes(BASE64_ALPHABET)) {
+			decoderFunctionName = name;
+			hasBase64 = true;
+			break;
+		}
 	}
 
-	const decoderFunctionName = decoderMatch[1];
+	// Fallback: first function if prefix contains base64 somewhere
+	if (decoderFunctionName === undefined && allFnMatches.length > 0 && prefixSource.includes(BASE64_ALPHABET)) {
+		decoderFunctionName = allFnMatches[0][1];
+		hasBase64 = false;
+	}
+
 	if (decoderFunctionName === undefined) {
 		return undefined;
 	}
 
-	if (!prefixSource.includes(BASE64_ALPHABET)) {
-		return undefined;
-	}
-
-	const helperFunctionNames = [decoderFunctionName, ...prefixSource.matchAll(HELPER_FUNCTION_RE)
-		.map(match => match[1])
+	const helperFunctionNames = [decoderFunctionName, ...allFnMatches
+		.map(m => m[1])
 		.filter((name): name is string => name !== undefined && name !== decoderFunctionName)];
 
-	return { decoderFunctionName, helperFunctionNames };
+	return { decoderFunctionName, helperFunctionNames, hasBase64 };
 }
 
 function findStringTableFunction(mainSource: string, searchFromEnd: number): string | undefined {
@@ -53,21 +65,45 @@ export function splitBundle(mainSource: string): BundleSections {
 	const wrapperBangIndex = wrapperMatch.index + bangOffset;
 	const prefixSource = mainSource.slice(0, wrapperMatch.index);
 
-	// Pattern 1 (current): decoder in prefix, string table at end of file
+	// Pattern 1: decoder in prefix
 	const prefixDecoder = findDecoderInPrefix(prefixSource);
 	if (prefixDecoder !== undefined) {
-		const stringTableName = findStringTableFunction(mainSource, Math.max(0, mainSource.length - 500000));
+		// New format: decoder has base64 alphabet embedded — self-contained prefix, no string table
+		if (prefixDecoder.hasBase64) {
+			return {
+				wrapperBangIndex,
+				helperStartIndex: mainSource.length,
+				decoderFunctionName: prefixDecoder.decoderFunctionName,
+				helperFunctionNames: prefixDecoder.helperFunctionNames,
+				prefixSource,
+				helperSource: "",
+				wrapperSource: `(${mainSource.slice(wrapperBangIndex + 1)}`,
+				decoderRuntimeSource: `${prefixSource})`,
+			};
+		}
+
+		// Old format: decoder in prefix but needs string table at end of file
+		const stringTableName = findStringTableFunction(mainSource, Math.max(0, mainSource.length - 50000));
+		const stringTableStart = stringTableName !== undefined
+			? mainSource.lastIndexOf(`function ${stringTableName}()`)
+			: -1;
+
+		if (stringTableStart === -1 || stringTableStart <= wrapperBangIndex) {
+			return {
+				wrapperBangIndex,
+				helperStartIndex: mainSource.length,
+				decoderFunctionName: prefixDecoder.decoderFunctionName,
+				helperFunctionNames: prefixDecoder.helperFunctionNames,
+				prefixSource,
+				helperSource: "",
+				wrapperSource: `(${mainSource.slice(wrapperBangIndex + 1)}`,
+				decoderRuntimeSource: `${prefixSource})`,
+			};
+		}
+
 		const helperFunctionNames = stringTableName !== undefined
 			? [...prefixDecoder.helperFunctionNames, stringTableName]
 			: prefixDecoder.helperFunctionNames;
-
-		// The wrapper source is between the bang and the string table (or end of file)
-		const stringTableStart = stringTableName !== undefined
-			? mainSource.lastIndexOf(`function ${stringTableName}()`)
-			: mainSource.length;
-		if (stringTableStart === -1 || stringTableStart <= wrapperBangIndex) {
-			throw new Error("Failed to locate the string table function boundaries");
-		}
 
 		return {
 			wrapperBangIndex,

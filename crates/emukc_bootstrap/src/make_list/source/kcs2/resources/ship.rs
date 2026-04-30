@@ -1,13 +1,11 @@
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{LazyLock, Mutex};
 
-use emukc_cache::{IntoVersion, Kache, KacheError};
 use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
-    make_list::manifest::{PathRules, ResourceCategoriesAsset, ShipPathHoles, path_rules},
-    make_list::{CacheList, CacheListMakeStrategy, batch_check_exists},
-    prelude::CacheListMakingError,
+    make_list::CacheList,
+    make_list::manifest::{PathRules, ResourceCategoriesAsset, ShipPathHoles},
 };
 
 static HOLES_COLLECTOR: LazyLock<Mutex<Vec<String>>> = LazyLock::new(|| Mutex::new(Vec::new()));
@@ -18,189 +16,6 @@ pub fn get_holes_report() -> Vec<String> {
 
 pub fn clear_holes_report() {
     HOLES_COLLECTOR.lock().unwrap().clear();
-}
-
-pub(super) async fn make(
-    mst: &ApiManifest,
-    cache: &Kache,
-    strategy: &CacheListMakeStrategy,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    if *strategy == CacheListMakeStrategy::Minimal {
-        return Ok(());
-    }
-
-    make_non_graph(mst, list);
-    make_friend_graph(mst, list);
-    match strategy {
-        CacheListMakeStrategy::Default => {
-            make_friend_event_graph(mst, list);
-            make_enemy_graph(mst, list);
-            make_ship_special(mst, list);
-            make_sp_remodel(mst, list);
-            make_ship_type(mst, list);
-            make_ship_reward_res(mst, list);
-        }
-        CacheListMakeStrategy::Greedy(config) => {
-            make_ship_special_greedy(mst, cache, config.concurrent, list).await?;
-            make_friend_event_graph_greedy(mst, cache, config.concurrent, list).await?;
-            make_enemy_graph_greedy(mst, cache, config.concurrent, list).await?;
-            make_sp_remodel_greedy(mst, cache, config.concurrent, list).await?;
-            make_ship_type_greedy(mst, cache, config.concurrent, list).await?;
-            make_ship_reward_res_greedy(mst, cache, config.concurrent, list).await?;
-        }
-        _ => {}
-    };
-
-    Ok(())
-}
-
-fn make_non_graph(mst: &ApiManifest, list: &mut CacheList) {
-    for ship in mst.api_mst_ship.iter() {
-        let categories = if ship.api_aftershipid.is_none() {
-            // abyssal
-            vec!["banner", "banner3", "banner3_g_dmg"]
-        } else {
-            vec![
-                "album_status",
-                "banner",
-                "banner2",
-                "banner2_dmg",
-                "banner2_g_dmg",
-                "banner_dmg",
-                "banner_g_dmg",
-                "card",
-                "card_dmg",
-                "power_up",
-                "remodel",
-                "remodel_dmg",
-                "supply_character",
-                "supply_character_dmg",
-            ]
-        };
-
-        let ship_id = format!("{0:04}", ship.api_id);
-
-        let graph = mst.api_mst_shipgraph.iter().find(|v| v.api_id == ship.api_id);
-        let version = graph.and_then(|v| v.api_version.first());
-
-        for category in categories {
-            list.add(
-                format!(
-                    "kcs2/resources/ship/{category}/{ship_id}_{}.png",
-                    SuffixUtils::create(&ship_id, format!("ship_{category}").as_str())
-                ),
-                version,
-            );
-        }
-    }
-}
-
-fn make_friend_graph(mst: &ApiManifest, list: &mut CacheList) {
-    for graph in mst.api_mst_shipgraph.iter() {
-        let version = graph.api_version.first().into_version();
-        if version.is_none() {
-            continue;
-        }
-
-        if graph.api_sortno.is_none() {
-            continue;
-        }
-
-        let ship_id = format!("{0:04}", graph.api_id);
-
-        for category in ["full", "full_dmg"] {
-            list.add(
-                format!(
-                    "kcs2/resources/ship/{category}/{ship_id}_{}_{}.png",
-                    SuffixUtils::create(&ship_id, format!("ship_{category}").as_str()),
-                    graph.api_filename
-                ),
-                version.as_ref(),
-            );
-        }
-
-        for category in ["character_full", "character_full_dmg", "character_up", "character_up_dmg"]
-        {
-            list.add(
-                format!(
-                    "kcs2/resources/ship/{category}/{ship_id}_{}.png",
-                    SuffixUtils::create(&ship_id, format!("ship_{category}").as_str()),
-                ),
-                version.as_ref(),
-            );
-        }
-    }
-}
-
-#[allow(unused)]
-async fn make_friend_event_graph_greedy(
-    mst: &ApiManifest,
-    kache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), KacheError> {
-    use std::collections::BTreeMap;
-
-    let mut checks_by_id: BTreeMap<i64, Vec<(String, String, &str)>> = BTreeMap::new();
-
-    for v in mst.api_mst_shipgraph.iter().filter(|v| v.api_id > 5000) {
-        let ship_id = format!("{0:04}", v.api_id);
-        let version = v.api_version.first().cloned().unwrap_or_default();
-
-        for category in ["character_full", "character_full_dmg", "character_up", "character_up_dmg"]
-        {
-            let path = format!(
-                "kcs2/resources/ship/{category}/{ship_id}_{}.png",
-                SuffixUtils::create(&ship_id, format!("ship_{category}").as_str()),
-            );
-            checks_by_id.entry(v.api_id).or_default().push((path, version.clone(), category));
-        }
-    }
-
-    let checks: Vec<(String, String)> =
-        checks_by_id.values().flatten().map(|(p, v, _)| (p.clone(), v.clone())).collect();
-
-    let c = Arc::new(kache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    let mut holes_full = vec![];
-    let mut holes_full_dmg = vec![];
-    let mut holes_up = vec![];
-    let mut holes_up_dmg = vec![];
-
-    for (ship_id, checks) in checks_by_id {
-        for (path, version, category) in checks {
-            if let Some(&exists) = check_result.get(&(path.clone(), version.clone())) {
-                if exists {
-                    list.add(path, version);
-                } else {
-                    match category {
-                        "character_full" => holes_full.push(ship_id),
-                        "character_full_dmg" => holes_full_dmg.push(ship_id),
-                        "character_up" => holes_up.push(ship_id),
-                        "character_up_dmg" => holes_up_dmg.push(ship_id),
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
-
-    if !holes_full.is_empty()
-        || !holes_full_dmg.is_empty()
-        || !holes_up.is_empty()
-        || !holes_up_dmg.is_empty()
-    {
-        let report = format!(
-            "EVENT_SHIP_HOLES:\n  full: vec!{:?},\n  full_dmg: vec!{:?},\n  up: vec!{:?},\n  up_dmg: vec!{:?},",
-            holes_full, holes_full_dmg, holes_up, holes_up_dmg
-        );
-        HOLES_COLLECTOR.lock().unwrap().push(report);
-    }
-
-    Ok(())
 }
 
 fn has_ship_holes(holes: &ShipPathHoles) -> bool {
@@ -217,6 +32,7 @@ fn select_holes<'a>(
     rules_holes.filter(|holes| has_ship_holes(holes)).unwrap_or(fallback)
 }
 
+#[cfg(test)]
 fn select_ids<'a>(rules_ids: Option<&'a [i64]>, fallback: &'a [i64]) -> &'a [i64] {
     rules_ids.filter(|ids| !ids.is_empty()).unwrap_or(fallback)
 }
@@ -245,10 +61,6 @@ static EVENT_SHIP_HOLES: LazyLock<ShipPathHoles> = LazyLock::new(|| ShipPathHole
         6241, 6242,
     ],
 });
-
-fn make_friend_event_graph(mst: &ApiManifest, list: &mut CacheList) {
-    make_friend_event_graph_with_rules(mst, list, path_rules());
-}
 
 pub(crate) fn make_manifest_category_extensions(
     mst: &ApiManifest,
@@ -355,46 +167,7 @@ fn make_friend_event_graph_with_rules(
     }
 }
 
-#[allow(unused)]
-async fn make_enemy_graph_greedy(
-    mst: &ApiManifest,
-    kache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), KacheError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_shipgraph
-        .iter()
-        .filter(|v| v.api_sortno.is_none() && v.api_id < 5000)
-        .flat_map(|v| {
-            let ship_id = format!("{0:04}", v.api_id);
-            ["full", "full_dmg"].map(|category| {
-                (
-                    format!(
-                        "kcs2/resources/ship/{category}/{ship_id}_{}_{}.png",
-                        SuffixUtils::create(&ship_id, format!("ship_{category}").as_str()),
-                        v.api_filename,
-                    ),
-                    v.api_version.first().cloned().unwrap_or_default(),
-                )
-            })
-        })
-        .collect();
-
-    let c = Arc::new(kache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
-}
-
+#[cfg(test)]
 static ENEMY_SHIP_HOLES: LazyLock<ShipPathHoles> = LazyLock::new(|| ShipPathHoles {
     full: vec![1563, 1568, 1569, 1580, 1593, 1596],
     full_dmg: vec![
@@ -412,12 +185,7 @@ static ENEMY_SHIP_HOLES: LazyLock<ShipPathHoles> = LazyLock::new(|| ShipPathHole
     up_dmg: vec![],
 });
 
-#[allow(unused)]
-fn make_enemy_graph(mst: &ApiManifest, list: &mut CacheList) {
-    make_enemy_graph_with_rules(mst, list, path_rules());
-}
-
-#[allow(unused)]
+#[cfg(test)]
 fn make_enemy_graph_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
     let holes = select_holes(rules.map(|rules| &rules.enemy_ship_holes), &ENEMY_SHIP_HOLES);
     for graph in mst.api_mst_shipgraph.iter() {
@@ -450,6 +218,7 @@ fn make_enemy_graph_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: O
     }
 }
 
+#[cfg(test)]
 static SPECIAL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     vec![
         639, 724, 694, 969, 918, 446, 554, 553, 576, 411, 184, 733, 412, 944, 916, 634, 577, 592,
@@ -458,10 +227,7 @@ static SPECIAL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     ]
 });
 
-fn make_ship_special(mst: &ApiManifest, list: &mut CacheList) {
-    make_ship_special_with_rules(mst, list, path_rules());
-}
-
+#[cfg(test)]
 fn make_ship_special_with_rules(
     mst: &ApiManifest,
     list: &mut CacheList,
@@ -480,115 +246,6 @@ fn make_ship_special_with_rules(
     });
 }
 
-#[allow(unused)]
-async fn make_ship_special_greedy(
-    mst: &ApiManifest,
-    kache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), KacheError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_shipgraph
-        .iter()
-        .filter(|v| v.api_sortno.is_some())
-        .map(|v| {
-            let ship_id = format!("{0:04}", v.api_id);
-            (
-                format!(
-                    "kcs2/resources/ship/special/{ship_id}_{}.png",
-                    SuffixUtils::create(&ship_id, "ship_special".to_string().as_str()),
-                ),
-                v.api_version.first().cloned().unwrap_or_default(),
-            )
-        })
-        .collect();
-
-    let c = Arc::new(kache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
-}
-
-#[allow(unused)]
-async fn make_sp_remodel_greedy(
-    mst: &ApiManifest,
-    kache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), KacheError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_shipgraph
-        .iter()
-        .filter(|v| v.api_sortno.is_some())
-        .flat_map(|v| {
-            let ship_id = format!("{0:04}", v.api_id);
-            let v = v.api_version.first().cloned().unwrap_or_default();
-            vec![
-                (
-                    format!("kcs2/resources/ship/sp_remodel/animation_key/{ship_id}_remodel.json",),
-                    v.to_owned(),
-                ),
-                (
-                    format!(
-                        "kcs2/resources/ship/sp_remodel/full_x2/{ship_id}_{}.png",
-                        SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2")
-                    ),
-                    v.to_owned(),
-                ),
-                (
-                    format!(
-                        "kcs2/resources/ship/sp_remodel/silhouette/{ship_id}_{}.png",
-                        SuffixUtils::create(&ship_id, "ship_sp_remodel/full_x2")
-                    ),
-                    v.to_owned(),
-                ),
-                (
-                    format!(
-                        "kcs2/resources/ship/sp_remodel/text_class/{ship_id}_{}.png",
-                        SuffixUtils::create(&ship_id, "ship_sp_remodel/text_class")
-                    ),
-                    v.to_owned(),
-                ),
-                (
-                    format!(
-                        "kcs2/resources/ship/sp_remodel/text_name/{ship_id}_{}.png",
-                        SuffixUtils::create(&ship_id, "ship_sp_remodel/text_name")
-                    ),
-                    v.to_owned(),
-                ),
-                (
-                    format!(
-                        "kcs2/resources/ship/sp_remodel/text_remodel_mes/{ship_id}_{}.png",
-                        SuffixUtils::create(&ship_id, "ship_sp_remodel/text_remodel_mes")
-                    ),
-                    v.to_owned(),
-                ),
-            ]
-        })
-        .collect();
-
-    let c = Arc::new(kache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
-}
-
 static SP_REMODEL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     vec![
         501, 502, 506, 507, 587, 588, 591, 592, 593, 594, 599, 610, 622, 629, 630, 646, 651, 652,
@@ -597,6 +254,7 @@ static SP_REMODEL_SHIPS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     ]
 });
 
+#[cfg(test)]
 static SP_REMODEL_MES: LazyLock<Vec<i64>> = LazyLock::new(|| {
     vec![
         73, 121, 136, 145, 149, 150, 151, 152, 196, 202, 203, 204, 215, 228, 277, 278, 285, 293,
@@ -605,12 +263,7 @@ static SP_REMODEL_MES: LazyLock<Vec<i64>> = LazyLock::new(|| {
     ]
 });
 
-#[allow(unused)]
-fn make_sp_remodel(mst: &ApiManifest, list: &mut CacheList) {
-    make_sp_remodel_with_rules(mst, list, path_rules());
-}
-
-#[allow(unused)]
+#[cfg(test)]
 fn make_sp_remodel_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
     let sp_remodel_ships = select_ids(
         rules.map(|rules| rules.sp_remodel_ships.as_slice()),
@@ -653,38 +306,6 @@ fn make_sp_remodel_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Op
     }
 }
 
-#[allow(unused)]
-async fn make_ship_type_greedy(
-    mst: &ApiManifest,
-    kache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), KacheError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_stype
-        .iter()
-        .flat_map(|v| {
-            [
-                (format!("kcs2/resources/stype/etext/{0:03}.png", v.api_id,), "".to_string()),
-                (format!("kcs2/resources/stype/etext/sp{0:03}.png", v.api_id,), "".to_string()),
-            ]
-        })
-        .collect();
-
-    let c = Arc::new(kache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
-}
-
 const SHIP_SP_TYPE_MAX: usize = 8;
 
 fn make_ship_type(mst: &ApiManifest, list: &mut CacheList) {
@@ -707,48 +328,9 @@ fn make_ship_type(mst: &ApiManifest, list: &mut CacheList) {
     }
 }
 
-async fn make_ship_reward_res_greedy(
-    mst: &ApiManifest,
-    kache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_ship
-        .iter()
-        .filter(|v| v.api_aftershipid.is_some())
-        .flat_map(|s| {
-            let Some(graph) = mst.find_shipgraph(s.api_id) else {
-                return Vec::new();
-            };
-            let v = graph.api_version.first().cloned().unwrap_or_default();
-
-            ["card_round", "icon_box", "reward_card", "reward_icon"]
-                .iter()
-                .map(|category| {
-                    let ship_id = format!("{0:04}", s.api_id);
-                    let key = SuffixUtils::create(&ship_id, format!("ship_{category}").as_str());
-                    (format!("kcs2/resources/ship/{category}/{ship_id}_{key}.png"), v.clone())
-                })
-                .collect()
-        })
-        .collect();
-
-    let c = Arc::new(kache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
-}
-
+#[cfg(test)]
 static CARD_ROUNDS: LazyLock<Vec<i64>> = LazyLock::new(|| vec![524, 525]);
+#[cfg(test)]
 static REWARDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     vec![
         162, 182, 183, 184, 451, 460, 491, 517, 518, 524, 525, 531, 540, 551, 552, 565, 570, 574,
@@ -756,10 +338,7 @@ static REWARDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     ]
 });
 
-fn make_ship_reward_res(mst: &ApiManifest, list: &mut CacheList) {
-    make_ship_reward_res_with_rules(mst, list, path_rules());
-}
-
+#[cfg(test)]
 fn make_ship_reward_res_with_rules(
     mst: &ApiManifest,
     list: &mut CacheList,

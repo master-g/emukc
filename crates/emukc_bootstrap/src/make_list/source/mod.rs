@@ -31,14 +31,6 @@ pub(super) async fn make(
     rules_bundle_override: Option<&manifest::DecoderRulesBundle>,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-    if strategy == CacheListMakeStrategy::Rules {
-        let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
-        gadget_html5::make(&codex.manifest, kache, list).await?;
-        list.set_authority_stage(previous);
-    } else {
-        gadget_html5::make(&codex.manifest, kache, list).await?;
-    }
-
     if strategy == CacheListMakeStrategy::Manifest {
         let owned_decoder_assets;
         let decoder_assets = if let Some(decoder_assets) = decoder_assets_override {
@@ -47,6 +39,7 @@ pub(super) async fn make(
             owned_decoder_assets = manifest::load_decoder_coverage_assets()?;
             &owned_decoder_assets
         };
+        gadget_html5::make(&codex.manifest, kache, list).await?;
         make_manifest(&codex.manifest, manifest_override, decoder_assets_override, list)?;
         kcs::make(codex, kache, CacheListMakeStrategy::Manifest, None, list).await?;
         let categories = decoder_assets.resource_categories.as_ref();
@@ -59,7 +52,12 @@ pub(super) async fn make(
             manifest::path_rules(),
         )
         .await?;
-    } else if strategy == CacheListMakeStrategy::Rules {
+    } else if matches!(
+        strategy,
+        CacheListMakeStrategy::Default
+            | CacheListMakeStrategy::Greedy(_)
+            | CacheListMakeStrategy::Rules
+    ) {
         let owned_rules_bundle;
         let rules_bundle = if let Some(rules_bundle) = rules_bundle_override {
             rules_bundle
@@ -83,6 +81,10 @@ pub(super) async fn make(
                 .map(str::to_string),
         );
 
+        let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
+        gadget_html5::make(&codex.manifest, kache, list).await?;
+        list.set_authority_stage(previous);
+
         let previous = list.set_authority_stage(Some(CacheListAuthorityStage::RuleAuthored));
         make_cache_rules(&codex.manifest, rules_bundle, list)?;
         list.set_authority_stage(previous);
@@ -99,20 +101,7 @@ pub(super) async fn make(
         )
         .await?;
     } else {
-        if matches!(strategy, CacheListMakeStrategy::Default | CacheListMakeStrategy::Greedy(_)) {
-            if let Some(manifest_data) = manifest_override {
-                manifest::populate_path_rules_locks(manifest_data);
-            } else {
-                match manifest::load_resource_manifest() {
-                    Ok(manifest_data) => manifest::populate_path_rules_locks(&manifest_data),
-                    Err(err) => {
-                        warn!("Failed to load resource manifest for pathRules fallback: {err}");
-                    }
-                }
-            }
-        }
-        kcs::make(codex, kache, strategy.clone(), None, list).await?;
-        kcs2::make(&codex.manifest, kache, strategy, list).await?;
+        gadget_html5::make(&codex.manifest, kache, list).await?;
     }
 
     Ok(())

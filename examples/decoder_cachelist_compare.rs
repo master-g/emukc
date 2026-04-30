@@ -79,7 +79,7 @@ struct CompareArgs {
     #[arg(long)]
     rules: Option<PathBuf>,
 
-    #[arg(long, value_enum, default_value_t = BaselineStrategy::Default)]
+    #[arg(long, value_enum, default_value_t = BaselineStrategy::Manifest)]
     baseline: BaselineStrategy,
 
     #[arg(long, default_value_t = 16)]
@@ -230,6 +230,12 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
 
     let args = CompareArgs::parse();
+
+    if matches!(args.baseline, BaselineStrategy::Default) && args.rules.is_some() {
+        eprintln!(
+            "Warning: --baseline default with --rules produces identical output (Default now delegates to Rules). Use --baseline manifest for a meaningful comparison."
+        );
+    }
 
     with_enough_stack(async move {
         let cfg = ExampleConfig::load(&args.config)?;

@@ -1,7 +1,7 @@
 {
-  "scriptVersion": "6.2.8.0",
+  "scriptVersion": "6.2.9.0",
   "summary": {
-    "moduleCount": 196,
+    "moduleCount": 197,
     "slotResourceTriggerCount": 17
   },
   "triggers": [

@@ -24,24 +24,6 @@ fn gen_bgm_path(id: i64, category: &str) -> String {
     super::gen_path(id, 3, "bgm", category, "mp3")
 }
 
-pub(super) async fn make(
-    mst: &ApiManifest,
-    cache: &Kache,
-    strategy: &CacheListMakeStrategy,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    bgm::make(mst, strategy, list).await?;
-    furniture::make(mst, cache, strategy, list).await?;
-    gauge::make(cache, strategy, list).await?;
-    map::make(cache, strategy, list).await?;
-    ship::make(mst, cache, strategy, list).await?;
-    slot::make(mst, cache, strategy, list).await?;
-    unversioned::make(list).await?;
-    use_item::make(mst, cache, strategy, list).await?;
-
-    Ok(())
-}
-
 pub(super) async fn make_manifest_support(
     mst: &ApiManifest,
     cache: &Kache,

@@ -232,3 +232,115 @@ pub async fn download_all(
 
     Ok(())
 }
+
+/// Web assets to download from CDN.
+struct WebAsset {
+    path: &'static str,
+    cdn_kind: CdnKind,
+}
+
+#[derive(Clone, Copy)]
+enum CdnKind {
+    Gadgets,
+    Game,
+}
+
+const WEB_ASSETS: &[WebAsset] = &[
+    WebAsset {
+        path: "gadget_html5/js/kcs_const.js",
+        cdn_kind: CdnKind::Gadgets,
+    },
+    WebAsset {
+        path: "kcs2/js/main.js",
+        cdn_kind: CdnKind::Game,
+    },
+    WebAsset {
+        path: "kcs2/version.json",
+        cdn_kind: CdnKind::Game,
+    },
+];
+
+/// Download key web assets (kcs_const.js, main.js, version.json) from CDN.
+///
+/// Skips assets whose CDN is not configured, emitting a warn log.
+/// Skips files that already exist unless `overwrite` is true.
+pub async fn download_web_assets(
+    cache_root: &std::path::Path,
+    gadgets_cdn: &[String],
+    game_cdn: &[String],
+    proxy: Option<&str>,
+    overwrite: bool,
+) -> Result<(), BootstrapDownloadError> {
+    let client = Arc::new(new_reqwest_client(proxy, None).map_err(|source| {
+        BootstrapDownloadError::ReqwestClient {
+            proxy: proxy.map(ToOwned::to_owned),
+            source,
+        }
+    })?);
+
+    for asset in WEB_ASSETS {
+        let cdns = match asset.cdn_kind {
+            CdnKind::Gadgets => gadgets_cdn,
+            CdnKind::Game => game_cdn,
+        };
+
+        if cdns.is_empty() {
+            warn!(
+                "Skipping {} — no {} CDN configured. Set {} in emukc.config.toml to enable.",
+                asset.path,
+                match asset.cdn_kind {
+                    CdnKind::Gadgets => "gadgets_cdn",
+                    CdnKind::Game => "game_cdn",
+                },
+                match asset.cdn_kind {
+                    CdnKind::Gadgets => "gadgets_cdn",
+                    CdnKind::Game => "game_cdn",
+                },
+            );
+            continue;
+        }
+
+        let dest = cache_root.join(asset.path);
+        if dest.exists() && !overwrite {
+            debug!("Skipping {} — already exists", asset.path);
+            continue;
+        }
+
+        let mut downloaded = false;
+        for cdn in cdns {
+            let cdn = cdn.trim_end_matches('/');
+            let url = format!("http://{cdn}/{}", asset.path);
+
+            let result = emukc_network::download::Request::builder()
+                .url(&url)
+                .save_as(&dest)
+                .overwrite(overwrite)
+                .skip_header_check(true)
+                .build()?
+                .execute(Some((*client).clone()))
+                .await;
+
+            match result {
+                Ok(()) => {
+                    info!("Downloaded {} from {}", asset.path, url);
+                    downloaded = true;
+                    break;
+                }
+                Err(DownloadError::FileAlreadyExists(_)) => {
+                    debug!("Skipping {} — already exists", asset.path);
+                    downloaded = true;
+                    break;
+                }
+                Err(e) => {
+                    warn!("Failed to download {} from {}: {e}", asset.path, url);
+                }
+            }
+        }
+
+        if !downloaded {
+            warn!("All CDN sources failed for {}", asset.path);
+        }
+    }
+
+    Ok(())
+}

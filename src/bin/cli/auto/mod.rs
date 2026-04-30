@@ -39,6 +39,7 @@ async fn prepare_state(cfg: &AppConfig) -> Result<state::State> {
                 force_update: true,
                 proxy: None,
                 output: None,
+                skip_web_assets: false,
             },
         )
         .await

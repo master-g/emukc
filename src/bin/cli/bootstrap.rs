@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Args;
-use emukc_internal::prelude::{download_all, parse_partial_codex};
+use emukc_internal::prelude::{download_all, download_web_assets, parse_partial_codex};
 
 use crate::cfg::AppConfig;
 
@@ -22,6 +22,10 @@ pub(super) struct BootstrapArgs {
     #[arg(help = "specify output directory")]
     #[arg(long)]
     pub(super) output: Option<String>,
+
+    #[arg(help = "Skip downloading web assets (kcs_const.js, main.js, version.json)")]
+    #[arg(long)]
+    pub(super) skip_web_assets: bool,
 }
 
 /// Execute the bootstrap command
@@ -46,17 +50,29 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
     if args.force_update {
         let p = cfg.cache_root.join("gadget_html5").join("js").join("kcs_const.js");
         if p.exists() {
-            std::fs::remove_file(p)?;
+            std::fs::remove_file(&p)?;
         } else {
             warn!("{:?} not found.", p);
         }
         let p = cfg.cache_root.join("kcs2").join("version.json");
         if p.exists() {
-            std::fs::remove_file(p)?;
+            std::fs::remove_file(&p)?;
         } else {
             warn!("{:?} not found.", p);
         }
         info!("version files in kcs cache removed.");
+    }
+
+    // download web assets unless skipped
+    if !args.skip_web_assets {
+        download_web_assets(
+            &cfg.cache_root,
+            &cfg.gadgets_cdn,
+            &cfg.game_cdn,
+            proxy,
+            args.overwrite,
+        )
+        .await?;
     }
 
     info!("Bootstrap completed successfully.");
@@ -92,6 +108,7 @@ mod tests {
             force_update: false,
             proxy: proxy.map(ToOwned::to_owned),
             output: None,
+            skip_web_assets: false,
         }
     }
 

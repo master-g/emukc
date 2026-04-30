@@ -20,7 +20,7 @@ The comparison example SHALL generate a candidate cache list from the explicit d
 
 #### Scenario: Default baseline run
 - **WHEN** the example is run without an explicit baseline strategy override
-- **THEN** it MUST generate the baseline list using the current `Default` bootstrap strategy
+- **THEN** it MUST generate the baseline list using the `Manifest` bootstrap strategy
 - **THEN** it MUST generate the candidate list using the decoder manifest override with the existing Rust cache-list generation infrastructure
 
 #### Scenario: Alternate baseline strategy selected
@@ -168,4 +168,12 @@ The comparison example SHALL treat unresolved template-backed families and fallb
 - **WHEN** a comparison run reduces template-backed fallback-authored residuals
 - **THEN** the report MUST still include `baseline_only_count` and `candidate_only_count`
 - **THEN** migration readiness MUST remain false if any measured template-backed residual blocker remains
+
+### Requirement: Default-vs-Rules comparison warns as no-op
+When the user passes `--baseline default --rules`, the comparison example SHALL emit a warning that both strategies produce identical output.
+
+#### Scenario: User compares Default against Rules
+- **WHEN** `--baseline default --rules` is passed
+- **THEN** the example SHALL print a warning that `Default` now delegates to `Rules`
+- **AND** continue with the comparison (which will show 100% overlap)
 

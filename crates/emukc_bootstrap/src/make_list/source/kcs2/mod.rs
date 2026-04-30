@@ -11,20 +11,6 @@ mod plain;
 pub(crate) mod resources;
 mod versioned;
 
-pub(super) async fn make(
-    mst: &ApiManifest,
-    kache: &Kache,
-    strategy: CacheListMakeStrategy,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    plain::make(kache, list).await?;
-
-    versioned::make(mst, kache, &strategy, list).await?;
-    resources::make(mst, kache, &strategy, list).await?;
-
-    Ok(())
-}
-
 pub(super) async fn make_manifest_support(
     mst: &ApiManifest,
     kache: &Kache,

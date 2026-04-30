@@ -1,101 +1,12 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, LazyLock},
-};
+use std::{collections::BTreeMap, sync::LazyLock};
 
-use emukc_cache::Kache;
 use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
 
 use crate::{
-    make_list::manifest::{PathRules, ResourceCategoriesAsset, btxt_flat_coverage, path_rules},
-    make_list::{CacheList, batch_check_exists},
-    prelude::{CacheListMakeStrategy, CacheListMakingError},
+    make_list::CacheList,
+    make_list::manifest::{PathRules, ResourceCategoriesAsset, btxt_flat_coverage},
 };
-
-pub(super) async fn make(
-    mst: &ApiManifest,
-    cache: &Kache,
-    strategy: &CacheListMakeStrategy,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    if *strategy == CacheListMakeStrategy::Minimal {
-        return Ok(());
-    }
-
-    make_default(mst, list);
-
-    match strategy {
-        CacheListMakeStrategy::Default => {
-            make_enemy_plane(list);
-            make_btxt_flat(mst, list);
-            make_character(mst, list);
-        }
-        CacheListMakeStrategy::Greedy(config) => {
-            make_enemy_plane_greedy(cache, config.concurrent, list).await?;
-            make_btxt_flat_greedy(mst, cache, config.concurrent, list).await?;
-            make_character_greedy(mst, cache, config.concurrent, list).await?;
-        }
-        _ => {}
-    };
-
-    Ok(())
-}
-
-fn make_default(mst: &ApiManifest, list: &mut CacheList) {
-    let baga_categories = vec!["card", "card_t", "item_on", "remodel", "statustop_item"];
-    let default_categories =
-        vec!["card", "card_t", "item_on", "item_up", "remodel", "statustop_item"];
-
-    let mut plane_slots: BTreeMap<i64, &ApiMstSlotitem> = BTreeMap::new();
-
-    for slot in mst.api_mst_slotitem.iter() {
-        let item_id = format!("{0:04}", slot.api_id);
-
-        // ally
-        if slot.api_sortno > 0 {
-            let categories = if slot.api_type[0] != 27 {
-                &default_categories
-            } else {
-                &baga_categories
-            };
-            for category in categories {
-                let key = SuffixUtils::create(&item_id, format!("slot_{category}").as_str());
-                list.add(
-                    format!("kcs2/resources/slot/{category}/{item_id}_{key}.png"),
-                    slot.api_version,
-                );
-            }
-        }
-
-        // plane
-        if let Some(key) = (slot.api_type[4] != 0).then_some(slot.api_type[4]) {
-            plane_slots
-                .entry(key)
-                .and_modify(|entry| {
-                    if entry.api_version.is_none() && slot.api_version.is_some() {
-                        *entry = slot;
-                    }
-                })
-                .or_insert(slot);
-        }
-    }
-
-    for (id, slot) in plane_slots.iter() {
-        list.add(format!("kcs2/resources/plane/{id:03}.png"), slot.api_version)
-            .add(format!("kcs2/resources/plane/r{id:03}.png"), slot.api_version);
-
-        let item_id = format!("{0:04}", slot.api_id);
-
-        for category in ["airunit_banner", "airunit_fairy", "airunit_name"] {
-            let key = SuffixUtils::create(&item_id, format!("slot_{category}").as_str());
-            list.add(
-                format!("kcs2/resources/slot/{category}/{item_id}_{key}.png"),
-                slot.api_version,
-            );
-        }
-    }
-}
 
 pub(crate) fn make_manifest_category_extensions(
     mst: &ApiManifest,
@@ -148,34 +59,7 @@ pub(crate) fn make_manifest_plane_extensions(
     make_enemy_plane_with_rules(list, rules);
 }
 
-#[allow(unused)]
-async fn make_enemy_plane_greedy(
-    cache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let checks: Vec<(String, String)> =
-        (1..=50).map(|v| (format!("kcs2/resources/plane/e{v:03}.png"), "".to_string())).collect();
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, _), exists) in check_result {
-        if exists {
-            println!("{p}");
-            list.add_unversioned(p);
-        }
-    }
-
-    Ok(())
-}
-
 const ENEMY_PLANE_MAX_ID: usize = 25;
-
-fn make_enemy_plane(list: &mut CacheList) {
-    make_enemy_plane_with_rules(list, path_rules());
-}
 
 fn make_enemy_plane_with_rules(list: &mut CacheList, rules: Option<&PathRules>) {
     if let Some(rules) = rules.filter(|rules| !rules.enemy_plane_ids.is_empty()) {
@@ -190,37 +74,6 @@ fn make_enemy_plane_with_rules(list: &mut CacheList, rules: Option<&PathRules>) 
         let p = format!("kcs2/resources/plane/e{i:03}.png");
         list.add_unversioned(p);
     }
-}
-
-async fn make_btxt_flat_greedy(
-    mst: &ApiManifest,
-    cache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_slotitem
-        .iter()
-        .map(|v| {
-            let item_id = format!("{0:04}", v.api_id);
-            let key = SuffixUtils::create(&item_id, "slot_btxt_flat");
-            let ver = v.api_version.unwrap_or(1);
-            (format!("kcs2/resources/slot/btxt_flat/{item_id}_{key}.png"), format!("{ver}"))
-        })
-        .collect();
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, _), exists) in check_result {
-        if exists {
-            println!("{p}");
-            list.add_unversioned(p);
-        }
-    }
-
-    Ok(())
 }
 
 static BTXT_FLAT_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
@@ -255,10 +108,7 @@ pub(crate) fn has_btxt_flat_coverage(slot_id: i64) -> bool {
     BTXT_FLAT_IDS.contains(&slot_id)
 }
 
-fn make_btxt_flat(api: &ApiManifest, list: &mut CacheList) {
-    make_btxt_flat_with_rules(api, list, path_rules());
-}
-
+#[cfg(test)]
 fn make_btxt_flat_with_rules(api: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
     let rules = rules.filter(|rules| !rules.btxt_flat_slot_ids.is_empty());
     let ids =
@@ -275,12 +125,10 @@ fn make_btxt_flat_with_rules(api: &ApiManifest, list: &mut CacheList, rules: Opt
     }
 }
 
+#[cfg(test)]
 static CHARACTER_HOLES: LazyLock<Vec<i64>> = LazyLock::new(|| vec![42]);
 
-fn make_character(mst: &ApiManifest, list: &mut CacheList) {
-    make_character_with_rules(mst, list, path_rules());
-}
-
+#[cfg(test)]
 fn make_character_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Option<&PathRules>) {
     let rules = rules.filter(|rules| !rules.character_hole_ids.is_empty());
 
@@ -297,38 +145,6 @@ fn make_character_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Opt
         let key = SuffixUtils::create(&item_id, "slot_item_character");
         list.add(format!("kcs2/resources/slot/item_character/{item_id}_{key}.png"), m.api_version);
     }
-}
-
-async fn make_character_greedy(
-    mst: &ApiManifest,
-    cache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_slotitem
-        .iter()
-        .filter(|v| v.api_sortno > 0)
-        .map(|v| {
-            let item_id = format!("{0:04}", v.api_id);
-            let key = SuffixUtils::create(&item_id, "slot_item_character");
-            let ver = v.api_version.unwrap_or(1);
-            (format!("kcs2/resources/slot/item_character/{item_id}_{key}.png"), format!("{ver}"))
-        })
-        .collect();
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
