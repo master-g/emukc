@@ -29,6 +29,13 @@ pub(super) struct CacheArgs {
     command: Commands,
 }
 
+impl CacheArgs {
+    /// Whether this cache subcommand uses indicatif progress bars
+    pub(super) fn uses_progress_bars(&self) -> bool {
+        matches!(self.command, Commands::Populate(_))
+    }
+}
+
 pub(super) async fn exec(args: &CacheArgs, config: &AppConfig) -> Result<()> {
     match &args.command {
         Commands::Populate(args) => populate::exec(args, config).await?,

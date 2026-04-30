@@ -115,6 +115,14 @@ fn find_config_file(arg: &str) -> anyhow::Result<PathBuf> {
     ))
 }
 
+fn needs_quiet_stdout(cmd: &Option<Commands>) -> bool {
+    match cmd {
+        Some(Commands::Bootstrap(_)) => true,
+        Some(Commands::Cache(args)) => args.uses_progress_bars(),
+        _ => false,
+    }
+}
+
 pub async fn init() -> ExitCode {
     let args = Cli::parse();
 
@@ -157,6 +165,7 @@ pub async fn init() -> ExitCode {
         .with_source_file()
         .with_line_number()
         .with_file_appender(log_dir)
+        .with_quiet_stdout(needs_quiet_stdout(&args.command))
         .build()
     else {
         eprintln!("Failed to initialize logging");

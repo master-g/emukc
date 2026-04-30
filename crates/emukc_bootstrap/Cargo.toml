@@ -14,6 +14,7 @@ emukc_network = { path = "../emukc_network" }
 
 # other
 futures = { workspace = true }
+indicatif = { workspace = true }
 futures-util = { workspace = true }
 regex = { workspace = true }
 scraper = { workspace = true }

@@ -37,13 +37,16 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
         cfg.temp_root()?
     };
 
-    // download files needed for constructing the codex
+    // Phase 1: Download resources
+    info!("Phase 1/4: Downloading resources...");
     download_all(&output, args.overwrite, proxy, Some(16)).await?;
 
-    // parse the codex
+    // Phase 2: Parse codex
+    info!("Phase 2/4: Parsing game data...");
     let codex = parse_partial_codex(&output)?;
 
-    // save the codex
+    // Phase 3: Save codex
+    info!("Phase 3/4: Saving codex...");
     let codex_root = cfg.codex_root()?;
     codex.save(&codex_root, args.overwrite)?;
 
@@ -63,8 +66,9 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
         info!("version files in kcs cache removed.");
     }
 
-    // download web assets unless skipped
+    // Phase 4: Download web assets
     if !args.skip_web_assets {
+        info!("Phase 4/4: Downloading web assets...");
         download_web_assets(
             &cfg.cache_root,
             &cfg.gadgets_cdn,

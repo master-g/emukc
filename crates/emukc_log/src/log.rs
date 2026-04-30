@@ -26,6 +26,7 @@ pub struct Builder {
     line_number: bool,
     thread_id: bool,
     target: bool,
+    quiet_stdout: bool,
 }
 
 /// Create a new log builder
@@ -44,6 +45,7 @@ impl Default for Builder {
             line_number: false,
             thread_id: false,
             target: false,
+            quiet_stdout: false,
         }
     }
 }
@@ -94,6 +96,12 @@ impl Builder {
         self
     }
 
+    /// Suppress stdout log output (keep file logging only)
+    pub fn with_quiet_stdout(mut self, quiet: bool) -> Self {
+        self.quiet_stdout = quiet;
+        self
+    }
+
     /// Set the log level to trace for all modules
     pub fn with_trace_level(mut self) -> Self {
         self.filter = CustomEnvFilter(
@@ -111,21 +119,29 @@ impl Builder {
             .init()
             .expect("LogTracer failed to init");
 
-        let fmt_layer = fmt::layer()
-            .with_level(true)
-            .with_file(self.source_file)
-            .with_line_number(self.line_number)
-            .with_thread_ids(self.thread_id)
-            .with_target(self.target)
-            .with_writer(std::io::stdout)
-            .with_filter(self.filter.clone().0);
+        let fmt_layer = if !self.quiet_stdout {
+            Some(
+                fmt::layer()
+                    .with_level(true)
+                    .with_file(self.source_file)
+                    .with_line_number(self.line_number)
+                    .with_thread_ids(self.thread_id)
+                    .with_target(self.target)
+                    .with_writer(std::io::stdout)
+                    .with_filter(self.filter.clone().0),
+            )
+        } else {
+            None
+        };
 
         if let Some(path) = self.log_to_path {
             let file_appender = tracing_appender::rolling::daily(path, LOG_FILE_NAME_PREFIX);
             let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
             let file_layer =
                 fmt::layer().with_ansi(false).with_writer(non_blocking).with_filter(self.filter.0);
-            let collector = tracing_subscriber::registry().with(fmt_layer).with(file_layer);
+            let collector = tracing_subscriber::registry()
+                .with(fmt_layer)
+                .with(file_layer);
             tracing::subscriber::set_global_default(collector).expect("Tracing collect error");
 
             Some(guard)
@@ -143,6 +159,12 @@ impl Builder {
             // .with_max_level(log::LevelFilter::Error)
             .init()
             .expect("LogTracer failed to init");
+
+        if self.quiet_stdout {
+            let collector = tracing_subscriber::registry();
+            tracing::subscriber::set_global_default(collector).expect("Tracing collect error");
+            return;
+        }
 
         // Use a more permissive filter for simple builds if using default
         let filter = {

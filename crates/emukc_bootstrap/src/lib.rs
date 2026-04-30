@@ -25,6 +25,7 @@ mod map_overlay;
 mod map_pipeline;
 mod parser;
 mod populate;
+mod progress;
 mod real_map_start_asset;
 mod res;
 mod wikiwiki_map_asset;

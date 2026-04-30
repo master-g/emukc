@@ -1,26 +1,35 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Instant;
+
+use indicatif::ProgressBar;
+
+use crate::progress::{make_list_style, new_progress_bar};
 
 /// Progress tracker for greedy mode
 pub struct ProgressTracker {
     total: usize,
     checked: AtomicUsize,
     found: AtomicUsize,
-    start_time: Instant,
+    pb: Option<ProgressBar>,
 }
 
 impl ProgressTracker {
     pub fn new(total: usize) -> Self {
+        let pb = new_progress_bar(total as u64, "Checking resources", make_list_style());
         Self {
             total,
             checked: AtomicUsize::new(0),
             found: AtomicUsize::new(0),
-            start_time: Instant::now(),
+            pb,
         }
     }
 
     pub fn increment_checked(&self) {
-        self.checked.fetch_add(1, Ordering::Relaxed);
+        let checked = self.checked.fetch_add(1, Ordering::Relaxed) + 1;
+        let found = self.found.load(Ordering::Relaxed);
+        if let Some(ref pb) = self.pb {
+            pb.inc(1);
+            pb.set_message(format!("{checked}/{} checked, {found} found", self.total));
+        }
     }
 
     pub fn increment_found(&self) {
@@ -30,20 +39,25 @@ impl ProgressTracker {
     pub fn report(&self) {
         let checked = self.checked.load(Ordering::Relaxed);
         let found = self.found.load(Ordering::Relaxed);
-        let elapsed = self.start_time.elapsed();
-        let rate = checked as f64 / elapsed.as_secs_f64();
 
-        if checked > 0 {
-            let eta_secs = ((self.total - checked) as f64 / rate) as u64;
-            info!(
-                "Progress: {}/{} checked, {} found ({:.1}%), {:.1} checks/s, ETA: {}s",
-                checked,
-                self.total,
-                found,
-                (found as f64 / checked as f64) * 100.0,
-                rate,
-                eta_secs
-            );
+        if let Some(ref pb) = self.pb {
+            pb.set_message(format!("{checked}/{} checked, {found} found", self.total));
+        } else if checked > 0 {
+            info!("Progress: {}/{} checked, {} found", checked, self.total, found);
         }
+    }
+
+    pub fn finish(&self) {
+        if let Some(ref pb) = self.pb {
+            let checked = self.checked.load(Ordering::Relaxed);
+            let found = self.found.load(Ordering::Relaxed);
+            pb.finish_with_message(format!("Checking resources  done ({checked} checked, {found} found)"));
+        }
+    }
+}
+
+impl Drop for ProgressTracker {
+    fn drop(&mut self) {
+        self.finish();
     }
 }

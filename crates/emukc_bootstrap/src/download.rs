@@ -6,6 +6,9 @@ use futures::{StreamExt, TryStreamExt, stream::FuturesUnordered};
 use std::sync::Arc;
 use thiserror::Error;
 
+use crate::progress::{
+    download_aggregate_style, log_with_mp, new_multi_progress, new_progress_bar, new_spinner,
+};
 use crate::res::RES_LIST;
 
 /// Error that can occur during the download process
@@ -108,6 +111,29 @@ pub async fn download_all(
     let max_concurrent = concurrent.unwrap_or(4).max(1);
     let mut tasks = FuturesUnordered::new();
 
+    let mp = Arc::new(new_multi_progress());
+    let aggregate_pb = match mp.as_ref() {
+        Some(mp) => {
+            let pb = new_progress_bar(0, "Downloading resources", download_aggregate_style())
+                .expect("ProgressBar creation should succeed in TTY mode");
+            Some(mp.add(pb))
+        }
+        None => new_progress_bar(0, "Downloading resources", download_aggregate_style()),
+    };
+
+    // Count total resources to download
+    let total_resources = RES_LIST
+        .iter()
+        .filter(|res| {
+            let fullpath = output_dir.join(res.save_as);
+            !fullpath.exists() || overwrite
+        })
+        .count();
+
+    if let Some(ref pb) = aggregate_pb {
+        pb.set_length(total_resources as u64);
+    }
+
     for res in RES_LIST.iter() {
         let client = client.clone();
         let fullpath = output_dir.join(res.save_as);
@@ -118,6 +144,12 @@ pub async fn download_all(
         }
 
         let output_dir = output_dir.to_path_buf();
+        let aggregate_pb = aggregate_pb.clone();
+        let mp = mp.clone();
+        let spinner = mp.as_ref().as_ref().and_then(|mp| {
+            let sp = new_spinner(res.save_as)?;
+            Some(mp.add(sp))
+        });
 
         let task = async move {
             let since = std::time::Instant::now();
@@ -161,13 +193,23 @@ pub async fn download_all(
                 source,
             })?;
 
-            info!(
-                "{} downloaded, size: {}, md5: {}, time: {:?}",
-                res.save_as,
-                size,
-                md5,
-                since.elapsed()
-            );
+            if let Some(ref pb) = aggregate_pb {
+                pb.inc(1);
+            }
+
+            log_with_mp(&mp, || {
+                info!(
+                    "{} downloaded, size: {}, md5: {}, time: {:?}",
+                    res.save_as,
+                    size,
+                    md5,
+                    since.elapsed()
+                );
+            });
+
+            if let Some(sp) = spinner {
+                sp.finish_and_clear();
+            }
 
             if let Some(unzip_to) = res.unzip_to {
                 let unzip_to_path = output_dir.join(unzip_to);
@@ -209,9 +251,10 @@ pub async fn download_all(
                         action: "extracting zip archive",
                         source,
                     })?;
-                // zip_extract::extract(&file, &unzip_to_path, true)?;
 
-                info!("{} unzipped to {}", res.save_as, unzip_to);
+                log_with_mp(&mp, || {
+                    info!("{} unzipped to {}", res.save_as, unzip_to);
+                });
             }
 
             Ok(())
@@ -229,6 +272,10 @@ pub async fn download_all(
 
     // Process remaining tasks
     tasks.try_collect::<Vec<_>>().await?;
+
+    if let Some(pb) = aggregate_pb {
+        pb.finish_with_message("Downloading resources  done");
+    }
 
     Ok(())
 }
@@ -260,7 +307,7 @@ const WEB_ASSETS: &[WebAsset] = &[
     },
 ];
 
-/// Download key web assets (kcs_const.js, main.js, version.json) from CDN.
+/// Download key web assets (`kcs_const.js`, `main.js`, `version.json`) from CDN.
 ///
 /// Skips assets whose CDN is not configured, emitting a warn log.
 /// Skips files that already exist unless `overwrite` is true.
@@ -278,6 +325,8 @@ pub async fn download_web_assets(
         }
     })?);
 
+    let mp = new_multi_progress();
+
     for asset in WEB_ASSETS {
         let cdns = match asset.cdn_kind {
             CdnKind::Gadgets => gadgets_cdn,
@@ -285,18 +334,20 @@ pub async fn download_web_assets(
         };
 
         if cdns.is_empty() {
-            warn!(
-                "Skipping {} — no {} CDN configured. Set {} in emukc.config.toml to enable.",
-                asset.path,
-                match asset.cdn_kind {
-                    CdnKind::Gadgets => "gadgets_cdn",
-                    CdnKind::Game => "game_cdn",
-                },
-                match asset.cdn_kind {
-                    CdnKind::Gadgets => "gadgets_cdn",
-                    CdnKind::Game => "game_cdn",
-                },
-            );
+            log_with_mp(&mp, || {
+                warn!(
+                    "Skipping {} — no {} CDN configured. Set {} in emukc.config.toml to enable.",
+                    asset.path,
+                    match asset.cdn_kind {
+                        CdnKind::Gadgets => "gadgets_cdn",
+                        CdnKind::Game => "game_cdn",
+                    },
+                    match asset.cdn_kind {
+                        CdnKind::Gadgets => "gadgets_cdn",
+                        CdnKind::Game => "game_cdn",
+                    },
+                );
+            });
             continue;
         }
 
@@ -322,7 +373,9 @@ pub async fn download_web_assets(
 
             match result {
                 Ok(()) => {
-                    info!("Downloaded {} from {}", asset.path, url);
+                    log_with_mp(&mp, || {
+                        info!("Downloaded {} from {}", asset.path, url);
+                    });
                     downloaded = true;
                     break;
                 }
@@ -332,13 +385,17 @@ pub async fn download_web_assets(
                     break;
                 }
                 Err(e) => {
-                    warn!("Failed to download {} from {}: {e}", asset.path, url);
+                    log_with_mp(&mp, || {
+                        warn!("Failed to download {} from {}: {e}", asset.path, url);
+                    });
                 }
             }
         }
 
         if !downloaded {
-            warn!("All CDN sources failed for {}", asset.path);
+            log_with_mp(&mp, || {
+                warn!("All CDN sources failed for {}", asset.path);
+            });
         }
     }
 
