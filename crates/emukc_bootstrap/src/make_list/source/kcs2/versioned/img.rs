@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use emukc_cache::Kache;
+use emukc_cache::{Kache, cmp_version};
 use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
@@ -551,9 +551,35 @@ pub(super) async fn make(
 ) -> Result<(), CacheListMakingError> {
     for p in LIST.iter() {
         let category = p.split('/').next().unwrap();
-        let version = versions.get(category);
+        let full_path = format!("kcs2/img/{p}");
+        let version_json_ver = versions.get(category);
 
-        list.add(format!("kcs2/img/{p}"), version);
+        // Check for rollback: compare version.json version with cached version
+        let version = match cache.get_cached_version(&full_path).await {
+            Ok(Some(cached_ver)) => match version_json_ver {
+                Some(vj_ver) => {
+                    if cmp_version(cached_ver.as_str(), vj_ver.as_str())
+                        == std::cmp::Ordering::Greater
+                    {
+                        warn!(
+                            "version rollback detected: {full_path}, cached={cached_ver}, version.json={vj_ver}, using cached"
+                        );
+                        Some(cached_ver)
+                    } else {
+                        version_json_ver.cloned()
+                    }
+                }
+                None => {
+                    warn!(
+                        "category '{category}' not in version.json for {full_path}, using cached version {cached_ver}"
+                    );
+                    Some(cached_ver)
+                }
+            },
+            _ => version_json_ver.cloned(),
+        };
+
+        list.add(full_path, version);
     }
     append_battle_rule_provider_assets(versions, list)?;
 

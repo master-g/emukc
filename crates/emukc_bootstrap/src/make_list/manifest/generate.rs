@@ -214,7 +214,9 @@ fn graph_group_ship_ids_from_cache_rules(
         ids.extend(
             mst.api_mst_shipgraph
                 .iter()
-                .filter(|graph| graph.api_sortno.is_some_and(|s| s > 0) && !graph.api_version.is_empty())
+                .filter(|graph| {
+                    graph.api_sortno.is_some_and(|s| s > 0) && !graph.api_version.is_empty()
+                })
                 .map(|graph| graph.api_id),
         );
 
@@ -968,9 +970,9 @@ mod tests {
             provider: None,
             texture_ids: None,
             paths: Some(vec![
-                "resources/ship/".to_string(),                 // directory with / — skip
-                "resources/voice".to_string(),                 // directory without / — skip
-                "resources/friendly_panel/e".to_string(),      // directory without / — skip
+                "resources/ship/".to_string(),            // directory with / — skip
+                "resources/voice".to_string(),            // directory without / — skip
+                "resources/friendly_panel/e".to_string(), // directory without / — skip
                 "resources/stype/etext/sp001.png".to_string(), // file — include
             ]),
             module_ids: vec![],

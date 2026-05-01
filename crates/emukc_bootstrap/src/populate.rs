@@ -203,9 +203,14 @@ pub async fn populate(
         return Ok(());
     }
 
-    // Pass 2: retry failed items
+    // Pass 2: retry failed items (excluding InvalidFileVersion — version rollback is not a download failure)
+    let (skipped, retry_items): (Vec<_>, Vec<_>) =
+        pass1_failures.into_iter().partition(|f| f.error.contains("file version not matched"));
+    if !skipped.is_empty() {
+        warn!("skipping {} items with version rollback", skipped.len());
+    }
     let retry_items: Vec<(String, Option<String>)> =
-        pass1_failures.into_iter().map(|f| (f.path, f.version)).collect();
+        retry_items.into_iter().map(|f| (f.path, f.version)).collect();
     let retry_count = retry_items.len();
 
     if let Some(ref pb) = aggregate_pb {

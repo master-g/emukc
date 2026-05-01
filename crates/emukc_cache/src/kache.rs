@@ -456,6 +456,11 @@ impl Kache {
         Ok(version)
     }
 
+    /// Get the cached version for a resource path, if any.
+    pub async fn get_cached_version(&self, path: &str) -> Result<Option<String>, Error> {
+        self.read_version_from_db(path).await
+    }
+
     /// Write a version record for a cached resource.
     pub async fn set_version(&self, rel_path: &str, version: Option<&str>) -> Result<(), Error> {
         let rel_path = unified_rel_path(rel_path);

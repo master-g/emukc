@@ -20,7 +20,7 @@ pub use error::Error as KacheError;
 pub use kache::Builder as KacheBuilder;
 pub use kache::Kache;
 pub use opt::GetOption;
-pub use ver::{IntoVersion, NoVersion};
+pub use ver::{IntoVersion, NoVersion, cmp_version};
 
 /// Convert a path to a unified relative path.
 ///

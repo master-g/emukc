@@ -272,9 +272,7 @@ fn add_template_area_paths(
     } else if let Some(ui) = decoder_assets.ui_resources.as_ref() {
         match family {
             "airunit" => ui.area.airunit_ids.ids.to_vec(),
-            "airunit_extend_confirm" => {
-                ui.area.airunit_extend_confirm_ids.ids.to_vec()
-            }
+            "airunit_extend_confirm" => ui.area.airunit_extend_confirm_ids.ids.to_vec(),
             _ => mst
                 .api_mst_mapinfo
                 .iter()

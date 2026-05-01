@@ -5,13 +5,22 @@ use serde::{Deserialize, Serialize};
 use crate::profile::material::MaterialConfig;
 
 /// Picture book configuration
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PicturebookConfig {
     /// unveiled all ships in picturebook
     pub unlock_all_ships: bool,
 
     /// unveiled all equipments in picturebook
     pub unlock_all_slotitems: bool,
+}
+
+impl Default for PicturebookConfig {
+    fn default() -> Self {
+        Self {
+            unlock_all_ships: true,
+            unlock_all_slotitems: true,
+        }
+    }
 }
 
 /// Repair config
@@ -46,7 +55,7 @@ pub struct ExpConfig {
 impl Default for ExpConfig {
     fn default() -> Self {
         Self {
-            ct_exp_boost: 1.0,
+            ct_exp_boost: 250.0,
             practice_exp_boost: 1.0,
         }
     }

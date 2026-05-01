@@ -76,3 +76,23 @@ async fn test_version_rollback_no_version_requested() {
     let result = cache.get_with_opt("test.png", "", &opt).await;
     assert!(result.is_ok(), "expected Ok, got {:?}", result.err());
 }
+
+#[tokio::test]
+async fn test_get_cached_version_returns_stored_version() {
+    let (cache, temp) = setup_test_cache();
+
+    let file_path = temp.path().join("test.png");
+    std::fs::write(&file_path, b"test data").unwrap();
+    cache.set_version("test.png", Some("6.2.9.0")).await.unwrap();
+
+    let version = cache.get_cached_version("test.png").await.unwrap();
+    assert_eq!(version.as_deref(), Some("6.2.9.0"));
+}
+
+#[tokio::test]
+async fn test_get_cached_version_returns_none_for_unknown_path() {
+    let (cache, _temp) = setup_test_cache();
+
+    let version = cache.get_cached_version("nonexistent.png").await.unwrap();
+    assert!(version.is_none());
+}
