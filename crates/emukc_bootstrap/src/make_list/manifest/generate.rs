@@ -214,7 +214,7 @@ fn graph_group_ship_ids_from_cache_rules(
         ids.extend(
             mst.api_mst_shipgraph
                 .iter()
-                .filter(|graph| graph.api_sortno.is_some() && !graph.api_version.is_empty())
+                .filter(|graph| graph.api_sortno.is_some_and(|s| s > 0) && !graph.api_version.is_empty())
                 .map(|graph| graph.api_id),
         );
 
@@ -752,6 +752,13 @@ fn generate_explicit_paths(entry: &ResourceManifestEntry, list: &mut CacheList) 
             continue;
         }
 
+        // Skip paths that look like directories but lack trailing /
+        // (e.g., "resources/voice", "resources/friendly_panel/e")
+        let last_segment = full_path.rsplit('/').next().unwrap_or("");
+        if !last_segment.contains('.') {
+            continue;
+        }
+
         // Skip JSON files that aren't resources
         if full_path.ends_with(".json") && !full_path.contains("ship_image") {
             continue;
@@ -961,7 +968,9 @@ mod tests {
             provider: None,
             texture_ids: None,
             paths: Some(vec![
-                "resources/ship/".to_string(),                 // directory — skip
+                "resources/ship/".to_string(),                 // directory with / — skip
+                "resources/voice".to_string(),                 // directory without / — skip
+                "resources/friendly_panel/e".to_string(),      // directory without / — skip
                 "resources/stype/etext/sp001.png".to_string(), // file — include
             ]),
             module_ids: vec![],
@@ -1694,5 +1703,37 @@ mod tests {
         let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
         assert_eq!(paths.len(), 1);
         assert!(paths[0].contains("slot/btxt_flat/0002_"));
+    }
+
+    #[test]
+    fn test_sortno_zero_excluded_from_friend_graph() {
+        let mut mst = make_minimal_manifest();
+        // Ship with sortno=Some(0) — graph-only entry, not a real playable ship
+        mst.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 3,
+            api_sortno: Some(0),
+            api_filename: "3".to_string(),
+            api_version: vec!["1".to_string()],
+            ..Default::default()
+        });
+
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("character_full", "this._mst_id", Some("false"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            friend_graph: vec!["character_full".to_string()],
+            ..Default::default()
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        // sortno=0 ship (ID 3) must NOT produce character_full paths
+        assert!(
+            !paths.iter().any(|path| path.contains("ship/character_full/0003_")),
+            "sortno=0 entries should be excluded from friend_graph targets"
+        );
+        // Regular friendly ship (ID 1, sortno=Some(1)) should still produce paths
+        assert!(paths.iter().any(|path| path.contains("ship/character_full/0001_")));
     }
 }

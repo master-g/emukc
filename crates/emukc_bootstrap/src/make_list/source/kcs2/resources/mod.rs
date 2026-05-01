@@ -158,17 +158,17 @@ fn add_decoder_template_paths(
     if let Some(family) = decoder_template_family(decoder_assets, "area.sally")
         && can_expand_template(family, mst, decoder_assets)
     {
-        add_template_area_paths(mst, "sally", list);
+        add_template_area_paths(mst, "sally", decoder_assets, list);
     }
     if let Some(family) = decoder_template_family(decoder_assets, "area.airunit")
         && can_expand_template(family, mst, decoder_assets)
     {
-        add_template_area_paths(mst, "airunit", list);
+        add_template_area_paths(mst, "airunit", decoder_assets, list);
     }
     if let Some(family) = decoder_template_family(decoder_assets, "area.airunit_extend_confirm")
         && can_expand_template(family, mst, decoder_assets)
     {
-        add_template_area_paths(mst, "airunit_extend_confirm", list);
+        add_template_area_paths(mst, "airunit_extend_confirm", decoder_assets, list);
     }
     for family in decoder_template_families(decoder_assets) {
         if family.required_inputs.contains(&ResourceTemplateInput::DecoderTemplateRange)
@@ -228,12 +228,9 @@ fn add_template_map_info_paths(mst: &ApiManifest, list: &mut CacheList) {
     }
 }
 
-fn add_template_gauge_paths(mst: &ApiManifest, list: &mut CacheList) {
-    for map in &mst.api_mst_mapinfo {
-        list.add_unversioned(format!(
-            "kcs2/resources/gauge/{:03}{:02}.json",
-            map.api_maparea_id, map.api_no
-        ));
+fn add_template_gauge_paths(_mst: &ApiManifest, list: &mut CacheList) {
+    for id in gauge::MAP_ID_LIST.iter().chain(gauge::EVENT_MAP_ID_LIST.iter()) {
+        list.add_unversioned(format!("kcs2/resources/gauge/{id}.json"));
     }
 }
 
@@ -258,13 +255,37 @@ fn add_template_bgm_paths(mst: &ApiManifest, list: &mut CacheList) {
     }
 }
 
-fn add_template_area_paths(mst: &ApiManifest, family: &str, list: &mut CacheList) {
-    let area_ids = mst
-        .api_mst_mapinfo
-        .iter()
-        .filter(|map| !map.api_sally_flag.is_empty() || family != "sally")
-        .map(|map| format!("{:03}", map.api_maparea_id))
-        .collect::<std::collections::BTreeSet<_>>();
+fn add_template_area_paths(
+    mst: &ApiManifest,
+    family: &str,
+    decoder_assets: &DecoderCoverageAssets,
+    list: &mut CacheList,
+) {
+    let area_ids: Vec<String> = if family == "sally" {
+        mst.api_mst_mapinfo
+            .iter()
+            .filter(|map| !map.api_sally_flag.is_empty())
+            .map(|map| format!("{:03}", map.api_maparea_id))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    } else if let Some(ui) = decoder_assets.ui_resources.as_ref() {
+        match family {
+            "airunit" => ui.area.airunit_ids.ids.to_vec(),
+            "airunit_extend_confirm" => {
+                ui.area.airunit_extend_confirm_ids.ids.to_vec()
+            }
+            _ => mst
+                .api_mst_mapinfo
+                .iter()
+                .map(|map| format!("{:03}", map.api_maparea_id))
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect(),
+        }
+    } else {
+        unversioned::AREA_AIR_UNIT.iter().map(|s| (*s).to_string()).collect()
+    };
     for id in area_ids {
         list.add_unversioned(format!("kcs2/resources/area/{family}/{id}.png"));
     }
@@ -641,6 +662,93 @@ mod tests {
                 .diagnostics
                 .fallback_authored_paths
                 .contains(&"kcs2/resources/map/001/01.png".to_string())
+        );
+    }
+
+    #[test]
+    fn template_area_paths_use_decoder_observed_ids_for_airunit() {
+        let ui_resources = serde_json::from_value(json!({
+            "version": 1,
+            "generatedAt": "2026-01-01T00:00:00Z",
+            "scriptVersion": "6.2.8.0",
+            "area": {
+                "airunitIds": { "ids": ["006", "007"] },
+                "airunitExtendConfirmIds": { "ids": ["006"] }
+            }
+        }))
+        .unwrap();
+        let decoder_assets = DecoderCoverageAssets {
+            ui_resources: Some(ui_resources),
+            ..Default::default()
+        };
+        let mst = ApiManifest {
+            api_mst_mapinfo: vec![
+                ApiMstMapinfo {
+                    api_maparea_id: 1,
+                    api_no: 1,
+                    api_sally_flag: vec![1],
+                    ..Default::default()
+                },
+                ApiMstMapinfo {
+                    api_maparea_id: 6,
+                    api_no: 1,
+                    api_sally_flag: vec![],
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+
+        let mut list = CacheList::new();
+        add_template_area_paths(&mst, "airunit", &decoder_assets, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.iter().any(|p| p.contains("airunit/006.png")));
+        assert!(paths.iter().any(|p| p.contains("airunit/007.png")));
+        assert!(
+            !paths.iter().any(|p| p.contains("airunit/001.png")),
+            "area 001 should not produce airunit paths"
+        );
+
+        let mut list2 = CacheList::new();
+        add_template_area_paths(&mst, "airunit_extend_confirm", &decoder_assets, &mut list2);
+
+        let paths2: Vec<&str> = list2.items.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths2.iter().any(|p| p.contains("airunit_extend_confirm/006.png")));
+        assert!(
+            !paths2.iter().any(|p| p.contains("airunit_extend_confirm/001.png")),
+            "area 001 should not produce airunit_extend_confirm paths"
+        );
+    }
+
+    #[test]
+    fn template_gauge_paths_only_produce_known_gauge_ids() {
+        let mst = ApiManifest {
+            api_mst_mapinfo: vec![
+                ApiMstMapinfo {
+                    api_maparea_id: 1,
+                    api_no: 1,
+                    ..Default::default()
+                },
+                ApiMstMapinfo {
+                    api_maparea_id: 1,
+                    api_no: 5,
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+
+        let mut list = CacheList::new();
+        add_template_gauge_paths(&mst, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        // 00105 is in MAP_ID_LIST — should be present
+        assert!(paths.iter().any(|p| p.contains("gauge/00105.json")));
+        // 00101 is NOT in any gauge list — should be absent
+        assert!(
+            !paths.iter().any(|p| p.contains("gauge/00101.json")),
+            "regular map 1-1 should not produce gauge paths"
         );
     }
 }

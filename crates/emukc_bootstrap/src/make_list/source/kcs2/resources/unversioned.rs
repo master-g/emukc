@@ -18,7 +18,7 @@ static SE: LazyLock<Vec<u32>> = LazyLock::new(|| {
 static AREA_SALLY: LazyLock<&[&str]> =
     LazyLock::new(|| &["001", "002", "004", "005", "006", "007", "057", "057_2", "058"]);
 
-static AREA_AIR_UNIT: LazyLock<&[&str]> = LazyLock::new(|| &["006", "007", "058"]);
+pub(super) static AREA_AIR_UNIT: LazyLock<&[&str]> = LazyLock::new(|| &["006", "007", "058"]);
 
 static TUTORIAL_VOICE: LazyLock<&[&str]> = LazyLock::new(|| {
     &[

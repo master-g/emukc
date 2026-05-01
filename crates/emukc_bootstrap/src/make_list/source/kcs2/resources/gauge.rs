@@ -9,7 +9,7 @@ use crate::{
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
-static MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
+pub(super) static MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
     &[
         "00105", "00106", "00205", "00305", "00404", "00405", "00502", "00503", "00504", "00505",
         "00602", "00603", "00604", "00605", "00701", "00702", "00702_2", "00703", "00703_2",
@@ -17,7 +17,7 @@ static MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
     ]
 });
 
-static EVENT_MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
+pub(super) static EVENT_MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
     &[
         "03801", "03802", "03803", "03804", "03805", "03901", "04001", "04101", "04201", "04301",
         "04301_2", "04302", "04302_2", "04303", "04303_2", "04401", "04402", "04402_2", "04403",
