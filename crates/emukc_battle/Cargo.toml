@@ -1,0 +1,19 @@
+[package]
+name = "emukc_battle"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# emukc
+emukc_model = { path = "../emukc_model" }
+
+# other
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+emukc_bootstrap = { path = "../emukc_bootstrap" }
+emukc_crypto = { path = "../emukc_crypto" }
+
+[lints]
+workspace = true

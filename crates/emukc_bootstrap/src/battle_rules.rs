@@ -1527,7 +1527,7 @@ mod tests {
                 "api_plane_from":[[3],[]],
                 "api_stage1":{"api_disp_seiku":1,"api_e_count":0,"api_e_lostcount":0,"api_f_count":99,"api_f_lostcount":0,"api_touch_plane":[-1,-1]},
                 "api_stage2":{"api_e_count":0,"api_e_lostcount":0,"api_f_count":99,"api_f_lostcount":2},
-                "api_stage3":{"api_e_sp_list":[null,null],"api_ebak_flag":[0,1],"api_ecl_flag":[0,1],"api_edam":[0,24],"api_erai_flag":[0,1],"api_f_sp_list":[null,null,null],"api_fbak_flag":[0,0,0],"api_fcl_flag":[0,0,0],"api_fdam":[0,0,0],"api_frai_flag":[0,0,0]}
+                "api_stage3":{"api_e_sp_list":[null,null],"api_ebak":[1,-1,-1],"api_ecl_flag":[0,1],"api_edam":[0,24],"api_erai":[1,-1,-1],"api_f_sp_list":[null,null,null],"api_fbak":[-1,-1],"api_fcl_flag":[0,0,0],"api_fdam":[0,0,0],"api_frai":[-1,-1]}
             },
             "api_midnight_flag": 0,
             "api_opening_flag": 0,

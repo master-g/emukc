@@ -23,7 +23,7 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::HasContext};
 
-use super::sortie_store::SortieStore;
+use super::battle::repository::SortieRepository;
 
 #[cfg(test)]
 use super::map_progress::assign_stage_id;
@@ -31,18 +31,17 @@ use super::map_progress::assign_stage_id;
 use super::map_route::{route_predicate_matches, select_route_target_for_roll};
 #[cfg(test)]
 use super::sortie_result::eligible_sortie_ship_drops;
+use emukc_battle::{
+    BattleContext, BattleNightHougeki, BattleShipInput, BattleType, EngagementType,
+};
+
 use super::{
     basic::find_profile,
     battle::{
-        core::{
-            BattleContext, BattleNightHougeki, BattlePacket, BattleShipInput, BattleType,
-            EngagementType,
-        },
         practice::PracticeBattleResponse,
         sortie::{
-            SortieBattleInput, pending_sortie_battle, simulate_and_store_sortie_day_battle,
-            simulate_and_store_sortie_night_battle, simulate_and_store_sortie_sp_midnight_battle,
-            take_sortie_day_battle_result,
+            SortieBattleInput, build_day_response, build_night_response, pending_battle,
+            run_day_battle, run_night_battle, run_sp_midnight_battle, take_day_battle_result,
         },
     },
     fleet::get_fleet_ships_impl,
@@ -68,17 +67,17 @@ const DRUM_CANISTER_MST_ID: i64 = 75;
 pub type SortieBattleResponse = PracticeBattleResponse;
 
 #[derive(Debug, Clone)]
-pub(super) struct ActiveSortieState {
-    pub(super) deck_id: i64,
-    pub(super) map_id: i64,
-    pub(super) map_name: String,
-    pub(super) map_level: i64,
-    pub(super) stage_id: String,
-    pub(super) current_cell_id: i64,
-    pub(super) boss_cell_id: i64,
-    pub(super) pending_battle_cell_id: Option<i64>,
-    pub(super) visited_cell_ids: BTreeSet<i64>,
-    pub(super) locked_enemy_composition: Option<EnemyComposition>,
+pub struct ActiveSortieState {
+    pub deck_id: i64,
+    pub map_id: i64,
+    pub map_name: String,
+    pub map_level: i64,
+    pub stage_id: String,
+    pub current_cell_id: i64,
+    pub boss_cell_id: i64,
+    pub pending_battle_cell_id: Option<i64>,
+    pub visited_cell_ids: BTreeSet<i64>,
+    pub locked_enemy_composition: Option<EnemyComposition>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -314,7 +313,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             visited_cell_ids: BTreeSet::from([first_cell]),
             locked_enemy_composition: locked_enemy_composition.clone(),
         };
-        self.sortie_store().insert_active_sortie(profile_id, active);
+        let _ = self.sortie_store().insert_active(profile_id, active);
         tx.commit().await?;
 
         let _ = formation_id;
@@ -353,7 +352,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let codex = self.codex();
         let db = self.db();
         let store = self.sortie_store();
-        let active = store.get_active_sortie(profile_id).ok_or_else(|| {
+        let active = store.get_active(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "active sortie not found for profile {profile_id}",
             ))
@@ -401,11 +400,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let locked_enemy_composition =
             select_locked_enemy_composition(active.map_id, stage, next.cell_no);
 
-        store.modify_active_sortie(profile_id, |state| {
+        if let Some(mut state) = store.get_active(profile_id) {
             state.current_cell_id = next_cell_id;
             state.visited_cell_ids.insert(next_cell_id);
             state.locked_enemy_composition = locked_enemy_composition.clone();
-        });
+            let _ = store.insert_active(profile_id, state);
+        }
 
         // Resolve non-battle node effects (resource gain / maelstrom loss).
         let tx = db.begin().await?;
@@ -522,12 +522,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 "sortie battle result not found for profile {profile_id}",
             ))
         })?;
-        let session = take_sortie_day_battle_result(store, profile_id).ok_or_else(|| {
+        let session = take_day_battle_result(store, profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "sortie battle session not found for profile {profile_id}",
             ))
         })?;
-        let active = store.get_active_sortie(profile_id).ok_or_else(|| {
+        let active = store.get_active(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "active sortie not found for profile {profile_id}",
             ))
@@ -606,11 +606,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let should_finish_sortie =
             current_cell.cell_no == active.boss_cell_id || current_cell.next_cells.is_empty();
         if should_finish_sortie {
-            store.remove_active_sortie(profile_id);
+            store.remove_active(profile_id);
         } else {
-            store.modify_active_sortie(profile_id, |state| {
+            if let Some(mut state) = store.get_active(profile_id) {
                 state.pending_battle_cell_id = None;
-            });
+                let _ = store.insert_active(profile_id, state);
+            }
         }
 
         Ok(SortieBattleResultResponse {
@@ -645,7 +646,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
     ) -> Result<SortieNightBattleResponse, GameplayError> {
         let codex = self.codex();
         let store = self.sortie_store();
-        let pending = pending_sortie_battle(store, profile_id).ok_or_else(|| {
+        let pending = pending_battle(store, profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "sortie battle session not found for profile {profile_id}",
             ))
@@ -656,7 +657,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             ));
         }
 
-        let night = simulate_and_store_sortie_night_battle(
+        let night = run_night_battle(
             store,
             codex,
             profile_id,
@@ -671,17 +672,17 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             ))
         })?;
 
-        let ct_flagship = pending_sortie_battle(store, profile_id)
+        let ct_flagship = pending_battle(store, profile_id)
             .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
             .and_then(|sid| codex.manifest.find_ship(sid))
             .is_some_and(|m| m.api_stype == 21);
 
-        store.with_pending_result_mut(profile_id, |snapshot| {
+        if let Some(mut snapshot) = store.take_pending_result(profile_id) {
             snapshot.win_rank = night.outcome.win_rank.clone();
             snapshot.mvp = night.outcome.mvp;
             snapshot.get_exp =
                 calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
-            if let Some(updated) = pending_sortie_battle(store, profile_id) {
+            if let Some(updated) = pending_battle(store, profile_id) {
                 snapshot.friendly_nowhps = updated.friendly.iter().map(|f| f.hp().max(0)).collect();
                 let friend_ships = updated
                     .friendly
@@ -705,14 +706,15 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 snapshot.get_ship_exp = ship_exp;
                 snapshot.get_exp_lvup = ship_lvup;
             }
-        });
+            store.insert_pending_result(profile_id, snapshot);
+        }
 
-        let current = pending_sortie_battle(store, profile_id).ok_or_else(|| {
+        let current = pending_battle(store, profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "sortie battle session not found for profile {profile_id}",
             ))
         })?;
-        Ok(build_sortie_night_battle_response(current.deck_id, &current, night.packet))
+        Ok(build_night_response(current.deck_id, &current, night.packet))
     }
 
     async fn sortie_sp_midnight_battle(
@@ -725,7 +727,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let store = self.sortie_store();
         let tx = db.begin().await?;
 
-        let mut active = store.get_active_sortie(profile_id).ok_or_else(|| {
+        let mut active = store.get_active(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "active sortie not found for profile {profile_id}",
             ))
@@ -765,7 +767,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
 
         let enemy_formation_id = enemy_fleet.formations.first().copied().unwrap_or(1);
-        let (day_session, night_session) = simulate_and_store_sortie_sp_midnight_battle(
+        let (day_session, night_session) = run_sp_midnight_battle(
             store,
             codex,
             SortieBattleInput {
@@ -781,7 +783,6 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                     engagement: engagement_for_cell(active.map_id, active.current_cell_id),
                     friend_ships: friend_ships.clone(),
                     enemy_ships: enemy_ships.clone(),
-                    rng_seed: None,
                 },
             },
             enemy_formation_id,
@@ -789,7 +790,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 
         let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
         let get_exp = calculate_battle_admiral_exp(base_exp, &night_session.outcome.win_rank);
-        let friendly_nowhps: Vec<i64> = pending_sortie_battle(store, profile_id)
+        let friendly_nowhps: Vec<i64> = pending_battle(store, profile_id)
             .map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
             .unwrap_or_default();
         let ct_flagship = friend_ships
@@ -833,16 +834,16 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         );
 
         active.pending_battle_cell_id = Some(active.current_cell_id);
-        store.insert_active_sortie(profile_id, active);
+        let _ = store.insert_active(profile_id, active);
 
-        let current = pending_sortie_battle(store, profile_id).ok_or_else(|| {
+        let current = pending_battle(store, profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "sortie battle session not found for profile {profile_id}",
             ))
         })?;
 
         tx.commit().await?;
-        Ok(build_sortie_night_battle_response(current.deck_id, &current, night_session.packet))
+        Ok(build_night_response(current.deck_id, &current, night_session.packet))
     }
 
     async fn sortie_goback_port(
@@ -850,7 +851,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         profile_id: i64,
     ) -> Result<SortieGobackPortResponse, GameplayError> {
         let store = self.sortie_store();
-        let removed = store.remove_active_sortie(profile_id);
+        let removed = store.remove_active(profile_id);
         if removed.is_none() {
             return Err(GameplayError::EntryNotFound(format!(
                 "active sortie not found for profile {profile_id}",
@@ -864,7 +865,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 }
 
 async fn sortie_battle_impl(
-    store: &SortieStore,
+    store: &dyn SortieRepository,
     codex: &Codex,
     db: &emukc_db::sea_orm::DatabaseConnection,
     profile_id: i64,
@@ -873,7 +874,7 @@ async fn sortie_battle_impl(
 ) -> Result<SortieBattleResponse, GameplayError> {
     let tx = db.begin().await?;
 
-    let mut active = store.get_active_sortie(profile_id).ok_or_else(|| {
+    let mut active = store.get_active(profile_id).ok_or_else(|| {
         GameplayError::EntryNotFound(format!("active sortie not found for profile {profile_id}",))
     })?;
     if active.pending_battle_cell_id.is_some() {
@@ -928,7 +929,7 @@ async fn sortie_battle_impl(
     let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
         build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
 
-    let session = simulate_and_store_sortie_day_battle(
+    let session = run_day_battle(
         store,
         codex,
         SortieBattleInput {
@@ -944,7 +945,6 @@ async fn sortie_battle_impl(
                 engagement: engagement_for_cell(active.map_id, active.current_cell_id),
                 friend_ships: friend_ships.clone(),
                 enemy_ships: enemy_ships.clone(),
-                rng_seed: None,
             },
         },
     );
@@ -964,12 +964,8 @@ async fn sortie_battle_impl(
         ct_flagship,
         codex.game_cfg.exp.ct_exp_boost,
     );
-    let response = build_sortie_battle_response(
-        active.deck_id,
-        friend_ships,
-        enemy_ships,
-        session.packet.clone(),
-    );
+    let response =
+        build_day_response(active.deck_id, friend_ships, enemy_ships, session.packet.clone());
     store.insert_pending_result(
         profile_id,
         SortieBattleResultSnapshot {
@@ -999,7 +995,7 @@ async fn sortie_battle_impl(
     );
 
     active.pending_battle_cell_id = Some(active.current_cell_id);
-    store.insert_active_sortie(profile_id, active);
+    let _ = store.insert_active(profile_id, active);
 
     tx.commit().await?;
     Ok(response)
@@ -1549,152 +1545,9 @@ fn select_enemy_composition_for_roll(
     enemy_fleet.compositions.last()
 }
 
-fn clear_pending_sortie_runtime_state(store: &SortieStore, profile_id: i64) {
+fn clear_pending_sortie_runtime_state(store: &dyn SortieRepository, profile_id: i64) {
     store.take_pending_result(profile_id);
-    let _ = take_sortie_day_battle_result(store, profile_id);
-}
-
-fn build_sortie_battle_response(
-    deck_id: i64,
-    friend_ships: Vec<BattleShipInput>,
-    enemy_ships: Vec<BattleShipInput>,
-    packet: BattlePacket,
-) -> SortieBattleResponse {
-    SortieBattleResponse {
-        api_deck_id: deck_id,
-        api_formation: packet.formation,
-        api_f_nowhps: friend_ships.iter().map(|ship| ship.ship.api_nowhp).collect(),
-        api_f_maxhps: friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect(),
-        api_fParam: friend_ships
-            .iter()
-            .map(|ship| {
-                [
-                    ship.ship.api_karyoku[0],
-                    ship.ship.api_raisou[0],
-                    ship.ship.api_taiku[0],
-                    ship.ship.api_soukou[0],
-                ]
-            })
-            .collect(),
-        api_ship_ke: enemy_ships.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        api_ship_lv: enemy_ships.iter().map(|ship| ship.ship.api_lv).collect(),
-        api_e_nowhps: enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect(),
-        api_e_maxhps: enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect(),
-        api_eSlot: enemy_ships.iter().map(enemy_slot_ids).collect(),
-        api_eParam: enemy_ships
-            .iter()
-            .map(|ship| {
-                [
-                    ship.ship.api_karyoku[0],
-                    ship.ship.api_raisou[0],
-                    ship.ship.api_taiku[0],
-                    ship.ship.api_soukou[0],
-                ]
-            })
-            .collect(),
-        api_e_effect_list: enemy_ships
-            .iter()
-            .map(|ship| {
-                if ship.effect_list.is_empty() {
-                    vec![0]
-                } else {
-                    ship.effect_list.clone()
-                }
-            })
-            .collect(),
-        api_smoke_type: packet.smoke_type,
-        api_balloon_cell: packet.balloon_cell,
-        api_atoll_cell: packet.atoll_cell,
-        api_midnight_flag: packet.midnight_flag,
-        api_search: packet.search,
-        api_stage_flag: packet.stage_flag,
-        api_kouku: packet.kouku,
-        api_opening_taisen_flag: packet.opening_taisen_flag,
-        api_opening_taisen: packet.opening_taisen,
-        api_opening_flag: packet.opening_flag,
-        api_opening_atack: packet.opening_attack,
-        api_hourai_flag: packet.hourai_flag,
-        api_hougeki1: packet.hougeki1,
-        api_hougeki2: packet.hougeki2,
-        api_hougeki3: packet.hougeki3,
-        api_raigeki: packet.raigeki,
-    }
-}
-
-fn build_sortie_night_battle_response(
-    deck_id: i64,
-    session: &crate::game::battle::sortie::SortieBattleSession,
-    packet: crate::game::battle::core::NightBattlePacket,
-) -> SortieNightBattleResponse {
-    SortieNightBattleResponse {
-        api_deck_id: deck_id,
-        api_formation: packet.formation,
-        api_f_nowhps: packet.friendly_nowhps,
-        api_f_maxhps: packet.friendly_maxhps,
-        api_fParam: session
-            .friendly
-            .iter()
-            .map(|ship| {
-                [
-                    ship.ship.api_karyoku[0],
-                    ship.ship.api_raisou[0],
-                    ship.ship.api_taiku[0],
-                    ship.ship.api_soukou[0],
-                ]
-            })
-            .collect(),
-        api_ship_ke: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        api_ship_lv: session.enemy.iter().map(|ship| ship.ship.api_lv).collect(),
-        api_e_nowhps: packet.enemy_nowhps,
-        api_e_maxhps: packet.enemy_maxhps,
-        api_eSlot: session
-            .enemy
-            .iter()
-            .map(|ship| {
-                enemy_slot_ids(&BattleShipInput {
-                    ship: ship.ship.clone(),
-                    slot_items: ship.slot_items.clone(),
-                    effect_list: ship.effect_list.clone(),
-                    married: false,
-                })
-            })
-            .collect(),
-        api_eParam: session
-            .enemy
-            .iter()
-            .map(|ship| {
-                [
-                    ship.ship.api_karyoku[0],
-                    ship.ship.api_raisou[0],
-                    ship.ship.api_taiku[0],
-                    ship.ship.api_soukou[0],
-                ]
-            })
-            .collect(),
-        api_smoke_type: 0,
-        api_balloon_cell: 0,
-        api_atoll_cell: 0,
-        api_touch_plane: packet.touch_plane,
-        api_flare_pos: packet.flare_pos,
-        api_hougeki: packet.hougeki,
-    }
-}
-
-fn enemy_slot_ids(ship: &BattleShipInput) -> [i64; 5] {
-    if ship.ship.api_slot.iter().any(|slot| *slot > 0) {
-        let mut slots = [-1; 5];
-        for (idx, slot) in ship.ship.api_slot.iter().take(5).enumerate() {
-            if *slot > 0 {
-                slots[idx] = *slot;
-            }
-        }
-        return slots;
-    }
-    let mut slots = [-1; 5];
-    for (idx, slot_item) in ship.slot_items.iter().take(5).enumerate() {
-        slots[idx] = slot_item.api_slotitem_id;
-    }
-    slots
+    let _ = take_day_battle_result(store, profile_id);
 }
 
 fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
@@ -1709,12 +1562,8 @@ fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::battle::{
-        core::BattleType,
-        sortie::{
-            pending_sortie_battle, simulate_and_store_sortie_day_battle,
-            simulate_and_store_sortie_sp_midnight_battle,
-        },
+    use crate::game::battle::sortie::{
+        enemy_slot_ids, pending_battle, run_day_battle, run_sp_midnight_battle,
     };
     use crate::prelude::*;
     use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
@@ -2006,7 +1855,7 @@ mod tests {
 
         let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
         let enemy = weaken_for_midnight(sample_ship(&codex, 412, 99));
-        let session = simulate_and_store_sortie_day_battle(
+        let session = run_day_battle(
             store,
             &codex,
             SortieBattleInput {
@@ -2022,7 +1871,6 @@ mod tests {
                     engagement: EngagementType::SameCourse,
                     friend_ships: vec![friend.clone()],
                     enemy_ships: vec![enemy.clone()],
-                    rng_seed: Some(1),
                 },
             },
         );
@@ -2064,10 +1912,10 @@ mod tests {
         assert!(!updated_snapshot.win_rank.is_empty());
         assert!(updated_snapshot.mvp >= 1);
 
-        let stored = pending_sortie_battle(store, profile_id).unwrap();
+        let stored = pending_battle(store, profile_id).unwrap();
         assert_eq!(stored.packet.midnight_flag, 0);
 
-        let _ = take_sortie_day_battle_result(store, profile_id);
+        let _ = take_day_battle_result(store, profile_id);
         store.clear();
     }
 
@@ -2083,7 +1931,7 @@ mod tests {
         let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
         let enemy = weaken_for_midnight(sample_ship(&codex, 412, 99));
 
-        let (day_session, night_session) = simulate_and_store_sortie_sp_midnight_battle(
+        let (day_session, night_session) = run_sp_midnight_battle(
             store,
             &codex,
             SortieBattleInput {
@@ -2099,7 +1947,6 @@ mod tests {
                     engagement: EngagementType::SameCourse,
                     friend_ships: vec![friend.clone()],
                     enemy_ships: vec![enemy.clone()],
-                    rng_seed: Some(1),
                 },
             },
             1,
@@ -2116,7 +1963,7 @@ mod tests {
         assert_eq!(night_session.profile_id, profile_id);
 
         // The stored session should have been updated with night results
-        let stored = pending_sortie_battle(store, profile_id).unwrap();
+        let stored = pending_battle(store, profile_id).unwrap();
         assert_eq!(stored.packet.midnight_flag, 0); // no further midnight allowed
 
         clear_pending_sortie_runtime_state(store, profile_id);

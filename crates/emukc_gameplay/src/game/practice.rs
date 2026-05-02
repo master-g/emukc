@@ -31,9 +31,8 @@ use super::{
     battle::practice::{
         PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultResponse,
         PracticeBattleResultSnapshot, PracticeBattleShipInput, PracticeNightBattleResponse,
-        build_practice_battle_result_response, calculate_admiral_exp, calculate_practice_ship_exp,
-        clear_pending_practice_battle, pending_practice_battle, simulate_practice_day_battle,
-        simulate_practice_night_battle,
+        build_result_response, calculate_admiral_exp, calculate_ship_exp,
+        clear_pending_practice_battle, pending_practice_battle, run_day_battle, run_night_battle,
     },
     fleet::get_fleet_ships_impl,
     quest::update::update_quest_progress_for_action,
@@ -160,7 +159,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             member_exp: profile.experience,
         };
 
-        let (response, snapshot) = simulate_practice_day_battle(codex, input)?;
+        let (response, snapshot) = run_day_battle(codex, input)?;
         PENDING_PRACTICE_RESULTS.lock().unwrap().insert(profile_id, snapshot);
 
         tx.commit().await?;
@@ -191,7 +190,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 
         tx.commit().await?;
 
-        Ok(build_practice_battle_result_response(snapshot))
+        Ok(build_result_response(snapshot))
     }
 
     async fn practice_midnight_battle(
@@ -199,10 +198,9 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         profile_id: i64,
     ) -> Result<PracticeNightBattleResponse, GameplayError> {
         let codex = self.codex();
-        let (response, snapshot) =
-            simulate_practice_night_battle(codex, profile_id).ok_or_else(|| {
-                GameplayError::WrongType("night practice battle is not available".to_string())
-            })?;
+        let (response, snapshot) = run_night_battle(codex, profile_id).ok_or_else(|| {
+            GameplayError::WrongType("night practice battle is not available".to_string())
+        })?;
 
         let ct_flagship = pending_practice_battle(profile_id)
             .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
@@ -217,7 +215,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             existing.win_rank = snapshot.win_rank;
             existing.mvp = snapshot.mvp;
             existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank);
-            let (ship_exp, ship_lvup) = calculate_practice_ship_exp(
+            let (ship_exp, ship_lvup) = calculate_ship_exp(
                 &friend_ships,
                 base_exp,
                 existing.mvp,
@@ -682,7 +680,8 @@ where
         let mst = codex.find::<emukc_model::prelude::ApiMstShip>(&ship_model.mst_id)?;
         let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.into();
         let new_ship_exp = ship_model.exp_now + gain.max(0);
-        let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+        let (mut ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+        ship_level = ship_level.min(level::ship_level_cap(ship_model.married));
         let current_level_exp = level::ship_level_required_exp(ship_level);
         let progress = if next_exp > current_level_exp {
             ((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)

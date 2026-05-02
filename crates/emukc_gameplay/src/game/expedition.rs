@@ -1104,7 +1104,9 @@ where
     };
 
     for (idx, model) in ships.iter().enumerate() {
-        let gain = if idx == 0 {
+        let gain = if !model.married && model.level >= 99 {
+            0
+        } else if idx == 0 {
             ((base_gain as f64) * 1.5).floor() as i64
         } else {
             base_gain
@@ -1115,6 +1117,7 @@ where
         updated.exp_now += gain;
 
         let (level, next_exp) = level::exp_to_ship_level(updated.exp_now);
+        let level = level.min(level::ship_level_cap(updated.married));
         let current_level_exp = level::ship_level_required_exp(level);
         let progress = if next_exp > current_level_exp {
             ((updated.exp_now - current_level_exp) * 100 / (next_exp - current_level_exp))

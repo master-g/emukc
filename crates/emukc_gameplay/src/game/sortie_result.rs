@@ -25,25 +25,25 @@ use super::{
 };
 
 #[derive(Debug, Clone)]
-pub(super) struct SortieBattleResultSnapshot {
-    pub(super) friendly_ship_ids: Vec<i64>,
-    pub(super) enemy_ship_ids: Vec<i64>,
-    pub(super) friendly_nowhps: Vec<i64>,
-    pub(super) enemy_ship_types: Vec<i64>,
-    pub(super) enemy_nowhps: Vec<i64>,
-    pub(super) win_rank: String,
-    pub(super) get_exp: i64,
-    pub(super) member_lv: i64,
-    pub(super) member_exp: i64,
-    pub(super) get_base_exp: i64,
-    pub(super) mvp: i64,
-    pub(super) get_ship_exp: Vec<i64>,
-    pub(super) get_exp_lvup: Vec<Vec<i64>>,
-    pub(super) quest_name: String,
-    pub(super) quest_level: i64,
-    pub(super) enemy_level: i64,
-    pub(super) enemy_rank: String,
-    pub(super) enemy_deck_name: String,
+pub struct SortieBattleResultSnapshot {
+    pub friendly_ship_ids: Vec<i64>,
+    pub enemy_ship_ids: Vec<i64>,
+    pub friendly_nowhps: Vec<i64>,
+    pub enemy_ship_types: Vec<i64>,
+    pub enemy_nowhps: Vec<i64>,
+    pub win_rank: String,
+    pub get_exp: i64,
+    pub member_lv: i64,
+    pub member_exp: i64,
+    pub get_base_exp: i64,
+    pub mvp: i64,
+    pub get_ship_exp: Vec<i64>,
+    pub get_exp_lvup: Vec<Vec<i64>>,
+    pub quest_name: String,
+    pub quest_level: i64,
+    pub enemy_level: i64,
+    pub enemy_rank: String,
+    pub enemy_deck_name: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -101,7 +101,7 @@ pub(super) fn calculate_battle_admiral_exp(base_exp: i64, win_rank: &str) -> i64
 }
 
 pub(super) fn calculate_sortie_ship_exp(
-    friend_ships: &[super::battle::core::BattleShipInput],
+    friend_ships: &[emukc_battle::BattleShipInput],
     base_exp: i64,
     mvp_idx: i64,
     friendly_nowhps: &[i64],
@@ -313,6 +313,7 @@ where
             if gain > 0 {
                 let new_ship_exp = ship_model.exp_now + gain;
                 let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+                let ship_level = ship_level.min(level::ship_level_cap(ship_model.married));
                 let current_level_exp = level::ship_level_required_exp(ship_level);
                 let progress = if next_exp > current_level_exp {
                     ((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp))

@@ -7,7 +7,7 @@ use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
 use crate::{
-    game::{GameOps, SortieStore, sortie_store::GLOBAL_SORTIE_STORE},
+    game::{GameOps, battle::repository::SortieRepository, sortie_store::GLOBAL_SORTIE_STORE},
     user::{AccountOps, ProfileOps},
 };
 
@@ -19,13 +19,8 @@ pub trait HasContext: Send + Sync {
     /// Get the game's codex.
     fn codex(&self) -> &Codex;
 
-    /// Get the sortie runtime store.
-    ///
-    /// Defaults to a process-global instance.  Override this to provide
-    /// instance-scoped isolation (e.g., in tests or multi-tenant runtimes).
-    fn sortie_store(&self) -> &SortieStore {
-        &GLOBAL_SORTIE_STORE
-    }
+    /// Get the sortie runtime repository.
+    fn sortie_store(&self) -> &dyn SortieRepository;
 }
 
 /// Gameplay trait for the game's data and logic.
@@ -45,6 +40,10 @@ impl HasContext for (Arc<DbConn>, Arc<Codex>) {
     fn codex(&self) -> &Codex {
         self.1.as_ref()
     }
+
+    fn sortie_store(&self) -> &dyn SortieRepository {
+        &*GLOBAL_SORTIE_STORE
+    }
 }
 
 impl HasContext for (Arc<Codex>, Arc<DbConn>) {
@@ -54,6 +53,10 @@ impl HasContext for (Arc<Codex>, Arc<DbConn>) {
 
     fn codex(&self) -> &Codex {
         self.0.as_ref()
+    }
+
+    fn sortie_store(&self) -> &dyn SortieRepository {
+        &*GLOBAL_SORTIE_STORE
     }
 }
 
@@ -65,6 +68,10 @@ impl HasContext for (DbConn, Codex) {
     fn codex(&self) -> &Codex {
         &self.1
     }
+
+    fn sortie_store(&self) -> &dyn SortieRepository {
+        &*GLOBAL_SORTIE_STORE
+    }
 }
 
 impl HasContext for (Codex, DbConn) {
@@ -74,5 +81,9 @@ impl HasContext for (Codex, DbConn) {
 
     fn codex(&self) -> &Codex {
         &self.0
+    }
+
+    fn sortie_store(&self) -> &dyn SortieRepository {
+        &*GLOBAL_SORTIE_STORE
     }
 }

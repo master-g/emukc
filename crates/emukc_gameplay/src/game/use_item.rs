@@ -304,6 +304,10 @@ where
     Ok(m)
 }
 
+/// Material-backed use item `mst_ids`: Bucket(1), Torch(2), DevMat(3), Screw(4).
+/// For these items, the material table is the authority; `use_item` table values are stale.
+const MATERIAL_BACKED_MST_IDS: [i64; 4] = [1, 2, 3, 4];
+
 pub(crate) async fn get_use_items_impl<C>(
     c: &C,
     profile_id: i64,
@@ -311,8 +315,32 @@ pub(crate) async fn get_use_items_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let items =
+    let mut items =
         use_item::Entity::find().filter(use_item::Column::ProfileId.eq(profile_id)).all(c).await?;
+
+    let mat = get_mat_impl(c, profile_id).await?;
+    let material_values: [(i64, i64); 4] =
+        [(1, mat.bucket), (2, mat.torch), (3, mat.devmat), (4, mat.screw)];
+
+    let mut found = [false; 4];
+    for item in items.iter_mut() {
+        if let Some(idx) = MATERIAL_BACKED_MST_IDS.iter().position(|&id| id == item.mst_id) {
+            item.count = material_values[idx].1;
+            found[idx] = true;
+        }
+    }
+
+    for (idx, &(mst_id, count)) in material_values.iter().enumerate() {
+        if !found[idx] {
+            items.push(use_item::Model {
+                id: 0,
+                profile_id,
+                mst_id,
+                count,
+            });
+        }
+    }
+
     Ok(items)
 }
 

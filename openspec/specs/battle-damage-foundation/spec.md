@@ -28,6 +28,12 @@ This ensures the client's sequential HP animation (initial HP minus per-phase cu
 - **THEN** reported damage equals raw damage (no change in behavior)
 
 #### Scenario: Enemy ship takes damage (no protection)
-- **WHEN** an enemy ship takes damage
+- **WHEN** an enemy ship takes damage in a sortie battle
+- **THEN** effective damage SHALL equal raw damage (NOT clamped to current HP)
+- **THEN** HP MAY go negative (overkill display)
+- **NOTE**: This requirement is MODIFIED by `fix-battle-attack-system` — currently capped to current HP pending that change.
+
+#### Scenario: Enemy ship takes damage in practice (no protection)
+- **WHEN** an enemy ship takes damage in a practice battle
 - **THEN** effective damage equals raw damage clamped to current HP
 - **THEN** reported damage equals the clamped value

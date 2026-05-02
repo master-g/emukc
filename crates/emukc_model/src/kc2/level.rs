@@ -191,6 +191,17 @@ pub fn exp_to_ship_level(exp: i64) -> (i64, i64) {
     (180, 0)
 }
 
+/// Return the ship level cap based on marriage status.
+///
+/// Unmarried ships are capped at 99, married ships at 175.
+pub fn ship_level_cap(married: bool) -> i64 {
+    if married {
+        175
+    } else {
+        99
+    }
+}
+
 /// Get the required exp for the next level.
 ///
 /// # Arguments

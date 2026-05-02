@@ -144,7 +144,49 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
                     .await?;
                 }
                 IncentiveType::UseItem => {
-                    add_use_item_impl(&tx, profile_id, item.mst_id, item.amount).await?;
+                    // Defensive: bucket/torch/devmat/screw (mst_id 1-4) must also update
+                    // material table, which is the authority for these resources.
+                    match item.mst_id {
+                        1 => {
+                            add_material_impl(
+                                &tx,
+                                codex,
+                                profile_id,
+                                &[(MaterialCategory::Bucket, item.amount)],
+                            )
+                            .await?;
+                        }
+                        2 => {
+                            add_material_impl(
+                                &tx,
+                                codex,
+                                profile_id,
+                                &[(MaterialCategory::Torch, item.amount)],
+                            )
+                            .await?;
+                        }
+                        3 => {
+                            add_material_impl(
+                                &tx,
+                                codex,
+                                profile_id,
+                                &[(MaterialCategory::DevMat, item.amount)],
+                            )
+                            .await?;
+                        }
+                        4 => {
+                            add_material_impl(
+                                &tx,
+                                codex,
+                                profile_id,
+                                &[(MaterialCategory::Screw, item.amount)],
+                            )
+                            .await?;
+                        }
+                        _ => {
+                            add_use_item_impl(&tx, profile_id, item.mst_id, item.amount).await?;
+                        }
+                    }
                 }
                 IncentiveType::Resource => {
                     let category = MaterialCategory::n(item.mst_id).ok_or_else(|| {

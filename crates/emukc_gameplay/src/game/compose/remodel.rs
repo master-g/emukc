@@ -196,6 +196,7 @@ where
     new_ship.api_kyouka[6] = ship_model.mod_asw;
 
     codex.cal_ship_status(&mut new_ship, &new_slot_items)?;
+    new_ship.api_nowhp = new_ship.api_maxhp;
 
     // save new ship to db
 
