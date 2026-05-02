@@ -2,6 +2,7 @@ use std::io::{IsTerminal, Write};
 use std::sync::Arc;
 use std::time::Duration;
 
+use emukc_cache::KacheError;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 fn is_tty() -> bool {
@@ -147,10 +148,12 @@ pub struct PopulateStats {
 }
 
 #[derive(Debug, Clone)]
+/// Stores a structured `KacheError` via `Arc` because `KacheError` contains
+/// non-Clone variants (e.g. `Io(std::io::Error)`).
 pub struct FailedItem {
     pub path: String,
     pub version: Option<String>,
-    pub error: String,
+    pub error: Arc<KacheError>,
 }
 
 fn format_duration(d: Duration) -> String {

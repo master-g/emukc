@@ -1,8 +1,8 @@
 //! Sortie battle orchestration — build context → call `emukc_battle` → persist.
 
 use emukc_battle::{
-    BattleOutcome, BattlePacket, BattleRuntimeShip,
-    EngagementType, simulate_day, simulate_night,
+    BattleOutcome, BattlePacket, BattleRuntimeShip, EngagementType, NightBattleInput, simulate_day,
+    simulate_night,
 };
 use emukc_model::codex::Codex;
 
@@ -67,12 +67,14 @@ pub fn run_night_battle(
     let mut rng = CryptoRng;
     let simulation = simulate_night(
         codex,
-        session.friendly.clone(),
-        session.enemy.clone(),
-        friendly_formation_id,
-        enemy_formation_id,
-        engagement,
-        air_state.as_ref(),
+        NightBattleInput {
+            friendly: session.friendly.clone(),
+            enemy: session.enemy.clone(),
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            air_state,
+        },
         &mut rng,
     );
     session.friendly = simulation.friendly.clone();
@@ -158,12 +160,14 @@ pub fn run_sp_midnight_battle(
     let mut rng = CryptoRng;
     let night = simulate_night(
         codex,
-        friendly,
-        enemy,
-        friendly_formation_id,
-        enemy_formation_id,
-        engagement,
-        None,
+        NightBattleInput {
+            friendly,
+            enemy,
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            air_state: None,
+        },
         &mut rng,
     );
 

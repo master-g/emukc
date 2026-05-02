@@ -119,11 +119,7 @@ pub fn build_night_response(
         api_ship_lv: session.enemy.iter().map(|ship| ship.ship.api_lv).collect(),
         api_e_nowhps: packet.enemy_nowhps,
         api_e_maxhps: packet.enemy_maxhps,
-        api_eSlot: session
-            .enemy
-            .iter()
-            .map(super::super::practice::enemy_slot_ids)
-            .collect(),
+        api_eSlot: session.enemy.iter().map(super::super::practice::enemy_slot_ids).collect(),
         api_eParam: session
             .enemy
             .iter()

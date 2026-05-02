@@ -14,6 +14,10 @@ pub struct PicturebookConfig {
     pub unlock_all_slotitems: bool,
 }
 
+/// EmuKC is a single-player emulator; the picture book defaults to fully unlocked because
+/// gating it behind in-game progress is not the typical user expectation.
+/// Override in `[game.picturebook]` in `emukc.config.toml` to opt into the original gating.
+#[allow(clippy::doc_markdown)]
 impl Default for PicturebookConfig {
     fn default() -> Self {
         Self {
@@ -55,7 +59,7 @@ pub struct ExpConfig {
 impl Default for ExpConfig {
     fn default() -> Self {
         Self {
-            ct_exp_boost: 250.0,
+            ct_exp_boost: 1.0,
             practice_exp_boost: 1.0,
         }
     }
@@ -76,4 +80,31 @@ pub struct GameConfig {
     /// Experience configuration.
     #[serde(default)]
     pub exp: ExpConfig,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exp_config_default_pins_no_boost() {
+        let cfg = ExpConfig::default();
+        assert_eq!(cfg.ct_exp_boost, 1.0);
+        assert_eq!(cfg.practice_exp_boost, 1.0);
+    }
+
+    #[test]
+    fn docking_config_default_pins_no_adjustment() {
+        let cfg = DockingConfig::default();
+        assert_eq!(cfg.time_factor, 1.0);
+        assert_eq!(cfg.cost_factor, 1.0);
+    }
+
+    #[test]
+    fn picturebook_config_default_documented() {
+        let cfg = PicturebookConfig::default();
+        // Only verify the fields compile and are accessible; bool values are NOT pinned.
+        let _ = cfg.unlock_all_ships;
+        let _ = cfg.unlock_all_slotitems;
+    }
 }

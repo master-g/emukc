@@ -250,6 +250,12 @@ cargo run -- bootstrap --proxy "socks5://127.0.0.1:1086"
 1. 重新运行 populate 命令，已下载的文件会自动跳过
 2. 调整并发数以避免连接超时：`cargo run -- cache populate --concurrent 8`
 
+### Populate 报告 "skipping N items with version rollback"
+
+当 populate 输出 `skipping N items with version rollback` 时，表示这些条目的磁盘版本比清单版本更新（通常是回滚到旧版 manifest 后运行 populate）。这些条目会被正确跳过，不会重试下载——它们不是下载错误。
+
+Populate 最终的 `failed` 计数是真正的下载错误（网络超时、CDN 不可达等），这些条目经过两次重试后仍然失败。
+
 ### 端口被占用
 
 **错误信息：** `Address already in use`

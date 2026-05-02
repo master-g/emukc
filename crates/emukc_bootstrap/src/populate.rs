@@ -1,5 +1,4 @@
 use std::{
-    path,
     sync::Arc,
     sync::atomic::{AtomicUsize, Ordering},
     time::Instant,
@@ -18,19 +17,6 @@ use emukc_cache::{GetOption, Kache, KacheError};
 
 const MAX_CONCURRENT: usize = 32;
 
-async fn count_lines(path: impl AsRef<path::Path>) -> Result<usize, KacheError> {
-    let file = tokio::fs::File::open(path).await?;
-    let reader = BufReader::new(file);
-    let mut lines = reader.lines();
-    let mut count = 0;
-
-    while lines.next_line().await?.is_some() {
-        count += 1;
-    }
-
-    Ok(count)
-}
-
 async fn run_pass(
     kache: &Arc<Kache>,
     items: Vec<(String, Option<String>)>,
@@ -42,8 +28,8 @@ async fn run_pass(
 ) -> Vec<FailedItem> {
     let q = concurrent.clamp(1, MAX_CONCURRENT);
     let error_count = Arc::new(AtomicUsize::new(0));
-    let failures: Arc<std::sync::Mutex<Vec<FailedItem>>> =
-        Arc::new(std::sync::Mutex::new(Vec::new()));
+    let failures: Arc<tokio::sync::Mutex<Vec<FailedItem>>> =
+        Arc::new(tokio::sync::Mutex::new(Vec::new()));
 
     let mut tasks = FuturesUnordered::new();
 
@@ -76,7 +62,7 @@ async fn run_pass(
 
                 let active = active_count.fetch_sub(1, Ordering::Relaxed) - 1;
 
-                match &result {
+                match result {
                     Ok(_) => {
                         if let Some(sp) = spinner {
                             sp.finish_and_clear();
@@ -87,10 +73,10 @@ async fn run_pass(
                         if let Some(sp) = spinner {
                             sp.finish_and_clear();
                         }
-                        failures.lock().unwrap().push(FailedItem {
+                        failures.lock().await.push(FailedItem {
                             path: item_path,
                             version,
-                            error: e.to_string(),
+                            error: Arc::new(e),
                         });
                     }
                 }
@@ -113,7 +99,7 @@ async fn run_pass(
         }
     }
 
-    failures.lock().unwrap().clone()
+    failures.lock().await.clone()
 }
 
 /// Populate the cache with the list file.
@@ -129,12 +115,11 @@ pub async fn populate(
     concurrent: usize,
 ) -> Result<(), KacheError> {
     let start = Instant::now();
-    let total_files = count_lines(&path_to_list).await?;
 
     let file = tokio::fs::File::open(&path_to_list).await?;
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
-    let mut all_items: Vec<(String, Option<String>)> = Vec::with_capacity(total_files);
+    let mut all_items: Vec<(String, Option<String>)> = Vec::new();
 
     loop {
         let Some(line) = lines.next_line().await? else {
@@ -144,6 +129,8 @@ pub async fn populate(
             serde_json::from_str(&line).map_err(|e| KacheError::InvalidFile(e.to_string()))?;
         all_items.push((item.path, item.version));
     }
+
+    let total_files = all_items.len();
 
     let q = concurrent.clamp(1, MAX_CONCURRENT);
     let active_count = Arc::new(AtomicUsize::new(0));
@@ -204,8 +191,9 @@ pub async fn populate(
     }
 
     // Pass 2: retry failed items (excluding InvalidFileVersion — version rollback is not a download failure)
-    let (skipped, retry_items): (Vec<_>, Vec<_>) =
-        pass1_failures.into_iter().partition(|f| f.error.contains("file version not matched"));
+    let (skipped, retry_items): (Vec<_>, Vec<_>) = pass1_failures
+        .into_iter()
+        .partition(|f| matches!(f.error.as_ref(), KacheError::InvalidFileVersion(_)));
     if !skipped.is_empty() {
         warn!("skipping {} items with version rollback", skipped.len());
     }
@@ -264,4 +252,51 @@ pub async fn populate(
         pb.finish_and_clear();
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use crate::progress::FailedItem;
+    use emukc_cache::KacheError;
+
+    #[test]
+    fn partition_by_error_variant() {
+        let items = vec![
+            FailedItem {
+                path: "a".into(),
+                version: None,
+                error: Arc::new(KacheError::InvalidFileVersion("v1".into())),
+            },
+            FailedItem {
+                path: "b".into(),
+                version: None,
+                error: Arc::new(KacheError::FileNotFound("missing".into())),
+            },
+            FailedItem {
+                path: "c".into(),
+                version: Some("v2".into()),
+                error: Arc::new(KacheError::InvalidFileVersion("v2".into())),
+            },
+            FailedItem {
+                path: "d".into(),
+                version: None,
+                error: Arc::new(KacheError::FailedOnAllCdn),
+            },
+        ];
+
+        let (skipped, retry): (Vec<_>, Vec<_>) = items
+            .into_iter()
+            .partition(|f| matches!(f.error.as_ref(), KacheError::InvalidFileVersion(_)));
+
+        assert_eq!(skipped.len(), 2);
+        assert_eq!(retry.len(), 2);
+        assert!(
+            skipped.iter().all(|f| matches!(f.error.as_ref(), KacheError::InvalidFileVersion(_)))
+        );
+        assert!(
+            retry.iter().all(|f| !matches!(f.error.as_ref(), KacheError::InvalidFileVersion(_)))
+        );
+    }
 }

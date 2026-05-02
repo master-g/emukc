@@ -36,4 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Initial release
+- **Breaking**: `ExpConfig::default().ct_exp_boost` reverted from `250.0` to `1.0` (stock KanColle behavior). Users who relied on the 250× CT flagship XP boost must set `ct_exp_boost = 250.0` explicitly under `[exp]` in `emukc.config.toml`.

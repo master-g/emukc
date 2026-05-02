@@ -1,8 +1,8 @@
 //! Practice battle orchestration — build context → call `emukc_battle` → build responses.
 
 use emukc_battle::{
-    AirState, BattleContext, BattleOutcome, BattleType, EngagementType, simulate_day,
-    simulate_night,
+    AirState, BattleContext, BattleOutcome, BattleType, EngagementType, NightBattleInput,
+    simulate_day, simulate_night,
 };
 use emukc_model::codex::Codex;
 
@@ -190,12 +190,15 @@ pub fn run_night_battle(
     let mut rng = CryptoRng;
     let simulation = simulate_night(
         codex,
-        session.friendly.clone(),
-        session.enemy.clone(),
-        session.formation[0],
-        session.formation[1],
-        EngagementType::from_api_id(session.formation[2]).unwrap_or(EngagementType::SameCourse),
-        session.air_state.as_ref(),
+        NightBattleInput {
+            friendly: session.friendly.clone(),
+            enemy: session.enemy.clone(),
+            friendly_formation_id: session.formation[0],
+            enemy_formation_id: session.formation[1],
+            engagement: EngagementType::from_api_id(session.formation[2])
+                .unwrap_or(EngagementType::SameCourse),
+            air_state: session.air_state,
+        },
         &mut rng,
     );
     session.friendly = simulation.friendly.clone();

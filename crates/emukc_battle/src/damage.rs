@@ -195,6 +195,8 @@ pub(crate) fn calculate_asw_damage(
 }
 
 /// Calculate airstrike damage for a single bomber slot.
+// TODO: used by airstrike phase
+#[allow(dead_code)]
 pub(crate) fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -510,6 +512,8 @@ fn has_active_asw_aircraft(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     })
 }
 
+// TODO: used by airstrike phase
+#[allow(dead_code)]
 fn is_airstrike_attack_type(slotitem_type: i64) -> bool {
     matches!(
         KcSlotItemType3::n(slotitem_type),

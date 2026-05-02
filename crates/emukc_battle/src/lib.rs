@@ -1,15 +1,19 @@
-//! Battle simulation engine for KanColle.
+//! Battle simulation engine for `KanColle`.
 //!
 //! Pure computation crate — takes `Codex` (read-only) and battle inputs,
 //! produces battle simulation results. No database, HTTP, or side effects.
 
+/// Internal battle configuration.
 mod config;
 mod damage;
+/// Internal battle documentation.
 mod outcome;
+/// Random number generation trait and implementations for battle simulation.
 pub mod random;
 pub mod simulation;
 mod state;
 mod targeting;
+#[allow(missing_docs)]
 mod types;
 
 #[cfg(test)]
@@ -20,7 +24,7 @@ pub use types::{
     AirState, BattleContext, BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
     BattleKoukuStage3, BattleNightHougeki, BattleOpeningAttack, BattleOutcome, BattlePacket,
     BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleSimulation, BattleType,
-    EngagementType, NightBattlePacket, NightBattleSimulation,
+    EngagementType, NightBattleInput, NightBattlePacket, NightBattleSimulation,
 };
 
 // Public API — RNG

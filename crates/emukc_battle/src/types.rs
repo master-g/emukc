@@ -26,6 +26,16 @@ pub(crate) struct NightBattleParams<'a> {
     pub air_state: Option<&'a AirState>,
 }
 
+/// Input parameters for [`simulate_night`](crate::simulation::simulate_night).
+pub struct NightBattleInput {
+    pub friendly: Vec<BattleRuntimeShip>,
+    pub enemy: Vec<BattleRuntimeShip>,
+    pub friendly_formation_id: i64,
+    pub enemy_formation_id: i64,
+    pub engagement: EngagementType,
+    pub air_state: Option<AirState>,
+}
+
 /// Controls which phases execute in a day battle simulation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleType {
@@ -67,6 +77,7 @@ impl EngagementType {
         }
     }
 
+    /// Parse from `KanColle` API engagement ID (1–4).
     pub const fn from_api_id(api_id: i64) -> Option<Self> {
         match api_id {
             1 => Some(Self::SameCourse),
@@ -235,6 +246,7 @@ impl TargetClass {
     }
 }
 
+/// Air superiority state after the kouku (aerial combat) phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AirState {
     Supremacy,
@@ -281,6 +293,7 @@ impl AirState {
         }
     }
 
+    /// Parse from `KanColle` API `api_disp_seiku` value.
     pub fn from_api_disp_seiku(value: i64) -> Option<Self> {
         match value {
             1 => Some(Self::Supremacy),
@@ -517,6 +530,7 @@ pub struct BattlePacket {
     pub raigeki: Option<BattleRaigeki>,
 }
 
+/// Battle result: win rank, MVP ship index, and midnight eligibility.
 #[derive(Debug, Clone)]
 pub struct BattleOutcome {
     pub win_rank: String,

@@ -2,10 +2,7 @@
 
 use emukc_battle::{BattleRuntimeShip, BattleShipInput, NightBattlePacket};
 
-use super::{
-    PracticeBattleResultResponse, PracticeBattleSession,
-    PracticeNightBattleResponse,
-};
+use super::{PracticeBattleResultResponse, PracticeBattleSession, PracticeNightBattleResponse};
 
 /// Map a ship's slot items to the 5-element API array.
 ///

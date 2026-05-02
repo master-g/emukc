@@ -159,6 +159,18 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 - Database: SQLite via SeaORM, in-memory DB (`new_mem_db()`) for tests
 - Pre-commit hooks are expected (see README)
 
+## Balance Defaults Policy
+
+Any change to a `Default` impl in `crates/emukc_model/src/codex/` that affects gameplay numerics (XP multipliers, drop rates, repair times, material caps) MUST:
+
+1. Be in its own commit, separate from infrastructure or refactor work.
+2. Use commit prefix `feat(balance):` for new behavior or `chore(balance):` for value tuning.
+3. List the previous value(s) in the commit body.
+4. Update or reference an openspec proposal under `openspec/changes/`.
+5. Add or update a regression test asserting the new value, so future accidental flips fail CI.
+
+Pure boolean QoL defaults (e.g., picture-book unlocks) are exempt from rule 5 but still subject to rules 1-4.
+
 ## Testing Conventions
 
 Integration tests live in `tests/gameplay_tests/` and test gameplay logic directly (no HTTP). Each test uses an independent in-memory database. The `Codex` is loaded from `.data/codex` on disk (requires prior bootstrap).

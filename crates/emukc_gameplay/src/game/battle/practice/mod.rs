@@ -7,9 +7,7 @@ use std::{
 
 use serde::Serialize;
 
-use emukc_model::{
-    profile::practice::Rival, thirdparty::FleetShipSnapshot,
-};
+use emukc_model::{profile::practice::Rival, thirdparty::FleetShipSnapshot};
 
 use emukc_battle::{
     AirState, BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleOutcome,

@@ -9,7 +9,6 @@ use crate::damage::{calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::targeting::{
     can_attack_night_ship, collect_matching_slot_ids, extend_limit, is_day_surface_display_type,
-    is_night_main_gun_type, is_night_secondary_gun_type, is_night_torpedo_type, is_radar_type,
     select_random_target_index, target_class,
 };
 use crate::types::{BattleNightHougeki, BattlePhase, BattleRuntimeShip, NightBattleParams};
@@ -618,12 +617,14 @@ mod tests {
 
         let simulation = crate::simulation::simulate_night(
             &codex,
-            vec![BattleRuntimeShip::from(carrier)],
-            vec![BattleRuntimeShip::from(enemy)],
-            1,
-            1,
-            EngagementType::SameCourse,
-            None,
+            crate::types::NightBattleInput {
+                friendly: vec![BattleRuntimeShip::from(carrier)],
+                enemy: vec![BattleRuntimeShip::from(enemy)],
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                air_state: None,
+            },
             &mut rng,
         );
 

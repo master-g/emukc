@@ -11,8 +11,8 @@ use crate::random::BattleRng;
 use crate::state::BattleState;
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo};
 use crate::types::{
-    BattleContext, BattlePhase, BattleRuntimeShip, BattleSimulation, EngagementType,
-    NightBattleSimulation, ShellingParams,
+    BattleContext, BattlePhase, BattleSimulation, NightBattleInput, NightBattleSimulation,
+    ShellingParams,
 };
 
 pub(crate) mod asw;
@@ -148,14 +148,17 @@ fn execute_closing_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
 /// Simulate a night battle.
 pub fn simulate_night(
     codex: &Codex,
-    mut friendly: Vec<BattleRuntimeShip>,
-    mut enemy: Vec<BattleRuntimeShip>,
-    friendly_formation_id: i64,
-    enemy_formation_id: i64,
-    engagement: EngagementType,
-    air_state: Option<&crate::types::AirState>,
+    input: NightBattleInput,
     rng: &mut impl BattleRng,
 ) -> NightBattleSimulation {
+    let NightBattleInput {
+        mut friendly,
+        mut enemy,
+        friendly_formation_id,
+        enemy_formation_id,
+        engagement,
+        air_state,
+    } = input;
     let entry_friendly_nowhps = friendly.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
     let entry_friendly_maxhps = friendly.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let entry_enemy_nowhps = enemy.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
@@ -169,7 +172,7 @@ pub fn simulate_night(
             friendly_formation_id,
             enemy_formation_id,
             engagement,
-            air_state,
+            air_state: air_state.as_ref(),
         },
     );
 

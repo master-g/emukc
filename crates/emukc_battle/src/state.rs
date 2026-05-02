@@ -13,6 +13,7 @@ use crate::types::{
 pub(crate) struct BattleState {
     pub friendly: Vec<BattleRuntimeShip>,
     pub enemy: Vec<BattleRuntimeShip>,
+    #[allow(dead_code)]
     pub is_sortie: bool,
     pub battle_type: BattleType,
     pub friendly_formation_id: i64,
