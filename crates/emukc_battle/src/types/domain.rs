@@ -186,6 +186,8 @@ pub(crate) struct AirstrikeOutput<'a> {
     pub damage: &'a mut [i64],
     pub bak_targets: &'a mut [i64],
     pub rai_targets: &'a mut [i64],
+    pub bak_flags: &'a mut [i64],
+    pub rai_flags: &'a mut [i64],
 }
 
 /// Parameters for night battle shelling simulation.

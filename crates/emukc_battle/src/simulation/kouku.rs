@@ -269,6 +269,7 @@ fn execute_airstrike_phase(
                 let (_, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
                 output.damage[target_idx] += dealt;
                 output.bak_targets[ship_idx] = target_idx as i64;
+                output.bak_flags[target_idx] = 1;
             }
         }
     }
@@ -310,6 +311,7 @@ fn execute_airstrike_phase(
                 let (_, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
                 output.damage[target_idx] += dealt;
                 output.rai_targets[ship_idx] = target_idx as i64;
+                output.rai_flags[target_idx] = 1;
             }
         }
     }
@@ -374,6 +376,10 @@ pub(crate) fn simulate_kouku(
     let mut api_ebak = vec![-1i64; enemy.len()];
     let mut api_frai = vec![-1i64; friendly.len()];
     let mut api_fbak = vec![-1i64; friendly.len()];
+    let mut api_erai_flag = vec![0i64; friendly.len()];
+    let mut api_ebak_flag = vec![0i64; friendly.len()];
+    let mut api_frai_flag = vec![0i64; enemy.len()];
+    let mut api_fbak_flag = vec![0i64; enemy.len()];
     let mut api_fcl_flag = vec![0i64; friendly.len()];
 
     // Stage 3: Per-slot bombing — split into dive bombing and torpedo bombing phases
@@ -388,6 +394,8 @@ pub(crate) fn simulate_kouku(
             damage: &mut api_edam,
             bak_targets: &mut api_fbak,
             rai_targets: &mut api_frai,
+            bak_flags: &mut api_fbak_flag,
+            rai_flags: &mut api_frai_flag,
         },
     );
     execute_airstrike_phase(
@@ -400,6 +408,8 @@ pub(crate) fn simulate_kouku(
             damage: &mut api_fdam,
             bak_targets: &mut api_ebak,
             rai_targets: &mut api_erai,
+            bak_flags: &mut api_ebak_flag,
+            rai_flags: &mut api_erai_flag,
         },
     );
     api_fcl_flag = api_fdam.iter().map(|&d| i64::from(d > 0)).collect();
@@ -428,6 +438,10 @@ pub(crate) fn simulate_kouku(
             api_erai,
             api_fbak,
             api_ebak,
+            api_frai_flag,
+            api_erai_flag,
+            api_fbak_flag,
+            api_ebak_flag,
             api_fcl_flag,
             api_ecl_flag: api_edam.iter().map(|dam| i64::from(*dam > 0)).collect(),
             api_fdam,
