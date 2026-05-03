@@ -191,6 +191,7 @@ impl Codex {
         &self,
         ship: &mut KcApiShip,
         slot_items: &[KcApiSlotItem],
+        married: bool,
     ) -> Result<(), CodexError> {
         let mst = self.find_ship_mst(ship.api_ship_id)?;
         let basic = self.find_ship_extra(ship.api_ship_id)?;
@@ -273,8 +274,8 @@ impl Codex {
         ship.api_sakuteki[0] = formula(ship.api_lv, basic.saku[0], basic.saku[1]);
         ship.api_taisen[0] = formula(ship.api_lv, basic.tais[0], basic.tais[1]);
 
-        // married
-        if ship.api_lv >= 100 {
+        // married HP bonus
+        if married {
             // some exceptional cases are not addressed here
             // see https://en.kancollewiki.net/Marriage
             let min_hp = mst.api_taik.as_ref().unwrap()[0];

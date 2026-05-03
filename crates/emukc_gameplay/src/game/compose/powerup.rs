@@ -378,7 +378,7 @@ where
         target_ship_slot_items.into_iter().map(std::convert::Into::into).collect();
 
     // recalculate ship status
-    codex.cal_ship_status(&mut target_api_ship, &target_ship_slot_items)?;
+    codex.cal_ship_status(&mut target_api_ship, &target_ship_slot_items, false)?;
 
     let mut am: ship::ActiveModel = target_api_ship.clone().into();
 

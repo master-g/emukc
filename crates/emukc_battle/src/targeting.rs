@@ -22,8 +22,6 @@ const DAY_SURFACE_DISPLAY_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::SecondaryGun,
     KcSlotItemType3::LargeCaliberMainGun2,
     KcSlotItemType3::SecondaryGun2,
-    KcSlotItemType3::Torpedo,
-    KcSlotItemType3::SubmarineTorpedo,
     KcSlotItemType3::CarrierBasedDiveBomber,
     KcSlotItemType3::CarrierBasedTorpedoBomber,
     KcSlotItemType3::SeaBasedBomber,

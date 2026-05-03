@@ -54,10 +54,15 @@ pub(crate) fn simulate_shelling_side(
                 params.engagement,
             )
         };
-        let (_, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
         if !params.attacker_is_enemy {
             ship.damage_dealt += dealt;
         }
+        let display = if params.attacker_is_enemy || !defenders[target_idx].is_sortie {
+            dealt
+        } else {
+            raw_dmg
+        };
 
         at_eflag.push(i64::from(params.attacker_is_enemy));
         at_list.push(idx as i64);
@@ -69,7 +74,7 @@ pub(crate) fn simulate_shelling_side(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, is_asw_attack));
         cl_list.push(vec![1]);
-        damage.push(vec![dealt]);
+        damage.push(vec![display]);
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {

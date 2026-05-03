@@ -375,9 +375,10 @@ pub(crate) fn simulate_night_hougeki(
                     },
                 )
             };
-            let (_, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
+            let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
             total_dealt += dealt;
-            hit_damages.push(dealt);
+            let display = if enemy[target_idx].is_sortie { raw_dmg } else { dealt };
+            hit_damages.push(display);
             hit_cls.push(1i64);
         }
         ship.damage_dealt += total_dealt;

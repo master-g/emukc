@@ -228,7 +228,10 @@ fn select_route_from_cells(
                 let index = rng::usize(0..current.next_cells.len());
                 Ok(current.next_cells[index])
             }
-            _ => Ok(current.next_cells[0]),
+            _ => {
+                let index = rng::usize(0..current.next_cells.len());
+                Ok(current.next_cells[index])
+            }
         }
     }
 }

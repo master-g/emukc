@@ -41,8 +41,9 @@ pub(crate) fn simulate_opening_taisen(
             friendly_formation_id,
             engagement,
         );
-        let (_, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
+        let display = if enemy[target_idx].is_sortie { raw_dmg } else { dealt };
 
         at_eflag.push(0);
         at_list.push(idx as i64);
@@ -50,7 +51,7 @@ pub(crate) fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(day_attack_display_ids(codex, ship, true));
         cl_list.push(vec![1]);
-        damage.push(vec![dealt]);
+        damage.push(vec![display]);
     }
 
     // Enemy OASW attacks

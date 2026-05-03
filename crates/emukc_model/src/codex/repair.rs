@@ -41,6 +41,9 @@ impl Codex {
 
         let time_base = if lv < 12 {
             (lv as f64) * 10.0
+        } else if ship_mst.api_stype == 21 {
+            // CT (練習巡洋艦) uses a reduced formula without the sqrt term
+            (lv as f64) * 5.0 + 30.0
         } else {
             (lv as f64) * 5.0 + (lv as f64 - 11.0).sqrt().floor() * 10.0 + 50.0
         };
@@ -61,11 +64,11 @@ impl Codex {
             | KcShipType::AS => 1.5,
             KcShipType::CL
             | KcShipType::CLT
-            | KcShipType::CT
             | KcShipType::DD
             | KcShipType::SSV
             | KcShipType::AV
-            | KcShipType::LHA => 1.0,
+            | KcShipType::LHA
+            | KcShipType::CT => 1.0,
             KcShipType::SS | KcShipType::DE => 0.5,
             _ => 0.1,
         };

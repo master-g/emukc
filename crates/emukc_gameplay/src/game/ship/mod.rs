@@ -309,7 +309,7 @@ where
     ship.api_slot = item_ids;
 
     // recalculate stats
-    codex.cal_ship_status(&mut ship, &slot_items)?;
+    codex.cal_ship_status(&mut ship, &slot_items, false)?;
 
     // add ship
     let mut am = ship::ActiveModel {
@@ -676,7 +676,6 @@ where
     m.exp_now = s.api_exp[0];
     m.exp_next = s.api_exp[1];
     m.exp_progress = s.api_exp[2];
-    m.married = s.api_lv > 99;
     m.locked = s.api_locked == 1;
     m.backs = s.api_backs;
     m.hp_now = s.api_nowhp;
@@ -760,7 +759,7 @@ where
     let mut api_ship: KcApiShip = (*ship).into();
     let api_slot_items: Vec<KcApiSlotItem> = slot_items.iter().map(|x| x.clone().into()).collect();
 
-    codex.cal_ship_status(&mut api_ship, &api_slot_items)?;
+    codex.cal_ship_status(&mut api_ship, &api_slot_items, ship.married)?;
 
     // modify ship model
     am.sort_num = ActiveValue::Set(api_ship.api_sortno);
@@ -771,7 +770,7 @@ where
     am.exp_progress = ActiveValue::Set(api_ship.api_exp[2]);
     am.hp_max = ActiveValue::Set(api_ship.api_maxhp);
     am.hp_now = ActiveValue::Set(api_ship.api_nowhp);
-    am.married = ActiveValue::Set(api_ship.api_lv > 99);
+    am.married = ActiveValue::NotSet;
     am.backs = ActiveValue::Set(api_ship.api_backs);
     am.hp_now = ActiveValue::Set(api_ship.api_nowhp);
     am.hp_max = ActiveValue::Set(api_ship.api_maxhp);

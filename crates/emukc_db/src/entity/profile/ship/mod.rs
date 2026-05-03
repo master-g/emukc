@@ -258,7 +258,7 @@ impl From<KcApiShip> for ActiveModel {
             exp_now: ActiveValue::Set(value.api_exp[0]),
             exp_next: ActiveValue::Set(value.api_exp[1]),
             exp_progress: ActiveValue::Set(value.api_exp[2]),
-            married: ActiveValue::Set(value.api_lv > 99),
+            married: ActiveValue::NotSet,
             locked: ActiveValue::Set(value.api_locked == 1),
             backs: ActiveValue::Set(value.api_backs),
             hp_now: ActiveValue::Set(value.api_nowhp),

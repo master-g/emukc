@@ -636,7 +636,7 @@ fn build_practice_enemy_ships(
             let (_, next_exp) = level::exp_to_ship_level(exp_now);
             api_ship.api_lv = ship.level;
             api_ship.api_exp = [exp_now, next_exp, 0];
-            codex.cal_ship_status(&mut api_ship, &slot_items)?;
+            codex.cal_ship_status(&mut api_ship, &slot_items, false)?;
 
             Ok(PracticeBattleShipInput {
                 ship: api_ship,

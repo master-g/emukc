@@ -313,6 +313,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             visited_cell_ids: BTreeSet::from([first_cell]),
             locked_enemy_composition: locked_enemy_composition.clone(),
         };
+        clear_pending_sortie_runtime_state(self.sortie_store(), profile_id);
         let _ = self.sortie_store().insert_active(profile_id, active);
         tx.commit().await?;
 
@@ -1321,7 +1322,7 @@ fn build_sortie_enemy_ship(
         let (_, next_exp) = level::exp_to_ship_level(exp_now);
         api_ship.api_lv = enemy_level;
         api_ship.api_exp = [exp_now, next_exp, 0];
-        codex.cal_ship_status(&mut api_ship, &slot_items)?;
+        codex.cal_ship_status(&mut api_ship, &slot_items, false)?;
         for (idx, slot_item) in slot_items.iter().take(5).enumerate() {
             api_ship.api_slot[idx] = slot_item.api_slotitem_id;
         }
@@ -1587,7 +1588,7 @@ mod tests {
         let (_, next_exp) = level::exp_to_ship_level(exp_now);
         ship.api_lv = level;
         ship.api_exp = [exp_now, next_exp, 0];
-        codex.cal_ship_status(&mut ship, &slot_items).unwrap();
+        codex.cal_ship_status(&mut ship, &slot_items, false).unwrap();
         BattleShipInput {
             ship,
             slot_items,

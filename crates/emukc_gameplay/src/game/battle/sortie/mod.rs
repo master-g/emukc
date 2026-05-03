@@ -77,7 +77,7 @@ mod tests {
         let (_, next_exp) = level::exp_to_ship_level(exp_now);
         ship.api_lv = level;
         ship.api_exp = [exp_now, next_exp, 0];
-        codex.cal_ship_status(&mut ship, &slot_items).unwrap();
+        codex.cal_ship_status(&mut ship, &slot_items, false).unwrap();
         BattleShipInput {
             ship,
             slot_items,
