@@ -5,6 +5,7 @@ use emukc_battle::{
     simulate_night,
 };
 use emukc_model::codex::Codex;
+use emukc_model::kc2::KcSortieResultRank;
 
 use super::super::{repository::SortieRepository, rng::CryptoRng};
 use super::{
@@ -74,6 +75,7 @@ pub fn run_night_battle(
             enemy_formation_id,
             engagement,
             air_state,
+            is_sortie: true,
         },
         &mut rng,
     );
@@ -149,7 +151,7 @@ pub fn run_sp_midnight_battle(
             raigeki: None,
         },
         outcome: BattleOutcome {
-            win_rank: "D".to_string(),
+            win_rank: KcSortieResultRank::D,
             mvp: 0,
             can_midnight: true,
         },
@@ -167,6 +169,7 @@ pub fn run_sp_midnight_battle(
             enemy_formation_id,
             engagement,
             air_state: None,
+            is_sortie: true,
         },
         &mut rng,
     );

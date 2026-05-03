@@ -9,27 +9,30 @@ use crate::types::{
 /// All mutable state for a single battle simulation.
 ///
 /// Created from a [`BattleContext`], mutated by phase functions, then
-/// consumed by [`finalize`](Self::finalize) to produce the simulation output.
+/// consumed by [`finalize_day`](Self::finalize_day) or
+/// [`finalize_night`](Self::finalize_night) to produce the simulation output.
+///
+/// `friendly` and `enemy` are `pub(crate)` because every phase function needs
+/// `&mut` access to them. All other fields are private with setters.
 pub(crate) struct BattleState {
-    pub friendly: Vec<BattleRuntimeShip>,
-    pub enemy: Vec<BattleRuntimeShip>,
-    #[allow(dead_code)]
-    pub is_sortie: bool,
-    pub battle_type: BattleType,
-    pub friendly_formation_id: i64,
-    pub enemy_formation_id: i64,
-    pub engagement: super::types::EngagementType,
-    // Phase outputs (accumulated)
-    pub kouku: Option<BattleKouku>,
-    pub opening_attack: Option<BattleOpeningAttack>,
-    pub opening_taisen: Option<BattleHougeki>,
-    pub hougeki1: Option<BattleHougeki>,
-    pub hougeki2: Option<BattleHougeki>,
-    pub raigeki: Option<BattleRaigeki>,
-    // Protocol flags
-    pub stage_flag: [i64; 3],
-    pub hourai_flag: [i64; 4],
-    pub opening_taisen_flag: i64,
+    pub(crate) friendly: Vec<BattleRuntimeShip>,
+    pub(crate) enemy: Vec<BattleRuntimeShip>,
+
+    battle_type: BattleType,
+    friendly_formation_id: i64,
+    enemy_formation_id: i64,
+    engagement: super::types::EngagementType,
+
+    kouku: Option<BattleKouku>,
+    opening_attack: Option<BattleOpeningAttack>,
+    opening_taisen: Option<BattleHougeki>,
+    hougeki1: Option<BattleHougeki>,
+    hougeki2: Option<BattleHougeki>,
+    raigeki: Option<BattleRaigeki>,
+
+    stage_flag: [i64; 3],
+    hourai_flag: [i64; 4],
+    opening_taisen_flag: i64,
 }
 
 impl BattleState {
@@ -50,7 +53,6 @@ impl BattleState {
         Self {
             friendly,
             enemy,
-            is_sortie,
             battle_type: context.battle_type,
             friendly_formation_id: context.friendly_formation_id,
             enemy_formation_id: context.enemy_formation_id,
@@ -66,6 +68,93 @@ impl BattleState {
             opening_taisen_flag: 0,
         }
     }
+
+    /// Build minimal state for night battle finalization.
+    /// Avoids the full BattleContext → runtime-ship pipeline when the ships
+    /// have already been mutated by day battle phases.
+    pub fn for_night(
+        friendly: Vec<BattleRuntimeShip>,
+        enemy: Vec<BattleRuntimeShip>,
+        friendly_formation_id: i64,
+        enemy_formation_id: i64,
+        engagement: super::types::EngagementType,
+    ) -> Self {
+        Self {
+            friendly,
+            enemy,
+            battle_type: BattleType::Normal,
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            kouku: None,
+            opening_attack: None,
+            opening_taisen: None,
+            hougeki1: None,
+            hougeki2: None,
+            raigeki: None,
+            stage_flag: [0, 0, 0],
+            hourai_flag: [0, 0, 0, 0],
+            opening_taisen_flag: 0,
+        }
+    }
+
+    // -- Read accessors (for phase dispatch) --
+
+    pub(crate) fn battle_type(&self) -> BattleType {
+        self.battle_type
+    }
+
+    pub(crate) fn friendly_formation_id(&self) -> i64 {
+        self.friendly_formation_id
+    }
+
+    pub(crate) fn enemy_formation_id(&self) -> i64 {
+        self.enemy_formation_id
+    }
+
+    pub(crate) fn engagement(&self) -> super::types::EngagementType {
+        self.engagement
+    }
+
+    // -- Setters (for phase functions to write outputs) --
+
+    pub(crate) fn set_kouku(&mut self, kouku: BattleKouku) {
+        self.kouku = Some(kouku);
+    }
+
+    pub(crate) fn set_opening_attack(&mut self, attack: Option<BattleOpeningAttack>) {
+        self.opening_attack = attack;
+    }
+
+    pub(crate) fn set_opening_taisen(&mut self, taisen: Option<BattleHougeki>) {
+        self.opening_taisen = taisen;
+    }
+
+    pub(crate) fn set_opening_taisen_flag(&mut self, flag: bool) {
+        self.opening_taisen_flag = i64::from(flag);
+    }
+
+    pub(crate) fn set_hougeki1(&mut self, hougeki: Option<BattleHougeki>) {
+        self.hougeki1 = hougeki;
+    }
+
+    pub(crate) fn set_hougeki2(&mut self, hougeki: Option<BattleHougeki>) {
+        self.hougeki2 = hougeki;
+    }
+
+    pub(crate) fn set_raigeki(&mut self, raigeki: Option<BattleRaigeki>) {
+        self.raigeki = raigeki;
+    }
+
+    pub(crate) fn set_stage_flag(&mut self, flags: [i64; 3]) {
+        self.stage_flag = flags;
+    }
+
+    pub(crate) fn set_hourai_flag(&mut self, index: usize, value: i64) {
+        self.hourai_flag[index] = value;
+    }
+
+    // -- Finalizers --
 
     /// Consume state, verify invariants, produce the day battle simulation result.
     pub fn finalize_day(self) -> BattleSimulation {

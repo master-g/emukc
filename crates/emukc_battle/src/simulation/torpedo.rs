@@ -22,7 +22,8 @@ pub(crate) fn simulate_opening_torpedo(
     enemy_formation_id: i64,
     engagement: EngagementType,
 ) -> Option<BattleOpeningAttack> {
-    let mut payload = BattleOpeningAttack::blank(7);
+    let fleet_size = friendly.len().max(enemy.len());
+    let mut payload = BattleOpeningAttack::blank(fleet_size);
     let mut happened = false;
 
     for (idx, ship) in friendly.iter_mut().enumerate() {
@@ -99,7 +100,8 @@ pub(crate) fn simulate_raigeki(
     enemy_formation_id: i64,
     engagement: EngagementType,
 ) -> Option<BattleRaigeki> {
-    let mut payload = BattleRaigeki::blank(7);
+    let fleet_size = friendly.len().max(enemy.len());
+    let mut payload = BattleRaigeki::blank(fleet_size);
     let mut happened = false;
 
     for (idx, ship) in friendly.iter_mut().enumerate() {

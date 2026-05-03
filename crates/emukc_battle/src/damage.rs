@@ -10,6 +10,9 @@ use emukc_model::{
 };
 
 use crate::random::BattleRng;
+use crate::targeting::{
+    has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type,
+};
 use crate::types::{AirState, BattlePhase, BattleRuntimeShip, EngagementType};
 
 // ---------------------------------------------------------------------------
@@ -43,7 +46,7 @@ pub(crate) fn calculate_defense_power(rng: &mut impl BattleRng, armor_stat: i64)
     } else {
         0.0
     };
-    (0.7 * a + 0.6 * rand_part).floor()
+    (DEFENSE_COEFF_A * a + DEFENSE_COEFF_B * rand_part).floor()
 }
 
 /// Calculate the damage state modifier based on attacker's HP ratio.
@@ -102,7 +105,7 @@ pub(crate) fn calculate_shelling_damage(
     engagement: EngagementType,
 ) -> i64 {
     let basic_power = if is_cv_type(codex, attacker) {
-        let bomber_count = bomber_slot_count(codex, attacker);
+        let bomber_count = bomber_plane_count(codex, attacker);
         if bomber_count > 0 {
             1.5 * bomber_count as f64 + 55.0
         } else {
@@ -115,10 +118,10 @@ pub(crate) fn calculate_shelling_damage(
     let dmg_state =
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
     let pre_cap = (basic_power + bonus)
-        * shelling_formation_modifier(formation_id)
+        * formation_modifier(formation_id)
         * engagement.modifier()
         * dmg_state;
-    let capped_power = apply_cap(pre_cap, 220.0) as f64;
+    let capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -137,25 +140,33 @@ pub(crate) fn calculate_torpedo_damage(
         attacker.ship.api_raisou[0].max(0) as f64 + improvement_bonus_torpedo(codex, attacker);
     let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, phase);
     let pre_cap =
-        basic_power * torpedo_formation_modifier(formation_id) * engagement.modifier() * dmg_state;
-    let capped_power = apply_cap(pre_cap, 180.0) as f64;
+        basic_power * formation_modifier(formation_id) * engagement.modifier() * dmg_state;
+    let capped_power = apply_cap(pre_cap, TORPEDO_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
 
 /// Calculate night battle damage for a single attack.
+///
+/// When `ci_multiplier` is `Some(m)`, the multiplier is applied to basic power
+/// *before* the soft cap at 360 — matching KanColle's CI damage pipeline.
 pub(crate) fn calculate_night_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
     air_state: Option<&AirState>,
+    ci_multiplier: Option<f64>,
 ) -> i64 {
     let basic_power = (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5)
         as f64
         + improvement_bonus_night(codex, attacker)
         + night_recon_bonus(codex, attacker, air_state);
-    let capped_power = apply_cap(basic_power, 360.0) as f64;
+    let pre_cap = match ci_multiplier {
+        Some(m) => basic_power * m,
+        None => basic_power,
+    };
+    let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -174,11 +185,17 @@ pub(crate) fn calculate_asw_damage(
     // base ASW = total ASW - equipment ASW (modernization + innate)
     let base_asw = (ship_asw - equip_asw).max(0.0);
 
-    // Attack type bonus: +8 for aircraft ASW, +13 for depth charge
-    let type_bonus = if has_active_asw_aircraft(codex, attacker) {
+    // Attack type bonus: +8 for ASW aircraft, +13 for depth charge projector (cumulative)
+    let has_asw_aircraft = has_active_asw_aircraft(codex, attacker);
+    let has_dc_projector = has_slotitem_type(codex, attacker, KcSlotItemType3::DepthCharge);
+    let type_bonus = if has_asw_aircraft {
         8.0
     } else {
+        0.0
+    } + if has_dc_projector {
         13.0
+    } else {
+        0.0
     };
 
     let synergy = asw_synergy_modifier(codex, attacker);
@@ -187,7 +204,7 @@ pub(crate) fn calculate_asw_damage(
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
     let modified =
         raw_power * asw_formation_modifier(formation_id) * engagement.modifier() * dmg_state;
-    let capped = apply_cap(modified, 170.0) as f64;
+    let capped = apply_cap(modified, ASW_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     let armor_reduction = depth_charge_armor_reduction(codex, attacker);
     let adjusted_defense = (defense - armor_reduction).max(0.0);
@@ -224,8 +241,8 @@ pub(crate) fn calculate_single_slot_airstrike_damage(
     if bomb_power <= 0.0 {
         return 0;
     }
-    let raw_power = bomb_power + 25.0;
-    let capped = apply_cap(raw_power, 170.0) as f64;
+    let raw_power = bomb_power + AIRSTRIKE_POWER_BONUS;
+    let capped = apply_cap(raw_power, AIRSTRIKE_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped, defense, defender.hp())
 }
@@ -244,20 +261,23 @@ pub(crate) fn is_cv_type(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     matches!(ship_type(codex, ship), Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB))
 }
 
-/// Count the number of bomber-type slots (dive bomber + torpedo bomber) on a ship.
-pub(crate) fn bomber_slot_count(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+/// Count the total number of bomber aircraft (dive bomber + torpedo bomber) on a ship.
+/// Uses `api_onslot` (actual plane count per slot), not the number of bomber slots.
+pub(crate) fn bomber_plane_count(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
     const BOMBER_TYPES: &[KcSlotItemType3] =
         &[KcSlotItemType3::CarrierBasedDiveBomber, KcSlotItemType3::CarrierBasedTorpedoBomber];
     ship.slot_items
         .iter()
-        .filter(|si| {
+        .zip(ship.ship.api_onslot)
+        .filter(|(si, _)| {
             codex
                 .find::<ApiMstSlotitem>(&si.api_slotitem_id)
                 .ok()
                 .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
                 .is_some_and(|t| BOMBER_TYPES.contains(&t))
         })
-        .count() as i64
+        .map(|(_, onslot)| onslot.max(0))
+        .sum()
 }
 
 /// Light cruiser gun bonus: `√(single_gun_count) + 2 × √(twin_gun_count)`.
@@ -318,18 +338,7 @@ pub(crate) fn night_recon_bonus(
 // ---------------------------------------------------------------------------
 
 /// Shelling formation modifier.
-pub(crate) fn shelling_formation_modifier(formation_id: i64) -> f64 {
-    match formation_id {
-        2 => 0.8,
-        3 => 0.7,
-        4 => 0.85,
-        5 => 0.6,
-        _ => 1.0,
-    }
-}
-
-/// Torpedo formation modifier.
-pub(crate) fn torpedo_formation_modifier(formation_id: i64) -> f64 {
+pub(crate) fn formation_modifier(formation_id: i64) -> f64 {
     match formation_id {
         2 => 0.8,
         3 => 0.7,
@@ -471,61 +480,25 @@ pub(crate) fn equipment_asw_total(codex: &Codex, ship: &BattleRuntimeShip) -> f6
 }
 
 // ---------------------------------------------------------------------------
-// Private helpers (used internally by the functions above)
+// Named constants for magic numbers in damage formulas
 // ---------------------------------------------------------------------------
 
-fn ship_mst<'a>(
-    codex: &'a Codex,
-    ship: &'a BattleRuntimeShip,
-) -> Option<&'a emukc_model::kc2::start2::ApiMstShip> {
-    codex.find(&ship.ship.api_ship_id).ok()
-}
-
-fn ship_type(codex: &Codex, ship: &BattleRuntimeShip) -> Option<KcShipType> {
-    ship_mst(codex, ship).and_then(|mst| KcShipType::n(mst.api_stype as i32))
-}
-
-fn has_slotitem_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotItemType3) -> bool {
-    ship.slot_items.iter().any(|slot_item| {
-        codex
-            .find::<ApiMstSlotitem>(&slot_item.api_slotitem_id)
-            .ok()
-            .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-            == Some(wanted)
-    })
-}
-
-fn has_active_asw_aircraft(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-    ship.slot_items.iter().zip(ship.ship.api_onslot).any(|(slot_item, onslot)| {
-        let Some(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok() else {
-            return false;
-        };
-        matches!(
-            KcSlotItemType3::n(mst.api_type[2]),
-            Some(
-                KcSlotItemType3::AutoGyro
-                    | KcSlotItemType3::AntiSubmarinePatrol
-                    | KcSlotItemType3::SeaBasedBomber
-                    | KcSlotItemType3::LargeFlyingBoat
-            )
-        ) && onslot > 0
-    })
-}
-
-// TODO: used by airstrike phase
-#[allow(dead_code)]
-fn is_airstrike_attack_type(slotitem_type: i64) -> bool {
-    matches!(
-        KcSlotItemType3::n(slotitem_type),
-        Some(
-            KcSlotItemType3::CarrierBasedDiveBomber
-                | KcSlotItemType3::CarrierBasedTorpedoBomber
-                | KcSlotItemType3::SeaBasedBomber
-                | KcSlotItemType3::JetFighterBomber
-                | KcSlotItemType3::JetAttacker
-        )
-    )
-}
+/// Day shelling soft-cap threshold.
+const SHELLING_CAP: f64 = 220.0;
+/// Torpedo soft-cap threshold.
+const TORPEDO_CAP: f64 = 180.0;
+/// Night battle soft-cap threshold.
+const NIGHT_CAP: f64 = 360.0;
+/// ASW soft-cap threshold.
+const ASW_CAP: f64 = 170.0;
+/// Airstrike soft-cap threshold.
+const AIRSTRIKE_CAP: f64 = 170.0;
+/// Defense power formula coefficient A.
+const DEFENSE_COEFF_A: f64 = 0.7;
+/// Defense power formula coefficient B.
+const DEFENSE_COEFF_B: f64 = 0.6;
+/// Airstrike flat power bonus.
+const AIRSTRIKE_POWER_BONUS: f64 = 25.0;
 
 #[cfg(test)]
 mod tests {
@@ -759,7 +732,7 @@ mod tests {
         let base_asw = (80.0 - equip_asw).max(0.0);
         let synergy = 1.1; // single DepthCharge counts as both projector and charge
         let expected_raw = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + 13.0) * synergy;
-        let expected_capped = apply_cap(expected_raw, 170.0) as f64;
+        let expected_capped = apply_cap(expected_raw, ASW_CAP) as f64;
         // Defense is now randomized; just verify damage is positive and reasonable
         // With armor 10, defense range is [7, 13] so damage should be in a range
         let max_defense: f64 = (0.7_f64 * 10.0 + 0.6 * 9.0).floor(); // max possible defense = 12.4 → 12

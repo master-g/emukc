@@ -5,6 +5,7 @@ use emukc_battle::{
     simulate_day, simulate_night,
 };
 use emukc_model::codex::Codex;
+use emukc_model::kc2::KcSortieResultRank;
 
 use crate::err::GameplayError;
 
@@ -43,7 +44,7 @@ pub fn run_day_battle(
     );
 
     let base_exp = calculate_base_exp(&input.rival);
-    let get_exp = calculate_admiral_exp(base_exp, &simulation.outcome.win_rank);
+    let get_exp = calculate_admiral_exp(base_exp, &simulation.outcome.win_rank.to_string());
     let ct_flagship = simulation
         .friendly
         .first()
@@ -142,7 +143,7 @@ pub fn run_day_battle(
             })
             .collect(),
         enemy_ship_ids: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        win_rank: simulation.outcome.win_rank,
+        win_rank: simulation.outcome.win_rank.to_string(),
         get_exp,
         member_lv: input.member_lv,
         member_exp: input.member_exp,
@@ -166,7 +167,14 @@ pub fn run_day_battle(
             enemy: simulation.enemy,
             formation: response.api_formation,
             outcome: BattleOutcome {
-                win_rank: snapshot.win_rank.clone(),
+                win_rank: match snapshot.win_rank.as_str() {
+                    "S" => KcSortieResultRank::S,
+                    "A" => KcSortieResultRank::A,
+                    "B" => KcSortieResultRank::B,
+                    "C" => KcSortieResultRank::C,
+                    "D" => KcSortieResultRank::D,
+                    _ => KcSortieResultRank::E,
+                },
                 mvp: snapshot.mvp,
                 can_midnight: response.api_midnight_flag > 0,
             },
@@ -198,6 +206,7 @@ pub fn run_night_battle(
             engagement: EngagementType::from_api_id(session.formation[2])
                 .unwrap_or(EngagementType::SameCourse),
             air_state: session.air_state,
+            is_sortie: false,
         },
         &mut rng,
     );
@@ -221,7 +230,7 @@ pub fn run_night_battle(
             })
             .collect(),
         enemy_ship_ids: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        win_rank: simulation.outcome.win_rank.clone(),
+        win_rank: simulation.outcome.win_rank.to_string(),
         get_exp: 0,
         member_lv: 0,
         member_exp: 0,

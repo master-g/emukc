@@ -678,7 +678,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             .is_some_and(|m| m.api_stype == 21);
 
         if let Some(mut snapshot) = store.take_pending_result(profile_id) {
-            snapshot.win_rank = night.outcome.win_rank.clone();
+            snapshot.win_rank = night.outcome.win_rank.to_string();
             snapshot.mvp = night.outcome.mvp;
             snapshot.get_exp =
                 calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
@@ -789,7 +789,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         );
 
         let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
-        let get_exp = calculate_battle_admiral_exp(base_exp, &night_session.outcome.win_rank);
+        let get_exp =
+            calculate_battle_admiral_exp(base_exp, &night_session.outcome.win_rank.to_string());
         let friendly_nowhps: Vec<i64> = pending_battle(store, profile_id)
             .map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
             .unwrap_or_default();
@@ -817,7 +818,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                     .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                     .collect(),
                 enemy_nowhps: night_session.packet.enemy_nowhps.clone(),
-                win_rank: night_session.outcome.win_rank.clone(),
+                win_rank: night_session.outcome.win_rank.to_string(),
                 get_exp,
                 member_lv: profile.hq_level,
                 member_exp: profile.experience,
@@ -950,7 +951,7 @@ async fn sortie_battle_impl(
     );
 
     let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
-    let get_exp = calculate_battle_admiral_exp(base_exp, &session.outcome.win_rank);
+    let get_exp = calculate_battle_admiral_exp(base_exp, &session.outcome.win_rank.to_string());
     let friendly_nowhps: Vec<i64> = session.friendly.iter().map(|f| f.hp().max(0)).collect();
     let ct_flagship = friend_ships
         .first()
@@ -978,7 +979,7 @@ async fn sortie_battle_impl(
                 .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                 .collect(),
             enemy_nowhps: session.packet.enemy_nowhps.clone(),
-            win_rank: session.outcome.win_rank.clone(),
+            win_rank: session.outcome.win_rank.to_string(),
             get_exp,
             member_lv: profile.hq_level,
             member_exp: profile.experience,
@@ -1888,7 +1889,7 @@ mod tests {
                     .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                     .collect(),
                 enemy_nowhps: session.packet.enemy_nowhps.clone(),
-                win_rank: session.outcome.win_rank.clone(),
+                win_rank: session.outcome.win_rank.to_string(),
                 get_exp: 0,
                 member_lv: 1,
                 member_exp: 0,

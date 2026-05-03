@@ -17,7 +17,7 @@
 - [x] 3.1 Delete the `count_lines` helper in `populate.rs:21-32`.
 - [x] 3.2 Move the JSONL parse loop to run before progress-bar construction. Set `let total_files = all_items.len();`.
 - [x] 3.3 Construct progress bars (`aggregate_pb`, `stats_pb`) using the post-parse `total_files`.
-- [ ] 3.4 Run `cargo run -- cache populate` against a small list file and confirm the progress bar displays correctly with the expected total.
+- [x] 3.4 Run `cargo run -- cache populate` against a small list file and confirm the progress bar displays correctly with the expected total.
 
 ## 4. Async-aware failure aggregation
 
@@ -35,5 +35,5 @@
 
 - [x] 6.1 Run `cargo test -p emukc_bootstrap` clean.
 - [x] 6.2 Run `cargo build --release` clean.
-- [ ] 6.3 Run `cargo run -- cache populate` end-to-end against a real list file. Confirm the summary classification (succeeded / retried / recovered / failed / skipped) matches expectations.
-- [ ] 6.4 Run `openspec validate harden-bootstrap-populate --strict` clean.
+- [x] 6.3 Run `cargo run -- cache populate` end-to-end against a real list file. Confirm the summary classification (succeeded / retried / recovered / failed / skipped) matches expectations.
+- [x] 6.4 Run `openspec validate harden-bootstrap-populate --strict` clean.

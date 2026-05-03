@@ -11,6 +11,7 @@ use emukc_model::{
 
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
+use crate::targeting::{is_air_combat_type, is_airstrike_attack_type};
 use crate::types::{
     AirState, AirstrikeOutput, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
     BattleKoukuStage3, BattleRuntimeShip,
@@ -104,43 +105,6 @@ fn first_touch_plane(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<i64> 
             })
             .map(|mst| mst.api_id)
     })
-}
-
-// ---------------------------------------------------------------------------
-// Airstrike attack type detection
-// ---------------------------------------------------------------------------
-
-fn is_airstrike_attack_type(slotitem_type: i64) -> bool {
-    matches!(
-        KcSlotItemType3::n(slotitem_type),
-        Some(
-            KcSlotItemType3::CarrierBasedDiveBomber
-                | KcSlotItemType3::CarrierBasedTorpedoBomber
-                | KcSlotItemType3::SeaBasedBomber
-                | KcSlotItemType3::JetFighterBomber
-                | KcSlotItemType3::JetAttacker
-        )
-    )
-}
-
-fn is_air_combat_type(slotitem_type: i64) -> bool {
-    matches!(
-        KcSlotItemType3::n(slotitem_type),
-        Some(
-            KcSlotItemType3::CarrierBasedFighter
-                | KcSlotItemType3::CarrierBasedDiveBomber
-                | KcSlotItemType3::CarrierBasedTorpedoBomber
-                | KcSlotItemType3::CarrierBasedRecon
-                | KcSlotItemType3::CarrierBasedRecon2
-                | KcSlotItemType3::SeaBasedBomber
-                | KcSlotItemType3::SeaBasedRecon
-                | KcSlotItemType3::SeaplaneFighter
-                | KcSlotItemType3::JetFighter
-                | KcSlotItemType3::JetFighterBomber
-                | KcSlotItemType3::JetAttacker
-                | KcSlotItemType3::JetRecon
-        )
-    )
 }
 
 /// Find the ship index with the highest total bombing power (for damage attribution).

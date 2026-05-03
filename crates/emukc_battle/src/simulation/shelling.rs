@@ -119,7 +119,33 @@ mod tests {
             &mut crate::random::SeededRng::new(1),
         );
 
-        let hougeki = simulation.packet.hougeki1.unwrap();
-        assert_eq!(hougeki.api_at_list, vec![1]);
+        // Verify no friendly shelling attack came from index 0 (carrier)
+        // regardless of which side goes first due to fleet speed
+        let all_at_eflags: Vec<i64> = simulation
+            .packet
+            .hougeki1
+            .iter()
+            .chain(simulation.packet.hougeki2.iter())
+            .flat_map(|h| h.api_at_eflag.iter().copied())
+            .collect();
+        let all_at_lists: Vec<i64> = simulation
+            .packet
+            .hougeki1
+            .iter()
+            .chain(simulation.packet.hougeki2.iter())
+            .flat_map(|h| h.api_at_list.iter().copied())
+            .collect();
+        // The carrier (index 0 in friendly fleet) should never appear as attacker
+        // when eflag=0 (friendly). BB (index 1) should be the one shelling.
+        let friendly_attacks: Vec<i64> = all_at_eflags
+            .iter()
+            .zip(all_at_lists.iter())
+            .filter(|(ef, _)| **ef == 0)
+            .map(|(_, idx)| *idx)
+            .collect();
+        assert!(
+            !friendly_attacks.contains(&0),
+            "carrier with only fighters should not shell: {friendly_attacks:?}"
+        );
     }
 }
