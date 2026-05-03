@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - No sycophantic openers or closing fluff.
 - Keep solutions simple and direct.
 - User instructions always override this file.
+- Never include AI attribution (Co-Authored-By, "Generated with Claude", etc.) in commit messages.
 
 ## Project Overview
 
