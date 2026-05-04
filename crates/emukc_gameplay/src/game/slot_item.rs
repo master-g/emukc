@@ -89,8 +89,13 @@ pub trait SlotItemOps {
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID (for ownership verification).
     /// - `item_id`: The slot item instance ID.
-    async fn toggle_slot_item_locked(&self, item_id: i64) -> Result<KcApiSlotItem, GameplayError>;
+    async fn toggle_slot_item_locked(
+        &self,
+        profile_id: i64,
+        item_id: i64,
+    ) -> Result<KcApiSlotItem, GameplayError>;
 
     /// Destroy slot items.
     ///
@@ -200,11 +205,28 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
         Ok(item_ids)
     }
 
-    async fn toggle_slot_item_locked(&self, item_id: i64) -> Result<KcApiSlotItem, GameplayError> {
+    async fn toggle_slot_item_locked(
+        &self,
+        profile_id: i64,
+        item_id: i64,
+    ) -> Result<KcApiSlotItem, GameplayError> {
+        let codex = self.codex();
         let db = self.db();
         let tx = db.begin().await?;
 
-        let m = toggle_slot_item_locked_impl(&tx, item_id).await?;
+        let m = toggle_slot_item_locked_impl(&tx, profile_id, item_id).await?;
+
+        // If this item is equipped on a ship, recalculate that ship's has_locked_euqip
+        if m.equip_on > 0 {
+            let result = crate::game::ship::find_ship_impl(&tx, m.equip_on).await?;
+            if let Some((ship, _)) = result {
+                crate::game::ship::recalculate_ship_status_with_model(&tx, codex, &ship)
+                    .await?
+                    .update(&tx)
+                    .await?;
+            }
+        }
+
         let m: SlotItem = m.into();
 
         tx.commit().await?;
@@ -388,6 +410,7 @@ where
 
 pub(crate) async fn toggle_slot_item_locked_impl<C>(
     c: &C,
+    profile_id: i64,
     item_id: i64,
 ) -> Result<slot_item::Model, GameplayError>
 where
@@ -398,6 +421,12 @@ where
         .one(c)
         .await?
         .ok_or_else(|| GameplayError::EntryNotFound(format!("slot item {item_id} not found")))?;
+
+    if record.profile_id != profile_id {
+        return Err(GameplayError::EntryNotFound(format!(
+            "slot item {item_id} does not belong to profile {profile_id}"
+        )));
+    }
 
     let locked = record.locked;
     let mut am: slot_item::ActiveModel = record.into();

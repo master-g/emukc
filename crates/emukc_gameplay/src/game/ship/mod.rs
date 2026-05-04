@@ -55,8 +55,13 @@ pub trait ShipOps {
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID (for ownership verification).
     /// - `ship_id`: The ship ID.
-    async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError>;
+    async fn toggle_ship_locked(
+        &self,
+        profile_id: i64,
+        ship_id: i64,
+    ) -> Result<KcApiShip, GameplayError>;
 
     /// Open ship ex-slot.
     ///
@@ -165,11 +170,15 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(ships)
     }
 
-    async fn toggle_ship_locked(&self, ship_id: i64) -> Result<KcApiShip, GameplayError> {
+    async fn toggle_ship_locked(
+        &self,
+        profile_id: i64,
+        ship_id: i64,
+    ) -> Result<KcApiShip, GameplayError> {
         let db = self.db();
         let tx = db.begin().await?;
 
-        let ship = toggle_ship_locked_impl(&tx, ship_id).await?;
+        let ship = toggle_ship_locked_impl(&tx, profile_id, ship_id).await?;
 
         tx.commit().await?;
 
@@ -469,6 +478,7 @@ where
 
 pub(crate) async fn toggle_ship_locked_impl<C>(
     c: &C,
+    profile_id: i64,
     ship_id: i64,
 ) -> Result<ship::Model, GameplayError>
 where
@@ -478,6 +488,12 @@ where
         .one(c)
         .await?
         .ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
+
+    if ship.profile_id != profile_id {
+        return Err(GameplayError::EntryNotFound(format!(
+            "ship {ship_id} does not belong to profile {profile_id}"
+        )));
+    }
 
     let locked = !ship.locked;
     let mut am = ship.into_active_model();

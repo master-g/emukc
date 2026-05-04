@@ -7,7 +7,8 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use crate::progress::{
-    download_aggregate_style, log_with_mp, new_multi_progress, new_progress_bar, new_spinner,
+    download_aggregate_style, log_with_mp, new_multi_progress, new_progress_bar,
+    new_progress_bar_on_mp, new_spinner_on_mp,
 };
 use crate::res::RES_LIST;
 
@@ -114,9 +115,9 @@ pub async fn download_all(
     let mp = Arc::new(new_multi_progress());
     let aggregate_pb = match mp.as_ref() {
         Some(mp) => {
-            let pb = new_progress_bar(0, "Downloading resources", download_aggregate_style())
-                .expect("ProgressBar creation should succeed in TTY mode");
-            Some(mp.add(pb))
+            let pb =
+                new_progress_bar_on_mp(0, "Downloading resources", download_aggregate_style(), mp);
+            Some(pb)
         }
         None => new_progress_bar(0, "Downloading resources", download_aggregate_style()),
     };
@@ -146,10 +147,7 @@ pub async fn download_all(
         let output_dir = output_dir.to_path_buf();
         let aggregate_pb = aggregate_pb.clone();
         let mp = mp.clone();
-        let spinner = mp.as_ref().as_ref().and_then(|mp| {
-            let sp = new_spinner(res.save_as)?;
-            Some(mp.add(sp))
-        });
+        let spinner = mp.as_ref().as_ref().map(|mp| new_spinner_on_mp(res.save_as, mp));
 
         let task = async move {
             let since = std::time::Instant::now();

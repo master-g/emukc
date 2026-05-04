@@ -20,10 +20,11 @@ struct Resp {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(_session): Extension<GameSession>,
+    Extension(session): Extension<GameSession>,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let ship = state.toggle_ship_locked(params.api_ship_id).await?;
+    let pid = session.profile.id;
+    let ship = state.toggle_ship_locked(pid, params.api_ship_id).await?;
 
     Ok(KcApiResponse::success(&Resp {
         api_locked: ship.api_locked,
