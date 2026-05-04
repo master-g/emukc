@@ -143,7 +143,7 @@ pub fn run_day_battle(
             })
             .collect(),
         enemy_ship_ids: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        win_rank: simulation.outcome.win_rank.to_string(),
+        win_rank: simulation.outcome.win_rank,
         get_exp,
         member_lv: input.member_lv,
         member_exp: input.member_exp,
@@ -167,14 +167,7 @@ pub fn run_day_battle(
             enemy: simulation.enemy,
             formation: response.api_formation,
             outcome: BattleOutcome {
-                win_rank: match snapshot.win_rank.as_str() {
-                    "S" => KcSortieResultRank::S,
-                    "A" => KcSortieResultRank::A,
-                    "B" => KcSortieResultRank::B,
-                    "C" => KcSortieResultRank::C,
-                    "D" => KcSortieResultRank::D,
-                    _ => KcSortieResultRank::E,
-                },
+                win_rank: snapshot.win_rank,
                 mvp: snapshot.mvp,
                 can_midnight: response.api_midnight_flag > 0,
             },
@@ -206,7 +199,6 @@ pub fn run_night_battle(
             engagement: EngagementType::from_api_id(session.formation[2])
                 .unwrap_or(EngagementType::SameCourse),
             air_state: session.air_state,
-            is_sortie: false,
         },
         &mut rng,
     );
@@ -230,7 +222,7 @@ pub fn run_night_battle(
             })
             .collect(),
         enemy_ship_ids: session.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        win_rank: simulation.outcome.win_rank.to_string(),
+        win_rank: simulation.outcome.win_rank,
         get_exp: 0,
         member_lv: 0,
         member_exp: 0,

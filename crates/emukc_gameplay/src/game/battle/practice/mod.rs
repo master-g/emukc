@@ -7,7 +7,9 @@ use std::{
 
 use serde::Serialize;
 
-use emukc_model::{profile::practice::Rival, thirdparty::FleetShipSnapshot};
+use emukc_model::{
+    kc2::KcSortieResultRank, profile::practice::Rival, thirdparty::FleetShipSnapshot,
+};
 
 use emukc_battle::{
     AirState, BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleOutcome,
@@ -85,7 +87,7 @@ pub struct PracticeBattleResultSnapshot {
     pub friendly_ship_ids: Vec<i64>,
     pub friendly_fleet_snapshot: Vec<FleetShipSnapshot>,
     pub enemy_ship_ids: Vec<i64>,
-    pub win_rank: String,
+    pub win_rank: KcSortieResultRank,
     pub get_exp: i64,
     pub member_lv: i64,
     pub member_exp: i64,

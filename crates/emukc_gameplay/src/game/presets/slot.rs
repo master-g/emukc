@@ -357,7 +357,7 @@ where
         };
     }
 
-    codex.cal_ship_status(&mut api_new_ship, &api_slot_items, false)?;
+    codex.cal_ship_status(&mut api_new_ship, &api_slot_items, ship.married)?;
 
     let mut new_ship_am: ship::ActiveModel = api_new_ship.into();
     new_ship_am.id = ActiveValue::Unchanged(ship_id);

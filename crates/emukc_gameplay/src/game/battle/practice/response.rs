@@ -47,7 +47,7 @@ pub fn build_result_response(
 ) -> PracticeBattleResultResponse {
     PracticeBattleResultResponse {
         api_ship_id: snapshot.enemy_ship_ids,
-        api_win_rank: snapshot.win_rank,
+        api_win_rank: snapshot.win_rank.to_string(),
         api_get_exp: snapshot.get_exp,
         api_member_lv: snapshot.member_lv,
         api_member_exp: snapshot.member_exp,

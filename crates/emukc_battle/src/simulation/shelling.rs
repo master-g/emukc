@@ -58,11 +58,7 @@ pub(crate) fn simulate_shelling_side(
         if !params.attacker_is_enemy {
             ship.damage_dealt += dealt;
         }
-        let display = if params.attacker_is_enemy || !defenders[target_idx].is_sortie {
-            dealt
-        } else {
-            raw_dmg
-        };
+        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
 
         at_eflag.push(i64::from(params.attacker_is_enemy));
         at_list.push(idx as i64);

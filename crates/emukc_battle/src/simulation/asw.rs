@@ -43,7 +43,7 @@ pub(crate) fn simulate_opening_taisen(
         );
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
-        let display = if enemy[target_idx].is_sortie { raw_dmg } else { dealt };
+        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
 
         at_eflag.push(0);
         at_list.push(idx as i64);
@@ -71,6 +71,7 @@ pub(crate) fn simulate_opening_taisen(
             engagement,
         );
         let (_, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+        ship.damage_dealt += dealt;
 
         at_eflag.push(1);
         at_list.push(idx as i64);

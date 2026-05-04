@@ -149,9 +149,6 @@ pub struct NightBattleInput {
     pub enemy_formation_id: i64,
     pub engagement: EngagementType,
     pub air_state: Option<AirState>,
-    /// Whether this is a sortie (true) or practice (false) night battle.
-    /// Used for sinking protection (轟沈ストッパー) eligibility.
-    pub is_sortie: bool,
 }
 
 #[derive(Debug, Clone)]

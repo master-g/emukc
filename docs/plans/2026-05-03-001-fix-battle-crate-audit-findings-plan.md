@@ -1,7 +1,7 @@
 ---
 title: "fix: Battle crate audit findings — correctness, architecture, and code quality"
 type: fix
-status: active
+status: completed
 date: 2026-05-03
 ---
 

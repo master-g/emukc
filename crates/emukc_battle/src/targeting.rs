@@ -521,6 +521,17 @@ pub(crate) fn slotitem_mst<'a>(
 // Display helpers — day / ASW / night type predicates
 // ---------------------------------------------------------------------------
 
+/// Choose the display damage value for the battle animation log.
+/// Enemy defenders show raw pre-protection damage for the overkill visual effect.
+/// Friendly defenders show actual dealt (capped) damage so the client tracks HP correctly.
+pub(crate) fn display_damage(defender: &BattleRuntimeShip, raw: i64, dealt: i64) -> i64 {
+    if !defender.is_friendly {
+        raw
+    } else {
+        dealt
+    }
+}
+
 /// Whether the slot type is shown in day surface attack displays.
 pub(crate) fn is_day_surface_display_type(slot_type: KcSlotItemType3) -> bool {
     DAY_SURFACE_DISPLAY_TYPES.contains(&slot_type)
@@ -905,5 +916,59 @@ mod tests {
             let idx = select_submarine_target(&codex, &mut rng, &defenders).unwrap();
             assert_eq!(idx, 1, "OASW should only target submarines");
         }
+    }
+
+    #[test]
+    fn display_damage_enemy_defender_returns_raw_overkill() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Enemy defender (is_friendly=false, is_sortie=true)
+        let mut input = sample_ship(&codex, dd_mst, 50);
+        input.ship.api_nowhp = 50;
+        let enemy = BattleRuntimeShip::new(input, false, true);
+
+        let display = display_damage(&enemy, 200, 50);
+        assert_eq!(display, 200, "enemy defender should show raw damage (overkill)");
+    }
+
+    #[test]
+    fn display_damage_friendly_defender_returns_dealt() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly defender (is_friendly=true, is_sortie=true)
+        let mut input = sample_ship(&codex, dd_mst, 50);
+        input.ship.api_nowhp = 100;
+        let friendly = BattleRuntimeShip::new(input, true, true);
+
+        let display = display_damage(&friendly, 200, 30);
+        assert_eq!(display, 30, "friendly defender should show dealt damage (actual HP change)");
+    }
+
+    #[test]
+    fn display_damage_practice_returns_dealt_for_both_sides() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Enemy in practice (is_friendly=false, is_sortie=false) — still returns raw
+        let mut e_input = sample_ship(&codex, dd_mst, 50);
+        e_input.ship.api_nowhp = 50;
+        let enemy_practice = BattleRuntimeShip::new(e_input, false, false);
+        assert_eq!(
+            display_damage(&enemy_practice, 200, 50),
+            200,
+            "practice enemy should still show raw (overkill display)"
+        );
+
+        // Friendly in practice (is_friendly=true, is_sortie=false)
+        let mut f_input = sample_ship(&codex, dd_mst, 50);
+        f_input.ship.api_nowhp = 100;
+        let friendly_practice = BattleRuntimeShip::new(f_input, true, false);
+        assert_eq!(
+            display_damage(&friendly_practice, 100, 80),
+            80,
+            "practice friendly should show dealt"
+        );
     }
 }

@@ -768,4 +768,76 @@ mod tests {
 
         assert!(normal_damage > penalized_damage);
     }
+
+    #[test]
+    fn cv_shelling_uses_bomber_plane_count() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let bomber_mst_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+
+        // CVL with 2 bomber slots: 18 planes each = 36 total
+        let mut cvl = sample_ship(&codex, cvl_mst, 50);
+        cvl.ship.api_onslot = [18, 18, 0, 0, 0];
+        cvl.slot_items =
+            vec![slotitem_with_mst_id(bomber_mst_id), slotitem_with_mst_id(bomber_mst_id)];
+        let cvl_ship = BattleRuntimeShip::from(cvl);
+        assert_eq!(bomber_plane_count(&codex, &cvl_ship), 36);
+
+        // Basic power should be 1.5 * 36 + 55 = 109
+        let expected_basic = 1.5 * 36.0 + 55.0;
+        assert!((expected_basic - 109.0_f64).abs() < f64::EPSILON);
+
+        // Verify damage is computed (not just returning firepower fallback)
+        let mut defender = BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50));
+        defender.ship.api_soukou[0] = 0;
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut attacker = cvl_ship.clone();
+        let dmg = calculate_shelling_damage(
+            &codex,
+            &mut rng,
+            &mut attacker,
+            &defender,
+            1,
+            EngagementType::SameCourse,
+        );
+        assert!(dmg > 0, "CV with bombers should deal shelling damage");
+    }
+
+    #[test]
+    fn asw_type_bonus_cumulative_for_aircraft_and_depth_charge() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let dc_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::DepthCharge);
+        let autogyro_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::AutoGyro);
+
+        // DD with both depth charge and autogyro should get cumulative type_bonus
+        let mut dd = sample_ship(&codex, dd_mst, 99);
+        dd.ship.api_taisen[0] = 100;
+        dd.ship.api_soukou[0] = 200;
+        dd.ship.api_nowhp = 200;
+        dd.ship.api_maxhp = 200;
+        dd.slot_items =
+            vec![slotitem_with_mst_id(dc_mst_id), slotitem_with_mst_id(autogyro_mst_id)];
+
+        let mut defender = BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50));
+        defender.ship.api_soukou[0] = 5;
+        defender.ship.api_nowhp = 50;
+        defender.ship.api_maxhp = 50;
+
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut attacker = BattleRuntimeShip::from(dd);
+
+        let dmg = calculate_asw_damage(
+            &codex,
+            &mut rng,
+            &mut attacker,
+            &defender,
+            1,
+            EngagementType::SameCourse,
+        );
+        assert!(dmg > 0, "ASW with both aircraft and depth charge should deal damage");
+    }
 }

@@ -75,7 +75,6 @@ pub fn run_night_battle(
             enemy_formation_id,
             engagement,
             air_state,
-            is_sortie: true,
         },
         &mut rng,
     );
@@ -169,7 +168,6 @@ pub fn run_sp_midnight_battle(
             enemy_formation_id,
             engagement,
             air_state: None,
-            is_sortie: true,
         },
         &mut rng,
     );

@@ -151,6 +151,7 @@ impl BattleState {
     }
 
     pub(crate) fn set_hourai_flag(&mut self, index: usize, value: i64) {
+        debug_assert!(index < 4, "hourai_flag index out of bounds: {index}");
         self.hourai_flag[index] = value;
     }
 

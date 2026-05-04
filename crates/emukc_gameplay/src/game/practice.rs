@@ -183,7 +183,8 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
 
         let snapshot =
             update_practice_result_stats(&tx, self.codex(), profile_id, snapshot).await?;
-        update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank).await?;
+        update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
+            .await?;
         let quest_event = build_practice_quest_event(&snapshot)?;
         update_quest_progress_for_action(&tx, self.codex(), profile_id, &quest_event).await?;
         clear_pending_practice_battle(profile_id);
@@ -214,7 +215,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
                 .unwrap_or_default();
             existing.win_rank = snapshot.win_rank;
             existing.mvp = snapshot.mvp;
-            existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank);
+            existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank.to_string());
             let (ship_exp, ship_lvup) = calculate_ship_exp(
                 &friend_ships,
                 base_exp,
@@ -236,7 +237,7 @@ fn build_practice_quest_event(
 ) -> Result<QuestActionEvent, GameplayError> {
     Ok(QuestActionEvent::ExerciseBattleCompleted {
         fleet_id: snapshot.deck_id,
-        win_rank: parse_practice_result_rank(&snapshot.win_rank)?,
+        win_rank: snapshot.win_rank,
         fleet_ships: snapshot.friendly_fleet_snapshot.clone(),
     })
 }
@@ -663,7 +664,10 @@ where
     let new_exp = current_exp + snapshot.get_exp;
     let (hq_level, _) = level::exp_to_hq_level(new_exp);
     am.practice_battles = ActiveValue::Set(am.practice_battles.take().unwrap_or_default() + 1);
-    if matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+    if matches!(
+        snapshot.win_rank,
+        KcSortieResultRank::S | KcSortieResultRank::A | KcSortieResultRank::B
+    ) {
         am.practice_battle_wins =
             ActiveValue::Set(am.practice_battle_wins.take().unwrap_or_default() + 1);
     }

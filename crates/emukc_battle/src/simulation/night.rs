@@ -377,7 +377,7 @@ pub(crate) fn simulate_night_hougeki(
             };
             let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
             total_dealt += dealt;
-            let display = if enemy[target_idx].is_sortie { raw_dmg } else { dealt };
+            let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
             hit_damages.push(display);
             hit_cls.push(1i64);
         }
@@ -660,7 +660,6 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
-                is_sortie: true,
             },
             &mut rng,
         );

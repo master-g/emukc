@@ -187,6 +187,7 @@ impl Codex {
     ///
     /// * `ship` - The ship instance.
     /// * `slot_items` - The slot items.
+    /// * `married` - Whether the ship is married (controls married HP bonus).
     pub fn cal_ship_status(
         &self,
         ship: &mut KcApiShip,

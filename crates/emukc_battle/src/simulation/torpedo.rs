@@ -46,7 +46,7 @@ pub(crate) fn simulate_opening_torpedo(
         );
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
-        let display = if enemy[target_idx].is_sortie { raw_dmg } else { dealt };
+        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
@@ -76,13 +76,15 @@ pub(crate) fn simulate_opening_torpedo(
             engagement,
             BattlePhase::OpeningTorpedo,
         );
-        let (_, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+        ship.damage_dealt += dealt;
+        let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: dealt,
+                damage: display,
             },
         );
         happened = true;
@@ -125,7 +127,7 @@ pub(crate) fn simulate_raigeki(
         );
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
-        let display = if enemy[target_idx].is_sortie { raw_dmg } else { dealt };
+        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
@@ -155,13 +157,15 @@ pub(crate) fn simulate_raigeki(
             engagement,
             BattlePhase::ClosingTorpedo,
         );
-        let (_, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+        ship.damage_dealt += dealt;
+        let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: dealt,
+                damage: display,
             },
         );
         happened = true;
@@ -170,6 +174,7 @@ pub(crate) fn simulate_raigeki(
     happened.then_some(payload)
 }
 
+#[cfg(test)]
 #[cfg(test)]
 mod tests {
     use super::*;

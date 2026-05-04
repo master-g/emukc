@@ -266,8 +266,8 @@ fn execute_airstrike_phase(
                 &defenders[target_idx],
             );
             if damage > 0 {
-                let (_, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
-                output.damage[target_idx] += dealt;
+                let (raw_dmg, _dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+                output.damage[target_idx] += raw_dmg;
                 output.bak_targets[ship_idx] = target_idx as i64;
                 output.bak_flags[target_idx] = 1;
             }
@@ -308,8 +308,8 @@ fn execute_airstrike_phase(
                 &defenders[target_idx],
             );
             if damage > 0 {
-                let (_, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
-                output.damage[target_idx] += dealt;
+                let (raw_dmg, _dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+                output.damage[target_idx] += raw_dmg;
                 output.rai_targets[ship_idx] = target_idx as i64;
                 output.rai_flags[target_idx] = 1;
             }
@@ -376,10 +376,10 @@ pub(crate) fn simulate_kouku(
     let mut api_ebak = vec![-1i64; enemy.len()];
     let mut api_frai = vec![-1i64; friendly.len()];
     let mut api_fbak = vec![-1i64; friendly.len()];
-    let mut api_erai_flag = vec![0i64; friendly.len()];
-    let mut api_ebak_flag = vec![0i64; friendly.len()];
-    let mut api_frai_flag = vec![0i64; enemy.len()];
-    let mut api_fbak_flag = vec![0i64; enemy.len()];
+    let mut api_erai_flag = vec![0i64; enemy.len()];
+    let mut api_ebak_flag = vec![0i64; enemy.len()];
+    let mut api_frai_flag = vec![0i64; friendly.len()];
+    let mut api_fbak_flag = vec![0i64; friendly.len()];
     let mut api_fcl_flag = vec![0i64; friendly.len()];
 
     // Stage 3: Per-slot bombing — split into dive bombing and torpedo bombing phases
@@ -394,8 +394,8 @@ pub(crate) fn simulate_kouku(
             damage: &mut api_edam,
             bak_targets: &mut api_fbak,
             rai_targets: &mut api_frai,
-            bak_flags: &mut api_fbak_flag,
-            rai_flags: &mut api_frai_flag,
+            bak_flags: &mut api_ebak_flag,
+            rai_flags: &mut api_erai_flag,
         },
     );
     execute_airstrike_phase(
@@ -408,8 +408,8 @@ pub(crate) fn simulate_kouku(
             damage: &mut api_fdam,
             bak_targets: &mut api_ebak,
             rai_targets: &mut api_erai,
-            bak_flags: &mut api_ebak_flag,
-            rai_flags: &mut api_erai_flag,
+            bak_flags: &mut api_fbak_flag,
+            rai_flags: &mut api_frai_flag,
         },
     );
     api_fcl_flag = api_fdam.iter().map(|&d| i64::from(d > 0)).collect();
@@ -566,5 +566,73 @@ mod tests {
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
         assert_eq!(kouku.api_stage1.api_disp_seiku, 1); // supremacy
+    }
+
+    #[test]
+    fn kouku_flag_arrays_match_fleet_sizes() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // 3 friendly (CVL + 2 DD), 6 enemy (6 DD)
+        let mut friendly: Vec<BattleRuntimeShip> = vec![];
+        for _ in 0..3 {
+            let mut ship = sample_ship(&codex, cvl_mst, 50);
+            ship.ship.api_soukou[0] = 200;
+            ship.ship.api_nowhp = 200;
+            ship.ship.api_maxhp = 200;
+            friendly.push(BattleRuntimeShip::from(ship));
+        }
+        let mut enemies: Vec<BattleRuntimeShip> = vec![];
+        for _ in 0..6 {
+            let mut ship = sample_ship(&codex, dd_mst, 50);
+            ship.ship.api_soukou[0] = 200;
+            ship.ship.api_nowhp = 200;
+            ship.ship.api_maxhp = 200;
+            enemies.push(BattleRuntimeShip::from(ship));
+        }
+        let mut rng = crate::random::SeededRng::new(42);
+
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+
+        let s3 = &kouku.api_stage3;
+        assert_eq!(s3.api_frai_flag.len(), 3, "api_frai_flag should be friendly-sized (3)");
+        assert_eq!(s3.api_fbak_flag.len(), 3, "api_fbak_flag should be friendly-sized (3)");
+        assert_eq!(s3.api_erai_flag.len(), 6, "api_erai_flag should be enemy-sized (6)");
+        assert_eq!(s3.api_ebak_flag.len(), 6, "api_ebak_flag should be enemy-sized (6)");
+    }
+
+    #[test]
+    fn kouku_edam_can_exceed_enemy_hp_overkill() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly CVL with bombers vs enemy DD with very low HP
+        let mut friend = sample_ship(&codex, cvl_mst, 99);
+        friend.ship.api_soukou[0] = 200;
+        friend.ship.api_nowhp = 200;
+        friend.ship.api_maxhp = 200;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 1);
+        enemy.ship.api_soukou[0] = 0;
+        enemy.ship.api_nowhp = 5;
+        enemy.ship.api_maxhp = 5;
+
+        let mut friendly = vec![BattleRuntimeShip::from(friend)];
+        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut rng = crate::random::SeededRng::new(42);
+
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+
+        let edam = kouku.api_stage3.api_edam[0];
+        let enemy_hp_after = enemies[0].hp();
+        // If any damage was dealt, edam should be able to exceed the enemy's original HP
+        if edam > 0 {
+            assert!(
+                edam >= enemy_hp_after,
+                "api_edam ({edam}) should >= remaining HP ({enemy_hp_after}), allowing overkill display"
+            );
+        }
     }
 }
