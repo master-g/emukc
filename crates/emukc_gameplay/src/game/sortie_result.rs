@@ -313,14 +313,22 @@ where
             if gain > 0 {
                 let new_ship_exp = ship_model.exp_now + gain;
                 let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
-                let ship_level = ship_level.min(level::ship_level_cap(ship_model.married));
-                let current_level_exp = level::ship_level_required_exp(ship_level);
-                let progress = if next_exp > current_level_exp {
-                    ((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp))
-                        .clamp(0, 99)
+                let level_cap = level::ship_level_cap(ship_model.married);
+                let ship_level = ship_level.min(level_cap);
+
+                let (next_exp, progress) = if ship_level >= level_cap {
+                    (0, 0)
                 } else {
-                    0
+                    let current_level_exp = level::ship_level_required_exp(ship_level);
+                    let progress = if next_exp > current_level_exp {
+                        ((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp))
+                            .clamp(0, 99)
+                    } else {
+                        0
+                    };
+                    (next_exp, progress)
                 };
+
                 api_ship.api_lv = ship_level;
                 api_ship.api_exp = [new_ship_exp, next_exp, progress];
             }
