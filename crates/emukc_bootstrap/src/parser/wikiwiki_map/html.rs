@@ -183,6 +183,18 @@ pub(super) fn parse_node_label(text: &str) -> Option<String> {
         .map(|value| value.as_str().to_string())
 }
 
+pub(super) fn parse_node_labels(text: &str) -> Vec<String> {
+    let normalized = normalize_text(text)
+        .trim_matches(|ch: char| matches!(ch, ':' | '：' | '→' | '-' | ' '))
+        .to_string();
+    if matches!(normalized.as_str(), "出撃" | "出撃ポイント" | "スタート")
+        || normalized.eq_ignore_ascii_case(ENTRY_NODE_LABEL)
+    {
+        return vec![ENTRY_NODE_LABEL.to_string()];
+    }
+    RE_NODE_LABEL.find_iter(&normalized).map(|m| m.as_str().to_string()).collect()
+}
+
 pub(super) fn parse_formation(text: &str) -> Option<i64> {
     if text.contains("単縦") {
         Some(1)

@@ -101,12 +101,7 @@ pub(crate) fn evaluate_route_destination(
             {
                 return Ok(selected_cell_id);
             }
-            return targets.iter().next().copied().ok_or_else(|| {
-                GameplayError::WrongType(format!(
-                    "cell {} has no executable route",
-                    current.cell_no
-                ))
-            });
+            return select_route_from_cells(current, stage, None);
         }
 
         if let Some(selected_cell_id) = selected_cell_id {
@@ -132,6 +127,9 @@ pub(crate) fn evaluate_route_destination(
                     current.cell_no
                 ))
             });
+        }
+        if any_indeterminate {
+            return select_route_from_cells(current, stage, selected_cell_id);
         }
         return Err(GameplayError::WrongType(format!(
             "cell {} has no executable routing rule",
@@ -709,5 +707,211 @@ mod tests {
 
         let result = select_route_target_for_roll(&weights, 30);
         assert_eq!(result, Some(5));
+    }
+
+    fn make_cell(cell_no: i64, next_cells: Vec<i64>) -> MapCellDefinition {
+        MapCellDefinition {
+            cell_no,
+            next_cells,
+            ..Default::default()
+        }
+    }
+
+    fn make_unknown_rule(from_cell_no: i64, to_cell_no: i64, priority: i64) -> RouteRule {
+        RouteRule {
+            from_cell_no,
+            to_cell_no,
+            priority,
+            weight: Some(1),
+            predicate: RoutePredicate::Unknown {
+                raw_text: String::new(),
+            },
+            ..Default::default()
+        }
+    }
+
+    fn make_source_unknown_rule(from_cell_no: i64, to_cell_no: i64, priority: i64) -> RouteRule {
+        RouteRule {
+            from_cell_no,
+            to_cell_no,
+            priority,
+            weight: Some(1),
+            predicate: RoutePredicate::SourceUnknown {
+                raw_text: String::new(),
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn unknown_rules_fallback_to_random_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(1, vec![make_unknown_rule(1, 3, 0), make_unknown_rule(1, 5, 1)]);
+
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![3, 4]), make_cell(3, vec![]), make_cell(4, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![3, 4]);
+        let context = FleetRouteContext::default();
+
+        let mut found_3 = false;
+        let mut found_4 = false;
+        for _ in 0..20 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            assert!(result == 3 || result == 4, "result should be 3 or 4, got {result}");
+            if result == 3 {
+                found_3 = true;
+            }
+            if result == 4 {
+                found_4 = true;
+            }
+        }
+        assert!(found_3, "should have routed to cell 3 at least once");
+        assert!(found_4, "should have routed to cell 4 at least once");
+    }
+
+    #[test]
+    fn source_unknown_rules_fallback_to_random_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![make_source_unknown_rule(1, 10, 0), make_source_unknown_rule(1, 20, 1)],
+        );
+
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![7, 8]), make_cell(7, vec![]), make_cell(8, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![7, 8]);
+        let context = FleetRouteContext::default();
+
+        let mut found_7 = false;
+        let mut found_8 = false;
+        for _ in 0..20 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            assert!(result == 7 || result == 8, "result should be 7 or 8, got {result}");
+            if result == 7 {
+                found_7 = true;
+            }
+            if result == 8 {
+                found_8 = true;
+            }
+        }
+        assert!(found_7, "should have routed to cell 7 at least once");
+        assert!(found_8, "should have routed to cell 8 at least once");
+    }
+
+    #[test]
+    fn unknown_rules_accept_selected_cell_id_in_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(1, vec![make_unknown_rule(1, 3, 0)]);
+
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![3, 5]), make_cell(3, vec![]), make_cell(5, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![3, 5]);
+        let context = FleetRouteContext::default();
+
+        let result = evaluate_route_destination(&current, &stage, &context, Some(5)).unwrap();
+        assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn unknown_rules_no_rules_match_and_no_always_uses_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(1, vec![make_unknown_rule(1, 3, 10), make_unknown_rule(1, 5, 10)]);
+
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2, 4]), make_cell(2, vec![]), make_cell(4, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![2, 4]);
+        let context = FleetRouteContext::default();
+
+        let mut found_2 = false;
+        let mut found_4 = false;
+        for _ in 0..20 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            if result == 2 {
+                found_2 = true;
+            }
+            if result == 4 {
+                found_4 = true;
+            }
+        }
+        assert!(found_2, "should have routed to cell 2 at least once");
+        assert!(found_4, "should have routed to cell 4 at least once");
+    }
+
+    #[test]
+    fn indeterminate_rules_fallback_to_next_cells_when_multiple_unconditional() {
+        let mut routing_rules = BTreeMap::new();
+        // One executable Always rule to cell 3, one Unknown rule to cell 5
+        routing_rules.insert(
+            1,
+            vec![
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 3,
+                    priority: 0,
+                    weight: Some(1),
+                    predicate: RoutePredicate::Always,
+                    ..Default::default()
+                },
+                make_unknown_rule(1, 5, 1),
+            ],
+        );
+
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![3, 4]), make_cell(3, vec![]), make_cell(4, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![3, 4]);
+        let context = FleetRouteContext::default();
+
+        // Should route to cell 3 (the single unconditional target)
+        let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+        assert_eq!(result, 3);
+    }
+
+    #[test]
+    fn source_unknown_with_selected_cell_in_targets_not_in_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        // SourceUnknown rules target cells 10 and 20
+        routing_rules.insert(
+            1,
+            vec![make_source_unknown_rule(1, 10, 0), make_source_unknown_rule(1, 20, 1)],
+        );
+
+        // But current cell's next_cells only has 7 and 8
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![7, 8]), make_cell(7, vec![]), make_cell(8, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![7, 8]);
+        let context = FleetRouteContext::default();
+
+        // selected_cell_id 10 is in rule targets but NOT in next_cells.
+        // The source-unknown path returns it because it matches a rule target.
+        let result = evaluate_route_destination(&current, &stage, &context, Some(10));
+        assert_eq!(
+            result.unwrap(),
+            10,
+            "should return selected_cell_id when it matches a rule target"
+        );
     }
 }

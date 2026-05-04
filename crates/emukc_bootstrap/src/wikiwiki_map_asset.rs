@@ -133,10 +133,10 @@ mod tests {
         assert_eq!(
             visited_rules,
             vec![
-                (45, String::new(), 9, 10, true, vec![3]),
-                (55, String::new(), 10, 15, true, vec![13]),
-                (55, String::new(), 13, 15, true, vec![10]),
-                (74, String::new(), 7, 9, true, vec![4]),
+                (45, String::new(), 8, 15, true, vec![3]),
+                (55, String::new(), 7, 17, true, vec![8]),
+                (55, String::new(), 8, 17, true, vec![7]),
+                (74, String::new(), 7, 8, true, vec![3]),
             ]
         );
     }

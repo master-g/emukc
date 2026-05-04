@@ -5,6 +5,7 @@ use emukc_model::{codex::map::MapCatalog, kc2::start2::ApiManifest};
 use crate::parser::error::ParseError;
 
 mod assemble;
+mod kcdata;
 mod report;
 mod sources;
 

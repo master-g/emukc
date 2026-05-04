@@ -14,9 +14,9 @@ use super::{
     RouteTableSection, SELECTOR_FOLD_CONTAINER, SELECTOR_TABLE, ShipResolver, ShipTypeResolver,
     WikiwikiNodeDefinition, direct_child_tables, direct_child_with_class, find_header_index,
     is_entry_node_label, normalize_text, parse_named_pair_contains_predicate, parse_node_label,
-    parse_ship_selector_count_clause, parse_ship_type_count_clause, parse_specific_ship_id_list,
-    parse_specific_ship_list, predicate_for_contains_selector, predicate_for_only_selector,
-    resolve_route_selector, sanitize_route_text, table_to_grid,
+    parse_node_labels, parse_ship_selector_count_clause, parse_ship_type_count_clause,
+    parse_specific_ship_id_list, parse_specific_ship_list, predicate_for_contains_selector,
+    predicate_for_only_selector, resolve_route_selector, sanitize_route_text, table_to_grid,
 };
 use crate::parser::error::ParseError;
 
@@ -407,7 +407,27 @@ pub(super) fn build_nodes(
         .map(|(idx, label)| (label.clone(), idx as i64 + 1))
         .collect::<BTreeMap<_, _>>();
 
-    bfs.into_iter()
+    // Infer deterministic edges for target-only nodes:
+    // wikiwiki only documents branching nodes; non-branching nodes appear as
+    // targets but never as sources. Connect each target-only node to the next
+    // neighbour in BFS order (any node type, not just combat).
+    let bfs_order: BTreeMap<&String, usize> = bfs.iter().enumerate().map(|(i, l)| (l, i)).collect();
+    for (label, _node_cell_no) in &cell_numbers {
+        if graph.get(label).map_or(true, |nexts| nexts.is_empty()) {
+            let is_boss = enemy_nodes.get(label).is_some_and(|n| n.is_boss);
+            if !is_boss {
+                if let Some(&idx) = bfs_order.get(label) {
+                    let next_label = bfs.iter().skip(idx + 1).next();
+                    if let Some(next_label) = next_label {
+                        graph.entry(label.clone()).or_default().insert(next_label.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    let label_to_cell_no = bfs
+        .into_iter()
         .map(|label| {
             let next_cells = graph
                 .get(&label)
@@ -424,7 +444,9 @@ pub(super) fn build_nodes(
                 next_cells,
             }
         })
-        .collect()
+        .collect();
+
+    label_to_cell_no
 }
 
 pub(super) fn parse_route_table(
@@ -453,7 +475,10 @@ pub(super) fn parse_route_table(
         .skip(header_idx + 1)
         .filter_map(|row| {
             let source_label = row.get(from_idx).and_then(|cell| parse_node_label(cell))?;
-            let row_target = row.get(to_idx).and_then(|cell| parse_node_label(cell))?;
+            let targets = parse_node_labels(row.get(to_idx).map_or("", |v| v.as_str()));
+            if targets.is_empty() {
+                return None;
+            }
             let raw_text = row
                 .iter()
                 .skip(cond_idx)
@@ -462,12 +487,18 @@ pub(super) fn parse_route_table(
                 .join("\n")
                 .trim()
                 .to_string();
-            Some(((source_label, raw_text), row_target))
+            Some((source_label, raw_text, targets))
         })
-        .fold(BTreeMap::<(String, String), BTreeSet<String>>::new(), |mut acc, (key, target)| {
-            acc.entry(key).or_default().insert(target);
-            acc
-        });
+        .fold(
+            BTreeMap::<(String, String), BTreeSet<String>>::new(),
+            |mut acc, (source, raw_text, targets)| {
+                let set = acc.entry((source, raw_text)).or_default();
+                for target in targets {
+                    set.insert(target);
+                }
+                acc
+            },
+        );
 
     let mut drafts = Vec::new();
     for row in rows.iter().skip(header_idx + 1) {
@@ -628,6 +659,22 @@ fn parse_route_condition_text(
     ships: &ShipResolver,
     warnings: &mut Vec<String>,
 ) -> Vec<CompiledRouteClause> {
+    let text = sanitize_route_text(raw_text);
+    if text.starts_with("ランダム ") || text == "ランダム" {
+        let bias_text = text.strip_prefix("ランダム ").unwrap_or("");
+        if !bias_text.is_empty() {
+            warnings.push(format!("unsupported route condition: {bias_text}"));
+        }
+        return candidate_targets
+            .iter()
+            .map(|target| CompiledRouteClause {
+                target_label: target.clone(),
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                random_placeholder: false,
+            })
+            .collect();
+    }
     if let Some(parsed) = parse_case_route_condition_text(
         raw_text,
         row_target,

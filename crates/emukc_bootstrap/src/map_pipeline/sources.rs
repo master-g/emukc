@@ -24,6 +24,7 @@ pub(super) struct ResolvedMapSources {
     pub(super) wikiwiki_source: MapCatalogWikiwikiSource,
     pub(super) wikiwiki_map_count: usize,
     pub(super) wikiwiki_catalog: Option<MapCatalog>,
+    pub(super) kcdata_catalog: Option<MapCatalog>,
     pub(super) public_overlay_map_count: usize,
     pub(super) public_overlay_catalog: MapCatalog,
     pub(super) stat_map_count: usize,
@@ -41,6 +42,7 @@ pub(super) fn load_explicit_source_set(
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
     let public_overlay_map_count = public_overlay_catalog.maps.len();
     let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
+    let kcdata_catalog = load_kcdata_map_catalog(data_root, _manifest);
 
     Ok(ResolvedMapSources {
         wikiwiki_source: if wikiwiki_catalog.is_some() {
@@ -50,6 +52,7 @@ pub(super) fn load_explicit_source_set(
         },
         wikiwiki_map_count,
         wikiwiki_catalog,
+        kcdata_catalog,
         public_overlay_map_count,
         public_overlay_catalog,
         stat_map_count,
@@ -68,11 +71,13 @@ pub(super) fn load_repo_source_set(
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
     let public_overlay_map_count = public_overlay_catalog.maps.len();
     let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
+    let kcdata_catalog = load_kcdata_map_catalog(data_root, _manifest);
 
     Ok(ResolvedMapSources {
         wikiwiki_source,
         wikiwiki_map_count,
         wikiwiki_catalog,
+        kcdata_catalog,
         public_overlay_map_count,
         public_overlay_catalog,
         stat_map_count,
@@ -116,6 +121,17 @@ fn load_repo_wikiwiki_map_catalog()
             warn!("failed to parse {}: {}. Using overlay-only map catalog", source_name, source);
             Ok((source_kind, None))
         }
+    }
+}
+
+fn load_kcdata_map_catalog(data_root: &Path, manifest: &ApiManifest) -> Option<MapCatalog> {
+    let kcdata_root = data_root.join("kc_data");
+    if !kcdata_root.exists() {
+        return None;
+    }
+    match super::kcdata::load_map_catalog_from_kcdata_root(kcdata_root, manifest) {
+        Ok(catalog) if !catalog.maps.is_empty() => Some(catalog),
+        _ => None,
     }
 }
 

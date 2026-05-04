@@ -176,6 +176,7 @@ pub fn pending_practice_battle(profile_id: i64) -> Option<PracticeBattleSession>
 mod tests {
     use super::*;
     use emukc_model::codex::Codex;
+    use emukc_model::kc2::level;
 
     fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> PracticeBattleShipInput {
         let (mut ship, slot_items) = codex.new_ship(mst_id).unwrap();
