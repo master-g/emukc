@@ -37,6 +37,11 @@ pub(crate) enum RoutePredicateEval {
     Unsupported,
 }
 
+pub(crate) fn cell_has_routing_outgoing(cell_no: i64, stage: &MapStageDefinition) -> bool {
+    stage.cell(cell_no).is_some_and(|c| !c.next_cells.is_empty())
+        || stage.routing_rules.get(&cell_no).is_some_and(|r| !r.is_empty())
+}
+
 pub(crate) fn evaluate_route_destination(
     current: &MapCellDefinition,
     stage: &MapStageDefinition,
@@ -53,7 +58,7 @@ pub(crate) fn evaluate_route_destination(
     let mut saw_source_unknown = false;
     let mut saw_unsupported = false;
     for rule in rules {
-        match route_predicate_matches(&rule.predicate, context) {
+        match route_predicate_matches(&rule.predicate, context, stage) {
             RoutePredicateEval::Matched if matches!(rule.predicate, RoutePredicate::Always) => {
                 fallback_rules.push(rule);
             }
@@ -98,6 +103,7 @@ pub(crate) fn evaluate_route_destination(
             );
             if let Some(selected_cell_id) = selected_cell_id
                 && targets.contains(&selected_cell_id)
+                && current.next_cells.contains(&selected_cell_id)
             {
                 return Ok(selected_cell_id);
             }
@@ -237,6 +243,7 @@ fn select_route_from_cells(
 pub(crate) fn route_predicate_matches(
     predicate: &RoutePredicate,
     context: &FleetRouteContext,
+    stage: &MapStageDefinition,
 ) -> RoutePredicateEval {
     match predicate {
         RoutePredicate::Always
@@ -250,9 +257,28 @@ pub(crate) fn route_predicate_matches(
             cell_nos.iter().any(|cell_no| context.visited_cell_ids.contains(cell_no)) == *visited,
         ),
         RoutePredicate::VisitedNodeLabel {
-            ..
+            node_labels,
+            visited,
+        } => {
+            let cell_nos: Vec<i64> = node_labels
+                .iter()
+                .filter_map(|label| {
+                    stage.cells.iter().find_map(|cell| {
+                        cell.node_label
+                            .as_ref()
+                            .and_then(|nl| (nl == label).then_some(cell.cell_no))
+                    })
+                })
+                .collect();
+            if cell_nos.len() != node_labels.len() {
+                return RoutePredicateEval::NotMatched;
+            }
+            RoutePredicateEval::from_bool(
+                cell_nos.iter().any(|cell_no| context.visited_cell_ids.contains(cell_no))
+                    == *visited,
+            )
         }
-        | RoutePredicate::Unknown {
+        RoutePredicate::Unknown {
             ..
         } => RoutePredicateEval::Unsupported,
         RoutePredicate::FleetSize {
@@ -379,7 +405,7 @@ pub(crate) fn route_predicate_matches(
         } => RoutePredicateEval::from_bool(compare_route_value(context.total_drums, *op, *value)),
         RoutePredicate::And(predicates) => {
             for predicate in predicates {
-                match route_predicate_matches(predicate, context) {
+                match route_predicate_matches(predicate, context, stage) {
                     RoutePredicateEval::Matched => {}
                     result => return result,
                 }
@@ -390,7 +416,7 @@ pub(crate) fn route_predicate_matches(
             let mut saw_source_unknown = false;
             let mut saw_unsupported = false;
             for predicate in predicates {
-                match route_predicate_matches(predicate, context) {
+                match route_predicate_matches(predicate, context, stage) {
                     RoutePredicateEval::Matched => return RoutePredicateEval::Matched,
                     RoutePredicateEval::NotMatched => {}
                     RoutePredicateEval::SourceUnknown => saw_source_unknown = true,
@@ -405,12 +431,14 @@ pub(crate) fn route_predicate_matches(
                 RoutePredicateEval::NotMatched
             }
         }
-        RoutePredicate::Not(predicate) => match route_predicate_matches(predicate, context) {
-            RoutePredicateEval::Matched => RoutePredicateEval::NotMatched,
-            RoutePredicateEval::NotMatched => RoutePredicateEval::Matched,
-            RoutePredicateEval::SourceUnknown => RoutePredicateEval::SourceUnknown,
-            RoutePredicateEval::Unsupported => RoutePredicateEval::Unsupported,
-        },
+        RoutePredicate::Not(predicate) => {
+            match route_predicate_matches(predicate, context, stage) {
+                RoutePredicateEval::Matched => RoutePredicateEval::NotMatched,
+                RoutePredicateEval::NotMatched => RoutePredicateEval::Matched,
+                RoutePredicateEval::SourceUnknown => RoutePredicateEval::SourceUnknown,
+                RoutePredicateEval::Unsupported => RoutePredicateEval::Unsupported,
+            }
+        }
         RoutePredicate::SourceUnknown {
             ..
         } => RoutePredicateEval::SourceUnknown,
@@ -667,6 +695,156 @@ mod tests {
     use super::*;
 
     #[test]
+    fn cell_has_routing_outgoing_next_cells_only() {
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2, 3])],
+            ..Default::default()
+        };
+        assert!(cell_has_routing_outgoing(1, &stage));
+    }
+
+    #[test]
+    fn cell_has_routing_outgoing_routing_rules_only() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                predicate: RoutePredicate::Always,
+                ..Default::default()
+            }],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        assert!(cell_has_routing_outgoing(1, &stage));
+    }
+
+    #[test]
+    fn cell_has_routing_outgoing_both() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                predicate: RoutePredicate::Always,
+                ..Default::default()
+            }],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![3])],
+            routing_rules,
+            ..Default::default()
+        };
+        assert!(cell_has_routing_outgoing(1, &stage));
+    }
+
+    #[test]
+    fn cell_has_routing_outgoing_neither() {
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![])],
+            ..Default::default()
+        };
+        assert!(!cell_has_routing_outgoing(1, &stage));
+    }
+
+    #[test]
+    fn cell_has_routing_outgoing_cell_not_found() {
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2])],
+            ..Default::default()
+        };
+        assert!(!cell_has_routing_outgoing(99, &stage));
+    }
+
+    #[test]
+    fn visited_node_label_matches_when_visited() {
+        let stage = MapStageDefinition {
+            cells: vec![MapCellDefinition {
+                cell_no: 2,
+                node_label: Some("A".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let context = FleetRouteContext {
+            visited_cell_ids: BTreeSet::from([2]),
+            ..Default::default()
+        };
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::VisitedNodeLabel {
+                    node_labels: vec!["A".to_string()],
+                    visited: true,
+                },
+                &context,
+                &stage,
+            ),
+            RoutePredicateEval::Matched
+        ));
+    }
+
+    #[test]
+    fn visited_node_label_not_matched_when_label_missing() {
+        let stage = MapStageDefinition {
+            cells: vec![MapCellDefinition {
+                cell_no: 2,
+                node_label: Some("B".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let context = FleetRouteContext {
+            visited_cell_ids: BTreeSet::from([2]),
+            ..Default::default()
+        };
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::VisitedNodeLabel {
+                    node_labels: vec!["A".to_string()],
+                    visited: true,
+                },
+                &context,
+                &stage,
+            ),
+            RoutePredicateEval::NotMatched
+        ));
+    }
+
+    #[test]
+    fn visited_node_label_matches_visited_false() {
+        let stage = MapStageDefinition {
+            cells: vec![MapCellDefinition {
+                cell_no: 2,
+                node_label: Some("A".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let context = FleetRouteContext {
+            visited_cell_ids: BTreeSet::new(),
+            ..Default::default()
+        };
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::VisitedNodeLabel {
+                    node_labels: vec!["A".to_string()],
+                    visited: false,
+                },
+                &context,
+                &stage,
+            ),
+            RoutePredicateEval::Matched
+        ));
+    }
+
+    #[test]
     fn select_route_target_roll_equals_total_weight_returns_last_key() {
         let mut weights = BTreeMap::new();
         weights.insert(2, 30);
@@ -887,15 +1065,13 @@ mod tests {
     }
 
     #[test]
-    fn source_unknown_with_selected_cell_in_targets_not_in_next_cells() {
+    fn source_unknown_rejects_selected_cell_not_in_next_cells() {
         let mut routing_rules = BTreeMap::new();
-        // SourceUnknown rules target cells 10 and 20
         routing_rules.insert(
             1,
             vec![make_source_unknown_rule(1, 10, 0), make_source_unknown_rule(1, 20, 1)],
         );
 
-        // But current cell's next_cells only has 7 and 8
         let stage = MapStageDefinition {
             cells: vec![make_cell(1, vec![7, 8]), make_cell(7, vec![]), make_cell(8, vec![])],
             routing_rules,
@@ -906,12 +1082,29 @@ mod tests {
         let context = FleetRouteContext::default();
 
         // selected_cell_id 10 is in rule targets but NOT in next_cells.
-        // The source-unknown path returns it because it matches a rule target.
+        // The stricter check now falls back to select_route_from_cells (random from next_cells).
         let result = evaluate_route_destination(&current, &stage, &context, Some(10));
-        assert_eq!(
-            result.unwrap(),
-            10,
-            "should return selected_cell_id when it matches a rule target"
-        );
+        let cell_no = result.unwrap();
+        assert!(cell_no == 7 || cell_no == 8, "should fall back to next_cells, got {cell_no}");
+    }
+
+    #[test]
+    fn source_unknown_accepts_selected_cell_in_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules
+            .insert(1, vec![make_source_unknown_rule(1, 10, 0), make_source_unknown_rule(1, 7, 1)]);
+
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![7, 8]), make_cell(7, vec![]), make_cell(8, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+
+        let current = make_cell(1, vec![7, 8]);
+        let context = FleetRouteContext::default();
+
+        // selected_cell_id 7 is in both rule targets and next_cells.
+        let result = evaluate_route_destination(&current, &stage, &context, Some(7));
+        assert_eq!(result.unwrap(), 7);
     }
 }

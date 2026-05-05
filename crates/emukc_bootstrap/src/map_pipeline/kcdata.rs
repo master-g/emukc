@@ -6,8 +6,7 @@ use std::{
 
 use emukc_model::{
     codex::map::{
-        EnemyComposition, EnemyFleetDefinition, MapCatalog, MapCellDefinition, MapDefinition,
-        MapResetPolicy, MapVariantDefinition,
+        MapCatalog, MapCellDefinition, MapDefinition, MapResetPolicy, MapVariantDefinition,
     },
     kc2::start2::{ApiManifest, ApiMstMapinfo},
 };
@@ -15,31 +14,6 @@ use serde::Deserialize;
 use serde_yaml::Deserializer;
 
 use crate::parser::error::ParseError;
-
-#[derive(Debug, Clone, Default, Deserialize)]
-struct RawMapInfoJson {
-    #[serde(default)]
-    spots: Vec<RawSpot>,
-    #[serde(default)]
-    enemies: Vec<RawEnemyMarker>,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-struct RawSpot {
-    no: i64,
-    #[serde(default)]
-    color: Option<i64>,
-    #[serde(default)]
-    replenish: Option<serde_json::Value>,
-    #[serde(default)]
-    ration: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-struct RawEnemyMarker {
-    no: i64,
-    img: String,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 struct KcDataMapYaml {
@@ -75,112 +49,6 @@ struct KcDataCell {
 enum KcDataNode {
     Int(i64),
     String(String),
-}
-
-#[allow(dead_code)]
-pub(super) fn load_map_catalog_from_cache_root(
-    cache_root: impl AsRef<Path>,
-    manifest: &ApiManifest,
-) -> Result<MapCatalog, ParseError> {
-    let mut catalog = MapCatalog::from_manifest(manifest);
-    let map_root = cache_root.as_ref().join("kcs2/resources/map");
-    let Ok(area_entries) = fs::read_dir(&map_root) else {
-        return Ok(catalog);
-    };
-
-    let mut raw_variants: BTreeMap<(i64, String), RawMapInfoJson> = BTreeMap::new();
-
-    for area_entry in area_entries {
-        let area_entry = area_entry.map_err(|source| ParseError::io_at(&map_root, source))?;
-        let path = area_entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        let Some(area_name) = path.file_name().and_then(|name| name.to_str()) else {
-            continue;
-        };
-        let Ok(maparea_id) = area_name.parse::<i64>() else {
-            continue;
-        };
-        let files = fs::read_dir(&path).map_err(|source| ParseError::io_at(&path, source))?;
-
-        for file in files {
-            let file = file.map_err(|source| ParseError::io_at(&path, source))?;
-            let file_path = file.path();
-            if file_path.extension().and_then(|ext| ext.to_str()) != Some("json") {
-                continue;
-            }
-            let Some(stem) = file_path.file_stem().and_then(|name| name.to_str()) else {
-                continue;
-            };
-            let Some((mapinfo_no, variant_key)) = parse_map_info_stem(stem) else {
-                continue;
-            };
-            let raw = fs::read_to_string(&file_path)
-                .map_err(|source| ParseError::io_at(&file_path, source))?;
-            let parsed = serde_json::from_str::<RawMapInfoJson>(&raw)
-                .map_err(|source| ParseError::json_at(&file_path, source))?;
-            raw_variants.insert((compose_map_id(maparea_id, mapinfo_no), variant_key), parsed);
-        }
-    }
-
-    let mut per_map: BTreeMap<i64, BTreeSet<String>> = BTreeMap::new();
-    for (map_id, variant_key) in raw_variants.keys() {
-        per_map.entry(*map_id).or_default().insert(variant_key.clone());
-    }
-
-    for (map_id, variant_keys) in per_map {
-        let (maparea_id, mapinfo_no) = split_map_id(map_id);
-        let manifest_map =
-            manifest.api_mst_mapinfo.iter().find(|map| map.api_id == map_id).cloned();
-        let area_type = manifest
-            .api_mst_maparea
-            .iter()
-            .find(|area| area.api_id == maparea_id)
-            .map(|area| area.api_type)
-            .unwrap_or(if maparea_id > 7 {
-                1
-            } else {
-                0
-            });
-        let entry = catalog.maps.entry(map_id).or_insert_with(|| MapDefinition {
-            map_id,
-            maparea_id,
-            mapinfo_no,
-            name: manifest_map
-                .as_ref()
-                .map(|map| map.api_name.clone())
-                .unwrap_or_else(|| format!("Event {maparea_id}-{mapinfo_no}")),
-            level: manifest_map.as_ref().map(|map| map.api_level).unwrap_or(1),
-            sally_flag: manifest_map
-                .as_ref()
-                .map(|map| map.api_sally_flag.clone())
-                .unwrap_or_default(),
-            is_event: area_type == 1,
-            reset_policy: MapResetPolicy::Never,
-            airbase_count: None,
-            gauge_type: None,
-            gauge_count: None,
-            required_defeat_count: manifest_map
-                .as_ref()
-                .and_then(|map| map.api_required_defeat_count),
-            max_hp: manifest_map.as_ref().and_then(extract_max_hp),
-            default_variant: String::new(),
-            rank_stage_ids: BTreeMap::new(),
-            variants: BTreeMap::new(),
-        });
-
-        for variant_key in variant_keys {
-            let merged = merge_raw_variant(
-                raw_variants.get(&(map_id, String::new())),
-                raw_variants.get(&(map_id, variant_key.clone())),
-            );
-            let variant = build_variant_definition(map_id, &variant_key, merged, manifest);
-            entry.variants.insert(variant_key.clone(), variant);
-        }
-    }
-
-    Ok(catalog)
 }
 
 pub(super) fn load_map_catalog_from_kcdata_root(
@@ -249,18 +117,8 @@ pub(super) fn load_map_catalog_from_kcdata_root(
     Ok(catalog)
 }
 
-fn compose_map_id(maparea_id: i64, mapinfo_no: i64) -> i64 {
-    maparea_id * 10 + mapinfo_no
-}
-
 fn split_map_id(map_id: i64) -> (i64, i64) {
     (map_id / 10, map_id % 10)
-}
-
-fn parse_map_info_stem(stem: &str) -> Option<(i64, String)> {
-    let (map_part, variant_part) = stem.split_once("_info")?;
-    let mapinfo_no = map_part.parse::<i64>().ok()?;
-    Some((mapinfo_no, variant_part.to_string()))
 }
 
 fn extract_max_hp(map: &ApiMstMapinfo) -> Option<i64> {
@@ -274,144 +132,6 @@ fn extract_max_hp(map: &ApiMstMapinfo) -> Option<i64> {
         }),
         _ => None,
     }
-}
-
-fn merge_raw_variant(
-    base: Option<&RawMapInfoJson>,
-    overlay: Option<&RawMapInfoJson>,
-) -> RawMapInfoJson {
-    let mut spots = BTreeMap::new();
-    let mut enemies = BTreeMap::new();
-
-    if let Some(base) = base {
-        for spot in &base.spots {
-            spots.insert(spot.no, spot.clone());
-        }
-        for enemy in &base.enemies {
-            enemies.insert(enemy.no, enemy.clone());
-        }
-    }
-
-    if let Some(overlay) = overlay {
-        for spot in &overlay.spots {
-            spots.insert(spot.no, spot.clone());
-        }
-        for enemy in &overlay.enemies {
-            enemies.insert(enemy.no, enemy.clone());
-        }
-    }
-
-    RawMapInfoJson {
-        spots: spots.into_values().collect(),
-        enemies: enemies.into_values().collect(),
-    }
-}
-
-fn build_variant_definition(
-    map_id: i64,
-    variant_key: &str,
-    raw: RawMapInfoJson,
-    manifest: &ApiManifest,
-) -> MapVariantDefinition {
-    let mut spots = raw.spots;
-    spots.sort_by_key(|spot| spot.no);
-    let battle_cells = raw
-        .enemies
-        .iter()
-        .filter_map(|enemy| {
-            parse_icon_ship_id(&enemy.img).map(|ship_id| {
-                (
-                    enemy.no,
-                    EnemyFleetDefinition {
-                        cell_no: enemy.no,
-                        battle_kind: 1,
-                        formations: vec![1],
-                        compositions: vec![EnemyComposition {
-                            comp_id: format!("{map_id}:{variant_key}:{}", enemy.no),
-                            weight: 1,
-                            ship_ids: vec![if manifest
-                                .api_mst_ship
-                                .iter()
-                                .any(|ship| ship.api_id == ship_id)
-                            {
-                                ship_id
-                            } else {
-                                412
-                            }],
-                            formation: Some(1),
-                            raw_ship_names: Vec::new(),
-                        }],
-                    },
-                )
-            })
-        })
-        .collect::<BTreeMap<_, _>>();
-    let boss_cell_no = battle_cells
-        .keys()
-        .max()
-        .copied()
-        .or_else(|| spots.iter().map(|spot| spot.no).filter(|no| *no > 0).max())
-        .unwrap_or(1);
-    let nonzero_cells = spots.iter().map(|spot| spot.no).filter(|no| *no > 0).collect::<Vec<_>>();
-    let mut cells = Vec::with_capacity(spots.len());
-
-    for (idx, spot) in spots.iter().enumerate() {
-        let next_cells = if spot.no == 0 {
-            nonzero_cells.first().copied().into_iter().collect()
-        } else {
-            spots
-                .iter()
-                .skip(idx + 1)
-                .find(|candidate| candidate.no > spot.no)
-                .map(|candidate| vec![candidate.no])
-                .unwrap_or_default()
-        };
-        let has_enemy = battle_cells.contains_key(&spot.no);
-        let is_boss = has_enemy && spot.no == boss_cell_no;
-        let is_anchorage = spot.replenish.is_some() || spot.ration.is_some();
-        let (color_no, event_id, event_kind) = if spot.no == 0 {
-            (0, 0, 0)
-        } else if is_boss {
-            (5, 5, 1)
-        } else if has_enemy {
-            (4, 4, 1)
-        } else if is_anchorage {
-            (14, 10, 0)
-        } else {
-            (spot.color.filter(|color| *color > 0).unwrap_or(6), 1, 0)
-        };
-
-        cells.push(MapCellDefinition {
-            cell_no: spot.no,
-            color_no,
-            event_id,
-            event_kind,
-            next_cells,
-            node_label: if spot.no == 0 {
-                Some("Start".to_string())
-            } else {
-                Some(spot.no.to_string())
-            },
-            master_cell_id: None,
-            distance: None,
-        });
-    }
-
-    MapVariantDefinition {
-        variant_key: variant_key.to_string(),
-        boss_cell_no,
-        cells,
-        routing_rules: BTreeMap::new(),
-        enemy_fleets: battle_cells,
-        ship_drops: BTreeMap::new(),
-        required_defeat_count: None,
-        clear_to_variant_key: None,
-        parse_warnings: Vec::new(),
-    }
-}
-
-fn parse_icon_ship_id(img: &str) -> Option<i64> {
-    img.strip_prefix("icon_")?.parse::<i64>().ok()
 }
 
 fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {

@@ -50,7 +50,10 @@ use super::{
         find_map_definition, find_map_record_impl, refresh_all_map_records_impl,
     },
     map_progress::resolve_record_stage_id,
-    map_route::{FleetRouteContext, FleetRouteShipEntry, evaluate_route_destination},
+    map_route::{
+        FleetRouteContext, FleetRouteShipEntry, cell_has_routing_outgoing,
+        evaluate_route_destination,
+    },
     material::{add_material_impl, deduct_material_impl, get_mat_impl},
     quest::update::update_quest_progress_for_action,
     slot_item::find_slot_items_by_id_impl,
@@ -335,7 +338,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             color_no: current_cell.color_no,
             event_id: current_cell.event_id,
             event_kind: current_cell.event_kind,
-            has_next: !current_cell.next_cells.is_empty(),
+            has_next: cell_has_routing_outgoing(current_cell.cell_no, stage),
             boss_cell_no: stage.boss_cell_no,
             bosscomp: sortie_bosscomp(stage),
             from_cell_no: 0,
@@ -383,7 +386,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 active.current_cell_id, active.map_id,
             ))
         })?;
-        if current.next_cells.is_empty() {
+        if !cell_has_routing_outgoing(active.current_cell_id, stage) {
             return Err(GameplayError::WrongType(format!(
                 "cell {} has no next route",
                 current.cell_no,
@@ -431,7 +434,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             color_no: next.color_no,
             event_id: next.event_id,
             event_kind: next.event_kind,
-            has_next: !next.next_cells.is_empty(),
+            has_next: cell_has_routing_outgoing(next.cell_no, stage),
             boss_cell_no: stage.boss_cell_no,
             bosscomp: sortie_bosscomp(stage),
             from_cell_no: current.cell_no,
@@ -607,8 +610,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         // leave the store in a state inconsistent with the database.
         // On crash after commit: store is stale but DB is correct, and the
         // store is rebuilt from DB state on restart.
-        let should_finish_sortie =
-            current_cell.cell_no == active.boss_cell_id || current_cell.next_cells.is_empty();
+        let should_finish_sortie = current_cell.cell_no == active.boss_cell_id
+            || !cell_has_routing_outgoing(current_cell.cell_no, stage);
         if should_finish_sortie {
             store.remove_active(profile_id);
         } else {
@@ -2086,6 +2089,10 @@ mod tests {
         assert!(eligible_sortie_ship_drops(&codex, &variant, 1, "C").is_empty());
     }
 
+    fn empty_stage() -> MapStageDefinition {
+        MapStageDefinition::default()
+    }
+
     #[test]
     fn route_predicate_matches_ship_set_variants() {
         fn route_entry(
@@ -2126,6 +2133,7 @@ mod tests {
                     ship_ids: vec![526],
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2136,6 +2144,7 @@ mod tests {
                     ship_ids: vec![526],
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2148,6 +2157,7 @@ mod tests {
                     value: 3,
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2157,6 +2167,7 @@ mod tests {
                     ship_ids: vec![526],
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2209,6 +2220,7 @@ mod tests {
                     visited: true,
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2219,6 +2231,7 @@ mod tests {
                     visited: false,
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2230,6 +2243,7 @@ mod tests {
                     value: 1,
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2239,6 +2253,7 @@ mod tests {
                     ship_types: vec![3],
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));
@@ -2253,6 +2268,7 @@ mod tests {
                     value: 2,
                 },
                 &context,
+                &empty_stage(),
             ),
             crate::game::map_route::RoutePredicateEval::Matched
         ));

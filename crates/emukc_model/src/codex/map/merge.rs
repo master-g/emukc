@@ -276,8 +276,12 @@ fn merge_cells(cells: &mut Vec<MapCellDefinition>, other_cells: Vec<MapCellDefin
                 if other.color_no > 0 {
                     cell.color_no = other.color_no;
                 }
-                cell.event_id = other.event_id;
-                cell.event_kind = other.event_kind;
+                if other.event_id != 0 {
+                    cell.event_id = other.event_id;
+                }
+                if other.event_kind != 0 {
+                    cell.event_kind = other.event_kind;
+                }
                 if cell.next_cells.is_empty() && !other.next_cells.is_empty() {
                     cell.next_cells = other.next_cells;
                 }
@@ -402,11 +406,11 @@ mod tests {
         assert_eq!(definition.cell(1).unwrap().color_no, 4);
         assert_eq!(definition.cell(2).unwrap().color_no, 4);
         assert_eq!(definition.cell(3).unwrap().color_no, 5);
-        // event_id: unconditional overwrite — secondary always wins
+        // event_id: non-zero overwrite — secondary (4/4/5) overwrites primary (2/3/4)
         assert_eq!(definition.cell(1).unwrap().event_id, 4);
         assert_eq!(definition.cell(2).unwrap().event_id, 4);
         assert_eq!(definition.cell(3).unwrap().event_id, 5);
-        // event_kind: unconditional overwrite — secondary's 1 overwrites primary's 0
+        // event_kind: non-zero overwrite — secondary's 1 overwrites primary's 0
         assert_eq!(definition.cell(1).unwrap().event_kind, 1);
         assert_eq!(definition.cell(2).unwrap().event_kind, 1);
         assert_eq!(definition.cell(3).unwrap().event_kind, 1);
@@ -592,5 +596,31 @@ mod tests {
 
         // No labels to match → early return, nothing changed
         assert!(definition.routing_rules.is_empty());
+    }
+
+    #[test]
+    fn merge_cells_preserves_primary_event_metadata_when_secondary_is_zero() {
+        let mut cells = vec![cell(1, "A", vec![], 4, 1, 2)];
+        merge_cells(&mut cells, vec![cell(1, "A", vec![], 0, 0, 0)]);
+        assert_eq!(cells[0].event_id, 4);
+        assert_eq!(cells[0].event_kind, 1);
+        assert_eq!(cells[0].color_no, 2, "color_no unchanged when secondary is 0");
+    }
+
+    #[test]
+    fn merge_cells_overwrites_primary_event_metadata_when_secondary_nonzero() {
+        let mut cells = vec![cell(1, "A", vec![], 4, 1, 2)];
+        merge_cells(&mut cells, vec![cell(1, "A", vec![], 5, 2, 3)]);
+        assert_eq!(cells[0].event_id, 5);
+        assert_eq!(cells[0].event_kind, 2);
+        assert_eq!(cells[0].color_no, 3);
+    }
+
+    #[test]
+    fn merge_cells_secondary_wins_when_primary_is_zero() {
+        let mut cells = vec![cell(1, "A", vec![], 0, 0, 0)];
+        merge_cells(&mut cells, vec![cell(1, "A", vec![], 5, 2, 3)]);
+        assert_eq!(cells[0].event_id, 5);
+        assert_eq!(cells[0].event_kind, 2);
     }
 }
