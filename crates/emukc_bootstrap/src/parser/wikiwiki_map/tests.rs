@@ -1642,7 +1642,7 @@ fn parse_fixture_catalog_with_case_ast_and_variants() {
             rule.to_cell_no == 3 && matches!(rule.predicate, RoutePredicate::And(_))
         })
     );
-    assert!(pre.enemy_fleets.iter().all(|fleet| fleet.node_label != "D"));
+    assert!(pre.enemy_fleets.iter().any(|fleet| fleet.node_label == "D"));
 
     let post = wiki_map.variants.get("post_p_unlock").unwrap();
     assert_eq!(post.required_defeat_count, Some(4));
@@ -2101,7 +2101,7 @@ fn parse_nested_route_sections_without_duplicate_variants() {
     assert_eq!(pre.required_defeat_count, Some(3));
     assert_eq!(pre.clear_to_variant_key.as_deref(), Some("post_p_unlock"));
     assert!(pre.enemy_fleets.iter().any(|fleet| fleet.node_label == "E"));
-    assert!(pre.enemy_fleets.iter().all(|fleet| fleet.node_label != "P"));
+    assert!(pre.enemy_fleets.iter().any(|fleet| fleet.node_label == "P"));
 
     let post = wiki_map.variants.get("post_p_unlock").unwrap();
     assert_eq!(post.required_defeat_count, Some(4));

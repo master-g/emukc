@@ -285,18 +285,12 @@ pub(super) fn route_section_variant_key(summary: &str, idx: usize, total: usize)
 }
 
 pub(super) fn filter_enemy_nodes_for_route_rules(
-    route_rules: &[RouteRuleDraft],
+    _route_rules: &[RouteRuleDraft],
     enemy_nodes: &BTreeMap<String, EnemyNodeRows>,
 ) -> BTreeMap<String, EnemyNodeRows> {
-    let labels = route_rules
-        .iter()
-        .flat_map(|rule| [rule.from_label.clone(), rule.to_label.clone()])
-        .collect::<BTreeSet<_>>();
-    enemy_nodes
-        .iter()
-        .filter(|(label, _)| labels.contains(*label))
-        .map(|(label, node)| (label.clone(), node.clone()))
-        .collect()
+    // Keep ALL enemy nodes from the enemy table — filtering by route-rule membership
+    // drops boss nodes on straight paths (no branching = no route rule entry).
+    enemy_nodes.clone()
 }
 
 pub(super) fn collect_formations(compositions: &[EnemyComposition]) -> Vec<i64> {
