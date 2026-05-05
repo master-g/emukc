@@ -203,7 +203,8 @@ where
     let mut am: ship::ActiveModel = new_ship.into();
     am.id = ActiveValue::Unchanged(ship_id);
     am.profile_id = ActiveValue::Unchanged(profile_id);
-    am.has_locked_euqip = ActiveValue::Set(false);
+    am.locked = ActiveValue::Unchanged(ship_model.locked);
+    am.has_locked_euqip = ActiveValue::Unchanged(ship_model.has_locked_euqip);
 
     am.update(c).await?;
 

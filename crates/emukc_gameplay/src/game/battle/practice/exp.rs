@@ -44,7 +44,13 @@ pub(crate) fn calculate_ship_exp(
         exp.push(gain);
 
         let new_exp = ship.ship.api_exp[0] + gain;
-        lvup.push(build_exp_lvup_vector(ship.ship.api_exp[0], new_exp));
+        let level_cap = level::ship_level_cap(ship.married);
+        let mut lvup_vec = build_exp_lvup_vector(ship.ship.api_exp[0], new_exp);
+        if level_cap < 180 {
+            let cap_threshold = level::ship_level_required_exp(level_cap + 1);
+            lvup_vec.retain(|&exp| exp < cap_threshold);
+        }
+        lvup.push(lvup_vec);
     }
 
     (exp, lvup)

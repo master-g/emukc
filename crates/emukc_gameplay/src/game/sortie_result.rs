@@ -132,7 +132,13 @@ pub(super) fn calculate_sortie_ship_exp(
         exp.push(gain);
 
         let new_exp = ship.ship.api_exp[0] + gain;
-        lvup.push(build_exp_lvup_vector(ship.ship.api_exp[0], new_exp));
+        let level_cap = level::ship_level_cap(ship.married);
+        let mut lvup_vec = build_exp_lvup_vector(ship.ship.api_exp[0], new_exp);
+        if level_cap < 180 {
+            let cap_threshold = level::ship_level_required_exp(level_cap + 1);
+            lvup_vec.retain(|&exp| exp < cap_threshold);
+        }
+        lvup.push(lvup_vec);
     }
 
     (exp, lvup)
@@ -311,22 +317,23 @@ where
             // Apply EXP gain.
             let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
             if gain > 0 {
-                let new_ship_exp = ship_model.exp_now + gain;
-                let (ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
+                let raw_exp = ship_model.exp_now + gain;
+                let (ship_level, next_exp) = level::exp_to_ship_level(raw_exp);
                 let level_cap = level::ship_level_cap(ship_model.married);
                 let ship_level = ship_level.min(level_cap);
 
-                let (next_exp, progress) = if ship_level >= level_cap {
-                    (0, 0)
+                let (next_exp, progress, new_ship_exp) = if ship_level >= level_cap {
+                    let cap_exp = level::ship_level_required_exp(level_cap);
+                    (0, 0, cap_exp)
                 } else {
                     let current_level_exp = level::ship_level_required_exp(ship_level);
                     let progress = if next_exp > current_level_exp {
-                        ((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp))
+                        ((raw_exp - current_level_exp) * 100 / (next_exp - current_level_exp))
                             .clamp(0, 99)
                     } else {
                         0
                     };
-                    (next_exp, progress)
+                    (next_exp, progress, raw_exp)
                 };
 
                 api_ship.api_lv = ship_level;

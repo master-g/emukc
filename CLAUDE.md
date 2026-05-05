@@ -3,6 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Approach
+
 - Think before acting. Read existing files before writing code.
 - Be concise in output but thorough in reasoning.
 - Prefer editing over rewriting whole files.
@@ -123,16 +124,19 @@ emukc (binary)          - CLI + HTTP server (axum)
 The repo now includes a tracked `main-decoder/` subproject that decodes `main.js` and extracts battle knowledge assets. These assets are synced into `crates/emukc_bootstrap/assets/` and then consumed by Rust-side battle diagnostics.
 
 Key battle assets:
+
 - `crates/emukc_bootstrap/assets/battle_protocol_fields.json`
 - `crates/emukc_bootstrap/assets/battle_resource_rules.json`
 - `crates/emukc_bootstrap/assets/battle_module_index.json`
 - `crates/emukc_bootstrap/assets/battle_slot_resource_triggers.json`
 
 Important boundary:
+
 - `validate_day_battle_response(...)` and `analyze_day_battle_incident(...)` are explicit diagnostic tools, not runtime auto-checks.
 - If you need battle diagnosis, use the `battle` CLI commands. Do not assume sortie/practice handlers run these checks automatically.
 
 Typical workflow for a bad battle payload:
+
 1. Save the KC API response or `api_data` JSON to a file.
 2. Run `cargo run -- battle validate --input <battle.json>`.
 3. If a client tried to load a missing resource, run `cargo run -- battle analyze-incident --input <battle.json> --missing-url <url>`.
@@ -159,6 +163,7 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 - Configuration: `emukc.config.toml` (see `emukc.config.example.toml`)
 - Database: SQLite via SeaORM, in-memory DB (`new_mem_db()`) for tests
 - Pre-commit hooks are expected (see README)
+- Always use soft tabs, accroding to `.editorconfig` and `.rustfmt.toml`.
 
 ## Balance Defaults Policy
 
@@ -177,5 +182,6 @@ Pure boolean QoL defaults (e.g., picture-book unlocks) are exempt from rule 5 bu
 Integration tests live in `tests/gameplay_tests/` and test gameplay logic directly (no HTTP). Each test uses an independent in-memory database. The `Codex` is loaded from `.data/codex` on disk (requires prior bootstrap).
 
 Battle diagnostics also have two dedicated test layers:
+
 - `main-decoder/test/` for TypeScript-side battle knowledge extraction
 - `crates/emukc_bootstrap/src/battle_rules.rs` for Rust-side validator / incident analysis

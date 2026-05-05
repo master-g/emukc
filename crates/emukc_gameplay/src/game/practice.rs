@@ -683,14 +683,21 @@ where
         })?;
         let mst = codex.find::<emukc_model::prelude::ApiMstShip>(&ship_model.mst_id)?;
         let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.into();
-        let new_ship_exp = ship_model.exp_now + gain.max(0);
-        let (mut ship_level, next_exp) = level::exp_to_ship_level(new_ship_exp);
-        ship_level = ship_level.min(level::ship_level_cap(ship_model.married));
-        let current_level_exp = level::ship_level_required_exp(ship_level);
-        let progress = if next_exp > current_level_exp {
-            ((new_ship_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
+        let raw_exp = ship_model.exp_now + gain.max(0);
+        let (mut ship_level, next_exp) = level::exp_to_ship_level(raw_exp);
+        let level_cap = level::ship_level_cap(ship_model.married);
+        ship_level = ship_level.min(level_cap);
+        let (next_exp, progress, new_ship_exp) = if ship_level >= level_cap {
+            let cap_exp = level::ship_level_required_exp(level_cap);
+            (0, 0, cap_exp)
         } else {
-            0
+            let current_level_exp = level::ship_level_required_exp(ship_level);
+            let progress = if next_exp > current_level_exp {
+                ((raw_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
+            } else {
+                0
+            };
+            (next_exp, progress, raw_exp)
         };
         api_ship.api_lv = ship_level;
         api_ship.api_exp = [new_ship_exp, next_exp, progress];
