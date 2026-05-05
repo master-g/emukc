@@ -248,6 +248,9 @@ pub trait SortieOps {
         &self,
         profile_id: i64,
     ) -> Result<SortieGobackPortResponse, GameplayError>;
+
+    /// Clear any stale sortie state for a profile without erroring if none exists.
+    async fn clear_sortie_state_if_any(&self, profile_id: i64);
 }
 
 #[async_trait]
@@ -863,6 +866,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         clear_pending_sortie_runtime_state(store, profile_id);
 
         Ok(SortieGobackPortResponse::default())
+    }
+
+    async fn clear_sortie_state_if_any(&self, profile_id: i64) {
+        let store = self.sortie_store();
+        store.remove_active(profile_id);
+        clear_pending_sortie_runtime_state(store, profile_id);
     }
 }
 

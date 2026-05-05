@@ -48,7 +48,6 @@ pub struct WikiwikiNodeDefinition {
     pub cell_no: i64,
     pub is_boss: bool,
     pub is_battle: bool,
-    pub next_cells: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

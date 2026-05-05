@@ -225,7 +225,7 @@ impl WikiwikiMapCatalog {
                             color_no,
                             event_id,
                             event_kind,
-                            next_cells: node.next_cells.clone(),
+                            next_cells: vec![],
                             node_label: Some(node.label.clone()),
                             master_cell_id: None,
                             distance: None,

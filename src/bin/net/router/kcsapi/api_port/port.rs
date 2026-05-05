@@ -33,6 +33,10 @@ pub(super) async fn handler(
     Extension(session): Extension<GameSession>,
 ) -> KcApiResult {
     let pid = session.profile.id;
+
+    // Clear stale sortie state from mid-sortie disconnects.
+    state.clear_sortie_state_if_any(pid).await;
+
     let resp = build_port_response(state.0.as_ref(), pid).await?;
 
     Ok(KcApiResponse::success(&resp))

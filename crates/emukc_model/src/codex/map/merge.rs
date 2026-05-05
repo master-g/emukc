@@ -182,55 +182,48 @@ fn semantic_cell_no_map_from_labels(
 ///
 /// `cell_no_map` maps secondary-source cell numbers to primary cell numbers.
 pub fn merge_routing_overlay(
-	definition: &mut MapVariantDefinition,
-	cell_no_map: &BTreeMap<i64, i64>,
-	other_routing_rules: &BTreeMap<i64, Vec<RouteRule>>,
-	other_enemy_fleets: &BTreeMap<i64, EnemyFleetDefinition>,
-	other_ship_drops: &BTreeMap<i64, Vec<ShipDropDefinition>>,
+    definition: &mut MapVariantDefinition,
+    cell_no_map: &BTreeMap<i64, i64>,
+    other_routing_rules: &BTreeMap<i64, Vec<RouteRule>>,
+    other_enemy_fleets: &BTreeMap<i64, EnemyFleetDefinition>,
+    other_ship_drops: &BTreeMap<i64, Vec<ShipDropDefinition>>,
 ) {
-	if cell_no_map.is_empty() {
-		return;
-	}
+    if cell_no_map.is_empty() {
+        return;
+    }
 
-	for (from_cell_no, rules) in other_routing_rules {
-		let mapped_from = remap_cell_no(*from_cell_no, cell_no_map);
-		definition
-			.routing_rules
-			.entry(mapped_from)
-			.or_default()
-			.extend(rules.iter().map(|rule| {
-				RouteRule {
-					from_cell_no: remap_cell_no(rule.from_cell_no, cell_no_map),
-					to_cell_no: remap_cell_no(rule.to_cell_no, cell_no_map),
-					..rule.clone()
-				}
-			}));
-	}
+    for (from_cell_no, rules) in other_routing_rules {
+        let mapped_from = remap_cell_no(*from_cell_no, cell_no_map);
+        definition.routing_rules.entry(mapped_from).or_default().extend(rules.iter().map(|rule| {
+            RouteRule {
+                from_cell_no: remap_cell_no(rule.from_cell_no, cell_no_map),
+                to_cell_no: remap_cell_no(rule.to_cell_no, cell_no_map),
+                ..rule.clone()
+            }
+        }));
+    }
 
-	for (cell_no, fleet) in other_enemy_fleets {
-		let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
-		definition.enemy_fleets.entry(mapped_cell_no).or_insert_with(|| EnemyFleetDefinition {
-			cell_no: remap_cell_no(fleet.cell_no, cell_no_map),
-			..fleet.clone()
-		});
-	}
+    for (cell_no, fleet) in other_enemy_fleets {
+        let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
+        definition.enemy_fleets.entry(mapped_cell_no).or_insert_with(|| EnemyFleetDefinition {
+            cell_no: remap_cell_no(fleet.cell_no, cell_no_map),
+            ..fleet.clone()
+        });
+    }
 
-	for (cell_no, drops) in other_ship_drops {
-		let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
-		definition
-			.ship_drops
-			.entry(mapped_cell_no)
-			.or_insert_with(|| drops.clone());
-	}
+    for (cell_no, drops) in other_ship_drops {
+        let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
+        definition.ship_drops.entry(mapped_cell_no).or_insert_with(|| drops.clone());
+    }
 }
 
 /// Compute the cell-number remap between a secondary label map and a primary variant's labels.
 pub fn build_cell_no_map(
-	definition: &MapVariantDefinition,
-	other_labels: &BTreeMap<String, i64>,
+    definition: &MapVariantDefinition,
+    other_labels: &BTreeMap<String, i64>,
 ) -> BTreeMap<i64, i64> {
-	let definition_labels = unique_labeled_cells(&definition.cells);
-	semantic_cell_no_map_from_labels(&definition_labels, other_labels)
+    let definition_labels = unique_labeled_cells(&definition.cells);
+    semantic_cell_no_map_from_labels(&definition_labels, other_labels)
 }
 
 fn unique_labeled_cells(cells: &[MapCellDefinition]) -> BTreeMap<String, i64> {
@@ -443,34 +436,31 @@ mod tests {
         };
 
         // WikiWiki uses different cell numbering: A=5, B=6, C=7
-        let other_labels: BTreeMap<String, i64> = BTreeMap::from([
-            ("A".into(), 5),
-            ("B".into(), 6),
-            ("C".into(), 7),
-        ]);
+        let other_labels: BTreeMap<String, i64> =
+            BTreeMap::from([("A".into(), 5), ("B".into(), 6), ("C".into(), 7)]);
         let other_routing_rules = BTreeMap::from([(
-                5,
-                vec![
-                    RouteRule {
-                        from_cell_no: 5,
-                        to_cell_no: 6,
-                        priority: 0,
-                        weight: None,
-                        probability_pct: None,
-                        predicate: RoutePredicate::Always,
-                        raw_text: String::new(),
-                    },
-                    RouteRule {
-                        from_cell_no: 5,
-                        to_cell_no: 7,
-                        priority: 1,
-                        weight: None,
-                        probability_pct: None,
-                        predicate: RoutePredicate::Always,
-                        raw_text: String::new(),
-                    },
-                ],
-            )]);
+            5,
+            vec![
+                RouteRule {
+                    from_cell_no: 5,
+                    to_cell_no: 6,
+                    priority: 0,
+                    weight: None,
+                    probability_pct: None,
+                    predicate: RoutePredicate::Always,
+                    raw_text: String::new(),
+                },
+                RouteRule {
+                    from_cell_no: 5,
+                    to_cell_no: 7,
+                    priority: 1,
+                    weight: None,
+                    probability_pct: None,
+                    predicate: RoutePredicate::Always,
+                    raw_text: String::new(),
+                },
+            ],
+        )]);
         let other_enemy_fleets = BTreeMap::from([(
             6,
             EnemyFleetDefinition {
@@ -483,7 +473,8 @@ mod tests {
         let other_ship_drops = BTreeMap::from([(7, vec![ShipDropDefinition::default()])]);
 
         let cells_before = definition.cells.clone();
-        let next_cells_before: Vec<Vec<i64>> = definition.cells.iter().map(|c| c.next_cells.clone()).collect();
+        let next_cells_before: Vec<Vec<i64>> =
+            definition.cells.iter().map(|c| c.next_cells.clone()).collect();
 
         let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
         merge_routing_overlay(
@@ -533,10 +524,8 @@ mod tests {
         };
 
         // "Z" doesn't exist in primary — rule should preserve original cell_no
-        let other_labels: BTreeMap<String, i64> = BTreeMap::from([
-            ("A".into(), 10),
-            ("Z".into(), 99),
-        ]);
+        let other_labels: BTreeMap<String, i64> =
+            BTreeMap::from([("A".into(), 10), ("Z".into(), 99)]);
         let other_routing_rules = BTreeMap::from([(
             10,
             vec![RouteRule {

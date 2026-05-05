@@ -1,7 +1,7 @@
 ---
 title: "fix: Complete map topology refactor audit items and clear stale sortie state on port return"
 type: fix
-status: active
+status: completed
 date: 2026-05-05
 ---
 

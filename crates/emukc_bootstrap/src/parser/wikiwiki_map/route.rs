@@ -409,19 +409,12 @@ pub(super) fn build_nodes(
 
     bfs.into_iter()
         .map(|label| {
-            let next_cells = graph
-                .get(&label)
-                .into_iter()
-                .flatten()
-                .filter_map(|target| cell_numbers.get(target).copied())
-                .collect::<Vec<_>>();
             let enemy = enemy_nodes.get(&label);
             WikiwikiNodeDefinition {
                 label: label.clone(),
                 cell_no: cell_numbers[&label],
                 is_boss: enemy.is_some_and(|node| node.is_boss),
                 is_battle: enemy.is_some(),
-                next_cells,
             }
         })
         .collect()
