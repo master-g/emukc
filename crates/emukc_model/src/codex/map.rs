@@ -14,6 +14,7 @@ use crate::{
 pub use types::*;
 
 use merge::merge_definition as merge_definition_impl;
+pub use merge::{build_cell_no_map, merge_routing_overlay};
 impl MapCatalog {
     pub fn from_manifest(manifest: &ApiManifest) -> Self {
         let defaults = DEFAULT_MAP_RECORDS

@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     EnemyFleetDefinition, MapCellDefinition, MapDefinition, MapVariantDefinition, RouteRule,
+    ShipDropDefinition,
 };
 
 pub(super) fn merge_definition(definition: &mut MapDefinition, other: MapDefinition) {
@@ -158,15 +159,78 @@ fn semantic_cell_no_map(
 ) -> BTreeMap<i64, i64> {
     let definition_labels = unique_labeled_cells(&definition.cells);
     let other_labels = unique_labeled_cells(&other.cells);
+    semantic_cell_no_map_from_labels(&definition_labels, &other_labels)
+}
+
+/// Build a cell-number remap from a generic label→cell_no map onto a primary variant's labels.
+fn semantic_cell_no_map_from_labels(
+    definition_labels: &BTreeMap<String, i64>,
+    other_labels: &BTreeMap<String, i64>,
+) -> BTreeMap<i64, i64> {
     other_labels
-        .into_iter()
+        .iter()
         .filter_map(|(label, other_cell_no)| {
             definition_labels
-                .get(&label)
-                .copied()
-                .map(|definition_cell_no| (other_cell_no, definition_cell_no))
+                .get(label)
+                .map(|definition_cell_no| (*other_cell_no, *definition_cell_no))
         })
         .collect()
+}
+
+/// Overlay routing rules, enemy fleets, and ship drops from a secondary source onto a
+/// primary variant's topology. Does NOT touch cells or next_cells.
+///
+/// `cell_no_map` maps secondary-source cell numbers to primary cell numbers.
+pub fn merge_routing_overlay(
+	definition: &mut MapVariantDefinition,
+	cell_no_map: &BTreeMap<i64, i64>,
+	other_routing_rules: &BTreeMap<i64, Vec<RouteRule>>,
+	other_enemy_fleets: &BTreeMap<i64, EnemyFleetDefinition>,
+	other_ship_drops: &BTreeMap<i64, Vec<ShipDropDefinition>>,
+) {
+	if cell_no_map.is_empty() {
+		return;
+	}
+
+	for (from_cell_no, rules) in other_routing_rules {
+		let mapped_from = remap_cell_no(*from_cell_no, cell_no_map);
+		definition
+			.routing_rules
+			.entry(mapped_from)
+			.or_default()
+			.extend(rules.iter().map(|rule| {
+				RouteRule {
+					from_cell_no: remap_cell_no(rule.from_cell_no, cell_no_map),
+					to_cell_no: remap_cell_no(rule.to_cell_no, cell_no_map),
+					..rule.clone()
+				}
+			}));
+	}
+
+	for (cell_no, fleet) in other_enemy_fleets {
+		let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
+		definition.enemy_fleets.entry(mapped_cell_no).or_insert_with(|| EnemyFleetDefinition {
+			cell_no: remap_cell_no(fleet.cell_no, cell_no_map),
+			..fleet.clone()
+		});
+	}
+
+	for (cell_no, drops) in other_ship_drops {
+		let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
+		definition
+			.ship_drops
+			.entry(mapped_cell_no)
+			.or_insert_with(|| drops.clone());
+	}
+}
+
+/// Compute the cell-number remap between a secondary label map and a primary variant's labels.
+pub fn build_cell_no_map(
+	definition: &MapVariantDefinition,
+	other_labels: &BTreeMap<String, i64>,
+) -> BTreeMap<i64, i64> {
+	let definition_labels = unique_labeled_cells(&definition.cells);
+	semantic_cell_no_map_from_labels(&definition_labels, other_labels)
 }
 
 fn unique_labeled_cells(cells: &[MapCellDefinition]) -> BTreeMap<String, i64> {
@@ -357,5 +421,187 @@ mod tests {
         assert_eq!(definition.routing_rules.get(&2).unwrap()[0].to_cell_no, 3);
         assert!(definition.enemy_fleets.contains_key(&3));
         assert!(definition.ship_drops.contains_key(&3));
+    }
+
+    #[test]
+    fn merge_routing_overlay_remaps_rules_without_touching_cells() {
+        let mut definition = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 5,
+            cells: vec![
+                cell(0, "Start", vec![1], 0, 0, 0),
+                cell(1, "A", vec![2, 3], 2, 0, 2),
+                cell(2, "B", vec![4], 3, 0, 3),
+                cell(3, "C", vec![5], 4, 1, 4),
+            ],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+
+        // WikiWiki uses different cell numbering: A=5, B=6, C=7
+        let other_labels: BTreeMap<String, i64> = BTreeMap::from([
+            ("A".into(), 5),
+            ("B".into(), 6),
+            ("C".into(), 7),
+        ]);
+        let other_routing_rules = BTreeMap::from([(
+                5,
+                vec![
+                    RouteRule {
+                        from_cell_no: 5,
+                        to_cell_no: 6,
+                        priority: 0,
+                        weight: None,
+                        probability_pct: None,
+                        predicate: RoutePredicate::Always,
+                        raw_text: String::new(),
+                    },
+                    RouteRule {
+                        from_cell_no: 5,
+                        to_cell_no: 7,
+                        priority: 1,
+                        weight: None,
+                        probability_pct: None,
+                        predicate: RoutePredicate::Always,
+                        raw_text: String::new(),
+                    },
+                ],
+            )]);
+        let other_enemy_fleets = BTreeMap::from([(
+            6,
+            EnemyFleetDefinition {
+                cell_no: 6,
+                battle_kind: 1,
+                formations: vec![1],
+                compositions: Vec::new(),
+            },
+        )]);
+        let other_ship_drops = BTreeMap::from([(7, vec![ShipDropDefinition::default()])]);
+
+        let cells_before = definition.cells.clone();
+        let next_cells_before: Vec<Vec<i64>> = definition.cells.iter().map(|c| c.next_cells.clone()).collect();
+
+        let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
+        merge_routing_overlay(
+            &mut definition,
+            &cell_no_map,
+            &other_routing_rules,
+            &other_enemy_fleets,
+            &other_ship_drops,
+        );
+
+        // Cells and next_cells untouched
+        assert_eq!(definition.cells, cells_before);
+        for (i, cell) in definition.cells.iter().enumerate() {
+            assert_eq!(cell.next_cells, next_cells_before[i]);
+        }
+
+        // Routing rules remapped: A(5)→B(6) becomes A(1)→B(2), A(5)→C(7) becomes A(1)→C(3)
+        let rules_a = definition.routing_rules.get(&1).unwrap();
+        assert_eq!(rules_a.len(), 2);
+        assert_eq!(rules_a[0].to_cell_no, 2);
+        assert_eq!(rules_a[1].to_cell_no, 3);
+
+        // Enemy fleet remapped: B(6) → B(2)
+        assert!(definition.enemy_fleets.contains_key(&2));
+        assert_eq!(definition.enemy_fleets.get(&2).unwrap().cell_no, 2);
+
+        // Ship drops remapped: C(7) → C(3)
+        assert!(definition.ship_drops.contains_key(&3));
+    }
+
+    #[test]
+    fn merge_routing_overlay_preserves_unmapped_labels() {
+        let mut definition = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![
+                cell(0, "Start", vec![1], 0, 0, 0),
+                cell(1, "A", vec![2], 2, 0, 2),
+                cell(2, "B", vec![3], 3, 0, 3),
+            ],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+
+        // "Z" doesn't exist in primary — rule should preserve original cell_no
+        let other_labels: BTreeMap<String, i64> = BTreeMap::from([
+            ("A".into(), 10),
+            ("Z".into(), 99),
+        ]);
+        let other_routing_rules = BTreeMap::from([(
+            10,
+            vec![RouteRule {
+                from_cell_no: 10,
+                to_cell_no: 99,
+                priority: 0,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            }],
+        )]);
+
+        let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
+        merge_routing_overlay(
+            &mut definition,
+            &cell_no_map,
+            &other_routing_rules,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+
+        // A(10) remapped to 1, Z(99) has no mapping → stays 99
+        let rules = definition.routing_rules.get(&1).unwrap();
+        assert_eq!(rules[0].from_cell_no, 1);
+        assert_eq!(rules[0].to_cell_no, 99); // unmapped → identity
+    }
+
+    #[test]
+    fn merge_routing_overlay_noop_with_empty_map() {
+        let mut definition = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 1,
+            cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![], 2, 0, 2)],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+
+        let empty_map = BTreeMap::new();
+        let some_rules = BTreeMap::from([(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            }],
+        )]);
+
+        merge_routing_overlay(
+            &mut definition,
+            &empty_map,
+            &some_rules,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+
+        // No labels to match → early return, nothing changed
+        assert!(definition.routing_rules.is_empty());
     }
 }

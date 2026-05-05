@@ -31,3 +31,6 @@
 .sisyphus/
 
 emukc.config.toml
+
+# Compound Engineering local config
+.compound-engineering/*.local.yaml

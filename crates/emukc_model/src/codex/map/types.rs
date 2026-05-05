@@ -76,7 +76,7 @@ pub struct MapVariantDefinition {
 
 pub type MapStageDefinition = MapVariantDefinition;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct MapCellDefinition {
     pub cell_no: i64,
     pub color_no: i64,

@@ -407,27 +407,7 @@ pub(super) fn build_nodes(
         .map(|(idx, label)| (label.clone(), idx as i64 + 1))
         .collect::<BTreeMap<_, _>>();
 
-    // Infer deterministic edges for target-only nodes:
-    // wikiwiki only documents branching nodes; non-branching nodes appear as
-    // targets but never as sources. Connect each target-only node to the next
-    // neighbour in BFS order (any node type, not just combat).
-    let bfs_order: BTreeMap<&String, usize> = bfs.iter().enumerate().map(|(i, l)| (l, i)).collect();
-    for (label, _node_cell_no) in &cell_numbers {
-        if graph.get(label).map_or(true, |nexts| nexts.is_empty()) {
-            let is_boss = enemy_nodes.get(label).is_some_and(|n| n.is_boss);
-            if !is_boss {
-                if let Some(&idx) = bfs_order.get(label) {
-                    let next_label = bfs.iter().skip(idx + 1).next();
-                    if let Some(next_label) = next_label {
-                        graph.entry(label.clone()).or_default().insert(next_label.clone());
-                    }
-                }
-            }
-        }
-    }
-
-    let label_to_cell_no = bfs
-        .into_iter()
+    bfs.into_iter()
         .map(|label| {
             let next_cells = graph
                 .get(&label)
@@ -444,9 +424,7 @@ pub(super) fn build_nodes(
                 next_cells,
             }
         })
-        .collect();
-
-    label_to_cell_no
+        .collect()
 }
 
 pub(super) fn parse_route_table(
