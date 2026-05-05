@@ -111,12 +111,7 @@ pub(crate) fn evaluate_route_destination(
         }
 
         if let Some(selected_cell_id) = selected_cell_id {
-            let candidate_targets = rules
-                .iter()
-                .map(|rule| rule.to_cell_no)
-                .chain(current.next_cells.iter().copied())
-                .collect::<BTreeSet<_>>();
-            if any_indeterminate && candidate_targets.contains(&selected_cell_id) {
+            if any_indeterminate && current.next_cells.contains(&selected_cell_id) {
                 return Ok(selected_cell_id);
             }
         }
@@ -143,7 +138,17 @@ pub(crate) fn evaluate_route_destination(
         )));
     }
 
-    let candidate_targets = executable.iter().map(|rule| rule.to_cell_no).collect::<BTreeSet<_>>();
+    let candidate_targets: BTreeSet<i64> = executable
+        .iter()
+        .map(|rule| rule.to_cell_no)
+        .filter(|cell_no| current.next_cells.contains(cell_no))
+        .collect();
+    if candidate_targets.is_empty() {
+        return Err(GameplayError::WrongType(format!(
+            "cell {} has no executable route in topology",
+            current.cell_no,
+        )));
+    }
     if let Some(selected_cell_id) = selected_cell_id {
         if !candidate_targets.contains(&selected_cell_id) {
             return Err(GameplayError::WrongType(format!(

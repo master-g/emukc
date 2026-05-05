@@ -82,9 +82,29 @@ fn merge_variant_definition(definition: &mut MapVariantDefinition, other: MapVar
     }
     merge_cells(&mut definition.cells, other.cells);
     for (from_cell_no, rules) in other.routing_rules {
-        definition.routing_rules.entry(from_cell_no).or_insert(rules);
+        let valid_rules: Vec<RouteRule> = rules
+            .into_iter()
+            .filter(|rule| {
+                if definition.cell(rule.to_cell_no).is_none() {
+                    tracing::warn!(
+                        "routing_rule target cell {} not in topology — dropped",
+                        rule.to_cell_no
+                    );
+                    false
+                } else {
+                    true
+                }
+            })
+            .collect();
+        if !valid_rules.is_empty() {
+            definition.routing_rules.entry(from_cell_no).or_insert(valid_rules);
+        }
     }
     for (cell_no, fleet) in other.enemy_fleets {
+        if definition.cell(cell_no).is_none() {
+            tracing::warn!("enemy fleet cell {} not in topology — dropped", cell_no);
+            continue;
+        }
         definition.enemy_fleets.entry(cell_no).or_insert(fleet);
     }
     for (cell_no, drops) in other.ship_drops {
@@ -194,17 +214,41 @@ pub fn merge_routing_overlay(
 
     for (from_cell_no, rules) in other_routing_rules {
         let mapped_from = remap_cell_no(*from_cell_no, cell_no_map);
-        definition.routing_rules.entry(mapped_from).or_default().extend(rules.iter().map(|rule| {
-            RouteRule {
+        let valid_rules: Vec<RouteRule> = rules
+            .iter()
+            .map(|rule| RouteRule {
                 from_cell_no: remap_cell_no(rule.from_cell_no, cell_no_map),
                 to_cell_no: remap_cell_no(rule.to_cell_no, cell_no_map),
                 ..rule.clone()
-            }
-        }));
+            })
+            .filter(|rule| {
+                if definition.cell(rule.to_cell_no).is_none() {
+                    tracing::warn!(
+                        "routing_rule target cell {} not in topology — dropped",
+                        rule.to_cell_no
+                    );
+                    false
+                } else {
+                    true
+                }
+            })
+            .collect();
+        definition
+            .routing_rules
+            .entry(mapped_from)
+            .or_default()
+            .extend(valid_rules);
     }
 
     for (cell_no, fleet) in other_enemy_fleets {
         let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
+        if definition.cell(mapped_cell_no).is_none() {
+            tracing::warn!(
+                "enemy fleet cell {} not in topology — dropped",
+                mapped_cell_no
+            );
+            continue;
+        }
         definition.enemy_fleets.entry(mapped_cell_no).or_insert_with(|| EnemyFleetDefinition {
             cell_no: remap_cell_no(fleet.cell_no, cell_no_map),
             ..fleet.clone()
@@ -552,10 +596,10 @@ mod tests {
             &BTreeMap::new(),
         );
 
-        // A(10) remapped to 1, Z(99) has no mapping → stays 99
-        let rules = definition.routing_rules.get(&1).unwrap();
-        assert_eq!(rules[0].from_cell_no, 1);
-        assert_eq!(rules[0].to_cell_no, 99); // unmapped → identity
+        // A(10) remapped to 1, Z(99) has no mapping → no corresponding cell in topology
+        // Rule targeting cell 99 (not in topology) should be dropped.
+        let rules = definition.routing_rules.get(&1);
+        assert!(rules.is_none() || rules.unwrap().is_empty());
     }
 
     #[test]
@@ -622,5 +666,102 @@ mod tests {
         merge_cells(&mut cells, vec![cell(1, "A", vec![], 5, 2, 3)]);
         assert_eq!(cells[0].event_id, 5);
         assert_eq!(cells[0].event_kind, 2);
+    }
+
+    #[test]
+    fn merge_routing_overlay_drops_rule_targeting_nonexistent_cell() {
+        let mut definition = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![2], 2, 0, 2)],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+        let other_labels: BTreeMap<String, i64> = BTreeMap::from([("A".into(), 10)]);
+        // Rule targets cell 99 which doesn't exist in primary topology
+        let rules = BTreeMap::from([(
+            10,
+            vec![RouteRule {
+                from_cell_no: 10,
+                to_cell_no: 99,
+                priority: 0,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            }],
+        )]);
+        let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
+        merge_routing_overlay(&mut definition, &cell_no_map, &rules, &BTreeMap::new(), &BTreeMap::new());
+        // from_cell_no 10 maps to 1, but to_cell_no 99 not in topology → rule dropped
+        let entry = definition.routing_rules.get(&1);
+        assert!(entry.is_none() || entry.unwrap().is_empty());
+    }
+
+    #[test]
+    fn merge_routing_overlay_drops_enemy_fleet_at_nonexistent_cell() {
+        let mut definition = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![2], 2, 0, 2)],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+        let other_labels: BTreeMap<String, i64> = BTreeMap::from([("A".into(), 10)]);
+        let fleets = BTreeMap::from([(
+            99,
+            EnemyFleetDefinition {
+                cell_no: 99,
+                battle_kind: 0,
+                formations: vec![],
+                compositions: vec![],
+            },
+        )]);
+        let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
+        merge_routing_overlay(&mut definition, &cell_no_map, &BTreeMap::new(), &fleets, &BTreeMap::new());
+        // cell 99 not remapped (no label match) and not in topology → dropped
+        assert!(definition.enemy_fleets.is_empty());
+    }
+
+    #[test]
+    fn merge_routing_overlay_keeps_rule_targeting_existing_cell() {
+        let mut definition = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![2], 2, 0, 2)],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+        let other_labels: BTreeMap<String, i64> = BTreeMap::from([("A".into(), 10), ("Start".into(), 20)]);
+        // Rule: from cell A(10→1) to cell Start(20→0) — both exist in topology
+        let rules = BTreeMap::from([(
+            10,
+            vec![RouteRule {
+                from_cell_no: 10,
+                to_cell_no: 20,
+                priority: 0,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            }],
+        )]);
+        let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
+        merge_routing_overlay(&mut definition, &cell_no_map, &rules, &BTreeMap::new(), &BTreeMap::new());
+        let entry = definition.routing_rules.get(&1).unwrap();
+        assert_eq!(entry[0].to_cell_no, 0);
+        assert_eq!(entry[0].from_cell_no, 1);
     }
 }

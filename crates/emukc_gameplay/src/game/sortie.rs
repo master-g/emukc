@@ -359,7 +359,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let codex = self.codex();
         let db = self.db();
         let store = self.sortie_store();
-        let active = store.get_active(profile_id).ok_or_else(|| {
+        let mut active = store.get_active(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "active sortie not found for profile {profile_id}",
             ))
@@ -374,6 +374,19 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
         })?;
+
+        // Defense-in-depth: refresh stage from DB in case sortie_battle_result
+        // missed the update after a gauge-clear transition.
+        let stage_refreshed = refresh_sortie_stage(db, codex, profile_id, &mut active).await?;
+        if !stage_refreshed {
+            store.remove_active(profile_id);
+            return Err(GameplayError::WrongType(format!(
+                "cell {} no longer exists in refreshed stage for map {}",
+                active.current_cell_id, active.map_id,
+            )));
+        }
+        let _ = store.insert_active(profile_id, active.clone());
+
         let stage = definition.stage(&active.stage_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "stage `{}` not found for map {}",
@@ -534,7 +547,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 "sortie battle session not found for profile {profile_id}",
             ))
         })?;
-        let active = store.get_active(profile_id).ok_or_else(|| {
+        let mut active = store.get_active(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "active sortie not found for profile {profile_id}",
             ))
@@ -606,19 +619,53 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 
         tx.commit().await?;
 
-        // Update in-memory store after commit so a failed transaction cannot
-        // leave the store in a state inconsistent with the database.
-        // On crash after commit: store is stale but DB is correct, and the
-        // store is rebuilt from DB state on restart.
+        // Refresh stage identity from DB before deciding sortie fate.
+        // apply_sortie_map_result may have changed stage_id via gauge clear.
+        let stage_refreshed = refresh_sortie_stage(db, codex, profile_id, &mut active).await?;
+        if !stage_refreshed {
+            store.remove_active(profile_id);
+            return Ok(SortieBattleResultResponse {
+                api_ship_id: snapshot.enemy_ship_ids,
+                api_win_rank: snapshot.win_rank,
+                api_get_exp: snapshot.get_exp,
+                api_mvp: snapshot.mvp,
+                api_member_lv: snapshot.member_lv,
+                api_member_exp: snapshot.member_exp,
+                api_get_base_exp: snapshot.get_base_exp,
+                api_get_ship_exp: snapshot.get_ship_exp,
+                api_get_exp_lvup: snapshot.get_exp_lvup,
+                api_dests: session.packet.enemy_nowhps.iter().filter(|hp| **hp <= 0).count() as i64,
+                api_destsf: i64::from(session.packet.enemy_nowhps.first().copied().unwrap_or(1) <= 0),
+                api_quest_name: snapshot.quest_name,
+                api_quest_level: snapshot.quest_level,
+                api_enemy_info: SortieBattleResultEnemyInfo {
+                    api_level: snapshot.enemy_level,
+                    api_rank: snapshot.enemy_rank,
+                    api_deck_name: snapshot.enemy_deck_name,
+                },
+                api_first_clear: first_clear,
+                api_get_flag: [0, i64::from(ship_drop.is_some()), 0],
+                api_get_ship: ship_drop,
+                api_next_map_ids: next_map_ids,
+            });
+        }
+        let stage = definition.stage(&active.stage_id).ok_or_else(|| {
+            GameplayError::EntryNotFound(format!(
+                "stage `{}` not found for map {}",
+                active.stage_id, active.map_id,
+            ))
+        })?;
+        let current_cell = stage.cell(pending_cell_id).ok_or_else(|| {
+            GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found"))
+        })?;
+
         let should_finish_sortie = current_cell.cell_no == active.boss_cell_id
             || !cell_has_routing_outgoing(current_cell.cell_no, stage);
         if should_finish_sortie {
             store.remove_active(profile_id);
         } else {
-            if let Some(mut state) = store.get_active(profile_id) {
-                state.pending_battle_cell_id = None;
-                let _ = store.insert_active(profile_id, state);
-            }
+            active.pending_battle_cell_id = None;
+            let _ = store.insert_active(profile_id, active);
         }
 
         Ok(SortieBattleResultResponse {
@@ -876,6 +923,44 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         store.remove_active(profile_id);
         clear_pending_sortie_runtime_state(store, profile_id);
     }
+}
+
+async fn refresh_sortie_stage(
+    db: &emukc_db::sea_orm::DatabaseConnection,
+    codex: &Codex,
+    profile_id: i64,
+    active: &mut ActiveSortieState,
+) -> Result<bool, GameplayError> {
+    let catalog = active_map_catalog(codex);
+    let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
+        GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
+    })?;
+      let record = find_map_record_impl(db, profile_id, active.map_id)
+          .await?;
+
+
+
+
+
+
+
+
+    let new_stage_id = resolve_record_stage_id(&definition, &record).unwrap_or_default();
+
+    if new_stage_id != active.stage_id {
+        let new_stage = definition.stage(&new_stage_id).ok_or_else(|| {
+            GameplayError::EntryNotFound(format!(
+                "stage `{new_stage_id}` not found for map {}",
+                active.map_id,
+            ))
+        })?;
+        if new_stage.cell(active.current_cell_id).is_none() {
+            return Ok(false);
+        }
+        active.stage_id = new_stage_id;
+        active.boss_cell_id = new_stage.boss_cell_no;
+    }
+    Ok(true)
 }
 
 async fn sortie_battle_impl(
