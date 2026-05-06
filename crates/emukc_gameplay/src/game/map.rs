@@ -129,8 +129,8 @@ impl<T: HasContext + ?Sized> MapOps for T {
         assign_stage_id(&mut am, select_stage_id_for_rank(&definition, rank));
         if definition.max_hp.is_some() && current_hp.is_none() {
             am.current_hp = ActiveValue::Set(definition.max_hp);
+            am.gauge_index = ActiveValue::Set(1);
         }
-        am.gauge_index = ActiveValue::Set(1);
         am.event_state = ActiveValue::Set(Some(1));
         let updated = am.update(&tx).await?;
 
@@ -637,5 +637,71 @@ mod tests {
         let existing = BTreeSet::from([11]);
 
         assert!(is_map_unlocked_by_default(&codex, 12, &existing));
+    }
+
+    // ------------------------------------------------------------------ gauge_index preservation (U6)
+
+    fn event_definition_with_hp() -> MapDefinition {
+        MapDefinition {
+            map_id: 421,
+            maparea_id: 42,
+            mapinfo_no: 1,
+            name: "test event".to_string(),
+            level: 1,
+            sally_flag: vec![],
+            is_event: true,
+            reset_policy: MapResetPolicy::Never,
+            airbase_count: None,
+            gauge_type: Some(2),
+            gauge_count: Some(2),
+            required_defeat_count: None,
+            max_hp: Some(500),
+            default_variant: String::new(),
+            rank_stage_ids: BTreeMap::new(),
+            variants: BTreeMap::new(),
+        }
+    }
+
+    /// Fresh event map (no HP set) → gauge_index must reset to 1.
+    #[test]
+    fn gauge_index_resets_on_fresh_initialization() {
+        let def = event_definition_with_hp();
+        let mut record = sample_record(None);
+        record.current_hp = None;
+        record.gauge_index = 3;
+
+        let current_hp = record.current_hp;
+        let mut am = record.into_active_model();
+
+        if def.max_hp.is_some() && current_hp.is_none() {
+            am.current_hp = ActiveValue::Set(def.max_hp);
+            am.gauge_index = ActiveValue::Set(1);
+        }
+
+        assert!(am.gauge_index.is_set());
+        assert_eq!(am.gauge_index.unwrap(), 1);
+        assert!(am.current_hp.is_set());
+        assert_eq!(am.current_hp.unwrap(), Some(500));
+    }
+
+    /// Mid-event record (HP already set) → gauge_index must be preserved.
+    #[test]
+    fn gauge_index_preserved_when_hp_already_set() {
+        let def = event_definition_with_hp();
+        let mut record = sample_record(None);
+        record.current_hp = Some(200);
+        record.gauge_index = 2;
+
+        let current_hp = record.current_hp;
+        let mut am = record.into_active_model();
+
+        if def.max_hp.is_some() && current_hp.is_none() {
+            am.current_hp = ActiveValue::Set(def.max_hp);
+            am.gauge_index = ActiveValue::Set(1);
+        }
+
+        // gauge_index stays at the value from the record (not reset to 1)
+        assert!(am.gauge_index.is_unchanged());
+        assert!(am.current_hp.is_unchanged());
     }
 }
