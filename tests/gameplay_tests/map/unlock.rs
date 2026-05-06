@@ -95,6 +95,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn start_sortie_after_incomplete_previous_sortie_succeeds() {
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+
+        let mut fleet_slots = [-1; 6];
+        for slot in &mut fleet_slots {
+            *slot = context.add_ship(pid, 951).await.unwrap().api_id;
+        }
+        context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
+
+        let first = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        assert_eq!(first.maparea_id, 1);
+
+        let second = context.start_sortie(pid, 1, 1, 1, 1).await;
+        assert!(second.is_ok(), "second start_sortie should succeed after incomplete first");
+    }
+
+    #[tokio::test]
     async fn start_sortie_to_locked_map_fails() {
         let context = new_context().await;
         let pid = new_profile(&context).await;
