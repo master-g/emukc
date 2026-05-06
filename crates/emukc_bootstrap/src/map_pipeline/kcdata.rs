@@ -54,11 +54,12 @@ enum KcDataNode {
 pub(super) fn load_map_catalog_from_kcdata_root(
     kcdata_root: impl AsRef<Path>,
     manifest: &ApiManifest,
-) -> Result<MapCatalog, ParseError> {
+) -> Result<(MapCatalog, usize), ParseError> {
     let mut catalog = MapCatalog::from_manifest(manifest);
+    let mut kcdata_parse_errors: usize = 0;
     let map_root = kcdata_root.as_ref().join("_map");
     let Ok(entries) = fs::read_dir(&map_root) else {
-        return Ok(catalog);
+        return Ok((catalog, kcdata_parse_errors));
     };
 
     for entry in entries {
@@ -76,7 +77,12 @@ pub(super) fn load_map_catalog_from_kcdata_root(
                     parsed = Some(map.data);
                     break;
                 }
-                Err(_) => continue,
+                Err(e) => {
+                    let path_display = path.display().to_string();
+                    tracing::warn!(%path_display, ?e, "skip malformed kcdata yaml");
+                    kcdata_parse_errors += 1;
+                    continue;
+                }
             }
         }
         let Some(parsed) = parsed else {
@@ -114,7 +120,7 @@ pub(super) fn load_map_catalog_from_kcdata_root(
         entry.variants.insert(String::new(), build_variant_from_kcdata(&parsed));
     }
 
-    Ok(catalog)
+    Ok((catalog, kcdata_parse_errors))
 }
 
 fn split_map_id(map_id: i64) -> (i64, i64) {
@@ -469,5 +475,53 @@ data:
                 );
             }
         }
+    }
+
+    // ------------------------------------------------------------------ parse-error surfacing
+
+    /// A corrupt YAML file increments the parse-error counter while valid siblings are still loaded.
+    #[test]
+    fn corrupt_kcdata_yaml_increments_error_counter_and_loads_valid_siblings() {
+        let dir = tempfile::tempdir().unwrap();
+        let map_root = dir.path().join("kc_data/_map");
+        std::fs::create_dir_all(&map_root).unwrap();
+
+        // One valid YAML file.
+        let valid_yaml = r#"---
+layout: json
+order: 11
+data:
+  id: 11
+  name: valid map
+  routes:
+    0:
+      from: null
+      to: A
+  cells:
+    A:
+      name: test node
+      boss: true
+---"#;
+        std::fs::write(map_root.join("valid.yaml"), valid_yaml).unwrap();
+
+        // One YAML that parses structurally but fails typed deserialization (wrong types).
+        let corrupt_yaml = r#"---
+layout: json
+order: not_a_number
+data:
+  id: also_not_a_number
+  name: corrupt
+  routes: []
+  cells: []
+"#;
+        std::fs::write(map_root.join("corrupt.yaml"), corrupt_yaml).unwrap();
+
+        let manifest = emukc_model::kc2::start2::ApiManifest::default();
+        let (catalog, parse_errors) =
+            load_map_catalog_from_kcdata_root(dir.path().join("kc_data"), &manifest).unwrap();
+
+        assert_eq!(parse_errors, 1, "one corrupt file must increment the counter to 1");
+        assert_eq!(catalog.maps.len(), 1, "valid map must still be loaded");
+        assert!(catalog.maps.contains_key(&11), "map 11 must be present");
     }
 }

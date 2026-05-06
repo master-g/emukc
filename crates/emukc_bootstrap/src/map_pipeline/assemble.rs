@@ -45,6 +45,7 @@ pub(super) fn assemble_final_map_catalog(
             stat_source,
             output_map_count,
             fanout_rules_dropped,
+            kcdata_parse_errors: sources.kcdata_parse_errors,
         },
     )
 }

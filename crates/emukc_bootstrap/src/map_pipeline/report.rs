@@ -1,7 +1,9 @@
+use std::{fmt, path::PathBuf};
+
 use serde::{Deserialize, Serialize};
 
 /// Indicates where the wikiwiki input for the final map catalog came from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MapCatalogWikiwikiSource {
     /// No wikiwiki catalog was provided; the build used overlays only.
     None,
@@ -11,6 +13,13 @@ pub enum MapCatalogWikiwikiSource {
     Filesystem,
     /// The embedded fallback wikiwiki catalog was used.
     Embedded,
+    /// The wikiwiki JSON file was found but failed to parse.
+    ParseFailed {
+        /// Path to the file that failed to parse.
+        path: PathBuf,
+        /// Human-readable description of the parse error.
+        error: String,
+    },
 }
 
 /// Indicates how the stat.json source was obtained.
@@ -42,4 +51,29 @@ pub struct MapCatalogBuildReport {
     /// Number of wikiwiki routing rules dropped during fan-out because their
     /// `from_cell_no` or `to_cell_no` was absent from the target variant's cell set.
     pub fanout_rules_dropped: usize,
+    /// Number of kcdata YAML files that failed to deserialize (skipped with a warning).
+    pub kcdata_parse_errors: usize,
+}
+
+impl fmt::Display for MapCatalogBuildReport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "map catalog build: {} maps output ({} wikiwiki, {} overlay, {} stat)",
+            self.output_map_count,
+            self.wikiwiki_map_count,
+            self.public_overlay_map_count,
+            self.stat_map_count,
+        )?;
+        if self.fanout_rules_dropped > 0 {
+            write!(f, "; fanout rules dropped: {}", self.fanout_rules_dropped)?;
+        }
+        if self.kcdata_parse_errors > 0 {
+            write!(f, "; kcdata parse errors: {}", self.kcdata_parse_errors)?;
+        }
+        if let MapCatalogWikiwikiSource::ParseFailed { path, error } = &self.wikiwiki_source {
+            write!(f, "; wikiwiki source: parse-failed {}: {}", path.display(), error)?;
+        }
+        Ok(())
+    }
 }
