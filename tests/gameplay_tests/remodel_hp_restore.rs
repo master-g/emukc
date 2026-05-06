@@ -104,12 +104,14 @@ mod tests {
         let ct_cost = codex.cal_ship_docking_cost(&ct_mst, lv, hp_lost).unwrap();
         let cl_cost = codex.cal_ship_docking_cost(&cl_mst, lv, hp_lost).unwrap();
 
-        // CT and CL share the same modifier (1.0), so repair times should be proportional
-        // only to time_base (same level) and time_factor. Since both use modifier 1.0
-        // and same level, the ratio depends only on the formula's level component.
-        assert_eq!(
-            ct_cost.duration_sec, cl_cost.duration_sec,
-            "CT and CL at same level with same HP lost should have equal repair time (both mod=1.0)"
+        // CT uses a reduced time_base formula (lv*5+30) vs CL's standard formula
+        // (lv*5+sqrt(lv-11)*10+50), so CT repair is strictly faster despite sharing
+        // the same ship_type_mod (1.0).
+        assert!(
+            ct_cost.duration_sec < cl_cost.duration_sec,
+            "CT repair time ({}) should be less than CL ({}) due to reduced time_base formula",
+            ct_cost.duration_sec,
+            cl_cost.duration_sec
         );
     }
 
