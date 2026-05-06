@@ -259,7 +259,10 @@ impl Codex {
                 }
             }
             if total_warnings > 0 {
-                tracing::warn!("map catalog validation: {total_warnings} warnings across {} maps", maps.maps.len());
+                tracing::warn!(
+                    "map catalog validation: {total_warnings} warnings across {} maps",
+                    maps.maps.len()
+                );
             }
         }
 

@@ -107,10 +107,9 @@ fn load_repo_wikiwiki_map_catalog()
     // Derive both the success-path source kind and the failure-path file path before
     // consuming `asset.source`, since both arms need the same information.
     let (source_kind, failure_path) = match &asset.source {
-        RepoWikiwikiMapCatalogSource::Filesystem(asset_path) => (
-            MapCatalogWikiwikiSource::Filesystem,
-            asset_path.clone(),
-        ),
+        RepoWikiwikiMapCatalogSource::Filesystem(asset_path) => {
+            (MapCatalogWikiwikiSource::Filesystem, asset_path.clone())
+        }
         RepoWikiwikiMapCatalogSource::Embedded => {
             info!(
                 "repo wikiwiki map catalog not found at {}; using embedded catalog asset",
@@ -118,8 +117,7 @@ fn load_repo_wikiwiki_map_catalog()
             );
             (
                 MapCatalogWikiwikiSource::Embedded,
-                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("assets/wikiwiki_map_catalog.json"),
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/wikiwiki_map_catalog.json"),
             )
         }
     };
@@ -324,7 +322,10 @@ mod tests {
         };
 
         match source {
-            MapCatalogWikiwikiSource::ParseFailed { path, error } => {
+            MapCatalogWikiwikiSource::ParseFailed {
+                path,
+                error,
+            } => {
                 assert_eq!(path, asset_path);
                 assert!(!error.is_empty(), "error string must be non-empty");
             }

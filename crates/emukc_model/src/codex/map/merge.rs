@@ -234,20 +234,13 @@ pub fn merge_routing_overlay(
                 }
             })
             .collect();
-        definition
-            .routing_rules
-            .entry(mapped_from)
-            .or_default()
-            .extend(valid_rules);
+        definition.routing_rules.entry(mapped_from).or_default().extend(valid_rules);
     }
 
     for (cell_no, fleet) in other_enemy_fleets {
         let mapped_cell_no = remap_cell_no(*cell_no, cell_no_map);
         if definition.cell(mapped_cell_no).is_none() {
-            tracing::warn!(
-                "enemy fleet cell {} not in topology — dropped",
-                mapped_cell_no
-            );
+            tracing::warn!("enemy fleet cell {} not in topology — dropped", mapped_cell_no);
             continue;
         }
         definition.enemy_fleets.entry(mapped_cell_no).or_insert_with(|| EnemyFleetDefinition {
@@ -299,16 +292,20 @@ fn remap_predicate(
 ) -> super::RoutePredicate {
     use super::RoutePredicate::*;
     match predicate {
-        VisitedNode { mut cell_nos, visited } => {
+        VisitedNode {
+            mut cell_nos,
+            visited,
+        } => {
             remap_cell_nos(&mut cell_nos, cell_no_map);
-            VisitedNode { cell_nos, visited }
+            VisitedNode {
+                cell_nos,
+                visited,
+            }
         }
         And(children) => {
             And(children.into_iter().map(|p| remap_predicate(p, cell_no_map)).collect())
         }
-        Or(children) => {
-            Or(children.into_iter().map(|p| remap_predicate(p, cell_no_map)).collect())
-        }
+        Or(children) => Or(children.into_iter().map(|p| remap_predicate(p, cell_no_map)).collect()),
         Not(inner) => Not(Box::new(remap_predicate(*inner, cell_no_map))),
         // All other variants contain no cell_nos; return unchanged.
         other => other,
@@ -719,7 +716,13 @@ mod tests {
             }],
         )]);
         let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
-        merge_routing_overlay(&mut definition, &cell_no_map, &rules, &BTreeMap::new(), &BTreeMap::new());
+        merge_routing_overlay(
+            &mut definition,
+            &cell_no_map,
+            &rules,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         // from_cell_no 10 maps to 1, but to_cell_no 99 not in topology → rule dropped
         let entry = definition.routing_rules.get(&1);
         assert!(entry.is_none() || entry.unwrap().is_empty());
@@ -749,7 +752,13 @@ mod tests {
             },
         )]);
         let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
-        merge_routing_overlay(&mut definition, &cell_no_map, &BTreeMap::new(), &fleets, &BTreeMap::new());
+        merge_routing_overlay(
+            &mut definition,
+            &cell_no_map,
+            &BTreeMap::new(),
+            &fleets,
+            &BTreeMap::new(),
+        );
         // cell 99 not remapped (no label match) and not in topology → dropped
         assert!(definition.enemy_fleets.is_empty());
     }
@@ -767,7 +776,8 @@ mod tests {
             clear_to_variant_key: None,
             parse_warnings: Vec::new(),
         };
-        let other_labels: BTreeMap<String, i64> = BTreeMap::from([("A".into(), 10), ("Start".into(), 20)]);
+        let other_labels: BTreeMap<String, i64> =
+            BTreeMap::from([("A".into(), 10), ("Start".into(), 20)]);
         // Rule: from cell A(10→1) to cell Start(20→0) — both exist in topology
         let rules = BTreeMap::from([(
             10,
@@ -782,7 +792,13 @@ mod tests {
             }],
         )]);
         let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
-        merge_routing_overlay(&mut definition, &cell_no_map, &rules, &BTreeMap::new(), &BTreeMap::new());
+        merge_routing_overlay(
+            &mut definition,
+            &cell_no_map,
+            &rules,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let entry = definition.routing_rules.get(&1).unwrap();
         assert_eq!(entry[0].to_cell_no, 0);
         assert_eq!(entry[0].from_cell_no, 1);
@@ -835,10 +851,14 @@ mod tests {
         // Secondary also has a rule at from_cell=5 (same label "A" → same primary cell_no 5).
         secondary.routing_rules.insert(
             5,
-            vec![make_rule(5, 6, RoutePredicate::FleetSize {
-                op: crate::codex::map::RouteOperator::Gte,
-                value: 4,
-            })],
+            vec![make_rule(
+                5,
+                6,
+                RoutePredicate::FleetSize {
+                    op: crate::codex::map::RouteOperator::Gte,
+                    value: 4,
+                },
+            )],
         );
 
         merge_variant_definition(&mut primary, secondary);
@@ -869,10 +889,14 @@ mod tests {
         // Rule from secondary's A(10) referencing visited nodes 10 and 20.
         secondary.routing_rules.insert(
             10,
-            vec![make_rule(10, 20, RoutePredicate::VisitedNode {
-                cell_nos: vec![10, 20],
-                visited: true,
-            })],
+            vec![make_rule(
+                10,
+                20,
+                RoutePredicate::VisitedNode {
+                    cell_nos: vec![10, 20],
+                    visited: true,
+                },
+            )],
         );
 
         merge_variant_definition(&mut primary, secondary);
@@ -880,7 +904,10 @@ mod tests {
         let rules = primary.routing_rules.get(&3).expect("rules at primary from_cell 3");
         assert_eq!(rules.len(), 1);
         match &rules[0].predicate {
-            RoutePredicate::VisitedNode { cell_nos, visited } => {
+            RoutePredicate::VisitedNode {
+                cell_nos,
+                visited,
+            } => {
                 assert_eq!(*cell_nos, vec![3, 7], "cell_nos remapped to primary numbering");
                 assert!(*visited);
             }
@@ -906,9 +933,15 @@ mod tests {
             cell(200, "Y", vec![], 4, 1, 0),
         ]);
         let nested = RoutePredicate::And(vec![
-            RoutePredicate::VisitedNode { cell_nos: vec![100], visited: true },
+            RoutePredicate::VisitedNode {
+                cell_nos: vec![100],
+                visited: true,
+            },
             RoutePredicate::Or(vec![
-                RoutePredicate::VisitedNode { cell_nos: vec![200], visited: false },
+                RoutePredicate::VisitedNode {
+                    cell_nos: vec![200],
+                    visited: false,
+                },
                 RoutePredicate::Always,
             ]),
         ]);
@@ -921,14 +954,20 @@ mod tests {
         match &rules[0].predicate {
             RoutePredicate::And(children) => {
                 match &children[0] {
-                    RoutePredicate::VisitedNode { cell_nos, .. } => {
+                    RoutePredicate::VisitedNode {
+                        cell_nos,
+                        ..
+                    } => {
                         assert_eq!(*cell_nos, vec![1], "top-level VisitedNode remapped");
                     }
                     other => panic!("expected VisitedNode, got {:?}", other),
                 }
                 match &children[1] {
                     RoutePredicate::Or(inner) => match &inner[0] {
-                        RoutePredicate::VisitedNode { cell_nos, .. } => {
+                        RoutePredicate::VisitedNode {
+                            cell_nos,
+                            ..
+                        } => {
                             assert_eq!(*cell_nos, vec![2], "nested Or VisitedNode remapped");
                         }
                         other => panic!("expected inner VisitedNode, got {:?}", other),
@@ -956,10 +995,14 @@ mod tests {
         ]);
         secondary.routing_rules.insert(
             5,
-            vec![make_rule(5, 0, RoutePredicate::VisitedNode {
-                cell_nos: vec![5],
-                visited: true,
-            })],
+            vec![make_rule(
+                5,
+                0,
+                RoutePredicate::VisitedNode {
+                    cell_nos: vec![5],
+                    visited: true,
+                },
+            )],
         );
 
         merge_variant_definition(&mut primary, secondary);
@@ -968,7 +1011,10 @@ mod tests {
         let rules = primary.routing_rules.get(&5).expect("rules at from_cell 5");
         assert_eq!(rules.len(), 1);
         match &rules[0].predicate {
-            RoutePredicate::VisitedNode { cell_nos, .. } => {
+            RoutePredicate::VisitedNode {
+                cell_nos,
+                ..
+            } => {
                 assert_eq!(*cell_nos, vec![5], "cell_nos untouched when no remap");
             }
             other => panic!("unexpected predicate: {:?}", other),

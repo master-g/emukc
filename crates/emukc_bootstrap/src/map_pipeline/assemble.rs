@@ -12,8 +12,7 @@ pub(super) fn assemble_final_map_catalog(
     let mut catalog = match sources.kcdata_catalog {
         Some(mut kcdata) => {
             if let Some(wikiwiki) = sources.wikiwiki_catalog {
-                fanout_rules_dropped =
-                    merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+                fanout_rules_dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
             }
             kcdata
         }
@@ -55,10 +54,7 @@ pub(super) fn assemble_final_map_catalog(
 ///
 /// Returns the total number of routing rules dropped because their `from_cell_no` or
 /// `to_cell_no` was absent from the target variant's cell set.
-fn merge_routing_overlay_from_wikiwiki(
-    kcdata: &mut MapCatalog,
-    wikiwiki: &MapCatalog,
-) -> usize {
+fn merge_routing_overlay_from_wikiwiki(kcdata: &mut MapCatalog, wikiwiki: &MapCatalog) -> usize {
     let mut total_dropped = 0usize;
 
     for (map_id, wikiwiki_map) in &wikiwiki.maps {
@@ -84,8 +80,7 @@ fn merge_routing_overlay_from_wikiwiki(
             // that variant's own cell set.
             if variant_key.is_empty() && definition_has_named_variants {
                 // Collect the variant keys first to satisfy the borrow checker.
-                let keys: Vec<String> =
-                    kcdata_map.variants.keys().cloned().collect();
+                let keys: Vec<String> = kcdata_map.variants.keys().cloned().collect();
                 for key in &keys {
                     let Some(kcdata_variant) = kcdata_map.variants.get_mut(key.as_str()) else {
                         continue;
@@ -99,9 +94,7 @@ fn merge_routing_overlay_from_wikiwiki(
                     );
                     total_dropped += dropped;
                 }
-            } else if let Some(kcdata_variant) =
-                kcdata_map.variants.get_mut(variant_key)
-            {
+            } else if let Some(kcdata_variant) = kcdata_map.variants.get_mut(variant_key) {
                 let cell_no_map = build_cell_no_map(kcdata_variant, &other_labels);
                 merge_routing_overlay(
                     kcdata_variant,
@@ -139,8 +132,7 @@ fn apply_overlay_checked(
     let cell_no_map = build_cell_no_map(kcdata_variant, other_labels);
 
     // Build the set of kcdata cell numbers for membership tests.
-    let cell_set: BTreeSet<i64> =
-        kcdata_variant.cells.iter().map(|c| c.cell_no).collect();
+    let cell_set: BTreeSet<i64> = kcdata_variant.cells.iter().map(|c| c.cell_no).collect();
 
     // `remap` translates a wikiwiki cell number to its kcdata equivalent, falling back to
     // identity when no label match exists (mirrors `remap_cell_no` in merge.rs).
@@ -245,11 +237,7 @@ mod tests {
     /// Build a `MapVariantDefinition` with the given cell numbers and routing rules.
     /// Cells are auto-labeled `"C{n}"` so that `build_cell_no_map` produces identity
     /// mappings and `merge_routing_overlay` does not short-circuit on an empty map.
-    fn make_variant(
-        key: &str,
-        cell_nos: &[i64],
-        rules: Vec<RouteRule>,
-    ) -> MapVariantDefinition {
+    fn make_variant(key: &str, cell_nos: &[i64], rules: Vec<RouteRule>) -> MapVariantDefinition {
         let routing_rules: BTreeMap<i64, Vec<RouteRule>> = {
             let mut m: BTreeMap<i64, Vec<RouteRule>> = BTreeMap::new();
             for rule in rules {
@@ -267,10 +255,7 @@ mod tests {
 
     /// Build a `MapCatalog` with one map identified by `map_id`, containing the given
     /// variants.
-    fn make_catalog(
-        map_id: i64,
-        variants: Vec<MapVariantDefinition>,
-    ) -> MapCatalog {
+    fn make_catalog(map_id: i64, variants: Vec<MapVariantDefinition>) -> MapCatalog {
         let mut variant_map: BTreeMap<String, MapVariantDefinition> = BTreeMap::new();
         for v in variants {
             variant_map.insert(v.variant_key.clone(), v);
@@ -308,10 +293,7 @@ mod tests {
             ],
         );
         // Wikiwiki variant must include cells so build_cell_no_map produces a non-empty map.
-        let wikiwiki = make_catalog(
-            11,
-            vec![make_variant("", &[3, 5], vec![rule(3, 5)])],
-        );
+        let wikiwiki = make_catalog(11, vec![make_variant("", &[3, 5], vec![rule(3, 5)])]);
 
         let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 0);
@@ -320,9 +302,9 @@ mod tests {
         for key in ["gauge_1", "gauge_2"] {
             let v = &kcdata.maps[&11].variants[key];
             assert!(
-                v.routing_rules.get(&3).is_some_and(|rules| rules
-                    .iter()
-                    .any(|r| r.to_cell_no == 5)),
+                v.routing_rules
+                    .get(&3)
+                    .is_some_and(|rules| rules.iter().any(|r| r.to_cell_no == 5)),
                 "expected rule 3→5 in {key}"
             );
         }
@@ -333,16 +315,10 @@ mod tests {
     /// Target variant missing cell 5 → rule dropped, counter = 1.
     #[test]
     fn test_fanout_drops_rule_missing_to_cell() {
-        let mut kcdata = make_catalog(
-            11,
-            vec![make_variant("gauge_1", &[1, 3], vec![])],
-        );
+        let mut kcdata = make_catalog(11, vec![make_variant("gauge_1", &[1, 3], vec![])]);
         // Wikiwiki includes cell 3 and 5 so cell_no_map has {3→3}; 5 has no kcdata match
         // (remaps to 5 via identity) and merge_routing_overlay drops it.
-        let wikiwiki = make_catalog(
-            11,
-            vec![make_variant("", &[3, 5], vec![rule(3, 5)])],
-        );
+        let wikiwiki = make_catalog(11, vec![make_variant("", &[3, 5], vec![rule(3, 5)])]);
 
         let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
@@ -356,14 +332,8 @@ mod tests {
     /// Target variant missing cell 3 (from) → rule dropped, counter = 1.
     #[test]
     fn test_fanout_drops_rule_missing_from_cell() {
-        let mut kcdata = make_catalog(
-            11,
-            vec![make_variant("gauge_1", &[1, 5], vec![])],
-        );
-        let wikiwiki = make_catalog(
-            11,
-            vec![make_variant("", &[], vec![rule(3, 5)])],
-        );
+        let mut kcdata = make_catalog(11, vec![make_variant("gauge_1", &[1, 5], vec![])]);
+        let wikiwiki = make_catalog(11, vec![make_variant("", &[], vec![rule(3, 5)])]);
 
         let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
@@ -377,14 +347,8 @@ mod tests {
     /// Both from and to absent → still only 1 rule dropped (caught at from check), counter = 1.
     #[test]
     fn test_fanout_drops_rule_both_cells_missing() {
-        let mut kcdata = make_catalog(
-            11,
-            vec![make_variant("gauge_1", &[1, 2], vec![])],
-        );
-        let wikiwiki = make_catalog(
-            11,
-            vec![make_variant("", &[], vec![rule(3, 5)])],
-        );
+        let mut kcdata = make_catalog(11, vec![make_variant("gauge_1", &[1, 2], vec![])]);
+        let wikiwiki = make_catalog(11, vec![make_variant("", &[], vec![rule(3, 5)])]);
 
         let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
@@ -396,15 +360,9 @@ mod tests {
     /// Valid rule is merged; only the bad one is counted.
     #[test]
     fn test_fanout_partial_drop_other_rules_still_merged() {
-        let mut kcdata = make_catalog(
-            11,
-            vec![make_variant("gauge_1", &[1, 3, 5], vec![])],
-        );
+        let mut kcdata = make_catalog(11, vec![make_variant("gauge_1", &[1, 3, 5], vec![])]);
         // rule(3,5) is valid; rule(3,99) has bad to_cell_no
-        let wikiwiki = make_catalog(
-            11,
-            vec![make_variant("", &[], vec![rule(3, 5), rule(3, 99)])],
-        );
+        let wikiwiki = make_catalog(11, vec![make_variant("", &[], vec![rule(3, 5), rule(3, 99)])]);
 
         let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
@@ -428,10 +386,7 @@ mod tests {
                 make_variant("gauge_2", &[1, 3], vec![]),
             ],
         );
-        let wikiwiki = make_catalog(
-            33,
-            vec![make_variant("", &[], vec![rule(3, 5)])],
-        );
+        let wikiwiki = make_catalog(33, vec![make_variant("", &[], vec![rule(3, 5)])]);
 
         let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);

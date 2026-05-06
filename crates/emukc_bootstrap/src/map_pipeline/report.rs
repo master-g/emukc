@@ -71,7 +71,11 @@ impl fmt::Display for MapCatalogBuildReport {
         if self.kcdata_parse_errors > 0 {
             write!(f, "; kcdata parse errors: {}", self.kcdata_parse_errors)?;
         }
-        if let MapCatalogWikiwikiSource::ParseFailed { path, error } = &self.wikiwiki_source {
+        if let MapCatalogWikiwikiSource::ParseFailed {
+            path,
+            error,
+        } = &self.wikiwiki_source
+        {
             write!(f, "; wikiwiki source: parse-failed {}: {}", path.display(), error)?;
         }
         Ok(())
