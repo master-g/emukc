@@ -15,6 +15,15 @@ pub use types::*;
 
 use merge::merge_definition as merge_definition_impl;
 pub use merge::{build_cell_no_map, merge_routing_overlay};
+
+/// Warnings produced by `MapDefinition::validate()`.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MapValidationWarning {
+    SelfLoop { map_id: i64, cell_no: i64, variant: String },
+    Unreachable { map_id: i64, cell_no: i64, variant: String },
+    RuleTargetNotInNextCells { map_id: i64, from_cell_no: i64, to_cell_no: i64, variant: String },
+}
+
 impl MapCatalog {
     pub fn from_manifest(manifest: &ApiManifest) -> Self {
         let defaults = DEFAULT_MAP_RECORDS
@@ -136,11 +145,13 @@ impl MapCatalog {
     fn ensure_synthetic_variants(&mut self) {
         for definition in self.maps.values_mut() {
             if definition.variants.is_empty() {
+                // Sentinel: boss_cell_no = 0 means "no real boss; synthetic fallback".
+                // Callers must handle 0 as "unknown boss" (merge.rs already guards with > 0).
                 definition.variants.insert(
                     String::new(),
                     MapVariantDefinition {
                         variant_key: String::new(),
-                        boss_cell_no: 1,
+                        boss_cell_no: 0,
                         cells: vec![
                             MapCellDefinition {
                                 cell_no: 0,
@@ -177,6 +188,60 @@ impl MapCatalog {
 }
 
 impl MapDefinition {
+    /// Validate graph invariants across all variants.
+    /// Returns warnings for: self-loops, unreachable cells, routing-rule targets not in next_cells.
+    /// Designed for warn-only use at codex load.
+    pub fn validate(&self) -> Vec<MapValidationWarning> {
+        let mut warnings = Vec::new();
+        let map_id = self.map_id;
+
+        for (vkey, variant) in &self.variants {
+            let cell_nos: BTreeSet<i64> = variant.cells.iter().map(|c| c.cell_no).collect();
+            let next_map: BTreeMap<i64, &[i64]> = variant
+                .cells
+                .iter()
+                .map(|c| (c.cell_no, c.next_cells.as_slice()))
+                .collect();
+
+            // Self-loops
+            for cell in &variant.cells {
+                if cell.next_cells.contains(&cell.cell_no) {
+                    warnings.push(MapValidationWarning::SelfLoop { map_id, cell_no: cell.cell_no, variant: vkey.clone() });
+                }
+            }
+
+            // Unreachable cells (no incoming edge, not cell 0)
+            let mut has_incoming: BTreeSet<i64> = BTreeSet::new();
+            for cell in &variant.cells {
+                for &next in &cell.next_cells {
+                    has_incoming.insert(next);
+                }
+            }
+            for cell_no in &cell_nos {
+                if *cell_no != 0 && !has_incoming.contains(cell_no) {
+                    warnings.push(MapValidationWarning::Unreachable { map_id, cell_no: *cell_no, variant: vkey.clone() });
+                }
+            }
+
+            // Routing-rule targets not in next_cells
+            for (&from_cell_no, rules) in &variant.routing_rules {
+                let Some(next) = next_map.get(&from_cell_no) else { continue };
+                for rule in rules {
+                    if !next.contains(&rule.to_cell_no) {
+                        warnings.push(MapValidationWarning::RuleTargetNotInNextCells {
+                            map_id,
+                            from_cell_no,
+                            to_cell_no: rule.to_cell_no,
+                            variant: vkey.clone(),
+                        });
+                    }
+                }
+            }
+        }
+
+        warnings
+    }
+
     pub fn default_stage_id(&self) -> Option<&str> {
         if !self.default_variant.is_empty() && self.variants.contains_key(&self.default_variant) {
             return Some(&self.default_variant);
@@ -328,5 +393,126 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ------------------------------------------------------------------ validation (U7)
+
+    fn valid_map_definition() -> MapDefinition {
+        MapDefinition {
+            map_id: 11,
+            maparea_id: 1,
+            mapinfo_no: 1,
+            name: "test".into(),
+            level: 1,
+            sally_flag: vec![],
+            is_event: false,
+            reset_policy: MapResetPolicy::Never,
+            airbase_count: None,
+            gauge_type: None,
+            gauge_count: None,
+            required_defeat_count: None,
+            max_hp: None,
+            default_variant: String::new(),
+            rank_stage_ids: BTreeMap::new(),
+            variants: BTreeMap::from([(
+                String::new(),
+                MapVariantDefinition {
+                    variant_key: String::new(),
+                    boss_cell_no: 3,
+                    cells: vec![
+                        MapCellDefinition { cell_no: 0, next_cells: vec![1, 2], ..Default::default() },
+                        MapCellDefinition { cell_no: 1, next_cells: vec![3], ..Default::default() },
+                        MapCellDefinition { cell_no: 2, next_cells: vec![3], ..Default::default() },
+                        MapCellDefinition { cell_no: 3, next_cells: vec![], ..Default::default() },
+                    ],
+                    routing_rules: BTreeMap::new(),
+                    enemy_fleets: BTreeMap::new(),
+                    ship_drops: BTreeMap::new(),
+                    required_defeat_count: None,
+                    clear_to_variant_key: None,
+                    parse_warnings: Vec::new(),
+                },
+            )]),
+        }
+    }
+
+    #[test]
+    fn valid_map_produces_no_warnings() {
+        let def = valid_map_definition();
+        assert!(def.validate().is_empty());
+    }
+
+    #[test]
+    fn self_loop_detected() {
+        let mut def = valid_map_definition();
+        let variant = def.variants.get_mut("").unwrap();
+        // Make cell 1 point to itself
+        variant.cells[1].next_cells = vec![1, 3];
+
+        let warnings = def.validate();
+        assert!(warnings.iter().any(|w| matches!(w, MapValidationWarning::SelfLoop { cell_no: 1, .. })));
+    }
+
+    #[test]
+    fn unreachable_cell_detected() {
+        let mut def = valid_map_definition();
+        // Add cell 99 with no incoming edges
+        let variant = def.variants.get_mut("").unwrap();
+        variant.cells.push(MapCellDefinition { cell_no: 99, next_cells: vec![], ..Default::default() });
+
+        let warnings = def.validate();
+        assert!(warnings.iter().any(|w| matches!(w, MapValidationWarning::Unreachable { cell_no: 99, .. })));
+    }
+
+    #[test]
+    fn rule_target_not_in_next_cells() {
+        let mut def = valid_map_definition();
+        let variant = def.variants.get_mut("").unwrap();
+        variant.routing_rules.insert(0, vec![RouteRule {
+            from_cell_no: 0,
+            to_cell_no: 99,
+            priority: 1,
+            weight: None,
+            probability_pct: None,
+            predicate: RoutePredicate::Always,
+            raw_text: String::new(),
+        }]);
+
+        let warnings = def.validate();
+        assert!(warnings.iter().any(|w| matches!(
+            w,
+            MapValidationWarning::RuleTargetNotInNextCells { from_cell_no: 0, to_cell_no: 99, .. }
+        )));
+    }
+
+    #[test]
+    fn synthetic_variant_boss_sentinel_is_zero() {
+        let mut catalog = MapCatalog {
+            maps: BTreeMap::new(),
+            prerequisites: HashMap::new(),
+        };
+        // Insert a map with no variants
+        catalog.maps.insert(99, MapDefinition {
+            map_id: 99,
+            maparea_id: 9,
+            mapinfo_no: 9,
+            name: "empty".into(),
+            level: 1,
+            sally_flag: vec![],
+            is_event: false,
+            reset_policy: MapResetPolicy::Never,
+            airbase_count: None,
+            gauge_type: None,
+            gauge_count: None,
+            required_defeat_count: None,
+            max_hp: None,
+            default_variant: String::new(),
+            rank_stage_ids: BTreeMap::new(),
+            variants: BTreeMap::new(),
+        });
+        catalog.ensure_synthetic_variants();
+
+        let variant = catalog.maps[&99].variants.get("").unwrap();
+        assert_eq!(variant.boss_cell_no, 0, "synthetic variant must use boss_cell_no = 0 sentinel");
     }
 }
