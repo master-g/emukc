@@ -216,3 +216,61 @@ pub(super) fn parse_formation(text: &str) -> Option<i64> {
 pub(super) fn find_header_index(headers: &[String], names: &[&str]) -> Option<usize> {
     headers.iter().position(|header| names.iter().any(|name| header.contains(name)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse_html_table(html: &str) -> Vec<Vec<String>> {
+        let document = Html::parse_document(html);
+        document
+            .select(&SELECTOR_TABLE)
+            .next()
+            .map(|table| table_to_grid(&table))
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn table_to_grid_rowspan_repeats_text_across_rows() {
+        let html = r#"<table><tr><td rowspan="2">A</td><td>B</td></tr><tr><td>C</td></tr></table>"#;
+        let grid = parse_html_table(html);
+        assert_eq!(grid.len(), 2);
+        assert_eq!(grid[0], vec!["A", "B"]);
+        assert_eq!(grid[1], vec!["A", "C"]);
+    }
+
+    #[test]
+    fn table_to_grid_rowspan_3_with_adjacent_cells() {
+        let html = r#"<table>
+            <tr><td rowspan="3">X</td><td>1</td></tr>
+            <tr><td>2</td></tr>
+            <tr><td>3</td></tr>
+        </table>"#;
+        let grid = parse_html_table(html);
+        assert_eq!(grid.len(), 3);
+        assert_eq!(grid[0], vec!["X", "1"]);
+        assert_eq!(grid[1], vec!["X", "2"]);
+        assert_eq!(grid[2], vec!["X", "3"]);
+    }
+
+    #[test]
+    fn table_to_grid_colspan_expands_horizontally() {
+        let html = r#"<table><tr><td colspan="2">wide</td></tr><tr><td>A</td><td>B</td></tr></table>"#;
+        let grid = parse_html_table(html);
+        assert_eq!(grid.len(), 2);
+        assert_eq!(grid[0], vec!["wide", "wide"]);
+        assert_eq!(grid[1], vec!["A", "B"]);
+    }
+
+    #[test]
+    fn table_to_grid_rowspan_and_colspan_combined() {
+        let html = r#"<table>
+            <tr><td rowspan="2" colspan="2">big</td><td>R1</td></tr>
+            <tr><td>R2</td></tr>
+        </table>"#;
+        let grid = parse_html_table(html);
+        assert_eq!(grid.len(), 2);
+        assert_eq!(grid[0], vec!["big", "big", "R1"]);
+        assert_eq!(grid[1], vec!["big", "big", "R2"]);
+    }
+}

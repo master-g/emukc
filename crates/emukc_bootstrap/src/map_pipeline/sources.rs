@@ -196,22 +196,16 @@ fn load_stat_catalog(data_root: &Path) -> (Option<MapCatalog>, usize, bool) {
 }
 
 fn download_stat_json(_cache_path: &Path) -> Result<String, String> {
-    std::thread::scope(|s| {
-        s.spawn(|| {
-            let rt = tokio::runtime::Runtime::new().map_err(|e| format!("runtime create: {e}"))?;
-            rt.block_on(async {
-                let client = emukc_network::client::new_reqwest_client(None, None)
-                    .map_err(|e| format!("client create: {e}"))?;
-                let resp =
-                    client.get(STAT_JSON_URL).send().await.map_err(|e| format!("download: {e}"))?;
-                if !resp.status().is_success() {
-                    return Err(format!("http {}", resp.status()));
-                }
-                resp.text().await.map_err(|e| format!("read body: {e}"))
-            })
-        })
-        .join()
-        .unwrap()
+    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("runtime create: {e}"))?;
+    rt.block_on(async {
+        let client = emukc_network::client::new_reqwest_client(None, None)
+            .map_err(|e| format!("client create: {e}"))?;
+        let resp =
+            client.get(STAT_JSON_URL).send().await.map_err(|e| format!("download: {e}"))?;
+        if !resp.status().is_success() {
+            return Err(format!("http {}", resp.status()));
+        }
+        resp.text().await.map_err(|e| format!("read body: {e}"))
     })
 }
 

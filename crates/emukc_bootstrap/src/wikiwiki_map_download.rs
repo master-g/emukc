@@ -91,12 +91,17 @@ pub async fn download_wikiwiki_map_with_options(
     }
 
     let manifest = read_manifest(dir.as_ref())?;
+    let total = manifest.api_mst_mapinfo.len();
     let mut map_names = manifest
         .api_mst_mapinfo
         .iter()
         .filter(|map| (1..=7).contains(&map.api_maparea_id))
         .map(|map| format!("{}-{}", map.api_maparea_id, map.api_no))
         .collect::<Vec<_>>();
+    let excluded = total - map_names.len();
+    if excluded > 0 {
+        info!("excluded {excluded} event map(s) outside areas 1-7, {total} total → {} regular", map_names.len());
+    }
     map_names.sort();
     map_names.dedup();
 
