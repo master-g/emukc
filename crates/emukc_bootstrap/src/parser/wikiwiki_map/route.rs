@@ -273,15 +273,42 @@ pub(super) fn route_section_variant_key(summary: &str, idx: usize, total: usize)
         "pre_p_unlock".to_string()
     } else if summary_compact.contains("Pマス出現後") {
         "post_p_unlock".to_string()
-    } else if summary_compact.contains("第一ゲージ") || summary_compact.contains("ゲージ1")
-    {
-        "gauge_1".to_string()
-    } else if summary_compact.contains("第二ゲージ") || summary_compact.contains("ゲージ2")
-    {
-        "gauge_2".to_string()
     } else {
-        format!("variant_{}", idx + 1)
+        // Match gauge keywords: 第一ゲージ/ゲージ1, 第二ゲージ/ゲージ2, etc.
+        // Also handles 第三/第四 (kanji) and ゲージ3/4 (arabic).
+        let gauge_key = extract_gauge_variant_key(&summary_compact);
+        gauge_key.unwrap_or_else(|| format!("variant_{}", idx + 1))
     }
+}
+
+fn extract_gauge_variant_key(compact: &str) -> Option<String> {
+    let kanji_map = [
+        ("第一ゲージ", "gauge_1"),
+        ("第二ゲージ", "gauge_2"),
+        ("第三ゲージ", "gauge_3"),
+        ("第四ゲージ", "gauge_4"),
+        ("第五ゲージ", "gauge_5"),
+    ];
+    for (needle, key) in &kanji_map {
+        if compact.contains(needle) {
+            return Some(key.to_string());
+        }
+    }
+    // Arabic numeral fallback: ゲージ1, ゲージ2, etc.
+    for (needle, key) in [("ゲージ1", "gauge_1"), ("ゲージ2", "gauge_2")] {
+        if compact.contains(needle) {
+            return Some(key.to_string());
+        }
+    }
+    // Regex fallback for ゲージN where N >= 3
+    if let Some(pos) = compact.find("ゲージ") {
+        let after = &compact[pos + "ゲージ".len()..];
+        let digits: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+        if !digits.is_empty() {
+            return Some(format!("gauge_{digits}"));
+        }
+    }
+    None
 }
 
 pub(super) fn filter_enemy_nodes_for_route_rules(
@@ -592,7 +619,7 @@ pub(super) fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
     let mut additions = Vec::new();
     let mut derived_sources = BTreeSet::new();
     for (from_label, targets) in source_targets {
-        if targets.len() != 2 {
+        if targets.len() < 2 {
             continue;
         }
         let source_rules = rules
@@ -600,41 +627,35 @@ pub(super) fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
             .enumerate()
             .filter(|(_, rule)| rule.from_label == from_label)
             .collect::<Vec<_>>();
-        let probability_target = source_rules
-            .iter()
-            .find(|(_, rule)| rule.probability_pct.is_some())
-            .map(|(_, rule)| rule.to_label.clone());
-        let placeholder_target = source_rules
-            .iter()
-            .find(|(_, rule)| rule.random_placeholder)
-            .map(|(_, rule)| rule.to_label.clone());
 
-        let (Some(probability_target), Some(placeholder_target)) =
-            (probability_target, placeholder_target)
-        else {
+        // Collect all probability-bearing rules and all placeholder rules
+        let prob_sum: f64 = source_rules
+            .iter()
+            .filter_map(|(_, rule)| rule.probability_pct)
+            .sum();
+        let placeholders: Vec<_> = source_rules
+            .iter()
+            .filter(|(_, rule)| rule.random_placeholder)
+            .collect();
+
+        // Only derive complement when there's exactly one unknown target.
+        // Multiple unknowns → ambiguous; let the fallback at line ~671 emit SourceUnknown.
+        if placeholders.len() != 1 || prob_sum >= 100.0 {
             continue;
+        }
+
+        let (_, placeholder_rule) = placeholders[0];
+        let complement = (100.0 - prob_sum).max(0.0);
+        let derived = RouteRuleDraft {
+            from_label: placeholder_rule.from_label.clone(),
+            to_label: placeholder_rule.to_label.clone(),
+            probability_pct: Some(complement),
+            predicate: placeholder_rule.predicate.clone(),
+            raw_text: format!("{} (derived complement)", placeholder_rule.raw_text),
+            random_placeholder: false,
         };
-        if probability_target == placeholder_target {
-            continue;
-        }
-
-        let derived = source_rules
-            .iter()
-            .filter_map(|(_, rule)| {
-                rule.probability_pct.map(|pct| RouteRuleDraft {
-                    from_label: rule.from_label.clone(),
-                    to_label: placeholder_target.clone(),
-                    probability_pct: Some((100.0 - pct).max(0.0)),
-                    predicate: rule.predicate.clone(),
-                    raw_text: format!("{} (derived complement)", rule.raw_text),
-                    random_placeholder: false,
-                })
-            })
-            .collect::<Vec<_>>();
-        if !derived.is_empty() {
-            derived_sources.insert(from_label);
-        }
-        additions.extend(derived);
+        derived_sources.insert(from_label.clone());
+        additions.push(derived);
     }
 
     rules.retain(|rule| !(rule.random_placeholder && derived_sources.contains(&rule.from_label)));

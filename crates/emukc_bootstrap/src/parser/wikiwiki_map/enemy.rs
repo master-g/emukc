@@ -43,9 +43,6 @@ pub(super) fn parse_enemy_table(
         let normalized_pattern = normalize_text(&pattern);
         let formation =
             formation_idx.and_then(|idx| row.get(idx)).and_then(|text| parse_formation(text));
-        if formation.is_none() && normalized_pattern.is_empty() {
-            continue;
-        }
         let ship_names =
             split_ship_names(row.get(ships_idx).map(String::as_str).unwrap_or_default());
         if ship_names.is_empty() {

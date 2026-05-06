@@ -2442,3 +2442,118 @@ fn random_handler_does_not_match_negative_prefix() {
         "ランダムではない currently matches the ランダム handler (known limitation)"
     );
 }
+
+// ------------------------------------------------------------------ U8: variant key + probability complement
+
+#[test]
+fn route_section_variant_key_gauge_3_kanji() {
+    assert_eq!(
+        route_section_variant_key("## 第三ゲージ破壊後ルート", 2, 3),
+        "gauge_3"
+    );
+}
+
+#[test]
+fn route_section_variant_key_gauge_4_arabic() {
+    assert_eq!(
+        route_section_variant_key("## ゲージ4", 3, 4),
+        "gauge_4"
+    );
+}
+
+#[test]
+fn route_section_variant_key_gauge_1_still_works() {
+    assert_eq!(
+        route_section_variant_key("## 第一ゲージ", 0, 2),
+        "gauge_1"
+    );
+}
+
+#[test]
+fn route_section_variant_key_gauge_5_regex_fallback() {
+    assert_eq!(
+        route_section_variant_key("## ゲージ5ルート", 4, 5),
+        "gauge_5"
+    );
+}
+
+#[test]
+fn route_section_variant_key_unknown_falls_to_indexed() {
+    assert_eq!(
+        route_section_variant_key("## some other section", 3, 5),
+        "variant_4"
+    );
+}
+
+#[test]
+fn probability_complement_3_way_single_unknown() {
+    let rules = vec![
+        RouteRuleDraft {
+            from_label: "A".into(),
+            to_label: "B".into(),
+            probability_pct: Some(40.0),
+            predicate: RoutePredicate::Always,
+            raw_text: "40%".into(),
+            random_placeholder: false,
+        },
+        RouteRuleDraft {
+            from_label: "A".into(),
+            to_label: "C".into(),
+            probability_pct: Some(30.0),
+            predicate: RoutePredicate::Always,
+            raw_text: "30%".into(),
+            random_placeholder: false,
+        },
+        RouteRuleDraft {
+            from_label: "A".into(),
+            to_label: "D".into(),
+            probability_pct: None,
+            predicate: RoutePredicate::Always,
+            raw_text: "random".into(),
+            random_placeholder: true,
+        },
+    ];
+    let mut rules = rules;
+    postprocess_route_probabilities(&mut rules);
+
+    // Placeholder should be replaced with derived complement (30%)
+    let d_rule = rules.iter().find(|r| r.to_label == "D").unwrap();
+    assert_eq!(d_rule.probability_pct, Some(30.0));
+    assert!(!d_rule.random_placeholder);
+}
+
+#[test]
+fn probability_complement_multiple_unknowns_becomes_source_unknown() {
+    let rules = vec![
+        RouteRuleDraft {
+            from_label: "A".into(),
+            to_label: "B".into(),
+            probability_pct: Some(40.0),
+            predicate: RoutePredicate::Always,
+            raw_text: "40%".into(),
+            random_placeholder: false,
+        },
+        RouteRuleDraft {
+            from_label: "A".into(),
+            to_label: "C".into(),
+            probability_pct: None,
+            predicate: RoutePredicate::Always,
+            raw_text: "random".into(),
+            random_placeholder: true,
+        },
+        RouteRuleDraft {
+            from_label: "A".into(),
+            to_label: "D".into(),
+            probability_pct: None,
+            predicate: RoutePredicate::Always,
+            raw_text: "random".into(),
+            random_placeholder: true,
+        },
+    ];
+    let mut rules = rules;
+    postprocess_route_probabilities(&mut rules);
+
+    // Both placeholders should become SourceUnknown (ambiguous distribution)
+    let unknowns: Vec<_> = rules.iter().filter(|r| r.random_placeholder).collect();
+    assert_eq!(unknowns.len(), 2, "multiple unknowns should remain as placeholders -> SourceUnknown");
+}

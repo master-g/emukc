@@ -125,16 +125,11 @@ mod tests {
 			let Some((map_id, real_cells, _boss)) = parse_capture(asset) else {
 				continue;
 			};
-			if map_id > 74 {
-				continue;
-			}
-			let Some(variant) = catalog
-				.maps
-				.get(&map_id)
-				.and_then(|m| m.variants.get(""))
-			else {
+			let Some(definition) = catalog.maps.get(&map_id) else {
 				continue;
 			};
+			// Check all variants, not just the default.
+			for (vkey, variant) in &definition.variants {
 
 			for (api_no, _, api_color) in &real_cells {
 				if *api_color < 4 || *api_color > 5 {
@@ -146,9 +141,10 @@ mod tests {
 						.and_then(|c| c.node_label.clone())
 						.unwrap_or_default();
 					missing.push(format!(
-						"map {map_id}: cell {api_no} ({label}) color={api_color} has no enemy fleet"
+						"map {map_id} variant {vkey}: cell {api_no} ({label}) color={api_color} has no enemy fleet"
 					));
 				}
+			}
 			}
 			checked += 1;
 		}
