@@ -18,6 +18,7 @@ pub(super) struct Params {
     pub(super) api_maparea_id: i64,
     pub(super) api_mapinfo_no: i64,
     #[serde(default)]
+    #[allow(dead_code)]
     pub(super) api_serial_cid: String,
 }
 
@@ -30,7 +31,6 @@ pub(super) async fn handler(
     Extension(session): Extension<GameSession>,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let _ = params.api_serial_cid.as_str();
     let pid = session.profile.id;
     let resp = state
         .start_sortie(

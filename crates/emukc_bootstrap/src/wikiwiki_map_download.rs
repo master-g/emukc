@@ -101,7 +101,12 @@ pub async fn download_wikiwiki_map_with_options(
     map_names.dedup();
 
     if let Some(map_filter) = &options.map_filter {
+        let before = map_names.len();
         map_names.retain(|map_name| map_filter.contains(map_name));
+        let excluded = before - map_names.len();
+        if excluded > 0 {
+            info!("map filter excluded {excluded} map(s), {before} -> {}", map_names.len());
+        }
     }
 
     let client = Arc::new(new_reqwest_client(proxy, None).map_err(|source| {

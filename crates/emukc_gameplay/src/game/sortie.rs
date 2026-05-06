@@ -52,7 +52,7 @@ use super::{
     map_progress::resolve_record_stage_id,
     map_route::{
         FleetRouteContext, FleetRouteShipEntry, cell_has_routing_outgoing,
-        evaluate_route_destination,
+        evaluate_route_candidate_count, evaluate_route_destination,
     },
     material::{add_material_impl, deduct_material_impl, get_mat_impl},
     quest::update::update_quest_progress_for_action,
@@ -325,10 +325,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         tx.commit().await?;
 
         let _ = formation_id;
+        let start_candidate_count = evaluate_route_candidate_count(cell_0, stage, &route_context);
         Ok(SortieStartResponse {
             cell_data: build_sortie_cell_data(definition.map_id, stage),
-            rashin_flg: cell_0.next_cells.len() > 1,
-            rashin_id: if cell_0.next_cells.len() > 1 {
+            rashin_flg: start_candidate_count > 1,
+            rashin_id: if start_candidate_count > 1 {
                 1
             } else {
                 0
@@ -437,9 +438,10 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         tx.commit().await?;
 
         let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
+        let next_candidate_count = evaluate_route_candidate_count(current, stage, &route_context);
         Ok(SortieNextResponse {
-            rashin_flg: current.next_cells.len() > 1,
-            rashin_id: if current.next_cells.len() > 1 {
+            rashin_flg: next_candidate_count > 1,
+            rashin_id: if next_candidate_count > 1 {
                 1
             } else {
                 0
@@ -638,7 +640,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 api_get_ship_exp: snapshot.get_ship_exp,
                 api_get_exp_lvup: snapshot.get_exp_lvup,
                 api_dests: session.packet.enemy_nowhps.iter().filter(|hp| **hp <= 0).count() as i64,
-                api_destsf: i64::from(session.packet.enemy_nowhps.first().copied().unwrap_or(1) <= 0),
+                api_destsf: i64::from(
+                    session.packet.enemy_nowhps.first().copied().unwrap_or(1) <= 0,
+                ),
                 api_quest_name: snapshot.quest_name,
                 api_quest_level: snapshot.quest_level,
                 api_enemy_info: SortieBattleResultEnemyInfo {
@@ -938,15 +942,7 @@ async fn refresh_sortie_stage(
     let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
         GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
     })?;
-      let record = find_map_record_impl(db, profile_id, active.map_id)
-          .await?;
-
-
-
-
-
-
-
+    let record = find_map_record_impl(db, profile_id, active.map_id).await?;
 
     let new_stage_id = resolve_record_stage_id(&definition, &record).unwrap_or_default();
 
@@ -1290,11 +1286,8 @@ where
     let slot_item_info = slot_items
         .into_iter()
         .map(|item| {
-            let api_saku = codex
-                .manifest
-                .find_slotitem(item.mst_id)
-                .map(|mst| mst.api_saku)
-                .unwrap_or(0);
+            let api_saku =
+                codex.manifest.find_slotitem(item.mst_id).map(|mst| mst.api_saku).unwrap_or(0);
             (item.id, (item.type3, item.mst_id, api_saku))
         })
         .collect::<BTreeMap<_, _>>();

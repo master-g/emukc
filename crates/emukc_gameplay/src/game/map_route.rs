@@ -87,6 +87,74 @@ pub(crate) fn cell_has_routing_outgoing(cell_no: i64, stage: &MapStageDefinition
         || stage.routing_rules.get(&cell_no).is_some_and(|r| !r.is_empty())
 }
 
+/// Returns the number of distinct candidate target cells that the routing
+/// evaluation could select for `current`, **without** rolling the RNG.
+///
+/// This mirrors the first half of `evaluate_route_destination` (predicate
+/// matching, priority filtering, topology intersection) but skips the weighted
+/// random roll.  The result can be used to set `rashin_flg`: when the count is
+/// exactly 1 the routing is deterministic and the client should not show a
+/// branch selector; when > 1 the routing is non-deterministic.
+pub(crate) fn evaluate_route_candidate_count(
+    current: &MapCellDefinition,
+    stage: &MapStageDefinition,
+    context: &FleetRouteContext,
+) -> usize {
+    let Some(rules) = stage.routing_rules.get(&current.cell_no).filter(|rules| !rules.is_empty())
+    else {
+        return current.next_cells.len();
+    };
+
+    let mut fallback_rules = Vec::<&RouteRule>::new();
+    let mut matched_groups = BTreeMap::<String, (i64, Vec<&RouteRule>)>::new();
+    for rule in rules {
+        match route_predicate_matches(&rule.predicate, context, stage) {
+            RoutePredicateEval::Matched if matches!(rule.predicate, RoutePredicate::Always) => {
+                fallback_rules.push(rule);
+            }
+            RoutePredicateEval::Matched => {
+                let key = route_predicate_key(&rule.predicate);
+                let entry =
+                    matched_groups.entry(key).or_insert_with(|| (rule.priority, Vec::new()));
+                entry.0 = entry.0.min(rule.priority);
+                entry.1.push(rule);
+            }
+            RoutePredicateEval::NotMatched
+            | RoutePredicateEval::SourceUnknown
+            | RoutePredicateEval::Unsupported => {}
+        }
+    }
+
+    let executable = if matched_groups.is_empty() {
+        fallback_rules
+    } else {
+        let min_priority =
+            matched_groups.values().map(|(priority, _)| *priority).min().unwrap_or(0);
+        matched_groups
+            .into_values()
+            .filter(|(priority, _)| *priority == min_priority)
+            .flat_map(|(_, rules)| rules)
+            .collect::<Vec<_>>()
+    };
+
+    if executable.is_empty() {
+        // No matched rules; fall back to next_cells.
+        return current.next_cells.len();
+    }
+
+    let candidate_targets: BTreeSet<i64> = executable
+        .iter()
+        .map(|rule| rule.to_cell_no)
+        .filter(|cell_no| current.next_cells.contains(cell_no))
+        .collect();
+
+    if candidate_targets.is_empty() {
+        current.next_cells.len()
+    } else {
+        candidate_targets.len()
+    }
+}
+
 pub(crate) fn evaluate_route_destination(
     current: &MapCellDefinition,
     stage: &MapStageDefinition,
@@ -1412,11 +1480,11 @@ mod tests {
             fleet_size: 3,
             ship_entries: vec![
                 FleetRouteShipEntry {
-                    slotitem_types: BTreeSet::from([12]),   // one radar
+                    slotitem_types: BTreeSet::from([12]), // one radar
                     ..Default::default()
                 },
                 FleetRouteShipEntry {
-                    slotitem_types: BTreeSet::new(),         // no radar
+                    slotitem_types: BTreeSet::new(), // no radar
                     ..Default::default()
                 },
                 FleetRouteShipEntry {

@@ -13,6 +13,7 @@ use super::projection::project_next;
 #[derive(Deserialize)]
 pub(super) struct Params {
     #[serde(default)]
+    #[allow(dead_code)]
     pub(super) api_recovery_type: i64,
     #[serde(default)]
     pub(super) api_cell_id: Option<i64>,
@@ -23,7 +24,6 @@ pub(super) async fn handler(
     Extension(session): Extension<GameSession>,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let _ = params.api_recovery_type;
     let pid = session.profile.id;
     let resp = state.next_sortie(pid, params.api_cell_id).await?;
 

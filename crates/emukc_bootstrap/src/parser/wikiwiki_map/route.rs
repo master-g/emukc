@@ -629,14 +629,9 @@ pub(super) fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
             .collect::<Vec<_>>();
 
         // Collect all probability-bearing rules and all placeholder rules
-        let prob_sum: f64 = source_rules
-            .iter()
-            .filter_map(|(_, rule)| rule.probability_pct)
-            .sum();
-        let placeholders: Vec<_> = source_rules
-            .iter()
-            .filter(|(_, rule)| rule.random_placeholder)
-            .collect();
+        let prob_sum: f64 = source_rules.iter().filter_map(|(_, rule)| rule.probability_pct).sum();
+        let placeholders: Vec<_> =
+            source_rules.iter().filter(|(_, rule)| rule.random_placeholder).collect();
 
         // Only derive complement when there's exactly one unknown target.
         // Multiple unknowns → ambiguous; let the fallback at line ~671 emit SourceUnknown.
@@ -867,6 +862,7 @@ fn parse_route_condition_text(
     }]
 }
 
+// TODO(expiry: 2027-01): consider moving to data file
 fn parse_hardcoded_sourceunknown_block(
     raw_text: &str,
     row_target: &str,
@@ -2972,10 +2968,7 @@ mod tests {
 
     #[test]
     fn check_mixed_routing_encoding_no_warning_when_all_probability() {
-        let rules = vec![
-            make_draft("B", "C", Some(60.0)),
-            make_draft("B", "D", Some(40.0)),
-        ];
+        let rules = vec![make_draft("B", "C", Some(60.0)), make_draft("B", "D", Some(40.0))];
         let mut warnings = Vec::new();
         check_mixed_routing_encoding(&rules, &mut warnings);
         assert!(
@@ -2986,10 +2979,7 @@ mod tests {
 
     #[test]
     fn check_mixed_routing_encoding_no_warning_when_all_weight() {
-        let rules = vec![
-            make_draft("C", "D", None),
-            make_draft("C", "E", None),
-        ];
+        let rules = vec![make_draft("C", "D", None), make_draft("C", "E", None)];
         let mut warnings = Vec::new();
         check_mixed_routing_encoding(&rules, &mut warnings);
         assert!(

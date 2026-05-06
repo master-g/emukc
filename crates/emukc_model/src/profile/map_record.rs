@@ -190,6 +190,7 @@ impl From<(i64, Option<i64>, MapDefeatContext)> for MapRecord {
     }
 }
 
+#[deprecated(since = "0.1.0", note = "will be removed in a future release")]
 pub static DEFAULT_MAP_RECORDS: LazyLock<Vec<MapRecord>> = LazyLock::new(|| {
     vec![
         11.into(),
