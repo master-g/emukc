@@ -25,8 +25,44 @@ pub(crate) struct FleetRouteContext {
     pub(crate) ship_type_counts: BTreeMap<i64, i64>,
     pub(crate) ship_entries: Vec<FleetRouteShipEntry>,
     pub(crate) min_speed: i64,
+    /// Raw sum of each ship's current LoS (base + equipment).  Used as the
+    /// fallback when no formula is specified.
     pub(crate) los_total: i64,
     pub(crate) total_drums: i64,
+    /// Precomputed LoS under Formula 1: `Σ sqrt(ship.los_now)`.
+    /// Formula 1 uses per-equipment sqrt-weighted values; this is an approximation
+    /// using the combined ship LoS when per-equipment breakdown is unavailable.
+    pub(crate) los_formula1: f64,
+    /// Precomputed LoS under Formula 3 (the standard 2-5-fleet formula):
+    /// `Σ(equip_los × 0.6 + sqrt(ship_base_los)) − ceil(0.4 × hq_lv) + (6 − fleet_size) × 2`.
+    pub(crate) los_formula3: f64,
+}
+
+impl FleetRouteContext {
+    /// Return the LoS value to compare against a route predicate threshold.
+    ///
+    /// `formula` mirrors the `formula` field of `RoutePredicate::LoS`:
+    /// - `None` or unrecognised string → `los_total` (raw sum, backward-compatible)
+    /// - `"式1"` / `"1"` → formula-1 precomputed value
+    /// - `"式3"` / `"3"` → formula-3 precomputed value
+    ///
+    /// Unknown formula strings produce a `tracing::warn!` and fall back to
+    /// `los_total` so that unrecognised wiki annotations degrade gracefully.
+    pub(crate) fn los_by_formula(&self, formula: Option<&str>) -> f64 {
+        match formula {
+            None => self.los_total as f64,
+            Some("式1") | Some("1") => self.los_formula1,
+            Some("式3") | Some("3") => self.los_formula3,
+            Some(unknown) => {
+                tracing::warn!(
+                    formula = unknown,
+                    los_total = self.los_total,
+                    "unknown LoS formula, falling back to los_total"
+                );
+                self.los_total as f64
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +73,15 @@ pub(crate) enum RoutePredicateEval {
     Unsupported,
 }
 
+/// Returns `true` when `from_cell_no` has any outgoing connection registered in
+/// the stage, whether via `next_cells` on the cell itself or via at least one
+/// entry in `stage.routing_rules`.
+///
+/// **This does not check whether any rule's `to_cell_no` is listed in
+/// `current.next_cells`.**  A cell can have routing rules whose targets are
+/// disjoint from its topology-level `next_cells` (e.g. before topology
+/// post-processing).  Callers that need to verify the resulting candidate set
+/// against live topology must do so separately.
 pub(crate) fn cell_has_routing_outgoing(cell_no: i64, stage: &MapStageDefinition) -> bool {
     stage.cell(cell_no).is_some_and(|c| !c.next_cells.is_empty())
         || stage.routing_rules.get(&cell_no).is_some_and(|r| !r.is_empty())
@@ -275,8 +320,12 @@ pub(crate) fn route_predicate_matches(
                     })
                 })
                 .collect();
+            // If any label could not be resolved to a cell in the current stage
+            // graph, we have incomplete information — treat this as SourceUnknown
+            // rather than NotMatched so the caller can apply the appropriate
+            // fallback logic instead of silently routing incorrectly.
             if cell_nos.len() != node_labels.len() {
-                return RoutePredicateEval::NotMatched;
+                return RoutePredicateEval::SourceUnknown;
             }
             RoutePredicateEval::from_bool(
                 cell_nos.iter().any(|cell_no| context.visited_cell_ids.contains(cell_no))
@@ -400,10 +449,13 @@ pub(crate) fn route_predicate_matches(
             class,
         } => RoutePredicateEval::from_bool(context.min_speed >= speed_class_floor(*class)),
         RoutePredicate::LoS {
+            formula,
             op,
             value,
-            ..
-        } => RoutePredicateEval::from_bool(compare_route_value(context.los_total, *op, *value)),
+        } => {
+            let los = context.los_by_formula(formula.as_deref());
+            RoutePredicateEval::from_bool(compare_route_value_f64(los, *op, *value as f64))
+        }
         RoutePredicate::DrumCanisterCount {
             op,
             value,
@@ -453,6 +505,17 @@ pub(crate) fn route_predicate_matches(
 fn compare_route_value(actual: i64, op: RouteOperator, expected: i64) -> bool {
     match op {
         RouteOperator::Eq => actual == expected,
+        RouteOperator::Gte => actual >= expected,
+        RouteOperator::Lte => actual <= expected,
+    }
+}
+
+/// Floating-point variant of [`compare_route_value`] for LoS comparisons where
+/// the computed value is a `f64` (e.g. when applying a formula).  The threshold
+/// (`expected`) is truncated to `f64` before comparison.
+fn compare_route_value_f64(actual: f64, op: RouteOperator, expected: f64) -> bool {
+    match op {
+        RouteOperator::Eq => (actual - expected).abs() < f64::EPSILON,
         RouteOperator::Gte => actual >= expected,
         RouteOperator::Lte => actual <= expected,
     }
@@ -796,7 +859,8 @@ mod tests {
     }
 
     #[test]
-    fn visited_node_label_not_matched_when_label_missing() {
+    fn visited_node_label_source_unknown_when_label_missing() {
+        // Label "A" does not exist in the stage graph → SourceUnknown, not NotMatched.
         let stage = MapStageDefinition {
             cells: vec![MapCellDefinition {
                 cell_no: 2,
@@ -818,7 +882,7 @@ mod tests {
                 &context,
                 &stage,
             ),
-            RoutePredicateEval::NotMatched
+            RoutePredicateEval::SourceUnknown
         ));
     }
 
@@ -890,6 +954,29 @@ mod tests {
 
         let result = select_route_target_for_roll(&weights, 30);
         assert_eq!(result, Some(5));
+    }
+
+    // --- LoS formula helpers ---
+
+    /// Build a minimal FleetRouteContext for LoS tests.
+    /// `los_total` is the raw sum.
+    /// `los_formula1` and `los_formula3` are supplied explicitly so tests can
+    /// set different values to verify formula dispatch.
+    fn make_los_context(los_total: i64, los_formula1: f64, los_formula3: f64) -> FleetRouteContext {
+        FleetRouteContext {
+            fleet_size: 6,
+            los_total,
+            los_formula1,
+            los_formula3,
+            ..Default::default()
+        }
+    }
+
+    fn make_los_stage() -> MapStageDefinition {
+        MapStageDefinition {
+            cells: vec![make_cell(1, vec![2, 3]), make_cell(2, vec![]), make_cell(3, vec![])],
+            ..Default::default()
+        }
     }
 
     fn make_cell(cell_no: i64, next_cells: Vec<i64>) -> MapCellDefinition {
@@ -1111,5 +1198,193 @@ mod tests {
         // selected_cell_id 7 is in both rule targets and next_cells.
         let result = evaluate_route_destination(&current, &stage, &context, Some(7));
         assert_eq!(result.unwrap(), 7);
+    }
+
+    // --- LoS formula dispatch tests ---
+
+    #[test]
+    fn los_formula_none_uses_los_total() {
+        // formula: None should fall back to los_total regardless of the precomputed values.
+        let ctx = make_los_context(80, 50.0, 40.0);
+        let stage = make_los_stage();
+        let eval = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: None,
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: 80,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval, RoutePredicateEval::Matched),
+            "formula=None should use los_total=80, threshold=80"
+        );
+        // Also verify threshold just above fails
+        let eval_fail = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: None,
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: 81,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval_fail, RoutePredicateEval::NotMatched),
+            "formula=None los_total=80 should not meet threshold=81"
+        );
+    }
+
+    #[test]
+    fn los_formula1_uses_precomputed_formula1() {
+        // formula "式1" routes to los_formula1 (50.0), not los_total (80).
+        let ctx = make_los_context(80, 50.0, 40.0);
+        let stage = make_los_stage();
+        let eval = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: Some("式1".to_string()),
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: 50,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval, RoutePredicateEval::Matched),
+            "formula=式1 should use los_formula1=50, threshold=50"
+        );
+        // Threshold above formula1 value but below los_total should NOT match.
+        let eval_fail = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: Some("式1".to_string()),
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: 51,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval_fail, RoutePredicateEval::NotMatched),
+            "formula=式1 los_formula1=50 should not meet threshold=51"
+        );
+    }
+
+    #[test]
+    fn los_formula3_uses_precomputed_formula3() {
+        // formula "式3" routes to los_formula3 (40.0).  Same fleet that passes
+        // formula 1 (50.0 >= 45) may fail formula 3 (40.0 < 45).
+        let ctx = make_los_context(80, 50.0, 40.0);
+        let stage = make_los_stage();
+
+        let threshold = 45;
+
+        // Formula 1 passes (50 >= 45)
+        let eval_f1 = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: Some("式1".to_string()),
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: threshold,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval_f1, RoutePredicateEval::Matched),
+            "formula=式1 50.0 >= 45 should match"
+        );
+
+        // Formula 3 fails (40 < 45) — different result for same fleet and threshold
+        let eval_f3 = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: Some("式3".to_string()),
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: threshold,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval_f3, RoutePredicateEval::NotMatched),
+            "formula=式3 40.0 < 45 should not match"
+        );
+    }
+
+    #[test]
+    fn los_unknown_formula_falls_back_to_los_total() {
+        // An unknown formula string (e.g. "式9") should fall back to los_total.
+        let ctx = make_los_context(100, 60.0, 50.0);
+        let stage = make_los_stage();
+        let eval = route_predicate_matches(
+            &RoutePredicate::LoS {
+                formula: Some("式9".to_string()),
+                op: emukc_model::codex::map::RouteOperator::Gte,
+                value: 100,
+            },
+            &ctx,
+            &stage,
+        );
+        assert!(
+            matches!(eval, RoutePredicateEval::Matched),
+            "unknown formula should fall back to los_total=100, threshold=100"
+        );
+    }
+
+    #[test]
+    fn visited_node_label_source_unknown_when_label_absent_from_graph() {
+        // Label "Z" is not present in the stage at all → SourceUnknown.
+        let stage = MapStageDefinition {
+            cells: vec![MapCellDefinition {
+                cell_no: 1,
+                node_label: Some("A".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let context = FleetRouteContext {
+            visited_cell_ids: BTreeSet::from([1]),
+            ..Default::default()
+        };
+        let eval = route_predicate_matches(
+            &RoutePredicate::VisitedNodeLabel {
+                node_labels: vec!["Z".to_string()],
+                visited: true,
+            },
+            &context,
+            &stage,
+        );
+        assert!(
+            matches!(eval, RoutePredicateEval::SourceUnknown),
+            "unresolvable label should yield SourceUnknown, got {eval:?}"
+        );
+    }
+
+    #[test]
+    fn visited_node_label_not_matched_when_label_resolves_but_not_visited() {
+        // Label resolves but the cell has not been visited and visited=true → NotMatched.
+        let stage = MapStageDefinition {
+            cells: vec![MapCellDefinition {
+                cell_no: 3,
+                node_label: Some("C".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let context = FleetRouteContext {
+            visited_cell_ids: BTreeSet::new(), // cell 3 not visited
+            ..Default::default()
+        };
+        let eval = route_predicate_matches(
+            &RoutePredicate::VisitedNodeLabel {
+                node_labels: vec!["C".to_string()],
+                visited: true,
+            },
+            &context,
+            &stage,
+        );
+        assert!(
+            matches!(eval, RoutePredicateEval::NotMatched),
+            "resolved label, not visited, visited=true → NotMatched"
+        );
     }
 }

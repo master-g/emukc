@@ -551,6 +551,37 @@ pub(super) fn parse_route_table(
     Ok(drafts)
 }
 
+/// Scan `rules` for junctions where some rules use `probability_pct` (percentage
+/// encoding that maps to an integer weight via `probability_to_weight`) and
+/// others have no probability set (treated as uniform weight=1).  Mixing these
+/// two encoding schemes at the same junction is ambiguous.
+///
+/// Each detected junction appends a warning `mixed_routing_encoding_cell_<LABEL>`
+/// to `warnings` (note: label strings are used here because cell numbers are
+/// assigned later in `build_nodes`).  No normalisation is performed.
+pub(super) fn check_mixed_routing_encoding(rules: &[RouteRuleDraft], warnings: &mut Vec<String>) {
+    // Aggregate by from_label: (has_rules_without_pct, has_rules_with_pct).
+    // Skip random_placeholder rules — they will be resolved to probability or
+    // Unknown predicates later and do not represent a definitive encoding choice.
+    let mut seen: BTreeMap<&str, (bool, bool)> = BTreeMap::new();
+    for rule in rules {
+        if rule.random_placeholder {
+            continue;
+        }
+        let entry = seen.entry(rule.from_label.as_str()).or_insert((false, false));
+        if rule.probability_pct.is_some() {
+            entry.1 = true;
+        } else {
+            entry.0 = true;
+        }
+    }
+    for (from_label, (has_weight, has_pct)) in seen {
+        if has_weight && has_pct {
+            warnings.push(format!("mixed_routing_encoding_cell_{from_label}"));
+        }
+    }
+}
+
 pub(super) fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
     let source_targets =
         rules.iter().fold(BTreeMap::<String, BTreeSet<String>>::new(), |mut acc, rule| {
@@ -2886,4 +2917,80 @@ fn route_rule_draft_key(draft: &RouteRuleDraft) -> String {
         draft.raw_text,
         draft.random_placeholder
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_draft(from: &str, to: &str, probability_pct: Option<f64>) -> RouteRuleDraft {
+        RouteRuleDraft {
+            from_label: from.to_string(),
+            to_label: to.to_string(),
+            probability_pct,
+            predicate: RoutePredicate::Always,
+            raw_text: String::new(),
+            random_placeholder: false,
+        }
+    }
+
+    #[test]
+    fn check_mixed_routing_encoding_emits_warning_for_mixed_cell() {
+        // One rule has probability_pct (probability encoding), one has None (weight encoding).
+        let rules = vec![
+            make_draft("A", "B", Some(50.0)), // probability encoding
+            make_draft("A", "C", None),       // weight encoding
+        ];
+        let mut warnings = Vec::new();
+        check_mixed_routing_encoding(&rules, &mut warnings);
+        assert!(
+            warnings.iter().any(|w| w == "mixed_routing_encoding_cell_A"),
+            "expected mixed_routing_encoding_cell_A, got: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn check_mixed_routing_encoding_no_warning_when_all_probability() {
+        let rules = vec![
+            make_draft("B", "C", Some(60.0)),
+            make_draft("B", "D", Some(40.0)),
+        ];
+        let mut warnings = Vec::new();
+        check_mixed_routing_encoding(&rules, &mut warnings);
+        assert!(
+            !warnings.iter().any(|w| w.contains("mixed_routing_encoding")),
+            "unexpected warning: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn check_mixed_routing_encoding_no_warning_when_all_weight() {
+        let rules = vec![
+            make_draft("C", "D", None),
+            make_draft("C", "E", None),
+        ];
+        let mut warnings = Vec::new();
+        check_mixed_routing_encoding(&rules, &mut warnings);
+        assert!(
+            !warnings.iter().any(|w| w.contains("mixed_routing_encoding")),
+            "unexpected warning: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn check_mixed_routing_encoding_different_cells_no_cross_contamination() {
+        // Cell A: uniform probability, Cell B: uniform weight — no mixing per cell.
+        let rules = vec![
+            make_draft("A", "X", Some(70.0)),
+            make_draft("A", "Y", Some(30.0)),
+            make_draft("B", "X", None),
+            make_draft("B", "Z", None),
+        ];
+        let mut warnings = Vec::new();
+        check_mixed_routing_encoding(&rules, &mut warnings);
+        assert!(
+            !warnings.iter().any(|w| w.contains("mixed_routing_encoding")),
+            "unexpected warning: {warnings:?}"
+        );
+    }
 }

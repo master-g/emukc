@@ -342,6 +342,7 @@ fn parse_map_page(
         let mut warnings = base_warnings.clone();
         let mut route_rules = parse_route_table(&section.rows, ship_types, ships, &mut warnings)?;
         postprocess_route_probabilities(&mut route_rules);
+        check_mixed_routing_encoding(&route_rules, &mut warnings);
         let enemy_nodes = filter_enemy_nodes_for_route_rules(&route_rules, &enemy_nodes);
         let nodes = build_nodes(&route_rules, &enemy_nodes);
         let node_to_cell =
