@@ -97,7 +97,7 @@ fn merge_variant_definition(definition: &mut MapVariantDefinition, other: MapVar
             })
             .collect();
         if !valid_rules.is_empty() {
-            definition.routing_rules.entry(from_cell_no).or_insert(valid_rules);
+            definition.routing_rules.entry(from_cell_no).or_default().extend(valid_rules);
         }
     }
     for (cell_no, fleet) in other.enemy_fleets {
@@ -151,6 +151,7 @@ fn remap_variant_to_definition_identity(
         routing_rules.entry(mapped_from).or_default().extend(rules.into_iter().map(|mut rule| {
             rule.from_cell_no = remap_cell_no(rule.from_cell_no, &cell_no_map);
             rule.to_cell_no = remap_cell_no(rule.to_cell_no, &cell_no_map);
+            rule.predicate = remap_predicate(rule.predicate, &cell_no_map);
             rule
         }));
     }
@@ -290,6 +291,28 @@ fn unique_labeled_cells(cells: &[MapCellDefinition]) -> BTreeMap<String, i64> {
     }
 
     labels
+}
+
+fn remap_predicate(
+    predicate: super::RoutePredicate,
+    cell_no_map: &BTreeMap<i64, i64>,
+) -> super::RoutePredicate {
+    use super::RoutePredicate::*;
+    match predicate {
+        VisitedNode { mut cell_nos, visited } => {
+            remap_cell_nos(&mut cell_nos, cell_no_map);
+            VisitedNode { cell_nos, visited }
+        }
+        And(children) => {
+            And(children.into_iter().map(|p| remap_predicate(p, cell_no_map)).collect())
+        }
+        Or(children) => {
+            Or(children.into_iter().map(|p| remap_predicate(p, cell_no_map)).collect())
+        }
+        Not(inner) => Not(Box::new(remap_predicate(*inner, cell_no_map))),
+        // All other variants contain no cell_nos; return unchanged.
+        other => other,
+    }
 }
 
 fn remap_cell_nos(cell_nos: &mut Vec<i64>, cell_no_map: &BTreeMap<i64, i64>) {
@@ -763,5 +786,192 @@ mod tests {
         let entry = definition.routing_rules.get(&1).unwrap();
         assert_eq!(entry[0].to_cell_no, 0);
         assert_eq!(entry[0].from_cell_no, 1);
+    }
+
+    // ── U1 tests ────────────────────────────────────────────────────────────
+
+    fn make_variant_with_cells(cells: Vec<MapCellDefinition>) -> MapVariantDefinition {
+        MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 0,
+            cells,
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        }
+    }
+
+    fn make_rule(from: i64, to: i64, predicate: RoutePredicate) -> RouteRule {
+        RouteRule {
+            from_cell_no: from,
+            to_cell_no: to,
+            priority: 0,
+            weight: None,
+            probability_pct: None,
+            predicate,
+            raw_text: String::new(),
+        }
+    }
+
+    /// Two source variants each have a rule at from_cell=5 (same cell in the primary).
+    /// After merge the entry at from_cell=5 must contain both rules (union, not replace).
+    #[test]
+    fn merge_variant_definition_unions_rules_at_same_from_cell() {
+        let mut primary = make_variant_with_cells(vec![
+            cell(0, "Start", vec![5, 6], 0, 0, 0),
+            cell(5, "A", vec![6], 2, 0, 0),
+            cell(6, "B", vec![], 4, 1, 0),
+        ]);
+        primary.routing_rules.insert(5, vec![make_rule(5, 6, RoutePredicate::Always)]);
+
+        let mut secondary = make_variant_with_cells(vec![
+            cell(0, "Start", vec![5, 6], 0, 0, 0),
+            cell(5, "A", vec![6], 2, 0, 0),
+            cell(6, "B", vec![], 4, 1, 0),
+        ]);
+        // Secondary also has a rule at from_cell=5 (same label "A" → same primary cell_no 5).
+        secondary.routing_rules.insert(
+            5,
+            vec![make_rule(5, 6, RoutePredicate::FleetSize {
+                op: crate::codex::map::RouteOperator::Gte,
+                value: 4,
+            })],
+        );
+
+        merge_variant_definition(&mut primary, secondary);
+
+        let rules = primary.routing_rules.get(&5).expect("rules at from_cell 5");
+        assert_eq!(rules.len(), 2, "both rules must be present (union)");
+        assert!(matches!(rules[0].predicate, RoutePredicate::Always));
+        assert!(matches!(rules[1].predicate, RoutePredicate::FleetSize { .. }));
+    }
+
+    /// A secondary variant carries a `VisitedNode` predicate whose cell_nos refer to the
+    /// secondary's numbering.  After remap the predicate must use primary numbering.
+    #[test]
+    fn remap_visited_node_predicate_cell_nos() {
+        // Primary: cells labeled A=3, B=7.
+        let mut primary = make_variant_with_cells(vec![
+            cell(0, "Start", vec![3, 7], 0, 0, 0),
+            cell(3, "A", vec![], 2, 0, 0),
+            cell(7, "B", vec![], 4, 1, 0),
+        ]);
+
+        // Secondary: cells labeled A=10, B=20 (different numbering).
+        let mut secondary = make_variant_with_cells(vec![
+            cell(0, "Start", vec![10, 20], 0, 0, 0),
+            cell(10, "A", vec![], 2, 0, 0),
+            cell(20, "B", vec![], 4, 1, 0),
+        ]);
+        // Rule from secondary's A(10) referencing visited nodes 10 and 20.
+        secondary.routing_rules.insert(
+            10,
+            vec![make_rule(10, 20, RoutePredicate::VisitedNode {
+                cell_nos: vec![10, 20],
+                visited: true,
+            })],
+        );
+
+        merge_variant_definition(&mut primary, secondary);
+
+        let rules = primary.routing_rules.get(&3).expect("rules at primary from_cell 3");
+        assert_eq!(rules.len(), 1);
+        match &rules[0].predicate {
+            RoutePredicate::VisitedNode { cell_nos, visited } => {
+                assert_eq!(*cell_nos, vec![3, 7], "cell_nos remapped to primary numbering");
+                assert!(*visited);
+            }
+            other => panic!("unexpected predicate: {:?}", other),
+        }
+    }
+
+    /// Nested `And([VisitedNode, Or([VisitedNode, Always])])` — remap must recurse through
+    /// all layers.
+    #[test]
+    fn remap_nested_and_or_predicate_cell_nos() {
+        // Primary: cells labeled X=1, Y=2.
+        let mut primary = make_variant_with_cells(vec![
+            cell(0, "Start", vec![1, 2], 0, 0, 0),
+            cell(1, "X", vec![], 2, 0, 0),
+            cell(2, "Y", vec![], 4, 1, 0),
+        ]);
+
+        // Secondary: X=100, Y=200.
+        let mut secondary = make_variant_with_cells(vec![
+            cell(0, "Start", vec![100, 200], 0, 0, 0),
+            cell(100, "X", vec![], 2, 0, 0),
+            cell(200, "Y", vec![], 4, 1, 0),
+        ]);
+        let nested = RoutePredicate::And(vec![
+            RoutePredicate::VisitedNode { cell_nos: vec![100], visited: true },
+            RoutePredicate::Or(vec![
+                RoutePredicate::VisitedNode { cell_nos: vec![200], visited: false },
+                RoutePredicate::Always,
+            ]),
+        ]);
+        secondary.routing_rules.insert(100, vec![make_rule(100, 200, nested)]);
+
+        merge_variant_definition(&mut primary, secondary);
+
+        let rules = primary.routing_rules.get(&1).expect("rules at primary from_cell 1");
+        assert_eq!(rules.len(), 1);
+        match &rules[0].predicate {
+            RoutePredicate::And(children) => {
+                match &children[0] {
+                    RoutePredicate::VisitedNode { cell_nos, .. } => {
+                        assert_eq!(*cell_nos, vec![1], "top-level VisitedNode remapped");
+                    }
+                    other => panic!("expected VisitedNode, got {:?}", other),
+                }
+                match &children[1] {
+                    RoutePredicate::Or(inner) => match &inner[0] {
+                        RoutePredicate::VisitedNode { cell_nos, .. } => {
+                            assert_eq!(*cell_nos, vec![2], "nested Or VisitedNode remapped");
+                        }
+                        other => panic!("expected inner VisitedNode, got {:?}", other),
+                    },
+                    other => panic!("expected Or, got {:?}", other),
+                }
+            }
+            other => panic!("expected And, got {:?}", other),
+        }
+    }
+
+    /// When `cell_no_map` is empty, `remap_variant_to_definition_identity` returns `other`
+    /// unchanged (early return).  Predicates must be untouched.
+    #[test]
+    fn remap_predicate_noop_with_empty_cell_no_map() {
+        // Primary has no labeled cells → no remap possible → early return.
+        let mut primary = make_variant_with_cells(vec![
+            cell(0, "", vec![5], 0, 0, 0),
+            cell(5, "", vec![], 2, 0, 0),
+        ]);
+
+        let mut secondary = make_variant_with_cells(vec![
+            cell(0, "", vec![5], 0, 0, 0),
+            cell(5, "", vec![], 2, 0, 0),
+        ]);
+        secondary.routing_rules.insert(
+            5,
+            vec![make_rule(5, 0, RoutePredicate::VisitedNode {
+                cell_nos: vec![5],
+                visited: true,
+            })],
+        );
+
+        merge_variant_definition(&mut primary, secondary);
+
+        // With empty map the cell_nos must be left as-is (5 is not remapped).
+        let rules = primary.routing_rules.get(&5).expect("rules at from_cell 5");
+        assert_eq!(rules.len(), 1);
+        match &rules[0].predicate {
+            RoutePredicate::VisitedNode { cell_nos, .. } => {
+                assert_eq!(*cell_nos, vec![5], "cell_nos untouched when no remap");
+            }
+            other => panic!("unexpected predicate: {:?}", other),
+        }
     }
 }
