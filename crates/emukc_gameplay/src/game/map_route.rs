@@ -1387,4 +1387,166 @@ mod tests {
             "resolved label, not visited, visited=true → NotMatched"
         );
     }
+
+    // --- EquipmentCount evaluator tests ---
+    //
+    // Corpus evidence: all wikiwiki phrases producing EquipmentCount use either
+    //   「電探を装備した艦が N 隻以上/以下」  (ships carrying the named item type)
+    // or
+    //   「搭載艦の隻数が N 隻以上/以下」     (ships carrying the named item type)
+    //
+    // Both phrase patterns count *ships*, not individual items.  The evaluator
+    // iterates FleetRouteShipEntry and counts entries whose slotitem_types set
+    // contains at least one matching type — which is precisely ship-count
+    // semantics.  No item-count variant (「電探を N 個以上装備」) was found in
+    // the wikiwiki catalog or parser unit tests, so EquipmentCount remains a
+    // single ship-count predicate.
+
+    /// Fleet: [ship(radar), ship(no radar), ship(radar + radar)].
+    /// slotitem_types is a BTreeSet so the two-radar ship contributes type 12
+    /// only once.  The predicate counts *ships*, so the result is 2, not 3 or 4.
+    /// This is the canonical ship-count vs item-count distinction test.
+    #[test]
+    fn equipment_count_counts_ships_not_items() {
+        let context = FleetRouteContext {
+            fleet_size: 3,
+            ship_entries: vec![
+                FleetRouteShipEntry {
+                    slotitem_types: BTreeSet::from([12]),   // one radar
+                    ..Default::default()
+                },
+                FleetRouteShipEntry {
+                    slotitem_types: BTreeSet::new(),         // no radar
+                    ..Default::default()
+                },
+                FleetRouteShipEntry {
+                    // Two radars of the same type; the set deduplicates them.
+                    // If the evaluator counted items it would see 3 here, but
+                    // ship-count semantics give 2 across the whole fleet.
+                    slotitem_types: BTreeSet::from([12]),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        // Exactly 2 ships carry radar (type 12 falls in [12, 13, 93]).
+        assert!(
+            matches!(
+                route_predicate_matches(
+                    &RoutePredicate::EquipmentCount {
+                        slotitem_types: vec![12, 13, 93],
+                        op: RouteOperator::Eq,
+                        value: 2,
+                    },
+                    &context,
+                    &MapStageDefinition::default(),
+                ),
+                RoutePredicateEval::Matched
+            ),
+            "ship-count should be 2 regardless of how many radars each ship carries"
+        );
+        // Sanity: Gte(2) also matches, Gte(3) does not.
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Gte,
+                    value: 2,
+                },
+                &context,
+                &MapStageDefinition::default(),
+            ),
+            RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Gte,
+                    value: 3,
+                },
+                &context,
+                &MapStageDefinition::default(),
+            ),
+            RoutePredicateEval::NotMatched
+        ));
+    }
+
+    /// Empty fleet → count is 0; Eq(0) matches, Gte(1) does not.
+    #[test]
+    fn equipment_count_empty_fleet_is_zero() {
+        let context = FleetRouteContext {
+            fleet_size: 0,
+            ship_entries: vec![],
+            ..Default::default()
+        };
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Eq,
+                    value: 0,
+                },
+                &context,
+                &MapStageDefinition::default(),
+            ),
+            RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Gte,
+                    value: 1,
+                },
+                &context,
+                &MapStageDefinition::default(),
+            ),
+            RoutePredicateEval::NotMatched
+        ));
+    }
+
+    /// A ship with an empty slotitem_types set (zero equipment slots filled)
+    /// must not be counted, even if the predicate requests type 12.
+    #[test]
+    fn equipment_count_ship_with_no_slots_does_not_count() {
+        let context = FleetRouteContext {
+            fleet_size: 2,
+            ship_entries: vec![
+                FleetRouteShipEntry {
+                    slotitem_types: BTreeSet::new(), // nothing equipped
+                    ..Default::default()
+                },
+                FleetRouteShipEntry {
+                    slotitem_types: BTreeSet::new(), // nothing equipped
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Eq,
+                    value: 0,
+                },
+                &context,
+                &MapStageDefinition::default(),
+            ),
+            RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Gte,
+                    value: 1,
+                },
+                &context,
+                &MapStageDefinition::default(),
+            ),
+            RoutePredicateEval::NotMatched
+        ));
+    }
 }
