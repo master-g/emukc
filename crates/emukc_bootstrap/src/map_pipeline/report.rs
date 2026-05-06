@@ -39,4 +39,7 @@ pub struct MapCatalogBuildReport {
     pub stat_source: MapCatalogStatSource,
     /// Number of maps in the final assembled runtime catalog.
     pub output_map_count: usize,
+    /// Number of wikiwiki routing rules dropped during fan-out because their
+    /// `from_cell_no` or `to_cell_no` was absent from the target variant's cell set.
+    pub fanout_rules_dropped: usize,
 }
