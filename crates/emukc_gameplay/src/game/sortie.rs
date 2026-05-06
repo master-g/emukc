@@ -927,7 +927,6 @@ impl<T: HasContext + ?Sized> SortieOps for T {
 
     async fn clear_sortie_state_if_any(&self, profile_id: i64) {
         let store = self.sortie_store();
-        store.remove_active(profile_id);
         clear_pending_sortie_runtime_state(store, profile_id);
     }
 }
@@ -1679,6 +1678,7 @@ fn select_enemy_composition_for_roll(
 }
 
 fn clear_pending_sortie_runtime_state(store: &dyn SortieRepository, profile_id: i64) {
+    store.remove_active(profile_id);
     store.take_pending_result(profile_id);
     let _ = take_day_battle_result(store, profile_id);
 }
