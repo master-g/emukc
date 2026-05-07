@@ -3,16 +3,20 @@ mod route_predicate;
 mod route_table;
 
 pub(super) use route_condition::{
-    build_nodes, check_mixed_routing_encoding, parse_case_route_condition_text,
-    parse_conditional_random_route_condition_text, parse_independent_route_condition_line,
-    parse_inline_targeted_route_condition_text, parse_route_table,
+    build_nodes, check_mixed_routing_encoding, parse_route_table, postprocess_route_probabilities,
+};
+pub(super) use route_predicate::compact_route_raw_text;
+
+#[cfg(test)]
+pub(super) use route_condition::{
+    parse_case_route_condition_text, parse_conditional_random_route_condition_text,
+    parse_independent_route_condition_line, parse_inline_targeted_route_condition_text,
     parse_row_target_random_bias_condition_text,
     parse_row_target_random_bias_shorthand_condition_text,
-    parse_target_random_route_condition_text, postprocess_route_probabilities,
+    parse_target_random_route_condition_text,
 };
-pub(super) use route_predicate::{
-    compact_route_raw_text, parse_route_predicate, unknown_predicate,
-};
+#[cfg(test)]
+pub(super) use route_predicate::parse_route_predicate;
 pub(super) use route_table::{
     collect_formations, find_route_table_sections, parse_gauge_defeat_counts,
     route_section_variant_key,
