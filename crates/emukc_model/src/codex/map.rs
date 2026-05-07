@@ -360,7 +360,7 @@ pub fn split_map_id(map_id: i64) -> (i64, i64) {
     (map_id / 10, map_id % 10)
 }
 
-fn extract_max_hp(map: &ApiMstMapinfo) -> Option<i64> {
+pub fn extract_max_hp(map: &ApiMstMapinfo) -> Option<i64> {
     match map.api_max_maphp.as_ref()? {
         serde_json::Value::Number(value) => value.as_i64(),
         serde_json::Value::String(value) => value.parse::<i64>().ok(),

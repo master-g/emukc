@@ -7,9 +7,10 @@
 //! contexts keep working.  The binary-crate [`State`] overrides it with an
 //! instance-scoped store, giving each route-test its own isolated copy.
 
-use std::{collections::HashMap, fmt, sync::LazyLock};
+use std::{collections::HashMap, fmt, future::Future, sync::Arc, sync::LazyLock};
 
 use parking_lot::Mutex;
+use tokio::sync::Mutex as AsyncMutex;
 
 use super::{
     battle::{repository::SortieRepository, sortie::SortieBattleSession},
@@ -22,6 +23,7 @@ pub struct SortieStore {
     active_sorties: Mutex<HashMap<i64, ActiveSortieState>>,
     pending_results: Mutex<HashMap<i64, SortieBattleResultSnapshot>>,
     pending_battles: Mutex<HashMap<i64, SortieBattleSession>>,
+    profile_locks: Mutex<HashMap<i64, Arc<AsyncMutex<()>>>>,
 }
 
 impl SortieStore {
@@ -31,6 +33,7 @@ impl SortieStore {
             active_sorties: Mutex::new(HashMap::new()),
             pending_results: Mutex::new(HashMap::new()),
             pending_battles: Mutex::new(HashMap::new()),
+            profile_locks: Mutex::new(HashMap::new()),
         }
     }
 
@@ -94,6 +97,25 @@ impl SortieStore {
         self.active_sorties.lock().clear();
         self.pending_results.lock().clear();
         self.pending_battles.lock().clear();
+    }
+
+    /// Acquire a per-profile serialization lock and run the given future.
+    ///
+    /// This ensures that concurrent operations targeting the same profile
+    /// (e.g. `next_sortie` and `sortie_battle_impl`) cannot interleave
+    /// their read-modify-write cycles on the shared in-memory store.
+    pub async fn with_profile_lock<F, T>(&self, profile_id: i64, f: F) -> T
+    where
+        F: Future<Output = T> + Send,
+    {
+        let lock = self
+            .profile_locks
+            .lock()
+            .entry(profile_id)
+            .or_insert_with(|| Arc::new(AsyncMutex::new(())))
+            .clone();
+        let _guard = lock.lock().await;
+        f.await
     }
 }
 

@@ -1,23 +1,14 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    sync::LazyLock,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use emukc_model::{
     codex::map::{RouteOperator, RoutePredicate},
     kc2::start2::{ApiManifest, ApiMstShip},
 };
-use regex::Regex;
 
 use super::{
     RE_PAREN_ANNOTATION, RE_SHIP_TYPE_COUNT_CLAUSE, RouteSelector, ShipResolver, ShipTypeResolver,
     normalize_text, sanitize_route_text,
 };
-
-static RE_COUNT_OP_BEFORE_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<name>.+?)[\s（(]*(?P<op>過不足なく|ちょうど)[\s）)]*(?P<count>\d+(?:隻)?)$")
-        .expect("valid count op before count regex")
-});
 
 impl ShipTypeResolver {
     pub(super) fn new(manifest: &ApiManifest) -> Self {
@@ -275,21 +266,7 @@ pub(super) fn parse_ship_selector_count_clause(
 }
 
 pub(super) fn normalize_count_clause_text(text: &str) -> String {
-    let text = sanitize_route_text(text)
-        .replace("(過不足なく)", "過不足なく")
-        .replace("（過不足なく）", "過不足なく")
-        .replace("(ちょうど)", "ちょうど")
-        .replace("（ちょうど）", "ちょうど");
-    if let Some(caps) = RE_COUNT_OP_BEFORE_COUNT.captures(&text) {
-        let name =
-            normalize_text(caps.name("name").map(|value| value.as_str()).unwrap_or_default());
-        let op = caps.name("op").map(|value| value.as_str()).unwrap_or_default();
-        let count = caps.name("count").map(|value| value.as_str()).unwrap_or_default();
-        if !name.is_empty() && !count.is_empty() {
-            return format!("{name}{count}{op}");
-        }
-    }
-    text
+    super::types::normalize_count_clause_text(text, None)
 }
 
 pub(super) fn parse_specific_ship_list(text: &str, ships: &ShipResolver) -> Option<Vec<i64>> {

@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::LazyLock};
 
 use emukc_model::codex::map::{EnemyComposition, RoutePredicate, RouteRule, ShipDropDefinition};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 pub(super) const ENTRY_NODE_LABEL: &str = "Start";
@@ -8,6 +9,53 @@ pub(super) const ENTRY_NODE_LABEL: &str = "Start";
 pub(super) fn is_entry_node_label(label: &str) -> bool {
     label == ENTRY_NODE_LABEL
 }
+
+static RE_COUNT_OP_BEFORE_COUNT: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?P<name>.+?)[\s（(]*(?P<op>過不足なく|ちょうど)[\s）)]*(?P<count>\d+(?:隻)?)$")
+        .expect("valid count op before count regex")
+});
+
+/// Normalize count-clause text by rewriting "op count" patterns into "count op" order.
+///
+/// When `suffix` is `Some`, the regex is extended to expect `を含{suffix}` at the end,
+/// and the rewritten text appends `を含{suffix}`.
+pub(super) fn normalize_count_clause_text(text: &str, suffix: Option<&str>) -> String {
+    let text = super::sanitize_route_text(text)
+        .replace("(過不足なく)", "過不足なく")
+        .replace("（過不足なく）", "過不足なく")
+        .replace("(ちょうど)", "ちょうど")
+        .replace("（ちょうど）", "ちょうど");
+
+    let re = match suffix {
+        Some(_) => &*RE_CONTAINS_COUNT_OP_BEFORE_COUNT,
+        None => &*RE_COUNT_OP_BEFORE_COUNT,
+    };
+
+    if let Some(caps) = re.captures(&text) {
+        let name = super::normalize_text(
+            caps.name("name").map(|value| value.as_str()).unwrap_or_default(),
+        );
+        let op = caps.name("op").map(|value| value.as_str()).unwrap_or_default();
+        let count = caps.name("count").map(|value| value.as_str()).unwrap_or_default();
+        if !name.is_empty() && !count.is_empty() {
+            if let Some(s) = suffix {
+                if let Some(suffix_match) = caps.name("suffix").map(|value| value.as_str()) {
+                    return format!("{name}{count}{op}を含{suffix_match}");
+                }
+                return format!("{name}{count}{op}を含{s}");
+            }
+            return format!("{name}{count}{op}");
+        }
+    }
+    text
+}
+
+static RE_CONTAINS_COUNT_OP_BEFORE_COUNT: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^(?P<name>.+?)[\s（(]*(?P<op>過不足なく|ちょうど)[\s）)]*(?P<count>\d+(?:隻)?)を含(?P<suffix>む|み|まない)$",
+    )
+    .expect("valid contains count-op-before-count regex")
+});
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Normalized wikiwiki.jp map extraction output keyed by in-game map ID.

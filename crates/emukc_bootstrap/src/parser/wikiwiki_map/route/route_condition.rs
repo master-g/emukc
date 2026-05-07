@@ -1,96 +1,25 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    sync::LazyLock,
-};
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::LazyLock;
 
-use emukc_model::codex::map::{
-    EnemyComposition, FleetSizeWeight, RouteOperator, RoutePredicate, SpeedClass,
-};
+use emukc_model::codex::map::{RouteOperator, RoutePredicate};
 use regex::Regex;
-use scraper::Html;
 
-use super::{
+use super::super::{
     CompiledRouteClause, EnemyNodeRows, RouteClauseAst, RouteConditionLine, RouteRuleDraft,
-    RouteTableSection, SELECTOR_FOLD_CONTAINER, SELECTOR_TABLE, ShipResolver, ShipTypeResolver,
-    WikiwikiNodeDefinition, direct_child_tables, direct_child_with_class, find_header_index,
-    is_entry_node_label, normalize_text, parse_named_pair_contains_predicate, parse_node_label,
-    parse_node_labels, parse_ship_selector_count_clause, parse_ship_type_count_clause,
-    parse_specific_ship_id_list, parse_specific_ship_list, predicate_for_contains_selector,
-    predicate_for_only_selector, resolve_route_selector, sanitize_route_text, table_to_grid,
+    ShipResolver, ShipTypeResolver, WikiwikiNodeDefinition, find_header_index, is_entry_node_label,
+    normalize_text, parse_node_label, parse_node_labels, parse_specific_ship_id_list,
+    parse_specific_ship_list, sanitize_route_text,
 };
 use crate::parser::error::ParseError;
 
-static RE_PROBABILITY: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?P<count>\d+)隻\s*:\s*(?P<pct>\d+(?:\.\d+)?)%").expect("valid probability regex")
-});
-static RE_FLEET_SIZE_EQ: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?P<count>\d+)隻(?:の)?編成").expect("valid fleet size regex"));
-static RE_FLEET_SIZE_LTE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?P<count>\d+)隻以下(?:の?編成)?").expect("valid fleet size lte regex")
-});
-static RE_FLEET_SIZE_GTE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?P<count>\d+)隻以上(?:の?編成)?").expect("valid fleet size gte regex")
-});
-static RE_DRUM_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"ドラム缶(?:\(輸送用\))?を?(?P<count>\d+)個以上")
-        .expect("valid drum canister regex")
-});
-static RE_LOS: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"索敵値(?P<formula>[^で]+)?で(?P<value>\d+)以上").expect("valid los regex")
-});
-static RE_LOS_RANGE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"索敵(?:スコア|値)(?:が)?(?P<min>\d+)以上(?P<max>\d+)未満")
-        .expect("valid los range regex")
-});
-static RE_LOS_RANGE_BARE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<max>\d+)未満(?P<min>\d+)以上(?:のとき|の場合)?$")
-        .expect("valid bare los range regex")
-});
-static RE_LOS_RANGE_ALT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<min>\d+)以上(?P<max>\d+)未満(?:のとき|の場合)?$")
-        .expect("valid alt bare los range regex")
-});
-static RE_LOS_RANGE_LTE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"索敵(?:スコア|値)(?:が)?(?P<min>\d+)以上(?P<max>\d+)以下")
-        .expect("valid los inclusive range regex")
-});
-static RE_LOS_RANGE_LTE_BARE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<min>\d+)以上(?P<max>\d+)以下(?:のとき|の場合)?$")
-        .expect("valid bare inclusive los range regex")
-});
-static RE_LOS_GTE_SIMPLE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"索敵(?:スコア|値)(?:が)?(?P<value>\d+)以上").expect("valid los gte regex")
-});
-static RE_LOS_LTE_SIMPLE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"索敵(?:スコア|値)(?:が)?(?P<value>\d+)以下").expect("valid los lte regex")
-});
-static RE_LOS_LT_SIMPLE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"索敵(?:スコア|値)(?:が)?(?P<value>\d+)未満").expect("valid los lt regex")
-});
-static RE_LOS_GTE_BARE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?P<value>\d+)以上$").expect("valid bare los gte regex"));
-static RE_LOS_LTE_BARE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?P<value>\d+)以下$").expect("valid bare los lte regex"));
-static RE_LOS_LT_BARE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?P<value>\d+)未満$").expect("valid bare los lt regex"));
+use super::route_predicate::{parse_route_predicate, unknown_predicate};
+
 static RE_TARGET_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?:で|と|は|なら|すると)(?P<target>[A-Z][A-Z0-9]?)(?:\*?\d+|\?)?$")
         .expect("valid explicit target regex")
 });
 static RE_PROGRESS_TARGET: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?P<target>[A-Z][A-Z0-9]?)マス進行割合").expect("valid progress target regex")
-});
-static RE_SHIP_TYPE_CONTAINS_COUNT_CLAUSE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-		r"^(?P<name>.+?)(?P<count>\d+)隻(?P<op>以上|以下|ちょうど|過不足なく)?を含(?:む|み|まない)$",
-	)
-	.expect("valid ship type contains count clause regex")
-});
-static RE_CONTAINS_COUNT_OP_BEFORE_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-		r"^(?P<name>.+?)[\s（(]*(?P<op>過不足なく|ちょうど)[\s）)]*(?P<count>\d+(?:隻)?)を含(?P<suffix>む|み|まない)$",
-	)
-	.expect("valid contains count-op-before-count regex")
 });
 static RE_TARGETED_TOKEN_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(?P<lemma>.*?)(?:で|と|は|なら|すると)(?P<target>[A-Z][A-Z0-9]?)$")
@@ -99,25 +28,6 @@ static RE_TARGETED_TOKEN_SUFFIX: LazyLock<Regex> = LazyLock::new(|| {
 static RE_TRAILING_ROUTE_ANNOTATION: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(?P<body>.*?)[（(][^()（）]*[)）]$")
         .expect("valid trailing route annotation regex")
-});
-static RE_EQUIPMENT_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<name>.+?)(?:を装備した艦|搭載艦の隻数)が(?P<count>\d+)隻?(?P<op>以上|以下)?$")
-        .expect("valid equipment count regex")
-});
-static RE_FLAGSHIP: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?P<name>.+?)旗艦$").expect("valid flagship regex"));
-static RE_VISITED_NODE_NEGATIVE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<label>[A-Z][A-Z0-9]?)マス未経由$").expect("valid visited negative regex")
-});
-static RE_VISITED_NODE_POSITIVE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<label>[A-Z][A-Z0-9]?)マスを経由(?:済み)?$")
-        .expect("valid visited positive regex")
-});
-static RE_SPEED_QUALIFIED_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-		r"^(?P<speed>(?:低速|\(低速\)|（低速）|高速\+|高速＋|高速|最速))(?:\s*)?(?P<name>.+?)(?P<count>\d+)(?P<op>以上|以下|ちょうど|過不足なく)?$",
-	)
-	.expect("valid speed-qualified selector count regex")
 });
 static RE_HELPER_SCOPED_HEADER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
@@ -193,172 +103,11 @@ static RE_TARGET_PROBABILITY_DISTRIBUTION: LazyLock<Regex> = LazyLock::new(|| {
 	)
 	.expect("valid target probability distribution regex")
 });
+static RE_PROBABILITY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?P<count>\d+)隻\s*:\s*(?P<pct>\d+(?:\.\d+)?)%").expect("valid probability regex")
+});
 
-pub(super) fn find_route_table_sections(document: &Html) -> Vec<RouteTableSection> {
-    let mut sections = document
-        .select(&SELECTOR_FOLD_CONTAINER)
-        .flat_map(|container| {
-            let summary = direct_child_with_class(&container, "fold-summary")
-                .map(|summary| normalize_text(&summary.text().collect::<Vec<_>>().join(" ")))
-                .unwrap_or_default();
-            let Some(content) = direct_child_with_class(&container, "fold-content") else {
-                return Vec::new().into_iter();
-            };
-
-            direct_child_tables(&content)
-                .into_iter()
-                .filter_map(move |table| {
-                    let rows = table_to_grid(&table);
-                    is_route_table_rows(&rows).then_some(RouteTableSection {
-                        summary: summary.clone(),
-                        rows,
-                    })
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-        })
-        .collect::<Vec<_>>();
-    if sections.is_empty()
-        && let Some(rows) =
-            super::find_table_by_headers(document, &["分岐点", "ルート", "移動条件"])
-    {
-        sections.push(RouteTableSection {
-            summary: String::new(),
-            rows,
-        });
-    }
-    sections
-}
-
-fn is_route_table_rows(rows: &[Vec<String>]) -> bool {
-    let haystack =
-        rows.iter().take(3).flat_map(|row| row.iter()).cloned().collect::<Vec<_>>().join(" ");
-    ["分岐点", "ルート", "移動条件"].iter().all(|header| haystack.contains(header))
-}
-
-pub(super) fn parse_gauge_defeat_counts(document: &Html) -> Vec<i64> {
-    document
-        .select(&SELECTOR_TABLE)
-        .find_map(|table| {
-            let rows = table_to_grid(&table);
-            let counts =
-                rows.iter().filter_map(|row| parse_gauge_defeat_count_row(row)).collect::<Vec<_>>();
-            (counts.len() >= 2).then_some(counts)
-        })
-        .unwrap_or_default()
-}
-
-fn parse_gauge_defeat_count_row(row: &[String]) -> Option<i64> {
-    static RE_DEFEAT_COUNT: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"(?P<count>\d+)回撃沈").expect("valid defeat count regex"));
-
-    let header = row.first()?;
-    if !header.contains("ゲージ") {
-        return None;
-    }
-    row.iter().find_map(|cell| {
-        RE_DEFEAT_COUNT
-            .captures(cell)
-            .and_then(|caps| caps.name("count"))
-            .and_then(|count| count.as_str().parse::<i64>().ok())
-    })
-}
-
-pub(super) fn route_section_variant_key(summary: &str, idx: usize, total: usize) -> String {
-    if total <= 1 {
-        return String::new();
-    }
-    let summary_compact = summary.chars().filter(|c| !c.is_whitespace()).collect::<String>();
-    if summary_compact.contains("Pマス出現前") {
-        "pre_p_unlock".to_string()
-    } else if summary_compact.contains("Pマス出現後") {
-        "post_p_unlock".to_string()
-    } else {
-        // Match gauge keywords: 第一ゲージ/ゲージ1, 第二ゲージ/ゲージ2, etc.
-        // Also handles 第三/第四 (kanji) and ゲージ3/4 (arabic).
-        let gauge_key = extract_gauge_variant_key(&summary_compact);
-        gauge_key.unwrap_or_else(|| format!("variant_{}", idx + 1))
-    }
-}
-
-fn extract_gauge_variant_key(compact: &str) -> Option<String> {
-    let kanji_map = [
-        ("第一ゲージ", "gauge_1"),
-        ("第二ゲージ", "gauge_2"),
-        ("第三ゲージ", "gauge_3"),
-        ("第四ゲージ", "gauge_4"),
-        ("第五ゲージ", "gauge_5"),
-    ];
-    for (needle, key) in &kanji_map {
-        if compact.contains(needle) {
-            return Some(key.to_string());
-        }
-    }
-    // Arabic numeral fallback: ゲージ1, ゲージ2, etc.
-    for (needle, key) in [("ゲージ1", "gauge_1"), ("ゲージ2", "gauge_2")] {
-        if compact.contains(needle) {
-            return Some(key.to_string());
-        }
-    }
-    // Regex fallback for ゲージN where N >= 3
-    if let Some(pos) = compact.find("ゲージ") {
-        let after = &compact[pos + "ゲージ".len()..];
-        let digits: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
-        if !digits.is_empty() {
-            return Some(format!("gauge_{digits}"));
-        }
-    }
-    None
-}
-
-pub(super) fn filter_enemy_nodes_for_route_rules(
-    _route_rules: &[RouteRuleDraft],
-    enemy_nodes: &BTreeMap<String, EnemyNodeRows>,
-) -> BTreeMap<String, EnemyNodeRows> {
-    // Keep ALL enemy nodes from the enemy table — filtering by route-rule membership
-    // drops boss nodes on straight paths (no branching = no route rule entry).
-    enemy_nodes.clone()
-}
-
-pub(super) fn collect_formations(compositions: &[EnemyComposition]) -> Vec<i64> {
-    let mut formations = compositions
-        .iter()
-        .filter_map(|composition| composition.formation)
-        .collect::<BTreeSet<_>>();
-    if formations.is_empty() {
-        formations.insert(1);
-    }
-    formations.into_iter().collect()
-}
-
-pub(super) fn unknown_predicate(raw_text: String) -> RoutePredicate {
-    let sanitized = sanitize_route_text(&raw_text);
-    if raw_text.contains("不明") || is_incomplete_los_source_text(&sanitized) {
-        RoutePredicate::SourceUnknown {
-            raw_text,
-        }
-    } else {
-        RoutePredicate::Unknown {
-            raw_text,
-        }
-    }
-}
-
-fn is_incomplete_los_source_text(text: &str) -> bool {
-    text.contains("索敵")
-        && (text.contains("未満") || text.contains("以上") || text.contains("以下"))
-        && !text.chars().any(|ch| ch.is_ascii_digit())
-}
-
-pub(super) fn compact_route_raw_text(predicate: &RoutePredicate, raw_text: String) -> String {
-    if matches!(predicate, RoutePredicate::Unknown { .. } | RoutePredicate::SourceUnknown { .. }) {
-        raw_text
-    } else {
-        String::new()
-    }
-}
-
-pub(super) fn build_nodes(
+pub fn build_nodes(
     route_rules: &[RouteRuleDraft],
     enemy_nodes: &BTreeMap<String, EnemyNodeRows>,
 ) -> Vec<WikiwikiNodeDefinition> {
@@ -441,7 +190,7 @@ pub(super) fn build_nodes(
         .collect()
 }
 
-pub(super) fn parse_route_table(
+pub fn parse_route_table(
     rows: &[Vec<String>],
     ship_types: &ShipTypeResolver,
     ships: &ShipResolver,
@@ -586,7 +335,7 @@ pub(super) fn parse_route_table(
 /// Each detected junction appends a warning `mixed_routing_encoding_cell_<LABEL>`
 /// to `warnings` (note: label strings are used here because cell numbers are
 /// assigned later in `build_nodes`).  No normalisation is performed.
-pub(super) fn check_mixed_routing_encoding(rules: &[RouteRuleDraft], warnings: &mut Vec<String>) {
+pub fn check_mixed_routing_encoding(rules: &[RouteRuleDraft], warnings: &mut Vec<String>) {
     // Aggregate by from_label: (has_rules_without_pct, has_rules_with_pct).
     // Skip random_placeholder rules — they will be resolved to probability or
     // Unknown predicates later and do not represent a definitive encoding choice.
@@ -609,7 +358,7 @@ pub(super) fn check_mixed_routing_encoding(rules: &[RouteRuleDraft], warnings: &
     }
 }
 
-pub(super) fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
+pub fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
     let source_targets =
         rules.iter().fold(BTreeMap::<String, BTreeSet<String>>::new(), |mut acc, rule| {
             acc.entry(rule.from_label.clone()).or_default().insert(rule.to_label.clone());
@@ -1033,7 +782,7 @@ fn parse_multiline_flat_route_condition_text(
     (!clauses.is_empty()).then_some(clauses)
 }
 
-pub(super) fn parse_independent_route_condition_line(
+pub fn parse_independent_route_condition_line(
     text: &str,
     context_text: &str,
     row_target: &str,
@@ -1297,7 +1046,7 @@ fn predicate_is_los_only(predicate: &RoutePredicate) -> bool {
     }
 }
 
-pub(super) fn parse_case_route_condition_text(
+pub fn parse_case_route_condition_text(
     raw_text: &str,
     row_target: &str,
     candidate_targets: &[String],
@@ -1916,9 +1665,10 @@ fn parse_bulleted_route_condition_text(
     let mut else_target = None::<Option<String>>;
     let mut saw_group = false;
 
+    type FlushParsed = Vec<(Option<f64>, RoutePredicate, bool)>;
     let flush_group = |target: &Option<String>,
                        terms: &mut Vec<String>,
-                       parsed: &mut Vec<(Option<f64>, RoutePredicate, bool)>|
+                       parsed: &mut FlushParsed|
      -> Option<()> {
         let target = target.as_ref()?;
         if target != row_target || terms.is_empty() {
@@ -1983,7 +1733,7 @@ fn parse_bulleted_route_condition_text(
     }
 }
 
-pub(super) fn parse_inline_targeted_route_condition_text(
+pub fn parse_inline_targeted_route_condition_text(
     text: &str,
     row_target: &str,
     candidate_targets: &[String],
@@ -2036,662 +1786,7 @@ pub(super) fn parse_inline_targeted_route_condition_text(
     }
 }
 
-pub(super) fn parse_route_predicate(
-    text: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    let mut text = sanitize_route_text(text);
-    while let Some(trimmed) = trim_wrapping_parentheses(&text) {
-        text = trimmed;
-    }
-    if text.is_empty() || text == "それ以外" {
-        return Some(RoutePredicate::Always);
-    }
-    if text.contains("艦隊人数により確率変動") || text.contains("艦隊人数によって確率変動")
-    {
-        let weights: Vec<FleetSizeWeight> = RE_PROBABILITY
-            .captures_iter(&text)
-            .filter_map(|cap| {
-                Some(FleetSizeWeight {
-                    fleet_size: cap["count"].parse().ok()?,
-                    probability_pct: cap["pct"].parse().ok()?,
-                })
-            })
-            .collect();
-        if !weights.is_empty() {
-            return Some(RoutePredicate::FleetSizeWeightedRandom {
-                weights,
-            });
-        }
-    }
-    if let Some((left, right)) = split_once_keyword_top_level(&text, "または")
-        .or_else(|| split_once_keyword_top_level(&text, "もしくは"))
-    {
-        return Some(RoutePredicate::Or(vec![
-            parse_route_predicate(left, ship_types, ships)?,
-            parse_route_predicate(right, ship_types, ships)?,
-        ]));
-    }
-    if let Some((left, right)) = split_once_keyword_top_level(&text, "かつ")
-        .or_else(|| split_once_keyword_top_level(&text, "且つ"))
-    {
-        return Some(RoutePredicate::And(vec![
-            parse_route_predicate(left, ship_types, ships)?,
-            parse_route_predicate(right, ship_types, ships)?,
-        ]));
-    }
-    if let Some(predicate) = parse_contains_conjunction(&text, ship_types, ships) {
-        return Some(predicate);
-    }
-    if let Some(predicate) = parse_los_range_predicate(&text) {
-        return Some(predicate);
-    }
-    if let Some(predicate) = parse_los_simple_predicate(&text) {
-        return Some(predicate);
-    }
-    if let Some(predicate) = parse_visited_node_predicate(&text) {
-        return Some(predicate);
-    }
-    if let Some(predicate) = parse_equipment_count_predicate(&text) {
-        return Some(predicate);
-    }
-    if let Some(predicate) = parse_flagship_predicate(&text, ship_types, ships) {
-        return Some(predicate);
-    }
-    if let Some(predicate) =
-        parse_speed_qualified_selector_count_predicate(&text, ship_types, ships)
-    {
-        return Some(predicate);
-    }
-
-    if let Some(caps) = RE_LOS.captures(&text) {
-        let formula = caps
-            .name("formula")
-            .map(|value| normalize_text(value.as_str()))
-            .filter(|value| !value.is_empty());
-        let value = caps.name("value")?.as_str().parse::<i64>().ok()?;
-        return Some(RoutePredicate::LoS {
-            formula,
-            op: RouteOperator::Gte,
-            value,
-        });
-    }
-
-    if let Some(caps) = RE_DRUM_COUNT.captures(&text) {
-        return Some(RoutePredicate::DrumCanisterCount {
-            op: RouteOperator::Gte,
-            value: caps.name("count")?.as_str().parse::<i64>().ok()?,
-        });
-    }
-    if let Some(predicate) = parse_ship_type_contains_count_clause(&text, ship_types, ships) {
-        return Some(predicate);
-    }
-    if let Some((selector, op, value)) = parse_ship_selector_count_clause(&text, ship_types, ships)
-    {
-        return Some(match (selector.ship_types.is_empty(), selector.ship_ids.is_empty()) {
-            (false, true) => RoutePredicate::ShipTypeCount {
-                ship_types: selector.ship_types,
-                op,
-                value,
-            },
-            (true, false) | (false, false) => RoutePredicate::ShipSetCount {
-                ship_types: selector.ship_types,
-                ship_ids: selector.ship_ids,
-                op,
-                value,
-            },
-            (true, true) => return None,
-        });
-    }
-
-    if let Some(caps) = RE_FLEET_SIZE_LTE.captures(&text) {
-        return Some(RoutePredicate::FleetSize {
-            op: RouteOperator::Lte,
-            value: caps.name("count")?.as_str().parse::<i64>().ok()?,
-        });
-    }
-    if let Some(caps) = RE_FLEET_SIZE_GTE.captures(&text) {
-        return Some(RoutePredicate::FleetSize {
-            op: RouteOperator::Gte,
-            value: caps.name("count")?.as_str().parse::<i64>().ok()?,
-        });
-    }
-    if let Some(caps) = RE_FLEET_SIZE_EQ.captures(&text) {
-        return Some(RoutePredicate::FleetSize {
-            op: RouteOperator::Eq,
-            value: caps.name("count")?.as_str().parse::<i64>().ok()?,
-        });
-    }
-
-    if let Some(token) = text.strip_suffix("のみの艦隊") {
-        if let Some(selector) = resolve_route_selector(token, ship_types, ships) {
-            return predicate_for_only_selector(selector);
-        }
-        return ship_types.resolve(token).map(|ship_type| RoutePredicate::OnlyShipTypes {
-            ship_types: vec![ship_type],
-        });
-    }
-    if let Some(predicate) = parse_contains_predicate(&text, ship_types, ships) {
-        return Some(predicate);
-    }
-
-    if text.contains("最速統一") {
-        return Some(RoutePredicate::Speed {
-            class: SpeedClass::Fastest,
-        });
-    }
-    if text.contains("高速以上統一") {
-        return Some(RoutePredicate::Speed {
-            class: SpeedClass::Fast,
-        });
-    }
-    if text.contains("高速+以上統一") || text.contains("高速+統一") {
-        return Some(RoutePredicate::Speed {
-            class: SpeedClass::FastPlus,
-        });
-    }
-    if text.contains("高速+以上の統一") || text.contains("高速+の統一") {
-        return Some(RoutePredicate::Speed {
-            class: SpeedClass::FastPlus,
-        });
-    }
-    if text.contains("高速+統一") {
-        return Some(RoutePredicate::Speed {
-            class: SpeedClass::Fast,
-        });
-    }
-    if text.contains("高速統一") {
-        return Some(RoutePredicate::Speed {
-            class: SpeedClass::Fast,
-        });
-    }
-    if text.contains("低速艦を含む")
-        || text.contains("低速 を含む")
-        || text.contains("速力:低速を含む")
-        || text.contains("速力:低速 を含む")
-        || text.contains("速力:低速を含み")
-        || text.contains("速力:低速 を含み")
-        || text.contains("速力:低速 が含まれている")
-        || text.contains("低速 が含まれている")
-    {
-        return Some(RoutePredicate::Not(Box::new(RoutePredicate::Speed {
-            class: SpeedClass::Fast,
-        })));
-    }
-
-    if let Some(token) = text.strip_suffix("のみの艦隊")
-        && let Some(ship_types) = ship_types.resolve_group(token)
-    {
-        return Some(RoutePredicate::OnlyShipTypes {
-            ship_types,
-        });
-    }
-
-    if let Some((ship_types, op, value)) = parse_ship_type_count_clause(&text, ship_types) {
-        return Some(RoutePredicate::ShipTypeCount {
-            ship_types,
-            op,
-            value,
-        });
-    }
-    if let Some(ship_ids) = parse_specific_ship_id_list(&text, ships) {
-        return Some(super::combine_ship_id_predicates(ship_ids, RoutePredicate::And));
-    }
-
-    if let Some(ship_ids) = parse_specific_ship_list(&text, ships) {
-        return Some(RoutePredicate::ContainsShipId {
-            ship_ids,
-        });
-    }
-    ship_types.resolve_group(&text).map(|ship_types| RoutePredicate::ContainsShipType {
-        ship_types,
-    })
-}
-
-fn parse_contains_conjunction(
-    text: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    for suffix in ["を含み", "含み", "を含む", "含む"] {
-        let Some((left, right)) = text.split_once(suffix) else {
-            continue;
-        };
-        let right = right.trim();
-        if right.is_empty() {
-            continue;
-        }
-        return Some(RoutePredicate::And(vec![
-            parse_route_predicate(&format!("{left}{suffix}"), ship_types, ships)?,
-            parse_route_predicate(right, ship_types, ships)?,
-        ]));
-    }
-    None
-}
-
-fn parse_ship_type_contains_count_clause(
-    text: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    let text = normalize_contains_count_clause_text(text);
-    let caps = RE_SHIP_TYPE_CONTAINS_COUNT_CLAUSE.captures(&text)?;
-    let token = caps.name("name")?.as_str().trim_end_matches("から");
-    let selector = resolve_route_selector(token, ship_types, ships)?;
-    let value = caps.name("count")?.as_str().parse::<i64>().ok()?;
-    let positive = !text.ends_with("含まない");
-    let op = match caps.name("op").map(|value| value.as_str()) {
-        Some("以上") | None => RouteOperator::Gte,
-        Some("以下") => RouteOperator::Lte,
-        Some("ちょうど") | Some("過不足なく") => RouteOperator::Eq,
-        Some(_) => return None,
-    };
-    let predicate = match (selector.ship_types.is_empty(), selector.ship_ids.is_empty()) {
-        (false, true) => RoutePredicate::ShipTypeCount {
-            ship_types: selector.ship_types,
-            op,
-            value,
-        },
-        (true, false) | (false, false) => RoutePredicate::ShipSetCount {
-            ship_types: selector.ship_types,
-            ship_ids: selector.ship_ids,
-            op,
-            value,
-        },
-        (true, true) => return None,
-    };
-    if positive {
-        Some(predicate)
-    } else {
-        Some(RoutePredicate::Not(Box::new(predicate)))
-    }
-}
-
-fn normalize_contains_count_clause_text(text: &str) -> String {
-    let text = sanitize_route_text(text)
-        .replace("(過不足なく)", "過不足なく")
-        .replace("（過不足なく）", "過不足なく")
-        .replace("(ちょうど)", "ちょうど")
-        .replace("（ちょうど）", "ちょうど");
-    if let Some(caps) = RE_CONTAINS_COUNT_OP_BEFORE_COUNT.captures(&text) {
-        let name =
-            normalize_text(caps.name("name").map(|value| value.as_str()).unwrap_or_default());
-        let op = caps.name("op").map(|value| value.as_str()).unwrap_or_default();
-        let count = caps.name("count").map(|value| value.as_str()).unwrap_or_default();
-        let suffix = caps.name("suffix").map(|value| value.as_str()).unwrap_or_default();
-        if !name.is_empty() && !count.is_empty() && !suffix.is_empty() {
-            return format!("{name}{count}{op}を含{suffix}");
-        }
-    }
-    text
-}
-
-fn parse_contains_predicate(
-    text: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    for (suffix, negative) in [
-        ("を含まない", true),
-        ("含まない", true),
-        ("を含み", false),
-        ("含み", false),
-        ("を含む", false),
-        ("含む", false),
-    ] {
-        let Some(token) = text.strip_suffix(suffix).map(str::trim) else {
-            continue;
-        };
-        if token.is_empty() {
-            continue;
-        }
-
-        if let Some(predicate) = parse_named_pair_contains_predicate(token, negative, ships) {
-            return Some(predicate);
-        }
-        if let Some(ship_ids) = parse_specific_ship_id_list(token, ships) {
-            let predicate = super::combine_ship_id_predicates(ship_ids, RoutePredicate::And);
-            return Some(if negative {
-                RoutePredicate::Not(Box::new(predicate))
-            } else {
-                predicate
-            });
-        }
-
-        if let Some(base) = token.strip_suffix("以外").map(str::trim) {
-            let selector = resolve_route_selector(base, ship_types, ships)?;
-            let predicate = predicate_for_only_selector(selector)?;
-            return Some(RoutePredicate::Not(Box::new(predicate)));
-        }
-
-        if let Some(predicate) = parse_contains_selector_token(token, negative, ship_types, ships) {
-            return Some(predicate);
-        }
-
-        let selector = resolve_route_selector(token, ship_types, ships)?;
-        let predicate = predicate_for_contains_selector(selector)?;
-        return Some(if negative {
-            RoutePredicate::Not(Box::new(predicate))
-        } else {
-            predicate
-        });
-    }
-
-    None
-}
-
-fn parse_contains_selector_token(
-    token: &str,
-    negative: bool,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    let parts = token
-        .split(['、', ',', '，'])
-        .map(sanitize_route_text)
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>();
-    if parts.len() <= 1 {
-        let predicate = parse_contains_selector_part(token, ship_types, ships)?;
-        return Some(if negative {
-            RoutePredicate::Not(Box::new(predicate))
-        } else {
-            predicate
-        });
-    }
-
-    let predicates = parts
-        .into_iter()
-        .map(|part| parse_contains_selector_part(&part, ship_types, ships))
-        .collect::<Option<Vec<_>>>()?;
-    let predicate = if predicates.len() == 1 {
-        predicates.into_iter().next().unwrap_or(RoutePredicate::Always)
-    } else {
-        RoutePredicate::Or(predicates)
-    };
-    Some(if negative {
-        RoutePredicate::Not(Box::new(predicate))
-    } else {
-        predicate
-    })
-}
-
-fn parse_contains_selector_part(
-    token: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    let normalized = sanitize_route_text(token);
-    let speed_qualifier = normalized
-        .strip_prefix("(低速)")
-        .or_else(|| normalized.strip_prefix("（低速）"))
-        .or_else(|| normalized.strip_prefix("低速"))
-        .map(|base| (RouteOperator::Lte, SpeedClass::Slow, base));
-
-    if let Some((speed_op, speed_class, base)) = speed_qualifier {
-        let selector = resolve_route_selector(base, ship_types, ships)?;
-        return Some(RoutePredicate::ShipSetSpeedCount {
-            ship_types: selector.ship_types,
-            ship_ids: selector.ship_ids,
-            speed_op,
-            speed_class,
-            op: RouteOperator::Gte,
-            value: 1,
-        });
-    }
-
-    let selector = resolve_route_selector(&normalized, ship_types, ships)?;
-    predicate_for_contains_selector(selector)
-}
-
-fn parse_explicit_target(text: &str) -> Option<String> {
-    let normalized = strip_trailing_route_annotation(text);
-    RE_TARGET_SUFFIX
-        .captures(&normalized)
-        .and_then(|caps| caps.name("target"))
-        .map(|value| value.as_str().to_string())
-}
-
-fn parse_probability_target(text: &str) -> Option<String> {
-    RE_PROGRESS_TARGET
-        .captures(text)
-        .and_then(|caps| caps.name("target"))
-        .map(|value| value.as_str().to_string())
-}
-
-fn parse_clause_target(text: &str) -> Option<String> {
-    extract_targeted_clauses(text).last().map(|(_, target)| target.clone())
-}
-
-fn parse_else_target(text: &str) -> Option<String> {
-    RE_ELSE_TARGET
-        .captures(&sanitize_route_text(text))
-        .and_then(|caps| caps.name("target"))
-        .map(|value| value.as_str().to_string())
-}
-
-fn strip_explicit_target(text: &str) -> String {
-    let normalized = strip_trailing_route_annotation(text);
-    RE_TARGET_SUFFIX.replace(&normalized, "").trim().to_string()
-}
-
-fn strip_trailing_route_annotation(text: &str) -> String {
-    let mut text = sanitize_route_text(text);
-    while let Some(caps) = RE_TRAILING_ROUTE_ANNOTATION.captures(&text) {
-        let body = caps.name("body").map(|value| value.as_str()).unwrap_or_default().trim();
-        if body.is_empty() {
-            break;
-        }
-        if ["かつ", "且つ", "または", "もしくは", "又は"]
-            .iter()
-            .any(|suffix| body.ends_with(suffix))
-        {
-            break;
-        }
-        text = body.to_string();
-    }
-    text
-}
-
-fn split_once_keyword_top_level<'a>(text: &'a str, needle: &str) -> Option<(&'a str, &'a str)> {
-    let mut depth = 0_i32;
-    for (idx, ch) in text.char_indices() {
-        match ch {
-            '(' | '（' => depth += 1,
-            ')' | '）' => depth = (depth - 1).max(0),
-            _ => {}
-        }
-        if depth == 0 && text[idx..].starts_with(needle) {
-            let left = text[..idx].trim();
-            let right = text[idx + needle.len()..].trim();
-            if !left.is_empty() && !right.is_empty() {
-                return Some((left, right));
-            }
-        }
-    }
-    None
-}
-
-fn trim_wrapping_parentheses(text: &str) -> Option<String> {
-    let text = text.trim();
-    let (open, close) = match (text.chars().next()?, text.chars().last()?) {
-        ('(', ')') => ('(', ')'),
-        ('（', '）') => ('（', '）'),
-        _ => return None,
-    };
-    let mut depth = 0_i32;
-    let chars = text.chars().collect::<Vec<_>>();
-    for (idx, ch) in chars.iter().enumerate() {
-        match ch {
-            c if *c == open => depth += 1,
-            c if *c == close => {
-                depth -= 1;
-                if depth == 0 && idx != chars.len() - 1 {
-                    return None;
-                }
-            }
-            _ => {}
-        }
-    }
-    (depth == 0).then(|| text[open.len_utf8()..text.len() - close.len_utf8()].trim().to_string())
-}
-
-fn parse_los_range_predicate(text: &str) -> Option<RoutePredicate> {
-    let caps = RE_LOS_RANGE
-        .captures(text)
-        .or_else(|| RE_LOS_RANGE_LTE.captures(text))
-        .or_else(|| RE_LOS_RANGE_BARE.captures(text))
-        .or_else(|| RE_LOS_RANGE_ALT.captures(text))
-        .or_else(|| RE_LOS_RANGE_LTE_BARE.captures(text))?;
-    let mut min = caps.name("min")?.as_str().parse::<i64>().ok()?;
-    let mut max = caps.name("max")?.as_str().parse::<i64>().ok()?;
-    if max < min {
-        std::mem::swap(&mut min, &mut max);
-    }
-    if max <= min {
-        return None;
-    }
-    Some(RoutePredicate::And(vec![
-        RoutePredicate::LoS {
-            formula: None,
-            op: RouteOperator::Gte,
-            value: min,
-        },
-        RoutePredicate::LoS {
-            formula: None,
-            op: RouteOperator::Lte,
-            value: max - 1,
-        },
-    ]))
-}
-
-fn parse_los_simple_predicate(text: &str) -> Option<RoutePredicate> {
-    if let Some(caps) = RE_LOS_GTE_SIMPLE.captures(text).or_else(|| RE_LOS_GTE_BARE.captures(text))
-    {
-        return Some(RoutePredicate::LoS {
-            formula: None,
-            op: RouteOperator::Gte,
-            value: caps.name("value")?.as_str().parse::<i64>().ok()?,
-        });
-    }
-    if let Some(caps) = RE_LOS_LTE_SIMPLE.captures(text).or_else(|| RE_LOS_LTE_BARE.captures(text))
-    {
-        return Some(RoutePredicate::LoS {
-            formula: None,
-            op: RouteOperator::Lte,
-            value: caps.name("value")?.as_str().parse::<i64>().ok()?,
-        });
-    }
-    if let Some(caps) = RE_LOS_LT_SIMPLE.captures(text).or_else(|| RE_LOS_LT_BARE.captures(text)) {
-        return Some(RoutePredicate::LoS {
-            formula: None,
-            op: RouteOperator::Lte,
-            value: caps.name("value")?.as_str().parse::<i64>().ok()?.saturating_sub(1),
-        });
-    }
-    None
-}
-
-fn parse_visited_node_predicate(text: &str) -> Option<RoutePredicate> {
-    if let Some(caps) = RE_VISITED_NODE_NEGATIVE.captures(text) {
-        return Some(RoutePredicate::VisitedNodeLabel {
-            node_labels: vec![caps.name("label")?.as_str().to_string()],
-            visited: false,
-        });
-    }
-    if let Some(caps) = RE_VISITED_NODE_POSITIVE.captures(text) {
-        return Some(RoutePredicate::VisitedNodeLabel {
-            node_labels: vec![caps.name("label")?.as_str().to_string()],
-            visited: true,
-        });
-    }
-    None
-}
-
-fn parse_equipment_count_predicate(text: &str) -> Option<RoutePredicate> {
-    let caps = RE_EQUIPMENT_COUNT.captures(text)?;
-    let slotitem_types = resolve_equipment_slotitem_types(caps.name("name")?.as_str())?;
-    let value = caps.name("count")?.as_str().parse::<i64>().ok()?;
-    let op = match caps.name("op").map(|value| value.as_str()) {
-        Some("以上") => RouteOperator::Gte,
-        Some("以下") => RouteOperator::Lte,
-        Some(_) => return None,
-        None => RouteOperator::Eq,
-    };
-    Some(RoutePredicate::EquipmentCount {
-        slotitem_types,
-        op,
-        value,
-    })
-}
-
-fn resolve_equipment_slotitem_types(text: &str) -> Option<Vec<i64>> {
-    match sanitize_route_text(text).as_str() {
-        "電探" => Some(vec![12, 13, 93]),
-        "小型電探" => Some(vec![12]),
-        "大型電探" | "大型電探II" | "大型電探（II）" => Some(vec![13, 93]),
-        _ => None,
-    }
-}
-
-fn parse_flagship_predicate(
-    text: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    let caps = RE_FLAGSHIP.captures(text)?;
-    let token = sanitize_route_text(caps.name("name")?.as_str());
-    if let Some(ship_types) = ship_types.resolve_group(&token) {
-        return Some(RoutePredicate::FlagshipShipType {
-            ship_types,
-        });
-    }
-    if let Some(ship_ids) = parse_specific_ship_list(&token, ships) {
-        return Some(RoutePredicate::FlagshipShipId {
-            ship_ids,
-        });
-    }
-    None
-}
-
-fn parse_speed_qualified_selector_count_predicate(
-    text: &str,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Option<RoutePredicate> {
-    let caps = RE_SPEED_QUALIFIED_COUNT.captures(text)?;
-    let (speed_op, speed_class) =
-        parse_speed_qualified_selector_prefix(caps.name("speed")?.as_str())?;
-    let selector = resolve_route_selector(caps.name("name")?.as_str(), ship_types, ships)?;
-    let value = caps.name("count")?.as_str().parse::<i64>().ok()?;
-    let op = match caps.name("op").map(|value| value.as_str()) {
-        Some("以上") => RouteOperator::Gte,
-        Some("以下") => RouteOperator::Lte,
-        Some("ちょうど") | Some("過不足なく") | None => RouteOperator::Eq,
-        Some(_) => return None,
-    };
-    Some(RoutePredicate::ShipSetSpeedCount {
-        ship_types: selector.ship_types,
-        ship_ids: selector.ship_ids,
-        speed_op,
-        speed_class,
-        op,
-        value,
-    })
-}
-
-fn parse_speed_qualified_selector_prefix(text: &str) -> Option<(RouteOperator, SpeedClass)> {
-    match sanitize_route_text(text).as_str() {
-        "低速" | "(低速)" | "（低速）" => Some((RouteOperator::Lte, SpeedClass::Slow)),
-        "高速" => Some((RouteOperator::Gte, SpeedClass::Fast)),
-        "高速+" | "高速＋" => Some((RouteOperator::Gte, SpeedClass::FastPlus)),
-        "最速" => Some((RouteOperator::Gte, SpeedClass::Fastest)),
-        _ => None,
-    }
-}
-
-pub(super) fn parse_target_random_route_condition_text(
+pub fn parse_target_random_route_condition_text(
     text: &str,
     ship_types: &ShipTypeResolver,
     ships: &ShipResolver,
@@ -2741,7 +1836,7 @@ fn parse_target_random_probabilities(
     }
 }
 
-pub(super) fn parse_row_target_random_bias_condition_text(
+pub fn parse_row_target_random_bias_condition_text(
     text: &str,
     row_target: &str,
     candidate_targets: &[String],
@@ -2804,7 +1899,7 @@ pub(super) fn parse_row_target_random_bias_condition_text(
     }
 }
 
-pub(super) fn parse_row_target_random_bias_shorthand_condition_text(
+pub fn parse_row_target_random_bias_shorthand_condition_text(
     text: &str,
     row_target: &str,
     candidate_targets: &[String],
@@ -2864,7 +1959,7 @@ fn parse_bias_probability(detail: Option<&str>) -> Option<f64> {
     Some(value)
 }
 
-pub(super) fn parse_conditional_random_route_condition_text(
+pub fn parse_conditional_random_route_condition_text(
     text: &str,
     candidate_targets: &[String],
     ship_types: &ShipTypeResolver,
@@ -2936,72 +2031,51 @@ fn route_rule_draft_key(draft: &RouteRuleDraft) -> String {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn parse_explicit_target(text: &str) -> Option<String> {
+    let normalized = strip_trailing_route_annotation(text);
+    RE_TARGET_SUFFIX
+        .captures(&normalized)
+        .and_then(|caps| caps.name("target"))
+        .map(|value| value.as_str().to_string())
+}
 
-    fn make_draft(from: &str, to: &str, probability_pct: Option<f64>) -> RouteRuleDraft {
-        RouteRuleDraft {
-            from_label: from.to_string(),
-            to_label: to.to_string(),
-            probability_pct,
-            predicate: RoutePredicate::Always,
-            raw_text: String::new(),
-            random_placeholder: false,
+fn parse_probability_target(text: &str) -> Option<String> {
+    RE_PROGRESS_TARGET
+        .captures(text)
+        .and_then(|caps| caps.name("target"))
+        .map(|value| value.as_str().to_string())
+}
+
+fn parse_clause_target(text: &str) -> Option<String> {
+    extract_targeted_clauses(text).last().map(|(_, target)| target.clone())
+}
+
+fn parse_else_target(text: &str) -> Option<String> {
+    RE_ELSE_TARGET
+        .captures(&sanitize_route_text(text))
+        .and_then(|caps| caps.name("target"))
+        .map(|value| value.as_str().to_string())
+}
+
+fn strip_explicit_target(text: &str) -> String {
+    let normalized = strip_trailing_route_annotation(text);
+    RE_TARGET_SUFFIX.replace(&normalized, "").trim().to_string()
+}
+
+fn strip_trailing_route_annotation(text: &str) -> String {
+    let mut text = sanitize_route_text(text);
+    while let Some(caps) = RE_TRAILING_ROUTE_ANNOTATION.captures(&text) {
+        let body = caps.name("body").map(|value| value.as_str()).unwrap_or_default().trim();
+        if body.is_empty() {
+            break;
         }
+        if ["かつ", "且つ", "または", "もしくは", "又は"]
+            .iter()
+            .any(|suffix| body.ends_with(suffix))
+        {
+            break;
+        }
+        text = body.to_string();
     }
-
-    #[test]
-    fn check_mixed_routing_encoding_emits_warning_for_mixed_cell() {
-        // One rule has probability_pct (probability encoding), one has None (weight encoding).
-        let rules = vec![
-            make_draft("A", "B", Some(50.0)), // probability encoding
-            make_draft("A", "C", None),       // weight encoding
-        ];
-        let mut warnings = Vec::new();
-        check_mixed_routing_encoding(&rules, &mut warnings);
-        assert!(
-            warnings.iter().any(|w| w == "mixed_routing_encoding_cell_A"),
-            "expected mixed_routing_encoding_cell_A, got: {warnings:?}"
-        );
-    }
-
-    #[test]
-    fn check_mixed_routing_encoding_no_warning_when_all_probability() {
-        let rules = vec![make_draft("B", "C", Some(60.0)), make_draft("B", "D", Some(40.0))];
-        let mut warnings = Vec::new();
-        check_mixed_routing_encoding(&rules, &mut warnings);
-        assert!(
-            !warnings.iter().any(|w| w.contains("mixed_routing_encoding")),
-            "unexpected warning: {warnings:?}"
-        );
-    }
-
-    #[test]
-    fn check_mixed_routing_encoding_no_warning_when_all_weight() {
-        let rules = vec![make_draft("C", "D", None), make_draft("C", "E", None)];
-        let mut warnings = Vec::new();
-        check_mixed_routing_encoding(&rules, &mut warnings);
-        assert!(
-            !warnings.iter().any(|w| w.contains("mixed_routing_encoding")),
-            "unexpected warning: {warnings:?}"
-        );
-    }
-
-    #[test]
-    fn check_mixed_routing_encoding_different_cells_no_cross_contamination() {
-        // Cell A: uniform probability, Cell B: uniform weight — no mixing per cell.
-        let rules = vec![
-            make_draft("A", "X", Some(70.0)),
-            make_draft("A", "Y", Some(30.0)),
-            make_draft("B", "X", None),
-            make_draft("B", "Z", None),
-        ];
-        let mut warnings = Vec::new();
-        check_mixed_routing_encoding(&rules, &mut warnings);
-        assert!(
-            !warnings.iter().any(|w| w.contains("mixed_routing_encoding")),
-            "unexpected warning: {warnings:?}"
-        );
-    }
+    text
 }

@@ -343,7 +343,7 @@ fn parse_map_page(
         let mut route_rules = parse_route_table(&section.rows, ship_types, ships, &mut warnings)?;
         postprocess_route_probabilities(&mut route_rules);
         check_mixed_routing_encoding(&route_rules, &mut warnings);
-        let enemy_nodes = filter_enemy_nodes_for_route_rules(&route_rules, &enemy_nodes);
+        let enemy_nodes = enemy_nodes.clone();
         let nodes = build_nodes(&route_rules, &enemy_nodes);
         let node_to_cell =
             nodes.iter().map(|node| (node.label.clone(), node.cell_no)).collect::<BTreeMap<_, _>>();

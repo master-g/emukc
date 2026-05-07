@@ -411,10 +411,16 @@ where
         return Ok(vec![]);
     }
 
+    let records = map_record::Entity::find()
+        .filter(map_record::Column::ProfileId.eq(profile_id))
+        .filter(map_record::Column::MapId.is_in(dependents.iter().copied()))
+        .all(c)
+        .await?;
+
     let mut newly_unlocked = Vec::new();
-    for dep_id in dependents {
-        let record = find_map_record_impl(c, profile_id, dep_id).await?;
+    for record in records {
         if !record.unlocked {
+            let dep_id = record.map_id;
             let mut am = record.into_active_model();
             am.unlocked = ActiveValue::Set(true);
             am.update(c).await?;

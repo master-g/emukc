@@ -8,6 +8,7 @@ mod assemble;
 mod kcdata;
 mod report;
 mod sources;
+#[cfg(test)]
 mod verify;
 
 pub use report::{MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource};

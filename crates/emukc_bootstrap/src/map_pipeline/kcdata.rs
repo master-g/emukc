@@ -6,9 +6,10 @@ use std::{
 
 use emukc_model::{
     codex::map::{
-        MapCatalog, MapCellDefinition, MapDefinition, MapResetPolicy, MapVariantDefinition,
+        MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, extract_max_hp,
+        split_map_id,
     },
-    kc2::start2::{ApiManifest, ApiMstMapinfo},
+    kc2::start2::ApiManifest,
 };
 use serde::Deserialize;
 use serde_yaml::Deserializer;
@@ -89,31 +90,20 @@ pub(super) fn load_map_catalog_from_kcdata_root(
             continue;
         };
 
-        let (maparea_id, mapinfo_no) = split_map_id(parsed.id);
+        let (maparea_id, _mapinfo_no) = split_map_id(parsed.id);
         let manifest_map =
             manifest.api_mst_mapinfo.iter().find(|map| map.api_id == parsed.id).cloned();
-        let entry = catalog.maps.entry(parsed.id).or_insert_with(|| MapDefinition {
-            map_id: parsed.id,
-            maparea_id,
-            mapinfo_no,
-            name: parsed.name.clone(),
-            level: manifest_map.as_ref().map(|map| map.api_level).unwrap_or(1),
-            sally_flag: manifest_map
-                .as_ref()
-                .map(|map| map.api_sally_flag.clone())
-                .unwrap_or_default(),
-            is_event: maparea_id > 7,
-            reset_policy: MapResetPolicy::Never,
-            airbase_count: None,
-            gauge_type: None,
-            gauge_count: None,
-            required_defeat_count: manifest_map
-                .as_ref()
-                .and_then(|map| map.api_required_defeat_count),
-            max_hp: manifest_map.as_ref().and_then(extract_max_hp),
-            default_variant: String::new(),
-            rank_stage_ids: BTreeMap::new(),
-            variants: BTreeMap::new(),
+        let entry = catalog.maps.entry(parsed.id).or_insert_with(|| {
+            let mut def = MapDefinition::minimal(parsed.id);
+            def.name = parsed.name.clone();
+            def.level = manifest_map.as_ref().map(|map| map.api_level).unwrap_or(1);
+            def.sally_flag =
+                manifest_map.as_ref().map(|map| map.api_sally_flag.clone()).unwrap_or_default();
+            def.is_event = maparea_id > 7;
+            def.required_defeat_count =
+                manifest_map.as_ref().and_then(|map| map.api_required_defeat_count);
+            def.max_hp = manifest_map.as_ref().and_then(extract_max_hp);
+            def
         });
 
         entry.name = parsed.name.clone();
@@ -121,23 +111,6 @@ pub(super) fn load_map_catalog_from_kcdata_root(
     }
 
     Ok((catalog, kcdata_parse_errors))
-}
-
-fn split_map_id(map_id: i64) -> (i64, i64) {
-    (map_id / 10, map_id % 10)
-}
-
-fn extract_max_hp(map: &ApiMstMapinfo) -> Option<i64> {
-    match map.api_max_maphp.as_ref()? {
-        serde_json::Value::Number(value) => value.as_i64(),
-        serde_json::Value::String(value) => value.parse::<i64>().ok(),
-        serde_json::Value::Array(values) => values.first().and_then(|value| match value {
-            serde_json::Value::Number(number) => number.as_i64(),
-            serde_json::Value::String(string) => string.parse::<i64>().ok(),
-            _ => None,
-        }),
-        _ => None,
-    }
 }
 
 fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {

@@ -5,7 +5,7 @@ use std::{fs::create_dir, sync::Arc};
 use anyhow::bail;
 use emukc_internal::{
     db::sea_orm::DbConn,
-    prelude::{Codex, HasContext, Kache, SortieRepository, SortieStore, prepare},
+    prelude::{Codex, HasContext, Kache, SortieStore, prepare},
 };
 
 use crate::cfg::AppConfig;
@@ -83,7 +83,7 @@ impl HasContext for State {
         self.codex.as_ref()
     }
 
-    fn sortie_store(&self) -> &dyn SortieRepository {
+    fn sortie_store(&self) -> &SortieStore {
         self.sortie_store.as_ref()
     }
 }

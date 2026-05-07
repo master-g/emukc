@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use emukc_model::{
     codex::map::{MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition},
@@ -35,7 +36,7 @@ pub(super) struct ResolvedMapSources {
 
 pub(super) fn load_explicit_source_set(
     data_root: &Path,
-    _manifest: &ApiManifest,
+    manifest: &ApiManifest,
     wikiwiki_catalog: Option<MapCatalog>,
 ) -> Result<ResolvedMapSources, ParseError> {
     let wikiwiki_map_count =
@@ -43,7 +44,7 @@ pub(super) fn load_explicit_source_set(
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
     let public_overlay_map_count = public_overlay_catalog.maps.len();
     let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
-    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, _manifest);
+    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest);
 
     Ok(ResolvedMapSources {
         wikiwiki_source: if wikiwiki_catalog.is_some() {
@@ -65,7 +66,7 @@ pub(super) fn load_explicit_source_set(
 
 pub(super) fn load_repo_source_set(
     data_root: &Path,
-    _manifest: &ApiManifest,
+    manifest: &ApiManifest,
 ) -> Result<ResolvedMapSources, ParseError> {
     let (wikiwiki_source, wikiwiki_catalog) = load_repo_wikiwiki_map_catalog()?;
     let wikiwiki_map_count =
@@ -73,7 +74,7 @@ pub(super) fn load_repo_source_set(
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
     let public_overlay_map_count = public_overlay_catalog.maps.len();
     let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
-    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, _manifest);
+    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest);
 
     Ok(ResolvedMapSources {
         wikiwiki_source,
@@ -145,7 +146,10 @@ fn load_kcdata_map_catalog(
     match super::kcdata::load_map_catalog_from_kcdata_root(kcdata_root, manifest) {
         Ok((catalog, parse_errors)) if !catalog.maps.is_empty() => (Some(catalog), parse_errors),
         Ok((_, parse_errors)) => (None, parse_errors),
-        Err(_) => (None, 0),
+        Err(e) => {
+            tracing::warn!("failed to load kcdata map catalog: {e}");
+            (None, 0)
+        }
     }
 }
 
@@ -200,8 +204,12 @@ fn download_stat_json(_cache_path: &Path) -> Result<String, String> {
     rt.block_on(async {
         let client = emukc_network::client::new_reqwest_client(None, None)
             .map_err(|e| format!("client create: {e}"))?;
-        let resp =
-            client.get(STAT_JSON_URL).send().await.map_err(|e| format!("download: {e}"))?;
+        let resp = client
+            .get(STAT_JSON_URL)
+            .timeout(Duration::from_secs(30))
+            .send()
+            .await
+            .map_err(|e| format!("download: {e}"))?;
         if !resp.status().is_success() {
             return Err(format!("http {}", resp.status()));
         }
@@ -249,44 +257,24 @@ fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
             });
         }
 
-        let maparea_id = map_id / 10;
-        let mapinfo_no = map_id % 10;
-        catalog.maps.insert(
-            map_id,
-            MapDefinition {
-                map_id,
-                maparea_id,
-                mapinfo_no,
-                name: String::new(),
-                level: 0,
-                sally_flag: Vec::new(),
-                is_event: false,
-                reset_policy: Default::default(),
-                airbase_count: None,
-                gauge_type: None,
-                gauge_count: None,
+        let mut def = MapDefinition::minimal(map_id);
+        def.variants = [(
+            String::new(),
+            MapVariantDefinition {
+                variant_key: String::new(),
+                boss_cell_no: 0,
+                cells: variant_cells,
+                routing_rules: Default::default(),
+                enemy_fleets: Default::default(),
+                ship_drops: Default::default(),
                 required_defeat_count: None,
-                max_hp: None,
-                default_variant: String::new(),
-                rank_stage_ids: Default::default(),
-                variants: [(
-                    String::new(),
-                    MapVariantDefinition {
-                        variant_key: String::new(),
-                        boss_cell_no: 0,
-                        cells: variant_cells,
-                        routing_rules: Default::default(),
-                        enemy_fleets: Default::default(),
-                        ship_drops: Default::default(),
-                        required_defeat_count: None,
-                        clear_to_variant_key: None,
-                        parse_warnings: Vec::new(),
-                    },
-                )]
-                .into_iter()
-                .collect(),
+                clear_to_variant_key: None,
+                parse_warnings: Vec::new(),
             },
-        );
+        )]
+        .into_iter()
+        .collect();
+        catalog.maps.insert(map_id, def);
     }
 
     Ok(catalog)

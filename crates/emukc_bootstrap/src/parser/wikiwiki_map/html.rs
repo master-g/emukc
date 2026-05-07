@@ -255,7 +255,8 @@ mod tests {
 
     #[test]
     fn table_to_grid_colspan_expands_horizontally() {
-        let html = r#"<table><tr><td colspan="2">wide</td></tr><tr><td>A</td><td>B</td></tr></table>"#;
+        let html =
+            r#"<table><tr><td colspan="2">wide</td></tr><tr><td>A</td><td>B</td></tr></table>"#;
         let grid = parse_html_table(html);
         assert_eq!(grid.len(), 2);
         assert_eq!(grid[0], vec!["wide", "wide"]);

@@ -100,7 +100,10 @@ pub async fn download_wikiwiki_map_with_options(
         .collect::<Vec<_>>();
     let excluded = total - map_names.len();
     if excluded > 0 {
-        info!("excluded {excluded} event map(s) outside areas 1-7, {total} total → {} regular", map_names.len());
+        info!(
+            "excluded {excluded} event map(s) outside areas 1-7, {total} total → {} regular",
+            map_names.len()
+        );
     }
     map_names.sort();
     map_names.dedup();

@@ -1,3 +1,4 @@
+use super::split_map_id;
 use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Deserializer as SerdeDeserializer, Serialize, Serializer};
@@ -54,6 +55,33 @@ pub struct MapDefinition {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub rank_stage_ids: BTreeMap<i64, String>,
     pub variants: BTreeMap<String, MapVariantDefinition>,
+}
+
+impl MapDefinition {
+    /// Create a minimal [`MapDefinition`] with all fields set to defaults/empty.
+    ///
+    /// `maparea_id` and `mapinfo_no` are derived from `map_id` via integer division.
+    pub fn minimal(map_id: i64) -> Self {
+        let (maparea_id, mapinfo_no) = split_map_id(map_id);
+        Self {
+            map_id,
+            maparea_id,
+            mapinfo_no,
+            name: String::new(),
+            level: 0,
+            sally_flag: Vec::new(),
+            is_event: false,
+            reset_policy: MapResetPolicy::default(),
+            airbase_count: None,
+            gauge_type: None,
+            gauge_count: None,
+            required_defeat_count: None,
+            max_hp: None,
+            default_variant: String::new(),
+            rank_stage_ids: BTreeMap::new(),
+            variants: BTreeMap::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -125,23 +125,11 @@ fn merge_capture_into_overlay(
     stage_id: &str,
     capture: &CapturedMapStart,
 ) -> Result<(), String> {
-    let overlay_definition = overlay.maps.entry(capture.map_id).or_insert_with(|| MapDefinition {
-        map_id: definition.map_id,
-        maparea_id: definition.maparea_id,
-        mapinfo_no: definition.mapinfo_no,
-        name: String::new(),
-        level: 0,
-        sally_flag: Vec::new(),
-        is_event: false,
-        reset_policy: Default::default(),
-        airbase_count: None,
-        gauge_type: None,
-        gauge_count: None,
-        required_defeat_count: None,
-        max_hp: None,
-        default_variant: String::new(),
-        rank_stage_ids: BTreeMap::new(),
-        variants: BTreeMap::new(),
+    let overlay_definition = overlay.maps.entry(capture.map_id).or_insert_with(|| {
+        let mut def = MapDefinition::minimal(definition.map_id);
+        def.maparea_id = definition.maparea_id;
+        def.mapinfo_no = definition.mapinfo_no;
+        def
     });
     let stage = overlay_definition.variants.entry(stage_id.to_string()).or_insert_with(|| {
         MapVariantDefinition {
@@ -211,4 +199,416 @@ fn merge_capture_into_overlay(
 
     stage.cells = cells.into_values().collect();
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::map_overlay::capture::CapturedMapCell;
+
+    fn definition_1_1() -> MapDefinition {
+        MapDefinition {
+            map_id: 11,
+            maparea_id: 1,
+            mapinfo_no: 1,
+            name: "1-1".to_string(),
+            level: 1,
+            sally_flag: vec![],
+            is_event: false,
+            reset_policy: Default::default(),
+            airbase_count: None,
+            gauge_type: None,
+            gauge_count: None,
+            required_defeat_count: None,
+            max_hp: None,
+            default_variant: String::new(),
+            rank_stage_ids: BTreeMap::new(),
+            variants: BTreeMap::from([(
+                String::new(),
+                MapVariantDefinition {
+                    variant_key: String::new(),
+                    boss_cell_no: 3,
+                    cells: vec![
+                        emukc_model::codex::map::MapCellDefinition {
+                            cell_no: 0,
+                            color_no: 0,
+                            event_id: 0,
+                            event_kind: 0,
+                            next_cells: vec![1],
+                            node_label: Some("Start".to_string()),
+                            master_cell_id: None,
+                            distance: None,
+                        },
+                        emukc_model::codex::map::MapCellDefinition {
+                            cell_no: 1,
+                            color_no: 4,
+                            event_id: 4,
+                            event_kind: 1,
+                            next_cells: vec![2, 3],
+                            node_label: None,
+                            master_cell_id: None,
+                            distance: None,
+                        },
+                        emukc_model::codex::map::MapCellDefinition {
+                            cell_no: 2,
+                            color_no: 4,
+                            event_id: 4,
+                            event_kind: 1,
+                            next_cells: vec![],
+                            node_label: None,
+                            master_cell_id: None,
+                            distance: None,
+                        },
+                        emukc_model::codex::map::MapCellDefinition {
+                            cell_no: 3,
+                            color_no: 5,
+                            event_id: 5,
+                            event_kind: 1,
+                            next_cells: vec![],
+                            node_label: None,
+                            master_cell_id: None,
+                            distance: None,
+                        },
+                    ],
+                    routing_rules: BTreeMap::new(),
+                    enemy_fleets: BTreeMap::new(),
+                    ship_drops: BTreeMap::new(),
+                    required_defeat_count: None,
+                    clear_to_variant_key: None,
+                    parse_warnings: Vec::new(),
+                },
+            )]),
+        }
+    }
+
+    // --- infer_event_from_color ---
+
+    #[test]
+    fn infer_event_from_color_zero_gives_zero_zero() {
+        assert_eq!(infer_event_from_color(0), (0, 0));
+    }
+
+    #[test]
+    fn infer_event_from_color_two_gives_battle_kind_zero() {
+        assert_eq!(infer_event_from_color(2), (2, 0));
+    }
+
+    #[test]
+    fn infer_event_from_color_three_gives_kind_zero() {
+        assert_eq!(infer_event_from_color(3), (3, 0));
+    }
+
+    #[test]
+    fn infer_event_from_color_four_gives_kind_one() {
+        assert_eq!(infer_event_from_color(4), (4, 1));
+    }
+
+    #[test]
+    fn infer_event_from_color_five_gives_kind_one() {
+        assert_eq!(infer_event_from_color(5), (5, 1));
+    }
+
+    #[test]
+    fn infer_event_from_color_six_and_above_gives_kind_one() {
+        assert_eq!(infer_event_from_color(6), (6, 1));
+        assert_eq!(infer_event_from_color(10), (10, 1));
+        assert_eq!(infer_event_from_color(99), (99, 1));
+    }
+
+    #[test]
+    fn infer_event_from_color_negative_and_one_gives_zero_zero() {
+        assert_eq!(infer_event_from_color(-1), (0, 0));
+        assert_eq!(infer_event_from_color(1), (0, 0));
+    }
+
+    // --- merge_capture_into_overlay ---
+
+    #[test]
+    fn merge_capture_creates_new_stage_in_overlay() {
+        let definition = definition_1_1();
+        let mut overlay = MapCatalog::default();
+        let capture = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![
+                CapturedMapCell {
+                    cell_no: 0,
+                    master_cell_id: 100,
+                    color_no: 2,
+                    distance: None,
+                },
+                CapturedMapCell {
+                    cell_no: 1,
+                    master_cell_id: 101,
+                    color_no: 4,
+                    distance: Some(1),
+                },
+                CapturedMapCell {
+                    cell_no: 3,
+                    master_cell_id: 102,
+                    color_no: 5,
+                    distance: Some(2),
+                },
+            ],
+        };
+
+        let result = merge_capture_into_overlay(&mut overlay, &definition, "", &capture);
+        assert!(result.is_ok());
+
+        let overlay_def = overlay.maps.get(&11).expect("map should exist in overlay");
+        let stage = overlay_def.variants.get("").expect("default stage should exist");
+        assert_eq!(stage.boss_cell_no, 3);
+        assert_eq!(stage.cells.len(), 3);
+        assert_eq!(stage.cell(0).unwrap().master_cell_id, Some(100));
+        assert_eq!(stage.cell(1).unwrap().master_cell_id, Some(101));
+        assert_eq!(stage.cell(1).unwrap().distance, Some(1));
+    }
+
+    #[test]
+    fn merge_capture_merges_cells_into_existing_stage() {
+        let definition = definition_1_1();
+        let mut overlay = MapCatalog::default();
+
+        // First capture: only cells 0 and 1
+        let capture1 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![
+                CapturedMapCell {
+                    cell_no: 0,
+                    master_cell_id: 100,
+                    color_no: 2,
+                    distance: None,
+                },
+                CapturedMapCell {
+                    cell_no: 1,
+                    master_cell_id: 101,
+                    color_no: 4,
+                    distance: Some(1),
+                },
+            ],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture1).unwrap();
+
+        // Second capture: cell 3 new + cell 1 already known (should merge distance)
+        let capture2 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![
+                CapturedMapCell {
+                    cell_no: 1,
+                    master_cell_id: 101,
+                    color_no: 4,
+                    distance: Some(1),
+                },
+                CapturedMapCell {
+                    cell_no: 3,
+                    master_cell_id: 102,
+                    color_no: 5,
+                    distance: Some(2),
+                },
+            ],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture2).unwrap();
+
+        let stage = overlay.maps[&11].variants.get("").unwrap();
+        assert_eq!(stage.cells.len(), 3);
+        assert_eq!(stage.cell(1).unwrap().distance, Some(1));
+        assert_eq!(stage.cell(3).unwrap().master_cell_id, Some(102));
+    }
+
+    #[test]
+    fn merge_capture_rejects_conflicting_master_cell_id() {
+        let definition = definition_1_1();
+        let mut overlay = MapCatalog::default();
+
+        let capture1 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 2,
+                distance: None,
+            }],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture1).unwrap();
+
+        let capture2 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 999,
+                color_no: 2,
+                distance: None,
+            }],
+        };
+        let result = merge_capture_into_overlay(&mut overlay, &definition, "", &capture2);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("conflicting_master_cell_id"));
+    }
+
+    #[test]
+    fn merge_capture_rejects_conflicting_distance() {
+        let definition = definition_1_1();
+        let mut overlay = MapCatalog::default();
+
+        let capture1 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 2,
+                distance: Some(5),
+            }],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture1).unwrap();
+
+        let capture2 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 2,
+                distance: Some(3),
+            }],
+        };
+        let result = merge_capture_into_overlay(&mut overlay, &definition, "", &capture2);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("conflicting_distance"));
+    }
+
+    #[test]
+    fn merge_capture_preserves_existing_distance_when_capture_missing() {
+        let definition = definition_1_1();
+        let mut overlay = MapCatalog::default();
+
+        let capture1 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 2,
+                distance: Some(5),
+            }],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture1).unwrap();
+
+        // Second capture has no distance for cell 0
+        let capture2 = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 2,
+                distance: None,
+            }],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture2).unwrap();
+
+        let cell = overlay.maps[&11].variants[""].cell(0).unwrap();
+        assert_eq!(cell.distance, Some(5));
+    }
+
+    #[test]
+    fn merge_capture_fills_color_from_capture_when_existing_is_zero() {
+        let definition = definition_1_1();
+        let mut overlay = MapCatalog::default();
+
+        let capture = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 4,
+                distance: None,
+            }],
+        };
+        merge_capture_into_overlay(&mut overlay, &definition, "", &capture).unwrap();
+
+        let cell = overlay.maps[&11].variants[""].cell(0).unwrap();
+        assert_eq!(cell.color_no, 4);
+        assert_eq!(cell.event_id, 4);
+        assert_eq!(cell.event_kind, 1);
+    }
+
+    // --- build_public_map_catalog_overlay_from_captures ---
+
+    #[test]
+    fn build_overlay_rejects_err_captures() {
+        let catalog = MapCatalog::default();
+        let captures = vec![("bad_source".to_string(), Err("parse_error".to_string()))];
+
+        let output = build_public_map_catalog_overlay_from_captures(&catalog, 1, captures);
+
+        assert_eq!(output.report.accepted_records.len(), 0);
+        assert_eq!(output.report.rejected_records.len(), 1);
+        assert_eq!(output.report.rejected_records[0].reason, "parse_error");
+    }
+
+    #[test]
+    fn build_overlay_rejects_unknown_map_id() {
+        let catalog = MapCatalog::default();
+        let capture = CapturedMapStart {
+            map_id: 9999,
+            boss_cell_no: 1,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 1,
+                color_no: 2,
+                distance: None,
+            }],
+        };
+        let captures = vec![("source".to_string(), Ok(capture))];
+
+        let output = build_public_map_catalog_overlay_from_captures(&catalog, 1, captures);
+
+        assert_eq!(output.report.accepted_records.len(), 0);
+        assert_eq!(output.report.rejected_records.len(), 1);
+        assert_eq!(output.report.rejected_records[0].reason, "map_not_found");
+    }
+
+    #[test]
+    fn build_overlay_reports_uncovered_stages() {
+        let mut catalog = MapCatalog::default();
+        catalog.maps.insert(11, definition_1_1());
+
+        let capture = CapturedMapStart {
+            map_id: 11,
+            boss_cell_no: 3,
+            request_path: None,
+            cells: vec![CapturedMapCell {
+                cell_no: 0,
+                master_cell_id: 100,
+                color_no: 2,
+                distance: None,
+            }],
+        };
+        let captures = vec![("source".to_string(), Ok(capture))];
+
+        let output = build_public_map_catalog_overlay_from_captures(&catalog, 1, captures);
+
+        assert_eq!(output.report.known_map_count, 1);
+        assert_eq!(output.report.known_stage_count, 1);
+        assert_eq!(output.report.covered_stage_count, 1);
+        assert_eq!(output.report.covered_map_count, 1);
+        assert!(output.report.uncovered_stages.is_empty());
+    }
 }
