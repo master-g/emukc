@@ -186,6 +186,10 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 }
 
 fn route_node_key(node: &KcDataNode) -> Option<String> {
+    // Note: This function always returns Some(...) because KcDataNode is an
+    // exhaustive enum with only Int and String variants, both of which convert
+    // to String. The Option return type exists for API consistency, but None
+    // is impossible with the current type definition.
     match node {
         KcDataNode::Int(value) => Some(value.to_string()),
         KcDataNode::String(value) => Some(value.clone()),
