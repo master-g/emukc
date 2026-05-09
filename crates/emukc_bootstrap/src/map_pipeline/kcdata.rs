@@ -48,6 +48,15 @@ enum KcDataNode {
     String(String),
 }
 
+/// Boss cell appearance: red node, boss battle event.
+const BOSS_CELL: (i64, i64, i64) = (5, 5, 1);
+
+/// Regular battle cell appearance: orange node, normal battle event.
+const BATTLE_CELL: (i64, i64, i64) = (4, 4, 1);
+
+/// Empty/resource cell appearance: blue node, non-battle event.
+const EMPTY_CELL: (i64, i64, i64) = (6, 1, 0);
+
 pub(super) fn load_map_catalog_from_kcdata_root(
     kcdata_root: impl AsRef<Path>,
     manifest: &ApiManifest,
@@ -131,11 +140,11 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 
         let (color_no, event_id, event_kind) = if is_boss {
             boss_cell_no = route_id;
-            (5, 5, 1)
+            BOSS_CELL
         } else if has_battle {
-            (4, 4, 1)
+            BATTLE_CELL
         } else {
-            (6, 1, 0)
+            EMPTY_CELL
         };
 
         // next_cells = route IDs departing from this route's target node
