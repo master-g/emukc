@@ -405,6 +405,37 @@ data:
         }
     }
 
+    #[test]
+    fn build_variant_from_kcdata_with_no_boss_routes_produces_boss_cell_no_zero() {
+        let raw = r#"---
+layout: json
+order: 77
+data:
+  id: 77
+  name: No Boss Map
+  routes:
+    0:
+      from: null
+      to: A
+    1:
+      from: A
+      to: B
+  cells:
+    A:
+      name: Node A
+      boss: false
+    B:
+      name: Node B
+      boss: false
+---"#;
+        let data = parse_kcdata_map(raw);
+
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 2, "should create cells for both routes");
+        assert_eq!(variant.boss_cell_no, 0, "boss_cell_no should remain 0 when no boss exists");
+    }
+
     // ------------------------------------------------------------------ parse-error surfacing
 
     /// A corrupt YAML file increments the parse-error counter while valid siblings are still loaded.
