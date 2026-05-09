@@ -1,8 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use emukc_model::{
     codex::map::{
@@ -114,85 +110,27 @@ pub(super) fn load_map_catalog_from_kcdata_root(
 }
 
 fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
-    let actual_node_keys = data.cells.keys().cloned().collect::<BTreeSet<_>>();
-    let route_graph = data
-        .routes
-        .values()
-        .filter_map(|route| {
-            route.from.as_ref().and_then(route_node_key).zip(route_node_key(&route.to))
-        })
-        .collect::<Vec<_>>();
-    let route_targets =
-        route_graph.iter().fold(BTreeMap::<String, Vec<String>>::new(), |mut acc, (from, to)| {
-            acc.entry(from.clone()).or_default().push(to.clone());
-            acc
-        });
-    let mut assigned_numbers = BTreeMap::new();
-    let mut used_numbers = BTreeSet::new();
-    for key in &actual_node_keys {
-        if let Ok(value) = key.parse::<i64>()
-            && value >= 0
-        {
-            assigned_numbers.insert(key.to_string(), value);
-            used_numbers.insert(value);
+    // Pre-compute: for each node, which routes depart from it?
+    let mut routes_from_node: BTreeMap<String, Vec<i64>> = BTreeMap::new();
+    for (&route_id, route) in &data.routes {
+        if let Some(from_key) = route.from.as_ref().and_then(route_node_key) {
+            routes_from_node.entry(from_key).or_default().push(route_id);
         }
     }
 
-    let mut next_no = 1_i64;
-    for key in ordered_kcdata_nodes(data) {
-        if !actual_node_keys.contains(&key) {
-            continue;
-        }
-        if assigned_numbers.contains_key(&key) {
-            continue;
-        }
-        while used_numbers.contains(&next_no) {
-            next_no += 1;
-        }
-        assigned_numbers.insert(key, next_no);
-        used_numbers.insert(next_no);
-        next_no += 1;
-    }
+    let mut cells = Vec::with_capacity(data.routes.len());
+    let mut boss_cell_no: i64 = 0;
 
-    let start_targets = resolve_kcdata_targets(
-        data.routes
-            .values()
-            .filter(|route| route.from.is_none())
-            .filter_map(|route| route_node_key(&route.to))
-            .collect::<Vec<_>>(),
-        &actual_node_keys,
-        &route_targets,
-        &assigned_numbers,
-    );
+    for (&route_id, route) in &data.routes {
+        let target_key = route_node_key(&route.to);
+        let is_start = route.from.is_none();
 
-    let mut cells = Vec::with_capacity(data.cells.len() + 1);
-    cells.push(MapCellDefinition {
-        cell_no: 0,
-        color_no: 0,
-        event_id: 0,
-        event_kind: 0,
-        next_cells: start_targets,
-        node_label: Some("Start".to_string()),
-        master_cell_id: None,
-        distance: None,
-    });
+        let cell_meta = target_key.as_ref().and_then(|key| data.cells.get(key));
+        let has_battle = cell_meta.is_some_and(|c| c.boss || !c.name.trim().is_empty());
+        let is_boss = cell_meta.is_some_and(|c| c.boss);
 
-    let mut boss_cell_no = 1;
-    for key in ordered_kcdata_nodes(data) {
-        if !actual_node_keys.contains(&key) {
-            continue;
-        }
-        let cell = data.cells.get(&key);
-        let cell_no = assigned_numbers[&key];
-        let next_cells = resolve_kcdata_targets(
-            route_targets.get(&key).cloned().unwrap_or_default(),
-            &actual_node_keys,
-            &route_targets,
-            &assigned_numbers,
-        );
-        let has_battle = cell.is_some_and(|cell| cell.boss || !cell.name.trim().is_empty());
-        let (color_no, event_id, event_kind) = if cell.is_some_and(|cell| cell.boss) {
-            boss_cell_no = cell_no;
+        let (color_no, event_id, event_kind) = if is_boss {
+            boss_cell_no = route_id;
             (5, 5, 1)
         } else if has_battle {
             (4, 4, 1)
@@ -200,13 +138,26 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
             (6, 1, 0)
         };
 
+        // next_cells = route IDs departing from this route's target node
+        let next_cells = target_key
+            .as_ref()
+            .and_then(|key| routes_from_node.get(key))
+            .cloned()
+            .unwrap_or_default();
+
+        let node_label = if is_start {
+            Some("Start".to_string())
+        } else {
+            target_key.clone()
+        };
+
         cells.push(MapCellDefinition {
-            cell_no,
+            cell_no: route_id,
             color_no,
             event_id,
             event_kind,
             next_cells,
-            node_label: Some(key.clone()),
+            node_label,
             master_cell_id: None,
             distance: None,
         });
@@ -225,85 +176,6 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
     }
 }
 
-fn collect_kcdata_nodes(data: &KcDataMapData) -> BTreeSet<String> {
-    let mut nodes = data.cells.keys().cloned().collect::<BTreeSet<_>>();
-    for route in data.routes.values() {
-        if let Some(from) = route.from.as_ref().and_then(route_node_key) {
-            nodes.insert(from);
-        }
-        if let Some(to) = route_node_key(&route.to) {
-            nodes.insert(to);
-        }
-    }
-    nodes
-}
-
-fn ordered_kcdata_nodes(data: &KcDataMapData) -> Vec<String> {
-    let mut ordered = Vec::new();
-    let mut seen = BTreeSet::new();
-    let mut queue = data
-        .routes
-        .values()
-        .filter(|route| route.from.is_none())
-        .filter_map(|route| route_node_key(&route.to))
-        .collect::<Vec<_>>();
-
-    while let Some(key) = queue.pop() {
-        if !seen.insert(key.clone()) {
-            continue;
-        }
-        ordered.push(key.clone());
-        for route in data.routes.values() {
-            if route.from.as_ref().and_then(route_node_key).as_ref() == Some(&key)
-                && let Some(next_key) = route_node_key(&route.to)
-            {
-                queue.insert(0, next_key);
-            }
-        }
-    }
-
-    for key in collect_kcdata_nodes(data) {
-        if seen.insert(key.clone()) {
-            ordered.push(key);
-        }
-    }
-
-    ordered
-}
-
-fn resolve_kcdata_targets(
-    start_keys: Vec<String>,
-    actual_node_keys: &BTreeSet<String>,
-    route_targets: &BTreeMap<String, Vec<String>>,
-    assigned_numbers: &BTreeMap<String, i64>,
-) -> Vec<i64> {
-    let mut resolved = Vec::new();
-    let mut visited = BTreeSet::new();
-    let mut stack = start_keys.into_iter().rev().collect::<Vec<_>>();
-
-    while let Some(key) = stack.pop() {
-        if !visited.insert(key.clone()) {
-            continue;
-        }
-        if actual_node_keys.contains(&key) {
-            if let Some(cell_no) = assigned_numbers.get(&key).copied()
-                && !resolved.contains(&cell_no)
-            {
-                resolved.push(cell_no);
-            }
-            continue;
-        }
-
-        if let Some(next_keys) = route_targets.get(&key) {
-            for next_key in next_keys.iter().rev() {
-                stack.push(next_key.clone());
-            }
-        }
-    }
-
-    resolved
-}
-
 fn route_node_key(node: &KcDataNode) -> Option<String> {
     match node {
         KcDataNode::Int(value) => Some(value.to_string()),
@@ -313,6 +185,8 @@ fn route_node_key(node: &KcDataNode) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::*;
 
     fn parse_kcdata_map(raw: &str) -> KcDataMapData {
@@ -325,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn build_variant_from_kcdata_skips_route_only_numeric_placeholders() {
+    fn build_variant_from_kcdata_produces_route_based_cells() {
         let raw = r#"---
 layout: json
 order: 11
@@ -395,15 +269,16 @@ data:
 
             assert_eq!(
                 variant.cells.len(),
-                data.cells.len() + 1,
-                "{} produced unexpected cell count",
-                path.display()
+                data.routes.len(),
+                "{} produced unexpected cell count (expected {} routes, got {} cells)",
+                path.display(),
+                data.routes.len(),
+                variant.cells.len()
             );
-            assert!(
-                cell_nos.contains(&0),
-                "{} is missing the synthetic start cell",
-                path.display()
-            );
+
+            // Verify cell_nos match route IDs exactly
+            let route_ids = data.routes.keys().copied().collect::<BTreeSet<_>>();
+            assert_eq!(cell_nos, route_ids, "{} cell_nos don't match route IDs", path.display());
 
             for cell in &variant.cells {
                 for next in &cell.next_cells {
@@ -420,7 +295,7 @@ data:
     }
 
     #[test]
-    fn build_variant_from_all_repo_kcdata_maps_preserves_real_numeric_cell_keys() {
+    fn build_variant_from_all_repo_kcdata_maps_routes_target_numeric_nodes_get_metadata() {
         let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../.data/temp/kc_data/_map");
         let mut entries = std::fs::read_dir(&map_root)
@@ -437,15 +312,30 @@ data:
             let raw = std::fs::read_to_string(&path).unwrap();
             let data = parse_kcdata_map(&raw);
             let variant = build_variant_from_kcdata(&data);
-            let cell_nos = variant.cells.iter().map(|cell| cell.cell_no).collect::<BTreeSet<_>>();
 
-            for numeric_key in data.cells.keys().filter_map(|key| key.parse::<i64>().ok()) {
-                assert!(
-                    cell_nos.contains(&numeric_key),
-                    "{} lost real numeric cell {}",
-                    path.display(),
-                    numeric_key
-                );
+            // For each route targeting a numeric node with metadata in data.cells,
+            // verify the cell picks up that metadata
+            for (&route_id, route) in &data.routes {
+                let Some(target_key) = route_node_key(&route.to) else {
+                    continue;
+                };
+                let Some(cell_meta) = data.cells.get(&target_key) else {
+                    continue;
+                };
+                if target_key.parse::<i64>().is_err() {
+                    continue;
+                }
+                let cell = variant.cells.iter().find(|c| c.cell_no == route_id).unwrap();
+                if cell_meta.boss {
+                    assert_eq!(
+                        cell.color_no,
+                        5,
+                        "{} route {} targets boss node {} but color_no != 5",
+                        path.display(),
+                        route_id,
+                        target_key
+                    );
+                }
             }
         }
     }
