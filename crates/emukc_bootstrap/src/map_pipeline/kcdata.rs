@@ -276,6 +276,43 @@ data:
     }
 
     #[test]
+    fn build_variant_from_kcdata_with_route_to_node_missing_metadata() {
+        let raw = r#"---
+layout: json
+order: 88
+data:
+  id: 88
+  name: Missing Metadata Map
+  routes:
+    0:
+      from: null
+      to: 1
+    1:
+      from: 1
+      to: 5
+  cells:
+    "1":
+      name: Start Node
+      boss: false
+---"#;
+        let data = parse_kcdata_map(raw);
+
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 2, "should create cells for both routes");
+        let cell_nos = variant.cells.iter().map(|c| c.cell_no).collect::<Vec<_>>();
+        assert_eq!(cell_nos, vec![0, 1], "cell_nos should match route IDs");
+
+        let cell_1 = variant.cells.iter().find(|c| c.cell_no == 1).unwrap();
+        assert_eq!(
+            cell_1.color_no, 6,
+            "route 1 targets node 5 which has no metadata, should use EMPTY_CELL color_no"
+        );
+        assert_eq!(cell_1.event_id, 1, "missing metadata should result in EMPTY_CELL event_id");
+        assert_eq!(cell_1.event_kind, 0, "missing metadata should result in EMPTY_CELL event_kind");
+    }
+
+    #[test]
     fn build_variant_from_all_repo_kcdata_maps_keeps_real_cell_count_and_valid_edges() {
         let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../.data/temp/kc_data/_map");
