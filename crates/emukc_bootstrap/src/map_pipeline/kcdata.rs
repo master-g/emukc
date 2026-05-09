@@ -257,6 +257,25 @@ data:
     }
 
     #[test]
+    fn build_variant_from_kcdata_with_empty_routes_produces_empty_variant() {
+        let raw = r#"---
+layout: json
+order: 99
+data:
+  id: 99
+  name: Empty Map
+  routes: {}
+  cells: {}
+---"#;
+        let data = parse_kcdata_map(raw);
+
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 0, "empty routes should produce zero cells");
+        assert_eq!(variant.boss_cell_no, 0, "no boss route means boss_cell_no stays at default 0");
+    }
+
+    #[test]
     fn build_variant_from_all_repo_kcdata_maps_keeps_real_cell_count_and_valid_edges() {
         let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../.data/temp/kc_data/_map");
