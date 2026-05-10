@@ -475,7 +475,7 @@ fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
     assert_eq!(real.compositions[0].ship_ids, vec![501, 502]);
 
     let fallback = resolve_sortie_enemy_fleet(11, &variant, 7);
-    assert_eq!(fallback.compositions[0].ship_ids, vec![412]);
+    assert_eq!(fallback.compositions[0].ship_ids, vec![1501]);
 }
 
 #[test]

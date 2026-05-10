@@ -11,6 +11,10 @@ use tracing::warn;
 
 use crate::err::GameplayError;
 
+/// Fallback enemy ship: Abyssal DD I-class (駆逐イ級).
+/// Used when map data is missing enemy fleet definitions.
+const FALLBACK_ENEMY_SHIP_ID: i64 = 1501;
+
 pub(super) fn build_sortie_enemy_ships(
     codex: &Codex,
     definition: &MapDefinition,
@@ -21,7 +25,7 @@ pub(super) fn build_sortie_enemy_ships(
     let enemy_rank = UserHQRank::RearAdmiral.get_name().to_string();
     let enemy_deck_name = format!("{}海域敵艦隊", definition.name);
     let ship_ids = if composition.ship_ids.is_empty() {
-        vec![412]
+        vec![FALLBACK_ENEMY_SHIP_ID]
     } else {
         composition.ship_ids.clone()
     };
@@ -244,7 +248,7 @@ pub(super) fn fallback_enemy_composition(cell_no: i64) -> EnemyComposition {
     EnemyComposition {
         comp_id: format!("fallback:{cell_no}"),
         weight: 1,
-        ship_ids: vec![412],
+        ship_ids: vec![FALLBACK_ENEMY_SHIP_ID],
         formation: Some(1),
         raw_ship_names: Vec::new(),
     }
