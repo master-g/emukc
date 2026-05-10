@@ -1691,4 +1691,422 @@ mod tests {
         let result = evaluate_route_destination(&current, &stage, &context, None);
         assert!(result.is_err(), "empty next_cells should return error");
     }
+
+    // ========================================================================
+    // Route evaluation integration tests (U1)
+    // ========================================================================
+
+    /// Helper: build a RouteRule with LoS predicate.
+    fn make_los_rule(from: i64, to: i64, priority: i64, formula: Option<&str>, op: RouteOperator, value: i64) -> RouteRule {
+        RouteRule {
+            from_cell_no: from,
+            to_cell_no: to,
+            priority,
+            weight: Some(1),
+            predicate: RoutePredicate::LoS {
+                formula: formula.map(String::from),
+                op,
+                value,
+            },
+            ..Default::default()
+        }
+    }
+
+    /// Helper: build a RouteRule with FleetSize predicate.
+    fn make_fleet_size_rule(from: i64, to: i64, priority: i64, op: RouteOperator, value: i64) -> RouteRule {
+        RouteRule {
+            from_cell_no: from,
+            to_cell_no: to,
+            priority,
+            weight: Some(1),
+            predicate: RoutePredicate::FleetSize { op, value },
+            ..Default::default()
+        }
+    }
+
+    /// Helper: build a RouteRule with Always predicate.
+    fn make_always_rule(from: i64, to: i64, priority: i64, weight: i64) -> RouteRule {
+        RouteRule {
+            from_cell_no: from,
+            to_cell_no: to,
+            priority,
+            weight: Some(weight),
+            predicate: RoutePredicate::Always,
+            ..Default::default()
+        }
+    }
+
+    // --- Happy path tests ---
+
+    /// High-priority rule matches; lower-priority rule is ignored.
+    /// Cell 1 routes to {2, 3}. High priority (0) targets cell 2 (FleetSize >= 6),
+    /// low priority (5) targets cell 3 (FleetSize >= 1).
+    /// With fleet_size=6 the high-priority rule wins → cell 2.
+    #[test]
+    fn multi_condition_rules_select_higher_priority() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![
+                make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 6),
+                make_fleet_size_rule(1, 3, 5, RouteOperator::Gte, 1),
+            ],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![2, 3]),
+                make_cell(2, vec![]),
+                make_cell(3, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2, 3]);
+        let context = FleetRouteContext {
+            fleet_size: 6,
+            ..Default::default()
+        };
+
+        let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+        assert_eq!(result, 2, "high priority rule should route to cell 2");
+    }
+
+    /// LoS branching: different LoS values route to different target cells.
+    /// Cell 1 routes to {2, 3}:
+    ///   - LoS >= 60 → cell 2
+    ///   - LoS >= 30 → cell 3
+    /// With los_total=50, only the second rule matches → cell 3.
+    #[test]
+    fn los_branching_routes_by_los_value() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![
+                make_los_rule(1, 2, 1, None, RouteOperator::Gte, 60),
+                make_los_rule(1, 3, 2, None, RouteOperator::Gte, 30),
+            ],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![2, 3]),
+                make_cell(2, vec![]),
+                make_cell(3, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2, 3]);
+
+        // LoS 50: fails threshold 60 (cell 2), passes threshold 30 (cell 3)
+        let context = make_los_context(50, 50.0, 50.0);
+        let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+        assert_eq!(result, 3, "los=50 should route to cell 3 (threshold 30)");
+
+        // LoS 70: passes threshold 60 (cell 2)
+        let context_high = make_los_context(70, 70.0, 70.0);
+        let result_high = evaluate_route_destination(&current, &stage, &context_high, None).unwrap();
+        assert_eq!(
+            result_high, 2,
+            "los=70 should route to cell 2 (threshold 60)"
+        );
+    }
+
+    /// Rules from_cell matching: only rules matching the current cell are evaluated.
+    /// Cell 1 has rules for cell 1 (→2) and cell 3 (→6). Being at cell 1,
+    /// only the rule for cell 1 applies.
+    #[test]
+    fn rule_from_cell_matching_selects_correct_rule() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 1)],
+        );
+        routing_rules.insert(
+            3,
+            vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 1)],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![2]),
+                make_cell(2, vec![]),
+                make_cell(3, vec![6]),
+                make_cell(6, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+
+        // At cell 1 → rule for cell 1 fires → cell 2
+        let current_1 = make_cell(1, vec![2]);
+        let context = FleetRouteContext {
+            fleet_size: 4,
+            ..Default::default()
+        };
+        let result = evaluate_route_destination(&current_1, &stage, &context, None).unwrap();
+        assert_eq!(result, 2, "at cell 1 should route to cell 2");
+
+        // At cell 3 → rule for cell 3 fires → cell 6
+        let current_3 = make_cell(3, vec![6]);
+        let result = evaluate_route_destination(&current_3, &stage, &context, None).unwrap();
+        assert_eq!(result, 6, "at cell 3 should route to cell 6");
+    }
+
+    // --- Edge case tests ---
+
+    /// All rules filtered by topology → fallback to select_route_from_cells.
+    /// Cell 1 has next_cells {4, 5} but rule targets cell 2 (not in next_cells).
+    /// After topology filter, no candidate_targets remain → fall back to next_cells.
+    /// Verifies the result is one of {4, 5} and both are reachable over 20 trials.
+    #[test]
+    fn all_rules_filtered_by_topology_falls_back_to_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 2, // not in next_cells
+                    priority: 0,
+                    weight: Some(1),
+                    predicate: RoutePredicate::FleetSize {
+                        op: RouteOperator::Gte,
+                        value: 1,
+                    },
+                    ..Default::default()
+                },
+            ],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![4, 5]),
+                make_cell(2, vec![]),
+                make_cell(4, vec![]),
+                make_cell(5, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![4, 5]);
+        let context = FleetRouteContext {
+            fleet_size: 6,
+            ..Default::default()
+        };
+
+        let mut found_4 = false;
+        let mut found_5 = false;
+        for _ in 0..20 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            assert!(
+                result == 4 || result == 5,
+                "fallback should pick from next_cells {{4,5}}, got {result}"
+            );
+            if result == 4 {
+                found_4 = true;
+            }
+            if result == 5 {
+                found_5 = true;
+            }
+        }
+        assert!(found_4, "should have routed to cell 4 at least once");
+        assert!(found_5, "should have routed to cell 5 at least once");
+    }
+
+    /// Empty next_cells with no rule match → returns error.
+    /// Cell 1 has empty next_cells and a LoS rule that doesn't match.
+    #[test]
+    fn empty_next_cells_no_rule_match_returns_error() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![make_los_rule(1, 2, 0, None, RouteOperator::Gte, 100)],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![]);
+        // LoS is 10, threshold is 100 → rule doesn't match, next_cells is empty
+        let context = make_los_context(10, 10.0, 10.0);
+
+        let result = evaluate_route_destination(&current, &stage, &context, None);
+        assert!(result.is_err(), "empty next_cells with no rule match should error");
+    }
+
+    /// Multiple rules with same priority and weight → weighted random selection.
+    /// Cell 1 routes to {2, 3}. Two Always rules with equal priority (0) and
+    /// different weights: cell 2 gets weight 80, cell 3 gets weight 20.
+    /// Over 100 trials, both should appear and cell 2 should dominate.
+    #[test]
+    fn same_priority_rules_use_weighted_random() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![
+                make_always_rule(1, 2, 0, 80),
+                make_always_rule(1, 3, 0, 20),
+            ],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![2, 3]),
+                make_cell(2, vec![]),
+                make_cell(3, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2, 3]);
+        let context = FleetRouteContext::default();
+
+        let mut count_2 = 0usize;
+        let mut count_3 = 0usize;
+        for _ in 0..100 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            assert!(
+                result == 2 || result == 3,
+                "result should be 2 or 3, got {result}"
+            );
+            if result == 2 {
+                count_2 += 1;
+            } else {
+                count_3 += 1;
+            }
+        }
+        assert!(count_2 > 0, "cell 2 should appear at least once");
+        assert!(count_3 > 0, "cell 3 should appear at least once");
+        // With 80:20 weights over 100 trials, cell 2 should dominate.
+        assert!(
+            count_2 > count_3,
+            "cell 2 (weight 80) should appear more than cell 3 (weight 20), got {count_2} vs {count_3}"
+        );
+    }
+
+    /// Route rule references to_cell_no not in next_cells but exists in cells.
+    /// Cell 1 has next_cells {4, 5}. Rule targets cell 2 which exists in the stage
+    /// but is not in next_cells. Topology filter excludes cell 2, falling back
+    /// to next_cells. Verify both {4, 5} are reachable.
+    #[test]
+    fn rule_to_cell_exists_in_cells_but_not_next_cells_is_filtered() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 1)],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![4, 5]),
+                make_cell(2, vec![]), // exists in cells but not in cell 1's next_cells
+                make_cell(4, vec![]),
+                make_cell(5, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![4, 5]);
+        let context = FleetRouteContext {
+            fleet_size: 6,
+            ..Default::default()
+        };
+
+        let mut found_4 = false;
+        let mut found_5 = false;
+        for _ in 0..20 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            assert!(
+                result == 4 || result == 5,
+                "topology filter should exclude cell 2, got {result}"
+            );
+            if result == 4 {
+                found_4 = true;
+            }
+            if result == 5 {
+                found_5 = true;
+            }
+        }
+        assert!(found_4, "should have routed to cell 4 at least once");
+        assert!(found_5, "should have routed to cell 5 at least once");
+    }
+
+    // --- Integration test ---
+
+    /// Simulated map stage: cell 1→{4,5}, cell 3→{6}.
+    /// Routing rules for cell 1:
+    ///   - LoS >= 40 → cell 5 (priority 0)
+    ///   - Always → cell 4 (priority 1, acts as fallback)
+    /// Routing rules for cell 3:
+    ///   - FleetSize >= 4 → cell 6 (priority 0)
+    ///
+    /// Tests conditional routing + topology fallback combined behavior.
+    /// When LoS is high, the LoS rule (priority 0) wins. When LoS is low,
+    /// the Always rule (priority 1) acts as fallback → cell 4.
+    #[test]
+    fn simulated_map_stage_conditional_routing_and_topology_fallback() {
+        let mut routing_rules = BTreeMap::new();
+        // Cell 1: high LoS routes to cell 5, Always fallback routes to cell 4
+        routing_rules.insert(
+            1,
+            vec![
+                make_los_rule(1, 5, 0, None, RouteOperator::Gte, 40),
+                make_always_rule(1, 4, 1, 1),
+            ],
+        );
+        // Cell 3: fleet size >= 4 routes to cell 6
+        routing_rules.insert(
+            3,
+            vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 4)],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![
+                make_cell(1, vec![4, 5]),
+                make_cell(3, vec![6]),
+                make_cell(4, vec![]),
+                make_cell(5, vec![]),
+                make_cell(6, vec![]),
+            ],
+            routing_rules,
+            ..Default::default()
+        };
+
+        // --- At cell 1, high LoS (50 >= 40) → cell 5 ---
+        let current_1 = make_cell(1, vec![4, 5]);
+        let ctx_high_los = make_los_context(50, 50.0, 50.0);
+        let result = evaluate_route_destination(&current_1, &stage, &ctx_high_los, None).unwrap();
+        assert_eq!(result, 5, "high LoS at cell 1 should route to cell 5");
+
+        // --- At cell 1, low LoS (20 < 40) → Always fallback rule at priority 1 → cell 4 ---
+        let ctx_low_los = make_los_context(20, 20.0, 20.0);
+        let result = evaluate_route_destination(&current_1, &stage, &ctx_low_los, None).unwrap();
+        assert_eq!(
+            result, 4,
+            "low LoS at cell 1 should use Always fallback to cell 4"
+        );
+
+        // --- At cell 3, fleet size 6 (>= 4) → cell 6 ---
+        let current_3 = make_cell(3, vec![6]);
+        let ctx_fleet = FleetRouteContext {
+            fleet_size: 6,
+            ..Default::default()
+        };
+        let result = evaluate_route_destination(&current_3, &stage, &ctx_fleet, None).unwrap();
+        assert_eq!(result, 6, "cell 3 with fleet 6 should route to cell 6");
+
+        // --- At cell 3, fleet size 2 (< 4) → no rule match → single next_cell 6 ---
+        let ctx_small_fleet = FleetRouteContext {
+            fleet_size: 2,
+            ..Default::default()
+        };
+        // Cell 3 has a FleetSize rule that doesn't match (2 < 4) and no Always fallback.
+        // But cell 3's next_cells is [6], so the topology-only path still works
+        // because no rules exist that produce matched_groups — the Always rule
+        // for cell 3 is absent, so it falls through to select_route_from_cells.
+        // However, evaluate_route_destination only calls select_route_from_cells
+        // when there are NO rules for the cell. Since there IS a rule (it just
+        // didn't match), it will error. This tests the error path.
+        let err_result = evaluate_route_destination(&current_3, &stage, &ctx_small_fleet, None);
+        assert!(
+            err_result.is_err(),
+            "cell 3 with fleet 2 should error: rule exists but doesn't match"
+        );
+    }
 }
