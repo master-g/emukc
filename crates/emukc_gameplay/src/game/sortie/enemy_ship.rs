@@ -288,3 +288,298 @@ pub(super) fn select_enemy_composition_for_roll(
 
     enemy_fleet.compositions.last()
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::collections::BTreeMap;
+
+	fn test_codex() -> Codex {
+		Codex::load_without_cache_source("../../.data/codex").unwrap()
+	}
+
+	fn make_variant_with_enemy(cell_no: i64, enemy_fleet: EnemyFleetDefinition) -> MapVariantDefinition {
+		let mut variant = empty_variant();
+		variant.enemy_fleets.insert(cell_no, enemy_fleet);
+		variant
+	}
+
+	fn empty_variant() -> MapVariantDefinition {
+		MapVariantDefinition {
+			variant_key: String::new(),
+			boss_cell_no: 5,
+			cells: vec![],
+			routing_rules: BTreeMap::new(),
+			enemy_fleets: BTreeMap::new(),
+			ship_drops: BTreeMap::new(),
+			required_defeat_count: None,
+			clear_to_variant_key: None,
+			parse_warnings: Vec::new(),
+		}
+	}
+
+	fn make_definition(level: i64, name: &str) -> MapDefinition {
+		MapDefinition {
+			map_id: 11,
+			maparea_id: 1,
+			mapinfo_no: 1,
+			name: name.to_string(),
+			level,
+			sally_flag: vec![],
+			is_event: false,
+			reset_policy: Default::default(),
+			airbase_count: None,
+			gauge_type: None,
+			gauge_count: None,
+			required_defeat_count: None,
+			max_hp: None,
+			default_variant: String::new(),
+			rank_stage_ids: BTreeMap::new(),
+			variants: BTreeMap::new(),
+		}
+	}
+
+	fn composition(comp_id: &str, weight: i64, ship_ids: Vec<i64>) -> EnemyComposition {
+		EnemyComposition {
+			comp_id: comp_id.to_string(),
+			weight,
+			ship_ids,
+			formation: Some(1),
+			raw_ship_names: Vec::new(),
+		}
+	}
+
+	// --- Happy path tests ---
+
+	#[test]
+	fn resolve_sortie_enemy_fleet_returns_correct_fleet_when_cell_has_data() {
+		let enemy_fleet = EnemyFleetDefinition {
+			cell_no: 3,
+			battle_kind: 2,
+			formations: vec![3, 4],
+			compositions: vec![
+				composition("comp_a", 1, vec![1501, 1502]),
+				composition("comp_b", 2, vec![1503]),
+			],
+		};
+		let variant = make_variant_with_enemy(3, enemy_fleet.clone());
+
+		let result = resolve_sortie_enemy_fleet(11, &variant, 3);
+		assert_eq!(result.cell_no, 3);
+		assert_eq!(result.battle_kind, 2);
+		assert_eq!(result.formations, vec![3, 4]);
+		assert_eq!(result.compositions.len(), 2);
+		assert_eq!(result.compositions[0].ship_ids, vec![1501, 1502]);
+		assert_eq!(result.compositions[1].weight, 2);
+	}
+
+	#[test]
+	fn select_enemy_composition_for_roll_is_deterministic_by_weight() {
+		let enemy_fleet = EnemyFleetDefinition {
+			cell_no: 1,
+			battle_kind: 1,
+			formations: vec![1],
+			compositions: vec![
+				composition("light", 1, vec![1501]),
+				composition("medium", 2, vec![1502]),
+				composition("heavy", 3, vec![1503]),
+			],
+		};
+
+		// total_weight = 1 + 2 + 3 = 6
+		// roll 0 → light (weight 1, 0 < 1)
+		let c = select_enemy_composition_for_roll(&enemy_fleet, 0).unwrap();
+		assert_eq!(c.comp_id, "light");
+
+		// roll 1 → medium (1 >= 1, roll becomes 0; 0 < 2)
+		let c = select_enemy_composition_for_roll(&enemy_fleet, 1).unwrap();
+		assert_eq!(c.comp_id, "medium");
+
+		// roll 3 → heavy (3 >= 1 → roll=2, 2 >= 2 → roll=0, 0 < 3)
+		let c = select_enemy_composition_for_roll(&enemy_fleet, 3).unwrap();
+		assert_eq!(c.comp_id, "heavy");
+
+		// roll 5 → last (heavy) via fallthrough
+		let c = select_enemy_composition_for_roll(&enemy_fleet, 5).unwrap();
+		assert_eq!(c.comp_id, "heavy");
+	}
+
+	#[test]
+	fn build_sortie_enemy_ships_creates_correct_enemy_list() {
+		let codex = test_codex();
+
+		let definition = make_definition(5, "鎮守府");
+		let enemy_fleet = EnemyFleetDefinition {
+			cell_no: 2,
+			battle_kind: 1,
+			formations: vec![1],
+			compositions: vec![composition("std", 1, vec![1501, 1501, 1501])],
+		};
+		let comp = &enemy_fleet.compositions[0];
+
+		let (ships, enemy_level, enemy_rank, deck_name) =
+			build_sortie_enemy_ships(&codex, &definition, &enemy_fleet, comp).unwrap();
+
+		assert_eq!(ships.len(), 3);
+		// All ships should be the fallback DD I-class (1501)
+		for ship in &ships {
+			assert_eq!(ship.ship.api_ship_id, 1501);
+		}
+		// level = max(5, 1) * 5 + 2 = 27
+		assert_eq!(enemy_level, 27);
+		assert_eq!(enemy_rank, "少将");
+		assert_eq!(deck_name, "鎮守府海域敵艦隊");
+	}
+
+	// --- Edge case tests ---
+
+	#[test]
+	fn resolve_sortie_enemy_fleet_fallback_uses_abyssal_dd_not_friendly_ids() {
+		let variant = empty_variant();
+
+		let result = resolve_sortie_enemy_fleet(11, &variant, 99);
+		assert_eq!(result.compositions.len(), 1);
+
+		let comp = &result.compositions[0];
+		assert_eq!(comp.ship_ids, vec![1501]);
+		// 1501 is Abyssal DD I-class, not a friendly ship ID (friendly IDs are <= ~700)
+		assert!(comp.ship_ids[0] >= 1500, "fallback should use abyssal ship IDs, not friendly IDs");
+	}
+
+	#[test]
+	fn fallback_enemy_composition_uses_abyssal_dd_id_1501() {
+		let comp = fallback_enemy_composition(7);
+		assert_eq!(comp.comp_id, "fallback:7");
+		assert_eq!(comp.weight, 1);
+		assert_eq!(comp.ship_ids, vec![1501]);
+		assert_eq!(comp.formation, Some(1));
+	}
+
+	#[test]
+	fn build_sortie_enemy_ships_uses_fallback_when_ship_ids_empty() {
+		let codex = test_codex();
+
+		let definition = make_definition(1, "test");
+		let enemy_fleet = EnemyFleetDefinition {
+			cell_no: 1,
+			battle_kind: 1,
+			formations: vec![1],
+			compositions: vec![composition("empty", 1, vec![])],
+		};
+		let comp = &enemy_fleet.compositions[0];
+		assert!(comp.ship_ids.is_empty());
+
+		let (ships, _, _, _) =
+			build_sortie_enemy_ships(&codex, &definition, &enemy_fleet, comp).unwrap();
+
+		assert_eq!(ships.len(), 1);
+		assert_eq!(ships[0].ship.api_ship_id, 1501);
+	}
+
+	#[test]
+	fn build_sortie_enemy_ship_uses_new_enemy_ship_for_abyssal_id() {
+		let codex = test_codex();
+
+		// 1501 is Abyssal DD I-class — should be in enemy_ship_extra
+		let result = build_sortie_enemy_ship(&codex, 1501, 30).unwrap();
+		assert_eq!(result.ship.api_ship_id, 1501);
+		assert_eq!(result.ship.api_lv, 30);
+		assert!(result.ship.api_nowhp > 0);
+		// enemy ships from new_enemy_ship should have valid HP and stats
+		assert!(result.ship.api_maxhp > 0);
+	}
+
+	#[test]
+	fn build_sortie_enemy_ship_uses_new_ship_for_friendly_id_as_fallback() {
+		let codex = test_codex();
+
+		// 1 is 睦月 (Mutsuki), a friendly ship — not in enemy_ship_extra,
+		// so it falls through to the new_ship path
+		let ship_id = 1;
+		assert!(codex.new_enemy_ship(ship_id).is_none(), "friendly ship should not be in enemy_ship_extra");
+
+		let result = build_sortie_enemy_ship(&codex, ship_id, 50).unwrap();
+		assert_eq!(result.ship.api_ship_id, ship_id);
+		assert_eq!(result.ship.api_lv, 50);
+		assert!(result.ship.api_nowhp > 0);
+		// The friendly-ship-fallback path populates slot items
+		assert!(!result.slot_items.is_empty());
+	}
+
+	#[test]
+	fn select_enemy_composition_for_roll_returns_none_for_empty_compositions() {
+		let enemy_fleet = EnemyFleetDefinition {
+			cell_no: 1,
+			battle_kind: 1,
+			formations: vec![1],
+			compositions: vec![],
+		};
+		assert!(select_enemy_composition_for_roll(&enemy_fleet, 0).is_none());
+	}
+
+	// --- Integration tests ---
+
+	#[test]
+	fn end_to_end_resolve_select_build_from_variant() {
+		let codex = test_codex();
+
+		let mut variant = empty_variant();
+		variant.enemy_fleets.insert(
+			3,
+			EnemyFleetDefinition {
+				cell_no: 3,
+				battle_kind: 1,
+				formations: vec![1, 2],
+				compositions: vec![
+					composition("patrol", 1, vec![1501, 1501]),
+					composition("main", 2, vec![1501, 1501, 1501]),
+				],
+			},
+		);
+
+		let definition = make_definition(3, "南西諸島");
+
+		// Resolve fleet for cell 3
+		let fleet = resolve_sortie_enemy_fleet(11, &variant, 3);
+		assert_eq!(fleet.cell_no, 3);
+		assert_eq!(fleet.compositions.len(), 2);
+
+		// Deterministically select the heavier composition (roll=1 selects "main")
+		let comp = select_enemy_composition_for_roll(&fleet, 1).unwrap();
+		assert_eq!(comp.comp_id, "main");
+		assert_eq!(comp.ship_ids.len(), 3);
+
+		// Build enemy ships
+		let (ships, level, rank, deck_name) =
+			build_sortie_enemy_ships(&codex, &definition, &fleet, comp).unwrap();
+
+		assert_eq!(ships.len(), 3);
+		for ship in &ships {
+			assert_eq!(ship.ship.api_ship_id, 1501);
+			assert_eq!(ship.ship.api_lv, level);
+		}
+		// level = max(3,1)*5 + 3 = 18
+		assert_eq!(level, 18);
+		assert_eq!(rank, "少将");
+		assert_eq!(deck_name, "南西諸島海域敵艦隊");
+	}
+
+	#[test]
+	fn fallback_enemy_ship_ids_all_buildable_via_new_enemy_ship() {
+		let codex = test_codex();
+
+		// Verify 1501 (Abyssal DD I-class) can be built via new_enemy_ship
+		let result = codex.new_enemy_ship(1501);
+		assert!(result.is_some(), "Abyssal DD I-class (1501) should exist in enemy_ship_extra");
+
+		let (ship, _slot_items) = result.unwrap();
+		assert_eq!(ship.api_ship_id, 1501);
+		assert!(ship.api_nowhp > 0);
+		assert!(ship.api_maxhp > 0);
+
+		// Also verify build_sortie_enemy_ship succeeds for 1501
+		let battle_ship = build_sortie_enemy_ship(&codex, 1501, 1).unwrap();
+		assert_eq!(battle_ship.ship.api_ship_id, 1501);
+		assert!(battle_ship.ship.api_nowhp > 0);
+	}
+}
