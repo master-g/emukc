@@ -45,7 +45,7 @@ impl HasContext for (Arc<DbConn>, Arc<Codex>) {
     }
 
     fn sortie_store(&self) -> &SortieStore {
-        &*GLOBAL_SORTIE_STORE
+        &GLOBAL_SORTIE_STORE
     }
 }
 
@@ -59,7 +59,7 @@ impl HasContext for (Arc<Codex>, Arc<DbConn>) {
     }
 
     fn sortie_store(&self) -> &SortieStore {
-        &*GLOBAL_SORTIE_STORE
+        &GLOBAL_SORTIE_STORE
     }
 }
 
@@ -73,7 +73,7 @@ impl HasContext for (DbConn, Codex) {
     }
 
     fn sortie_store(&self) -> &SortieStore {
-        &*GLOBAL_SORTIE_STORE
+        &GLOBAL_SORTIE_STORE
     }
 }
 
@@ -87,6 +87,6 @@ impl HasContext for (Codex, DbConn) {
     }
 
     fn sortie_store(&self) -> &SortieStore {
-        &*GLOBAL_SORTIE_STORE
+        &GLOBAL_SORTIE_STORE
     }
 }

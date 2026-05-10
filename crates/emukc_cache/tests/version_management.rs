@@ -60,7 +60,7 @@ async fn test_no_version() {
 }
 
 /// Regression: DB has a stored version but the request arrives without one.
-/// Before the fix, find_in_local compared stored > "" → InvalidFileVersion,
+/// Before the fix, `find_in_local` compared stored > "" → InvalidFileVersion,
 /// causing unnecessary re-downloads on every first access.
 #[tokio::test]
 async fn test_version_rollback_no_version_requested() {

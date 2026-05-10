@@ -22,7 +22,7 @@ pub(crate) mod shelling;
 pub(crate) mod torpedo;
 
 /// Returns the fleet speed value (minimum `api_soku` among alive ships).
-/// KanColle speed values: 5=slow, 10=fast, 15=fast+, 20=fastest.
+/// `KanColle` speed values: 5=slow, 10=fast, 15=fast+, 20=fastest.
 fn fleet_speed(fleet: &[BattleRuntimeShip]) -> i64 {
     fleet.iter().filter(|s| s.is_alive()).map(|s| s.ship.api_soku).min().unwrap_or(0)
 }

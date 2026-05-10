@@ -69,9 +69,13 @@ pub mod prelude {
     pub use crate::map_pipeline::{
         MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource,
         build_final_map_catalog, build_final_map_catalog_from_repo_assets,
-        build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_report,
+        build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_overlay,
+        build_final_map_catalog_with_report,
     };
-    pub use crate::parser::{parse_partial_codex, parse_wikiwiki_map, parse_wikiwiki_map_debug};
+    pub use crate::parser::{
+        WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
+        parse_partial_codex, parse_wikiwiki_map, parse_wikiwiki_map_debug,
+    };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
     pub use crate::wikiwiki_map_asset::{

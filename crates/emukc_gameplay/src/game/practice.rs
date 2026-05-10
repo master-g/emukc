@@ -242,20 +242,6 @@ fn build_practice_quest_event(
     })
 }
 
-fn parse_practice_result_rank(win_rank: &str) -> Result<KcSortieResultRank, GameplayError> {
-    match win_rank {
-        "S" => Ok(KcSortieResultRank::S),
-        "A" => Ok(KcSortieResultRank::A),
-        "B" => Ok(KcSortieResultRank::B),
-        "C" => Ok(KcSortieResultRank::C),
-        "D" => Ok(KcSortieResultRank::D),
-        "E" => Ok(KcSortieResultRank::E),
-        _ => {
-            Err(GameplayError::WrongType(format!("unexpected practice result rank `{win_rank}`",)))
-        }
-    }
-}
-
 pub(crate) async fn get_practice_rivals_impl<C>(
     c: &C,
     codex: &Codex,

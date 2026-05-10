@@ -8,7 +8,7 @@ use emukc_model::{
 };
 
 use crate::{
-    parser::error::ParseError,
+    parser::{error::ParseError, wikiwiki_map::WikiwikiMapOverlayCatalog},
     wikiwiki_map_asset::{
         RepoWikiwikiMapCatalogSource, load_repo_wikiwiki_map_catalog_asset,
         repo_wikiwiki_map_catalog_path,
@@ -25,6 +25,7 @@ pub(super) struct ResolvedMapSources {
     pub(super) wikiwiki_source: MapCatalogWikiwikiSource,
     pub(super) wikiwiki_map_count: usize,
     pub(super) wikiwiki_catalog: Option<MapCatalog>,
+    pub(super) wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
     pub(super) kcdata_catalog: Option<MapCatalog>,
     pub(super) kcdata_parse_errors: usize,
     pub(super) public_overlay_map_count: usize,
@@ -38,6 +39,7 @@ pub(super) fn load_explicit_source_set(
     data_root: &Path,
     manifest: &ApiManifest,
     wikiwiki_catalog: Option<MapCatalog>,
+    wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
 ) -> Result<ResolvedMapSources, ParseError> {
     let wikiwiki_map_count =
         wikiwiki_catalog.as_ref().map(|catalog| catalog.maps.len()).unwrap_or(0);
@@ -54,6 +56,7 @@ pub(super) fn load_explicit_source_set(
         },
         wikiwiki_map_count,
         wikiwiki_catalog,
+        wikiwiki_overlay,
         kcdata_catalog,
         kcdata_parse_errors,
         public_overlay_map_count,
@@ -80,6 +83,7 @@ pub(super) fn load_repo_source_set(
         wikiwiki_source,
         wikiwiki_map_count,
         wikiwiki_catalog,
+        wikiwiki_overlay: None,
         kcdata_catalog,
         kcdata_parse_errors,
         public_overlay_map_count,

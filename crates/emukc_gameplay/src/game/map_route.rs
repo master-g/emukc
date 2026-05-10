@@ -25,21 +25,21 @@ pub(crate) struct FleetRouteContext {
     pub(crate) ship_type_counts: BTreeMap<i64, i64>,
     pub(crate) ship_entries: Vec<FleetRouteShipEntry>,
     pub(crate) min_speed: i64,
-    /// Raw sum of each ship's current LoS (base + equipment).  Used as the
+    /// Raw sum of each ship's current `LoS` (base + equipment).  Used as the
     /// fallback when no formula is specified.
     pub(crate) los_total: i64,
     pub(crate) total_drums: i64,
-    /// Precomputed LoS under Formula 1: `Σ sqrt(ship.los_now)`.
+    /// Precomputed `LoS` under Formula 1: `Σ sqrt(ship.los_now)`.
     /// Formula 1 uses per-equipment sqrt-weighted values; this is an approximation
-    /// using the combined ship LoS when per-equipment breakdown is unavailable.
+    /// using the combined ship `LoS` when per-equipment breakdown is unavailable.
     pub(crate) los_formula1: f64,
-    /// Precomputed LoS under Formula 3 (the standard 2-5-fleet formula):
+    /// Precomputed `LoS` under Formula 3 (the standard 2-5-fleet formula):
     /// `Σ(equip_los × 0.6 + sqrt(ship_base_los)) − ceil(0.4 × hq_lv) + (6 − fleet_size) × 2`.
     pub(crate) los_formula3: f64,
 }
 
 impl FleetRouteContext {
-    /// Return the LoS value to compare against a route predicate threshold.
+    /// Return the `LoS` value to compare against a route predicate threshold.
     ///
     /// `formula` mirrors the `formula` field of `RoutePredicate::LoS`:
     /// - `None` or unrecognised string → `los_total` (raw sum, backward-compatible)
@@ -257,10 +257,13 @@ pub(crate) fn evaluate_route_destination(
         .filter(|cell_no| current.next_cells.contains(cell_no))
         .collect();
     if candidate_targets.is_empty() {
-        return Err(GameplayError::WrongType(format!(
-            "cell {} has no executable route in topology",
-            current.cell_no,
-        )));
+        tracing::warn!(
+            cell_no = current.cell_no,
+            rule_targets = ?executable.iter().map(|r| r.to_cell_no).collect::<Vec<_>>(),
+            next_cells = ?current.next_cells,
+            "route rules filtered by topology, falling back to next_cells"
+        );
+        return select_route_from_cells(current, stage, selected_cell_id);
     }
     if let Some(selected_cell_id) = selected_cell_id {
         if !candidate_targets.contains(&selected_cell_id) {
@@ -578,7 +581,7 @@ fn compare_route_value(actual: i64, op: RouteOperator, expected: i64) -> bool {
     }
 }
 
-/// Floating-point variant of [`compare_route_value`] for LoS comparisons where
+/// Floating-point variant of [`compare_route_value`] for `LoS` comparisons where
 /// the computed value is a `f64` (e.g. when applying a formula).  The threshold
 /// (`expected`) is truncated to `f64` before comparison.
 fn compare_route_value_f64(actual: f64, op: RouteOperator, expected: f64) -> bool {
@@ -1471,7 +1474,7 @@ mod tests {
     // single ship-count predicate.
 
     /// Fleet: [ship(radar), ship(no radar), ship(radar + radar)].
-    /// slotitem_types is a BTreeSet so the two-radar ship contributes type 12
+    /// `slotitem_types` is a BTreeSet so the two-radar ship contributes type 12
     /// only once.  The predicate counts *ships*, so the result is 2, not 3 or 4.
     /// This is the canonical ship-count vs item-count distinction test.
     #[test]
@@ -1574,7 +1577,7 @@ mod tests {
         ));
     }
 
-    /// A ship with an empty slotitem_types set (zero equipment slots filled)
+    /// A ship with an empty `slotitem_types` set (zero equipment slots filled)
     /// must not be counted, even if the predicate requests type 12.
     #[test]
     fn equipment_count_ship_with_no_slots_does_not_count() {
@@ -1616,5 +1619,76 @@ mod tests {
             ),
             RoutePredicateEval::NotMatched
         ));
+    }
+
+    /// Rule targets cell 2 but next_cells=[4,5] (cell 2 not in next_cells).
+    /// After topology filter, candidate_targets is empty → should fall back to
+    /// random selection from next_cells, not return an error.
+    #[test]
+    fn rules_filtered_by_topology_fallback_to_next_cells() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                weight: Some(1),
+                predicate: RoutePredicate::Always,
+                ..Default::default()
+            }],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![4, 5]), make_cell(4, vec![]), make_cell(5, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![4, 5]);
+        let context = FleetRouteContext::default();
+
+        let mut found_4 = false;
+        let mut found_5 = false;
+        for _ in 0..20 {
+            let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
+            assert!(
+                result == 4 || result == 5,
+                "fallback should pick from next_cells, got {result}"
+            );
+            if result == 4 {
+                found_4 = true;
+            }
+            if result == 5 {
+                found_5 = true;
+            }
+        }
+        assert!(found_4, "should have routed to cell 4 at least once");
+        assert!(found_5, "should have routed to cell 5 at least once");
+    }
+
+    /// Rules filtered by topology, next_cells also empty → error via select_route_from_cells.
+    #[test]
+    fn rules_filtered_by_topology_and_empty_next_cells_returns_error() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                weight: Some(1),
+                predicate: RoutePredicate::Always,
+                ..Default::default()
+            }],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![]);
+        let context = FleetRouteContext::default();
+
+        let result = evaluate_route_destination(&current, &stage, &context, None);
+        assert!(result.is_err(), "empty next_cells should return error");
     }
 }

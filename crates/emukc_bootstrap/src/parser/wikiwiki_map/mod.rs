@@ -24,6 +24,10 @@ use html::*;
 use resolver::*;
 use route::*;
 use types::*;
+pub use types::{
+    EnemyNodeRows, RouteRuleDraft, ShipDropDraft, WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog,
+    WikiwikiMapOverlayDefinition,
+};
 
 static SELECTOR_TABLE: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse("table").expect("valid table selector"));
@@ -101,7 +105,16 @@ pub fn parse_debug(
 impl WikiwikiMapCatalog {
     /// Convert the extractor output into the runtime `MapCatalog` model.
     pub fn into_map_catalog(self, manifest: &ApiManifest) -> MapCatalog {
+        self.into_map_catalog_with_overlay(manifest).0
+    }
+
+    /// Convert into runtime `MapCatalog` and extract label-keyed overlay catalog.
+    pub fn into_map_catalog_with_overlay(
+        self,
+        manifest: &ApiManifest,
+    ) -> (MapCatalog, WikiwikiMapOverlayCatalog) {
         let mut catalog = MapCatalog::default();
+        let mut overlay_catalog = WikiwikiMapOverlayCatalog::default();
         for (map_id, definition) in self.maps {
             let manifest_map = manifest.api_mst_mapinfo.iter().find(|map| map.api_id == map_id);
             let area_type = manifest
@@ -292,9 +305,19 @@ impl WikiwikiMapCatalog {
                     variants,
                 },
             );
+
+            if !definition.overlays.is_empty() {
+                overlay_catalog.maps.insert(
+                    map_id,
+                    WikiwikiMapOverlayDefinition {
+                        map_id,
+                        variants: definition.overlays,
+                    },
+                );
+            }
         }
 
-        catalog
+        (catalog, overlay_catalog)
     }
 
     pub fn to_debug_json(&self) -> serde_json::Value {
@@ -337,6 +360,7 @@ fn parse_map_page(
         })
         .collect::<Vec<_>>();
     let mut variants = BTreeMap::new();
+    let mut overlays = BTreeMap::new();
 
     for (idx, section) in route_sections.iter().enumerate() {
         let mut warnings = base_warnings.clone();
@@ -344,6 +368,21 @@ fn parse_map_page(
         postprocess_route_probabilities(&mut route_rules);
         check_mixed_routing_encoding(&route_rules, &mut warnings);
         let enemy_nodes = enemy_nodes.clone();
+
+        // Capture label-keyed overlay before build_nodes() converts to cell_nos.
+        let variant_key = variant_keys[idx].clone();
+        overlays.insert(
+            variant_key.clone(),
+            WikiwikiLabelOverlay {
+                variant_key: variant_key.clone(),
+                routing_rules: route_rules.clone(),
+                enemy_nodes: enemy_nodes.clone(),
+                ship_drops: drop_drafts.clone(),
+                required_defeat_count: gauge_defeat_counts.get(idx).copied(),
+                parse_warnings: warnings.clone(),
+            },
+        );
+
         let nodes = build_nodes(&route_rules, &enemy_nodes);
         let node_to_cell =
             nodes.iter().map(|node| (node.label.clone(), node.cell_no)).collect::<BTreeMap<_, _>>();
@@ -397,7 +436,6 @@ fn parse_map_page(
                 acc.entry(cell_no).or_default().push(drop);
                 acc
             });
-        let variant_key = variant_keys[idx].clone();
         variants.insert(
             variant_key.clone(),
             WikiwikiMapVariantDefinition {
@@ -439,6 +477,7 @@ fn parse_map_page(
         source_url: wikiwiki_map_page_url(map_name).unwrap_or_default(),
         default_variant,
         variants,
+        overlays,
     })
 }
 

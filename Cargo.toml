@@ -53,7 +53,6 @@ indicatif = "0.18"
 http-body-util = "0.1.3"
 inquire = { version = "0.9.4" }
 lru = "0.16.3"
-md-5 = "0.11.0"
 fastrand = "2"
 md5 = "0.8.0"
 mime_guess = "2.0.5"
@@ -193,11 +192,7 @@ urlencoding = { workspace = true }
 validator = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
-md5 = "0.8.0"
 memory-stats = "1"
-regex = { workspace = true }
-reqwest = { version = "0.12", features = ["json"] }
-serde = { workspace = true }
 serde_json = { workspace = true }
 tempfile = "3"
 tokio = { workspace = true, features = ["full"] }

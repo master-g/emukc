@@ -5,7 +5,6 @@ use emukc_battle::{
     simulate_day, simulate_night,
 };
 use emukc_model::codex::Codex;
-use emukc_model::kc2::KcSortieResultRank;
 
 use crate::err::GameplayError;
 

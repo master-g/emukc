@@ -971,7 +971,7 @@ async fn refresh_sortie_stage(
     })?;
     let record = find_map_record_impl(db, profile_id, active.map_id).await?;
 
-    let new_stage_id = resolve_record_stage_id(&definition, &record).unwrap_or_default();
+    let new_stage_id = resolve_record_stage_id(definition, &record).unwrap_or_default();
 
     if new_stage_id != active.stage_id {
         let new_stage = definition.stage(&new_stage_id).ok_or_else(|| {

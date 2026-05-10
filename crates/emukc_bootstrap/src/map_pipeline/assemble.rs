@@ -1,6 +1,7 @@
 use emukc_model::codex::map::{MapCatalog, build_cell_no_map, merge_routing_overlay};
 
 use super::{
+    label_overlay::merge_label_overlay,
     report::{MapCatalogBuildReport, MapCatalogStatSource},
     sources::ResolvedMapSources,
 };
@@ -8,21 +9,46 @@ use super::{
 pub(super) fn assemble_final_map_catalog(
     sources: ResolvedMapSources,
 ) -> (MapCatalog, MapCatalogBuildReport) {
-    let mut fanout_rules_dropped = 0usize;
-    let mut catalog = match sources.kcdata_catalog {
-        Some(mut kcdata) => {
+    let mut overlay_items_dropped = 0usize;
+    let mut catalog = match (sources.kcdata_catalog, sources.wikiwiki_overlay) {
+        // New path: kcdata topology + label-keyed wikiwiki overlay.
+        (Some(mut kcdata), Some(overlay)) => {
+            overlay_items_dropped = merge_label_overlay_catalog(&mut kcdata, &overlay);
+            kcdata
+        }
+        // Legacy path: kcdata + pre-built wikiwiki MapCatalog (no overlay available).
+        (Some(mut kcdata), None) => {
             if let Some(wikiwiki) = sources.wikiwiki_catalog {
-                fanout_rules_dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+                overlay_items_dropped =
+                    merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
             }
             kcdata
         }
-        None => sources.wikiwiki_catalog.unwrap_or_default(),
+        // Fallback path: no kcdata, wikiwiki produces full MapCatalog.
+        (None, _) => sources.wikiwiki_catalog.unwrap_or_default(),
     };
     catalog.merge_missing_from(sources.public_overlay_catalog);
     if let Some(ref stat_catalog) = sources.stat_catalog {
         catalog.merge_missing_from(stat_catalog.clone());
     }
     let output_map_count = catalog.maps.len();
+
+    // Topology validation — warn during bootstrap, not at runtime codex load.
+    let mut topology_warnings = 0usize;
+    for def in catalog.maps.values() {
+        let warnings = def.validate();
+        topology_warnings += warnings.len();
+        for w in &warnings {
+            tracing::warn!("{w:?}");
+        }
+    }
+    if topology_warnings > 0 {
+        tracing::warn!(
+            topology_warnings,
+            map_count = catalog.maps.len(),
+            "map catalog validation: topology warnings"
+        );
+    }
 
     let stat_source = if sources.stat_catalog.is_some() {
         if sources.stat_from_cache {
@@ -43,18 +69,56 @@ pub(super) fn assemble_final_map_catalog(
             stat_map_count: sources.stat_map_count,
             stat_source,
             output_map_count,
-            fanout_rules_dropped,
+            fanout_rules_dropped: overlay_items_dropped,
             kcdata_parse_errors: sources.kcdata_parse_errors,
+            topology_warnings,
         },
     )
 }
 
-/// Overlay WikiWiki routing rules, enemy fleets, and ship drops onto kcdata topology.
-/// Does NOT touch cells or next_cells — kcdata is the sole source of graph topology.
+/// Merge label-keyed wikiwiki overlay onto kcdata topology using the authoritative `label→cell_no` index.
+fn merge_label_overlay_catalog(
+    kcdata: &mut MapCatalog,
+    overlay_catalog: &crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog,
+) -> usize {
+    let mut total_dropped = 0usize;
+
+    for (map_id, overlay_def) in &overlay_catalog.maps {
+        let Some(kcdata_map) = kcdata.maps.get_mut(map_id) else {
+            continue;
+        };
+        let definition_has_named_variants = kcdata_map.variants.keys().any(|key| !key.is_empty());
+
+        for (variant_key, overlay) in &overlay_def.variants {
+            if variant_key.is_empty() && definition_has_named_variants {
+                // Fan out to all named variants.
+                let keys: Vec<String> = kcdata_map.variants.keys().cloned().collect();
+                for key in &keys {
+                    let Some(kcdata_variant) = kcdata_map.variants.get_mut(key.as_str()) else {
+                        continue;
+                    };
+                    let label_index = kcdata_variant.label_to_cell_no();
+                    total_dropped += merge_label_overlay(kcdata_variant, overlay, &label_index);
+                }
+            } else if let Some(kcdata_variant) = kcdata_map.variants.get_mut(variant_key) {
+                let label_index = kcdata_variant.label_to_cell_no();
+                total_dropped += merge_label_overlay(kcdata_variant, overlay, &label_index);
+            }
+        }
+    }
+
+    total_dropped
+}
+
+/// Overlay `WikiWiki` routing rules, enemy fleets, and ship drops onto kcdata topology.
+/// Does NOT touch cells or `next_cells` — kcdata is the sole source of graph topology.
 ///
 /// Returns the total number of routing rules dropped because their `from_cell_no` or
 /// `to_cell_no` was absent from the target variant's cell set.
-fn merge_routing_overlay_from_wikiwiki(kcdata: &mut MapCatalog, wikiwiki: &MapCatalog) -> usize {
+fn merge_routing_overlay_from_wikiwiki_legacy(
+    kcdata: &mut MapCatalog,
+    wikiwiki: &MapCatalog,
+) -> usize {
     let mut total_dropped = 0usize;
 
     for (map_id, wikiwiki_map) in &wikiwiki.maps {
@@ -215,11 +279,11 @@ mod tests {
         MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, RouteRule,
     };
 
-    use super::merge_routing_overlay_from_wikiwiki;
+    use super::merge_routing_overlay_from_wikiwiki_legacy;
 
-    /// Build a `MapCellDefinition` with an auto-generated node label `"C{cell_no}"`.
-    /// The label ensures `build_cell_no_map` produces a non-empty map, which in turn
-    /// prevents `merge_routing_overlay` from bailing out early.
+    /// Build a [`MapCellDefinition`] with an auto-generated node label `C{cell_no}`.
+    /// The label ensures [`build_cell_no_map`] produces a non-empty map, which in turn
+    /// prevents [`merge_routing_overlay`] from bailing out early.
     fn make_cell(cell_no: i64) -> MapCellDefinition {
         MapCellDefinition {
             cell_no,
@@ -295,7 +359,7 @@ mod tests {
         // Wikiwiki variant must include cells so build_cell_no_map produces a non-empty map.
         let wikiwiki = make_catalog(11, vec![make_variant("", &[3, 5], vec![rule(3, 5)])]);
 
-        let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 0);
 
         // Rule should appear in both variants.
@@ -320,7 +384,7 @@ mod tests {
         // (remaps to 5 via identity) and merge_routing_overlay drops it.
         let wikiwiki = make_catalog(11, vec![make_variant("", &[3, 5], vec![rule(3, 5)])]);
 
-        let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
 
         let v = &kcdata.maps[&11].variants["gauge_1"];
@@ -335,7 +399,7 @@ mod tests {
         let mut kcdata = make_catalog(11, vec![make_variant("gauge_1", &[1, 5], vec![])]);
         let wikiwiki = make_catalog(11, vec![make_variant("", &[], vec![rule(3, 5)])]);
 
-        let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
 
         let v = &kcdata.maps[&11].variants["gauge_1"];
@@ -350,13 +414,13 @@ mod tests {
         let mut kcdata = make_catalog(11, vec![make_variant("gauge_1", &[1, 2], vec![])]);
         let wikiwiki = make_catalog(11, vec![make_variant("", &[], vec![rule(3, 5)])]);
 
-        let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
     }
 
     // ------------------------------------------------------------------ edge: other rules in same batch still merged
 
-    /// Two rules in the same batch: one valid, one with bad to_cell_no.
+    /// Two rules in the same batch: one valid, one with bad `to_cell_no`.
     /// Valid rule is merged; only the bad one is counted.
     #[test]
     fn test_fanout_partial_drop_other_rules_still_merged() {
@@ -364,7 +428,7 @@ mod tests {
         // rule(3,5) is valid; rule(3,99) has bad to_cell_no
         let wikiwiki = make_catalog(11, vec![make_variant("", &[], vec![rule(3, 5), rule(3, 99)])]);
 
-        let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
 
         let v = &kcdata.maps[&11].variants["gauge_1"];
@@ -388,7 +452,7 @@ mod tests {
         );
         let wikiwiki = make_catalog(33, vec![make_variant("", &[], vec![rule(3, 5)])]);
 
-        let dropped = merge_routing_overlay_from_wikiwiki(&mut kcdata, &wikiwiki);
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
         assert_eq!(dropped, 1);
 
         // Rule present in gauge_1.

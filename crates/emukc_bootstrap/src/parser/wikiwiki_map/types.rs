@@ -73,6 +73,8 @@ pub struct WikiwikiMapDefinition {
     pub source_url: String,
     pub default_variant: String,
     pub variants: BTreeMap<String, WikiwikiMapVariantDefinition>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub overlays: BTreeMap<String, WikiwikiLabelOverlay>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -107,26 +109,26 @@ pub struct WikiwikiEnemyFleetDefinition {
     pub compositions: Vec<EnemyComposition>,
 }
 
-#[derive(Debug, Clone)]
-pub(super) struct EnemyNodeRows {
-    pub(super) is_boss: bool,
-    pub(super) compositions: Vec<EnemyComposition>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnemyNodeRows {
+    pub is_boss: bool,
+    pub compositions: Vec<EnemyComposition>,
 }
 
-#[derive(Debug, Clone)]
-pub(super) struct RouteRuleDraft {
-    pub(super) from_label: String,
-    pub(super) to_label: String,
-    pub(super) probability_pct: Option<f64>,
-    pub(super) predicate: RoutePredicate,
-    pub(super) raw_text: String,
-    pub(super) random_placeholder: bool,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RouteRuleDraft {
+    pub from_label: String,
+    pub to_label: String,
+    pub probability_pct: Option<f64>,
+    pub predicate: RoutePredicate,
+    pub raw_text: String,
+    pub random_placeholder: bool,
 }
 
-#[derive(Debug, Clone)]
-pub(super) struct ShipDropDraft {
-    pub(super) node_label: String,
-    pub(super) drop: ShipDropDefinition,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShipDropDraft {
+    pub node_label: String,
+    pub drop: ShipDropDefinition,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -190,4 +192,39 @@ pub(super) enum RouteClauseAst {
     Else {
         target_label: String,
     },
+}
+
+// ── Label-keyed overlay types ──────────────────────────────────────────
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Label-keyed overlay data keyed by in-game map ID.
+pub struct WikiwikiMapOverlayCatalog {
+    /// Parsed map overlay definitions.
+    pub maps: BTreeMap<i64, WikiwikiMapOverlayDefinition>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Overlay data for a single map, keyed by variant.
+pub struct WikiwikiMapOverlayDefinition {
+    /// In-game map ID.
+    pub map_id: i64,
+    /// Variant-keyed label overlays.
+    pub variants: BTreeMap<String, WikiwikiLabelOverlay>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Parsed overlay data for a single map variant, using label-based keys.
+pub struct WikiwikiLabelOverlay {
+    /// Variant identifier.
+    pub variant_key: String,
+    /// Routing rules extracted from the route table.
+    pub routing_rules: Vec<RouteRuleDraft>,
+    /// Enemy compositions keyed by node label.
+    pub enemy_nodes: BTreeMap<String, EnemyNodeRows>,
+    /// Ship drop entries extracted from drop tables.
+    pub ship_drops: Vec<ShipDropDraft>,
+    /// Required boss defeat count, if specified.
+    pub required_defeat_count: Option<i64>,
+    /// Non-fatal warnings collected during parsing.
+    pub parse_warnings: Vec<String>,
 }

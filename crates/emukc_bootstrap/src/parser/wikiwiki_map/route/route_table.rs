@@ -118,7 +118,7 @@ fn extract_gauge_variant_key(compact: &str) -> Option<String> {
     // Regex fallback for ゲージN where N >= 3
     if let Some(pos) = compact.find("ゲージ") {
         let after = &compact[pos + "ゲージ".len()..];
-        let digits: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+        let digits: String = after.chars().take_while(char::is_ascii_digit).collect();
         if !digits.is_empty() {
             return Some(format!("gauge_{digits}"));
         }

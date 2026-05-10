@@ -70,7 +70,7 @@ impl BattleState {
     }
 
     /// Build minimal state for night battle finalization.
-    /// Avoids the full BattleContext → runtime-ship pipeline when the ships
+    /// Avoids the full `BattleContext` → runtime-ship pipeline when the ships
     /// have already been mutated by day battle phases.
     pub fn for_night(
         friendly: Vec<BattleRuntimeShip>,

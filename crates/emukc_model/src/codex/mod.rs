@@ -248,24 +248,6 @@ impl Codex {
             maps.prerequisites = map::build_regular_prerequisites();
         }
 
-        // Graph invariant validation — warn-only, does not block load.
-        {
-            let mut total_warnings = 0usize;
-            for def in maps.maps.values() {
-                let warnings = def.validate();
-                total_warnings += warnings.len();
-                for w in &warnings {
-                    tracing::warn!("{w:?}");
-                }
-            }
-            if total_warnings > 0 {
-                tracing::warn!(
-                    "map catalog validation: {total_warnings} warnings across {} maps",
-                    maps.maps.len()
-                );
-            }
-        }
-
         Ok(Codex {
             manifest,
             ship_extra,

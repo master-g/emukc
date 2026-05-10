@@ -183,7 +183,7 @@ fn semantic_cell_no_map(
     semantic_cell_no_map_from_labels(&definition_labels, &other_labels)
 }
 
-/// Build a cell-number remap from a generic label→cell_no map onto a primary variant's labels.
+/// Build a cell-number remap from a generic `label→cell_no` map onto a primary variant's labels.
 fn semantic_cell_no_map_from_labels(
     definition_labels: &BTreeMap<String, i64>,
     other_labels: &BTreeMap<String, i64>,
@@ -199,7 +199,7 @@ fn semantic_cell_no_map_from_labels(
 }
 
 /// Overlay routing rules, enemy fleets, and ship drops from a secondary source onto a
-/// primary variant's topology. Does NOT touch cells or next_cells.
+/// primary variant's topology. Does NOT touch cells or `next_cells`.
 ///
 /// `cell_no_map` maps secondary-source cell numbers to primary cell numbers.
 pub fn merge_routing_overlay(
@@ -832,8 +832,8 @@ mod tests {
         }
     }
 
-    /// Two source variants each have a rule at from_cell=5 (same cell in the primary).
-    /// After merge the entry at from_cell=5 must contain both rules (union, not replace).
+    /// Two source variants each have a rule at `from_cell`=5 (same cell in the primary).
+    /// After merge the entry at `from_cell`=5 must contain both rules (union, not replace).
     #[test]
     fn merge_variant_definition_unions_rules_at_same_from_cell() {
         let mut primary = make_variant_with_cells(vec![
@@ -869,7 +869,7 @@ mod tests {
         assert!(matches!(rules[1].predicate, RoutePredicate::FleetSize { .. }));
     }
 
-    /// A secondary variant carries a `VisitedNode` predicate whose cell_nos refer to the
+    /// A secondary variant carries a `VisitedNode` predicate whose `cell_nos` refer to the
     /// secondary's numbering.  After remap the predicate must use primary numbering.
     #[test]
     fn remap_visited_node_predicate_cell_nos() {
@@ -1019,5 +1019,55 @@ mod tests {
             }
             other => panic!("unexpected predicate: {:?}", other),
         }
+    }
+
+    // ── U3 tests: label_to_cell_no ───────────────────────────────────────────
+
+    #[test]
+    fn label_to_cell_no_returns_correct_mapping_for_labeled_cells() {
+        let variant = make_variant_with_cells(vec![
+            cell(0, "Start", vec![1], 0, 0, 0),
+            cell(1, "A", vec![2], 2, 0, 2),
+            cell(2, "B", vec![], 3, 0, 3),
+        ]);
+        let map = variant.label_to_cell_no();
+        assert_eq!(map.len(), 3);
+        assert_eq!(map["Start"], 0);
+        assert_eq!(map["A"], 1);
+        assert_eq!(map["B"], 2);
+    }
+
+    #[test]
+    fn label_to_cell_no_excludes_duplicate_labels() {
+        let variant = make_variant_with_cells(vec![
+            cell(1, "A", vec![], 2, 0, 2),
+            cell(2, "A", vec![], 3, 0, 3),
+            cell(3, "B", vec![], 4, 0, 4),
+        ]);
+        let map = variant.label_to_cell_no();
+        assert_eq!(map.len(), 1, "duplicate label A should be excluded");
+        assert_eq!(map["B"], 3);
+        assert!(!map.contains_key("A"));
+    }
+
+    #[test]
+    fn label_to_cell_no_returns_empty_for_unlabeled_cells() {
+        let variant = make_variant_with_cells(vec![
+            cell(1, "", vec![], 2, 0, 2),
+            cell(2, "", vec![], 3, 0, 3),
+        ]);
+        let map = variant.label_to_cell_no();
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn label_to_cell_no_maps_start_label_to_cell_no() {
+        let variant = make_variant_with_cells(vec![
+            cell(5, "Start", vec![10], 0, 0, 0),
+            cell(10, "Boss", vec![], 5, 1, 0),
+        ]);
+        let map = variant.label_to_cell_no();
+        assert_eq!(map["Start"], 5);
+        assert_eq!(map["Boss"], 10);
     }
 }

@@ -53,6 +53,8 @@ pub struct MapCatalogBuildReport {
     pub fanout_rules_dropped: usize,
     /// Number of kcdata YAML files that failed to deserialize (skipped with a warning).
     pub kcdata_parse_errors: usize,
+    /// Number of topology validation warnings emitted during assembly.
+    pub topology_warnings: usize,
 }
 
 impl fmt::Display for MapCatalogBuildReport {
@@ -70,6 +72,9 @@ impl fmt::Display for MapCatalogBuildReport {
         }
         if self.kcdata_parse_errors > 0 {
             write!(f, "; kcdata parse errors: {}", self.kcdata_parse_errors)?;
+        }
+        if self.topology_warnings > 0 {
+            write!(f, "; topology warnings: {}", self.topology_warnings)?;
         }
         if let MapCatalogWikiwikiSource::ParseFailed {
             path,

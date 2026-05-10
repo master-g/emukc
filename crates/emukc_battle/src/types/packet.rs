@@ -1,5 +1,5 @@
 //! API packet types with Serialize derivations.
-//! These directly serialize to JSON for the KanColle API response.
+//! These directly serialize to JSON for the `KanColle` API response.
 
 use serde::Serialize;
 

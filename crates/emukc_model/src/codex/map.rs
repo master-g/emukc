@@ -205,7 +205,7 @@ impl MapCatalog {
 
 impl MapDefinition {
     /// Validate graph invariants across all variants.
-    /// Returns warnings for: self-loops, unreachable cells, routing-rule targets not in next_cells.
+    /// Returns warnings for: self-loops, unreachable cells, routing-rule targets not in `next_cells`.
     /// Designed for warn-only use at codex load.
     pub fn validate(&self) -> Vec<MapValidationWarning> {
         let mut warnings = Vec::new();

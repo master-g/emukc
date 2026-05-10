@@ -2,10 +2,11 @@ use std::path::Path;
 
 use emukc_model::{codex::map::MapCatalog, kc2::start2::ApiManifest};
 
-use crate::parser::error::ParseError;
+use crate::parser::{error::ParseError, wikiwiki_map::WikiwikiMapOverlayCatalog};
 
 mod assemble;
 mod kcdata;
+mod label_overlay;
 mod report;
 mod sources;
 #[cfg(test)]
@@ -19,7 +20,18 @@ pub fn build_final_map_catalog(
     manifest: &ApiManifest,
     wikiwiki_catalog: Option<MapCatalog>,
 ) -> Result<MapCatalog, ParseError> {
-    build_final_map_catalog_with_report(data_root, manifest, wikiwiki_catalog)
+    build_final_map_catalog_with_report(data_root, manifest, wikiwiki_catalog, None)
+        .map(|(catalog, _)| catalog)
+}
+
+/// Build the final runtime `MapCatalog` from explicit inputs with overlay.
+pub fn build_final_map_catalog_with_overlay(
+    data_root: impl AsRef<Path>,
+    manifest: &ApiManifest,
+    wikiwiki_catalog: Option<MapCatalog>,
+    wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
+) -> Result<MapCatalog, ParseError> {
+    build_final_map_catalog_with_report(data_root, manifest, wikiwiki_catalog, wikiwiki_overlay)
         .map(|(catalog, _)| catalog)
 }
 
@@ -37,9 +49,14 @@ pub fn build_final_map_catalog_with_report(
     data_root: impl AsRef<Path>,
     manifest: &ApiManifest,
     wikiwiki_catalog: Option<MapCatalog>,
+    wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
 ) -> Result<(MapCatalog, MapCatalogBuildReport), ParseError> {
-    let source_set =
-        sources::load_explicit_source_set(data_root.as_ref(), manifest, wikiwiki_catalog)?;
+    let source_set = sources::load_explicit_source_set(
+        data_root.as_ref(),
+        manifest,
+        wikiwiki_catalog,
+        wikiwiki_overlay,
+    )?;
     Ok(assemble::assemble_final_map_catalog(source_set))
 }
 

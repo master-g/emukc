@@ -1,5 +1,5 @@
 use super::split_map_id;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use serde::{Deserialize, Deserializer as SerdeDeserializer, Serialize, Serializer};
 
@@ -100,6 +100,33 @@ pub struct MapVariantDefinition {
     pub clear_to_variant_key: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parse_warnings: Vec<String>,
+}
+
+impl MapVariantDefinition {
+    /// Returns a map from `node_label` to `cell_no` for all uniquely-labeled cells.
+    ///
+    /// If a label appears on two or more cells with different `cell_nos`, that label is excluded.
+    pub fn label_to_cell_no(&self) -> BTreeMap<String, i64> {
+        let mut labels = BTreeMap::new();
+        let mut duplicates = BTreeSet::new();
+
+        for cell in &self.cells {
+            let Some(label) = cell.node_label.as_ref().filter(|l| !l.is_empty()) else {
+                continue;
+            };
+            if duplicates.contains(label) {
+                continue;
+            }
+            if let Some(previous) = labels.insert(label.clone(), cell.cell_no)
+                && previous != cell.cell_no
+            {
+                labels.remove(label);
+                duplicates.insert(label.clone());
+            }
+        }
+
+        labels
+    }
 }
 
 pub type MapStageDefinition = MapVariantDefinition;

@@ -27,7 +27,10 @@ pub use kccp::quest::parse as parse_kccp_quests;
 pub use kcwiki::parse as parse_kcwiki;
 pub use kcwikizh_kcdata::parse as parse_kcdata;
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
-pub use wikiwiki_map::{parse as parse_wikiwiki_map, parse_debug as parse_wikiwiki_map_debug};
+pub use wikiwiki_map::{
+    WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
+    parse as parse_wikiwiki_map, parse_debug as parse_wikiwiki_map_debug,
+};
 
 fn load_map_catalog(
     dir: &std::path::Path,

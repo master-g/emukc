@@ -193,7 +193,7 @@ pub(crate) struct AirstrikeOutput<'a> {
 /// Parameters for night battle shelling simulation.
 ///
 /// Night battle does not use formation or engagement modifiers
-/// per KanColle mechanics.
+/// per `KanColle` mechanics.
 pub(crate) struct NightBattleParams<'a> {
     #[allow(dead_code)]
     pub friendly_formation_id: i64,

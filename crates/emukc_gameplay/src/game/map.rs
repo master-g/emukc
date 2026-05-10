@@ -668,7 +668,7 @@ mod tests {
         }
     }
 
-    /// Fresh event map (no HP set) → gauge_index must reset to 1.
+    /// Fresh event map (no HP set) → `gauge_index` must reset to 1.
     #[test]
     fn gauge_index_resets_on_fresh_initialization() {
         let def = event_definition_with_hp();
@@ -690,7 +690,7 @@ mod tests {
         assert_eq!(am.current_hp.unwrap(), Some(500));
     }
 
-    /// Mid-event record (HP already set) → gauge_index must be preserved.
+    /// Mid-event record (HP already set) → `gauge_index` must be preserved.
     #[test]
     fn gauge_index_preserved_when_hp_already_set() {
         let def = event_definition_with_hp();

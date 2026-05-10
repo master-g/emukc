@@ -149,7 +149,7 @@ pub(crate) fn calculate_torpedo_damage(
 /// Calculate night battle damage for a single attack.
 ///
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied to basic power
-/// *before* the soft cap at 360 — matching KanColle's CI damage pipeline.
+/// *before* the soft cap at 360 — matching `KanColle`'s CI damage pipeline.
 pub(crate) fn calculate_night_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,

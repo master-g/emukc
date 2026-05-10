@@ -155,7 +155,7 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 
 ## Code Style
 
-- **Rust edition 2024**, stable toolchain, minimum rust-version 1.94.0
+- **Rust edition 2024**, stable toolchain, minimum rust-version 1.85.0
 - **Hard tabs** for indentation (see `.rustfmt.toml`)
 - `unsafe_code` is **denied** workspace-wide
 - `missing_docs` is warned

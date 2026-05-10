@@ -69,23 +69,6 @@ pub fn new_spinner_on_mp(message: &str, mp: &MultiProgress) -> ProgressBar {
     pb
 }
 
-/// Create a standalone spinner (not managed by [`MultiProgress`]).
-pub fn new_spinner(message: &str) -> Option<ProgressBar> {
-    if !is_tty() {
-        return None;
-    }
-
-    let pb = ProgressBar::new_spinner();
-    pb.set_style(
-        ProgressStyle::with_template(SPINNER_STYLE)
-            .expect("invalid spinner style template")
-            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
-    );
-    pb.set_message(message.to_string());
-    pb.enable_steady_tick(Duration::from_millis(100));
-    Some(pb)
-}
-
 /// Create a stats bar registered with a [`MultiProgress`] from the start.
 pub fn new_stats_bar_on_mp(max_concurrent: usize, mp: &MultiProgress) -> ProgressBar {
     let pb = mp.add(ProgressBar::new(0));

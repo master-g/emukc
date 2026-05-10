@@ -115,7 +115,7 @@ fn parse_flagship_type(cond: &Option<String>) -> Option<i64> {
 
 /// Parse composition condition expression
 ///
-/// Format: "ship_type-count|ship_type,ship_type-count/..."
+/// Format: "`ship_type`-count|`ship_type`,`ship_type`-count/..."
 /// - `/` separates OR conditions
 /// - `|` separates AND conditions within an OR branch
 /// - `,` separates alternative ship types for a single requirement
