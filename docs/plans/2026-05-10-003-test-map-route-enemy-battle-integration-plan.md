@@ -1,7 +1,7 @@
 ---
 title: "test: 地图系统综合集成测试（路由、敌人配置、战斗流程）"
 type: refactor
-status: active
+status: completed
 date: 2026-05-10
 ---
 

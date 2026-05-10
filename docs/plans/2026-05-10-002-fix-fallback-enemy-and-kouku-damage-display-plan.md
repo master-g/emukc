@@ -1,7 +1,7 @@
 ---
 title: "fix: 敌舰后备使用友方舰娘 + 航空战api_fdam显示原始伤害"
 type: fix
-status: active
+status: completed
 date: 2026-05-10
 ---
 
