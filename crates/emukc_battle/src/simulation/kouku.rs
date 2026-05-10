@@ -269,7 +269,8 @@ fn execute_airstrike_phase(
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
                 // display_damage returns dealt for friendly defenders (sinking protection),
                 // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
-                let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+                let display =
+                    crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 output.damage[target_idx] += display;
                 output.bak_targets[ship_idx] = target_idx as i64;
                 output.bak_flags[target_idx] = 1;
@@ -314,7 +315,8 @@ fn execute_airstrike_phase(
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
                 // display_damage returns dealt for friendly defenders (sinking protection),
                 // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
-                let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+                let display =
+                    crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 output.damage[target_idx] += display;
                 output.rai_targets[ship_idx] = target_idx as i64;
                 output.rai_flags[target_idx] = 1;
@@ -613,8 +615,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let bomber_id =
-            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let bomber_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
 
         // Friendly DD with very low HP (taiha) — sinking protection should cap damage
         let mut friend = sample_ship(&codex, dd_mst, 50);
@@ -650,8 +651,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let bomber_id =
-            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let bomber_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
 
         // Friendly DD at full HP — no protection triggered, fdam == actual HP lost
         let mut friend = sample_ship(&codex, dd_mst, 50);
@@ -676,7 +676,8 @@ mod tests {
         let hp_after = friendly[0].hp();
         assert!(fdam > 0, "enemy CVL with bombers must deal airstrike damage");
         assert_eq!(
-            fdam, hp_before - hp_after,
+            fdam,
+            hp_before - hp_after,
             "at full HP, api_fdam should equal actual HP lost (no protection)"
         );
     }
@@ -715,8 +716,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let bomber_id =
-            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let bomber_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
 
         // Friendly CVL equipped with bombers vs enemy DD with very low HP
         let mut friend = sample_ship(&codex, cvl_mst, 99);

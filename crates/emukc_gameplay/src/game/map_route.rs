@@ -1697,7 +1697,14 @@ mod tests {
     // ========================================================================
 
     /// Helper: build a RouteRule with LoS predicate.
-    fn make_los_rule(from: i64, to: i64, priority: i64, formula: Option<&str>, op: RouteOperator, value: i64) -> RouteRule {
+    fn make_los_rule(
+        from: i64,
+        to: i64,
+        priority: i64,
+        formula: Option<&str>,
+        op: RouteOperator,
+        value: i64,
+    ) -> RouteRule {
         RouteRule {
             from_cell_no: from,
             to_cell_no: to,
@@ -1713,13 +1720,22 @@ mod tests {
     }
 
     /// Helper: build a RouteRule with FleetSize predicate.
-    fn make_fleet_size_rule(from: i64, to: i64, priority: i64, op: RouteOperator, value: i64) -> RouteRule {
+    fn make_fleet_size_rule(
+        from: i64,
+        to: i64,
+        priority: i64,
+        op: RouteOperator,
+        value: i64,
+    ) -> RouteRule {
         RouteRule {
             from_cell_no: from,
             to_cell_no: to,
             priority,
             weight: Some(1),
-            predicate: RoutePredicate::FleetSize { op, value },
+            predicate: RoutePredicate::FleetSize {
+                op,
+                value,
+            },
             ..Default::default()
         }
     }
@@ -1753,11 +1769,7 @@ mod tests {
             ],
         );
         let stage = MapStageDefinition {
-            cells: vec![
-                make_cell(1, vec![2, 3]),
-                make_cell(2, vec![]),
-                make_cell(3, vec![]),
-            ],
+            cells: vec![make_cell(1, vec![2, 3]), make_cell(2, vec![]), make_cell(3, vec![])],
             routing_rules,
             ..Default::default()
         };
@@ -1787,11 +1799,7 @@ mod tests {
             ],
         );
         let stage = MapStageDefinition {
-            cells: vec![
-                make_cell(1, vec![2, 3]),
-                make_cell(2, vec![]),
-                make_cell(3, vec![]),
-            ],
+            cells: vec![make_cell(1, vec![2, 3]), make_cell(2, vec![]), make_cell(3, vec![])],
             routing_rules,
             ..Default::default()
         };
@@ -1804,11 +1812,9 @@ mod tests {
 
         // LoS 70: passes threshold 60 (cell 2)
         let context_high = make_los_context(70, 70.0, 70.0);
-        let result_high = evaluate_route_destination(&current, &stage, &context_high, None).unwrap();
-        assert_eq!(
-            result_high, 2,
-            "los=70 should route to cell 2 (threshold 60)"
-        );
+        let result_high =
+            evaluate_route_destination(&current, &stage, &context_high, None).unwrap();
+        assert_eq!(result_high, 2, "los=70 should route to cell 2 (threshold 60)");
     }
 
     /// Rules from_cell matching: only rules matching the current cell are evaluated.
@@ -1817,14 +1823,8 @@ mod tests {
     #[test]
     fn rule_from_cell_matching_selects_correct_rule() {
         let mut routing_rules = BTreeMap::new();
-        routing_rules.insert(
-            1,
-            vec![make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 1)],
-        );
-        routing_rules.insert(
-            3,
-            vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 1)],
-        );
+        routing_rules.insert(1, vec![make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 1)]);
+        routing_rules.insert(3, vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 1)]);
         let stage = MapStageDefinition {
             cells: vec![
                 make_cell(1, vec![2]),
@@ -1862,19 +1862,17 @@ mod tests {
         let mut routing_rules = BTreeMap::new();
         routing_rules.insert(
             1,
-            vec![
-                RouteRule {
-                    from_cell_no: 1,
-                    to_cell_no: 2, // not in next_cells
-                    priority: 0,
-                    weight: Some(1),
-                    predicate: RoutePredicate::FleetSize {
-                        op: RouteOperator::Gte,
-                        value: 1,
-                    },
-                    ..Default::default()
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2, // not in next_cells
+                priority: 0,
+                weight: Some(1),
+                predicate: RoutePredicate::FleetSize {
+                    op: RouteOperator::Gte,
+                    value: 1,
                 },
-            ],
+                ..Default::default()
+            }],
         );
         let stage = MapStageDefinition {
             cells: vec![
@@ -1916,10 +1914,7 @@ mod tests {
     #[test]
     fn empty_next_cells_no_rule_match_returns_error() {
         let mut routing_rules = BTreeMap::new();
-        routing_rules.insert(
-            1,
-            vec![make_los_rule(1, 2, 0, None, RouteOperator::Gte, 100)],
-        );
+        routing_rules.insert(1, vec![make_los_rule(1, 2, 0, None, RouteOperator::Gte, 100)]);
         let stage = MapStageDefinition {
             cells: vec![make_cell(1, vec![])],
             routing_rules,
@@ -1940,19 +1935,9 @@ mod tests {
     #[test]
     fn same_priority_rules_use_weighted_random() {
         let mut routing_rules = BTreeMap::new();
-        routing_rules.insert(
-            1,
-            vec![
-                make_always_rule(1, 2, 0, 80),
-                make_always_rule(1, 3, 0, 20),
-            ],
-        );
+        routing_rules.insert(1, vec![make_always_rule(1, 2, 0, 80), make_always_rule(1, 3, 0, 20)]);
         let stage = MapStageDefinition {
-            cells: vec![
-                make_cell(1, vec![2, 3]),
-                make_cell(2, vec![]),
-                make_cell(3, vec![]),
-            ],
+            cells: vec![make_cell(1, vec![2, 3]), make_cell(2, vec![]), make_cell(3, vec![])],
             routing_rules,
             ..Default::default()
         };
@@ -1963,10 +1948,7 @@ mod tests {
         let mut count_3 = 0usize;
         for _ in 0..100 {
             let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
-            assert!(
-                result == 2 || result == 3,
-                "result should be 2 or 3, got {result}"
-            );
+            assert!(result == 2 || result == 3, "result should be 2 or 3, got {result}");
             if result == 2 {
                 count_2 += 1;
             } else {
@@ -1989,10 +1971,7 @@ mod tests {
     #[test]
     fn rule_to_cell_exists_in_cells_but_not_next_cells_is_filtered() {
         let mut routing_rules = BTreeMap::new();
-        routing_rules.insert(
-            1,
-            vec![make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 1)],
-        );
+        routing_rules.insert(1, vec![make_fleet_size_rule(1, 2, 0, RouteOperator::Gte, 1)]);
         let stage = MapStageDefinition {
             cells: vec![
                 make_cell(1, vec![4, 5]),
@@ -2052,10 +2031,7 @@ mod tests {
             ],
         );
         // Cell 3: fleet size >= 4 routes to cell 6
-        routing_rules.insert(
-            3,
-            vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 4)],
-        );
+        routing_rules.insert(3, vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 4)]);
         let stage = MapStageDefinition {
             cells: vec![
                 make_cell(1, vec![4, 5]),
@@ -2077,10 +2053,7 @@ mod tests {
         // --- At cell 1, low LoS (20 < 40) → Always fallback rule at priority 1 → cell 4 ---
         let ctx_low_los = make_los_context(20, 20.0, 20.0);
         let result = evaluate_route_destination(&current_1, &stage, &ctx_low_los, None).unwrap();
-        assert_eq!(
-            result, 4,
-            "low LoS at cell 1 should use Always fallback to cell 4"
-        );
+        assert_eq!(result, 4, "low LoS at cell 1 should use Always fallback to cell 4");
 
         // --- At cell 3, fleet size 6 (>= 4) → cell 6 ---
         let current_3 = make_cell(3, vec![6]);

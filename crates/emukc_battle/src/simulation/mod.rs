@@ -553,10 +553,7 @@ mod tests {
         // Verify damage was actually dealt
         let dd_hp_after = simulation.friendly[0].hp();
         let dd_actual_lost = dd_hp_before - dd_hp_after;
-        assert!(
-            dd_actual_lost > 0,
-            "enemy (karyoku=200) must deal damage to zero-armor DD"
-        );
+        assert!(dd_actual_lost > 0, "enemy (karyoku=200) must deal damage to zero-armor DD");
 
         // The DD must survive (sinking protection)
         assert!(
