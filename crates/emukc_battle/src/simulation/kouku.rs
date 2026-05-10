@@ -267,6 +267,8 @@ fn execute_airstrike_phase(
             );
             if damage > 0 {
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+                // display_damage returns dealt for friendly defenders (sinking protection),
+                // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
                 let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 output.damage[target_idx] += display;
                 output.bak_targets[ship_idx] = target_idx as i64;
@@ -310,6 +312,8 @@ fn execute_airstrike_phase(
             );
             if damage > 0 {
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+                // display_damage returns dealt for friendly defenders (sinking protection),
+                // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
                 let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 output.damage[target_idx] += display;
                 output.rai_targets[ship_idx] = target_idx as i64;
@@ -609,6 +613,8 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
 
         // Friendly DD with very low HP (taiha) — sinking protection should cap damage
         let mut friend = sample_ship(&codex, dd_mst, 50);
@@ -616,11 +622,13 @@ mod tests {
         friend.ship.api_nowhp = 10;
         friend.ship.api_maxhp = 30;
 
-        // Enemy CVL with bombers to deal heavy airstrike damage
+        // Enemy CVL equipped with bombers to ensure airstrike damage
         let mut enemy = sample_ship(&codex, cvl_mst, 99);
         enemy.ship.api_soukou[0] = 0;
         enemy.ship.api_nowhp = 200;
         enemy.ship.api_maxhp = 200;
+        enemy.slot_items = vec![slotitem_with_mst_id(bomber_id)];
+        enemy.ship.api_onslot = [18, 0, 0, 0, 0];
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
@@ -629,13 +637,12 @@ mod tests {
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
 
         let fdam = kouku.api_stage3.api_fdam[0];
-        if fdam > 0 {
-            assert!(
-                fdam <= 10,
-                "api_fdam ({fdam}) should reflect dealt damage, not raw overkill, \
-                 for friendly ships under sinking protection"
-            );
-        }
+        assert!(fdam > 0, "enemy CVL with bombers must deal airstrike damage");
+        assert!(
+            fdam <= 10,
+            "api_fdam ({fdam}) should reflect dealt damage, not raw overkill, \
+             for friendly ships under sinking protection"
+        );
     }
 
     #[test]
@@ -643,16 +650,21 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
 
         // Friendly DD at full HP — no protection triggered, fdam == actual HP lost
         let mut friend = sample_ship(&codex, dd_mst, 50);
         friend.ship.api_soukou[0] = 0;
         let hp_before = friend.ship.api_nowhp;
 
+        // Enemy CVL equipped with bombers to ensure airstrike damage
         let mut enemy = sample_ship(&codex, cvl_mst, 99);
         enemy.ship.api_soukou[0] = 0;
         enemy.ship.api_nowhp = 200;
         enemy.ship.api_maxhp = 200;
+        enemy.slot_items = vec![slotitem_with_mst_id(bomber_id)];
+        enemy.ship.api_onslot = [18, 0, 0, 0, 0];
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
@@ -662,12 +674,11 @@ mod tests {
 
         let fdam = kouku.api_stage3.api_fdam[0];
         let hp_after = friendly[0].hp();
-        if fdam > 0 {
-            assert_eq!(
-                fdam, hp_before - hp_after,
-                "at full HP, api_fdam should equal actual HP lost (no protection)"
-            );
-        }
+        assert!(fdam > 0, "enemy CVL with bombers must deal airstrike damage");
+        assert_eq!(
+            fdam, hp_before - hp_after,
+            "at full HP, api_fdam should equal actual HP lost (no protection)"
+        );
     }
 
     #[test]
@@ -704,12 +715,16 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
 
-        // Friendly CVL with bombers vs enemy DD with very low HP
+        // Friendly CVL equipped with bombers vs enemy DD with very low HP
         let mut friend = sample_ship(&codex, cvl_mst, 99);
         friend.ship.api_soukou[0] = 200;
         friend.ship.api_nowhp = 200;
         friend.ship.api_maxhp = 200;
+        friend.slot_items = vec![slotitem_with_mst_id(bomber_id)];
+        friend.ship.api_onslot = [18, 0, 0, 0, 0];
 
         let mut enemy = sample_ship(&codex, dd_mst, 1);
         enemy.ship.api_soukou[0] = 0;
@@ -724,12 +739,10 @@ mod tests {
 
         let edam = kouku.api_stage3.api_edam[0];
         let enemy_hp_after = enemies[0].hp();
-        // If any damage was dealt, edam should be able to exceed the enemy's original HP
-        if edam > 0 {
-            assert!(
-                edam >= enemy_hp_after,
-                "api_edam ({edam}) should >= remaining HP ({enemy_hp_after}), allowing overkill display"
-            );
-        }
+        assert!(edam > 0, "friendly CVL with bombers must deal airstrike damage");
+        assert!(
+            edam >= enemy_hp_after,
+            "api_edam ({edam}) should >= remaining HP ({enemy_hp_after}), allowing overkill display"
+        );
     }
 }
