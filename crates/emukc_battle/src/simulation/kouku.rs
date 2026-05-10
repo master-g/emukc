@@ -639,6 +639,67 @@ mod tests {
     }
 
     #[test]
+    fn kouku_fdam_equals_actual_hp_loss_at_full_hp() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly DD at full HP — no protection triggered, fdam == actual HP lost
+        let mut friend = sample_ship(&codex, dd_mst, 50);
+        friend.ship.api_soukou[0] = 0;
+        let hp_before = friend.ship.api_nowhp;
+
+        let mut enemy = sample_ship(&codex, cvl_mst, 99);
+        enemy.ship.api_soukou[0] = 0;
+        enemy.ship.api_nowhp = 200;
+        enemy.ship.api_maxhp = 200;
+
+        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut rng = crate::random::SeededRng::new(42);
+
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+
+        let fdam = kouku.api_stage3.api_fdam[0];
+        let hp_after = friendly[0].hp();
+        if fdam > 0 {
+            assert_eq!(
+                fdam, hp_before - hp_after,
+                "at full HP, api_fdam should equal actual HP lost (no protection)"
+            );
+        }
+    }
+
+    #[test]
+    fn kouku_flagship_survives_airstrike() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Flagship (index 0) with low HP — must survive
+        let mut friend = sample_ship(&codex, dd_mst, 50);
+        friend.ship.api_soukou[0] = 0;
+        friend.ship.api_nowhp = 5;
+        friend.ship.api_maxhp = 30;
+
+        let mut enemy = sample_ship(&codex, cvl_mst, 99);
+        enemy.ship.api_soukou[0] = 0;
+        enemy.ship.api_nowhp = 200;
+        enemy.ship.api_maxhp = 200;
+
+        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut rng = crate::random::SeededRng::new(42);
+
+        simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+
+        assert!(
+            friendly[0].hp() > 0,
+            "flagship (index 0) must survive airstrike under sinking protection"
+        );
+    }
+
+    #[test]
     fn kouku_edam_can_exceed_enemy_hp_overkill() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);

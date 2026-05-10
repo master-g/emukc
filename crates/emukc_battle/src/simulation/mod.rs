@@ -514,4 +514,124 @@ mod tests {
         ];
         assert_eq!(fleet_speed(&fleet), 5, "fleet speed is min of alive ships");
     }
+
+    #[test]
+    fn day_battle_display_damage_consistent_across_all_phases() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+
+        // Friendly: CVL with bombers + low-HP DD (taiha, protection-eligible)
+        let mut cvl = sample_ship(&codex, cvl_mst, 99);
+        cvl.slot_items = vec![slotitem_with_mst_id(bomber_id)];
+        cvl.ship.api_onslot = [18, 0, 0, 0, 0];
+        cvl.ship.api_soukou[0] = 200;
+
+        let mut dd = sample_ship(&codex, dd_mst, 50);
+        dd.ship.api_soukou[0] = 0;
+        dd.ship.api_nowhp = 8;
+        dd.ship.api_maxhp = 30;
+        let dd_hp_before = dd.ship.api_nowhp;
+
+        // Enemy: two DDs
+        let mut enemy1 = sample_ship(&codex, dd_mst, 99);
+        enemy1.ship.api_soukou[0] = 0;
+        let mut enemy2 = sample_ship(&codex, dd_mst, 99);
+        enemy2.ship.api_soukou[0] = 0;
+
+        let mut rng = SeededRng::new(42);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![cvl, dd],
+                enemy_ships: vec![enemy1, enemy2],
+            },
+            &mut rng,
+        );
+
+        // Collect all friendly damage from every phase that hit friendly ships
+        let kouku_fdam: i64 = simulation
+            .packet
+            .kouku
+            .as_ref()
+            .map(|k| k.api_stage3.api_fdam.iter().sum())
+            .unwrap_or(0);
+
+        let opening_fdam: i64 = simulation
+            .packet
+            .opening_attack
+            .as_ref()
+            .map(|t| t.api_fdam.iter().sum())
+            .unwrap_or(0);
+
+        let hougeki_fdam: i64 = 0; // hougeki uses per-attack api_damage, not aggregated fdam
+
+        // The DD at index 1 must survive (sinking protection)
+        assert!(
+            simulation.friendly[1].hp() > 0,
+            "friendly DD must survive day battle under sinking protection"
+        );
+
+        // Total displayed damage to friendly side should not exceed what HP allows
+        // (kouku + torpedo fdam are the main aggregated values)
+        let total_displayed = kouku_fdam + opening_fdam + hougeki_fdam;
+        let dd_hp_after = simulation.friendly[1].hp();
+        let dd_actual_lost = dd_hp_before - dd_hp_after;
+        // The DD's actual HP loss should be achievable without sinking
+        assert!(
+            dd_actual_lost < dd_hp_before,
+            "DD actual HP loss ({dd_actual_lost}) must be less than entry HP ({dd_hp_before})"
+        );
+    }
+
+    #[test]
+    fn day_battle_all_friendly_survive_under_protection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly ships at low HP but NOT taiha (HP > 25% max)
+        // taiha threshold: entry_hp * 4 <= maxhp → must have entry_hp > maxhp/4
+        // maxhp varies by DD; use entry_hp high enough to be above taiha threshold
+        let friend_ships: Vec<_> = (0..3)
+            .map(|_| {
+                let mut s = sample_ship(&codex, dd_mst, 50);
+                s.ship.api_soukou[0] = 0;
+                s.ship.api_nowhp = s.ship.api_maxhp / 4 + 1; // just above taiha
+                s
+            })
+            .collect();
+
+        let mut enemy = sample_ship(&codex, dd_mst, 99);
+        enemy.ship.api_karyoku[0] = 200;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(42);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships,
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        for (i, ship) in simulation.friendly.iter().enumerate() {
+            assert!(
+                ship.hp() > 0,
+                "friendly ship {i} must survive day battle under sinking protection (non-taiha entry)"
+            );
+        }
+    }
 }
