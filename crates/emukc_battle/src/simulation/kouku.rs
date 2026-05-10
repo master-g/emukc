@@ -266,8 +266,9 @@ fn execute_airstrike_phase(
                 &defenders[target_idx],
             );
             if damage > 0 {
-                let (raw_dmg, _dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
-                output.damage[target_idx] += raw_dmg;
+                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+                let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+                output.damage[target_idx] += display;
                 output.bak_targets[ship_idx] = target_idx as i64;
                 output.bak_flags[target_idx] = 1;
             }
@@ -308,8 +309,9 @@ fn execute_airstrike_phase(
                 &defenders[target_idx],
             );
             if damage > 0 {
-                let (raw_dmg, _dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
-                output.damage[target_idx] += raw_dmg;
+                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+                let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+                output.damage[target_idx] += display;
                 output.rai_targets[ship_idx] = target_idx as i64;
                 output.rai_flags[target_idx] = 1;
             }
@@ -600,6 +602,40 @@ mod tests {
         assert_eq!(s3.api_fbak_flag.len(), 3, "api_fbak_flag should be friendly-sized (3)");
         assert_eq!(s3.api_erai_flag.len(), 6, "api_erai_flag should be enemy-sized (6)");
         assert_eq!(s3.api_ebak_flag.len(), 6, "api_ebak_flag should be enemy-sized (6)");
+    }
+
+    #[test]
+    fn kouku_fdam_uses_display_damage_not_raw_under_protection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly DD with very low HP (taiha) — sinking protection should cap damage
+        let mut friend = sample_ship(&codex, dd_mst, 50);
+        friend.ship.api_soukou[0] = 0;
+        friend.ship.api_nowhp = 10;
+        friend.ship.api_maxhp = 30;
+
+        // Enemy CVL with bombers to deal heavy airstrike damage
+        let mut enemy = sample_ship(&codex, cvl_mst, 99);
+        enemy.ship.api_soukou[0] = 0;
+        enemy.ship.api_nowhp = 200;
+        enemy.ship.api_maxhp = 200;
+
+        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut rng = crate::random::SeededRng::new(42);
+
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+
+        let fdam = kouku.api_stage3.api_fdam[0];
+        if fdam > 0 {
+            assert!(
+                fdam <= 10,
+                "api_fdam ({fdam}) should reflect dealt damage, not raw overkill, \
+                 for friendly ships under sinking protection"
+            );
+        }
     }
 
     #[test]
