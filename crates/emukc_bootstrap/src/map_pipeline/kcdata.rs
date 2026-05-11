@@ -54,6 +54,9 @@ const BOSS_CELL: (i64, i64, i64) = (5, 5, 1);
 /// Regular battle cell appearance: orange node, normal battle event.
 const BATTLE_CELL: (i64, i64, i64) = (4, 4, 1);
 
+/// Start cell appearance: no color, no event.
+const START_CELL: (i64, i64, i64) = (0, 0, 0);
+
 /// Empty/resource cell appearance: blue node, non-battle event.
 const EMPTY_CELL: (i64, i64, i64) = (6, 1, 0);
 
@@ -119,7 +122,6 @@ pub(super) fn load_map_catalog_from_kcdata_root(
 }
 
 fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
-    // Pre-compute: for each node, which routes depart from it?
     let mut routes_from_node: BTreeMap<String, Vec<i64>> = BTreeMap::new();
     for (&route_id, route) in &data.routes {
         if let Some(from_key) = route.from.as_ref().and_then(route_node_key) {
@@ -128,36 +130,35 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
     }
 
     let mut cells = Vec::with_capacity(data.routes.len());
-    let mut boss_cell_no: i64 = 0;
+    let mut boss_cell_no: Option<i64> = None;
 
     for (&route_id, route) in &data.routes {
         let target_key = route_node_key(&route.to);
-        let is_start = route.from.is_none();
-
+        let is_source = route.from.is_none();
         let cell_meta = target_key.as_ref().and_then(|key| data.cells.get(key));
         let has_battle = cell_meta.is_some_and(|c| c.boss || !c.name.trim().is_empty());
         let is_boss = cell_meta.is_some_and(|c| c.boss);
 
         let (color_no, event_id, event_kind) = if is_boss {
-            boss_cell_no = route_id;
+            boss_cell_no.get_or_insert(route_id);
             BOSS_CELL
         } else if has_battle {
             BATTLE_CELL
+        } else if is_source && cell_meta.is_none() {
+            START_CELL
         } else {
             EMPTY_CELL
         };
 
-        // next_cells = route IDs departing from this route's target node
         let next_cells = target_key
             .as_ref()
             .and_then(|key| routes_from_node.get(key))
             .cloned()
             .unwrap_or_default();
-
-        let node_label = if is_start {
-            Some("Start".to_string())
-        } else {
-            target_key.clone()
+        let node_label = match (target_key, is_source, cell_meta.is_some()) {
+            (Some(label), _, true) | (Some(label), false, _) => Some(label),
+            (_, true, false) => Some("Start".to_string()),
+            (None, _, _) => None,
         };
 
         cells.push(MapCellDefinition {
@@ -174,7 +175,7 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 
     MapVariantDefinition {
         variant_key: String::new(),
-        boss_cell_no,
+        boss_cell_no: boss_cell_no.unwrap_or(0),
         cells,
         routing_rules: BTreeMap::new(),
         enemy_fleets: BTreeMap::new(),
@@ -253,8 +254,11 @@ data:
 
         let variant = build_variant_from_kcdata(&data);
         let cell_nos = variant.cells.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
+        let labels =
+            variant.cells.iter().map(|c| c.node_label.as_deref().unwrap()).collect::<Vec<_>>();
 
         assert_eq!(cell_nos, vec![0, 1, 2, 3]);
+        assert_eq!(labels, vec!["Start", "A", "B", "C"]);
         assert_eq!(variant.cells[0].next_cells, vec![1]);
         assert_eq!(variant.cells[1].next_cells, vec![2, 3]);
         assert_eq!(variant.boss_cell_no, 3);
@@ -308,6 +312,7 @@ data:
         assert_eq!(cell_nos, vec![0, 1], "cell_nos should match route IDs");
 
         let cell_1 = variant.cells.iter().find(|c| c.cell_no == 1).unwrap();
+        assert_eq!(cell_1.node_label.as_deref(), Some("5"));
         assert_eq!(
             cell_1.color_no, 6,
             "route 1 targets node 5 which has no metadata, should use EMPTY_CELL color_no"
@@ -345,7 +350,6 @@ data:
                 variant.cells.len()
             );
 
-            // Verify cell_nos match route IDs exactly
             let route_ids = data.routes.keys().copied().collect::<BTreeSet<_>>();
             assert_eq!(cell_nos, route_ids, "{} cell_nos don't match route IDs", path.display());
 
@@ -383,7 +387,7 @@ data:
             let variant = build_variant_from_kcdata(&data);
 
             // For each route targeting a numeric node with metadata in data.cells,
-            // verify the cell picks up that metadata
+            // verify the route-cell picks up that metadata.
             for (&route_id, route) in &data.routes {
                 let Some(target_key) = route_node_key(&route.to) else {
                     continue;
@@ -420,8 +424,11 @@ data:
   routes:
     0:
       from: null
-      to: A
+      to: 1
     1:
+      from: 1
+      to: A
+    2:
       from: A
       to: B
   cells:
@@ -436,8 +443,212 @@ data:
 
         let variant = build_variant_from_kcdata(&data);
 
-        assert_eq!(variant.cells.len(), 2, "should create cells for both routes");
+        assert_eq!(variant.cells.len(), 3, "should create cells for all routes");
         assert_eq!(variant.boss_cell_no, 0, "boss_cell_no should remain 0 when no boss exists");
+    }
+
+    #[test]
+    fn build_variant_from_kcdata_convergent_routes_preserve_duplicate_route_cells() {
+        let raw = r#"---
+layout: json
+order: 13
+data:
+  id: 13
+  name: Convergent Map
+  routes:
+    0:
+      from: null
+      to: 1
+    1:
+      from: 1
+      to: A
+    2:
+      from: A
+      to: E
+    3:
+      from: 1
+      to: B
+    4:
+      from: B
+      to: E
+    5:
+      from: E
+      to: J
+  cells:
+    A:
+      name: battle
+      boss: false
+    B:
+      name: battle
+      boss: false
+    E:
+      name: battle
+      boss: false
+    J:
+      name: boss
+      boss: true
+---"#;
+        let data = parse_kcdata_map(raw);
+
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 6);
+
+        let e_cell_nos = variant
+            .cells
+            .iter()
+            .filter(|c| c.node_label.as_deref() == Some("E"))
+            .map(|c| c.cell_no)
+            .collect::<Vec<_>>();
+        assert_eq!(e_cell_nos, vec![2, 4], "both E route-cells should be preserved");
+
+        assert_eq!(variant.cell(1).unwrap().next_cells, vec![2]);
+        assert_eq!(variant.cell(3).unwrap().next_cells, vec![4]);
+        assert_eq!(variant.cell(2).unwrap().next_cells, vec![5]);
+        assert_eq!(variant.cell(4).unwrap().next_cells, vec![5]);
+
+        assert_eq!(variant.boss_cell_no, 5);
+        let boss_cell = variant.cell(variant.boss_cell_no).unwrap();
+        assert_eq!(boss_cell.node_label.as_deref(), Some("J"));
+    }
+
+    #[test]
+    fn map_1_3_kcdata_variant_preserves_api_route_cells_and_duplicate_labels() {
+        let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.data/temp/kc_data/_map");
+        let path = map_root.join("13.json"); // map 1-3 -> id 13
+        if !path.exists() {
+            eprintln!("skipping: {} not found", path.display());
+            return;
+        }
+        let raw = std::fs::read_to_string(&path).unwrap();
+        let data = parse_kcdata_map(&raw);
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 14);
+        let cell_nos = variant.cells.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
+        assert_eq!(cell_nos, (0..=13).collect::<Vec<_>>());
+
+        assert_eq!(variant.cell(0).unwrap().next_cells, vec![1, 3]);
+        assert_eq!(variant.cell(1).unwrap().next_cells, vec![4, 5]);
+        assert_eq!(variant.cell(3).unwrap().next_cells, vec![6]);
+        assert_eq!(variant.cell(4).unwrap().next_cells, vec![2]);
+
+        let label_cell_nos = |label: &str| {
+            variant
+                .cells
+                .iter()
+                .filter(|c| c.node_label.as_deref() == Some(label))
+                .map(|c| c.cell_no)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(label_cell_nos("E"), vec![5, 11]);
+        assert_eq!(label_cell_nos("F"), vec![6, 12]);
+        assert_eq!(label_cell_nos("J"), vec![10, 13]);
+        assert_eq!(variant.boss_cell_no, 10);
+
+        let label_map = variant.label_to_cell_no();
+        assert!(!label_map.contains_key("E"));
+        assert!(!label_map.contains_key("F"));
+        assert!(!label_map.contains_key("J"));
+    }
+
+    #[test]
+    fn map_6_4_kcdata_variant_preserves_nonzero_source_route_cell() {
+        let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.data/temp/kc_data/_map");
+        let path = map_root.join("64.json");
+        if !path.exists() {
+            eprintln!("skipping: {} not found", path.display());
+            return;
+        }
+        let raw = std::fs::read_to_string(&path).unwrap();
+        let data = parse_kcdata_map(&raw);
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 23);
+        assert_eq!(variant.cell(0).unwrap().next_cells, vec![1, 2]);
+        assert_eq!(variant.cell(22).unwrap().next_cells, vec![13]);
+        assert_eq!(variant.cell(22).unwrap().node_label.as_deref(), Some("Start"));
+        assert_eq!(variant.boss_cell_no, 14);
+    }
+
+    #[test]
+    fn build_variant_from_kcdata_battle_cell_appearance() {
+        let raw = r#"---
+layout: json
+order: 33
+data:
+  id: 33
+  name: Battle Cell Map
+  routes:
+    0:
+      from: null
+      to: 1
+    1:
+      from: 1
+      to: A
+    2:
+      from: A
+      to: B
+  cells:
+    A:
+      name: enemy scout fleet
+      boss: false
+    B:
+      name: enemy main fleet
+      boss: true
+---"#;
+        let data = parse_kcdata_map(raw);
+        let variant = build_variant_from_kcdata(&data);
+
+        let a_cell = variant.cell(1).unwrap();
+        assert_eq!(a_cell.color_no, 4, "named non-boss cell should be BATTLE_CELL color_no");
+        assert_eq!(a_cell.event_id, 4, "BATTLE_CELL event_id");
+        assert_eq!(a_cell.event_kind, 1, "BATTLE_CELL event_kind");
+    }
+
+    #[test]
+    fn build_variant_from_kcdata_parallel_edges_preserve_distinct_route_cells() {
+        let raw = r#"---
+layout: json
+order: 44
+data:
+  id: 44
+  name: Parallel Edge Map
+  routes:
+    0:
+      from: null
+      to: 1
+    1:
+      from: 1
+      to: A
+    2:
+      from: A
+      to: B
+    3:
+      from: A
+      to: B
+  cells:
+    A:
+      name: start node
+      boss: false
+    B:
+      name: end node
+      boss: false
+---"#;
+        let data = parse_kcdata_map(raw);
+        let variant = build_variant_from_kcdata(&data);
+
+        assert_eq!(variant.cells.len(), 4);
+        assert_eq!(variant.cell(1).unwrap().next_cells, vec![2, 3]);
+        let b_cell_nos = variant
+            .cells
+            .iter()
+            .filter(|c| c.node_label.as_deref() == Some("B"))
+            .map(|c| c.cell_no)
+            .collect::<Vec<_>>();
+        assert_eq!(b_cell_nos, vec![2, 3]);
     }
 
     // ------------------------------------------------------------------ parse-error surfacing

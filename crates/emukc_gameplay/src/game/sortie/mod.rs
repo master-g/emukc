@@ -10,6 +10,7 @@ use route_context::{build_fleet_route_context, build_sortie_friend_ships, engage
 use std::collections::BTreeSet;
 
 use async_trait::async_trait;
+use emukc_crypto::rng;
 use emukc_db::entity::profile::{item::slot_item, ship};
 use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
 #[cfg(test)]
@@ -297,13 +298,13 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 definition.map_id,
             ))
         })?;
-        let cell_0 = stage.cell(0).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("cell_0 not found for map {}", definition.map_id,))
+        let source_cell = select_start_source_cell(stage).map_err(|err| {
+            GameplayError::EntryNotFound(format!("{} for map {}", err, definition.map_id))
         })?;
         let mut route_context =
             build_fleet_route_context(&tx, codex, &fleet_ships, profile.hq_level).await?;
-        route_context.visited_cell_ids.insert(0);
-        let first_cell = evaluate_route_destination(cell_0, stage, &route_context, None)?;
+        route_context.visited_cell_ids.insert(source_cell.cell_no);
+        let first_cell = evaluate_route_destination(source_cell, stage, &route_context, None)?;
         let current_cell = stage
             .cell(first_cell)
             .ok_or_else(|| GameplayError::EntryNotFound(format!("cell {first_cell} not found")))?;
@@ -319,7 +320,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             current_cell_id: first_cell,
             boss_cell_id: stage.boss_cell_no,
             pending_battle_cell_id: None,
-            visited_cell_ids: BTreeSet::from([first_cell]),
+            visited_cell_ids: BTreeSet::from([source_cell.cell_no, first_cell]),
             locked_enemy_composition: locked_enemy_composition.clone(),
         };
         tx.commit().await?;
@@ -331,7 +332,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             .await;
 
         let _ = formation_id;
-        let start_candidate_count = evaluate_route_candidate_count(cell_0, stage, &route_context);
+        let start_candidate_count =
+            evaluate_route_candidate_count(source_cell, stage, &route_context);
         Ok(SortieStartResponse {
             cell_data: build_sortie_cell_data(definition.map_id, stage),
             rashin_flg: start_candidate_count > 1,
@@ -349,7 +351,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             has_next: cell_has_routing_outgoing(current_cell.cell_no, stage),
             boss_cell_no: stage.boss_cell_no,
             bosscomp: sortie_bosscomp(stage),
-            from_cell_no: 0,
+            from_cell_no: source_cell.cell_no,
             limit_state: 0,
             airsearch: Some(default_sortie_airsearch()),
             enemy_deck_preview: locked_enemy_composition
@@ -1151,6 +1153,39 @@ fn build_sortie_cell_data(map_id: i64, stage: &MapStageDefinition) -> Vec<Sortie
             distance: cell.distance,
         })
         .collect()
+}
+
+fn start_source_cells(stage: &MapStageDefinition) -> Vec<&MapCellDefinition> {
+    let incoming = stage
+        .cells
+        .iter()
+        .flat_map(|cell| cell.next_cells.iter().copied())
+        .collect::<BTreeSet<_>>();
+    let roots = stage
+        .cells
+        .iter()
+        .filter(|cell| {
+            !incoming.contains(&cell.cell_no) && cell_has_routing_outgoing(cell.cell_no, stage)
+        })
+        .collect::<Vec<_>>();
+    if !roots.is_empty() {
+        return roots;
+    }
+
+    stage
+        .cell(0)
+        .filter(|cell| cell_has_routing_outgoing(cell.cell_no, stage))
+        .into_iter()
+        .collect()
+}
+
+fn select_start_source_cell(stage: &MapStageDefinition) -> Result<&MapCellDefinition, String> {
+    let sources = start_source_cells(stage);
+    match sources.as_slice() {
+        [] => Err("start source cell not found".to_string()),
+        [only] => Ok(*only),
+        many => Ok(many[rng::usize(0..many.len())]),
+    }
 }
 
 fn default_sortie_airsearch() -> SortieAirSearch {

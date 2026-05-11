@@ -97,12 +97,10 @@ fn merge_label_overlay_catalog(
                     let Some(kcdata_variant) = kcdata_map.variants.get_mut(key.as_str()) else {
                         continue;
                     };
-                    let label_index = kcdata_variant.label_to_cell_no();
-                    total_dropped += merge_label_overlay(kcdata_variant, overlay, &label_index);
+                    total_dropped += merge_label_overlay(kcdata_variant, overlay);
                 }
             } else if let Some(kcdata_variant) = kcdata_map.variants.get_mut(variant_key) {
-                let label_index = kcdata_variant.label_to_cell_no();
-                total_dropped += merge_label_overlay(kcdata_variant, overlay, &label_index);
+                total_dropped += merge_label_overlay(kcdata_variant, overlay);
             }
         }
     }

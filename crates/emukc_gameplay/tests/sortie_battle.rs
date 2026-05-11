@@ -398,6 +398,38 @@ async fn loaded_map_catalog_supports_start_and_next_flow() {
 }
 
 #[tokio::test]
+async fn repo_kcdata_route_cells_keep_world_1_3_api_identity() {
+    let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
+    let pid = session.profile.id;
+    ensure_map_unlocked(&context, pid, 13).await;
+
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    for _ in 0..24 {
+        let start = context.start_sortie(pid, 1, 1, 3, 1).await.unwrap();
+        let api_nos = start.cell_data.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
+        assert_eq!(api_nos, (0..=13).collect::<Vec<_>>());
+        assert_eq!(start.boss_cell_no, 10);
+        assert_eq!(start.from_cell_no, 0);
+        assert_ne!(start.cell_no, 4, "1-3 start must not return API cell 4/D");
+        assert!(matches!(start.cell_no, 1 | 3), "unexpected 1-3 start cell {}", start.cell_no);
+
+        if start.cell_no == 3 {
+            let next = context.next_sortie(pid, Some(6)).await.unwrap();
+            assert_eq!(next.from_cell_no, 3);
+            assert_eq!(next.cell_no, 6);
+            context.sortie_goback_port(pid).await.unwrap();
+            return;
+        }
+
+        context.sortie_goback_port(pid).await.unwrap();
+    }
+
+    panic!("failed to roll 1-3 start cell 3 after repeated attempts");
+}
+
+#[tokio::test]
 async fn sortie_airbattle_reuses_single_fleet_day_battle_flow() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;

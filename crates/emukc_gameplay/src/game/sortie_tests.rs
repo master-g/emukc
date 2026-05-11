@@ -1059,6 +1059,87 @@ fn ambiguous_cell_zero_without_rules_is_rejected() {
     assert!(error.to_string().contains("explicit start routing rules"));
 }
 
+#[test]
+fn start_source_cells_include_nonzero_route_cell_roots() {
+    let variant = MapVariantDefinition {
+        variant_key: String::new(),
+        boss_cell_no: 14,
+        cells: vec![
+            MapCellDefinition {
+                cell_no: 0,
+                color_no: 0,
+                event_id: 0,
+                event_kind: 0,
+                next_cells: vec![1, 2],
+                node_label: Some("Start".to_string()),
+                master_cell_id: None,
+                distance: None,
+            },
+            MapCellDefinition {
+                cell_no: 1,
+                color_no: 4,
+                event_id: 4,
+                event_kind: 1,
+                next_cells: vec![],
+                node_label: Some("A".to_string()),
+                master_cell_id: None,
+                distance: None,
+            },
+            MapCellDefinition {
+                cell_no: 2,
+                color_no: 4,
+                event_id: 4,
+                event_kind: 1,
+                next_cells: vec![],
+                node_label: Some("B".to_string()),
+                master_cell_id: None,
+                distance: None,
+            },
+            MapCellDefinition {
+                cell_no: 13,
+                color_no: 4,
+                event_id: 4,
+                event_kind: 1,
+                next_cells: vec![14],
+                node_label: Some("M".to_string()),
+                master_cell_id: None,
+                distance: None,
+            },
+            MapCellDefinition {
+                cell_no: 14,
+                color_no: 5,
+                event_id: 5,
+                event_kind: 1,
+                next_cells: vec![],
+                node_label: Some("N".to_string()),
+                master_cell_id: None,
+                distance: None,
+            },
+            MapCellDefinition {
+                cell_no: 22,
+                color_no: 0,
+                event_id: 0,
+                event_kind: 0,
+                next_cells: vec![13],
+                node_label: Some("Start".to_string()),
+                master_cell_id: None,
+                distance: None,
+            },
+        ],
+        routing_rules: BTreeMap::new(),
+        enemy_fleets: BTreeMap::new(),
+        ship_drops: BTreeMap::new(),
+        required_defeat_count: None,
+        clear_to_variant_key: None,
+        parse_warnings: Vec::new(),
+    };
+
+    let sources =
+        start_source_cells(&variant).into_iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
+
+    assert_eq!(sources, vec![0, 22]);
+}
+
 #[tokio::test]
 async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
     let db = new_mem_db().await.unwrap();

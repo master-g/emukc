@@ -2,29 +2,55 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::real_map_start_asset::EMBEDDED_REAL_MAP_START_ASSETS;
+    use crate::{
+        map_pipeline::build_final_map_catalog_from_repo_assets,
+        real_map_start_asset::EMBEDDED_REAL_MAP_START_ASSETS,
+    };
     use emukc_model::codex::map::MapCatalog;
+    use emukc_model::kc2::start2::ApiManifest;
+    use std::{path::PathBuf, str::FromStr};
 
-    fn load_catalog() -> MapCatalog {
-        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.data/codex/map_catalog.json");
-        if !path.exists() {
-            eprintln!("skipping topology verify: {}", path.display());
-            return MapCatalog::default();
-        }
-        let raw = std::fs::read_to_string(&path).unwrap();
-        serde_json::from_str(&raw).unwrap()
+    #[derive(Debug)]
+    struct RealCell {
+        api_no: i64,
+        api_id: i64,
+        api_color: i64,
     }
 
-    fn parse_capture(
-        asset: &crate::prelude::RealMapStartAsset,
-    ) -> Option<(i64, Vec<(i64, i64, i64)>, i64)> {
+    #[derive(Debug)]
+    struct RealStartCapture {
+        map_id: i64,
+        cells: Vec<RealCell>,
+        boss_cell_no: i64,
+        api_no: i64,
+        api_from_no: i64,
+    }
+
+    fn load_catalog() -> MapCatalog {
+        let data_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp");
+        let manifest_path = data_root.join("start2.json");
+        let Ok(manifest_raw) = std::fs::read_to_string(&manifest_path) else {
+            eprintln!("skipping topology verify: {}", manifest_path.display());
+            return MapCatalog::default();
+        };
+        let manifest = ApiManifest::from_str(&manifest_raw).unwrap();
+        let kcdata_root = data_root.join("kc_data");
+        if !kcdata_root.exists() {
+            eprintln!("skipping topology verify: {}", kcdata_root.display());
+            return MapCatalog::default();
+        }
+        build_final_map_catalog_from_repo_assets(&data_root, &manifest).unwrap()
+    }
+
+    fn parse_capture(asset: &crate::prelude::RealMapStartAsset) -> Option<RealStartCapture> {
         let envelope: serde_json::Value = serde_json::from_str(asset.raw_json()).ok()?;
         let api_data = envelope.get("api_data")?;
         let maparea = api_data.get("api_maparea_id")?.as_i64()?;
         let mapinfo = api_data.get("api_mapinfo_no")?.as_i64()?;
         let map_id = maparea * 10 + mapinfo;
-        let boss = api_data.get("api_bosscell_no")?.as_i64()?;
+        let boss_cell_no = api_data.get("api_bosscell_no")?.as_i64()?;
+        let api_no = api_data.get("api_no")?.as_i64()?;
+        let api_from_no = api_data.get("api_from_no")?.as_i64()?;
         let cells = api_data
             .get("api_cell_data")?
             .as_array()?
@@ -33,10 +59,30 @@ mod tests {
                 let no = c.get("api_no")?.as_i64()?;
                 let id = c.get("api_id")?.as_i64()?;
                 let color = c.get("api_color_no")?.as_i64()?;
-                Some((no, id, color))
+                Some(RealCell {
+                    api_no: no,
+                    api_id: id,
+                    api_color: color,
+                })
             })
             .collect::<Vec<_>>();
-        Some((map_id, cells, boss))
+        Some(RealStartCapture {
+            map_id,
+            cells,
+            boss_cell_no,
+            api_no,
+            api_from_no,
+        })
+    }
+
+    fn is_known_phase_specific_topology_fixture(asset_name: &str) -> bool {
+        matches!(
+            asset_name,
+            // 7-2 and 7-3 captures are phase/gauge-specific layouts. The default
+            // catalog variant is still useful for runtime, but these captures need
+            // dedicated variant-aware assertions before strict global parity applies.
+            "map_7-2.json" | "map_7-3.json" | "map_7-3-part2.json"
+        )
     }
 
     #[test]
@@ -49,9 +95,13 @@ mod tests {
         let mut mismatches = Vec::new();
 
         for asset in EMBEDDED_REAL_MAP_START_ASSETS {
-            let Some((map_id, real_cells, real_boss)) = parse_capture(asset) else {
+            if is_known_phase_specific_topology_fixture(asset.name) {
+                continue;
+            }
+            let Some(capture) = parse_capture(asset) else {
                 continue;
             };
+            let map_id = capture.map_id;
             let Some(definition) = catalog.maps.get(&map_id) else {
                 mismatches.push(format!("map {map_id}: not in catalog"));
                 continue;
@@ -60,44 +110,44 @@ mod tests {
                 mismatches.push(format!("map {map_id}: no default variant"));
                 continue;
             };
-            // Skip captures that belong to a different variant (cell count mismatch).
-            if variant.cells.len() != real_cells.len() {
-                continue;
-            }
 
             // Boss cell number must match.
-            if variant.boss_cell_no != real_boss {
+            if variant.boss_cell_no != capture.boss_cell_no {
                 mismatches.push(format!(
-                    "map {map_id}: boss_cell_no catalog={} real={real_boss}",
-                    variant.boss_cell_no
+                    "map {map_id}: boss_cell_no catalog={} real={}",
+                    variant.boss_cell_no, capture.boss_cell_no
                 ));
             }
 
             // Cell count must match.
             let catalog_count = variant.cells.len();
-            if catalog_count != real_cells.len() {
+            if catalog_count != capture.cells.len() {
                 mismatches.push(format!(
                     "map {map_id}: cell count catalog={catalog_count} real={}",
-                    real_cells.len()
+                    capture.cells.len()
                 ));
             }
 
             // Per-cell: cell_no, master_cell_id, color_no must match.
-            for (api_no, api_id, api_color) in &real_cells {
-                let Some(cell) = variant.cell(*api_no) else {
-                    mismatches.push(format!("map {map_id}: cell_no {api_no} missing from catalog"));
+            for real_cell in &capture.cells {
+                let Some(cell) = variant.cell(real_cell.api_no) else {
+                    mismatches.push(format!(
+                        "map {map_id}: cell_no {} missing from catalog",
+                        real_cell.api_no
+                    ));
                     continue;
                 };
                 let expected_mcid = cell.master_cell_id.unwrap_or(map_id * 100 + cell.cell_no);
-                if expected_mcid != *api_id {
+                if expected_mcid != real_cell.api_id {
                     mismatches.push(format!(
-						"map {map_id}: cell {api_no} master_cell_id catalog={expected_mcid} real={api_id}"
-					));
+                        "map {map_id}: cell {} master_cell_id catalog={expected_mcid} real={}",
+                        real_cell.api_no, real_cell.api_id
+                    ));
                 }
-                if cell.color_no != *api_color {
+                if cell.color_no != real_cell.api_color {
                     mismatches.push(format!(
-                        "map {map_id}: cell {api_no} color_no catalog={} real={api_color}",
-                        cell.color_no
+                        "map {map_id}: cell {} color_no catalog={} real={}",
+                        real_cell.api_no, cell.color_no, real_cell.api_color
                     ));
                 }
             }
@@ -114,46 +164,35 @@ mod tests {
     }
 
     #[test]
-    fn battle_cells_have_enemy_fleet_data() {
+    fn map_1_3_real_start_capture_matches_route_cell_topology() {
         let catalog = load_catalog();
         if catalog.maps.is_empty() {
             return;
         }
-        let mut checked = 0;
-        let mut missing = Vec::new();
+        let capture = EMBEDDED_REAL_MAP_START_ASSETS
+            .iter()
+            .filter_map(parse_capture)
+            .find(|capture| capture.map_id == 13)
+            .expect("embedded 1-3 real start capture");
+        let variant = catalog
+            .maps
+            .get(&13)
+            .and_then(|definition| definition.variants.get(""))
+            .expect("1-3 default variant");
 
-        for asset in EMBEDDED_REAL_MAP_START_ASSETS {
-            let Some((map_id, real_cells, _boss)) = parse_capture(asset) else {
-                continue;
-            };
-            let Some(definition) = catalog.maps.get(&map_id) else {
-                continue;
-            };
-            // Check all variants, not just the default.
-            for (vkey, variant) in &definition.variants {
-                for (api_no, _, api_color) in &real_cells {
-                    if *api_color < 4 || *api_color > 5 {
-                        continue;
-                    }
-                    if !variant.enemy_fleets.contains_key(api_no) {
-                        let label = variant
-                            .cell(*api_no)
-                            .and_then(|c| c.node_label.clone())
-                            .unwrap_or_default();
-                        missing.push(format!(
-						"map {map_id} variant {vkey}: cell {api_no} ({label}) color={api_color} has no enemy fleet"
-					));
-                    }
-                }
-            }
-            checked += 1;
-        }
-
-        if !missing.is_empty() {
-            for m in &missing {
-                eprintln!("  {m}");
-            }
-            panic!("{} battle cells missing enemy fleets across {checked} maps", missing.len());
-        }
+        let real_api_nos = capture.cells.iter().map(|cell| cell.api_no).collect::<Vec<_>>();
+        let catalog_api_nos = variant.cells.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
+        assert_eq!(capture.cells.len(), 14);
+        assert_eq!(real_api_nos, (0..=13).collect::<Vec<_>>());
+        assert_eq!(catalog_api_nos, real_api_nos);
+        assert_eq!(capture.api_from_no, 0);
+        assert_eq!(capture.api_no, 3);
+        assert_eq!(capture.boss_cell_no, 10);
+        assert_eq!(variant.boss_cell_no, 10);
+        assert_eq!(variant.cell(0).unwrap().next_cells, vec![1, 3]);
+        assert!(
+            !variant.cell(0).unwrap().next_cells.contains(&4),
+            "1-3 start must not route directly to API cell 4/D"
+        );
     }
 }

@@ -1,11 +1,16 @@
 ---
 title: "Refactor kcdata parser: one cell per unique node"
 type: refactor
-status: active
+status: superseded
 date: 2026-05-11
 ---
 
 # Refactor kcdata parser: one cell per unique node
+
+> Superseded by `docs/plans/2026-05-11-003-fix-kcdata-route-cell-api-parity-plan.md`.
+> The unique-node premise in this document is incorrect for KanColle API parity:
+> kcdata route IDs are API cell IDs, and duplicate node labels must be handled
+> in overlay logic without collapsing route cells.
 
 ## Summary
 
