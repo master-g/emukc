@@ -6,7 +6,7 @@ use crate::game::map_route::{FleetRouteContext, FleetRouteShipEntry};
 use crate::prelude::*;
 use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
 use emukc_db::{
-    entity::profile::map_record,
+    entity::profile::{map_record, material as profile_material, ship as profile_ship},
     prelude::new_mem_db,
     sea_orm::{
         ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
@@ -476,6 +476,68 @@ fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
 
     let fallback = resolve_sortie_enemy_fleet(11, &variant, 7);
     assert_eq!(fallback.compositions[0].ship_ids, vec![1501]);
+}
+
+#[tokio::test]
+async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = (db, codex);
+    let account = context.sign_up("maelstrom-loss", "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, "maelstrom-admin").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    let profile_id = session.profile.id;
+    let ship = context.add_ship(profile_id, 951).await.unwrap();
+
+    let ship_before =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let materials_before = profile_material::Entity::find()
+        .filter(profile_material::Column::ProfileId.eq(profile_id))
+        .one(&context.0)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let cell = MapCellDefinition {
+        cell_no: 99,
+        color_no: 3,
+        event_id: 3,
+        event_kind: 0,
+        next_cells: vec![],
+        node_label: Some("H".to_string()),
+        master_cell_id: None,
+        distance: None,
+    };
+
+    let (itemget, happening) = resolve_non_battle_node_effect(
+        &context.0,
+        &context.1,
+        profile_id,
+        &cell,
+        &[ship_before.clone()],
+    )
+    .await
+    .unwrap();
+    assert!(itemget.is_none());
+    let happening = happening.expect("maelstrom should produce a happening response");
+    assert_eq!(happening.resource_type, 1);
+    assert!(happening.amount > 0);
+
+    let ship_after =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let materials_after = profile_material::Entity::find()
+        .filter(profile_material::Column::ProfileId.eq(profile_id))
+        .one(&context.0)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(materials_after, materials_before);
+    assert_eq!(ship_after.ammo, ship_before.ammo);
+    assert!(ship_after.fuel < ship_before.fuel);
+    assert_eq!(ship_before.fuel - ship_after.fuel, happening.amount);
 }
 
 #[test]

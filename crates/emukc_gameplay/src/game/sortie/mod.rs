@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 use async_trait::async_trait;
 use emukc_crypto::rng;
 use emukc_db::entity::profile::{item::slot_item, ship};
-use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
+use emukc_db::sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*};
 #[cfg(test)]
 use emukc_model::codex::map::{RouteOperator, RoutePredicate, RouteRule, SpeedClass};
 use emukc_model::{
@@ -59,7 +59,7 @@ use super::{
     map_route::{
         cell_has_routing_outgoing, evaluate_route_candidate_count, evaluate_route_destination,
     },
-    material::{add_material_impl, deduct_material_impl, get_mat_impl},
+    material::add_material_impl,
     quest::update::update_quest_progress_for_action,
     sortie_result::{
         SortieBattleResultSnapshot, apply_sortie_map_result, build_sortie_quest_event,
@@ -1276,52 +1276,75 @@ where
         }
         3 => {
             // Maelstrom (渦潮): lose fuel or ammo.
-            // Type: fuel (api_type=1) or ammo (api_type=2), determined by color_no.
+            // Current assets infer the drained resource from the node appearance.
+            // Capture-backed calibration can tighten this later if needed.
             let resource_type = if cell.color_no == 4 {
                 2
             } else {
                 1
             }; // purple=ammo, else=fuel
-            let mat = get_mat_impl(c, profile_id).await?;
-            let stock = if resource_type == 1 {
-                mat.fuel
-            } else {
-                mat.ammo
-            };
-            // Base loss is ~20-40% of current stock (simplified).
-            let base_loss = (stock * 3 / 10).max(1);
-            // Radar (電探, type3=12/13/93) reduces loss by ~50%.
             let slot_ids: Vec<i64> = fleet_ships
                 .iter()
                 .flat_map(|s| [s.slot_1, s.slot_2, s.slot_3, s.slot_4, s.slot_5])
                 .filter(|&id| id > 0)
                 .collect();
-            let has_radar = if slot_ids.is_empty() {
-                false
+            let radar_item_ids = if slot_ids.is_empty() {
+                std::collections::BTreeSet::new()
             } else {
                 slot_item::Entity::find()
                     .filter(slot_item::Column::Id.is_in(slot_ids))
                     .filter(slot_item::Column::Type3.is_in([12_i64, 13, 93]))
-                    .count(c)
+                    .all(c)
                     .await?
-                    > 0
+                    .into_iter()
+                    .map(|item| item.id)
+                    .collect::<std::collections::BTreeSet<_>>()
             };
-            let (actual_loss, radar_reduced) = if has_radar {
-                ((base_loss + 1) / 2, true)
-            } else {
-                (base_loss, false)
+            let radar_ship_count = fleet_ships
+                .iter()
+                .filter(|ship| {
+                    [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5]
+                        .into_iter()
+                        .filter(|slot_id| *slot_id > 0)
+                        .any(|slot_id| radar_item_ids.contains(&slot_id))
+                })
+                .count();
+            let radar_reduction = match radar_ship_count {
+                0 => 0.0,
+                1 => 0.25,
+                2 => 0.40,
+                3 => 0.50,
+                4 => 0.55,
+                5 => 0.58,
+                _ => 0.60,
             };
-            let final_loss = actual_loss.min(stock);
-            if final_loss > 0 {
-                let category = MaterialCategory::from_id(resource_type);
-                let _ = deduct_material_impl(c, profile_id, &[(category, final_loss)]).await?;
+            let mut total_loss = 0;
+            for ship_model in fleet_ships {
+                let stock = if resource_type == 1 {
+                    ship_model.fuel
+                } else {
+                    ship_model.ammo
+                };
+                let ship_loss = ((stock as f64) * 0.30 * (1.0 - radar_reduction)).floor() as i64;
+                if ship_loss <= 0 {
+                    continue;
+                }
+
+                let mut am = ship_model.clone().into_active_model();
+                if resource_type == 1 {
+                    am.fuel = ActiveValue::Set((ship_model.fuel - ship_loss).max(0));
+                } else {
+                    am.ammo = ActiveValue::Set((ship_model.ammo - ship_loss).max(0));
+                }
+                am.update(c).await?;
+                total_loss += ship_loss;
             }
             Ok((
                 None,
                 Some(SortieHappening {
                     resource_type,
-                    amount: final_loss,
-                    radar_reduced,
+                    amount: total_loss,
+                    radar_reduced: radar_ship_count > 0,
                 }),
             ))
         }
