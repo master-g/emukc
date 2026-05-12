@@ -516,7 +516,7 @@ async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
         &context.1,
         profile_id,
         &cell,
-        &[ship_before.clone()],
+        std::slice::from_ref(&ship_before),
     )
     .await
     .unwrap();
@@ -578,7 +578,7 @@ async fn maelstrom_drains_ammo_when_color_no_is_4() {
         &context.1,
         profile_id,
         &cell,
-        &[ship_before.clone()],
+        std::slice::from_ref(&ship_before),
     )
     .await
     .unwrap();
@@ -615,10 +615,8 @@ async fn equip_radar_on_ship(
     let radar_mst_id = 27; // 13号対空電探, type3=12
     let radar = add_slot_item_impl(db, codex, profile_id, radar_mst_id, 0, 0).await.unwrap();
 
-    let mut ship_model =
-        profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap();
-    ship_model.slot_1 = radar.id;
-    let mut am = ship_model.clone().into_active_model();
+    let ship_model = profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap();
+    let mut am = ship_model.into_active_model();
     am.slot_1 = ActiveValue::Set(radar.id);
     am.update(db).await.unwrap();
 
@@ -740,10 +738,9 @@ async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
     let ship = context.add_ship(profile_id, 951).await.unwrap();
 
     // Drain fuel to 0
-    let mut ship_model =
+    let ship_model =
         profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
-    ship_model.fuel = 0;
-    let mut am = ship_model.clone().into_active_model();
+    let mut am = ship_model.into_active_model();
     am.fuel = ActiveValue::Set(0);
     am.update(&context.0).await.unwrap();
 
@@ -767,16 +764,18 @@ async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
         &context.1,
         profile_id,
         &cell,
-        &[ship_zero.clone()],
+        std::slice::from_ref(&ship_zero),
     )
     .await
     .unwrap();
 
     assert!(itemget.is_none());
-    // Ship with 0 fuel: floor(0 * 0.30) = 0, so no loss → happening may still report 0
-    if let Some(h) = happening {
-        assert_eq!(h.amount, 0);
-    }
+    // event_id=3 always emits a happening; a 0-fuel ship is skipped by the
+    // `ship_loss <= 0` guard so total_loss stays 0 but the happening is still Some.
+    let happening = happening.expect("maelstrom always emits a happening at event_id=3");
+    assert_eq!(happening.resource_type, 1, "color_no=3 drains fuel");
+    assert_eq!(happening.amount, 0, "zero-stock ship contributes zero loss");
+    assert!(!happening.radar_reduced, "no radars equipped");
 
     let ship_after =
         profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
