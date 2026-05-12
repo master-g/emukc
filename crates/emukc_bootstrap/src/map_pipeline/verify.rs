@@ -36,13 +36,8 @@ mod tests {
             );
             return MapCatalog::default();
         };
-        let manifest = match ApiManifest::from_str(&manifest_raw) {
-            Ok(m) => m,
-            Err(e) => {
-                eprintln!("WARNING: topology verify skipped — manifest parse failed: {e}");
-                return MapCatalog::default();
-            }
-        };
+        let manifest = ApiManifest::from_str(&manifest_raw)
+            .unwrap_or_else(|e| panic!("topology verify: manifest parse failed: {e}"));
         let kcdata_root = data_root.join("kc_data");
         if !kcdata_root.exists() {
             eprintln!(
@@ -51,13 +46,8 @@ mod tests {
             );
             return MapCatalog::default();
         }
-        match build_final_map_catalog_from_repo_assets(&data_root, &manifest) {
-            Ok(catalog) => catalog,
-            Err(e) => {
-                eprintln!("WARNING: topology verify skipped — catalog build failed: {e}");
-                MapCatalog::default()
-            }
-        }
+        build_final_map_catalog_from_repo_assets(&data_root, &manifest)
+            .unwrap_or_else(|e| panic!("topology verify: catalog build failed: {e}"))
     }
 
     fn parse_capture(asset: &crate::prelude::RealMapStartAsset) -> Option<RealStartCapture> {
