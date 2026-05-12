@@ -84,7 +84,7 @@ Fix actionable findings from multi-agent code review of the last 10 commits on f
 - Modify: `crates/emukc_model/src/codex/map/types.rs` (add method to `MapVariantDefinition`)
 
 **Approach:**
-- Add `pub fn multi_label_index(&self, label: &str) -> Vec<usize>` method to `MapVariantDefinition` that iterates `self.cells`
+- Add `pub fn multi_label_index(&self) -> BTreeMap<String, Vec<i64>>` method to `MapVariantDefinition` that iterates `self.cells` and builds a multi-valued index from `node_label` to matching `cell_no`s, preserving duplicate labels
 - Replace both call sites in assemble.rs and label_overlay.rs with calls to the new method
 - Verify both existing test suites still pass
 
@@ -93,7 +93,7 @@ Fix actionable findings from multi-agent code review of the last 10 commits on f
 
 **Test scenarios:**
 - Happy path: existing `test_fanout_happy_path_no_drops` and `happy_path_all_labels_match` still pass after refactor
-- Edge case: duplicate labels return multiple indices
+- Edge case: duplicate labels produce a `Vec<i64>` with multiple `cell_no` entries for that key
 
 **Verification:**
 - `cargo test -p emukc_bootstrap` passes
