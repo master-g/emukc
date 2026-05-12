@@ -103,6 +103,21 @@ pub struct MapVariantDefinition {
 }
 
 impl MapVariantDefinition {
+    /// Returns a multi-valued index from `node_label` to all matching `cell_no`s.
+    ///
+    /// Unlike [`label_to_cell_no`](Self::label_to_cell_no), duplicate labels are preserved
+    /// so each label maps to a `Vec` of cell numbers.
+    pub fn multi_label_index(&self) -> BTreeMap<String, Vec<i64>> {
+        let mut index = BTreeMap::<String, Vec<i64>>::new();
+        for cell in &self.cells {
+            let Some(label) = cell.node_label.as_ref().filter(|label| !label.is_empty()) else {
+                continue;
+            };
+            index.entry(label.clone()).or_default().push(cell.cell_no);
+        }
+        index
+    }
+
     /// Returns a map from `node_label` to `cell_no` for all uniquely-labeled cells.
     ///
     /// If a label appears on two or more cells with different `cell_nos`, that label is excluded.

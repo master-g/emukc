@@ -14,7 +14,7 @@ pub fn merge_label_overlay(
     overlay: &WikiwikiLabelOverlay,
 ) -> usize {
     let mut dropped = 0usize;
-    let label_index = multi_label_index(kcdata_variant);
+    let label_index = kcdata_variant.multi_label_index();
     let cell_by_no =
         kcdata_variant.cells.iter().map(|cell| (cell.cell_no, cell)).collect::<BTreeMap<_, _>>();
     let mut rules_to_add = Vec::new();
@@ -134,17 +134,6 @@ pub fn merge_label_overlay(
     }
 
     dropped
-}
-
-fn multi_label_index(variant: &MapVariantDefinition) -> BTreeMap<String, Vec<i64>> {
-    let mut index = BTreeMap::<String, Vec<i64>>::new();
-    for cell in &variant.cells {
-        let Some(label) = cell.node_label.as_ref().filter(|label| !label.is_empty()) else {
-            continue;
-        };
-        index.entry(label.clone()).or_default().push(cell.cell_no);
-    }
-    index
 }
 
 /// Convert a label-based predicate to a `cell_no`-based predicate.

@@ -1,5 +1,5 @@
 use emukc_model::codex::map::{
-    EnemyFleetDefinition, MapCatalog, MapCellDefinition, MapVariantDefinition, build_cell_no_map,
+    EnemyFleetDefinition, MapCatalog, MapVariantDefinition, build_cell_no_map,
     merge_routing_overlay,
 };
 
@@ -273,7 +273,7 @@ fn merge_legacy_enemy_fleets_and_ship_drops(
     cell_no_map: &std::collections::BTreeMap<i64, i64>,
     wikiwiki_variant: &MapVariantDefinition,
 ) {
-    let kcdata_label_index = multi_label_index(&kcdata_variant.cells);
+    let kcdata_label_index = kcdata_variant.multi_label_index();
     let wikiwiki_label_by_cell_no = wikiwiki_variant
         .cells
         .iter()
@@ -315,17 +315,6 @@ fn merge_legacy_enemy_fleets_and_ship_drops(
             kcdata_variant.ship_drops.entry(target_cell_no).or_insert_with(|| drops.clone());
         }
     }
-}
-
-fn multi_label_index(cells: &[MapCellDefinition]) -> std::collections::BTreeMap<String, Vec<i64>> {
-    let mut index = std::collections::BTreeMap::<String, Vec<i64>>::new();
-    for cell in cells {
-        let Some(label) = cell.node_label.as_ref().filter(|label| !label.is_empty()) else {
-            continue;
-        };
-        index.entry(label.clone()).or_default().push(cell.cell_no);
-    }
-    index
 }
 
 fn legacy_overlay_targets(
