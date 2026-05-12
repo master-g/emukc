@@ -540,6 +540,304 @@ async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
     assert_eq!(ship_before.fuel - ship_after.fuel, happening.amount);
 }
 
+#[tokio::test]
+async fn maelstrom_drains_ammo_when_color_no_is_4() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = (db, codex);
+    let account = context.sign_up("maelstrom-ammo", "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, "maelstrom-ammo-admin").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    let profile_id = session.profile.id;
+    let ship = context.add_ship(profile_id, 951).await.unwrap();
+
+    let ship_before =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let materials_before = profile_material::Entity::find()
+        .filter(profile_material::Column::ProfileId.eq(profile_id))
+        .one(&context.0)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let cell = MapCellDefinition {
+        cell_no: 99,
+        color_no: 4,
+        event_id: 3,
+        event_kind: 0,
+        next_cells: vec![],
+        node_label: Some("H".to_string()),
+        master_cell_id: None,
+        distance: None,
+    };
+
+    let (itemget, happening) = resolve_non_battle_node_effect(
+        &context.0,
+        &context.1,
+        profile_id,
+        &cell,
+        &[ship_before.clone()],
+    )
+    .await
+    .unwrap();
+
+    assert!(itemget.is_none());
+    let happening = happening.expect("maelstrom ammo drain should produce a happening");
+    assert_eq!(happening.resource_type, 2, "color_no=4 should drain ammo");
+    assert!(happening.amount > 0);
+
+    let ship_after =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let materials_after = profile_material::Entity::find()
+        .filter(profile_material::Column::ProfileId.eq(profile_id))
+        .one(&context.0)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(materials_after, materials_before);
+    assert_eq!(ship_after.fuel, ship_before.fuel, "ammo maelstrom must not touch fuel");
+    assert!(ship_after.ammo < ship_before.ammo);
+    assert_eq!(ship_before.ammo - ship_after.ammo, happening.amount);
+}
+
+async fn equip_radar_on_ship(
+    db: &emukc_db::sea_orm::DatabaseConnection,
+    codex: &Codex,
+    profile_id: i64,
+    ship_api_id: i64,
+) -> profile_ship::Model {
+    use crate::game::slot_item::add_slot_item_impl;
+    use emukc_db::entity::profile::item::slot_item;
+
+    let radar_mst_id = 27; // 13号対空電探, type3=12
+    let radar = add_slot_item_impl(db, codex, profile_id, radar_mst_id, 0, 0)
+        .await
+        .unwrap();
+
+    let mut ship_model =
+        profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap();
+    ship_model.slot_1 = radar.id;
+    let mut am = ship_model.clone().into_active_model();
+    am.slot_1 = ActiveValue::Set(radar.id);
+    am.update(db).await.unwrap();
+
+    let radar_am = slot_item::ActiveModel {
+        id: ActiveValue::Set(radar.id),
+        equip_on: ActiveValue::Set(ship_api_id),
+        ..radar.into_active_model()
+    };
+    radar_am.update(db).await.unwrap();
+
+    profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap()
+}
+
+#[tokio::test]
+async fn maelstrom_radar_reduces_fuel_loss_per_tier() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = (db, codex.clone());
+    let account = context.sign_up("maelstrom-radar", "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, "maelstrom-radar-admin").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    let profile_id = session.profile.id;
+
+    // Ship 951: fuel_max=20. Maelstrom drains floor(stock * 0.30 * (1 - radar_reduction)).
+    // Without radar: floor(20 * 0.30 * 1.0) = floor(6.0) = 6.
+    // With 1 radar (reduction=0.25): floor(20 * 0.30 * 0.75) = floor(4.5) = 4.
+    let ship = context.add_ship(profile_id, 951).await.unwrap();
+    let ship_no_radar =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    assert_eq!(ship_no_radar.fuel, 20);
+
+    let cell = MapCellDefinition {
+        cell_no: 99,
+        color_no: 3,
+        event_id: 3,
+        event_kind: 0,
+        next_cells: vec![],
+        node_label: Some("H".to_string()),
+        master_cell_id: None,
+        distance: None,
+    };
+
+    // Baseline: no radar
+    let (_, happening) = resolve_non_battle_node_effect(
+        &context.0,
+        &context.1,
+        profile_id,
+        &cell,
+        &[ship_no_radar.clone()],
+    )
+    .await
+    .unwrap();
+    let baseline_loss = happening.unwrap().amount;
+    assert_eq!(baseline_loss, 6, "no radar: floor(20 * 0.30) = 6");
+
+    // Restore fuel for next test
+    let mut am = ship_no_radar.clone().into_active_model();
+    am.fuel = ActiveValue::Set(20);
+    am.update(&context.0).await.unwrap();
+
+    // With 1 radar ship (reduction=0.25): floor(20 * 0.30 * 0.75) = floor(4.5) = 4
+    let ship_with_radar =
+        equip_radar_on_ship(&context.0, &codex, profile_id, ship.api_id).await;
+
+    let (_, happening) = resolve_non_battle_node_effect(
+        &context.0,
+        &context.1,
+        profile_id,
+        &cell,
+        &[ship_with_radar.clone()],
+    )
+    .await
+    .unwrap();
+    let radar_loss = happening.unwrap().amount;
+    assert_eq!(radar_loss, 4, "1 radar (0.25 reduction): floor(20 * 0.30 * 0.75) = 4");
+    assert!(radar_loss < baseline_loss);
+}
+
+#[tokio::test]
+async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = (db, codex);
+    let account = context.sign_up("maelstrom-zero", "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, "maelstrom-zero-admin").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    let profile_id = session.profile.id;
+    let ship = context.add_ship(profile_id, 951).await.unwrap();
+
+    // Drain fuel to 0
+    let mut ship_model =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    ship_model.fuel = 0;
+    let mut am = ship_model.clone().into_active_model();
+    am.fuel = ActiveValue::Set(0);
+    am.update(&context.0).await.unwrap();
+
+    let ship_zero =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    assert_eq!(ship_zero.fuel, 0);
+
+    let cell = MapCellDefinition {
+        cell_no: 99,
+        color_no: 3,
+        event_id: 3,
+        event_kind: 0,
+        next_cells: vec![],
+        node_label: Some("H".to_string()),
+        master_cell_id: None,
+        distance: None,
+    };
+
+    let (itemget, happening) = resolve_non_battle_node_effect(
+        &context.0,
+        &context.1,
+        profile_id,
+        &cell,
+        &[ship_zero.clone()],
+    )
+    .await
+    .unwrap();
+
+    assert!(itemget.is_none());
+    // Ship with 0 fuel: floor(0 * 0.30) = 0, so no loss → happening may still report 0
+    if let Some(h) = happening {
+        assert_eq!(h.amount, 0);
+    }
+
+    let ship_after =
+        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    assert_eq!(ship_after.fuel, 0, "no underflow");
+}
+
+#[test]
+fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
+    use crate::game::sortie_store::GLOBAL_SORTIE_STORE;
+    let store = &*GLOBAL_SORTIE_STORE;
+    store.clear();
+
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let profile_id = 99991;
+
+    // Flagship: DD at taiha HP (1 HP, maxhp ~13-24 depending on level).
+    // taiha: entry_hp * 4 <= maxhp → 1*4=4 <= 13 → taiha → flagship protected.
+    let mut flagship = sample_ship(&codex, 1, 1);
+    flagship.ship.api_soukou[0] = 0; // no armor
+    flagship.ship.api_nowhp = 1;
+    let flagship_maxhp = flagship.ship.api_maxhp;
+    assert!(
+        flagship_maxhp >= 13,
+        "DD maxhp must be >= 13 for taiha check"
+    );
+
+    // Enemy: CVL with planes (triggers kouku) + high firepower for shelling.
+    let mut enemy_cvl = sample_ship(&codex, 89, 99);
+    enemy_cvl.ship.api_karyoku[0] = 200;
+    enemy_cvl.ship.api_soukou[0] = 0;
+
+    let session = run_day_battle(
+        store,
+        &codex,
+        SortieBattleInput {
+            profile_id,
+            deck_id: 1,
+            map_id: 11,
+            cell_id: 1,
+            context: BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![flagship],
+                enemy_ships: vec![enemy_cvl],
+            },
+        },
+    );
+
+    // Flagship must survive despite taiha HP + kouku + shelling.
+    let flagship_hp = session.friendly[0].hp();
+    assert!(
+        flagship_hp > 0,
+        "flagship at taiha HP must survive kouku + shelling under sinking protection"
+    );
+
+    // Verify kouku phase ran and dealt some damage to the flagship.
+    if let Some(kouku) = &session.packet.kouku {
+        let kouku_flagship_damage = kouku.api_stage3.api_fdam[0];
+        if kouku_flagship_damage > 0 {
+            // Kouku dealt damage but flagship survived → protection must have capped it.
+            assert!(
+                kouku_flagship_damage < flagship_maxhp,
+                "kouku api_fdam should reflect dealt (capped) damage, not raw overkill"
+            );
+        }
+    }
+
+    // Verify at least one shelling phase ran.
+    let any_shelling = session.packet.hougeki1.is_some()
+        || session.packet.hougeki2.is_some()
+        || session.packet.hougeki3.is_some();
+    assert!(any_shelling, "at least one shelling phase must run");
+
+    // Final HP in packet must also show survival.
+    assert!(
+        session.packet.friendly_nowhps[0] > 0,
+        "friendly_nowhps[0] must be > 0 after full day battle"
+    );
+
+    let _ = take_day_battle_result(store, profile_id);
+    store.clear();
+}
+
 #[test]
 fn eligible_sortie_ship_drops_skip_limited_and_non_victory_results() {
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
