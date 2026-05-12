@@ -1,4 +1,7 @@
-use emukc_model::codex::map::{MapCatalog, build_cell_no_map, merge_routing_overlay};
+use emukc_model::codex::map::{
+    EnemyFleetDefinition, MapCatalog, MapCellDefinition, MapVariantDefinition, build_cell_no_map,
+    merge_routing_overlay,
+};
 
 use super::{
     label_overlay::merge_label_overlay,
@@ -162,8 +165,13 @@ fn merge_routing_overlay_from_wikiwiki_legacy(
                     kcdata_variant,
                     &cell_no_map,
                     &wikiwiki_variant.routing_rules,
-                    &wikiwiki_variant.enemy_fleets,
-                    &wikiwiki_variant.ship_drops,
+                    &std::collections::BTreeMap::new(),
+                    &std::collections::BTreeMap::new(),
+                );
+                merge_legacy_enemy_fleets_and_ship_drops(
+                    kcdata_variant,
+                    &cell_no_map,
+                    wikiwiki_variant,
                 );
             }
         }
@@ -180,13 +188,14 @@ fn merge_routing_overlay_from_wikiwiki_legacy(
 /// numbers via `cell_no_map`. Both the remapped `from_cell_no` and remapped `to_cell_no`
 /// must exist in the target variant's cell set for the rule to be accepted.
 ///
-/// Enemy fleet and ship drop overlays are delegated to `merge_routing_overlay` unchanged.
+/// Enemy fleet and ship drop overlays are applied separately so duplicate target labels
+/// fan out to all matching kcdata cells.
 fn apply_overlay_checked(
     map_id: i64,
     variant_key: &str,
-    kcdata_variant: &mut emukc_model::codex::map::MapVariantDefinition,
+    kcdata_variant: &mut MapVariantDefinition,
     other_labels: &std::collections::BTreeMap<String, i64>,
-    wikiwiki_variant: &emukc_model::codex::map::MapVariantDefinition,
+    wikiwiki_variant: &MapVariantDefinition,
 ) -> usize {
     use emukc_model::codex::map::RouteRule;
     use std::collections::{BTreeMap, BTreeSet};
@@ -254,19 +263,99 @@ fn apply_overlay_checked(
         kcdata_variant.routing_rules.entry(from_cell_no).or_default().extend(rules);
     }
 
-    // Delegate enemy fleet and ship drop merging to the standard overlay function.
-    // Pass an empty routing rules map so only fleets/drops are processed.
-    if !cell_no_map.is_empty() {
-        merge_routing_overlay(
-            kcdata_variant,
-            &cell_no_map,
-            &std::collections::BTreeMap::new(),
-            &wikiwiki_variant.enemy_fleets,
-            &wikiwiki_variant.ship_drops,
-        );
-    }
+    merge_legacy_enemy_fleets_and_ship_drops(kcdata_variant, &cell_no_map, wikiwiki_variant);
 
     dropped
+}
+
+fn merge_legacy_enemy_fleets_and_ship_drops(
+    kcdata_variant: &mut MapVariantDefinition,
+    cell_no_map: &std::collections::BTreeMap<i64, i64>,
+    wikiwiki_variant: &MapVariantDefinition,
+) {
+    let kcdata_label_index = multi_label_index(&kcdata_variant.cells);
+    let wikiwiki_label_by_cell_no = wikiwiki_variant
+        .cells
+        .iter()
+        .filter_map(|cell| {
+            cell.node_label
+                .as_ref()
+                .filter(|label| !label.is_empty())
+                .map(|label| (cell.cell_no, label.clone()))
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
+
+    for (wikiwiki_cell_no, fleet) in &wikiwiki_variant.enemy_fleets {
+        let targets = legacy_overlay_targets(
+            kcdata_variant,
+            &kcdata_label_index,
+            &wikiwiki_label_by_cell_no,
+            cell_no_map,
+            *wikiwiki_cell_no,
+        );
+        for target_cell_no in targets {
+            kcdata_variant.enemy_fleets.entry(target_cell_no).or_insert_with(|| {
+                EnemyFleetDefinition {
+                    cell_no: target_cell_no,
+                    ..fleet.clone()
+                }
+            });
+        }
+    }
+
+    for (wikiwiki_cell_no, drops) in &wikiwiki_variant.ship_drops {
+        let targets = legacy_overlay_targets(
+            kcdata_variant,
+            &kcdata_label_index,
+            &wikiwiki_label_by_cell_no,
+            cell_no_map,
+            *wikiwiki_cell_no,
+        );
+        for target_cell_no in targets {
+            kcdata_variant.ship_drops.entry(target_cell_no).or_insert_with(|| drops.clone());
+        }
+    }
+}
+
+fn multi_label_index(cells: &[MapCellDefinition]) -> std::collections::BTreeMap<String, Vec<i64>> {
+    let mut index = std::collections::BTreeMap::<String, Vec<i64>>::new();
+    for cell in cells {
+        let Some(label) = cell.node_label.as_ref().filter(|label| !label.is_empty()) else {
+            continue;
+        };
+        index.entry(label.clone()).or_default().push(cell.cell_no);
+    }
+    index
+}
+
+fn legacy_overlay_targets(
+    kcdata_variant: &MapVariantDefinition,
+    kcdata_label_index: &std::collections::BTreeMap<String, Vec<i64>>,
+    wikiwiki_label_by_cell_no: &std::collections::BTreeMap<i64, String>,
+    cell_no_map: &std::collections::BTreeMap<i64, i64>,
+    wikiwiki_cell_no: i64,
+) -> Vec<i64> {
+    let mut targets = std::collections::BTreeSet::new();
+
+    if let Some(label) = wikiwiki_label_by_cell_no.get(&wikiwiki_cell_no)
+        && let Some(cell_nos) = kcdata_label_index.get(label)
+    {
+        for &cell_no in cell_nos {
+            if kcdata_variant.cell(cell_no).is_some() {
+                targets.insert(cell_no);
+            }
+        }
+    }
+
+    if targets.is_empty() {
+        let mapped_cell_no =
+            cell_no_map.get(&wikiwiki_cell_no).copied().unwrap_or(wikiwiki_cell_no);
+        if kcdata_variant.cell(mapped_cell_no).is_some() {
+            targets.insert(mapped_cell_no);
+        }
+    }
+
+    targets.into_iter().collect()
 }
 
 #[cfg(test)]
@@ -274,7 +363,8 @@ mod tests {
     use std::collections::BTreeMap;
 
     use emukc_model::codex::map::{
-        MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, RouteRule,
+        EnemyFleetDefinition, MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition,
+        RouteRule, ShipDropDefinition,
     };
 
     use super::merge_routing_overlay_from_wikiwiki_legacy;
@@ -342,6 +432,15 @@ mod tests {
         }
     }
 
+    fn fleet(cell_no: i64) -> EnemyFleetDefinition {
+        EnemyFleetDefinition {
+            cell_no,
+            battle_kind: 1,
+            formations: vec![1],
+            compositions: Vec::new(),
+        }
+    }
+
     // ------------------------------------------------------------------ happy path
 
     /// Both cells present in target → rule merged, counter = 0.
@@ -369,6 +468,76 @@ mod tests {
                     .is_some_and(|rules| rules.iter().any(|r| r.to_cell_no == 5)),
                 "expected rule 3→5 in {key}"
             );
+        }
+    }
+
+    #[test]
+    fn test_legacy_enemy_fleet_fans_out_to_duplicate_target_labels() {
+        let mut kcdata = make_catalog(14, vec![make_variant("", &[1, 2, 3, 4], vec![])]);
+        {
+            let variant = kcdata.maps.get_mut(&14).unwrap().variants.get_mut("").unwrap();
+            variant.cells[0].node_label = Some("Start".to_string());
+            variant.cells[1].node_label = Some("A".to_string());
+            variant.cells[2].node_label = Some("L".to_string());
+            variant.cells[3].node_label = Some("L".to_string());
+        }
+
+        let mut wikiwiki_variant = make_variant("", &[1, 6], vec![]);
+        wikiwiki_variant.cells[0].node_label = Some("Start".to_string());
+        wikiwiki_variant.cells[1].node_label = Some("L".to_string());
+        wikiwiki_variant.enemy_fleets = BTreeMap::from([(6, fleet(6))]);
+        wikiwiki_variant.ship_drops = BTreeMap::from([(
+            6,
+            vec![ShipDropDefinition {
+                ship_id: 1,
+                raw_ship_name: "Mutsuki".to_string(),
+                tags: Vec::new(),
+            }],
+        )]);
+        let wikiwiki = make_catalog(14, vec![wikiwiki_variant]);
+
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
+        assert_eq!(dropped, 0);
+
+        let variant = &kcdata.maps[&14].variants[""];
+        assert!(variant.enemy_fleets.contains_key(&3));
+        assert!(variant.enemy_fleets.contains_key(&4));
+        assert_eq!(variant.enemy_fleets.get(&3).unwrap().cell_no, 3);
+        assert_eq!(variant.enemy_fleets.get(&4).unwrap().cell_no, 4);
+        assert!(variant.ship_drops.contains_key(&3));
+        assert!(variant.ship_drops.contains_key(&4));
+    }
+
+    #[test]
+    fn test_legacy_enemy_fleet_and_ship_drops_fan_out_to_named_variants() {
+        let kcdata = make_catalog(
+            14,
+            vec![
+                make_variant("gauge_1", &[1, 6], vec![]),
+                make_variant("gauge_2", &[1, 6], vec![]),
+            ],
+        );
+
+        let mut wikiwiki_variant = make_variant("", &[1, 6], vec![]);
+        wikiwiki_variant.enemy_fleets = BTreeMap::from([(6, fleet(6))]);
+        wikiwiki_variant.ship_drops = BTreeMap::from([(
+            6,
+            vec![ShipDropDefinition {
+                ship_id: 1,
+                raw_ship_name: "Mutsuki".to_string(),
+                tags: Vec::new(),
+            }],
+        )]);
+        let wikiwiki = make_catalog(14, vec![wikiwiki_variant]);
+
+        let mut kcdata = kcdata;
+        let dropped = merge_routing_overlay_from_wikiwiki_legacy(&mut kcdata, &wikiwiki);
+        assert_eq!(dropped, 0);
+
+        for key in ["gauge_1", "gauge_2"] {
+            let variant = &kcdata.maps[&14].variants[key];
+            assert!(variant.enemy_fleets.contains_key(&6), "missing fleet in {key}");
+            assert!(variant.ship_drops.contains_key(&6), "missing drop table in {key}");
         }
     }
 
