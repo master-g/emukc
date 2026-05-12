@@ -613,9 +613,7 @@ async fn equip_radar_on_ship(
     use emukc_db::entity::profile::item::slot_item;
 
     let radar_mst_id = 27; // 13号対空電探, type3=12
-    let radar = add_slot_item_impl(db, codex, profile_id, radar_mst_id, 0, 0)
-        .await
-        .unwrap();
+    let radar = add_slot_item_impl(db, codex, profile_id, radar_mst_id, 0, 0).await.unwrap();
 
     let mut ship_model =
         profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap();
@@ -635,7 +633,19 @@ async fn equip_radar_on_ship(
 }
 
 #[tokio::test]
-async fn maelstrom_radar_reduces_fuel_loss_per_tier() {
+async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
+    // Exercises every arm of the `radar_ship_count` match in
+    // `resolve_non_battle_node_effect` (sortie/mod.rs): 0, 1, 2, 3, 4, 5, 6+ ships.
+    //
+    // Each iteration builds a fresh 6-ship fleet with fuel overridden to 1000 so
+    // per-tier losses are distinguishable:
+    //   N=0 r=0.00 -> per_ship=300 -> total=1800
+    //   N=1 r=0.25 -> per_ship=225 -> total=1350
+    //   N=2 r=0.40 -> per_ship=180 -> total=1080
+    //   N=3 r=0.50 -> per_ship=150 -> total= 900
+    //   N=4 r=0.55 -> per_ship=135 -> total= 810
+    //   N=5 r=0.58 -> per_ship=126 -> total= 756
+    //   N=6 r=0.60 -> per_ship=120 -> total= 720
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     let context = (db, codex.clone());
@@ -645,14 +655,6 @@ async fn maelstrom_radar_reduces_fuel_loss_per_tier() {
     let session =
         context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
     let profile_id = session.profile.id;
-
-    // Ship 951: fuel_max=20. Maelstrom drains floor(stock * 0.30 * (1 - radar_reduction)).
-    // Without radar: floor(20 * 0.30 * 1.0) = floor(6.0) = 6.
-    // With 1 radar (reduction=0.25): floor(20 * 0.30 * 0.75) = floor(4.5) = 4.
-    let ship = context.add_ship(profile_id, 951).await.unwrap();
-    let ship_no_radar =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
-    assert_eq!(ship_no_radar.fuel, 20);
 
     let cell = MapCellDefinition {
         cell_no: 99,
@@ -665,40 +667,63 @@ async fn maelstrom_radar_reduces_fuel_loss_per_tier() {
         distance: None,
     };
 
-    // Baseline: no radar
-    let (_, happening) = resolve_non_battle_node_effect(
-        &context.0,
-        &context.1,
-        profile_id,
-        &cell,
-        &[ship_no_radar.clone()],
-    )
-    .await
-    .unwrap();
-    let baseline_loss = happening.unwrap().amount;
-    assert_eq!(baseline_loss, 6, "no radar: floor(20 * 0.30) = 6");
+    const STOCK: i64 = 1000;
+    let expected_totals = [1800_i64, 1350, 1080, 900, 810, 756, 720];
 
-    // Restore fuel for next test
-    let mut am = ship_no_radar.clone().into_active_model();
-    am.fuel = ActiveValue::Set(20);
-    am.update(&context.0).await.unwrap();
+    for n_radars in 0usize..=6 {
+        // Fresh 6-ship fleet per iteration avoids needing to unequip slot items.
+        let mut ship_ids = Vec::with_capacity(6);
+        for _ in 0..6 {
+            let s = context.add_ship(profile_id, 951).await.unwrap();
+            ship_ids.push(s.api_id);
+        }
 
-    // With 1 radar ship (reduction=0.25): floor(20 * 0.30 * 0.75) = floor(4.5) = 4
-    let ship_with_radar =
-        equip_radar_on_ship(&context.0, &codex, profile_id, ship.api_id).await;
+        // Equip radars on the first N ships of this fleet.
+        for &api_id in &ship_ids[..n_radars] {
+            equip_radar_on_ship(&context.0, &codex, profile_id, api_id).await;
+        }
 
-    let (_, happening) = resolve_non_battle_node_effect(
-        &context.0,
-        &context.1,
-        profile_id,
-        &cell,
-        &[ship_with_radar.clone()],
-    )
-    .await
-    .unwrap();
-    let radar_loss = happening.unwrap().amount;
-    assert_eq!(radar_loss, 4, "1 radar (0.25 reduction): floor(20 * 0.30 * 0.75) = 4");
-    assert!(radar_loss < baseline_loss);
+        // Override fuel to STOCK on all 6 ships AFTER equip (equip_radar_on_ship
+        // rewrites the ship row and would otherwise reset `fuel`).
+        let mut fleet = Vec::with_capacity(6);
+        for &api_id in &ship_ids {
+            let model =
+                profile_ship::Entity::find_by_id(api_id).one(&context.0).await.unwrap().unwrap();
+            let mut am = model.into_active_model();
+            am.fuel = ActiveValue::Set(STOCK);
+            am.update(&context.0).await.unwrap();
+            let fresh =
+                profile_ship::Entity::find_by_id(api_id).one(&context.0).await.unwrap().unwrap();
+            assert_eq!(fresh.fuel, STOCK);
+            fleet.push(fresh);
+        }
+
+        let (itemget, happening) =
+            resolve_non_battle_node_effect(&context.0, &context.1, profile_id, &cell, &fleet)
+                .await
+                .unwrap();
+        assert!(itemget.is_none());
+        let happening = happening.expect("maelstrom always emits a happening");
+        assert_eq!(happening.resource_type, 1);
+        assert_eq!(
+            happening.amount, expected_totals[n_radars],
+            "tier N={n_radars}: expected total fuel loss {}",
+            expected_totals[n_radars]
+        );
+        assert_eq!(happening.radar_reduced, n_radars > 0);
+
+        // Integration: fuel loss is persisted per-ship, not only reported.
+        let per_ship_loss = expected_totals[n_radars] / 6;
+        for &api_id in &ship_ids {
+            let after =
+                profile_ship::Entity::find_by_id(api_id).one(&context.0).await.unwrap().unwrap();
+            assert_eq!(
+                after.fuel,
+                STOCK - per_ship_loss,
+                "tier N={n_radars}: per-ship fuel should drop by {per_ship_loss}"
+            );
+        }
+    }
 }
 
 #[tokio::test]
@@ -773,10 +798,7 @@ fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
     flagship.ship.api_soukou[0] = 0; // no armor
     flagship.ship.api_nowhp = 1;
     let flagship_maxhp = flagship.ship.api_maxhp;
-    assert!(
-        flagship_maxhp >= 13,
-        "DD maxhp must be >= 13 for taiha check"
-    );
+    assert!(flagship_maxhp >= 13, "DD maxhp must be >= 13 for taiha check");
 
     // Enemy: CVL with planes (triggers kouku) + high firepower for shelling.
     let mut enemy_cvl = sample_ship(&codex, 89, 99);
