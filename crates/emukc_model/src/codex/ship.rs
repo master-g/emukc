@@ -106,19 +106,24 @@ impl Codex {
         let mut slot_ids = [-1; 5];
         let mut slot_items = Vec::new();
         for (idx, slot_info) in basic.slots.iter().enumerate() {
-            if slot_info.item_id <= 0 {
+            if slot_info.item_id <= 0 || self.manifest.find_slotitem(slot_info.item_id).is_none() {
+                if slot_info.item_id > 0 {
+                    warn!(
+                        ship_id = mst_id,
+                        slot_index = idx,
+                        slot_item_id = slot_info.item_id,
+                        "enemy bootstrap slot item missing from manifest, dropping from runtime enemy ship",
+                    );
+                }
                 onslot[idx] = 0;
-                continue;
-            }
-
-            if self.manifest.find_slotitem(slot_info.item_id).is_none() {
-                warn!(
-                    ship_id = mst_id,
-                    slot_index = idx,
-                    slot_item_id = slot_info.item_id,
-                    "enemy bootstrap slot item missing from manifest, dropping from runtime enemy ship",
-                );
-                onslot[idx] = 0;
+                slot_ids[idx] = -1;
+                slot_items.push(KcApiSlotItem {
+                    api_id: 0,
+                    api_slotitem_id: 0,
+                    api_locked: 0,
+                    api_level: 0,
+                    api_alv: None,
+                });
                 continue;
             }
 
@@ -618,5 +623,250 @@ impl Codex {
         } else {
             Err(CodexError::NotFound(format!("ship after ID: {after_ship_id} not found")))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::prelude::{ApiMstShip, Kc3rdEnemyShip, Kc3rdEnemyShipSlotInfo};
+
+    /// Build a minimal codex with a synthetic enemy ship for testing slot alignment.
+    fn test_codex_with_enemy(
+        ship_id: i64,
+        slots: Vec<Kc3rdEnemyShipSlotInfo>,
+        maxeq: [i64; 5],
+        slot_num: i64,
+        manifest_items: Vec<i64>,
+    ) -> Codex {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        codex.manifest.api_mst_ship.push(ApiMstShip {
+            api_id: ship_id,
+            api_name: "test-enemy".into(),
+            api_yomi: "test-enemy".into(),
+            api_stype: 7,
+            api_ctype: 1,
+            api_soku: 10,
+            api_slot_num: slot_num,
+            api_sort_id: ship_id,
+            api_sortno: Some(ship_id),
+            api_taik: Some([50, 50]),
+            api_houg: Some([20, 20]),
+            api_raig: Some([0, 0]),
+            api_tyku: Some([20, 20]),
+            api_souk: Some([10, 10]),
+            api_tais: Some([0]),
+            api_luck: Some([5, 5]),
+            api_maxeq: Some(maxeq),
+            api_leng: Some(2),
+            api_backs: Some(4),
+            api_fuel_max: Some(0),
+            api_bull_max: Some(0),
+            ..ApiMstShip::default()
+        });
+
+        codex.enemy_ship_extra.insert(
+            ship_id,
+            Kc3rdEnemyShip {
+                api_id: ship_id,
+                name: "test-enemy".into(),
+                yomi: "test-enemy".into(),
+                stype: 7,
+                ctype: 1,
+                hp: 50,
+                firepower: 20,
+                torpedo: 0,
+                aa: 20,
+                armor: 10,
+                evasion: 10,
+                asw: 0,
+                los: 10,
+                luck: 5,
+                speed: 10,
+                range: 2,
+                rarity: 4,
+                backs: 4,
+                slot_num,
+                maxeq,
+                slots,
+            },
+        );
+
+        // Ensure all manifest slot items exist (re-use existing items from real codex)
+        for item_id in manifest_items {
+            if codex.manifest.find_slotitem(item_id).is_none() {
+                // Pick a real slotitem and clone it with the test id
+                if let Some(real_item) = codex.manifest.api_mst_slotitem.first() {
+                    let mut test_item = real_item.clone();
+                    test_item.api_id = item_id;
+                    codex.manifest.api_mst_slotitem.push(test_item);
+                }
+            }
+        }
+
+        codex
+    }
+
+    #[test]
+    fn new_enemy_ship_dense_slots_preserves_count() {
+        let real_bomber = {
+            let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+            codex
+                .manifest
+                .api_mst_slotitem
+                .iter()
+                .find(|m| m.api_type[2] == 7) // CarrierBasedDiveBomber
+                .map(|m| m.api_id)
+                .unwrap()
+        };
+
+        let codex = test_codex_with_enemy(
+            99901,
+            vec![
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 18 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 6 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 12 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 6 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 3 },
+            ],
+            [18, 6, 12, 6, 3],
+            5,
+            vec![real_bomber],
+        );
+
+        let (ship, slot_items) = codex.new_enemy_ship(99901).unwrap();
+        assert_eq!(slot_items.len(), 5, "dense 5-slot enemy should have 5 slot_items");
+        assert_eq!(ship.api_onslot, [18, 6, 12, 6, 3]);
+        for item in &slot_items {
+            assert_eq!(item.api_slotitem_id, real_bomber);
+        }
+    }
+
+    #[test]
+    fn new_enemy_ship_sparse_slots_aligns_with_onslot() {
+        let real_bomber = {
+            let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+            codex
+                .manifest
+                .api_mst_slotitem
+                .iter()
+                .find(|m| m.api_type[2] == 7)
+                .map(|m| m.api_id)
+                .unwrap()
+        };
+
+        // Sparse layout: item at slot 0, empty at 1, item at 2, empty at 3, item at 4
+        let codex = test_codex_with_enemy(
+            99902,
+            vec![
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 18 },
+                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 12 },
+                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 3 },
+            ],
+            [18, 0, 12, 0, 3],
+            5,
+            vec![real_bomber],
+        );
+
+        let (ship, slot_items) = codex.new_enemy_ship(99902).unwrap();
+        assert_eq!(slot_items.len(), 5, "sparse 5-slot enemy must have 5 slot_items");
+        assert_eq!(ship.api_onslot, [18, 0, 12, 0, 3]);
+
+        // Positions 1 and 3 are sentinels
+        assert_eq!(slot_items[0].api_slotitem_id, real_bomber);
+        assert_eq!(slot_items[1].api_slotitem_id, 0, "empty slot should be sentinel");
+        assert_eq!(slot_items[2].api_slotitem_id, real_bomber);
+        assert_eq!(slot_items[3].api_slotitem_id, 0, "empty slot should be sentinel");
+        assert_eq!(slot_items[4].api_slotitem_id, real_bomber);
+    }
+
+    #[test]
+    fn new_enemy_ship_trailing_empty_slots() {
+        let real_bomber = {
+            let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+            codex
+                .manifest
+                .api_mst_slotitem
+                .iter()
+                .find(|m| m.api_type[2] == 7)
+                .map(|m| m.api_id)
+                .unwrap()
+        };
+
+        let codex = test_codex_with_enemy(
+            99903,
+            vec![
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 18 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 6 },
+                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+            ],
+            [18, 6, 0, 0, 0],
+            5,
+            vec![real_bomber],
+        );
+
+        let (ship, slot_items) = codex.new_enemy_ship(99903).unwrap();
+        assert_eq!(slot_items.len(), 5);
+        assert_eq!(ship.api_onslot, [18, 6, 0, 0, 0]);
+        assert_eq!(slot_items[0].api_slotitem_id, real_bomber);
+        assert_eq!(slot_items[1].api_slotitem_id, real_bomber);
+        assert_eq!(slot_items[2].api_slotitem_id, 0);
+        assert_eq!(slot_items[3].api_slotitem_id, 0);
+        assert_eq!(slot_items[4].api_slotitem_id, 0);
+    }
+
+    #[test]
+    fn new_enemy_ship_leading_empty_slot() {
+        let real_bomber = {
+            let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+            codex
+                .manifest
+                .api_mst_slotitem
+                .iter()
+                .find(|m| m.api_type[2] == 7)
+                .map(|m| m.api_id)
+                .unwrap()
+        };
+
+        let codex = test_codex_with_enemy(
+            99904,
+            vec![
+                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 12 },
+            ],
+            [0, 12, 0, 0, 0],
+            2,
+            vec![real_bomber],
+        );
+
+        let (ship, slot_items) = codex.new_enemy_ship(99904).unwrap();
+        assert_eq!(slot_items.len(), 2);
+        assert_eq!(ship.api_onslot, [0, 12, 0, 0, 0]);
+        assert_eq!(slot_items[0].api_slotitem_id, 0, "leading empty slot is sentinel");
+        assert_eq!(slot_items[1].api_slotitem_id, real_bomber);
+    }
+
+    #[test]
+    fn new_enemy_ship_missing_manifest_item_gets_sentinel() {
+        // Use an item_id that doesn't exist in the manifest
+        let codex = test_codex_with_enemy(
+            99905,
+            vec![
+                Kc3rdEnemyShipSlotInfo { item_id: 99999, onslot: 18 },
+            ],
+            [18, 0, 0, 0, 0],
+            1,
+            vec![], // don't add 99999 to manifest
+        );
+
+        let (ship, slot_items) = codex.new_enemy_ship(99905).unwrap();
+        assert_eq!(slot_items.len(), 1);
+        assert_eq!(slot_items[0].api_slotitem_id, 0, "missing manifest item → sentinel");
+        assert_eq!(ship.api_onslot[0], 0);
     }
 }
