@@ -33,6 +33,7 @@ pub(crate) struct BattleState {
     stage_flag: [i64; 3],
     hourai_flag: [i64; 4],
     opening_taisen_flag: i64,
+    has_bb_class_at_start: bool,
 }
 
 impl BattleState {
@@ -66,6 +67,7 @@ impl BattleState {
             stage_flag: [0, 0, 0],
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
+            has_bb_class_at_start: false,
         }
     }
 
@@ -95,6 +97,7 @@ impl BattleState {
             stage_flag: [0, 0, 0],
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
+            has_bb_class_at_start: false,
         }
     }
 
@@ -153,6 +156,14 @@ impl BattleState {
     pub(crate) fn set_hourai_flag(&mut self, index: usize, value: i64) {
         debug_assert!(index < 4, "hourai_flag index out of bounds: {index}");
         self.hourai_flag[index] = value;
+    }
+
+    pub(crate) fn set_has_bb_class_at_start(&mut self, value: bool) {
+        self.has_bb_class_at_start = value;
+    }
+
+    pub(crate) fn has_bb_class_at_start(&self) -> bool {
+        self.has_bb_class_at_start
     }
 
     // -- Finalizers --

@@ -9,7 +9,7 @@ use emukc_model::codex::Codex;
 use crate::config::{BattleFlow, BattlePhaseKind};
 use crate::random::BattleRng;
 use crate::state::BattleState;
-use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo};
+use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
     BattleContext, BattlePhase, BattleRuntimeShip, BattleSimulation, NightBattleInput,
     NightBattleSimulation, ShellingParams,
@@ -50,6 +50,10 @@ pub fn simulate_day(
     let mut state = BattleState::from_context(context);
     let flow = BattleFlow::for_battle_type(state.battle_type());
     let enemy_first = enemy_shells_first(&state.friendly, &state.enemy);
+
+    let has_bb = fleet_has_bb_class(codex, &state.friendly)
+        || fleet_has_bb_class(codex, &state.enemy);
+    state.set_has_bb_class_at_start(has_bb);
 
     for &phase in flow.phases {
         match phase {
@@ -166,6 +170,9 @@ fn execute_shelling2(
     rng: &mut impl BattleRng,
     enemy_first: bool,
 ) {
+    if !state.has_bb_class_at_start() {
+        return;
+    }
     if any_alive(&state.friendly) && any_alive(&state.enemy) {
         let friendly_form = state.friendly_formation_id();
         let enemy_form = state.enemy_formation_id();
@@ -618,5 +625,210 @@ mod tests {
             }
         }
         assert!(any_damage, "enemy (karyoku=200) must deal at least some damage");
+    }
+
+    #[test]
+    fn shelling2_no_bb_no_second_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut friend = sample_ship(&codex, dd_mst, 50);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 50);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        assert!(simulation.packet.hougeki2.is_none(), "no BB on either side → no shelling2");
+        assert_eq!(simulation.packet.hourai_flag[2], 0);
+    }
+
+    #[test]
+    fn shelling2_friendly_bb_triggers_second_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut friend = sample_ship(&codex, bb_mst, 50);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 50);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        assert!(simulation.packet.hougeki2.is_some(), "friendly BB → shelling2 runs");
+        assert_eq!(simulation.packet.hourai_flag[2], 1);
+    }
+
+    #[test]
+    fn shelling2_enemy_bb_triggers_second_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut friend = sample_ship(&codex, dd_mst, 50);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        let mut enemy = sample_ship(&codex, bb_mst, 50);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        assert!(simulation.packet.hougeki2.is_some(), "enemy BB → shelling2 runs");
+    }
+
+    #[test]
+    fn shelling2_cvl_no_bb_no_second_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut friend = sample_ship(&codex, cvl_mst, 50);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 50);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        assert!(simulation.packet.hougeki2.is_none(), "CVL is not BB-class → no shelling2");
+    }
+
+    #[test]
+    fn shelling2_fbb_triggers_second_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let fbb_mst = first_ship_mst_by_type(&codex, KcShipType::FBB);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut friend = sample_ship(&codex, fbb_mst, 50);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 50);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        assert!(simulation.packet.hougeki2.is_some(), "FBB → shelling2 runs");
+    }
+
+    #[test]
+    fn shelling2_bbv_triggers_second_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut friend = sample_ship(&codex, bbv_mst, 50);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 50);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        assert!(simulation.packet.hougeki2.is_some(), "BBV → shelling2 runs");
     }
 }
