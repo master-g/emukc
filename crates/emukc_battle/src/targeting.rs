@@ -233,6 +233,11 @@ pub(crate) fn can_closing_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) 
         return false;
     }
 
+    // Chūha (HP ≤ 50%) ships cannot fire closing torpedo.
+    if ship.hp() * 2 <= ship.ship.api_maxhp {
+        return false;
+    }
+
     matches!(
         ship_type(codex, ship),
         Some(
@@ -447,6 +452,17 @@ pub(crate) fn can_closing_torpedo(codex: &Codex, ships: &[BattleRuntimeShip]) ->
 /// Whether any ship in the fleet is still alive.
 pub fn any_alive(ships: &[BattleRuntimeShip]) -> bool {
     ships.iter().any(BattleRuntimeShip::is_alive)
+}
+
+/// Whether the fleet contains any battleship-class ship (FBB, BB, BBV, XBB).
+/// Does not filter by alive status — checks battle-start presence.
+pub(crate) fn fleet_has_bb_class(codex: &Codex, ships: &[BattleRuntimeShip]) -> bool {
+    ships.iter().any(|ship| {
+        matches!(
+            ship_type(codex, ship),
+            Some(KcShipType::FBB | KcShipType::BB | KcShipType::BBV | KcShipType::XBB)
+        )
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -916,6 +932,84 @@ mod tests {
             let idx = select_submarine_target(&codex, &mut rng, &defenders).unwrap();
             assert_eq!(idx, 1, "OASW should only target submarines");
         }
+    }
+
+    #[test]
+    fn closing_torpedo_rejects_chuha_ship() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Healthy DD → eligible
+        let mut healthy = sample_ship(&codex, dd_mst, 50);
+        healthy.ship.api_raisou[0] = 50;
+        let rt_healthy = BattleRuntimeShip::from(healthy);
+        assert!(can_closing_torpedo_ship(&codex, &rt_healthy));
+
+        // Chūha exact boundary: hp = maxhp/2 → rejected
+        let mut chuha = sample_ship(&codex, dd_mst, 50);
+        chuha.ship.api_raisou[0] = 50;
+        chuha.ship.api_maxhp = 10;
+        chuha.ship.api_nowhp = 5;
+        let rt_chuha = BattleRuntimeShip::new(chuha, false, true);
+        assert!(!can_closing_torpedo_ship(&codex, &rt_chuha), "hp=5, maxhp=10 → chūha");
+
+        // Shōha (still > 50%): hp = maxhp/2 + 1 → eligible
+        let mut shoha = sample_ship(&codex, dd_mst, 50);
+        shoha.ship.api_raisou[0] = 50;
+        shoha.ship.api_maxhp = 10;
+        shoha.ship.api_nowhp = 6;
+        let rt_shoha = BattleRuntimeShip::new(shoha, false, true);
+        assert!(can_closing_torpedo_ship(&codex, &rt_shoha), "hp=6, maxhp=10 → shōha");
+
+        // Odd maxhp boundary: maxhp=7, hp=3 → 3*2=6 ≤ 7 → chūha
+        let mut odd_chuha = sample_ship(&codex, dd_mst, 50);
+        odd_chuha.ship.api_raisou[0] = 50;
+        odd_chuha.ship.api_maxhp = 7;
+        odd_chuha.ship.api_nowhp = 3;
+        let rt_odd_chuha = BattleRuntimeShip::new(odd_chuha, false, true);
+        assert!(!can_closing_torpedo_ship(&codex, &rt_odd_chuha), "hp=3, maxhp=7 → chūha");
+
+        // Odd maxhp boundary: maxhp=7, hp=4 → 4*2=8 > 7 → eligible
+        let mut odd_shoha = sample_ship(&codex, dd_mst, 50);
+        odd_shoha.ship.api_raisou[0] = 50;
+        odd_shoha.ship.api_maxhp = 7;
+        odd_shoha.ship.api_nowhp = 4;
+        let rt_odd_shoha = BattleRuntimeShip::new(odd_shoha, false, true);
+        assert!(can_closing_torpedo_ship(&codex, &rt_odd_shoha), "hp=4, maxhp=7 → shōha");
+
+        // Zero hp: rejected by is_sunk() pre-check
+        let mut sunk = sample_ship(&codex, dd_mst, 50);
+        sunk.ship.api_raisou[0] = 50;
+        sunk.ship.api_maxhp = 10;
+        sunk.ship.api_nowhp = 0;
+        let rt_sunk = BattleRuntimeShip::new(sunk, false, true);
+        assert!(!can_closing_torpedo_ship(&codex, &rt_sunk));
+
+        // Zero raisou: rejected by pre-existing filter
+        let mut zero_raisou = sample_ship(&codex, dd_mst, 50);
+        zero_raisou.ship.api_raisou[0] = 0;
+        let rt_zero_raisou = BattleRuntimeShip::from(zero_raisou);
+        assert!(!can_closing_torpedo_ship(&codex, &rt_zero_raisou));
+
+        // BB not in closing-torpedo whitelist regardless of HP
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let bb = sample_ship(&codex, bb_mst, 50);
+        let rt_bb = BattleRuntimeShip::from(bb);
+        assert!(!can_closing_torpedo_ship(&codex, &rt_bb));
+    }
+
+    #[test]
+    fn opening_torpedo_accepts_chuha_ship() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let clt_mst = first_ship_mst_by_type(&codex, KcShipType::CLT);
+
+        // Chūha CLT with positive raisou → eligible for opening torpedo (damage-agnostic)
+        let mut chuha_clt = sample_ship(&codex, clt_mst, 50);
+        chuha_clt.ship.api_raisou[0] = 50;
+        chuha_clt.ship.api_maxhp = 10;
+        chuha_clt.ship.api_nowhp = 3;
+        let rt = BattleRuntimeShip::new(chuha_clt, false, true);
+        assert!(can_opening_torpedo_ship(&codex, &rt), "opening torpedo ignores damage state");
     }
 
     #[test]
