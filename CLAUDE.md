@@ -156,7 +156,7 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 ## Code Style
 
 - **Rust edition 2024**, stable toolchain, minimum rust-version 1.85.0
-- **Hard tabs** for indentation (see `.rustfmt.toml`)
+- **Soft tabs** (4 spaces) for indentation (see `.rustfmt.toml` and `.editorconfig`)
 - `unsafe_code` is **denied** workspace-wide
 - `missing_docs` is warned
 - Imports use `emukc_internal::prelude::*` in the binary crate for convenience
