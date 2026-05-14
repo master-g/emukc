@@ -2082,4 +2082,117 @@ mod tests {
             "cell 3 with fleet 2 should error: rule exists but doesn't match"
         );
     }
+
+    // --- evaluate_route_candidate_count tests ---
+
+    #[test]
+    fn candidate_count_single_always_rule_returns_1() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                weight: Some(1),
+                predicate: RoutePredicate::Always,
+                ..Default::default()
+            }],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2, 3]), make_cell(2, vec![]), make_cell(3, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2, 3]);
+        let context = FleetRouteContext::default();
+
+        let count = evaluate_route_candidate_count(&current, &stage, &context);
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn candidate_count_multiple_always_rules_returns_2() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 2,
+                    priority: 0,
+                    weight: Some(1),
+                    predicate: RoutePredicate::Always,
+                    ..Default::default()
+                },
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 3,
+                    priority: 0,
+                    weight: Some(1),
+                    predicate: RoutePredicate::Always,
+                    ..Default::default()
+                },
+            ],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2, 3]), make_cell(2, vec![]), make_cell(3, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2, 3]);
+        let context = FleetRouteContext::default();
+
+        let count = evaluate_route_candidate_count(&current, &stage, &context);
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn candidate_count_rules_filtered_by_topology() {
+        let mut routing_rules = BTreeMap::new();
+        routing_rules.insert(
+            1,
+            vec![
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 2,
+                    priority: 0,
+                    weight: Some(1),
+                    predicate: RoutePredicate::Always,
+                    ..Default::default()
+                },
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 5,
+                    priority: 0,
+                    weight: Some(1),
+                    predicate: RoutePredicate::Always,
+                    ..Default::default()
+                },
+            ],
+        );
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2]), make_cell(2, vec![])],
+            routing_rules,
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2]);
+        let context = FleetRouteContext::default();
+
+        let count = evaluate_route_candidate_count(&current, &stage, &context);
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn candidate_count_no_rules_falls_back_to_next_cells_len() {
+        let stage = MapStageDefinition {
+            cells: vec![make_cell(1, vec![2, 3, 4]), make_cell(2, vec![]), make_cell(3, vec![]), make_cell(4, vec![])],
+            ..Default::default()
+        };
+        let current = make_cell(1, vec![2, 3, 4]);
+        let context = FleetRouteContext::default();
+
+        let count = evaluate_route_candidate_count(&current, &stage, &context);
+        assert_eq!(count, 3);
+    }
 }

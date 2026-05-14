@@ -248,6 +248,12 @@ impl Codex {
             maps.prerequisites = map::build_regular_prerequisites();
         }
 
+        for def in maps.maps.values() {
+            for warning in def.validate() {
+                tracing::warn!("{warning:?}");
+            }
+        }
+
         Ok(Codex {
             manifest,
             ship_extra,

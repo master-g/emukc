@@ -465,8 +465,9 @@ where
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
+    use emukc_db::sea_orm::{ColumnTrait, QueryFilter};
     use emukc_model::{
-        codex::map::{MapDefinition, MapVariantDefinition, ShipDropDefinition},
+        codex::map::{MapDefinition, MapStageDefinition, MapVariantDefinition, ShipDropDefinition},
         thirdparty::QuestActionEvent,
     };
 
@@ -566,5 +567,161 @@ mod tests {
 
         assert_eq!(drops.len(), 1);
         assert_eq!(drops[0].ship_id, 1);
+    }
+
+    // --- gauge progression tests ---
+
+    fn gauge_map_definition(gauge_count: i64, max_hp: i64) -> MapDefinition {
+        MapDefinition {
+            map_id: 99_001,
+            maparea_id: 99,
+            mapinfo_no: 1,
+            gauge_count: Some(gauge_count),
+            max_hp: Some(max_hp),
+            ..Default::default()
+        }
+    }
+
+    fn gauge_stage() -> MapStageDefinition {
+        MapStageDefinition {
+            cells: vec![],
+            ..Default::default()
+        }
+    }
+
+    async fn insert_test_profile(db: &emukc_db::sea_orm::DbConn) -> i64 {
+        use emukc_db::entity::{user, profile};
+        let account = user::account::ActiveModel {
+            name: ActiveValue::Set("gauge-test".into()),
+            secret: ActiveValue::Set(String::new()),
+            create_time: ActiveValue::Set(emukc_time::chrono::Utc::now()),
+            last_login: ActiveValue::Set(emukc_time::chrono::Utc::now()),
+            ..Default::default()
+        };
+        let account = account.insert(db).await.unwrap();
+        let prof = profile::default_active_model(account.uid, "gauge-tester");
+        let prof = prof.insert(db).await.unwrap();
+        prof.id
+    }
+
+    async fn insert_gauge_record(db: &emukc_db::sea_orm::DbConn, profile_id: i64, map_id: i64) {
+        use emukc_db::entity::profile::map_record;
+        let record = map_record::ActiveModel {
+            profile_id: ActiveValue::Set(profile_id),
+            map_id: ActiveValue::Set(map_id),
+            cleared: ActiveValue::Set(false),
+            last_cleared_at: ActiveValue::Set(None),
+            last_reset_at: ActiveValue::Set(None),
+            defeat_count: ActiveValue::Set(None),
+            current_hp: ActiveValue::Set(Some(1)),
+            gauge_index: ActiveValue::Set(1),
+            stage_id: ActiveValue::Set(None),
+            selected_rank: ActiveValue::Set(map_record::SelectedRank::NotSet),
+            event_state: ActiveValue::Set(None),
+            unlocked: ActiveValue::Set(true),
+            ..Default::default()
+        };
+        record.insert(db).await.unwrap();
+    }
+
+    async fn get_record(
+        db: &emukc_db::sea_orm::DbConn,
+        profile_id: i64,
+        map_id: i64,
+    ) -> emukc_db::entity::profile::map_record::Model {
+        find_map_record_impl(db, profile_id, map_id).await.unwrap()
+    }
+
+    async fn get_gauge_index(db: &emukc_db::sea_orm::DbConn, profile_id: i64, map_id: i64) -> i64 {
+        get_record(db, profile_id, map_id).await.gauge_index
+    }
+
+    async fn is_cleared(db: &emukc_db::sea_orm::DbConn, profile_id: i64, map_id: i64) -> bool {
+        get_record(db, profile_id, map_id).await.cleared
+    }
+
+    #[tokio::test]
+    async fn gauge_advances_after_boss_kill_with_remaining_gauges() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let pid = insert_test_profile(&db).await;
+        let definition = gauge_map_definition(2, 2);
+        let stage = gauge_stage();
+        insert_gauge_record(&db, pid, definition.map_id).await;
+
+        let snap = snapshot("S");
+        let result =
+            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        assert_eq!(result, 0, "gauge advance should not report first-clear");
+
+        let idx = get_gauge_index(&db, pid, definition.map_id).await;
+        assert_eq!(idx, 2, "gauge_index should advance from 1 to 2");
+        assert!(!is_cleared(&db, pid, definition.map_id).await);
+    }
+
+    #[tokio::test]
+    async fn final_gauge_clears_map() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let pid = insert_test_profile(&db).await;
+        let definition = gauge_map_definition(2, 1);
+        let stage = gauge_stage();
+
+        // Insert record already at gauge 2 with 1 HP remaining
+        use emukc_db::entity::profile::map_record;
+        let record = map_record::ActiveModel {
+            profile_id: ActiveValue::Set(pid),
+            map_id: ActiveValue::Set(definition.map_id),
+            cleared: ActiveValue::Set(false),
+            last_cleared_at: ActiveValue::Set(None),
+            last_reset_at: ActiveValue::Set(None),
+            defeat_count: ActiveValue::Set(None),
+            current_hp: ActiveValue::Set(Some(1)),
+            gauge_index: ActiveValue::Set(2),
+            stage_id: ActiveValue::Set(None),
+            selected_rank: ActiveValue::Set(map_record::SelectedRank::NotSet),
+            event_state: ActiveValue::Set(None),
+            unlocked: ActiveValue::Set(true),
+            ..Default::default()
+        };
+        record.insert(&db).await.unwrap();
+
+        let snap = snapshot("S");
+        let result =
+            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        assert_eq!(result, 1, "final gauge clear should report first-clear");
+
+        let cleared = is_cleared(&db, pid, definition.map_id).await;
+        assert!(cleared, "map should be marked cleared after last gauge");
+    }
+
+    #[tokio::test]
+    async fn single_gauge_map_clears_on_boss_kill() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let pid = insert_test_profile(&db).await;
+        let definition = gauge_map_definition(1, 1);
+        let stage = gauge_stage();
+        insert_gauge_record(&db, pid, definition.map_id).await;
+
+        let snap = snapshot("S");
+        let result =
+            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        assert_eq!(result, 1, "single-gauge clear should report first-clear");
+        assert!(is_cleared(&db, pid, definition.map_id).await);
+    }
+
+    #[tokio::test]
+    async fn non_boss_does_not_advance_gauge() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let pid = insert_test_profile(&db).await;
+        let definition = gauge_map_definition(2, 2);
+        let stage = gauge_stage();
+        insert_gauge_record(&db, pid, definition.map_id).await;
+
+        let snap = snapshot("S");
+        let result =
+            apply_sortie_map_result(&db, pid, &definition, &stage, false, &snap).await.unwrap();
+        assert_eq!(result, 0);
+
+        let idx = get_gauge_index(&db, pid, definition.map_id).await;
+        assert_eq!(idx, 1, "gauge_index should not change on non-boss cell");
     }
 }
