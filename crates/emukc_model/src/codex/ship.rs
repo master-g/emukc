@@ -724,11 +724,26 @@ mod tests {
         let codex = test_codex_with_enemy(
             99901,
             vec![
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 18 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 6 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 12 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 6 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 3 },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 18,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 6,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 12,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 6,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 3,
+                },
             ],
             [18, 6, 12, 6, 3],
             5,
@@ -760,11 +775,26 @@ mod tests {
         let codex = test_codex_with_enemy(
             99902,
             vec![
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 18 },
-                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 12 },
-                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 3 },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 18,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: 0,
+                    onslot: 0,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 12,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: 0,
+                    onslot: 0,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 3,
+                },
             ],
             [18, 0, 12, 0, 3],
             5,
@@ -799,11 +829,26 @@ mod tests {
         let codex = test_codex_with_enemy(
             99903,
             vec![
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 18 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 6 },
-                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
-                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
-                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 18,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 6,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: 0,
+                    onslot: 0,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: 0,
+                    onslot: 0,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: 0,
+                    onslot: 0,
+                },
             ],
             [18, 6, 0, 0, 0],
             5,
@@ -836,8 +881,14 @@ mod tests {
         let codex = test_codex_with_enemy(
             99904,
             vec![
-                Kc3rdEnemyShipSlotInfo { item_id: 0, onslot: 0 },
-                Kc3rdEnemyShipSlotInfo { item_id: real_bomber, onslot: 12 },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: 0,
+                    onslot: 0,
+                },
+                Kc3rdEnemyShipSlotInfo {
+                    item_id: real_bomber,
+                    onslot: 12,
+                },
             ],
             [0, 12, 0, 0, 0],
             2,
@@ -856,9 +907,10 @@ mod tests {
         // Use an item_id that doesn't exist in the manifest
         let codex = test_codex_with_enemy(
             99905,
-            vec![
-                Kc3rdEnemyShipSlotInfo { item_id: 99999, onslot: 18 },
-            ],
+            vec![Kc3rdEnemyShipSlotInfo {
+                item_id: 99999,
+                onslot: 18,
+            }],
             [18, 0, 0, 0, 0],
             1,
             vec![], // don't add 99999 to manifest

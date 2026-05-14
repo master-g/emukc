@@ -171,7 +171,8 @@ fn parse_enemy_equipment(
 
     for (key, equipment) in raw {
         let existing_by_id = manifest.find_slotitem(equipment.id);
-        let name_matches = existing_by_id.is_some_and(|mst| mst.api_name == equipment.japanese_name);
+        let name_matches =
+            existing_by_id.is_some_and(|mst| mst.api_name == equipment.japanese_name);
 
         let (alias_id, needs_synthetic) = if name_matches {
             (equipment.id, false)

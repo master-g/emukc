@@ -51,8 +51,8 @@ pub fn simulate_day(
     let flow = BattleFlow::for_battle_type(state.battle_type());
     let enemy_first = enemy_shells_first(&state.friendly, &state.enemy);
 
-    let has_bb = fleet_has_bb_class(codex, &state.friendly)
-        || fleet_has_bb_class(codex, &state.enemy);
+    let has_bb =
+        fleet_has_bb_class(codex, &state.friendly) || fleet_has_bb_class(codex, &state.enemy);
     state.set_has_bb_class_at_start(has_bb);
 
     for &phase in flow.phases {
@@ -943,15 +943,9 @@ mod tests {
         assert!(raigeki.is_some(), "closing torpedo should fire (enemy DD is healthy)");
         let r = raigeki.unwrap();
         // Friendly DD (index 0) did not fire → api_frai[0] == -1
-        assert_eq!(
-            r.api_frai[0], -1,
-            "chūha DD should not participate in closing torpedo"
-        );
+        assert_eq!(r.api_frai[0], -1, "chūha DD should not participate in closing torpedo");
         // Enemy DD (index 0) did fire → api_erai[0] has a valid target
-        assert!(
-            r.api_erai[0] >= 0,
-            "enemy DD should fire in closing torpedo"
-        );
+        assert!(r.api_erai[0] >= 0, "enemy DD should fire in closing torpedo");
     }
 
     #[test]
@@ -1001,9 +995,6 @@ mod tests {
         let raigeki = simulation.packet.raigeki.as_ref();
         assert!(raigeki.is_some(), "closing torpedo should fire");
         let r = raigeki.unwrap();
-        assert!(
-            r.api_frai[0] >= 0,
-            "shōha DD should participate in closing torpedo"
-        );
+        assert!(r.api_frai[0] >= 0, "shōha DD should participate in closing torpedo");
     }
 }

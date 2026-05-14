@@ -604,15 +604,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             win_rank = %snapshot.win_rank,
             "sortie_battle_result: boss check"
         );
-        let first_clear = apply_sortie_map_result(
-            &tx,
-            profile_id,
-            definition,
-            stage,
-            is_boss_cell,
-            &snapshot,
-        )
-        .await?;
+        let first_clear =
+            apply_sortie_map_result(&tx, profile_id, definition, stage, is_boss_cell, &snapshot)
+                .await?;
         tracing::debug!(
             map_id = definition.map_id,
             first_clear,
