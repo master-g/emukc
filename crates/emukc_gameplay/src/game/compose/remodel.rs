@@ -68,7 +68,6 @@ where
         ship_model.slot_3,
         ship_model.slot_4,
         ship_model.slot_5,
-        ship_model.slot_ex,
     ] {
         if slot_item_id > 0 {
             let m = slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
@@ -181,11 +180,6 @@ where
     new_ship.api_exp[0] = ship_model.exp_now;
     new_ship.api_exp[1] = ship_model.exp_next;
     new_ship.api_exp[2] = ship_model.exp_progress;
-    new_ship.api_slot_ex = if ship_model.slot_ex != 0 {
-        -1
-    } else {
-        0
-    };
     // remodel will reset [firepower, torpedo, aa, armor]
     new_ship.api_kyouka[0] = 0;
     new_ship.api_kyouka[1] = 0;
@@ -197,6 +191,7 @@ where
 
     codex.cal_ship_status(&mut new_ship, &new_slot_items, ship_model.married)?;
     new_ship.api_nowhp = new_ship.api_maxhp;
+    new_ship.api_slot_ex = ship_model.slot_ex;
 
     // save new ship to db
 
@@ -205,6 +200,7 @@ where
     am.profile_id = ActiveValue::Unchanged(profile_id);
     am.locked = ActiveValue::Unchanged(ship_model.locked);
     am.has_locked_euqip = ActiveValue::Unchanged(ship_model.has_locked_euqip);
+    am.sally_area = ActiveValue::Unchanged(ship_model.sally_area);
 
     am.update(c).await?;
 

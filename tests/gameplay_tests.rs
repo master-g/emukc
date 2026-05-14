@@ -14,3 +14,6 @@ mod remodel_hp_restore;
 
 #[path = "gameplay_tests/level_cap_exp.rs"]
 mod level_cap_exp;
+
+#[path = "gameplay_tests/remodel_preserve_fields.rs"]
+mod remodel_preserve_fields;
