@@ -218,11 +218,115 @@ where
     let m = slot_item::Entity::find()
         .filter(slot_item::Column::ProfileId.eq(profile_id))
         .filter(slot_item::Column::Type3.eq(slot_type3))
-        .filter(slot_item::Column::EquipOn.gt(0))
+        .filter(slot_item::Column::EquipOn.lte(0))
         .filter(slot_item::Column::Locked.eq(false))
         .order_by_asc(slot_item::Column::Level)
         .all(c)
         .await?;
 
     Ok(m)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use emukc_db::sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, Statement};
+
+    async fn setup_db() -> emukc_db::sea_orm::DbConn {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        db.execute(Statement::from_string(
+            emukc_db::sea_orm::DbBackend::Sqlite,
+            "PRAGMA foreign_keys = OFF",
+        ))
+        .await
+        .unwrap();
+        db
+    }
+
+    #[tokio::test]
+    async fn free_slot_item_excludes_equipped() {
+        let db = setup_db().await;
+        let profile_id = 1;
+        let type3 = 17; // EngineBoost
+
+        // Insert a free (unequipped) boiler
+        let free = slot_item::ActiveModel {
+            profile_id: ActiveValue::Set(profile_id),
+            mst_id: ActiveValue::Set(100),
+            type3: ActiveValue::Set(type3),
+            locked: ActiveValue::Set(false),
+            level: ActiveValue::Set(0),
+            aircraft_lv: ActiveValue::Set(0),
+            equip_on: ActiveValue::Set(0),
+            ..Default::default()
+        };
+        free.insert(&db).await.unwrap();
+
+        // Insert an equipped boiler
+        let equipped = slot_item::ActiveModel {
+            profile_id: ActiveValue::Set(profile_id),
+            mst_id: ActiveValue::Set(100),
+            type3: ActiveValue::Set(type3),
+            locked: ActiveValue::Set(false),
+            level: ActiveValue::Set(0),
+            aircraft_lv: ActiveValue::Set(0),
+            equip_on: ActiveValue::Set(42), // equipped on ship 42
+            ..Default::default()
+        };
+        equipped.insert(&db).await.unwrap();
+
+        let result = get_free_slot_item_by_type3_impl(&db, profile_id, type3).await.unwrap();
+        assert_eq!(result.len(), 1, "should only return unequipped boiler");
+        assert_eq!(result[0].equip_on, 0);
+    }
+
+    #[tokio::test]
+    async fn free_slot_item_excludes_locked() {
+        let db = setup_db().await;
+        let profile_id = 1;
+        let type3 = 17;
+
+        // Insert a free but locked boiler
+        let locked = slot_item::ActiveModel {
+            profile_id: ActiveValue::Set(profile_id),
+            mst_id: ActiveValue::Set(100),
+            type3: ActiveValue::Set(type3),
+            locked: ActiveValue::Set(true),
+            level: ActiveValue::Set(0),
+            aircraft_lv: ActiveValue::Set(0),
+            equip_on: ActiveValue::Set(0),
+            ..Default::default()
+        };
+        locked.insert(&db).await.unwrap();
+
+        let result = get_free_slot_item_by_type3_impl(&db, profile_id, type3).await.unwrap();
+        assert_eq!(result.len(), 0, "locked items should be excluded");
+    }
+
+    #[tokio::test]
+    async fn free_slot_item_ordered_by_level_asc() {
+        let db = setup_db().await;
+        let profile_id = 1;
+        let type3 = 17;
+
+        for level in [5, 1, 3] {
+            let m = slot_item::ActiveModel {
+                profile_id: ActiveValue::Set(profile_id),
+                mst_id: ActiveValue::Set(100),
+                type3: ActiveValue::Set(type3),
+                locked: ActiveValue::Set(false),
+                level: ActiveValue::Set(level),
+                aircraft_lv: ActiveValue::Set(0),
+                equip_on: ActiveValue::Set(0),
+                ..Default::default()
+            };
+            m.insert(&db).await.unwrap();
+        }
+
+        let result = get_free_slot_item_by_type3_impl(&db, profile_id, type3).await.unwrap();
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].level, 1);
+        assert_eq!(result[1].level, 3);
+        assert_eq!(result[2].level, 5);
+    }
 }
