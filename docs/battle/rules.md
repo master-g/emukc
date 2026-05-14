@@ -36,6 +36,8 @@
 | `result.friendly_sinking_downgrades_win_rank` | `BattleResult` | 友军沉舰会影响胜利评级；己方沉舰时不能判定为 `S`，并按沉舰数量降到 `A/D/E` | `B` | `wikiwiki.jp`, 本地 battle result 回归测试 | Implemented |
 | `result.sunk_friendly_ship_gets_no_exp` | `BattleResult` | 已沉友军舰不会继续获得 ship EXP，也不应以正常存活舰语义参与 sortie settlement | `A` | `wikiwiki.jp`, 本地回归测试 | Implemented |
 | `payload.torpedo_damage_fields_are_directional` | `OpeningTorpedo`, `ClosingTorpedo` | 友军造成的雷击伤害写入 `api_fydam*`，敌军造成的雷击伤害写入 `api_eydam*`，二者不可互换 | `A` | decoded client behavior, 本地 torpedo payload 回归测试 | Implemented |
+| `shelling.bb_class_gate_for_second_round` | `DayShelling` (Shelling2) | Shelling2 仅当任一方在战斗开始时拥有 BB 级舰船 (FBB/BB/BBV/XBB) 时执行 | `B` | `wikiwiki.jp`, `en.kancollewiki.net`, 本地测试 | Implemented |
+| `torpedo.closing_rejects_chuha` | `ClosingTorpedo` | 中破 (HP ≤ 50%) 舰船无法参与闭幕雷击阶段 | `B` | `wikiwiki.jp`, `en.kancollewiki.net`, 本地测试 | Implemented |
 
 ## First-Batch Ship Capability Model
 

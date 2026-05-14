@@ -516,7 +516,7 @@ impl Codex {
         let mst_souk = mst.api_souk.unwrap_or([0, 0]);
 
         let total_potentials = mst_houg[1] - mst_houg[0] // firepower
-			 + mst_raig[1]
+            + mst_raig[1]
             - mst_raig[0]
             + mst_tyku[1]
             - mst_tyku[0]

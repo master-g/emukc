@@ -177,6 +177,8 @@ fn execute_shelling2(
         let friendly_form = state.friendly_formation_id();
         let enemy_form = state.enemy_formation_id();
         let eng = state.engagement();
+        // Shelling2 reverses the attack order: the side that went second in
+        // Shelling1 attacks first here (KanColle alternating rule).
         let hougeki = if enemy_first {
             shelling::simulate_shelling_side(
                 codex,
@@ -832,5 +834,176 @@ mod tests {
         );
 
         assert!(simulation.packet.hougeki2.is_some(), "BBV → shelling2 runs");
+    }
+
+    #[test]
+    fn shelling2_fires_after_enemy_bb_sunk_in_shelling1() {
+        // has_bb_class_at_start is a battle-start snapshot: even if the BB is sunk
+        // during Shelling1, Shelling2 still executes.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly DD with high firepower to kill enemy BB in one hit
+        let mut friend = sample_ship(&codex, dd_mst, 99);
+        friend.ship.api_karyoku[0] = 300;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 200;
+
+        // Enemy BB with zero armor → vulnerable to one-shot kill
+        let mut enemy_bb = sample_ship(&codex, bb_mst, 1);
+        enemy_bb.ship.api_soukou[0] = 0;
+        enemy_bb.ship.api_raisou[0] = 0;
+
+        // Enemy DD with high armor → survives Shelling1
+        let mut enemy_dd = sample_ship(&codex, dd_mst, 50);
+        enemy_dd.ship.api_karyoku[0] = 1;
+        enemy_dd.ship.api_raisou[0] = 0;
+        enemy_dd.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(1);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: false,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy_bb, enemy_dd],
+            },
+            &mut rng,
+        );
+
+        // Enemy BB must be dead (no sinking protection for enemy side)
+        assert!(
+            simulation.enemy[0].hp() <= 0,
+            "enemy BB should be sunk after Shelling1 (zero armor, high firepower hit)"
+        );
+        // But Shelling2 still fires — the snapshot was taken at battle start
+        assert!(
+            simulation.packet.hougeki2.is_some(),
+            "Shelling2 fires even after enemy BB is sunk (battle-start snapshot)"
+        );
+        assert_eq!(simulation.packet.hourai_flag[2], 1);
+    }
+
+    #[test]
+    fn closing_torpedo_rejects_chuha_dd_through_pipeline() {
+        // A DD damaged to chūha in Shelling1 should be excluded from closing torpedo.
+        // Enemy is faster → enemy fires in Shelling1. Friendly DD has zero armor and
+        // high maxhp (200), so the ~150 damage from enemy karyoku=200 leaves it at
+        // chūha (~50/200) without triggering sinking protection (damage < current HP).
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly DD: high raisou, zero armor, inflated maxhp to avoid sinking protection
+        let mut friend = sample_ship(&codex, dd_mst, 99);
+        friend.ship.api_raisou[0] = 80;
+        friend.ship.api_soukou[0] = 0;
+        friend.ship.api_maxhp = 200;
+        friend.ship.api_nowhp = 200;
+
+        // Enemy DD: fast (speed=15), extreme firepower, high raisou
+        let mut enemy = sample_ship(&codex, dd_mst, 99);
+        enemy.ship.api_soku = 15;
+        enemy.ship.api_karyoku[0] = 200;
+        enemy.ship.api_raisou[0] = 80;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(7);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        // Friendly DD must survive at chūha
+        let friendly_hp = simulation.friendly[0].hp();
+        let friendly_maxhp = simulation.friendly[0].ship.api_maxhp;
+        assert!(friendly_hp > 0, "DD should survive: hp={}", friendly_hp);
+        assert!(
+            friendly_hp * 2 <= friendly_maxhp,
+            "DD should be chūha: hp={}, maxhp={}",
+            friendly_hp,
+            friendly_maxhp,
+        );
+
+        // Closing torpedo fires (enemy DD participates)
+        let raigeki = simulation.packet.raigeki.as_ref();
+        assert!(raigeki.is_some(), "closing torpedo should fire (enemy DD is healthy)");
+        let r = raigeki.unwrap();
+        // Friendly DD (index 0) did not fire → api_frai[0] == -1
+        assert_eq!(
+            r.api_frai[0], -1,
+            "chūha DD should not participate in closing torpedo"
+        );
+        // Enemy DD (index 0) did fire → api_erai[0] has a valid target
+        assert!(
+            r.api_erai[0] >= 0,
+            "enemy DD should fire in closing torpedo"
+        );
+    }
+
+    #[test]
+    fn closing_torpedo_accepts_shoha_dd_through_pipeline() {
+        // Regression: DD at shōha (> 50% HP) should still participate in closing torpedo.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Friendly DD: high raisou, some armor to stay shōha
+        let mut friend = sample_ship(&codex, dd_mst, 99);
+        friend.ship.api_raisou[0] = 80;
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_soukou[0] = 200;
+
+        // Enemy DD: low firepower, high raisou
+        let mut enemy = sample_ship(&codex, dd_mst, 99);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_raisou[0] = 80;
+        enemy.ship.api_soukou[0] = 200;
+
+        let mut rng = SeededRng::new(7);
+        let simulation = simulate_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+            &mut rng,
+        );
+
+        let friendly_hp = simulation.friendly[0].hp();
+        let friendly_maxhp = simulation.friendly[0].ship.api_maxhp;
+
+        // karyoku=1 vs soukou=200 guarantees scratch damage → DD stays shōha
+        assert!(
+            friendly_hp * 2 > friendly_maxhp,
+            "DD should be shōha for this regression guard: hp={}, maxhp={}",
+            friendly_hp,
+            friendly_maxhp,
+        );
+
+        let raigeki = simulation.packet.raigeki.as_ref();
+        assert!(raigeki.is_some(), "closing torpedo should fire");
+        let r = raigeki.unwrap();
+        assert!(
+            r.api_frai[0] >= 0,
+            "shōha DD should participate in closing torpedo"
+        );
     }
 }
