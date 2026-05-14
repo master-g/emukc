@@ -1,7 +1,7 @@
 ---
 title: Fix unused re-export clippy warnings in wikiwiki route module
 type: fix
-status: active
+status: completed
 date: 2026-05-07
 ---
 

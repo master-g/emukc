@@ -1,7 +1,7 @@
 ---
 title: fix: Recognise wikiwiki route parser unsupported conditions
 type: fix
-status: active
+status: completed
 date: 2026-05-04
 ---
 

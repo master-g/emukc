@@ -1,7 +1,7 @@
 ---
 title: "fix: Resolve map system audit findings"
 type: fix
-status: active
+status: completed
 date: 2026-05-06
 origin: /Users/mg/.claude/plans/map-gameplay-tidy-leaf.md
 ---

@@ -1,6 +1,6 @@
 ---
 name: fix-remodel-data-copy
-status: active
+status: completed
 created: 2026-05-13
 ---
 

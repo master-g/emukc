@@ -1,7 +1,7 @@
 ---
 title: "fix: Correct boiler query logic and CLAUDE.md indent documentation"
 type: fix
-status: active
+status: completed
 date: 2026-05-14
 ---
 
