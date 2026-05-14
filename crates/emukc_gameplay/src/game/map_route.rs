@@ -2186,7 +2186,12 @@ mod tests {
     #[test]
     fn candidate_count_no_rules_falls_back_to_next_cells_len() {
         let stage = MapStageDefinition {
-            cells: vec![make_cell(1, vec![2, 3, 4]), make_cell(2, vec![]), make_cell(3, vec![]), make_cell(4, vec![])],
+            cells: vec![
+                make_cell(1, vec![2, 3, 4]),
+                make_cell(2, vec![]),
+                make_cell(3, vec![]),
+                make_cell(4, vec![]),
+            ],
             ..Default::default()
         };
         let current = make_cell(1, vec![2, 3, 4]);

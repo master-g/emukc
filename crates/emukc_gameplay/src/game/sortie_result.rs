@@ -590,7 +590,7 @@ mod tests {
     }
 
     async fn insert_test_profile(db: &emukc_db::sea_orm::DbConn) -> i64 {
-        use emukc_db::entity::{user, profile};
+        use emukc_db::entity::{profile, user};
         let account = user::account::ActiveModel {
             name: ActiveValue::Set("gauge-test".into()),
             secret: ActiveValue::Set(String::new()),
