@@ -89,7 +89,7 @@ fn project_itemget(item: SortieItemGet) -> KcApiMapItemGet {
         api_getcount: item.amount,
         api_name: name,
         api_icon_id: item.resource_type,
-        api_usemst: 0,
+        api_usemst: 4,
     }
 }
 

@@ -1,7 +1,7 @@
 ---
 title: refactor: Anchor wikiwiki overlay in kcdata topology
 type: refactor
-status: active
+status: backlog
 date: 2026-05-09
 ---
 

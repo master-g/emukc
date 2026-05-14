@@ -361,6 +361,12 @@ where
     C: ConnectionTrait,
 {
     if !is_boss_cell || !matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+        tracing::debug!(
+            map_id = definition.map_id,
+            is_boss_cell,
+            win_rank = %snapshot.win_rank,
+            "apply_sortie_map_result: skipped (not boss or bad rank)"
+        );
         return Ok(0);
     }
 
@@ -371,6 +377,15 @@ where
     let current_gauge_index = record.gauge_index;
     let previous_defeat_count = record.defeat_count.unwrap_or_default();
     let next_gauge_index = current_gauge_index + 1;
+    tracing::debug!(
+        map_id = definition.map_id,
+        was_cleared,
+        max_hp = ?definition.max_hp,
+        current_hp = ?current_hp,
+        gauge_index = current_gauge_index,
+        required_defeat = ?stage.required_defeat_count.or(definition.required_defeat_count),
+        "apply_sortie_map_result: record state"
+    );
     let mut am = record.into_active_model();
 
     if let Some(max_hp) = definition.max_hp {

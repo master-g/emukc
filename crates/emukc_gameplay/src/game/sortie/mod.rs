@@ -595,15 +595,29 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         })?;
 
         let snapshot = update_sortie_result_stats(&tx, codex, profile_id, snapshot).await?;
+        let is_boss_cell = current_cell.cell_no == active.boss_cell_id;
+        tracing::debug!(
+            map_id = definition.map_id,
+            cell_no = current_cell.cell_no,
+            boss_cell_id = active.boss_cell_id,
+            is_boss_cell,
+            win_rank = %snapshot.win_rank,
+            "sortie_battle_result: boss check"
+        );
         let first_clear = apply_sortie_map_result(
             &tx,
             profile_id,
             definition,
             stage,
-            current_cell.cell_no == active.boss_cell_id,
+            is_boss_cell,
             &snapshot,
         )
         .await?;
+        tracing::debug!(
+            map_id = definition.map_id,
+            first_clear,
+            "sortie_battle_result: map result applied"
+        );
         let ship_drop = try_grant_sortie_ship_drop(
             &tx,
             codex,
@@ -632,6 +646,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             let unlocked =
                 check_and_unlock_dependencies_impl(&tx, codex, profile_id, definition.map_id)
                     .await?;
+            tracing::debug!(
+                map_id = definition.map_id,
+                unlocked = ?unlocked,
+                "sortie_battle_result: dependency unlock"
+            );
             if unlocked.is_empty() {
                 None
             } else {

@@ -1,7 +1,7 @@
 ---
 title: fix: 路由拓扑不匹配回退、警告时机、客户端崩溃
 type: fix
-status: active
+status: completed
 date: 2026-05-10
 supersedes: 2026-05-09-001-fix-route-topology-mismatch-fallback-plan.md
 ---

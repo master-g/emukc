@@ -1,7 +1,7 @@
 ---
 title: "fix: Address code review findings from feat/vibe last 10 commits"
 type: fix
-status: active
+status: completed
 date: 2026-05-12
 ---
 

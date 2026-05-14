@@ -1,7 +1,7 @@
 ---
 title: "fix: Battle phase rule corrections (Shelling2 BB-gate, closing torpedo chuuha, enemy slot alignment)"
 type: fix
-status: active
+status: completed
 date: 2026-05-12
 ---
 

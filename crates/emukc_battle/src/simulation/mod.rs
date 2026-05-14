@@ -327,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn fighter_only_carrier_does_not_launch_airstrike_damage() {
+    fn fighter_only_carrier_participates_in_air_combat_but_deals_no_bombing_damage() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let carrier_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
@@ -354,7 +354,9 @@ mod tests {
         );
 
         let kouku = simulation.packet.kouku.unwrap();
-        assert!(kouku.api_plane_from[0].is_empty());
+        // Fighter-only carrier participates in air combat (api_plane_from includes it)
+        // but deals no bombing damage in Stage 3.
+        assert_eq!(kouku.api_plane_from[0], vec![1]);
         assert_eq!(kouku.api_stage3.api_edam.iter().sum::<i64>(), 0);
     }
 

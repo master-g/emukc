@@ -1,7 +1,7 @@
 ---
 title: "fix: kcdata cell-per-route topology"
 type: fix
-status: active
+status: completed
 date: 2026-05-09
 ---
 

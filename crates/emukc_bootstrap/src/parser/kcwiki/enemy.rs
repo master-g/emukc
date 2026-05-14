@@ -162,22 +162,39 @@ fn parse_enemy_equipment(
 ) -> Result<Vec<ApiMstSlotitem>, ParseError> {
     let raw = load_json_map::<KcwikiEnemyEquipment>(path)?;
     let mut missing = Vec::new();
+
+    // KCWiki may assign IDs that collide with manifest player equipment
+    // (e.g., abyssal fighter ID 519 collides with player radar "SJレーダー").
+    // Remap colliding entries to avoid overwriting player equipment.
+    let max_manifest_id = manifest.api_mst_slotitem.iter().map(|s| s.api_id).max().unwrap_or(0);
+    let mut next_remap_id = max_manifest_id + 1;
+
     for (key, equipment) in raw {
-        let alias_id = manifest
-            .find_slotitem(equipment.id)
-            .or_else(|| manifest.find_slotitem_by_name(&equipment.japanese_name))
-            .map(|slotitem| slotitem.api_id)
-            .unwrap_or(equipment.id);
+        let existing_by_id = manifest.find_slotitem(equipment.id);
+        let name_matches = existing_by_id.is_some_and(|mst| mst.api_name == equipment.japanese_name);
+
+        let (alias_id, needs_synthetic) = if name_matches {
+            (equipment.id, false)
+        } else if let Some(mst) = manifest.find_slotitem_by_name(&equipment.japanese_name) {
+            (mst.api_id, false)
+        } else if existing_by_id.is_some() {
+            let remapped = next_remap_id;
+            next_remap_id += 1;
+            (remapped, true)
+        } else {
+            (equipment.id, true)
+        };
+
         insert_slotitem_alias(context, &key, alias_id);
         insert_slotitem_alias(context, &equipment.name, alias_id);
         insert_slotitem_alias(context, &equipment.japanese_name, alias_id);
 
-        if manifest.find_slotitem(equipment.id).is_some() || alias_id != equipment.id {
+        if !needs_synthetic {
             continue;
         }
 
         missing.push(ApiMstSlotitem {
-            api_id: equipment.id,
+            api_id: alias_id,
             api_name: equipment.japanese_name,
             api_type: [0, 0, equipment.item_type, 0, 0],
             api_houg: normalize_opt_i64(equipment.firepower),
@@ -190,7 +207,7 @@ fn parse_enemy_equipment(
             api_baku: normalize_opt_i64(equipment.bombing),
             api_soku: normalize_opt_i64(equipment.speed),
             api_leng: normalize_opt_i64(equipment.range),
-            api_sortno: equipment.id,
+            api_sortno: alias_id,
             api_broken: [0; 4],
             api_usebull: "0".to_string(),
             ..ApiMstSlotitem::default()

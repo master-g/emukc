@@ -1,7 +1,7 @@
 ---
 title: "fix: Fix route jumping, stale stage-id, and premature sortie termination"
 type: fix
-status: active
+status: completed
 date: 2026-05-05
 origin: docs/plans/2026-05-05-005-fix-map-system-audit-issues-plan.md
 ---

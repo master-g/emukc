@@ -85,7 +85,7 @@ pub(crate) fn attack_plane_from(codex: &Codex, ships: &[BattleRuntimeShip]) -> V
                         && codex
                             .find::<ApiMstSlotitem>(&slot_item.api_slotitem_id)
                             .ok()
-                            .is_some_and(|mst| is_airstrike_attack_type(mst.api_type[2]))
+                            .is_some_and(|mst| is_air_combat_type(mst.api_type[2]))
                 });
             has_plane.then_some(idx as i64 + 1)
         })

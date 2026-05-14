@@ -1,7 +1,8 @@
 ---
 title: fix: Route topology mismatch should fallback to random, not block gameplay
 type: fix
-status: active
+status: superseded
+superseded-by: 2026-05-10-001
 date: 2026-05-09
 ---
 

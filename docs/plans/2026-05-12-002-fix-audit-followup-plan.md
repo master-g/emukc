@@ -1,7 +1,7 @@
 ---
 title: "fix: Address audit findings from 2026-05-12 commit review"
 type: fix
-status: active
+status: completed
 date: 2026-05-12
 ---
 

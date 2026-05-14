@@ -1,7 +1,8 @@
 ---
 title: Fix Map System Audit Issues
 type: fix
-status: active
+status: superseded
+superseded-by: 2026-05-06-001
 date: 2026-05-05
 ---
 

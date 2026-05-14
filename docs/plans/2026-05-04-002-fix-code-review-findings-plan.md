@@ -1,7 +1,8 @@
 ---
 title: fix: Resolve code review findings on feat/vibe branch
 type: fix
-status: active
+status: superseded
+superseded-by: 2026-05-06-001
 date: 2026-05-04
 ---
 

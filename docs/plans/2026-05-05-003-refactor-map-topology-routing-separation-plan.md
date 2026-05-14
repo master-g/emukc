@@ -1,7 +1,7 @@
 ---
 title: "refactor: Separate map graph topology from routing rules — kcdata for topology, WikiWiki for rules only"
 type: refactor
-status: active
+status: completed
 date: 2026-05-05
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Fix code review findings in map system refactor
 type: fix
-status: active
+status: superseded
 date: 2026-05-07
 origin: /tmp/compound-engineering/ce-code-review/20260507-141921-70060c97/ (ce-code-review run artifact)
 ---
