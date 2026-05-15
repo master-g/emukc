@@ -123,7 +123,6 @@ impl Builder {
     }
 
     /// Build the `Kache` struct.
-    #[expect(clippy::result_large_err)]
     pub fn build(self) -> Result<Kache, Error> {
         let cache_root = self.cache_root.ok_or(Error::MissingField("cache_root".to_owned()))?;
         let gadgets_cdn = if self.gadgets_cdn.is_empty() {
@@ -313,7 +312,7 @@ impl Kache {
     }
 
     /// Select the appropriate CDN list based on the path.
-    fn select_cdn_list(&self, path: &str) -> &Vec<String> {
+    fn select_cdn_list(&self, path: &str) -> &[String] {
         if path.starts_with("gadget_html5")
             || path.starts_with("html")
             || path.contains("world.html")

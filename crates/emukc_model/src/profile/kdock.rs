@@ -106,7 +106,7 @@ impl From<ConstructionDock> for KcApiKDock {
                 .context
                 .as_ref()
                 .map_or(0, |c| c.complete_time.timestamp_millis()),
-            api_complete_time_str: value.context.as_ref().map_or("0".to_owned(), |c| {
+            api_complete_time_str: value.context.as_ref().map_or_else(|| "0".to_owned(), |c| {
                 KcTime::format_date(c.complete_time.timestamp_millis(), " ")
             }),
             api_item1: value.context.as_ref().map_or(0, |c| c.fuel),
