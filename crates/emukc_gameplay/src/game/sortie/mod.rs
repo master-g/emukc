@@ -1251,7 +1251,7 @@ fn sortie_bosscomp(stage: &MapStageDefinition) -> bool {
 /// Resolve resource acquisition or maelstrom loss for the given cell.
 /// Only `event_kind`=0 cells produce effects; battle cells are handled elsewhere.
 ///
-/// The `c` parameter must be a transaction connection when the maelstrom branch (event_id 3)
+/// The `c` parameter must be a transaction connection when the maelstrom branch (`event_id` 3)
 /// is reachable. Per-ship resource deductions are applied individually; a non-transaction
 /// connection risks partial state on failure.
 async fn resolve_non_battle_node_effect<C>(
@@ -1347,7 +1347,7 @@ where
                     continue;
                 }
 
-                let mut am = ship_model.clone().into_active_model();
+                let mut am = ship_model.into_active_model();
                 if resource_type == 1 {
                     am.fuel = ActiveValue::Set((ship_model.fuel - ship_loss).max(0));
                 } else {
