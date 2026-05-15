@@ -1,6 +1,13 @@
 //! Gameplay integration tests
 
+use std::sync::LazyLock;
+
 use emukc_internal::prelude::*;
+
+static CODEX: LazyLock<Codex> = LazyLock::new(|| {
+    Codex::load_without_cache_source(".data/codex")
+        .expect("Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/")
+});
 
 /// Per-test context with an isolated [`SortieStore`].
 ///
@@ -8,18 +15,17 @@ use emukc_internal::prelude::*;
 /// process-global `GLOBAL_SORTIE_STORE`.
 pub struct TestContext {
     db: emukc_internal::db::sea_orm::DbConn,
-    codex: Codex,
+    codex: &'static Codex,
     sortie_store: SortieStore,
 }
 
 impl TestContext {
     /// Create a new test context with an in-memory database and isolated sortie store.
     pub async fn new() -> Self {
-        let db = new_mem_db().await.unwrap();
-        let codex = Codex::load_without_cache_source(".data/codex").unwrap();
+        let db = new_mem_db().await.expect("in-memory DB creation failed");
         Self {
             db,
-            codex,
+            codex: &CODEX,
             sortie_store: SortieStore::new(),
         }
     }

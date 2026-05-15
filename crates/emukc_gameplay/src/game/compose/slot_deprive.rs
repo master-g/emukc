@@ -18,13 +18,17 @@ fn get_slot_mut(ship: &mut ship::Model, is_ex_slot: bool, slot_idx: Option<i64>)
     if is_ex_slot {
         &mut ship.slot_ex
     } else {
+        debug_assert!(
+            matches!(slot_idx, Some(0..=4)),
+            "slot_idx must be Some(0..=4), got {slot_idx:?}"
+        );
         match slot_idx {
             Some(0) => &mut ship.slot_1,
             Some(1) => &mut ship.slot_2,
             Some(2) => &mut ship.slot_3,
             Some(3) => &mut ship.slot_4,
             Some(4) => &mut ship.slot_5,
-            _ => unreachable!(), // slot_idx validated by caller to be 0..5
+            _ => unreachable!(),
         }
     }
 }

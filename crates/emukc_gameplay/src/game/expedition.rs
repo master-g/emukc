@@ -278,9 +278,7 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
                     .await?
             }
             fleet::MissionStatus::Idle => {
-                return Err(GameplayError::WrongType(format!(
-                    "fleet {fleet_id} is idle, not on an expedition"
-                )));
+                return Err(idle_fleet_err(fleet_id, "not on an expedition"));
             }
         };
         let result = match fleet_model.mission_status {
@@ -293,9 +291,7 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
                 }
             }
             fleet::MissionStatus::Idle => {
-                return Err(GameplayError::WrongType(format!(
-                    "fleet {fleet_id} is idle, cannot determine expedition result"
-                )));
+                return Err(idle_fleet_err(fleet_id, "cannot determine expedition result"));
             }
         };
         let failure_kind = match result {
@@ -1370,6 +1366,10 @@ where
         .await?;
 
     Ok(())
+}
+
+fn idle_fleet_err(fleet_id: i64, context: &str) -> GameplayError {
+    GameplayError::WrongType(format!("fleet {fleet_id} is idle, {context}"))
 }
 
 #[cfg(test)]

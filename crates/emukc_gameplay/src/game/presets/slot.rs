@@ -246,7 +246,10 @@ where
             2 => (record.mst_id_3, record.stars_3),
             3 => (record.mst_id_4, record.stars_4),
             4 => (record.mst_id_5, record.stars_5),
-            _ => unreachable!(), // i bounded by min(len, 5) so always 0..5
+            _ => {
+                debug_assert!(i < 5, "i bounded by min(len, 5), got {i}");
+                unreachable!()
+            }
         };
 
         let Some(available) = unset_mst_lv_lookup.get(&target_mst_id) else {
