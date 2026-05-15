@@ -1,5 +1,44 @@
 //! Gameplay integration tests
 
+use emukc_internal::prelude::*;
+
+/// Per-test context with an isolated [`SortieStore`].
+///
+/// Avoids profile-id collisions that occur when tests share the
+/// process-global `GLOBAL_SORTIE_STORE`.
+pub struct TestContext {
+    db: emukc_internal::db::sea_orm::DbConn,
+    codex: Codex,
+    sortie_store: SortieStore,
+}
+
+impl TestContext {
+    /// Create a new test context with an in-memory database and isolated sortie store.
+    pub async fn new() -> Self {
+        let db = new_mem_db().await.unwrap();
+        let codex = Codex::load_without_cache_source(".data/codex").unwrap();
+        Self {
+            db,
+            codex,
+            sortie_store: SortieStore::new(),
+        }
+    }
+}
+
+impl HasContext for TestContext {
+    fn db(&self) -> &emukc_internal::db::sea_orm::DbConn {
+        &self.db
+    }
+
+    fn codex(&self) -> &Codex {
+        &self.codex
+    }
+
+    fn sortie_store(&self) -> &SortieStore {
+        &self.sortie_store
+    }
+}
+
 #[path = "gameplay_tests/map/mod.rs"]
 mod map;
 

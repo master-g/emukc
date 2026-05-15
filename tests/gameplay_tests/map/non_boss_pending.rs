@@ -7,13 +7,11 @@
 mod tests {
     use emukc_internal::prelude::*;
 
-    async fn new_context() -> (emukc_internal::db::sea_orm::DbConn, Codex) {
-        let db = new_mem_db().await.unwrap();
-        let codex = Codex::load_without_cache_source(".data/codex").unwrap();
-        (db, codex)
+    async fn new_context() -> crate::TestContext {
+        crate::TestContext::new().await
     }
 
-    async fn new_profile(context: &(emukc_internal::db::sea_orm::DbConn, Codex)) -> i64 {
+    async fn new_profile(context: &crate::TestContext) -> i64 {
         let account = context.sign_up("test-pending", "1234567").await.unwrap();
         let profile =
             context.new_profile(&account.access_token.token, "pending-tester").await.unwrap();
@@ -22,7 +20,7 @@ mod tests {
         session.profile.id
     }
 
-    async fn setup_fleet(context: &(emukc_internal::db::sea_orm::DbConn, Codex), pid: i64) {
+    async fn setup_fleet(context: &crate::TestContext, pid: i64) {
         let mut fleet_slots = [-1; 6];
         for slot in &mut fleet_slots {
             *slot = context.add_ship(pid, 951).await.unwrap().api_id;

@@ -8,13 +8,11 @@
 mod tests {
     use emukc_internal::prelude::*;
 
-    async fn new_context() -> (emukc_internal::db::sea_orm::DbConn, Codex) {
-        let db = new_mem_db().await.unwrap();
-        let codex = Codex::load_without_cache_source(".data/codex").unwrap();
-        (db, codex)
+    async fn new_context() -> crate::TestContext {
+        crate::TestContext::new().await
     }
 
-    async fn new_profile(context: &(emukc_internal::db::sea_orm::DbConn, Codex)) -> i64 {
+    async fn new_profile(context: &crate::TestContext) -> i64 {
         let account = context.sign_up("test-reset", "1234567").await.unwrap();
         let profile =
             context.new_profile(&account.access_token.token, "reset-tester").await.unwrap();
@@ -26,7 +24,7 @@ mod tests {
     #[tokio::test]
     async fn eo_maps_have_monthly_reset_policy() {
         let context = new_context().await;
-        let codex = &context.1;
+        let codex = context.codex();
         let catalog = codex.map_catalog();
 
         // EO maps with monthly reset: 1-5, 1-6, 3-5, 4-5, 5-5, 6-5
@@ -44,7 +42,7 @@ mod tests {
     #[tokio::test]
     async fn regular_maps_have_never_reset_policy() {
         let context = new_context().await;
-        let codex = &context.1;
+        let codex = context.codex();
         let catalog = codex.map_catalog();
 
         // Regular maps: 1-1 through 1-4, 2-1, etc.
@@ -89,7 +87,7 @@ mod tests {
         let record = emukc_internal::db::entity::profile::map_record::Entity::find()
             .filter(emukc_internal::db::entity::profile::map_record::Column::ProfileId.eq(pid))
             .filter(emukc_internal::db::entity::profile::map_record::Column::MapId.eq(map_id))
-            .one(&context.0)
+            .one(context.db())
             .await
             .unwrap()
             .unwrap();
@@ -103,7 +101,7 @@ mod tests {
         am.defeat_count = ActiveValue::Set(Some(5));
         am.gauge_index = ActiveValue::Set(3);
         am.last_reset_at = ActiveValue::Set(Some(stale_reset_at));
-        am.update(&context.0).await.unwrap();
+        am.update(context.db()).await.unwrap();
 
         // Trigger refresh by calling get_map_infos (which calls refresh_all_map_records).
         let _ = context.get_map_infos(pid).await.unwrap();
@@ -112,7 +110,7 @@ mod tests {
         let refreshed = emukc_internal::db::entity::profile::map_record::Entity::find()
             .filter(emukc_internal::db::entity::profile::map_record::Column::ProfileId.eq(pid))
             .filter(emukc_internal::db::entity::profile::map_record::Column::MapId.eq(map_id))
-            .one(&context.0)
+            .one(context.db())
             .await
             .unwrap()
             .unwrap();
