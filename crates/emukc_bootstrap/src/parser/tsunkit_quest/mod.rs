@@ -133,6 +133,7 @@ pub enum RequirementsCategory {
     Sink,
     Sortie,
     Then,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

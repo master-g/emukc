@@ -612,7 +612,11 @@ where
             ship.slot_5 = slot_item_id;
             tmp
         }
-        _ => unreachable!(),
+        _ => {
+            return Err(GameplayError::WrongType(format!(
+                "invalid slot index: {slot_idx}"
+            )));
+        }
     };
 
     if unset_slot_item_id > 0 {

@@ -70,6 +70,7 @@ impl From<Kc3rdQuestPeriod> for Period {
             Kc3rdQuestPeriod::Monthly => Period::Monthly,
             Kc3rdQuestPeriod::Quarterly => Period::Quarterly,
             Kc3rdQuestPeriod::Annual => Period::Annually,
+            Kc3rdQuestPeriod::Unknown => Period::Oneshot,
         }
     }
 }

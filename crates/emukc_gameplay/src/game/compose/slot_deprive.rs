@@ -24,7 +24,7 @@ fn get_slot_mut(ship: &mut ship::Model, is_ex_slot: bool, slot_idx: Option<i64>)
             Some(2) => &mut ship.slot_3,
             Some(3) => &mut ship.slot_4,
             Some(4) => &mut ship.slot_5,
-            _ => unreachable!(),
+            _ => unreachable!(), // slot_idx validated by caller to be 0..5
         }
     }
 }

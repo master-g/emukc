@@ -83,6 +83,9 @@ pub enum Kc3rdQuestCategory {
 
     /// 工廠2
     Factory2 = 11,
+
+    /// Unknown category from unrecognized value
+    Unknown,
 }
 
 impl From<i64> for Kc3rdQuestCategory {
@@ -99,7 +102,10 @@ impl From<i64> for Kc3rdQuestCategory {
             9 => Self::Sortie3,
             10 => Self::Sortie4,
             11 => Self::Factory2,
-            _ => panic!("Invalid value for Kc3rdQuestCategory: {value}"),
+            _ => {
+                tracing::warn!("Unknown Kc3rdQuestCategory value: {value}");
+                Self::Unknown
+            }
         }
     }
 }
@@ -116,6 +122,9 @@ pub enum Kc3rdQuestPeriod {
     Monthly = 6,
     Quarterly = 7,
     Annual = 8,
+
+    /// Unknown period from unrecognized value
+    Unknown,
 }
 
 impl From<i64> for Kc3rdQuestPeriod {
@@ -129,7 +138,10 @@ impl From<i64> for Kc3rdQuestPeriod {
             6 => Self::Monthly,
             7 => Self::Quarterly,
             8 => Self::Annual,
-            _ => panic!("Invalid value for Kc3rdQuestPeriod: {value}"),
+            _ => {
+                tracing::warn!("Unknown Kc3rdQuestPeriod value: {value}");
+                Self::Unknown
+            }
         }
     }
 }
@@ -145,6 +157,7 @@ impl Kc3rdQuestPeriod {
             Kc3rdQuestPeriod::Weekly => KcApiQuestType::Weekly as i64,
             Kc3rdQuestPeriod::Monthly => KcApiQuestType::Monthly as i64,
             Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual => KcApiQuestType::Other as i64,
+            Kc3rdQuestPeriod::Unknown => KcApiQuestType::Other as i64,
         }
     }
 }

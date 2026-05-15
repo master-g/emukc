@@ -36,6 +36,7 @@ impl Requirements {
             RequirementsCategory::Simple => self.extract_requirements_simple(),
             RequirementsCategory::Sink => self.extract_requirements_sink(),
             RequirementsCategory::Sortie => self.extract_requirements_sortie(mst),
+            RequirementsCategory::Unknown => vec![],
         }
     }
 

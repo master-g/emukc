@@ -252,7 +252,8 @@ impl From<List> for Requirements {
             "sink" => RequirementsCategory::Sink,
             "sortie" => RequirementsCategory::Sortie,
             _ => {
-                panic!("unknown category: {}", list.category);
+                tracing::warn!("unknown tsunkit quest category: {}", list.category);
+                RequirementsCategory::Unknown
             }
         };
 

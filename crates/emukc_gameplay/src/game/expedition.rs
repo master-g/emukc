@@ -277,7 +277,11 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
                 apply_expedition_return_morale(&tx, mission_mst, &mission_ships_before_return)
                     .await?
             }
-            fleet::MissionStatus::Idle => unreachable!(),
+            fleet::MissionStatus::Idle => {
+                return Err(GameplayError::WrongType(format!(
+                    "fleet {fleet_id} is idle, not on an expedition"
+                )));
+            }
         };
         let result = match fleet_model.mission_status {
             fleet::MissionStatus::ForceReturning => ExpeditionResult::Failure,
@@ -288,7 +292,11 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
                     determine_expedition_success_result(expedition_condition, launch_snapshot)
                 }
             }
-            fleet::MissionStatus::Idle => unreachable!(),
+            fleet::MissionStatus::Idle => {
+                return Err(GameplayError::WrongType(format!(
+                    "fleet {fleet_id} is idle, cannot determine expedition result"
+                )));
+            }
         };
         let failure_kind = match result {
             ExpeditionResult::Failure if is_recall => Some(ExpeditionFailureKind::Recall),

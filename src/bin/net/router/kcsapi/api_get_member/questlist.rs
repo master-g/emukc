@@ -92,6 +92,7 @@ pub(super) async fn handler(
                     Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual => {
                         KcApiQuestType::Other as i64
                     }
+                    Kc3rdQuestPeriod::Unknown => KcApiQuestType::Other as i64,
                 },
                 api_label_type: mst.label_type,
                 api_state: if model.status == progress::Status::Idle {
