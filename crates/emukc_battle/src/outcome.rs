@@ -74,10 +74,10 @@ pub(crate) fn verify_protected_ships_alive(ships: &[BattleRuntimeShip]) {
                 ship.entry_hp,
                 ship.ship.api_maxhp
             );
-            #[cfg(debug_assertions)]
-            panic!("{msg}");
-            #[cfg(not(debug_assertions))]
-            tracing::error!("{msg}");
+            cfg_select! {
+                debug_assertions => panic!("{msg}"),
+                _ => tracing::error!("{msg}")
+            };
         }
     }
 }
