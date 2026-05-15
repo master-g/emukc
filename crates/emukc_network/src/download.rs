@@ -89,7 +89,7 @@ impl Builder {
 }
 
 /// Errors that can occur when downloading
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Error)]
 pub enum DownloadError {
     /// Reqwest client builder error
@@ -178,7 +178,7 @@ pub enum DownloadError {
     },
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, Copy)]
 pub enum DownloadPhase {
     SendHead,

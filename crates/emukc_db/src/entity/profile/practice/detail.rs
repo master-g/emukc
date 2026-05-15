@@ -2,7 +2,7 @@
 
 use sea_orm::entity::prelude::*;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "rival_detail")]
 pub struct Model {

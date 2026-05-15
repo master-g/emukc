@@ -101,7 +101,7 @@ pub(super) mod test_utils {
     use crate::{net::auth::GameSession, state::State};
 
     pub(super) struct TestContext {
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         pub cache_root: TempDir,
         pub state: Arc<State>,
         pub session: GameSession,

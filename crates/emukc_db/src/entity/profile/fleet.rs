@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use emukc_model::profile::fleet::{Fleet, FleetMissionContext, FleetMissionStatus};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum MissionStatus {
@@ -25,7 +25,7 @@ pub enum MissionStatus {
     ForceReturning,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "fleet")]
 pub struct Model {
@@ -98,7 +98,6 @@ pub enum Relation {
 }
 
 impl Related<crate::entity::profile::Entity> for Entity {
-    #[allow(unused_variables)]
     fn to() -> RelationDef {
         Relation::Profile.def()
     }

@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use emukc_model::user::token::{Token, TokenType};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "token")]
 pub struct Model {

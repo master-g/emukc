@@ -39,5 +39,4 @@ impl IntoResponse for KcApiError {
     }
 }
 
-#[allow(unused)]
 pub type KcApiResult = std::result::Result<KcApiResponse, KcApiError>;

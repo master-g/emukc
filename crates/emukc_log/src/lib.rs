@@ -4,7 +4,7 @@
 #![doc(html_logo_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 #[macro_use]
 extern crate tracing;
 

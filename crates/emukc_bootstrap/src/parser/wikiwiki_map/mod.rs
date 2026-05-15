@@ -325,7 +325,7 @@ impl WikiwikiMapCatalog {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn parse_map_page(
     map_name: &str,
     map_id: i64,

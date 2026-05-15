@@ -4,10 +4,8 @@ pub mod map;
 pub mod quest;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use map::*;
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use quest::*;
 
 use serde::{Deserialize, Serialize};

@@ -22,7 +22,6 @@ pub(crate) const KACHE_TABLE: TableDefinition<&str, Option<&str>> =
     TableDefinition::new("kache_entry");
 
 /// The `Kache` struct is the main struct for the `KanColle` CDN file cache utilities.
-#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct Kache {
     /// Root directory for the cache.
@@ -124,7 +123,7 @@ impl Builder {
     }
 
     /// Build the `Kache` struct.
-    #[allow(clippy::result_large_err)]
+    #[expect(clippy::result_large_err)]
     pub fn build(self) -> Result<Kache, Error> {
         let cache_root = self.cache_root.ok_or(Error::MissingField("cache_root".to_owned()))?;
         let gadgets_cdn = if self.gadgets_cdn.is_empty() {

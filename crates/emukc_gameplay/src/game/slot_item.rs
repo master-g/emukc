@@ -259,7 +259,6 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
 /// - `sortno`: The item's sort number.
 /// - `stars`: The stars of the item.
 /// - `alv`: The aircraft level of the item.
-#[allow(unused)]
 pub async fn add_slot_item_impl<C>(
     c: &C,
     codex: &Codex,

@@ -130,7 +130,6 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `values`: The materials to add.
-#[allow(unused)]
 pub(crate) async fn add_material_impl<C>(
     c: &C,
     codex: &Codex,

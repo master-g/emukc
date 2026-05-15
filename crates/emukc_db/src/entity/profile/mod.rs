@@ -19,7 +19,7 @@ pub mod quest;
 pub mod settings;
 pub mod ship;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "profile")]
 pub struct Model {

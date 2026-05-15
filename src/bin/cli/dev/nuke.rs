@@ -74,7 +74,7 @@ async fn add_ship_quietly(state: &State, pid: i64) -> Result<()> {
     Ok(())
 }
 
-#[allow(unused)]
+#[expect(unused)]
 async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
     let codex = state.codex();
 
@@ -100,7 +100,6 @@ async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
     Ok(())
 }
 
-#[allow(unused)]
 async fn deplete_ship_fuel_and_ammo(state: &State, pid: i64) -> Result<()> {
     // modify ships for testing `api_req_hokyu/charge`
     let mut ships = state.get_ships(pid).await?;

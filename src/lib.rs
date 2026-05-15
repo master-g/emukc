@@ -11,5 +11,5 @@
 pub use emukc_internal::*;
 
 #[cfg(all(feature = "dynamic_linking", not(target_family = "wasm")))]
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 use emukc_dylib;

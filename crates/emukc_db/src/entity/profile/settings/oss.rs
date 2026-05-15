@@ -17,7 +17,7 @@ pub enum Language {
     English = 1,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "oss_settings")]
 pub struct Model {

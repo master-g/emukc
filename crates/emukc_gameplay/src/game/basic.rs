@@ -158,7 +158,6 @@ impl<T: HasContext + ?Sized> BasicOps for T {
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-#[allow(unused)]
 pub(crate) async fn get_user_basic_impl<C>(
     c: &C,
     profile_id: i64,

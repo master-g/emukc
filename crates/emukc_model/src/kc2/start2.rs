@@ -217,7 +217,7 @@ pub struct ApiMstMapinfo {
 }
 
 /// Mission data, for expeditions.
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstMission {
     /// Mission ID.
@@ -382,7 +382,7 @@ pub struct ApiMstShip {
     pub api_tais: Option<[i64; 1]>,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipgraph {
     pub api_id: i64,
@@ -426,7 +426,7 @@ pub struct ApiMstShipgraph {
     pub api_wedb: Option<[i64; 2]>,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipUpgrade {
     pub api_id: i64,               // read as `mst_id_after` in main.js
@@ -444,7 +444,7 @@ pub struct ApiMstShipUpgrade {
     pub api_sortno: i64,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstSlotitem {
     pub api_id: i64,
@@ -478,7 +478,7 @@ pub struct ApiMstSlotitem {
     pub api_distance: Option<i64>,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstSlotitemEquiptype {
     pub api_id: i64,
@@ -486,7 +486,7 @@ pub struct ApiMstSlotitemEquiptype {
     pub api_show_flg: i64,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstStype {
     pub api_id: i64,
@@ -497,7 +497,7 @@ pub struct ApiMstStype {
     pub api_sortno: i64,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstUseitem {
     pub api_id: i64,

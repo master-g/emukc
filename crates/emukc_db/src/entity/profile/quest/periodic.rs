@@ -6,7 +6,7 @@ use sea_orm::{ActiveValue, entity::prelude::*};
 
 use super::{HasTimestampAndPeriod, Period};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "quest_record_periodic")]
 pub struct Model {

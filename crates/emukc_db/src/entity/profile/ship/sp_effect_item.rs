@@ -3,7 +3,7 @@
 use emukc_model::kc2::KcApiSpEffectOnShip;
 use sea_orm::entity::prelude::*;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "ship_sp_effect_item")]
 pub struct Model {

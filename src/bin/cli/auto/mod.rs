@@ -163,7 +163,6 @@ async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 async fn add_material_incentives(state: &State, pid: i64) -> Result<()> {
     let codex = state.codex();
 
@@ -186,7 +185,6 @@ async fn add_material_incentives(state: &State, pid: i64) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
     let codex = state.codex();
 

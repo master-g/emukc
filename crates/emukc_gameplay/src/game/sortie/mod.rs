@@ -167,7 +167,7 @@ pub struct SortieNextResponse {
     pub happening: Option<SortieHappening>,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 #[derive(Debug, Clone, Serialize)]
 pub struct SortieNightBattleResponse {
     pub api_deck_id: i64,

@@ -206,7 +206,6 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The item master ID.
 /// - `count`: The count of the item.
-#[allow(unused)]
 pub(crate) async fn add_use_item_impl<C>(
     c: &C,
     profile_id: i64,
@@ -281,7 +280,6 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The item master ID.
-#[allow(unused)]
 pub(crate) async fn find_use_item_impl<C>(
     c: &C,
     profile_id: i64,

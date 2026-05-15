@@ -5,7 +5,7 @@ use sea_orm::entity::prelude::*;
 
 use emukc_model::profile::practice::RivalType as RivalTypeModel;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum RivalType {
@@ -22,7 +22,7 @@ pub enum RivalType {
     All,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "practice_config")]
 pub struct Model {

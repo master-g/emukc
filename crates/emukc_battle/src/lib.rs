@@ -13,7 +13,7 @@ pub mod random;
 pub mod simulation;
 mod state;
 mod targeting;
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 mod types;
 
 #[cfg(test)]

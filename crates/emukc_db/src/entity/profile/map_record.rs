@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use emukc_model::profile::map_record::MapSelectRank;
 use sea_orm::{ConnectionTrait, Statement, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum SelectedRank {
@@ -29,7 +29,7 @@ pub enum SelectedRank {
     Hard = 4,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "map_record")]
 pub struct Model {

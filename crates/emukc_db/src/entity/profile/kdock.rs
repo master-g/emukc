@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use emukc_model::profile::kdock::{ConstructionContext, ConstructionDock, ConstructionDockStatus};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
 pub enum Status {
@@ -25,7 +25,7 @@ pub enum Status {
     Completed,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "kdock")]
 pub struct Model {

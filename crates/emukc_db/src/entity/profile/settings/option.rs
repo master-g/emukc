@@ -5,7 +5,7 @@
 use emukc_model::kc2::KcApiOptionSetting;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "option_settings")]
 pub struct Model {

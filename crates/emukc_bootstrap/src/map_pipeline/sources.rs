@@ -233,7 +233,7 @@ fn download_stat_json(_cache_path: &Path) -> Result<String, String> {
 fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
     #[derive(serde::Deserialize)]
     struct StatCell {
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         cell_id: String,
         event_id: i64,
         event_kind: i64,

@@ -17,7 +17,7 @@ use crate::state::State;
 
 use super::{AppState, err::ApiError};
 
-#[allow(unused)]
+#[expect(unused)]
 #[derive(Clone)]
 pub(super) struct AuthAccount(pub Account);
 
@@ -45,7 +45,6 @@ where
     }
 }
 
-#[allow(unused)]
 pub(super) async fn auth_middleware(request: Request, next: Next) -> Result<Response, StatusCode> {
     let (mut parts, body) = request.into_parts();
 
@@ -160,7 +159,6 @@ async fn extract_kcs_api_game_session(
     }
 }
 
-#[allow(unused)]
 pub(super) async fn kcs_api_auth_middleware(
     request: Request,
     next: Next,

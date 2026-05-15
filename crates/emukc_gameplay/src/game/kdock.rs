@@ -126,7 +126,6 @@ where
 ///
 /// - `profile_id`: The profile ID.
 /// - `index`: The construction dock index, must be one of 2, 3, 4.
-#[allow(unused)]
 pub(crate) async fn unlock_kdock_impl<C>(
     c: &C,
     profile_id: i64,
@@ -151,7 +150,6 @@ where
 ///
 /// - `profile_id`: The profile ID.
 /// - `index`: The construction dock index, must be one of 1, 2, 3, 4.
-#[allow(unused)]
 pub(crate) async fn get_kdock_impl<C>(
     c: &C,
     profile_id: i64,
@@ -170,7 +168,6 @@ where
 /// # Parameters
 ///
 /// - `profile_id`: The profile ID.
-#[allow(unused)]
 pub(crate) async fn get_kdocks_impl<C>(
     c: &C,
     profile_id: i64,

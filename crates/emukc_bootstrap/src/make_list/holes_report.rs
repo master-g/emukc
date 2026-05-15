@@ -14,7 +14,7 @@ pub struct HolesReport {
     pub slot_character: BTreeSet<i64>,
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 impl HolesReport {
     /// Create a new empty holes report
     pub fn new() -> Self {

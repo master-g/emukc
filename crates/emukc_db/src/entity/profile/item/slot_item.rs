@@ -3,7 +3,7 @@
 use emukc_model::{kc2::KcApiSlotItem, profile::slot_item::SlotItem};
 use sea_orm::entity::prelude::*;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "slot_item")]
 pub struct Model {

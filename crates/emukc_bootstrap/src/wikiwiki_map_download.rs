@@ -182,7 +182,7 @@ fn parse_map_name(map_name: &str) -> Option<(i64, i64)> {
     Some((maparea_id.parse().ok()?, mapinfo_no.parse().ok()?))
 }
 
-#[allow(clippy::result_large_err)]
+#[expect(clippy::result_large_err)]
 fn read_manifest(root: &Path) -> Result<ApiManifest, BootstrapDownloadError> {
     let manifest_path = root.join("start2.json");
     let raw = std::fs::read_to_string(&manifest_path)?;

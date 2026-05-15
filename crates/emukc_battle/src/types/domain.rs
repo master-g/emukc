@@ -195,11 +195,11 @@ pub(crate) struct AirstrikeOutput<'a> {
 /// Night battle does not use formation or engagement modifiers
 /// per `KanColle` mechanics.
 pub(crate) struct NightBattleParams<'a> {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub friendly_formation_id: i64,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub enemy_formation_id: i64,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub engagement: EngagementType,
     pub air_state: Option<&'a AirState>,
 }

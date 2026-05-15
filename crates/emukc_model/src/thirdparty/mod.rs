@@ -18,29 +18,22 @@ mod slotitem;
 // Re-export
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use cache::*;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use enemy::*;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use expedition::*;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use quest::*;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use ship::*;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use slotitem::*;
 
 #[doc(inline)]
-#[allow(unused_imports)]
 pub use picturebook::*;

@@ -151,7 +151,6 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `mst_id`: The furniture master ID.
-#[allow(unused)]
 pub(crate) async fn add_furniture_impl<C>(
     c: &C,
     profile_id: i64,
@@ -240,7 +239,6 @@ where
 ///
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
-#[allow(unused)]
 pub(crate) async fn get_furniture_config_impl<C>(
     c: &C,
     profile_id: i64,
@@ -266,7 +264,7 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `config`: The new configuration.
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) async fn update_furniture_config_impl<C>(
     c: &C,
     profile_id: i64,

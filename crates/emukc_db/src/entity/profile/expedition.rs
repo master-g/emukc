@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use emukc_model::profile::expedition::ExpeditionState;
 use sea_orm::entity::prelude::*;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
@@ -21,7 +21,7 @@ pub enum Status {
     Completed,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "expedition")]
 pub struct Model {

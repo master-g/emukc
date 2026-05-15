@@ -213,7 +213,7 @@ pub(crate) fn calculate_asw_damage(
 
 /// Calculate airstrike damage for a single bomber slot.
 // TODO: used by airstrike phase
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,

@@ -13,7 +13,7 @@ use crate::progress::{
 use crate::res::RES_LIST;
 
 /// Error that can occur during the download process
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Error)]
 pub enum BootstrapDownloadError {
     /// IO error

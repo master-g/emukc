@@ -1,5 +1,5 @@
 //! Forces dynamic linking of `EmuKC`.
 
-#[allow(unused_imports)]
-#[allow(clippy::single_component_path_imports)]
+#[expect(unused_imports)]
+#[expect(clippy::single_component_path_imports)]
 use emukc_internal;

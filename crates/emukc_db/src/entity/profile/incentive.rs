@@ -31,7 +31,7 @@ pub enum IncentiveType {
     Furniture = 5,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
 )]
@@ -45,7 +45,7 @@ pub enum IncentiveMode {
     MonthlyOrPresent = 3,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "incentive")]
 pub struct Model {
@@ -88,7 +88,6 @@ pub enum Relation {
 }
 
 impl Related<crate::entity::profile::Entity> for Entity {
-    #[allow(unused_variables)]
     fn to() -> RelationDef {
         Relation::Profile.def()
     }

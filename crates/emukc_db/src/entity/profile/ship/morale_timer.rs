@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "ship_morale_timer")]
 pub struct Model {

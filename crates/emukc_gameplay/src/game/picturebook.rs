@@ -130,7 +130,7 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
 /// - `sortno`: The ship's sort number.
 /// - `damaged`: Whether the ship is damaged.
 /// - `married`: Whether the ship is married.
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) async fn add_ship_to_picturebook_impl<C>(
     c: &C,
     profile_id: i64,
@@ -175,7 +175,7 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `sortno`: The slot item's sort number.
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) async fn add_slot_item_to_picturebook_impl<C>(
     c: &C,
     profile_id: i64,

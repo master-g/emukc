@@ -41,7 +41,7 @@ struct Cli {
     command: Option<Commands>,
 }
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 enum Commands {
     #[command(about = "Remove game database and create a new account and profile")]

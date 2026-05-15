@@ -114,13 +114,11 @@ impl AppConfig {
         self.ensure_dir("codex")
     }
 
-    #[allow(unused)]
     /// Get the path to a directory relative to the workspace root
     fn dir(&self, dir: impl AsRef<Path>) -> PathBuf {
         self.workspace_root.join(dir)
     }
 
-    #[allow(unused)]
     /// Ensure that a directory exists
     fn ensure_dir(&self, dir: impl AsRef<Path>) -> Result<PathBuf> {
         let dir = self.dir(dir);

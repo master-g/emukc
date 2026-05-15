@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
-#[allow(unused)]
+#[expect(unused)]
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ResourceCategory {
     Start2,

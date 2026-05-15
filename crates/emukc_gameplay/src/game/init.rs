@@ -15,7 +15,6 @@ use super::{
 /// - `c`: The database connection.
 /// - `codex`: The codex.
 /// - `profile_id`: The profile ID.
-#[allow(unused)]
 pub async fn init_profile_game_data<C>(
     c: &C,
     codex: &Codex,

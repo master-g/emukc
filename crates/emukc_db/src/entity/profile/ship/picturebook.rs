@@ -3,7 +3,7 @@
 use emukc_model::profile::picture_book::PictureBookShip;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "ship_record")]
 pub struct Model {

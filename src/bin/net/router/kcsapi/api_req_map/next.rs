@@ -13,7 +13,7 @@ use super::projection::project_next;
 #[derive(Deserialize)]
 pub(super) struct Params {
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(super) api_recovery_type: i64,
     #[serde(default)]
     pub(super) api_cell_id: Option<i64>,

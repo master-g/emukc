@@ -52,7 +52,6 @@ impl Default for Builder {
 
 impl Builder {
     /// Set the log level on the builder
-    #[allow(dead_code)]
     pub fn with_log_level(mut self, log_level: &str) -> Self {
         if let Ok(filter) = filter_from_value(log_level) {
             self.filter = CustomEnvFilter(filter);

@@ -6,7 +6,7 @@ mod debug;
 mod merge;
 mod types;
 
-#[allow(deprecated)]
+#[expect(deprecated)]
 use crate::profile::map_record::DEFAULT_MAP_RECORDS;
 use crate::{
     kc2::start2::{ApiManifest, ApiMstMapinfo},
@@ -41,7 +41,7 @@ pub enum MapValidationWarning {
 
 impl MapCatalog {
     pub fn from_manifest(manifest: &ApiManifest) -> Self {
-        #[allow(deprecated)]
+        #[expect(deprecated)]
         let defaults = DEFAULT_MAP_RECORDS
             .iter()
             .map(|record| (record.id, record))

@@ -40,7 +40,6 @@ const ASW_DISPLAY_TYPES: &[KcSlotItemType3] = &[
 ];
 
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
 const NIGHT_MAIN_GUN_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::SmallCaliberMainGun,
     KcSlotItemType3::MediumCaliberMainGun,
@@ -49,17 +48,14 @@ const NIGHT_MAIN_GUN_TYPES: &[KcSlotItemType3] = &[
 ];
 
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
 const NIGHT_SECONDARY_GUN_TYPES: &[KcSlotItemType3] =
     &[KcSlotItemType3::SecondaryGun, KcSlotItemType3::SecondaryGun2];
 
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
 const NIGHT_TORPEDO_TYPES: &[KcSlotItemType3] =
     &[KcSlotItemType3::Torpedo, KcSlotItemType3::SubmarineTorpedo];
 
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
 const RADAR_DISPLAY_TYPES: &[KcSlotItemType3] =
     &[KcSlotItemType3::SmallRadar, KcSlotItemType3::LargeRadar, KcSlotItemType3::LargeRadar2];
 
@@ -577,28 +573,28 @@ pub(crate) fn collect_asw_display_ids(codex: &Codex, ship: &BattleRuntimeShip) -
 
 /// Whether the slot type counts as a main gun for night battle formulas.
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn is_night_main_gun_type(slot_type: KcSlotItemType3) -> bool {
     NIGHT_MAIN_GUN_TYPES.contains(&slot_type)
 }
 
 /// Whether the slot type counts as a secondary gun for night battle formulas.
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn is_night_secondary_gun_type(slot_type: KcSlotItemType3) -> bool {
     NIGHT_SECONDARY_GUN_TYPES.contains(&slot_type)
 }
 
 /// Whether the slot type counts as a torpedo for night battle formulas.
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn is_night_torpedo_type(slot_type: KcSlotItemType3) -> bool {
     NIGHT_TORPEDO_TYPES.contains(&slot_type)
 }
 
 /// Whether the slot type is a radar.
 // TODO: used by night battle display helpers
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn is_radar_type(slot_type: KcSlotItemType3) -> bool {
     RADAR_DISPLAY_TYPES.contains(&slot_type)
 }

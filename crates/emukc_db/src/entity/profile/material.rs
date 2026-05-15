@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use emukc_model::profile::material::Material;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "material")]
 pub struct Model {

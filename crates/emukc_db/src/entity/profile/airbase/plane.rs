@@ -4,7 +4,7 @@
 use emukc_model::profile::airbase::{PlaneInfo, PlaneState};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(
     Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
 )]
@@ -23,7 +23,7 @@ pub enum Status {
     Reassigning = 2,
 }
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "plane_info")]
 pub struct Model {

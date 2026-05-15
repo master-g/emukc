@@ -6,7 +6,7 @@ pub mod morale_timer;
 pub mod picturebook;
 pub mod sp_effect_item;
 
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "ship")]
 pub struct Model {

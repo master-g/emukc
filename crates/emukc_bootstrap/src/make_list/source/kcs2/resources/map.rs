@@ -226,7 +226,7 @@ async fn find_in_local_then_remote(
 
 type EventMapInfo = (i64, i64, Option<Vec<i64>>);
 
-#[allow(unused)]
+#[expect(unused)]
 async fn get_event_area_greedy(
     cache: &Kache,
     list: &mut CacheList,
@@ -392,7 +392,6 @@ static EVENT_PRESET: LazyLock<Vec<EventMapInfo>> = LazyLock::new(|| {
     ]
 });
 
-#[allow(unused)]
 fn get_event_area_preset(list: &mut CacheList) {
     for info in EVENT_PRESET.iter() {
         let p = format!("kcs2/resources/map/{0:03}/{1:02}", info.0, info.1);

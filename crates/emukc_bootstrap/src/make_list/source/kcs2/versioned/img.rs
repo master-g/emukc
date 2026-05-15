@@ -602,7 +602,6 @@ pub(super) async fn make(
     Ok(())
 }
 
-#[allow(unused)]
 async fn make_greedy(
     mst: &ApiManifest,
     cache: &Kache,

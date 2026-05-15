@@ -5,7 +5,7 @@ use thiserror::Error;
 use crate::kc2::KcApiDeckPort;
 
 /// Fleet mission status
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum FleetMissionStatus {
     Idle = 0,

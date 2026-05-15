@@ -18,7 +18,7 @@ pub(super) struct Params {
     pub(super) api_maparea_id: i64,
     pub(super) api_mapinfo_no: i64,
     #[serde(default)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(super) api_serial_cid: String,
 }
 

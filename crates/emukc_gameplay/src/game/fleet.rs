@@ -174,7 +174,7 @@ where
 ///
 /// - `profile_id`: The profile ID.
 /// - `index`: The fleet index, must be one of 2, 3, 4.
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) async fn unlock_fleet_impl<C>(
     c: &C,
     profile_id: i64,
@@ -198,7 +198,6 @@ where
 ///
 /// - `profile_id`: The profile ID.
 /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
-#[allow(unused)]
 pub(crate) async fn get_fleet_impl<C>(
     c: &C,
     profile_id: i64,
@@ -217,7 +216,6 @@ where
 /// # Parameters
 ///
 /// - `profile_id`: The profile ID.
-#[allow(unused)]
 pub(crate) async fn get_fleets_impl<C>(
     c: &C,
     profile_id: i64,

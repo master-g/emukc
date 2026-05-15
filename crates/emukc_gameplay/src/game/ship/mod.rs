@@ -261,7 +261,7 @@ impl<T: HasContext + ?Sized> ShipOps for T {
 /// - `profile_id`: The profile ID.
 /// - `ship`: The ship to add.
 /// - `slots`: The slot items of the ship.
-#[allow(unused)]
+#[expect(unused)]
 pub async fn add_ship_impl<C>(
     c: &C,
     codex: &Codex,

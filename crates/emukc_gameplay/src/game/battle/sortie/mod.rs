@@ -39,7 +39,7 @@ pub struct SortieBattleSession {
 
 #[derive(Debug, Clone)]
 pub struct SortieNightBattleSession {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub profile_id: i64,
     pub packet: NightBattlePacket,
     pub outcome: BattleOutcome,
