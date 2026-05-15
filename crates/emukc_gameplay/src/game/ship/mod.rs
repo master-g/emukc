@@ -613,9 +613,7 @@ where
             tmp
         }
         _ => {
-            return Err(GameplayError::WrongType(format!(
-                "invalid slot index: {slot_idx}"
-            )));
+            return Err(GameplayError::WrongType(format!("invalid slot index: {slot_idx}")));
         }
     };
 

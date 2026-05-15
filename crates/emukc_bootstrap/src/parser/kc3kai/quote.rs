@@ -36,7 +36,8 @@ pub(super) fn parse(raw: &str, cache: &mut CacheSource) -> Result<(), ParseError
 
     // kc9999 npc quotes
     {
-        let npc_quotes = quotes.get("npc").ok_or_else(|| ParseError::KeyMissing("npc".to_string()))?;
+        let npc_quotes =
+            quotes.get("npc").ok_or_else(|| ParseError::KeyMissing("npc".to_string()))?;
         let entries: Vec<u64> = npc_quotes.keys().filter_map(|k| k.parse::<u64>().ok()).collect();
         cache.voices.npc = entries;
     }

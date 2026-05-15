@@ -463,7 +463,6 @@ pub(crate) fn simulate_kouku(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::random::BattleRng;
     use crate::test_utils::*;
     use crate::types::BattleRuntimeShip;
     use emukc_model::codex::Codex;

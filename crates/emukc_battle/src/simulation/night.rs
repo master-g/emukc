@@ -464,7 +464,6 @@ pub(crate) fn simulate_night_hougeki(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::random::BattleRng;
     use crate::test_utils::*;
     use crate::types::{BattleRuntimeShip, EngagementType, NightBattleParams};
     use emukc_model::codex::Codex;

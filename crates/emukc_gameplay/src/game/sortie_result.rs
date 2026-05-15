@@ -465,7 +465,6 @@ where
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
-    use emukc_db::sea_orm::{ColumnTrait, QueryFilter};
     use emukc_model::{
         codex::map::{MapDefinition, MapStageDefinition, MapVariantDefinition, ShipDropDefinition},
         thirdparty::QuestActionEvent,

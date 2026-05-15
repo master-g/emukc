@@ -87,7 +87,7 @@ pub(crate) fn simulate_shelling_side(
 #[cfg(test)]
 mod tests {
     use crate::test_utils::*;
-    use crate::types::{BattleContext, BattleRuntimeShip, BattleType, EngagementType};
+    use crate::types::{BattleContext, BattleType, EngagementType};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;

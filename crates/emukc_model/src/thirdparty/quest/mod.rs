@@ -156,8 +156,9 @@ impl Kc3rdQuestPeriod {
             Kc3rdQuestPeriod::Daily2nd8th => KcApiQuestType::Daily as i64,
             Kc3rdQuestPeriod::Weekly => KcApiQuestType::Weekly as i64,
             Kc3rdQuestPeriod::Monthly => KcApiQuestType::Monthly as i64,
-            Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual => KcApiQuestType::Other as i64,
-            Kc3rdQuestPeriod::Unknown => KcApiQuestType::Other as i64,
+            Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual | Kc3rdQuestPeriod::Unknown => {
+                KcApiQuestType::Other as i64
+            }
         }
     }
 }

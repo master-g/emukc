@@ -43,6 +43,7 @@ pub struct SeededRng {
 
 #[cfg(test)]
 impl SeededRng {
+    /// Create a new seeded RNG for testing.
     pub fn new(seed: u64) -> Self {
         Self {
             inner: emukc_crypto::rng::GameRng::seeded(seed),

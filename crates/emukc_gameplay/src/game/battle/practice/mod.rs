@@ -283,7 +283,6 @@ mod tests {
         // build_exp_lvup_vector is private in exp.rs; test via public API
         // The function is tested indirectly through practice battle results
         let before = 48_802;
-        let after = 49_880;
         let result = vec![48_802, 49_600, 52_800];
         // Validate the calculation is correct by computing manually
         assert_eq!(result.len(), 3);
