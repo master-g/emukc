@@ -430,7 +430,20 @@ impl TsunkitQuestValue {
         &self,
         mst: &ApiManifest,
         quest_info: &BTreeMap<i64, KccpQuestInfo>,
-    ) -> Kc3rdQuest {
+    ) -> Result<Option<Kc3rdQuest>, ParseError> {
+        let requirements = match self.requirements.to_requirements(mst) {
+            Ok(req) => req,
+            Err(ParseError::UnknownCategory) => {
+                warn!(
+                    wiki_id = %self.wiki_id,
+                    game_id = self.game_id,
+                    "skipping quest with unknown requirement category"
+                );
+                return Ok(None);
+            }
+            Err(e) => return Err(e),
+        };
+
         let game_id = if self.game_id > 240000 {
             self.game_id - 240000
         } else {
@@ -445,7 +458,7 @@ impl TsunkitQuestValue {
 
         let period: Kc3rdQuestPeriod = self.frequency.into();
 
-        Kc3rdQuest {
+        Ok(Some(Kc3rdQuest {
             api_no: game_id,
             wiki_id: self.wiki_id.clone(),
             category: self.category.into(),
@@ -463,9 +476,9 @@ impl TsunkitQuestValue {
                 .to_additional_reward(mst, &self.wiki_id)
                 .unwrap_or_default(),
             choice_rewards: self.rewards.to_choice_rewards(mst, &self.wiki_id).unwrap_or_default(),
-            requirements: self.requirements.to_requirements(mst),
+            requirements,
             conversion_mode: self.get_conversion_mode(),
-        }
+        }))
     }
 
     fn get_conversion_mode(&self) -> Kc3rdQuestConversionMode {
@@ -526,6 +539,9 @@ pub fn parse(
             let _enter = span.enter();
             r.to_kc3rd_quest(manifest, info)
         })
+        .collect::<Result<Vec<Option<Kc3rdQuest>>, ParseError>>()?
+        .into_iter()
+        .flatten()
         .collect();
 
     debug!("{} quests parsed", quests.len());

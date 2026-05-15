@@ -59,17 +59,20 @@ impl From<Period> for Kc3rdQuestPeriod {
     }
 }
 
-impl From<Kc3rdQuestPeriod> for Period {
-    fn from(value: Kc3rdQuestPeriod) -> Self {
+impl TryFrom<Kc3rdQuestPeriod> for Period {
+    type Error = &'static str;
+
+    fn try_from(value: Kc3rdQuestPeriod) -> Result<Self, Self::Error> {
         match value {
-            Kc3rdQuestPeriod::Oneshot | Kc3rdQuestPeriod::Unknown => Period::Oneshot,
-            Kc3rdQuestPeriod::Daily => Period::Daily,
-            Kc3rdQuestPeriod::Weekly => Period::Weekly,
-            Kc3rdQuestPeriod::Daily3rd7th0th => Period::Daily3rd7th0th,
-            Kc3rdQuestPeriod::Daily2nd8th => Period::Daily2nd8th,
-            Kc3rdQuestPeriod::Monthly => Period::Monthly,
-            Kc3rdQuestPeriod::Quarterly => Period::Quarterly,
-            Kc3rdQuestPeriod::Annual => Period::Annually,
+            Kc3rdQuestPeriod::Oneshot => Ok(Period::Oneshot),
+            Kc3rdQuestPeriod::Daily => Ok(Period::Daily),
+            Kc3rdQuestPeriod::Weekly => Ok(Period::Weekly),
+            Kc3rdQuestPeriod::Daily3rd7th0th => Ok(Period::Daily3rd7th0th),
+            Kc3rdQuestPeriod::Daily2nd8th => Ok(Period::Daily2nd8th),
+            Kc3rdQuestPeriod::Monthly => Ok(Period::Monthly),
+            Kc3rdQuestPeriod::Quarterly => Ok(Period::Quarterly),
+            Kc3rdQuestPeriod::Annual => Ok(Period::Annually),
+            Kc3rdQuestPeriod::Unknown => Err("cannot persist Unknown quest period to DB"),
         }
     }
 }
@@ -127,4 +130,49 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use emukc_model::prelude::Kc3rdQuestPeriod;
+
+    use super::Period;
+
+    #[test]
+    fn try_from_all_known_variants_succeeds() {
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Oneshot).unwrap(), Period::Oneshot);
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Daily).unwrap(), Period::Daily);
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Weekly).unwrap(), Period::Weekly);
+        assert_eq!(
+            Period::try_from(Kc3rdQuestPeriod::Daily3rd7th0th).unwrap(),
+            Period::Daily3rd7th0th
+        );
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Daily2nd8th).unwrap(), Period::Daily2nd8th);
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Monthly).unwrap(), Period::Monthly);
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Quarterly).unwrap(), Period::Quarterly);
+        assert_eq!(Period::try_from(Kc3rdQuestPeriod::Annual).unwrap(), Period::Annually);
+    }
+
+    #[test]
+    fn try_from_unknown_returns_err() {
+        assert!(Period::try_from(Kc3rdQuestPeriod::Unknown).is_err());
+    }
+
+    #[test]
+    fn roundtrip_all_known_period_variants() {
+        for period in [
+            Period::Oneshot,
+            Period::Daily,
+            Period::Weekly,
+            Period::Daily3rd7th0th,
+            Period::Daily2nd8th,
+            Period::Monthly,
+            Period::Quarterly,
+            Period::Annually,
+        ] {
+            let kc_period: Kc3rdQuestPeriod = period.into();
+            let back: Period = kc_period.try_into().unwrap();
+            assert_eq!(period, back);
+        }
+    }
 }

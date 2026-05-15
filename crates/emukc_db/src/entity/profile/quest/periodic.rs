@@ -64,7 +64,9 @@ impl From<QuestPeriodicRecord> for ActiveModel {
             profile_id: ActiveValue::Set(record.id),
             quest_id: ActiveValue::Set(record.quest_id),
             complete_time: ActiveValue::Set(record.complete_time),
-            period: ActiveValue::Set(record.period.into()),
+            period: ActiveValue::Set(
+                record.period.try_into().expect("unknown period filtered upstream"),
+            ),
         }
     }
 }

@@ -24,6 +24,9 @@ pub enum ParseError {
     #[error("generic error: {0}")]
     Generic(String),
 
+    #[error("unknown requirement category")]
+    UnknownCategory,
+
     #[error("I/O error at {}: {source}", path.display())]
     IoAt {
         path: PathBuf,

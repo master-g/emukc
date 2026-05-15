@@ -157,7 +157,9 @@ async fn reconstruct_quest_tree(
                 quest_id: ActiveValue::Set(*id),
                 status: ActiveValue::Set(progress::Status::Idle),
                 progress: ActiveValue::Set(progress::Progress::Empty),
-                period: ActiveValue::Set(quest.period.into()),
+                period: ActiveValue::Set(
+                    quest.period.try_into().expect("unknown period filtered upstream"),
+                ),
                 start_since: ActiveValue::Set(chrono::Utc::now()),
                 requirement_type: ActiveValue::Set(requirement_type),
                 requirements: ActiveValue::Set(serde_json::to_value(conditions).unwrap()),

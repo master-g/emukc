@@ -88,28 +88,6 @@ pub enum Kc3rdQuestCategory {
     Unknown,
 }
 
-impl From<i64> for Kc3rdQuestCategory {
-    fn from(value: i64) -> Self {
-        match value {
-            1 => Self::Composition,
-            2 => Self::Sortie,
-            3 => Self::Exercise,
-            4 => Self::Expedition,
-            5 => Self::SupplyOrDocking,
-            6 => Self::Factory,
-            7 => Self::Modernization,
-            8 => Self::SortieExercises,
-            9 => Self::Sortie3,
-            10 => Self::Sortie4,
-            11 => Self::Factory2,
-            _ => {
-                tracing::warn!("Unknown Kc3rdQuestCategory value: {value}");
-                Self::Unknown
-            }
-        }
-    }
-}
-
 /// Quest period
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum Kc3rdQuestPeriod {
@@ -125,25 +103,6 @@ pub enum Kc3rdQuestPeriod {
 
     /// Unknown period from unrecognized value
     Unknown,
-}
-
-impl From<i64> for Kc3rdQuestPeriod {
-    fn from(value: i64) -> Self {
-        match value {
-            1 => Self::Oneshot,
-            2 => Self::Daily,
-            3 => Self::Weekly,
-            4 => Self::Daily3rd7th0th,
-            5 => Self::Daily2nd8th,
-            6 => Self::Monthly,
-            7 => Self::Quarterly,
-            8 => Self::Annual,
-            _ => {
-                tracing::warn!("Unknown Kc3rdQuestPeriod value: {value}");
-                Self::Unknown
-            }
-        }
-    }
 }
 
 impl Kc3rdQuestPeriod {

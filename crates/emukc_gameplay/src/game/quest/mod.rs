@@ -231,7 +231,9 @@ impl<T: HasContext + ?Sized> QuestOps for T {
             quest_id: ActiveValue::Set(quest_id),
             status: ActiveValue::Set(Status::Idle),
             progress: ActiveValue::Set(quest::progress::Progress::Completed),
-            period: ActiveValue::Set(quest_manifest.period.into()),
+            period: ActiveValue::Set(
+                quest_manifest.period.try_into().expect("unknown period filtered upstream"),
+            ),
             start_since: ActiveValue::Set(chrono::Utc::now()),
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(typ),

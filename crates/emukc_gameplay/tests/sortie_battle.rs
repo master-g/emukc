@@ -214,7 +214,7 @@ async fn ensure_started_quest(
             quest_id: ActiveValue::Set(quest_id),
             status: ActiveValue::Set(quest::progress::Status::Idle),
             progress: ActiveValue::Set(quest::progress::Progress::Empty),
-            period: ActiveValue::Set(quest_manifest.period.into()),
+            period: ActiveValue::Set(quest_manifest.period.try_into().unwrap()),
             start_since: ActiveValue::Set(Utc::now()),
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(requirement_type),
