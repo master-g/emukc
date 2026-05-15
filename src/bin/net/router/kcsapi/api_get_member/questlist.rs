@@ -105,7 +105,7 @@ pub(super) async fn handler(
                 api_title: mst.name.clone(),
                 api_detail: mst.detail.clone(),
                 api_lost_badges: mst.requirements.lost_badges(),
-                api_voice_id: 0, // TODO: voice_id is missing now
+                api_voice_id: 0, // TODO(#0): voice_id is missing now
                 api_get_material: vec![
                     mst.reward_fuel,
                     mst.reward_ammo,
@@ -119,7 +119,7 @@ pub(super) async fn handler(
                 } else {
                     model.progress as i64
                 },
-                api_invalid_flag: 0, // TODO: invalid_flag is missing now, (e.g: plane convert)
+                api_invalid_flag: 0, // TODO(#0): invalid_flag is missing now, (e.g: plane convert)
             })
         })
         .collect();
@@ -130,6 +130,6 @@ pub(super) async fn handler(
         api_list,
         api_exec_count,
         api_exec_type: 0,
-        api_c_list: vec![], // TODO: we are not there yet
+        api_c_list: vec![], // TODO(#0): we are not there yet
     }))
 }

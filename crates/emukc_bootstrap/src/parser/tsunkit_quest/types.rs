@@ -58,7 +58,7 @@ impl ClassId {
             1100 => Some(Kc3rdQuestConditionShip::HighSpeed),
             4001 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::USN)), // USN
             4002 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::RN)),  // RN
-            // TODO: these two might not be correct, but since they always appear together, it's fine
+            // TODO(#0): these two might not be correct, but since they always appear together, it's fine
             4004 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::RNN)), // RNN
             4005 => Some(Kc3rdQuestConditionShip::single_navy(Kc3rdQuestShipNavy::RAN)), // RAN
             _ => None,

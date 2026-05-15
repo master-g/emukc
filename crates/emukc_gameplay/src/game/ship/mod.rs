@@ -106,7 +106,7 @@ pub trait ShipOps {
 
     /// Update ship.
     ///
-    /// TODO: this is a temporary implementation.
+    /// TODO(#0): this is a temporary implementation.
     ///
     /// # Parameters
     ///

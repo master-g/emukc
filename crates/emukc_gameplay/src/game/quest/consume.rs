@@ -45,7 +45,7 @@ async fn handle_slotitem_consumption<C>(
 where
     C: ConnectionTrait,
 {
-    // TODO: implement slotitem consumption
+    // TODO(#0): implement slotitem consumption
     Ok(())
 }
 

@@ -271,7 +271,7 @@ impl<T: HasContext + ?Sized> AccountOps for T {
         token::Entity::delete_many().filter(token::Column::Uid.eq(uid)).exec(&tx).await?;
 
         // remove all profiles under the same uid
-        // TODO: remove all profile data
+        // TODO(#0): remove all profile data
         profile::Entity::delete_many().filter(profile::Column::AccountId.eq(uid)).exec(&tx).await?;
 
         // remove the account
