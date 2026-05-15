@@ -6,12 +6,12 @@
 
 use emukc_model::{
     codex::Codex,
-    kc2::{KcApiSlotItem, KcSlotItemType3, start2::ApiMstSlotitem},
+    kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
-use crate::targeting::{is_air_combat_type, is_airstrike_attack_type};
+use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
 use crate::types::{
     AirState, AirstrikeOutput, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
     BattleKoukuStage3, BattleRuntimeShip,
@@ -74,11 +74,25 @@ pub(crate) fn has_any_air_combat_planes(codex: &Codex, ships: &[BattleRuntimeShi
     total_plane_count(codex, ships) > 0
 }
 
+/// Ship types that can participate in aerial combat (launch planes).
+const AIR_COMBAT_SHIP_TYPES: &[KcShipType] = &[
+    KcShipType::CVL, // 軽空母
+    KcShipType::CV,  // 正規空母
+    KcShipType::CVB, // 装甲空母
+    KcShipType::BBV, // 航空戦艦
+    KcShipType::CAV, // 航空巡洋艦
+    KcShipType::AV,  // 水上機母艦
+];
+
 pub(crate) fn attack_plane_from(codex: &Codex, ships: &[BattleRuntimeShip]) -> Vec<i64> {
     ships
         .iter()
         .enumerate()
         .filter_map(|(idx, ship)| {
+            let stype = ship_type(codex, ship);
+            if !stype.is_some_and(|st| AIR_COMBAT_SHIP_TYPES.contains(&st)) {
+                return None;
+            }
             let has_plane =
                 ship.slot_items.iter().zip(ship.ship.api_onslot).any(|(slot_item, onslot)| {
                     onslot > 0
@@ -743,5 +757,49 @@ mod tests {
             edam >= enemy_hp_after,
             "api_edam ({edam}) should >= remaining HP ({enemy_hp_after}), allowing overkill display"
         );
+    }
+
+    #[test]
+    fn bb_with_seaplane_not_in_plane_from() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let fighter_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+
+        // BB equipped with seaplane bomber (has planes in slot)
+        let mut bb = sample_ship(&codex, bb_mst, 50);
+        bb.slot_items = vec![slotitem_with_mst_id(seaplane_id)];
+        bb.ship.api_onslot = [4, 0, 0, 0, 0];
+
+        // CVL with fighter so kouku phase triggers
+        let mut cvl = sample_ship(&codex, cvl_mst, 50);
+        cvl.slot_items = vec![slotitem_with_mst_id(fighter_id)];
+        cvl.ship.api_onslot = [18, 0, 0, 0, 0];
+
+        let ships = vec![BattleRuntimeShip::from(bb), BattleRuntimeShip::from(cvl)];
+        let result = attack_plane_from(&codex, &ships);
+
+        assert_eq!(
+            result,
+            vec![2],
+            "BB should not be in plane_from even with seaplane; only CVL at index 2"
+        );
+    }
+
+    #[test]
+    fn bbv_with_seaplane_is_in_plane_from() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+
+        let mut bbv = sample_ship(&codex, bbv_mst, 50);
+        bbv.slot_items = vec![slotitem_with_mst_id(seaplane_id)];
+        bbv.ship.api_onslot = [4, 0, 0, 0, 0];
+
+        let ships = vec![BattleRuntimeShip::from(bbv)];
+        let result = attack_plane_from(&codex, &ships);
+
+        assert_eq!(result, vec![1], "BBV with seaplane should be in plane_from");
     }
 }
