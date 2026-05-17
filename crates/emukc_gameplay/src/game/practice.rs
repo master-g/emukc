@@ -1,8 +1,3 @@
-use std::{
-    collections::HashMap,
-    sync::{LazyLock, Mutex},
-};
-
 use async_trait::async_trait;
 use emukc_crypto::rng;
 use emukc_db::{
@@ -31,17 +26,15 @@ use super::{
     battle::practice::{
         PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultResponse,
         PracticeBattleResultSnapshot, PracticeBattleShipInput, PracticeNightBattleResponse,
-        build_result_response, calculate_admiral_exp, calculate_ship_exp,
-        clear_pending_practice_battle, pending_practice_battle, run_day_battle, run_night_battle,
+        build_result_response, calculate_admiral_exp, calculate_ship_exp, run_day_battle,
+        run_night_battle,
     },
+    battle::practice_repository::PracticeRepository,
     fleet::get_fleet_ships_impl,
     quest::update::update_quest_progress_for_action,
     ship::update_ship_impl,
     slot_item::find_slot_items_by_id_impl,
 };
-
-static PENDING_PRACTICE_RESULTS: LazyLock<Mutex<HashMap<i64, PracticeBattleResultSnapshot>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Practice information.
 #[derive(Debug, Clone)]
@@ -159,8 +152,9 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             member_exp: profile.experience,
         };
 
-        let (response, snapshot) = run_day_battle(codex, input)?;
-        PENDING_PRACTICE_RESULTS.lock().unwrap().insert(profile_id, snapshot);
+        let practice_repo = self.practice_store();
+        let (response, snapshot) = run_day_battle(codex, input, practice_repo)?;
+        practice_repo.insert_pending_result(profile_id, snapshot);
 
         tx.commit().await?;
 
@@ -174,20 +168,21 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         let db = self.db();
         let tx = db.begin().await?;
 
-        let snapshot =
-            PENDING_PRACTICE_RESULTS.lock().unwrap().remove(&profile_id).ok_or_else(|| {
-                GameplayError::EntryNotFound(format!(
-                    "practice battle result not found for profile {profile_id}",
-                ))
-            })?;
+        let practice_repo = self.practice_store();
+        let snapshot = practice_repo.take_pending_result(profile_id).ok_or_else(|| {
+            GameplayError::EntryNotFound(format!(
+                "practice battle result not found for profile {profile_id}",
+            ))
+        })?;
 
         let snapshot =
-            update_practice_result_stats(&tx, self.codex(), profile_id, snapshot).await?;
+            update_practice_result_stats(&tx, self.codex(), profile_id, snapshot, practice_repo)
+                .await?;
         update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
             .await?;
         let quest_event = build_practice_quest_event(&snapshot)?;
         update_quest_progress_for_action(&tx, self.codex(), profile_id, &quest_event).await?;
-        clear_pending_practice_battle(profile_id);
+        practice_repo.clear_pending_battle(profile_id);
 
         tx.commit().await?;
 
@@ -199,18 +194,22 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         profile_id: i64,
     ) -> Result<PracticeNightBattleResponse, GameplayError> {
         let codex = self.codex();
-        let (response, snapshot) = run_night_battle(codex, profile_id).ok_or_else(|| {
-            GameplayError::WrongType("night practice battle is not available".to_string())
-        })?;
+        let practice_repo = self.practice_store();
+        let (response, snapshot) =
+            run_night_battle(codex, profile_id, practice_repo).ok_or_else(|| {
+                GameplayError::WrongType("night practice battle is not available".to_string())
+            })?;
 
-        let ct_flagship = pending_practice_battle(profile_id)
+        let ct_flagship = practice_repo
+            .get_pending_battle(profile_id)
             .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
             .and_then(|sid| codex.manifest.find_ship(sid))
             .is_some_and(|m| m.api_stype == 21);
 
-        if let Some(existing) = PENDING_PRACTICE_RESULTS.lock().unwrap().get_mut(&profile_id) {
+        if let Some(mut existing) = practice_repo.take_pending_result(profile_id) {
             let base_exp = existing.get_base_exp;
-            let friend_ships = pending_practice_battle(profile_id)
+            let friend_ships = practice_repo
+                .get_pending_battle(profile_id)
                 .map(|session| session.friendly)
                 .unwrap_or_default();
             existing.win_rank = snapshot.win_rank;
@@ -226,6 +225,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             );
             existing.get_ship_exp = ship_exp;
             existing.get_exp_lvup = ship_lvup;
+            practice_repo.insert_pending_result(profile_id, existing);
         }
 
         Ok(response)
@@ -640,6 +640,7 @@ async fn update_practice_result_stats<C>(
     codex: &Codex,
     profile_id: i64,
     mut snapshot: PracticeBattleResultSnapshot,
+    practice_repo: &dyn PracticeRepository,
 ) -> Result<PracticeBattleResultSnapshot, GameplayError>
 where
     C: ConnectionTrait,
@@ -660,7 +661,6 @@ where
     am.experience = ActiveValue::Set(new_exp);
     am.hq_level = ActiveValue::Set(hq_level);
     let updated_profile = am.update(c).await?;
-    let pending = pending_practice_battle(profile_id);
 
     for (idx, ship_id) in snapshot.friendly_ship_ids.iter().copied().enumerate() {
         let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
@@ -692,7 +692,7 @@ where
         api_ship.api_bull = (ship_model.ammo
             - practice_ammo_cost(mst.api_bull_max.unwrap_or(0), snapshot.did_night_battle))
         .max(0);
-        if let Some(session) = &pending
+        if let Some(session) = practice_repo.get_pending_battle(profile_id).as_ref()
             && let Some(runtime_ship) = session.friendly.get(idx)
         {
             api_ship.api_onslot = runtime_ship.ship.api_onslot;

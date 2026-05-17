@@ -1,10 +1,5 @@
 #![allow(non_snake_case)]
 
-use std::{
-    collections::HashMap,
-    sync::{LazyLock, Mutex},
-};
-
 use serde::Serialize;
 
 use emukc_model::{
@@ -157,24 +152,12 @@ pub struct PracticeNightBattleResponse {
     pub api_hougeki: Option<BattleNightHougeki>,
 }
 
-// ── Pending practice battles ─────────────────────────────────────────
-
-pub(crate) static PENDING_PRACTICE_BATTLES: LazyLock<Mutex<HashMap<i64, PracticeBattleSession>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-pub fn clear_pending_practice_battle(profile_id: i64) {
-    PENDING_PRACTICE_BATTLES.lock().unwrap().remove(&profile_id);
-}
-
-pub fn pending_practice_battle(profile_id: i64) -> Option<PracticeBattleSession> {
-    PENDING_PRACTICE_BATTLES.lock().unwrap().get(&profile_id).cloned()
-}
-
 // ── Tests ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::sortie_store::PracticeStore;
     use emukc_model::codex::Codex;
     use emukc_model::kc2::level;
 
@@ -222,7 +205,7 @@ mod tests {
             },
         };
 
-        let (battle, result) = run_day_battle(&codex, input).unwrap();
+        let (battle, result) = run_day_battle(&codex, input, &PracticeStore::new()).unwrap();
         assert_eq!(battle.api_deck_id, 1);
         assert_eq!(battle.api_formation, [1, 1, 1]);
         assert_eq!(battle.api_f_nowhps.len(), 2);
@@ -274,7 +257,7 @@ mod tests {
             },
         };
 
-        let (battle, _) = run_day_battle(&codex, input).unwrap();
+        let (battle, _) = run_day_battle(&codex, input, &PracticeStore::new()).unwrap();
         assert_eq!(battle.api_midnight_flag, 1);
     }
 

@@ -9,24 +9,26 @@ static CODEX: LazyLock<Codex> = LazyLock::new(|| {
         .expect("Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/")
 });
 
-/// Per-test context with an isolated [`SortieStore`].
+/// Per-test context with an isolated [`SortieStore`] and [`PracticeStore`].
 ///
 /// Avoids profile-id collisions that occur when tests share the
-/// process-global `GLOBAL_SORTIE_STORE`.
+/// process-global `GLOBAL_SORTIE_STORE` / `GLOBAL_PRACTICE_STORE`.
 pub struct TestContext {
     db: emukc_internal::db::sea_orm::DbConn,
     codex: &'static Codex,
     sortie_store: SortieStore,
+    practice_store: PracticeStore,
 }
 
 impl TestContext {
-    /// Create a new test context with an in-memory database and isolated sortie store.
+    /// Create a new test context with an in-memory database and isolated stores.
     pub async fn new() -> Self {
         let db = new_mem_db().await.expect("in-memory DB creation failed");
         Self {
             db,
             codex: &CODEX,
             sortie_store: SortieStore::new(),
+            practice_store: PracticeStore::new(),
         }
     }
 }
@@ -42,6 +44,10 @@ impl HasContext for TestContext {
 
     fn sortie_store(&self) -> &SortieStore {
         &self.sortie_store
+    }
+
+    fn practice_store(&self) -> &PracticeStore {
+        &self.practice_store
     }
 }
 

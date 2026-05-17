@@ -9,7 +9,7 @@ use emukc_model::codex::Codex;
 use crate::{
     game::{
         GameOps,
-        sortie_store::{GLOBAL_SORTIE_STORE, SortieStore},
+        sortie_store::{GLOBAL_PRACTICE_STORE, GLOBAL_SORTIE_STORE, PracticeStore, SortieStore},
     },
     user::{AccountOps, ProfileOps},
 };
@@ -24,6 +24,9 @@ pub trait HasContext: Send + Sync {
 
     /// Get the sortie runtime store.
     fn sortie_store(&self) -> &SortieStore;
+
+    /// Get the practice runtime store.
+    fn practice_store(&self) -> &PracticeStore;
 }
 
 /// Gameplay trait for the game's data and logic.
@@ -47,6 +50,10 @@ impl HasContext for (Arc<DbConn>, Arc<Codex>) {
     fn sortie_store(&self) -> &SortieStore {
         &GLOBAL_SORTIE_STORE
     }
+
+    fn practice_store(&self) -> &PracticeStore {
+        &GLOBAL_PRACTICE_STORE
+    }
 }
 
 impl HasContext for (Arc<Codex>, Arc<DbConn>) {
@@ -60,6 +67,10 @@ impl HasContext for (Arc<Codex>, Arc<DbConn>) {
 
     fn sortie_store(&self) -> &SortieStore {
         &GLOBAL_SORTIE_STORE
+    }
+
+    fn practice_store(&self) -> &PracticeStore {
+        &GLOBAL_PRACTICE_STORE
     }
 }
 
@@ -75,6 +86,10 @@ impl HasContext for (DbConn, Codex) {
     fn sortie_store(&self) -> &SortieStore {
         &GLOBAL_SORTIE_STORE
     }
+
+    fn practice_store(&self) -> &PracticeStore {
+        &GLOBAL_PRACTICE_STORE
+    }
 }
 
 impl HasContext for (Codex, DbConn) {
@@ -88,5 +103,9 @@ impl HasContext for (Codex, DbConn) {
 
     fn sortie_store(&self) -> &SortieStore {
         &GLOBAL_SORTIE_STORE
+    }
+
+    fn practice_store(&self) -> &PracticeStore {
+        &GLOBAL_PRACTICE_STORE
     }
 }

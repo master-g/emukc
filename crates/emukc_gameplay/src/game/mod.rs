@@ -29,6 +29,7 @@ pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
     SortieNextResponse, SortieOps, SortieStartResponse,
 };
+pub use sortie_store::PracticeStore;
 pub use sortie_store::SortieStore;
 pub use use_item::UseItemOps;
 

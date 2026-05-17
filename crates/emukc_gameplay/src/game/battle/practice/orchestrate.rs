@@ -8,6 +8,7 @@ use emukc_model::codex::Codex;
 
 use crate::err::GameplayError;
 
+use super::super::practice_repository::PracticeRepository;
 use super::super::rng::CryptoRng;
 use super::exp::{calculate_admiral_exp, calculate_ship_exp};
 use super::response::{build_night_response, calculate_base_exp, enemy_slot_ids};
@@ -20,6 +21,7 @@ use super::{
 pub fn run_day_battle(
     codex: &Codex,
     input: PracticeBattleInput,
+    practice_repo: &dyn PracticeRepository,
 ) -> Result<(PracticeBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
     let friendly_nowhps =
         input.friend_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
@@ -156,7 +158,7 @@ pub fn run_day_battle(
         enemy_deck_name: input.rival.details.deck_name,
     };
 
-    super::PENDING_PRACTICE_BATTLES.lock().unwrap().insert(
+    practice_repo.insert_pending_battle(
         input.profile_id,
         PracticeBattleSession {
             profile_id: input.profile_id,
@@ -181,9 +183,9 @@ pub fn run_day_battle(
 pub fn run_night_battle(
     codex: &Codex,
     profile_id: i64,
+    practice_repo: &dyn PracticeRepository,
 ) -> Option<(PracticeNightBattleResponse, PracticeBattleResultSnapshot)> {
-    let mut sessions = super::PENDING_PRACTICE_BATTLES.lock().unwrap();
-    let session = sessions.get_mut(&profile_id)?;
+    let mut session = practice_repo.take_pending_battle(profile_id)?;
     if !session.outcome.can_midnight {
         return None;
     }
@@ -205,7 +207,8 @@ pub fn run_night_battle(
     session.enemy = simulation.enemy.clone();
     session.outcome = simulation.outcome.clone();
 
-    let response = build_night_response(session, &simulation.packet);
+    let response = build_night_response(&session, &simulation.packet);
+
     let snapshot = PracticeBattleResultSnapshot {
         deck_id: session.deck_id,
         enemy_id: session.enemy_id,
@@ -234,5 +237,9 @@ pub fn run_night_battle(
         enemy_rank: String::new(),
         enemy_deck_name: String::new(),
     };
+
+    // Re-insert the updated session so callers can still read it.
+    practice_repo.insert_pending_battle(profile_id, session);
+
     Some((response, snapshot))
 }

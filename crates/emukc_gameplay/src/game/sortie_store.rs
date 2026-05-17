@@ -13,7 +13,12 @@ use parking_lot::Mutex;
 use tokio::sync::Mutex as AsyncMutex;
 
 use super::{
-    battle::{repository::SortieRepository, sortie::SortieBattleSession},
+    battle::{
+        practice::{PracticeBattleResultSnapshot, PracticeBattleSession},
+        practice_repository::PracticeRepository,
+        repository::SortieRepository,
+        sortie::SortieBattleSession,
+    },
     sortie::ActiveSortieState,
     sortie_result::SortieBattleResultSnapshot,
 };
@@ -244,6 +249,125 @@ impl SortieRepository for TestSortieStore {
     }
 
     fn take_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
+        self.inner.take_pending_result(profile_id)
+    }
+}
+
+// ── PracticeStore ────────────────────────────────────────────────────
+
+/// Runtime state backing practice battle sessions.
+pub struct PracticeStore {
+    pending_battles: Mutex<HashMap<i64, PracticeBattleSession>>,
+    pending_results: Mutex<HashMap<i64, PracticeBattleResultSnapshot>>,
+}
+
+impl PracticeStore {
+    /// Create an empty store.
+    pub fn new() -> Self {
+        Self {
+            pending_battles: Mutex::new(HashMap::new()),
+            pending_results: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// Clear all runtime state.
+    pub fn clear(&self) {
+        self.pending_battles.lock().clear();
+        self.pending_results.lock().clear();
+    }
+}
+
+impl Default for PracticeStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Debug for PracticeStore {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PracticeStore").finish_non_exhaustive()
+    }
+}
+
+/// Process-global fallback used by tuple-based [`HasContext`] impls.
+pub static GLOBAL_PRACTICE_STORE: LazyLock<PracticeStore> = LazyLock::new(PracticeStore::new);
+
+impl PracticeRepository for PracticeStore {
+    fn get_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
+        self.pending_battles.lock().get(&profile_id).cloned()
+    }
+
+    fn insert_pending_battle(&self, profile_id: i64, session: PracticeBattleSession) {
+        self.pending_battles.lock().insert(profile_id, session);
+    }
+
+    fn take_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
+        self.pending_battles.lock().remove(&profile_id)
+    }
+
+    fn get_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
+        self.pending_results.lock().get(&profile_id).cloned()
+    }
+
+    fn insert_pending_result(&self, profile_id: i64, result: PracticeBattleResultSnapshot) {
+        self.pending_results.lock().insert(profile_id, result);
+    }
+
+    fn take_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
+        self.pending_results.lock().remove(&profile_id)
+    }
+}
+
+// ── TestPracticeStore ─────────────────────────────────────────────────
+
+/// An isolated [`PracticeRepository`] for tests.
+///
+/// Unlike the process-global [`PracticeStore`], each instance is independent
+/// so tests can run in parallel without sharing state.
+pub struct TestPracticeStore {
+    inner: PracticeStore,
+}
+
+impl TestPracticeStore {
+    pub fn new() -> Self {
+        Self {
+            inner: PracticeStore::new(),
+        }
+    }
+
+    pub fn clear(&self) {
+        self.inner.clear();
+    }
+}
+
+impl Default for TestPracticeStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PracticeRepository for TestPracticeStore {
+    fn get_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
+        self.inner.get_pending_battle(profile_id)
+    }
+
+    fn insert_pending_battle(&self, profile_id: i64, session: PracticeBattleSession) {
+        self.inner.insert_pending_battle(profile_id, session);
+    }
+
+    fn take_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
+        self.inner.take_pending_battle(profile_id)
+    }
+
+    fn get_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
+        self.inner.get_pending_result(profile_id)
+    }
+
+    fn insert_pending_result(&self, profile_id: i64, result: PracticeBattleResultSnapshot) {
+        self.inner.insert_pending_result(profile_id, result);
+    }
+
+    fn take_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
         self.inner.take_pending_result(profile_id)
     }
 }

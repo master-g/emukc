@@ -24,9 +24,12 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
         err::GameplayError,
+        game::PracticeStore,
         game::SortieStore,
+        game::battle::practice_repository::PracticeRepository,
         game::battle::repository::SortieRepository,
         game::ops::*,
+        game::sortie_store::TestPracticeStore,
         game::sortie_store::TestSortieStore,
         game::types::*,
         gameplay::{Gameplay, HasContext},
