@@ -371,3 +371,85 @@ impl PracticeRepository for TestPracticeStore {
         self.inner.take_pending_result(profile_id)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::battle::practice_repository::PracticeRepository;
+    use emukc_battle::BattleOutcome;
+    use emukc_model::kc2::KcSortieResultRank;
+
+    fn minimal_session(profile_id: i64) -> PracticeBattleSession {
+        PracticeBattleSession {
+            profile_id,
+            deck_id: 1,
+            enemy_id: 1,
+            friendly: vec![],
+            enemy: vec![],
+            formation: [1, 1, 1],
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::S,
+                mvp: 0,
+                can_midnight: false,
+            },
+            air_state: None,
+        }
+    }
+
+    fn minimal_result(profile_id: i64) -> PracticeBattleResultSnapshot {
+        PracticeBattleResultSnapshot {
+            deck_id: 1,
+            enemy_id: 1,
+            friendly_ship_ids: vec![],
+            friendly_fleet_snapshot: vec![],
+            enemy_ship_ids: vec![],
+            win_rank: KcSortieResultRank::S,
+            get_exp: 100,
+            member_lv: 120,
+            member_exp: 0,
+            get_base_exp: 80,
+            mvp: 1,
+            get_ship_exp: vec![],
+            get_exp_lvup: vec![],
+            did_night_battle: false,
+            enemy_level: 100,
+            enemy_rank: "元帥".to_string(),
+            enemy_deck_name: "test".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_practice_store_insert_get_take_cycle() {
+        let store = TestPracticeStore::new();
+        assert!(store.get_pending_battle(1).is_none());
+
+        store.insert_pending_battle(1, minimal_session(1));
+        let got = store.get_pending_battle(1).unwrap();
+        assert_eq!(got.profile_id, 1);
+
+        let taken = store.take_pending_battle(1).unwrap();
+        assert_eq!(taken.profile_id, 1);
+        assert!(store.get_pending_battle(1).is_none());
+
+        store.insert_pending_result(1, minimal_result(1));
+        let taken_result = store.take_pending_result(1).unwrap();
+        assert_eq!(taken_result.get_exp, 100);
+        assert!(store.take_pending_result(1).is_none());
+    }
+
+    #[test]
+    fn test_practice_store_empty_take_returns_none() {
+        let store = TestPracticeStore::new();
+        assert!(store.take_pending_battle(42).is_none());
+        assert!(store.take_pending_result(42).is_none());
+    }
+
+    #[test]
+    fn test_practice_store_instances_are_isolated() {
+        let a = TestPracticeStore::new();
+        let b = TestPracticeStore::new();
+        a.insert_pending_battle(1, minimal_session(1));
+        assert!(a.get_pending_battle(1).is_some());
+        assert!(b.get_pending_battle(1).is_none());
+    }
+}

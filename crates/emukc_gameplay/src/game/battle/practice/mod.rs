@@ -157,6 +157,7 @@ pub struct PracticeNightBattleResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::battle::practice_repository::PracticeRepository;
     use crate::game::sortie_store::PracticeStore;
     use emukc_model::codex::Codex;
     use emukc_model::kc2::level;
@@ -259,6 +260,38 @@ mod tests {
 
         let (battle, _) = run_day_battle(&codex, input, &PracticeStore::new()).unwrap();
         assert_eq!(battle.api_midnight_flag, 1);
+    }
+
+    #[test]
+    fn run_night_battle_preserves_session_when_midnight_not_allowed() {
+        use crate::game::sortie_store::TestPracticeStore;
+        use emukc_battle::BattleOutcome;
+        use emukc_model::kc2::KcSortieResultRank;
+
+        let store = TestPracticeStore::new();
+        let session = PracticeBattleSession {
+            profile_id: 1,
+            deck_id: 1,
+            enemy_id: 1,
+            friendly: vec![],
+            enemy: vec![],
+            formation: [1, 1, 1],
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::S,
+                mvp: 0,
+                can_midnight: false,
+            },
+            air_state: None,
+        };
+        store.insert_pending_battle(1, session);
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let result = run_night_battle(&codex, 1, &store);
+        assert!(result.is_none());
+        assert!(
+            store.get_pending_battle(1).is_some(),
+            "session should still be in store when can_midnight is false"
+        );
     }
 
     #[test]

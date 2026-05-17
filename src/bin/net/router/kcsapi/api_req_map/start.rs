@@ -40,9 +40,9 @@ mod tests {
     #[test]
     fn params_deserialize_without_formation_id() {
         let params: Params = serde_urlencoded::from_str(
-				"api_token=test&api_verno=1&api_maparea_id=1&api_mapinfo_no=1&api_deck_id=1&api_serial_cid=123",
-			)
-			.unwrap();
+            "api_token=test&api_verno=1&api_maparea_id=1&api_mapinfo_no=1&api_deck_id=1&api_serial_cid=123",
+        )
+        .unwrap();
 
         assert_eq!(params.api_maparea_id, 1);
         assert_eq!(params.api_mapinfo_no, 1);

@@ -187,6 +187,7 @@ pub fn run_night_battle(
 ) -> Option<(PracticeNightBattleResponse, PracticeBattleResultSnapshot)> {
     let mut session = practice_repo.take_pending_battle(profile_id)?;
     if !session.outcome.can_midnight {
+        practice_repo.insert_pending_battle(profile_id, session);
         return None;
     }
     let mut rng = CryptoRng;

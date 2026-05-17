@@ -29,4 +29,8 @@ pub trait PracticeRepository: Send + Sync {
     fn clear_pending_battle(&self, profile_id: i64) {
         self.take_pending_battle(profile_id);
     }
+
+    fn clear_pending_result(&self, profile_id: i64) {
+        self.take_pending_result(profile_id);
+    }
 }

@@ -484,3 +484,44 @@ async fn idle_group_exercise_quest_shows_initial_progress_after_matching_battle(
     assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 3);
     assert_eq!(quest_progress_of(&context, pid, quest_id).await, quest::progress::Progress::Half);
 }
+
+#[tokio::test]
+async fn practice_day_night_result_lifecycle() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+
+    // Use high-level BB ships for survivability (increases chance of midnight flag)
+    let ships = add_ships_with_type(&context, pid, KcShipType::BB, 2, 99).await;
+    context.update_fleet_ships(pid, 1, &[ships[0], ships[1], -1, -1, -1, -1]).await.unwrap();
+
+    let rivals = context.get_practice_rivals(pid).await.unwrap();
+    let enemy_id = rivals.rivals[0].id;
+
+    // Day battle
+    let day_battle = context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
+    assert_eq!(day_battle.api_deck_id, 1);
+    assert_eq!(day_battle.api_formation.len(), 3);
+    assert!(!day_battle.api_f_nowhps.is_empty());
+    assert!(!day_battle.api_ship_ke.is_empty());
+
+    // Night battle — only if day battle enabled midnight
+    if day_battle.api_midnight_flag == 1 {
+        let night_battle = context.practice_midnight_battle(pid).await.unwrap();
+        assert_eq!(night_battle.api_deck_id, 1);
+        assert!(!night_battle.api_f_nowhps.is_empty());
+    }
+
+    // Battle result
+    let result = context.practice_battle_result(pid).await.unwrap();
+    assert!(!result.api_win_rank.is_empty());
+    assert!(result.api_get_exp >= 0);
+}
+
+#[tokio::test]
+async fn practice_battle_result_without_prior_battle_returns_entry_not_found() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+
+    let err = context.practice_battle_result(pid).await.unwrap_err();
+    assert!(matches!(err, GameplayError::EntryNotFound(_)), "expected EntryNotFound, got {err:?}");
+}
