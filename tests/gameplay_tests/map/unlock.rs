@@ -57,7 +57,7 @@ mod tests {
         // Retry sorties until boss is defeated and map clears
         let mut cleared = false;
         for _attempt in 0..10 {
-            let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+            let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
             let mut current_cell = start.cell_no;
             let boss_cell = start.boss_cell_no;
 
@@ -103,10 +103,10 @@ mod tests {
         }
         context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
 
-        let first = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        let first = context.start_sortie(pid, 1, 1, 1).await.unwrap();
         assert_eq!(first.maparea_id, 1);
 
-        let second = context.start_sortie(pid, 1, 1, 1, 1).await;
+        let second = context.start_sortie(pid, 1, 1, 1).await;
         assert!(second.is_ok(), "second start_sortie should succeed after incomplete first");
     }
 
@@ -123,7 +123,7 @@ mod tests {
         context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
 
         // Attempt to sortie to 2-1 (locked for new account)
-        let result = context.start_sortie(pid, 1, 2, 1, 1).await;
+        let result = context.start_sortie(pid, 1, 2, 1).await;
 
         assert!(result.is_err(), "sortie to locked map 2-1 should fail");
         let err = result.unwrap_err();

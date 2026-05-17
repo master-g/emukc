@@ -1653,7 +1653,7 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
     let ship = context.add_ship(profile_id, 951).await.unwrap();
     context.update_fleet_ships(profile_id, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    let response = context.start_sortie(profile_id, 1, 7, 3, 1).await.unwrap();
+    let response = context.start_sortie(profile_id, 1, 7, 3).await.unwrap();
     let cell_nos = response.cell_data.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
 
     assert!(cell_nos.iter().any(|cell_no| *cell_no > 16));

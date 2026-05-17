@@ -32,7 +32,6 @@ mod tests {
             Extension(context.session.clone()),
             Form(start::Params {
                 api_deck_id: 1,
-                api_formation_id: 1,
                 api_maparea_id: 1,
                 api_mapinfo_no: 1,
                 api_serial_cid: String::new(),
@@ -71,7 +70,6 @@ mod tests {
             Extension(context.session.clone()),
             Form(start::Params {
                 api_deck_id: 1,
-                api_formation_id: 1,
                 api_maparea_id: 1,
                 api_mapinfo_no: 1,
                 api_serial_cid: String::new(),
@@ -102,7 +100,6 @@ mod tests {
             Extension(context.session.clone()),
             Form(start::Params {
                 api_deck_id: 1,
-                api_formation_id: 1,
                 api_maparea_id: 1,
                 api_mapinfo_no: 1,
                 api_serial_cid: String::new(),

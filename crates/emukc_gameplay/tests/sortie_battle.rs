@@ -281,14 +281,11 @@ async fn start_sortie_with_boss_path(
     deck_id: i64,
     maparea_id: i64,
     mapinfo_no: i64,
-    formation_id: i64,
     map_id: i64,
 ) -> (SortieStartResponse, Vec<i64>) {
     for _ in 0..16 {
-        let start = context
-            .start_sortie(profile_id, deck_id, maparea_id, mapinfo_no, formation_id)
-            .await
-            .unwrap();
+        let start =
+            context.start_sortie(profile_id, deck_id, maparea_id, mapinfo_no).await.unwrap();
         if let Some(path) = advance_sortie_to_boss(context, profile_id, map_id, start.cell_no).await
         {
             return (start, path);
@@ -347,7 +344,7 @@ async fn sortie_start_battle_result_flow_updates_stats() {
     let before_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
     let before_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
 
-    let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
     assert_eq!(start.maparea_id, 1);
     assert_eq!(start.mapinfo_no, 1);
     assert!(start.boss_cell_no >= 1);
@@ -377,7 +374,7 @@ async fn loaded_map_catalog_supports_start_and_next_flow() {
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
     assert_eq!(start.maparea_id, 1);
     assert_eq!(start.mapinfo_no, 1);
     assert!(start.cell_data.len() >= 4);
@@ -407,7 +404,7 @@ async fn repo_kcdata_route_cells_keep_world_1_3_api_identity() {
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
     for _ in 0..24 {
-        let start = context.start_sortie(pid, 1, 1, 3, 1).await.unwrap();
+        let start = context.start_sortie(pid, 1, 1, 3).await.unwrap();
         let api_nos = start.cell_data.iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
         assert_eq!(api_nos, (0..=13).collect::<Vec<_>>());
         assert_eq!(start.boss_cell_no, 10);
@@ -437,7 +434,7 @@ async fn sortie_airbattle_reuses_single_fleet_day_battle_flow() {
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
     let battle = context.sortie_airbattle(pid, 1).await.unwrap();
     assert_eq!(battle.api_deck_id, 1);
     assert!(!battle.api_ship_ke.is_empty());
@@ -452,7 +449,7 @@ async fn sortie_goback_port_clears_pending_runtime_state() {
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
     context.sortie_battle(pid, 1).await.unwrap();
     context.sortie_goback_port(pid).await.unwrap();
 
@@ -470,7 +467,7 @@ async fn sortie_battle_result_advances_generic_sortie_quest() {
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
     ensure_started_quest(&context, pid, quest_id).await;
 
-    context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
     context.sortie_battle(pid, 1).await.unwrap();
     context.sortie_battle_result(pid).await.unwrap();
 
@@ -499,7 +496,7 @@ async fn sortie_battle_result_advances_boss_quest_on_real_boss_node() {
     ensure_started_quest(&context, pid, quest_id).await;
 
     let (start, path) =
-        start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, 1, map_id).await;
+        start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, map_id).await;
     assert_eq!(start.cell_no, path[0]);
     assert_eq!(start.boss_cell_no, *path.last().unwrap());
 
@@ -532,7 +529,7 @@ async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
     ensure_started_quest(&context, pid, quest_id).await;
 
     let (start, path) =
-        start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, 1, map_id).await;
+        start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, map_id).await;
     assert_eq!(start.cell_no, path[0]);
     assert_eq!(start.boss_cell_no, *path.last().unwrap());
 
@@ -552,7 +549,7 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
     let definition = context.1.maps.map_definition(11).unwrap();
     let variant = definition.variant("").unwrap();
     let expected_drop_ship_ids = variant
@@ -608,7 +605,7 @@ async fn sortie_goback_port_does_not_advance_sortie_quest() {
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
     ensure_started_quest(&context, pid, quest_id).await;
 
-    context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
     context.sortie_battle(pid, 1).await.unwrap();
     context.sortie_goback_port(pid).await.unwrap();
 
@@ -712,7 +709,7 @@ async fn sortie_battle_response_passes_battle_rule_validation() {
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
     let battle = context.sortie_battle(pid, 1).await.unwrap();
     let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
     let report = emukc_bootstrap::prelude::validate_day_battle_response(
@@ -736,7 +733,7 @@ async fn sortie_battle_validation_reports_invalid_enemy_ids() {
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
-    context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
     let battle = context.sortie_battle(pid, 1).await.unwrap();
     let mut raw = serde_json::to_value(&battle).unwrap();
     raw["api_ship_ke"][0] = serde_json::json!(999999);

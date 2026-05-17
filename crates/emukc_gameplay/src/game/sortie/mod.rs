@@ -201,7 +201,6 @@ pub trait SortieOps {
         deck_id: i64,
         maparea_id: i64,
         mapinfo_no: i64,
-        formation_id: i64,
     ) -> Result<SortieStartResponse, GameplayError>;
 
     async fn next_sortie(
@@ -267,7 +266,6 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         deck_id: i64,
         maparea_id: i64,
         mapinfo_no: i64,
-        formation_id: i64,
     ) -> Result<SortieStartResponse, GameplayError> {
         let codex = self.codex();
         let db = self.db();
@@ -331,7 +329,6 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             })
             .await;
 
-        let _ = formation_id;
         let start_candidate_count =
             evaluate_route_candidate_count(source_cell, stage, &route_context);
         Ok(SortieStartResponse {

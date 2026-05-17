@@ -34,7 +34,7 @@ mod tests {
         let pid = new_profile(&context).await;
         setup_fleet(&context, pid).await;
 
-        context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
 
         let battle = context.sortie_battle(pid, 1).await.unwrap();
 
@@ -53,7 +53,7 @@ mod tests {
         let pid = new_profile(&context).await;
         setup_fleet(&context, pid).await;
 
-        context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
         let battle = context.sortie_battle(pid, 1).await.unwrap();
         let _result = context.sortie_battle_result(pid).await.unwrap();
 
@@ -71,7 +71,7 @@ mod tests {
         let pid = new_profile(&context).await;
         setup_fleet(&context, pid).await;
 
-        let _start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        let _start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
         let _battle = context.sortie_battle(pid, 1).await.unwrap();
         let _result = context.sortie_battle_result(pid).await.unwrap();
 

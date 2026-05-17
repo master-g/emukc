@@ -31,7 +31,7 @@ mod tests {
         let pid = new_profile(&context).await;
         setup_fleet(&context, pid).await;
 
-        let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
         assert_eq!(start.maparea_id, 1);
 
         let result = context.sortie_goback_port(pid).await;
@@ -51,7 +51,7 @@ mod tests {
         let pid = new_profile(&context).await;
         setup_fleet(&context, pid).await;
 
-        let start = context.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
         let mut current_cell = start.cell_no;
         let boss_cell = start.boss_cell_no;
         let mut boss_killed = false;

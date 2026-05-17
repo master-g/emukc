@@ -1,7 +1,7 @@
 ---
 title: "fix: Migrate practice battle state to trait-based store, add EnemyShipSunk coverage, and clean up dead formation_id parameter"
 type: fix
-status: active
+status: superseded
 date: 2026-05-05
 ---
 
