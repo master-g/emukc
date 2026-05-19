@@ -1,7 +1,7 @@
 ---
 title: "fix: address code review findings from route-based cell numbering"
 type: fix
-status: active
+status: completed
 date: 2026-05-09
 origin: Code review of uncommitted changes in feat/vibe branch
 ---

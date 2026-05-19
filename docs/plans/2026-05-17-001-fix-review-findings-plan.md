@@ -1,7 +1,7 @@
 ---
 title: "fix: Code review findings — session drop, dead exports, missing tests, style nits"
 type: fix
-status: active
+status: completed
 date: 2026-05-17
 origin: ce-code-review audit of feat/vibe recent 5 commits
 ---

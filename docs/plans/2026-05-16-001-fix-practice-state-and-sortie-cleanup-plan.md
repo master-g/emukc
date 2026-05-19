@@ -1,7 +1,7 @@
 ---
 title: "fix: Migrate practice battle state to trait-based store and remove dead formation_id"
 type: fix
-status: active
+status: completed
 date: 2026-05-16
 supersedes: docs/plans/2026-05-05-007-fix-practice-state-and-sortie-cleanup-plan.md
 ---
