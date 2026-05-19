@@ -3,13 +3,16 @@
 //! Implements night attack type detection (cut-in / double attack),
 //! CI trigger rate calculation, and the night hougeki simulation loop.
 
-use emukc_model::{codex::Codex, kc2::KcSlotItemType3};
+use emukc_model::{
+    codex::Codex,
+    kc2::{KcShipType, KcSlotItemType3},
+};
 
 use crate::damage::{calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::targeting::{
-    can_attack_night_ship, collect_matching_slot_ids, extend_limit, is_day_surface_display_type,
-    select_random_target_index, target_class,
+    can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
+    is_day_surface_display_type, select_random_target_index, ship_type, target_class,
 };
 use crate::types::{BattleNightHougeki, BattlePhase, BattleRuntimeShip, NightBattleParams};
 
@@ -22,10 +25,19 @@ use crate::types::{BattleNightHougeki, BattlePhase, BattleRuntimeShip, NightBatt
 pub(crate) enum NightAttackType {
     Normal,
     DoubleAttack,  // 連撃: 2 hits x 1.2x
-    MainMainMain,  // 主主主CI: 1 hit x 2.0x
-    MainMainSec,   // 主主副CI: 1 hit x 1.75x
-    TorpTorpTorp,  // 鱼鱼鱼CI: 2 hits x 1.3x
-    MainTorpRadar, // 主鱼電CI: 1 hit x 1.625x
+    MainTorpRadar, // 主魚CI: 1 hit x 1.625x (sp_list=2)
+    TorpTorpTorp,  // 魚魚CI: 2 hits x 1.3x (sp_list=3)
+    MainMainSec,   // 主主副CI: 1 hit x 1.75x (sp_list=4)
+    MainMainMain,  // 主主主CI: 1 hit x 2.0x (sp_list=5)
+    // DD CI variants (sp_list 7-14)
+    DdGunTorpRadar,      // GTR: 1 hit x 1.3x (sp_list=7)
+    DdGunTorpRadar2,     // GTR 2-hit: 2 hits x 1.3x (sp_list=11)
+    DdTorpLookoutRadar,  // TRL: 1 hit x 1.2x (sp_list=8)
+    DdTorpLookoutRadar2, // TRL 2-hit: 2 hits x 1.2x (sp_list=12)
+    DdTorpTorpLookout,   // TTL: 1 hit x 1.5x (sp_list=9)
+    DdTorpTorpLookout2,  // TTL 2-hit: 2 hits x 1.5x (sp_list=13)
+    DdTorpDrumLookout,   // DTL: 1 hit x 1.3x (sp_list=10)
+    DdTorpDrumLookout2,  // DTL 2-hit: 2 hits x 1.3x (sp_list=14)
 }
 
 impl NightAttackType {
@@ -33,10 +45,18 @@ impl NightAttackType {
         match self {
             Self::Normal => 0,
             Self::DoubleAttack => 1,
-            Self::MainMainMain => 2,
-            Self::MainMainSec => 3,
-            Self::TorpTorpTorp => 4,
-            Self::MainTorpRadar => 5,
+            Self::MainTorpRadar => 2,
+            Self::TorpTorpTorp => 3,
+            Self::MainMainSec => 4,
+            Self::MainMainMain => 5,
+            Self::DdGunTorpRadar => 7,
+            Self::DdGunTorpRadar2 => 11,
+            Self::DdTorpLookoutRadar => 8,
+            Self::DdTorpLookoutRadar2 => 12,
+            Self::DdTorpTorpLookout => 9,
+            Self::DdTorpTorpLookout2 => 13,
+            Self::DdTorpDrumLookout => 10,
+            Self::DdTorpDrumLookout2 => 14,
         }
     }
 
@@ -44,26 +64,46 @@ impl NightAttackType {
         match self {
             Self::Normal => 1.0,
             Self::DoubleAttack => 1.2,
-            Self::MainMainMain => 2.0,
-            Self::MainMainSec => 1.75,
-            Self::TorpTorpTorp => 1.3,
             Self::MainTorpRadar => 1.625,
+            Self::TorpTorpTorp => 1.3,
+            Self::MainMainSec => 1.75,
+            Self::MainMainMain => 2.0,
+            Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 1.3,
+            Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 1.2,
+            Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 1.5,
+            Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 1.3,
         }
     }
 
     fn hit_count(self) -> usize {
         match self {
-            Self::Normal | Self::MainMainMain | Self::MainMainSec | Self::MainTorpRadar => 1,
-            Self::DoubleAttack | Self::TorpTorpTorp => 2,
+            Self::Normal
+            | Self::MainTorpRadar
+            | Self::MainMainSec
+            | Self::MainMainMain
+            | Self::DdGunTorpRadar
+            | Self::DdTorpLookoutRadar
+            | Self::DdTorpTorpLookout
+            | Self::DdTorpDrumLookout => 1,
+            Self::DoubleAttack
+            | Self::TorpTorpTorp
+            | Self::DdGunTorpRadar2
+            | Self::DdTorpLookoutRadar2
+            | Self::DdTorpTorpLookout2
+            | Self::DdTorpDrumLookout2 => 2,
         }
     }
 
     fn ci_coefficient(self) -> f64 {
         match self {
-            Self::TorpTorpTorp => 122.0,
             Self::MainTorpRadar => 115.0,
+            Self::TorpTorpTorp => 122.0,
             Self::MainMainSec => 130.0,
             Self::MainMainMain => 140.0,
+            Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 115.0,
+            Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 140.0,
+            Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 125.0,
+            Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 122.0,
             Self::DoubleAttack | Self::Normal => 0.0,
         }
     }
@@ -139,6 +179,142 @@ fn has_radar(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
                 )
             })
     })
+}
+
+// ---------------------------------------------------------------------------
+// DD CI types (internal detection + trigger)
+// ---------------------------------------------------------------------------
+
+/// DD-specific night CI base types. Each has 1-hit and 2-hit resolved variants.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DdCiType {
+    GunTorpRadar,     // GTR: 主砲+魚雷+電探 (sp_list=7/11)
+    TorpLookoutRadar, // TRL: 魚雷+見張員+電探 (sp_list=8/12)
+    TorpTorpLookout,  // TTL: 魚雷+水雷見張員+魚雷 (sp_list=9/13)
+    TorpDrumLookout,  // DTL: 魚雷+水雷見張員+ドラム缶 (sp_list=10/14)
+}
+
+impl DdCiType {
+    fn base_attack(self) -> f64 {
+        match self {
+            Self::GunTorpRadar => 115.0,
+            Self::TorpLookoutRadar => 140.0,
+            Self::TorpTorpLookout => 125.0,
+            Self::TorpDrumLookout => 122.0,
+        }
+    }
+
+    fn second_hit_probability(self) -> f64 {
+        match self {
+            Self::GunTorpRadar => 0.65,
+            Self::TorpLookoutRadar => 0.50,
+            Self::TorpTorpLookout => 0.875,
+            Self::TorpDrumLookout => 0.55,
+        }
+    }
+
+    fn to_attack_type(self, two_hit: bool) -> NightAttackType {
+        match (self, two_hit) {
+            (Self::GunTorpRadar, false) => NightAttackType::DdGunTorpRadar,
+            (Self::GunTorpRadar, true) => NightAttackType::DdGunTorpRadar2,
+            (Self::TorpLookoutRadar, false) => NightAttackType::DdTorpLookoutRadar,
+            (Self::TorpLookoutRadar, true) => NightAttackType::DdTorpLookoutRadar2,
+            (Self::TorpTorpLookout, false) => NightAttackType::DdTorpTorpLookout,
+            (Self::TorpTorpLookout, true) => NightAttackType::DdTorpTorpLookout2,
+            (Self::TorpDrumLookout, false) => NightAttackType::DdTorpDrumLookout,
+            (Self::TorpDrumLookout, true) => NightAttackType::DdTorpDrumLookout2,
+        }
+    }
+}
+
+/// Check equipment conditions for a DD CI type.
+fn detect_dd_ci_type(codex: &Codex, ship: &BattleRuntimeShip, dd_type: DdCiType) -> bool {
+    let main_guns = count_main_guns(codex, ship);
+    let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
+        + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
+    let has_radar = has_radar(codex, ship);
+    let has_lookout = count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0;
+    let has_skilled_lookout = has_slotitem_id(ship, 412);
+    let has_drum = count_equipment_type(codex, ship, KcSlotItemType3::TransportContainer) > 0;
+
+    match dd_type {
+        DdCiType::GunTorpRadar => main_guns >= 1 && torps >= 1 && has_radar,
+        DdCiType::TorpLookoutRadar => torps >= 1 && has_lookout && has_radar,
+        DdCiType::TorpTorpLookout => torps >= 2 && has_skilled_lookout,
+        DdCiType::TorpDrumLookout => torps >= 1 && has_skilled_lookout && has_drum,
+    }
+}
+
+/// DD CI trigger rate (Level+Luck based, different from standard Luck-only formula).
+fn dd_ci_trigger_rate(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    dd_type: DdCiType,
+    is_flagship: bool,
+) -> f64 {
+    let luck = ship.ship.api_lucky[1].max(0) as f64;
+    let level = ship.ship.api_lv.max(1) as f64;
+
+    let base_ship = if luck < 50.0 {
+        (0.75 * level.sqrt()).floor() + luck
+    } else {
+        (0.80 * level.sqrt()).floor() + 50.0 + (luck - 50.0).sqrt()
+    };
+
+    let flagship_mod = if is_flagship {
+        15.0
+    } else {
+        0.0
+    };
+
+    let chuuha_mod = {
+        let hp_ratio = ship.hp() as f64 / ship.ship.api_maxhp.max(1) as f64;
+        if hp_ratio <= 0.5 {
+            18.0
+        } else {
+            0.0
+        }
+    };
+
+    // Lookout modifier: TSLO (+8) overrides regular lookout (+5)
+    let lookout_mod = if has_slotitem_id(ship, 412) {
+        8.0
+    } else if count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0 {
+        5.0
+    } else {
+        0.0
+    };
+
+    let total = (15.0 + base_ship + flagship_mod + chuuha_mod + lookout_mod).floor();
+    (total / dd_type.base_attack()).clamp(0.0, 1.0)
+}
+
+/// Resolve DD night CI via multiroll (GTR→TRL→TTL→DTL).
+/// Returns Some if a DD CI type triggered, None to fall through to standard CI.
+fn resolve_dd_night_attack(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    ship: &BattleRuntimeShip,
+    is_flagship: bool,
+) -> Option<NightAttackType> {
+    let dd_types = [
+        DdCiType::GunTorpRadar,
+        DdCiType::TorpLookoutRadar,
+        DdCiType::TorpTorpLookout,
+        DdCiType::TorpDrumLookout,
+    ];
+
+    for dd_type in dd_types {
+        if !detect_dd_ci_type(codex, ship, dd_type) {
+            continue;
+        }
+        let rate = dd_ci_trigger_rate(codex, ship, dd_type, is_flagship);
+        if rng.random_f64_range(0.0, 1.0) < rate {
+            let is_two_hit = rng.random_f64_range(0.0, 1.0) < dd_type.second_hit_probability();
+            return Some(dd_type.to_attack_type(is_two_hit));
+        }
+    }
+    None
 }
 
 // ---------------------------------------------------------------------------
@@ -239,12 +415,19 @@ fn resolve_night_attack(
     if is_submarine_target {
         return NightAttackType::Normal;
     }
+
+    // DD CI multiroll: GTR→TRL→TTL→DTL, fallback to standard CI
+    if matches!(ship_type(codex, ship), Some(KcShipType::DD)) {
+        if let Some(dd_ci) = resolve_dd_night_attack(codex, rng, ship, is_flagship) {
+            return dd_ci;
+        }
+    }
+
     let detected = detect_night_attack_type(codex, ship);
     if detected == NightAttackType::Normal {
         return NightAttackType::Normal;
     }
     if detected == NightAttackType::DoubleAttack {
-        // Double attack has ~99% trigger
         return NightAttackType::DoubleAttack;
     }
     // Roll CI trigger
@@ -291,6 +474,17 @@ fn night_attack_display_ids(
                 | KcSlotItemType3::LargeRadar2
         )
     });
+    let lookouts = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::SeaplanePersonnel
+    });
+    let skilled_lookouts: Vec<i64> = ship
+        .slot_items
+        .iter()
+        .filter_map(|si| (si.api_slotitem_id == 412).then_some(si.api_slotitem_id))
+        .collect();
+    let drums = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::TransportContainer
+    });
     let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         is_day_surface_display_type(slot_type)
     });
@@ -308,6 +502,29 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &radars, 3);
         }
         NightAttackType::TorpTorpTorp => extend_limit(&mut ids, &torpedoes, 3),
+        // DD CI: GTR (主砲+魚雷+電探)
+        NightAttackType::DdGunTorpRadar | NightAttackType::DdGunTorpRadar2 => {
+            extend_limit(&mut ids, &main_guns, 1);
+            extend_limit(&mut ids, &torpedoes, 2);
+            extend_limit(&mut ids, &radars, 3);
+        }
+        // DD CI: TRL (魚雷+見張員+電探)
+        NightAttackType::DdTorpLookoutRadar | NightAttackType::DdTorpLookoutRadar2 => {
+            extend_limit(&mut ids, &torpedoes, 1);
+            extend_limit(&mut ids, &lookouts, 2);
+            extend_limit(&mut ids, &radars, 3);
+        }
+        // DD CI: TTL (魚雷+水雷見張員+魚雷)
+        NightAttackType::DdTorpTorpLookout | NightAttackType::DdTorpTorpLookout2 => {
+            extend_limit(&mut ids, &torpedoes, 2);
+            extend_limit(&mut ids, &skilled_lookouts, 3);
+        }
+        // DD CI: DTL (魚雷+水雷見張員+ドラム缶)
+        NightAttackType::DdTorpDrumLookout | NightAttackType::DdTorpDrumLookout2 => {
+            extend_limit(&mut ids, &torpedoes, 1);
+            extend_limit(&mut ids, &skilled_lookouts, 2);
+            extend_limit(&mut ids, &drums, 3);
+        }
         NightAttackType::DoubleAttack => extend_limit(&mut ids, &surface_ids, 2),
         NightAttackType::Normal => extend_limit(&mut ids, &surface_ids, 1),
     }
@@ -605,7 +822,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(hougeki.api_sp_list[0], 4, "torpedo CI sp_list should be 4");
+        assert_eq!(hougeki.api_sp_list[0], 3, "torpedo CI sp_list should be 3 (魚雷/魚雷)");
         assert_eq!(hougeki.api_damage[0].len(), 2, "torpedo CI should deal 2 hits");
     }
 
@@ -830,6 +1047,20 @@ mod tests {
     }
 
     #[test]
+    fn night_attack_type_sp_list_matches_apilist() {
+        // Per apilist.txt lines 2319-2342:
+        // 0=通常攻撃, 1=連続射撃
+        // 2=カットイン(主砲/魚雷), 3=カットイン(魚雷/魚雷),
+        // 4=カットイン(主砲/主砲/副砲), 5=カットイン(主砲/主砲/主砲)
+        assert_eq!(NightAttackType::Normal.api_sp_list(), 0);
+        assert_eq!(NightAttackType::DoubleAttack.api_sp_list(), 1);
+        assert_eq!(NightAttackType::MainTorpRadar.api_sp_list(), 2);
+        assert_eq!(NightAttackType::TorpTorpTorp.api_sp_list(), 3);
+        assert_eq!(NightAttackType::MainMainSec.api_sp_list(), 4);
+        assert_eq!(NightAttackType::MainMainMain.api_sp_list(), 5);
+    }
+
+    #[test]
     fn night_ci_multiplier_applied_pre_cap() {
         // Verify that CI multiplier is applied before the soft cap at 360
         // A ship with 500 base power and 2.0x CI should be capped at:
@@ -876,5 +1107,177 @@ mod tests {
             "pre-cap CI damage ({dmg_with_ci}) should be < 2x normal ({}) due to soft cap",
             dmg_normal * 2
         );
+    }
+
+    // ------- DD CI detection tests -------
+
+    #[test]
+    fn dd_ci_gtr_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let main_gun_mst_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
+        let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+        let radar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
+
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(main_gun_mst_id),
+            slotitem_with_mst_id(torp_mst_id),
+            slotitem_with_mst_id(radar_mst_id),
+        ];
+        let rt = BattleRuntimeShip::from(ship);
+
+        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::GunTorpRadar));
+        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::TorpLookoutRadar));
+        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::TorpTorpLookout));
+        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::TorpDrumLookout));
+    }
+
+    #[test]
+    fn dd_ci_trl_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+        let lookout_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaplanePersonnel);
+        let radar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
+
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(torp_mst_id),
+            slotitem_with_mst_id(lookout_mst_id),
+            slotitem_with_mst_id(radar_mst_id),
+        ];
+        let rt = BattleRuntimeShip::from(ship);
+
+        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::GunTorpRadar));
+        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::TorpLookoutRadar));
+    }
+
+    #[test]
+    fn dd_ci_ttl_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(torp_mst_id),
+            slotitem_with_mst_id(412), // 水雷戦隊 熟練見張員
+            slotitem_with_mst_id(torp_mst_id),
+        ];
+        let rt = BattleRuntimeShip::from(ship);
+
+        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::TorpTorpLookout));
+        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::GunTorpRadar));
+    }
+
+    #[test]
+    fn dd_ci_dtl_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+        let drum_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::TransportContainer);
+
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(torp_mst_id),
+            slotitem_with_mst_id(412), // 水雷戦隊 熟練見張員
+            slotitem_with_mst_id(drum_mst_id),
+        ];
+        let rt = BattleRuntimeShip::from(ship);
+
+        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::TorpDrumLookout));
+    }
+
+    #[test]
+    fn dd_ci_non_dd_does_not_trigger() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cl_mst = first_ship_mst_by_type(&codex, KcShipType::CL);
+        let main_gun_mst_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::MediumCaliberMainGun);
+        let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+        let radar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
+
+        // CL with same equipment as GTR → DD CI should NOT trigger
+        let mut ship = sample_ship(&codex, cl_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(main_gun_mst_id),
+            slotitem_with_mst_id(torp_mst_id),
+            slotitem_with_mst_id(radar_mst_id),
+        ];
+        let rt = BattleRuntimeShip::from(ship);
+
+        // Standard detection for CL finds MainTorpRadar (not DD CI)
+        let attack = detect_night_attack_type(&codex, &rt);
+        assert_eq!(attack, NightAttackType::MainTorpRadar, "CL should get standard CI, not DD CI");
+    }
+
+    #[test]
+    fn dd_ci_sp_list_values() {
+        assert_eq!(NightAttackType::DdGunTorpRadar.api_sp_list(), 7);
+        assert_eq!(NightAttackType::DdGunTorpRadar2.api_sp_list(), 11);
+        assert_eq!(NightAttackType::DdTorpLookoutRadar.api_sp_list(), 8);
+        assert_eq!(NightAttackType::DdTorpLookoutRadar2.api_sp_list(), 12);
+        assert_eq!(NightAttackType::DdTorpTorpLookout.api_sp_list(), 9);
+        assert_eq!(NightAttackType::DdTorpTorpLookout2.api_sp_list(), 13);
+        assert_eq!(NightAttackType::DdTorpDrumLookout.api_sp_list(), 10);
+        assert_eq!(NightAttackType::DdTorpDrumLookout2.api_sp_list(), 14);
+    }
+
+    #[test]
+    fn dd_ci_multiroll_falls_through_to_standard_ci() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+
+        // DD with 2 torpedoes only — no DD CI conditions met
+        // Standard detection should still find TorpTorpTorp
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.slot_items =
+            vec![slotitem_with_mst_id(torp_mst_id), slotitem_with_mst_id(torp_mst_id)];
+        let rt = BattleRuntimeShip::from(ship);
+
+        let attack = detect_night_attack_type(&codex, &rt);
+        assert_eq!(
+            attack,
+            NightAttackType::TorpTorpTorp,
+            "DD without DD CI equipment falls to standard CI"
+        );
+    }
+
+    #[test]
+    fn dd_ci_trigger_rate_increases_with_luck() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut low_luck = sample_ship(&codex, dd_mst, 99);
+        low_luck.ship.api_lucky = [10, 20];
+        let rt_low = BattleRuntimeShip::from(low_luck);
+
+        let mut high_luck = sample_ship(&codex, dd_mst, 99);
+        high_luck.ship.api_lucky = [80, 90];
+        let rt_high = BattleRuntimeShip::from(high_luck);
+
+        let rate_low = dd_ci_trigger_rate(&codex, &rt_low, DdCiType::GunTorpRadar, false);
+        let rate_high = dd_ci_trigger_rate(&codex, &rt_high, DdCiType::GunTorpRadar, false);
+        assert!(
+            rate_high > rate_low,
+            "DD CI: higher luck should give higher rate: {rate_high} > {rate_low}"
+        );
+    }
+
+    #[test]
+    fn dd_ci_trigger_rate_flagship_bonus() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.ship.api_lucky = [50, 50];
+        let rt = BattleRuntimeShip::from(ship);
+
+        let rate_normal = dd_ci_trigger_rate(&codex, &rt, DdCiType::GunTorpRadar, false);
+        let rate_flagship = dd_ci_trigger_rate(&codex, &rt, DdCiType::GunTorpRadar, true);
+        assert!(rate_flagship > rate_normal, "flagship should get +15 bonus");
     }
 }

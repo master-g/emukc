@@ -96,6 +96,10 @@ pub(crate) fn resolve_damage(
 }
 
 /// Calculate shelling damage for a single attack.
+///
+/// When `ci_multiplier` is `Some(m)`, the multiplier is applied post-cap
+/// (after the daytime soft cap of 220) — matching KanColle's artillery
+/// spotting damage pipeline.
 pub(crate) fn calculate_shelling_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -103,6 +107,7 @@ pub(crate) fn calculate_shelling_damage(
     defender: &BattleRuntimeShip,
     formation_id: i64,
     engagement: EngagementType,
+    ci_multiplier: Option<f64>,
 ) -> i64 {
     let basic_power = if is_cv_type(codex, attacker) {
         let bomber_count = bomber_plane_count(codex, attacker);
@@ -121,7 +126,10 @@ pub(crate) fn calculate_shelling_damage(
         * formation_modifier(formation_id)
         * engagement.modifier()
         * dmg_state;
-    let capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
+    let mut capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
+    if let Some(m) = ci_multiplier {
+        capped_power *= m;
+    }
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -615,6 +623,7 @@ mod tests {
             &defender,
             1,
             EngagementType::SameCourse,
+            None,
         );
         // Scratch damage is proportional to target HP: 0.06*H + 0.08*rand(0,H-1)
         // It should be much less than capped_power - defense (which would be negative)
@@ -638,6 +647,7 @@ mod tests {
             &defender,
             1,
             EngagementType::SameCourse,
+            None,
         );
         // capped ~205, defense ~7-13, so damage should be 192-198
         assert!(dmg > 100, "normal damage should be large: got {dmg}");
@@ -756,6 +766,7 @@ mod tests {
             &defender,
             1,
             EngagementType::SameCourse,
+            None,
         );
         let penalized_damage = calculate_shelling_damage(
             &codex,
@@ -764,6 +775,7 @@ mod tests {
             &defender,
             5,
             EngagementType::TDisadvantage,
+            None,
         );
 
         assert!(normal_damage > penalized_damage);
@@ -801,6 +813,7 @@ mod tests {
             &defender,
             1,
             EngagementType::SameCourse,
+            None,
         );
         assert!(dmg > 0, "CV with bombers should deal shelling damage");
     }

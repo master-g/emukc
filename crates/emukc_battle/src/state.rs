@@ -166,6 +166,10 @@ impl BattleState {
         self.has_bb_class_at_start
     }
 
+    pub(crate) fn kouku(&self) -> Option<&BattleKouku> {
+        self.kouku.as_ref()
+    }
+
     // -- Finalizers --
 
     /// Consume state, verify invariants, produce the day battle simulation result.

@@ -11,11 +11,12 @@ use crate::random::BattleRng;
 use crate::state::BattleState;
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
-    BattleContext, BattlePhase, BattleRuntimeShip, BattleSimulation, NightBattleInput,
+    AirState, BattleContext, BattlePhase, BattleRuntimeShip, BattleSimulation, NightBattleInput,
     NightBattleSimulation, ShellingParams,
 };
 
 pub(crate) mod asw;
+pub(crate) mod day_cutin;
 pub(crate) mod kouku;
 pub(crate) mod night;
 pub(crate) mod shelling;
@@ -129,6 +130,8 @@ fn execute_shelling1(
         let friendly_form = state.friendly_formation_id();
         let enemy_form = state.enemy_formation_id();
         let eng = state.engagement();
+        let air_state =
+            state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
         let hougeki = if enemy_first {
             shelling::simulate_shelling_side(
                 codex,
@@ -140,6 +143,7 @@ fn execute_shelling1(
                     formation_id: enemy_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
+                    air_state: air_state.as_ref(),
                 },
             )
         } else {
@@ -153,6 +157,7 @@ fn execute_shelling1(
                     formation_id: friendly_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
+                    air_state: air_state.as_ref(),
                 },
             )
         };
@@ -177,6 +182,8 @@ fn execute_shelling2(
         let friendly_form = state.friendly_formation_id();
         let enemy_form = state.enemy_formation_id();
         let eng = state.engagement();
+        let air_state =
+            state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
         // Shelling2 reverses the attack order: the side that went second in
         // Shelling1 attacks first here (KanColle alternating rule).
         let hougeki = if enemy_first {
@@ -190,6 +197,7 @@ fn execute_shelling2(
                     formation_id: friendly_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
+                    air_state: air_state.as_ref(),
                 },
             )
         } else {
@@ -203,6 +211,7 @@ fn execute_shelling2(
                     formation_id: enemy_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
+                    air_state: air_state.as_ref(),
                 },
             )
         };

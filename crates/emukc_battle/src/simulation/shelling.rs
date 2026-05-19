@@ -4,6 +4,7 @@ use emukc_model::codex::Codex;
 
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
+use crate::simulation::day_cutin::{DayAttackType, resolve_day_attack};
 use crate::targeting::{
     can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,
 };
@@ -17,6 +18,8 @@ pub(crate) fn simulate_shelling_side(
     defenders: &mut [BattleRuntimeShip],
     params: &ShellingParams,
 ) -> Option<BattleHougeki> {
+    let fleet_los = attackers.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum();
+
     let mut at_eflag = Vec::new();
     let mut at_list = Vec::new();
     let mut at_type = Vec::new();
@@ -35,42 +38,117 @@ pub(crate) fn simulate_shelling_side(
             continue;
         };
         let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
-        let raw = if is_asw_attack {
-            calculate_asw_damage(
-                codex,
-                rng,
-                ship,
-                &defenders[target_idx],
-                params.formation_id,
-                params.engagement,
-            )
-        } else {
-            calculate_shelling_damage(
-                codex,
-                rng,
-                ship,
-                &defenders[target_idx],
-                params.formation_id,
-                params.engagement,
-            )
-        };
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
-        if !params.attacker_is_enemy {
-            ship.damage_dealt += dealt;
-        }
-        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
 
-        at_eflag.push(i64::from(params.attacker_is_enemy));
-        at_list.push(idx as i64);
-        at_type.push(if is_asw_attack {
-            7
+        if is_asw_attack {
+            let raw = calculate_asw_damage(
+                codex,
+                rng,
+                ship,
+                &defenders[target_idx],
+                params.formation_id,
+                params.engagement,
+            );
+            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+            if !params.attacker_is_enemy {
+                ship.damage_dealt += dealt;
+            }
+            let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+
+            push_attack(
+                &mut at_eflag,
+                &mut at_list,
+                &mut at_type,
+                &mut df_list,
+                &mut si_list,
+                &mut cl_list,
+                &mut damage,
+                params.attacker_is_enemy,
+                idx,
+                7,
+                vec![target_idx as i64],
+                day_attack_display_ids(codex, ship, true),
+                vec![display],
+            );
         } else {
-            0
-        });
-        df_list.push(vec![target_idx as i64]);
-        si_list.push(day_attack_display_ids(codex, ship, is_asw_attack));
-        cl_list.push(vec![1]);
-        damage.push(vec![display]);
+            let resolved = resolve_day_attack(codex, rng, ship, params.air_state, fleet_los, idx);
+
+            let ci_mult = if resolved.damage_multiplier != 1.0 {
+                Some(resolved.damage_multiplier)
+            } else {
+                None
+            };
+
+            if resolved.hit_count == 2 {
+                // DoubleAttack: 2 hits on the same target
+                let mut damages = Vec::with_capacity(2);
+                for _ in 0..2 {
+                    let raw = calculate_shelling_damage(
+                        codex,
+                        rng,
+                        ship,
+                        &defenders[target_idx],
+                        params.formation_id,
+                        params.engagement,
+                        ci_mult,
+                    );
+                    let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+                    if !params.attacker_is_enemy {
+                        ship.damage_dealt += dealt;
+                    }
+                    damages.push(crate::targeting::display_damage(
+                        &defenders[target_idx],
+                        raw_dmg,
+                        dealt,
+                    ));
+                }
+                push_attack(
+                    &mut at_eflag,
+                    &mut at_list,
+                    &mut at_type,
+                    &mut df_list,
+                    &mut si_list,
+                    &mut cl_list,
+                    &mut damage,
+                    params.attacker_is_enemy,
+                    idx,
+                    resolved.at_type as i64,
+                    vec![target_idx as i64; 2],
+                    day_attack_display_ids(codex, ship, false),
+                    damages,
+                );
+            } else {
+                let raw = calculate_shelling_damage(
+                    codex,
+                    rng,
+                    ship,
+                    &defenders[target_idx],
+                    params.formation_id,
+                    params.engagement,
+                    ci_mult,
+                );
+                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+                if !params.attacker_is_enemy {
+                    ship.damage_dealt += dealt;
+                }
+                let display =
+                    crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+                push_attack(
+                    &mut at_eflag,
+                    &mut at_list,
+                    &mut at_type,
+                    &mut df_list,
+                    &mut si_list,
+                    &mut cl_list,
+                    &mut damage,
+                    params.attacker_is_enemy,
+                    idx,
+                    resolved.at_type as i64,
+                    vec![target_idx as i64],
+                    day_attack_display_ids(codex, ship, false),
+                    vec![display],
+                );
+            }
+        }
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {
@@ -82,6 +160,30 @@ pub(crate) fn simulate_shelling_side(
         api_cl_list: cl_list,
         api_damage: damage,
     })
+}
+
+fn push_attack(
+    at_eflag: &mut Vec<i64>,
+    at_list: &mut Vec<i64>,
+    at_type: &mut Vec<i64>,
+    df_list: &mut Vec<Vec<i64>>,
+    si_list: &mut Vec<Vec<i64>>,
+    cl_list: &mut Vec<Vec<i64>>,
+    damage: &mut Vec<Vec<i64>>,
+    attacker_is_enemy: bool,
+    attacker_idx: usize,
+    attack_type: i64,
+    targets: Vec<i64>,
+    display_ids: Vec<i64>,
+    damages: Vec<i64>,
+) {
+    at_eflag.push(i64::from(attacker_is_enemy));
+    at_list.push(attacker_idx as i64);
+    at_type.push(attack_type);
+    df_list.push(targets);
+    si_list.push(display_ids);
+    cl_list.push(vec![1; damages.len()]);
+    damage.push(damages);
 }
 
 #[cfg(test)]
@@ -147,6 +249,53 @@ mod tests {
         assert!(
             !friendly_attacks.contains(&0),
             "carrier with only fighters should not shell: {friendly_attacks:?}"
+        );
+    }
+
+    #[test]
+    fn day_ci_produces_nonzero_at_type() {
+        use crate::simulation::day_cutin::{
+            DayAttackType, detect_day_attack_type, resolve_day_attack,
+        };
+        use crate::types::AirState;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let ap_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::ArmorPiercingShell);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedRecon);
+
+        // BB: 2 main guns + AP shell + seaplane
+        let mut bb = sample_ship(&codex, bb_mst, 99);
+        bb.slot_items = vec![
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(ap_id),
+            slotitem_with_mst_id(seaplane_id),
+        ];
+        bb.ship.api_onslot = [0, 0, 0, 1, 0];
+        let mut rt = crate::types::BattleRuntimeShip::from(bb);
+
+        // Detection should succeed
+        let detected = detect_day_attack_type(&codex, &rt, Some(&AirState::Supremacy));
+        assert_eq!(detected, Some(DayAttackType::MainApMainCI));
+
+        // Trigger roll with supremacy and flagship bonus should succeed
+        let mut rng = crate::random::SeededRng::new(42);
+        let fleet_los = rt.ship.api_sakuteki[0].max(0);
+        let resolved = resolve_day_attack(
+            &codex,
+            &mut rng,
+            &mut rt,
+            Some(&AirState::Supremacy),
+            fleet_los,
+            0, // flagship
+        );
+        // With MainApMainCI detected, the resolved type should be CI (not normal)
+        assert!(
+            resolved.at_type != DayAttackType::Normal,
+            "resolved should be CI or DoubleAttack, got {:?}",
+            resolved.at_type
         );
     }
 }

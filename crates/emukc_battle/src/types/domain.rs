@@ -174,11 +174,12 @@ pub(crate) struct TorpedoHit {
 }
 
 /// Parameters for a shelling side simulation.
-pub(crate) struct ShellingParams {
+pub(crate) struct ShellingParams<'a> {
     pub attacker_is_enemy: bool,
     pub formation_id: i64,
     pub engagement: EngagementType,
     pub phase: BattlePhase,
+    pub air_state: Option<&'a AirState>,
 }
 
 /// Mutable output buffers for an airstrike phase.
