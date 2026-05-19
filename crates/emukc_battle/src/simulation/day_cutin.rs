@@ -2,12 +2,13 @@
 
 use emukc_model::{codex::Codex, kc2::start2::ApiMstSlotitem, kc2::types::KcSlotItemType3};
 
+use crate::damage::is_cv_type;
 use crate::random::BattleRng;
 
 use crate::types::AirState;
 use crate::types::BattleRuntimeShip;
 
-/// Day attack type (弾着観測射撃 / 連撃).
+/// Day attack type (弾着観測射撃 / 連撃 / 戦爆連合CI).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DayAttackType {
     Normal = 0,
@@ -16,6 +17,28 @@ pub(crate) enum DayAttackType {
     MainRadarCI = 4,
     MainApSecCI = 5,
     MainApMainCI = 6,
+    CarrierCI = 7,
+}
+
+/// Carrier CI sub-types with different multipliers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CarrierCiSubType {
+    /// FBA: Fighter + Bomber + Attacker → 1.25x
+    Fba,
+    /// BBA: 2× Bomber + Attacker → 1.2x
+    Bba,
+    /// BA: Bomber + Attacker → 1.15x
+    Ba,
+}
+
+impl CarrierCiSubType {
+    pub(crate) fn damage_multiplier(self) -> f64 {
+        match self {
+            Self::Fba => 1.25,
+            Self::Bba => 1.2,
+            Self::Ba => 1.15,
+        }
+    }
 }
 
 impl DayAttackType {
@@ -34,6 +57,7 @@ pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
         DayAttackType::MainRadarCI => 1.2,
         DayAttackType::MainApSecCI => 1.3,
         DayAttackType::MainApMainCI => 1.5,
+        DayAttackType::CarrierCI => 1.25, // default; actual multiplier set by sub-type
     }
 }
 
@@ -46,6 +70,7 @@ pub(crate) fn day_ci_accuracy_multiplier(at_type: DayAttackType) -> f64 {
         DayAttackType::MainRadarCI => 1.5,
         DayAttackType::MainApSecCI => 1.3,
         DayAttackType::MainApMainCI => 1.2,
+        DayAttackType::CarrierCI => 1.0,
     }
 }
 
@@ -183,6 +208,44 @@ pub(crate) fn detect_day_attack_type(
     None
 }
 
+/// Detect carrier CI (戦爆連合CI) for CV/CVL/CVB ships.
+///
+/// Returns the sub-type (FBA > BBA > BA) if conditions are met, `None` otherwise.
+/// Requires: air superiority/supremacy + dive bomber + torpedo bomber.
+/// Jets do NOT count as dive bombers.
+pub(crate) fn detect_carrier_ci(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    air_state: Option<&AirState>,
+) -> Option<CarrierCiSubType> {
+    if !is_cv_type(codex, ship) {
+        return None;
+    }
+
+    let air = air_state?;
+    if !matches!(air, AirState::Supremacy | AirState::Superiority) {
+        return None;
+    }
+
+    let fighters = count_type(codex, ship, KcSlotItemType3::CarrierBasedFighter);
+    let dive_bombers = count_type(codex, ship, KcSlotItemType3::CarrierBasedDiveBomber);
+    let torpedo_bombers = count_type(codex, ship, KcSlotItemType3::CarrierBasedTorpedoBomber);
+
+    // Need at least 1 dive bomber + 1 torpedo bomber
+    if dive_bombers == 0 || torpedo_bombers == 0 {
+        return None;
+    }
+
+    // Priority: FBA > BBA > BA
+    if fighters >= 1 {
+        return Some(CarrierCiSubType::Fba);
+    }
+    if dive_bombers >= 2 {
+        return Some(CarrierCiSubType::Bba);
+    }
+    Some(CarrierCiSubType::Ba)
+}
+
 /// Whether the ship qualifies for DoubleAttack fallback:
 /// has 2+ main guns, plus the air state + seaplane prerequisites.
 pub(crate) fn can_double_attack(
@@ -211,6 +274,7 @@ pub(crate) fn day_ci_base_attack(at_type: DayAttackType) -> f64 {
         DayAttackType::MainRadarCI => 130.0,
         DayAttackType::MainSecCI => 120.0,
         DayAttackType::DoubleAttack => 130.0,
+        DayAttackType::CarrierCI => 140.0,
         DayAttackType::Normal => 0.0,
     }
 }
@@ -302,7 +366,19 @@ pub(crate) fn resolve_day_attack(
 
     let is_flagship = ship_index == 0;
 
-    // Try CI detection and trigger roll
+    // Carrier CI (mutually exclusive with artillery spotting)
+    if is_cv_type(codex, ship) {
+        if let Some(sub) = detect_carrier_ci(codex, ship, Some(air)) {
+            return ResolvedDayAttack {
+                at_type: DayAttackType::CarrierCI,
+                hit_count: 1,
+                damage_multiplier: sub.damage_multiplier(),
+            };
+        }
+        return normal_attack();
+    }
+
+    // Artillery spotting CI detection and trigger roll
     if let Some(ci_type) = detect_day_attack_type(codex, ship, Some(air)) {
         let rate = day_ci_trigger_rate(ship, air, fleet_los, is_flagship, ci_type);
         if rng.random_f64_range(0.0, 1.0) < rate.min(1.0) {
@@ -552,5 +628,101 @@ mod tests {
         with_seaplane(&codex, &mut ship);
 
         assert!(!can_double_attack(&codex, &ship, Some(&AirState::Supremacy)));
+    }
+
+    // -- Carrier CI tests --
+
+    fn cvl_ship(codex: &Codex) -> BattleRuntimeShip {
+        let cvl_mst = first_ship_mst_by_type(codex, KcShipType::CVL);
+        let mut input = sample_ship(codex, cvl_mst, 99);
+        input.slot_items.clear();
+        input.ship.api_onslot = [0; 5];
+        BattleRuntimeShip::from(input)
+    }
+
+    fn with_fighter(codex: &Codex, ship: &mut BattleRuntimeShip) {
+        let id = first_slotitem_mst_by_type(codex, KcSlotItemType3::CarrierBasedFighter);
+        ship.slot_items.push(slotitem_with_mst_id(id));
+    }
+
+    fn with_dive_bomber(codex: &Codex, ship: &mut BattleRuntimeShip) {
+        let id = first_slotitem_mst_by_type(codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        ship.slot_items.push(slotitem_with_mst_id(id));
+    }
+
+    fn with_torpedo_bomber(codex: &Codex, ship: &mut BattleRuntimeShip) {
+        let id = first_slotitem_mst_by_type(codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        ship.slot_items.push(slotitem_with_mst_id(id));
+    }
+
+    #[test]
+    fn carrier_ci_fba_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy));
+        assert_eq!(result, Some(CarrierCiSubType::Fba));
+    }
+
+    #[test]
+    fn carrier_ci_bba_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_dive_bomber(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Superiority));
+        assert_eq!(result, Some(CarrierCiSubType::Bba));
+    }
+
+    #[test]
+    fn carrier_ci_ba_detection() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy));
+        assert_eq!(result, Some(CarrierCiSubType::Ba));
+    }
+
+    #[test]
+    fn carrier_ci_no_torpedo_bomber() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        // no torpedo bomber
+
+        let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn carrier_ci_air_parity() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Parity));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn carrier_ci_not_carrier() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = bare_bb(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy));
+        assert_eq!(result, None);
     }
 }
