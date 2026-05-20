@@ -41,12 +41,6 @@ impl CarrierCiSubType {
     }
 }
 
-impl DayAttackType {
-    pub(crate) fn api_id(self) -> i64 {
-        self as i64
-    }
-}
-
 /// Post-cap damage multiplier for day CI types.
 /// DoubleAttack uses 1.2x per hit (×2 hits total).
 pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
@@ -461,7 +455,7 @@ mod tests {
 
         let result = detect_day_attack_type(&codex, &ship, Some(&AirState::Supremacy));
         assert_eq!(result, Some(DayAttackType::MainApMainCI));
-        assert_eq!(result.unwrap().api_id(), 6);
+        assert_eq!(result.unwrap() as i64, 6);
     }
 
     #[test]

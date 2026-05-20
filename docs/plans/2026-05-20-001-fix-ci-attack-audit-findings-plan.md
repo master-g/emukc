@@ -1,7 +1,7 @@
 ---
 title: "fix: CI attack system audit findings"
 type: fix
-status: active
+status: completed
 date: 2026-05-20
 origin: Code review audit of feat/vibe branch CI attack implementation
 ---
