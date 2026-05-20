@@ -20,6 +20,7 @@ pub(crate) mod day_cutin;
 pub(crate) mod kouku;
 pub(crate) mod night;
 pub(crate) mod shelling;
+pub(crate) mod special_attack;
 pub(crate) mod torpedo;
 
 /// Returns the fleet speed value (minimum `api_soku` among alive ships).

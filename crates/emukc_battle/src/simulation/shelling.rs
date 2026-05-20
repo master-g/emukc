@@ -5,6 +5,7 @@ use emukc_model::codex::Codex;
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
 use crate::simulation::day_cutin::{DayAttackType, resolve_day_attack};
+use crate::simulation::special_attack;
 use crate::targeting::{
     can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,
 };
@@ -27,8 +28,29 @@ pub(crate) fn simulate_shelling_side(
     let mut si_list = Vec::new();
     let mut cl_list = Vec::new();
     let mut damage = Vec::new();
+    let mut special_attack_skip = Vec::new();
+
+    // Try flagship special attack before normal shelling loop
+    if let Some(resolved) =
+        special_attack::try_special_attack(codex, rng, attackers, params.formation_id)
+    {
+        let result = special_attack::execute_special_attack(
+            codex, rng, attackers, defenders, resolved, params,
+        );
+        at_eflag.extend(result.hougeki.api_at_eflag);
+        at_list.extend(result.hougeki.api_at_list);
+        at_type.extend(result.hougeki.api_at_type);
+        df_list.extend(result.hougeki.api_df_list);
+        si_list.extend(result.hougeki.api_si_list);
+        cl_list.extend(result.hougeki.api_cl_list);
+        damage.extend(result.hougeki.api_damage);
+        special_attack_skip = result.participant_indices;
+    }
 
     for (idx, ship) in attackers.iter_mut().enumerate() {
+        if special_attack_skip.contains(&idx) {
+            continue;
+        }
         if !can_shell_day_ship(codex, ship) {
             continue;
         }
