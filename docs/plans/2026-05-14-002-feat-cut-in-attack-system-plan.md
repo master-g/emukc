@@ -1,7 +1,7 @@
 ---
 title: "feat: Implement Cut-In attack system (day CI, DD night CI, carrier CI, special attacks)"
 type: feat
-status: active
+status: completed
 date: 2026-05-14
 origin: docs/brainstorms/2026-05-14-cut-in-attack-system-requirements.md
 ---
