@@ -9,7 +9,7 @@ use emukc_model::{codex::Codex, kc2::KcShipType};
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
 use crate::targeting::{can_shell_day_ship, select_random_target_index, ship_type, target_class};
-use crate::types::{BattleHougeki, BattlePhase, BattleRuntimeShip, EngagementType, ShellingParams};
+use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
 // Ship ID constants
@@ -98,10 +98,6 @@ fn is_submarine_or_carrier(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 
 fn is_ship_id(ship: &BattleRuntimeShip, ids: &[i64]) -> bool {
     ids.contains(&ship.ship.api_ship_id)
-}
-
-fn is_ship_id_opt(ship: Option<&BattleRuntimeShip>, ids: &[i64]) -> bool {
-    ship.is_some_and(|s| is_ship_id(s, ids))
 }
 
 fn hp_ratio(ship: &BattleRuntimeShip) -> f64 {
@@ -431,7 +427,7 @@ fn check_qe_attack(
     }
     let flagship = fleet.first()?;
 
-    let (flag_id, sister_id) = if flagship.ship.api_ship_id == WARSPIRE_KAI_ID {
+    let (_, sister_id) = if flagship.ship.api_ship_id == WARSPIRE_KAI_ID {
         (WARSPIRE_KAI_ID, VALIANT_KAI_ID)
     } else if flagship.ship.api_ship_id == VALIANT_KAI_ID {
         (VALIANT_KAI_ID, WARSPIRE_KAI_ID)
@@ -521,16 +517,7 @@ fn colorado_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f
     (total / 130.0).clamp(0.0, 1.0)
 }
 
-fn richelieu_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
-    let flag_lv = flagship.ship.api_lv.max(1) as f64;
-    let flag_luck = flagship.ship.api_lucky[1].max(0) as f64;
-    let second_lv = fleet.get(1).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
-    let third_lv = fleet.get(2).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
-    let total = 20.0 + flag_lv.sqrt() + second_lv.sqrt() + third_lv.sqrt() + 1.2 * flag_luck.sqrt();
-    (total / 130.0).clamp(0.0, 1.0)
-}
-
-fn qe_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
+fn three_ship_special_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
     let flag_luck = flagship.ship.api_lucky[1].max(0) as f64;
     let second_lv = fleet.get(1).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
@@ -574,8 +561,8 @@ pub(crate) fn try_special_attack(
                 nagato_broadside_rate(flagship, companion)
             }
             SpecialAttackType::ColoradoBroadside => colorado_rate(flagship, attackers),
-            SpecialAttackType::RichelieuAttack => richelieu_rate(flagship, attackers),
-            SpecialAttackType::QueenElizabethAttack => qe_rate(flagship, attackers),
+            SpecialAttackType::RichelieuAttack => three_ship_special_rate(flagship, attackers),
+            SpecialAttackType::QueenElizabethAttack => three_ship_special_rate(flagship, attackers),
         };
 
         if rng.random_f64_range(0.0, 1.0) < rate {
@@ -700,7 +687,10 @@ pub(crate) fn execute_special_attack(
         };
         let equip_mult = resolved.equip_bonuses.get(i).copied().unwrap_or(1.0);
 
-        let num_hits = if resolved.attack_type == SpecialAttackType::NagatoClassBroadside && i == 0
+        let num_hits = if matches!(
+            resolved.attack_type,
+            SpecialAttackType::NagatoClassBroadside | SpecialAttackType::NagatoMutsuBroadside
+        ) && i == 0
         {
             2
         } else {
@@ -1028,5 +1018,50 @@ mod tests {
         fleet[2].ship.api_soku = 5;
         let resolved = check_qe_attack(&codex, &fleet, FORMATION_ECHELON);
         assert!(resolved.is_some(), "Valiant flagship + Warspite companion should trigger QE");
+    }
+
+    #[test]
+    fn nagato_mutsu_flagship_produces_two_hits() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let nagato_k2 = sample_bb_at(&codex, NAGATO_K2_ID, 99);
+        let mutsu_k2 = sample_bb_at(&codex, MUTSU_K2_ID, 99);
+        let mut attackers = vec![nagato_k2, mutsu_k2];
+
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut defenders = vec![sample_ship(&codex, dd_mst, 50).into()];
+
+        let resolved = try_special_attack(
+            &codex,
+            &mut crate::random::SeededRng::new(42),
+            &mut attackers,
+            FORMATION_ECHELON,
+        )
+        .expect("NagatoMutsu should trigger");
+
+        let result = execute_special_attack(
+            &codex,
+            &mut crate::random::SeededRng::new(42),
+            &mut attackers,
+            &mut defenders,
+            resolved,
+            &crate::types::ShellingParams {
+                formation_id: FORMATION_ECHELON,
+                engagement: crate::types::EngagementType::SameCourse,
+                air_state: None,
+                phase: crate::types::BattlePhase::DayShelling,
+                attacker_is_enemy: false,
+            },
+        );
+
+        // Flagship (index 0) entry should have 2 damage values (2 hits)
+        let flagship_idx = result.hougeki.api_at_list.iter().position(|&i| i == 0).unwrap();
+        let flagship_damage = &result.hougeki.api_damage[flagship_idx];
+        assert_eq!(
+            flagship_damage.len(),
+            2,
+            "NagatoMutsu flagship should have 2 hits, got {}",
+            flagship_damage.len()
+        );
+        assert_eq!(result.hougeki.api_at_type[flagship_idx], 102);
     }
 }

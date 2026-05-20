@@ -199,6 +199,8 @@ const NIGHT_SUISEI_ICON: i64 = 51; // 夜間瑞雲
 /// Aviation personnel item IDs for night carrier operations.
 const AVIATION_PERSONNEL_IDS: &[i64] = &[258, 259]; // 夜間作戦航空要員/夜間作戦航空要員(熟練)
 
+const SKILLED_LOOKOUT_ID: i64 = 412;
+
 fn count_night_planes_by_icon(codex: &Codex, ship: &BattleRuntimeShip, icon: i64) -> usize {
     ship.slot_items
         .iter()
@@ -294,7 +296,7 @@ fn detect_dd_ci_type(codex: &Codex, ship: &BattleRuntimeShip, dd_type: DdCiType)
         + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
     let has_radar = has_radar(codex, ship);
     let has_lookout = count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0;
-    let has_skilled_lookout = has_slotitem_id(ship, 412);
+    let has_skilled_lookout = has_slotitem_id(ship, SKILLED_LOOKOUT_ID);
     let has_drum = count_equipment_type(codex, ship, KcSlotItemType3::TransportContainer) > 0;
 
     match dd_type {
@@ -337,7 +339,7 @@ fn dd_ci_trigger_rate(
     };
 
     // Lookout modifier: TSLO (+8) overrides regular lookout (+5)
-    let lookout_mod = if has_slotitem_id(ship, 412) {
+    let lookout_mod = if has_slotitem_id(ship, SKILLED_LOOKOUT_ID) {
         8.0
     } else if count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0 {
         5.0
@@ -545,7 +547,7 @@ fn night_attack_display_ids(
     let skilled_lookouts: Vec<i64> = ship
         .slot_items
         .iter()
-        .filter_map(|si| (si.api_slotitem_id == 412).then_some(si.api_slotitem_id))
+        .filter_map(|si| (si.api_slotitem_id == SKILLED_LOOKOUT_ID).then_some(si.api_slotitem_id))
         .collect();
     let drums = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         slot_type == KcSlotItemType3::TransportContainer

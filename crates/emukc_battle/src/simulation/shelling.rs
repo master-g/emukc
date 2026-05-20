@@ -4,7 +4,7 @@ use emukc_model::codex::Codex;
 
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
-use crate::simulation::day_cutin::{DayAttackType, resolve_day_attack};
+use crate::simulation::day_cutin::resolve_day_attack;
 use crate::simulation::special_attack;
 use crate::targeting::{
     can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,

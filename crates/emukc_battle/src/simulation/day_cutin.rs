@@ -61,19 +61,6 @@ pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
     }
 }
 
-/// Accuracy multiplier for day CI types.
-pub(crate) fn day_ci_accuracy_multiplier(at_type: DayAttackType) -> f64 {
-    match at_type {
-        DayAttackType::Normal => 1.0,
-        DayAttackType::DoubleAttack => 1.1,
-        DayAttackType::MainSecCI => 1.3,
-        DayAttackType::MainRadarCI => 1.5,
-        DayAttackType::MainApSecCI => 1.3,
-        DayAttackType::MainApMainCI => 1.2,
-        DayAttackType::CarrierCI => 1.0,
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Equipment counting helpers
 // ---------------------------------------------------------------------------
@@ -369,11 +356,15 @@ pub(crate) fn resolve_day_attack(
     // Carrier CI (mutually exclusive with artillery spotting)
     if is_cv_type(codex, ship) {
         if let Some(sub) = detect_carrier_ci(codex, ship, Some(air)) {
-            return ResolvedDayAttack {
-                at_type: DayAttackType::CarrierCI,
-                hit_count: 1,
-                damage_multiplier: sub.damage_multiplier(),
-            };
+            let rate =
+                day_ci_trigger_rate(ship, air, fleet_los, is_flagship, DayAttackType::CarrierCI);
+            if rng.random_f64_range(0.0, 1.0) < rate.min(1.0) {
+                return ResolvedDayAttack {
+                    at_type: DayAttackType::CarrierCI,
+                    hit_count: 1,
+                    damage_multiplier: sub.damage_multiplier(),
+                };
+            }
         }
         return normal_attack();
     }
@@ -724,5 +715,64 @@ mod tests {
 
         let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy));
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn carrier_ci_trigger_roll_can_fail() {
+        // Use a deterministic RNG seed that produces a high random value,
+        // causing the trigger roll to fail even when detection succeeds.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        // Detection should succeed
+        assert!(detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy)).is_some());
+
+        // Try many seeds — at least one should fail the trigger roll
+        let mut any_failed = false;
+        for seed in 0..50u64 {
+            let resolved = resolve_day_attack(
+                &codex,
+                &mut crate::random::SeededRng::new(seed),
+                &mut ship.clone(),
+                Some(&AirState::Supremacy),
+                0, // fleet LoS
+                1, // not flagship (harder to trigger)
+            );
+            if resolved.at_type == DayAttackType::Normal {
+                any_failed = true;
+                break;
+            }
+        }
+        assert!(any_failed, "carrier CI trigger should not be 100%");
+    }
+
+    #[test]
+    fn carrier_ci_trigger_roll_can_succeed() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        // Try seeds until one succeeds — with flagship bonus + AS+ this should be very likely
+        let mut any_succeeded = false;
+        for seed in 0..50u64 {
+            let resolved = resolve_day_attack(
+                &codex,
+                &mut crate::random::SeededRng::new(seed),
+                &mut ship.clone(),
+                Some(&AirState::Supremacy),
+                100, // high fleet LoS
+                0,   // flagship bonus
+            );
+            if resolved.at_type == DayAttackType::CarrierCI {
+                any_succeeded = true;
+                break;
+            }
+        }
+        assert!(any_succeeded, "carrier CI trigger should succeed with good conditions");
     }
 }
