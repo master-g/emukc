@@ -38,6 +38,8 @@ pub(crate) enum NightAttackType {
     DdTorpTorpLookout2,  // TTL 2-hit: 2 hits x 1.5x (sp_list=13)
     DdTorpDrumLookout,   // DTL: 1 hit x 1.3x (sp_list=10)
     DdTorpDrumLookout2,  // DTL 2-hit: 2 hits x 1.3x (sp_list=14)
+    // Carrier night CI (sp_list=6)
+    CarrierNightCI, // 戦爆連合夜間CI: 1 hit, multiplier varies by sub-type
 }
 
 impl NightAttackType {
@@ -57,6 +59,7 @@ impl NightAttackType {
             Self::DdTorpTorpLookout2 => 13,
             Self::DdTorpDrumLookout => 10,
             Self::DdTorpDrumLookout2 => 14,
+            Self::CarrierNightCI => 6,
         }
     }
 
@@ -72,6 +75,7 @@ impl NightAttackType {
             Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 1.2,
             Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 1.5,
             Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 1.3,
+            Self::CarrierNightCI => 1.25, // default; actual multiplier set by sub-type
         }
     }
 
@@ -84,7 +88,8 @@ impl NightAttackType {
             | Self::DdGunTorpRadar
             | Self::DdTorpLookoutRadar
             | Self::DdTorpTorpLookout
-            | Self::DdTorpDrumLookout => 1,
+            | Self::DdTorpDrumLookout
+            | Self::CarrierNightCI => 1,
             Self::DoubleAttack
             | Self::TorpTorpTorp
             | Self::DdGunTorpRadar2
@@ -104,7 +109,7 @@ impl NightAttackType {
             Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 140.0,
             Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 125.0,
             Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 122.0,
-            Self::DoubleAttack | Self::Normal => 0.0,
+            Self::DoubleAttack | Self::Normal | Self::CarrierNightCI => 0.0,
         }
     }
 }
@@ -179,6 +184,61 @@ fn has_radar(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
                 )
             })
     })
+}
+
+// ---------------------------------------------------------------------------
+// Carrier night CI
+// ---------------------------------------------------------------------------
+
+/// Night plane icon types (api_type[3]).
+const NIGHT_FIGHTER_ICON: i64 = 45; // 夜間戦闘機
+const NIGHT_ATTACKER_ICON: i64 = 46; // 夜間攻撃機
+const NIGHT_BOMBER_ICON: i64 = 58; // 夜間爆戦
+const NIGHT_SUISEI_ICON: i64 = 51; // 夜間瑞雲
+
+/// Aviation personnel item IDs for night carrier operations.
+const AVIATION_PERSONNEL_IDS: &[i64] = &[258, 259]; // 夜間作戦航空要員/夜間作戦航空要員(熟練)
+
+fn count_night_planes_by_icon(codex: &Codex, ship: &BattleRuntimeShip, icon: i64) -> usize {
+    ship.slot_items
+        .iter()
+        .zip(ship.ship.api_onslot)
+        .filter(|(si, onslot)| {
+            if *onslot <= 0 {
+                return false;
+            }
+            codex
+                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
+                .ok()
+                .is_some_and(|mst| mst.api_type[3] == icon)
+        })
+        .count()
+}
+
+/// Check if a carrier is eligible for night CI.
+/// Requires: CV type + aviation personnel + night planes.
+fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    if !crate::damage::is_cv_type(codex, ship) {
+        return false;
+    }
+    let has_personnel = AVIATION_PERSONNEL_IDS
+        .iter()
+        .any(|&id| ship.slot_items.iter().any(|si| si.api_slotitem_id == id));
+    if !has_personnel {
+        return false;
+    }
+    let night_fighters = count_night_planes_by_icon(codex, ship, NIGHT_FIGHTER_ICON);
+    let night_attackers = count_night_planes_by_icon(codex, ship, NIGHT_ATTACKER_ICON);
+    let night_bombers = count_night_planes_by_icon(codex, ship, NIGHT_BOMBER_ICON);
+    let night_suisei = count_night_planes_by_icon(codex, ship, NIGHT_SUISEI_ICON);
+    let night_other = night_attackers + night_bombers + night_suisei;
+
+    // At least 1 night fighter + 1 other night plane
+    night_fighters >= 1 && (night_attackers >= 1 || night_bombers >= 1 || night_suisei >= 1)
+        || // Or at least 1 night attacker + 1 night bomber/suisei
+        night_attackers >= 1 && (night_bombers >= 1 || night_suisei >= 1)
+        || // Or at least 2 night fighters + other
+        night_fighters >= 2 && night_other >= 1
 }
 
 // ---------------------------------------------------------------------------
@@ -329,6 +389,11 @@ fn is_double_attack_eligible(main_guns: usize, sec_guns: usize, torps: usize) ->
 
 /// Detect the best night attack type from equipment loadout.
 fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAttackType {
+    // Carrier night CI takes priority for CV ships
+    if is_cv_night_ci_eligible(codex, ship) {
+        return NightAttackType::CarrierNightCI;
+    }
+
     let main_guns = count_main_guns(codex, ship);
     let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
         + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
@@ -526,7 +591,9 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &drums, 3);
         }
         NightAttackType::DoubleAttack => extend_limit(&mut ids, &surface_ids, 2),
-        NightAttackType::Normal => extend_limit(&mut ids, &surface_ids, 1),
+        NightAttackType::CarrierNightCI | NightAttackType::Normal => {
+            extend_limit(&mut ids, &surface_ids, 1)
+        }
     }
 
     if ids.is_empty() {
@@ -1279,5 +1346,64 @@ mod tests {
         let rate_normal = dd_ci_trigger_rate(&codex, &rt, DdCiType::GunTorpRadar, false);
         let rate_flagship = dd_ci_trigger_rate(&codex, &rt, DdCiType::GunTorpRadar, true);
         assert!(rate_flagship > rate_normal, "flagship should get +15 bonus");
+    }
+
+    #[test]
+    fn carrier_night_ci_fba_detection() {
+        // CVL with aviation personnel + 2 night fighters + 1 night attacker → FBA
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let night_fighter_id: i64 = 254; // F6F-3N (icon=45)
+        let night_attacker_id: i64 = 257; // TBM-3D (icon=46)
+
+        let mut ship = sample_ship(&codex, cvl_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(258), // 夜間作戦航空要員
+            slotitem_with_mst_id(night_fighter_id),
+            slotitem_with_mst_id(night_fighter_id),
+            slotitem_with_mst_id(night_attacker_id),
+        ];
+        ship.ship.api_onslot = [1, 1, 1, 1, 0];
+        let rt = BattleRuntimeShip::from(ship);
+
+        let attack = detect_night_attack_type(&codex, &rt);
+        assert_eq!(attack, NightAttackType::CarrierNightCI);
+    }
+
+    #[test]
+    fn carrier_night_ci_without_aviation_personnel() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let night_fighter_id: i64 = 254;
+        let night_attacker_id: i64 = 257;
+
+        let mut ship = sample_ship(&codex, cvl_mst, 99);
+        ship.slot_items =
+            vec![slotitem_with_mst_id(night_fighter_id), slotitem_with_mst_id(night_attacker_id)];
+        ship.ship.api_onslot = [1, 1, 0, 0, 0];
+        let rt = BattleRuntimeShip::from(ship);
+
+        // Without 航空要員, CVL cannot attack at night → can_attack_night_ship returns false
+        assert!(!crate::targeting::can_attack_night_ship(&codex, &rt));
+    }
+
+    #[test]
+    fn carrier_night_ci_no_night_planes() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let bomber_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+
+        let mut ship = sample_ship(&codex, cvl_mst, 99);
+        ship.slot_items = vec![
+            slotitem_with_mst_id(258), // 航空要員 but no night planes
+            slotitem_with_mst_id(bomber_id),
+        ];
+        ship.ship.api_onslot = [1, 1, 0, 0, 0];
+        let rt = BattleRuntimeShip::from(ship);
+
+        // Has 航空要員 so can attack at night, but no night CI
+        assert!(crate::targeting::can_attack_night_ship(&codex, &rt));
+        let attack = detect_night_attack_type(&codex, &rt);
+        assert_eq!(attack, NightAttackType::Normal, "no night planes → Normal");
     }
 }
