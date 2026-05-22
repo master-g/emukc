@@ -331,7 +331,7 @@ fn dd_ci_trigger_rate(
 
     let chuuha_mod = {
         let hp_ratio = ship.hp() as f64 / ship.ship.api_maxhp.max(1) as f64;
-        if hp_ratio <= 0.5 {
+        if hp_ratio > 0.25 && hp_ratio <= 0.5 {
             18.0
         } else {
             0.0
@@ -452,10 +452,10 @@ fn night_ci_trigger_rate(
         0.0
     };
 
-    // Chuuha bonus: HP <= 50% max → +18 for DD torpedo CI, +5 for others
+    // Chuuha bonus: 25% < HP <= 50% (中破) → +18 for DD torpedo CI, +5 for others
     let chuuha_bonus = {
         let hp_ratio = ship.hp() as f64 / ship.ship.api_maxhp.max(1) as f64;
-        if hp_ratio <= 0.5 {
+        if hp_ratio > 0.25 && hp_ratio <= 0.5 {
             // DD torpedo CI gets +18, all others get +5
             if ci_type == NightAttackType::TorpTorpTorp {
                 18.0
@@ -1112,6 +1112,74 @@ mod tests {
         assert!(
             rate_chuuha > rate_healthy,
             "chuuha ship should have higher CI rate: {rate_chuuha} > {rate_healthy}"
+        );
+    }
+
+    #[test]
+    fn night_ci_taiha_no_chuuha_bonus() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Chuuha (30%) should get bonus
+        let mut ship_chuuha = sample_ship(&codex, dd_mst, 99);
+        ship_chuuha.ship.api_lucky = [50, 50];
+        ship_chuuha.ship.api_nowhp = 30;
+        ship_chuuha.ship.api_maxhp = 100;
+        let rt_chuuha = BattleRuntimeShip::from(ship_chuuha);
+
+        // Taiha (10%) should NOT get bonus
+        let mut ship_taiha = sample_ship(&codex, dd_mst, 99);
+        ship_taiha.ship.api_lucky = [50, 50];
+        ship_taiha.ship.api_nowhp = 10;
+        ship_taiha.ship.api_maxhp = 100;
+        let rt_taiha = BattleRuntimeShip::from(ship_taiha);
+
+        // Healthy (100%) should NOT get bonus
+        let mut ship_healthy = sample_ship(&codex, dd_mst, 99);
+        ship_healthy.ship.api_lucky = [50, 50];
+        ship_healthy.ship.api_nowhp = 100;
+        ship_healthy.ship.api_maxhp = 100;
+        let rt_healthy = BattleRuntimeShip::from(ship_healthy);
+
+        let rate_chuuha = night_ci_trigger_rate(&rt_chuuha, NightAttackType::TorpTorpTorp, false);
+        let rate_taiha = night_ci_trigger_rate(&rt_taiha, NightAttackType::TorpTorpTorp, false);
+        let rate_healthy = night_ci_trigger_rate(&rt_healthy, NightAttackType::TorpTorpTorp, false);
+
+        assert!(
+            rate_chuuha > rate_taiha,
+            "chuuha should have higher rate than taiha: {rate_chuuha} > {rate_taiha}"
+        );
+        assert_eq!(
+            rate_taiha, rate_healthy,
+            "taiha should have same rate as healthy (no bonus): {rate_taiha} == {rate_healthy}"
+        );
+    }
+
+    #[test]
+    fn dd_ci_taiha_no_chuuha_bonus() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Chuuha (30%) should get bonus
+        let mut ship_chuuha = sample_ship(&codex, dd_mst, 99);
+        ship_chuuha.ship.api_lucky = [50, 50];
+        ship_chuuha.ship.api_nowhp = 30;
+        ship_chuuha.ship.api_maxhp = 100;
+        let rt_chuuha = BattleRuntimeShip::from(ship_chuuha);
+
+        // Taiha (10%) should NOT get bonus
+        let mut ship_taiha = sample_ship(&codex, dd_mst, 99);
+        ship_taiha.ship.api_lucky = [50, 50];
+        ship_taiha.ship.api_nowhp = 10;
+        ship_taiha.ship.api_maxhp = 100;
+        let rt_taiha = BattleRuntimeShip::from(ship_taiha);
+
+        let rate_chuuha = dd_ci_trigger_rate(&codex, &rt_chuuha, DdCiType::TorpTorpLookout, false);
+        let rate_taiha = dd_ci_trigger_rate(&codex, &rt_taiha, DdCiType::TorpTorpLookout, false);
+
+        assert!(
+            rate_chuuha > rate_taiha,
+            "DD CI: chuuha should have higher rate than taiha: {rate_chuuha} > {rate_taiha}"
         );
     }
 
