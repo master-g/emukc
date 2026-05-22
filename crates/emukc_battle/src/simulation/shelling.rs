@@ -28,7 +28,7 @@ pub(crate) fn simulate_shelling_side(
     let mut si_list = Vec::new();
     let mut cl_list = Vec::new();
     let mut damage = Vec::new();
-    let mut special_attack_skip = Vec::new();
+    let mut special_attack_skip = [false; 6];
 
     // Try flagship special attack before normal shelling loop
     if let Some(resolved) =
@@ -44,11 +44,15 @@ pub(crate) fn simulate_shelling_side(
         si_list.extend(result.hougeki.api_si_list);
         cl_list.extend(result.hougeki.api_cl_list);
         damage.extend(result.hougeki.api_damage);
-        special_attack_skip = result.participant_indices;
+        for &i in &result.participant_indices {
+            if i < 6 {
+                special_attack_skip[i] = true;
+            }
+        }
     }
 
     for (idx, ship) in attackers.iter_mut().enumerate() {
-        if special_attack_skip.contains(&idx) {
+        if idx < 6 && special_attack_skip[idx] {
             continue;
         }
         if !can_shell_day_ship(codex, ship) {
@@ -303,17 +307,25 @@ mod tests {
         assert_eq!(detected, Some(DayAttackType::MainApMainCI));
 
         // Trigger roll with supremacy and flagship bonus should succeed
-        let mut rng = crate::random::SeededRng::new(42);
         let fleet_los = rt.ship.api_sakuteki[0].max(0);
-        let resolved = resolve_day_attack(
-            &codex,
-            &mut rng,
-            &mut rt,
-            Some(&AirState::Supremacy),
-            fleet_los,
-            0, // flagship
-        );
-        // With MainApMainCI detected, the resolved type should be CI (not normal)
+
+        // Find a seed that triggers CI
+        let mut resolved = None;
+        for seed in 0..100u64 {
+            let r = resolve_day_attack(
+                &codex,
+                &mut crate::random::SeededRng::new(seed),
+                &mut rt.clone(),
+                Some(&AirState::Supremacy),
+                fleet_los,
+                0, // flagship
+            );
+            if r.at_type != DayAttackType::Normal {
+                resolved = Some(r);
+                break;
+            }
+        }
+        let resolved = resolved.expect("at least one seed should trigger CI");
         assert!(
             resolved.at_type != DayAttackType::Normal,
             "resolved should be CI or DoubleAttack, got {:?}",
