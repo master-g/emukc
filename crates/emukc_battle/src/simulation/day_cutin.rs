@@ -51,7 +51,7 @@ pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
         DayAttackType::MainRadarCI => 1.2,
         DayAttackType::MainApSecCI => 1.3,
         DayAttackType::MainApMainCI => 1.5,
-        DayAttackType::CarrierCI => 1.25, // default; actual multiplier set by sub-type
+        DayAttackType::CarrierCI => unreachable!(),
     }
 }
 
