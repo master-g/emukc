@@ -278,6 +278,7 @@ pub(crate) struct ResolvedDayAttack {
 /// - `Rate = (10 + Base + FlagshipBonus) / Base_attack`
 /// - FlagshipBonus = 15 if index 0 in fleet
 fn day_ci_trigger_rate(
+    codex: &Codex,
     ship: &BattleRuntimeShip,
     air_state: &AirState,
     fleet_los: i64,
@@ -285,7 +286,7 @@ fn day_ci_trigger_rate(
     at_type: DayAttackType,
 ) -> f64 {
     let luck = ship.ship.api_lucky[0].max(0) as f64;
-    let los_equip = ship_los_from_equipment(ship);
+    let los_equip = ship_los_from_equipment(codex, ship);
 
     let base = match air_state {
         AirState::Supremacy => (luck.sqrt().floor()
@@ -318,11 +319,13 @@ fn los_fleet_term(fleet_los: i64) -> f64 {
 }
 
 /// Sum of equipment LoS (`api_saku`) from all equipped items.
-fn ship_los_from_equipment(ship: &BattleRuntimeShip) -> f64 {
-    // This is approximate — the real game uses a weighted formula per equipment.
-    // For now, use the ship's total sakuteki stat minus base.
-    // A more precise implementation would sum individual equipment api_saku values.
-    ship.ship.api_sakuteki[0].max(0) as f64
+fn ship_los_from_equipment(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    ship.slot_items
+        .iter()
+        .filter(|si| si.api_slotitem_id > 0)
+        .filter_map(|si| codex.find::<ApiMstSlotitem>(&si.api_slotitem_id).ok())
+        .map(|mst| mst.api_saku as f64)
+        .sum()
 }
 
 /// Resolve the day attack type for a ship: detect CI, roll trigger, fallback.
@@ -350,8 +353,14 @@ pub(crate) fn resolve_day_attack(
     // Carrier CI (mutually exclusive with artillery spotting)
     if is_cv_type(codex, ship) {
         if let Some(sub) = detect_carrier_ci(codex, ship, Some(air)) {
-            let rate =
-                day_ci_trigger_rate(ship, air, fleet_los, is_flagship, DayAttackType::CarrierCI);
+            let rate = day_ci_trigger_rate(
+                codex,
+                ship,
+                air,
+                fleet_los,
+                is_flagship,
+                DayAttackType::CarrierCI,
+            );
             if rng.random_f64_range(0.0, 1.0) < rate.min(1.0) {
                 return ResolvedDayAttack {
                     at_type: DayAttackType::CarrierCI,
@@ -365,7 +374,7 @@ pub(crate) fn resolve_day_attack(
 
     // Artillery spotting CI detection and trigger roll
     if let Some(ci_type) = detect_day_attack_type(codex, ship, Some(air)) {
-        let rate = day_ci_trigger_rate(ship, air, fleet_los, is_flagship, ci_type);
+        let rate = day_ci_trigger_rate(codex, ship, air, fleet_los, is_flagship, ci_type);
         if rng.random_f64_range(0.0, 1.0) < rate.min(1.0) {
             return ResolvedDayAttack {
                 at_type: ci_type,
@@ -377,8 +386,14 @@ pub(crate) fn resolve_day_attack(
 
     // Fallback: DoubleAttack
     if can_double_attack(codex, ship, Some(air)) {
-        let rate =
-            day_ci_trigger_rate(ship, air, fleet_los, is_flagship, DayAttackType::DoubleAttack);
+        let rate = day_ci_trigger_rate(
+            codex,
+            ship,
+            air,
+            fleet_los,
+            is_flagship,
+            DayAttackType::DoubleAttack,
+        );
         if rng.random_f64_range(0.0, 1.0) < rate.min(1.0) {
             return ResolvedDayAttack {
                 at_type: DayAttackType::DoubleAttack,
