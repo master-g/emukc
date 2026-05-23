@@ -43,6 +43,11 @@ impl CarrierCiSubType {
 
 /// Post-cap damage multiplier for day CI types.
 /// DoubleAttack uses 1.2x per hit (×2 hits total).
+///
+/// `CarrierCI` is expected to be handled directly by `resolve_day_attack`'s carrier branch
+/// (which uses `CarrierCiSubType::damage_multiplier()`); routing it here is a programming
+/// error. Debug builds trip a `debug_assert!` to surface the misuse; release builds return
+/// a neutral 1.0 to avoid crashing live battles.
 pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
     match at_type {
         DayAttackType::Normal => 1.0,
@@ -51,7 +56,13 @@ pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
         DayAttackType::MainRadarCI => 1.2,
         DayAttackType::MainApSecCI => 1.3,
         DayAttackType::MainApMainCI => 1.5,
-        DayAttackType::CarrierCI => unreachable!(),
+        DayAttackType::CarrierCI => {
+            debug_assert!(
+                false,
+                "day_ci_damage_multiplier should not be called with CarrierCI; use sub.damage_multiplier() instead"
+            );
+            1.0
+        }
     }
 }
 
@@ -783,5 +794,115 @@ mod tests {
             }
         }
         assert!(any_succeeded, "carrier CI trigger should succeed with good conditions");
+    }
+
+    #[test]
+    fn ship_los_from_equipment_sums_individual_api_saku() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        // BB with main gun, AP shell, seaplane
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let ap_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::ArmorPiercingShell);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedRecon);
+
+        let mut input = sample_ship(&codex, bb_mst, 99);
+        input.slot_items = vec![
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(ap_id),
+            slotitem_with_mst_id(seaplane_id),
+        ];
+        input.ship.api_onslot = [0, 0, 0, 1, 0];
+        let ship = BattleRuntimeShip::from(input);
+
+        // Look up expected sum directly from MST entries
+        let gun_mst: &emukc_model::kc2::start2::ApiMstSlotitem = codex.find(&main_gun_id).unwrap();
+        let ap_mst: &emukc_model::kc2::start2::ApiMstSlotitem = codex.find(&ap_id).unwrap();
+        let sp_mst: &emukc_model::kc2::start2::ApiMstSlotitem = codex.find(&seaplane_id).unwrap();
+        let expected = (gun_mst.api_saku + ap_mst.api_saku + sp_mst.api_saku) as f64;
+
+        let actual = ship_los_from_equipment(&codex, &ship);
+        assert!(
+            (actual - expected).abs() < f64::EPSILON,
+            "expected LoS sum {expected}, got {actual}"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "should not be called with CarrierCI")]
+    #[cfg(debug_assertions)]
+    fn day_ci_damage_multiplier_carrier_ci_panics_in_debug() {
+        let _ = day_ci_damage_multiplier(DayAttackType::CarrierCI);
+    }
+
+    #[test]
+    fn ship_los_from_equipment_bare_ship_returns_zero() {
+        // A ship with no equipment must contribute exactly 0 LoS to the trigger formula.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let mut input = sample_ship(&codex, bb_mst, 99);
+        input.slot_items = vec![];
+        input.ship.api_onslot = [0; 5];
+        let ship = BattleRuntimeShip::from(input);
+
+        let actual = ship_los_from_equipment(&codex, &ship);
+        assert!(actual.abs() < f64::EPSILON, "bare ship should report 0 LoS, got {actual}");
+    }
+
+    #[test]
+    fn ship_los_from_equipment_drives_higher_trigger_rate() {
+        // Equipment-sum LoS feeds directly into the trigger rate; loadouts with more
+        // recon-bearing gear must produce a higher (or at minimum equal, due to floor
+        // rounding) day-CI trigger rate than a sparse loadout.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let ap_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::ArmorPiercingShell);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedRecon);
+
+        // Low-LoS ship: just one main gun.
+        let mut input_low = sample_ship(&codex, bb_mst, 99);
+        input_low.slot_items = vec![slotitem_with_mst_id(main_gun_id)];
+        input_low.ship.api_onslot = [0; 5];
+        let ship_low = BattleRuntimeShip::from(input_low);
+
+        // High-LoS ship: main gun + AP shell + seaplane (recon LoS).
+        let mut input_high = sample_ship(&codex, bb_mst, 99);
+        input_high.slot_items = vec![
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(ap_id),
+            slotitem_with_mst_id(seaplane_id),
+        ];
+        input_high.ship.api_onslot = [0, 0, 0, 1, 0];
+        let ship_high = BattleRuntimeShip::from(input_high);
+
+        let los_low = ship_los_from_equipment(&codex, &ship_low);
+        let los_high = ship_los_from_equipment(&codex, &ship_high);
+        assert!(
+            los_high > los_low,
+            "high-LoS loadout should sum to more than sparse loadout: {los_high} > {los_low}"
+        );
+
+        let fleet_los = 0;
+        let rate_low = day_ci_trigger_rate(
+            &codex,
+            &ship_low,
+            &AirState::Superiority,
+            fleet_los,
+            false,
+            DayAttackType::DoubleAttack,
+        );
+        let rate_high = day_ci_trigger_rate(
+            &codex,
+            &ship_high,
+            &AirState::Superiority,
+            fleet_los,
+            false,
+            DayAttackType::DoubleAttack,
+        );
+        assert!(
+            rate_high >= rate_low,
+            "higher equipment LoS must not reduce trigger rate: {rate_high} >= {rate_low}"
+        );
     }
 }

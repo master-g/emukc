@@ -11,6 +11,9 @@ use crate::targeting::{
 };
 use crate::types::{BattleHougeki, BattleRuntimeShip, ShellingParams};
 
+/// Maximum ships per fleet (single fleet, not combined). Caps the special-attack skip array.
+const MAX_FLEET_SIZE: usize = 6;
+
 /// Simulate one side's shelling attacks in a day battle.
 pub(crate) fn simulate_shelling_side(
     codex: &Codex,
@@ -28,7 +31,7 @@ pub(crate) fn simulate_shelling_side(
     let mut si_list = Vec::new();
     let mut cl_list = Vec::new();
     let mut damage = Vec::new();
-    let mut special_attack_skip = [false; 6];
+    let mut special_attack_skip = [false; MAX_FLEET_SIZE];
 
     // Try flagship special attack before normal shelling loop
     if let Some(resolved) =
@@ -45,14 +48,18 @@ pub(crate) fn simulate_shelling_side(
         cl_list.extend(result.hougeki.api_cl_list);
         damage.extend(result.hougeki.api_damage);
         for &i in &result.participant_indices {
-            if i < 6 {
+            debug_assert!(
+                i < MAX_FLEET_SIZE,
+                "special_attack participant index {i} exceeds MAX_FLEET_SIZE; combined fleets need a wider skip array"
+            );
+            if i < MAX_FLEET_SIZE {
                 special_attack_skip[i] = true;
             }
         }
     }
 
     for (idx, ship) in attackers.iter_mut().enumerate() {
-        if idx < 6 && special_attack_skip[idx] {
+        if idx < MAX_FLEET_SIZE && special_attack_skip[idx] {
             continue;
         }
         if !can_shell_day_ship(codex, ship) {
@@ -331,5 +338,30 @@ mod tests {
             "resolved should be CI or DoubleAttack, got {:?}",
             resolved.at_type
         );
+    }
+
+    #[test]
+    fn special_attack_skip_marks_participants_and_spares_others() {
+        // Mirror the production loop in `simulate_shelling_side`: when a special attack
+        // produces participant indices 0/2/4, the skip array must mark exactly those
+        // slots as true. Indices 1/3/5 (and any future slot) must remain attackable.
+        const MAX_FLEET_SIZE: usize = super::MAX_FLEET_SIZE;
+        let participant_indices = vec![0_usize, 2, 4];
+
+        let mut special_attack_skip = [false; MAX_FLEET_SIZE];
+        for &i in &participant_indices {
+            if i < MAX_FLEET_SIZE {
+                special_attack_skip[i] = true;
+            }
+        }
+
+        for idx in 0..MAX_FLEET_SIZE {
+            let should_skip = participant_indices.contains(&idx);
+            assert_eq!(
+                special_attack_skip[idx], should_skip,
+                "idx {idx}: expected skip={should_skip}, got {}",
+                special_attack_skip[idx]
+            );
+        }
     }
 }
