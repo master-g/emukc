@@ -238,6 +238,52 @@ pub(crate) fn detect_carrier_ci(
     Some(CarrierCiSubType::Ba)
 }
 
+/// Build `api_si_list` for carrier CI based on the detected sub-type.
+///
+/// Returns the equipment IDs participating in the cut-in animation:
+/// - FBA: fighter + dive bomber + torpedo bomber (3 IDs)
+/// - BBA: 2× dive bomber + torpedo bomber (3 IDs)
+/// - BA: dive bomber + torpedo bomber (2 IDs)
+pub(crate) fn carrier_ci_display_ids(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    sub: CarrierCiSubType,
+) -> Vec<i64> {
+    use crate::targeting::{collect_matching_slot_ids, extend_limit};
+
+    let fighters =
+        collect_matching_slot_ids(codex, ship, |st, _| st == KcSlotItemType3::CarrierBasedFighter);
+    let dive_bombers = collect_matching_slot_ids(codex, ship, |st, _| {
+        st == KcSlotItemType3::CarrierBasedDiveBomber
+    });
+    let torpedo_bombers = collect_matching_slot_ids(codex, ship, |st, _| {
+        st == KcSlotItemType3::CarrierBasedTorpedoBomber
+    });
+
+    let mut ids = Vec::new();
+    match sub {
+        CarrierCiSubType::Fba => {
+            extend_limit(&mut ids, &fighters, 1);
+            extend_limit(&mut ids, &dive_bombers, 2);
+            extend_limit(&mut ids, &torpedo_bombers, 3);
+        }
+        CarrierCiSubType::Bba => {
+            extend_limit(&mut ids, &dive_bombers, 2);
+            extend_limit(&mut ids, &torpedo_bombers, 3);
+        }
+        CarrierCiSubType::Ba => {
+            extend_limit(&mut ids, &dive_bombers, 1);
+            extend_limit(&mut ids, &torpedo_bombers, 2);
+        }
+    }
+
+    if ids.is_empty() {
+        vec![-1]
+    } else {
+        ids
+    }
+}
+
 /// Whether the ship qualifies for DoubleAttack fallback:
 /// has 2+ main guns, plus the air state + seaplane prerequisites.
 pub(crate) fn can_double_attack(
@@ -279,6 +325,8 @@ pub(crate) struct ResolvedDayAttack {
     pub(crate) hit_count: usize,
     /// Post-cap damage multiplier per hit.
     pub(crate) damage_multiplier: f64,
+    /// Carrier CI sub-type (FBA/BBA/BA), set only when at_type == CarrierCI.
+    pub(crate) carrier_sub: Option<CarrierCiSubType>,
 }
 
 /// Calculate the trigger rate (0.0–1.0) for a day CI type.
@@ -296,17 +344,17 @@ fn day_ci_trigger_rate(
     is_flagship: bool,
     at_type: DayAttackType,
 ) -> f64 {
-    let luck = ship.ship.api_lucky[0].max(0) as f64;
+    let luck = ship.ship.api_lucky[1].max(0) as f64;
     let los_equip = ship_los_from_equipment(codex, ship);
 
     let base = match air_state {
-        AirState::Supremacy => (luck.sqrt().floor()
-            + 0.7 * (1.6 * los_equip + (los_fleet_term(fleet_los)).floor())
-            + 10.0)
-            .floor(),
-        AirState::Superiority => (luck.sqrt().floor()
-            + 0.6 * (1.2 * los_equip + (los_fleet_term(fleet_los)).floor()))
-        .floor(),
+        AirState::Supremacy => {
+            (luck.sqrt().floor() + 0.7 * (1.6 * los_equip + los_fleet_term(fleet_los)) + 10.0)
+                .floor()
+        }
+        AirState::Superiority => {
+            (luck.sqrt().floor() + 0.6 * (1.2 * los_equip + los_fleet_term(fleet_los))).floor()
+        }
         _ => return 0.0,
     };
 
@@ -323,10 +371,10 @@ fn day_ci_trigger_rate(
     (10.0 + base + flagship_bonus) / base_attack
 }
 
-/// `floor(sqrt(LoS_fleet) + LoS_fleet / 10)`
+/// `floor(sqrt(LoS_fleet) + LoS_fleet / 10)` — floor wraps the entire sum.
 fn los_fleet_term(fleet_los: i64) -> f64 {
     let f = fleet_los as f64;
-    f.sqrt().floor() + f / 10.0
+    (f.sqrt() + f / 10.0).floor()
 }
 
 /// Sum of equipment LoS (`api_saku`) from all equipped items.
@@ -377,6 +425,7 @@ pub(crate) fn resolve_day_attack(
                     at_type: DayAttackType::CarrierCI,
                     hit_count: 1,
                     damage_multiplier: sub.damage_multiplier(),
+                    carrier_sub: Some(sub),
                 };
             }
         }
@@ -391,6 +440,7 @@ pub(crate) fn resolve_day_attack(
                 at_type: ci_type,
                 hit_count: 1,
                 damage_multiplier: day_ci_damage_multiplier(ci_type),
+                carrier_sub: None,
             };
         }
     }
@@ -410,6 +460,7 @@ pub(crate) fn resolve_day_attack(
                 at_type: DayAttackType::DoubleAttack,
                 hit_count: 2,
                 damage_multiplier: day_ci_damage_multiplier(DayAttackType::DoubleAttack),
+                carrier_sub: None,
             };
         }
     }
@@ -422,6 +473,7 @@ fn normal_attack() -> ResolvedDayAttack {
         at_type: DayAttackType::Normal,
         hit_count: 1,
         damage_multiplier: 1.0,
+        carrier_sub: None,
     }
 }
 
@@ -735,6 +787,43 @@ mod tests {
 
         let result = detect_carrier_ci(&codex, &ship, Some(&AirState::Supremacy));
         assert_eq!(result, None);
+    }
+
+    // -- Carrier CI display IDs tests --
+
+    #[test]
+    fn carrier_ci_fba_display_ids_has_3_equipment() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_fighter(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let ids = carrier_ci_display_ids(&codex, &ship, CarrierCiSubType::Fba);
+        assert_eq!(ids.len(), 3, "FBA should show 3 equipment IDs, got {ids:?}");
+    }
+
+    #[test]
+    fn carrier_ci_bba_display_ids_has_3_equipment() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_dive_bomber(&codex, &mut ship);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let ids = carrier_ci_display_ids(&codex, &ship, CarrierCiSubType::Bba);
+        assert_eq!(ids.len(), 3, "BBA should show 3 equipment IDs, got {ids:?}");
+    }
+
+    #[test]
+    fn carrier_ci_ba_display_ids_has_2_equipment() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = cvl_ship(&codex);
+        with_dive_bomber(&codex, &mut ship);
+        with_torpedo_bomber(&codex, &mut ship);
+
+        let ids = carrier_ci_display_ids(&codex, &ship, CarrierCiSubType::Ba);
+        assert_eq!(ids.len(), 2, "BA should show 2 equipment IDs, got {ids:?}");
     }
 
     #[test]

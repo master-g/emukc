@@ -4,7 +4,7 @@ use emukc_model::codex::Codex;
 
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
-use crate::simulation::day_cutin::resolve_day_attack;
+use crate::simulation::day_cutin::{DayAttackType, carrier_ci_display_ids, resolve_day_attack};
 use crate::simulation::special_attack;
 use crate::targeting::{
     can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,
@@ -165,6 +165,15 @@ pub(crate) fn simulate_shelling_side(
                 }
                 let display =
                     crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+                let display_ids = if resolved.at_type == DayAttackType::CarrierCI {
+                    carrier_ci_display_ids(
+                        codex,
+                        ship,
+                        resolved.carrier_sub.expect("CarrierCI must have sub-type"),
+                    )
+                } else {
+                    day_attack_display_ids(codex, ship, false)
+                };
                 push_attack(
                     &mut at_eflag,
                     &mut at_list,
@@ -177,7 +186,7 @@ pub(crate) fn simulate_shelling_side(
                     idx,
                     resolved.at_type as i64,
                     vec![target_idx as i64],
-                    day_attack_display_ids(codex, ship, false),
+                    display_ids,
                     vec![display],
                 );
             }

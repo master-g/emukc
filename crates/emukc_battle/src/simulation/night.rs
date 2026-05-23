@@ -713,9 +713,9 @@ pub(crate) fn simulate_night_hougeki(
                     },
                 )
             };
-            let (_, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+            let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
             total_dealt += dealt;
-            hit_damages.push(dealt);
+            hit_damages.push(raw_dmg);
             hit_cls.push(1i64);
         }
         ship.damage_dealt += total_dealt;
