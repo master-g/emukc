@@ -1325,6 +1325,7 @@ dependencies = [
  "memory-stats",
  "mime_guess",
  "open",
+ "parking_lot",
  "png",
  "rust-embed",
  "serde",
@@ -1340,6 +1341,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "uuid",
  "validator",
 ]
 

@@ -10,6 +10,10 @@ use emukc_internal::{
 
 use crate::cfg::AppConfig;
 
+mod payment_store;
+
+pub use payment_store::{PaymentSession, PaymentStore};
+
 const DB_NAME: &str = "emukc.db";
 
 /// Application state
@@ -29,6 +33,9 @@ pub struct State {
 
     /// Practice runtime state store (instance-scoped)
     pub practice_store: Arc<PracticeStore>,
+
+    /// Payment session store (instance-scoped)
+    pub payment_store: Arc<PaymentStore>,
 }
 
 impl State {
@@ -72,6 +79,7 @@ impl State {
             codex,
             sortie_store: Arc::new(SortieStore::new()),
             practice_store: Arc::new(PracticeStore::new()),
+            payment_store: Arc::new(PaymentStore::new()),
         })
     }
 }

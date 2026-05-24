@@ -129,6 +129,8 @@ pub(super) mod test_utils {
             kache,
             codex: Arc::new(codex),
             sortie_store: Arc::new(SortieStore::new()),
+            practice_store: Arc::new(PracticeStore::new()),
+            payment_store: Arc::new(crate::state::PaymentStore::new()),
         });
 
         let account = state.sign_up("router-test", "1234567").await.unwrap();

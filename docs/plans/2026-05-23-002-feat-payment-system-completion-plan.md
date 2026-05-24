@@ -69,6 +69,8 @@ EmuKC simulates DMM's opensocial Payment protocol. The payment HTML template exi
 - **confirm_payment calls `add_pay_item`**, not `consume_pay_item`: Buying adds the item to inventory. Using the item (via existing `/kcsapi/api_req_member/payitemuse`) grants rewards. This matches the two-step game mechanic.
 - **Session lookup is non-consuming for rendering, consuming for action**: `get()` for `payment.html` render, `take()` for confirm/cancel. Ensures session survives the render step.
 - **uuid v4 for payment_id**: Already available as workspace dependency (`uuid = "1.23.0"` with `fast-rng` and `v4` features).
+- **Independent route for payment.html** instead of modifying generic `game()` handler: Add a dedicated `GET /game/payment.html` route in `game.rs` router that takes `AppState` + `Extension<GameSession>`. Axum matches specific routes before wildcards (`/{*path}`), so this coexists cleanly. Avoids touching the catch-all game handler and keeps payment logic isolated.
+- **confirm_payment validates profile_id only, not token string**: Auth middleware already validates the token. Checking `PaymentSession.profile_id == GameSession.profile.id` prevents cross-user session use. Token string comparison is unnecessary and could break if the 30-minute security token refresh (`index.js` `updateSecurityToken`) fires during the payment flow.
 
 ---
 
@@ -77,7 +79,8 @@ EmuKC simulates DMM's opensocial Payment protocol. The payment HTML template exi
 ### Resolved During Planning
 
 - Where to put PaymentStore: Binary crate, alongside handlers that use it
-- Whether to render payment.html in game.rs or new route: game.rs, following the `ifr.html`/`hijack.js` pattern
+- Whether to render payment.html in game.rs or new route: Dedicated route in game.rs (`/game/payment.html`), not modifying the catch-all `game()` handler. Axum matches specific routes before wildcards, keeping payment logic isolated.
+- Whether to validate token string in confirm_payment: No — auth middleware already validates the token. Only profile_id comparison needed. Token string comparison could break if security token refresh fires mid-flow.
 
 ### Deferred to Implementation
 
@@ -128,6 +131,7 @@ sequenceDiagram
 **Files:**
 - Create: `src/bin/net/router/social/payment_store.rs`
 - Modify: `src/bin/state/mod.rs`
+- Modify: `Cargo.toml` (add `uuid` and `parking_lot` workspace dependencies)
 
 **Approach:**
 - New `PaymentSession` struct with fields: `payment_id`, `profile_id`, `token`, `sku_id`, `price`, `count`, `name`, `description`
@@ -165,11 +169,11 @@ sequenceDiagram
 **Approach:**
 - Extract first item from `RpcExtraParams.items` (already defined in `social/mod.rs`)
 - Parse `sku_id` string to `i64`
-- Optionally validate sku_id exists in codex (`codex.manifest.find_payitem(sku_id)`)
+- Validate sku_id against codex manifest (`codex.manifest.find_payitem(sku_id)`); return error if not found
 - Generate `payment_id` via `uuid::Uuid::new_v4().to_string()`
 - Build `transactionUrl`: `/emukc/game/payment.html?payment_id={id}&st={token}`
 - Create `PaymentSession` from RPC params + session info, store in PaymentStore
-- Return JSON: `{ "id": "key", "data": { "status": 1, "transactionUrl": "...", "payment_id": "..." } }`
+- Return JSON: `{ "id": "key", "data": { "status": 1, "transactionUrl": "...", "payment_id": "..." } }`. Note: the `data` field must be an object, not an array — this differs from `inspection_create`'s array-wrapped response
 - Register as `mod payment_create` in `social/mod.rs`, add match arm for `"paymentjs.create"`
 
 **Patterns to follow:**
@@ -207,27 +211,27 @@ sequenceDiagram
 - Extract `payment_id` and `st` from query params
 - `take()` from PaymentStore (consuming — single-use)
 - Return error JSON if session not found
-- Validate token matches session token
+- Verify `session.profile_id == authenticated_profile_id`; return error on mismatch
 - Call `state.add_pay_item(profile_id, sku_id, count)` to add to inventory
 - Return `{ "response_code": "OK", "payment_id": "..." }`
 
 **cancel_payment:**
 - Extract `payment_id` from query params
 - `take()` from PaymentStore (consuming — single-use)
-- Return `{ "response_code": "CANCEL" }` regardless of whether session existed
+- Return `{ "response_code": "CANCEL", "payment_id": "..." }` regardless of whether session existed
 
-Register both as GET routes in `social/mod.rs` router, behind `kcs_api_auth_middleware`.
+Register both as GET routes in `social/mod.rs` router, behind `kcs_api_auth_middleware`. Note: the payment.html form declares `method="post"`, but JS intercepts the submit event and sends GET via AJAX. If JS-free fallback is desired, register confirm_payment for both GET and POST.
 
 **Patterns to follow:**
 - `src/bin/net/router/kcsapi/api_req_member/payitemuse.rs` — calling PayItemOps from handler
 - `src/bin/net/router/social/mod.rs` — route registration pattern
 
 **Test scenarios:**
-- Happy path (confirm): valid session → item added to pay_item table → returns `{response_code: "OK"}`
-- Happy path (cancel): valid session → session removed → returns `{response_code: "CANCEL"}`
+- Happy path (confirm): valid session → item added to pay_item table → returns `{response_code: "OK", payment_id: "..."}`
+- Happy path (cancel): valid session → session removed → returns `{response_code: "CANCEL", payment_id: "..."}`
 - Error path (confirm): non-existent payment_id → returns error
 - Edge case (confirm): double-confirm same payment_id → second call fails (session already consumed)
-- Error path (confirm): token mismatch → returns error
+- Error path (confirm): profile_id mismatch → returns error
 - Integration: confirm flow adds item verifiable via `find_pay_item`
 
 **Verification:**
@@ -250,15 +254,16 @@ Register both as GET routes in `social/mod.rs` router, behind `kcs_api_auth_midd
 - Modify: `assets/www/emukc/game/payment.html`
 
 **Approach:**
-- Add `payment.html` special case in `game()` handler (alongside `ifr.html` and `hijack.js`)
-- Parse query params: `payment_id`, `st`
+- Add a dedicated `GET /game/payment.html` route in the `game.rs` router, before the catch-all `/{*path}` route. Axum matches specific routes before wildcards, so this coexists without conflict.
+- The payment handler takes `AppState`, `Extension<GameSession>`, `Query<PaymentHtmlQuery>` (with `payment_id` and `st` fields). This keeps the generic `game()` handler untouched.
 - Look up PaymentSession via `state.payment_store.get(payment_id)`
-- Build Tera context with: `payment_id`, `token`, `sku_id`, `name`, `description`, `price`, `total_price`
+- Build Tera context with: `payment_id`, `token`, `sku_id`, `name`, `description`, `price`, `total_price`. The `token` value comes from `GameSession.token` via the Extension.
 - Handle `{{ it.count }}` by inserting `it: { count: N }` as nested context
 - Fix template line 55: `{{ price * count }}` → `{{ total_price }}` (Tera doesn't support inline arithmetic)
 
 **Patterns to follow:**
-- `src/bin/net/router/game.rs` ifr.html branch — Tera rendering of embedded assets
+- `src/bin/net/router/game.rs` `home()` handler — takes `Extension<GameSession>`, Tera rendering pattern
+- `src/bin/net/router/social/mod.rs` `rpc()` handler — takes `AppState` + `Extension<GameSession>`
 
 **Test scenarios:**
 - Happy path: valid session → rendered HTML contains item name, price, count
@@ -291,6 +296,7 @@ Register both as GET routes in `social/mod.rs` router, behind `kcs_api_auth_midd
 | Auth middleware rejects AJAX requests for payment.html | Already verified: middleware reads `st` from query params, which parent frame includes in transactionUrl |
 | Memory leak from orphaned sessions | Accepted for emulator context; server typically restarted between sessions |
 | sku_id string→int parse failure | Graceful error response in payment_create handler |
+| Payment item images (`/kcs/images/purchase_items/{sku_id}.jpg`) unavailable | Handled by existing `/kcs/*` cache route (`kcs.rs`). Availability depends on bootstrap data. Broken images are cosmetic — no functional impact. Verify bootstrap includes these assets during implementation. |
 
 ---
 

@@ -11,9 +11,11 @@ use serde::{Deserialize, Serialize};
 use tera::Tera;
 
 use crate::net::{
+    AppState,
     assets::{GameSiteAssets, GameStaticFile},
     auth::{GameSession, kcs_api_auth_middleware},
 };
+use crate::state::State;
 
 pub(super) fn router() -> Router {
     Router::new()
@@ -22,8 +24,9 @@ pub(super) fn router() -> Router {
         .merge(
             Router::new()
                 .route("/", get(home)) // game home
-                .route_layer(middleware::from_fn(kcs_api_auth_middleware))
-                .route("/game/{*path}", get(game)), // game content
+                .route("/game/payment.html", get(payment_html)) // payment confirmation
+                .route("/game/{*path}", get(game)) // game content
+                .route_layer(middleware::from_fn(kcs_api_auth_middleware)),
         )
 }
 
@@ -80,6 +83,50 @@ async fn hijack_js(uid: i64) -> impl IntoResponse {
 #[derive(Serialize, Deserialize, Debug)]
 struct ViewerQuery {
     viewer: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct PaymentHtmlQuery {
+    payment_id: Option<String>,
+    st: Option<String>,
+}
+
+// emukc/game/payment.html
+async fn payment_html(
+    state: AppState,
+    Extension(session): Extension<GameSession>,
+    Query(query): Query<PaymentHtmlQuery>,
+) -> Response {
+    let state: &State = state.as_ref();
+
+    let payment_id = match query.payment_id {
+        Some(id) => id,
+        None => return Html("missing payment_id".to_string()).into_response(),
+    };
+
+    let session_data = match state.payment_store.get(&payment_id) {
+        Some(s) => s,
+        None => return Html("payment session not found".to_string()).into_response(),
+    };
+
+    let raw = GameSiteAssets::get("emukc/game/payment.html").unwrap();
+    let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
+
+    let mut tera = Tera::default();
+    let mut context = tera::Context::new();
+    context.insert("payment_id", &session_data.payment_id);
+    context.insert("token", &session.token);
+    context.insert("sku_id", &session_data.sku_id);
+    context.insert("name", &session_data.name);
+    context.insert("description", &session_data.description);
+    context.insert("price", &session_data.price);
+    context.insert("total_price", &(session_data.price * session_data.count));
+    context.insert("it", &serde_json::json!({ "count": session_data.count }));
+
+    match tera.render_str(raw, &context) {
+        Ok(html) => Html(html).into_response(),
+        Err(e) => Html(format!("template error: {e}")).into_response(),
+    }
 }
 
 // emukc/game/*

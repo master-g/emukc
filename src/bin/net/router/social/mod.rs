@@ -1,4 +1,7 @@
-use axum::{Extension, Json, Router, middleware, routing::post};
+use axum::{
+    Extension, Json, Router, middleware,
+    routing::{get, post},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::net::{
@@ -6,14 +9,22 @@ use crate::net::{
     auth::{GameSession, kcs_api_auth_middleware},
 };
 
+mod cancel_payment;
+mod confirm_payment;
 mod inspection_create;
+mod payment_create;
 mod people_get;
 
 const METHOD_INSPECTION_CREATE: &str = "inspection.create";
+const METHOD_PAYMENTJS_CREATE: &str = "paymentjs.create";
 const METHOD_PEOPLE_GET: &str = "people.get";
 
 pub(super) fn router() -> Router {
-    Router::new().route("/rpc", post(rpc)).route_layer(middleware::from_fn(kcs_api_auth_middleware))
+    Router::new()
+        .route("/rpc", post(rpc))
+        .route("/confirm_payment", get(confirm_payment::handler))
+        .route("/cancel_payment", get(cancel_payment::handler))
+        .route_layer(middleware::from_fn(kcs_api_auth_middleware))
 }
 
 type RpcRequest = Vec<RpcRequestElement>;
@@ -65,6 +76,9 @@ async fn rpc(
         let resp_element = match req_element.method.as_str() {
             METHOD_INSPECTION_CREATE => {
                 inspection_create::exec(state.as_ref(), &session, req_element.params).await
+            }
+            METHOD_PAYMENTJS_CREATE => {
+                payment_create::exec(state.as_ref(), &session, req_element.params).await
             }
             METHOD_PEOPLE_GET => {
                 people_get::exec(state.as_ref(), &session, req_element.params).await

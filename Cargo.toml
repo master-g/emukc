@@ -163,6 +163,7 @@ http-body-util = { workspace = true }
 inquire = { workspace = true }
 mime_guess = { workspace = true }
 open = { workspace = true }
+parking_lot = { workspace = true }
 png = { workspace = true }
 rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
 serde = { workspace = true }
@@ -172,6 +173,7 @@ tera = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-util = { workspace = true }
+uuid = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true, features = [
 	"add-extension",
