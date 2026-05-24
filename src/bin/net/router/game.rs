@@ -109,6 +109,10 @@ async fn payment_html(
         None => return Html("payment session not found".to_string()).into_response(),
     };
 
+    if session_data.profile_id != session.profile.id {
+        return Html("access denied".to_string()).into_response();
+    }
+
     let raw = GameSiteAssets::get("emukc/game/payment.html").unwrap();
     let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
 
