@@ -32,7 +32,7 @@ mod tests {
         let pid = context.session.profile.id;
         seed_single_ship_fleet(&context.state, pid).await;
 
-        context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.state.start_sortie(pid, 1, 1, 1).await.unwrap();
 
         let battle = battle::handler(
             app_state(&context.state),
@@ -74,7 +74,7 @@ mod tests {
         let pid = context.session.profile.id;
         seed_single_ship_fleet(&context.state, pid).await;
 
-        context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.state.start_sortie(pid, 1, 1, 1).await.unwrap();
 
         let resp = airbattle::handler(
             app_state(&context.state),
@@ -103,7 +103,7 @@ mod tests {
         let pid = context.session.profile.id;
         seed_single_ship_fleet(&context.state, pid).await;
 
-        context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.state.start_sortie(pid, 1, 1, 1).await.unwrap();
 
         let resp = ld_airbattle::handler(
             app_state(&context.state),
@@ -133,7 +133,7 @@ mod tests {
         let pid = context.session.profile.id;
         seed_single_ship_fleet(&context.state, pid).await;
 
-        context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.state.start_sortie(pid, 1, 1, 1).await.unwrap();
 
         let resp = ld_shooting::handler(
             app_state(&context.state),

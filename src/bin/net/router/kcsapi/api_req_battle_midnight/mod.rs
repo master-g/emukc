@@ -24,7 +24,7 @@ mod tests {
         let pid = context.session.profile.id;
         seed_single_ship_fleet(&context.state, pid).await;
 
-        context.state.start_sortie(pid, 1, 1, 1, 1).await.unwrap();
+        context.state.start_sortie(pid, 1, 1, 1).await.unwrap();
 
         let resp = sp_midnight::handler(
             app_state(&context.state),
