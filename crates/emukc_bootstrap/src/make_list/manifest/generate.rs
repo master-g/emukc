@@ -409,40 +409,39 @@ fn resolve_slot_ids_for_target(
         return ids;
     }
 
-    if target == "item_up" {
-        if let Some(rule) = cache_rules
+    if target == "item_up"
+        && let Some(rule) = cache_rules
             .map(|rules| &rules.slot_rules.item_up)
             .filter(|rule| rule.coverage_mode != ResourceCoverageMode::Unresolved)
-        {
-            let exclude = rule
-                .exclude
-                .iter()
-                .filter(|entry| entry.type_ == "item_up")
-                .map(|entry| entry.mst_id)
-                .collect::<std::collections::BTreeSet<_>>();
-            let mut ids = resolve::resolve_slotitem_ids(sources, mst)
-                .into_iter()
-                .filter(|slot_id| !exclude.contains(slot_id))
-                .map(|slot_id| {
-                    if let Some(replaced) = rule.replace_map.get(&slot_id.to_string()) {
-                        *replaced
-                    } else if let Some(border) = rule.enemy_slot_border {
-                        if slot_id > border {
-                            slot_id - border
-                        } else {
-                            slot_id
-                        }
+    {
+        let exclude = rule
+            .exclude
+            .iter()
+            .filter(|entry| entry.type_ == "item_up")
+            .map(|entry| entry.mst_id)
+            .collect::<std::collections::BTreeSet<_>>();
+        let mut ids = resolve::resolve_slotitem_ids(sources, mst)
+            .into_iter()
+            .filter(|slot_id| !exclude.contains(slot_id))
+            .map(|slot_id| {
+                if let Some(replaced) = rule.replace_map.get(&slot_id.to_string()) {
+                    *replaced
+                } else if let Some(border) = rule.enemy_slot_border {
+                    if slot_id > border {
+                        slot_id - border
                     } else {
                         slot_id
                     }
-                })
-                .filter(|slot_id| *slot_id > 0)
-                .collect::<Vec<_>>();
-            ids.sort_unstable();
-            ids.dedup();
-            if !ids.is_empty() {
-                return ids;
-            }
+                } else {
+                    slot_id
+                }
+            })
+            .filter(|slot_id| *slot_id > 0)
+            .collect::<Vec<_>>();
+        ids.sort_unstable();
+        ids.dedup();
+        if !ids.is_empty() {
+            return ids;
         }
     }
 

@@ -66,15 +66,16 @@ impl NightAttackType {
     fn damage_multiplier(self) -> f64 {
         match self {
             Self::Normal => 1.0,
-            Self::DoubleAttack => 1.2,
+            Self::DoubleAttack | Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 1.2,
             Self::MainTorpRadar => 1.625,
-            Self::TorpTorpTorp => 1.3,
+            Self::TorpTorpTorp
+            | Self::DdGunTorpRadar
+            | Self::DdGunTorpRadar2
+            | Self::DdTorpDrumLookout
+            | Self::DdTorpDrumLookout2 => 1.3,
             Self::MainMainSec => 1.75,
             Self::MainMainMain => 2.0,
-            Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 1.3,
-            Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 1.2,
             Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 1.5,
-            Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 1.3,
             Self::CarrierNightCI => 1.25, // default; actual multiplier set by sub-type
         }
     }
@@ -101,14 +102,11 @@ impl NightAttackType {
 
     fn ci_coefficient(self) -> f64 {
         match self {
-            Self::MainTorpRadar => 115.0,
-            Self::TorpTorpTorp => 122.0,
+            Self::MainTorpRadar | Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 115.0,
+            Self::TorpTorpTorp | Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 122.0,
             Self::MainMainSec => 130.0,
-            Self::MainMainMain => 140.0,
-            Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 115.0,
-            Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 140.0,
+            Self::MainMainMain | Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 140.0,
             Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 125.0,
-            Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 122.0,
             Self::DoubleAttack | Self::Normal | Self::CarrierNightCI => 0.0,
         }
     }
@@ -190,7 +188,7 @@ fn has_radar(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 // Carrier night CI
 // ---------------------------------------------------------------------------
 
-/// Night plane icon types (api_type[3]).
+/// Night plane icon types (`api_type`[3]).
 const NIGHT_FIGHTER_ICON: i64 = 45; // 夜間戦闘機
 const NIGHT_ATTACKER_ICON: i64 = 46; // 夜間攻撃機
 const NIGHT_BOMBER_ICON: i64 = 58; // 夜間爆戦
@@ -483,10 +481,10 @@ fn resolve_night_attack(
     }
 
     // DD CI multiroll: GTR→TRL→TTL→DTL, fallback to standard CI
-    if matches!(ship_type(codex, ship), Some(KcShipType::DD)) {
-        if let Some(dd_ci) = resolve_dd_night_attack(codex, rng, ship, is_flagship) {
-            return dd_ci;
-        }
+    if matches!(ship_type(codex, ship), Some(KcShipType::DD))
+        && let Some(dd_ci) = resolve_dd_night_attack(codex, rng, ship, is_flagship)
+    {
+        return dd_ci;
     }
 
     let detected = detect_night_attack_type(codex, ship);
@@ -562,18 +560,14 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &main_guns, 2);
             extend_limit(&mut ids, &secondary_guns, 3);
         }
-        NightAttackType::MainTorpRadar => {
+        NightAttackType::MainTorpRadar
+        | NightAttackType::DdGunTorpRadar
+        | NightAttackType::DdGunTorpRadar2 => {
             extend_limit(&mut ids, &main_guns, 1);
             extend_limit(&mut ids, &torpedoes, 2);
             extend_limit(&mut ids, &radars, 3);
         }
         NightAttackType::TorpTorpTorp => extend_limit(&mut ids, &torpedoes, 3),
-        // DD CI: GTR (主砲+魚雷+電探)
-        NightAttackType::DdGunTorpRadar | NightAttackType::DdGunTorpRadar2 => {
-            extend_limit(&mut ids, &main_guns, 1);
-            extend_limit(&mut ids, &torpedoes, 2);
-            extend_limit(&mut ids, &radars, 3);
-        }
         // DD CI: TRL (魚雷+見張員+電探)
         NightAttackType::DdTorpLookoutRadar | NightAttackType::DdTorpLookoutRadar2 => {
             extend_limit(&mut ids, &torpedoes, 1);
@@ -593,7 +587,7 @@ fn night_attack_display_ids(
         }
         NightAttackType::DoubleAttack => extend_limit(&mut ids, &surface_ids, 2),
         NightAttackType::CarrierNightCI | NightAttackType::Normal => {
-            extend_limit(&mut ids, &surface_ids, 1)
+            extend_limit(&mut ids, &surface_ids, 1);
         }
     }
 

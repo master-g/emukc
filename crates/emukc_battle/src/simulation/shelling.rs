@@ -204,6 +204,7 @@ pub(crate) fn simulate_shelling_side(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn push_attack(
     at_eflag: &mut Vec<i64>,
     at_list: &mut Vec<i64>,

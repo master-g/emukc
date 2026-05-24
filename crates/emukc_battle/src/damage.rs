@@ -98,7 +98,7 @@ pub(crate) fn resolve_damage(
 /// Calculate shelling damage for a single attack.
 ///
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied post-cap
-/// (after the daytime soft cap of 220) — matching KanColle's artillery
+/// (after the daytime soft cap of 220) — matching `KanColle`'s artillery
 /// spotting damage pipeline.
 pub(crate) fn calculate_shelling_damage(
     codex: &Codex,

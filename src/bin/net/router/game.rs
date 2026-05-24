@@ -100,14 +100,12 @@ async fn payment_html(
 ) -> Response {
     let state: &State = state.as_ref();
 
-    let payment_id = match query.payment_id {
-        Some(id) => id,
-        None => return Html("missing payment_id".to_string()).into_response(),
+    let Some(payment_id) = query.payment_id else {
+        return Html("missing payment_id".to_string()).into_response();
     };
 
-    let session_data = match state.payment_store.get(&payment_id) {
-        Some(s) => s,
-        None => return Html("payment session not found".to_string()).into_response(),
+    let Some(session_data) = state.payment_store.get(&payment_id) else {
+        return Html("payment session not found".to_string()).into_response();
     };
 
     if session_data.profile_id != session.profile.id {

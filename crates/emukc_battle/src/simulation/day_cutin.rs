@@ -42,7 +42,7 @@ impl CarrierCiSubType {
 }
 
 /// Post-cap damage multiplier for day CI types.
-/// DoubleAttack uses 1.2x per hit (×2 hits total).
+/// `DoubleAttack` uses 1.2x per hit (×2 hits total).
 ///
 /// `CarrierCI` is expected to be handled directly by `resolve_day_attack`'s carrier branch
 /// (which uses `CarrierCiSubType::damage_multiplier()`); routing it here is a programming
@@ -51,9 +51,8 @@ impl CarrierCiSubType {
 pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
     match at_type {
         DayAttackType::Normal => 1.0,
-        DayAttackType::DoubleAttack => 1.2,
+        DayAttackType::DoubleAttack | DayAttackType::MainRadarCI => 1.2,
         DayAttackType::MainSecCI => 1.1,
-        DayAttackType::MainRadarCI => 1.2,
         DayAttackType::MainApSecCI => 1.3,
         DayAttackType::MainApMainCI => 1.5,
         DayAttackType::CarrierCI => {
@@ -284,16 +283,15 @@ pub(crate) fn carrier_ci_display_ids(
     }
 }
 
-/// Whether the ship qualifies for DoubleAttack fallback:
+/// Whether the ship qualifies for `DoubleAttack` fallback:
 /// has 2+ main guns, plus the air state + seaplane prerequisites.
 pub(crate) fn can_double_attack(
     codex: &Codex,
     ship: &BattleRuntimeShip,
     air_state: Option<&AirState>,
 ) -> bool {
-    let air = match air_state {
-        Some(a) => a,
-        None => return false,
+    let Some(air) = air_state else {
+        return false;
     };
     if !matches!(air, AirState::Supremacy | AirState::Superiority) {
         return false;
@@ -304,15 +302,13 @@ pub(crate) fn can_double_attack(
     count_main_guns(codex, ship) >= 2
 }
 
-/// Per-type base_attack denominator for trigger rate formula.
+/// Per-type `base_attack` denominator for trigger rate formula.
 pub(crate) fn day_ci_base_attack(at_type: DayAttackType) -> f64 {
     match at_type {
         DayAttackType::MainApMainCI => 150.0,
-        DayAttackType::MainApSecCI => 140.0,
-        DayAttackType::MainRadarCI => 130.0,
+        DayAttackType::MainApSecCI | DayAttackType::CarrierCI => 140.0,
+        DayAttackType::MainRadarCI | DayAttackType::DoubleAttack => 130.0,
         DayAttackType::MainSecCI => 120.0,
-        DayAttackType::DoubleAttack => 130.0,
-        DayAttackType::CarrierCI => 140.0,
         DayAttackType::Normal => 0.0,
     }
 }
@@ -321,11 +317,11 @@ pub(crate) fn day_ci_base_attack(at_type: DayAttackType) -> f64 {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct ResolvedDayAttack {
     pub(crate) at_type: DayAttackType,
-    /// Number of hits (1 for CI/normal, 2 for DoubleAttack).
+    /// Number of hits (1 for CI/normal, 2 for `DoubleAttack`).
     pub(crate) hit_count: usize,
     /// Post-cap damage multiplier per hit.
     pub(crate) damage_multiplier: f64,
-    /// Carrier CI sub-type (FBA/BBA/BA), set only when at_type == CarrierCI.
+    /// Carrier CI sub-type (FBA/BBA/BA), set only when `at_type` == `CarrierCI`.
     pub(crate) carrier_sub: Option<CarrierCiSubType>,
 }
 
@@ -335,7 +331,7 @@ pub(crate) struct ResolvedDayAttack {
 /// - Under AS: `Base = floor(sqrt(Luck) + 0.6 * (1.2 * LoS_equip + floor(sqrt(LoS_fleet) + LoS_fleet/10)))`
 /// - Under AS+: `Base = floor(sqrt(Luck) + 0.7 * (1.6 * LoS_equip + floor(sqrt(LoS_fleet) + LoS_fleet/10)) + 10)`
 /// - `Rate = (10 + Base + FlagshipBonus) / Base_attack`
-/// - FlagshipBonus = 15 if index 0 in fleet
+/// - `FlagshipBonus` = 15 if index 0 in fleet
 fn day_ci_trigger_rate(
     codex: &Codex,
     ship: &BattleRuntimeShip,
@@ -377,7 +373,7 @@ fn los_fleet_term(fleet_los: i64) -> f64 {
     (f.sqrt() + f / 10.0).floor()
 }
 
-/// Sum of equipment LoS (`api_saku`) from all equipped items.
+/// Sum of equipment `LoS` (`api_saku`) from all equipped items.
 fn ship_los_from_equipment(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     ship.slot_items
         .iter()
@@ -399,9 +395,8 @@ pub(crate) fn resolve_day_attack(
     fleet_los: i64,
     ship_index: usize,
 ) -> ResolvedDayAttack {
-    let air = match air_state {
-        Some(a) => a,
-        None => return normal_attack(),
+    let Some(air) = air_state else {
+        return normal_attack();
     };
     if !matches!(air, AirState::Supremacy | AirState::Superiority) {
         return normal_attack();

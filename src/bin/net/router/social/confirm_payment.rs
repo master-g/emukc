@@ -31,14 +31,11 @@ pub(super) async fn handler(
 ) -> Json<serde_json::Value> {
     let state: &State = state.as_ref();
 
-    let session_data = match state.payment_store.get(&query.payment_id) {
-        Some(s) => s,
-        None => {
-            return Json(serde_json::json!(ErrorResponse {
-                response_code: "ERROR".to_string(),
-                msg: "payment session not found".to_string(),
-            }));
-        }
+    let Some(session_data) = state.payment_store.get(&query.payment_id) else {
+        return Json(serde_json::json!(ErrorResponse {
+            response_code: "ERROR".to_string(),
+            msg: "payment session not found".to_string(),
+        }));
     };
 
     if session_data.profile_id != session.profile.id {

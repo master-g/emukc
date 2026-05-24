@@ -11,9 +11,8 @@ pub(super) async fn exec(
     session: &GameSession,
     params: RpcParams,
 ) -> serde_json::Value {
-    let extra = match params.params {
-        Some(p) => p,
-        None => return error_response("missing params"),
+    let Some(extra) = params.params else {
+        return error_response("missing params");
     };
 
     let items = match extra.items {
@@ -28,9 +27,8 @@ pub(super) async fn exec(
         Err(_) => return error_response("invalid sku_id"),
     };
 
-    let manifest_item = match state.codex.find::<ApiMstPayitem>(&sku_id) {
-        Ok(item) => item,
-        Err(_) => return error_response("sku_id not found in manifest"),
+    let Ok(manifest_item) = state.codex.find::<ApiMstPayitem>(&sku_id) else {
+        return error_response("sku_id not found in manifest");
     };
 
     let count: i64 = match item.count.parse() {

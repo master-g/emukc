@@ -560,8 +560,9 @@ pub(crate) fn try_special_attack(
                 nagato_broadside_rate(flagship, companion)
             }
             SpecialAttackType::ColoradoBroadside => colorado_rate(flagship, attackers),
-            SpecialAttackType::RichelieuAttack => three_ship_special_rate(flagship, attackers),
-            SpecialAttackType::QueenElizabethAttack => three_ship_special_rate(flagship, attackers),
+            SpecialAttackType::RichelieuAttack | SpecialAttackType::QueenElizabethAttack => {
+                three_ship_special_rate(flagship, attackers)
+            }
         };
 
         if rng.random_f64_range(0.0, 1.0) < rate {

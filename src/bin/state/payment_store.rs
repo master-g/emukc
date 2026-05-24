@@ -7,6 +7,7 @@ use parking_lot::Mutex;
 pub struct PaymentSession {
     pub payment_id: String,
     pub profile_id: i64,
+    #[expect(dead_code)]
     pub token: String,
     pub sku_id: i64,
     pub price: i64,

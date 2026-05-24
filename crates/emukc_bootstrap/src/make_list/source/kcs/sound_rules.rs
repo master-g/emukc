@@ -139,13 +139,12 @@ fn make_ship_voices(mst: &ApiManifest, rule: &CacheRuleShipVoiceRule, list: &mut
                 add_ship_voice(list, graph, formula, *voice_id);
             }
         }
-        if voice_flag & 2 != 0 {
-            if let (Some(start), Some(count)) =
+        if voice_flag & 2 != 0
+            && let (Some(start), Some(count)) =
                 (rule.time_signal_start_voice_id, rule.time_signal_voice_count)
-            {
-                for voice_id in start..start + count {
-                    add_ship_voice(list, graph, formula, voice_id);
-                }
+        {
+            for voice_id in start..start + count {
+                add_ship_voice(list, graph, formula, voice_id);
             }
         }
         if rule.special_art_ship_ids.contains(&graph.api_id) {

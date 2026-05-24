@@ -223,10 +223,11 @@ pub(crate) fn evaluate_route_destination(
             return select_route_from_cells(current, stage, None);
         }
 
-        if let Some(selected_cell_id) = selected_cell_id {
-            if any_indeterminate && current.next_cells.contains(&selected_cell_id) {
-                return Ok(selected_cell_id);
-            }
+        if let Some(selected_cell_id) = selected_cell_id
+            && any_indeterminate
+            && current.next_cells.contains(&selected_cell_id)
+        {
+            return Ok(selected_cell_id);
         }
 
         let unconditional_targets = rules
