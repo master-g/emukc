@@ -13,6 +13,7 @@ use crate::{
     state::State,
 };
 
+mod api_dmm_payment;
 mod api_get_member;
 mod api_port;
 mod api_req_battle_midnight;
@@ -37,7 +38,7 @@ mod form_utils;
 
 pub(super) fn router() -> Router {
     Router::new()
-        // .merge(Router::new().nest("/api_dmm_payment", api_dmm_payment::router()))
+        .merge(Router::new().nest("/api_dmm_payment", api_dmm_payment::router()))
         .merge(Router::new().nest("/api_get_member", api_get_member::router()))
         .merge(Router::new().nest("/api_port", api_port::router()))
         .merge(Router::new().nest("/api_req_init", api_req_init::router()))

@@ -764,13 +764,13 @@ header._n4v1-header {
 }
 
 #ntgnav .ntgnav-dropdown .ntgnav-dropdownList .arrow {
-    background: url(https://p.dmm.com/p/common/arrow_common.gif) no-repeat;
+    background: url(../p/common/arrow_common.gif) no-repeat;
     background-position: left 12% bottom 45%;
     background-position-x: 20px;
 }
 
 #ntgnav .ntgnav-dropdown .ntgnav-dropdownList .arrow:hover {
-    background: url(https://p.dmm.com/p/common/arrow_common.gif) no-repeat;
+    background: url(../p/common/arrow_common.gif) no-repeat;
     background-color: #516067;
     background-position: left 12% bottom 45%;
 }
@@ -3725,19 +3725,19 @@ component - area-side.scss
 }
 
 .area-side .side-genresort .side-inner .side-innerSubList.is-vertical .side-innerSubListItem .arrow {
-    background: url(https://p.dmm.com/p/common/arrow_common.gif) no-repeat;
+    background: url(../p/common/arrow_common.gif) no-repeat;
     background-position: left 12% bottom 45%;
     background-position-x: 20px;
 }
 
 .area-side .side-genresort .side-inner .side-innerSubList.is-vertical .side-innerSubListItem .arrow:hover {
-    background: url(https://p.dmm.com/p/common/arrow_common.gif) no-repeat;
+    background: url(../p/common/arrow_common.gif) no-repeat;
     background-position: left 12% bottom 45%;
     color: #c00;
 }
 
 .area-side .side-genresort .side-inner .side-innerSubList.is-vertical .side-innerSubListItem .on {
-    background: url(https://p.dmm.com/p/common/arrow_common.gif) no-repeat;
+    background: url(../p/common/arrow_common.gif) no-repeat;
     background-position: left 12% bottom 45%;
     color: #c00;
 }
@@ -5821,7 +5821,7 @@ component - _ntg-item-pclist.scss
     display: inline-block;
     margin: 90px auto 0;
     padding-left: 10px;
-    background: url(https://p.dmm.com/p/common/arrow_common.gif) no-repeat left center;
+    background: url(../p/common/arrow_common.gif) no-repeat left center;
 }
 
 .ntg-item-pclist .tx-comment {
@@ -12880,7 +12880,7 @@ project - community.scss
     border-color: #fff #fff #f0f0f0;
     border-radius: 1px;
     background-color: transparent !important;
-    background-image: url(https://p.dmm.com/p/common/bt/bg_bt_arrow.png);
+    background-image: url(../p/common/bt/bg_bt_arrow.png);
     background-position: 6px center;
     background-repeat: no-repeat;
     color: #333;
@@ -15087,7 +15087,7 @@ project - profile.scss
     border-color: #bbb #999 #888;
     border-radius: 3px;
     background-color: #ffc949;
-    background-image: url(https://p.dmm.com/p/common/bt/bg_bt_st.gif);
+    background-image: url(../p/common/bt/bg_bt_st.gif);
     background-position: 0 center;
     background-repeat: no-repeat;
     color: #000;
@@ -15105,7 +15105,7 @@ project - profile.scss
     display: inline-block;
     padding: 3px 3px 3px 15px;
     background-color: transparent !important;
-    background-image: url(https://p.dmm.com/p/common/bt/bg_bt_arrow.png);
+    background-image: url(../p/common/bt/bg_bt_arrow.png);
     background-position: -279px center;
     background-repeat: no-repeat;
     color: #000;

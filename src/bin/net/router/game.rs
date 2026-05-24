@@ -21,11 +21,12 @@ pub(super) fn router() -> Router {
     Router::new()
         .route("/css/{*path}", get(css)) // css/*
         .route("/js/{*path}", get(js)) // js/*
+        .route("/p/{*path}", get(p)) // p.dmm.com assets
+        .route("/game/{*path}", get(game)) // game content (no auth — static assets)
         .merge(
             Router::new()
                 .route("/", get(home)) // game home
                 .route("/game/payment.html", get(payment_html)) // payment confirmation
-                .route("/game/{*path}", get(game)) // game content
                 .route_layer(middleware::from_fn(kcs_api_auth_middleware)),
         )
 }
@@ -131,6 +132,11 @@ async fn payment_html(
         Ok(html) => Html(html).into_response(),
         Err(e) => Html(format!("template error: {e}")).into_response(),
     }
+}
+
+// emukc/p/* (p.dmm.com static assets)
+async fn p(Path(path): Path<String>) -> impl IntoResponse {
+    GameStaticFile(format!("emukc/p/{path}"))
 }
 
 // emukc/game/*

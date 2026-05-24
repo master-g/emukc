@@ -430,7 +430,7 @@ html[lang="ko"] #side-l .side-pickup .inner .box-bt > a[class] {
 
 #side-l .side-contents .side-menu p.back-link a {
   padding-left: 10px;
-  background: url(http://p.dmm.com/p/common/arrow_common.gif) no-repeat left
+  background: url(../p/common/arrow_common.gif) no-repeat left
     center;
   font-weight: normal;
   zoom: 1;
@@ -4148,7 +4148,7 @@ html[lang="en"] #d-header .hd-my__box.hd-my__box--02 {
 
 #w .arrow {
   padding-left: 10px;
-  background: url(http://p.dmm.com/p/common/arrow_common.gif) no-repeat left
+  background: url(../p/common/arrow_common.gif) no-repeat left
     center;
 }
 
@@ -5938,7 +5938,7 @@ hr[class*="d-solid"] {
 #w [class^="d-btn"] > * {
   width: 141px;
   display: inline-block;
-  background-image: url("http://p.dmm.com/p/common/bt/bg_bt_arrow.png");
+  background-image: url("../p/common/bt/bg_bt_arrow.png");
   background-color: transparent !important;
   background-repeat: no-repeat;
   background-position: 6px center;
@@ -5965,7 +5965,7 @@ hr[class*="d-solid"] {
 }
 
 #w [class^="d-btn"][class*="-st"] {
-  background-image: url("http://p.dmm.com/p/common/bt/bg_bt_st.gif");
+  background-image: url("../p/common/bt/bg_bt_st.gif");
   background-color: #ffc949;
 }
 
