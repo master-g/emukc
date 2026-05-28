@@ -1,7 +1,7 @@
 ---
 title: "fix: Battle CI Audit Review Findings (May 2026)"
 date: 2026-05-23
-status: active
+status: completed
 scope: standard
 depth: fix
 ---

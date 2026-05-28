@@ -1,7 +1,7 @@
 ---
 title: "Clippy 警告清理与深层问题评估"
 created: 2026-05-24
-status: active
+status: completed
 type: chore
 depth: lightweight
 ---

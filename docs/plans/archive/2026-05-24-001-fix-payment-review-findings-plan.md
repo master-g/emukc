@@ -1,7 +1,7 @@
 ---
 name: fix-payment-review-findings
 type: fix
-status: active
+status: completed
 created: 2026-05-24
 ---
 
