@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-27T03:53:11.580Z",
-  "scriptVersion": "6.2.8.0",
+  "generatedAt": "2026-06-01T12:53:18.830Z",
+  "scriptVersion": "6.2.9.1",
   "summary": {
     "shipTargetTypeCount": 36,
     "slotTargetTypeCount": 13,
@@ -607,6 +607,7 @@
         "6148",
         "62473",
         "68173",
+        "68432",
         "80845",
         "82850",
         "83645",
@@ -627,6 +628,7 @@
         "CutinDouble1",
         "CutinDouble2",
         "CutinDouble4",
+        "CutinKongoAttack",
         "CutinKuboDay",
         "CutinKuboNight",
         "CutinResourcesPreloadTask",

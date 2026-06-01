@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-04-27T03:53:29.565Z",
+  "generatedAt": "2026-06-01T12:53:30.235Z",
   "pathRules": {
     "shipDamageVariants": {
       "banner": [
@@ -1043,13 +1043,13 @@
     ]
   },
   "summary": {
-    "totalEntries": 416,
+    "totalEntries": 417,
     "shipEntryCount": 144,
     "slotitemEntryCount": 144,
-    "textureProviderEntryCount": 127,
+    "textureProviderEntryCount": 128,
     "explicitPathEntryCount": 1,
     "totalExplicitPaths": 37,
-    "modulesCovered": 790
+    "modulesCovered": 791
   },
   "entries": [
     {
@@ -1082,7 +1082,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x1d0f2d",
+      "shipMstIdSource": "_0x512f21",
       "damagedSource": "false",
       "moduleIds": [
         "3087"
@@ -1095,7 +1095,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "card",
-      "shipMstIdSource": "_0x39be80",
+      "shipMstIdSource": "_0x2bdcf1",
       "damagedSource": "false",
       "moduleIds": [
         "29168"
@@ -1108,7 +1108,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "card",
-      "shipMstIdSource": "_0x39be80",
+      "shipMstIdSource": "_0x2bdcf1",
       "damagedSource": "false",
       "moduleIds": [
         "29168"
@@ -1121,7 +1121,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "reward_icon",
-      "shipMstIdSource": "_0x5da0c6.mst_id",
+      "shipMstIdSource": "_0x1649ab.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "19281"
@@ -1186,7 +1186,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "reward_card",
-      "shipMstIdSource": "_0x20348a",
+      "shipMstIdSource": "_0x56b195",
       "damagedSource": "false",
       "moduleIds": [
         "46091"
@@ -1199,7 +1199,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "card_round",
-      "shipMstIdSource": "_0x201e87",
+      "shipMstIdSource": "_0x3e3eb8",
       "damagedSource": "false",
       "moduleIds": [
         "38661"
@@ -1212,8 +1212,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "supply_character",
-      "shipMstIdSource": "_0x20d0e3",
-      "damagedSource": "_0x5ec49f",
+      "shipMstIdSource": "_0x59b039",
+      "damagedSource": "_0x269dba",
       "moduleIds": [
         "64289"
       ],
@@ -1225,8 +1225,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner",
-      "shipMstIdSource": "_0x1ffb1a",
-      "damagedSource": "_0x56d23a",
+      "shipMstIdSource": "_0x4664ad",
+      "damagedSource": "_0x5a1f94",
       "moduleIds": [
         "37638"
       ],
@@ -1238,8 +1238,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "card",
-      "shipMstIdSource": "_0x139a42",
-      "damagedSource": "_0x1a3f79",
+      "shipMstIdSource": "_0x19cd79",
+      "damagedSource": "_0x5e3022",
       "moduleIds": [
         "17733"
       ],
@@ -1280,7 +1280,7 @@
       "source": "ShipLoader.add",
       "targetType": "full",
       "shipMstIdSource": "ship_mstid",
-      "damagedSource": "_0x747b59",
+      "damagedSource": "_0x1f488a",
       "moduleIds": [
         "17265"
       ],
@@ -1293,7 +1293,7 @@
       "source": "ShipLoader.add",
       "targetType": "card",
       "shipMstIdSource": "ship_mstid",
-      "damagedSource": "_0x747b59",
+      "damagedSource": "_0x1f488a",
       "moduleIds": [
         "17265"
       ],
@@ -1306,7 +1306,7 @@
       "source": "resources.getShip",
       "targetType": "full",
       "shipMstIdSource": "ship_mstid",
-      "damagedSource": "_0x747b59",
+      "damagedSource": "_0x1f488a",
       "moduleIds": [
         "17265"
       ],
@@ -1319,7 +1319,7 @@
       "source": "resources.getShip",
       "targetType": "card",
       "shipMstIdSource": "ship_mstid",
-      "damagedSource": "_0x747b59",
+      "damagedSource": "_0x1f488a",
       "moduleIds": [
         "17265"
       ],
@@ -1331,8 +1331,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0xe5cd4",
-      "damagedSource": "_0x27eaf9",
+      "shipMstIdSource": "_0x219710",
+      "damagedSource": "_0x27208e",
       "moduleIds": [
         "17172"
       ],
@@ -1344,8 +1344,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0xe5cd4",
-      "damagedSource": "_0x27eaf9",
+      "shipMstIdSource": "_0x219710",
+      "damagedSource": "_0x27208e",
       "moduleIds": [
         "17172"
       ],
@@ -1357,7 +1357,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x2dc552[0]",
+      "shipMstIdSource": "_0x486296[0]",
       "damagedSource": "false",
       "moduleIds": [
         "35601"
@@ -1370,7 +1370,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/silhouette",
-      "shipMstIdSource": "_0x2dc552[1]",
+      "shipMstIdSource": "_0x486296[1]",
       "damagedSource": "false",
       "moduleIds": [
         "35601"
@@ -1383,7 +1383,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x2dc552[0]",
+      "shipMstIdSource": "_0x486296[0]",
       "damagedSource": "false",
       "moduleIds": [
         "35601"
@@ -1396,7 +1396,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "sp_remodel/silhouette",
-      "shipMstIdSource": "_0x2dc552[1]",
+      "shipMstIdSource": "_0x486296[1]",
       "damagedSource": "false",
       "moduleIds": [
         "35601"
@@ -1409,7 +1409,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/full_x2",
-      "shipMstIdSource": "_0x3e5c95.mstID",
+      "shipMstIdSource": "_0xb597ba.mstID",
       "damagedSource": "false",
       "moduleIds": [
         "59611"
@@ -1422,7 +1422,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/text_class",
-      "shipMstIdSource": "_0x3e5c95.mstID",
+      "shipMstIdSource": "_0xb597ba.mstID",
       "damagedSource": "false",
       "moduleIds": [
         "59611"
@@ -1435,7 +1435,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/text_name",
-      "shipMstIdSource": "_0x3e5c95.mstID",
+      "shipMstIdSource": "_0xb597ba.mstID",
       "damagedSource": "false",
       "moduleIds": [
         "59611"
@@ -1461,7 +1461,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/text_remodel_mes",
-      "shipMstIdSource": "_0x66f3a6.mstID",
+      "shipMstIdSource": "_0x108111.mstID",
       "damagedSource": "false",
       "moduleIds": [
         "50402"
@@ -1474,7 +1474,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "sp_remodel/text_remodel_mes",
-      "shipMstIdSource": "_0x66f3a6.mstID",
+      "shipMstIdSource": "_0x108111.mstID",
       "damagedSource": "false",
       "moduleIds": [
         "50402"
@@ -1487,7 +1487,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "sp_remodel/full_x2",
-      "shipMstIdSource": "_0x15acd1",
+      "shipMstIdSource": "_0x2bec7a",
       "damagedSource": "false",
       "moduleIds": [
         "7248"
@@ -1500,7 +1500,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "sp_remodel/text_class",
-      "shipMstIdSource": "_0x15acd1",
+      "shipMstIdSource": "_0x2bec7a",
       "damagedSource": "false",
       "moduleIds": [
         "7248"
@@ -1513,7 +1513,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "sp_remodel/text_name",
-      "shipMstIdSource": "_0x15acd1",
+      "shipMstIdSource": "_0x2bec7a",
       "damagedSource": "false",
       "moduleIds": [
         "7248"
@@ -1526,8 +1526,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner",
-      "shipMstIdSource": "_0x3be5c3",
-      "damagedSource": "_0x6d8be2",
+      "shipMstIdSource": "_0x24e62b",
+      "damagedSource": "_0x561019",
       "moduleIds": [
         "18168"
       ],
@@ -1578,7 +1578,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "album_status",
-      "shipMstIdSource": "_0x50a9ca[0]",
+      "shipMstIdSource": "_0x43d947[0]",
       "damagedSource": "false",
       "moduleIds": [
         "17775"
@@ -1591,7 +1591,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "card",
-      "shipMstIdSource": "_0x15118b",
+      "shipMstIdSource": "_0x594695",
       "damagedSource": "false",
       "moduleIds": [
         "17775"
@@ -1604,7 +1604,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "character_full",
-      "shipMstIdSource": "_0x15118b",
+      "shipMstIdSource": "_0x594695",
       "damagedSource": "false",
       "moduleIds": [
         "17775"
@@ -1617,7 +1617,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "character_up",
-      "shipMstIdSource": "_0x15118b",
+      "shipMstIdSource": "_0x594695",
       "damagedSource": "false",
       "moduleIds": [
         "17775"
@@ -1630,7 +1630,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "character_full",
-      "shipMstIdSource": "_0x15118b",
+      "shipMstIdSource": "_0x594695",
       "damagedSource": "true",
       "moduleIds": [
         "17775"
@@ -1643,7 +1643,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "character_up",
-      "shipMstIdSource": "_0x15118b",
+      "shipMstIdSource": "_0x594695",
       "damagedSource": "true",
       "moduleIds": [
         "17775"
@@ -1656,7 +1656,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "card",
-      "shipMstIdSource": "_0xa2cdd0",
+      "shipMstIdSource": "_0x12f8db",
       "damagedSource": "false",
       "moduleIds": [
         "20473"
@@ -1669,7 +1669,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "character_full",
-      "shipMstIdSource": "_0xa2cdd0",
+      "shipMstIdSource": "_0x12f8db",
       "damagedSource": "false",
       "moduleIds": [
         "20473"
@@ -1682,7 +1682,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "character_up",
-      "shipMstIdSource": "_0xa2cdd0",
+      "shipMstIdSource": "_0x12f8db",
       "damagedSource": "false",
       "moduleIds": [
         "20473"
@@ -1695,7 +1695,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "character_full",
-      "shipMstIdSource": "_0xa2cdd0",
+      "shipMstIdSource": "_0x12f8db",
       "damagedSource": "true",
       "moduleIds": [
         "20473"
@@ -1708,7 +1708,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "character_up",
-      "shipMstIdSource": "_0xa2cdd0",
+      "shipMstIdSource": "_0x12f8db",
       "damagedSource": "true",
       "moduleIds": [
         "20473"
@@ -1721,7 +1721,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "album_status",
-      "shipMstIdSource": "_0x3200b2",
+      "shipMstIdSource": "_0xbd0f1e",
       "damagedSource": "false",
       "moduleIds": [
         "3609"
@@ -1734,7 +1734,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "icon_box",
-      "shipMstIdSource": "_0x31f37d.mst_id",
+      "shipMstIdSource": "_0x4c5206.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "56230"
@@ -1747,7 +1747,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "reward_icon",
-      "shipMstIdSource": "_0x3d1397.mst_id",
+      "shipMstIdSource": "_0x44f0f7.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "80135"
@@ -1760,7 +1760,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "icon_box",
-      "shipMstIdSource": "_0x3d1397.mst_id",
+      "shipMstIdSource": "_0x44f0f7.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "80135"
@@ -1773,7 +1773,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x26d8c6",
+      "shipMstIdSource": "_0x464cd9",
       "damagedSource": "false",
       "moduleIds": [
         "62174"
@@ -1786,7 +1786,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x26d8c6",
+      "shipMstIdSource": "_0x464cd9",
       "damagedSource": "false",
       "moduleIds": [
         "62174"
@@ -1837,7 +1837,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x2d6274",
+      "shipMstIdSource": "_0x4f429e",
       "damagedSource": "damaged",
       "moduleIds": [
         "86156"
@@ -1850,7 +1850,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x9f5012",
+      "shipMstIdSource": "_0x1b5e89",
       "damagedSource": "damaged",
       "moduleIds": [
         "86156"
@@ -1910,8 +1910,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x2f1ec0",
-      "damagedSource": "_0x156792",
+      "shipMstIdSource": "_0x89fe27",
+      "damagedSource": "_0x4fcb11",
       "moduleIds": [
         "82850"
       ],
@@ -1949,7 +1949,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "banner",
-      "shipMstIdSource": "_0x290c87",
+      "shipMstIdSource": "_0x2d9a9a",
       "damagedSource": "false",
       "moduleIds": [
         "87371"
@@ -1962,7 +1962,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "banner",
-      "shipMstIdSource": "_0x290c87",
+      "shipMstIdSource": "_0x2d9a9a",
       "damagedSource": "true",
       "moduleIds": [
         "87371"
@@ -1976,7 +1976,7 @@
       "source": "resources.getShip",
       "targetType": "banner",
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x1a83bb",
+      "damagedSource": "_0x3183da",
       "moduleIds": [
         "31394"
       ],
@@ -1988,7 +1988,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner3",
-      "shipMstIdSource": "_0x505243",
+      "shipMstIdSource": "_0x3a0262",
       "damagedSource": "false",
       "moduleIds": [
         "51724"
@@ -2001,7 +2001,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner3",
-      "shipMstIdSource": "_0x5580ff",
+      "shipMstIdSource": "_0x5bb05e",
       "damagedSource": "false",
       "moduleIds": [
         "51724"
@@ -2028,7 +2028,7 @@
       "source": "resources.getShip",
       "targetType": "full",
       "shipMstIdSource": "self._mst_id",
-      "damagedSource": "_0x4dce0f",
+      "damagedSource": "_0x7b3c1a",
       "moduleIds": [
         "4146"
       ],
@@ -2041,7 +2041,7 @@
       "source": "ShipLoader.add",
       "targetType": "full",
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x967c48",
+      "damagedSource": "_0xc12746",
       "moduleIds": [
         "4146"
       ],
@@ -2053,7 +2053,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x44268e",
+      "shipMstIdSource": "_0x466289",
       "damagedSource": "damaged",
       "moduleIds": [
         "94663"
@@ -2126,7 +2126,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x150e70",
+      "shipMstIdSource": "_0x138520",
       "damagedSource": "damaged",
       "moduleIds": [
         "35773"
@@ -2139,7 +2139,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x258ecb",
+      "shipMstIdSource": "_0x1c46e9",
       "damagedSource": "damaged",
       "moduleIds": [
         "83645"
@@ -2152,7 +2152,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "special",
-      "shipMstIdSource": "_0x463b8c",
+      "shipMstIdSource": "_0x66bfd2",
       "damagedSource": "false",
       "moduleIds": [
         "51225"
@@ -2165,8 +2165,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x55803e",
-      "damagedSource": "_0x3edd8f",
+      "shipMstIdSource": "_0x467331",
+      "damagedSource": "_0x3e2742",
       "moduleIds": [
         "51225"
       ],
@@ -2182,7 +2182,6 @@
       "damagedSource": "false",
       "moduleIds": [
         "51225",
-        "68432",
         "84085",
         "6148",
         "425",
@@ -2191,7 +2190,6 @@
       ],
       "moduleNames": [
         "module-51225.js",
-        "CutinKongoAttack",
         "module-84085.js",
         "module-6148.js",
         "module-425.js",
@@ -2222,7 +2220,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "this._attackers._0x39f3be.mst_id",
+      "shipMstIdSource": "this._attackers._0x9935eb.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "51225"
@@ -2235,8 +2233,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x4636fd",
-      "damagedSource": "_0x76fa8",
+      "shipMstIdSource": "_0x13e512",
+      "damagedSource": "_0x4946a1",
       "moduleIds": [
         "13292"
       ],
@@ -2248,7 +2246,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x5d91cc",
+      "shipMstIdSource": "_0x5ec373",
       "damagedSource": "damaged",
       "moduleIds": [
         "55226"
@@ -2261,7 +2259,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x3d6675",
+      "shipMstIdSource": "_0xd7024c",
       "damagedSource": "damaged",
       "moduleIds": [
         "46595"
@@ -2274,7 +2272,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x417b32",
+      "shipMstIdSource": "_0x2e7a43",
       "damagedSource": "damaged",
       "moduleIds": [
         "32611"
@@ -2300,8 +2298,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0xef0bbf",
-      "damagedSource": "false",
+      "shipMstIdSource": "_0xe4b41",
+      "damagedSource": "damaged",
       "moduleIds": [
         "68432"
       ],
@@ -2313,7 +2311,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "this._attackers._0xf8248e.mst_id",
+      "shipMstIdSource": "this._attackers._0x3dd505.mst_id",
       "damagedSource": "damaged",
       "moduleIds": [
         "68432"
@@ -2326,7 +2324,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x5c1867",
+      "shipMstIdSource": "_0xfd0d87",
       "damagedSource": "damaged",
       "moduleIds": [
         "48579"
@@ -2339,7 +2337,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x5f4c68",
+      "shipMstIdSource": "_0x31cd66",
       "damagedSource": "damaged",
       "moduleIds": [
         "50527"
@@ -2369,8 +2367,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x1cc438",
-      "damagedSource": "_0x2d1ab5",
+      "shipMstIdSource": "_0x3af8e0",
+      "damagedSource": "_0x26491b",
       "moduleIds": [
         "84085"
       ],
@@ -2382,7 +2380,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "special",
-      "shipMstIdSource": "_0x1cc438",
+      "shipMstIdSource": "_0x3af8e0",
       "damagedSource": "false",
       "moduleIds": [
         "84085"
@@ -2395,7 +2393,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "special",
-      "shipMstIdSource": "this._attackers._0x1523ea.mst_id",
+      "shipMstIdSource": "this._attackers._0xcc0d72.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "84085"
@@ -2408,8 +2406,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "this._attackers._0x1523ea.mst_id",
-      "damagedSource": "_0x3623f8",
+      "shipMstIdSource": "this._attackers._0xcc0d72.mst_id",
+      "damagedSource": "_0xd69429",
       "moduleIds": [
         "84085"
       ],
@@ -2421,8 +2419,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x1900f8",
-      "damagedSource": "_0x12aa63",
+      "shipMstIdSource": "_0x146956",
+      "damagedSource": "_0x40f9df",
       "moduleIds": [
         "6148"
       ],
@@ -2434,7 +2432,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "special",
-      "shipMstIdSource": "_0x1900f8",
+      "shipMstIdSource": "_0x146956",
       "damagedSource": "false",
       "moduleIds": [
         "6148"
@@ -2447,8 +2445,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "special",
-      "shipMstIdSource": "this._attackers._0x5919a2.mst_id",
-      "damagedSource": "_0x305d4f",
+      "shipMstIdSource": "this._attackers._0x600ce2.mst_id",
+      "damagedSource": "_0x1cdc08",
       "moduleIds": [
         "6148"
       ],
@@ -2460,8 +2458,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "this._attackers._0x5919a2.mst_id",
-      "damagedSource": "_0x305d4f",
+      "shipMstIdSource": "this._attackers._0x600ce2.mst_id",
+      "damagedSource": "_0x1cdc08",
       "moduleIds": [
         "6148"
       ],
@@ -2473,8 +2471,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x460724",
-      "damagedSource": "_0x1664e6",
+      "shipMstIdSource": "_0x373c36",
+      "damagedSource": "_0x53c4b6",
       "moduleIds": [
         "425"
       ],
@@ -2486,8 +2484,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x138b32",
-      "damagedSource": "_0x3a6452",
+      "shipMstIdSource": "_0x3d1837",
+      "damagedSource": "_0x2da76b",
       "moduleIds": [
         "2212"
       ],
@@ -2499,8 +2497,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "this._attackers._0x33754.mst_id",
-      "damagedSource": "_0x45d4f2",
+      "shipMstIdSource": "this._attackers._0x389f75.mst_id",
+      "damagedSource": "_0xaa0d7b",
       "moduleIds": [
         "2212"
       ],
@@ -2512,8 +2510,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x279134",
-      "damagedSource": "_0x293b35",
+      "shipMstIdSource": "_0x814f41",
+      "damagedSource": "_0x239468",
       "moduleIds": [
         "94206"
       ],
@@ -2525,8 +2523,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "this._attackers._0x41fc90.mst_id",
-      "damagedSource": "_0x49cf62",
+      "shipMstIdSource": "this._attackers._0x5a72d6.mst_id",
+      "damagedSource": "_0x55c20a",
       "moduleIds": [
         "94206"
       ],
@@ -2538,7 +2536,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x1087bb",
+      "shipMstIdSource": "_0x4cbb0f",
       "damagedSource": "damaged",
       "moduleIds": [
         "43136"
@@ -2551,7 +2549,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x23f026",
+      "shipMstIdSource": "_0x159645",
       "damagedSource": "damaged",
       "moduleIds": [
         "99929"
@@ -2564,7 +2562,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x3b5772",
+      "shipMstIdSource": "_0x1c8abb",
       "damagedSource": "damaged",
       "moduleIds": [
         "99411"
@@ -2577,7 +2575,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x143282",
+      "shipMstIdSource": "_0xce215b",
       "damagedSource": "damaged",
       "moduleIds": [
         "25955"
@@ -2590,7 +2588,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "special",
-      "shipMstIdSource": "_0x143282",
+      "shipMstIdSource": "_0xce215b",
       "damagedSource": "false",
       "moduleIds": [
         "25955"
@@ -2603,7 +2601,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x84729a",
+      "shipMstIdSource": "_0x28545c",
       "damagedSource": "damaged",
       "moduleIds": [
         "11166"
@@ -2616,7 +2614,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "special",
-      "shipMstIdSource": "_0x84729a",
+      "shipMstIdSource": "_0x28545c",
       "damagedSource": "false",
       "moduleIds": [
         "11166"
@@ -2629,7 +2627,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "special",
-      "shipMstIdSource": "_0x2d5cfd",
+      "shipMstIdSource": "_0x306328",
       "damagedSource": "false",
       "moduleIds": [
         "43367"
@@ -2642,7 +2640,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "special",
-      "shipMstIdSource": "this._attackers._0xf669b.mst_id",
+      "shipMstIdSource": "this._attackers._0x2c6fc9.mst_id",
       "damagedSource": "false",
       "moduleIds": [
         "43367"
@@ -2668,7 +2666,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x3bd149",
+      "shipMstIdSource": "_0x488f1e",
       "damagedSource": "damaged",
       "moduleIds": [
         "93634"
@@ -2681,7 +2679,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "special",
-      "shipMstIdSource": "_0x3bd149",
+      "shipMstIdSource": "_0x488f1e",
       "damagedSource": "false",
       "moduleIds": [
         "93634"
@@ -2707,7 +2705,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x12c77b",
+      "shipMstIdSource": "_0x563ec8",
       "damagedSource": "false",
       "moduleIds": [
         "76095"
@@ -2720,7 +2718,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x17db72",
+      "shipMstIdSource": "_0x2344c9",
       "damagedSource": "false",
       "moduleIds": [
         "76095"
@@ -2733,7 +2731,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x5cae20",
+      "shipMstIdSource": "_0x1aeff5",
       "damagedSource": "true",
       "moduleIds": [
         "46997"
@@ -2746,7 +2744,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x1123ac",
+      "shipMstIdSource": "_0x2502ae",
       "damagedSource": "true",
       "moduleIds": [
         "46997"
@@ -2759,7 +2757,7 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "full",
-      "shipMstIdSource": "_0x550e64",
+      "shipMstIdSource": "_0x2fc4fa",
       "damagedSource": "true",
       "moduleIds": [
         "21541"
@@ -2772,7 +2770,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "full",
-      "shipMstIdSource": "_0x4ba467",
+      "shipMstIdSource": "_0x48902c",
       "damagedSource": "true",
       "moduleIds": [
         "21541"
@@ -2785,8 +2783,8 @@
       "kind": "ship",
       "source": "ShipLoader.add",
       "targetType": "banner",
-      "shipMstIdSource": "_0x4633f1.mst_id",
-      "damagedSource": "_0x4633f1.damaged",
+      "shipMstIdSource": "_0x15fcb4.mst_id",
+      "damagedSource": "_0x15fcb4.damaged",
       "moduleIds": [
         "86523"
       ],
@@ -2798,8 +2796,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner",
-      "shipMstIdSource": "_0xe2becb.mst_id",
-      "damagedSource": "_0xe2becb.damaged",
+      "shipMstIdSource": "_0x58e4b0.mst_id",
+      "damagedSource": "_0x58e4b0.damaged",
       "moduleIds": [
         "86523"
       ],
@@ -2811,8 +2809,8 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner",
-      "shipMstIdSource": "_0x208ddb.mst_id",
-      "damagedSource": "_0x208ddb.damaged",
+      "shipMstIdSource": "_0x42f457.mst_id",
+      "damagedSource": "_0x42f457.damaged",
       "moduleIds": [
         "86523"
       ],
@@ -2838,7 +2836,7 @@
       "source": "resources.getShip",
       "targetType": "banner",
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x56e57e",
+      "damagedSource": "_0x34c1de",
       "moduleIds": [
         "56817"
       ],
@@ -2851,7 +2849,7 @@
       "source": "resources.getShip",
       "targetType": "banner",
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x5d60bd",
+      "damagedSource": "_0x536f04",
       "moduleIds": [
         "56817"
       ],
@@ -2877,7 +2875,7 @@
       "source": "resources.getShip",
       "targetType": "banner2",
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x192546",
+      "damagedSource": "_0x22e137",
       "moduleIds": [
         "56817"
       ],
@@ -2903,7 +2901,7 @@
       "source": "resources.getShip",
       "targetType": "banner3",
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x40e0a1",
+      "damagedSource": "_0x534b93",
       "moduleIds": [
         "56817"
       ],
@@ -2941,7 +2939,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner_g",
-      "shipMstIdSource": "_0xd9f27",
+      "shipMstIdSource": "_0x598e7a",
       "damagedSource": "true",
       "moduleIds": [
         "72878"
@@ -2954,7 +2952,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner",
-      "shipMstIdSource": "_0xd9f27",
+      "shipMstIdSource": "_0x598e7a",
       "damagedSource": "true",
       "moduleIds": [
         "72878"
@@ -2967,7 +2965,7 @@
       "kind": "ship",
       "source": "resources.getShip",
       "targetType": "banner",
-      "shipMstIdSource": "_0xd9f27",
+      "shipMstIdSource": "_0x598e7a",
       "damagedSource": "false",
       "moduleIds": [
         "72878"
@@ -2999,7 +2997,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x454fce"
+        "_0x4cda6e"
       ],
       "moduleIds": [
         "34931"
@@ -3013,7 +3011,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x4ffa6d"
+        "_0x5e1ad4"
       ],
       "moduleIds": [
         "20324"
@@ -3027,7 +3025,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x4b7bfd"
+        "_0x182452"
       ],
       "moduleIds": [
         "20324"
@@ -3041,7 +3039,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0xf86671"
+        "_0x42be8d"
       ],
       "moduleIds": [
         "20324"
@@ -3055,7 +3053,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x74267d"
+        "_0x19f510"
       ],
       "moduleIds": [
         "20324"
@@ -3069,7 +3067,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x43a6b0"
+        "_0x19262c"
       ],
       "moduleIds": [
         "38287"
@@ -3083,7 +3081,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0xaa643f.id"
+        "_0x182302.id"
       ],
       "moduleIds": [
         "11039"
@@ -3097,7 +3095,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x46349f.id"
+        "_0x50c835.id"
       ],
       "moduleIds": [
         "11039"
@@ -3111,7 +3109,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x14e26f"
+        "_0xacfe26"
       ],
       "moduleIds": [
         "70041"
@@ -3125,7 +3123,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x14e26f"
+        "_0xacfe26"
       ],
       "moduleIds": [
         "70041"
@@ -3139,7 +3137,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x5da0c6.mst_id"
+        "_0x1649ab.mst_id"
       ],
       "moduleIds": [
         "19281"
@@ -3153,7 +3151,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x2f4335"
+        "_0x5abf82"
       ],
       "moduleIds": [
         "63476"
@@ -3167,7 +3165,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x19210d"
+        "_0x3cc202"
       ],
       "moduleIds": [
         "31930"
@@ -3181,7 +3179,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x8aa8b3._0x515b69"
+        "_0x17f94d._0x3d7991"
       ],
       "moduleIds": [
         "31930"
@@ -3209,7 +3207,7 @@
       "source": "resources.getSlotitem",
       "targetType": "airunit_banner",
       "slotMstIdSources": [
-        "_0x20f800._mst_id"
+        "_0x36898d._mst_id"
       ],
       "moduleIds": [
         "25832"
@@ -3223,7 +3221,7 @@
       "source": "resources.getSlotitem",
       "targetType": "remodel",
       "slotMstIdSources": [
-        "_0x346c83"
+        "_0x16e760"
       ],
       "moduleIds": [
         "8263"
@@ -3237,7 +3235,7 @@
       "source": "resources.getSlotitem",
       "targetType": "airunit_banner",
       "slotMstIdSources": [
-        "_0x5b5c8f.mst_id"
+        "_0x19b5a1.mst_id"
       ],
       "moduleIds": [
         "12922"
@@ -3307,7 +3305,7 @@
       "source": "SlotLoader.add",
       "targetType": "statustop_item",
       "slotMstIdSources": [
-        "_0x863dac[0]"
+        "_0x57aa1d[0]"
       ],
       "moduleIds": [
         "40545"
@@ -3321,7 +3319,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x37d3f1"
+        "_0x1a8b41"
       ],
       "moduleIds": [
         "40545"
@@ -3335,7 +3333,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x37d3f1"
+        "_0x1a8b41"
       ],
       "moduleIds": [
         "40545"
@@ -3349,7 +3347,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_on",
       "slotMstIdSources": [
-        "_0x37d3f1"
+        "_0x1a8b41"
       ],
       "moduleIds": [
         "40545"
@@ -3363,7 +3361,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_character",
       "slotMstIdSources": [
-        "_0x37d3f1"
+        "_0x1a8b41"
       ],
       "moduleIds": [
         "40545"
@@ -3377,7 +3375,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up2",
       "slotMstIdSources": [
-        "_0x37d3f1"
+        "_0x1a8b41"
       ],
       "moduleIds": [
         "40545"
@@ -3391,7 +3389,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_on2",
       "slotMstIdSources": [
-        "_0x37d3f1"
+        "_0x1a8b41"
       ],
       "moduleIds": [
         "40545"
@@ -3405,7 +3403,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x38046a"
+        "_0x1429e2"
       ],
       "moduleIds": [
         "60988"
@@ -3419,7 +3417,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up2",
       "slotMstIdSources": [
-        "_0x38046a"
+        "_0x1429e2"
       ],
       "moduleIds": [
         "60988"
@@ -3433,7 +3431,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_on2",
       "slotMstIdSources": [
-        "_0x38046a"
+        "_0x1429e2"
       ],
       "moduleIds": [
         "60988"
@@ -3447,7 +3445,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x38046a"
+        "_0x1429e2"
       ],
       "moduleIds": [
         "60988"
@@ -3461,7 +3459,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_on",
       "slotMstIdSources": [
-        "_0x38046a"
+        "_0x1429e2"
       ],
       "moduleIds": [
         "60988"
@@ -3475,7 +3473,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_character",
       "slotMstIdSources": [
-        "_0x38046a"
+        "_0x1429e2"
       ],
       "moduleIds": [
         "60988"
@@ -3489,7 +3487,7 @@
       "source": "resources.getSlotitem",
       "targetType": "statustop_item",
       "slotMstIdSources": [
-        "_0x5a6058"
+        "_0x1f78f8"
       ],
       "moduleIds": [
         "53285"
@@ -3503,7 +3501,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x31f37d.mst_id"
+        "_0x4c5206.mst_id"
       ],
       "moduleIds": [
         "56230"
@@ -3517,7 +3515,7 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x3d1397.mst_id"
+        "_0x44f0f7.mst_id"
       ],
       "moduleIds": [
         "80135"
@@ -3531,7 +3529,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x16d899"
+        "_0x1a64bb"
       ],
       "moduleIds": [
         "53456"
@@ -3545,7 +3543,7 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "slotMstIdSources": [
-        "_0x555e9d"
+        "_0x406b6d"
       ],
       "moduleIds": [
         "53456"
@@ -3741,7 +3739,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_on",
       "slotMstIdSources": [
-        "_0x33ba6f"
+        "_0x507dd2"
       ],
       "moduleIds": [
         "58441"
@@ -3755,7 +3753,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x33ba6f"
+        "_0x507dd2"
       ],
       "moduleIds": [
         "58441"
@@ -3769,7 +3767,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x294695"
+        "_0x634fd9"
       ],
       "moduleIds": [
         "99929"
@@ -3783,7 +3781,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x294695"
+        "_0x634fd9"
       ],
       "moduleIds": [
         "99929"
@@ -3797,7 +3795,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x52638f"
+        "_0x21ad72"
       ],
       "moduleIds": [
         "99929"
@@ -3811,7 +3809,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x52638f"
+        "_0x21ad72"
       ],
       "moduleIds": [
         "99929"
@@ -3825,7 +3823,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x2f3679"
+        "_0x5977e2"
       ],
       "moduleIds": [
         "99411"
@@ -3839,7 +3837,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x2f3679"
+        "_0x5977e2"
       ],
       "moduleIds": [
         "99411"
@@ -3853,7 +3851,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x22398f"
+        "_0x340519"
       ],
       "moduleIds": [
         "99411"
@@ -3867,7 +3865,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x22398f"
+        "_0x340519"
       ],
       "moduleIds": [
         "99411"
@@ -3881,7 +3879,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x5c4d7e"
+        "_0x2d6f50"
       ],
       "moduleIds": [
         "25955"
@@ -3895,35 +3893,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x5c4d7e"
-      ],
-      "moduleIds": [
-        "25955"
-      ],
-      "moduleNames": [
-        "CutinSpSSF"
-      ]
-    },
-    {
-      "kind": "slotitem",
-      "source": "SlotLoader.add",
-      "targetType": "item_up",
-      "slotMstIdSources": [
-        "_0x1c411e"
-      ],
-      "moduleIds": [
-        "25955"
-      ],
-      "moduleNames": [
-        "CutinSpSSF"
-      ]
-    },
-    {
-      "kind": "slotitem",
-      "source": "SlotLoader.add",
-      "targetType": "btxt_flat",
-      "slotMstIdSources": [
-        "_0x1c411e"
+        "_0x2d6f50"
       ],
       "moduleIds": [
         "25955"
@@ -3937,7 +3907,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x33a864"
+        "_0x14fdd8"
       ],
       "moduleIds": [
         "25955"
@@ -3951,7 +3921,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x33a864"
+        "_0x14fdd8"
       ],
       "moduleIds": [
         "25955"
@@ -3965,7 +3935,35 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x4218c1"
+        "_0x4f2e0c"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "btxt_flat",
+      "slotMstIdSources": [
+        "_0x4f2e0c"
+      ],
+      "moduleIds": [
+        "25955"
+      ],
+      "moduleNames": [
+        "CutinSpSSF"
+      ]
+    },
+    {
+      "kind": "slotitem",
+      "source": "SlotLoader.add",
+      "targetType": "item_up",
+      "slotMstIdSources": [
+        "_0x1fc857"
       ],
       "moduleIds": [
         "11166"
@@ -3979,7 +3977,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x4218c1"
+        "_0x1fc857"
       ],
       "moduleIds": [
         "11166"
@@ -3993,7 +3991,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x44fbd8"
+        "_0x6febea"
       ],
       "moduleIds": [
         "11166"
@@ -4007,7 +4005,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x44fbd8"
+        "_0x6febea"
       ],
       "moduleIds": [
         "11166"
@@ -4021,7 +4019,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x28c89a"
+        "_0x1825cd"
       ],
       "moduleIds": [
         "11166"
@@ -4035,7 +4033,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x28c89a"
+        "_0x1825cd"
       ],
       "moduleIds": [
         "11166"
@@ -4135,7 +4133,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x26f90a"
+        "_0x14ed94"
       ],
       "moduleIds": [
         "93634"
@@ -4149,7 +4147,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x26f90a"
+        "_0x14ed94"
       ],
       "moduleIds": [
         "93634"
@@ -4163,7 +4161,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x4622c7"
+        "_0x3240bd"
       ],
       "moduleIds": [
         "93634"
@@ -4177,7 +4175,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x4622c7"
+        "_0x3240bd"
       ],
       "moduleIds": [
         "93634"
@@ -4191,7 +4189,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x4a99f5"
+        "_0x2195eb"
       ],
       "moduleIds": [
         "93634"
@@ -4205,7 +4203,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x4a99f5"
+        "_0x2195eb"
       ],
       "moduleIds": [
         "93634"
@@ -4381,7 +4379,7 @@
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x3f2865"
+        "_0x2817c0"
       ],
       "moduleIds": [
         "20894"
@@ -4437,7 +4435,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x3ebbf9"
+        "_0x3972c2"
       ],
       "moduleIds": [
         "69595"
@@ -4451,7 +4449,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x12b4e1"
+        "_0x13aaea"
       ],
       "moduleIds": [
         "69595"
@@ -4465,7 +4463,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x1c8bdc"
+        "_0x1dbcc6"
       ],
       "moduleIds": [
         "69595"
@@ -4479,7 +4477,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0xe05f93"
+        "_0x1782b2"
       ],
       "moduleIds": [
         "75803"
@@ -4493,7 +4491,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x3e6cf5"
+        "_0x2bb046"
       ],
       "moduleIds": [
         "75803"
@@ -4507,7 +4505,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x342a1c"
+        "_0x15bf5c"
       ],
       "moduleIds": [
         "75803"
@@ -4521,7 +4519,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x48fe04"
+        "_0x4f43c2"
       ],
       "moduleIds": [
         "75803"
@@ -4535,7 +4533,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x419297"
+        "_0x5d1c44"
       ],
       "moduleIds": [
         "75803"
@@ -4549,7 +4547,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x3bee5f"
+        "_0x19a841"
       ],
       "moduleIds": [
         "56434"
@@ -4563,7 +4561,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x100ea0"
+        "_0x16bab4"
       ],
       "moduleIds": [
         "56434"
@@ -4577,7 +4575,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x1ee4ea"
+        "_0x4086cb"
       ],
       "moduleIds": [
         "56434"
@@ -4591,7 +4589,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x24f786"
+        "_0x729fc6"
       ],
       "moduleIds": [
         "56434"
@@ -4605,7 +4603,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x76a94e"
+        "_0x32d700"
       ],
       "moduleIds": [
         "26431"
@@ -4619,7 +4617,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x1aa920"
+        "_0x5966f4"
       ],
       "moduleIds": [
         "26431"
@@ -4633,7 +4631,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x52a2cb"
+        "_0x2affc1"
       ],
       "moduleIds": [
         "26431"
@@ -4647,7 +4645,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x130989"
+        "_0x25ca3f"
       ],
       "moduleIds": [
         "66157"
@@ -4661,7 +4659,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x5e14b9"
+        "_0x1b34e5"
       ],
       "moduleIds": [
         "66157"
@@ -4675,7 +4673,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x1af0ec"
+        "_0x512f7f"
       ],
       "moduleIds": [
         "66157"
@@ -4689,7 +4687,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x2c4799"
+        "_0x1155ec"
       ],
       "moduleIds": [
         "66157"
@@ -4703,7 +4701,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x3d2565"
+        "_0x427308"
       ],
       "moduleIds": [
         "66157"
@@ -4717,7 +4715,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x14fbb6"
+        "_0x2b20fc"
       ],
       "moduleIds": [
         "66157"
@@ -4731,7 +4729,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x1c4920"
+        "_0x2b828a"
       ],
       "moduleIds": [
         "41768"
@@ -4745,7 +4743,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x187c3c"
+        "_0x4c4ea8"
       ],
       "moduleIds": [
         "41768"
@@ -4759,7 +4757,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x5c1e8d"
+        "_0x207330"
       ],
       "moduleIds": [
         "41768"
@@ -4773,7 +4771,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x4a817d"
+        "_0x26d59a"
       ],
       "moduleIds": [
         "41768"
@@ -4787,7 +4785,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x5aa8d6"
+        "_0x46e228"
       ],
       "moduleIds": [
         "41768"
@@ -4801,7 +4799,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x1bf568"
+        "_0x238b02"
       ],
       "moduleIds": [
         "41768"
@@ -4815,7 +4813,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x280247"
+        "_0x5cf05d"
       ],
       "moduleIds": [
         "66609"
@@ -4829,7 +4827,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x51a7ed"
+        "_0x52ece2"
       ],
       "moduleIds": [
         "66609"
@@ -4843,7 +4841,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x7ea7ae"
+        "_0x140bd5"
       ],
       "moduleIds": [
         "66609"
@@ -4857,7 +4855,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x25d338"
+        "_0x3b83e0"
       ],
       "moduleIds": [
         "86346"
@@ -4871,7 +4869,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x49fc1b"
+        "_0xed6f3a"
       ],
       "moduleIds": [
         "86346"
@@ -4885,7 +4883,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x51b071"
+        "_0x42770a"
       ],
       "moduleIds": [
         "86346"
@@ -4913,7 +4911,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x1c1dee"
+        "_0x25ed54"
       ],
       "moduleIds": [
         "77357"
@@ -4927,7 +4925,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x169a0b"
+        "_0x435772"
       ],
       "moduleIds": [
         "87110"
@@ -4941,7 +4939,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x1d7bca"
+        "_0x54b520"
       ],
       "moduleIds": [
         "87110"
@@ -4955,7 +4953,7 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "slotMstIdSources": [
-        "_0x2a9e84"
+        "_0x218736"
       ],
       "moduleIds": [
         "87110"
@@ -4969,7 +4967,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x2bbe49"
+        "_0x2f8e50"
       ],
       "moduleIds": [
         "87110"
@@ -4983,7 +4981,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0xa3f313"
+        "_0x44e90"
       ],
       "moduleIds": [
         "87110"
@@ -4997,7 +4995,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "slotMstIdSources": [
-        "_0x493bd9"
+        "_0xbbaecb"
       ],
       "moduleIds": [
         "46682"
@@ -5266,6 +5264,7 @@
         "42264",
         "96611",
         "92410",
+        "69784",
         "51724",
         "4146",
         "79018",
@@ -5346,6 +5345,7 @@
         "ItemScene",
         "DutyScene",
         "ChangeSlotitemLayer",
+        "ResetDialog",
         "EnemyDeckSilhouette",
         "TaskGouchinCutinRepair",
         "TaskMapOpen",
@@ -9659,13 +9659,17 @@
         28,
         29,
         30,
+        31,
         32,
         33,
-        34
+        35,
+        36,
+        37
       ],
       "moduleIds": [
         "62174",
         "54758",
+        "69784",
         "25805",
         "97753",
         "91976",
@@ -9674,6 +9678,7 @@
       "moduleNames": [
         "TaskRevampStart",
         "RecipeBox",
+        "ResetDialog",
         "IconSlotLevel",
         "IconStars",
         "MaterialBox",
@@ -9733,6 +9738,34 @@
     },
     {
       "kind": "texture-provider",
+      "provider": "REVAMP_RESET",
+      "textureIds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "moduleIds": [
+        "69784"
+      ],
+      "moduleNames": [
+        "ResetDialog"
+      ]
+    },
+    {
+      "kind": "texture-provider",
       "provider": "REVAMP_LIST",
       "textureIds": [
         1,
@@ -9763,7 +9796,7 @@
       ],
       "moduleNames": [
         "module-19831.js",
-        "SlotitemNormal",
+        "module-26448.js",
         "PagerNormal"
       ]
     },

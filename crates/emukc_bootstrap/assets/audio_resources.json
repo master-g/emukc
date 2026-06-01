@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-27T03:53:16.177Z",
-  "scriptVersion": "6.2.8.0",
+  "generatedAt": "2026-06-01T12:53:21.026Z",
+  "scriptVersion": "6.2.9.1",
   "summary": {
-    "seIdCount": 75,
+    "seIdCount": 76,
     "portBgmIdCount": 9,
     "battleBgmIdCount": 0,
     "fanfareBgmIdCount": 5,
@@ -87,7 +87,8 @@
       265,
       266,
       316,
-      323
+      323,
+      335
     ]
   },
   "bgm": {
