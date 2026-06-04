@@ -29,8 +29,6 @@ pub mod prelude {
         game::battle::practice_repository::PracticeRepository,
         game::battle::repository::SortieRepository,
         game::ops::*,
-        game::sortie_store::TestPracticeStore,
-        game::sortie_store::TestSortieStore,
         game::types::*,
         gameplay::{Gameplay, HasContext},
         user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},

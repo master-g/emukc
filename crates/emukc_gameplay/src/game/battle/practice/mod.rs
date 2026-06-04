@@ -264,11 +264,10 @@ mod tests {
 
     #[test]
     fn run_night_battle_preserves_session_when_midnight_not_allowed() {
-        use crate::game::sortie_store::TestPracticeStore;
         use emukc_battle::BattleOutcome;
         use emukc_model::kc2::KcSortieResultRank;
 
-        let store = TestPracticeStore::new();
+        let store = PracticeStore::new();
         let session = PracticeBattleSession {
             profile_id: 1,
             deck_id: 1,

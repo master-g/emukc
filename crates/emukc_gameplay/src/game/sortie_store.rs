@@ -183,76 +183,6 @@ impl SortieRepository for SortieStore {
     }
 }
 
-// ── TestSortieStore ────────────────────────────────────────────────────
-
-/// An isolated [`SortieRepository`] for tests.
-///
-/// Unlike the process-global [`SortieStore`], each instance is independent
-/// so tests can run in parallel without sharing state.
-pub struct TestSortieStore {
-    inner: SortieStore,
-}
-
-impl TestSortieStore {
-    pub fn new() -> Self {
-        Self {
-            inner: SortieStore::new(),
-        }
-    }
-
-    pub fn clear(&self) {
-        self.inner.clear();
-    }
-}
-
-impl Default for TestSortieStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SortieRepository for TestSortieStore {
-    fn get_active(&self, profile_id: i64) -> Option<ActiveSortieState> {
-        self.inner.get_active(profile_id)
-    }
-
-    fn insert_active(
-        &self,
-        profile_id: i64,
-        state: ActiveSortieState,
-    ) -> Option<ActiveSortieState> {
-        self.inner.insert_active(profile_id, state)
-    }
-
-    fn remove_active(&self, profile_id: i64) -> Option<ActiveSortieState> {
-        self.inner.remove_active(profile_id)
-    }
-
-    fn get_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
-        self.inner.get_pending_battle(profile_id)
-    }
-
-    fn insert_pending_battle(&self, profile_id: i64, session: SortieBattleSession) {
-        self.inner.insert_pending_battle(profile_id, session);
-    }
-
-    fn take_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
-        self.inner.take_pending_battle(profile_id)
-    }
-
-    fn get_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
-        self.inner.get_pending_result(profile_id)
-    }
-
-    fn insert_pending_result(&self, profile_id: i64, result: SortieBattleResultSnapshot) {
-        self.inner.insert_pending_result(profile_id, result);
-    }
-
-    fn take_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
-        self.inner.take_pending_result(profile_id)
-    }
-}
-
 // ── PracticeStore ────────────────────────────────────────────────────
 
 /// Runtime state backing practice battle sessions.
@@ -318,60 +248,6 @@ impl PracticeRepository for PracticeStore {
     }
 }
 
-// ── TestPracticeStore ─────────────────────────────────────────────────
-
-/// An isolated [`PracticeRepository`] for tests.
-///
-/// Unlike the process-global [`PracticeStore`], each instance is independent
-/// so tests can run in parallel without sharing state.
-pub struct TestPracticeStore {
-    inner: PracticeStore,
-}
-
-impl TestPracticeStore {
-    pub fn new() -> Self {
-        Self {
-            inner: PracticeStore::new(),
-        }
-    }
-
-    pub fn clear(&self) {
-        self.inner.clear();
-    }
-}
-
-impl Default for TestPracticeStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl PracticeRepository for TestPracticeStore {
-    fn get_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
-        self.inner.get_pending_battle(profile_id)
-    }
-
-    fn insert_pending_battle(&self, profile_id: i64, session: PracticeBattleSession) {
-        self.inner.insert_pending_battle(profile_id, session);
-    }
-
-    fn take_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
-        self.inner.take_pending_battle(profile_id)
-    }
-
-    fn get_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
-        self.inner.get_pending_result(profile_id)
-    }
-
-    fn insert_pending_result(&self, profile_id: i64, result: PracticeBattleResultSnapshot) {
-        self.inner.insert_pending_result(profile_id, result);
-    }
-
-    fn take_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
-        self.inner.take_pending_result(profile_id)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -420,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_practice_store_insert_get_take_cycle() {
-        let store = TestPracticeStore::new();
+        let store = PracticeStore::new();
         assert!(store.get_pending_battle(1).is_none());
 
         store.insert_pending_battle(1, minimal_session(1));
@@ -439,15 +315,15 @@ mod tests {
 
     #[test]
     fn test_practice_store_empty_take_returns_none() {
-        let store = TestPracticeStore::new();
+        let store = PracticeStore::new();
         assert!(store.take_pending_battle(42).is_none());
         assert!(store.take_pending_result(42).is_none());
     }
 
     #[test]
     fn test_practice_store_instances_are_isolated() {
-        let a = TestPracticeStore::new();
-        let b = TestPracticeStore::new();
+        let a = PracticeStore::new();
+        let b = PracticeStore::new();
         a.insert_pending_battle(1, minimal_session(1));
         assert!(a.get_pending_battle(1).is_some());
         assert!(b.get_pending_battle(1).is_none());
