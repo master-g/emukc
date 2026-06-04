@@ -12,17 +12,12 @@ impl BattleRng for CryptoRng {
         emukc_crypto::rng::i64(min..max)
     }
 
+    // `choose_index` keeps its override: it draws via `emukc_crypto::rng::usize`,
+    // whose generator-consumption differs from the trait default's `i64` path,
+    // so removing it could shift the production RNG sequence. The
+    // `roll_scratch_damage` override was deleted (the trait default routes through
+    // the same `emukc_crypto::rng::i64` backend, so it is draw-for-draw identical).
     fn choose_index(&mut self, len: usize) -> usize {
         emukc_crypto::rng::usize(0..len)
-    }
-
-    fn roll_scratch_damage(&mut self, current_hp: i64) -> i64 {
-        let current_hp = current_hp.max(1);
-        let random_part = if current_hp <= 1 {
-            0
-        } else {
-            emukc_crypto::rng::i64(0..current_hp)
-        };
-        ((current_hp as f64) * 0.06 + (random_part as f64) * 0.08).floor().max(1.0) as i64
     }
 }
