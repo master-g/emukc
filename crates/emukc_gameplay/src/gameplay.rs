@@ -1,7 +1,5 @@
 //! A wrapper around the game's data and logic.
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
@@ -37,43 +35,7 @@ pub trait Gameplay: AccountOps + ProfileOps + GameOps {}
 #[async_trait]
 impl<T: HasContext + ?Sized> Gameplay for T {}
 
-/// Blanket implementation of `HasContext` for a tuple of `Arc<DbConn>` and `Arc<Codex>`.
-impl HasContext for (Arc<DbConn>, Arc<Codex>) {
-    fn db(&self) -> &DbConn {
-        self.0.as_ref()
-    }
-
-    fn codex(&self) -> &Codex {
-        self.1.as_ref()
-    }
-
-    fn sortie_store(&self) -> &SortieStore {
-        &GLOBAL_SORTIE_STORE
-    }
-
-    fn practice_store(&self) -> &PracticeStore {
-        &GLOBAL_PRACTICE_STORE
-    }
-}
-
-impl HasContext for (Arc<Codex>, Arc<DbConn>) {
-    fn db(&self) -> &DbConn {
-        self.1.as_ref()
-    }
-
-    fn codex(&self) -> &Codex {
-        self.0.as_ref()
-    }
-
-    fn sortie_store(&self) -> &SortieStore {
-        &GLOBAL_SORTIE_STORE
-    }
-
-    fn practice_store(&self) -> &PracticeStore {
-        &GLOBAL_PRACTICE_STORE
-    }
-}
-
+/// Blanket implementation of `HasContext` for a tuple of `DbConn` and `Codex`.
 impl HasContext for (DbConn, Codex) {
     fn db(&self) -> &DbConn {
         &self.0
@@ -81,24 +43,6 @@ impl HasContext for (DbConn, Codex) {
 
     fn codex(&self) -> &Codex {
         &self.1
-    }
-
-    fn sortie_store(&self) -> &SortieStore {
-        &GLOBAL_SORTIE_STORE
-    }
-
-    fn practice_store(&self) -> &PracticeStore {
-        &GLOBAL_PRACTICE_STORE
-    }
-}
-
-impl HasContext for (Codex, DbConn) {
-    fn db(&self) -> &DbConn {
-        &self.1
-    }
-
-    fn codex(&self) -> &Codex {
-        &self.0
     }
 
     fn sortie_store(&self) -> &SortieStore {
