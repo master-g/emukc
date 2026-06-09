@@ -1860,4 +1860,141 @@ mod tests {
             "Nf2Na (coeff 105) should beat Nf1Other (coeff 130): {rate_nf2na} > {rate_nf1other}"
         );
     }
+
+    // ── Carrier night CI: end-to-end battle integration (U5) ──────────────────
+
+    /// Deterministic RNG: every roll returns the same fraction of its range. `0.0` makes any CI
+    /// trigger roll succeed; `0.999` makes it fail. Avoids seed-window flakiness.
+    struct FixedRng(f64);
+    impl BattleRng for FixedRng {
+        fn random_f64_range(&mut self, min: f64, max: f64) -> f64 {
+            min + (max - min) * self.0
+        }
+        fn roll_range_impl(&mut self, min: i64, max: i64) -> i64 {
+            if max <= min {
+                min
+            } else {
+                min + ((max - min) as f64 * self.0) as i64
+            }
+        }
+    }
+
+    /// A night-capable CV fixture: high luck (so the CI rate is comfortably positive), full HP,
+    /// and the given slot items in non-shot-down slots.
+    fn night_cv(codex: &Codex, mst_id: i64, item_ids: &[i64]) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, mst_id, 99);
+        ship.slot_items = item_ids.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+        let mut onslot = [0i64; 5];
+        for slot in onslot.iter_mut().take(item_ids.len().min(5)) {
+            *slot = 1;
+        }
+        ship.ship.api_onslot = onslot;
+        ship.ship.api_lucky = [99, 99];
+        ship.ship.api_karyoku[0] = 120;
+        ship.ship.api_nowhp = 9999;
+        ship.ship.api_maxhp = 9999;
+        BattleRuntimeShip::from(ship)
+    }
+
+    fn tanky_enemy(codex: &Codex) -> BattleRuntimeShip {
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let mut enemy = sample_ship(codex, dd, 50);
+        enemy.ship.api_soukou[0] = 10;
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_nowhp = 9999;
+        enemy.ship.api_maxhp = 9999;
+        BattleRuntimeShip::from(enemy)
+    }
+
+    /// `api_sp_list` values for the friendly attackers (`api_at_eflag == 0`).
+    fn friendly_sp_list(hougeki: &BattleNightHougeki) -> Vec<i64> {
+        hougeki
+            .api_at_eflag
+            .iter()
+            .zip(&hougeki.api_sp_list)
+            .filter(|(eflag, _)| **eflag == 0)
+            .map(|(_, sp)| *sp)
+            .collect()
+    }
+
+    fn run_cv_night(codex: &Codex, cv: BattleRuntimeShip, fire: bool) -> BattleNightHougeki {
+        let mut friendly = vec![cv];
+        let mut enemy = vec![tanky_enemy(codex)];
+        let mut rng = FixedRng(if fire {
+            0.0
+        } else {
+            0.999
+        });
+        simulate_night_hougeki(
+            codex,
+            &mut rng,
+            &mut friendly,
+            &mut enemy,
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                air_state: None,
+            },
+        )
+        .expect("a night hougeki occurs")
+    }
+
+    #[test]
+    fn carrier_night_ci_integration_fires_for_eligible_cvs() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+
+        // Standard CV with 航空要員 + Nf2Na → single-hit CI.
+        let hougeki = run_cv_night(&codex, night_cv(&codex, cvl, &[258, NF, NF, NA]), true);
+        assert_eq!(friendly_sp_list(&hougeki), vec![6], "standard CV Nf2Na → sp_list=6");
+        assert_eq!(hougeki.api_damage[0].len(), 1, "carrier night CI is single-hit");
+
+        // Exempt CVs WITHOUT 航空要員 still fire.
+        for (mst, slots) in [
+            (545_i64, &[NF, NA][..]), // Saratoga Mk.II, Nf1Na
+            (610, &[NA, KK][..]),     // 加賀改二戊, Na1Kk (光電管彗星)
+            (883, &[NF, SF, SF][..]), // 龍鳳改二戊, Nf1Other (Swordfish)
+        ] {
+            let hougeki = run_cv_night(&codex, night_cv(&codex, mst, slots), true);
+            assert!(
+                friendly_sp_list(&hougeki).contains(&6),
+                "exempt CV {mst} without personnel → sp_list=6"
+            );
+        }
+    }
+
+    #[test]
+    fn carrier_night_ci_integration_negatives() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+
+        // Saratoga Mk.II Mod.2 (550) without 航空要員 cannot attack at night → no friendly entry.
+        let hougeki = run_cv_night(&codex, night_cv(&codex, 550, &[NF, NA]), true);
+        assert!(!friendly_sp_list(&hougeki).contains(&6), "550 without personnel → no sp_list=6");
+
+        // 航空要員 present but only a night fighter → no CI sub-type → Normal.
+        let hougeki = run_cv_night(&codex, night_cv(&codex, cvl, &[258, NF]), true);
+        assert!(!friendly_sp_list(&hougeki).contains(&6), "lone night fighter → no sp_list=6");
+
+        // Non-exempt CV without personnel cannot attack at night.
+        let hougeki = run_cv_night(&codex, night_cv(&codex, cvl, &[NF, NA]), true);
+        assert!(
+            !friendly_sp_list(&hougeki).contains(&6),
+            "non-exempt CV without personnel → no sp_list=6"
+        );
+    }
+
+    #[test]
+    fn carrier_night_ci_integration_failed_roll_falls_back_to_normal() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+
+        // An eligible Nf2Na CV whose trigger roll fails must fall back to Normal — NOT the
+        // artillery double attack (CV-specific early return).
+        let hougeki = run_cv_night(&codex, night_cv(&codex, cvl, &[258, NF, NF, NA]), false);
+        let friendly = friendly_sp_list(&hougeki);
+        assert_eq!(friendly, vec![0], "failed carrier CI → Normal (sp_list=0)");
+        assert!(!friendly.contains(&1), "must not fall back to DoubleAttack");
+    }
 }
