@@ -377,29 +377,49 @@ pub fn postprocess_route_probabilities(rules: &mut Vec<RouteRuleDraft>) {
             .filter(|(_, rule)| rule.from_label == from_label)
             .collect::<Vec<_>>();
 
-        // Collect all probability-bearing rules and all placeholder rules
-        let prob_sum: f64 = source_rules.iter().filter_map(|(_, rule)| rule.probability_pct).sum();
         let placeholders: Vec<_> =
             source_rules.iter().filter(|(_, rule)| rule.random_placeholder).collect();
 
-        // Only derive complement when there's exactly one unknown target.
-        // Multiple unknowns → ambiguous; let the fallback at line ~671 emit SourceUnknown.
-        if placeholders.len() != 1 || prob_sum >= 100.0 {
+        // Only derive a complement when there's exactly one unknown (placeholder)
+        // target. Multiple unknowns → ambiguous; the fallback emits SourceUnknown.
+        if placeholders.len() != 1 {
             continue;
         }
-
         let (_, placeholder_rule) = placeholders[0];
-        let complement = (100.0 - prob_sum).max(0.0);
-        let derived = RouteRuleDraft {
-            from_label: placeholder_rule.from_label.clone(),
-            to_label: placeholder_rule.to_label.clone(),
-            probability_pct: Some(complement),
-            predicate: placeholder_rule.predicate.clone(),
-            raw_text: format!("{} (derived complement)", placeholder_rule.raw_text),
-            random_placeholder: false,
-        };
-        derived_sources.insert(from_label.clone());
-        additions.push(derived);
+
+        // Group the probability-bearing rules by their gating predicate. Mutually
+        // exclusive conditions (e.g. `FleetSize 6` vs `FleetSize 5`) are independent
+        // distributions, so each yields its own complement to the placeholder target;
+        // multiple targets under one condition sum into a single distribution. Summing
+        // across predicates (the prior behavior) inflated the total past 100% and
+        // dropped the complement entirely.
+        let mut by_predicate: BTreeMap<String, (f64, RoutePredicate)> = BTreeMap::new();
+        for (_, rule) in &source_rules {
+            if let Some(pct) = rule.probability_pct {
+                by_predicate
+                    .entry(format!("{:?}", rule.predicate))
+                    .or_insert_with(|| (0.0, rule.predicate.clone()))
+                    .0 += pct;
+            }
+        }
+        let mut derived_any = false;
+        for (_, (sum, predicate)) in by_predicate {
+            if sum >= 100.0 {
+                continue;
+            }
+            additions.push(RouteRuleDraft {
+                from_label: placeholder_rule.from_label.clone(),
+                to_label: placeholder_rule.to_label.clone(),
+                probability_pct: Some(100.0 - sum),
+                predicate,
+                raw_text: format!("{} (derived complement)", placeholder_rule.raw_text),
+                random_placeholder: false,
+            });
+            derived_any = true;
+        }
+        if derived_any {
+            derived_sources.insert(from_label.clone());
+        }
     }
 
     rules.retain(|rule| !(rule.random_placeholder && derived_sources.contains(&rule.from_label)));
