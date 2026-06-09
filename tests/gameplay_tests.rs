@@ -74,3 +74,6 @@ mod sortie_ammo_reaches_battle;
 
 #[path = "gameplay_tests/scenario.rs"]
 mod scenario;
+
+#[path = "gameplay_tests/battle_golden.rs"]
+mod battle_golden;
