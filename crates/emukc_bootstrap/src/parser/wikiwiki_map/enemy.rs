@@ -70,14 +70,22 @@ pub(super) fn parse_enemy_table(
         }
 
         let mut ship_ids = Vec::new();
+        let mut row_warnings = Vec::new();
         for ship_name in &ship_names {
-            let Some(ship_id) = ships.resolve(ship_name) else {
-                warnings
-                    .push(format!("unresolved ship `{ship_name}` in {map_name} node {node_label}"));
-                continue;
-            };
-            ship_ids.push(ship_id);
+            match ships.resolve(ship_name) {
+                Some(ship_id) => ship_ids.push(ship_id),
+                None => row_warnings
+                    .push(format!("unresolved ship `{ship_name}` in {map_name} node {node_label}")),
+            }
         }
+        // A row that resolves to no real ships and carries no formation is a
+        // non-battle / flavor row (e.g. a `戦闘なし` cell) — skip it silently. Rows
+        // with real ships (retained regardless of formation) or a formation are
+        // battle rows, so their unresolved-ship warnings are surfaced.
+        if ship_ids.is_empty() && formation.is_none() {
+            continue;
+        }
+        warnings.extend(row_warnings);
         if ship_ids.is_empty() {
             continue;
         }
