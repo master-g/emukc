@@ -1997,4 +1997,33 @@ mod tests {
         assert_eq!(friendly, vec![0], "failed carrier CI → Normal (sp_list=0)");
         assert!(!friendly.contains(&1), "must not fall back to DoubleAttack");
     }
+
+    // ── Carrier night CI: codex-ID regression guard (U6) ──────────────────────
+
+    /// The exempt-CV and item ids are hardcoded against the Codex bootstrap. If a codex update
+    /// renumbers or removes one, this fails loud rather than silently disabling the feature.
+    #[test]
+    fn carrier_night_ci_ids_resolve_in_codex() {
+        use emukc_model::kc2::start2::{ApiMstShip, ApiMstSlotitem};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        // Every exempt CV id must resolve to a real ship.
+        for &id in EXEMPT_NIGHT_CV_IDS {
+            assert!(codex.find::<ApiMstShip>(&id).is_ok(), "exempt CV mst {id} missing from codex");
+        }
+        // Saratoga Mk.II Mod.2 (550) exists but must stay OUT of the exempt list.
+        assert!(codex.find::<ApiMstShip>(&550i64).is_ok());
+        assert!(!EXEMPT_NIGHT_CV_IDS.contains(&550), "550 must not be treated as exempt");
+
+        // 光電管彗星 must resolve and carry the regular dive-bomber icon (api_type[3]=7) — the
+        // exact reason it needs item-id detection rather than night-icon detection.
+        let kk = codex.find::<ApiMstSlotitem>(&KOUDENKAN_SUISEI_ID).expect("光電管彗星 in codex");
+        assert_eq!(kk.api_type[3], 7, "光電管彗星 must carry the regular dive-bomber icon");
+
+        // The other item-id-detected night planes must resolve.
+        for &id in SWORDFISH_IDS {
+            assert!(codex.find::<ApiMstSlotitem>(&id).is_ok(), "Swordfish item {id} missing");
+        }
+        assert!(codex.find::<ApiMstSlotitem>(&IWAI_FUKUSEN_ID).is_ok(), "岩井爆戦 (154) missing");
+    }
 }
