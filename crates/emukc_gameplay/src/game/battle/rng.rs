@@ -21,3 +21,31 @@ impl BattleRng for CryptoRng {
         emukc_crypto::rng::usize(0..len)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::CryptoRng;
+    use emukc_battle::BattleRng;
+
+    fn crypto_draws() -> Vec<i64> {
+        let mut rng = CryptoRng;
+        let mut out = Vec::new();
+        for _ in 0..16 {
+            out.push(rng.roll_range_impl(0, 100));
+            out.push((rng.random_f64_range(0.0, 1.0) * 1_000_000.0) as i64);
+            out.push(rng.choose_index(8) as i64);
+        }
+        out
+    }
+
+    #[test]
+    fn crypto_rng_is_deterministic_after_seed() {
+        // The keystone: seeding the one thread-local generator determinizes the
+        // battle math, because CryptoRng draws through the emukc_crypto facade.
+        emukc_crypto::rng::seed(0x00C0_FFEE);
+        let first = crypto_draws();
+        emukc_crypto::rng::seed(0x00C0_FFEE);
+        let second = crypto_draws();
+        assert_eq!(first, second, "seeding the thread-local must determinize CryptoRng draws");
+    }
+}

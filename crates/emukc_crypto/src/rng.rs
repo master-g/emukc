@@ -87,6 +87,18 @@ impl GameRng {
 
 // Thread-local free functions
 
+/// Seed the thread-local RNG for deterministic harness and test runs.
+///
+/// Forwards to `fastrand`'s thread-local seed. The seed is per-OS-thread and
+/// persists for the lifetime of that thread, so each harness run must re-seed at
+/// its start. This is a harness/test entry point only: the live server path
+/// never calls it, so production RNG stays entropy-seeded. Determinism also
+/// requires a current-thread executor — on a multi-thread runtime a task can
+/// migrate to an unseeded worker thread between `.await` points.
+pub fn seed(s: u64) {
+    fastrand::seed(s);
+}
+
 /// Return a random `i64` in `[start, end)`.
 pub fn i64(range: Range<i64>) -> i64 {
     fastrand::i64(range)
@@ -157,4 +169,53 @@ where
 /// Return `true` with probability `p` (0.0 = never, 1.0 = always).
 pub fn bool(p: f64) -> bool {
     fastrand::f64() < p
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn draw_sequence() -> Vec<i64> {
+        let mut out = Vec::new();
+        for _ in 0..32 {
+            out.push(usize(0..1000) as i64);
+            out.push(i64(-500..500));
+            out.push((f64() * 1_000_000.0) as i64);
+        }
+        out
+    }
+
+    #[test]
+    fn seeded_sequence_is_reproducible() {
+        seed(0x1234_5678);
+        let first = draw_sequence();
+        seed(0x1234_5678);
+        let second = draw_sequence();
+        assert_eq!(first, second, "same seed must reproduce the thread-local draw sequence");
+    }
+
+    #[test]
+    fn distinct_seeds_diverge() {
+        seed(1);
+        let a = draw_sequence();
+        seed(2);
+        let b = draw_sequence();
+        assert_ne!(a, b, "different seeds should not produce identical sequences");
+    }
+
+    #[test]
+    fn reseeding_midstream_resets_sequence() {
+        seed(42);
+        let reference = draw_sequence();
+
+        seed(42);
+        let _ = draw_sequence(); // advance the stream past its start
+        seed(42); // reseed mid-stream
+        let after_reset = draw_sequence();
+
+        assert_eq!(
+            reference, after_reset,
+            "reseeding mid-stream must reset to the same starting point"
+        );
+    }
 }
