@@ -365,7 +365,8 @@ mod tests {
         RouteRule, ShipDropDefinition,
     };
 
-    use super::merge_routing_overlay_from_wikiwiki_legacy;
+    use super::{assemble_final_map_catalog, merge_routing_overlay_from_wikiwiki_legacy};
+    use crate::map_pipeline::{report::MapCatalogWikiwikiSource, sources::ResolvedMapSources};
 
     /// Build a [`MapCellDefinition`] with an auto-generated node label `C{cell_no}`.
     /// The label ensures [`build_cell_no_map`] produces a non-empty map, which in turn
@@ -627,5 +628,126 @@ mod tests {
         // Rule absent from gauge_2.
         let g2 = &kcdata.maps[&33].variants["gauge_2"];
         assert!(g2.routing_rules.is_empty());
+    }
+
+    // ------------------------------------------------------------------ P-unlock normalization
+
+    fn cell_with_next(cell_no: i64, next_cells: Vec<i64>) -> MapCellDefinition {
+        MapCellDefinition {
+            cell_no,
+            next_cells,
+            node_label: Some(format!("C{cell_no}")),
+            ..Default::default()
+        }
+    }
+
+    fn skeleton(cell_no: i64) -> MapCellDefinition {
+        MapCellDefinition {
+            cell_no,
+            master_cell_id: Some(1000 + cell_no),
+            ..Default::default()
+        }
+    }
+
+    fn sources_from_kcdata(kcdata: MapCatalog) -> ResolvedMapSources {
+        ResolvedMapSources {
+            wikiwiki_source: MapCatalogWikiwikiSource::None,
+            wikiwiki_map_count: 0,
+            wikiwiki_catalog: None,
+            wikiwiki_overlay: None,
+            kcdata_catalog: Some(kcdata),
+            kcdata_parse_errors: 0,
+            public_overlay_map_count: 0,
+            public_overlay_catalog: MapCatalog::default(),
+            stat_map_count: 0,
+            stat_catalog: None,
+            stat_from_cache: false,
+        }
+    }
+
+    /// `assemble_final_map_catalog` must run `normalize_p_unlock_variants` on every map: an
+    /// aligned P-unlock map exits canonical (pre/post, `""` dropped, topology folded) while a
+    /// plain map is untouched. This pins the assembly wiring that the disk-dependent sortie
+    /// tests only cover indirectly.
+    #[test]
+    fn assemble_normalizes_p_unlock_and_leaves_plain_maps_untouched() {
+        let mut kcdata = MapCatalog::default();
+
+        // Map 73: "" base carries topology; pre/post are aligned topology-less skeletons.
+        let base = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 9,
+            cells: vec![
+                cell_with_next(0, vec![1]),
+                cell_with_next(1, vec![2]),
+                cell_with_next(2, vec![]),
+            ],
+            ..Default::default()
+        };
+        let pre = MapVariantDefinition {
+            variant_key: "pre_p_unlock".to_string(),
+            boss_cell_no: 1,
+            cells: vec![skeleton(0), skeleton(1)],
+            ..Default::default()
+        };
+        let post = MapVariantDefinition {
+            variant_key: "post_p_unlock".to_string(),
+            boss_cell_no: 2,
+            cells: vec![skeleton(0), skeleton(1), skeleton(2)],
+            ..Default::default()
+        };
+        kcdata.maps.insert(
+            73,
+            MapDefinition {
+                map_id: 73,
+                required_defeat_count: Some(3),
+                gauge_count: Some(1),
+                variants: BTreeMap::from([
+                    (String::new(), base),
+                    ("pre_p_unlock".to_string(), pre),
+                    ("post_p_unlock".to_string(), post),
+                ]),
+                ..Default::default()
+            },
+        );
+
+        // Control: a plain single-variant map must be left alone.
+        kcdata.maps.insert(
+            11,
+            MapDefinition {
+                map_id: 11,
+                variants: BTreeMap::from([(
+                    String::new(),
+                    MapVariantDefinition {
+                        variant_key: String::new(),
+                        boss_cell_no: 1,
+                        cells: vec![cell_with_next(0, vec![1]), cell_with_next(1, vec![])],
+                        ..Default::default()
+                    },
+                )]),
+                ..Default::default()
+            },
+        );
+
+        let (catalog, _report) = assemble_final_map_catalog(sources_from_kcdata(kcdata));
+
+        let m73 = &catalog.maps[&73];
+        assert_eq!(m73.default_variant, "pre_p_unlock");
+        assert_eq!(m73.gauge_count, Some(2));
+        assert!(!m73.variants.contains_key(""), "spurious \"\" variant dropped");
+        assert!(
+            m73.variants.contains_key("pre_p_unlock") && m73.variants.contains_key("post_p_unlock")
+        );
+        // pre received the folded start (base 0 → [1], restricted to pre's {0,1}).
+        assert_eq!(m73.variants["pre_p_unlock"].cell(0).unwrap().next_cells, vec![1]);
+        assert_eq!(
+            m73.variants["pre_p_unlock"].clear_to_variant_key.as_deref(),
+            Some("post_p_unlock")
+        );
+
+        // Control map untouched.
+        let m11 = &catalog.maps[&11];
+        assert_eq!(m11.default_variant, "");
+        assert!(m11.variants.contains_key(""));
     }
 }

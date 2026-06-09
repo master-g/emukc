@@ -315,7 +315,7 @@ impl MapDefinition {
             // the only routable variant, abort normalization and keep the kcdata base as the
             // playable default — the p_unlock split is deferred until the data aligns.
             let default_routable =
-                self.variants.get(present[0]).is_some_and(|variant| variant.has_start_source());
+                self.variants.get(present[0]).is_some_and(MapVariantDefinition::has_start_source);
             if !default_routable {
                 self.variants.insert(String::new(), base);
                 tracing::warn!(
@@ -1009,6 +1009,23 @@ mod tests {
         assert!(def.variants[""].has_start_source(), "retained base stays routable");
         assert_eq!(def.default_variant, before_default, "default not flipped to unroutable pre");
         assert_eq!(def.gauge_count, before_gauge, "gauge not re-derived on skip");
+    }
+
+    #[test]
+    fn normalize_p_unlock_skip_is_idempotent() {
+        let mut once = misaligned_p_unlock_definition();
+        once.normalize_p_unlock_variants();
+
+        let mut twice = misaligned_p_unlock_definition();
+        twice.normalize_p_unlock_variants();
+        twice.normalize_p_unlock_variants();
+
+        assert_eq!(once.default_variant, twice.default_variant);
+        assert_eq!(once.gauge_count, twice.gauge_count);
+        assert_eq!(
+            once.variants.keys().collect::<Vec<_>>(),
+            twice.variants.keys().collect::<Vec<_>>()
+        );
     }
 
     // ── start-source resolution (U1) ─────────────────────────────────────────
