@@ -34,6 +34,15 @@ pub(super) fn assemble_final_map_catalog(
     if let Some(ref stat_catalog) = sources.stat_catalog {
         catalog.merge_missing_from(stat_catalog.clone());
     }
+
+    // P-unlock maps (e.g. 7-3) arrive with topology-less pre_p_unlock / post_p_unlock
+    // skeletons from the public overlay and a stale empty-key "" default from kcdata.
+    // Reconcile them once all three sources are merged: fold the kcdata "" topology into the
+    // p_unlock variants, make pre_p_unlock the default, derive gauge_count, and drop "".
+    for definition in catalog.maps.values_mut() {
+        definition.normalize_p_unlock_variants();
+    }
+
     let output_map_count = catalog.maps.len();
 
     // Topology validation — warn during bootstrap, not at runtime codex load.

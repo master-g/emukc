@@ -18,6 +18,10 @@ pub use types::*;
 use merge::merge_definition as merge_definition_impl;
 pub use merge::{build_cell_no_map, merge_routing_overlay};
 
+/// P-unlock variant keys, in canonical (pre → post) order. A map carrying any of these is a
+/// P-unlock map whose route is gated by a sub-gauge unlock.
+const P_UNLOCK_VARIANT_KEYS: [&str; 2] = ["pre_p_unlock", "post_p_unlock"];
+
 /// Warnings produced by `MapDefinition::validate()`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum MapValidationWarning {
@@ -265,6 +269,70 @@ impl MapDefinition {
         warnings
     }
 
+    /// Normalize a P-unlock map so its `pre_p_unlock` / `post_p_unlock` variants are the
+    /// canonical variant set.
+    ///
+    /// P-unlock variants typically arrive as topology-less skeletons (from public-overlay
+    /// captures): they carry the per-phase cell set but no `next_cells` / routing, while the
+    /// real route graph lives only in the base `""` variant. The 3-source merge keeps that
+    /// `""` variant as the default and derives `gauge_count` from the kcdata side, leaving the
+    /// p_unlock variants unroutable (no start cell). This pass:
+    ///
+    /// 1. folds the base `""` topology into each p_unlock variant, **restricted to that
+    ///    variant's own cells** so `pre_p_unlock` stays a strict subgraph (post-unlock cells
+    ///    are unreachable before unlocking);
+    /// 2. makes `pre_p_unlock` the default and derives `gauge_count` from the p_unlock set;
+    /// 3. wires the `pre → post` progression (`clear_to_variant_key`, `required_defeat_count`)
+    ///    the capture path leaves unset;
+    /// 4. drops the now-spurious empty-key `""` variant.
+    ///
+    /// No-op for maps without p_unlock variants. Degrades safely (skips the fold) when the
+    /// base `""` topology is absent, and never overwrites topology a variant already carries.
+    pub fn normalize_p_unlock_variants(&mut self) {
+        let present: Vec<&'static str> = P_UNLOCK_VARIANT_KEYS
+            .iter()
+            .copied()
+            .filter(|key| self.variants.contains_key(*key))
+            .collect();
+        if present.is_empty() {
+            return;
+        }
+
+        // Fold the base "" topology into each p_unlock skeleton (restricted to its cells).
+        if let Some(base) = self.variants.get("").cloned() {
+            for key in &present {
+                if let Some(variant) = self.variants.get_mut(*key) {
+                    fold_base_topology_into_variant(variant, &base);
+                }
+            }
+        }
+
+        // `pre_p_unlock` is the pre-unlock phase and the canonical default; fall back to the
+        // first present p_unlock variant if `pre_p_unlock` is somehow absent.
+        self.default_variant = present[0].to_string();
+        // Only (re)derive the gauge count for the canonical pre + post pair. A lone p_unlock
+        // variant (e.g. a partial fixture or incomplete capture) keeps whatever gauge_count
+        // upstream already set, rather than being clobbered to 1.
+        if present.len() >= 2 {
+            self.gauge_count = Some(present.len() as i64);
+        }
+
+        // Wire the pre → post progression the capture path leaves unset.
+        let map_required_defeat_count = self.required_defeat_count;
+        if self.variants.contains_key("pre_p_unlock")
+            && self.variants.contains_key("post_p_unlock")
+            && let Some(pre) = self.variants.get_mut("pre_p_unlock")
+        {
+            pre.clear_to_variant_key.get_or_insert_with(|| "post_p_unlock".to_string());
+            if pre.required_defeat_count.is_none() {
+                pre.required_defeat_count = map_required_defeat_count;
+            }
+        }
+
+        // Drop the spurious empty-key base variant; the p_unlock set is canonical now.
+        self.variants.remove("");
+    }
+
     pub fn default_stage_id(&self) -> Option<&str> {
         if !self.default_variant.is_empty() && self.variants.contains_key(&self.default_variant) {
             return Some(&self.default_variant);
@@ -324,6 +392,52 @@ impl MapVariantDefinition {
         let mut cells = self.cells.iter().filter(|cell| cell.cell_no > 0).map(|cell| cell.cell_no);
         let first = cells.next()?;
         cells.next().is_none().then_some(first)
+    }
+}
+
+/// Fill a p_unlock variant's missing `next_cells` / routing from the base `""` variant,
+/// **restricted to the variant's own cell set** so post-unlock cells stay unreachable in the
+/// pre-unlock phase. Cells are joined by their shared in-game cell number (kcdata and the public
+/// capture use the same numbering). Topology a variant already carries is preserved.
+fn fold_base_topology_into_variant(
+    variant: &mut MapVariantDefinition,
+    base: &MapVariantDefinition,
+) {
+    let cell_set: BTreeSet<i64> = variant.cells.iter().map(|cell| cell.cell_no).collect();
+    let base_by_no: BTreeMap<i64, &MapCellDefinition> =
+        base.cells.iter().map(|cell| (cell.cell_no, cell)).collect();
+
+    for cell in &mut variant.cells {
+        let Some(base_cell) = base_by_no.get(&cell.cell_no) else {
+            continue;
+        };
+        if cell.next_cells.is_empty() {
+            cell.next_cells = base_cell
+                .next_cells
+                .iter()
+                .copied()
+                .filter(|next| cell_set.contains(next))
+                .collect();
+        }
+        if cell.node_label.is_none() {
+            cell.node_label = base_cell.node_label.clone();
+        }
+        if cell.distance.is_none() {
+            cell.distance = base_cell.distance;
+        }
+    }
+
+    if variant.routing_rules.is_empty() {
+        for (from_cell_no, rules) in &base.routing_rules {
+            if !cell_set.contains(from_cell_no) {
+                continue;
+            }
+            let kept: Vec<RouteRule> =
+                rules.iter().filter(|rule| cell_set.contains(&rule.to_cell_no)).cloned().collect();
+            if !kept.is_empty() {
+                variant.routing_rules.insert(*from_cell_no, kept);
+            }
+        }
     }
 }
 
@@ -579,5 +693,152 @@ mod tests {
 
         let variant = catalog.maps[&99].variants.get("").unwrap();
         assert_eq!(variant.boss_cell_no, 0, "synthetic variant must use boss_cell_no = 0 sentinel");
+    }
+
+    // ── normalize_p_unlock_variants (U2) ─────────────────────────────────────
+
+    fn labeled_cell(cell_no: i64, next_cells: Vec<i64>) -> MapCellDefinition {
+        MapCellDefinition {
+            cell_no,
+            next_cells,
+            node_label: Some(format!("N{cell_no}")),
+            ..Default::default()
+        }
+    }
+
+    /// A cell as produced by the public overlay capture: a known cell number but no outgoing
+    /// topology and no label.
+    fn skeleton_cell(cell_no: i64) -> MapCellDefinition {
+        MapCellDefinition {
+            cell_no,
+            master_cell_id: Some(1000 + cell_no),
+            ..Default::default()
+        }
+    }
+
+    /// Mirror of map 73: base `""` carries the full route graph; pre/post are topology-less
+    /// skeletons whose cell *sets* encode per-phase membership (pre ⊂ post == base).
+    fn p_unlock_definition() -> MapDefinition {
+        let base = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 18,
+            cells: vec![
+                labeled_cell(0, vec![1]),
+                labeled_cell(1, vec![2, 3]),
+                labeled_cell(2, vec![3]),
+                labeled_cell(3, vec![]),
+            ],
+            ..Default::default()
+        };
+        let pre = MapVariantDefinition {
+            variant_key: "pre_p_unlock".to_string(),
+            boss_cell_no: 2,
+            cells: vec![skeleton_cell(0), skeleton_cell(1), skeleton_cell(2)],
+            ..Default::default()
+        };
+        let post = MapVariantDefinition {
+            variant_key: "post_p_unlock".to_string(),
+            boss_cell_no: 3,
+            cells: vec![skeleton_cell(0), skeleton_cell(1), skeleton_cell(2), skeleton_cell(3)],
+            ..Default::default()
+        };
+        MapDefinition {
+            map_id: 73,
+            maparea_id: 7,
+            mapinfo_no: 3,
+            name: "7-3".into(),
+            level: 1,
+            sally_flag: vec![],
+            is_event: false,
+            reset_policy: MapResetPolicy::Never,
+            airbase_count: None,
+            gauge_type: Some(1),
+            gauge_count: Some(1),
+            required_defeat_count: Some(3),
+            max_hp: None,
+            default_variant: String::new(),
+            rank_stage_ids: BTreeMap::new(),
+            variants: BTreeMap::from([
+                (String::new(), base),
+                ("pre_p_unlock".to_string(), pre),
+                ("post_p_unlock".to_string(), post),
+            ]),
+        }
+    }
+
+    #[test]
+    fn normalize_p_unlock_sets_default_gauge_and_drops_empty_variant() {
+        let mut def = p_unlock_definition();
+        def.normalize_p_unlock_variants();
+
+        assert_eq!(def.default_variant, "pre_p_unlock");
+        assert_eq!(def.gauge_count, Some(2));
+        let keys: Vec<&str> = def.variants.keys().map(String::as_str).collect();
+        // BTreeMap order; the spurious "" variant is gone.
+        assert_eq!(keys, vec!["post_p_unlock", "pre_p_unlock"]);
+    }
+
+    #[test]
+    fn normalize_p_unlock_folds_base_topology_restricted_to_variant_cells() {
+        let mut def = p_unlock_definition();
+        def.normalize_p_unlock_variants();
+
+        // pre keeps only cells {0,1,2}; base edge 1→3 is dropped (3 ∉ pre), 1→2 kept.
+        let pre = def.variants.get("pre_p_unlock").unwrap();
+        assert_eq!(pre.cell(0).unwrap().next_cells, vec![1]);
+        assert_eq!(pre.cell(1).unwrap().next_cells, vec![2]);
+        assert!(pre.cell(2).unwrap().next_cells.is_empty());
+
+        // post spans every base cell, so it receives the full base topology.
+        let post = def.variants.get("post_p_unlock").unwrap();
+        assert_eq!(post.cell(0).unwrap().next_cells, vec![1]);
+        assert_eq!(post.cell(1).unwrap().next_cells, vec![2, 3]);
+    }
+
+    #[test]
+    fn normalize_p_unlock_wires_pre_to_post_progression() {
+        let mut def = p_unlock_definition();
+        def.normalize_p_unlock_variants();
+
+        let pre = def.variants.get("pre_p_unlock").unwrap();
+        assert_eq!(pre.clear_to_variant_key.as_deref(), Some("post_p_unlock"));
+        assert_eq!(pre.required_defeat_count, Some(3));
+    }
+
+    #[test]
+    fn normalize_non_p_unlock_map_is_unchanged() {
+        let mut def = valid_map_definition();
+        let before = def.clone();
+        def.normalize_p_unlock_variants();
+        assert_eq!(def.default_variant, before.default_variant);
+        assert_eq!(def.gauge_count, before.gauge_count);
+        assert_eq!(
+            def.variants.keys().collect::<Vec<_>>(),
+            before.variants.keys().collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn normalize_p_unlock_without_base_degrades_safely() {
+        let mut def = p_unlock_definition();
+        def.variants.remove(""); // no base topology donor
+        def.normalize_p_unlock_variants();
+
+        assert_eq!(def.default_variant, "pre_p_unlock");
+        assert_eq!(def.gauge_count, Some(2));
+        // Nothing to fold → pre's start stays empty (no panic, best-effort).
+        let pre = def.variants.get("pre_p_unlock").unwrap();
+        assert!(pre.cell(0).unwrap().next_cells.is_empty());
+    }
+
+    #[test]
+    fn normalize_p_unlock_preserves_existing_variant_topology() {
+        let mut def = p_unlock_definition();
+        // pre already has real topology (e.g. wikiwiki-native) — base must not clobber it.
+        def.variants.get_mut("pre_p_unlock").unwrap().cells[0].next_cells = vec![2];
+        def.normalize_p_unlock_variants();
+
+        let pre = def.variants.get("pre_p_unlock").unwrap();
+        assert_eq!(pre.cell(0).unwrap().next_cells, vec![2], "existing topology preserved");
     }
 }
