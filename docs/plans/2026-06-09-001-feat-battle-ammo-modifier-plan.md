@@ -1,7 +1,7 @@
 ---
 title: "feat: Implement ammunition damage modifier (S9) and refresh stale damage-formula reference"
 type: feat
-status: active
+status: completed
 date: 2026-06-09
 origin: docs/battle/damage-formula-reference.md
 ---
