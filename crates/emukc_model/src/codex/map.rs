@@ -391,6 +391,51 @@ impl MapVariantDefinition {
         let first = cells.next()?;
         cells.next().is_none().then_some(first)
     }
+
+    /// Returns `true` when `cell_no` has any outgoing connection in this variant —
+    /// either a non-empty `next_cells` on the cell itself, or at least one routing rule
+    /// keyed on it.
+    ///
+    /// This does **not** check whether a rule's `to_cell_no` is listed in the cell's
+    /// `next_cells`; a cell can carry routing rules whose targets are disjoint from its
+    /// topology-level `next_cells`. Callers needing that cross-check must do it separately.
+    pub fn cell_has_routing_outgoing(&self, cell_no: i64) -> bool {
+        self.cell(cell_no).is_some_and(|cell| !cell.next_cells.is_empty())
+            || self.routing_rules.get(&cell_no).is_some_and(|rules| !rules.is_empty())
+    }
+
+    /// Resolve the cell(s) a sortie can start from: the graph roots (cells with no incoming
+    /// edge that have outgoing routing); falling back to cell 0 when it has outgoing routing.
+    /// Empty when the variant has no routable start (e.g. a topology-less skeleton).
+    pub fn start_source_cells(&self) -> Vec<&MapCellDefinition> {
+        let incoming = self
+            .cells
+            .iter()
+            .flat_map(|cell| cell.next_cells.iter().copied())
+            .collect::<BTreeSet<_>>();
+        let roots = self
+            .cells
+            .iter()
+            .filter(|cell| {
+                !incoming.contains(&cell.cell_no) && self.cell_has_routing_outgoing(cell.cell_no)
+            })
+            .collect::<Vec<_>>();
+        if !roots.is_empty() {
+            return roots;
+        }
+
+        self.cell(0)
+            .filter(|cell| self.cell_has_routing_outgoing(cell.cell_no))
+            .into_iter()
+            .collect()
+    }
+
+    /// Whether a sortie can resolve a start cell for this variant. Boolean form of
+    /// [`start_source_cells`](Self::start_source_cells), used by catalog assembly to guard
+    /// destructive P-unlock normalization against an unroutable topology fold.
+    pub fn has_start_source(&self) -> bool {
+        !self.start_source_cells().is_empty()
+    }
 }
 
 /// Fill a P-unlock variant's missing `next_cells` / routing from the base `""` variant,
@@ -919,5 +964,69 @@ mod tests {
 
         let pre = def.variants.get("pre_p_unlock").unwrap();
         assert_eq!(pre.cell(0).unwrap().next_cells, vec![2], "existing topology preserved");
+    }
+
+    // ── start-source resolution (U1) ─────────────────────────────────────────
+
+    fn variant_with(cells: Vec<MapCellDefinition>) -> MapVariantDefinition {
+        MapVariantDefinition {
+            cells,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn has_start_source_true_for_cell0_with_next() {
+        let variant = variant_with(vec![labeled_cell(0, vec![1]), labeled_cell(1, vec![])]);
+        assert!(variant.has_start_source());
+        let starts: Vec<i64> = variant.start_source_cells().iter().map(|c| c.cell_no).collect();
+        assert_eq!(starts, vec![0]);
+    }
+
+    #[test]
+    fn has_start_source_false_for_topologyless_skeleton() {
+        let variant = variant_with(vec![skeleton_cell(0), skeleton_cell(1), skeleton_cell(2)]);
+        assert!(!variant.has_start_source());
+        assert!(variant.start_source_cells().is_empty());
+    }
+
+    #[test]
+    fn start_source_cells_include_nonzero_root_with_outgoing() {
+        // incoming = {13}; roots (no incoming, with outgoing) = {0 → 13, 22 → 13}.
+        let variant = variant_with(vec![
+            labeled_cell(0, vec![13]),
+            labeled_cell(13, vec![]),
+            labeled_cell(22, vec![13]),
+        ]);
+        let mut starts: Vec<i64> = variant.start_source_cells().iter().map(|c| c.cell_no).collect();
+        starts.sort();
+        assert_eq!(starts, vec![0, 22]);
+    }
+
+    #[test]
+    fn cell_has_routing_outgoing_method_branches() {
+        // next_cells only
+        assert!(variant_with(vec![labeled_cell(1, vec![2])]).cell_has_routing_outgoing(1));
+
+        // routing-rules only (empty next_cells but a rule keyed on the cell)
+        let mut rule_only = variant_with(vec![skeleton_cell(1)]);
+        rule_only.routing_rules.insert(
+            1,
+            vec![RouteRule {
+                from_cell_no: 1,
+                to_cell_no: 2,
+                priority: 0,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            }],
+        );
+        assert!(rule_only.cell_has_routing_outgoing(1));
+
+        // neither, and a missing cell
+        let bare = variant_with(vec![skeleton_cell(1)]);
+        assert!(!bare.cell_has_routing_outgoing(1));
+        assert!(!bare.cell_has_routing_outgoing(99));
     }
 }

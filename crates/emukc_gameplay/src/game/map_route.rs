@@ -73,18 +73,10 @@ pub(crate) enum RoutePredicateEval {
     Unsupported,
 }
 
-/// Returns `true` when `from_cell_no` has any outgoing connection registered in
-/// the stage, whether via `next_cells` on the cell itself or via at least one
-/// entry in `stage.routing_rules`.
-///
-/// **This does not check whether any rule's `to_cell_no` is listed in
-/// `current.next_cells`.**  A cell can have routing rules whose targets are
-/// disjoint from its topology-level `next_cells` (e.g. before topology
-/// post-processing).  Callers that need to verify the resulting candidate set
-/// against live topology must do so separately.
+/// Thin crate-local shim over [`MapStageDefinition::cell_has_routing_outgoing`], which owns
+/// the canonical definition (shared with catalog-assembly's P-unlock routability guard).
 pub(crate) fn cell_has_routing_outgoing(cell_no: i64, stage: &MapStageDefinition) -> bool {
-    stage.cell(cell_no).is_some_and(|c| !c.next_cells.is_empty())
-        || stage.routing_rules.get(&cell_no).is_some_and(|r| !r.is_empty())
+    stage.cell_has_routing_outgoing(cell_no)
 }
 
 /// Returns the number of distinct candidate target cells that the routing

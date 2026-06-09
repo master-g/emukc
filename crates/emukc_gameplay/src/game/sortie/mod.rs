@@ -1166,27 +1166,7 @@ fn build_sortie_cell_data(map_id: i64, stage: &MapStageDefinition) -> Vec<Sortie
 }
 
 fn start_source_cells(stage: &MapStageDefinition) -> Vec<&MapCellDefinition> {
-    let incoming = stage
-        .cells
-        .iter()
-        .flat_map(|cell| cell.next_cells.iter().copied())
-        .collect::<BTreeSet<_>>();
-    let roots = stage
-        .cells
-        .iter()
-        .filter(|cell| {
-            !incoming.contains(&cell.cell_no) && cell_has_routing_outgoing(cell.cell_no, stage)
-        })
-        .collect::<Vec<_>>();
-    if !roots.is_empty() {
-        return roots;
-    }
-
-    stage
-        .cell(0)
-        .filter(|cell| cell_has_routing_outgoing(cell.cell_no, stage))
-        .into_iter()
-        .collect()
+    stage.start_source_cells()
 }
 
 fn select_start_source_cell(stage: &MapStageDefinition) -> Result<&MapCellDefinition, String> {
