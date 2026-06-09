@@ -2,7 +2,14 @@
 
 > EmuKC battle formula specification — wiki truth vs current implementation.
 > Sources: en.kancollewiki.net, kancolle.fandom.com
-> Last updated: 2026-04-16
+> Last updated: 2026-06-09 (re-audited against `crates/emukc_battle/src/damage.rs`)
+>
+> **Status note:** The per-section "Current code" snippets below predate the
+> `core.rs` → `damage.rs` refactor and are kept only as historical context — they
+> no longer match the implementation. The authoritative, code-cited status of each
+> gap is the Implementation Status table in §4. Most foundation gaps (defense
+> randomization, damage state, scratch trigger, improvement bonus, ammo) are now
+> implemented.
 
 ## 1. Damage Pipeline Overview
 
@@ -92,19 +99,19 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 (capped_power - armor).floor().max(1.0) as i64
 ```
 
-**Gaps:**
-| # | Missing | Impact |
-|---|---------|--------|
-| S1 | Improvement bonus `Σ k_eq × √★` | Underestimates power for ★ equipment |
-| S2 | CV special formula `55 + floor(1.5×(...))` | CV damage completely wrong |
-| S3 | CL fit gun bonus `√単装 + 2√連装` | CL/CLT damage wrong with 14cm/15.2cm |
-| S4 | Damage state modifier (chuuha×0.7, taiha×0.4) | No damage reduction when damaged |
-| S5 | Defense randomization `0.7A + 0.6×rand(0,A−1)` | Uses fixed `A×0.7` instead |
-| S6 | Artillery spotting post-cap modifiers | No DA/CI implementation |
-| S7 | AP shell post-cap modifier | Not implemented |
-| S8 | Critical hit (1.5×) | Not implemented |
-| S9 | Ammo modifier | Not implemented |
-| S10 | Scratch damage when attack < defense | Always minimum 1 instead |
+**Gaps** (status re-audited 2026-06-09 against `damage.rs`):
+| # | Item | Status |
+|---|------|--------|
+| S1 | Improvement bonus `Σ k_eq × √★` | Implemented — `improvement_bonus_day` |
+| S2 | CV special formula | Implemented (simplified) — `1.5 × bombers + 55` in `calculate_shelling_damage` |
+| S3 | CL fit gun bonus `√単装 + 2√連装` | Implemented — `light_gun_bonus` |
+| S4 | Damage state modifier (chuuha×0.7, taiha×0.4) | Implemented — `damage_state_modifier` |
+| S5 | Defense randomization `0.7A + 0.6×rand(0,A−1)` | Implemented — `calculate_defense_power` |
+| S6 | Artillery spotting post-cap modifiers | Implemented — `ci_multiplier` (`simulation/day_cutin.rs`) |
+| S7 | AP shell post-cap modifier (×1.08/1.10/1.15 vs armor) | Open — AP shells only feed CI / special-attack detection |
+| S8 | Critical hit (1.5×) | Open — `api_cl` hardcoded to 1, no crit roll |
+| S9 | Ammo modifier | Implemented — `ammo_modifier` (post-cap, friendly-only) |
+| S10 | Scratch damage when attack < defense | Implemented — `resolve_damage` |
 
 ### 2.2 Torpedo (雷撃戦)
 
@@ -410,23 +417,30 @@ Post-cap multiplier when attacker has AP Shell equipped and target is armored:
 
 ### 3.8 Ammunition Modifier
 
-Post-cap multiplier based on remaining ammunition percentage:
+Post-cap multiplier based on the attacker's remaining ammunition percentage
+`p = floor(100 × api_bull / api_bull_max)`:
 
 ```
-ammo_mod = floor(remaining_ammo / 50) / 100    if remaining < 50%
-           1.0                                   otherwise
+ammo_mod = min(1.0, p / 50)     1.0 at p ≥ 50, scaling linearly to 0 at p = 0
 ```
 
-| Ammo Remaining | Modifier |
+| Ammo Remaining (p) | Modifier |
 |---|---|
 | ≥50% | 1.0 |
-| 40–49% | 0.8 |
-| 30–39% | 0.6 |
-| 20–29% | 0.4 |
-| 10–19% | 0.2 |
-| 0–9% | 0.0 (scratch only) |
+| 49% | 0.98 |
+| 40% | 0.80 |
+| 25% | 0.50 |
+| 10% | 0.20 |
+| 0% | 0.0 (scratch only) |
 
-**Current code**: Not implemented.
+The modifier is continuous (granularity 1/50 per integer percent), **not** stepped
+in 0.2 bands — e.g. 49% is ×0.98, not ×0.8. (A prior revision of this doc listed a
+buggy `floor(ammo/50)/100` formula and a stepped table; both were wrong.)
+
+**Current code** (`ammo_modifier`, `damage.rs`): Implemented for friendly attackers
+in shelling, torpedo, and night phases (applied post-cap, same slot as the cut-in
+multiplier). Enemy attackers and ships with unknown ammo capacity yield ×1.0. ASW
+is **not** modified (the gap tables list ammo only for shelling/torpedo/night).
 
 ### 3.9 Contact Modifier (接触)
 
@@ -475,82 +489,87 @@ Where `H` = HP at node entry (`entry_hp`).
 
 ---
 
-## 4. Gap Summary by Priority
+## 4. Implementation Status (re-audited 2026-06-09)
 
-### High Priority (affects all battles)
+Audited against `crates/emukc_battle/src/damage.rs` and `simulation/`. This table
+is authoritative and supersedes the per-section "Current code" snippets above.
 
-| # | Gap | Attack Types Affected | Implementation Effort |
-|---|-----|----------------------|----------------------|
-| 1 | Defense randomization | All | Low — replace fixed `A×k` with random formula |
-| 2 | Damage state modifier | Shelling, Torpedo, ASW | Low — pre-cap multiplier based on HP% |
-| 3 | Improvement bonus | All | Medium — requires star-level data from equipment |
-| 4 | Scratch damage trigger | Shelling, Torpedo | Low — check if attack < defense |
-| 5 | Ammo modifier | All | Low — post-cap multiplier |
+### Implemented
 
-### Medium-High Priority (affects specific scenarios)
+| Gap | Where |
+|-----|-------|
+| Defense randomization | `calculate_defense_power` |
+| Damage state modifier (shelling/torpedo/ASW) | `damage_state_modifier` |
+| Improvement bonus (day/torpedo/night) | `improvement_bonus_day` / `_torpedo` / `_night` |
+| Scratch damage trigger (attack < defense) | `resolve_damage` |
+| Ammo modifier | `ammo_modifier` (friendly, post-cap; shelling/torpedo/night) |
+| CV special shelling (simplified) | `1.5 × bombers + 55` in `calculate_shelling_damage` |
+| Artillery spotting (day cut-in) | `simulation/day_cutin.rs` + `ci_multiplier` |
+| CL fit gun bonus | `light_gun_bonus` |
+| Night recon bonus | `night_recon_bonus` |
+| ASW synergy / DC projector bonus | `calculate_asw_damage` (`has_dc_projector`) |
 
-| # | Gap | Attack Types Affected | Implementation Effort |
-|---|-----|----------------------|----------------------|
-| 6 | CV special shelling formula | Carrier shelling only | Medium — new basic power calculation |
-| 7 | Artillery spotting | Day shelling | Medium — equipment detection + trigger rates |
-| 8 | Critical hit | All | Medium — trigger rate + 1.5× modifier |
-| 9 | Contact modifier | Airstrike only | Low — pre-cap multiplier |
-| 10 | AP shell modifier | Day shelling | Low — post-cap multiplier |
+### Remaining Gaps
 
-### Medium Priority (specific ships/situations)
+| # | Gap | Attack Types | Notes / Effort |
+|---|-----|-------------|----------------|
+| 8 | Critical hit (1.5× + `api_cl`=2) | All | Open — `api_cl` hardcoded to 1; needs trigger rate + post-cap 1.5× + flag |
+| 9 | Contact modifier | Airstrike | Open — pre-cap multiplier when aerial contact established |
+| 7 | AP shell post-cap modifier (×1.08/1.10/1.15) | Day shelling | Open — AP shells currently only feed CI / special-attack detection |
+| 13 | ASW armor penetration (`D_bonus`) | ASW | Open — no item-ID armor reduction in the defense formula |
+| 14 | Special unconditional OASW (Isuzu K2 etc.) | ASW | Open / unverified — ship-ID trigger conditions |
+| 15 | Torpedo bomber ×0.8/×1.5 random per slot | Airstrike | Open |
+| 16 | Carrier night air attack | Night | Open — large; `calculate_night_damage` has no carrier-air formula |
+| 17 | Per-bomber-type airstrike cap | Airstrike | Partial — single per-slot `AIRSTRIKE_CAP`; per-type separation unverified |
 
-| # | Gap | Attack Types Affected | Implementation Effort |
-|---|-----|----------------------|----------------------|
-| 11 | CL fit gun bonus | CL/CLT shelling | Medium — equipment-specific additive bonus |
-| 12 | Night recon bonus | Night battle | Low — fleet-wide pre-cap bonus |
-| 13 | ASW armor penetration | ASW only | Medium — item-ID-specific armor reduction |
-| 14 | Special OASW (Isuzu K2 etc.) | ASW only | Low — ship-ID-based condition |
-| 15 | Torpedo bomber ×0.8/×1.5 | Airstrike only | Low — random per slot |
-| 16 | Carrier night air attack | Night battle | Large — entirely new formula |
-| 17 | Per-type airstrike cap | Airstrike only | Medium — separate calculations |
-| 18 | ASW synergy DC projector ID check | ASW only | Low — check specific item IDs |
+**Note on ammo + ASW:** the ammo modifier is deliberately not applied to ASW — the
+gap tables list it only under shelling (§3.8), torpedo (T5), and night (W6).
+Revisit if a client capture shows ASW damage scaling with remaining ammo.
 
 ---
 
 ## 5. Implementation Order Suggestion
 
-Based on dependency chains and impact:
+Based on dependency chains and impact ([done] / [open] reflect the §4 audit):
 
 ```
 Phase 1: Foundation fixes (all battles immediately better)
-  ├─ Defense randomization
-  ├─ Damage state modifier
-  ├─ Scratch damage trigger (attack < defense)
-  └─ Torpedo basic power fix (remove +5)
+  ├─ [done] Defense randomization
+  ├─ [done] Damage state modifier
+  ├─ [done] Scratch damage trigger (attack < defense)
+  └─ [done] Torpedo basic power (no spurious +5)
 
 Phase 2: Equipment-driven power (requires star-level access)
-  ├─ Improvement bonus (Σ k_eq × √★)
-  ├─ CV special shelling formula
-  └─ CL fit gun bonus
+  ├─ [done] Improvement bonus (Σ k_eq × √★)
+  ├─ [done] CV special shelling formula (simplified)
+  └─ [done] CL fit gun bonus
 
 Phase 3: Post-cap modifiers (visible damage spikes)
-  ├─ Critical hit system
-  ├─ Artillery spotting
-  ├─ AP shell modifier
-  └─ Ammo modifier
+  ├─ [open] Critical hit system
+  ├─ [done] Artillery spotting
+  ├─ [open] AP shell modifier
+  └─ [done] Ammo modifier
 
 Phase 4: Airstrike fidelity
-  ├─ Per-type airstrike calculation
-  ├─ Contact modifier
-  ├─ Torpedo bomber ×0.8/×1.5
-  └─ Airstrike improvement bonus
+  ├─ [open] Per-type airstrike calculation
+  ├─ [open] Contact modifier
+  ├─ [open] Torpedo bomber ×0.8/×1.5
+  └─ [open] Airstrike improvement bonus
 
 Phase 5: Night battle fidelity
-  ├─ Night recon bonus
-  ├─ Night improvement bonus
-  ├─ MainTorpTorp CI variant
-  └─ Carrier night air attack
+  ├─ [done] Night recon bonus
+  ├─ [done] Night improvement bonus
+  ├─ [partial] Night CI variants (most implemented in `simulation/night.rs`)
+  └─ [open] Carrier night air attack
 
 Phase 6: ASW refinement
-  ├─ ASW armor penetration
-  ├─ Special unconditional OASW
-  └─ DC projector item ID distinction
+  ├─ [open] ASW armor penetration
+  ├─ [open] Special unconditional OASW
+  └─ [done] DC projector item ID distinction
 ```
+
+**Next suggested target:** critical hit system (Phase 3) — the largest remaining
+"affects all battles" gap, and the one most visible to players (`api_cl`=2 flag).
 
 ---
 
