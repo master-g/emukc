@@ -68,3 +68,6 @@ mod level_cap_exp;
 
 #[path = "gameplay_tests/remodel_preserve_fields.rs"]
 mod remodel_preserve_fields;
+
+#[path = "gameplay_tests/sortie_ammo_reaches_battle.rs"]
+mod sortie_ammo_reaches_battle;
