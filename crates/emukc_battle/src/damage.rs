@@ -6,7 +6,10 @@
 
 use emukc_model::{
     codex::Codex,
-    kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
+    kc2::{
+        KcApiSlotItem, KcShipType, KcSlotItemType3,
+        start2::{ApiMstShip, ApiMstSlotitem},
+    },
 };
 
 use crate::random::BattleRng;
@@ -95,6 +98,31 @@ pub(crate) fn resolve_damage(
     }
 }
 
+/// Post-cap ammunition modifier based on the attacker's remaining ammo (弾薬量補正).
+///
+/// Friendly ships deal reduced damage when low on ammo. At ≥50% remaining the
+/// modifier is `1.0`; below 50% it scales linearly to `0.0` as ammo empties,
+/// following the canonical `min(1.0, ammo_percent / 50)` where
+/// `ammo_percent = floor(100 × api_bull / api_bull_max)` (an integer percentage).
+///
+/// Enemy (abyssal) attackers do not track ammo and are never penalized. When the
+/// master ammo capacity is unknown or non-positive, no penalty is applied.
+pub(crate) fn ammo_modifier(codex: &Codex, attacker: &BattleRuntimeShip) -> f64 {
+    if !attacker.is_friendly {
+        return 1.0;
+    }
+    let Ok(mst) = codex.find::<ApiMstShip>(&attacker.ship.api_ship_id) else {
+        return 1.0;
+    };
+    let bull_max = mst.api_bull_max.unwrap_or(0);
+    if bull_max <= 0 {
+        return 1.0;
+    }
+    let bull = attacker.ship.api_bull.max(0);
+    let ammo_percent = (100 * bull) / bull_max;
+    (ammo_percent as f64 / 50.0).min(1.0)
+}
+
 /// Calculate shelling damage for a single attack.
 ///
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied post-cap
@@ -130,6 +158,7 @@ pub(crate) fn calculate_shelling_damage(
     if let Some(m) = ci_multiplier {
         capped_power *= m;
     }
+    capped_power *= ammo_modifier(codex, attacker);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -149,7 +178,8 @@ pub(crate) fn calculate_torpedo_damage(
     let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, phase);
     let pre_cap =
         basic_power * formation_modifier(formation_id) * engagement.modifier() * dmg_state;
-    let capped_power = apply_cap(pre_cap, TORPEDO_CAP) as f64;
+    let mut capped_power = apply_cap(pre_cap, TORPEDO_CAP) as f64;
+    capped_power *= ammo_modifier(codex, attacker);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -174,7 +204,8 @@ pub(crate) fn calculate_night_damage(
         Some(m) => basic_power * m,
         None => basic_power,
     };
-    let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
+    let mut capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
+    capped_power *= ammo_modifier(codex, attacker);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -550,6 +581,182 @@ mod tests {
 
         // Drop the unused warning
         let _ = min_armor;
+    }
+
+    #[test]
+    fn ammo_modifier_at_or_above_half_is_unpenalized() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bull_max = codex.find::<ApiMstShip>(&dd).unwrap().api_bull_max.unwrap();
+        assert!(bull_max > 0);
+
+        let friendly_at = |bull: i64| {
+            let mut input = sample_ship(&codex, dd, 1);
+            input.ship.api_bull = bull;
+            BattleRuntimeShip::new(input, true, true)
+        };
+
+        assert_eq!(ammo_modifier(&codex, &friendly_at(bull_max)), 1.0); // full
+        assert_eq!(ammo_modifier(&codex, &friendly_at((bull_max + 1) / 2)), 1.0); // ~50%
+        assert_eq!(ammo_modifier(&codex, &friendly_at(bull_max * 2)), 1.0); // over-supplied clamps
+    }
+
+    #[test]
+    fn ammo_modifier_scales_linearly_below_half() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bull_max = codex.find::<ApiMstShip>(&dd).unwrap().api_bull_max.unwrap();
+
+        let modifier_at = |bull: i64| {
+            let mut input = sample_ship(&codex, dd, 1);
+            input.ship.api_bull = bull;
+            ammo_modifier(&codex, &BattleRuntimeShip::new(input, true, true))
+        };
+
+        // Empty ammo → 0.0 (scratch only).
+        assert_eq!(modifier_at(0), 0.0);
+
+        // Each below-50% sample equals the canonical floor(percent) / 50 and is < 1.0.
+        for &bull in &[bull_max / 10, bull_max / 4, bull_max * 2 / 5] {
+            if bull == 0 {
+                continue;
+            }
+            let pct = (100 * bull) / bull_max; // integer floor percentage
+            assert!(pct < 50, "test setup: {bull}/{bull_max} should be < 50%");
+            let expected = pct as f64 / 50.0;
+            assert!((modifier_at(bull) - expected).abs() < 1e-9, "bull={bull}");
+            assert!(modifier_at(bull) < 1.0);
+        }
+
+        // Monotonic: more ammo never yields a smaller modifier.
+        assert!(modifier_at(bull_max / 4) <= modifier_at(bull_max * 2 / 5));
+        assert!(modifier_at(1) <= modifier_at(bull_max / 4));
+    }
+
+    #[test]
+    fn ammo_modifier_never_penalizes_enemy() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut input = sample_ship(&codex, dd, 1);
+        input.ship.api_bull = 0; // empty
+        let enemy = BattleRuntimeShip::new(input, false, true);
+        assert_eq!(ammo_modifier(&codex, &enemy), 1.0);
+    }
+
+    #[test]
+    fn low_ammo_reduces_friendly_shelling_damage() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ca = first_ship_mst_by_type(&codex, KcShipType::CA);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bull_max = codex.find::<ApiMstShip>(&ca).unwrap().api_bull_max.unwrap();
+
+        let shell = |bull: i64, seed: u64| {
+            let mut input = sample_ship(&codex, ca, 99);
+            input.ship.api_bull = bull;
+            let attacker = BattleRuntimeShip::new(input, true, true);
+            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+            let mut rng = crate::random::SeededRng::new(seed);
+            calculate_shelling_damage(
+                &codex,
+                &mut rng,
+                &attacker,
+                &defender,
+                1,
+                EngagementType::SameCourse,
+                None,
+            )
+        };
+
+        // Identical RNG and matchup — only ammo differs, so low can never exceed full.
+        for seed in [1u64, 7, 42, 100, 2024] {
+            let full = shell(bull_max, seed);
+            let low = shell(bull_max / 10, seed); // ~10% ammo → ×0.2
+            assert!(low <= full, "seed {seed}: low {low} should be <= full {full}");
+        }
+        // A high-firepower CA vs a weak DD must show a real reduction.
+        let full = shell(bull_max, 42);
+        let low = shell(bull_max / 10, 42);
+        assert!(full > 5, "setup: full-ammo CA->DD should deal real damage, got {full}");
+        assert!(low < full, "10% ammo must deal less than full (full {full}, low {low})");
+    }
+
+    #[test]
+    fn low_ammo_reduces_friendly_torpedo_and_night_damage() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bull_max = codex.find::<ApiMstShip>(&dd).unwrap().api_bull_max.unwrap();
+
+        let build = |bull: i64| {
+            let mut input = sample_ship(&codex, dd, 99);
+            input.ship.api_bull = bull;
+            let attacker = BattleRuntimeShip::new(input, true, true);
+            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+            (attacker, defender)
+        };
+
+        for seed in [3u64, 11, 50, 99] {
+            let (atk, def) = build(bull_max);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let torp_full = calculate_torpedo_damage(
+                &codex,
+                &mut rng,
+                &atk,
+                &def,
+                1,
+                EngagementType::SameCourse,
+                BattlePhase::OpeningTorpedo,
+            );
+            let (atk, def) = build(bull_max / 10);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let torp_low = calculate_torpedo_damage(
+                &codex,
+                &mut rng,
+                &atk,
+                &def,
+                1,
+                EngagementType::SameCourse,
+                BattlePhase::OpeningTorpedo,
+            );
+            assert!(torp_low <= torp_full, "torpedo seed {seed}: {torp_low} > {torp_full}");
+
+            let (atk, def) = build(bull_max);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let night_full = calculate_night_damage(&codex, &mut rng, &atk, &def, None, None);
+            let (atk, def) = build(bull_max / 10);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let night_low = calculate_night_damage(&codex, &mut rng, &atk, &def, None, None);
+            assert!(night_low <= night_full, "night seed {seed}: {night_low} > {night_full}");
+        }
+    }
+
+    #[test]
+    fn enemy_ammo_does_not_affect_shelling_damage() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ca = first_ship_mst_by_type(&codex, KcShipType::CA);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let bull_max = codex.find::<ApiMstShip>(&ca).unwrap().api_bull_max.unwrap();
+
+        let shell = |bull: i64, seed: u64| {
+            let mut input = sample_ship(&codex, ca, 99);
+            input.ship.api_bull = bull;
+            let attacker = BattleRuntimeShip::new(input, false, true); // enemy attacker
+            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), true, true);
+            let mut rng = crate::random::SeededRng::new(seed);
+            calculate_shelling_damage(
+                &codex,
+                &mut rng,
+                &attacker,
+                &defender,
+                1,
+                EngagementType::SameCourse,
+                None,
+            )
+        };
+
+        // Enemy attacker: ammo is irrelevant, so full and empty deal identical damage.
+        for seed in [1u64, 9, 77] {
+            assert_eq!(shell(bull_max, seed), shell(0, seed), "enemy ignores ammo (seed {seed})");
+        }
     }
 
     #[test]
