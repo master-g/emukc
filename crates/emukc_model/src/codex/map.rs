@@ -308,6 +308,23 @@ impl MapDefinition {
                     fold_base_topology_into_variant(variant, &base);
                 }
             }
+
+            // Routability guard: the fold joins variant ↔ base by `cell_no`. If a p_unlock
+            // variant's capture numbering diverges from the kcdata base, the fold copies
+            // nothing and the would-be default ends up with no start cell. Rather than destroy
+            // the only routable variant, abort normalization and keep the kcdata base as the
+            // playable default — the p_unlock split is deferred until the data aligns.
+            let default_routable =
+                self.variants.get(present[0]).is_some_and(|variant| variant.has_start_source());
+            if !default_routable {
+                self.variants.insert(String::new(), base);
+                tracing::warn!(
+                    map_id = self.map_id,
+                    default_variant = present[0],
+                    "p_unlock topology fold left the default variant unroutable; keeping kcdata base"
+                );
+                return;
+            }
         }
 
         // `pre_p_unlock` is the pre-unlock phase and the canonical default; fall back to the
@@ -964,6 +981,34 @@ mod tests {
 
         let pre = def.variants.get("pre_p_unlock").unwrap();
         assert_eq!(pre.cell(0).unwrap().next_cells, vec![2], "existing topology preserved");
+    }
+
+    /// Like `p_unlock_definition`, but the p_unlock skeletons are renumbered so they share NO
+    /// cell_no with the base `""` graph — the topology fold (a cell_no join) matches nothing.
+    fn misaligned_p_unlock_definition() -> MapDefinition {
+        let mut def = p_unlock_definition();
+        for key in ["pre_p_unlock", "post_p_unlock"] {
+            let variant = def.variants.get_mut(key).unwrap();
+            for cell in &mut variant.cells {
+                cell.cell_no += 100;
+            }
+            variant.boss_cell_no += 100;
+        }
+        def
+    }
+
+    #[test]
+    fn normalize_p_unlock_skips_when_fold_leaves_default_unroutable() {
+        let mut def = misaligned_p_unlock_definition();
+        let before_default = def.default_variant.clone();
+        let before_gauge = def.gauge_count;
+        def.normalize_p_unlock_variants();
+
+        // Guard fired: the kcdata base is preserved; nothing destructive happened.
+        assert!(def.variants.contains_key(""), "base \"\" variant must be retained");
+        assert!(def.variants[""].has_start_source(), "retained base stays routable");
+        assert_eq!(def.default_variant, before_default, "default not flipped to unroutable pre");
+        assert_eq!(def.gauge_count, before_gauge, "gauge not re-derived on skip");
     }
 
     // ── start-source resolution (U1) ─────────────────────────────────────────
