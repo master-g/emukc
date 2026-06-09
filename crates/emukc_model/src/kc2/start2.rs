@@ -23,7 +23,9 @@ pub struct ApiManifest {
     pub api_mst_equip_ship: BTreeMap<String, ApiMstEquipShip>,
     /// Furniture data.
     pub api_mst_furniture: Vec<ApiMstFurniture>,
-    /// Furniture graph data.
+    /// Furniture graph data. Dropped from recent upstream `start2.json`; defaults
+    /// to empty when absent (the field is never consumed).
+    #[serde(default)]
     pub api_mst_furnituregraph: Vec<ApiMstFurnituregraph>,
     /// Item shop data.
     pub api_mst_item_shop: ApiMstItemShop,
