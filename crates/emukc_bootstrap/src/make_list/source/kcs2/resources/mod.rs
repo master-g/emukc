@@ -54,7 +54,7 @@ pub(super) async fn make_manifest_support(
     let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
     bgm::make(mst, &strategy, list).await?;
     furniture::make(mst, cache, &strategy, list).await?;
-    gauge::make(cache, &strategy, list).await?;
+    gauge::make(mst, cache, &strategy, list).await?;
     map::make(cache, &strategy, list).await?;
     ship::make_manifest_type_extensions(mst, list);
     unversioned::make(list).await?;
@@ -228,8 +228,9 @@ fn add_template_map_info_paths(mst: &ApiManifest, list: &mut CacheList) {
     }
 }
 
-fn add_template_gauge_paths(_mst: &ApiManifest, list: &mut CacheList) {
-    for id in gauge::MAP_ID_LIST.iter().chain(gauge::EVENT_MAP_ID_LIST.iter()) {
+fn add_template_gauge_paths(mst: &ApiManifest, list: &mut CacheList) {
+    let regular = gauge::regular_gauge_ids(mst);
+    for id in regular.iter().map(String::as_str).chain(gauge::EVENT_MAP_ID_LIST.iter().copied()) {
         list.add_unversioned(format!("kcs2/resources/gauge/{id}.json"));
     }
 }
@@ -720,17 +721,27 @@ mod tests {
     }
 
     #[test]
-    fn template_gauge_paths_only_produce_known_gauge_ids() {
+    fn template_gauge_paths_derive_gauge_maps_from_manifest() {
         let mst = ApiManifest {
             api_mst_mapinfo: vec![
+                // 1-1: no gauge → no gauge paths.
                 ApiMstMapinfo {
                     api_maparea_id: 1,
                     api_no: 1,
                     ..Default::default()
                 },
+                // 1-5: defeat gauge → 00105.
                 ApiMstMapinfo {
                     api_maparea_id: 1,
                     api_no: 5,
+                    api_required_defeat_count: Some(4),
+                    ..Default::default()
+                },
+                // 5-6: a newer gauge map the old hardcoded list missed → 00506.
+                ApiMstMapinfo {
+                    api_maparea_id: 5,
+                    api_no: 6,
+                    api_required_defeat_count: Some(280),
                     ..Default::default()
                 },
             ],
@@ -741,9 +752,13 @@ mod tests {
         add_template_gauge_paths(&mst, &mut list);
 
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
-        // 00105 is in MAP_ID_LIST — should be present
-        assert!(paths.iter().any(|p| p.contains("gauge/00105.json")));
-        // 00101 is NOT in any gauge list — should be absent
+        // Gauge maps are derived from the manifest.
+        assert!(paths.iter().any(|p| p.contains("gauge/00105.json")), "1-5 gauge present");
+        assert!(
+            paths.iter().any(|p| p.contains("gauge/00506.json")),
+            "5-6 gauge present (regression for the missing 00506)"
+        );
+        // 1-1 has no gauge → no path.
         assert!(
             !paths.iter().any(|p| p.contains("gauge/00101.json")),
             "regular map 1-1 should not produce gauge paths"

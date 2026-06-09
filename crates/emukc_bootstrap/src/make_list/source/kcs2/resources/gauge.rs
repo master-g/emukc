@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use emukc_cache::prelude::*;
+use emukc_model::kc2::start2::ApiManifest;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
@@ -9,13 +10,25 @@ use crate::{
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
-pub(super) static MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
-    &[
-        "00105", "00106", "00205", "00305", "00404", "00405", "00502", "00503", "00504", "00505",
-        "00602", "00603", "00604", "00605", "00701", "00702", "00702_2", "00703", "00703_2",
-        "00704", "00705", "00705_2", "00705_3",
-    ]
-});
+/// Sub-gauge / phase variants for regular maps (e.g. 7-3's second gauge). These are not
+/// expressible from `api_mst_mapinfo` alone, so they are listed explicitly. Bases come from the
+/// manifest (see [`regular_gauge_ids`]); only these phase suffixes are maintained by hand.
+pub(super) const REGULAR_GAUGE_VARIANT_IDS: &[&str] = &["00702_2", "00703_2", "00705_2", "00705_3"];
+
+/// Regular-map gauge ids derived from the manifest: every map carrying a defeat gauge
+/// (`api_required_defeat_count`) or an HP gauge (`api_max_maphp`) yields `0{area:02}{no:02}`
+/// (e.g. 5-6 → `00506`), plus the known sub-gauge phase variants. Deriving from the manifest
+/// keeps the list current as the game adds maps, instead of going stale like a hardcoded list.
+pub(super) fn regular_gauge_ids(mst: &ApiManifest) -> Vec<String> {
+    let mut ids: Vec<String> = mst
+        .api_mst_mapinfo
+        .iter()
+        .filter(|m| m.api_required_defeat_count.is_some() || m.api_max_maphp.is_some())
+        .map(|m| format!("0{:02}{:02}", m.api_maparea_id, m.api_no))
+        .collect();
+    ids.extend(REGULAR_GAUGE_VARIANT_IDS.iter().map(|s| (*s).to_string()));
+    ids
+}
 
 pub(super) static EVENT_MAP_ID_LIST: LazyLock<&[&str]> = LazyLock::new(|| {
     &[
@@ -59,6 +72,7 @@ struct VerticalConfig {
 }
 
 pub(super) async fn make(
+    mst: &ApiManifest,
     cache: &Kache,
     strategy: &CacheListMakeStrategy,
     list: &mut CacheList,
@@ -67,57 +81,44 @@ pub(super) async fn make(
         return Ok(());
     }
 
-    for id in *MAP_ID_LIST {
-        make_gauge_by_id(cache, id, list).await?;
+    for id in regular_gauge_ids(mst) {
+        make_gauge_by_id(cache, &id, list).await?;
     }
 
     for id in *EVENT_MAP_ID_LIST {
         make_gauge_by_id(cache, id, list).await?;
-
-        // try to find more
-        // for i in 2..=9 {
-        // 	let new_id = format!("{id}_{i}");
-        // 	if crawl_gauge_by_id(cache, &new_id).await.is_err() {
-        // 		break;
-        // 	}
-        // }
     }
-
-    // for id in ["06007", "06008"].into_iter() {
-    // 	for i in 2..=9 {
-    // 		let new_id = format!("{id}_{i}");
-    // 		if make_gauge_by_id(cache, &new_id, list).await.is_err() {
-    // 			break;
-    // 		}
-    // 	}
-    // }
-
-    // try to find more
-    // for area_id in 60..=61 {
-    // 	for map_id in 1..=10 {
-    // 		let magic = format!("{area_id:03}{map_id:02}");
-    // 		if crawl_gauge_by_id(cache, &magic).await.is_err() {
-    // 			break;
-    // 		}
-    // 	}
-    // }
 
     Ok(())
 }
 
+/// Add a gauge json and the images it references to the list. Tolerant by design: a gauge whose
+/// json is absent on the CDN (a map without a gauge resource) is skipped rather than aborting the
+/// whole make-list, and a malformed json adds the json path but skips its (unknown) images.
 async fn make_gauge_by_id(
     cache: &Kache,
     id: &str,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
     let p = format!("kcs2/resources/gauge/{id}.json");
-    let mut json_file = GetOption::new_non_mod().get(cache, &p, NoVersion).await?;
+    let mut json_file = match GetOption::new_non_mod().get(cache, &p, NoVersion).await {
+        Ok(file) => file,
+        Err(e) => {
+            tracing::trace!("gauge {id}: json unavailable ({e:?}), skipping");
+            return Ok(());
+        }
+    };
     list.add_unversioned(p);
     let mut raw = String::new();
     json_file.read_to_string(&mut raw).await.map_err(|e| KacheError::InvalidFile(e.to_string()))?;
 
-    let config: GaugeConfig =
-        serde_json::from_str(&raw).map_err(|e| KacheError::InvalidFile(e.to_string()))?;
+    let config: GaugeConfig = match serde_json::from_str(&raw) {
+        Ok(config) => config,
+        Err(e) => {
+            tracing::warn!("gauge {id}: malformed json ({e}), skipping its images");
+            return Ok(());
+        }
+    };
 
     for img in [config.img, config.vertical.img] {
         list.add_unversioned(format!("kcs2/resources/gauge/{img}.png"));
