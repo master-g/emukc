@@ -14,7 +14,8 @@ use emukc_internal::{
     db::sea_orm::DbConn,
     prelude::{
         AccountOps, BattleSimulation, Codex, HasContext, PracticeStore, ProfileOps, Scenario,
-        SortieOps, SortieRepository, SortieStore, apply_scenario, new_mem_db, render_day_battle,
+        ShipOps, SortieOps, SortieRepository, SortieStore, apply_scenario, new_mem_db,
+        render_day_battle,
     },
 };
 use serde_json::Value;
@@ -86,6 +87,14 @@ struct SimArgs {
     #[arg(long, default_value_t = 1)]
     formation: i64,
 
+    #[arg(help = "Search seeds for a branch instead of running one: night or cutin")]
+    #[arg(long, value_name = "PREDICATE")]
+    find: Option<String>,
+
+    #[arg(help = "Max seeds to try during a --find search")]
+    #[arg(long, default_value_t = 1000)]
+    max_seeds: u64,
+
     #[arg(help = "Print structured JSON output")]
     #[arg(long)]
     json: bool,
@@ -151,23 +160,55 @@ fn sim_exec(args: &SimArgs, config: &AppConfig) -> Result<()> {
     let (scenario, default_area, default_no) = resolve_scenario(&args.scenario)?;
     let area = args.area.unwrap_or(default_area);
     let map_no = args.map.unwrap_or(default_no);
+    let target = SortieTarget {
+        area,
+        map_no,
+        formation: args.formation,
+    };
 
-    let transcript = render_sortie_once(codex, args.seed, scenario, area, map_no, args.formation)?;
-
-    if args.json {
-        let out = serde_json::json!({
-            "scenario": args.scenario,
-            "seed": args.seed,
-            "area": area,
-            "map": map_no,
-            "transcript": transcript,
-        });
-        println!("{}", serde_json::to_string_pretty(&out)?);
+    if let Some(find) = &args.find {
+        let predicate = FindPredicate::parse(find)?;
+        let found =
+            seed_search(codex, args.seed, args.max_seeds, scenario, target, move |outcome| {
+                predicate.matches(outcome)
+            })?;
+        match found {
+            Some((seed, outcome)) => {
+                if args.json {
+                    let out = serde_json::json!({
+                        "find": find,
+                        "found_seed": seed,
+                        "transcript": outcome.transcript,
+                    });
+                    println!("{}", serde_json::to_string_pretty(&out)?);
+                } else {
+                    println!("found seed {seed} matching '{find}'");
+                    print!("{}", outcome.transcript);
+                }
+                Ok(())
+            }
+            None => bail!(
+                "no seed matching '{find}' found within {} seeds (from {})",
+                args.max_seeds,
+                args.seed
+            ),
+        }
     } else {
-        print!("{transcript}");
+        let transcript = render_sortie_once(codex, args.seed, scenario, target)?;
+        if args.json {
+            let out = serde_json::json!({
+                "scenario": args.scenario,
+                "seed": args.seed,
+                "area": area,
+                "map": map_no,
+                "transcript": transcript,
+            });
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            print!("{transcript}");
+        }
+        Ok(())
     }
-
-    Ok(())
 }
 
 /// Resolve a named preset to its scenario and default sortie target (area, no).
@@ -205,21 +246,69 @@ impl HasContext for SimContext {
     }
 }
 
-/// Drive one seeded sortie to its first battle and render the transcript.
+/// Where a sim run sorties: map area + info no, and the friendly formation.
+#[derive(Clone, Copy)]
+struct SortieTarget {
+    area: i64,
+    map_no: i64,
+    formation: i64,
+}
+
+/// What a single seeded sortie run produced — shared by the printer and the
+/// seed-search predicate.
+struct RunOutcome {
+    transcript: String,
+    /// Midnight became available (both fleets survived the day battle).
+    midnight_available: bool,
+    /// A day-shelling cut-in / special attack occurred.
+    saw_cutin: bool,
+}
+
+/// A branch predicate for the `--find` seed search.
+#[derive(Clone, Copy)]
+enum FindPredicate {
+    Night,
+    Cutin,
+}
+
+impl FindPredicate {
+    fn parse(name: &str) -> Result<Self> {
+        match name {
+            "night" => Ok(Self::Night),
+            "cutin" => Ok(Self::Cutin),
+            other => bail!("unknown --find predicate '{other}' (known: night, cutin)"),
+        }
+    }
+
+    fn matches(self, outcome: &RunOutcome) -> bool {
+        match self {
+            Self::Night => outcome.midnight_available,
+            Self::Cutin => outcome.saw_cutin,
+        }
+    }
+}
+
+/// Search seeds from `start_seed` (inclusive) for up to `max_attempts`, returning
+/// the first seed whose run satisfies `predicate` plus that run's outcome.
 ///
 /// Runs on a dedicated current-thread runtime: the thread-local seed only holds
 /// on a current-thread executor, so the sim must NOT inherit the CLI's
 /// multi-thread runtime — a task migration at an `.await` would land post-seed
-/// RNG draws on an unseeded worker thread and break reproducibility.
-fn render_sortie_once(
+/// RNG draws on an unseeded worker thread and break reproducibility. One
+/// context/profile/scenario is built once and reused across seeds; stale sortie
+/// state is cleared between attempts.
+fn seed_search<P>(
     codex: Codex,
-    seed: u64,
+    start_seed: u64,
+    max_attempts: u64,
     scenario: Scenario,
-    area: i64,
-    map_no: i64,
-    formation: i64,
-) -> Result<String> {
-    let handle = std::thread::spawn(move || -> Result<String> {
+    target: SortieTarget,
+    predicate: P,
+) -> Result<Option<(u64, RunOutcome)>>
+where
+    P: Fn(&RunOutcome) -> bool + Send + 'static,
+{
+    let handle = std::thread::spawn(move || -> Result<Option<(u64, RunOutcome)>> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -234,12 +323,41 @@ fn render_sortie_once(
             };
             let profile_id = create_sim_profile(&ctx).await?;
             apply_scenario(&ctx, profile_id, &scenario).await.context("apply scenario")?;
-            rng::seed(seed);
-            run_first_battle(&ctx, profile_id, area, map_no, formation).await
+
+            // Snapshot the post-scenario fleet so every seed starts from the same
+            // state. Without this, accumulated sortie damage across iterations
+            // would make a found seed depend on the search history rather than on
+            // (scenario, seed) alone, breaking reproduction on a plain run.
+            let baseline = ctx.get_ships(profile_id).await.context("snapshot fleet")?;
+
+            for offset in 0..max_attempts {
+                let seed = start_seed.wrapping_add(offset);
+                for ship in &baseline {
+                    ctx.update_ship(ship).await.context("restore fleet baseline")?;
+                }
+                ctx.clear_sortie_state_if_any(profile_id).await;
+                rng::seed(seed);
+                let outcome = run_first_battle_outcome(&ctx, profile_id, target).await?;
+                if predicate(&outcome) {
+                    return Ok(Some((seed, outcome)));
+                }
+            }
+            Ok(None)
         })
     });
 
     handle.join().map_err(|_| anyhow::anyhow!("battle sim worker thread panicked"))?
+}
+
+/// Drive one seeded sortie and return its transcript (single-seed convenience).
+fn render_sortie_once(
+    codex: Codex,
+    seed: u64,
+    scenario: Scenario,
+    target: SortieTarget,
+) -> Result<String> {
+    let found = seed_search(codex, seed, 1, scenario, target, |_| true)?;
+    Ok(found.expect("the always-true predicate matches the first seed").1.transcript)
 }
 
 async fn create_sim_profile(ctx: &SimContext) -> Result<i64> {
@@ -253,20 +371,29 @@ async fn create_sim_profile(ctx: &SimContext) -> Result<i64> {
     Ok(session.profile.id)
 }
 
-async fn run_first_battle(
+async fn run_first_battle_outcome(
     ctx: &SimContext,
     profile_id: i64,
-    area: i64,
-    map_no: i64,
-    formation: i64,
-) -> Result<String> {
-    ctx.start_sortie(profile_id, 1, area, map_no).await.context("start_sortie")?;
-    ctx.sortie_battle(profile_id, formation).await.context("sortie_battle")?;
+    target: SortieTarget,
+) -> Result<RunOutcome> {
+    ctx.start_sortie(profile_id, 1, target.area, target.map_no).await.context("start_sortie")?;
+    ctx.sortie_battle(profile_id, target.formation).await.context("sortie_battle")?;
 
     let session = ctx
         .sortie_store()
         .get_pending_battle(profile_id)
         .context("no pending battle session after sortie_battle")?;
+
+    let midnight_available = session.packet.midnight_flag != 0;
+    let saw_cutin = [
+        session.packet.hougeki1.as_ref(),
+        session.packet.hougeki2.as_ref(),
+        session.packet.hougeki3.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    .any(|h| h.api_at_type.iter().any(|&t| t != 0));
+
     let simulation = BattleSimulation {
         friendly: session.friendly,
         enemy: session.enemy,
@@ -276,7 +403,11 @@ async fn run_first_battle(
     let transcript = render_day_battle(&simulation);
 
     ctx.sortie_battle_result(profile_id).await.context("sortie_battle_result")?;
-    Ok(transcript)
+    Ok(RunOutcome {
+        transcript,
+        midnight_available,
+        saw_cutin,
+    })
 }
 
 fn load_codex(config: &AppConfig) -> Result<Codex> {
@@ -381,6 +512,15 @@ fn print_incident_report(input: &Path, report: &BattleIncidentReport) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use emukc_internal::prelude::ShipSpec;
+
+    fn target_1_1() -> SortieTarget {
+        SortieTarget {
+            area: 1,
+            map_no: 1,
+            formation: 1,
+        }
+    }
 
     #[test]
     fn load_battle_payload_reads_api_data_envelope() {
@@ -421,10 +561,48 @@ mod tests {
         );
         let codex_b = Codex::load_without_cache_source(".data/codex").unwrap();
 
-        let a = render_sortie_once(codex_a, 7, Scenario::fresh_1_1(), 1, 1, 1).unwrap();
-        let b = render_sortie_once(codex_b, 7, Scenario::fresh_1_1(), 1, 1, 1).unwrap();
+        let a = render_sortie_once(codex_a, 7, Scenario::fresh_1_1(), target_1_1()).unwrap();
+        let b = render_sortie_once(codex_b, 7, Scenario::fresh_1_1(), target_1_1()).unwrap();
 
         assert_eq!(a, b, "same seed must yield byte-identical transcripts in-process");
         assert!(a.contains("result: rank"), "transcript should end in a result rank:\n{a}");
+    }
+
+    #[test]
+    fn seed_search_reports_not_found_at_cap() {
+        let codex = Codex::load_without_cache_source(".data/codex").expect(
+            "Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/",
+        );
+        // An always-false predicate must exhaust the cap and report not-found
+        // rather than looping forever.
+        let found =
+            seed_search(codex, 1, 4, Scenario::fresh_1_1(), target_1_1(), |_| false).unwrap();
+        assert!(found.is_none(), "always-false predicate must hit the attempt cap");
+    }
+
+    #[test]
+    fn seed_search_finds_night_and_reproduces() {
+        // Covers AE2. A single heavily-damaged (taiha) flagship deals little
+        // shelling damage, so it often fails to clear 1-1's enemy, leaving it
+        // alive and making midnight available — a findable rare branch.
+        let night_scenario = || Scenario {
+            fleet: vec![ShipSpec::new(951, 1).with_hp(1)],
+            ..Default::default()
+        };
+
+        let codex = Codex::load_without_cache_source(".data/codex").unwrap();
+        let found =
+            seed_search(codex, 1, 500, night_scenario(), target_1_1(), |o| o.midnight_available)
+                .unwrap();
+        let (seed, outcome) = found.expect("night branch should be findable within 500 seeds");
+        assert!(outcome.midnight_available);
+
+        // Re-running the reported seed reproduces the branch on a plain run.
+        let codex2 = Codex::load_without_cache_source(".data/codex").unwrap();
+        let rerun = seed_search(codex2, seed, 1, night_scenario(), target_1_1(), |_| true)
+            .unwrap()
+            .unwrap()
+            .1;
+        assert!(rerun.midnight_available, "reported seed must reproduce the night branch");
     }
 }
