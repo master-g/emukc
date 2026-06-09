@@ -15,17 +15,24 @@ use crate::{
 /// manifest (see [`regular_gauge_ids`]); only these phase suffixes are maintained by hand.
 pub(super) const REGULAR_GAUGE_VARIANT_IDS: &[&str] = &["00702_2", "00703_2", "00705_2", "00705_3"];
 
-/// Regular-map gauge ids derived from the manifest: every map carrying a defeat gauge
+/// Base regular-map gauge ids derived from the manifest: every map carrying a defeat gauge
 /// (`api_required_defeat_count`) or an HP gauge (`api_max_maphp`) yields `0{area:02}{no:02}`
-/// (e.g. 5-6 → `00506`), plus the known sub-gauge phase variants. Deriving from the manifest
-/// keeps the list current as the game adds maps, instead of going stale like a hardcoded list.
-pub(super) fn regular_gauge_ids(mst: &ApiManifest) -> Vec<String> {
-    let mut ids: Vec<String> = mst
-        .api_mst_mapinfo
+/// (e.g. 5-6 → `00506`). Deriving from the manifest keeps the list current as the game adds
+/// maps, instead of going stale like a hardcoded list. Phase variants are not included here —
+/// [`make`] discovers them by bounded crawl.
+pub(super) fn regular_gauge_base_ids(mst: &ApiManifest) -> Vec<String> {
+    mst.api_mst_mapinfo
         .iter()
         .filter(|m| m.api_required_defeat_count.is_some() || m.api_max_maphp.is_some())
         .map(|m| format!("0{:02}{:02}", m.api_maparea_id, m.api_no))
-        .collect();
+        .collect()
+}
+
+/// Base gauge ids plus the known sub-gauge phase variants. Used by the template / fallback path,
+/// which only lists json paths and cannot auto-discover variants by crawling the way [`make`]
+/// does, so it keeps the explicit variant suffixes for completeness.
+pub(super) fn regular_gauge_ids(mst: &ApiManifest) -> Vec<String> {
+    let mut ids = regular_gauge_base_ids(mst);
     ids.extend(REGULAR_GAUGE_VARIANT_IDS.iter().map(|s| (*s).to_string()));
     ids
 }
@@ -81,10 +88,13 @@ pub(super) async fn make(
         return Ok(());
     }
 
-    for id in regular_gauge_ids(mst) {
-        make_gauge_by_id(cache, &id, list).await?;
+    // Regular maps: derive bases from the manifest, then bounded-crawl each base's phase variants.
+    for base in regular_gauge_base_ids(mst) {
+        make_gauge_with_variants(cache, &base, list).await?;
     }
 
+    // Event maps: the historical list (with its variants) is authoritative — events leave the
+    // manifest once they end, so they can't be derived.
     for id in *EVENT_MAP_ID_LIST {
         make_gauge_by_id(cache, id, list).await?;
     }
@@ -92,20 +102,48 @@ pub(super) async fn make(
     Ok(())
 }
 
+/// Add a base gauge and bounded-crawl its phase variants (`{base}_2`, `{base}_3`, …), stopping at
+/// the first absent variant. This auto-discovers new sub-gauges (e.g. a map's second gauge)
+/// without a hardcoded variant list. Bounded to 8 probes per base.
+async fn make_gauge_with_variants(
+    cache: &Kache,
+    base: &str,
+    list: &mut CacheList,
+) -> Result<(), CacheListMakingError> {
+    if !make_gauge_by_id(cache, base, list).await? {
+        return Ok(());
+    }
+    for i in 2..=9 {
+        let variant_id = format!("{base}_{i}");
+        // Probe with a quiet HEAD first: most bases have no further phase, and routing the
+        // expected 404 through the full `get` path would log it at ERROR. `exists_on_remote`
+        // reports a missing file at trace level, so the crawl stays silent.
+        let json_path = format!("kcs2/resources/gauge/{variant_id}.json");
+        if !cache.exists_on_remote(&json_path, NoVersion).await.unwrap_or(false) {
+            break;
+        }
+        make_gauge_by_id(cache, &variant_id, list).await?;
+    }
+    Ok(())
+}
+
 /// Add a gauge json and the images it references to the list. Tolerant by design: a gauge whose
 /// json is absent on the CDN (a map without a gauge resource) is skipped rather than aborting the
 /// whole make-list, and a malformed json adds the json path but skips its (unknown) images.
+///
+/// Returns `true` when the gauge json was found (so the variant crawl keeps probing), `false`
+/// when it is absent (so the crawl stops).
 async fn make_gauge_by_id(
     cache: &Kache,
     id: &str,
     list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
+) -> Result<bool, CacheListMakingError> {
     let p = format!("kcs2/resources/gauge/{id}.json");
     let mut json_file = match GetOption::new_non_mod().get(cache, &p, NoVersion).await {
         Ok(file) => file,
         Err(e) => {
             tracing::trace!("gauge {id}: json unavailable ({e:?}), skipping");
-            return Ok(());
+            return Ok(false);
         }
     };
     list.add_unversioned(p);
@@ -116,7 +154,7 @@ async fn make_gauge_by_id(
         Ok(config) => config,
         Err(e) => {
             tracing::warn!("gauge {id}: malformed json ({e}), skipping its images");
-            return Ok(());
+            return Ok(true);
         }
     };
 
@@ -125,5 +163,5 @@ async fn make_gauge_by_id(
         list.add_unversioned(format!("kcs2/resources/gauge/{img}_light.png"));
     }
 
-    Ok(())
+    Ok(true)
 }
