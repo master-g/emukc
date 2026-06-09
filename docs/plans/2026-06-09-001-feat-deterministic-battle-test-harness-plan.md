@@ -1,7 +1,7 @@
 ---
 title: "feat: Deterministic battle/sortie test harness"
 type: feat
-status: active
+status: completed
 date: 2026-06-09
 origin: docs/brainstorms/2026-06-09-deterministic-battle-test-harness-requirements.md
 ---
