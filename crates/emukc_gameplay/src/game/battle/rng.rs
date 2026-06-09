@@ -46,6 +46,9 @@ mod tests {
         let first = crypto_draws();
         emukc_crypto::rng::seed(0x00C0_FFEE);
         let second = crypto_draws();
+        // Restore entropy before asserting so a failure cannot skip the cleanup
+        // and leak the seeded stream to other tests on this thread.
+        emukc_crypto::rng::reseed_from_entropy();
         assert_eq!(first, second, "seeding the thread-local must determinize CryptoRng draws");
     }
 }

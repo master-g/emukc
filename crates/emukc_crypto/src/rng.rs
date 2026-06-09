@@ -99,6 +99,25 @@ pub fn seed(s: u64) {
     fastrand::seed(s);
 }
 
+/// Reseed the thread-local RNG from a fresh entropy source, undoing a prior
+/// [`seed`].
+///
+/// Call this after a seeded harness/test run so a fixed RNG stream does not leak
+/// to later code on the same OS thread — for example, other tests in the same
+/// binary that rely on entropy-seeded randomness. Production never seeds, so it
+/// never needs this.
+pub fn reseed_from_entropy() {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0)
+        .hash(&mut hasher);
+    std::thread::current().id().hash(&mut hasher);
+    fastrand::seed(hasher.finish());
+}
+
 /// Return a random `i64` in `[start, end)`.
 pub fn i64(range: Range<i64>) -> i64 {
     fastrand::i64(range)
@@ -217,5 +236,24 @@ mod tests {
             reference, after_reset,
             "reseeding mid-stream must reset to the same starting point"
         );
+    }
+
+    #[test]
+    fn reseed_from_entropy_breaks_determinism() {
+        seed(7);
+        reseed_from_entropy();
+        let after_reseed = draw_sequence();
+
+        seed(7);
+        let deterministic = draw_sequence();
+
+        assert_ne!(
+            after_reseed, deterministic,
+            "reseed_from_entropy must move off the deterministic seed(7) stream"
+        );
+
+        // Leave the thread-local non-deterministic so this test cannot leak a
+        // fixed stream to others on the same thread.
+        reseed_from_entropy();
     }
 }

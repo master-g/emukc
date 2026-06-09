@@ -40,6 +40,10 @@ mod tests {
         let transcript = render_day_battle(&simulation);
 
         context.sortie_battle_result(pid).await.unwrap();
+
+        // Restore entropy so the seeded stream does not leak to other tests
+        // sharing this OS thread (the thread-local seed is process-global).
+        rng::reseed_from_entropy();
         transcript
     }
 
