@@ -39,7 +39,7 @@ pub(crate) enum NightAttackType {
     DdTorpDrumLookout,   // DTL: 1 hit x 1.3x (sp_list=10)
     DdTorpDrumLookout2,  // DTL 2-hit: 2 hits x 1.3x (sp_list=14)
     // Carrier night CI (sp_list=6)
-    CarrierNightCI, // 戦爆連合夜間CI: 1 hit, multiplier varies by sub-type
+    CarrierNightCI(CarrierNightCiSubType), // 戦爆連合夜間CI: 1 hit, multiplier varies by sub-type
 }
 
 impl NightAttackType {
@@ -59,7 +59,7 @@ impl NightAttackType {
             Self::DdTorpTorpLookout2 => 13,
             Self::DdTorpDrumLookout => 10,
             Self::DdTorpDrumLookout2 => 14,
-            Self::CarrierNightCI => 6,
+            Self::CarrierNightCI(_) => 6,
         }
     }
 
@@ -76,7 +76,7 @@ impl NightAttackType {
             Self::MainMainSec => 1.75,
             Self::MainMainMain => 2.0,
             Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 1.5,
-            Self::CarrierNightCI => 1.25, // default; actual multiplier set by sub-type
+            Self::CarrierNightCI(sub) => sub.damage_multiplier(),
         }
     }
 
@@ -90,7 +90,7 @@ impl NightAttackType {
             | Self::DdTorpLookoutRadar
             | Self::DdTorpTorpLookout
             | Self::DdTorpDrumLookout
-            | Self::CarrierNightCI => 1,
+            | Self::CarrierNightCI(_) => 1,
             Self::DoubleAttack
             | Self::TorpTorpTorp
             | Self::DdGunTorpRadar2
@@ -107,7 +107,8 @@ impl NightAttackType {
             Self::MainMainSec => 130.0,
             Self::MainMainMain | Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 140.0,
             Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 125.0,
-            Self::DoubleAttack | Self::Normal | Self::CarrierNightCI => 0.0,
+            Self::CarrierNightCI(sub) => sub.coefficient(),
+            Self::DoubleAttack | Self::Normal => 0.0,
         }
     }
 }
@@ -192,10 +193,36 @@ fn has_radar(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 const NIGHT_FIGHTER_ICON: i64 = 45; // 夜間戦闘機
 const NIGHT_ATTACKER_ICON: i64 = 46; // 夜間攻撃機
 const NIGHT_BOMBER_ICON: i64 = 58; // 夜間爆戦
-const NIGHT_SUISEI_ICON: i64 = 51; // 夜間瑞雲
+// Note: 夜間瑞雲 (icon 51) is intentionally not a carrier-night-CI plane — none of the 8
+// sub-types reference it (see plan Q13). The separate 夜間瑞雲夜戦カットイン (sp_list=200) is
+// deferred follow-up work; its icon constant lands with that plan.
 
 /// Aviation personnel item IDs for night carrier operations.
 const AVIATION_PERSONNEL_IDS: &[i64] = &[258, 259]; // 夜間作戦航空要員/夜間作戦航空要員(熟練)
+
+/// Carriers that trigger night CI **without** 夜間作戦航空要員 — a built-in 夜戦特性 granted by
+/// a specific remodel. The night-plane requirement still applies. `mst_id`s verified against the
+/// Codex bootstrap (`.data/codex/start2.json`); see wikiwiki 夜戦 (<https://wikiwiki.jp/kancolle/夜戦>).
+///
+/// Saratoga Mk.II Mod.2 (`mst_id=550`) is deliberately **excluded** — it loses 夜戦特性 on the
+/// further upgrade (<https://zekamashi.net/kancolle-kouryaku/yasyuu-cutin/>). 加賀改二護 (646) is
+/// also excluded — a Type Ⅰ 无条件 night-battle carrier (a different mechanic, out of scope).
+const SARATOGA_MK2_ID: i64 = 545; // Saratoga Mk.II
+const AKAGI_K2E_ID: i64 = 599; // 赤城改二戊
+const KAGA_K2E_ID: i64 = 610; // 加賀改二戊
+const RYUUHOU_K2E_ID: i64 = 883; // 龍鳳改二戊
+const EXEMPT_NIGHT_CV_IDS: &[i64] = &[SARATOGA_MK2_ID, AKAGI_K2E_ID, KAGA_K2E_ID, RYUUHOU_K2E_ID];
+
+/// 光電管彗星 (彗星一二型(三一号光電管爆弾搭載機)). `api_type[3]=7` (regular dive-bomber
+/// icon), so `count_night_planes_by_icon` misses it — it must be matched by item id. Counts
+/// toward the 戦彗 / 攻彗 / 爆彗 carrier-night-CI sub-types.
+const KOUDENKAN_SUISEI_ID: i64 = 320;
+/// 零戦62型(爆戦/岩井隊). A 夜間飛行機 but with a non-night icon; contributes only to the
+/// `Nf1Other` (戦他他) fallback count.
+const IWAI_FUKUSEN_ID: i64 = 154;
+/// Swordfish / Swordfish Mk.II(熟練) / Swordfish Mk.III(熟練). 夜間飛行機 with a
+/// torpedo-bomber icon (not a night icon), so matched by item id.
+const SWORDFISH_IDS: &[i64] = &[242, 243, 244];
 
 const SKILLED_LOOKOUT_ID: i64 = 412;
 
@@ -221,8 +248,118 @@ fn count_night_planes_by_icon(codex: &Codex, ship: &BattleRuntimeShip, icon: i64
         .count()
 }
 
+/// Count slot items (in non-shot-down slots, `onslot > 0`) whose item id satisfies `pred`.
+/// Mirrors `count_night_planes_by_icon`'s shot-down exclusion for item-id-based detection.
+fn count_slotitems_with_onslot(ship: &BattleRuntimeShip, pred: impl Fn(i64) -> bool) -> usize {
+    ship.slot_items
+        .iter()
+        .zip(ship.ship.api_onslot)
+        .filter(|(si, onslot)| *onslot > 0 && pred(si.api_slotitem_id))
+        .count()
+}
+
+/// Count 光電管彗星 (item 320) in non-shot-down slots. Disjoint from icon-based counts —
+/// item 320 carries a regular dive-bomber icon, not a night-plane icon.
+fn count_kouden_suisei(ship: &BattleRuntimeShip) -> usize {
+    count_slotitems_with_onslot(ship, |id| id == KOUDENKAN_SUISEI_ID)
+}
+
+/// Count Swordfish系 (242/243/244) and 岩井爆戦 (154) in non-shot-down slots. 夜間飛行機 by
+/// classification, but with non-night icons, so matched by item id (disjoint from icon counts).
+fn count_swordfish_iwai(ship: &BattleRuntimeShip) -> usize {
+    count_slotitems_with_onslot(ship, |id| SWORDFISH_IDS.contains(&id) || id == IWAI_FUKUSEN_ID)
+}
+
+/// Carrier night CI sub-type (戦爆連合夜間CI, `sp_list=6`). Selected by night-plane composition
+/// via [`detect_carrier_night_ci_sub_type`]; drives the damage multiplier and the trigger-rate
+/// 種別係数. Every sub-type still emits `api_sp_list=6`.
+///
+/// Multipliers and coefficients per wikiwiki 夜戦 (<https://wikiwiki.jp/kancolle/夜戦>). The
+/// 戦彗 / 攻彗 / 戦爆 / 攻爆 / 爆彗 coefficients are annotated `120?` (uncertain) by wikiwiki;
+/// treated as 120 until contradicting battle samples emerge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CarrierNightCiSubType {
+    Nf2Na,    // 戦戦攻: ≥2 夜戦 + ≥1 夜攻 — 1.25x, coeff 105
+    Nf1Na,    // 戦攻:   ≥1 夜戦 + ≥1 夜攻 — 1.20x, coeff 120
+    Nf1Kk,    // 戦彗:   ≥1 夜戦 + ≥1 光電管彗星 — 1.20x, coeff 120
+    Na1Kk,    // 攻彗:   ≥1 夜攻 + ≥1 光電管彗星 (no 夜戦) — 1.20x, coeff 120
+    Nf1Nb,    // 戦爆:   ≥1 夜戦 + ≥1 夜爆 — 1.20x, coeff 120
+    Na1Nb,    // 攻爆:   ≥1 夜攻 + ≥1 夜爆 — 1.20x, coeff 120
+    Nb1Kk,    // 爆彗:   ≥1 夜爆 + ≥1 光電管彗星 — 1.20x, coeff 120
+    Nf1Other, // 戦他他: ≥1 夜戦 + total 夜間飛行機 ≥2 — 1.18x, coeff 130
+}
+
+impl CarrierNightCiSubType {
+    fn damage_multiplier(self) -> f64 {
+        match self {
+            Self::Nf2Na => 1.25,
+            Self::Nf1Na | Self::Nf1Kk | Self::Na1Kk | Self::Nf1Nb | Self::Na1Nb | Self::Nb1Kk => {
+                1.20
+            }
+            Self::Nf1Other => 1.18,
+        }
+    }
+
+    /// Trigger-rate 種別係数 (the denominator in `night_ci_trigger_rate`).
+    fn coefficient(self) -> f64 {
+        match self {
+            Self::Nf2Na => 105.0,
+            Self::Nf1Na | Self::Nf1Kk | Self::Na1Kk | Self::Nf1Nb | Self::Na1Nb | Self::Nb1Kk => {
+                120.0
+            }
+            Self::Nf1Other => 130.0,
+        }
+    }
+}
+
+/// Detect the carrier night CI sub-type from the ship's night-plane composition, walking the
+/// 8 wikiwiki priorities top-down (first match wins). The counts are disjoint by construction:
+/// icon-based (夜戦/夜攻/夜爆) and item-id-based (光電管彗星, Swordfish系/岩井) never overlap.
+/// Returns `None` when no sub-type matches (e.g. 夜間瑞雲-only or a lone 夜戦).
+fn detect_carrier_night_ci_sub_type(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+) -> Option<CarrierNightCiSubType> {
+    use CarrierNightCiSubType::*;
+
+    let nf = count_night_planes_by_icon(codex, ship, NIGHT_FIGHTER_ICON);
+    let na = count_night_planes_by_icon(codex, ship, NIGHT_ATTACKER_ICON);
+    let nb = count_night_planes_by_icon(codex, ship, NIGHT_BOMBER_ICON);
+    let kk = count_kouden_suisei(ship);
+    let sf_iwai = count_swordfish_iwai(ship);
+    // 夜間飛行機 (per wikiwiki) is the disjoint union of all five counts.
+    let total_yakanhikouki = nf + na + nb + kk + sf_iwai;
+
+    // Positive-only predicates; the top-down order makes higher priorities win ties (e.g. a
+    // 夜戦+光電管彗星 reaches Nf1Kk before Na1Kk because Na1Kk only fires when nf is exhausted).
+    if nf >= 2 && na >= 1 {
+        Some(Nf2Na)
+    } else if nf >= 1 && na >= 1 {
+        Some(Nf1Na)
+    } else if nf >= 1 && kk >= 1 {
+        Some(Nf1Kk)
+    } else if na >= 1 && kk >= 1 {
+        Some(Na1Kk)
+    } else if nf >= 1 && nb >= 1 {
+        Some(Nf1Nb)
+    } else if na >= 1 && nb >= 1 {
+        Some(Na1Nb)
+    } else if nb >= 1 && kk >= 1 {
+        Some(Nb1Kk)
+    } else if nf >= 1 && total_yakanhikouki >= 2 {
+        Some(Nf1Other)
+    } else {
+        None
+    }
+}
+
 /// Check if a carrier is eligible for night CI.
-/// Requires: CV type + aviation personnel + night planes.
+///
+/// Requires CV type, plus either 夜間作戦航空要員 (item 258/259) **or** membership in
+/// [`EXEMPT_NIGHT_CV_IDS`], plus a recognised night-plane combination. The plane-combination
+/// check delegates to [`detect_carrier_night_ci_sub_type`] so eligibility and detection can
+/// never diverge — the old icon-only predicate could not recognise the 光電管彗星 / Swordfish /
+/// 岩井 sub-types, and a 夜間瑞雲-only or lone-夜戦 setup correctly returns `None` → ineligible.
 fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     if !crate::damage::is_cv_type(codex, ship) {
         return false;
@@ -230,21 +367,11 @@ fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     let has_personnel = AVIATION_PERSONNEL_IDS
         .iter()
         .any(|&id| ship.slot_items.iter().any(|si| si.api_slotitem_id == id));
-    if !has_personnel {
+    let is_exempt = EXEMPT_NIGHT_CV_IDS.contains(&ship.ship.api_ship_id);
+    if !(has_personnel || is_exempt) {
         return false;
     }
-    let night_fighters = count_night_planes_by_icon(codex, ship, NIGHT_FIGHTER_ICON);
-    let night_attackers = count_night_planes_by_icon(codex, ship, NIGHT_ATTACKER_ICON);
-    let night_bombers = count_night_planes_by_icon(codex, ship, NIGHT_BOMBER_ICON);
-    let night_suisei = count_night_planes_by_icon(codex, ship, NIGHT_SUISEI_ICON);
-    let night_other = night_attackers + night_bombers + night_suisei;
-
-    // At least 1 night fighter + 1 other night plane
-    night_fighters >= 1 && (night_attackers >= 1 || night_bombers >= 1 || night_suisei >= 1)
-        || // Or at least 1 night attacker + 1 night bomber/suisei
-        night_attackers >= 1 && (night_bombers >= 1 || night_suisei >= 1)
-        || // Or at least 2 night fighters + other
-        night_fighters >= 2 && night_other >= 1
+    detect_carrier_night_ci_sub_type(codex, ship).is_some()
 }
 
 // ---------------------------------------------------------------------------
@@ -393,8 +520,10 @@ fn is_double_attack_eligible(main_guns: usize, sec_guns: usize, torps: usize) ->
 /// Detect the best night attack type from equipment loadout.
 fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAttackType {
     // Carrier night CI takes priority for CV ships
-    if is_cv_night_ci_eligible(codex, ship) {
-        return NightAttackType::CarrierNightCI;
+    if is_cv_night_ci_eligible(codex, ship)
+        && let Some(sub) = detect_carrier_night_ci_sub_type(codex, ship)
+    {
+        return NightAttackType::CarrierNightCI(sub);
     }
 
     let main_guns = count_main_guns(codex, ship);
@@ -500,6 +629,11 @@ fn resolve_night_attack(
     if roll < rate {
         detected
     } else {
+        // A CV that failed its night CI roll falls back to Normal — carriers do not perform the
+        // artillery 連撃 (double attack) at night.
+        if matches!(detected, NightAttackType::CarrierNightCI(_)) {
+            return NightAttackType::Normal;
+        }
         // Failed CI -> check for double attack fallback
         let main_guns = count_main_guns(codex, ship);
         let sec_guns = count_secondary_guns(codex, ship);
@@ -586,7 +720,7 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &drums, 3);
         }
         NightAttackType::DoubleAttack => extend_limit(&mut ids, &surface_ids, 2),
-        NightAttackType::CarrierNightCI | NightAttackType::Normal => {
+        NightAttackType::CarrierNightCI(_) | NightAttackType::Normal => {
             extend_limit(&mut ids, &surface_ids, 1);
         }
     }
@@ -1540,7 +1674,7 @@ mod tests {
         let rt = BattleRuntimeShip::from(ship);
 
         let attack = detect_night_attack_type(&codex, &rt);
-        assert_eq!(attack, NightAttackType::CarrierNightCI);
+        assert_eq!(attack, NightAttackType::CarrierNightCI(CarrierNightCiSubType::Nf2Na));
     }
 
     #[test]
@@ -1578,5 +1712,149 @@ mod tests {
         assert!(crate::targeting::can_attack_night_ship(&codex, &rt));
         let attack = detect_night_attack_type(&codex, &rt);
         assert_eq!(attack, NightAttackType::Normal, "no night planes → Normal");
+    }
+
+    // ── Carrier night CI: sub-types, eligibility, enum, trigger (U1-U4) ───────
+
+    // Verified item ids (icons confirmed against .data/codex/start2.json):
+    const NF: i64 = 254; // F6F-3N — 夜戦 (icon 45)
+    const NA: i64 = 257; // TBM-3D — 夜攻 (icon 46)
+    const NB: i64 = 557; // 零式艦戦62型改(夜間爆戦) — 夜爆 (icon 58)
+    const KK: i64 = 320; // 光電管彗星 — icon 7, detected by item id
+    const SF: i64 = 242; // Swordfish — icon 8, detected by item id
+
+    fn ship_with_slots(codex: &Codex, mst_id: i64, item_ids: &[i64]) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, mst_id, 99);
+        ship.slot_items = item_ids.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+        let mut onslot = [0i64; 5];
+        for slot in onslot.iter_mut().take(item_ids.len().min(5)) {
+            *slot = 1;
+        }
+        ship.ship.api_onslot = onslot;
+        BattleRuntimeShip::from(ship)
+    }
+
+    fn cvl_with(codex: &Codex, item_ids: &[i64]) -> BattleRuntimeShip {
+        ship_with_slots(codex, first_ship_mst_by_type(codex, KcShipType::CVL), item_ids)
+    }
+
+    #[test]
+    fn carrier_night_ci_subtype_detection_all_eight() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        use CarrierNightCiSubType::*;
+        let cases: &[(&[i64], CarrierNightCiSubType)] = &[
+            (&[NF, NF, NA], Nf2Na),
+            (&[NF, NA], Nf1Na),
+            (&[NF, KK], Nf1Kk),
+            (&[NA, KK], Na1Kk),
+            (&[NF, NB], Nf1Nb),
+            (&[NA, NB], Na1Nb),
+            (&[NB, KK], Nb1Kk),
+            (&[NF, SF, SF], Nf1Other),
+        ];
+        for (slots, expected) in cases {
+            let rt = cvl_with(&codex, slots);
+            assert_eq!(
+                detect_carrier_night_ci_sub_type(&codex, &rt),
+                Some(*expected),
+                "slots {slots:?} should detect {expected:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn carrier_night_ci_subtype_priority_and_none() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        use CarrierNightCiSubType::*;
+
+        // Nf1Kk (priority 3) wins over Nf1Other when both could match.
+        assert_eq!(
+            detect_carrier_night_ci_sub_type(&codex, &cvl_with(&codex, &[NF, KK, SF])),
+            Some(Nf1Kk),
+        );
+        // Na1Kk (priority 4) when no 夜戦 present.
+        assert_eq!(
+            detect_carrier_night_ci_sub_type(&codex, &cvl_with(&codex, &[NA, KK, SF])),
+            Some(Na1Kk),
+        );
+        // Lone 夜戦 → no sub-type (total 夜間飛行機 = 1).
+        assert_eq!(detect_carrier_night_ci_sub_type(&codex, &cvl_with(&codex, &[NF])), None);
+        // Plain dive bomber → no sub-type.
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        assert_eq!(detect_carrier_night_ci_sub_type(&codex, &cvl_with(&codex, &[bomber])), None);
+    }
+
+    #[test]
+    fn carrier_night_ci_subtype_excludes_shot_down_slots() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 夜戦 + 光電管彗星, but the 彗星 slot is shot down (onslot=0) → kk=0 → lone 夜戦 → None.
+        let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 99);
+        ship.slot_items = vec![slotitem_with_mst_id(NF), slotitem_with_mst_id(KK)];
+        ship.ship.api_onslot = [1, 0, 0, 0, 0];
+        let rt = BattleRuntimeShip::from(ship);
+        assert_eq!(detect_carrier_night_ci_sub_type(&codex, &rt), None);
+    }
+
+    #[test]
+    fn carrier_night_ci_eligibility_exempt_and_personnel() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        // Exempt CVs without 航空要員 are eligible with a valid plane combo.
+        assert!(is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, 545, &[NF, NA]))); // Saratoga Mk.II
+        assert!(is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, 610, &[NA, KK]))); // 加賀改二戊 (Na1Kk)
+        assert!(is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, 883, &[NF, SF, SF]))); // 龍鳳改二戊 (Nf1Other)
+
+        // Saratoga Mk.II Mod.2 (550) is NOT exempt — loses 夜戦特性 on upgrade.
+        assert!(!is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, 550, &[NF, NA])));
+
+        // Standard CVL: eligible only with 航空要員 (item 258).
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        assert!(is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, cvl, &[258, NF, NF, NA])));
+        assert!(!is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, cvl, &[NF, NA])));
+
+        // Exempt CV but no night planes → ineligible (detector returns None).
+        assert!(!is_cv_night_ci_eligible(&codex, &ship_with_slots(&codex, 545, &[])));
+    }
+
+    #[test]
+    fn carrier_night_ci_enum_multiplier_coefficient_sp_list() {
+        use CarrierNightCiSubType::*;
+        let nf2na = NightAttackType::CarrierNightCI(Nf2Na);
+        assert_eq!(nf2na.damage_multiplier(), 1.25);
+        assert_eq!(nf2na.ci_coefficient(), 105.0);
+
+        let nf1na = NightAttackType::CarrierNightCI(Nf1Na);
+        assert_eq!(nf1na.damage_multiplier(), 1.20);
+        assert_eq!(nf1na.ci_coefficient(), 120.0);
+
+        let nf1other = NightAttackType::CarrierNightCI(Nf1Other);
+        assert_eq!(nf1other.damage_multiplier(), 1.18);
+        assert_eq!(nf1other.ci_coefficient(), 130.0);
+
+        for sub in [Nf2Na, Nf1Na, Nf1Kk, Na1Kk, Nf1Nb, Na1Nb, Nb1Kk, Nf1Other] {
+            assert_eq!(NightAttackType::CarrierNightCI(sub).api_sp_list(), 6);
+            assert_eq!(NightAttackType::CarrierNightCI(sub).hit_count(), 1);
+        }
+    }
+
+    #[test]
+    fn carrier_night_ci_trigger_rate_uses_subtype_coefficient() {
+        use CarrierNightCiSubType::*;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 99);
+        ship.ship.api_lucky = [99, 99];
+        let rt = BattleRuntimeShip::from(ship);
+
+        let rate_nf2na = night_ci_trigger_rate(&rt, NightAttackType::CarrierNightCI(Nf2Na), true);
+        let rate_nf1other =
+            night_ci_trigger_rate(&rt, NightAttackType::CarrierNightCI(Nf1Other), true);
+
+        // The carrier night CI rate is now non-zero (the stub returned 0.0 and never fired).
+        assert!(rate_nf2na > 0.0, "carrier night CI must produce a non-zero trigger rate");
+        // Lower 種別係数 (105) yields a higher rate than Nf1Other (130).
+        assert!(
+            rate_nf2na > rate_nf1other,
+            "Nf2Na (coeff 105) should beat Nf1Other (coeff 130): {rate_nf2na} > {rate_nf1other}"
+        );
     }
 }
