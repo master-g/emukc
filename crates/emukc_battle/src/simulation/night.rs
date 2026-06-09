@@ -211,7 +211,10 @@ const SARATOGA_MK2_ID: i64 = 545; // Saratoga Mk.II
 const AKAGI_K2E_ID: i64 = 599; // 赤城改二戊
 const KAGA_K2E_ID: i64 = 610; // 加賀改二戊
 const RYUUHOU_K2E_ID: i64 = 883; // 龍鳳改二戊
-const EXEMPT_NIGHT_CV_IDS: &[i64] = &[SARATOGA_MK2_ID, AKAGI_K2E_ID, KAGA_K2E_ID, RYUUHOU_K2E_ID];
+/// `pub(crate)` so `targeting::can_attack_night_ship` can let these CVs attack at night without
+/// 夜間作戦航空要員 (their built-in 夜戦特性), mirroring the bypass in `is_cv_night_ci_eligible`.
+pub(crate) const EXEMPT_NIGHT_CV_IDS: &[i64] =
+    &[SARATOGA_MK2_ID, AKAGI_K2E_ID, KAGA_K2E_ID, RYUUHOU_K2E_ID];
 
 /// 光電管彗星 (彗星一二型(三一号光電管爆弾搭載機)). `api_type[3]=7` (regular dive-bomber
 /// icon), so `count_night_planes_by_icon` misses it — it must be matched by item id. Counts

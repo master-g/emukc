@@ -276,7 +276,11 @@ pub(crate) fn can_attack_night_ship(codex: &Codex, ship: &BattleRuntimeShip) -> 
 
     match ship_type(codex, ship) {
         Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB) => {
-            (has_slotitem_id(ship, 258) || has_slotitem_id(ship, 259))
+            // 夜間作戦航空要員, or a built-in 夜戦特性 (the exempt CVs), plus a carrier plane.
+            let has_personnel = has_slotitem_id(ship, 258) || has_slotitem_id(ship, 259);
+            let is_exempt =
+                crate::simulation::night::EXEMPT_NIGHT_CV_IDS.contains(&ship.ship.api_ship_id);
+            (has_personnel || is_exempt)
                 && ship.slot_items.iter().any(|slot_item| {
                     codex
                         .find::<ApiMstSlotitem>(&slot_item.api_slotitem_id)
