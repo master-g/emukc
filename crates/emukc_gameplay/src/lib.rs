@@ -23,6 +23,11 @@ pub mod prelude {
     //! The `emukc_gameplay` crate prelude.
 
     #[doc(hidden)]
+    pub use emukc_battle::{
+        BattleSimulation, NightBattleSimulation, render_day_battle, render_night_battle,
+    };
+
+    #[doc(hidden)]
     pub use crate::{
         err::GameplayError,
         game::PracticeStore,

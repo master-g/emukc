@@ -9,7 +9,14 @@ use emukc::bootstrap::prelude::{
     BattleIncidentReport, BattleValidationReport, analyze_day_battle_incident,
     load_repo_battle_knowledge_assets, validate_day_battle_response,
 };
-use emukc_internal::prelude::Codex;
+use emukc_internal::{
+    crypto::rng,
+    db::sea_orm::DbConn,
+    prelude::{
+        AccountOps, BattleSimulation, Codex, HasContext, PracticeStore, ProfileOps, Scenario,
+        SortieOps, SortieRepository, SortieStore, apply_scenario, new_mem_db, render_day_battle,
+    },
+};
 use serde_json::Value;
 
 use crate::cfg::AppConfig;
@@ -26,6 +33,8 @@ enum Command {
     Validate(ValidateArgs),
     #[command(about = "Analyze a missing battle resource incident")]
     AnalyzeIncident(AnalyzeIncidentArgs),
+    #[command(about = "Run a seeded, scenario-driven sortie and print the battle transcript")]
+    Sim(SimArgs),
 }
 
 #[derive(Debug, Args)]
@@ -55,10 +64,38 @@ struct AnalyzeIncidentArgs {
     missing_url: String,
 }
 
+#[derive(Debug, Args)]
+struct SimArgs {
+    #[arg(help = "Named preset scenario: fresh_1_1 or leveled_for_mid_boss")]
+    #[arg(long, value_name = "NAME")]
+    scenario: String,
+
+    #[arg(help = "RNG seed (same seed + scenario reproduces the whole sortie)")]
+    #[arg(long, default_value_t = 1)]
+    seed: u64,
+
+    #[arg(help = "Override the preset's target map area id")]
+    #[arg(long, value_name = "AREA")]
+    area: Option<i64>,
+
+    #[arg(help = "Override the preset's target map info no")]
+    #[arg(long, value_name = "NO")]
+    map: Option<i64>,
+
+    #[arg(help = "Friendly formation id")]
+    #[arg(long, default_value_t = 1)]
+    formation: i64,
+
+    #[arg(help = "Print structured JSON output")]
+    #[arg(long)]
+    json: bool,
+}
+
 pub(super) async fn exec(args: &BattleArgs, config: &AppConfig) -> Result<()> {
     match &args.command {
         Command::Validate(args) => validate_exec(args, config).await,
         Command::AnalyzeIncident(args) => analyze_incident_exec(args, config).await,
+        Command::Sim(args) => sim_exec(args, config),
     }
 }
 
@@ -107,6 +144,139 @@ async fn analyze_incident_exec(args: &AnalyzeIncidentArgs, config: &AppConfig) -
     }
 
     Ok(())
+}
+
+fn sim_exec(args: &SimArgs, config: &AppConfig) -> Result<()> {
+    let codex = load_codex(config)?;
+    let (scenario, default_area, default_no) = resolve_scenario(&args.scenario)?;
+    let area = args.area.unwrap_or(default_area);
+    let map_no = args.map.unwrap_or(default_no);
+
+    let transcript = render_sortie_once(codex, args.seed, scenario, area, map_no, args.formation)?;
+
+    if args.json {
+        let out = serde_json::json!({
+            "scenario": args.scenario,
+            "seed": args.seed,
+            "area": area,
+            "map": map_no,
+            "transcript": transcript,
+        });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        print!("{transcript}");
+    }
+
+    Ok(())
+}
+
+/// Resolve a named preset to its scenario and default sortie target (area, no).
+fn resolve_scenario(name: &str) -> Result<(Scenario, i64, i64)> {
+    match name {
+        "fresh_1_1" => Ok((Scenario::fresh_1_1(), 1, 1)),
+        "leveled_for_mid_boss" => Ok((Scenario::leveled_for_mid_boss(), 2, 1)),
+        other => bail!(
+            "unknown scenario preset '{other}' (known presets: fresh_1_1, leveled_for_mid_boss)"
+        ),
+    }
+}
+
+/// Minimal in-memory gameplay context for the sim, mirroring the integration
+/// `TestContext` shape (codex + in-mem DB + isolated sortie/practice stores).
+struct SimContext {
+    db: DbConn,
+    codex: Codex,
+    sortie_store: SortieStore,
+    practice_store: PracticeStore,
+}
+
+impl HasContext for SimContext {
+    fn db(&self) -> &DbConn {
+        &self.db
+    }
+    fn codex(&self) -> &Codex {
+        &self.codex
+    }
+    fn sortie_store(&self) -> &SortieStore {
+        &self.sortie_store
+    }
+    fn practice_store(&self) -> &PracticeStore {
+        &self.practice_store
+    }
+}
+
+/// Drive one seeded sortie to its first battle and render the transcript.
+///
+/// Runs on a dedicated current-thread runtime: the thread-local seed only holds
+/// on a current-thread executor, so the sim must NOT inherit the CLI's
+/// multi-thread runtime — a task migration at an `.await` would land post-seed
+/// RNG draws on an unseeded worker thread and break reproducibility.
+fn render_sortie_once(
+    codex: Codex,
+    seed: u64,
+    scenario: Scenario,
+    area: i64,
+    map_no: i64,
+    formation: i64,
+) -> Result<String> {
+    let handle = std::thread::spawn(move || -> Result<String> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .context("failed to build current-thread runtime for battle sim")?;
+        rt.block_on(async move {
+            let db = new_mem_db().await.context("failed to create in-memory database")?;
+            let ctx = SimContext {
+                db,
+                codex,
+                sortie_store: SortieStore::new(),
+                practice_store: PracticeStore::new(),
+            };
+            let profile_id = create_sim_profile(&ctx).await?;
+            apply_scenario(&ctx, profile_id, &scenario).await.context("apply scenario")?;
+            rng::seed(seed);
+            run_first_battle(&ctx, profile_id, area, map_no, formation).await
+        })
+    });
+
+    handle.join().map_err(|_| anyhow::anyhow!("battle sim worker thread panicked"))?
+}
+
+async fn create_sim_profile(ctx: &SimContext) -> Result<i64> {
+    let account = ctx.sign_up("battle-sim", "1234567").await.context("sign up")?;
+    let profile =
+        ctx.new_profile(&account.access_token.token, "battle-sim").await.context("new profile")?;
+    let session = ctx
+        .start_game(&account.access_token.token, profile.profile.id)
+        .await
+        .context("start game")?;
+    Ok(session.profile.id)
+}
+
+async fn run_first_battle(
+    ctx: &SimContext,
+    profile_id: i64,
+    area: i64,
+    map_no: i64,
+    formation: i64,
+) -> Result<String> {
+    ctx.start_sortie(profile_id, 1, area, map_no).await.context("start_sortie")?;
+    ctx.sortie_battle(profile_id, formation).await.context("sortie_battle")?;
+
+    let session = ctx
+        .sortie_store()
+        .get_pending_battle(profile_id)
+        .context("no pending battle session after sortie_battle")?;
+    let simulation = BattleSimulation {
+        friendly: session.friendly,
+        enemy: session.enemy,
+        packet: session.packet,
+        outcome: session.outcome,
+    };
+    let transcript = render_day_battle(&simulation);
+
+    ctx.sortie_battle_result(profile_id).await.context("sortie_battle_result")?;
+    Ok(transcript)
 }
 
 fn load_codex(config: &AppConfig) -> Result<Codex> {
@@ -230,5 +400,31 @@ mod tests {
 
         let payload = load_battle_payload(&path).unwrap();
         assert_eq!(payload["api_ship_ke"][0], 2);
+    }
+
+    #[test]
+    fn unknown_preset_fails_with_clear_message() {
+        let err = resolve_scenario("does-not-exist").unwrap_err();
+        assert!(
+            err.to_string().contains("unknown scenario preset"),
+            "expected a clear unknown-preset error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn sim_transcript_is_deterministic_in_process() {
+        // Same scenario + seed must produce byte-identical transcripts within one
+        // process. Asserting in-process is the point: two separate CLI invocations
+        // each build a fresh runtime and would not catch thread-migration drift.
+        let codex_a = Codex::load_without_cache_source(".data/codex").expect(
+            "Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/",
+        );
+        let codex_b = Codex::load_without_cache_source(".data/codex").unwrap();
+
+        let a = render_sortie_once(codex_a, 7, Scenario::fresh_1_1(), 1, 1, 1).unwrap();
+        let b = render_sortie_once(codex_b, 7, Scenario::fresh_1_1(), 1, 1, 1).unwrap();
+
+        assert_eq!(a, b, "same seed must yield byte-identical transcripts in-process");
+        assert!(a.contains("result: rank"), "transcript should end in a result rank:\n{a}");
     }
 }
