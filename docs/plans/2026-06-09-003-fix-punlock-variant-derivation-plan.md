@@ -1,7 +1,7 @@
 ---
 title: "fix: Correct P-unlock map variant/default/gauge derivation in catalog assembly (7-3)"
 type: fix
-status: active
+status: completed
 date: 2026-06-09
 ---
 
