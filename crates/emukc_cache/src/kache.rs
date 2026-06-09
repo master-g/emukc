@@ -249,7 +249,12 @@ impl Kache {
                         warn!("🥀 expired: {log_tail}");
                     }
                     Error::InvalidFileVersion(_) => {
-                        warn!("🎃 version rollback: {log_tail}");
+                        // The local cache is NEWER than the requested version (a rollback
+                        // request, e.g. populating from a stale list). Serve the newer local
+                        // file instead of re-fetching the older version, which would downgrade
+                        // and corrupt a good cache entry. The DB version is left untouched.
+                        warn!("🎃 version rollback: {log_tail} — keeping newer local file");
+                        return Ok(tokio::fs::File::open(&local_path).await?);
                     }
                     _ => {
                         error!("❗️ local_path:{}, err:{:?}", path, e);
@@ -624,5 +629,60 @@ impl Kache {
         // Check if content looks like HTML error page
         let content = String::from_utf8_lossy(&buffer);
         !content.contains("<!DOCTYPE html>") && !content.contains("<html")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::AsyncReadExt;
+
+    fn test_kache(cache_root: &std::path::Path) -> Kache {
+        Kache::builder()
+            .with_cache_root(cache_root.to_path_buf())
+            .with_gadgets_cdn("example.invalid".to_string())
+            .with_content_cdn("example.invalid".to_string())
+            .build()
+            .unwrap()
+    }
+
+    /// A rollback request (cache newer than the requested version) must serve the newer local
+    /// file and must NOT downgrade the recorded version by re-fetching the older one. Regression
+    /// guard for the bg_h.png 6.2.0.0 rollback: populating from a stale list used to overwrite a
+    /// newer cached file with an older version.
+    #[tokio::test]
+    async fn rollback_request_serves_newer_local_without_downgrade() {
+        let dir = tempfile::tempdir().unwrap();
+        let kache = test_kache(dir.path());
+
+        // A locally cached file recorded at the NEWER version 6.2.9.0.
+        let rel = "kcs2/img/common/bg_map/bg_h.png";
+        let local = dir.path().join(rel);
+        tokio::fs::create_dir_all(local.parent().unwrap()).await.unwrap();
+        tokio::fs::write(&local, b"PNGDATA-newer").await.unwrap();
+        kache.set_version(rel, Some("6.2.9.0")).await.unwrap();
+
+        // A rollback request for the OLDER 6.2.0.0, local-only (remote disabled so a downgrade
+        // re-fetch would surface as an error, not a network call).
+        let opt = GetOption {
+            enable_local: true,
+            enable_remote: false,
+            enable_mod: false,
+            enable_shuffle: false,
+        };
+        let file = kache.get_with_opt(rel, "6.2.0.0", &opt).await;
+        assert!(file.is_ok(), "rollback request must serve the newer local file, got {file:?}");
+
+        // The recorded version must NOT be downgraded.
+        assert_eq!(
+            kache.get_cached_version(rel).await.unwrap().as_deref(),
+            Some("6.2.9.0"),
+            "serve-newer must leave the recorded version untouched"
+        );
+
+        // The served bytes are the newer local content (it was not re-fetched/overwritten).
+        let mut buf = String::new();
+        file.unwrap().read_to_string(&mut buf).await.unwrap();
+        assert_eq!(buf, "PNGDATA-newer");
     }
 }
