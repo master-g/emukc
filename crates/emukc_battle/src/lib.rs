@@ -13,6 +13,8 @@ pub mod random;
 pub mod simulation;
 mod state;
 mod targeting;
+/// Deterministic text renderer for battle simulations.
+pub mod transcript;
 #[expect(missing_docs)]
 mod types;
 
@@ -37,3 +39,6 @@ pub use targeting::any_alive;
 
 // Entry functions
 pub use simulation::{simulate_day, simulate_night};
+
+// Public API — transcript renderer
+pub use transcript::{render_day_battle, render_night_battle};
