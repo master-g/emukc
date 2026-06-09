@@ -1,7 +1,7 @@
 ---
 title: "feat: Complete carrier night CI (sp_list=6) — exempt ships, 8 sub-types, trigger rate"
 type: feat
-status: active
+status: completed
 date: 2026-05-20
 origin: docs/brainstorms/2026-05-14-cut-in-attack-system-requirements.md
 parent_plans:
