@@ -15,6 +15,7 @@ pub mod game;
 pub mod user;
 
 pub mod gameplay;
+pub mod scenario;
 
 pub use game::ops as game_ops;
 
@@ -31,6 +32,7 @@ pub mod prelude {
         game::ops::*,
         game::types::*,
         gameplay::{Gameplay, HasContext},
+        scenario::{Scenario, ShipSpec, apply_scenario},
         user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
     };
 }

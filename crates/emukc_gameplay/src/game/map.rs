@@ -431,6 +431,55 @@ where
     Ok(newly_unlocked)
 }
 
+/// Directly mark `map_id` cleared and unlocked, then unlock its dependents.
+///
+/// KTD-5 minimal setter for the scenario builder: it writes only the
+/// sortie-gating state (`unlocked`, `cleared`, `last_cleared_at`) and propagates
+/// the unlock cascade via [`check_and_unlock_dependencies_impl`]. It deliberately
+/// does NOT write the gauge-clear field bundle (`current_hp`, `event_state`,
+/// `gauge_index`, `stage_id`) — those are written only on the HP-gauge branch of
+/// the real clear path, so stamping them universally would put spurious event
+/// state on non-event maps. `start_sortie` gates on `unlocked`, which this sets.
+pub(crate) async fn clear_and_unlock_map_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    map_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    ensure_map_records_impl(c, codex, profile_id).await?;
+    let record = find_map_record_impl(c, profile_id, map_id).await?;
+    let mut am = record.into_active_model();
+    am.unlocked = ActiveValue::Set(true);
+    am.cleared = ActiveValue::Set(true);
+    am.last_cleared_at = ActiveValue::Set(Some(Utc::now()));
+    am.update(c).await?;
+    check_and_unlock_dependencies_impl(c, codex, profile_id, map_id).await?;
+    Ok(())
+}
+
+/// Directly unlock `map_id` without marking it cleared.
+pub(crate) async fn unlock_map_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    map_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    ensure_map_records_impl(c, codex, profile_id).await?;
+    let record = find_map_record_impl(c, profile_id, map_id).await?;
+    if !record.unlocked {
+        let mut am = record.into_active_model();
+        am.unlocked = ActiveValue::Set(true);
+        am.update(c).await?;
+    }
+    Ok(())
+}
+
 fn is_map_unlocked_by_default(codex: &Codex, map_id: i64, existing: &BTreeSet<i64>) -> bool {
     let catalog = active_map_catalog(codex);
     match catalog.prerequisite_for(map_id) {

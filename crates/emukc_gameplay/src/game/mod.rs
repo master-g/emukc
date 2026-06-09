@@ -15,6 +15,7 @@ pub use incentive::IncentiveOps;
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub use kdock::KDockOps;
 pub use map::MapOps;
+pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use material::MaterialOps;
 pub use ndock::NDockOps;
 pub use pay_item::PayItemOps;
