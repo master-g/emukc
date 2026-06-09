@@ -276,19 +276,20 @@ impl MapDefinition {
     /// captures): they carry the per-phase cell set but no `next_cells` / routing, while the
     /// real route graph lives only in the base `""` variant. The 3-source merge keeps that
     /// `""` variant as the default and derives `gauge_count` from the kcdata side, leaving the
-    /// p_unlock variants unroutable (no start cell). This pass:
+    /// P-unlock variants unroutable (no start cell). This pass:
     ///
-    /// 1. folds the base `""` topology into each p_unlock variant, **restricted to that
+    /// 1. folds the base `""` topology into each P-unlock variant, **restricted to that
     ///    variant's own cells** so `pre_p_unlock` stays a strict subgraph (post-unlock cells
     ///    are unreachable before unlocking);
-    /// 2. makes `pre_p_unlock` the default and derives `gauge_count` from the p_unlock set;
+    /// 2. makes `pre_p_unlock` the default and derives `gauge_count` from the P-unlock set;
     /// 3. wires the `pre → post` progression (`clear_to_variant_key`, `required_defeat_count`)
     ///    the capture path leaves unset;
     /// 4. drops the now-spurious empty-key `""` variant.
     ///
-    /// No-op for maps without p_unlock variants. Degrades safely (skips the fold) when the
+    /// No-op for maps without P-unlock variants. Degrades safely (skips the fold) when the
     /// base `""` topology is absent, and never overwrites topology a variant already carries.
     pub fn normalize_p_unlock_variants(&mut self) {
+        let [pre_key, post_key] = P_UNLOCK_VARIANT_KEYS;
         let present: Vec<&'static str> = P_UNLOCK_VARIANT_KEYS
             .iter()
             .copied()
@@ -298,8 +299,10 @@ impl MapDefinition {
             return;
         }
 
-        // Fold the base "" topology into each p_unlock skeleton (restricted to its cells).
-        if let Some(base) = self.variants.get("").cloned() {
+        // Fold the base "" topology into each p_unlock skeleton (restricted to its cells),
+        // then drop it: the p_unlock set is canonical now. Taking ownership via `remove`
+        // avoids cloning the whole base variant and makes the drop explicit.
+        if let Some(base) = self.variants.remove("") {
             for key in &present {
                 if let Some(variant) = self.variants.get_mut(*key) {
                     fold_base_topology_into_variant(variant, &base);
@@ -310,27 +313,22 @@ impl MapDefinition {
         // `pre_p_unlock` is the pre-unlock phase and the canonical default; fall back to the
         // first present p_unlock variant if `pre_p_unlock` is somehow absent.
         self.default_variant = present[0].to_string();
-        // Only (re)derive the gauge count for the canonical pre + post pair. A lone p_unlock
-        // variant (e.g. a partial fixture or incomplete capture) keeps whatever gauge_count
-        // upstream already set, rather than being clobbered to 1.
+
+        // The remaining derivations apply only to the canonical pre + post pair. A lone
+        // p_unlock variant (a partial fixture or incomplete capture) keeps its upstream
+        // gauge_count rather than being clobbered to 1, and needs no progression wiring.
         if present.len() >= 2 {
             self.gauge_count = Some(present.len() as i64);
-        }
 
-        // Wire the pre → post progression the capture path leaves unset.
-        let map_required_defeat_count = self.required_defeat_count;
-        if self.variants.contains_key("pre_p_unlock")
-            && self.variants.contains_key("post_p_unlock")
-            && let Some(pre) = self.variants.get_mut("pre_p_unlock")
-        {
-            pre.clear_to_variant_key.get_or_insert_with(|| "post_p_unlock".to_string());
-            if pre.required_defeat_count.is_none() {
-                pre.required_defeat_count = map_required_defeat_count;
+            // Wire the pre → post progression the capture path leaves unset.
+            let map_required_defeat_count = self.required_defeat_count;
+            if let Some(pre) = self.variants.get_mut(pre_key) {
+                pre.clear_to_variant_key.get_or_insert_with(|| post_key.to_string());
+                if pre.required_defeat_count.is_none() {
+                    pre.required_defeat_count = map_required_defeat_count;
+                }
             }
         }
-
-        // Drop the spurious empty-key base variant; the p_unlock set is canonical now.
-        self.variants.remove("");
     }
 
     pub fn default_stage_id(&self) -> Option<&str> {
@@ -395,7 +393,7 @@ impl MapVariantDefinition {
     }
 }
 
-/// Fill a p_unlock variant's missing `next_cells` / routing from the base `""` variant,
+/// Fill a P-unlock variant's missing `next_cells` / routing from the base `""` variant,
 /// **restricted to the variant's own cell set** so post-unlock cells stay unreachable in the
 /// pre-unlock phase. Cells are joined by their shared in-game cell number (kcdata and the public
 /// capture use the same numbering). Topology a variant already carries is preserved.
@@ -816,6 +814,87 @@ mod tests {
             def.variants.keys().collect::<Vec<_>>(),
             before.variants.keys().collect::<Vec<_>>()
         );
+        // The fold must never touch a non-p_unlock map's topology.
+        assert_eq!(def.variants[""].cells, before.variants[""].cells);
+    }
+
+    #[test]
+    fn normalize_p_unlock_folds_routing_rules_restricted_to_variant_cells() {
+        let mut def = p_unlock_definition();
+        // Base "" routing: 1→2 (within pre) and 1→3 (post-only). pre lacks cell 3.
+        def.variants.get_mut("").unwrap().routing_rules.insert(
+            1,
+            vec![
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 2,
+                    priority: 0,
+                    weight: None,
+                    probability_pct: None,
+                    predicate: RoutePredicate::Always,
+                    raw_text: String::new(),
+                },
+                RouteRule {
+                    from_cell_no: 1,
+                    to_cell_no: 3,
+                    priority: 1,
+                    weight: None,
+                    probability_pct: None,
+                    predicate: RoutePredicate::Always,
+                    raw_text: String::new(),
+                },
+            ],
+        );
+        def.normalize_p_unlock_variants();
+
+        // pre {0,1,2}: only the 1→2 rule survives (target 3 is outside pre).
+        let pre = def.variants.get("pre_p_unlock").unwrap();
+        let pre_rules = pre.routing_rules.get(&1).expect("pre keeps the in-set rule");
+        assert_eq!(pre_rules.len(), 1);
+        assert_eq!(pre_rules[0].to_cell_no, 2);
+
+        // post spans every base cell, so both rules survive.
+        assert_eq!(
+            def.variants.get("post_p_unlock").unwrap().routing_rules.get(&1).unwrap().len(),
+            2
+        );
+    }
+
+    #[test]
+    fn normalize_lone_pre_p_unlock_preserves_upstream_gauge_count() {
+        let mut def = p_unlock_definition();
+        def.variants.remove("post_p_unlock"); // only pre present
+        def.normalize_p_unlock_variants();
+
+        assert_eq!(def.default_variant, "pre_p_unlock");
+        // Fixture gauge_count is Some(1); with no post pair it must not be clobbered to 1-derived.
+        assert_eq!(def.gauge_count, Some(1), "lone p_unlock keeps upstream gauge_count");
+        // No post to advance to → progression fields stay unset.
+        assert_eq!(def.variants.get("pre_p_unlock").unwrap().clear_to_variant_key, None);
+    }
+
+    #[test]
+    fn normalize_p_unlock_is_idempotent() {
+        let mut once = p_unlock_definition();
+        once.normalize_p_unlock_variants();
+
+        let mut twice = p_unlock_definition();
+        twice.normalize_p_unlock_variants();
+        twice.normalize_p_unlock_variants();
+
+        assert_eq!(once.default_variant, twice.default_variant);
+        assert_eq!(once.gauge_count, twice.gauge_count);
+        assert_eq!(
+            once.variants.keys().collect::<Vec<_>>(),
+            twice.variants.keys().collect::<Vec<_>>()
+        );
+        for key in once.variants.keys() {
+            assert_eq!(once.variants[key].cells, twice.variants[key].cells, "cells diverge: {key}");
+            assert_eq!(
+                once.variants[key].clear_to_variant_key,
+                twice.variants[key].clear_to_variant_key
+            );
+        }
     }
 
     #[test]
