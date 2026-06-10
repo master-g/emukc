@@ -11,6 +11,14 @@ CARGO ?= cargo
 PROFILE ?= release
 # CONCURRENT: cache populate 并发数 (CLI 必填项的默认值)
 CONCURRENT ?= 16
+# SCENARIO: battle sim 预设场景 (fresh_1_1 | leveled_for_mid_boss)
+SCENARIO ?= fresh_1_1
+# SEED: battle sim RNG 种子 (同种子 + 场景可复现整场出击)
+SEED ?= 1
+# FIND: 可选, 搜索命中某分支的种子 (night | cutin); 留空则只跑单次
+FIND ?=
+# MAX_SEEDS: --find 搜索时最多尝试的种子数
+MAX_SEEDS ?= 1000
 
 ifeq ($(PROFILE),release)
 CARGO_PROFILE_FLAG := --release
@@ -18,9 +26,15 @@ else
 CARGO_PROFILE_FLAG :=
 endif
 
+ifeq ($(FIND),)
+BATTLE_SIM_FIND_FLAG :=
+else
+BATTLE_SIM_FIND_FLAG := --find $(FIND) --max-seeds $(MAX_SEEDS)
+endif
+
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve test clippy fmt bootstrap decode-main cache-make-list cache-populate clean-debug
+.PHONY: help build run serve test clippy fmt bootstrap decode-main cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -55,6 +69,9 @@ cache-make-list: ## 生成缓存资源清单
 
 cache-populate: ## 按清单填充缓存 (CONCURRENT=$(CONCURRENT))
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache populate --concurrent $(CONCURRENT)
+
+battle-sim: ## 跑 seeded 场景出击并打印战斗记录 (SCENARIO/SEED/FIND/MAX_SEEDS)
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle sim --scenario $(SCENARIO) --seed $(SEED) $(BATTLE_SIM_FIND_FLAG)
 
 clean-debug: ## 只清理 debug 产物, 保留 release
 	$(CARGO) clean --profile dev
