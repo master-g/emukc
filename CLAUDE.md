@@ -187,3 +187,38 @@ Battle diagnostics also have two dedicated test layers:
 
 - `main-decoder/test/` for TypeScript-side battle knowledge extraction
 - `crates/emukc_bootstrap/src/battle_rules.rs` for Rust-side validator / incident analysis
+
+## Do-Not-Modify Files
+
+These files are checked in but are generated outputs, frozen baselines, or governing contracts. Hand-edits are silently lost on the next sync or break a baseline. Regenerate or amend them through their designated workflow instead.
+
+- `crates/emukc_bootstrap/assets/*.json` — battle knowledge decoded from `main.js` by the `main-decoder` subproject and synced in via `cd main-decoder && bun run decode -- --sync-battle-assets` (see *Client-Derived Battle Validation*). Includes `battle_protocol_fields.json`, `battle_resource_rules.json`, `battle_module_index.json`, `battle_slot_resource_triggers.json`, etc.
+- `main-decoder/out/battle/*.json` — the upstream decoder output that feeds the sync above. Regenerate with `bun run decode`, never edit.
+- `tests/gameplay_tests/battle_golden.rs` — the frozen deterministic full-sortie transcript. If a legitimate logic change alters the outcome, re-freeze it deliberately and explain the diff in the PR; never hand-patch individual assertions.
+- `openspec/specs/**` — archived specification contracts. Change only via the openspec change flow (propose → review → archive), not by direct edit.
+- `Cargo.lock` — pinned dependency versions for a binary crate. Bump a specific dependency with `cargo update -p <crate>`, not by hand.
+
+`docs/solutions/**` is not forbidden but is institutional knowledge: update it deliberately when the code it documents changes, and never delete or rewrite it as a side effect of unrelated work.
+
+## PR Review Rules
+
+There is no CI server — `.github/` holds agent prompts/skills, not workflows. Quality gates are enforced locally and at review time.
+
+**Hard gates (must pass before requesting review):**
+
+- `cargo fmt --all --check` — pre-commit hook.
+- `cargo clippy --workspace -- -W warnings` — pre-commit hook; `-W warnings` means any warning fails.
+- `cargo test` (plus the crate-specific and `--test gameplay_tests` subsets) green. Skipped or `#[ignore]`d tests must be surfaced in the PR — silent skips fail review.
+
+**Change hygiene:**
+
+- Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`). No AI attribution in the message.
+- Balance/numeric changes follow the *Balance Defaults Policy* above: own commit, `feat(balance):`/`chore(balance):`, previous values in the body, openspec proposal, regression test.
+- Surgical changes: every changed line traces to the request. No opportunistic reformatting, no refactor of adjacent code, no removal of pre-existing dead code (flag it instead).
+
+**Process gates (non-trivial changes):**
+
+- New gameplay behavior, spec changes, or cross-crate contracts go through openspec first: `/openspec-propose` → implement against the generated tasks → `/openspec-archive-change` once done. Follow the proposal/design/tasks/specs rules in `openspec/config.yaml`.
+- A diff that regenerates synced assets or re-freezes a golden transcript must explain why in the PR description.
+
+**Review entry points:** `/code-review` and `/review` (standards + spec axes, run in parallel) for self-review before opening a PR; `/commit` runs fmt + clippy and drafts a conventional commit.
