@@ -694,19 +694,23 @@ fn generate_slotitem_paths(
     list: &mut CacheList,
 ) {
     let sources = entry.slot_mst_id_sources.as_deref().unwrap_or(&[]);
-    let slot_ids = resolve_slot_ids_for_target(
-        sources,
-        entry.target_type.as_str(),
-        mst,
-        path_rules,
-        decoder_assets,
-        cache_rules,
-    );
+    let target = entry.target_type.as_str();
+    let mut slot_ids =
+        resolve_slot_ids_for_target(sources, target, mst, path_rules, decoder_assets, cache_rules);
     if slot_ids.is_empty() {
         return;
     }
 
-    let target = entry.target_type.as_str();
+    // Exclude item_character holes (e.g. slotitem 42 whose art is not on the CDN).
+    if target == "item_character"
+        && let Some(holes) = path_rules.map(|rules| rules.character_hole_ids.as_slice())
+        && !holes.is_empty()
+    {
+        slot_ids.retain(|id| !holes.contains(id));
+        if slot_ids.is_empty() {
+            return;
+        }
+    }
 
     for id in slot_ids {
         let item_id = format!("{id:04}");
@@ -878,6 +882,60 @@ mod tests {
         assert!(!list.items.is_empty());
         let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
         assert!(paths.iter().any(|p| p.contains("slot/card/")));
+    }
+
+    #[test]
+    fn test_generate_slotitem_item_character_excludes_character_holes() {
+        // slotitem 42's item_character art is not on the CDN; it is listed in
+        // path_rules.character_hole_ids and must be excluded from generation.
+        let mst = ApiManifest {
+            api_mst_slotitem: vec![
+                ApiMstSlotitem {
+                    api_id: 1,
+                    api_sortno: 1,
+                    api_version: Some(1),
+                    ..Default::default()
+                },
+                ApiMstSlotitem {
+                    api_id: 42,
+                    api_sortno: 42,
+                    api_version: Some(1),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let path_rules = PathRules {
+            character_hole_ids: vec![42],
+            ..Default::default()
+        };
+        let entry = ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "item_character".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["this._mst_id".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+
+        let mut list = CacheList::new();
+        generate_entry_paths(&entry, &mst, Some(&path_rules), None, None, &mut list);
+
+        let paths: Vec<&str> = list.items.iter().map(|i| i.path.as_str()).collect();
+        assert!(
+            paths.iter().any(|p| p.contains("slot/item_character/0001_")),
+            "non-hole slotitem should be present"
+        );
+        assert!(
+            !paths.iter().any(|p| p.contains("slot/item_character/0042_")),
+            "hole slotitem 42 should be excluded"
+        );
     }
 
     #[test]
