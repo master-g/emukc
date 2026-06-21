@@ -28,7 +28,7 @@ A post-evaluation audit found the pieces present but **not closed into a loop**:
 - **Night/midnight battles have no validator.** Only `validate_day_battle_response` / `analyze_day_battle_incident` exist; `api_req_battle_midnight` payloads are unchecked.
 - **Map routing has no client-rule comparison.** `map_route.rs` (2197 lines) implements sophisticated routing (LoS formulas, weighted random, topology filtering) over `RouteRule`/`RoutePredicate` types parsed from the wikiwiki catalog, but nothing verifies its selections are consistent with the decoded route-rule topology.
 - **No Loop trigger.** `main-decoder/out/version.txt` (currently `6.2.9.1`, produced by `main-decoder/src/pipeline.ts:58`) is **never read by Rust**, and the synced assets carry only a `script_version: String` field (no content fingerprint). Nothing detects that the client moved, so the loop has no entry condition.
-- **③ Sync-plan has no structured artifact.** When a drift is found, there is no machine-checkable bridge into the repo's openspec governance — drift→decision is ad hoc.
+- **③ Sync-plan has no structured artifact.** When a drift is found, there is no machine-checkable bridge into the repo's plan governance — drift→decision is ad hoc.
 - **① Source robustness is single-threaded.** The client-derived knowledge comes solely from `main.js`; the wikiwiki catalog is the only map source. A single asset parse failure has no second reference to flag it.
 
 The keystone insight: the simulator and router are correct *by construction*; this plan adds the missing teeth (auto-gates, the missing validators, the trigger, and the bridge to governance) so drift becomes a caught, traceable event instead of silent regression.
@@ -46,7 +46,7 @@ The keystone insight: the simulator and router are correct *by construction*; th
 
 **Sync-plan artifact (③)**
 
-- **R4.** The drift report can scaffold an openspec change (`proposal.md` + `tasks.md`) so a detected drift becomes a traceable, archivable governance artifact rather than an ad hoc decision.
+- **R4.** The drift report can scaffold a ce-plan plan (`docs/plans/<date>-<verb>-<subject>-plan.md`) so a detected drift becomes a traceable, archivable governance artifact rather than an ad hoc decision.
 
 **Map-route comparison (② for routing)**
 
@@ -67,7 +67,7 @@ The keystone insight: the simulator and router are correct *by construction*; th
 - **KTD3. Drift is detected by version + content fingerprint, not version alone.** `version.txt` moving is a strong signal, but a same-version asset content change must also trip the check — and such changes are *expected to be true drift* (a decoder bug fix, an asset correction), not false positives. The check reads `version.txt` into Rust (first consumption) **and** hashes the synced asset files. Two implementation facts shape this: (a) `main-decoder/out/version.txt` is **gitignored** (only `out/battle/*.json` is tracked), so it exists only after `bun run decode` — the check must treat its absence as "run decode first," not as baseline; (b) the last-known-good manifest must be **tracked** (at `crates/emukc_bootstrap/assets/.sync-fingerprint.json`), committed by the `--sync-battle-assets` flow, so drift is detectable across fresh clones — an untracked `.data/` manifest would make every clone see "baseline recorded" instead of real drift. Canonicalization (parse + re-serialize JSON with sorted keys) mitigates decoder-output formatting churn, which is the only false-positive source.
 - **KTD4. The night validator reuses the day validator's helpers, not its own machinery.** `push_missing_field` / `read_i64_field` / `check_array_flag_payload` / resource-path builders are field-table-driven. Night is a different field table and different hougeki sources (`api_hougeki3`, `api_night_`) over the same shape — extend, don't fork.
 - **KTD5. The map validator catches *structural corruption*, not *semantic routing drift*.** Routing legitimately involves weighted-random and client-chosen branching; a deterministic "expected next cell" assertion would be wrong. The validator asserts invariants the route rules *declare*: every reachable battle cell is in the decoded topology; predicates referenced by rules are all supported (no `RoutePredicate::Unknown`/`SourceUnknown` slipping into a live decision unflagged); fleet-config inputs that a rule's predicate should match do match. This catches missing cells and unsupported predicates, but it is **blind to semantic drift** — a predicate that is present but has a wrong threshold (e.g. `FleetSize >= 4` vs the client's `>= 5`) passes, because the threshold comes from the same wikiwiki source being validated (circular). Semantic routing drift requires decoding the client's routing logic from `main.js`, which is explicitly deferred.
-- **KTD6. The sync-plan artifact routes through openspec, the repo's existing governance.** CLAUDE.md mandates openspec for cross-crate/spec changes. Generating an openspec change scaffold from the drift report reuses that flow (proposal/tasks/specs, `/openspec-archive-change`) rather than inventing a parallel tracking system.
+- **KTD6. The sync-plan artifact routes through ce-plan, the repo's existing governance.** CLAUDE.md mandates a `docs/plans/` plan for cross-crate/spec changes. Generating a ce-plan scaffold from the drift report reuses that flow (Summary/Requirements/Implementation Units, captured as a tracked plan file) rather than inventing a parallel tracking system.
 - **KTD7. Codex-gated tests fail loud, matching the repo convention — and this is a known divergence from the sibling 001 plan, not a hidden one.** The repo has no skip-with-message pattern; `tests/gameplay_tests.rs` uses `LazyLock<Codex>.expect("...bootstrap first")`, and `crates/emukc_gameplay/tests/sortie_battle.rs` uses `Codex::load_without_cache_source("../../.data/codex")` (note the `../../` prefix — crate-root-relative). This plan's in-process sim tests (which live in `crates/emukc_gameplay/tests/`) follow that fail-loud convention and use the `../../.data/codex` path. The sibling `2026-06-15-001` hardening plan's U3 (cross-process determinism) instead specifies skip-with-message because it requires a *built binary* plus bootstrapped codex — a heavier bar. This is a **real divergence contributors will notice** (`cargo test` panics in one file, skips in another), justified by the binary-build cost of the cross-process test. KTD7 records this openly rather than papering over it; a future shared codex-gating helper could unify both, but that refactor is out of scope here.
 - **KTD8. Scenario presets gain an explicit registry.** Today presets are associated functions on `Scenario` plus a hard-coded `match` in `resolve_scenario` (`src/bin/cli/battle.rs`); there is no enumerable list. R1 needs to iterate all presets, so a small registry (name → constructor + map coords) is added and both the CLI and the gate test consume it, keeping the two in sync by construction.
 
@@ -87,7 +87,7 @@ flowchart TB
 
   subgraph Sync["③ 制定同步方案"]
     drift["drift-check CLI (U3)"]
-    spec["openspec change scaffold (U4)"]
+    spec["ce-plan scaffold (U4)"]
     drift --> spec
   end
 
@@ -120,7 +120,7 @@ flowchart LR
   U1["U1 sim→validate gate + registry"]
   U2["U2 night validator"]
   U3["U3 drift-check CLI"]
-  U4["U4 openspec scaffold"]
+  U4["U4 ce-plan scaffold"]
   U5["U5 map route validator"]
   U6["U6 source cross-check"]
   U1 --> U2
@@ -190,21 +190,21 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
   - **Edge (missing version.txt):** `main-decoder/out/version.txt` absent → report names the prerequisite (`bun run decode`), does not panic.
 - **Verification:** `cargo run -- battle drift-check` reports no-drift on a clean tree; mutating `version.txt` or an asset turns it red with a named change; the persisted manifest round-trips.
 
-### U4. Drift report → openspec change scaffold
+### U4. Drift report → ce-plan scaffold
 
-- **Goal:** Make ③ a structured, traceable artifact — a detected drift becomes an openspec change, not a sticky note.
+- **Goal:** Make ③ a structured, traceable artifact — a detected drift becomes a ce-plan plan, not a sticky note.
 - **Requirements:** R4.
 - **Dependencies:** U3 (consumes the drift report).
 - **Files:**
-  - `src/bin/cli/drift_check.rs` — extend to optionally emit an openspec change scaffold when drift is found (gated by a `--scaffold` flag so plain `drift-check` stays a pure check).
-  - generated artifacts land under `openspec/changes/<verb>-<subject>/` (`proposal.md`, `tasks.md`, `.openspec.yaml`) following the repo convention; `specs/<capability>/spec.md` is drafted as a stub for the human to fill.
-- **Approach:** Read `openspec/config.yaml` (schema `spec-driven`) and mirror the layout of an existing active change (e.g. `openspec/changes/harden-battle-refactor-followup/`) — `proposal.md` with Why/What Changes/Capabilities/Non-goals/Impact, `tasks.md` chunked against the DB→Model→Gameplay→KCSAPI dev flow, `.openspec.yaml` metadata. The scaffold's `proposal.md` is auto-populated from the drift report (version old→new, changed assets, field/rule deltas); `tasks.md` is a templated starting list (update validator field table if protocol fields changed; re-freeze goldens if sim output shifts; etc.). The human reviews/edits before `/openspec-archive-change`. This is generation of a starting point, not a finished spec.
-- **Patterns to follow:** the structure of `openspec/changes/harden-battle-refactor-followup/` and the propose→implement→archive flow documented in CLAUDE.md.
+  - `src/bin/cli/drift_check.rs` — extend to optionally emit a ce-plan scaffold when drift is found (gated by a `--scaffold` flag so plain `drift-check` stays a pure check).
+  - generated artifact lands under `docs/plans/<date>-<verb>-<subject>-plan.md` (e.g. `docs/plans/<date>-sync-battle-protocol-<version>-plan.md`) following the repo's plan convention; a single plan file with Summary/Problem Frame/Requirements/Key Technical Decisions/Implementation Units skeletons.
+- **Approach:** Mirror the layout of an existing plan (e.g. `docs/plans/2026-06-15-001-fix-battle-sim-harness-hardening-plan.md`) — Summary with Why/What Changes, Requirements, Key Technical Decisions, Implementation Units chunked against the DB→Model→Gameplay→KCSAPI dev flow. The scaffold's Summary is auto-populated from the drift report (version old→new, changed assets, field/rule deltas); Implementation Units is a templated starting list (update validator field table if protocol fields changed; re-freeze goldens if sim output shifts; etc.). The human reviews/edits the plan before implementing. This is generation of a starting point, not a finished plan.
+- **Patterns to follow:** the structure of `docs/plans/2026-06-15-001-*.md` and the ce-plan flow documented in CLAUDE.md (draft a `docs/plans/` plan → implement against its Implementation Units → capture lessons with ce-compound → verify with ce-code-review).
 - **Test scenarios:**
-  - **Happy:** `drift-check --scaffold` on a drifted tree writes a valid `openspec/changes/<slug>/` with `proposal.md` populated from the report and a non-empty `tasks.md`; the slug is derived from the drift (e.g. `sync-battle-protocol-<version>`).
-  - **Edge (no drift):** `--scaffold` with no drift → no scaffold written, reports "nothing to scaffold," exit 0.
-  - **Edge (slug collision):** target change dir already exists → appends/does not clobber; reports the collision.
-- **Verification:** generated `proposal.md`/`tasks.md` parse against `openspec/config.yaml`; a reviewer can open the scaffold and begin implementation without re-deriving the drift.
+  - **Happy:** `drift-check --scaffold` on a drifted tree writes a valid `docs/plans/<date>-sync-battle-protocol-<version>-plan.md` with Summary populated from the report and non-empty Implementation Units; the slug is derived from the drift.
+  - **Edge (no drift):** `--scaffold` with no drift → no plan written, reports "nothing to scaffold," exit 0.
+  - **Edge (slug collision):** target plan path already exists → appends/does not clobber; reports the collision.
+- **Verification:** generated plan is valid markdown a reviewer can open to begin implementation without re-deriving the drift.
 
 ### U5. Map route validator
 
@@ -263,11 +263,11 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
   - **Given** a changed `version.txt` or a changed synced asset.
   - **When** `battle drift-check` runs.
   - **Then** it reports the change (version old→new and/or changed asset) and exits non-zero on drift.
-- **AE4. Drift becomes an openspec change.**
+- **AE4. Drift becomes a ce-plan plan.**
   - **Covers R4.**
   - **Given** a drift report from U3.
   - **When** `drift-check --scaffold` runs.
-  - **Then** a populated `openspec/changes/<slug>/` is written, ready for review.
+  - **Then** a populated `docs/plans/<date>-<slug>-plan.md` is written, ready for review.
 - **AE5. Map routing *structural* drift is caught.**
   - **Covers R5.**
   - **Given** a map stage and a fleet config.
@@ -305,7 +305,7 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
 - **drift-check fingerprint fragility.** Same-version asset content changes are *true drift* (decoder bug fixes / asset corrections), not false positives; the only false-positive source is decoder-output formatting churn (key ordering, whitespace). Mitigation: canonicalize JSON (parse + re-serialize with sorted keys) before hashing, and document that canonicalization. Note `version.txt` is gitignored, so a fresh clone without `bun run decode` cannot run the check — it reports the prerequisite rather than false-positiving.
 - **Map validator over-asserting / under-detecting.** Asserting deterministic routes where the game uses weighted random would be wrong; conversely, the validator is blind to semantic threshold drift. Mitigation: KTD5 — assert topology/predicate invariants, not single outcomes and not thresholds; weighted-random nodes are checked against their declared candidate set; the semantic-drift blind spot is documented, not hidden.
 - **Codex dependency blocks portability.** U1/U5 tests need `.data/codex`. Mitigation: R7/KTD7 — fail loud with the bootstrap hint, matching the repo convention; do not silently skip.
-- **openspec scaffold quality.** An auto-generated `tasks.md` could mislead if the drift interpretation is wrong. Mitigation: the scaffold is a starting point for a human reviewer, explicitly framed as such; `/openspec-archive-change` still requires review.
+- **Scaffold quality.** An auto-generated Implementation Units section could mislead if the drift interpretation is wrong. Mitigation: the scaffold is a starting point for a human reviewer, explicitly framed as such; the plan is reviewed before implementation.
 - **Sibling-plan coordination.** This plan's KTD7 (fail-loud) and the 001 plan's R6 (skip-with-message for the cross-process test) differ by intent, not contradiction. Implementers should keep both consistent as described in KTD7.
 
 ## Sources / Research
@@ -319,5 +319,5 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
 - `crates/emukc_model/src/codex/map/types.rs:247-261` — `RouteRule` / `RoutePredicate` types U5 validates against.
 - `crates/emukc_gameplay/src/game/map_route.rs:150-280` — `evaluate_route_destination`, the router U5 exercises.
 - `crates/emukc_bootstrap/src/map_pipeline/` and `parser/wikiwiki_map/` — the map data flow U6 cross-checks.
-- `openspec/config.yaml` and `openspec/changes/harden-battle-refactor-followup/` — the governance flow U4 scaffolds into.
+- `docs/plans/2026-06-15-001-fix-battle-sim-harness-hardening-plan.md` — the plan-layout template U4 scaffolds into (ce-plan governance: draft a plan → implement → capture → review).
 - `docs/plans/2026-06-15-001-fix-battle-sim-harness-hardening-plan.md` — sibling plan; KTD7 coordinates their codex-gating conventions.
