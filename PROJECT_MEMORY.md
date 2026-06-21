@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-06-14 · branch `feat/vibe`
+Last updated: 2026-06-22 · branch `main`
 
 ## Verified Facts
 
@@ -45,34 +45,31 @@ Do-not-modify (→ CLAUDE.md § Do-Not-Modify Files):
 
 ## Last Session
 
-Inferred from git log (2026-06-09 → 06-10), branch `feat/vibe`:
+2026-06-22, branch `main` (working tree: 1 new file, uncommitted):
 
-- **Theme:** deterministic battle test harness — wrap-up.
-- **Shipped:** thread-local RNG seed for deterministic harness (`23fd0ce`); deterministic transcript renderer (`dfbdc1c`); one-shot scenario / state builder (`afbb531`); `battle sim` CLI subcommand + seed-search (`c4ec1e2`, `24f5b87`); frozen full-sortie golden transcript (`2931986`).
-- **Fix:** restored entropy after seeded runs to stop cross-test pollution (`66f8317`).
-- **Plan closed:** deterministic battle harness plan marked completed (`bcdedf8`).
-- **Last commit:** `29460e8 feat: update makefile` (2026-06-10).
-- **Stopped at:** harness workstream wrapped; 4 follow-up openspec changes remain un-archived (see Next Session).
+- **Theme:** project progress assessment + openspec sunset migration plan.
+- **Assessed:** build/clippy green; 13 crates stable; ~25 `api_get_member/*` handlers + map/sortie/practice/kousyou/mission/furniture handler groups present; battle engine + deterministic harness is the recent主线; combined fleet / air corps / expedition endpoints still blank.
+- **Decided:** the project is sunsetting openspec in favor of ce-compound-engineering. Three decisions recorded (D1–D3):
+  - **D1** — `openspec/specs/` (37 WHEN/THEN contracts) → migrate to `docs/solutions/` knowledge track (architecture-patterns / conventions / best-practices). Accepted trade-off: living contracts become historical knowledge; no machine-enforced behavioral contract layer remains after migration.
+  - **D2** — 4 in-flight openspec changes → translate into `docs/plans/` ce-plan plans (not finish-inside-openspec).
+  - **D3** — this session is planning-only; no source / openspec asset / CLAUDE.md gate rewrite touched.
+- **Shipped:** `docs/plans/2026-06-22-001-chore-openspec-to-ce-compound-migration-plan.md` (380 lines, 6 implementation units U1–U6, KTD1–KTD6, acceptance A1–A6). User confirmed the plan as final.
+- **Prior housekeeping done:** the pending `CLAUDE.md` Do-Not-Modify + PR Review change was committed in `203a7c1` (git tree is clean apart from this session's new plan file).
+- **Stopped at:** plan confirmed; execution deferred to next session per D3.
 
-Uncommitted in working tree: `M CLAUDE.md` (added `## Do-Not-Modify Files` and `## PR Review Rules` this session — not yet committed).
+Uncommitted in working tree: `?? docs/plans/2026-06-22-001-chore-openspec-to-ce-compound-migration-plan.md`.
 
 ## Next Session
 
-Finish in-flight openspec changes (un-archived; highest priority — work already started):
+**Execute the migration plan** (`docs/plans/2026-06-22-001-...`), units in order, one commit each:
 
-- `openspec/changes/fix-battle-attack-system`
-- `openspec/changes/fix-sortie-state-and-routing`
-- `openspec/changes/fix-batch-craft-quest-progress`
-- `openspec/changes/harden-battle-refactor-followup`
+1. **U1** — triage 37 specs → `docs/solutions/{architecture-patterns,conventions,best-practices}/`; write `docs/migration/openspec-sunset-log.md`.
+2. **U2** — translate 4 in-flight openspec changes → `docs/plans/2026-06-22-{002..005}-*.md` (checkbox parity required).
+3. **U3** — repoint `2026-06-15-002` client-sync plan U4/KTD6 from `openspec/changes/` → `docs/plans/`.
+4. **U4** — rewrite `CLAUDE.md` (lines ~177/198/216/221) + this file's openspec refs (balance-policy note, `config.yaml:70` typo note) → ce-plan/ce-compound/ce-code-review flow.
+5. **U5** — `git rm` `openspec/` + 24 openspec/opsx scaffolding files under `.claude/.codex/.github/.opencode`. **Irreversible.**
+6. **U6** — `cargo fmt/clippy/test` + `grep -rin openspec` sweep.
 
-Then `TODO.md` high-priority gaps:
+After the migration lands, resume `TODO.md` high-priority gaps (combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition `start`/`result`/`return_instruction`; quest fields `api_voice_id`/`api_invalid_flag`/`api_c_list` in `questlist.rs`).
 
-- Combined battle variants (14 endpoints).
-- Map: `air_raid`, `anchorage_repair`, `start_air_base`.
-- Mission / Expedition: `start`, `result`, `return_instruction`.
-- Quest fields missing in `questlist.rs`: `api_voice_id`, `api_invalid_flag`, `api_c_list`.
-
-Housekeeping:
-
-- Commit the pending `CLAUDE.md` change (Do-Not-Modify + PR Review sections).
-- Consider fixing the `openspec/config.yaml:70` "Hard tabs" typo.
+Note: the old "finish in-flight openspec changes inside openspec" instruction is **superseded** — those changes are now U2 translation targets, not things to complete under the openspec flow.
