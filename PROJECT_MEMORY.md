@@ -25,9 +25,9 @@ Architecture (→ CLAUDE.md § Architecture):
 
 Code style (→ CLAUDE.md § Code Style):
 
-- Soft tabs, 4 spaces. `.rustfmt.toml` is `hard_tabs = false`, `tab_spaces = 4`. NOTE: `openspec/config.yaml:70` says "Hard tabs" — that is a typo; `.rustfmt.toml` / `.editorconfig` are authoritative.
+- Soft tabs, 4 spaces. `.rustfmt.toml` is `hard_tabs = false`, `tab_spaces = 4`; `.editorconfig` agrees. (The old `openspec/config.yaml` "Hard tabs" line was a typo and is removed with openspec.)
 - `unsafe_code` denied workspace-wide; `missing_docs` warned.
-- Balance / numeric `Default` changes follow the Balance Defaults Policy: own commit, `feat(balance):` / `chore(balance):`, previous values in the body, openspec proposal, regression test.
+- Balance / numeric `Default` changes follow the Balance Defaults Policy: own commit, `feat(balance):` / `chore(balance):`, previous values in the body, a `docs/plans/` plan (ce-plan), regression test.
 
 Do-not-modify (→ CLAUDE.md § Do-Not-Modify Files):
 
@@ -45,31 +45,29 @@ Do-not-modify (→ CLAUDE.md § Do-Not-Modify Files):
 
 ## Last Session
 
-2026-06-22, branch `main` (working tree: 1 new file, uncommitted):
+2026-06-22, branch `chore/openspec-sunset` — executing the openspec sunset migration plan (`docs/plans/2026-06-22-001-...md`) via ce-work:
 
-- **Theme:** project progress assessment + openspec sunset migration plan.
-- **Assessed:** build/clippy green; 13 crates stable; ~25 `api_get_member/*` handlers + map/sortie/practice/kousyou/mission/furniture handler groups present; battle engine + deterministic harness is the recent主线; combined fleet / air corps / expedition endpoints still blank.
-- **Decided:** the project is sunsetting openspec in favor of ce-compound-engineering. Three decisions recorded (D1–D3):
-  - **D1** — `openspec/specs/` (37 WHEN/THEN contracts) → migrate to `docs/solutions/` knowledge track (architecture-patterns / conventions / best-practices). Accepted trade-off: living contracts become historical knowledge; no machine-enforced behavioral contract layer remains after migration.
-  - **D2** — 4 in-flight openspec changes → translate into `docs/plans/` ce-plan plans (not finish-inside-openspec).
-  - **D3** — this session is planning-only; no source / openspec asset / CLAUDE.md gate rewrite touched.
-- **Shipped:** `docs/plans/2026-06-22-001-chore-openspec-to-ce-compound-migration-plan.md` (380 lines, 6 implementation units U1–U6, KTD1–KTD6, acceptance A1–A6). User confirmed the plan as final.
-- **Prior housekeeping done:** the pending `CLAUDE.md` Do-Not-Modify + PR Review change was committed in `203a7c1` (git tree is clean apart from this session's new plan file).
-- **Stopped at:** plan confirmed; execution deferred to next session per D3.
+- **U1 done (commit `a266b93`):** all 37 `openspec/specs/` migrated to `docs/solutions/` knowledge track — 15 architecture-patterns, 4 conventions, 18 best-practices. `docs/migration/openspec-sunset-log.md` records every spec's fate (37 kept, 0 dropped). 4 parallel worker subagents wrote the docs; frontmatter validated 37/37.
+- **U2 done (commit `1ba3871`):** 4 in-flight openspec changes translated to `docs/plans/2026-06-22-{002..005}-*.md` with exact checkbox parity (27+10+35+11 = 83 tasks preserved).
+- **U3 done (commit `4e1a570`):** client-sync plan `2026-06-15-002` U4 repointed from `openspec/changes/` → `docs/plans/` (ce-plan scaffold).
+- **U4 done:** CLAUDE.md process gate rewritten to ce-plan → ce-compound → ce-code-review; openspec/specs/** do-not-modify line removed; this file's Verified Facts updated.
+- **Stopped at:** U1–U4 complete; U5 (irreversible `git rm openspec/` + 24 agent-scaffolding files) and U6 (verification sweep) remain.
 
-Uncommitted in working tree: `?? docs/plans/2026-06-22-001-chore-openspec-to-ce-compound-migration-plan.md`.
+Branch `chore/openspec-sunset` has 4 commits ahead of `main`. Working tree has only the CLAUDE.md + PROJECT_MEMORY.md edits from U4 (not yet committed as of this note).
 
 ## Next Session
 
-**Execute the migration plan** (`docs/plans/2026-06-22-001-...`), units in order, one commit each:
+**Finish the migration (branch `chore/openspec-sunset`):**
 
-1. **U1** — triage 37 specs → `docs/solutions/{architecture-patterns,conventions,best-practices}/`; write `docs/migration/openspec-sunset-log.md`.
-2. **U2** — translate 4 in-flight openspec changes → `docs/plans/2026-06-22-{002..005}-*.md` (checkbox parity required).
-3. **U3** — repoint `2026-06-15-002` client-sync plan U4/KTD6 from `openspec/changes/` → `docs/plans/`.
-4. **U4** — rewrite `CLAUDE.md` (lines ~177/198/216/221) + this file's openspec refs (balance-policy note, `config.yaml:70` typo note) → ce-plan/ce-compound/ce-code-review flow.
-5. **U5** — `git rm` `openspec/` + 24 openspec/opsx scaffolding files under `.claude/.codex/.github/.opencode`. **Irreversible.**
-6. **U6** — `cargo fmt/clippy/test` + `grep -rin openspec` sweep.
+1. **U5 (IRREVERSIBLE)** — `git rm -r openspec/` + the 24 openspec/opsx agent-scaffolding files under `.claude/`, `.codex/`, `.github/`, `.opencode/`. Commit: `chore(openspec): remove openspec tree and agent scaffolding`.
+2. **U6** — `cargo fmt --all --check`, `cargo clippy --workspace -- -W warnings`, `cargo test`, `cargo test --test gameplay_tests`, and `grep -rin openspec .` (expect empty outside `docs/plans/archive/` and the migration plan itself).
+3. Open PR for `chore/openspec-sunset`, merge to `main`.
 
-After the migration lands, resume `TODO.md` high-priority gaps (combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition `start`/`result`/`return_instruction`; quest fields `api_voice_id`/`api_invalid_flag`/`api_c_list` in `questlist.rs`).
+**Then resume feature work** — the 4 translated plans are ready to execute:
 
-Note: the old "finish in-flight openspec changes inside openspec" instruction is **superseded** — those changes are now U2 translation targets, not things to complete under the openspec flow.
+- `2026-06-22-002` fix-battle-attack-system (27 tasks)
+- `2026-06-22-003` fix-sortie-state-and-routing (10 tasks)
+- `2026-06-22-004` refactor-battle-rng-and-practice-store (35 tasks)
+- `2026-06-22-005` fix-batch-craft-quest-progress (11 tasks)
+
+Plus `TODO.md` high-priority gaps (combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition; quest fields).

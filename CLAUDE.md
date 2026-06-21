@@ -174,7 +174,7 @@ Any change to a `Default` impl in `crates/emukc_model/src/codex/` that affects g
 1. Be in its own commit, separate from infrastructure or refactor work.
 2. Use commit prefix `feat(balance):` for new behavior or `chore(balance):` for value tuning.
 3. List the previous value(s) in the commit body.
-4. Update or reference an openspec proposal under `openspec/changes/`.
+4. Reference a `docs/plans/` plan (ce-plan) describing the change.
 5. Add or update a regression test asserting the new value, so future accidental flips fail CI.
 
 Pure boolean QoL defaults (e.g., picture-book unlocks) are exempt from rule 5 but still subject to rules 1-4.
@@ -195,7 +195,6 @@ These files are checked in but are generated outputs, frozen baselines, or gover
 - `crates/emukc_bootstrap/assets/*.json` — battle knowledge decoded from `main.js` by the `main-decoder` subproject and synced in via `cd main-decoder && bun run decode -- --sync-battle-assets` (see *Client-Derived Battle Validation*). Includes `battle_protocol_fields.json`, `battle_resource_rules.json`, `battle_module_index.json`, `battle_slot_resource_triggers.json`, etc.
 - `main-decoder/out/battle/*.json` — the upstream decoder output that feeds the sync above. Regenerate with `bun run decode`, never edit.
 - `tests/gameplay_tests/battle_golden.rs` — the frozen deterministic full-sortie transcript. If a legitimate logic change alters the outcome, re-freeze it deliberately and explain the diff in the PR; never hand-patch individual assertions.
-- `openspec/specs/**` — archived specification contracts. Change only via the openspec change flow (propose → review → archive), not by direct edit.
 - `Cargo.lock` — pinned dependency versions for a binary crate. Bump a specific dependency with `cargo update -p <crate>`, not by hand.
 
 `docs/solutions/**` is not forbidden but is institutional knowledge: update it deliberately when the code it documents changes, and never delete or rewrite it as a side effect of unrelated work.
@@ -213,12 +212,12 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 **Change hygiene:**
 
 - Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`). No AI attribution in the message.
-- Balance/numeric changes follow the *Balance Defaults Policy* above: own commit, `feat(balance):`/`chore(balance):`, previous values in the body, openspec proposal, regression test.
+- Balance/numeric changes follow the *Balance Defaults Policy* above: own commit, `feat(balance):`/`chore(balance):`, previous values in the body, a `docs/plans/` plan (ce-plan), regression test.
 - Surgical changes: every changed line traces to the request. No opportunistic reformatting, no refactor of adjacent code, no removal of pre-existing dead code (flag it instead).
 
 **Process gates (non-trivial changes):**
 
-- New gameplay behavior, spec changes, or cross-crate contracts go through openspec first: `/openspec-propose` → implement against the generated tasks → `/openspec-archive-change` once done. Follow the proposal/design/tasks/specs rules in `openspec/config.yaml`.
+- New gameplay behavior, spec changes, or cross-crate contracts go through ce-plan first: draft a `docs/plans/` plan → implement against its Implementation Units → capture lessons with `/ce-compound` into `docs/solutions/` → verify with `/code-review` (or `/review`). Behavioral contracts that used to live in `openspec/specs/` are now captured knowledge under `docs/solutions/architecture-patterns/`.
 - A diff that regenerates synced assets or re-freezes a golden transcript must explain why in the PR description.
 
 **Review entry points:** `/code-review` and `/review` (standards + spec axes, run in parallel) for self-review before opening a PR; `/commit` runs fmt + clippy and drafts a conventional commit.
