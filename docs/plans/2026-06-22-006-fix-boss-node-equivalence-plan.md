@@ -87,7 +87,13 @@ membership test needs to change.
 **Alternative considered — change `boss_cell_no: i64` → `boss_cell_nos: Vec<i64>`:**
 rejected. Would require touching `merge.rs` (remap + last-non-zero-wins logic), `debug.rs`,
 both API response structs (`sortie/mod.rs:123,159`), and ~15 test fixtures that hardcode a
-scalar. Disproportionate to a two-site detection bug.
+scalar. Disproportionate to a three-site detection bug.
+
+**Type note:** `MapStageDefinition` is a **type alias** for `MapVariantDefinition`
+(`types.rs:147` — `pub type MapStageDefinition = MapVariantDefinition;`). There is no
+separate `impl MapStageDefinition`. This means `boss_cell_nos()`, once added to
+`impl MapVariantDefinition`, is directly callable on any `stage` variable (which is
+`&MapStageDefinition = &MapVariantDefinition`). No conversion or wrapper needed.
 
 **Alternative considered — use `event_id == 5` as the boss test:** rejected as the primary
 mechanism. `event_id=5` happens to coincide with boss nodes today, but `node_label`
@@ -184,9 +190,23 @@ detail resolved by reading the two sites in context, not a planning blocker.
       gates quest event boss-marking (`build_sortie_quest_event`); without it, quest 204
       (defeat boss on 1-2) never reaches `Completed` even if `is_boss_cell` is true.
 - **Dependencies:** U1, U3.
-- **Patterns to follow:** Both sites already resolve `stage` and `current_cell` via
-  `stage.cell(...)`; follow the existing `ok_or_else`/`?` shape.
+- **Patterns to follow:**
+  - **mod.rs sites (596, 706):** `stage` is already resolved via
+    `definition.stage(&active.stage_id)` earlier in each function (line ~583 / ~697).
+    Note: `MapStageDefinition` is a **type alias** for `MapVariantDefinition`
+    (`types.rs:147`), so `stage.boss_cell_nos()` compiles directly — no conversion needed.
+  - **sortie_result.rs site (180):** `build_sortie_quest_event` receives
+    `definition: &MapDefinition` but **not** `stage`. The implementer must resolve it first:
+    `let stage = definition.stage(&active.stage_id).ok_or_else(|| GameplayError::EntryNotFound(...))?;`
+    This is a one-liner addition before the `boss_cell` field; follow the same `ok_or_else`
+    pattern used in mod.rs:583.
 - **Test scenarios:**
+  - **Existing unit test update:** `build_sortie_quest_event_marks_boss_cells`
+    (`sortie_result.rs:499`) currently constructs a hand-built definition with
+    `boss_cell_id: 3` and asserts `boss_cell == true`. After the change, it must provide a
+    proper stage definition with cells + labels (or the label-absent fallback path) so
+    `boss_cell_nos()` returns a set containing the test's cell. Update the test fixture
+    accordingly.
   - Integration (existing, currently failing):
     `sortie_battle_result_advances_boss_quest_on_real_boss_node` — reaching cell 6 (node E)
     on map 1-2 now advances boss quest 204 to `Completed`. (This test is the regression
@@ -294,3 +314,20 @@ detail resolved by reading the two sites in context, not a planning blocker.
 2. **safe_auto — Missing `.sort()` in pseudocode (coherence, confidence 100).** `multi_label_index()` preserves insertion order, not cell_no order; U1/U4 tests assert sorted. Added `cells.sort()` to pseudocode.
 3. **gated_auto — U2 missing U3 dependency (coherence, confidence 75).** U2's verification ("tests pass") requires U3 (path_to_boss helper fix) but Dependencies listed only U1. Updated to "U1, U3".
 4. **Advisory — HLTD re-opens settled (a)/(b) decision (coherence, confidence 50).** HLTD both commits to "use stage" and re-opens it. Left as-is; U2 Approach and Risks are authoritative.
+
+## kcdata Routes Consistency Audit (2026-06-22)
+
+**Verdict: Plan 006 does NOT touch kcdata data, parser, merge logic, or routes model.**
+
+Checked and confirmed:
+- `kcdata.rs` (parser): **unchanged** — Non-goals explicitly exclude it
+- `merge.rs` (merge logic): **unchanged** — Non-goals explicitly exclude it
+- `map_catalog.json` (data file): **unchanged** — no write operations
+- route→cell model (`cell_no = route_id`): **unchanged** — 5 kcdata tests protect this model and are orthogonal to runtime detection
+- `boss_cell_no: i64` field: **unchanged** — R3 keeps it canonical; only the membership test becomes label-aware
+- `node_label` field: **unchanged** — `multi_label_index()` already safely used by `merge.rs` and `label_overlay.rs`
+- `next_cells` topology: **unchanged** — helper reads `node_label` only; no structural modification
+
+`boss_cell_nos()` is a pure read helper: calls the pre-existing `multi_label_index()` (types.rs:110), filters for the boss label, returns sorted cell_nos. No mutation, no persistence, no side effects. For single-incoming-route maps (common case, R4), it returns `[boss_cell_no]` — byte-identical to the old exact-match behavior.
+
+**Implementation detail found (not a data risk):** The third detection site (`sortie_result.rs:180`) lacks `stage` in scope (unlike the mod.rs sites). `build_sortie_quest_event` receives `definition: &MapDefinition` only. The implementer must add `let stage = definition.stage(&active.stage_id)?;` before the `boss_cell` field. Documented in U2 Patterns to follow. Also, the existing unit test `build_sortie_quest_event_marks_boss_cells` (sortie_result.rs:499) needs its fixture updated to provide proper stage data with labels.
