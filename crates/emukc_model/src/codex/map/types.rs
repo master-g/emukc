@@ -118,6 +118,33 @@ impl MapVariantDefinition {
         index
     }
 
+    /// Returns all cell numbers that share the boss node's `node_label`.
+    ///
+    /// When a boss node is reachable via multiple incoming routes, each route produces
+    /// a separate cell (all carrying the same `node_label`). This helper resolves the
+    /// full set so callers can do a label-aware membership test ("is this cell a boss
+    /// cell?") instead of an exact scalar match against `boss_cell_no`.
+    ///
+    /// If the boss cell has no `node_label` (synthetic/skeleton variants), falls back to
+    /// `[boss_cell_no]`, preserving behavior for single-incoming-route maps.
+    pub fn boss_cell_nos(&self) -> Vec<i64> {
+        let boss_label = self
+            .cells
+            .iter()
+            .find(|c| c.cell_no == self.boss_cell_no)
+            .and_then(|c| c.node_label.clone());
+        let mut cells = match boss_label.filter(|l| !l.is_empty()) {
+            Some(label) => self
+                .multi_label_index()
+                .get(&label)
+                .cloned()
+                .unwrap_or_else(|| vec![self.boss_cell_no]),
+            None => vec![self.boss_cell_no],
+        };
+        cells.sort();
+        cells
+    }
+
     /// Returns a map from `node_label` to `cell_no` for all uniquely-labeled cells.
     ///
     /// If a label appears on two or more cells with different `cell_nos`, that label is excluded.
@@ -356,6 +383,101 @@ pub struct FleetSizeWeight {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    /// Build a cell with a label and optional event_id (defaults to 5 = boss).
+    fn cell_with_label(cell_no: i64, label: &str, event_id: i64) -> MapCellDefinition {
+        MapCellDefinition {
+            cell_no,
+            event_id,
+            node_label: Some(label.to_string()),
+            ..Default::default()
+        }
+    }
+
+    fn variant(cells: Vec<MapCellDefinition>, boss_cell_no: i64) -> MapVariantDefinition {
+        MapVariantDefinition {
+            cells,
+            boss_cell_no,
+            ..Default::default()
+        }
+    }
+
+    // ── U1: boss_cell_nos helper scenarios ──
+
+    #[test]
+    fn boss_cell_nos_returns_all_cells_sharing_boss_label() {
+        // Mirror of map 1-2 node E: two cells (5, 6) share label "E".
+        let v = variant(vec![cell_with_label(5, "E", 5), cell_with_label(6, "E", 5)], 5);
+        assert_eq!(v.boss_cell_nos(), vec![5, 6]);
+    }
+
+    #[test]
+    fn boss_cell_nos_single_boss_returns_singleton() {
+        // Common case: single-incoming-route boss node (R4 invariant).
+        let v = variant(vec![cell_with_label(3, "C", 5)], 3);
+        assert_eq!(v.boss_cell_nos(), vec![3]);
+    }
+
+    #[test]
+    fn boss_cell_nos_fallback_when_label_is_none() {
+        let cell = MapCellDefinition {
+            cell_no: 5,
+            event_id: 5,
+            ..Default::default()
+        };
+        let v = variant(vec![cell], 5);
+        assert_eq!(v.boss_cell_nos(), vec![5]);
+    }
+
+    #[test]
+    fn boss_cell_nos_fallback_when_label_is_empty() {
+        let v = variant(vec![cell_with_label(5, "", 5)], 5);
+        assert_eq!(v.boss_cell_nos(), vec![5]);
+    }
+
+    #[test]
+    fn boss_cell_nos_output_is_sorted() {
+        // Insertion order is 6 then 5, but output must be sorted.
+        let v = variant(vec![cell_with_label(6, "E", 5), cell_with_label(5, "E", 5)], 5);
+        assert_eq!(v.boss_cell_nos(), vec![5, 6]);
+    }
+
+    // ── U4: regression test pinning equivalence semantics ──
+
+    #[test]
+    fn boss_cell_nos_invariant_all_returned_cells_have_boss_event_id() {
+        // Every cell sharing the boss label must have event_id == 5.
+        let v = variant(vec![cell_with_label(5, "E", 5), cell_with_label(6, "E", 5)], 5);
+        for cell_no in v.boss_cell_nos() {
+            let cell = v.cells.iter().find(|c| c.cell_no == cell_no).unwrap();
+            assert_eq!(
+                cell.event_id, 5,
+                "cell {cell_no} shares boss label but has event_id {}",
+                cell.event_id
+            );
+        }
+    }
+
+    #[test]
+    fn boss_cell_nos_does_not_include_non_boss_label_cells() {
+        // Cells with different labels must not appear in the boss set.
+        let v = variant(
+            vec![
+                cell_with_label(5, "E", 5),
+                cell_with_label(6, "E", 5),
+                cell_with_label(4, "D", 4),
+            ],
+            5,
+        );
+        let nos = v.boss_cell_nos();
+        assert!(nos.contains(&5));
+        assert!(nos.contains(&6));
+        assert!(!nos.contains(&4));
+    }
+
+    // ── Existing ShipDropDefinition tests (preserved) ──
+
     use super::ShipDropDefinition;
 
     #[test]
