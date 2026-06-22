@@ -35,6 +35,25 @@ pub fn build_final_map_catalog_with_overlay(
         .map(|(catalog, _)| catalog)
 }
 
+/// Remove maps not present in the manifest's `api_mst_mapinfo`.
+///
+/// Event/seasonal maps that exist in kcdata but aren't in the current
+/// `start2.json` are excluded — they produce topology warnings and aren't
+/// playable without the event being active.
+/// Remove maps not present in the manifest's `api_mst_mapinfo`.
+///
+/// Event/seasonal maps that exist in kcdata but aren't in the current
+/// `start2.json` are excluded — they produce topology warnings and aren't
+/// playable without the event being active.
+fn filter_to_manifest_maps(catalog: &mut MapCatalog, manifest: &ApiManifest) {
+    if manifest.api_mst_mapinfo.is_empty() {
+        return;
+    }
+    let known_ids: std::collections::BTreeSet<i64> =
+        manifest.api_mst_mapinfo.iter().map(|m| m.api_id).collect();
+    catalog.maps.retain(|map_id, _| known_ids.contains(map_id));
+}
+
 /// Build the final runtime `MapCatalog` using the repo-tracked wikiwiki asset.
 pub fn build_final_map_catalog_from_repo_assets(
     data_root: impl AsRef<Path>,
@@ -57,7 +76,9 @@ pub fn build_final_map_catalog_with_report(
         wikiwiki_catalog,
         wikiwiki_overlay,
     )?;
-    Ok(assemble::assemble_final_map_catalog(source_set))
+    let (mut catalog, report) = assemble::assemble_final_map_catalog(source_set);
+    filter_to_manifest_maps(&mut catalog, manifest);
+    Ok((catalog, report))
 }
 
 /// Build the final runtime `MapCatalog` from repo assets and return provenance metadata.
@@ -66,5 +87,7 @@ pub fn build_final_map_catalog_from_repo_assets_with_report(
     manifest: &ApiManifest,
 ) -> Result<(MapCatalog, MapCatalogBuildReport), ParseError> {
     let source_set = sources::load_repo_source_set(data_root.as_ref(), manifest)?;
-    Ok(assemble::assemble_final_map_catalog(source_set))
+    let (mut catalog, report) = assemble::assemble_final_map_catalog(source_set);
+    filter_to_manifest_maps(&mut catalog, manifest);
+    Ok((catalog, report))
 }

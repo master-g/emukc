@@ -248,6 +248,14 @@ impl Codex {
             maps.prerequisites = map::build_regular_prerequisites();
         }
 
+        // Filter out maps not present in the manifest (event/seasonal maps
+        // from kcdata that aren't in the current start2.json).
+        let known_map_ids: std::collections::BTreeSet<i64> =
+            manifest.api_mst_mapinfo.iter().map(|m| m.api_id).collect();
+        if !known_map_ids.is_empty() {
+            maps.maps.retain(|map_id, _| known_map_ids.contains(map_id));
+        }
+
         for def in maps.maps.values() {
             for warning in def.validate() {
                 tracing::warn!("{warning:?}");
