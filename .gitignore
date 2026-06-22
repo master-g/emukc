@@ -22,7 +22,8 @@
 .env
 
 # AI slop
-.claude/
+.claude/*
+!.claude/skills/
 .codex/
 .cursor/
 .opencode/

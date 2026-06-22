@@ -1,0 +1,178 @@
+{
+  "maps": {
+    "12": {
+      "map_id": 12,
+      "maparea_id": 1,
+      "mapinfo_no": 2,
+      "name": "南西諸島沖",
+      "source_url": "https://wikiwiki.jp/kancolle/鎮守府海域/1-2",
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "nodes": [
+            {
+              "label": "Start",
+              "cell_no": 0,
+              "is_boss": false,
+              "is_battle": false
+            },
+            {
+              "label": "A",
+              "cell_no": 1,
+              "is_boss": false,
+              "is_battle": true
+            },
+            {
+              "label": "B",
+              "cell_no": 2,
+              "is_boss": false,
+              "is_battle": false
+            },
+            {
+              "label": "C",
+              "cell_no": 3,
+              "is_boss": false,
+              "is_battle": true
+            },
+            {
+              "label": "D",
+              "cell_no": 4,
+              "is_boss": false,
+              "is_battle": true
+            },
+            {
+              "label": "E",
+              "cell_no": 5,
+              "is_boss": true,
+              "is_battle": true
+            }
+          ],
+          "routing_rules": [
+            {
+              "from_cell_no": 0,
+              "to_cell_no": 1,
+              "priority": 0,
+              "weight": 6000,
+              "probability_pct": 60.0,
+              "predicate": { "FleetSize": { "op": "Lte", "value": 4 } },
+              "raw_text": "艦隊サイズ4隻以下でA"
+            },
+            {
+              "from_cell_no": 0,
+              "to_cell_no": 2,
+              "priority": 1,
+              "weight": 4000,
+              "probability_pct": 40.0,
+              "predicate": { "FleetSize": { "op": "Gte", "value": 5 } },
+              "raw_text": "艦隊サイズ5隻以上でB"
+            },
+            {
+              "from_cell_no": 1,
+              "to_cell_no": 4,
+              "priority": 0,
+              "weight": null,
+              "probability_pct": null,
+              "predicate": { "Speed": { "class": "Fast" } },
+              "raw_text": "高速統一艦隊でD"
+            },
+            {
+              "from_cell_no": 1,
+              "to_cell_no": 3,
+              "priority": 1,
+              "weight": null,
+              "probability_pct": null,
+              "predicate": { "Always": null },
+              "raw_text": "それ以外でC"
+            },
+            {
+              "from_cell_no": 3,
+              "to_cell_no": 4,
+              "priority": 0,
+              "weight": null,
+              "probability_pct": null,
+              "predicate": { "Always": null },
+              "raw_text": ""
+            },
+            {
+              "from_cell_no": 4,
+              "to_cell_no": 5,
+              "priority": 0,
+              "weight": null,
+              "probability_pct": null,
+              "predicate": { "Always": null },
+              "raw_text": ""
+            }
+          ],
+          "enemy_fleets": [
+            {
+              "node_label": "A",
+              "cell_no": 1,
+              "battle_kind": 1,
+              "formations": [1],
+              "compositions": [
+                {
+                  "comp_id": "A-1",
+                  "weight": 100,
+                  "ship_ids": [1, 1, 2],
+                  "formation": 1,
+                  "raw_ship_names": ["駆逐イ級", "駆逐イ級", "軽巡ホ級"]
+                }
+              ]
+            },
+            {
+              "node_label": "C",
+              "cell_no": 3,
+              "battle_kind": 1,
+              "formations": [1],
+              "compositions": [
+                {
+                  "comp_id": "C-1",
+                  "weight": 100,
+                  "ship_ids": [1, 1, 1, 2],
+                  "formation": 1,
+                  "raw_ship_names": ["駆逐イ級", "駆逐イ級", "駆逐イ級", "軽巡ホ級"]
+                }
+              ]
+            },
+            {
+              "node_label": "D",
+              "cell_no": 4,
+              "battle_kind": 1,
+              "formations": [1],
+              "compositions": [
+                {
+                  "comp_id": "D-1",
+                  "weight": 100,
+                  "ship_ids": [2, 2, 3],
+                  "formation": 1,
+                  "raw_ship_names": ["軽巡ホ級", "軽巡ホ級", "重巡リ級"]
+                }
+              ]
+            },
+            {
+              "node_label": "E",
+              "cell_no": 5,
+              "battle_kind": 5,
+              "formations": [1],
+              "compositions": [
+                {
+                  "comp_id": "Boss-1",
+                  "weight": 100,
+                  "ship_ids": [3, 3, 4, 4, 5],
+                  "formation": 1,
+                  "raw_ship_names": ["軽巡ホ級", "軽巡ホ級", "重巡リ級", "重巡リ級", "戦艦ル級"]
+                }
+              ]
+            }
+          ],
+          "ship_drops": {},
+          "required_defeat_count": null,
+          "clear_to_variant_key": null,
+          "parse_warnings": []
+        }
+      },
+      "overlays": {}
+    }
+  }
+}
