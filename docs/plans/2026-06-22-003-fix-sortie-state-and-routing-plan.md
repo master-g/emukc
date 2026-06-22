@@ -28,7 +28,28 @@ Two related sortie defects, one shared root cause and one data/logic question:
 This plan fixes all three: defensive cleanup at sortie start, a practice
 cleanup audit, and a data-vs-code investigation of 1-3 routing.
 
-## Problem Frame
+## Reconciliation (2026-06-22)
+
+**Read-only verification of all 10 checkboxes against current code.**
+
+| Unit | Total | Done | Not Done |
+| --- | --- | --- | --- |
+| U1 Investigation | 2 | 1 | 1 |
+| U2 Sortie State Cleanup | 4 | 3 | 1 |
+| U3 Map 1-3 Routing | 4 | 1 | 3 |
+| **Total** | **10** | **5** | **5** |
+
+**Key structural change since plan was written:** the `PracticeRepository` extraction (plan 004) moved practice sessions into a separate `GLOBAL_PRACTICE_STORE`, making practice → sortie cross-contamination structurally impossible. This obsoletes the root concern behind U2.2 and U2.4.
+
+**Genuinely remaining work (5 tasks):**
+
+1. **U1.2** — Investigate 1-3 codex map data vs authoritative source. Likely moot since 3.2 is done, but worth confirming the data is correct.
+2. **U2.4** — Practice → sortie leak test. Low value as a regression guard since the concern is structurally eliminated, but still missing as test coverage.
+3. **U3.1** — Fix 1-3 codex data if investigation finds it wrong. Depends on U1.2.
+4. **U3.3** — Add a test asserting 1-3 routing follows valid directed-graph edges. This is the most valuable remaining task.
+5. **U3.4** — Run integration test pass. Trivial once U3.3 is added.
+
+**Estimated remaining effort: small.** The heavy lifting (defensive cleanup, practice leak prevention, routing fallback fix) has already shipped. What remains is mostly test coverage + a data sanity check.
 
 The `SortieStore` (and its repository traits) hold state keyed by `profile_id`:
 the active sortie, pending battles, and pending results. Practice and sortie
@@ -157,8 +178,8 @@ existing validation. The routing fix is conditional on the U1 diagnosis.
     `MapVariantDefinition`) — verify `next_cells` and `routing_rules` against
     wikiwiki.
 - **Tasks:**
-  - [ ] 1.1 Read practice battle result handler to verify pending_battle/pending_result cleanup
-  - [ ] 1.2 Inspect codex map data for map 1-3: verify next_cells and routing_rules against wikiwiki
+- [x] 1.1 Read practice battle result handler to verify pending_battle/pending_result cleanup *(practice.rs:172 take_pending_result, :185 clear_pending_battle; practice now uses separate PracticeStore via GLOBAL_PRACTICE_STORE — cross-contamination structurally eliminated)*
+- [ ] 1.2 Inspect codex map data for map 1-3: verify next_cells and routing_rules against wikiwiki *(may be moot — code-side routing fallback was already fixed in 3.2)*
 
 ### U2. Sortie State Cleanup
 
@@ -175,10 +196,10 @@ existing validation. The routing fix is conditional on the U1 diagnosis.
   - `crates/emukc_gameplay/src/game/practice.rs` — `practice_battle_result`
     cleanup, if the U1 audit finds it missing.
 - **Tasks:**
-  - [ ] 2.1 Add defensive cleanup at start of `start_sortie_impl`: remove_active_sortie + take_pending_result + take_pending_battle before inserting new state
-  - [ ] 2.2 Fix practice battle result handler to clear pending_battle and pending_result from SortieStore after processing (if missing)
-  - [ ] 2.3 Add test: start sortie after incomplete previous sortie — verify no stale state
-  - [ ] 2.4 Add test: start sortie after practice — verify no practice enemy data leaks
+- [x] 2.1 Add defensive cleanup at start of `start_sortie_impl`: remove_active_sortie + take_pending_result + take_pending_battle before inserting new state *(clear_pending_sortie_runtime_state at sortie/mod.rs:327, called inside with_profile_lock before insert_active)*
+- [x] 2.2 Fix practice battle result handler to clear pending_battle and pending_result from SortieStore after processing (if missing) *(practice.rs:172+185 clears both; practice now uses separate GLOBAL_PRACTICE_STORE, not SortieStore — leak path eliminated)*
+- [x] 2.3 Add test: start sortie after incomplete previous sortie — verify no stale state *(tests/gameplay_tests/map/non_boss_pending.rs:76 start_sortie_twice_clears_previous_state; tests/gameplay_tests/map/unlock.rs:96 start_sortie_after_incomplete_previous_sortie_succeeds)*
+- [ ] 2.4 Add test: start sortie after practice — verify no practice enemy data leaks *(concern structurally eliminated by separate stores; test would be a regression guard only)*
 - **Verification:** the two new tests pass; `cargo test --test gameplay_tests`
   stays green.
 
@@ -193,10 +214,10 @@ existing validation. The routing fix is conditional on the U1 diagnosis.
   - `crates/emukc_gameplay/src/game/map_route.rs` —
     `select_route_from_cells` multi-edge handling if the fallback is at fault.
 - **Tasks:**
-  - [ ] 3.1 Fix 1-3 codex map data if next_cells/routing_rules are incorrect (depends on 1.2 findings)
-  - [ ] 3.2 If routing logic is at fault, fix select_route_from_cells to handle multi-edge cells correctly
-  - [ ] 3.3 Add test: 1-3 sortie routing follows valid edges only
-  - [ ] 3.4 Run `cargo test --test gameplay_tests` for integration pass
+- [ ] 3.1 Fix 1-3 codex map data if next_cells/routing_rules are incorrect (depends on 1.2 findings) *(likely moot — code-side fix in 3.2 addresses multi-edge fallback; 1-3-specific data investigation still pending)*
+- [x] 3.2 If routing logic is at fault, fix select_route_from_cells to handle multi-edge cells correctly *(git history shows next_cells[0] deterministic selection replaced with rng::usize(0..len) random selection; topology filtering via next_cells.contains already present)*
+- [ ] 3.3 Add test: 1-3 sortie routing follows valid edges only
+- [ ] 3.4 Run `cargo test --test gameplay_tests` for integration pass
 - **Verification:** the 1-3 routing test passes against an authoritative edge
   list; the full integration suite is green.
 

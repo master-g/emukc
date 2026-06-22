@@ -13,6 +13,21 @@ origin: openspec/changes/fix-batch-craft-quest-progress (translated during opens
 
 This is a diagnostic-first fix: add trace logging at three points in the quest-event chain, verify the quest manifest data, then repair the break point once diagnosed. It does not restructure the quest system.
 
+## Reconciliation (2026-06-22)
+
+**Status: 0/11 done — plan is fully fresh (0% complete, no drift).**
+
+Verified against current code:
+
+| Unit | Tasks | Done | Evidence |
+| --- | --- | --- | --- |
+| U1 diagnostic logs | 1.1, 1.2, 1.3 | 0/3 | 0 `tracing::` calls in `factory.rs`, `quest/update.rs`, `quest/matcher.rs` |
+| U2 verify manifest | 2.1, 2.2, 2.3 | 0/3 | `quest.json` exists (1.39 MB) but no documented validation of the triggered quest's condition type/period/activation has been performed |
+| U3 fix progress | 3.1, 3.2 | 0/2 | `DevelopmentAttempt` event type absent from codebase; repair (3.1) depends on undiagnosed U1/U2 |
+| U4 tests | 4.1, 4.2, 4.3 | 0/3 | existing `tests/gameplay_tests/quest/event_matching.rs` covers matcher-level unit tests only, not factory→quest integration tests |
+
+**Notable:** the event-matching logic in `Kc3rdQuestCondition::matches_event` (`matcher.rs:73`) correctly maps `Factory(SlotItemConstruction)` ↔ `SlotItemConstructed`. The four candidate break points remain unconfirmed — the diagnostic-first approach (U1+U2 before U3) is still the right execution order.
+
 ## Problem Frame
 
 Users report that batch crafting (`api_multiple_flag=1`, which sets `upper=3` and consumes 3× materials) does not advance development-type quest progress. A code-level read shows `create_slotitem` already calls `update_quest_progress_for_action` for each successfully crafted item, yet the counter does not move.

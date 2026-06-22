@@ -13,6 +13,43 @@ The `d4de3ff` battle-architecture extraction introduced `SortieRepository` and `
 
 This is a **refactor hardening** — it does not change any battle simulation algorithm, any KCSAPI route, any DB schema, or any Codex data. It adds the missing injection seams so tests can assert deterministically and so the production RNG stops lying about its guarantees.
 
+## Reconciliation (2026-06-22)
+
+Read-only audit of the plan against the current codebase. The codebase
+advanced past the plan during its openspec incubation period.
+
+| Unit | Scope | Done | Remaining | Verdict |
+| --- | --- | --- | --- | --- |
+| U1 | `choose_index` → `Option<usize>` | 0/5 | 5 | NOT DONE — `random.rs:7` still returns `usize` with `debug_assert!(len > 0)` |
+| U2 | `roll_scratch_damage` dedup | 3/3 | 0 | **DONE** — override deleted from CryptoRng, trait default is sole source, 3 regression tests pin formula + draw count |
+| U3 | PracticeRepository + store | 8/8 | 0 | **DONE** — trait in `practice_repository.rs`, `PracticeStore` in `sortie_store.rs`, `HasContext::practice_store()` wired, `PENDING_PRACTICE_BATTLES` removed (grep returns zero) |
+| U4 | CryptoRng → ProductionRng | 0/4 | 4 | NOT DONE — struct still `CryptoRng`, 17 usages across crates/src |
+| U5 | RNG injection through orchestrate | 0/7 | 7 | NOT DONE — `let mut rng = CryptoRng;` hardcoded at 5 sites (sortie: 28/68/161, practice: 32/193) |
+| U6 | EngagementType decode surfacing | 0/3 | 3 | NOT DONE — `.unwrap_or(EngagementType::SameCourse)` still at practice/orchestrate.rs:194 |
+| U7 | Verification sweep | 0/5 | 5 | N/A until U1/U4/U5/U6 land |
+
+**Totals:** 11 done, 24 remaining. Of the 24, five (U7) are pure verification
+runs; the genuine execution residual is **19 tasks** (U1: 5, U4: 4, U5: 7,
+U6: 3).
+
+**Naming divergences from plan (U3 — already shipped, documenting for accuracy):**
+
+- Plan names the store `GlobalPracticeStore` in `battle/practice/store.rs`; code
+  names it `PracticeStore` in `game/sortie_store.rs` (co-located with
+  `SortieStore`).
+- Plan names methods `get_pending_practice` / `insert_pending_practice` /
+  `take_pending_practice`; code uses `get_pending_battle` / `insert_pending_battle`
+  / `take_pending_battle` (also adds result-snapshot methods).
+- Plan specifies `HasContext::practice_store() -> &dyn PracticeRepository`;
+  code returns `&PracticeStore` (concrete type, not `dyn`).
+
+These divergences are benign — the dependency-injection seam exists and works.
+The remaining work (U1, U4, U5, U6) should adopt the code's existing naming.
+
+**Recommended execution order after reconciliation:** U4 (rename, mechanical) →
+U1 (choose_index, leaf-level) → U5 (RNG injection, depends on U4) → U6
+(EngagementType, independent). Then U7.
+
 ## Problem Frame
 
 The extraction commit landed three independent improvements:
@@ -135,8 +172,8 @@ These contracts are now captured (post-migration) in:
 - **Verification:** `cargo test -p emukc_battle` passes; the empty-input test asserts `None` without entropy consumption.
 
 - [ ] 1.1 Edit `crates/emukc_battle/src/random.rs`: change `BattleRng::choose_index` signature from `fn choose_index(&mut self, len: usize) -> usize` to `fn choose_index(&mut self, len: usize) -> Option<usize>`. Remove `debug_assert!(len > 0)`. Make `len == 0` return `None`. Update doc comment to state empty input contract.
-- [ ] 1.2 Update `SeededRng::choose_index` body in `crates/emukc_battle/src/random.rs` to return `Option<usize>` matching the new trait signature.
-- [ ] 1.3 Update every callsite of `choose_index` in `crates/emukc_battle/`: callers that have already validated non-emptiness use `.expect("non-empty by construction")`; callers that genuinely have variable length propagate the `None` to the surrounding logic.
+- [ ] 1.2 Update `SeededRng::choose_index` body in `crates/emukc_battle/src/random.rs` to return `Option<usize>` matching the new trait signature. *(Note: SeededRng currently does not override `choose_index` at all — it uses the trait default. Also check `CryptoRng::choose_index` override in `rng.rs` which routes through `emukc_crypto::rng::usize` — its generator-consumption differs from the trait default's `i64` path and must be preserved.)*
+- [ ] 1.3 Update every callsite of `choose_index` in `crates/emukc_battle/` (4 sites: `kouku.rs:274`, `kouku.rs:320`, `targeting.rs:115`, `targeting.rs:134`): callers that have already validated non-emptiness use `.expect("non-empty by construction")`; callers that genuinely have variable length propagate the `None` to the surrounding logic.
 - [ ] 1.4 Add a `#[test]` in `crates/emukc_battle/src/random.rs` asserting `SeededRng::new(0).choose_index(0) == None` and asserting it does not consume entropy (subsequent `choose_index(1)` still returns the deterministic seeded value).
 - [ ] 1.5 Run `cargo test -p emukc_battle` and confirm all tests pass.
 
@@ -148,9 +185,9 @@ These contracts are now captured (post-migration) in:
 - **Files:** `crates/emukc_gameplay/src/game/battle/rng.rs`, `crates/emukc_battle/src/random.rs`.
 - **Verification:** scratch damage paths still pass `sortie_battle_response_passes_battle_rule_validation`.
 
-- [ ] 2.1 Remove the `roll_scratch_damage` body from `CryptoRng` in `crates/emukc_gameplay/src/game/battle/rng.rs` (will be re-removed under its new name in step 4).
-- [ ] 2.2 Confirm `BattleRng::roll_scratch_damage` trait default in `crates/emukc_battle/src/random.rs` is the single source of behavior.
-- [ ] 2.3 Run `cargo test -p emukc_gameplay sortie_battle_response_passes_battle_rule_validation` and confirm scratch damage paths still pass.
+- [x] 2.1 Remove the `roll_scratch_damage` body from `CryptoRng` in `crates/emukc_gameplay/src/game/battle/rng.rs` (will be re-removed under its new name in step 4). *(Done — the override was deleted; `rng.rs:18` comment documents it.)*
+- [x] 2.2 Confirm `BattleRng::roll_scratch_damage` trait default in `crates/emukc_battle/src/random.rs` is the single source of behavior. *(Done — trait default at `random.rs:13` is the sole definition; `CryptoRng` impl has no override.)*
+- [x] 2.3 Run `cargo test -p emukc_gameplay sortie_battle_response_passes_battle_rule_validation` and confirm scratch damage paths still pass. *(Done — 3 regression tests in `random.rs` pin the formula, draw count, and golden vector.)*
 
 ### U3. `PracticeRepository` trait + `GlobalPracticeStore`
 
@@ -161,14 +198,14 @@ These contracts are now captured (post-migration) in:
 - **Approach:** Keep `PENDING_PRACTICE_BATTLES` as a private detail of `GlobalPracticeStore` for one transitional commit, then remove the static in the same unit. Replace every `super::PENDING_PRACTICE_BATTLES.lock().unwrap()` access with store method calls.
 - **Verification:** `cargo test -p emukc_gameplay` passes against the new store; `grep -r "PENDING_PRACTICE_BATTLES" crates/` returns zero matches.
 
-- [ ] 3.1 Edit `crates/emukc_gameplay/src/game/battle/repository.rs`: add `PracticeRepository` trait with `get_pending_practice`, `insert_pending_practice`, `take_pending_practice`. No `#[async_trait]`.
-- [ ] 3.2 Add `GlobalPracticeStore` struct in `crates/emukc_gameplay/src/game/battle/practice/store.rs` (new file). Internally `Mutex<HashMap<i64, PracticeBattleSession>>`. Implement `PracticeRepository`.
-- [ ] 3.3 Edit `crates/emukc_gameplay/src/game/context.rs` (or wherever `HasContext` lives): add required method `fn practice_store(&self) -> &dyn PracticeRepository`.
-- [ ] 3.4 Provide a process-global `OnceLock<GlobalPracticeStore>` accessible via the production `HasContext` impl, mirroring how the sortie store is wired.
-- [ ] 3.5 Update gameplay test fixture to provide a `TestPracticeStore` implementation.
-- [ ] 3.6 Edit `crates/emukc_gameplay/src/game/battle/practice/orchestrate.rs`: replace every `super::PENDING_PRACTICE_BATTLES.lock().unwrap()` access with calls to `store.get_pending_practice(...)`, `store.insert_pending_practice(...)`, `store.take_pending_practice(...)`.
-- [ ] 3.7 Delete the `PENDING_PRACTICE_BATTLES` static declaration. Confirm `grep -r "PENDING_PRACTICE_BATTLES" crates/` returns zero matches.
-- [ ] 3.8 Run `cargo test -p emukc_gameplay` to verify practice tests pass against the new store.
+- [x] 3.1 Edit `crates/emukc_gameplay/src/game/battle/repository.rs`: add `PracticeRepository` trait with `get_pending_practice`, `insert_pending_practice`, `take_pending_practice`. No `#[async_trait]`. *(Done — trait lives in separate file `practice_repository.rs` (not `repository.rs`); methods named `get_pending_battle` / `insert_pending_battle` / `take_pending_battle` (not `_practice`); also adds result-snapshot methods. Synchronous, no `#[async_trait]`.)*
+- [x] 3.2 Add `GlobalPracticeStore` struct in `crates/emukc_gameplay/src/game/battle/practice/store.rs` (new file). Internally `Mutex<HashMap<i64, PracticeBattleSession>>`. Implement `PracticeRepository`. *(Done — named `PracticeStore`, lives in `game/sortie_store.rs` (co-located with `SortieStore`), not `battle/practice/store.rs`. `GLOBAL_PRACTICE_STORE` static wired.)*
+- [x] 3.3 Edit `crates/emukc_gameplay/src/game/context.rs` (or wherever `HasContext` lives): add required method `fn practice_store(&self) -> &dyn PracticeRepository`. *(Done — `HasContext` in `gameplay.rs:27` defines `fn practice_store(&self) -> &PracticeStore` (concrete type, not `&dyn`).)*
+- [x] 3.4 Provide a process-global `OnceLock<GlobalPracticeStore>` accessible via the production `HasContext` impl, mirroring how the sortie store is wired. *(Done — `GLOBAL_PRACTICE_STORE` referenced in `gameplay.rs:10`, returns `&PracticeStore` via blanket impl at `gameplay.rs:52`.)*
+- [x] 3.5 Update gameplay test fixture to provide a `TestPracticeStore` implementation. *(Done — `PracticeStore` is the concrete test store; used in `battle/sortie/mod.rs:95` test and `battle/practice/mod.rs:160` test. No separate `TestPracticeStore` — same `PracticeStore` serves both prod and test.)*
+- [x] 3.6 Edit `crates/emukc_gameplay/src/game/battle/practice/orchestrate.rs`: replace every `super::PENDING_PRACTICE_BATTLES.lock().unwrap()` access with calls to `store.get_pending_practice(...)`, `store.insert_pending_practice(...)`, `store.take_pending_practice(...)`. *(Done — orchestrate takes `practice_repo: &dyn PracticeRepository` param and calls `practice_repo.insert_pending_battle(...)`, `practice_repo.take_pending_battle(...)`.)*
+- [x] 3.7 Delete the `PENDING_PRACTICE_BATTLES` static declaration. Confirm `grep -r "PENDING_PRACTICE_BATTLES" crates/` returns zero matches. *(Done — grep returns zero matches across `crates/` and `src/`.)*
+- [x] 3.8 Run `cargo test -p emukc_gameplay` to verify practice tests pass against the new store. *(Done — practice tests compile and pass against `PracticeStore`.)*
 
 ### U4. Rename `CryptoRng` → `ProductionRng`
 

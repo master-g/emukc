@@ -45,27 +45,27 @@ Do-not-modify (→ CLAUDE.md § Do-Not-Modify Files):
 
 ## Last Session
 
-2026-06-22, `main` (openspec sunset migration **complete and merged**):
+2026-06-22, `main` (openspec sunset migration **complete and merged**; plans **reconciled**):
 
-- **Migration shipped.** The full openspec → ce-compound-engineering migration plan (`docs/plans/2026-06-22-001-...md`) executed end-to-end via ce-work across 6 commits, then fast-forward-merged to `main` and pushed. Stale `feat/vibe` branch deleted (local + remote).
-- **U1** (`a266b93`) — 37 `openspec/specs/` → `docs/solutions/` knowledge track (15 architecture-patterns, 4 conventions, 18 best-practices). `docs/migration/openspec-sunset-log.md` records every spec's fate.
-- **U2** (`1ba3871`) — 4 in-flight openspec changes → `docs/plans/2026-06-22-{002..005}-*.md` (83 tasks preserved, checkbox parity verified).
-- **U3** (`4e1a570`) — client-sync plan `2026-06-15-002` U4 repointed to ce-plan.
-- **U4** (`9204683`) — CLAUDE.md + this file's process gate rewritten to ce-plan → ce-compound → ce-code-review.
-- **U5** (`58ab234`) — `git rm` 404 tracked files: `openspec/`, `main-decoder/openspec/`, `.github/` openspec skills + opsx prompts (17,858 lines). Untracked local scaffolding (`.claude/`, `.codex/`, `.opencode/`) removed from the working tree.
-- **U6** — fmt/clippy/test green; full `cargo test` 98 passed (one pre-existing RNG-flaky map-unlock test, unrelated — zero `.rs` files touched by the migration).
-- **Residual sweep done** — fixed 10 broken `openspec/specs/<cap>/spec.md` path references in migrated `docs/solutions/architecture-patterns/*.md` (reworded to named historical references); repointed `docs/solutions/logic-errors/cache-list-character-holes-exclusion-2026-06-15.md` forward-reference to the migrated `cache-manifest-integration.md`. Legitimate provenance lines in plans 002–005 and the migration pointer in CLAUDE.md:220 retained.
-- **`main` HEAD:** `58ab234 chore(openspec): remove openspec tree and agent scaffolding`.
+- **Migration shipped** (commits `078ed64`..`58ab234`) — full openspec → ce-compound-engineering migration, 6 units U1–U6, merged to main and pushed. 404 tracked files deleted (17,858 lines). Stale `feat/vibe` branch deleted.
+- **Residual sweep** (`c671214`) — fixed 10 broken `openspec/specs/` path refs in migrated docs; repointed forward-reference; updated PROJECT_MEMORY.
+- **Plan reconciliation** — read-only audit of the 4 translated plans (002–005) against current code. Key finding: the plans drifted during openspec incubation; the battle-harness work shipped 25 of 83 tasks as side effects. Each plan now carries a `## Reconciliation (2026-06-22)` section with per-checkbox `[x]`/`[ ]` state. Genuine residual ~53 tasks, reprioritized by leverage (see Next Session).
+  - 002 battle-attack: 9/27 done (participation rules shipped); residual = closing torpedo whitelist, enemy overkill, tests.
+  - 003 sortie-state-routing: 5/10 done (defensive cleanup + leak root cause structurally eliminated by PracticeRepository); residual = map 1-3 routing test.
+  - 004 refactor-battle-rng: 11/35 done (PracticeRepository + roll_scratch fully shipped); residual = CryptoRng rename, choose_index, RNG injection (19 tasks).
+  - 005 batch-craft-quest: 0/11 done (fully fresh, no drift).
+- **`main` HEAD:** `c671214 docs: clean up residual broken openspec path references` (+ uncommitted reconciliation edits this session).
 
 ## Next Session
 
-**Resume feature work** — the openspec sunset is complete. Pick up one of the 4 ready-to-execute translated plans (all on `main`):
+**Plans reconciled against code (2026-06-22).** The 4 translated plans drifted during openspec incubation — 25 of 83 tasks were already shipped as side effects of the battle-harness work. Each plan now carries a `## Reconciliation (2026-06-22)` section with per-task `[x]`/`[ ]` state. Genuine residual: ~53 tasks (not 83).
 
-- `docs/plans/2026-06-22-002-fix-battle-attack-system-plan.md` (27 tasks — shelling/torpedo participation, attack display fallback, enemy overkill)
-- `docs/plans/2026-06-22-003-fix-sortie-state-and-routing-plan.md` (10 tasks — sortie state cleanup, practice leak prevention, map 1-3 routing)
-- `docs/plans/2026-06-22-004-refactor-battle-rng-and-practice-store-plan.md` (35 tasks — `choose_index` total signature, `PracticeRepository` trait, `CryptoRng`→`ProductionRng`, RNG injection)
-- `docs/plans/2026-06-22-005-fix-batch-craft-quest-progress-plan.md` (11 tasks — batch-craft quest progress diagnosis)
+**Reconciled execution order** (by leverage + dependency, not by plan number):
 
-Recommended order: 004 first (refactor hardening unblocks testability for the others), then 002/003 (battle correctness), then 005 (quest).
+1. **004 refactor residual (19 tasks)** — the testability keystone. Order within: **U4** `CryptoRng`→`ProductionRng` rename (mechanical, 4 tasks) → **U1** `choose_index`→`Option<usize>` (5 tasks, leaf) → **U5** RNG injection through 5 orchestrate entry points (7 tasks, depends on U4) → **U6** practice night `EngagementType` decode surfacing (3 tasks). Unblocks deterministic end-to-end testing for all other battle work. (U2 roll_scratch + U3 PracticeRepository already shipped — 11 tasks done.)
+2. **002 correctness high-leverage (6 tasks)** — U2 closing torpedo whitelist removal (4 tasks: `can_closing_torpedo_ship` still has a 12-entry ship-type `matches!` whitelist atop the stat gate; BB with base torpedo > 0 is wrongly blocked) + U4.1 enemy sortie overkill (1 code change in `apply_damage` + 1 audit). Small surface, high impact. (U1 shelling participation + U3 opening torpedo largely done — 9 tasks done.)
+3. **003 routing test (1 valuable task)** — U3.3 map 1-3 directed-graph routing test. The rest of 003's residual (U1.2 data investigation, U2.4 leak test) is low-value: the PracticeRepository extraction structurally eliminated the practice→sortie leak root cause. (5 tasks done.)
+4. **005 quest diagnosis (11 tasks)** — fully fresh, no drift. Diagnosis-first (trace logs in factory.rs/quest/update.rs → verify quest.json manifest → fix the break point). Matcher logic itself is correct; the break is in event emission or data. Can run anytime, independent.
+5. **Feature breadth (after foundation)** — `TODO.md` high-priority gaps: combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition `start`/`result`/`return_instruction`; quest fields `api_voice_id`/`api_invalid_flag`/`api_c_list` in `questlist.rs`. Combined fleet reuses the single-fleet sim — only build it after 002/004 residual lands so it doesn't inherit known bugs.
 
-Then `TODO.md` high-priority gaps: combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition `start`/`result`/`return_instruction`; quest fields `api_voice_id`/`api_invalid_flag`/`api_c_list` in `questlist.rs`.
+**Coverage gap:** 002 U5 (11 test tasks) and 003's residual tests should land alongside their fixes, not as a separate phase.

@@ -15,6 +15,37 @@ Fix three interrelated bugs in battle attack eligibility and damage application,
 2. **Closing torpedo participation** restricts to a hardcoded ship type whitelist that excludes BBs with base torpedo > 0 (Bismarck drei, Гангут, etc.) and includes types with base torpedo = 0 (DE, LHA). The actual rule is `api_raisou[0] > 0` for any ship type.
 3. **Enemy overkill** — `apply_damage` caps ALL damage to current HP, preventing overkill display against enemy ships in sortie. Sortie enemies should go negative; practice stays capped.
 
+## Reconciliation (2026-06-22)
+
+Read-only audit of all 27 tasks against current code (`crates/emukc_battle/src/`).
+
+| Status | Count |
+|--------|-------|
+| Done | 9 |
+| Partial | 0 |
+| Not done | 18 |
+
+**Done — U1 fully shipped (3/3):** `can_shell_day_ship` (targeting.rs:257) is ship-type based (SS/SSV excluded, CV conditional on planes, all others always). `DayAttackType::Normal = 0` (day_cutin.rs:14) is the fallback via `normal_attack()`. Damage uses base stats + equipment bonuses, not equipment-gated participation.
+
+**Done — U3 partially (2/3):** equipment check for 甲標的 preserved (targeting.rs:225), CLT always eligible. **Missing:** SS/SSV level ≥ 10 gate — currently ALL SS/SSV are unconditionally eligible regardless of level.
+
+**Done — U4 partially (4/6):** `is_friendly`/`is_sortie` fields exist (runtime.rs:32,35). Practice capping, friendly sinking protection, and practice friendly capping all verified present. **Missing:** enemy sortie overkill — `apply_damage` (runtime.rs:87) still caps ALL damage via `raw_damage.min(self.current_hp)`; downstream negative-HP audit (4.3) not performed.
+
+**Not done — U2 (0/4):** `can_closing_torpedo_ship` (targeting.rs:227) still has the 12-entry ship-type `matches!` whitelist. The stat gate (`api_raisou[0] <= 0 → false`) IS present, but the whitelist on top blocks BBs with base torpedo > 0 (Bismarck drei etc.) and includes types with base torpedo = 0 (DE, LHA) as no-ops.
+
+**Not done — U5 (0/11):** no regression tests for any of the four fix areas.
+
+### Execution residual (18 tasks)
+
+The genuinely remaining work, re-prioritized:
+
+1. **U2 closing torpedo whitelist removal (4 tasks)** — remove the `matches!` whitelist in `can_closing_torpedo_ship`; verify ship-type coverage. Self-contained, no deps.
+2. **U3.2 SS/SSV level ≥ 10 gate (1 task)** — add level check to the SS/SSV branch in `can_opening_torpedo_ship`.
+3. **U4.1 enemy sortie overkill + U4.3 audit (2 tasks)** — add `!is_friendly && is_sortie` skip in `apply_damage`; audit MVP/win-rank/battle-result for negative HP tolerance.
+4. **U5 tests (11 tasks)** — regression tests for all four fix areas.
+
+U1 needs no further work — it was already correct.
+
 ## Problem Frame
 
 The battle simulation in `crates/emukc_gameplay/src/game/battle/core.rs` (~4.5k lines) determines attack eligibility and damage application. Three defects exist:
@@ -123,9 +154,9 @@ No signature changes to any public function. `BattleRuntimeShip` already carries
   - `crates/emukc_gameplay/src/game/battle/core.rs` — primary file, `day_attack_display_ids` and shelling phase participation.
   - `crates/emukc_gameplay/src/game/battle/sortie.rs` — sortie battle handlers.
 - **Tasks:**
-  - [ ] 1.1 Change `day_attack_display_ids` to use ship type for participation gate, not equipment-only checklist
-  - [ ] 1.2 Implement attack display type fallback: when no relevant equipment, assign `api_at_type = 0` with base firepower + 5 (design D2)
-  - [ ] 1.3 Ensure shelling damage formula uses base ship stats plus equipment bonuses, not equipment-gated
+  - [x] 1.1 Change `day_attack_display_ids` to use ship type for participation gate, not equipment-only checklist
+  - [x] 1.2 Implement attack display type fallback: when no relevant equipment, assign `api_at_type = 0` with base firepower + 5 (design D2)
+  - [x] 1.3 Ensure shelling damage formula uses base ship stats plus equipment bonuses, not equipment-gated
 - **Patterns to follow:** the ship-type tables in KTD1 (shelling eligibility row).
 - **Test scenarios:**
   - **Happy:** DD with no equipment shelling shows `api_at_type = 0`, not torpedo attack.
@@ -162,9 +193,9 @@ No signature changes to any public function. `BattleRuntimeShip` already carries
 - **Files:**
   - `crates/emukc_gameplay/src/game/battle/core.rs` — `can_opening_torpedo_ship`.
 - **Tasks:**
-  - [ ] 3.1 Keep equipment check for 特殊潜航艇 (minisub/甲标的) in `can_opening_torpedo_ship` — do NOT remove it
+  - [x] 3.1 Keep equipment check for 特殊潜航艇 (minisub/甲标的) in `can_opening_torpedo_ship` — do NOT remove it
   - [ ] 3.2 Add SS/SSV level ≥ 10 requirement for equipment-free opening torpedo
-  - [ ] 3.3 Keep CLT type as always eligible for opening torpedo (with `api_raisou[0] > 0`)
+  - [x] 3.3 Keep CLT type as always eligible for opening torpedo (with `api_raisou[0] > 0`)
 - **Patterns to follow:** the opening torpedo eligibility table in KTD1.
 - **Test scenarios:**
   - **Happy:** ABKM改二 with 甲标的 participates in opening torpedo (equipment-based).
@@ -185,11 +216,11 @@ No signature changes to any public function. `BattleRuntimeShip` already carries
   - `crates/emukc_gameplay/src/game/sortie_result.rs` — HP snapshot for battle results (verify negative HP tolerance).
 - **Tasks:**
   - [ ] 4.1 In `apply_damage`, change enemy sortie capping: when `!self.is_friendly && self.is_sortie`, skip `raw_damage.min(self.current_hp)` — allow HP to go negative
-  - [ ] 4.2 `BattleRuntimeShip` already has `is_friendly` and `is_sortie` fields (core.rs:213) — no signature change needed
+  - [x] 4.2 `BattleRuntimeShip` already has `is_friendly` and `is_sortie` fields (core.rs:213) — no signature change needed
   - [ ] 4.3 Audit downstream consumers of HP for enemy ships: verify MVP calculation, `calculate_win_rank`, and battle result handlers tolerate negative HP
-  - [ ] 4.4 Verify practice battles still cap enemy damage at current HP
-  - [ ] 4.5 Verify friendly sinking protection unchanged for sortie
-  - [ ] 4.6 Verify practice friendly damage still capped at current HP
+  - [x] 4.4 Verify practice battles still cap enemy damage at current HP
+  - [x] 4.5 Verify friendly sinking protection unchanged for sortie
+  - [x] 4.6 Verify practice friendly damage still capped at current HP
 - **Patterns to follow:** KTD3 damage-behavior table (Enemy Sortie → no cap; all others → cap or sinking protection).
 - **Test scenarios:**
   - **Happy:** enemy overkill damage in sortie (HP goes negative).
