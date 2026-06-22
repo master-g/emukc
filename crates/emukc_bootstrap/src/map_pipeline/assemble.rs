@@ -13,13 +13,41 @@ pub(super) fn assemble_final_map_catalog(
     sources: ResolvedMapSources,
 ) -> (MapCatalog, MapCatalogBuildReport) {
     let mut overlay_items_dropped = 0usize;
-    let mut catalog = match (sources.kcdata_catalog, sources.wikiwiki_overlay) {
+
+    // Auto-derive label-keyed overlay from the wikiwiki catalog when no explicit
+    // overlay was provided. This bridges the incompatible cell-number spaces
+    // (wikiwiki BFS vs kcdata route-ID) by converting cell-number-keyed data to
+    // label-keyed data that merge_label_overlay() can apply correctly.
+    let wikiwiki_overlay = sources.wikiwiki_overlay.or_else(|| {
+        let wikiwiki_catalog = sources.wikiwiki_catalog.as_ref()?;
+        let mut overlay_catalog = crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog::default();
+        for (map_id, wikiwiki_map) in &wikiwiki_catalog.maps {
+            let mut overlay_def = crate::parser::wikiwiki_map::WikiwikiMapOverlayDefinition {
+                map_id: *map_id,
+                variants: std::collections::BTreeMap::new(),
+            };
+            for (variant_key, variant) in &wikiwiki_map.variants {
+                let overlay = super::label_overlay::auto_derive_label_overlay(variant);
+                overlay_def.variants.insert(variant_key.clone(), overlay);
+            }
+            if !overlay_def.variants.is_empty() {
+                overlay_catalog.maps.insert(*map_id, overlay_def);
+            }
+        }
+        if overlay_catalog.maps.is_empty() {
+            None
+        } else {
+            Some(overlay_catalog)
+        }
+    });
+
+    let mut catalog = match (sources.kcdata_catalog, wikiwiki_overlay) {
         // New path: kcdata topology + label-keyed wikiwiki overlay.
         (Some(mut kcdata), Some(overlay)) => {
             overlay_items_dropped = merge_label_overlay_catalog(&mut kcdata, &overlay);
             kcdata
         }
-        // Legacy path: kcdata + pre-built wikiwiki MapCatalog (no overlay available).
+        // Legacy path: kcdata + pre-built wikiwiki MapCatalog (no overlay derivable).
         (Some(mut kcdata), None) => {
             if let Some(wikiwiki) = sources.wikiwiki_catalog {
                 overlay_items_dropped =
