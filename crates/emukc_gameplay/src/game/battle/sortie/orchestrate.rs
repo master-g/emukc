@@ -1,13 +1,13 @@
 //! Sortie battle orchestration — build context → call `emukc_battle` → persist.
 
 use emukc_battle::{
-    BattleOutcome, BattlePacket, BattleRuntimeShip, EngagementType, NightBattleInput, simulate_day,
-    simulate_night,
+    BattleOutcome, BattlePacket, BattleRng, BattleRuntimeShip, EngagementType, NightBattleInput,
+    simulate_day, simulate_night,
 };
 use emukc_model::codex::Codex;
 use emukc_model::kc2::KcSortieResultRank;
 
-use super::super::{repository::SortieRepository, rng::ProductionRng};
+use super::super::repository::SortieRepository;
 use super::{
     SortieBattleInput, SortieBattleSession, SortieNightBattleSession, build_sortie_session,
 };
@@ -17,6 +17,7 @@ pub fn run_day_battle(
     store: &dyn SortieRepository,
     codex: &Codex,
     input: SortieBattleInput,
+    rng: &mut impl BattleRng,
 ) -> SortieBattleSession {
     let SortieBattleInput {
         profile_id,
@@ -25,8 +26,7 @@ pub fn run_day_battle(
         cell_id,
         context,
     } = input;
-    let mut rng = ProductionRng;
-    let simulation = simulate_day(codex, context, &mut rng);
+    let simulation = simulate_day(codex, context, rng);
     let session = build_sortie_session(profile_id, deck_id, map_id, cell_id, simulation);
     store.insert_pending_battle(session.profile_id, session.clone());
     session
@@ -56,6 +56,7 @@ pub fn run_night_battle(
     friendly_formation_id: i64,
     enemy_formation_id: i64,
     engagement: EngagementType,
+    rng: &mut impl BattleRng,
 ) -> Option<SortieNightBattleSession> {
     use emukc_battle::AirState;
 
@@ -65,7 +66,6 @@ pub fn run_night_battle(
         .kouku
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-    let mut rng = ProductionRng;
     let simulation = simulate_night(
         codex,
         NightBattleInput {
@@ -76,7 +76,7 @@ pub fn run_night_battle(
             engagement,
             air_state,
         },
-        &mut rng,
+        rng,
     );
     session.friendly = simulation.friendly.clone();
     session.enemy = simulation.enemy.clone();
@@ -102,6 +102,7 @@ pub fn run_sp_midnight_battle(
     codex: &Codex,
     input: SortieBattleInput,
     enemy_formation_id: i64,
+    rng: &mut impl BattleRng,
 ) -> (SortieBattleSession, SortieNightBattleSession) {
     let SortieBattleInput {
         profile_id,
@@ -158,7 +159,6 @@ pub fn run_sp_midnight_battle(
     store.insert_pending_battle(profile_id, day_session.clone());
 
     // Run night battle using the stored session
-    let mut rng = ProductionRng;
     let night = simulate_night(
         codex,
         NightBattleInput {
@@ -169,7 +169,7 @@ pub fn run_sp_midnight_battle(
             engagement,
             air_state: None,
         },
-        &mut rng,
+        rng,
     );
 
     // Update the stored day session with night results

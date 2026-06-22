@@ -30,6 +30,7 @@ use super::{
         run_night_battle,
     },
     battle::practice_repository::PracticeRepository,
+    battle::rng::ProductionRng,
     fleet::get_fleet_ships_impl,
     quest::update::update_quest_progress_for_action,
     ship::update_ship_impl,
@@ -153,7 +154,9 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         };
 
         let practice_repo = self.practice_store();
-        let (response, snapshot) = run_day_battle(codex, input, practice_repo)?;
+        let _rng = ProductionRng;
+        let mut rng = ProductionRng;
+        let (response, snapshot) = run_day_battle(codex, input, practice_repo, &mut rng)?;
         practice_repo.insert_pending_result(profile_id, snapshot);
 
         tx.commit().await?;
@@ -195,8 +198,9 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
     ) -> Result<PracticeNightBattleResponse, GameplayError> {
         let codex = self.codex();
         let practice_repo = self.practice_store();
-        let (response, snapshot) =
-            run_night_battle(codex, profile_id, practice_repo).ok_or_else(|| {
+        let mut rng = ProductionRng;
+        let (response, snapshot) = run_night_battle(codex, profile_id, practice_repo, &mut rng)
+            .ok_or_else(|| {
                 GameplayError::WrongType("night practice battle is not available".to_string())
             })?;
 

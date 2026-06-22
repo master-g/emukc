@@ -298,6 +298,7 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
 
     let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
     let enemy = weaken_for_midnight(sample_ship(&codex, 412, 99));
+    let mut rng = ProductionRng;
     let session = run_day_battle(
         store,
         &codex,
@@ -316,6 +317,7 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
                 enemy_ships: vec![enemy.clone()],
             },
         },
+        &mut rng,
     );
 
     assert_eq!(session.packet.midnight_flag, 1);
@@ -374,6 +376,7 @@ async fn sortie_sp_midnight_battle_runs_night_only() {
     let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
     let enemy = weaken_for_midnight(sample_ship(&codex, 412, 99));
 
+    let mut rng = ProductionRng;
     let (day_session, night_session) = run_sp_midnight_battle(
         store,
         &codex,
@@ -393,6 +396,7 @@ async fn sortie_sp_midnight_battle_runs_night_only() {
             },
         },
         1,
+        &mut rng,
     );
 
     // Day packet should have no combat phases (sp_midnight skips day battle)
@@ -804,6 +808,7 @@ fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
     enemy_cvl.ship.api_karyoku[0] = 200;
     enemy_cvl.ship.api_soukou[0] = 0;
 
+    let mut rng = ProductionRng;
     let session = run_day_battle(
         store,
         &codex,
@@ -822,6 +827,7 @@ fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
                 enemy_ships: vec![enemy_cvl],
             },
         },
+        &mut rng,
     );
 
     // Flagship must survive despite taiha HP + kouku + shelling.

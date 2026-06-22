@@ -1,15 +1,14 @@
 //! Practice battle orchestration — build context → call `emukc_battle` → build responses.
 
 use emukc_battle::{
-    AirState, BattleContext, BattleOutcome, BattleType, EngagementType, NightBattleInput,
-    simulate_day, simulate_night,
+    AirState, BattleContext, BattleOutcome, BattleRng, BattleType, EngagementType,
+    NightBattleInput, simulate_day, simulate_night,
 };
 use emukc_model::codex::Codex;
 
 use crate::err::GameplayError;
 
 use super::super::practice_repository::PracticeRepository;
-use super::super::rng::ProductionRng;
 use super::exp::{calculate_admiral_exp, calculate_ship_exp};
 use super::response::{build_night_response, calculate_base_exp, enemy_slot_ids};
 use super::{
@@ -22,6 +21,7 @@ pub fn run_day_battle(
     codex: &Codex,
     input: PracticeBattleInput,
     practice_repo: &dyn PracticeRepository,
+    rng: &mut impl BattleRng,
 ) -> Result<(PracticeBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
     let friendly_nowhps =
         input.friend_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
@@ -29,7 +29,6 @@ pub fn run_day_battle(
         input.friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let enemy_nowhps = input.enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
     let enemy_maxhps = input.enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
-    let mut rng = ProductionRng;
     let simulation = simulate_day(
         codex,
         BattleContext {
@@ -41,7 +40,7 @@ pub fn run_day_battle(
             friend_ships: input.friend_ships,
             enemy_ships: input.enemy_ships,
         },
-        &mut rng,
+        rng,
     );
 
     let base_exp = calculate_base_exp(&input.rival);
@@ -184,13 +183,13 @@ pub fn run_night_battle(
     codex: &Codex,
     profile_id: i64,
     practice_repo: &dyn PracticeRepository,
+    rng: &mut impl BattleRng,
 ) -> Option<(PracticeNightBattleResponse, PracticeBattleResultSnapshot)> {
     let mut session = practice_repo.take_pending_battle(profile_id)?;
     if !session.outcome.can_midnight {
         practice_repo.insert_pending_battle(profile_id, session);
         return None;
     }
-    let mut rng = ProductionRng;
     let simulation = simulate_night(
         codex,
         NightBattleInput {
@@ -202,7 +201,7 @@ pub fn run_night_battle(
                 .unwrap_or(EngagementType::SameCourse),
             air_state: session.air_state,
         },
-        &mut rng,
+        rng,
     );
     session.friendly = simulation.friendly.clone();
     session.enemy = simulation.enemy.clone();

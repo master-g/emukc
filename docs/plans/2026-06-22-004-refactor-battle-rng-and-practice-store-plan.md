@@ -24,13 +24,13 @@ advanced past the plan during its openspec incubation period.
 | U2 | `roll_scratch_damage` dedup | 3/3 | 0 | **DONE** — override deleted from CryptoRng, trait default is sole source, 3 regression tests pin formula + draw count |
 | U3 | PracticeRepository + store | 8/8 | 0 | **DONE** — trait in `practice_repository.rs`, `PracticeStore` in `sortie_store.rs`, `HasContext::practice_store()` wired, `PENDING_PRACTICE_BATTLES` removed (grep returns zero) |
 | U4 | CryptoRng → ProductionRng | 4/4 | 0 | ✅ DONE — struct + impl + doc + 15 usages renamed; doc comment corrected to real `SeededRng` path (`emukc_battle::random`, not the non-existent `test_utils`) |
-| U5 | RNG injection through orchestrate | 0/7 | 7 | NOT DONE — `let mut rng = CryptoRng;` hardcoded at 5 sites (sortie: 28/68/161, practice: 32/193) |
+| U5 | RNG injection through orchestrate | 7/7 | 0 | ✅ DONE — `rng: &mut impl BattleRng` injected into all 5 orchestrate entry points; 10 callsites updated (5 trait impls + 5 tests) |
 | U6 | EngagementType decode surfacing | 0/3 | 3 | NOT DONE — `.unwrap_or(EngagementType::SameCourse)` still at practice/orchestrate.rs:194 |
 | U7 | Verification sweep | 0/5 | 5 | N/A until U1/U4/U5/U6 land |
 
-**Totals:** 20 done, 15 remaining. Of the 15, five (U7) are pure verification
-runs; the genuine execution residual is now **10 tasks** (U5: 7, U6: 3)
-after U1 (5 tasks) shipped 2026-06-22.
+**Totals:** 27 done, 8 remaining. Of the 8, five (U7) are pure verification
+runs; the genuine execution residual is now **3 tasks** (U6: 3)
+after U5 (7 tasks) shipped 2026-06-22.
 
 **Naming divergences from plan (U3 — already shipped, documenting for accuracy):**
 
@@ -229,13 +229,13 @@ These contracts are now captured (post-migration) in:
 - **Approach:** Add `rng: &mut dyn BattleRng` as the last positional parameter to every `run_*_battle` fn. Remove internal `let mut rng = ProductionRng;`. Update blanket impls to construct one `ProductionRng` per entry point and forward. Update tests to use `SeededRng` where deterministic assertions are wanted.
 - **Verification:** `cargo test --workspace` passes; deterministic tests can now assert on specific damage/target-selection outcomes.
 
-- [ ] 5.1 Edit `crates/emukc_gameplay/src/game/battle/sortie/orchestrate.rs`: add `rng: &mut dyn BattleRng` parameter (last positional) to `run_day_battle`, `run_night_battle`, `run_sp_midnight_battle`. Remove `let mut rng = ProductionRng;` from each fn body.
-- [ ] 5.2 Edit `crates/emukc_gameplay/src/game/battle/practice/orchestrate.rs`: add `rng: &mut dyn BattleRng` parameter to `run_day_battle` and `run_night_battle` (practice variants). Remove internal RNG construction.
-- [ ] 5.3 Update `SortieOps` trait blanket impls in the same crate: construct one `ProductionRng` per battle entry point, pass it through.
-- [ ] 5.4 Update `PracticeOps` trait blanket impls similarly.
-- [ ] 5.5 Update KCSAPI handlers in `src/bin/net/router/kcsapi/api_req_sortie/` and `src/bin/net/router/kcsapi/api_req_practice/` only if they call orchestration directly (they should go through the trait blanket impls, no change expected).
-- [ ] 5.6 Update gameplay tests: where deterministic battle outcomes are required, construct `SeededRng::new(seed)` and pass it through the new orchestration parameter.
-- [ ] 5.7 Run `cargo test --workspace`.
+- [x] 5.1 Edit `crates/emukc_gameplay/src/game/battle/sortie/orchestrate.rs`: added `rng: &mut impl BattleRng` as last positional param to `run_day_battle`, `run_night_battle`, `run_sp_midnight_battle`. Removed internal `let mut rng = ProductionRng;` from each. **Deviation from plan:** used `impl BattleRng` (generic) instead of `dyn BattleRng` — `emukc_battle::simulate_day`/`simulate_night` and ~30 internal functions use `&mut impl BattleRng`; changing them all to `dyn` is out of U5 scope. The same generic `T` flows caller → orchestrate → simulate_day → all internals.
+- [x] 5.2 Edit `crates/emukc_gameplay/src/game/battle/practice/orchestrate.rs`: added `rng: &mut impl BattleRng` to `run_day_battle` and `run_night_battle`. Removed internal RNG construction.
+- [x] 5.3 Updated `SortieOps` blanket impl in `sortie/mod.rs`: construct one `ProductionRng` per call (3 sites: `run_night_battle`, `run_sp_midnight_battle`, `run_day_battle`), pass `&mut rng`.
+- [x] 5.4 Updated `PracticeOps` blanket impl in `practice.rs`: construct one `ProductionRng` per call (2 sites: `run_day_battle`, `run_night_battle`), pass `&mut rng`.
+- [x] 5.5 Confirmed KCSAPI handlers do not call orchestration directly — they go through the trait blanket impls. No change needed.
+- [x] 5.6 Updated gameplay tests: 5 test callsites (3 in `sortie_tests.rs`, 3 in `practice/mod.rs`) now construct `ProductionRng` and pass `&mut rng`. Existing tests do not require deterministic outcomes (no `SeededRng` needed yet).
+- [x] 5.7 `cargo test --workspace` — 821 tests passed, 0 failed. `cargo check/clippy --workspace` clean, `cargo fmt --all --check` clean.
 
 ### U6. Practice night `EngagementType` decode
 

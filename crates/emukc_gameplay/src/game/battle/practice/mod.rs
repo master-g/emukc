@@ -158,6 +158,7 @@ pub struct PracticeNightBattleResponse {
 mod tests {
     use super::*;
     use crate::game::battle::practice_repository::PracticeRepository;
+    use crate::game::battle::rng::ProductionRng;
     use crate::game::sortie_store::PracticeStore;
     use emukc_model::codex::Codex;
     use emukc_model::kc2::level;
@@ -206,7 +207,9 @@ mod tests {
             },
         };
 
-        let (battle, result) = run_day_battle(&codex, input, &PracticeStore::new()).unwrap();
+        let mut rng = ProductionRng;
+        let (battle, result) =
+            run_day_battle(&codex, input, &PracticeStore::new(), &mut rng).unwrap();
         assert_eq!(battle.api_deck_id, 1);
         assert_eq!(battle.api_formation, [1, 1, 1]);
         assert_eq!(battle.api_f_nowhps.len(), 2);
@@ -258,7 +261,8 @@ mod tests {
             },
         };
 
-        let (battle, _) = run_day_battle(&codex, input, &PracticeStore::new()).unwrap();
+        let mut rng = ProductionRng;
+        let (battle, _) = run_day_battle(&codex, input, &PracticeStore::new(), &mut rng).unwrap();
         assert_eq!(battle.api_midnight_flag, 1);
     }
 
@@ -285,7 +289,8 @@ mod tests {
         store.insert_pending_battle(1, session);
 
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let result = run_night_battle(&codex, 1, &store);
+        let mut rng = ProductionRng;
+        let result = run_night_battle(&codex, 1, &store, &mut rng);
         assert!(result.is_none());
         assert!(
             store.get_pending_battle(1).is_some(),

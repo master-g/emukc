@@ -45,6 +45,7 @@ use super::{
     basic::find_profile,
     battle::{
         practice::PracticeBattleResponse,
+        rng::ProductionRng,
         sortie::{
             SortieBattleInput, build_day_response, build_night_response, pending_battle,
             run_day_battle, run_night_battle, run_sp_midnight_battle, take_day_battle_result,
@@ -758,6 +759,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             ));
         }
 
+        let mut rng = ProductionRng;
         let night = run_night_battle(
             store,
             codex,
@@ -766,6 +768,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             pending.packet.formation[1],
             EngagementType::from_api_id(pending.packet.formation[2])
                 .unwrap_or(EngagementType::SameCourse),
+            &mut rng,
         )
         .ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
@@ -868,6 +871,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
 
         let enemy_formation_id = enemy_fleet.formations.first().copied().unwrap_or(1);
+        let mut rng = ProductionRng;
         let (day_session, night_session) = run_sp_midnight_battle(
             store,
             codex,
@@ -887,6 +891,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 },
             },
             enemy_formation_id,
+            &mut rng,
         );
 
         let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
@@ -1071,6 +1076,7 @@ async fn sortie_battle_impl(
             let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
                 build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
 
+            let mut rng = ProductionRng;
             let session = run_day_battle(
                 store,
                 codex,
@@ -1089,6 +1095,7 @@ async fn sortie_battle_impl(
                         enemy_ships: enemy_ships.clone(),
                     },
                 },
+                &mut rng,
             );
 
             let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
