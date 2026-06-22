@@ -4,7 +4,9 @@ use emukc_model::codex::map::{
     EnemyFleetDefinition, MapVariantDefinition, RoutePredicate, RouteRule,
 };
 
-use crate::parser::wikiwiki_map::WikiwikiLabelOverlay;
+use crate::parser::wikiwiki_map::{
+    EnemyNodeRows, RouteRuleDraft, ShipDropDraft, WikiwikiLabelOverlay,
+};
 
 /// Merge wikiwiki label-keyed overlay onto a kcdata variant via route-cell labels.
 ///
@@ -134,6 +136,88 @@ pub fn merge_label_overlay(
     }
 
     dropped
+}
+
+/// Auto-derive a label-keyed overlay from a wikiwiki [`MapVariantDefinition`] that uses
+/// cell-number-keyed routing rules.
+///
+/// The wikiwiki catalog produced by `into_map_catalog()` stores routing rules, enemy
+/// fleets, and ship drops keyed by BFS-assigned cell numbers. These cell numbers don't
+/// match kcdata's route-ID-based cell numbers. This function bridges the two numbering
+/// spaces by converting cell-number-keyed data to label-keyed data, which
+/// [`merge_label_overlay`] then applies correctly using `multi_label_index()`.
+///
+/// Entries whose cell has no `node_label` are skipped — they can't be bridged.
+#[allow(dead_code)] // wired into assembly in U2
+pub fn auto_derive_label_overlay(variant: &MapVariantDefinition) -> WikiwikiLabelOverlay {
+    let cell_no_to_label: BTreeMap<i64, &str> = variant
+        .cells
+        .iter()
+        .filter_map(|cell| {
+            cell.node_label
+                .as_deref()
+                .filter(|label| !label.is_empty())
+                .map(|label| (cell.cell_no, label))
+        })
+        .collect();
+
+    let label_of = |cell_no: i64| -> Option<&str> { cell_no_to_label.get(&cell_no).copied() };
+
+    // Routing rules: cell-number-keyed → label-keyed drafts
+    let mut routing_rules = Vec::new();
+    for rules in variant.routing_rules.values() {
+        for rule in rules {
+            let Some(from_label) = label_of(rule.from_cell_no) else {
+                continue;
+            };
+            let Some(to_label) = label_of(rule.to_cell_no) else {
+                continue;
+            };
+            routing_rules.push(RouteRuleDraft {
+                from_label: from_label.to_string(),
+                to_label: to_label.to_string(),
+                probability_pct: rule.probability_pct,
+                predicate: rule.predicate.clone(),
+                raw_text: rule.raw_text.clone(),
+                random_placeholder: false,
+            });
+        }
+    }
+
+    // Enemy fleets: cell-number-keyed → label-keyed
+    let mut enemy_nodes = BTreeMap::new();
+    for (&cell_no, fleet) in &variant.enemy_fleets {
+        let Some(label) = label_of(cell_no) else {
+            continue;
+        };
+        enemy_nodes.entry(label.to_string()).or_insert_with(|| EnemyNodeRows {
+            is_boss: fleet.battle_kind == 5,
+            compositions: fleet.compositions.clone(),
+        });
+    }
+
+    // Ship drops: cell-number-keyed → label-keyed
+    let mut ship_drops = Vec::new();
+    for (&cell_no, drops) in &variant.ship_drops {
+        let Some(label) = label_of(cell_no) else {
+            continue;
+        };
+        for drop in drops {
+            ship_drops.push(ShipDropDraft {
+                node_label: label.to_string(),
+                drop: drop.clone(),
+            });
+        }
+    }
+
+    WikiwikiLabelOverlay {
+        variant_key: variant.variant_key.clone(),
+        routing_rules,
+        enemy_nodes,
+        ship_drops,
+        required_defeat_count: variant.required_defeat_count,
+        parse_warnings: Vec::new(),
+    }
 }
 
 /// Convert a label-based predicate to a `cell_no`-based predicate.
@@ -556,5 +640,245 @@ mod tests {
         let dropped = merge_label_overlay(&mut target, &overlay);
         assert_eq!(dropped, 1);
         assert!(target.routing_rules.is_empty());
+    }
+
+    // ── auto_derive_label_overlay tests ──────────────────────────────
+
+    fn make_rule(from: i64, to: i64, predicate: RoutePredicate) -> RouteRule {
+        RouteRule {
+            from_cell_no: from,
+            to_cell_no: to,
+            priority: 0,
+            weight: None,
+            probability_pct: None,
+            raw_text: String::new(),
+            predicate,
+        }
+    }
+
+    fn make_fleet(cell_no: i64) -> EnemyFleetDefinition {
+        EnemyFleetDefinition {
+            cell_no,
+            battle_kind: 1,
+            formations: vec![1],
+            compositions: vec![],
+        }
+    }
+
+    #[test]
+    fn auto_derive_happy_path_unique_labels() {
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![
+                make_cell_with_next(0, "Start", vec![1]),
+                make_cell_with_next(1, "A", vec![2]),
+                make_cell(2, "B"),
+            ],
+            routing_rules: BTreeMap::from([(0, vec![make_rule(0, 1, RoutePredicate::Always)])]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        assert_eq!(overlay.routing_rules.len(), 1);
+        assert_eq!(overlay.routing_rules[0].from_label, "Start");
+        assert_eq!(overlay.routing_rules[0].to_label, "A");
+    }
+
+    #[test]
+    fn auto_derive_duplicate_labels() {
+        // Cells 5 and 11 both labeled "E" — both should produce overlay entries.
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![
+                make_cell_with_next(0, "Start", vec![5, 11]),
+                make_cell_with_next(5, "E", vec![6]),
+                make_cell_with_next(11, "E", vec![6]),
+                make_cell(6, "F"),
+            ],
+            routing_rules: BTreeMap::from([
+                (5, vec![make_rule(5, 6, RoutePredicate::Always)]),
+                (11, vec![make_rule(11, 6, RoutePredicate::Always)]),
+            ]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        // Both rules convert to from_label="E", to_label="F".
+        assert_eq!(overlay.routing_rules.len(), 2);
+        assert!(overlay.routing_rules.iter().all(|r| r.from_label == "E" && r.to_label == "F"));
+    }
+
+    #[test]
+    fn auto_derive_cell_without_label_skipped() {
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![
+                make_cell_with_next(0, "Start", vec![1, 2]),
+                make_cell(1, "A"),
+                MapCellDefinition {
+                    cell_no: 2,
+                    color_no: 0,
+                    event_id: 0,
+                    event_kind: 0,
+                    next_cells: vec![],
+                    node_label: None, // unlabeled
+                    master_cell_id: None,
+                    distance: None,
+                },
+            ],
+            routing_rules: BTreeMap::from([(
+                0,
+                vec![
+                    make_rule(0, 1, RoutePredicate::Always),
+                    // Rule referencing unlabeled cell 2 → skipped
+                    make_rule(0, 2, RoutePredicate::Always),
+                ],
+            )]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        // Only the Start→A rule survives.
+        assert_eq!(overlay.routing_rules.len(), 1);
+        assert_eq!(overlay.routing_rules[0].from_label, "Start");
+        assert_eq!(overlay.routing_rules[0].to_label, "A");
+    }
+
+    #[test]
+    fn auto_derive_empty_variant() {
+        let variant = MapVariantDefinition::default();
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        assert!(overlay.routing_rules.is_empty());
+        assert!(overlay.enemy_nodes.is_empty());
+        assert!(overlay.ship_drops.is_empty());
+    }
+
+    #[test]
+    fn auto_derive_start_cell_origin() {
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![make_cell_with_next(0, "Start", vec![1]), make_cell(1, "A")],
+            routing_rules: BTreeMap::from([(0, vec![make_rule(0, 1, RoutePredicate::Always)])]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        assert_eq!(overlay.routing_rules.len(), 1);
+        assert_eq!(overlay.routing_rules[0].from_label, "Start");
+    }
+
+    #[test]
+    fn auto_derive_predicate_preserved() {
+        use emukc_model::codex::map::RouteOperator;
+        let pred = RoutePredicate::ShipTypeCount {
+            ship_types: vec![2, 3],
+            op: RouteOperator::Gte,
+            value: 2,
+        };
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![make_cell_with_next(0, "Start", vec![1]), make_cell(1, "A")],
+            routing_rules: BTreeMap::from([(0, vec![make_rule(0, 1, pred.clone())])]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        // RoutePredicate doesn't derive PartialEq, so compare via Debug format.
+        assert_eq!(format!("{:?}", overlay.routing_rules[0].predicate), format!("{:?}", pred));
+    }
+
+    #[test]
+    fn auto_derive_probability_and_raw_text_preserved() {
+        let rule = RouteRule {
+            from_cell_no: 0,
+            to_cell_no: 1,
+            priority: 0,
+            weight: Some(5000),
+            probability_pct: Some(50.0),
+            raw_text: "固定ルート".to_string(),
+            predicate: RoutePredicate::Always,
+        };
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![make_cell_with_next(0, "Start", vec![1]), make_cell(1, "A")],
+            routing_rules: BTreeMap::from([(0, vec![rule])]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        let draft = &overlay.routing_rules[0];
+        assert_eq!(draft.probability_pct, Some(50.0));
+        assert_eq!(draft.raw_text, "固定ルート");
+    }
+
+    #[test]
+    fn auto_derive_enemy_fleet_conversion() {
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![make_cell(0, "Start"), make_cell(5, "E")],
+            enemy_fleets: BTreeMap::from([(5, make_fleet(5))]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        assert!(overlay.enemy_nodes.contains_key("E"));
+        assert!(!overlay.enemy_nodes.get("E").unwrap().is_boss);
+    }
+
+    #[test]
+    fn auto_derive_ship_drop_conversion() {
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![make_cell(0, "Start"), make_cell(10, "J")],
+            ship_drops: BTreeMap::from([(
+                10,
+                vec![ShipDropDefinition {
+                    ship_id: 100,
+                    ..Default::default()
+                }],
+            )]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        assert_eq!(overlay.ship_drops.len(), 1);
+        assert_eq!(overlay.ship_drops[0].node_label, "J");
+        assert_eq!(overlay.ship_drops[0].drop.ship_id, 100);
+    }
+
+    #[test]
+    fn auto_derive_enemy_fleet_at_unlabeled_cell_skipped() {
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![
+                make_cell(0, "Start"),
+                MapCellDefinition {
+                    cell_no: 5,
+                    color_no: 0,
+                    event_id: 0,
+                    event_kind: 0,
+                    next_cells: vec![],
+                    node_label: None,
+                    master_cell_id: None,
+                    distance: None,
+                },
+            ],
+            enemy_fleets: BTreeMap::from([(5, make_fleet(5))]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&variant);
+
+        assert!(overlay.enemy_nodes.is_empty());
     }
 }
