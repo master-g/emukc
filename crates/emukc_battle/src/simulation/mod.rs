@@ -113,11 +113,11 @@ fn execute_opening_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
             enemy_form,
             eng,
         );
-        let has_attack = attack.is_some();
         state.set_opening_attack(attack);
-        if has_attack {
-            state.set_hourai_flag(0, 1);
-        }
+        // `opening_attack` is advertised via the scalar `api_opening_flag`
+        // (set in `to_packet` from `opening_attack.is_some()`). It must NOT also
+        // touch `api_hourai_flag[0]` — that slot belongs to `api_hougeki1`
+        // per the client-derived battle rules.
     }
 }
 
@@ -165,7 +165,7 @@ fn execute_shelling1(
         let has_hougeki = hougeki.is_some();
         state.set_hougeki1(hougeki);
         if has_hougeki {
-            state.set_hourai_flag(1, 1);
+            state.set_hourai_flag(0, 1);
         }
     }
 }
@@ -219,7 +219,7 @@ fn execute_shelling2(
         let has_hougeki = hougeki.is_some();
         state.set_hougeki2(hougeki);
         if has_hougeki {
-            state.set_hourai_flag(2, 1);
+            state.set_hourai_flag(1, 1);
         }
     }
 }
@@ -707,7 +707,7 @@ mod tests {
         );
 
         assert!(simulation.packet.hougeki2.is_some(), "friendly BB → shelling2 runs");
-        assert_eq!(simulation.packet.hourai_flag[2], 1);
+        assert_eq!(simulation.packet.hourai_flag[1], 1);
     }
 
     #[test]
@@ -896,7 +896,7 @@ mod tests {
             simulation.packet.hougeki2.is_some(),
             "Shelling2 fires even after enemy BB is sunk (battle-start snapshot)"
         );
-        assert_eq!(simulation.packet.hourai_flag[2], 1);
+        assert_eq!(simulation.packet.hourai_flag[1], 1);
     }
 
     #[test]

@@ -437,7 +437,7 @@ mod tests {
             opening_taisen: None,
             opening_flag: 0,
             opening_attack: None,
-            hourai_flag: [0, 1, 0, 1],
+            hourai_flag: [1, 0, 0, 1],
             hougeki1: Some(hougeki(&[(0, 0, 0, &[(0, 1, 53)]), (1, 0, 0, &[(0, 0, 0)])])),
             hougeki2: None,
             hougeki3: None,
