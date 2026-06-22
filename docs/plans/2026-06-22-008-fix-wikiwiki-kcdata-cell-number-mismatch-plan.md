@@ -1,6 +1,6 @@
 ---
 title: "fix: Bridge wikiwiki routing rules to kcdata topology via auto-derived label overlay"
-status: active
+status: completed
 type: fix
 created: 2026-06-22
 sequence: 008
