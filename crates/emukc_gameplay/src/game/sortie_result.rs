@@ -174,10 +174,16 @@ pub(super) fn build_sortie_quest_event(
     active: &ActiveSortieState,
     snapshot: &SortieBattleResultSnapshot,
 ) -> Result<QuestActionEvent, GameplayError> {
+    let stage = definition.stage(&active.stage_id).ok_or_else(|| {
+        GameplayError::EntryNotFound(format!(
+            "stage `{}` not found for map {}",
+            active.stage_id, active.map_id
+        ))
+    })?;
     Ok(QuestActionEvent::SortieBattleCompleted {
         maparea_id: definition.maparea_id,
         mapinfo_no: definition.mapinfo_no,
-        boss_cell: active.pending_battle_cell_id == Some(active.boss_cell_id),
+        boss_cell: stage.boss_cell_nos().contains(&active.pending_battle_cell_id.unwrap_or(-1)),
         win_rank: parse_sortie_result_rank(&snapshot.win_rank)?,
         fleet_id: active.deck_id,
     })
@@ -497,9 +503,29 @@ mod tests {
 
     #[test]
     fn build_sortie_quest_event_marks_boss_cells() {
+        use emukc_model::codex::map::{MapCellDefinition, MapVariantDefinition};
+
         let definition = MapDefinition {
             maparea_id: 1,
             mapinfo_no: 2,
+            default_variant: String::new(),
+            variants: {
+                let mut v = std::collections::BTreeMap::new();
+                v.insert(
+                    String::new(),
+                    MapVariantDefinition {
+                        boss_cell_no: 3,
+                        cells: vec![MapCellDefinition {
+                            cell_no: 3,
+                            event_id: 5,
+                            node_label: Some("C".to_string()),
+                            ..Default::default()
+                        }],
+                        ..Default::default()
+                    },
+                );
+                v
+            },
             ..Default::default()
         };
         let active = ActiveSortieState {

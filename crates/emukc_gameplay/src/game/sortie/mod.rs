@@ -593,7 +593,7 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         })?;
 
         let snapshot = update_sortie_result_stats(&tx, codex, profile_id, snapshot).await?;
-        let is_boss_cell = current_cell.cell_no == active.boss_cell_id;
+        let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);
         tracing::debug!(
             map_id = definition.map_id,
             cell_no = current_cell.cell_no,
@@ -703,7 +703,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                     GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found"))
                 })?;
 
-                let should_finish_sortie = current_cell.cell_no == active.boss_cell_id
+                let should_finish_sortie = stage
+                    .boss_cell_nos()
+                    .contains(&current_cell.cell_no)
                     || !cell_has_routing_outgoing(current_cell.cell_no, stage);
                 if should_finish_sortie {
                     store.remove_active(profile_id);

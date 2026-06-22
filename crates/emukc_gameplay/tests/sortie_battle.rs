@@ -244,16 +244,16 @@ async fn quest_progress_of(
 fn path_to_boss(codex: &Codex, map_id: i64, start_cell_no: i64) -> Option<Vec<i64>> {
     let definition = codex.maps.map_definition(map_id).unwrap();
     let variant = definition.variant("").unwrap();
-    let boss = variant.boss_cell_no;
+    let boss_cells = variant.boss_cell_nos();
 
     fn dfs(
         variant: &emukc_model::codex::map::MapVariantDefinition,
         current: i64,
-        target: i64,
+        targets: &[i64],
         path: &mut Vec<i64>,
     ) -> bool {
         path.push(current);
-        if current == target {
+        if targets.contains(&current) {
             return true;
         }
 
@@ -262,7 +262,7 @@ fn path_to_boss(codex: &Codex, map_id: i64, start_cell_no: i64) -> Option<Vec<i6
             return false;
         };
         for next in &cell.next_cells {
-            if dfs(variant, *next, target, path) {
+            if dfs(variant, *next, targets, path) {
                 return true;
             }
         }
@@ -272,7 +272,7 @@ fn path_to_boss(codex: &Codex, map_id: i64, start_cell_no: i64) -> Option<Vec<i6
     }
 
     let mut path = Vec::new();
-    dfs(variant, start_cell_no, boss, &mut path).then_some(path)
+    dfs(variant, start_cell_no, &boss_cells, &mut path).then_some(path)
 }
 
 async fn start_sortie_with_boss_path(
@@ -303,12 +303,12 @@ async fn advance_sortie_to_boss(
 ) -> Option<Vec<i64>> {
     let definition = context.1.maps.map_definition(map_id)?;
     let variant = definition.variant("")?;
-    let boss = variant.boss_cell_no;
+    let boss_cells = variant.boss_cell_nos();
     let mut current = start_cell_no;
     let mut path = vec![current];
     let mut visited = std::collections::BTreeSet::from([current]);
 
-    while current != boss {
+    while !boss_cells.contains(&current) {
         let cell = variant.cell(current)?;
         let mut candidates = cell.next_cells.clone();
         candidates.sort_by_key(|next| path_to_boss(&context.1, map_id, *next).is_none());
@@ -498,7 +498,9 @@ async fn sortie_battle_result_advances_boss_quest_on_real_boss_node() {
     let (start, path) =
         start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, map_id).await;
     assert_eq!(start.cell_no, path[0]);
-    assert_eq!(start.boss_cell_no, *path.last().unwrap());
+    let definition = context.1.maps.map_definition(map_id).unwrap();
+    let variant = definition.variant("").unwrap();
+    assert!(variant.boss_cell_nos().contains(path.last().unwrap()));
 
     let battle = context.sortie_battle(pid, 1).await.unwrap();
     assert!(battle.api_eParam.iter().any(|param| param.iter().any(|value| *value > 0)));
@@ -531,7 +533,9 @@ async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
     let (start, path) =
         start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, map_id).await;
     assert_eq!(start.cell_no, path[0]);
-    assert_eq!(start.boss_cell_no, *path.last().unwrap());
+    let definition = context.1.maps.map_definition(map_id).unwrap();
+    let variant = definition.variant("").unwrap();
+    assert!(variant.boss_cell_nos().contains(path.last().unwrap()));
 
     context.sortie_battle(pid, 1).await.unwrap();
     context.sortie_battle_result(pid).await.unwrap();
