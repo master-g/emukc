@@ -148,7 +148,6 @@ pub fn merge_label_overlay(
 /// [`merge_label_overlay`] then applies correctly using `multi_label_index()`.
 ///
 /// Entries whose cell has no `node_label` are skipped — they can't be bridged.
-#[allow(dead_code)] // wired into assembly in U2
 pub fn auto_derive_label_overlay(variant: &MapVariantDefinition) -> WikiwikiLabelOverlay {
     let cell_no_to_label: BTreeMap<i64, &str> = variant
         .cells
