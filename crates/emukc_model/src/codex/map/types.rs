@@ -385,7 +385,7 @@ pub struct FleetSizeWeight {
 mod tests {
     use super::*;
 
-    /// Build a cell with a label and optional event_id (defaults to 5 = boss).
+    /// Build a cell with a label and event_id.
     fn cell_with_label(cell_no: i64, label: &str, event_id: i64) -> MapCellDefinition {
         MapCellDefinition {
             cell_no,

@@ -183,7 +183,9 @@ pub(super) fn build_sortie_quest_event(
     Ok(QuestActionEvent::SortieBattleCompleted {
         maparea_id: definition.maparea_id,
         mapinfo_no: definition.mapinfo_no,
-        boss_cell: stage.boss_cell_nos().contains(&active.pending_battle_cell_id.unwrap_or(-1)),
+        boss_cell: active
+            .pending_battle_cell_id
+            .is_some_and(|id| stage.boss_cell_nos().contains(&id)),
         win_rank: parse_sortie_result_rank(&snapshot.win_rank)?,
         fleet_id: active.deck_id,
     })
@@ -556,6 +558,68 @@ mod tests {
                 assert!(boss_cell);
                 assert_eq!(win_rank, emukc_model::kc2::KcSortieResultRank::A);
                 assert_eq!(fleet_id, 3);
+            }
+            other => panic!("unexpected quest event: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn build_sortie_quest_event_marks_boss_cell_via_label_equivalence() {
+        // Mirror of map 1-2 node E: two cells (3, 4) share label "C",
+        // boss_cell_no=3. Player reaches cell 4 (non-canonical) — must still be boss.
+        use emukc_model::codex::map::{MapCellDefinition, MapVariantDefinition};
+
+        let definition = MapDefinition {
+            maparea_id: 1,
+            mapinfo_no: 2,
+            default_variant: String::new(),
+            variants: {
+                let mut v = std::collections::BTreeMap::new();
+                v.insert(
+                    String::new(),
+                    MapVariantDefinition {
+                        boss_cell_no: 3,
+                        cells: vec![
+                            MapCellDefinition {
+                                cell_no: 3,
+                                event_id: 5,
+                                node_label: Some("C".to_string()),
+                                ..Default::default()
+                            },
+                            MapCellDefinition {
+                                cell_no: 4,
+                                event_id: 5,
+                                node_label: Some("C".to_string()),
+                                ..Default::default()
+                            },
+                        ],
+                        ..Default::default()
+                    },
+                );
+                v
+            },
+            ..Default::default()
+        };
+        let active = ActiveSortieState {
+            deck_id: 3,
+            map_id: 12,
+            map_name: "1-2".to_string(),
+            map_level: 1,
+            stage_id: String::new(),
+            current_cell_id: 4,
+            boss_cell_id: 3,
+            pending_battle_cell_id: Some(4),
+            visited_cell_ids: BTreeSet::new(),
+            locked_enemy_composition: None,
+        };
+
+        let event = build_sortie_quest_event(&definition, &active, &snapshot("S")).unwrap();
+        match event {
+            QuestActionEvent::SortieBattleCompleted {
+                boss_cell,
+                ..
+            } => {
+                assert!(boss_cell, "cell 4 shares boss label and must be recognized as boss");
             }
             other => panic!("unexpected quest event: {other:?}"),
         }
