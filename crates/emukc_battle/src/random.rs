@@ -4,9 +4,13 @@
 /// tests provide [`SeededRng`].
 pub trait BattleRng {
     /// Choose a random index in `[0, len)`.
-    fn choose_index(&mut self, len: usize) -> usize {
-        debug_assert!(len > 0);
-        self.roll_range(0, len as i64) as usize
+    ///
+    /// Returns `None` when `len == 0`, without consuming randomness.
+    fn choose_index(&mut self, len: usize) -> Option<usize> {
+        if len == 0 {
+            return None;
+        }
+        Some(self.roll_range(0, len as i64) as usize)
     }
 
     /// Calculate scratch (proportional) damage based on current HP.
@@ -127,5 +131,20 @@ mod tests {
             let first = SeededRng::new(SEED).roll_range(0, 1_000_000);
             assert_eq!(next, first, "low-hp scratch must not consume an RNG draw (hp={hp})");
         }
+    }
+
+    /// `choose_index(0)` returns `None` and must consume **no** RNG draw, so the
+    /// subsequent `choose_index(1)` still yields the deterministic seeded value.
+    #[test]
+    fn choose_index_empty_returns_none_without_drawing() {
+        const SEED: u64 = 0x5C2A7C4;
+
+        let mut rng = SeededRng::new(SEED);
+        assert_eq!(rng.choose_index(0), None, "empty input must be None");
+
+        // Entropy untouched: the next choose_index(1) must equal a fresh RNG's first.
+        let next = rng.choose_index(1);
+        let first = SeededRng::new(SEED).choose_index(1);
+        assert_eq!(next, first, "empty call must not consume an RNG draw");
     }
 }

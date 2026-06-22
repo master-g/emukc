@@ -271,7 +271,9 @@ fn execute_airstrike_phase(
             if alive_targets.is_empty() {
                 continue;
             }
-            let target_idx = alive_targets[rng.choose_index(alive_targets.len())];
+            let target_idx = alive_targets[rng
+                .choose_index(alive_targets.len())
+                .expect("alive_targets non-empty by construction")];
             let damage = calculate_single_slot_airstrike_damage(
                 codex,
                 rng,
@@ -317,7 +319,9 @@ fn execute_airstrike_phase(
             if alive_targets.is_empty() {
                 continue;
             }
-            let target_idx = alive_targets[rng.choose_index(alive_targets.len())];
+            let target_idx = alive_targets[rng
+                .choose_index(alive_targets.len())
+                .expect("alive_targets non-empty by construction")];
             let damage = calculate_single_slot_airstrike_damage(
                 codex,
                 rng,

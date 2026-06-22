@@ -112,7 +112,10 @@ pub(crate) fn select_random_target_index(
         return None;
     }
 
-    Some(candidates[rng.choose_index(candidates.len())])
+    Some(
+        candidates
+            [rng.choose_index(candidates.len()).expect("candidates non-empty by construction")],
+    )
 }
 
 /// Select a random alive submarine target.
@@ -131,7 +134,7 @@ pub(crate) fn select_submarine_target(
     if subs.is_empty() {
         return None;
     }
-    Some(subs[rng.choose_index(subs.len())])
+    Some(subs[rng.choose_index(subs.len()).expect("subs non-empty by construction")])
 }
 
 // ---------------------------------------------------------------------------

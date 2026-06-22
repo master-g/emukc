@@ -20,7 +20,7 @@ advanced past the plan during its openspec incubation period.
 
 | Unit | Scope | Done | Remaining | Verdict |
 | --- | --- | --- | --- | --- |
-| U1 | `choose_index` → `Option<usize>` | 0/5 | 5 | NOT DONE — `random.rs:7` still returns `usize` with `debug_assert!(len > 0)` |
+| U1 | `choose_index` → `Option<usize>` | 5/5 | 0 | ✅ DONE — trait default + `ProductionRng` override return `Option<usize>`, `len==0`→`None` w/o entropy; 5 callsites `.expect()`; empty-input-no-entropy test added |
 | U2 | `roll_scratch_damage` dedup | 3/3 | 0 | **DONE** — override deleted from CryptoRng, trait default is sole source, 3 regression tests pin formula + draw count |
 | U3 | PracticeRepository + store | 8/8 | 0 | **DONE** — trait in `practice_repository.rs`, `PracticeStore` in `sortie_store.rs`, `HasContext::practice_store()` wired, `PENDING_PRACTICE_BATTLES` removed (grep returns zero) |
 | U4 | CryptoRng → ProductionRng | 4/4 | 0 | ✅ DONE — struct + impl + doc + 15 usages renamed; doc comment corrected to real `SeededRng` path (`emukc_battle::random`, not the non-existent `test_utils`) |
@@ -28,9 +28,9 @@ advanced past the plan during its openspec incubation period.
 | U6 | EngagementType decode surfacing | 0/3 | 3 | NOT DONE — `.unwrap_or(EngagementType::SameCourse)` still at practice/orchestrate.rs:194 |
 | U7 | Verification sweep | 0/5 | 5 | N/A until U1/U4/U5/U6 land |
 
-**Totals:** 15 done, 20 remaining. Of the 20, five (U7) are pure verification
-runs; the genuine execution residual is now **15 tasks** (U1: 5, U5: 7,
-U6: 3) after U4 (4 tasks) shipped 2026-06-22.
+**Totals:** 20 done, 15 remaining. Of the 15, five (U7) are pure verification
+runs; the genuine execution residual is now **10 tasks** (U5: 7, U6: 3)
+after U1 (5 tasks) shipped 2026-06-22.
 
 **Naming divergences from plan (U3 — already shipped, documenting for accuracy):**
 
@@ -171,11 +171,11 @@ These contracts are now captured (post-migration) in:
 - **Approach:** Change the trait method signature and update `SeededRng` + all callsites in one commit. CI fails fast if any callsite is missed.
 - **Verification:** `cargo test -p emukc_battle` passes; the empty-input test asserts `None` without entropy consumption.
 
-- [ ] 1.1 Edit `crates/emukc_battle/src/random.rs`: change `BattleRng::choose_index` signature from `fn choose_index(&mut self, len: usize) -> usize` to `fn choose_index(&mut self, len: usize) -> Option<usize>`. Remove `debug_assert!(len > 0)`. Make `len == 0` return `None`. Update doc comment to state empty input contract.
-- [ ] 1.2 Update `SeededRng::choose_index` body in `crates/emukc_battle/src/random.rs` to return `Option<usize>` matching the new trait signature. *(Note: SeededRng currently does not override `choose_index` at all — it uses the trait default. Also check `CryptoRng::choose_index` override in `rng.rs` which routes through `emukc_crypto::rng::usize` — its generator-consumption differs from the trait default's `i64` path and must be preserved.)*
-- [ ] 1.3 Update every callsite of `choose_index` in `crates/emukc_battle/` (4 sites: `kouku.rs:274`, `kouku.rs:320`, `targeting.rs:115`, `targeting.rs:134`): callers that have already validated non-emptiness use `.expect("non-empty by construction")`; callers that genuinely have variable length propagate the `None` to the surrounding logic.
-- [ ] 1.4 Add a `#[test]` in `crates/emukc_battle/src/random.rs` asserting `SeededRng::new(0).choose_index(0) == None` and asserting it does not consume entropy (subsequent `choose_index(1)` still returns the deterministic seeded value).
-- [ ] 1.5 Run `cargo test -p emukc_battle` and confirm all tests pass.
+- [x] 1.1 Edit `crates/emukc_battle/src/random.rs`: change `BattleRng::choose_index` signature from `fn choose_index(&mut self, len: usize) -> usize` to `fn choose_index(&mut self, len: usize) -> Option<usize>`. Remove `debug_assert!(len > 0)`. Make `len == 0` return `None`. Update doc comment to state empty input contract.
+- [x] 1.2 Update `ProductionRng::choose_index` override in `crates/emukc_gameplay/src/game/battle/rng.rs` to return `Option<usize>` with a `len == 0` guard (prevents `emukc_crypto::rng::usize(0..0)` from hitting an empty range). Generator-consumption for non-empty input preserved (still routes through `emukc_crypto::rng::usize`, not the trait default's `i64` path). `SeededRng` does not override `choose_index` — it uses the trait default, so it auto-inherited the new signature.
+- [x] 1.3 Update every callsite of `choose_index` (4 sites in `emukc_battle`: `kouku.rs:274`, `kouku.rs:320`, `targeting.rs:115`, `targeting.rs:134`; 1 in gameplay `rng.rs:37` test helper). All 5 are guaranteed non-empty by an immediately preceding `is_empty()` guard → used `.expect("... non-empty by construction")`. No site needed to propagate `None`.
+- [x] 1.4 Added `choose_index_empty_returns_none_without_drawing` test: asserts `choose_index(0) == None` and that a subsequent `choose_index(1)` matches a fresh RNG's first draw (entropy untouched).
+- [x] 1.5 `cargo test -p emukc_battle` — 197 passed, 0 failed (incl. new test). `cargo check/clippy --workspace` clean, `cargo fmt --all --check` clean.
 
 ### U2. `roll_scratch_damage` cleanup
 

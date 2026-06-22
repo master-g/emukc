@@ -18,8 +18,11 @@ impl BattleRng for ProductionRng {
     // so removing it could shift the production RNG sequence. The
     // `roll_scratch_damage` override was deleted (the trait default routes through
     // the same `emukc_crypto::rng::i64` backend, so it is draw-for-draw identical).
-    fn choose_index(&mut self, len: usize) -> usize {
-        emukc_crypto::rng::usize(0..len)
+    fn choose_index(&mut self, len: usize) -> Option<usize> {
+        if len == 0 {
+            return None;
+        }
+        Some(emukc_crypto::rng::usize(0..len))
     }
 }
 
@@ -34,7 +37,7 @@ mod tests {
         for _ in 0..16 {
             out.push(rng.roll_range_impl(0, 100));
             out.push((rng.random_f64_range(0.0, 1.0) * 1_000_000.0) as i64);
-            out.push(rng.choose_index(8) as i64);
+            out.push(rng.choose_index(8).expect("len 8 by construction") as i64);
         }
         out
     }
