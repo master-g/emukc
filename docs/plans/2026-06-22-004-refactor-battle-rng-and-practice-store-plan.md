@@ -25,12 +25,12 @@ advanced past the plan during its openspec incubation period.
 | U3 | PracticeRepository + store | 8/8 | 0 | **DONE** — trait in `practice_repository.rs`, `PracticeStore` in `sortie_store.rs`, `HasContext::practice_store()` wired, `PENDING_PRACTICE_BATTLES` removed (grep returns zero) |
 | U4 | CryptoRng → ProductionRng | 4/4 | 0 | ✅ DONE — struct + impl + doc + 15 usages renamed; doc comment corrected to real `SeededRng` path (`emukc_battle::random`, not the non-existent `test_utils`) |
 | U5 | RNG injection through orchestrate | 7/7 | 0 | ✅ DONE — `rng: &mut impl BattleRng` injected into all 5 orchestrate entry points; 10 callsites updated (5 trait impls + 5 tests) |
-| U6 | EngagementType decode surfacing | 0/3 | 3 | NOT DONE — `.unwrap_or(EngagementType::SameCourse)` still at practice/orchestrate.rs:194 |
+| U6 | EngagementType decode surfacing | 3/3 | 0 | ✅ DONE — `.unwrap_or(...)` replaced with `match` + `tracing::error!` + `return None`; session re-inserted before early return; corrupt-formation test added |
 | U7 | Verification sweep | 0/5 | 5 | N/A until U1/U4/U5/U6 land |
 
-**Totals:** 27 done, 8 remaining. Of the 8, five (U7) are pure verification
-runs; the genuine execution residual is now **3 tasks** (U6: 3)
-after U5 (7 tasks) shipped 2026-06-22.
+**Totals:** 30 done, 5 remaining. The 5 remaining (U7) are pure
+verification runs; all implementation work (U1–U6) is complete after
+U6 (3 tasks) shipped 2026-06-22.
 
 **Naming divergences from plan (U3 — already shipped, documenting for accuracy):**
 
@@ -245,9 +245,9 @@ These contracts are now captured (post-migration) in:
 - **Files:** `crates/emukc_gameplay/src/game/battle/practice/orchestrate.rs`.
 - **Verification:** `cargo test -p emukc_gameplay practice_night_battle` passes; the corrupt-formation test asserts `None`.
 
-- [ ] 6.1 Edit `crates/emukc_gameplay/src/game/battle/practice/orchestrate.rs::run_night_battle`. Replace `EngagementType::from_api_id(session.formation[2]).unwrap_or(EngagementType::SameCourse)` with a `match` that on `None` calls `tracing::error!(profile_id, raw = session.formation[2], "practice night battle: corrupt engagement id")` and `return None;`.
-- [ ] 6.2 Add a `#[test]` constructing a `PracticeBattleSession` with `formation[2]` set to an invalid value, invoking `run_night_battle`, and asserting the result is `None`.
-- [ ] 6.3 Run `cargo test -p emukc_gameplay practice_night_battle`.
+- [x] 6.1 Replaced the `EngagementType::from_api_id(session.formation[2]).unwrap_or(EngagementType::SameCourse)` in `practice/orchestrate.rs::run_night_battle` with a `match`: on `None`, `tracing::error!(profile_id, raw = session.formation[2], "practice night battle: corrupt engagement id")` then re-insert the session via `practice_repo.insert_pending_battle(profile_id, session)` and `return None;`. The session re-insert preserves the existing `!can_midnight` guard's contract so callers can still read the session after the early return.
+- [x] 6.2 Added `run_night_battle_returns_none_when_engagement_id_is_corrupt` test: constructs a `PracticeBattleSession` with `formation[2] = 99` (outside valid 1–4 range) and `can_midnight = true`, asserts the result is `None` and that the session is still present in the store.
+- [x] 6.3 `cargo test -p emukc_gameplay practice` — 17 passed, 0 failed (incl. new test). `cargo check/clippy --workspace` clean, `cargo fmt --all --check` clean.
 
 ### U7. Verification
 

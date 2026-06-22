@@ -298,6 +298,46 @@ mod tests {
         );
     }
 
+    /// A corrupt stored `formation[2]` (invalid engagement id) must surface as `None`
+    /// rather than silently coercing to `SameCourse`. The session is also preserved
+    /// in the store (consistent with the can_midnight guard) so callers can inspect it.
+    #[test]
+    fn run_night_battle_returns_none_when_engagement_id_is_corrupt() {
+        use emukc_battle::BattleOutcome;
+        use emukc_model::kc2::KcSortieResultRank;
+
+        let store = PracticeStore::new();
+        let session = PracticeBattleSession {
+            profile_id: 1,
+            deck_id: 1,
+            enemy_id: 1,
+            friendly: vec![],
+            enemy: vec![],
+            // formation[2] = 99 is outside the valid engagement id range 1-4.
+            formation: [1, 1, 99],
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::S,
+                mvp: 0,
+                // must allow midnight so we reach the engagement decode path.
+                can_midnight: true,
+            },
+            air_state: None,
+        };
+        store.insert_pending_battle(1, session);
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut rng = ProductionRng;
+        let result = run_night_battle(&codex, 1, &store, &mut rng);
+        assert!(
+            result.is_none(),
+            "corrupt engagement id must yield None, not a SameCourse fallback"
+        );
+        assert!(
+            store.get_pending_battle(1).is_some(),
+            "session should still be in store after corrupt engagement decode"
+        );
+    }
+
     #[test]
     fn exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds() {
         // build_exp_lvup_vector is private in exp.rs; test via public API

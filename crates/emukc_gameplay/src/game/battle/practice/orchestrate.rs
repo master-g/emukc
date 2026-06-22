@@ -190,6 +190,18 @@ pub fn run_night_battle(
         practice_repo.insert_pending_battle(profile_id, session);
         return None;
     }
+    let engagement = match EngagementType::from_api_id(session.formation[2]) {
+        Some(e) => e,
+        None => {
+            tracing::error!(
+                profile_id,
+                raw = session.formation[2],
+                "practice night battle: corrupt engagement id"
+            );
+            practice_repo.insert_pending_battle(profile_id, session);
+            return None;
+        }
+    };
     let simulation = simulate_night(
         codex,
         NightBattleInput {
@@ -197,8 +209,7 @@ pub fn run_night_battle(
             enemy: session.enemy.clone(),
             friendly_formation_id: session.formation[0],
             enemy_formation_id: session.formation[1],
-            engagement: EngagementType::from_api_id(session.formation[2])
-                .unwrap_or(EngagementType::SameCourse),
+            engagement,
             air_state: session.air_state,
         },
         rng,
