@@ -1,122 +1,40 @@
-use std::{collections::BTreeMap, fs, path::Path, sync::LazyLock};
+use std::collections::BTreeMap;
 
 use emukc_model::{
     codex::map::{
         EnemyComposition, EnemyFleetDefinition, MapCatalog, MapCellDefinition, MapDefinition,
-        MapResetPolicy, MapVariantDefinition, RoutePredicate, RouteRule, ShipDropDefinition,
+        MapResetPolicy, MapVariantDefinition, RoutePredicate, RouteRule,
     },
     kc2::start2::ApiManifest,
 };
-use regex::Regex;
-use scraper::{Html, Selector};
 
-use super::error::ParseError;
-use crate::wikiwiki_map_download::wikiwiki_map_page_url;
-mod drop;
-mod enemy;
-mod html;
-mod resolver;
-mod route;
 mod types;
-use drop::*;
-use enemy::*;
-use html::*;
-use resolver::*;
-use route::*;
+#[allow(unused_imports)]
 use types::*;
+#[allow(unused_imports)]
 pub use types::{
-    EnemyNodeRows, RouteRuleDraft, ShipDropDraft, WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog,
-    WikiwikiMapOverlayDefinition,
+    EnemyNodeRows, RouteRuleDraft, ShipDropDraft, WikiwikiEnemyFleetDefinition,
+    WikiwikiLabelOverlay, WikiwikiMapCatalog, WikiwikiMapDefinition, WikiwikiMapOverlayCatalog,
+    WikiwikiMapOverlayDefinition, WikiwikiMapVariantDefinition, WikiwikiNodeDefinition,
 };
 
-static SELECTOR_TABLE: LazyLock<Selector> =
-    LazyLock::new(|| Selector::parse("table").expect("valid table selector"));
-static SELECTOR_FOLD_CONTAINER: LazyLock<Selector> =
-    LazyLock::new(|| Selector::parse("div.fold-container").expect("valid fold container selector"));
-static SELECTOR_ROW: LazyLock<Selector> =
-    LazyLock::new(|| Selector::parse("tr").expect("valid row selector"));
-static SELECTOR_CELL: LazyLock<Selector> =
-    LazyLock::new(|| Selector::parse("th, td").expect("valid cell selector"));
-static RE_NODE_LABEL: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"([A-Z][A-Z0-9]?)").expect("valid node label regex"));
-static RE_MULTIPLIER: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<name>.+?)[x×](?P<count>\d+)$").expect("valid ship multiplier regex")
-});
-static RE_PAREN_ANNOTATION: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[（(][^()（）]*[)）]").expect("valid parenthetical annotation regex")
-});
-static RE_SAME_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<pattern>パターン\d+)と同(?:じ|編成)$").expect("valid same-pattern regex")
-});
-static RE_FOOTNOTE_MARKER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[*＊]\d+").expect("valid footnote marker regex"));
-static RE_SHIP_TYPE_COUNT_CLAUSE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<name>.+?)(?P<count>\d+)(?:隻)?(?P<op>以上|以下|ちょうど|過不足なく)?$")
-        .expect("valid ship type count clause regex")
-});
-
-/// Parse a cached `wikiwiki_map` directory into a compact runtime [`MapCatalog`].
-pub fn parse(root: impl AsRef<Path>, manifest: &ApiManifest) -> Result<MapCatalog, ParseError> {
-    parse_debug(root, manifest).map(|catalog| catalog.into_map_catalog(manifest))
-}
-
-/// Parse a cached `wikiwiki_map` directory into a debug-oriented source model.
-pub fn parse_debug(
-    root: impl AsRef<Path>,
-    manifest: &ApiManifest,
-) -> Result<WikiwikiMapCatalog, ParseError> {
-    let pages_root = root.as_ref().join("pages");
-    let entries =
-        fs::read_dir(&pages_root).map_err(|source| ParseError::io_at(&pages_root, source))?;
-    let ship_types = ShipTypeResolver::new(manifest);
-    let ships = ShipResolver::new(manifest);
-    let mut catalog = WikiwikiMapCatalog::default();
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("html") {
-            continue;
-        }
-
-        let Some(map_name) = path.file_stem().and_then(|name| name.to_str()) else {
-            continue;
-        };
-        let Some((maparea_id, mapinfo_no)) = parse_map_name(map_name) else {
-            continue;
-        };
-        let raw = fs::read_to_string(&path).map_err(|source| ParseError::io_at(&path, source))?;
-        let map_id = maparea_id * 10 + mapinfo_no;
-        let definition = parse_map_page(
-            map_name,
-            map_id,
-            maparea_id,
-            mapinfo_no,
-            &raw,
-            manifest,
-            &ship_types,
-            &ships,
-        )?;
-        catalog.maps.insert(map_id, definition);
-    }
-
-    Ok(catalog)
-}
+/// Entry node label used as the implicit cell 0 in all map topologies.
+const ENTRY_NODE_LABEL: &str = "Start";
 
 impl WikiwikiMapCatalog {
-    /// Convert the extractor output into the runtime `MapCatalog` model.
-    /// Deserialize and validate agent-produced JSON as a `WikiwikiMapCatalog`.
+    /// Deserialize agent-produced JSON as a [`WikiwikiMapCatalog`].
     ///
-    /// This is the seam between agent skill output and the Rust type system.
-    /// Returns the deserialized catalog on success, or a `serde_json::Error` on
-    /// malformed input.
+    /// This is the seam between the `emukc-scrape-wikiwiki-mapdata` agent skill
+    /// and the Rust type system. Returns the deserialized catalog on success,
+    /// or a [`serde_json::Error`] on malformed input.
     pub fn from_json(raw: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(raw)
     }
 
     /// Validate that the catalog has at least one map with at least one variant.
     ///
-    /// Returns `Ok(())` if the catalog is structurally sound, or an error message
-    /// describing the issue.
+    /// Returns `Ok(())` if the catalog is structurally sound, or an error
+    /// message describing the issue.
     pub fn validate(&self) -> Result<(), String> {
         if self.maps.is_empty() {
             return Err("catalog has no maps".to_string());
@@ -136,11 +54,12 @@ impl WikiwikiMapCatalog {
         Ok(())
     }
 
+    /// Convert the extractor output into the runtime [`MapCatalog`] model.
     pub fn into_map_catalog(self, manifest: &ApiManifest) -> MapCatalog {
         self.into_map_catalog_with_overlay(manifest).0
     }
 
-    /// Convert into runtime `MapCatalog` and extract label-keyed overlay catalog.
+    /// Convert into runtime [`MapCatalog`] and extract label-keyed overlay catalog.
     pub fn into_map_catalog_with_overlay(
         self,
         manifest: &ApiManifest,
@@ -352,172 +271,22 @@ impl WikiwikiMapCatalog {
         (catalog, overlay_catalog)
     }
 
+    /// Serialize to a [`serde_json::Value`] for debugging.
     pub fn to_debug_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap_or_else(|_| serde_json::json!({}))
     }
 }
 
-#[expect(clippy::too_many_arguments)]
-fn parse_map_page(
-    map_name: &str,
-    map_id: i64,
-    maparea_id: i64,
-    mapinfo_no: i64,
-    raw_html: &str,
-    manifest: &ApiManifest,
-    ship_types: &ShipTypeResolver,
-    ships: &ShipResolver,
-) -> Result<WikiwikiMapDefinition, ParseError> {
-    let document = Html::parse_document(raw_html);
-    let route_sections = find_route_table_sections(&document);
-    if route_sections.is_empty() {
-        return Err(ParseError::Generic(format!("route table not found for {map_name}")));
-    }
-    let enemy_table =
-        find_table_by_headers(&document, &["出現場所", "パターン", "EXP", "出現艦船"])
-            .ok_or_else(|| ParseError::Generic(format!("enemy table not found for {map_name}")))?;
-    let drop_table = find_drop_table(&document);
-    let gauge_defeat_counts = parse_gauge_defeat_counts(&document);
-    let mut base_warnings = Vec::new();
-    let enemy_nodes = parse_enemy_table(map_name, &enemy_table, ships, &mut base_warnings)?;
-    let drop_drafts = drop_table
-        .as_ref()
-        .map(|table| parse_drop_table(map_name, table, ships, &mut base_warnings))
-        .unwrap_or_default();
-    let variant_keys = route_sections
-        .iter()
-        .enumerate()
-        .map(|(idx, section)| {
-            route_section_variant_key(&section.summary, idx, route_sections.len())
-        })
-        .collect::<Vec<_>>();
-    let mut variants = BTreeMap::new();
-    let mut overlays = BTreeMap::new();
+// ── Conversion helpers ─────────────────────────────────────────────────
 
-    for (idx, section) in route_sections.iter().enumerate() {
-        let mut warnings = base_warnings.clone();
-        let mut route_rules = parse_route_table(&section.rows, ship_types, ships, &mut warnings)?;
-        postprocess_route_probabilities(&mut route_rules);
-        check_mixed_routing_encoding(&route_rules, &mut warnings);
-        let enemy_nodes = enemy_nodes.clone();
-
-        // Capture label-keyed overlay before build_nodes() converts to cell_nos.
-        let variant_key = variant_keys[idx].clone();
-        overlays.insert(
-            variant_key.clone(),
-            WikiwikiLabelOverlay {
-                variant_key: variant_key.clone(),
-                routing_rules: route_rules.clone(),
-                enemy_nodes: enemy_nodes.clone(),
-                ship_drops: drop_drafts.clone(),
-                required_defeat_count: gauge_defeat_counts.get(idx).copied(),
-                parse_warnings: warnings.clone(),
-            },
-        );
-
-        let nodes = build_nodes(&route_rules, &enemy_nodes);
-        let node_to_cell =
-            nodes.iter().map(|node| (node.label.clone(), node.cell_no)).collect::<BTreeMap<_, _>>();
-        let mut node_to_cell = node_to_cell;
-        node_to_cell.insert(ENTRY_NODE_LABEL.to_string(), 0);
-        let routing_rules = route_rules
-            .into_iter()
-            .filter_map(|rule| {
-                node_to_cell.get(&rule.from_label).zip(node_to_cell.get(&rule.to_label)).map(
-                    |(&from_cell_no, &to_cell_no)| {
-                        let predicate = rule.predicate;
-                        RouteRule {
-                            from_cell_no,
-                            to_cell_no,
-                            priority: 0,
-                            weight: rule.probability_pct.map(probability_to_weight),
-                            probability_pct: rule.probability_pct,
-                            raw_text: compact_route_raw_text(&predicate, rule.raw_text),
-                            predicate,
-                        }
-                    },
-                )
-            })
-            .enumerate()
-            .map(|(priority, mut rule)| {
-                rule.priority = priority as i64;
-                rule
-            })
-            .collect::<Vec<_>>();
-        let enemy_fleets = enemy_nodes
-            .into_iter()
-            .filter_map(|(node_label, node)| {
-                node_to_cell.get(&node_label).copied().map(|cell_no| WikiwikiEnemyFleetDefinition {
-                    node_label,
-                    cell_no,
-                    battle_kind: 1,
-                    formations: collect_formations(&node.compositions),
-                    compositions: node.compositions,
-                })
-            })
-            .collect::<Vec<_>>();
-        let ship_drops = drop_drafts
-            .iter()
-            .filter_map(|draft| {
-                node_to_cell
-                    .get(&draft.node_label)
-                    .copied()
-                    .map(|cell_no| (cell_no, draft.drop.clone()))
-            })
-            .fold(BTreeMap::<i64, Vec<ShipDropDefinition>>::new(), |mut acc, (cell_no, drop)| {
-                acc.entry(cell_no).or_default().push(drop);
-                acc
-            });
-        variants.insert(
-            variant_key.clone(),
-            WikiwikiMapVariantDefinition {
-                variant_key,
-                nodes,
-                routing_rules,
-                enemy_fleets,
-                ship_drops,
-                required_defeat_count: gauge_defeat_counts.get(idx).copied(),
-                clear_to_variant_key: None,
-                parse_warnings: warnings,
-            },
-        );
-    }
-    for pair in variant_keys.windows(2) {
-        let [current, next] = pair else {
-            continue;
-        };
-        if let Some(variant) = variants.get_mut(current) {
-            variant.clear_to_variant_key = Some(next.clone());
-        }
-    }
-    let default_variant = if variants.len() == 1 && variants.contains_key("") {
-        String::new()
-    } else {
-        variant_keys.first().cloned().unwrap_or_default()
-    };
-
-    Ok(WikiwikiMapDefinition {
-        map_id,
-        maparea_id,
-        mapinfo_no,
-        name: manifest
-            .api_mst_mapinfo
-            .iter()
-            .find(|map| map.api_id == map_id)
-            .map(|map| map.api_name.clone())
-            .unwrap_or_else(|| map_name.to_string()),
-        source_url: wikiwiki_map_page_url(map_name).unwrap_or_default(),
-        default_variant,
-        variants,
-        overlays,
-    })
-}
-
+/// Remove raw ship names from an enemy composition (they are for human
+/// verification only and not needed at runtime).
 fn compact_enemy_composition(mut composition: EnemyComposition) -> EnemyComposition {
     composition.raw_ship_names.clear();
     composition
 }
 
+/// Extract route targets in priority order from a group of routing rules.
 fn ordered_route_targets(rules: &[RouteRule]) -> Vec<i64> {
     let mut seen = std::collections::BTreeSet::new();
     let mut targets = Vec::new();
@@ -529,6 +298,8 @@ fn ordered_route_targets(rules: &[RouteRule]) -> Vec<i64> {
     targets
 }
 
+/// Rewrite label-based predicates (`VisitedNodeLabel`) into cell-number-based
+/// predicates (`VisitedNode`) using the label→cell mapping.
 fn rewrite_route_predicate_labels(
     predicate: RoutePredicate,
     node_labels_to_cell: &BTreeMap<String, i64>,
@@ -547,13 +318,13 @@ fn rewrite_route_predicate_labels(
         RoutePredicate::And(predicates) => RoutePredicate::And(
             predicates
                 .into_iter()
-                .map(|predicate| rewrite_route_predicate_labels(predicate, node_labels_to_cell))
+                .map(|p| rewrite_route_predicate_labels(p, node_labels_to_cell))
                 .collect(),
         ),
         RoutePredicate::Or(predicates) => RoutePredicate::Or(
             predicates
                 .into_iter()
-                .map(|predicate| rewrite_route_predicate_labels(predicate, node_labels_to_cell))
+                .map(|p| rewrite_route_predicate_labels(p, node_labels_to_cell))
                 .collect(),
         ),
         RoutePredicate::Not(predicate) => RoutePredicate::Not(Box::new(
@@ -563,42 +334,17 @@ fn rewrite_route_predicate_labels(
     }
 }
 
-fn parse_same_pattern_alias(text: &str) -> Option<String> {
-    RE_SAME_PATTERN
-        .captures(text)
-        .and_then(|caps| caps.name("pattern"))
-        .map(|value| normalize_text(value.as_str()))
-}
-
-fn normalize_text(text: &str) -> String {
-    text.replace('\u{a0}', " ").split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-fn sanitize_route_text(text: &str) -> String {
-    let text = normalize_text(text).replace('_', " ");
-    let text = RE_FOOTNOTE_MARKER.replace_all(&text, "");
-    let text = text.replace(['?', '？'], "");
-    normalize_text(&text)
-}
-
-fn sanitize_drop_text(text: &str) -> String {
-    let text = normalize_text(text);
-    let text = RE_FOOTNOTE_MARKER.replace_all(&text, "");
-    let text = text.trim_matches(|ch| matches!(ch, '※' | '＊' | '*')).to_string();
-    normalize_text(&text)
-}
-
-fn parse_map_name(map_name: &str) -> Option<(i64, i64)> {
-    let (maparea_id, mapinfo_no) = map_name.split_once('-')?;
-    Some((maparea_id.parse().ok()?, mapinfo_no.parse().ok()?))
-}
-
+/// Convert a probability percentage (0–100) to a weight (0–10000).
+///
+/// This helper is retained for testing and potential future use by agent
+/// skill consumers that need to compute weights from percentages.
+#[cfg(test)]
 fn probability_to_weight(probability_pct: f64) -> i64 {
     (probability_pct * 100.0).round() as i64
 }
 
 #[cfg(test)]
-mod validate_tests {
+mod tests {
     use super::*;
 
     #[test]
@@ -636,7 +382,46 @@ mod validate_tests {
         let catalog = WikiwikiMapCatalog::from_json(raw).expect("example JSON should deserialize");
         catalog.validate().expect("example should pass validation");
     }
-}
 
-#[cfg(test)]
-mod tests;
+    #[test]
+    fn probability_to_weight_converts_correctly() {
+        assert_eq!(probability_to_weight(60.0), 6000);
+        assert_eq!(probability_to_weight(100.0), 10000);
+        assert_eq!(probability_to_weight(0.0), 0);
+    }
+
+    #[test]
+    fn ordered_route_targets_deduplicates() {
+        let rules = vec![
+            RouteRule {
+                from_cell_no: 0,
+                to_cell_no: 1,
+                priority: 0,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            },
+            RouteRule {
+                from_cell_no: 0,
+                to_cell_no: 1,
+                priority: 1,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            },
+            RouteRule {
+                from_cell_no: 0,
+                to_cell_no: 2,
+                priority: 2,
+                weight: None,
+                probability_pct: None,
+                predicate: RoutePredicate::Always,
+                raw_text: String::new(),
+            },
+        ];
+        let targets = ordered_route_targets(&rules);
+        assert_eq!(targets, vec![1, 2]);
+    }
+}

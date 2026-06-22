@@ -1,197 +1,127 @@
-use std::{collections::BTreeMap, sync::LazyLock};
+use std::collections::BTreeMap;
 
 use emukc_model::codex::map::{EnemyComposition, RoutePredicate, RouteRule, ShipDropDefinition};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
-
-pub(super) const ENTRY_NODE_LABEL: &str = "Start";
-
-pub(super) fn is_entry_node_label(label: &str) -> bool {
-    label == ENTRY_NODE_LABEL
-}
-
-static RE_COUNT_OP_BEFORE_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?P<name>.+?)[\s（(]*(?P<op>過不足なく|ちょうど)[\s）)]*(?P<count>\d+(?:隻)?)$")
-        .expect("valid count op before count regex")
-});
-
-/// Normalize count-clause text by rewriting "op count" patterns into "count op" order.
-///
-/// When `suffix` is `Some`, the regex is extended to expect `を含{suffix}` at the end,
-/// and the rewritten text appends `を含{suffix}`.
-pub(super) fn normalize_count_clause_text(text: &str, suffix: Option<&str>) -> String {
-    let text = super::sanitize_route_text(text)
-        .replace("(過不足なく)", "過不足なく")
-        .replace("（過不足なく）", "過不足なく")
-        .replace("(ちょうど)", "ちょうど")
-        .replace("（ちょうど）", "ちょうど");
-
-    let re = match suffix {
-        Some(_) => &*RE_CONTAINS_COUNT_OP_BEFORE_COUNT,
-        None => &*RE_COUNT_OP_BEFORE_COUNT,
-    };
-
-    if let Some(caps) = re.captures(&text) {
-        let name = super::normalize_text(
-            caps.name("name").map(|value| value.as_str()).unwrap_or_default(),
-        );
-        let op = caps.name("op").map(|value| value.as_str()).unwrap_or_default();
-        let count = caps.name("count").map(|value| value.as_str()).unwrap_or_default();
-        if !name.is_empty() && !count.is_empty() {
-            if let Some(s) = suffix {
-                if let Some(suffix_match) = caps.name("suffix").map(|value| value.as_str()) {
-                    return format!("{name}{count}{op}を含{suffix_match}");
-                }
-                return format!("{name}{count}{op}を含{s}");
-            }
-            return format!("{name}{count}{op}");
-        }
-    }
-    text
-}
-
-static RE_CONTAINS_COUNT_OP_BEFORE_COUNT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"^(?P<name>.+?)[\s（(]*(?P<op>過不足なく|ちょうど)[\s）)]*(?P<count>\d+(?:隻)?)を含(?P<suffix>む|み|まない)$",
-    )
-    .expect("valid contains count-op-before-count regex")
-});
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Normalized wikiwiki.jp map extraction output keyed by in-game map ID.
+///
+/// This is the agent skill output format — produced by the
+/// `emukc-scrape-wikiwiki-mapdata` skill and consumed by
+/// [`WikiwikiMapCatalog::from_json`](super::WikiwikiMapCatalog::from_json).
 pub struct WikiwikiMapCatalog {
-    /// Parsed map definitions.
+    /// Parsed map definitions, keyed by `maparea_id * 10 + mapinfo_no`.
     pub maps: BTreeMap<i64, WikiwikiMapDefinition>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// A single map's extraction output.
 pub struct WikiwikiMapDefinition {
+    /// In-game map ID (`maparea_id * 10 + mapinfo_no`).
     pub map_id: i64,
+    /// Map area ID (1–7 for normal maps).
     pub maparea_id: i64,
+    /// Map number within the area.
     pub mapinfo_no: i64,
+    /// Japanese map name from wikiwiki.
     pub name: String,
+    /// Source wikiwiki URL.
     pub source_url: String,
+    /// Default variant key (empty string for normal maps).
     pub default_variant: String,
+    /// Variant definitions keyed by variant key.
     pub variants: BTreeMap<String, WikiwikiMapVariantDefinition>,
+    /// Optional overlay data (usually empty for normal maps).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub overlays: BTreeMap<String, WikiwikiLabelOverlay>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// A single map variant's extraction output.
 pub struct WikiwikiMapVariantDefinition {
+    /// Variant identifier (empty string for normal single-variant maps).
     pub variant_key: String,
+    /// All map nodes with agent-assigned BFS cell numbers.
     pub nodes: Vec<WikiwikiNodeDefinition>,
+    /// Route rules between cells (using cell numbers, not labels).
     pub routing_rules: Vec<RouteRule>,
+    /// Enemy fleet definitions per battle node.
     pub enemy_fleets: Vec<WikiwikiEnemyFleetDefinition>,
+    /// Ship drops keyed by cell number.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub ship_drops: BTreeMap<i64, Vec<ShipDropDefinition>>,
+    /// Required boss defeat count, if specified.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required_defeat_count: Option<i64>,
+    /// Next variant key after clearing this one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clear_to_variant_key: Option<String>,
+    /// Non-fatal warnings collected during extraction.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parse_warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// A single node in the map topology.
 pub struct WikiwikiNodeDefinition {
+    /// Node label from wikiwiki (`Start`, `A`, `B`, ...).
     pub label: String,
+    /// BFS-assigned cell number (Start = 0).
     pub cell_no: i64,
+    /// Whether this is the boss node.
     pub is_boss: bool,
+    /// Whether enemy encounters exist at this node.
     pub is_battle: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Enemy fleet data for a single battle node.
 pub struct WikiwikiEnemyFleetDefinition {
+    /// Node label (A, B, etc.).
     pub node_label: String,
+    /// Cell number matching the node.
     pub cell_no: i64,
+    /// Battle kind (0 = normal, 1 = normal battle, 5 = boss).
     pub battle_kind: i64,
+    /// Possible formations (1=単縦, 2=複縦, 3=輪形, 4=梯形, 5=単横).
     pub formations: Vec<i64>,
+    /// Enemy fleet compositions.
     pub compositions: Vec<EnemyComposition>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EnemyNodeRows {
-    pub is_boss: bool,
-    pub compositions: Vec<EnemyComposition>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Intermediate route rule in label space (before conversion to cell numbers).
 pub struct RouteRuleDraft {
+    /// Source node label.
     pub from_label: String,
+    /// Target node label.
     pub to_label: String,
+    /// Probability percentage (0–100), if applicable.
     pub probability_pct: Option<f64>,
+    /// Routing condition.
     pub predicate: RoutePredicate,
+    /// Original Japanese condition text.
     pub raw_text: String,
+    /// Whether this rule uses a random placeholder (unresolved probability).
     pub random_placeholder: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Enemy encounter data for a node, keyed by node label.
+pub struct EnemyNodeRows {
+    /// Whether this node is the boss.
+    pub is_boss: bool,
+    /// Enemy compositions at this node.
+    pub compositions: Vec<EnemyComposition>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Ship drop entry in label space (before conversion to cell numbers).
 pub struct ShipDropDraft {
+    /// Node label where the drop occurs.
     pub node_label: String,
+    /// Drop definition.
     pub drop: ShipDropDefinition,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(super) struct ShipTypeResolver {
-    pub(super) aliases: BTreeMap<String, i64>,
-    pub(super) groups: BTreeMap<String, Vec<i64>>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(super) struct ShipResolver {
-    pub(super) labels: BTreeMap<String, i64>,
-    pub(super) class_groups: BTreeMap<String, Vec<i64>>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(super) struct RouteSelector {
-    pub(super) ship_types: Vec<i64>,
-    pub(super) ship_ids: Vec<i64>,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct RouteTableSection {
-    pub(super) summary: String,
-    pub(super) rows: Vec<Vec<String>>,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct CompiledRouteClause {
-    pub(super) target_label: String,
-    pub(super) probability_pct: Option<f64>,
-    pub(super) predicate: RoutePredicate,
-    pub(super) random_placeholder: bool,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct RouteConditionLine {
-    pub(super) indent: usize,
-    pub(super) text: String,
-}
-
-#[derive(Debug, Clone)]
-pub(super) enum DropCellEvent {
-    Text {
-        text: String,
-        tags: Vec<String>,
-    },
-    Break,
-}
-
-#[derive(Debug, Clone)]
-pub(super) enum RouteClauseAst {
-    Rule {
-        target_label: String,
-        probability_pct: Option<f64>,
-        predicate: RoutePredicate,
-    },
-    Case {
-        guard: RoutePredicate,
-        clauses: Vec<RouteClauseAst>,
-    },
-    Else {
-        target_label: String,
-    },
 }
 
 // ── Label-keyed overlay types ──────────────────────────────────────────

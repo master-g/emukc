@@ -15,19 +15,26 @@ pub(super) struct WikiwikiMapArgs {
 enum Command {
     /// Refresh local HTML cache from wikiwiki.jp.
     Sync(SyncArgs),
-    /// Normalize cached HTML into the repo-tracked wikiwiki map catalog asset.
-    Normalize(PathsArgs),
-    /// Write a human-readable debug JSON file from cached HTML.
+    /// Normalize agent-produced catalog JSON into the repo-tracked wikiwiki map catalog asset.
+    Normalize(NormalizeArgs),
+    /// Write a human-readable debug JSON file from agent-produced catalog JSON.
     Debug(DebugArgs),
     /// Build public map overlays from embedded real `api_req_map/start` captures.
     BuildOverlays(BuildOverlaysArgs),
 }
 
 #[derive(Args, Debug)]
-struct PathsArgs {
-    /// Directory containing `start2.json` and the `wikiwiki_map/` cache directory.
+struct NormalizeArgs {
+    /// Directory containing `start2.json`.
     #[arg(long, default_value = ".data/temp", value_name = "DIR")]
     data_root: PathBuf,
+
+    /// Path to the agent-produced `WikiwikiMapCatalog` JSON file.
+    ///
+    /// Generate this by running the `emukc-scrape-wikiwiki-mapdata` skill on
+    /// cached HTML pages, then pass its output here.
+    #[arg(long, value_name = "FILE")]
+    from_agent_json: PathBuf,
 
     /// Output path for the normalized runtime `MapCatalog` JSON file.
     #[arg(long, default_value_os_t = repo_wikiwiki_map_catalog_path(), value_name = "FILE")]
@@ -36,8 +43,14 @@ struct PathsArgs {
 
 #[derive(Args, Debug)]
 struct SyncArgs {
-    #[command(flatten)]
-    paths: PathsArgs,
+    /// Directory containing `start2.json` and the `wikiwiki_map/` cache directory.
+    #[arg(long, default_value = ".data/temp", value_name = "DIR")]
+    data_root: PathBuf,
+
+    /// Output path for the normalized runtime `MapCatalog` JSON file (unused by sync,
+    /// kept for structural compatibility).
+    #[arg(long, default_value_os_t = repo_wikiwiki_map_catalog_path(), value_name = "FILE")]
+    output: PathBuf,
 
     /// Proxy URL used for wikiwiki requests.
     #[arg(long, value_name = "URL")]
@@ -58,9 +71,9 @@ struct SyncArgs {
 
 #[derive(Args, Debug)]
 struct DebugArgs {
-    /// Directory containing `start2.json` and the `wikiwiki_map/` cache directory.
-    #[arg(long, default_value = ".data/temp", value_name = "DIR")]
-    data_root: PathBuf,
+    /// Path to the agent-produced `WikiwikiMapCatalog` JSON file.
+    #[arg(long, value_name = "FILE")]
+    from_agent_json: PathBuf,
 
     /// Output path for the human-readable debug JSON file.
     #[arg(
@@ -96,7 +109,7 @@ pub(super) async fn exec(args: &WikiwikiMapArgs) -> Result<()> {
             let stats = run_sync(sync).await?;
             println!(
                 "synced wikiwiki cache to {} (downloaded pages={}, failures={})",
-                sync.paths.data_root.join("wikiwiki_map").display(),
+                sync.data_root.join("wikiwiki_map").display(),
                 stats.pages,
                 stats.failures,
             );
@@ -107,10 +120,9 @@ pub(super) async fn exec(args: &WikiwikiMapArgs) -> Result<()> {
             println!("wrote {} wikiwiki maps to {}", catalog.maps.len(), paths.output.display());
         }
         Command::Debug(args) => {
-            let manifest = read_manifest(&args.data_root)?;
-            let catalog = parse_wikiwiki_map(args.data_root.join("wikiwiki_map"), &manifest)
-                .map_err(anyhow::Error::from)?;
-            write_json(&catalog.to_debug_json(&manifest), &args.output)?;
+            let raw = fs::read_to_string(&args.from_agent_json)?;
+            let catalog = WikiwikiMapCatalog::from_json(&raw).map_err(anyhow::Error::from)?;
+            write_json(&catalog.to_debug_json(), &args.output)?;
             println!("wrote {}", args.output.display());
         }
         Command::BuildOverlays(args) => {
@@ -133,11 +145,12 @@ fn read_manifest(data_root: &Path) -> Result<emukc::model::kc2::start2::ApiManif
     Ok(emukc::model::kc2::start2::ApiManifest::from_str(&manifest_raw)?)
 }
 
-fn normalize_catalog(paths: &PathsArgs) -> Result<emukc::model::codex::map::MapCatalog> {
-    let manifest = read_manifest(&paths.data_root)?;
-    let wikiwiki_catalog = parse_wikiwiki_map(paths.data_root.join("wikiwiki_map"), &manifest)
-        .map_err(anyhow::Error::from)?;
-    build_final_map_catalog(&paths.data_root, &manifest, Some(wikiwiki_catalog))
+fn normalize_catalog(args: &NormalizeArgs) -> Result<emukc::model::codex::map::MapCatalog> {
+    let manifest = read_manifest(&args.data_root)?;
+    let raw = fs::read_to_string(&args.from_agent_json)?;
+    let wikiwiki_source = WikiwikiMapCatalog::from_json(&raw).map_err(anyhow::Error::from)?;
+    let wikiwiki_catalog = wikiwiki_source.into_map_catalog(&manifest);
+    build_final_map_catalog(&args.data_root, &manifest, Some(wikiwiki_catalog))
         .map_err(anyhow::Error::from)
 }
 
@@ -182,7 +195,7 @@ async fn run_sync(sync: &SyncArgs) -> Result<WikiwikiMapDownloadStats> {
     };
 
     download_wikiwiki_map_with_options(
-        &sync.paths.data_root,
+        &sync.data_root,
         sync.overwrite,
         sync.proxy.as_deref(),
         WikiwikiMapDownloadOptions {
