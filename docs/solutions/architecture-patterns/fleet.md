@@ -23,7 +23,7 @@ Fleets (up to 4 decks of 6 ship positions) are managed by `FleetOps`
 `ComposeOps::charge_supply`. This contract also covers remodel-time equipment
 assignment correctness, aircraft-capacity data audit bounds, existing-data
 repair, HP restoration, and the CT repair-time modifier. Migrated from
-`openspec/specs/fleet/spec.md`.
+the retired openspec fleet capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

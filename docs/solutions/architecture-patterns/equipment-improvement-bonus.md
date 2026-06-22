@@ -20,7 +20,7 @@ related_components: [emukc_model]
 Equipment star-level (★) improvement modifies basic attack power in the battle
 damage formula. This contract defines the bonus formulas for day shelling,
 torpedo, and night battle, and the equipment type weights. Migrated from
-`openspec/specs/equipment-improvement-bonus/spec.md`.
+the retired openspec equipment-improvement-bonus capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

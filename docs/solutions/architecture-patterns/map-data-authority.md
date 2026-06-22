@@ -22,7 +22,7 @@ The map catalog is assembled from multiple sources with a defined authority
 order. This contract governs the "last non-zero wins" merge for cell metadata,
 the integration of `stat.json` from kcs2-mapdata as the highest-authority
 source, label-based matching with failure handling, and the overlay capture of
-`boss_cell_no`. Migrated from `openspec/specs/map-data-authority/spec.md`.
+`boss_cell_no`. Migrated from the retired openspec map-data-authority capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

@@ -155,5 +155,5 @@ Verified end-to-end: regenerated cache list went 69876 → 69875 (exactly the sl
 ## Related Issues
 
 - Strongest contextual anchor: `docs/superpowers/specs/2026-04-20-manifest-driven-makelist-design.md` (manifest-driven make_list design; names `CHARACTER_HOLES`, `item_character` as a `slotStandardCategory`, and `generate_entry_paths`). **Refresh candidate** — verify its hole-handling description now matches the production consumer.
-- `openspec/specs/cache-manifest-integration/spec.md` — consider adding an explicit requirement that `item_character` generation MUST exclude `character_hole_ids` (currently only implied via sparse-subset semantics).
+- `docs/solutions/best-practices/cache-manifest-integration.md` — consider adding an explicit requirement that `item_character` generation MUST exclude `character_hole_ids` (currently only implied via sparse-subset semantics).
 - No related GitHub issues found (searched `cache list holes`, `character_hole_ids`).

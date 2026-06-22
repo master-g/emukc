@@ -22,7 +22,7 @@ Maps become available to players through a prerequisite chain tracked per
 player. The Codex (`MapCatalog`) defines prerequisites; an `unlocked` boolean
 on the `map_record` entity tracks per-player state; sorties are gated on it;
 and clearing a map cascades unlocks to dependents. Migrated from
-`openspec/specs/map-unlock/spec.md`.
+the retired openspec map-unlock capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

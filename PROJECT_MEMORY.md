@@ -45,29 +45,27 @@ Do-not-modify (→ CLAUDE.md § Do-Not-Modify Files):
 
 ## Last Session
 
-2026-06-22, branch `chore/openspec-sunset` — executing the openspec sunset migration plan (`docs/plans/2026-06-22-001-...md`) via ce-work:
+2026-06-22, `main` (openspec sunset migration **complete and merged**):
 
-- **U1 done (commit `a266b93`):** all 37 `openspec/specs/` migrated to `docs/solutions/` knowledge track — 15 architecture-patterns, 4 conventions, 18 best-practices. `docs/migration/openspec-sunset-log.md` records every spec's fate (37 kept, 0 dropped). 4 parallel worker subagents wrote the docs; frontmatter validated 37/37.
-- **U2 done (commit `1ba3871`):** 4 in-flight openspec changes translated to `docs/plans/2026-06-22-{002..005}-*.md` with exact checkbox parity (27+10+35+11 = 83 tasks preserved).
-- **U3 done (commit `4e1a570`):** client-sync plan `2026-06-15-002` U4 repointed from `openspec/changes/` → `docs/plans/` (ce-plan scaffold).
-- **U4 done:** CLAUDE.md process gate rewritten to ce-plan → ce-compound → ce-code-review; openspec/specs/** do-not-modify line removed; this file's Verified Facts updated.
-- **Stopped at:** U1–U4 complete; U5 (irreversible `git rm openspec/` + 24 agent-scaffolding files) and U6 (verification sweep) remain.
-
-Branch `chore/openspec-sunset` has 4 commits ahead of `main`. Working tree has only the CLAUDE.md + PROJECT_MEMORY.md edits from U4 (not yet committed as of this note).
+- **Migration shipped.** The full openspec → ce-compound-engineering migration plan (`docs/plans/2026-06-22-001-...md`) executed end-to-end via ce-work across 6 commits, then fast-forward-merged to `main` and pushed. Stale `feat/vibe` branch deleted (local + remote).
+- **U1** (`a266b93`) — 37 `openspec/specs/` → `docs/solutions/` knowledge track (15 architecture-patterns, 4 conventions, 18 best-practices). `docs/migration/openspec-sunset-log.md` records every spec's fate.
+- **U2** (`1ba3871`) — 4 in-flight openspec changes → `docs/plans/2026-06-22-{002..005}-*.md` (83 tasks preserved, checkbox parity verified).
+- **U3** (`4e1a570`) — client-sync plan `2026-06-15-002` U4 repointed to ce-plan.
+- **U4** (`9204683`) — CLAUDE.md + this file's process gate rewritten to ce-plan → ce-compound → ce-code-review.
+- **U5** (`58ab234`) — `git rm` 404 tracked files: `openspec/`, `main-decoder/openspec/`, `.github/` openspec skills + opsx prompts (17,858 lines). Untracked local scaffolding (`.claude/`, `.codex/`, `.opencode/`) removed from the working tree.
+- **U6** — fmt/clippy/test green; full `cargo test` 98 passed (one pre-existing RNG-flaky map-unlock test, unrelated — zero `.rs` files touched by the migration).
+- **Residual sweep done** — fixed 10 broken `openspec/specs/<cap>/spec.md` path references in migrated `docs/solutions/architecture-patterns/*.md` (reworded to named historical references); repointed `docs/solutions/logic-errors/cache-list-character-holes-exclusion-2026-06-15.md` forward-reference to the migrated `cache-manifest-integration.md`. Legitimate provenance lines in plans 002–005 and the migration pointer in CLAUDE.md:220 retained.
+- **`main` HEAD:** `58ab234 chore(openspec): remove openspec tree and agent scaffolding`.
 
 ## Next Session
 
-**Finish the migration (branch `chore/openspec-sunset`):**
+**Resume feature work** — the openspec sunset is complete. Pick up one of the 4 ready-to-execute translated plans (all on `main`):
 
-1. **U5 (IRREVERSIBLE)** — `git rm -r openspec/` + the 24 openspec/opsx agent-scaffolding files under `.claude/`, `.codex/`, `.github/`, `.opencode/`. Commit: `chore(openspec): remove openspec tree and agent scaffolding`.
-2. **U6** — `cargo fmt --all --check`, `cargo clippy --workspace -- -W warnings`, `cargo test`, `cargo test --test gameplay_tests`, and `grep -rin openspec .` (expect empty outside `docs/plans/archive/` and the migration plan itself).
-3. Open PR for `chore/openspec-sunset`, merge to `main`.
+- `docs/plans/2026-06-22-002-fix-battle-attack-system-plan.md` (27 tasks — shelling/torpedo participation, attack display fallback, enemy overkill)
+- `docs/plans/2026-06-22-003-fix-sortie-state-and-routing-plan.md` (10 tasks — sortie state cleanup, practice leak prevention, map 1-3 routing)
+- `docs/plans/2026-06-22-004-refactor-battle-rng-and-practice-store-plan.md` (35 tasks — `choose_index` total signature, `PracticeRepository` trait, `CryptoRng`→`ProductionRng`, RNG injection)
+- `docs/plans/2026-06-22-005-fix-batch-craft-quest-progress-plan.md` (11 tasks — batch-craft quest progress diagnosis)
 
-**Then resume feature work** — the 4 translated plans are ready to execute:
+Recommended order: 004 first (refactor hardening unblocks testability for the others), then 002/003 (battle correctness), then 005 (quest).
 
-- `2026-06-22-002` fix-battle-attack-system (27 tasks)
-- `2026-06-22-003` fix-sortie-state-and-routing (10 tasks)
-- `2026-06-22-004` refactor-battle-rng-and-practice-store (35 tasks)
-- `2026-06-22-005` fix-batch-craft-quest-progress (11 tasks)
-
-Plus `TODO.md` high-priority gaps (combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition; quest fields).
+Then `TODO.md` high-priority gaps: combined battle 14 endpoints; map `air_raid`/`anchorage_repair`/`start_air_base`; expedition `start`/`result`/`return_instruction`; quest fields `api_voice_id`/`api_invalid_flag`/`api_c_list` in `questlist.rs`.

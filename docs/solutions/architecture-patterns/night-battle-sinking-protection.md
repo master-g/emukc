@@ -22,7 +22,7 @@ Night battle sinking protection prevents friendly ships from being sunk under
 specific conditions during sorties. The behavior is controlled by
 `NightBattleInput.is_sortie`, distinguishing sortie (protected) from practice
 (unprotected) battles. Migrated from
-`openspec/specs/night-battle-sinking-protection/spec.md`.
+the retired openspec night-battle-sinking-protection capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

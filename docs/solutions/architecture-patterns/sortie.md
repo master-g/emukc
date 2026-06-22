@@ -22,7 +22,7 @@ A sortie is a stateful progression through a map. The `SortieOps` trait
 fleet consumption gating, battle node simulation via the `emukc_battle`
 subsystem, and the Codex map cell metadata that the client relies on for
 correct UI (battle triggers, boss cell, level caps). Migrated from
-`openspec/specs/sortie/spec.md`.
+the retired openspec sortie capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

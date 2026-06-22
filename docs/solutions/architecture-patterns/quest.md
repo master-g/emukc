@@ -23,7 +23,7 @@ every gameplay domain. `QuestOps` (`emukc_gameplay`) manages activation,
 condition evaluation (And/OneOf/Sequential), reward distribution, and
 persistence across three entity types under `entity::profile::quest`.
 Definitions come from the Codex's third-party quest data (`Kc3rdQuestMap`).
-Migrated from `openspec/specs/quest/spec.md`.
+Migrated from the retired openspec quest capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 

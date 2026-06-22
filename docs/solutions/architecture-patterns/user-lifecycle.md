@@ -21,7 +21,7 @@ Accounts authenticate via username/password and tokens; accounts support
 multiple profiles with independent game state. `AccountOps` and `ProfileOps`
 (`emukc_gameplay`) govern registration, token issuance/validation, session
 management, and per-profile initialization. Migrated from
-`openspec/specs/user-lifecycle/spec.md`.
+the retired openspec user-lifecycle capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance
 
