@@ -42,6 +42,7 @@ The output file should be saved to `.data/temp/wikiwiki_map/wikiwiki_catalog.jso
 ### Step 1: Parse map metadata
 
 From the HTML page, extract:
+
 - **Map name**: The Japanese map name (e.g., `南西諸島沖` for 1-2)
 - **Map ID**: Derive from filename — `1-2` → `maparea_id: 1, mapinfo_no: 2, map_id: 12`
 - **Source URL**: The wikiwiki page URL
@@ -49,11 +50,28 @@ From the HTML page, extract:
 ### Step 2: Parse route table (分岐表)
 
 wikiwiki pages contain a route/branching table with columns:
+
 - **分岐点** (Branch point): source node label (e.g., `A`)
 - **ルート** (Route): target node label(s) (e.g., `B/C`)
 - **移動条件** (Movement condition): natural language routing rule (e.g., `艦隊サイズ4隻以下`)
 
+**Important:** Some pages have multiple tables. The route table has `分岐点` in the
+header row. Skip any `ルート分岐表記` table — that is a notation guide explaining
+ship type abbreviations, not actual routing rules.
+
+Routes can have multiple branch points in one table (e.g., Start branches to A/C,
+then A branches to D/E, etc.). Extract every row.
+
+**Implicit routes:** If a route table only shows branching at node A but the
+topology implies Start → A, do NOT add an explicit routing rule for Start → A.
+The conversion layer infers start targets from topology. Only output routing
+rules that appear in the wikiwiki table.
+
+**Non-battle nodes:** Some nodes have `戦闘なし` (no battle) or `アイテム獲得`
+(item acquisition). These nodes have `is_battle: false` and `is_boss: false`.
+
 Extract each row as a routing rule with:
+
 - `from_label`: source node label
 - `to_label`: target node label
 - `predicate`: parsed RoutePredicate (see below)
@@ -63,14 +81,29 @@ Extract each row as a routing rule with:
 ### Step 3: Parse enemy table (敵影表)
 
 wikiwiki pages contain enemy encounter tables with:
-- Node label (e.g., `A`, `B`, `ボス`)
+
+- Node label (e.g., `A`, `B`, `C：ボス`)
 - Enemy fleet compositions (ship names)
 - Formation (陣形: 単縦, 複縦, 輪形, 梯形, 陣形)
 
-For each node, extract:
+**Pattern aliasing:** Some patterns say `パターンNと同じ` or `パターンNと同編成`
+(same as pattern N). Copy the referenced pattern's ship composition into the
+aliasing pattern — do not leave it empty.
+
+**Non-battle nodes:** Nodes marked `戦闘なし` (no battle), `戦闘回避` (battle
+avoided), or `アイテム獲得` (item acquisition) should NOT appear in
+`enemy_fleets`. They are nodes with `is_battle: false`.
+
+For each battle node, extract:
+
 - `node_label`: the node label (A, B, etc.)
-- `is_boss`: true if this is the boss node
+- `is_boss`: true if this is the boss node (marked as `ボス`)
 - `compositions`: list of enemy compositions, each with ship names
+
+**Enemy ship IDs:** Generic enemy ships (駆逐イ級, 軽巡ホ級, etc.) have IDs in
+the 1501–1599 range. If you cannot resolve the exact ID, use `ship_id: 0` and
+put the raw name in `raw_ship_names`. The conversion pipeline clears
+`raw_ship_names` at runtime; they are for human verification only.
 
 ### Step 4: Parse drop table (ドロップ表)
 
@@ -79,21 +112,25 @@ If the page has a drop/reward table, extract ship drops per node.
 ### Step 5: Assign cell numbers (BFS)
 
 Assign sequential cell numbers starting from `Start = 0`:
+
 1. Start node = cell 0
 2. Perform BFS from Start following the routing graph
 3. Each node gets the next sequential number in BFS visit order
 4. The Start node itself is cell 0
 
 Example for a linear map Start → A → B(boss):
+
 - Start = 0, A = 1, B = 2
 
 Example for map 1-2:
+
 ```
 Start → A, Start → B
 A → D, A → C
 C → D
 D → E(boss)
 ```
+
 BFS: Start=0, A=1, B=2, D=3, E=4, C=5
 
 ### Step 6: Build output JSON
@@ -120,23 +157,33 @@ wikiwiki route conditions are written in Japanese natural language. Map them to
 | ドラム缶N個以上 | `DrumCanisterCount { op: Gte, value: N }` |
 | Conditions with `かつ` (AND) | `And [pred1, pred2]` |
 | Conditions with `または` (OR) | `Or [pred1, pred2]` |
+| `補給艦を含む` | `ContainsShipType { ship_types: [22] }` |
+| `水母を含む` | `ContainsShipType { ship_types: [16] }` |
+| `空母系を含む` | `ContainsShipType { ship_types: [7, 11, 18] }` |
+| `海防艦N隻以上` | `ShipTypeCount { ship_types: [1], op: Gte, value: N }` |
+| `(駆逐+海防)N隻以上` | `ShipTypeCount { ship_types: [2, 1], op: Gte, value: N }` |
+| `パターンNと同じ` | (alias — copy the referenced pattern's composition) |
 | Conditions with `以外` (NOT) | `Not(pred)` |
 
 Ship type IDs (common):
+
 - DD (駆逐) = 2, CL (軽巡) = 3, CT (練巡) = 21, CVL (軽空母) = 7
 - CA (重巡) = 5, CAV (航巡) = 6, BB (戦艦) = 8, BBV (航戦) = 10
 - CV (空母) = 11, SS (潜水) = 13, SSV (潜水母艦) = 14, AV (水母) = 16
 - AS (潜水母艦) = 20, AP (補給) = 22, AV (揚陸) = 17, LST = 18
 
 When you cannot confidently parse a condition, use:
+
 ```json
 { "Unknown": { "raw_text": "<original Japanese text>" } }
 ```
+
 Do not guess — an `Unknown` predicate is valid and will be reviewed by a human.
 
 ## Quality Checks
 
 Before outputting the JSON:
+
 1. Every node in the routing graph has a cell_no (BFS-assigned)
 2. Boss node has `is_boss: true`
 3. All routing rule `from_cell_no`/`to_cell_no` reference valid node cell_nos
