@@ -3,7 +3,7 @@ title: "refactor: Replace Programmatic Wikiwiki HTML Parser with Agent Skill"
 type: refactor
 date: 2026-06-22
 origin: brainstorm session (inline) — replacing 7,389 lines of regex/HTML parsing with LLM-based extraction
-status: active
+status: completed
 ---
 
 # refactor: Replace Programmatic Wikiwiki HTML Parser with Agent Skill
