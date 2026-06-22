@@ -147,8 +147,8 @@ async fn create_slotitems() {
     let slot_items = context
         .1
         .slotitem_extra_info
-        .iter()
-        .filter_map(|(_, v)| {
+        .values()
+        .filter_map(|v| {
             if v.craftable {
                 Some(v.clone())
             } else {

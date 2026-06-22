@@ -983,8 +983,8 @@ mod tests {
         assert_eq!(pre.cell(0).unwrap().next_cells, vec![2], "existing topology preserved");
     }
 
-    /// Like `p_unlock_definition`, but the p_unlock skeletons are renumbered so they share NO
-    /// cell_no with the base `""` graph — the topology fold (a cell_no join) matches nothing.
+    /// Like `p_unlock_definition`, but the `p_unlock` skeletons are renumbered so they share NO
+    /// `cell_no` with the base `""` graph — the topology fold (a `cell_no` join) matches nothing.
     fn misaligned_p_unlock_definition() -> MapDefinition {
         let mut def = p_unlock_definition();
         for key in ["pre_p_unlock", "post_p_unlock"] {

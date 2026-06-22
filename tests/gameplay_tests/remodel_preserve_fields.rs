@@ -1,4 +1,4 @@
-//! Tests that remodel preserves sally_area and ex-slot equipment.
+//! Tests that remodel preserves `sally_area` and ex-slot equipment.
 
 #[cfg(test)]
 mod tests {

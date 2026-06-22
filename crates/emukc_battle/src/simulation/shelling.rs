@@ -317,7 +317,7 @@ mod tests {
             slotitem_with_mst_id(seaplane_id),
         ];
         bb.ship.api_onslot = [0, 0, 0, 1, 0];
-        let mut rt = crate::types::BattleRuntimeShip::from(bb);
+        let rt = crate::types::BattleRuntimeShip::from(bb);
 
         // Detection should succeed
         let detected = detect_day_attack_type(&codex, &rt, Some(&AirState::Supremacy));
@@ -332,7 +332,7 @@ mod tests {
             let r = resolve_day_attack(
                 &codex,
                 &mut crate::random::SeededRng::new(seed),
-                &mut rt.clone(),
+                &rt.clone(),
                 Some(&AirState::Supremacy),
                 fleet_los,
                 0, // flagship
@@ -365,13 +365,9 @@ mod tests {
             }
         }
 
-        for idx in 0..MAX_FLEET_SIZE {
+        for (idx, &skip) in special_attack_skip.iter().enumerate() {
             let should_skip = participant_indices.contains(&idx);
-            assert_eq!(
-                special_attack_skip[idx], should_skip,
-                "idx {idx}: expected skip={should_skip}, got {}",
-                special_attack_skip[idx]
-            );
+            assert_eq!(skip, should_skip, "idx {idx}: expected skip={should_skip}, got {skip}",);
         }
     }
 }

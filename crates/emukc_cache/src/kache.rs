@@ -648,7 +648,7 @@ mod tests {
 
     /// A rollback request (cache newer than the requested version) must serve the newer local
     /// file and must NOT downgrade the recorded version by re-fetching the older one. Regression
-    /// guard for the bg_h.png 6.2.0.0 rollback: populating from a stale list used to overwrite a
+    /// guard for the `bg_h.png` 6.2.0.0 rollback: populating from a stale list used to overwrite a
     /// newer cached file with an older version.
     #[tokio::test]
     async fn rollback_request_serves_newer_local_without_downgrade() {

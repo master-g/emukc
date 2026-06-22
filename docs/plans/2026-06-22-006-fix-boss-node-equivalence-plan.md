@@ -320,6 +320,7 @@ detail resolved by reading the two sites in context, not a planning blocker.
 **Verdict: Plan 006 does NOT touch kcdata data, parser, merge logic, or routes model.**
 
 Checked and confirmed:
+
 - `kcdata.rs` (parser): **unchanged** — Non-goals explicitly exclude it
 - `merge.rs` (merge logic): **unchanged** — Non-goals explicitly exclude it
 - `map_catalog.json` (data file): **unchanged** — no write operations

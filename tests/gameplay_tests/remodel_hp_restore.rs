@@ -99,8 +99,8 @@ mod tests {
         let lv = 50;
         let hp_lost = 10;
 
-        let ct_cost = codex.cal_ship_docking_cost(&ct_mst, lv, hp_lost).unwrap();
-        let cl_cost = codex.cal_ship_docking_cost(&cl_mst, lv, hp_lost).unwrap();
+        let ct_cost = codex.cal_ship_docking_cost(ct_mst, lv, hp_lost).unwrap();
+        let cl_cost = codex.cal_ship_docking_cost(cl_mst, lv, hp_lost).unwrap();
 
         // CT uses a reduced time_base formula (lv*5+30) vs CL's standard formula
         // (lv*5+sqrt(lv-11)*10+50), so CT repair is strictly faster despite sharing
@@ -123,8 +123,8 @@ mod tests {
         let lv = 50;
         let hp_lost = 10;
 
-        let ct_cost = codex.cal_ship_docking_cost(&ct_mst, lv, hp_lost).unwrap();
-        let ca_cost = codex.cal_ship_docking_cost(&ca_mst, lv, hp_lost).unwrap();
+        let ct_cost = codex.cal_ship_docking_cost(ct_mst, lv, hp_lost).unwrap();
+        let ca_cost = codex.cal_ship_docking_cost(ca_mst, lv, hp_lost).unwrap();
 
         assert!(
             ct_cost.duration_sec < ca_cost.duration_sec,

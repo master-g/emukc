@@ -1,7 +1,7 @@
 //! Tests for the full sortie → battle → result chain.
 //!
 //! Verifies enemy ship IDs, HP tracking, and sinking protection across
-//! the complete integration path: start_sortie → sortie_battle → result.
+//! the complete integration path: `start_sortie` → `sortie_battle` → result.
 
 #[cfg(test)]
 mod tests {

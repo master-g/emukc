@@ -1,6 +1,6 @@
 //! Tests for gauge index and map record field behavior
 //!
-//! Note: No regular maps have gauge_count > 1 in the current codex.
+//! Note: No regular maps have `gauge_count` > 1 in the current codex.
 //! These tests verify initial map record state without going through
 //! the full sortie flow (which is already covered by unlock.rs).
 

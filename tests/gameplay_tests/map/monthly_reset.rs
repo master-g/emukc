@@ -1,6 +1,6 @@
 //! Tests for monthly map reset policy and EO map unlock
 //!
-//! EO maps (1-5, 1-6, etc.) have MapResetPolicy::Monthly and reset at the
+//! EO maps (1-5, 1-6, etc.) have `MapResetPolicy::Monthly` and reset at the
 //! start of each month. This test verifies policy assignment and that
 //! clearing prerequisite maps unlocks EO maps.
 

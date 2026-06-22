@@ -272,7 +272,7 @@ mod tests {
         }
     }
 
-    fn minimal_result(profile_id: i64) -> PracticeBattleResultSnapshot {
+    fn minimal_result(_profile_id: i64) -> PracticeBattleResultSnapshot {
         PracticeBattleResultSnapshot {
             deck_id: 1,
             enemy_id: 1,

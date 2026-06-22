@@ -987,7 +987,7 @@ mod tests {
         let resolved = try_special_attack(
             &codex,
             &mut crate::random::SeededRng::new(2),
-            &mut attackers,
+            &attackers,
             FORMATION_ECHELON,
         )
         .expect("NagatoMutsu should trigger");

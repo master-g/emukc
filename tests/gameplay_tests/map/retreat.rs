@@ -1,4 +1,4 @@
-//! Tests for sortie retreat (goback_port) behavior
+//! Tests for sortie retreat (`goback_port`) behavior
 
 #[cfg(test)]
 mod tests {

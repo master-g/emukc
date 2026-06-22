@@ -605,8 +605,8 @@ mod tests {
 
     // ------------------------------------------------------------------ integration: multi-gauge
 
-    /// gauge_1 has cell 5; gauge_2 does not.
-    /// Rule with to=5 merges into gauge_1 only, dropped from gauge_2. Counter = 1.
+    /// `gauge_1` has cell 5; `gauge_2` does not.
+    /// Rule with to=5 merges into `gauge_1` only, dropped from `gauge_2`. Counter = 1.
     #[test]
     fn test_fanout_multi_gauge_selective_merge() {
         let mut kcdata = make_catalog(

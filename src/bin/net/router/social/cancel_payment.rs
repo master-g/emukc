@@ -56,7 +56,6 @@ mod tests {
     use crate::state::PaymentSession;
     use emukc_internal::prelude::*;
     use std::sync::Arc;
-    use tempfile::TempDir;
 
     async fn setup() -> (Arc<State>, GameSession) {
         let cache_root = tempfile::tempdir().unwrap();

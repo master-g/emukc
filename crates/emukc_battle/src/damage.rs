@@ -1012,11 +1012,11 @@ mod tests {
         let mut defender = BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50));
         defender.ship.api_soukou[0] = 0;
         let mut rng = crate::random::SeededRng::new(42);
-        let mut attacker = cvl_ship.clone();
+        let attacker = cvl_ship.clone();
         let dmg = calculate_shelling_damage(
             &codex,
             &mut rng,
-            &mut attacker,
+            &attacker,
             &defender,
             1,
             EngagementType::SameCourse,
@@ -1048,12 +1048,12 @@ mod tests {
         defender.ship.api_maxhp = 50;
 
         let mut rng = crate::random::SeededRng::new(42);
-        let mut attacker = BattleRuntimeShip::from(dd);
+        let attacker = BattleRuntimeShip::from(dd);
 
         let dmg = calculate_asw_damage(
             &codex,
             &mut rng,
-            &mut attacker,
+            &attacker,
             &defender,
             1,
             EngagementType::SameCourse,

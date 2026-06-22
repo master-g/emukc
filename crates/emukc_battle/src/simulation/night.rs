@@ -1172,7 +1172,7 @@ mod tests {
         // But ships may survive anyway due to scratch damage (attack < defense)
         // The key assertion: if the ship took lethal-level damage, HP can reach 0
         // We just verify the ship was created as practice (no protection)
-        assert_eq!(friendly[0].is_sortie, false, "practice ship should have is_sortie=false");
+        assert!(!friendly[0].is_sortie, "practice ship should have is_sortie=false");
     }
 
     #[test]

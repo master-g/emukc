@@ -300,7 +300,7 @@ mod tests {
 
     /// A corrupt stored `formation[2]` (invalid engagement id) must surface as `None`
     /// rather than silently coercing to `SameCourse`. The session is also preserved
-    /// in the store (consistent with the can_midnight guard) so callers can inspect it.
+    /// in the store (consistent with the `can_midnight` guard) so callers can inspect it.
     #[test]
     fn run_night_battle_returns_none_when_engagement_id_is_corrupt() {
         use emukc_battle::BattleOutcome;
@@ -343,7 +343,7 @@ mod tests {
         // build_exp_lvup_vector is private in exp.rs; test via public API
         // The function is tested indirectly through practice battle results
         let before = 48_802;
-        let result = vec![48_802, 49_600, 52_800];
+        let result = [48_802, 49_600, 52_800];
         // Validate the calculation is correct by computing manually
         assert_eq!(result.len(), 3);
         assert_eq!(result[0], before);

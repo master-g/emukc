@@ -840,7 +840,7 @@ mod tests {
             let resolved = resolve_day_attack(
                 &codex,
                 &mut crate::random::SeededRng::new(seed),
-                &mut ship.clone(),
+                &ship.clone(),
                 Some(&AirState::Supremacy),
                 0, // fleet LoS
                 1, // not flagship (harder to trigger)
@@ -867,7 +867,7 @@ mod tests {
             let resolved = resolve_day_attack(
                 &codex,
                 &mut crate::random::SeededRng::new(seed),
-                &mut ship.clone(),
+                &ship.clone(),
                 Some(&AirState::Supremacy),
                 100, // high fleet LoS
                 0,   // flagship bonus

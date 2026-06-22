@@ -39,7 +39,7 @@ impl HasContext for TestContext {
     }
 
     fn codex(&self) -> &Codex {
-        &self.codex
+        self.codex
     }
 
     fn sortie_store(&self) -> &SortieStore {

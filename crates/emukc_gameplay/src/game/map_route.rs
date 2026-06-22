@@ -1022,7 +1022,7 @@ mod tests {
 
     // --- LoS formula helpers ---
 
-    /// Build a minimal FleetRouteContext for LoS tests.
+    /// Build a minimal `FleetRouteContext` for `LoS` tests.
     /// `los_total` is the raw sum.
     /// `los_formula1` and `los_formula3` are supplied explicitly so tests can
     /// set different values to verify formula dispatch.
@@ -1467,7 +1467,7 @@ mod tests {
     // single ship-count predicate.
 
     /// Fleet: [ship(radar), ship(no radar), ship(radar + radar)].
-    /// `slotitem_types` is a BTreeSet so the two-radar ship contributes type 12
+    /// `slotitem_types` is a `BTreeSet` so the two-radar ship contributes type 12
     /// only once.  The predicate counts *ships*, so the result is 2, not 3 or 4.
     /// This is the canonical ship-count vs item-count distinction test.
     #[test]
@@ -1614,9 +1614,9 @@ mod tests {
         ));
     }
 
-    /// Rule targets cell 2 but next_cells=[4,5] (cell 2 not in next_cells).
-    /// After topology filter, candidate_targets is empty → should fall back to
-    /// random selection from next_cells, not return an error.
+    /// Rule targets cell 2 but `next_cells`=[4,5] (cell 2 not in `next_cells`).
+    /// After topology filter, `candidate_targets` is empty → should fall back to
+    /// random selection from `next_cells`, not return an error.
     #[test]
     fn rules_filtered_by_topology_fallback_to_next_cells() {
         let mut routing_rules = BTreeMap::new();
@@ -1658,7 +1658,7 @@ mod tests {
         assert!(found_5, "should have routed to cell 5 at least once");
     }
 
-    /// Rules filtered by topology, next_cells also empty → error via select_route_from_cells.
+    /// Rules filtered by topology, `next_cells` also empty → error via `select_route_from_cells`.
     #[test]
     fn rules_filtered_by_topology_and_empty_next_cells_returns_error() {
         let mut routing_rules = BTreeMap::new();
@@ -1689,7 +1689,7 @@ mod tests {
     // Route evaluation integration tests (U1)
     // ========================================================================
 
-    /// Helper: build a RouteRule with LoS predicate.
+    /// Helper: build a `RouteRule` with `LoS` predicate.
     fn make_los_rule(
         from: i64,
         to: i64,
@@ -1712,7 +1712,7 @@ mod tests {
         }
     }
 
-    /// Helper: build a RouteRule with FleetSize predicate.
+    /// Helper: build a `RouteRule` with `FleetSize` predicate.
     fn make_fleet_size_rule(
         from: i64,
         to: i64,
@@ -1733,7 +1733,7 @@ mod tests {
         }
     }
 
-    /// Helper: build a RouteRule with Always predicate.
+    /// Helper: build a `RouteRule` with Always predicate.
     fn make_always_rule(from: i64, to: i64, priority: i64, weight: i64) -> RouteRule {
         RouteRule {
             from_cell_no: from,
@@ -1748,9 +1748,9 @@ mod tests {
     // --- Happy path tests ---
 
     /// High-priority rule matches; lower-priority rule is ignored.
-    /// Cell 1 routes to {2, 3}. High priority (0) targets cell 2 (FleetSize >= 6),
-    /// low priority (5) targets cell 3 (FleetSize >= 1).
-    /// With fleet_size=6 the high-priority rule wins → cell 2.
+    /// Cell 1 routes to {2, 3}. High priority (0) targets cell 2 (`FleetSize` >= 6),
+    /// low priority (5) targets cell 3 (`FleetSize` >= 1).
+    /// With `fleet_size=6` the high-priority rule wins → cell 2.
     #[test]
     fn multi_condition_rules_select_higher_priority() {
         let mut routing_rules = BTreeMap::new();
@@ -1776,11 +1776,12 @@ mod tests {
         assert_eq!(result, 2, "high priority rule should route to cell 2");
     }
 
-    /// LoS branching: different LoS values route to different target cells.
+    /// `LoS` branching: different `LoS` values route to different target cells.
     /// Cell 1 routes to {2, 3}:
-    ///   - LoS >= 60 → cell 2
-    ///   - LoS >= 30 → cell 3
-    /// With los_total=50, only the second rule matches → cell 3.
+    ///   - `LoS` >= 60 → cell 2
+    ///   - `LoS` >= 30 → cell 3
+    ///
+    /// With `los_total=50`, only the second rule matches → cell 3.
     #[test]
     fn los_branching_routes_by_los_value() {
         let mut routing_rules = BTreeMap::new();
@@ -1810,7 +1811,7 @@ mod tests {
         assert_eq!(result_high, 2, "los=70 should route to cell 2 (threshold 60)");
     }
 
-    /// Rules from_cell matching: only rules matching the current cell are evaluated.
+    /// Rules `from_cell` matching: only rules matching the current cell are evaluated.
     /// Cell 1 has rules for cell 1 (→2) and cell 3 (→6). Being at cell 1,
     /// only the rule for cell 1 applies.
     #[test]
@@ -1846,9 +1847,9 @@ mod tests {
 
     // --- Edge case tests ---
 
-    /// All rules filtered by topology → fallback to select_route_from_cells.
-    /// Cell 1 has next_cells {4, 5} but rule targets cell 2 (not in next_cells).
-    /// After topology filter, no candidate_targets remain → fall back to next_cells.
+    /// All rules filtered by topology → fallback to `select_route_from_cells`.
+    /// Cell 1 has `next_cells` {4, 5} but rule targets cell 2 (not in `next_cells`).
+    /// After topology filter, no `candidate_targets` remain → fall back to `next_cells`.
     /// Verifies the result is one of {4, 5} and both are reachable over 20 trials.
     #[test]
     fn all_rules_filtered_by_topology_falls_back_to_next_cells() {
@@ -1902,8 +1903,8 @@ mod tests {
         assert!(found_5, "should have routed to cell 5 at least once");
     }
 
-    /// Empty next_cells with no rule match → returns error.
-    /// Cell 1 has empty next_cells and a LoS rule that doesn't match.
+    /// Empty `next_cells` with no rule match → returns error.
+    /// Cell 1 has empty `next_cells` and a `LoS` rule that doesn't match.
     #[test]
     fn empty_next_cells_no_rule_match_returns_error() {
         let mut routing_rules = BTreeMap::new();
@@ -1957,10 +1958,10 @@ mod tests {
         );
     }
 
-    /// Route rule references to_cell_no not in next_cells but exists in cells.
-    /// Cell 1 has next_cells {4, 5}. Rule targets cell 2 which exists in the stage
-    /// but is not in next_cells. Topology filter excludes cell 2, falling back
-    /// to next_cells. Verify both {4, 5} are reachable.
+    /// Route rule references `to_cell_no` not in `next_cells` but exists in cells.
+    /// Cell 1 has `next_cells` {4, 5}. Rule targets cell 2 which exists in the stage
+    /// but is not in `next_cells`. Topology filter excludes cell 2, falling back
+    /// to `next_cells`. Verify both {4, 5} are reachable.
     #[test]
     fn rule_to_cell_exists_in_cells_but_not_next_cells_is_filtered() {
         let mut routing_rules = BTreeMap::new();
@@ -2004,13 +2005,14 @@ mod tests {
 
     /// Simulated map stage: cell 1→{4,5}, cell 3→{6}.
     /// Routing rules for cell 1:
-    ///   - LoS >= 40 → cell 5 (priority 0)
+    ///   - `LoS` >= 40 → cell 5 (priority 0)
     ///   - Always → cell 4 (priority 1, acts as fallback)
+    ///
     /// Routing rules for cell 3:
-    ///   - FleetSize >= 4 → cell 6 (priority 0)
+    ///   - `FleetSize` >= 4 → cell 6 (priority 0)
     ///
     /// Tests conditional routing + topology fallback combined behavior.
-    /// When LoS is high, the LoS rule (priority 0) wins. When LoS is low,
+    /// When `LoS` is high, the `LoS` rule (priority 0) wins. When `LoS` is low,
     /// the Always rule (priority 1) acts as fallback → cell 4.
     #[test]
     fn simulated_map_stage_conditional_routing_and_topology_fallback() {
