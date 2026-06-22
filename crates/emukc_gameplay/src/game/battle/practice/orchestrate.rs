@@ -190,17 +190,14 @@ pub fn run_night_battle(
         practice_repo.insert_pending_battle(profile_id, session);
         return None;
     }
-    let engagement = match EngagementType::from_api_id(session.formation[2]) {
-        Some(e) => e,
-        None => {
-            tracing::error!(
-                profile_id,
-                raw = session.formation[2],
-                "practice night battle: corrupt engagement id"
-            );
-            practice_repo.insert_pending_battle(profile_id, session);
-            return None;
-        }
+    let Some(engagement) = EngagementType::from_api_id(session.formation[2]) else {
+        tracing::error!(
+            profile_id,
+            raw = session.formation[2],
+            "practice night battle: corrupt engagement id"
+        );
+        practice_repo.insert_pending_battle(profile_id, session);
+        return None;
     };
     let simulation = simulate_night(
         codex,

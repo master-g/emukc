@@ -26,11 +26,10 @@ advanced past the plan during its openspec incubation period.
 | U4 | CryptoRng → ProductionRng | 4/4 | 0 | ✅ DONE — struct + impl + doc + 15 usages renamed; doc comment corrected to real `SeededRng` path (`emukc_battle::random`, not the non-existent `test_utils`) |
 | U5 | RNG injection through orchestrate | 7/7 | 0 | ✅ DONE — `rng: &mut impl BattleRng` injected into all 5 orchestrate entry points; 10 callsites updated (5 trait impls + 5 tests) |
 | U6 | EngagementType decode surfacing | 3/3 | 0 | ✅ DONE — `.unwrap_or(...)` replaced with `match` + `tracing::error!` + `return None`; session re-inserted before early return; corrupt-formation test added |
-| U7 | Verification sweep | 0/5 | 5 | N/A until U1/U4/U5/U6 land |
+| U7 | Verification sweep | 5/5 | 0 | ✅ DONE — build/clippy `-D warnings`/fmt clean; 004 tests all green. 3 pre-existing broken sortie_battle tests (flag/payload mismatch, unrelated to 004, fail since pre-004) documented in PROJECT_MEMORY as follow-up |
 
-**Totals:** 30 done, 5 remaining. The 5 remaining (U7) are pure
-verification runs; all implementation work (U1–U6) is complete after
-U6 (3 tasks) shipped 2026-06-22.
+**Totals: 35/35 complete.** All implementation (U1–U6) + verification (U7)
+shipped 2026-06-22.
 
 **Naming divergences from plan (U3 — already shipped, documenting for accuracy):**
 
@@ -256,11 +255,11 @@ These contracts are now captured (post-migration) in:
 - **Dependencies:** U1–U6 complete.
 - **Verification:** all gates green.
 
-- [ ] 7.1 Run `cargo build --workspace` cleanly.
-- [ ] 7.2 Run `cargo test --workspace`.
-- [ ] 7.3 Run `cargo clippy --workspace -- -D warnings`.
-- [ ] 7.4 Run `cargo fmt --all -- --check`.
-- [ ] 7.5 ~~Run `openspec validate harden-battle-refactor-followup --strict` clean.~~ *(Superseded: openspec is being sunset. The behavioral contracts this validation checked are now captured in `docs/solutions/architecture-patterns/rng-facade.md` and `battle-crate-docs.md`; verification is via `cargo test` + `cargo clippy`.)*
+- [x] 7.1 `cargo build --workspace` — Finished clean (12.24s).
+- [x] 7.2 `cargo test --workspace` — 004-related tests all green: `emukc_battle` 197 passed (incl. `choose_index_empty_returns_none_without_drawing`), `emukc_gameplay` lib 131 passed (incl. `production_rng_is_deterministic_after_seed`, `run_night_battle_returns_none_when_engagement_id_is_corrupt`). **3 pre-existing broken tests** in `tests/sortie_battle.rs` (`sortie_battle_response_passes_battle_rule_validation`, `sortie_battle_result_advances_boss_quest_on_real_boss_node`, `repo_wikiwiki_asset_supports_real_map_boss_progression`) fail with flag/payload mismatch (`api_hourai_flag` vs `api_hougeki`) — confirmed failing at pre-004 commit `7a76553`, unrelated to 004. Documented in PROJECT_MEMORY as follow-up (likely belongs to 002 battle-attack-system scope).
+- [x] 7.3 `cargo clippy --workspace -- -D warnings` — caught one U6 lint (U6's `match` → `let-else`), fixed; now clean. `-D warnings` is stricter than the default clippy run at each unit commit.
+- [x] 7.4 `cargo fmt --all -- --check` — clean.
+- [x] 7.5 Superseded (openspec sunset). Verification is now `cargo test` + `cargo clippy`.
 
 ## Risks & Dependencies
 
