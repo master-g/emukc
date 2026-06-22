@@ -92,7 +92,7 @@ mod tests {
     fn sortie_session_is_stored_until_result_is_taken() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let store = crate::game::sortie_store::SortieStore::new();
-        let mut rng = super::super::rng::CryptoRng;
+        let mut rng = super::super::rng::ProductionRng;
         let simulation = simulate_day(
             &codex,
             BattleContext {

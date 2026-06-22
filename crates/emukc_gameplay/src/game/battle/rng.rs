@@ -1,9 +1,10 @@
 use emukc_battle::BattleRng;
 
-/// Production RNG backed by thread-local `fastrand`.
-pub(crate) struct CryptoRng;
+/// Non-cryptographic production RNG backed by `emukc_crypto::rng` (fastrand).
+/// For deterministic test runs, use `SeededRng` from `emukc_battle::random`.
+pub(crate) struct ProductionRng;
 
-impl BattleRng for CryptoRng {
+impl BattleRng for ProductionRng {
     fn random_f64_range(&mut self, min: f64, max: f64) -> f64 {
         emukc_crypto::rng::f64_range(min, max)
     }
@@ -24,11 +25,11 @@ impl BattleRng for CryptoRng {
 
 #[cfg(test)]
 mod tests {
-    use super::CryptoRng;
+    use super::ProductionRng;
     use emukc_battle::BattleRng;
 
-    fn crypto_draws() -> Vec<i64> {
-        let mut rng = CryptoRng;
+    fn production_draws() -> Vec<i64> {
+        let mut rng = ProductionRng;
         let mut out = Vec::new();
         for _ in 0..16 {
             out.push(rng.roll_range_impl(0, 100));
@@ -39,16 +40,16 @@ mod tests {
     }
 
     #[test]
-    fn crypto_rng_is_deterministic_after_seed() {
+    fn production_rng_is_deterministic_after_seed() {
         // The keystone: seeding the one thread-local generator determinizes the
-        // battle math, because CryptoRng draws through the emukc_crypto facade.
+        // battle math, because ProductionRng draws through the emukc_crypto facade.
         emukc_crypto::rng::seed(0x00C0_FFEE);
-        let first = crypto_draws();
+        let first = production_draws();
         emukc_crypto::rng::seed(0x00C0_FFEE);
-        let second = crypto_draws();
+        let second = production_draws();
         // Restore entropy before asserting so a failure cannot skip the cleanup
         // and leak the seeded stream to other tests on this thread.
         emukc_crypto::rng::reseed_from_entropy();
-        assert_eq!(first, second, "seeding the thread-local must determinize CryptoRng draws");
+        assert_eq!(first, second, "seeding the thread-local must determinize ProductionRng draws");
     }
 }

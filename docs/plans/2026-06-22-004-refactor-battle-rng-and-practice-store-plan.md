@@ -23,14 +23,14 @@ advanced past the plan during its openspec incubation period.
 | U1 | `choose_index` → `Option<usize>` | 0/5 | 5 | NOT DONE — `random.rs:7` still returns `usize` with `debug_assert!(len > 0)` |
 | U2 | `roll_scratch_damage` dedup | 3/3 | 0 | **DONE** — override deleted from CryptoRng, trait default is sole source, 3 regression tests pin formula + draw count |
 | U3 | PracticeRepository + store | 8/8 | 0 | **DONE** — trait in `practice_repository.rs`, `PracticeStore` in `sortie_store.rs`, `HasContext::practice_store()` wired, `PENDING_PRACTICE_BATTLES` removed (grep returns zero) |
-| U4 | CryptoRng → ProductionRng | 0/4 | 4 | NOT DONE — struct still `CryptoRng`, 17 usages across crates/src |
+| U4 | CryptoRng → ProductionRng | 4/4 | 0 | ✅ DONE — struct + impl + doc + 15 usages renamed; doc comment corrected to real `SeededRng` path (`emukc_battle::random`, not the non-existent `test_utils`) |
 | U5 | RNG injection through orchestrate | 0/7 | 7 | NOT DONE — `let mut rng = CryptoRng;` hardcoded at 5 sites (sortie: 28/68/161, practice: 32/193) |
 | U6 | EngagementType decode surfacing | 0/3 | 3 | NOT DONE — `.unwrap_or(EngagementType::SameCourse)` still at practice/orchestrate.rs:194 |
 | U7 | Verification sweep | 0/5 | 5 | N/A until U1/U4/U5/U6 land |
 
-**Totals:** 11 done, 24 remaining. Of the 24, five (U7) are pure verification
-runs; the genuine execution residual is **19 tasks** (U1: 5, U4: 4, U5: 7,
-U6: 3).
+**Totals:** 15 done, 20 remaining. Of the 20, five (U7) are pure verification
+runs; the genuine execution residual is now **15 tasks** (U1: 5, U5: 7,
+U6: 3) after U4 (4 tasks) shipped 2026-06-22.
 
 **Naming divergences from plan (U3 — already shipped, documenting for accuracy):**
 
@@ -215,10 +215,10 @@ These contracts are now captured (post-migration) in:
 - **Files:** `crates/emukc_gameplay/src/game/battle/rng.rs`, workspace-wide search-and-replace across `crates/emukc_gameplay/`, `crates/emukc_battle/`, `src/bin/`.
 - **Verification:** `cargo check --workspace` and `cargo clippy --workspace` clean; `grep -r "CryptoRng" crates/ src/` returns zero matches.
 
-- [ ] 4.1 In `crates/emukc_gameplay/src/game/battle/rng.rs`, rename `pub struct CryptoRng;` to `pub struct ProductionRng;`. Update its `BattleRng` impl.
-- [ ] 4.2 Update doc comment to read: `/// Non-cryptographic RNG backed by emukc_crypto::rng (fastrand). For deterministic test runs, use SeededRng from emukc_battle::test_utils.`
-- [ ] 4.3 Search-and-replace `CryptoRng` → `ProductionRng` across `crates/emukc_gameplay/`, `crates/emukc_battle/`, and `src/bin/`. Confirm `grep -r "CryptoRng" crates/ src/` returns zero matches.
-- [ ] 4.4 Run `cargo check --workspace` and `cargo clippy --workspace` clean.
+- [x] 4.1 In `crates/emukc_gameplay/src/game/battle/rng.rs`, rename `pub(crate) struct CryptoRng;` to `pub(crate) struct ProductionRng;`. Updated its `BattleRng` impl; also renamed test helpers `crypto_draws`→`production_draws` and `crypto_rng_is_deterministic_after_seed`→`production_rng_is_deterministic_after_seed` for consistency.
+- [x] 4.2 Doc comment reads: `/// Non-cryptographic production RNG backed by emukc_crypto::rng (fastrand). For deterministic test runs, use SeededRng from emukc_battle::random.` — **deviation from plan:** the plan's `emukc_battle::test_utils` path does not exist; `SeededRng` is `#[cfg(test)]` at `emukc_battle::random`. Used the real path.
+- [x] 4.3 Search-and-replace `CryptoRng` → `ProductionRng` across `crates/emukc_gameplay/`, `crates/emukc_battle/`. `grep -r "CryptoRng" crates/ src/` returns zero matches (15 sites renamed: 6 in rng.rs, 4 in sortie/orchestrate.rs, 1 in sortie/mod.rs test, 2 in practice/orchestrate.rs, 1 doc link in emukc_battle/random.rs).
+- [x] 4.4 `cargo check --workspace` clean, `cargo clippy --workspace` clean, `cargo test production_rng_is_deterministic_after_seed` passes, `cargo fmt --all --check` clean.
 
 ### U5. RNG injection through orchestration
 

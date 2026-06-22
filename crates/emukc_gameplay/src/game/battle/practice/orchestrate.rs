@@ -9,7 +9,7 @@ use emukc_model::codex::Codex;
 use crate::err::GameplayError;
 
 use super::super::practice_repository::PracticeRepository;
-use super::super::rng::CryptoRng;
+use super::super::rng::ProductionRng;
 use super::exp::{calculate_admiral_exp, calculate_ship_exp};
 use super::response::{build_night_response, calculate_base_exp, enemy_slot_ids};
 use super::{
@@ -29,7 +29,7 @@ pub fn run_day_battle(
         input.friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let enemy_nowhps = input.enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
     let enemy_maxhps = input.enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
-    let mut rng = CryptoRng;
+    let mut rng = ProductionRng;
     let simulation = simulate_day(
         codex,
         BattleContext {
@@ -190,7 +190,7 @@ pub fn run_night_battle(
         practice_repo.insert_pending_battle(profile_id, session);
         return None;
     }
-    let mut rng = CryptoRng;
+    let mut rng = ProductionRng;
     let simulation = simulate_night(
         codex,
         NightBattleInput {

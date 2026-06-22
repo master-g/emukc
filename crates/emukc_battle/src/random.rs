@@ -1,6 +1,6 @@
 /// Dependency-injected RNG interface for battle simulation.
 ///
-/// Production code provides [`CryptoRng`](emukc_gameplay::battle::rng::CryptoRng),
+/// Production code provides [`ProductionRng`](emukc_gameplay::battle::rng::ProductionRng),
 /// tests provide [`SeededRng`].
 pub trait BattleRng {
     /// Choose a random index in `[0, len)`.

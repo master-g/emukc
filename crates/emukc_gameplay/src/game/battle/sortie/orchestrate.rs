@@ -7,7 +7,7 @@ use emukc_battle::{
 use emukc_model::codex::Codex;
 use emukc_model::kc2::KcSortieResultRank;
 
-use super::super::{repository::SortieRepository, rng::CryptoRng};
+use super::super::{repository::SortieRepository, rng::ProductionRng};
 use super::{
     SortieBattleInput, SortieBattleSession, SortieNightBattleSession, build_sortie_session,
 };
@@ -25,7 +25,7 @@ pub fn run_day_battle(
         cell_id,
         context,
     } = input;
-    let mut rng = CryptoRng;
+    let mut rng = ProductionRng;
     let simulation = simulate_day(codex, context, &mut rng);
     let session = build_sortie_session(profile_id, deck_id, map_id, cell_id, simulation);
     store.insert_pending_battle(session.profile_id, session.clone());
@@ -65,7 +65,7 @@ pub fn run_night_battle(
         .kouku
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-    let mut rng = CryptoRng;
+    let mut rng = ProductionRng;
     let simulation = simulate_night(
         codex,
         NightBattleInput {
@@ -158,7 +158,7 @@ pub fn run_sp_midnight_battle(
     store.insert_pending_battle(profile_id, day_session.clone());
 
     // Run night battle using the stored session
-    let mut rng = CryptoRng;
+    let mut rng = ProductionRng;
     let night = simulate_night(
         codex,
         NightBattleInput {
