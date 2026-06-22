@@ -104,6 +104,38 @@ pub fn parse_debug(
 
 impl WikiwikiMapCatalog {
     /// Convert the extractor output into the runtime `MapCatalog` model.
+    /// Deserialize and validate agent-produced JSON as a `WikiwikiMapCatalog`.
+    ///
+    /// This is the seam between agent skill output and the Rust type system.
+    /// Returns the deserialized catalog on success, or a `serde_json::Error` on
+    /// malformed input.
+    pub fn from_json(raw: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(raw)
+    }
+
+    /// Validate that the catalog has at least one map with at least one variant.
+    ///
+    /// Returns `Ok(())` if the catalog is structurally sound, or an error message
+    /// describing the issue.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.maps.is_empty() {
+            return Err("catalog has no maps".to_string());
+        }
+        for (map_id, def) in &self.maps {
+            if def.variants.is_empty() {
+                return Err(format!("map {map_id} has no variants"));
+            }
+            for (vk, variant) in &def.variants {
+                if variant.nodes.is_empty() && !variant.enemy_fleets.is_empty() {
+                    return Err(format!(
+                        "map {map_id} variant '{vk}' has enemy fleets but no nodes"
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn into_map_catalog(self, manifest: &ApiManifest) -> MapCatalog {
         self.into_map_catalog_with_overlay(manifest).0
     }
@@ -563,6 +595,47 @@ fn parse_map_name(map_name: &str) -> Option<(i64, i64)> {
 
 fn probability_to_weight(probability_pct: f64) -> i64 {
     (probability_pct * 100.0).round() as i64
+}
+
+#[cfg(test)]
+mod validate_tests {
+    use super::*;
+
+    #[test]
+    fn from_json_loads_example_successfully() {
+        let raw = include_str!(
+            "../../../../../.claude/skills/emukc-scrape-wikiwiki-mapdata/reference/map-example.json"
+        );
+        let catalog = WikiwikiMapCatalog::from_json(raw).expect("example JSON should deserialize");
+        assert_eq!(catalog.maps.len(), 1, "example should have exactly 1 map");
+        let def = &catalog.maps[&12];
+        assert_eq!(def.maparea_id, 1);
+        assert_eq!(def.mapinfo_no, 2);
+        let variant = def.variants.get("").expect("default variant should exist");
+        assert!(!variant.nodes.is_empty(), "variant should have nodes");
+        assert!(variant.nodes.iter().any(|n| n.is_boss), "should have a boss node");
+    }
+
+    #[test]
+    fn from_json_rejects_malformed() {
+        let result = WikiwikiMapCatalog::from_json("{broken");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn validate_rejects_empty_catalog() {
+        let catalog = WikiwikiMapCatalog::default();
+        assert!(catalog.validate().is_err());
+    }
+
+    #[test]
+    fn validate_passes_on_example() {
+        let raw = include_str!(
+            "../../../../../.claude/skills/emukc-scrape-wikiwiki-mapdata/reference/map-example.json"
+        );
+        let catalog = WikiwikiMapCatalog::from_json(raw).expect("example JSON should deserialize");
+        catalog.validate().expect("example should pass validation");
+    }
 }
 
 #[cfg(test)]
