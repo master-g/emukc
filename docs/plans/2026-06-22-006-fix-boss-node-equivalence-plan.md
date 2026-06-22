@@ -112,16 +112,19 @@ without labels working unchanged.
 ```text
 MapVariantDefinition::boss_cell_nos() -> Vec<i64>:
     let boss_label = self.cell(boss_cell_no).and_then(|c| c.node_label.clone());
-    match boss_label.filter(|l| !l.is_empty()) {
+    let mut cells = match boss_label.filter(|l| !l.is_empty()) {
         Some(label) => self.multi_label_index().get(&label).cloned().unwrap_or_else(|| vec![boss_cell_no]),
         None => vec![boss_cell_no],
-    }
+    };
+    cells.sort();
+    cells
 ```
 
 The two detection sites become:
 
 - `mod.rs:596`: `let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);`
 - `mod.rs:706`: `let should_finish_sortie = stage.boss_cell_nos().contains(&current_cell.cell_no) || ...;`
+- `sortie_result.rs:180`: `boss_cell: stage.boss_cell_nos().contains(&active.pending_battle_cell_id.unwrap_or(-1)),` (quest event boss marking — **found by ce-doc-review**, was missing from original plan)
 
 Note `mod.rs:596` currently compares against `active.boss_cell_id` (the per-sortie snapshot),
 not `stage.boss_cell_no` directly. The snapshot is set from `stage.boss_cell_no` at start
@@ -174,11 +177,13 @@ detail resolved by reading the two sites in context, not a planning blocker.
     - `is_boss_cell` (line ~596): `current_cell.cell_no == active.boss_cell_id` →
       `stage.boss_cell_nos().contains(&current_cell.cell_no)`.
     - `should_finish_sortie` (line ~706): same substitution in the first disjunct.
-- **Approach:** Per KTD1 the helper is invoked against the `stage` (the
-  `MapVariantDefinition` that carries `node_label`/`multi_label_index`). The
-  `active.boss_cell_id` scalar stays for the client-facing response (`boss_cell_no` field)
-  and any non-equivalence uses; only the membership test changes. Read both sites in context
-  to confirm `stage` is in scope at each (it is resolved earlier in both functions).
+  - `crates/emukc_gameplay/src/game/sortie_result.rs` — the **third** detection site (found
+    by ce-doc-review, was missing from original plan):
+    - `boss_cell` (line ~180): `active.pending_battle_cell_id == Some(active.boss_cell_id)` →
+      `stage.boss_cell_nos().contains(&active.pending_battle_cell_id.unwrap_or(-1))`. This site
+      gates quest event boss-marking (`build_sortie_quest_event`); without it, quest 204
+      (defeat boss on 1-2) never reaches `Completed` even if `is_boss_cell` is true.
+- **Dependencies:** U1, U3.
 - **Patterns to follow:** Both sites already resolve `stage` and `current_cell` via
   `stage.cell(...)`; follow the existing `ok_or_else`/`?` shape.
 - **Test scenarios:**
@@ -276,3 +281,16 @@ detail resolved by reading the two sites in context, not a planning blocker.
 - **Dependency:** none blocking; U2/U3/U4 depend on U1 only. This plan supersedes the
   "codex topology error" diagnosis recorded earlier in PROJECT_MEMORY (that diagnosis was
   wrong — see the corrected entry).
+
+## ce-doc-review 2026-06-22
+
+**Reviewers:** ce-coherence-reviewer, ce-feasibility-reviewer, ce-adversarial-document-reviewer.
+
+**Feasibility verdict:** all 5 verification points pass (multi_label_index exists at types.rs:110; both detection sites confirmed at claimed lines; stage in scope at both; data layer correct; pseudo-code type-correct). No blocking feasibility findings.
+
+**Findings applied:**
+
+1. **P0 — Third boss-detection site missed (adversarial).** `sortie_result.rs:180` (`boss_cell: active.pending_battle_cell_id == Some(active.boss_cell_id)`) uses the same exact-scalar-match pattern and gates quest event boss-marking. Without updating it, quest 204 never reaches Completed. Added to U2 Files + HLTD detection site list.
+2. **safe_auto — Missing `.sort()` in pseudocode (coherence, confidence 100).** `multi_label_index()` preserves insertion order, not cell_no order; U1/U4 tests assert sorted. Added `cells.sort()` to pseudocode.
+3. **gated_auto — U2 missing U3 dependency (coherence, confidence 75).** U2's verification ("tests pass") requires U3 (path_to_boss helper fix) but Dependencies listed only U1. Updated to "U1, U3".
+4. **Advisory — HLTD re-opens settled (a)/(b) decision (coherence, confidence 50).** HLTD both commits to "use stage" and re-opens it. Left as-is; U2 Approach and Risks are authoritative.
