@@ -123,8 +123,8 @@ pub fn apply_day_debug(
     let derived = run_debug_transforms(&sim.friendly, &sim.enemy, god_mode, one_hit_kill);
 
     override_day_packet(&mut sim.packet, &derived);
-    override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
     rebuild_day_packet_arrays(&mut sim.packet, god_mode, one_hit_kill, &sim.friendly, &sim.enemy);
+    override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
     override_outcome(&mut sim.outcome, &sim.friendly, &sim.enemy);
     recompute_midnight(&mut sim.outcome, &mut sim.packet, &sim.friendly, &sim.enemy);
 
@@ -144,8 +144,8 @@ pub fn apply_night_debug(
     let derived = run_debug_transforms(&sim.friendly, &sim.enemy, god_mode, one_hit_kill);
 
     override_night_packet(&mut sim.packet, &derived);
-    override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
     rebuild_night_packet_arrays(&mut sim.packet, god_mode, one_hit_kill, &sim.friendly, &sim.enemy);
+    override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
     override_outcome(&mut sim.outcome, &sim.friendly, &sim.enemy);
 
     sim
@@ -614,5 +614,137 @@ mod tests {
         let result = apply_day_debug(sim, false, true);
         assert!(!result.outcome.can_midnight, "one_hit_kill clears can_midnight");
         assert_eq!(result.packet.midnight_flag, 0, "midnight_flag is 0");
+    }
+
+    #[test]
+    fn one_hit_kill_win_rank_is_ss() {
+        // All enemies sunk, no friendly damage → SS rank.
+        let sim = BattleSimulation {
+            friendly: vec![make_ship(30, 40, true)],
+            enemy: vec![make_ship(30, 40, false)],
+            packet: BattlePacket {
+                formation: [1, 1, 1],
+                friendly_nowhps: vec![30],
+                enemy_nowhps: vec![30],
+                smoke_type: 0,
+                balloon_cell: 0,
+                atoll_cell: 0,
+                midnight_flag: 0,
+                search: [1, 1],
+                stage_flag: [0, 0, 0],
+                kouku: None,
+                opening_taisen_flag: 0,
+                opening_taisen: None,
+                opening_flag: 0,
+                opening_attack: None,
+                hourai_flag: [0, 0, 0, 0],
+                hougeki1: None,
+                hougeki2: None,
+                hougeki3: None,
+                raigeki: None,
+            },
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::D,
+                mvp: 0,
+                can_midnight: false,
+            },
+        };
+        let result = apply_day_debug(sim, false, true);
+        assert_eq!(result.outcome.win_rank, KcSortieResultRank::S);
+    }
+
+    #[test]
+    fn god_mode_revives_practice_friendly() {
+        // Practice battle: is_sortie=false, no sinking protection.
+        // Friendly sunk (hp=0), god_mode should revive to entry HP.
+        let mut sunk_ship = make_test_ship_ctx(0, 30, 0, 40, true, false);
+        sunk_ship.entry_hp = 30;
+        let sim = BattleSimulation {
+            friendly: vec![sunk_ship],
+            enemy: vec![make_test_ship_ctx(0, 0, 0, 40, false, false)],
+            packet: BattlePacket {
+                formation: [1, 1, 1],
+                friendly_nowhps: vec![0],
+                enemy_nowhps: vec![0],
+                smoke_type: 0,
+                balloon_cell: 0,
+                atoll_cell: 0,
+                midnight_flag: 0,
+                search: [1, 1],
+                stage_flag: [0, 0, 0],
+                kouku: None,
+                opening_taisen_flag: 0,
+                opening_taisen: None,
+                opening_flag: 0,
+                opening_attack: None,
+                hourai_flag: [0, 0, 0, 0],
+                hougeki1: None,
+                hougeki2: None,
+                hougeki3: None,
+                raigeki: None,
+            },
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::B,
+                mvp: 0,
+                can_midnight: false,
+            },
+        };
+        let result = apply_day_debug(sim, true, false);
+        assert_eq!(result.friendly[0].hp(), 30, "god_mode revives practice-friendly to entry HP");
+    }
+
+    #[test]
+    fn apply_night_debug_god_mode_restores_friendly() {
+        let mut damaged = make_ship(10, 40, true);
+        damaged.entry_hp = 30;
+        let sim = NightBattleSimulation {
+            friendly: vec![damaged],
+            enemy: vec![make_ship(0, 40, false)],
+            packet: crate::NightBattlePacket {
+                formation: [1, 1, 1],
+                friendly_nowhps: vec![10],
+                friendly_maxhps: vec![40],
+                enemy_nowhps: vec![0],
+                enemy_maxhps: vec![40],
+                touch_plane: [-1, -1],
+                flare_pos: [-1, -1],
+                hougeki: None,
+            },
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::S,
+                mvp: 0,
+                can_midnight: false,
+            },
+        };
+        let result = apply_night_debug(sim, true, false);
+        assert_eq!(result.friendly[0].hp(), 30, "god_mode restores friendly HP in night");
+        assert_eq!(result.packet.friendly_nowhps[0], 30);
+    }
+
+    #[test]
+    fn apply_night_debug_one_hit_kill_sinks_enemies() {
+        let sim = NightBattleSimulation {
+            friendly: vec![make_ship(30, 40, true)],
+            enemy: vec![make_ship(30, 40, false)],
+            packet: crate::NightBattlePacket {
+                formation: [1, 1, 1],
+                friendly_nowhps: vec![30],
+                friendly_maxhps: vec![40],
+                enemy_nowhps: vec![30],
+                enemy_maxhps: vec![40],
+                touch_plane: [-1, -1],
+                flare_pos: [-1, -1],
+                hougeki: None,
+            },
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::D,
+                mvp: 0,
+                can_midnight: false,
+            },
+        };
+        let result = apply_night_debug(sim, false, true);
+        assert_eq!(result.enemy[0].hp(), 0, "one_hit_kill sinks enemies in night");
+        assert_eq!(result.packet.enemy_nowhps[0], 0);
+        assert!(result.packet.hougeki.is_some(), "finishing volley synthesized in night hougeki");
     }
 }
