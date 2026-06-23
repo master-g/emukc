@@ -131,14 +131,16 @@ mod tests {
         // Guardrail: if this list changes, re-audit whether sortie-wide visited-node history
         // remains sufficient or if we need a first-class direct arrival-edge predicate.
         //
-        // Values changed after auto-derived overlay fix (plan 008): cell numbers now
-        // correctly use kcdata route IDs instead of wikiwiki BFS numbers, and rules are
-        // only created for edges that exist in kcdata topology.
+        // These values are in wikiwiki BFS cell-number space — the asset stores the
+        // wikiwiki catalog pre-overlay. Assembly-time auto_derive_label_overlay converts
+        // to kcdata cell-number space at runtime.
         assert_eq!(
             visited_rules,
             vec![
-                (55, String::new(), 13, 15, true, vec![12]),
-                (55, String::new(), 23, 15, true, vec![12]),
+                (45, String::new(), 8, 15, true, vec![3]),
+                (55, String::new(), 7, 17, true, vec![8]),
+                (55, String::new(), 8, 17, true, vec![7]),
+                (74, String::new(), 7, 8, true, vec![3]),
             ]
         );
     }
