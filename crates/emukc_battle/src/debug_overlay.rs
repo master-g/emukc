@@ -122,6 +122,7 @@ pub fn apply_day_debug(
     override_day_packet(&mut sim.packet, &derived);
     override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
     override_outcome(&mut sim.outcome, &sim.friendly, &sim.enemy);
+    recompute_midnight(&mut sim.outcome, &mut sim.packet, &sim.friendly, &sim.enemy);
 
     sim
 }
@@ -148,6 +149,22 @@ pub fn apply_night_debug(
 fn override_day_packet(packet: &mut BattlePacket, derived: &DerivedState) {
     packet.friendly_nowhps = derived.friendly_hp.clone();
     packet.enemy_nowhps = derived.enemy_hp.clone();
+}
+
+/// After debug transforms, recompute `can_midnight` via conjunction:
+/// the original value already encodes the `battle_type` gate; transforms
+/// can only reduce the alive set on the gating side.
+fn recompute_midnight(
+    outcome: &mut BattleOutcome,
+    packet: &mut BattlePacket,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+) {
+    let new_can_midnight = outcome.can_midnight
+        && crate::targeting::any_alive(friendly)
+        && crate::targeting::any_alive(enemy);
+    outcome.can_midnight = new_can_midnight;
+    packet.midnight_flag = i64::from(new_can_midnight);
 }
 
 fn override_night_packet(packet: &mut crate::NightBattlePacket, derived: &DerivedState) {
@@ -347,5 +364,44 @@ mod tests {
         let result = apply_day_debug(sim, true, true);
         assert_eq!(result.friendly[0].hp(), 30, "god_mode restores friendly");
         assert_eq!(result.enemy[0].hp(), 0, "one_hit_kill sinks enemy");
+    }
+
+    #[test]
+    fn one_hit_kill_clears_midnight_flag() {
+        // Battle originally had can_midnight=true, midnight_flag=1.
+        // one_hit_kill sinks all enemies → no midnight possible.
+        let sim = BattleSimulation {
+            friendly: vec![make_ship(30, 40, true)],
+            enemy: vec![make_ship(30, 40, false)],
+            packet: BattlePacket {
+                formation: [1, 1, 1],
+                friendly_nowhps: vec![30],
+                enemy_nowhps: vec![30],
+                smoke_type: 0,
+                balloon_cell: 0,
+                atoll_cell: 0,
+                midnight_flag: 1,
+                search: [1, 1],
+                stage_flag: [0, 0, 0],
+                kouku: None,
+                opening_taisen_flag: 0,
+                opening_taisen: None,
+                opening_flag: 0,
+                opening_attack: None,
+                hourai_flag: [0, 0, 0, 0],
+                hougeki1: None,
+                hougeki2: None,
+                hougeki3: None,
+                raigeki: None,
+            },
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::D,
+                mvp: 0,
+                can_midnight: true,
+            },
+        };
+        let result = apply_day_debug(sim, false, true);
+        assert!(!result.outcome.can_midnight, "one_hit_kill clears can_midnight");
+        assert_eq!(result.packet.midnight_flag, 0, "midnight_flag is 0");
     }
 }
