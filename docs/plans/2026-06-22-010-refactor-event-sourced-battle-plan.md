@@ -1,6 +1,6 @@
 ---
 title: "refactor: Owned-pass battle simulation with event transforms"
-status: active
+status: completed
 type: refactor
 created: 2026-06-22
 sequence: 010
@@ -10,6 +10,13 @@ origin: docs/brainstorms/2026-06-22-event-sourced-battle-requirements.md
 # refactor: Owned-pass battle simulation with event transforms
 
 ## Summary
+
+> **Status reconciliation (2026-06-23):** The owned-pass rewrite (original U2:
+> FleetState, U5: phase event emitters, U6: packet builder) remains deferred.
+> Debug behavior was delivered via the **bridge** approach — a post-simulation
+> `debug_overlay` module that derives events from HP diffs, applies transforms,
+> and overrides packets. See
+> `docs/solutions/architecture-patterns/debug-overlay-bridge.md`.
 
 Refactor `crates/emukc_battle/` from `&mut BattleState` to owned-pass architecture. Phase functions become `fn(state: FleetState, rng) -> (FleetState, Vec<BattleEvent>)` — externally pure (no `&mut` in signatures), internally tracking HP for correct intra-phase targeting. Events carry resolved damage (including RNG-consumed proportional damage). A pure reducer derives final state from events. Debug features (god_mode, one_hit_kill) are event-stream transforms applied between simulation and reduction.
 
