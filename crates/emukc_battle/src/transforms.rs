@@ -12,7 +12,9 @@ use std::collections::BTreeSet;
 use crate::event::{BattleEvent, EventLog, ShipRef, Side};
 
 /// God mode: zeroes all damage to friendly ships by filtering out their
-/// `Damage` and `ProportionalDamage` events. Friendly ships take zero HP loss.
+/// `Damage`, `ProportionalDamage`, **and `Sunk`** events. Friendly ships
+/// take zero HP loss and any friendly that sank during simulation is
+/// revived to its entry HP.
 ///
 /// Note: targeting, torpedo eligibility, and other HP-gated checks still run
 /// on real HP during simulation. This means friendly ships may enter chūha
@@ -30,6 +32,8 @@ pub fn god_mode_transform(events: EventLog) -> EventLog {
                 } | BattleEvent::ProportionalDamage {
                     target: ShipRef(Side::Friendly, _),
                     ..
+                } | BattleEvent::Sunk {
+                    target: ShipRef(Side::Friendly, _),
                 }
             )
         })
@@ -142,6 +146,44 @@ mod tests {
         ];
         let result = god_mode_transform(events);
         assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn god_mode_filters_friendly_sunk() {
+        let events = vec![sunk(ShipRef(Side::Friendly, 0)), sunk(ShipRef(Side::Enemy, 0))];
+        let result = god_mode_transform(events);
+        // Friendly Sunk dropped, enemy Sunk preserved.
+        assert_eq!(result.len(), 1);
+        assert!(matches!(
+            &result[0],
+            BattleEvent::Sunk {
+                target: ShipRef(Side::Enemy, 0)
+            }
+        ));
+    }
+
+    #[test]
+    fn god_mode_revives_sunk_friendly_in_compose() {
+        // Friendly sunk + enemy alive → god_mode revives friendly,
+        // one_hit_kill sinks enemy.
+        let events = vec![damage(ShipRef(Side::Friendly, 0), 50), sunk(ShipRef(Side::Friendly, 0))];
+        let result = one_hit_kill_transform(god_mode_transform(events), 1);
+        // No friendly events survive god_mode. Enemy 0 gets synthesized Sunk.
+        assert!(result.iter().all(|e| !matches!(
+            e,
+            BattleEvent::Damage {
+                target: ShipRef(Side::Friendly, _),
+                ..
+            } | BattleEvent::Sunk {
+                target: ShipRef(Side::Friendly, _)
+            }
+        )));
+        assert!(result.iter().any(|e| matches!(
+            e,
+            BattleEvent::Sunk {
+                target: ShipRef(Side::Enemy, 0)
+            }
+        )));
     }
 
     #[test]
