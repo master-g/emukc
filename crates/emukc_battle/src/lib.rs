@@ -6,6 +6,8 @@
 /// Internal battle configuration.
 mod config;
 mod damage;
+/// Event types for the owned-pass architecture.
+pub mod event;
 /// Internal battle documentation.
 mod outcome;
 /// Random number generation trait and implementations for battle simulation.
