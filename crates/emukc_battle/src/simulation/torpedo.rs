@@ -204,8 +204,6 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 friend_ships: vec![dd, clt],
                 enemy_ships: vec![enemy],
-                god_mode: false,
-                one_hit_kill: false,
             },
             &mut crate::random::SeededRng::new(1),
         );

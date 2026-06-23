@@ -40,25 +40,15 @@ impl BattleState {
     /// Build initial state from a battle context.
     pub fn from_context(context: BattleContext) -> Self {
         let is_sortie = context.is_sortie;
-        let god_mode = context.god_mode;
-        let one_hit_kill = context.one_hit_kill;
         let friendly = context
             .friend_ships
             .into_iter()
-            .map(|s| {
-                let mut ship = BattleRuntimeShip::new(s, true, is_sortie);
-                ship.set_debug_flags(god_mode, false);
-                ship
-            })
+            .map(|s| BattleRuntimeShip::new(s, true, is_sortie))
             .collect::<Vec<_>>();
         let enemy = context
             .enemy_ships
             .into_iter()
-            .map(|s| {
-                let mut ship = BattleRuntimeShip::new(s, false, is_sortie);
-                ship.set_debug_flags(false, one_hit_kill);
-                ship
-            })
+            .map(|s| BattleRuntimeShip::new(s, false, is_sortie))
             .collect::<Vec<_>>();
 
         Self {

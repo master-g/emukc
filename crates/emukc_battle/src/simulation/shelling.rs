@@ -254,8 +254,6 @@ mod tests {
         let simulation = crate::simulation::simulate_day(
             &codex,
             BattleContext {
-                god_mode: false,
-                one_hit_kill: false,
                 battle_type: BattleType::Normal,
                 is_sortie: false,
                 friendly_formation_id: 1,
