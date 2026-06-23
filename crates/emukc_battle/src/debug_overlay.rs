@@ -80,6 +80,29 @@ fn initial_state_from_ships(
     )
 }
 
+/// Run the shared derive → transform → reduce pipeline.
+///
+/// Returns the initial state (for reference) and the derived state
+/// after applying debug transforms.
+fn run_debug_transforms(
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+    god_mode: bool,
+    one_hit_kill: bool,
+) -> DerivedState {
+    let initial = initial_state_from_ships(friendly, enemy);
+    let mut events = derive_events_from_ships(friendly, enemy);
+
+    if god_mode {
+        events = god_mode_transform(events);
+    }
+    if one_hit_kill {
+        events = one_hit_kill_transform(events, enemy.len());
+    }
+
+    reduce(&events, &initial)
+}
+
 /// Apply debug transforms to a day battle simulation result.
 ///
 /// If neither flag is set, the simulation is returned unchanged.
@@ -94,18 +117,7 @@ pub fn apply_day_debug(
         return sim;
     }
 
-    let initial = initial_state_from_ships(&sim.friendly, &sim.enemy);
-    let events = derive_events_from_ships(&sim.friendly, &sim.enemy);
-
-    let mut events = events;
-    if god_mode {
-        events = god_mode_transform(events);
-    }
-    if one_hit_kill {
-        events = one_hit_kill_transform(events, sim.enemy.len());
-    }
-
-    let derived = reduce(&events, &initial);
+    let derived = run_debug_transforms(&sim.friendly, &sim.enemy, god_mode, one_hit_kill);
 
     override_day_packet(&mut sim.packet, &derived);
     override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
@@ -124,18 +136,7 @@ pub fn apply_night_debug(
         return sim;
     }
 
-    let initial = initial_state_from_ships(&sim.friendly, &sim.enemy);
-    let events = derive_events_from_ships(&sim.friendly, &sim.enemy);
-
-    let mut events = events;
-    if god_mode {
-        events = god_mode_transform(events);
-    }
-    if one_hit_kill {
-        events = one_hit_kill_transform(events, sim.enemy.len());
-    }
-
-    let derived = reduce(&events, &initial);
+    let derived = run_debug_transforms(&sim.friendly, &sim.enemy, god_mode, one_hit_kill);
 
     override_night_packet(&mut sim.packet, &derived);
     override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
