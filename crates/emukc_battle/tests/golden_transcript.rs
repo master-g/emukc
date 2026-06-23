@@ -116,8 +116,6 @@ fn day_context(codex: &Codex) -> BattleContext {
         engagement: EngagementType::SameCourse,
         friend_ships: vec![attacker(codex), attacker(codex)],
         enemy_ships: vec![target(codex), target(codex)],
-        god_mode: false,
-        one_hit_kill: false,
     }
 }
 
