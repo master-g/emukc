@@ -2,7 +2,7 @@
 
 use emukc_battle::{
     AirState, BattleContext, BattleOutcome, BattleRng, BattleType, EngagementType,
-    NightBattleInput, simulate_day, simulate_night,
+    NightBattleInput, apply_day_debug, apply_night_debug, simulate_day, simulate_night,
 };
 use emukc_model::codex::Codex;
 
@@ -29,18 +29,22 @@ pub fn run_day_battle(
         input.friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let enemy_nowhps = input.enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
     let enemy_maxhps = input.enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
-    let simulation = simulate_day(
-        codex,
-        BattleContext {
-            battle_type: BattleType::Normal,
-            is_sortie: false,
-            friendly_formation_id: input.formation_id,
-            enemy_formation_id: 1,
-            engagement: EngagementType::SameCourse,
-            friend_ships: input.friend_ships,
-            enemy_ships: input.enemy_ships,
-        },
-        rng,
+    let simulation = apply_day_debug(
+        simulate_day(
+            codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: false,
+                friendly_formation_id: input.formation_id,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: input.friend_ships,
+                enemy_ships: input.enemy_ships,
+            },
+            rng,
+        ),
+        codex.game_cfg.god_mode,
+        codex.game_cfg.one_hit_kill,
     );
 
     let base_exp = calculate_base_exp(&input.rival);
@@ -199,17 +203,21 @@ pub fn run_night_battle(
         practice_repo.insert_pending_battle(profile_id, session);
         return None;
     };
-    let simulation = simulate_night(
-        codex,
-        NightBattleInput {
-            friendly: session.friendly.clone(),
-            enemy: session.enemy.clone(),
-            friendly_formation_id: session.formation[0],
-            enemy_formation_id: session.formation[1],
-            engagement,
-            air_state: session.air_state,
-        },
-        rng,
+    let simulation = apply_night_debug(
+        simulate_night(
+            codex,
+            NightBattleInput {
+                friendly: session.friendly.clone(),
+                enemy: session.enemy.clone(),
+                friendly_formation_id: session.formation[0],
+                enemy_formation_id: session.formation[1],
+                engagement,
+                air_state: session.air_state,
+            },
+            rng,
+        ),
+        codex.game_cfg.god_mode,
+        codex.game_cfg.one_hit_kill,
     );
     session.friendly = simulation.friendly.clone();
     session.enemy = simulation.enemy.clone();

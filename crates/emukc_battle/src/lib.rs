@@ -6,6 +6,8 @@
 /// Internal battle configuration.
 mod config;
 mod damage;
+/// Debug overlay: applies event transforms to simulation results.
+pub mod debug_overlay;
 /// Event types for the owned-pass architecture.
 pub mod event;
 /// Internal battle documentation.
@@ -40,6 +42,8 @@ pub use random::BattleRng;
 
 // Public API — utilities
 pub use damage::apply_cap;
+// Public API — debug transforms
+pub use debug_overlay::{apply_day_debug, apply_night_debug};
 pub use outcome::{calculate_mvp, calculate_win_rank};
 pub use targeting::any_alive;
 

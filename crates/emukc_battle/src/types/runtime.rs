@@ -65,6 +65,12 @@ impl BattleRuntimeShip {
         self.current_hp <= 0
     }
 
+    /// Override current HP for debug transforms. Only used by
+    /// [`debug_overlay`](crate::debug_overlay) after applying event transforms.
+    pub(crate) fn set_hp_for_debug(&mut self, hp: i64) {
+        self.current_hp = hp.max(0);
+    }
+
     /// Apply damage with sinking protection (轟沈ストッパー).
     ///
     /// In real `KanColle`:
