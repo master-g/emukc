@@ -1,17 +1,15 @@
 //! Pure reducer: derives final battle state from an event log.
 //!
-//! Processes events sequentially to compute final HP, sunk status, and
-//! per-ship damage dealt. No RNG — all RNG-dependent values (including
-//! proportional damage amounts) are carried in the events themselves.
+//! Processes events sequentially to compute final HP and sunk status.
+//! No RNG — all RNG-dependent values (including proportional damage
+//! amounts) are carried in the events themselves.
 //!
 //! The reducer exists to support [debug transforms](crate::transforms):
 //! transforms modify the event stream, then the reducer derives the
 //! transformed result. Without transforms, the primary simulation state
 //! already tracks HP — the reducer is for the transform-applied path.
 
-use std::collections::BTreeMap;
-
-use crate::event::{BattleEvent, ShipRef, Side};
+use crate::event::{BattleEvent, Side};
 
 /// Initial HP values for each ship, captured at battle start.
 #[derive(Debug, Clone)]
@@ -43,8 +41,6 @@ pub struct DerivedState {
     pub friendly_sunk: Vec<bool>,
     /// Whether each enemy ship is sunk.
     pub enemy_sunk: Vec<bool>,
-    /// Total damage dealt by each ship (keyed by `ShipRef` as `"F0"`, `"E1"`, etc.).
-    pub damage_dealt: BTreeMap<String, i64>,
 }
 
 impl DerivedState {
@@ -75,16 +71,10 @@ pub fn reduce(events: &[BattleEvent], initial: &InitialState) -> DerivedState {
 
     let mut hp: Vec<Vec<i64>> = vec![initial.friendly_hp.clone(), initial.enemy_hp.clone()];
     let mut sunk: Vec<Vec<bool>> = vec![vec![false; friendly_count], vec![false; enemy_count]];
-    let mut damage_dealt: BTreeMap<String, i64> = BTreeMap::new();
 
     let side_idx = |side: Side| match side {
         Side::Friendly => 0,
         Side::Enemy => 1,
-    };
-
-    let dmg_key = |ship: &ShipRef| match ship.side() {
-        Side::Friendly => format!("F{}", ship.index()),
-        Side::Enemy => format!("E{}", ship.index()),
     };
 
     for event in events {
@@ -134,20 +124,6 @@ pub fn reduce(events: &[BattleEvent], initial: &InitialState) -> DerivedState {
                     }
                 }
             }
-
-            BattleEvent::Targeted {
-                attacker,
-                target,
-                ..
-            } => {
-                // Accumulate damage dealt by attacker (for MVP calculation).
-                // The damage is recorded in the corresponding Damage event;
-                // here we just note the attacker-target pair.
-                let _ = target; // target not needed for damage_dealt accumulation
-                damage_dealt.entry(dmg_key(attacker)).or_insert(0);
-            }
-
-            _ => {}
         }
     }
 
@@ -156,7 +132,6 @@ pub fn reduce(events: &[BattleEvent], initial: &InitialState) -> DerivedState {
         enemy_hp: hp[1].clone(),
         friendly_sunk: sunk[0].clone(),
         enemy_sunk: sunk[1].clone(),
-        damage_dealt,
     }
 }
 

@@ -136,15 +136,15 @@ mod tests {
     }
 
     #[test]
-    fn god_mode_preserves_non_damage_events() {
+    fn god_mode_preserves_enemy_events() {
+        // Enemy sunk survives, enemy damage survives.
         let events = vec![
             sunk(ShipRef(Side::Enemy, 0)),
-            BattleEvent::PhaseStart {
-                phase: Phase::Kouku,
-            },
+            damage(ShipRef(Side::Enemy, 1), 10),
             damage(ShipRef(Side::Friendly, 0), 30),
         ];
         let result = god_mode_transform(events);
+        // Friendly damage filtered; enemy sunk + enemy damage survive.
         assert_eq!(result.len(), 2);
     }
 
