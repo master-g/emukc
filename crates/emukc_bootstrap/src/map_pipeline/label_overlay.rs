@@ -113,7 +113,11 @@ pub fn merge_label_overlay(
         for &cell_no in cell_nos {
             kcdata_variant.enemy_fleets.entry(cell_no).or_insert_with(|| EnemyFleetDefinition {
                 cell_no,
-                battle_kind: 1,
+                battle_kind: if node.is_boss {
+                    5
+                } else {
+                    1
+                },
                 formations: collect_formations(&node.compositions),
                 compositions: node.compositions.clone(),
             });
@@ -491,6 +495,11 @@ mod tests {
         assert_eq!(dropped, 0);
         assert!(target.enemy_fleets.contains_key(&5));
         assert_eq!(target.enemy_fleets.get(&5).unwrap().cell_no, 5);
+        assert_eq!(
+            target.enemy_fleets.get(&5).unwrap().battle_kind,
+            5,
+            "boss fleet should have battle_kind=5"
+        );
     }
 
     #[test]
