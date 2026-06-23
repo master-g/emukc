@@ -1,0 +1,175 @@
+BattlePacket {
+    formation: [
+        1,
+        1,
+        1,
+    ],
+    friendly_nowhps: [
+        46,
+        46,
+    ],
+    enemy_nowhps: [
+        0,
+        0,
+    ],
+    smoke_type: 0,
+    balloon_cell: 0,
+    atoll_cell: 0,
+    midnight_flag: 0,
+    search: [
+        1,
+        1,
+    ],
+    stage_flag: [
+        1,
+        1,
+        1,
+    ],
+    kouku: Some(
+        BattleKouku {
+            api_plane_from: [
+                [],
+                [
+                    1,
+                    2,
+                ],
+            ],
+            api_stage1: BattleKoukuStage1 {
+                api_f_count: 0,
+                api_f_lostcount: 0,
+                api_e_count: 46,
+                api_e_lostcount: 1,
+                api_disp_seiku: 4,
+                api_touch_plane: [
+                    -1,
+                    -1,
+                ],
+            },
+            api_stage2: BattleKoukuStage2 {
+                api_f_count: 0,
+                api_f_lostcount: 0,
+                api_e_count: 45,
+                api_e_lostcount: 5,
+            },
+            api_stage3: BattleKoukuStage3 {
+                api_frai: [
+                    -1,
+                    -1,
+                ],
+                api_erai: [
+                    -1,
+                    -1,
+                ],
+                api_fbak: [
+                    -1,
+                    -1,
+                ],
+                api_ebak: [
+                    1,
+                    0,
+                ],
+                api_frai_flag: [
+                    0,
+                    0,
+                ],
+                api_erai_flag: [
+                    0,
+                    0,
+                ],
+                api_fbak_flag: [
+                    1,
+                    1,
+                ],
+                api_ebak_flag: [
+                    0,
+                    0,
+                ],
+                api_fcl_flag: [
+                    1,
+                    1,
+                ],
+                api_ecl_flag: [
+                    0,
+                    0,
+                ],
+                api_fdam: [
+                    14,
+                    14,
+                ],
+                api_edam: [
+                    0,
+                    0,
+                ],
+                api_f_sp_list: [
+                    None,
+                    None,
+                ],
+                api_e_sp_list: [
+                    None,
+                    None,
+                ],
+            },
+        },
+    ),
+    opening_taisen_flag: 0,
+    opening_taisen: None,
+    opening_flag: 0,
+    opening_attack: None,
+    hourai_flag: [
+        1,
+        0,
+        0,
+        0,
+    ],
+    hougeki1: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+                0,
+            ],
+            api_at_list: [
+                0,
+                1,
+            ],
+            api_at_type: [
+                0,
+                0,
+            ],
+            api_df_list: [
+                [
+                    0,
+                ],
+                [
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    7,
+                ],
+                [
+                    7,
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+            ],
+            api_damage: [
+                [
+                    118,
+                ],
+                [
+                    116,
+                ],
+            ],
+        },
+    ),
+    hougeki2: None,
+    hougeki3: None,
+    raigeki: None,
+}

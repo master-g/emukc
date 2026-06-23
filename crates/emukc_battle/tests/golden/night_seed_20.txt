@@ -1,0 +1,91 @@
+NightBattlePacket {
+    formation: [
+        1,
+        1,
+        1,
+    ],
+    friendly_nowhps: [
+        60,
+        60,
+    ],
+    friendly_maxhps: [
+        60,
+        60,
+    ],
+    enemy_nowhps: [
+        40,
+        40,
+    ],
+    enemy_maxhps: [
+        40,
+        40,
+    ],
+    touch_plane: [
+        -1,
+        -1,
+    ],
+    flare_pos: [
+        -1,
+        -1,
+    ],
+    hougeki: Some(
+        BattleNightHougeki {
+            api_at_eflag: [
+                0,
+                0,
+            ],
+            api_at_list: [
+                0,
+                1,
+            ],
+            api_n_mother_list: [
+                0,
+                0,
+            ],
+            api_df_list: [
+                [
+                    0,
+                    0,
+                ],
+                [
+                    1,
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    7,
+                    11,
+                ],
+                [
+                    7,
+                    11,
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                    1,
+                ],
+                [
+                    1,
+                    1,
+                ],
+            ],
+            api_sp_list: [
+                1,
+                1,
+            ],
+            api_damage: [
+                [
+                    284,
+                    0,
+                ],
+                [
+                    285,
+                    0,
+                ],
+            ],
+        },
+    ),
+}
