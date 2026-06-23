@@ -16,7 +16,10 @@ use crate::BattleRuntimeShip;
 use crate::event::{BattleEvent, EventLog, Phase, ShipRef, Side};
 use crate::reducer::{DerivedState, InitialState, reduce};
 use crate::transforms::{god_mode_transform, one_hit_kill_transform};
-use crate::types::{BattleOutcome, BattlePacket, BattleSimulation, NightBattleSimulation};
+use crate::types::{
+    BattleHougeki, BattleNightHougeki, BattleOutcome, BattlePacket, BattleSimulation,
+    NightBattleSimulation,
+};
 
 /// Derive a damage event log from HP diff between entry and final state.
 ///
@@ -121,6 +124,7 @@ pub fn apply_day_debug(
 
     override_day_packet(&mut sim.packet, &derived);
     override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
+    rebuild_day_packet_arrays(&mut sim.packet, god_mode, one_hit_kill, &sim.friendly, &sim.enemy);
     override_outcome(&mut sim.outcome, &sim.friendly, &sim.enemy);
     recompute_midnight(&mut sim.outcome, &mut sim.packet, &sim.friendly, &sim.enemy);
 
@@ -141,6 +145,7 @@ pub fn apply_night_debug(
 
     override_night_packet(&mut sim.packet, &derived);
     override_ships(&mut sim.friendly, &mut sim.enemy, &derived);
+    rebuild_night_packet_arrays(&mut sim.packet, god_mode, one_hit_kill, &sim.friendly, &sim.enemy);
     override_outcome(&mut sim.outcome, &sim.friendly, &sim.enemy);
 
     sim
@@ -149,6 +154,212 @@ pub fn apply_night_debug(
 fn override_day_packet(packet: &mut BattlePacket, derived: &DerivedState) {
     packet.friendly_nowhps = derived.friendly_hp.clone();
     packet.enemy_nowhps = derived.enemy_hp.clone();
+}
+
+/// Zero all friendly-directed damage in a [`BattleHougeki`] when `god_mode` is active.
+/// `api_at_eflag[i]==1` means enemy attacking → friendly defender.
+fn zero_friendly_hougeki_damage(hougeki: &mut BattleHougeki) {
+    for (i, &flag) in hougeki.api_at_eflag.iter().enumerate() {
+        if flag == 1 {
+            hougeki.api_damage[i] = vec![0; hougeki.api_damage[i].len()];
+        }
+    }
+}
+
+/// Zero all friendly-directed damage in a `BattleNightHougeki`.
+fn zero_friendly_night_hougeki_damage(hougeki: &mut BattleNightHougeki) {
+    for (i, &flag) in hougeki.api_at_eflag.iter().enumerate() {
+        if flag == 1 {
+            hougeki.api_damage[i] = vec![0; hougeki.api_damage[i].len()];
+        }
+    }
+}
+
+/// Rebuild day packet per-phase damage arrays for consistency with overridden HP.
+///
+/// - **`god_mode`**: zero every friendly-directed damage entry so cumulative
+///   friendly damage is 0, matching `friendly_nowhps == entry_hp`.
+/// - **`one_hit_kill`**: synthesize a finishing volley in `hougeki3` dealing
+///   exactly each still-alive enemy's remaining HP.
+fn rebuild_day_packet_arrays(
+    packet: &mut BattlePacket,
+    god_mode: bool,
+    one_hit_kill: bool,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+) {
+    if god_mode {
+        // Zero friendly damage in aerial combat.
+        if let Some(kouku) = &mut packet.kouku {
+            kouku.api_stage3.api_fdam.fill(0);
+        }
+        // Zero friendly damage in opening torpedo.
+        if let Some(opening) = &mut packet.opening_attack {
+            opening.api_fdam.fill(0);
+        }
+        // Zero friendly damage in closing torpedo.
+        if let Some(raigeki) = &mut packet.raigeki {
+            raigeki.api_fdam.fill(0);
+        }
+        // Zero friendly damage in all hougeki phases.
+        if let Some(h) = &mut packet.opening_taisen {
+            zero_friendly_hougeki_damage(h);
+        }
+        if let Some(h) = &mut packet.hougeki1 {
+            zero_friendly_hougeki_damage(h);
+        }
+        if let Some(h) = &mut packet.hougeki2 {
+            zero_friendly_hougeki_damage(h);
+        }
+        if let Some(h) = &mut packet.hougeki3 {
+            zero_friendly_hougeki_damage(h);
+        }
+    }
+
+    if one_hit_kill {
+        synthesize_day_finishing_volley(packet, friendly, enemy);
+    }
+}
+
+/// Synthesize a `hougeki3` finishing volley that deals exactly each
+/// still-alive enemy's remaining HP. This ensures cumulative enemy
+/// damage reaches each enemy's entry HP, consistent with `enemy_nowhps==0`.
+fn synthesize_day_finishing_volley(
+    packet: &mut BattlePacket,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+) {
+    // Find first alive friendly as attacker (flagship is always alive in sortie
+    // due to sinking protection; for practice, find any alive friendly).
+    let attacker_idx = friendly.iter().position(BattleRuntimeShip::is_alive);
+    let Some(attacker_idx) = attacker_idx else {
+        return; // All friendlies dead — skip.
+    };
+
+    let mut at_eflag = Vec::new();
+    let mut at_list = Vec::new();
+    let mut at_type = Vec::new();
+    let mut df_list = Vec::new();
+    let mut si_list = Vec::new();
+    let mut cl_list = Vec::new();
+    let mut damage = Vec::new();
+
+    for (i, ship) in enemy.iter().enumerate() {
+        if ship.is_alive() {
+            let remaining_hp = ship.hp();
+            at_eflag.push(0); // friendly attacking
+            at_list.push(attacker_idx as i64);
+            at_type.push(0);
+            df_list.push(vec![i as i64]);
+            si_list.push(vec![-1]);
+            cl_list.push(vec![1]);
+            damage.push(vec![remaining_hp]);
+        }
+    }
+
+    if at_eflag.is_empty() {
+        return;
+    }
+
+    // Merge into existing hougeki3 if present, otherwise create new.
+    if let Some(h3) = &mut packet.hougeki3 {
+        h3.api_at_eflag.extend(at_eflag);
+        h3.api_at_list.extend(at_list);
+        h3.api_at_type.extend(at_type);
+        h3.api_df_list.extend(df_list);
+        h3.api_si_list.extend(si_list);
+        h3.api_cl_list.extend(cl_list);
+        h3.api_damage.extend(damage);
+    } else {
+        packet.hougeki3 = Some(BattleHougeki {
+            api_at_eflag: at_eflag,
+            api_at_list: at_list,
+            api_at_type: at_type,
+            api_df_list: df_list,
+            api_si_list: si_list,
+            api_cl_list: cl_list,
+            api_damage: damage,
+        });
+        packet.hourai_flag[2] = 1;
+    }
+}
+
+/// Rebuild night packet per-phase damage arrays.
+fn rebuild_night_packet_arrays(
+    packet: &mut crate::NightBattlePacket,
+    god_mode: bool,
+    one_hit_kill: bool,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+) {
+    if god_mode && let Some(h) = &mut packet.hougeki {
+        zero_friendly_night_hougeki_damage(h);
+    }
+
+    if one_hit_kill {
+        synthesize_night_finishing_volley(packet, friendly, enemy);
+    }
+}
+
+/// Synthesize finishing attacks in the night hougeki.
+fn synthesize_night_finishing_volley(
+    packet: &mut crate::NightBattlePacket,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+) {
+    let attacker_idx = friendly.iter().position(BattleRuntimeShip::is_alive);
+    let Some(attacker_idx) = attacker_idx else {
+        return;
+    };
+
+    let mut at_eflag = Vec::new();
+    let mut at_list = Vec::new();
+    let mut n_mother_list = Vec::new();
+    let mut df_list = Vec::new();
+    let mut si_list = Vec::new();
+    let mut cl_list = Vec::new();
+    let mut sp_list = Vec::new();
+    let mut damage = Vec::new();
+
+    for (i, ship) in enemy.iter().enumerate() {
+        if ship.is_alive() {
+            let remaining_hp = ship.hp();
+            at_eflag.push(0);
+            at_list.push(attacker_idx as i64);
+            n_mother_list.push(0);
+            df_list.push(vec![i as i64]);
+            si_list.push(vec![-1]);
+            cl_list.push(vec![1]);
+            sp_list.push(0);
+            damage.push(vec![remaining_hp]);
+        }
+    }
+
+    if at_eflag.is_empty() {
+        return;
+    }
+
+    if let Some(h) = &mut packet.hougeki {
+        h.api_at_eflag.extend(at_eflag);
+        h.api_at_list.extend(at_list);
+        h.api_n_mother_list.extend(n_mother_list);
+        h.api_df_list.extend(df_list);
+        h.api_si_list.extend(si_list);
+        h.api_cl_list.extend(cl_list);
+        h.api_sp_list.extend(sp_list);
+        h.api_damage.extend(damage);
+    } else {
+        packet.hougeki = Some(BattleNightHougeki {
+            api_at_eflag: at_eflag,
+            api_at_list: at_list,
+            api_n_mother_list: n_mother_list,
+            api_df_list: df_list,
+            api_si_list: si_list,
+            api_cl_list: cl_list,
+            api_sp_list: sp_list,
+            api_damage: damage,
+        });
+    }
 }
 
 /// After debug transforms, recompute `can_midnight` via conjunction:
