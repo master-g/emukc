@@ -416,6 +416,129 @@ async fn sortie_sp_midnight_battle_runs_night_only() {
     clear_pending_sortie_runtime_state(store, profile_id);
 }
 
+#[tokio::test]
+async fn sortie_god_mode_keeps_friendly_at_full_hp_end_to_end() {
+    use crate::game::sortie_store::GLOBAL_SORTIE_STORE;
+    let store = &*GLOBAL_SORTIE_STORE;
+    store.clear();
+
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    codex.game_cfg.god_mode = true;
+    let profile_id = 770_001;
+
+    // A fragile flagship against a high-firepower enemy: sinking protection alone
+    // only prevents the kill, not the damage — so without god_mode the flagship
+    // would end below full HP. god_mode must restore it to full entry HP.
+    let friend = sample_ship(&codex, 1, 1);
+    let entry_hp = friend.ship.api_nowhp;
+    let mut enemy = sample_ship(&codex, 412, 99);
+    enemy.ship.api_karyoku[0] = 200;
+
+    let mut rng = ProductionRng;
+    let session = run_day_battle(
+        store,
+        &codex,
+        SortieBattleInput {
+            profile_id,
+            deck_id: 1,
+            map_id: 11,
+            cell_id: 1,
+            context: BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy],
+            },
+        },
+        &mut rng,
+    );
+
+    // god_mode invariant — holds under any RNG outcome.
+    assert_eq!(
+        session.friendly[0].hp(),
+        entry_hp,
+        "god_mode must restore the friendly to full entry HP end-to-end"
+    );
+    assert_eq!(session.packet.friendly_nowhps[0], entry_hp);
+
+    let _ = take_day_battle_result(store, profile_id);
+    store.clear();
+}
+
+#[tokio::test]
+async fn sortie_one_hit_kill_clears_enemies_and_rejects_night_battle() {
+    use crate::game::sortie_store::GLOBAL_SORTIE_STORE;
+    let store = &*GLOBAL_SORTIE_STORE;
+    store.clear();
+
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    codex.game_cfg.one_hit_kill = true;
+    let context = (new_mem_db().await.unwrap(), codex.clone());
+    let profile_id = 770_002;
+
+    // Tanky friendly + two tanky enemies with weak attack: a normal day battle
+    // leaves both sides alive, so a night battle would be offered. one_hit_kill
+    // must sink the enemies and force the night gate shut.
+    let mut friend = sample_ship(&codex, 79, 1);
+    friend.ship.api_soukou[0] = 200;
+    friend.ship.api_nowhp = 200;
+    friend.ship.api_maxhp = 200;
+
+    let mut enemy_a = sample_ship(&codex, 412, 99);
+    enemy_a.ship.api_karyoku[0] = 1;
+    enemy_a.ship.api_soukou[0] = 200;
+    enemy_a.ship.api_nowhp = 200;
+    enemy_a.ship.api_maxhp = 200;
+    let mut enemy_b = sample_ship(&codex, 412, 99);
+    enemy_b.ship.api_karyoku[0] = 1;
+    enemy_b.ship.api_soukou[0] = 200;
+    enemy_b.ship.api_nowhp = 200;
+    enemy_b.ship.api_maxhp = 200;
+
+    let mut rng = ProductionRng;
+    let session = run_day_battle(
+        store,
+        &codex,
+        SortieBattleInput {
+            profile_id,
+            deck_id: 1,
+            map_id: 11,
+            cell_id: 1,
+            context: BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend],
+                enemy_ships: vec![enemy_a, enemy_b],
+            },
+        },
+        &mut rng,
+    );
+
+    // one_hit_kill invariants — every enemy dead, midnight forced shut.
+    assert!(
+        session.packet.enemy_nowhps.iter().all(|&hp| hp == 0),
+        "one_hit_kill must sink every enemy"
+    );
+    assert!(!session.outcome.can_midnight, "one_hit_kill must clear can_midnight");
+    assert_eq!(session.packet.midnight_flag, 0);
+
+    // End-to-end: the night-battle request is rejected by the can_midnight gate.
+    let err = context.sortie_midnight_battle(profile_id).await.unwrap_err();
+    assert!(
+        matches!(err, crate::err::GameplayError::WrongType(_)),
+        "night battle must be rejected after one_hit_kill, got {err:?}"
+    );
+
+    let _ = take_day_battle_result(store, profile_id);
+    store.clear();
+}
+
 #[test]
 fn weighted_enemy_composition_selection_uses_weights() {
     let enemy_fleet = EnemyFleetDefinition {

@@ -267,6 +267,72 @@ mod tests {
     }
 
     #[test]
+    fn practice_one_hit_kill_clears_midnight_and_rejects_night_battle() {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        codex.game_cfg.one_hit_kill = true;
+        let store = PracticeStore::new();
+
+        // Both sides tanky with weak attack → a normal practice day battle leaves
+        // both alive and would offer a night battle. one_hit_kill must sink the
+        // enemy and shut the practice night gate.
+        let mut friend = sample_ship(&codex, 79, 1);
+        friend.ship.api_karyoku[0] = 1;
+        friend.ship.api_soukou[0] = 200;
+        friend.ship.api_nowhp = 200;
+        friend.ship.api_maxhp = 200;
+
+        let mut enemy = sample_ship(&codex, 412, 99);
+        enemy.ship.api_karyoku[0] = 1;
+        enemy.ship.api_soukou[0] = 200;
+        enemy.ship.api_nowhp = 200;
+        enemy.ship.api_maxhp = 200;
+
+        let input = PracticeBattleInput {
+            profile_id: 1,
+            deck_id: 1,
+            formation_id: 1,
+            enemy_id: 1,
+            member_lv: 120,
+            member_exp: 123456,
+            friend_ships: vec![friend],
+            enemy_ships: vec![enemy],
+            rival: Rival {
+                id: 1,
+                index: 1,
+                name: "Enemy".to_string(),
+                comment: String::new(),
+                level: 120,
+                rank: emukc_model::kc2::UserHQRank::MarshalAdmiral,
+                flag: emukc_model::profile::practice::RivalFlag::Gold,
+                status: emukc_model::profile::practice::RivalStatus::Untouched,
+                medals: 10,
+                details: emukc_model::profile::practice::RivalDetail {
+                    deck_name: "演習".to_string(),
+                    ..Default::default()
+                },
+            },
+        };
+
+        let mut rng = ProductionRng;
+        let (battle, _) = run_day_battle(&codex, input, &store, &mut rng).unwrap();
+
+        // one_hit_kill must clear the midnight flag end-to-end.
+        assert_eq!(battle.api_midnight_flag, 0, "one_hit_kill must clear practice midnight_flag");
+
+        // The stored session reflects the sunk enemy fleet and a cleared midnight gate.
+        let stored = store.get_pending_battle(1).unwrap();
+        assert!(
+            stored.enemy.iter().all(|e| e.hp() == 0),
+            "one_hit_kill must sink every practice enemy"
+        );
+        assert!(!stored.outcome.can_midnight, "session can_midnight must be cleared");
+
+        // The practice night gate must reject (returns None) and preserve the session.
+        let night = run_night_battle(&codex, 1, &store, &mut rng);
+        assert!(night.is_none(), "practice night gate must reject after one_hit_kill");
+    }
+
+    #[test]
     fn run_night_battle_preserves_session_when_midnight_not_allowed() {
         use emukc_battle::BattleOutcome;
         use emukc_model::kc2::KcSortieResultRank;
