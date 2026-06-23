@@ -32,6 +32,8 @@ pub fn run_day_battle(
     let simulation = simulate_day(
         codex,
         BattleContext {
+            god_mode: codex.game_cfg.god_mode,
+            one_hit_kill: codex.game_cfg.one_hit_kill,
             battle_type: BattleType::Normal,
             is_sortie: false,
             friendly_formation_id: input.formation_id,

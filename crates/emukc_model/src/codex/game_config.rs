@@ -80,6 +80,14 @@ pub struct GameConfig {
     /// Experience configuration.
     #[serde(default)]
     pub exp: ExpConfig,
+
+    /// God mode: friendly ships take zero damage. Debug only.
+    #[serde(default)]
+    pub god_mode: bool,
+
+    /// One hit kill: enemy ships are destroyed in a single hit. Debug only.
+    #[serde(default)]
+    pub one_hit_kill: bool,
 }
 
 #[cfg(test)]

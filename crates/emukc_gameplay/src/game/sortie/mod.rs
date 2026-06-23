@@ -883,6 +883,8 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 map_id: active.map_id,
                 cell_id: active.current_cell_id,
                 context: BattleContext {
+                    god_mode: codex.game_cfg.god_mode,
+                    one_hit_kill: codex.game_cfg.one_hit_kill,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: formation_id,
@@ -1088,6 +1090,8 @@ async fn sortie_battle_impl(
                     map_id: active.map_id,
                     cell_id: active.current_cell_id,
                     context: BattleContext {
+                        god_mode: codex.game_cfg.god_mode,
+                        one_hit_kill: codex.game_cfg.one_hit_kill,
                         battle_type,
                         is_sortie: true,
                         friendly_formation_id: formation_id,

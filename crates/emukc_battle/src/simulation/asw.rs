@@ -121,6 +121,8 @@ mod tests {
         enemy.ship.api_maxhp = 30;
 
         let context = BattleContext {
+            god_mode: false,
+            one_hit_kill: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,

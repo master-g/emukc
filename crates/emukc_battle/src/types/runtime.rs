@@ -34,6 +34,10 @@ pub struct BattleRuntimeShip {
     /// Sinking protection only applies during sorties.
     pub(crate) is_sortie: bool,
     pub married: bool,
+    /// God mode: friendly ships take zero damage. Debug only.
+    pub(crate) god_mode: bool,
+    /// One hit kill: enemy ships destroyed in a single hit. Debug only.
+    pub(crate) one_hit_kill: bool,
 }
 
 impl BattleRuntimeShip {
@@ -49,7 +53,16 @@ impl BattleRuntimeShip {
             is_friendly,
             is_sortie,
             married: input.married,
+            god_mode: false,
+            one_hit_kill: false,
         }
+    }
+
+    /// Set debug flags on this ship. Used by callers outside the battle crate
+    /// (e.g. `sp_midnight` path in gameplay) to propagate flags from `BattleContext`.
+    pub fn set_debug_flags(&mut self, god_mode: bool, one_hit_kill: bool) {
+        self.god_mode = god_mode;
+        self.one_hit_kill = one_hit_kill;
     }
 
     /// Current HP (read-only).
@@ -84,6 +97,18 @@ impl BattleRuntimeShip {
     ) -> (i64, i64) {
         if self.is_sunk() {
             return (0, 0);
+        }
+
+        // Debug: god mode — friendly ships take zero damage.
+        if self.is_friendly && self.god_mode {
+            return (raw_damage, 0);
+        }
+
+        // Debug: one hit kill — enemy ships are destroyed in a single hit.
+        if !self.is_friendly && self.one_hit_kill {
+            let effective = self.current_hp;
+            self.current_hp = 0;
+            return (raw_damage, effective);
         }
 
         let effective = raw_damage.min(self.current_hp);
@@ -139,6 +164,10 @@ pub struct BattleContext {
     pub engagement: EngagementType,
     pub friend_ships: Vec<BattleShipInput>,
     pub enemy_ships: Vec<BattleShipInput>,
+    /// God mode: friendly ships take zero damage.
+    pub god_mode: bool,
+    /// One hit kill: enemy ships destroyed in a single hit.
+    pub one_hit_kill: bool,
 }
 
 /// Input parameters for [`simulate_night`](crate::simulation::simulate_night).
