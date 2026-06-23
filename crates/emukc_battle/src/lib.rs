@@ -17,6 +17,8 @@ mod state;
 mod targeting;
 /// Deterministic text renderer for battle simulations.
 pub mod transcript;
+/// Debug event-stream transforms (god mode, one hit kill).
+pub mod transforms;
 #[expect(missing_docs)]
 mod types;
 
