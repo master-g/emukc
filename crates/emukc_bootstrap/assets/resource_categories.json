@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-01T12:53:18.830Z",
-  "scriptVersion": "6.2.9.1",
+  "generatedAt": "2026-06-23T04:01:25.410Z",
+  "scriptVersion": "6.3.0.0",
   "summary": {
     "shipTargetTypeCount": 36,
     "slotTargetTypeCount": 13,

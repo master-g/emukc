@@ -1,5 +1,5 @@
 {
-  "scriptVersion": "6.2.9.1",
+  "scriptVersion": "6.3.0.0",
   "summary": {
     "moduleCount": 197,
     "resourceRuleCount": 239,
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "id": "11039:getSlotitem:card:_0x50c835.id",
+      "id": "11039:getSlotitem:card:_0xa55297.id",
       "moduleId": "11039",
       "readableName": "MeltIntoSprite",
       "resourceKind": "slotitem",
@@ -78,7 +78,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x50c835.id"
+        "_0xa55297.id"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -106,7 +106,7 @@
       ]
     },
     {
-      "id": "12922:getSlotitem:airunit_banner:_0x19b5a1.mst_id",
+      "id": "12922:getSlotitem:airunit_banner:_0x12b3ec.mst_id",
       "moduleId": "12922",
       "readableName": "AirUnitPanel",
       "resourceKind": "slotitem",
@@ -114,7 +114,7 @@
       "targetType": "airunit_banner",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x19b5a1.mst_id"
+        "_0x12b3ec.mst_id"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -179,15 +179,15 @@
       ]
     },
     {
-      "id": "17172:getShip:full:_0x219710:_0x27208e",
+      "id": "17172:getShip:full:_0x4e8abb:_0x1c404a",
       "moduleId": "17172",
       "readableName": "PowerUpAnimation",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x219710",
-      "damagedSource": "_0x27208e",
+      "shipMstIdSource": "_0x4e8abb",
+      "damagedSource": "_0x1c404a",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -196,7 +196,7 @@
       ]
     },
     {
-      "id": "17265:getShip:card:ship_mstid:_0x1f488a",
+      "id": "17265:getShip:card:ship_mstid:_0x3a9372",
       "moduleId": "17265",
       "readableName": "KaizoAnimationMain",
       "resourceKind": "ship",
@@ -204,7 +204,7 @@
       "targetType": "card",
       "textureIds": [],
       "shipMstIdSource": "ship_mstid",
-      "damagedSource": "_0x1f488a",
+      "damagedSource": "_0x3a9372",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -214,7 +214,7 @@
       ]
     },
     {
-      "id": "17265:getShip:full:ship_mstid:_0x1f488a",
+      "id": "17265:getShip:full:ship_mstid:_0x3a9372",
       "moduleId": "17265",
       "readableName": "KaizoAnimationMain",
       "resourceKind": "ship",
@@ -222,7 +222,7 @@
       "targetType": "full",
       "textureIds": [],
       "shipMstIdSource": "ship_mstid",
-      "damagedSource": "_0x1f488a",
+      "damagedSource": "_0x3a9372",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -250,15 +250,15 @@
       ]
     },
     {
-      "id": "17733:getShip:card:_0x19cd79:_0x5e3022",
+      "id": "17733:getShip:card:_0x5f15cd:_0x53342d",
       "moduleId": "17733",
       "readableName": "ShipCard",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "card",
       "textureIds": [],
-      "shipMstIdSource": "_0x19cd79",
-      "damagedSource": "_0x5e3022",
+      "shipMstIdSource": "_0x5f15cd",
+      "damagedSource": "_0x53342d",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -294,15 +294,15 @@
       ]
     },
     {
-      "id": "18168:getShip:banner:_0x24e62b:_0x561019",
+      "id": "18168:getShip:banner:_0x1651e3:_0x26dcc7",
       "moduleId": "18168",
       "readableName": "RepairShipBanner",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x24e62b",
-      "damagedSource": "_0x561019",
+      "shipMstIdSource": "_0x1651e3",
+      "damagedSource": "_0x26dcc7",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -332,14 +332,14 @@
       ]
     },
     {
-      "id": "19281:getShip:reward_icon:_0x1649ab.mst_id:false",
+      "id": "19281:getShip:reward_icon:_0x51496a.mst_id:false",
       "moduleId": "19281",
       "readableName": "TaskEventRewardsSelect",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "reward_icon",
       "textureIds": [],
-      "shipMstIdSource": "_0x1649ab.mst_id",
+      "shipMstIdSource": "_0x51496a.mst_id",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -350,7 +350,7 @@
       ]
     },
     {
-      "id": "19281:getSlotitem:card:_0x1649ab.mst_id",
+      "id": "19281:getSlotitem:card:_0x51496a.mst_id",
       "moduleId": "19281",
       "readableName": "TaskEventRewardsSelect",
       "resourceKind": "slotitem",
@@ -358,7 +358,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1649ab.mst_id"
+        "_0x51496a.mst_id"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -385,7 +385,7 @@
       ]
     },
     {
-      "id": "20324:getSlotitem:card:_0x19f510",
+      "id": "20324:getSlotitem:card:_0x4d5e55",
       "moduleId": "20324",
       "readableName": "ModelChangeTask",
       "resourceKind": "slotitem",
@@ -393,7 +393,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x19f510"
+        "_0x4d5e55"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -403,7 +403,7 @@
       ]
     },
     {
-      "id": "20324:getSlotitem:card:_0x42be8d",
+      "id": "20324:getSlotitem:card:_0xb7258f",
       "moduleId": "20324",
       "readableName": "ModelChangeTask",
       "resourceKind": "slotitem",
@@ -411,7 +411,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x42be8d"
+        "_0xb7258f"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -440,14 +440,14 @@
       ]
     },
     {
-      "id": "20473:getShip:card:_0x12f8db:false",
+      "id": "20473:getShip:card:_0x3786ad:false",
       "moduleId": "20473",
       "readableName": "ShipDetailContent",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "card",
       "textureIds": [],
-      "shipMstIdSource": "_0x12f8db",
+      "shipMstIdSource": "_0x3786ad",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -457,14 +457,14 @@
       ]
     },
     {
-      "id": "20473:getShip:character_full:_0x12f8db:false",
+      "id": "20473:getShip:character_full:_0x3786ad:false",
       "moduleId": "20473",
       "readableName": "ShipDetailContent",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "character_full",
       "textureIds": [],
-      "shipMstIdSource": "_0x12f8db",
+      "shipMstIdSource": "_0x3786ad",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -474,14 +474,14 @@
       ]
     },
     {
-      "id": "20473:getShip:character_full:_0x12f8db:true",
+      "id": "20473:getShip:character_full:_0x3786ad:true",
       "moduleId": "20473",
       "readableName": "ShipDetailContent",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "character_full",
       "textureIds": [],
-      "shipMstIdSource": "_0x12f8db",
+      "shipMstIdSource": "_0x3786ad",
       "damagedSource": "true",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -491,14 +491,14 @@
       ]
     },
     {
-      "id": "20473:getShip:character_up:_0x12f8db:false",
+      "id": "20473:getShip:character_up:_0x3786ad:false",
       "moduleId": "20473",
       "readableName": "ShipDetailContent",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "character_up",
       "textureIds": [],
-      "shipMstIdSource": "_0x12f8db",
+      "shipMstIdSource": "_0x3786ad",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -508,14 +508,14 @@
       ]
     },
     {
-      "id": "20473:getShip:character_up:_0x12f8db:true",
+      "id": "20473:getShip:character_up:_0x3786ad:true",
       "moduleId": "20473",
       "readableName": "ShipDetailContent",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "character_up",
       "textureIds": [],
-      "shipMstIdSource": "_0x12f8db",
+      "shipMstIdSource": "_0x3786ad",
       "damagedSource": "true",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -667,14 +667,14 @@
       ]
     },
     {
-      "id": "21541:getShip:full:_0x48902c:true",
+      "id": "21541:getShip:full:_0x36368d:true",
       "moduleId": "21541",
       "readableName": "TaskEnemyDamageCutin",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x48902c",
+      "shipMstIdSource": "_0x36368d",
       "damagedSource": "true",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -707,7 +707,7 @@
       ]
     },
     {
-      "id": "26431:getSlotitem:btxt_flat:_0x2affc1",
+      "id": "26431:getSlotitem:btxt_flat:_0x11b392",
       "moduleId": "26431",
       "readableName": "CutinCanvasSpSRD",
       "resourceKind": "slotitem",
@@ -715,7 +715,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x2affc1"
+        "_0x11b392"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -725,7 +725,7 @@
       ]
     },
     {
-      "id": "26431:getSlotitem:btxt_flat:_0x32d700",
+      "id": "26431:getSlotitem:btxt_flat:_0x12e6a9",
       "moduleId": "26431",
       "readableName": "CutinCanvasSpSRD",
       "resourceKind": "slotitem",
@@ -733,7 +733,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x32d700"
+        "_0x12e6a9"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -743,7 +743,7 @@
       ]
     },
     {
-      "id": "26431:getSlotitem:btxt_flat:_0x5966f4",
+      "id": "26431:getSlotitem:btxt_flat:_0x4a5e85",
       "moduleId": "26431",
       "readableName": "CutinCanvasSpSRD",
       "resourceKind": "slotitem",
@@ -751,7 +751,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x5966f4"
+        "_0x4a5e85"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -761,15 +761,15 @@
       ]
     },
     {
-      "id": "27793:getShip:banner:_0x5f3b3b.mstID:_0x5f3b3b.isDamaged()",
+      "id": "27793:getShip:banner:_0x5b31ed.mstID:_0x5b31ed.isDamaged()",
       "moduleId": "27793",
       "readableName": "ShipDragging",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x5f3b3b.mstID",
-      "damagedSource": "_0x5f3b3b.isDamaged()",
+      "shipMstIdSource": "_0x5b31ed.mstID",
+      "damagedSource": "_0x5b31ed.isDamaged()",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -778,14 +778,14 @@
       ]
     },
     {
-      "id": "29168:getShip:card:_0x2bdcf1:false",
+      "id": "29168:getShip:card:_0x387f9e:false",
       "moduleId": "29168",
       "readableName": "TaskRewardDialogShip",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "card",
       "textureIds": [],
-      "shipMstIdSource": "_0x2bdcf1",
+      "shipMstIdSource": "_0x387f9e",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -834,14 +834,14 @@
       ]
     },
     {
-      "id": "3087:getShip:full:_0x512f21:false",
+      "id": "3087:getShip:full:_0x13c69a:false",
       "moduleId": "3087",
       "readableName": "BonusShip",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x512f21",
+      "shipMstIdSource": "_0x13c69a",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -851,7 +851,7 @@
       ]
     },
     {
-      "id": "31394:getShip:banner:this._mst_id:_0x3183da",
+      "id": "31394:getShip:banner:this._mst_id:_0x2fbf1a",
       "moduleId": "31394",
       "readableName": "AnchorageRepairShipBanner",
       "resourceKind": "ship",
@@ -859,7 +859,7 @@
       "targetType": "banner",
       "textureIds": [],
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x3183da",
+      "damagedSource": "_0x2fbf1a",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -908,7 +908,7 @@
       ]
     },
     {
-      "id": "31930:getSlotitem:card:_0x17f94d._0x3d7991",
+      "id": "31930:getSlotitem:card:_0x536c8f._0xaa857f",
       "moduleId": "31930",
       "readableName": "RewardAnimationMultiSlot",
       "resourceKind": "slotitem",
@@ -916,7 +916,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x17f94d._0x3d7991"
+        "_0x536c8f._0xaa857f"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -944,14 +944,14 @@
       ]
     },
     {
-      "id": "32611:getShip:full:_0x2e7a43:damaged",
+      "id": "32611:getShip:full:_0x225dd5:damaged",
       "moduleId": "32611",
       "readableName": "CutinDouble4",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x2e7a43",
+      "shipMstIdSource": "_0x225dd5",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1017,7 +1017,7 @@
       ]
     },
     {
-      "id": "34931:getSlotitem:card:_0x4cda6e",
+      "id": "34931:getSlotitem:card:_0x5bfd12",
       "moduleId": "34931",
       "readableName": "BonusSlot",
       "resourceKind": "slotitem",
@@ -1025,7 +1025,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x4cda6e"
+        "_0x5bfd12"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -1034,14 +1034,14 @@
       ]
     },
     {
-      "id": "35601:getShip:full:_0x486296[0]:false",
+      "id": "35601:getShip:full:_0x46930b[0]:false",
       "moduleId": "35601",
       "readableName": "SpKaizoIntro",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x486296[0]",
+      "shipMstIdSource": "_0x46930b[0]",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1051,14 +1051,14 @@
       ]
     },
     {
-      "id": "35601:getShip:sp_remodel/silhouette:_0x486296[1]:false",
+      "id": "35601:getShip:sp_remodel/silhouette:_0x46930b[1]:false",
       "moduleId": "35601",
       "readableName": "SpKaizoIntro",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "sp_remodel/silhouette",
       "textureIds": [],
-      "shipMstIdSource": "_0x486296[1]",
+      "shipMstIdSource": "_0x46930b[1]",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1085,14 +1085,14 @@
       ]
     },
     {
-      "id": "3609:getShip:album_status:_0xbd0f1e:false",
+      "id": "3609:getShip:album_status:_0x28036b:false",
       "moduleId": "3609",
       "readableName": "ShipDetailPanel",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "album_status",
       "textureIds": [],
-      "shipMstIdSource": "_0xbd0f1e",
+      "shipMstIdSource": "_0x28036b",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1123,15 +1123,15 @@
       ]
     },
     {
-      "id": "37638:getShip:banner:_0x4664ad:_0x5a1f94",
+      "id": "37638:getShip:banner:_0x19f106:_0x5825d6",
       "moduleId": "37638",
       "readableName": "ShipBanner",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x4664ad",
-      "damagedSource": "_0x5a1f94",
+      "shipMstIdSource": "_0x19f106",
+      "damagedSource": "_0x5825d6",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -1219,7 +1219,7 @@
       ]
     },
     {
-      "id": "38287:getSlotitem:card:_0x19262c",
+      "id": "38287:getSlotitem:card:_0x2ced1c",
       "moduleId": "38287",
       "readableName": "MeltIntoTask",
       "resourceKind": "slotitem",
@@ -1227,7 +1227,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x19262c"
+        "_0x2ced1c"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -1255,14 +1255,14 @@
       ]
     },
     {
-      "id": "38661:getShip:card_round:_0x3e3eb8:false",
+      "id": "38661:getShip:card_round:_0x57b2b7:false",
       "moduleId": "38661",
       "readableName": "RewardSelectDialogShipBtnOld",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "card_round",
       "textureIds": [],
-      "shipMstIdSource": "_0x3e3eb8",
+      "shipMstIdSource": "_0x57b2b7",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1272,7 +1272,7 @@
       ]
     },
     {
-      "id": "4146:getShip:full:self._mst_id:_0x7b3c1a",
+      "id": "4146:getShip:full:self._mst_id:_0x23e10b",
       "moduleId": "4146",
       "readableName": "TaskGouchinCutinRepair",
       "resourceKind": "ship",
@@ -1280,7 +1280,7 @@
       "targetType": "full",
       "textureIds": [],
       "shipMstIdSource": "self._mst_id",
-      "damagedSource": "_0x7b3c1a",
+      "damagedSource": "_0x23e10b",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -1380,7 +1380,7 @@
       "action": "getTexture",
       "provider": "BATTLE_RESULT_MAIN",
       "textureIds": [
-        67
+        78
       ],
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1391,14 +1391,14 @@
       ]
     },
     {
-      "id": "43136:getShip:full:_0x4cbb0f:damaged",
+      "id": "43136:getShip:full:_0x135a0f:damaged",
       "moduleId": "43136",
       "readableName": "CutinSSAttack",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x4cbb0f",
+      "shipMstIdSource": "_0x135a0f",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1444,14 +1444,14 @@
       ]
     },
     {
-      "id": "43367:getShip:special:_0x306328:false",
+      "id": "43367:getShip:special:_0x430771:false",
       "moduleId": "43367",
       "readableName": "CutinYamatoAttack",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "special",
       "textureIds": [],
-      "shipMstIdSource": "_0x306328",
+      "shipMstIdSource": "_0x430771",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1544,14 +1544,14 @@
       ]
     },
     {
-      "id": "46091:getShip:reward_card:_0x56b195:false",
+      "id": "46091:getShip:reward_card:_0x49c967:false",
       "moduleId": "46091",
       "readableName": "RewardSelectDialogShipBtn",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "reward_card",
       "textureIds": [],
-      "shipMstIdSource": "_0x56b195",
+      "shipMstIdSource": "_0x49c967",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1579,14 +1579,14 @@
       ]
     },
     {
-      "id": "46595:getShip:full:_0xd7024c:damaged",
+      "id": "46595:getShip:full:_0x4f45a9:damaged",
       "moduleId": "46595",
       "readableName": "CutinDouble2",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0xd7024c",
+      "shipMstIdSource": "_0x4f45a9",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1597,7 +1597,7 @@
       ]
     },
     {
-      "id": "46682:getSlotitem:item_up:_0xbbaecb",
+      "id": "46682:getSlotitem:item_up:_0x13a46d",
       "moduleId": "46682",
       "readableName": "Plane",
       "resourceKind": "slotitem",
@@ -1605,7 +1605,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0xbbaecb"
+        "_0x13a46d"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -1626,8 +1626,8 @@
         4,
         5,
         6,
-        57,
-        58
+        68,
+        69
       ],
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1638,14 +1638,14 @@
       ]
     },
     {
-      "id": "46997:getShip:full:_0x2502ae:true",
+      "id": "46997:getShip:full:_0x2b1de2:true",
       "moduleId": "46997",
       "readableName": "TaskDamageCutin",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x2502ae",
+      "shipMstIdSource": "_0x2b1de2",
       "damagedSource": "true",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1696,14 +1696,14 @@
       ]
     },
     {
-      "id": "48579:getShip:full:_0xfd0d87:damaged",
+      "id": "48579:getShip:full:_0xd9ce1d:damaged",
       "moduleId": "48579",
       "readableName": "CutinKuboDay",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0xfd0d87",
+      "shipMstIdSource": "_0xd9ce1d",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1714,14 +1714,14 @@
       ]
     },
     {
-      "id": "50402:getShip:sp_remodel/text_remodel_mes:_0x108111.mstID:false",
+      "id": "50402:getShip:sp_remodel/text_remodel_mes:_0x2ee176.mstID:false",
       "moduleId": "50402",
       "readableName": "SpKaizoConfirm",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "sp_remodel/text_remodel_mes",
       "textureIds": [],
-      "shipMstIdSource": "_0x108111.mstID",
+      "shipMstIdSource": "_0x2ee176.mstID",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1753,14 +1753,14 @@
       ]
     },
     {
-      "id": "50527:getShip:full:_0x31cd66:damaged",
+      "id": "50527:getShip:full:_0x2da02a:damaged",
       "moduleId": "50527",
       "readableName": "CutinKuboNight",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x31cd66",
+      "shipMstIdSource": "_0x2da02a",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1772,14 +1772,14 @@
       ]
     },
     {
-      "id": "51724:getShip:banner3:_0x3a0262:false",
+      "id": "51724:getShip:banner3:_0x3998bd:false",
       "moduleId": "51724",
       "readableName": "EnemyDeckSilhouette",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner3",
       "textureIds": [],
-      "shipMstIdSource": "_0x3a0262",
+      "shipMstIdSource": "_0x3998bd",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1790,14 +1790,14 @@
       ]
     },
     {
-      "id": "51724:getShip:banner3:_0x5bb05e:false",
+      "id": "51724:getShip:banner3:_0x5bdf1b:false",
       "moduleId": "51724",
       "readableName": "EnemyDeckSilhouette",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner3",
       "textureIds": [],
-      "shipMstIdSource": "_0x5bb05e",
+      "shipMstIdSource": "_0x5bdf1b",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -1915,7 +1915,7 @@
       ]
     },
     {
-      "id": "53285:getSlotitem:statustop_item:_0x1f78f8",
+      "id": "53285:getSlotitem:statustop_item:_0x60ec4b",
       "moduleId": "53285",
       "readableName": "SlotDetailPanel",
       "resourceKind": "slotitem",
@@ -1923,7 +1923,7 @@
       "targetType": "statustop_item",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1f78f8"
+        "_0x60ec4b"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2065,14 +2065,14 @@
       ]
     },
     {
-      "id": "55226:getShip:full:_0x5ec373:damaged",
+      "id": "55226:getShip:full:_0x137d10:damaged",
       "moduleId": "55226",
       "readableName": "CutinDouble1",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x5ec373",
+      "shipMstIdSource": "_0x137d10",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -2083,14 +2083,14 @@
       ]
     },
     {
-      "id": "56230:getShip:icon_box:_0x4c5206.mst_id:false",
+      "id": "56230:getShip:icon_box:_0x2f511a.mst_id:false",
       "moduleId": "56230",
       "readableName": "TaskUseGiftBox",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "icon_box",
       "textureIds": [],
-      "shipMstIdSource": "_0x4c5206.mst_id",
+      "shipMstIdSource": "_0x2f511a.mst_id",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -2101,7 +2101,7 @@
       ]
     },
     {
-      "id": "56230:getSlotitem:card:_0x4c5206.mst_id",
+      "id": "56230:getSlotitem:card:_0x2f511a.mst_id",
       "moduleId": "56230",
       "readableName": "TaskUseGiftBox",
       "resourceKind": "slotitem",
@@ -2109,7 +2109,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x4c5206.mst_id"
+        "_0x2f511a.mst_id"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2119,7 +2119,7 @@
       ]
     },
     {
-      "id": "56434:getSlotitem:btxt_flat:_0x16bab4",
+      "id": "56434:getSlotitem:btxt_flat:_0x3f2f04",
       "moduleId": "56434",
       "readableName": "CutinCanvasSpSR",
       "resourceKind": "slotitem",
@@ -2127,7 +2127,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x16bab4"
+        "_0x3f2f04"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2137,7 +2137,7 @@
       ]
     },
     {
-      "id": "56434:getSlotitem:btxt_flat:_0x729fc6",
+      "id": "56434:getSlotitem:btxt_flat:_0x8dbf32",
       "moduleId": "56434",
       "readableName": "CutinCanvasSpSR",
       "resourceKind": "slotitem",
@@ -2145,7 +2145,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x729fc6"
+        "_0x8dbf32"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2155,7 +2155,7 @@
       ]
     },
     {
-      "id": "56434:getSlotitem:item_up:_0x19a841",
+      "id": "56434:getSlotitem:item_up:_0x1fc26d",
       "moduleId": "56434",
       "readableName": "CutinCanvasSpSR",
       "resourceKind": "slotitem",
@@ -2163,7 +2163,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x19a841"
+        "_0x1fc26d"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2173,7 +2173,7 @@
       ]
     },
     {
-      "id": "56434:getSlotitem:item_up:_0x4086cb",
+      "id": "56434:getSlotitem:item_up:_0x20aa10",
       "moduleId": "56434",
       "readableName": "CutinCanvasSpSR",
       "resourceKind": "slotitem",
@@ -2181,7 +2181,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x4086cb"
+        "_0x20aa10"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2210,7 +2210,7 @@
       ]
     },
     {
-      "id": "56817:getShip:banner:this._mst_id:_0x34c1de",
+      "id": "56817:getShip:banner:this._mst_id:_0x3c2cbe",
       "moduleId": "56817",
       "readableName": "BannerImage",
       "resourceKind": "ship",
@@ -2218,7 +2218,7 @@
       "targetType": "banner",
       "textureIds": [],
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x34c1de",
+      "damagedSource": "_0x3c2cbe",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -2229,7 +2229,7 @@
       ]
     },
     {
-      "id": "56817:getShip:banner:this._mst_id:_0x536f04",
+      "id": "56817:getShip:banner:this._mst_id:_0x552133",
       "moduleId": "56817",
       "readableName": "BannerImage",
       "resourceKind": "ship",
@@ -2237,7 +2237,7 @@
       "targetType": "banner",
       "textureIds": [],
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x536f04",
+      "damagedSource": "_0x552133",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -2267,7 +2267,7 @@
       ]
     },
     {
-      "id": "56817:getShip:banner2:this._mst_id:_0x22e137",
+      "id": "56817:getShip:banner2:this._mst_id:_0x213ceb",
       "moduleId": "56817",
       "readableName": "BannerImage",
       "resourceKind": "ship",
@@ -2275,7 +2275,7 @@
       "targetType": "banner2",
       "textureIds": [],
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x22e137",
+      "damagedSource": "_0x213ceb",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -2305,7 +2305,7 @@
       ]
     },
     {
-      "id": "56817:getShip:banner3:this._mst_id:_0x534b93",
+      "id": "56817:getShip:banner3:this._mst_id:_0x4d6086",
       "moduleId": "56817",
       "readableName": "BannerImage",
       "resourceKind": "ship",
@@ -2313,7 +2313,7 @@
       "targetType": "banner3",
       "textureIds": [],
       "shipMstIdSource": "this._mst_id",
-      "damagedSource": "_0x534b93",
+      "damagedSource": "_0x4d6086",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -2416,7 +2416,7 @@
       ]
     },
     {
-      "id": "58441:getSlotitem:item_on:_0x507dd2",
+      "id": "58441:getSlotitem:item_on:_0x2a68f9",
       "moduleId": "58441",
       "readableName": "CutinResourcesPreloadTask",
       "resourceKind": "slotitem",
@@ -2424,7 +2424,7 @@
       "targetType": "item_on",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x507dd2"
+        "_0x2a68f9"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2435,7 +2435,7 @@
       ]
     },
     {
-      "id": "58441:getSlotitem:item_up:_0x507dd2",
+      "id": "58441:getSlotitem:item_up:_0x2a68f9",
       "moduleId": "58441",
       "readableName": "CutinResourcesPreloadTask",
       "resourceKind": "slotitem",
@@ -2443,7 +2443,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x507dd2"
+        "_0x2a68f9"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2454,7 +2454,7 @@
       ]
     },
     {
-      "id": "60988:getSlotitem:card:_0x1429e2",
+      "id": "60988:getSlotitem:card:_0x1458cf",
       "moduleId": "60988",
       "readableName": "SlotDetailContent",
       "resourceKind": "slotitem",
@@ -2462,7 +2462,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1429e2"
+        "_0x1458cf"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2471,7 +2471,7 @@
       ]
     },
     {
-      "id": "60988:getSlotitem:item_character:_0x1429e2",
+      "id": "60988:getSlotitem:item_character:_0x1458cf",
       "moduleId": "60988",
       "readableName": "SlotDetailContent",
       "resourceKind": "slotitem",
@@ -2479,7 +2479,7 @@
       "targetType": "item_character",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1429e2"
+        "_0x1458cf"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2488,7 +2488,7 @@
       ]
     },
     {
-      "id": "60988:getSlotitem:item_on:_0x1429e2",
+      "id": "60988:getSlotitem:item_on:_0x1458cf",
       "moduleId": "60988",
       "readableName": "SlotDetailContent",
       "resourceKind": "slotitem",
@@ -2496,7 +2496,7 @@
       "targetType": "item_on",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1429e2"
+        "_0x1458cf"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2505,7 +2505,7 @@
       ]
     },
     {
-      "id": "60988:getSlotitem:item_on2:_0x1429e2",
+      "id": "60988:getSlotitem:item_on2:_0x1458cf",
       "moduleId": "60988",
       "readableName": "SlotDetailContent",
       "resourceKind": "slotitem",
@@ -2513,7 +2513,7 @@
       "targetType": "item_on2",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1429e2"
+        "_0x1458cf"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2522,7 +2522,7 @@
       ]
     },
     {
-      "id": "60988:getSlotitem:item_up:_0x1429e2",
+      "id": "60988:getSlotitem:item_up:_0x1458cf",
       "moduleId": "60988",
       "readableName": "SlotDetailContent",
       "resourceKind": "slotitem",
@@ -2530,7 +2530,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1429e2"
+        "_0x1458cf"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2539,7 +2539,7 @@
       ]
     },
     {
-      "id": "60988:getSlotitem:item_up2:_0x1429e2",
+      "id": "60988:getSlotitem:item_up2:_0x1458cf",
       "moduleId": "60988",
       "readableName": "SlotDetailContent",
       "resourceKind": "slotitem",
@@ -2547,7 +2547,7 @@
       "targetType": "item_up2",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1429e2"
+        "_0x1458cf"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2556,14 +2556,14 @@
       ]
     },
     {
-      "id": "62174:getShip:full:_0x464cd9:false",
+      "id": "62174:getShip:full:_0x1938bf:false",
       "moduleId": "62174",
       "readableName": "TaskRevampStart",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x464cd9",
+      "shipMstIdSource": "_0x1938bf",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -2609,7 +2609,7 @@
       ]
     },
     {
-      "id": "63476:getSlotitem:card:_0x5abf82",
+      "id": "63476:getSlotitem:card:_0x24d9b9",
       "moduleId": "63476",
       "readableName": "RewardSelectDialogSlotitemBtn",
       "resourceKind": "slotitem",
@@ -2617,7 +2617,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x5abf82"
+        "_0x24d9b9"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2664,15 +2664,15 @@
       ]
     },
     {
-      "id": "64289:getShip:supply_character:_0x59b039:_0x269dba",
+      "id": "64289:getShip:supply_character:_0x52f648:_0x1c7abe",
       "moduleId": "64289",
       "readableName": "LongShipBanner",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "supply_character",
       "textureIds": [],
-      "shipMstIdSource": "_0x59b039",
-      "damagedSource": "_0x269dba",
+      "shipMstIdSource": "_0x52f648",
+      "damagedSource": "_0x1c7abe",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -2733,7 +2733,7 @@
       ]
     },
     {
-      "id": "66157:getSlotitem:btxt_flat:_0x1155ec",
+      "id": "66157:getSlotitem:btxt_flat:_0x110b64",
       "moduleId": "66157",
       "readableName": "CutinCanvasSpSSF",
       "resourceKind": "slotitem",
@@ -2741,7 +2741,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1155ec"
+        "_0x110b64"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2751,7 +2751,7 @@
       ]
     },
     {
-      "id": "66157:getSlotitem:btxt_flat:_0x2b20fc",
+      "id": "66157:getSlotitem:btxt_flat:_0x2e4f8e",
       "moduleId": "66157",
       "readableName": "CutinCanvasSpSSF",
       "resourceKind": "slotitem",
@@ -2759,7 +2759,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x2b20fc"
+        "_0x2e4f8e"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2769,7 +2769,7 @@
       ]
     },
     {
-      "id": "66157:getSlotitem:btxt_flat:_0x427308",
+      "id": "66157:getSlotitem:btxt_flat:_0x37d458",
       "moduleId": "66157",
       "readableName": "CutinCanvasSpSSF",
       "resourceKind": "slotitem",
@@ -2777,7 +2777,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x427308"
+        "_0x37d458"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2787,7 +2787,7 @@
       ]
     },
     {
-      "id": "66157:getSlotitem:item_up:_0x1b34e5",
+      "id": "66157:getSlotitem:item_up:_0x1c33b4",
       "moduleId": "66157",
       "readableName": "CutinCanvasSpSSF",
       "resourceKind": "slotitem",
@@ -2795,7 +2795,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1b34e5"
+        "_0x1c33b4"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2805,7 +2805,7 @@
       ]
     },
     {
-      "id": "66157:getSlotitem:item_up:_0x25ca3f",
+      "id": "66157:getSlotitem:item_up:_0x5cc2e3",
       "moduleId": "66157",
       "readableName": "CutinCanvasSpSSF",
       "resourceKind": "slotitem",
@@ -2813,7 +2813,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x25ca3f"
+        "_0x5cc2e3"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2823,7 +2823,7 @@
       ]
     },
     {
-      "id": "66157:getSlotitem:item_up:_0x512f7f",
+      "id": "66157:getSlotitem:item_up:_0x7ac909",
       "moduleId": "66157",
       "readableName": "CutinCanvasSpSSF",
       "resourceKind": "slotitem",
@@ -2831,7 +2831,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x512f7f"
+        "_0x7ac909"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2841,7 +2841,7 @@
       ]
     },
     {
-      "id": "66609:getSlotitem:btxt_flat:_0x140bd5",
+      "id": "66609:getSlotitem:btxt_flat:_0x1f213c",
       "moduleId": "66609",
       "readableName": "CutinCanvasSpSuirai",
       "resourceKind": "slotitem",
@@ -2849,7 +2849,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x140bd5"
+        "_0x1f213c"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2860,7 +2860,7 @@
       ]
     },
     {
-      "id": "66609:getSlotitem:btxt_flat:_0x52ece2",
+      "id": "66609:getSlotitem:btxt_flat:_0x3e4e29",
       "moduleId": "66609",
       "readableName": "CutinCanvasSpSuirai",
       "resourceKind": "slotitem",
@@ -2868,7 +2868,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x52ece2"
+        "_0x3e4e29"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2879,7 +2879,7 @@
       ]
     },
     {
-      "id": "66609:getSlotitem:btxt_flat:_0x5cf05d",
+      "id": "66609:getSlotitem:btxt_flat:_0x50375d",
       "moduleId": "66609",
       "readableName": "CutinCanvasSpSuirai",
       "resourceKind": "slotitem",
@@ -2887,7 +2887,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x5cf05d"
+        "_0x50375d"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -2975,14 +2975,14 @@
       ]
     },
     {
-      "id": "68432:getShip:full:_0xe4b41:damaged",
+      "id": "68432:getShip:full:_0x3ab2f1:damaged",
       "moduleId": "68432",
       "readableName": "CutinKongoAttack",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0xe4b41",
+      "shipMstIdSource": "_0x3ab2f1",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3011,7 +3011,7 @@
       ]
     },
     {
-      "id": "69595:getSlotitem:btxt_flat:_0x13aaea",
+      "id": "69595:getSlotitem:btxt_flat:_0x2b1135",
       "moduleId": "69595",
       "readableName": "CutinCanvasSpRDJ",
       "resourceKind": "slotitem",
@@ -3019,7 +3019,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x13aaea"
+        "_0x2b1135"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3030,7 +3030,7 @@
       ]
     },
     {
-      "id": "69595:getSlotitem:btxt_flat:_0x1dbcc6",
+      "id": "69595:getSlotitem:btxt_flat:_0x487e52",
       "moduleId": "69595",
       "readableName": "CutinCanvasSpRDJ",
       "resourceKind": "slotitem",
@@ -3038,7 +3038,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1dbcc6"
+        "_0x487e52"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3049,7 +3049,7 @@
       ]
     },
     {
-      "id": "69595:getSlotitem:btxt_flat:_0x3972c2",
+      "id": "69595:getSlotitem:btxt_flat:_0x53dcb1",
       "moduleId": "69595",
       "readableName": "CutinCanvasSpRDJ",
       "resourceKind": "slotitem",
@@ -3057,7 +3057,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x3972c2"
+        "_0x53dcb1"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3177,7 +3177,7 @@
       ]
     },
     {
-      "id": "70041:getSlotitem:card:_0xacfe26",
+      "id": "70041:getSlotitem:card:_0x277fc9",
       "moduleId": "70041",
       "readableName": "TaskRewardDialogSlotitem",
       "resourceKind": "slotitem",
@@ -3185,7 +3185,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0xacfe26"
+        "_0x277fc9"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3194,14 +3194,14 @@
       ]
     },
     {
-      "id": "7248:getShip:sp_remodel/full_x2:_0x2bec7a:false",
+      "id": "7248:getShip:sp_remodel/full_x2:_0x5e200e:false",
       "moduleId": "7248",
       "readableName": "SpecialRemodelStartStage",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "sp_remodel/full_x2",
       "textureIds": [],
-      "shipMstIdSource": "_0x2bec7a",
+      "shipMstIdSource": "_0x5e200e",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3211,14 +3211,14 @@
       ]
     },
     {
-      "id": "7248:getShip:sp_remodel/text_class:_0x2bec7a:false",
+      "id": "7248:getShip:sp_remodel/text_class:_0x5e200e:false",
       "moduleId": "7248",
       "readableName": "SpecialRemodelStartStage",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "sp_remodel/text_class",
       "textureIds": [],
-      "shipMstIdSource": "_0x2bec7a",
+      "shipMstIdSource": "_0x5e200e",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3228,14 +3228,14 @@
       ]
     },
     {
-      "id": "7248:getShip:sp_remodel/text_name:_0x2bec7a:false",
+      "id": "7248:getShip:sp_remodel/text_name:_0x5e200e:false",
       "moduleId": "7248",
       "readableName": "SpecialRemodelStartStage",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "sp_remodel/text_name",
       "textureIds": [],
-      "shipMstIdSource": "_0x2bec7a",
+      "shipMstIdSource": "_0x5e200e",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3245,14 +3245,14 @@
       ]
     },
     {
-      "id": "72878:getShip:banner_g:_0x598e7a:true",
+      "id": "72878:getShip:banner_g:_0x512044:true",
       "moduleId": "72878",
       "readableName": "ShipBannerClone",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner_g",
       "textureIds": [],
-      "shipMstIdSource": "_0x598e7a",
+      "shipMstIdSource": "_0x512044",
       "damagedSource": "true",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3263,14 +3263,14 @@
       ]
     },
     {
-      "id": "72878:getShip:banner:_0x598e7a:false",
+      "id": "72878:getShip:banner:_0x512044:false",
       "moduleId": "72878",
       "readableName": "ShipBannerClone",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x598e7a",
+      "shipMstIdSource": "_0x512044",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3281,14 +3281,14 @@
       ]
     },
     {
-      "id": "72878:getShip:banner:_0x598e7a:true",
+      "id": "72878:getShip:banner:_0x512044:true",
       "moduleId": "72878",
       "readableName": "ShipBannerClone",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x598e7a",
+      "shipMstIdSource": "_0x512044",
       "damagedSource": "true",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3307,8 +3307,8 @@
       "provider": "BATTLE_RESULT_MAIN",
       "textureIds": [
         9,
-        62,
-        72
+        73,
+        83
       ],
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3447,7 +3447,7 @@
       ]
     },
     {
-      "id": "75803:getSlotitem:btxt_flat:_0x4f43c2",
+      "id": "75803:getSlotitem:btxt_flat:_0x2184b9",
       "moduleId": "75803",
       "readableName": "CutinCanvasSpRR",
       "resourceKind": "slotitem",
@@ -3455,7 +3455,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x4f43c2"
+        "_0x2184b9"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3466,7 +3466,7 @@
       ]
     },
     {
-      "id": "75803:getSlotitem:btxt_flat:_0x5d1c44",
+      "id": "75803:getSlotitem:btxt_flat:_0x47abf4",
       "moduleId": "75803",
       "readableName": "CutinCanvasSpRR",
       "resourceKind": "slotitem",
@@ -3474,7 +3474,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x5d1c44"
+        "_0x47abf4"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3485,7 +3485,7 @@
       ]
     },
     {
-      "id": "75803:getSlotitem:item_up:_0x15bf5c",
+      "id": "75803:getSlotitem:item_up:_0x2cb240",
       "moduleId": "75803",
       "readableName": "CutinCanvasSpRR",
       "resourceKind": "slotitem",
@@ -3493,7 +3493,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x15bf5c"
+        "_0x2cb240"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3504,7 +3504,7 @@
       ]
     },
     {
-      "id": "75803:getSlotitem:item_up:_0x1782b2",
+      "id": "75803:getSlotitem:item_up:_0x2fa879",
       "moduleId": "75803",
       "readableName": "CutinCanvasSpRR",
       "resourceKind": "slotitem",
@@ -3512,7 +3512,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x1782b2"
+        "_0x2fa879"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3523,7 +3523,7 @@
       ]
     },
     {
-      "id": "75803:getSlotitem:item_up:_0x2bb046",
+      "id": "75803:getSlotitem:item_up:_0x50b7fc",
       "moduleId": "75803",
       "readableName": "CutinCanvasSpRR",
       "resourceKind": "slotitem",
@@ -3531,7 +3531,7 @@
       "targetType": "item_up",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x2bb046"
+        "_0x50b7fc"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3561,14 +3561,14 @@
       ]
     },
     {
-      "id": "76095:getShip:full:_0x2344c9:false",
+      "id": "76095:getShip:full:_0x25d971:false",
       "moduleId": "76095",
       "readableName": "TaskBossCutin",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x2344c9",
+      "shipMstIdSource": "_0x25d971",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3620,7 +3620,7 @@
       ]
     },
     {
-      "id": "77357:getSlotitem:btxt_flat:_0x25ed54",
+      "id": "77357:getSlotitem:btxt_flat:_0x33f110",
       "moduleId": "77357",
       "readableName": "CutinTelop",
       "resourceKind": "slotitem",
@@ -3628,7 +3628,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x25ed54"
+        "_0x33f110"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3712,14 +3712,14 @@
       ]
     },
     {
-      "id": "80135:getShip:icon_box:_0x44f0f7.mst_id:false",
+      "id": "80135:getShip:icon_box:_0xfdc9e.mst_id:false",
       "moduleId": "80135",
       "readableName": "TaskRewardSelect",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "icon_box",
       "textureIds": [],
-      "shipMstIdSource": "_0x44f0f7.mst_id",
+      "shipMstIdSource": "_0xfdc9e.mst_id",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3730,14 +3730,14 @@
       ]
     },
     {
-      "id": "80135:getShip:reward_icon:_0x44f0f7.mst_id:false",
+      "id": "80135:getShip:reward_icon:_0xfdc9e.mst_id:false",
       "moduleId": "80135",
       "readableName": "TaskRewardSelect",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "reward_icon",
       "textureIds": [],
-      "shipMstIdSource": "_0x44f0f7.mst_id",
+      "shipMstIdSource": "_0xfdc9e.mst_id",
       "damagedSource": "false",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -3748,7 +3748,7 @@
       ]
     },
     {
-      "id": "80135:getSlotitem:card:_0x44f0f7.mst_id",
+      "id": "80135:getSlotitem:card:_0xfdc9e.mst_id",
       "moduleId": "80135",
       "readableName": "TaskRewardSelect",
       "resourceKind": "slotitem",
@@ -3756,7 +3756,7 @@
       "targetType": "card",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x44f0f7.mst_id"
+        "_0xfdc9e.mst_id"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3766,15 +3766,15 @@
       ]
     },
     {
-      "id": "80845:getShip:full:_0x3c0321.mstID:_0x3c0321.isDamaged()",
+      "id": "80845:getShip:full:_0x250992.mstID:_0x250992.isDamaged()",
       "moduleId": "80845",
       "readableName": "TaskExpeditionResultShow",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x3c0321.mstID",
-      "damagedSource": "_0x3c0321.isDamaged()",
+      "shipMstIdSource": "_0x250992.mstID",
+      "damagedSource": "_0x250992.isDamaged()",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -3828,7 +3828,7 @@
       ]
     },
     {
-      "id": "8263:getSlotitem:remodel:_0x16e760",
+      "id": "8263:getSlotitem:remodel:_0x51ba8a",
       "moduleId": "8263",
       "readableName": "AirUnitChangeConfirmPanel",
       "resourceKind": "slotitem",
@@ -3836,7 +3836,7 @@
       "targetType": "remodel",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x16e760"
+        "_0x51ba8a"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -3875,15 +3875,15 @@
       ]
     },
     {
-      "id": "82850:getShip:full:_0x89fe27:_0x4fcb11",
+      "id": "82850:getShip:full:_0x506f9a:_0x483ea9",
       "moduleId": "82850",
       "readableName": "CellTaskFancy",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x89fe27",
-      "damagedSource": "_0x4fcb11",
+      "shipMstIdSource": "_0x506f9a",
+      "damagedSource": "_0x483ea9",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -3892,14 +3892,14 @@
       ]
     },
     {
-      "id": "83645:getShip:full:_0x1c46e9:damaged",
+      "id": "83645:getShip:full:_0x2970aa:damaged",
       "moduleId": "83645",
       "readableName": "CutinAttack",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x1c46e9",
+      "shipMstIdSource": "_0x2970aa",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -4049,14 +4049,14 @@
       ]
     },
     {
-      "id": "86156:getShip:full:_0x1b5e89:damaged",
+      "id": "86156:getShip:full:_0x543b1b:damaged",
       "moduleId": "86156",
       "readableName": "TaskReplenishmentEffect",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x1b5e89",
+      "shipMstIdSource": "_0x543b1b",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -4066,14 +4066,14 @@
       ]
     },
     {
-      "id": "86156:getShip:full:_0x4f429e:damaged",
+      "id": "86156:getShip:full:_0x698807:damaged",
       "moduleId": "86156",
       "readableName": "TaskReplenishmentEffect",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x4f429e",
+      "shipMstIdSource": "_0x698807",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -4083,7 +4083,7 @@
       ]
     },
     {
-      "id": "86346:getSlotitem:btxt_flat:_0x3b83e0",
+      "id": "86346:getSlotitem:btxt_flat:_0x31b7ea",
       "moduleId": "86346",
       "readableName": "CutinCanvasSpYusou",
       "resourceKind": "slotitem",
@@ -4091,7 +4091,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x3b83e0"
+        "_0x31b7ea"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -4102,7 +4102,7 @@
       ]
     },
     {
-      "id": "86346:getSlotitem:btxt_flat:_0x42770a",
+      "id": "86346:getSlotitem:btxt_flat:_0x53ff18",
       "moduleId": "86346",
       "readableName": "CutinCanvasSpYusou",
       "resourceKind": "slotitem",
@@ -4110,7 +4110,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0x42770a"
+        "_0x53ff18"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -4121,7 +4121,7 @@
       ]
     },
     {
-      "id": "86346:getSlotitem:btxt_flat:_0xed6f3a",
+      "id": "86346:getSlotitem:btxt_flat:_0x57eb4c",
       "moduleId": "86346",
       "readableName": "CutinCanvasSpYusou",
       "resourceKind": "slotitem",
@@ -4129,7 +4129,7 @@
       "targetType": "btxt_flat",
       "textureIds": [],
       "slotMstIdSources": [
-        "_0xed6f3a"
+        "_0x57eb4c"
       ],
       "explicitPaths": [],
       "triggerHints": [
@@ -4159,15 +4159,15 @@
       ]
     },
     {
-      "id": "86523:getShip:banner:_0x42f457.mst_id:_0x42f457.damaged",
+      "id": "86523:getShip:banner:_0x2dd980.mst_id:_0x2dd980.damaged",
       "moduleId": "86523",
       "readableName": "TaskSupportDeckCutin",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x42f457.mst_id",
-      "damagedSource": "_0x42f457.damaged",
+      "shipMstIdSource": "_0x2dd980.mst_id",
+      "damagedSource": "_0x2dd980.damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -4177,15 +4177,15 @@
       ]
     },
     {
-      "id": "86523:getShip:banner:_0x58e4b0.mst_id:_0x58e4b0.damaged",
+      "id": "86523:getShip:banner:_0x33a02a.mst_id:_0x33a02a.damaged",
       "moduleId": "86523",
       "readableName": "TaskSupportDeckCutin",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "banner",
       "textureIds": [],
-      "shipMstIdSource": "_0x58e4b0.mst_id",
-      "damagedSource": "_0x58e4b0.damaged",
+      "shipMstIdSource": "_0x33a02a.mst_id",
+      "damagedSource": "_0x33a02a.damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
       "triggerHints": [
@@ -4461,14 +4461,14 @@
       ]
     },
     {
-      "id": "99411:getShip:full:_0x1c8abb:damaged",
+      "id": "99411:getShip:full:_0x23dcad:damaged",
       "moduleId": "99411",
       "readableName": "CutinSpSR",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x1c8abb",
+      "shipMstIdSource": "_0x23dcad",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],
@@ -4556,14 +4556,14 @@
       ]
     },
     {
-      "id": "99929:getShip:full:_0x159645:damaged",
+      "id": "99929:getShip:full:_0x1372f1:damaged",
       "moduleId": "99929",
       "readableName": "CutinSpRR",
       "resourceKind": "ship",
       "action": "getShip",
       "targetType": "full",
       "textureIds": [],
-      "shipMstIdSource": "_0x159645",
+      "shipMstIdSource": "_0x1372f1",
       "damagedSource": "damaged",
       "slotMstIdSources": [],
       "explicitPaths": [],

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-01T12:53:21.058Z",
-  "scriptVersion": "6.2.9.1",
+  "generatedAt": "2026-06-23T04:01:26.602Z",
+  "scriptVersion": "6.3.0.0",
   "summary": {
     "familyCount": 21,
     "observedCompleteFamilyCount": 12,
@@ -727,6 +727,7 @@
           "50614",
           "58262",
           "6934",
+          "70631",
           "76095",
           "97926"
         ],
@@ -737,7 +738,8 @@
           "PhaseEnding",
           "TaskBossCutin",
           "TaskEnemyDamageCutin",
-          "VoiceManager"
+          "VoiceManager",
+          "module-70631.js"
         ]
       },
       "completenessBlockers": [
