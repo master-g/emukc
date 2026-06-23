@@ -12,6 +12,8 @@ pub mod event;
 mod outcome;
 /// Random number generation trait and implementations for battle simulation.
 pub mod random;
+/// Pure reducer: derives state from event log.
+pub mod reducer;
 pub mod simulation;
 mod state;
 mod targeting;
