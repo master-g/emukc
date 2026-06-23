@@ -284,4 +284,62 @@ mod tests {
         assert_eq!(raigeki.api_fydam[0], 0);
         assert_eq!(raigeki.api_fdam[1], 34);
     }
+
+    // ── God mode / one hit kill tests ──────────────────────────────
+
+    #[test]
+    fn god_mode_friendly_takes_zero_damage() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(30, 30, 30, 40, true, true);
+        ship.god_mode = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 999, 0);
+        assert_eq!(effective, 0, "god mode should negate all damage");
+        assert_eq!(raw, 999, "raw damage still reported");
+        assert_eq!(ship.hp(), 30, "HP unchanged");
+    }
+
+    #[test]
+    fn one_hit_kill_enemy_sinks_instantly() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(50, 50, 50, 40, false, true);
+        ship.one_hit_kill = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 1, 0);
+        assert_eq!(ship.hp(), 0, "enemy should be sunk");
+        assert!(effective > 0, "effective damage should equal current HP");
+        assert_eq!(raw, 1);
+    }
+
+    #[test]
+    fn god_mode_does_not_affect_enemy() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
+        ship.god_mode = true;
+        let (_raw, effective) = ship.apply_damage(&mut rng, 999, 0);
+        assert_eq!(ship.hp(), 0, "enemy with god_mode flag should still sink");
+        assert_eq!(effective, 30);
+    }
+
+    #[test]
+    fn one_hit_kill_does_not_affect_friendly() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
+        ship.one_hit_kill = true;
+        let (raw, _effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert!(
+            ship.current_hp > 0,
+            "friendly with one_hit_kill should survive (sinking protection)"
+        );
+        assert_eq!(raw, 100);
+    }
+
+    #[test]
+    fn debug_flags_default_false_preserves_behavior() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
+        assert!(!ship.god_mode);
+        assert!(!ship.one_hit_kill);
+        let (_raw, effective) = ship.apply_damage(&mut rng, 999, 0);
+        assert_eq!(ship.hp(), 0, "normal behavior: enemy sinks");
+        assert_eq!(effective, 30);
+    }
 }

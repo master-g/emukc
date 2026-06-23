@@ -114,10 +114,26 @@ pub fn run_sp_midnight_battle(
 
     let friendly_formation_id = context.friendly_formation_id;
     let engagement = context.engagement;
-    let friendly: Vec<BattleRuntimeShip> =
-        context.friend_ships.into_iter().map(|s| BattleRuntimeShip::new(s, true, true)).collect();
-    let enemy: Vec<BattleRuntimeShip> =
-        context.enemy_ships.into_iter().map(|s| BattleRuntimeShip::new(s, false, true)).collect();
+    let god_mode = context.god_mode;
+    let one_hit_kill = context.one_hit_kill;
+    let friendly: Vec<BattleRuntimeShip> = context
+        .friend_ships
+        .into_iter()
+        .map(|s| {
+            let mut ship = BattleRuntimeShip::new(s, true, true);
+            ship.set_debug_flags(god_mode, false);
+            ship
+        })
+        .collect();
+    let enemy: Vec<BattleRuntimeShip> = context
+        .enemy_ships
+        .into_iter()
+        .map(|s| {
+            let mut ship = BattleRuntimeShip::new(s, false, true);
+            ship.set_debug_flags(false, one_hit_kill);
+            ship
+        })
+        .collect();
 
     // Create a minimal day session to anchor the night battle
     let day_session = SortieBattleSession {

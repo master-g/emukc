@@ -308,6 +308,8 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
             map_id: 11,
             cell_id: 1,
             context: BattleContext {
+                god_mode: false,
+                one_hit_kill: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -386,6 +388,8 @@ async fn sortie_sp_midnight_battle_runs_night_only() {
             map_id: 11,
             cell_id: 1,
             context: BattleContext {
+                god_mode: false,
+                one_hit_kill: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -818,6 +822,8 @@ fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
             map_id: 11,
             cell_id: 1,
             context: BattleContext {
+                god_mode: false,
+                one_hit_kill: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
