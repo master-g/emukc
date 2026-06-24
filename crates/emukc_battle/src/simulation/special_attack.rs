@@ -813,6 +813,69 @@ mod tests {
     }
 
     #[test]
+    fn special_attack_si_list_entries_are_strings() {
+        use crate::types::{AirState, BattlePhase, EngagementType, ShellingParams, SiListId};
+        use emukc_model::kc2::types::KcSlotItemType3;
+
+        // Nelson Touch participants push their si_list via text_from_i64. Drive
+        // execute_special_attack end-to-end and assert the entries serialize as
+        // strings — a swap to num_from_i64 at the push site passes every other
+        // test. Ships are armed so display ids are real master ids (positive),
+        // not the -1 sentinel which would legitimately stay Num.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let arm = |mst_id: i64| {
+            let mut ship = sample_ship(&codex, mst_id, 99);
+            ship.ship.api_nowhp = ship.ship.api_maxhp;
+            ship.slot_items =
+                vec![slotitem_with_mst_id(main_gun_id), slotitem_with_mst_id(main_gun_id)];
+            BattleRuntimeShip::from(ship)
+        };
+        // Nelson flagship + valid surface companions at fleet positions 0,2,4.
+        let attackers_template =
+            || vec![arm(571), arm(dd_mst), arm(bb_mst), arm(dd_mst), arm(bb_mst)];
+
+        let resolved = check_nelson_touch(&codex, &attackers_template(), FORMATION_DOUBLE_LINE)
+            .expect("armed Nelson fleet in double line must resolve Nelson Touch");
+
+        let mut attackers = attackers_template();
+        let mut defender = sample_ship(&codex, dd_mst, 30);
+        defender.ship.api_soukou[0] = 1;
+        defender.ship.api_nowhp = 2000;
+        defender.ship.api_maxhp = 2000;
+        let mut defenders = vec![BattleRuntimeShip::from(defender)];
+
+        let air_state = AirState::Supremacy;
+        let result = execute_special_attack(
+            &codex,
+            &mut crate::random::SeededRng::new(7),
+            &mut attackers,
+            &mut defenders,
+            resolved,
+            &ShellingParams {
+                attacker_is_enemy: false,
+                formation_id: FORMATION_DOUBLE_LINE,
+                engagement: EngagementType::SameCourse,
+                phase: BattlePhase::DayShelling,
+                air_state: Some(&air_state),
+            },
+        );
+
+        assert!(
+            !result.hougeki.api_si_list.is_empty(),
+            "special attack must push at least one si_list entry"
+        );
+        assert!(
+            result.hougeki.api_si_list.iter().flatten().any(|id| matches!(id, SiListId::Text(_))),
+            "special attack si_list must contain string entries: {:?}",
+            result.hougeki.api_si_list
+        );
+    }
+
+    #[test]
     fn nagato_broadside_detection() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let nagato_k2 = sample_bb_at(&codex, NAGATO_K2_ID, 99);
