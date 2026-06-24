@@ -294,7 +294,15 @@ pub(crate) fn can_opening_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) 
     }
 
     match ship_type(codex, ship) {
-        Some(KcShipType::CLT | KcShipType::SS | KcShipType::SSV) => true,
+        // CLT always fires opening torpedo (with base torpedo, checked above).
+        Some(KcShipType::CLT) => true,
+        // Submarines fire a preemptive torpedo natively from Lv 10; below that
+        // they need a 甲標的 (special submarine) equipped, like any other ship.
+        Some(KcShipType::SS | KcShipType::SSV) => {
+            ship.ship.api_lv >= 10
+                || has_slotitem_type(codex, ship, KcSlotItemType3::SpecialSubmarineVessel)
+        }
+        // Any other ship type opens torpedo only with an equipped 甲標的.
         _ => has_slotitem_type(codex, ship, KcSlotItemType3::SpecialSubmarineVessel),
     }
 }
@@ -1076,6 +1084,45 @@ mod tests {
         chuha_clt.ship.api_nowhp = 3;
         let rt = BattleRuntimeShip::new(chuha_clt, false, true);
         assert!(can_opening_torpedo_ship(&codex, &rt), "opening torpedo ignores damage state");
+    }
+
+    /// U3.2: a submarine fires opening torpedo natively only from Lv 10. Below
+    /// that, it is ineligible without a 甲標的.
+    #[test]
+    fn opening_torpedo_submarine_requires_level_10() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+
+        let mut low = sample_ship(&codex, ss_mst, 9);
+        low.ship.api_raisou[0] = 50;
+        let rt_low = BattleRuntimeShip::new(low, false, true);
+        assert!(
+            !can_opening_torpedo_ship(&codex, &rt_low),
+            "SS Lv 9 without 甲標的 must not open-torpedo"
+        );
+
+        let mut at10 = sample_ship(&codex, ss_mst, 10);
+        at10.ship.api_raisou[0] = 50;
+        let rt_10 = BattleRuntimeShip::new(at10, false, true);
+        assert!(can_opening_torpedo_ship(&codex, &rt_10), "SS Lv 10 opens torpedo equipment-free");
+    }
+
+    /// U3.1 + U3.2: a sub-Lv-10 submarine equipped with a 甲標的 is still eligible
+    /// — the equipment path is preserved alongside the level gate.
+    #[test]
+    fn opening_torpedo_low_level_submarine_with_minisub() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let minisub = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SpecialSubmarineVessel);
+
+        let mut low = sample_ship(&codex, ss_mst, 5);
+        low.ship.api_raisou[0] = 50;
+        low.slot_items = vec![slotitem_with_mst_id(minisub)];
+        let rt = BattleRuntimeShip::new(low, false, true);
+        assert!(
+            can_opening_torpedo_ship(&codex, &rt),
+            "Lv 5 SS with 甲標的 opens torpedo (equipment path)"
+        );
     }
 
     #[test]
