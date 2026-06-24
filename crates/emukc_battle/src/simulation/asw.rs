@@ -51,7 +51,7 @@ pub(crate) fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
         cl_list.push(vec![1]);
-        damage.push(vec![display]);
+        damage.push(vec![display.into()]);
     }
 
     // Enemy OASW attacks
@@ -79,7 +79,7 @@ pub(crate) fn simulate_opening_taisen(
         df_list.push(vec![target_idx as i64]);
         si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
         cl_list.push(vec![1]);
-        damage.push(vec![dealt]);
+        damage.push(vec![dealt.into()]);
     }
 
     (!at_list.is_empty()).then_some(BattleHougeki {
@@ -138,6 +138,6 @@ mod tests {
         let taisen = result.packet.opening_taisen.unwrap();
         assert_eq!(taisen.api_at_eflag, vec![0]);
         assert_eq!(taisen.api_at_type, vec![7]);
-        assert!(taisen.api_damage[0][0] >= 1);
+        assert!(taisen.api_damage[0][0].amount() >= 1);
     }
 }

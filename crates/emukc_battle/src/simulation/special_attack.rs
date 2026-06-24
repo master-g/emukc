@@ -9,7 +9,9 @@ use emukc_model::{codex::Codex, kc2::KcShipType};
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
 use crate::targeting::{can_shell_day_ship, select_random_target_index, ship_type, target_class};
-use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType, ShellingParams, SiListId};
+use crate::types::{
+    BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams, SiListId,
+};
 
 // ---------------------------------------------------------------------------
 // Ship ID constants
@@ -682,7 +684,7 @@ pub(crate) fn execute_special_attack(
             codex, attacker, false,
         )));
         cl_list.push(hit_cls);
-        damage.push(hit_damages);
+        damage.push(hit_damages.into_iter().map(DamageCell::from).collect());
     }
 
     SpecialAttackResult {

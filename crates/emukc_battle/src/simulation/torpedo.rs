@@ -180,6 +180,7 @@ mod tests {
     use super::*;
     use crate::random::SeededRng;
     use crate::test_utils::*;
+    use crate::types::DamageCell;
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
 
@@ -237,7 +238,7 @@ mod tests {
         let dealt = opening.api_edam[0];
         assert!(dealt > 0);
         assert_eq!(opening.api_frai_list_items[0], Some(vec![0]));
-        assert_eq!(opening.api_fydam_list_items[0], Some(vec![dealt]));
+        assert_eq!(opening.api_fydam_list_items[0], Some(vec![DamageCell::Plain(dealt)]));
         assert_eq!(opening.api_eydam_list_items[0], None);
         assert_eq!(enemy[0].hp(), enemy[0].ship.api_nowhp - dealt);
     }
@@ -266,7 +267,7 @@ mod tests {
         let dealt = opening.api_fdam[0];
         assert!(dealt > 0);
         assert_eq!(opening.api_erai_list_items[0], Some(vec![0]));
-        assert_eq!(opening.api_eydam_list_items[0], Some(vec![dealt]));
+        assert_eq!(opening.api_eydam_list_items[0], Some(vec![DamageCell::Plain(dealt)]));
         assert_eq!(opening.api_fydam_list_items[0], None);
         assert_eq!(friendly[0].hp(), friendly[0].ship.api_nowhp - dealt);
     }
@@ -295,8 +296,8 @@ mod tests {
         let dealt = raigeki.api_edam[0];
         assert!(dealt > 0);
         assert_eq!(raigeki.api_frai[0], 0);
-        assert_eq!(raigeki.api_fydam[0], dealt);
-        assert_eq!(raigeki.api_eydam[0], 0);
+        assert_eq!(raigeki.api_fydam[0], DamageCell::Plain(dealt));
+        assert_eq!(raigeki.api_eydam[0], DamageCell::Plain(0));
         assert_eq!(enemy[0].hp(), enemy[0].ship.api_nowhp - dealt);
     }
 
@@ -324,8 +325,8 @@ mod tests {
         let dealt = raigeki.api_fdam[0];
         assert!(dealt > 0);
         assert_eq!(raigeki.api_erai[0], 0);
-        assert_eq!(raigeki.api_eydam[0], dealt);
-        assert_eq!(raigeki.api_fydam[0], 0);
+        assert_eq!(raigeki.api_eydam[0], DamageCell::Plain(dealt));
+        assert_eq!(raigeki.api_fydam[0], DamageCell::Plain(0));
         assert_eq!(friendly[0].hp(), friendly[0].ship.api_nowhp - dealt);
     }
 }

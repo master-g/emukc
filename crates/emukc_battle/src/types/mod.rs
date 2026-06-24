@@ -13,7 +13,7 @@ pub(crate) use domain::{
 pub use packet::SiListId;
 pub use packet::{
     BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2, BattleKoukuStage3,
-    BattleNightHougeki, BattleOpeningAttack, BattleRaigeki,
+    BattleNightHougeki, BattleOpeningAttack, BattleRaigeki, DamageCell,
 };
 pub use runtime::{
     BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip, BattleShipInput,
@@ -246,11 +246,11 @@ mod tests {
         let opening = payload;
 
         assert_eq!(opening.api_frai_list_items[1], Some(vec![0]));
-        assert_eq!(opening.api_fydam_list_items[1], Some(vec![21]));
+        assert_eq!(opening.api_fydam_list_items[1], Some(vec![DamageCell::Plain(21)]));
         assert_eq!(opening.api_eydam_list_items[1], None);
         assert_eq!(opening.api_edam[0], 21);
         assert_eq!(opening.api_erai_list_items[0], Some(vec![1]));
-        assert_eq!(opening.api_eydam_list_items[0], Some(vec![34]));
+        assert_eq!(opening.api_eydam_list_items[0], Some(vec![DamageCell::Plain(34)]));
         assert_eq!(opening.api_fydam_list_items[0], None);
         assert_eq!(opening.api_fdam[1], 34);
     }
@@ -277,12 +277,12 @@ mod tests {
         let raigeki = payload;
 
         assert_eq!(raigeki.api_frai[1], 0);
-        assert_eq!(raigeki.api_fydam[1], 21);
-        assert_eq!(raigeki.api_eydam[1], 0);
+        assert_eq!(raigeki.api_fydam[1], DamageCell::Plain(21));
+        assert_eq!(raigeki.api_eydam[1], DamageCell::Plain(0));
         assert_eq!(raigeki.api_edam[0], 21);
         assert_eq!(raigeki.api_erai[0], 1);
-        assert_eq!(raigeki.api_eydam[0], 34);
-        assert_eq!(raigeki.api_fydam[0], 0);
+        assert_eq!(raigeki.api_eydam[0], DamageCell::Plain(34));
+        assert_eq!(raigeki.api_fydam[0], DamageCell::Plain(0));
         assert_eq!(raigeki.api_fdam[1], 34);
     }
 }

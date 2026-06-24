@@ -17,7 +17,7 @@ use crate::event::{BattleEvent, EventLog, Phase, ShipRef, Side};
 use crate::reducer::{DerivedState, InitialState, reduce};
 use crate::transforms::{god_mode_transform, one_hit_kill_transform};
 use crate::types::{
-    BattleHougeki, BattleNightHougeki, BattleOutcome, BattlePacket, BattleSimulation,
+    BattleHougeki, BattleNightHougeki, BattleOutcome, BattlePacket, BattleSimulation, DamageCell,
     NightBattleSimulation, SiListId,
 };
 
@@ -161,7 +161,7 @@ fn override_day_packet(packet: &mut BattlePacket, derived: &DerivedState) {
 fn zero_friendly_hougeki_damage(hougeki: &mut BattleHougeki) {
     for (i, &flag) in hougeki.api_at_eflag.iter().enumerate() {
         if flag == 1 {
-            hougeki.api_damage[i] = vec![0; hougeki.api_damage[i].len()];
+            hougeki.api_damage[i] = vec![DamageCell::Plain(0); hougeki.api_damage[i].len()];
         }
     }
 }
@@ -170,7 +170,7 @@ fn zero_friendly_hougeki_damage(hougeki: &mut BattleHougeki) {
 fn zero_friendly_night_hougeki_damage(hougeki: &mut BattleNightHougeki) {
     for (i, &flag) in hougeki.api_at_eflag.iter().enumerate() {
         if flag == 1 {
-            hougeki.api_damage[i] = vec![0; hougeki.api_damage[i].len()];
+            hougeki.api_damage[i] = vec![DamageCell::Plain(0); hougeki.api_damage[i].len()];
         }
     }
 }
@@ -253,7 +253,7 @@ fn synthesize_day_finishing_volley(
             df_list.push(vec![i as i64]);
             si_list.push(vec![SiListId::Num(-1)]);
             cl_list.push(vec![1]);
-            damage.push(vec![remaining_hp]);
+            damage.push(vec![remaining_hp.into()]);
         }
     }
 
@@ -331,7 +331,7 @@ fn synthesize_night_finishing_volley(
             si_list.push(vec![SiListId::Num(-1)]);
             cl_list.push(vec![1]);
             sp_list.push(0);
-            damage.push(vec![remaining_hp]);
+            damage.push(vec![remaining_hp.into()]);
         }
     }
 

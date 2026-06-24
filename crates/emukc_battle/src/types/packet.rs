@@ -1,7 +1,7 @@
 //! API packet types with Serialize derivations.
 //! These directly serialize to JSON for the `KanColle` API response.
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 use super::domain::TorpedoAttackerSide;
 use super::domain::TorpedoHit;
@@ -41,6 +41,60 @@ impl SiListId {
     /// Convert a slice of `i64` IDs into `Num` variants for normal-attack entries.
     pub(crate) fn num_from_i64(ids: &[i64]) -> Vec<Self> {
         ids.iter().map(|&id| Self::Num(id)).collect()
+    }
+}
+
+/// A single value in a damage array (`api_damage`, `api_fydam`, `api_eydam`).
+///
+/// Serializes as a plain JSON integer normally. When an escort intercepts an
+/// attack aimed at the flagship (旗艦援護 / かばう), the value serializes with a
+/// `.1` fractional suffix: the integer part is the real damage and the fraction
+/// is the shield flag the KC client detects via `damage % 1 > 0` (`getDamage`
+/// floors the value for the actual HP change). Any non-zero fraction triggers
+/// the animation; `.1` matches the official server convention.
+#[derive(Clone, Copy, PartialEq)]
+pub enum DamageCell {
+    /// Normal damage — serializes as an integer.
+    Plain(i64),
+    /// Shield-intercepted damage — serializes as `n.1`.
+    Shielded(i64),
+}
+
+// Debug renders the wire value (`150` / `150.1`) rather than the variant name,
+// so golden `{:#?}` snapshots read like the JSON and a non-shield (`Plain`)
+// battle stays byte-identical to the pre-DamageCell baseline.
+impl std::fmt::Debug for DamageCell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Plain(n) => write!(f, "{n}"),
+            Self::Shielded(n) => write!(f, "{n}.1"),
+        }
+    }
+}
+
+impl DamageCell {
+    /// The integer damage amount, regardless of shield state.
+    pub(crate) fn amount(self) -> i64 {
+        match self {
+            Self::Plain(n) | Self::Shielded(n) => n,
+        }
+    }
+}
+
+impl From<i64> for DamageCell {
+    fn from(amount: i64) -> Self {
+        Self::Plain(amount)
+    }
+}
+
+impl Serialize for DamageCell {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::Plain(n) => serializer.serialize_i64(*n),
+            // `n.1`: integer part is the real damage, the `.1` fraction is the
+            // shield flag (`damage % 1 > 0` on the client).
+            Self::Shielded(n) => serializer.serialize_f64(*n as f64 + 0.1),
+        }
     }
 }
 
@@ -93,11 +147,11 @@ pub struct BattleOpeningAttack {
     pub api_frai_list_items: Vec<Option<Vec<i64>>>,
     pub api_fcl_list_items: Vec<Option<Vec<i64>>>,
     pub api_fdam: Vec<i64>,
-    pub api_fydam_list_items: Vec<Option<Vec<i64>>>,
+    pub api_fydam_list_items: Vec<Option<Vec<DamageCell>>>,
     pub api_erai_list_items: Vec<Option<Vec<i64>>>,
     pub api_ecl_list_items: Vec<Option<Vec<i64>>>,
     pub api_edam: Vec<i64>,
-    pub api_eydam_list_items: Vec<Option<Vec<i64>>>,
+    pub api_eydam_list_items: Vec<Option<Vec<DamageCell>>>,
 }
 
 impl BattleOpeningAttack {
@@ -124,14 +178,14 @@ impl BattleOpeningAttack {
                 self.api_frai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
                 self.api_fcl_list_items[hit.attacker_index] = Some(vec![1]);
-                self.api_fydam_list_items[hit.attacker_index] = Some(vec![hit.damage]);
+                self.api_fydam_list_items[hit.attacker_index] = Some(vec![hit.damage.into()]);
                 self.api_edam[hit.defender_index] += hit.damage;
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
                 self.api_ecl_list_items[hit.attacker_index] = Some(vec![1]);
-                self.api_eydam_list_items[hit.attacker_index] = Some(vec![hit.damage]);
+                self.api_eydam_list_items[hit.attacker_index] = Some(vec![hit.damage.into()]);
                 self.api_fdam[hit.defender_index] += hit.damage;
             }
         }
@@ -146,7 +200,7 @@ pub struct BattleHougeki {
     pub api_df_list: Vec<Vec<i64>>,
     pub api_si_list: Vec<Vec<SiListId>>,
     pub api_cl_list: Vec<Vec<i64>>,
-    pub api_damage: Vec<Vec<i64>>,
+    pub api_damage: Vec<Vec<DamageCell>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -158,7 +212,7 @@ pub struct BattleNightHougeki {
     pub api_si_list: Vec<Vec<SiListId>>,
     pub api_cl_list: Vec<Vec<i64>>,
     pub api_sp_list: Vec<i64>,
-    pub api_damage: Vec<Vec<i64>>,
+    pub api_damage: Vec<Vec<DamageCell>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -166,11 +220,11 @@ pub struct BattleRaigeki {
     pub api_frai: Vec<i64>,
     pub api_fcl: Vec<i64>,
     pub api_fdam: Vec<i64>,
-    pub api_fydam: Vec<i64>,
+    pub api_fydam: Vec<DamageCell>,
     pub api_erai: Vec<i64>,
     pub api_ecl: Vec<i64>,
     pub api_edam: Vec<i64>,
-    pub api_eydam: Vec<i64>,
+    pub api_eydam: Vec<DamageCell>,
 }
 
 impl BattleRaigeki {
@@ -179,11 +233,11 @@ impl BattleRaigeki {
             api_frai: vec![-1; len],
             api_fcl: vec![0; len],
             api_fdam: vec![0; len],
-            api_fydam: vec![0; len],
+            api_fydam: vec![DamageCell::Plain(0); len],
             api_erai: vec![-1; len],
             api_ecl: vec![0; len],
             api_edam: vec![0; len],
-            api_eydam: vec![0; len],
+            api_eydam: vec![DamageCell::Plain(0); len],
         }
     }
 
@@ -196,13 +250,13 @@ impl BattleRaigeki {
             TorpedoAttackerSide::Friendly => {
                 self.api_frai[hit.attacker_index] = hit.defender_index as i64;
                 self.api_fcl[hit.attacker_index] = 1;
-                self.api_fydam[hit.attacker_index] = hit.damage;
+                self.api_fydam[hit.attacker_index] = hit.damage.into();
                 self.api_edam[hit.defender_index] += hit.damage;
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai[hit.attacker_index] = hit.defender_index as i64;
                 self.api_ecl[hit.attacker_index] = 1;
-                self.api_eydam[hit.attacker_index] = hit.damage;
+                self.api_eydam[hit.attacker_index] = hit.damage.into();
                 self.api_fdam[hit.defender_index] += hit.damage;
             }
         }
@@ -217,6 +271,37 @@ mod tests {
     fn num_serializes_as_json_integer() {
         let json = serde_json::to_string(&SiListId::Num(161)).unwrap();
         assert_eq!(json, "161");
+    }
+
+    #[test]
+    fn damage_cell_plain_serializes_as_json_integer() {
+        assert_eq!(serde_json::to_string(&DamageCell::Plain(55)).unwrap(), "55");
+        assert_eq!(serde_json::to_string(&DamageCell::Plain(0)).unwrap(), "0");
+    }
+
+    #[test]
+    fn damage_cell_shielded_serializes_with_decimal_flag() {
+        // Integer part is the real damage; the `.1` fraction is the shield flag
+        // the client detects via `damage % 1 > 0`.
+        assert_eq!(serde_json::to_string(&DamageCell::Shielded(55)).unwrap(), "55.1");
+        assert_eq!(serde_json::to_string(&DamageCell::Shielded(198)).unwrap(), "198.1");
+        // Zero-damage shield is still flagged.
+        assert_eq!(serde_json::to_string(&DamageCell::Shielded(0)).unwrap(), "0.1");
+    }
+
+    #[test]
+    fn damage_cell_shielded_round_trips_to_fractional_value() {
+        let json = serde_json::to_string(&DamageCell::Shielded(55)).unwrap();
+        let v: f64 = serde_json::from_str(&json).unwrap();
+        assert!(v % 1.0 > 0.0, "client isShield check (% 1 > 0) must fire: {v}");
+        assert_eq!(v.floor() as i64, 55, "client getDamage floors to real damage");
+    }
+
+    #[test]
+    fn damage_cell_from_i64_is_plain() {
+        assert_eq!(DamageCell::from(42), DamageCell::Plain(42));
+        assert_eq!(DamageCell::Plain(42).amount(), 42);
+        assert_eq!(DamageCell::Shielded(42).amount(), 42);
     }
 
     #[test]
@@ -262,7 +347,7 @@ mod tests {
             // Carrier CI: FBA pattern with string IDs
             api_si_list: vec![SiListId::text_from_i64(&[22, 291, 112])],
             api_cl_list: vec![vec![1]],
-            api_damage: vec![vec![150]],
+            api_damage: vec![vec![DamageCell::Plain(150)]],
         };
         let json = serde_json::to_string(&hougeki).unwrap();
         assert!(
@@ -280,7 +365,7 @@ mod tests {
             api_df_list: vec![vec![0]],
             api_si_list: vec![SiListId::num_from_i64(&[161])],
             api_cl_list: vec![vec![1]],
-            api_damage: vec![vec![50]],
+            api_damage: vec![vec![DamageCell::Plain(50)]],
         };
         let json = serde_json::to_string(&hougeki).unwrap();
         assert!(

@@ -15,7 +15,7 @@ use crate::targeting::{
     is_day_surface_display_type, select_random_target_index, ship_type, target_class,
 };
 use crate::types::{
-    BattleNightHougeki, BattlePhase, BattleRuntimeShip, NightBattleParams, SiListId,
+    BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams, SiListId,
 };
 
 // ---------------------------------------------------------------------------
@@ -826,7 +826,7 @@ pub(crate) fn simulate_night_hougeki(
         si_list.push(night_si_entry(codex, ship, attack_type));
         cl_list.push(hit_cls);
         sp_list.push(attack_type.api_sp_list());
-        damage.push(hit_damages);
+        damage.push(hit_damages.into_iter().map(DamageCell::from).collect());
     }
 
     for (idx, ship) in enemy.iter_mut().enumerate() {
@@ -878,7 +878,7 @@ pub(crate) fn simulate_night_hougeki(
         si_list.push(night_si_entry(codex, ship, attack_type));
         cl_list.push(hit_cls);
         sp_list.push(attack_type.api_sp_list());
-        damage.push(hit_damages);
+        damage.push(hit_damages.into_iter().map(DamageCell::from).collect());
     }
 
     if at_list.is_empty() {
@@ -1127,9 +1127,9 @@ mod tests {
         .unwrap();
 
         assert_eq!(hougeki.api_df_list[0], vec![0]);
-        assert!(hougeki.api_damage[0][0] >= 1);
-        assert!(hougeki.api_damage[0][0] < enemy_hp);
-        assert_eq!(enemy[0].hp(), enemy_hp - hougeki.api_damage[0][0]);
+        assert!(hougeki.api_damage[0][0].amount() >= 1);
+        assert!(hougeki.api_damage[0][0].amount() < enemy_hp);
+        assert_eq!(enemy[0].hp(), enemy_hp - hougeki.api_damage[0][0].amount());
     }
 
     #[test]

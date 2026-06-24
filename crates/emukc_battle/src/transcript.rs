@@ -12,7 +12,7 @@ use std::fmt::Write as _;
 
 use crate::types::{
     BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleOutcome,
-    BattleRaigeki, BattleRuntimeShip, BattleSimulation, NightBattleSimulation,
+    BattleRaigeki, BattleRuntimeShip, BattleSimulation, DamageCell, NightBattleSimulation,
 };
 
 /// Render a day-battle simulation as deterministic, human-readable text.
@@ -191,7 +191,7 @@ fn render_attack(
     cutin: i64,
     targets: &[i64],
     cls: &[i64],
-    dmgs: &[i64],
+    dmgs: &[DamageCell],
     out: &mut String,
 ) {
     let aside = attacker_side(eflag);
@@ -207,7 +207,7 @@ fn render_attack(
     }
     for (j, &tgt) in targets.iter().enumerate() {
         let cl = cls.get(j).copied().unwrap_or(1);
-        let d = dmgs.get(j).copied().unwrap_or(0);
+        let d = dmgs.get(j).map(|c| c.amount()).unwrap_or(0);
         let _ = writeln!(
             out,
             "  {aside}{} -> {dside}{}: dmg {d} [{}]{cutin}",
@@ -247,7 +247,7 @@ fn render_torpedo_side(
     dside: char,
     rai: &[Option<Vec<i64>>],
     cl: &[Option<Vec<i64>>],
-    ydam: &[Option<Vec<i64>>],
+    ydam: &[Option<Vec<DamageCell>>],
     out: &mut String,
 ) -> bool {
     let mut any = false;
@@ -258,7 +258,7 @@ fn render_torpedo_side(
         let dmgs = ydam.get(i).and_then(Option::as_deref).unwrap_or(&[]);
         let cls = cl.get(i).and_then(Option::as_deref).unwrap_or(&[]);
         for (j, &tgt) in targets.iter().enumerate() {
-            let d = dmgs.get(j).copied().unwrap_or(0);
+            let d = dmgs.get(j).map(|c| c.amount()).unwrap_or(0);
             let c = cls.get(j).copied().unwrap_or(1);
             let _ = writeln!(
                 out,
@@ -280,7 +280,7 @@ fn render_raigeki(label: &str, r: &BattleRaigeki, out: &mut String) {
         if tgt < 0 {
             continue;
         }
-        let d = r.api_fydam.get(i).copied().unwrap_or(0);
+        let d = r.api_fydam.get(i).map(|c| c.amount()).unwrap_or(0);
         let c = r.api_fcl.get(i).copied().unwrap_or(1);
         let _ = writeln!(out, "  F{} -> E{}: dmg {d} [{}]", i + 1, tgt + 1, hit_word(c));
         any = true;
@@ -289,7 +289,7 @@ fn render_raigeki(label: &str, r: &BattleRaigeki, out: &mut String) {
         if tgt < 0 {
             continue;
         }
-        let d = r.api_eydam.get(i).copied().unwrap_or(0);
+        let d = r.api_eydam.get(i).map(|c| c.amount()).unwrap_or(0);
         let c = r.api_ecl.get(i).copied().unwrap_or(1);
         let _ = writeln!(out, "  E{} -> F{}: dmg {d} [{}]", i + 1, tgt + 1, hit_word(c));
         any = true;
@@ -379,7 +379,7 @@ mod tests {
             h.api_at_type.push(at_type);
             h.api_df_list.push(targets.iter().map(|t| t.0).collect());
             h.api_cl_list.push(targets.iter().map(|t| t.1).collect());
-            h.api_damage.push(targets.iter().map(|t| t.2).collect());
+            h.api_damage.push(targets.iter().map(|t| DamageCell::Plain(t.2)).collect());
             h.api_si_list.push(vec![]);
         }
         h
@@ -445,11 +445,11 @@ mod tests {
                 api_frai: vec![0],
                 api_fcl: vec![1],
                 api_fdam: vec![0],
-                api_fydam: vec![60],
+                api_fydam: vec![DamageCell::Plain(60)],
                 api_erai: vec![-1],
                 api_ecl: vec![0],
                 api_edam: vec![60],
-                api_eydam: vec![0],
+                api_eydam: vec![DamageCell::Plain(0)],
             }),
         }
     }
@@ -476,7 +476,7 @@ mod tests {
             api_si_list: vec![vec![], vec![]],
             api_cl_list: vec![vec![2], vec![0]],
             api_sp_list: vec![5, 0],
-            api_damage: vec![vec![140], vec![0]],
+            api_damage: vec![vec![DamageCell::Plain(140)], vec![DamageCell::Plain(0)]],
         };
         NightBattleSimulation {
             friendly: vec![ship(123, 80, 80, 80, true)],

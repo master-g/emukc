@@ -9,7 +9,7 @@ use crate::simulation::special_attack;
 use crate::targeting::{
     can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,
 };
-use crate::types::{BattleHougeki, BattleRuntimeShip, ShellingParams, SiListId};
+use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams, SiListId};
 
 /// Maximum ships per fleet (single fleet, not combined). Caps the special-attack skip array.
 const MAX_FLEET_SIZE: usize = 6;
@@ -215,7 +215,7 @@ fn push_attack(
     df_list: &mut Vec<Vec<i64>>,
     si_list: &mut Vec<Vec<SiListId>>,
     cl_list: &mut Vec<Vec<i64>>,
-    damage: &mut Vec<Vec<i64>>,
+    damage: &mut Vec<Vec<DamageCell>>,
     attacker_is_enemy: bool,
     attacker_idx: usize,
     attack_type: i64,
@@ -229,7 +229,8 @@ fn push_attack(
     df_list.push(targets);
     si_list.push(display_ids);
     cl_list.push(vec![1; damages.len()]);
-    damage.push(damages);
+    // U1: plain (non-shield) damage. U3 wraps the intercepted hit as Shielded.
+    damage.push(damages.into_iter().map(DamageCell::from).collect());
 }
 
 #[cfg(test)]
