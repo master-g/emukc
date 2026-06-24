@@ -86,4 +86,5 @@ hougeki.api_damage[attack_index] = applied;                // reports 25, NOT 80
 ## Related
 
 - `docs/solutions/architecture-patterns/night-battle-sinking-protection.md` — the sinking-protection policy that produces the proportional values reported here.
+- `docs/solutions/logic-errors/night-enemy-attack-display-damage-2026-06-24.md` — a concrete violation of this invariant (the night enemy-attack loop reported raw instead of effective damage) and its fix.
 - `crates/emukc_battle/` — `apply_damage()` and phase output population.
