@@ -1125,6 +1125,35 @@ mod tests {
         );
     }
 
+    /// U3.1 / 5.5: a non-submarine, non-CLT ship (a seaplane tender / AV) opens
+    /// torpedo only via an equipped 甲標的 — the equipment path is independent of
+    /// ship type.
+    #[test]
+    fn opening_torpedo_seaplane_tender_with_minisub() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let av_mst = first_ship_mst_by_type(&codex, KcShipType::AV);
+        let minisub = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SpecialSubmarineVessel);
+
+        // Base torpedo but no 甲標的 → ineligible (AV is not CLT/SS/SSV).
+        let mut bare = sample_ship(&codex, av_mst, 99);
+        bare.ship.api_raisou[0] = 50;
+        let rt_bare = BattleRuntimeShip::new(bare, false, true);
+        assert!(
+            !can_opening_torpedo_ship(&codex, &rt_bare),
+            "an AV without 甲標的 cannot open-torpedo"
+        );
+
+        // Equip a 甲標的 → eligible via the equipment path.
+        let mut armed = sample_ship(&codex, av_mst, 99);
+        armed.ship.api_raisou[0] = 50;
+        armed.slot_items = vec![slotitem_with_mst_id(minisub)];
+        let rt_armed = BattleRuntimeShip::new(armed, false, true);
+        assert!(
+            can_opening_torpedo_ship(&codex, &rt_armed),
+            "an AV with 甲標的 opens torpedo (equipment path)"
+        );
+    }
+
     #[test]
     fn display_damage_enemy_defender_returns_raw_overkill() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
