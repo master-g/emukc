@@ -1,6 +1,7 @@
 ---
 title: "fix: Battle Attack System — Phase Participation Rules and Enemy Overkill"
 type: fix
+status: completed
 date: 2026-06-22
 origin: openspec/changes/fix-battle-attack-system (translated during openspec sunset)
 ---
