@@ -1387,6 +1387,7 @@ dependencies = [
  "emukc_crypto",
  "emukc_model",
  "serde",
+ "serde_json",
  "tracing",
 ]
 

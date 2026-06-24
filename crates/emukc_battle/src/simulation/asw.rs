@@ -5,7 +5,7 @@ use emukc_model::codex::Codex;
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::targeting::{can_opening_asw, day_attack_display_ids, select_submarine_target};
-use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType};
+use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType, SiListId};
 
 /// Simulate the opening ASW phase (先制対潜).
 pub(crate) fn simulate_opening_taisen(
@@ -49,7 +49,7 @@ pub(crate) fn simulate_opening_taisen(
         at_list.push(idx as i64);
         at_type.push(7); // ASW attack type
         df_list.push(vec![target_idx as i64]);
-        si_list.push(day_attack_display_ids(codex, ship, true));
+        si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
         cl_list.push(vec![1]);
         damage.push(vec![display]);
     }
@@ -77,7 +77,7 @@ pub(crate) fn simulate_opening_taisen(
         at_list.push(idx as i64);
         at_type.push(7);
         df_list.push(vec![target_idx as i64]);
-        si_list.push(day_attack_display_ids(codex, ship, true));
+        si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
         cl_list.push(vec![1]);
         damage.push(vec![dealt]);
     }

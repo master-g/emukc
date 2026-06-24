@@ -10,6 +10,7 @@ pub(crate) use domain::{
     AirstrikeOutput, AttackCapability, BattlePhase, NightBattleParams, ShellingParams, TargetClass,
     TorpedoAttackerSide, TorpedoHit,
 };
+pub use packet::SiListId;
 pub use packet::{
     BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2, BattleKoukuStage3,
     BattleNightHougeki, BattleOpeningAttack, BattleRaigeki,

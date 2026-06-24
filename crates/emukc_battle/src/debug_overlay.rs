@@ -18,7 +18,7 @@ use crate::reducer::{DerivedState, InitialState, reduce};
 use crate::transforms::{god_mode_transform, one_hit_kill_transform};
 use crate::types::{
     BattleHougeki, BattleNightHougeki, BattleOutcome, BattlePacket, BattleSimulation,
-    NightBattleSimulation,
+    NightBattleSimulation, SiListId,
 };
 
 /// Derive a damage event log from HP diff between entry and final state.
@@ -251,7 +251,7 @@ fn synthesize_day_finishing_volley(
             at_list.push(attacker_idx as i64);
             at_type.push(0);
             df_list.push(vec![i as i64]);
-            si_list.push(vec![-1]);
+            si_list.push(vec![SiListId::Num(-1)]);
             cl_list.push(vec![1]);
             damage.push(vec![remaining_hp]);
         }
@@ -328,7 +328,7 @@ fn synthesize_night_finishing_volley(
             at_list.push(attacker_idx as i64);
             n_mother_list.push(0);
             df_list.push(vec![i as i64]);
-            si_list.push(vec![-1]);
+            si_list.push(vec![SiListId::Num(-1)]);
             cl_list.push(vec![1]);
             sp_list.push(0);
             damage.push(vec![remaining_hp]);

@@ -6,6 +6,50 @@ use serde::Serialize;
 use super::domain::TorpedoAttackerSide;
 use super::domain::TorpedoHit;
 
+/// A single equipment ID in `api_si_list`.
+///
+/// The KC API uses JSON value type to distinguish attack rendering paths:
+/// cut-in / special-attack entries are **strings** (e.g. `"22"`),
+/// while normal-attack entries are **integers** (e.g. `161`).
+/// The `-1` sentinel (no equipment) is always an integer.
+///
+/// `#[serde(untagged)]` ensures clean JSON output without type tags.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(untagged)]
+pub enum SiListId {
+    /// Integer-valued ID (normal attacks, sentinels).
+    Num(i64),
+    /// String-valued ID (cut-in / special attacks).
+    Text(String),
+}
+
+impl SiListId {
+    /// Convert a slice of `i64` IDs into `Text` variants for CI / special-attack entries.
+    /// The `-1` sentinel is kept as `Num(-1)` per the official server format.
+    pub(crate) fn text_from_i64(ids: &[i64]) -> Vec<Self> {
+        ids.iter()
+            .map(|&id| {
+                if id < 0 {
+                    Self::Num(id)
+                } else {
+                    Self::Text(id.to_string())
+                }
+            })
+            .collect()
+    }
+
+    /// Convert a slice of `i64` IDs into `Num` variants for normal-attack entries.
+    pub(crate) fn num_from_i64(ids: &[i64]) -> Vec<Self> {
+        ids.iter().map(|&id| Self::Num(id)).collect()
+    }
+}
+
+impl From<i64> for SiListId {
+    fn from(v: i64) -> Self {
+        Self::Num(v)
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct BattleKouku {
     pub api_plane_from: [Vec<i64>; 2],
@@ -106,7 +150,7 @@ pub struct BattleHougeki {
     pub api_at_list: Vec<i64>,
     pub api_at_type: Vec<i64>,
     pub api_df_list: Vec<Vec<i64>>,
-    pub api_si_list: Vec<Vec<i64>>,
+    pub api_si_list: Vec<Vec<SiListId>>,
     pub api_cl_list: Vec<Vec<i64>>,
     pub api_damage: Vec<Vec<i64>>,
 }
@@ -117,7 +161,7 @@ pub struct BattleNightHougeki {
     pub api_at_list: Vec<i64>,
     pub api_n_mother_list: Vec<i64>,
     pub api_df_list: Vec<Vec<i64>>,
-    pub api_si_list: Vec<Vec<i64>>,
+    pub api_si_list: Vec<Vec<SiListId>>,
     pub api_cl_list: Vec<Vec<i64>>,
     pub api_sp_list: Vec<i64>,
     pub api_damage: Vec<Vec<i64>>,
@@ -168,5 +212,87 @@ impl BattleRaigeki {
                 self.api_fdam[hit.defender_index] += hit.damage;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn num_serializes_as_json_integer() {
+        let json = serde_json::to_string(&SiListId::Num(161)).unwrap();
+        assert_eq!(json, "161");
+    }
+
+    #[test]
+    fn text_serializes_as_json_string() {
+        let json = serde_json::to_string(&SiListId::Text("291".into())).unwrap();
+        assert_eq!(json, "\"291\"");
+    }
+
+    #[test]
+    fn num_negative_one_serializes_as_integer_not_string() {
+        let json = serde_json::to_string(&SiListId::Num(-1)).unwrap();
+        assert_eq!(json, "-1");
+    }
+
+    #[test]
+    fn text_from_i64_stringifies_positive_ids() {
+        let ids = SiListId::text_from_i64(&[22, 291, 112]);
+        let json = serde_json::to_string(&ids).unwrap();
+        assert_eq!(json, "[\"22\",\"291\",\"112\"]");
+    }
+
+    #[test]
+    fn text_from_i64_keeps_negative_as_num() {
+        let ids = SiListId::text_from_i64(&[-1, 22]);
+        assert_eq!(ids[0], SiListId::Num(-1));
+        assert_eq!(ids[1], SiListId::Text("22".into()));
+    }
+
+    #[test]
+    fn num_from_i64_all_num_variants() {
+        let ids = SiListId::num_from_i64(&[161, -1]);
+        assert_eq!(ids[0], SiListId::Num(161));
+        assert_eq!(ids[1], SiListId::Num(-1));
+    }
+
+    #[test]
+    fn hougeki_si_list_mixed_types_serialize_correctly() {
+        let hougeki = BattleHougeki {
+            api_at_eflag: vec![0],
+            api_at_list: vec![0],
+            api_at_type: vec![7],
+            api_df_list: vec![vec![0]],
+            // Carrier CI: FBA pattern with string IDs
+            api_si_list: vec![SiListId::text_from_i64(&[22, 291, 112])],
+            api_cl_list: vec![vec![1]],
+            api_damage: vec![vec![150]],
+        };
+        let json = serde_json::to_string(&hougeki).unwrap();
+        assert!(
+            json.contains("\"22\",\"291\",\"112\""),
+            "CI entries must serialize as strings: {json}"
+        );
+    }
+
+    #[test]
+    fn hougeki_si_list_normal_attack_serializes_as_integers() {
+        let hougeki = BattleHougeki {
+            api_at_eflag: vec![0],
+            api_at_list: vec![0],
+            api_at_type: vec![0],
+            api_df_list: vec![vec![0]],
+            api_si_list: vec![SiListId::num_from_i64(&[161])],
+            api_cl_list: vec![vec![1]],
+            api_damage: vec![vec![50]],
+        };
+        let json = serde_json::to_string(&hougeki).unwrap();
+        assert!(
+            !json.contains("\"161\""),
+            "normal attack must serialize as integer, not string: {json}"
+        );
+        assert!(json.contains("161"), "161 must appear in JSON: {json}");
     }
 }

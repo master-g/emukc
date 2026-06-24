@@ -9,7 +9,7 @@ use crate::simulation::special_attack;
 use crate::targeting::{
     can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,
 };
-use crate::types::{BattleHougeki, BattleRuntimeShip, ShellingParams};
+use crate::types::{BattleHougeki, BattleRuntimeShip, ShellingParams, SiListId};
 
 /// Maximum ships per fleet (single fleet, not combined). Caps the special-attack skip array.
 const MAX_FLEET_SIZE: usize = 6;
@@ -99,7 +99,7 @@ pub(crate) fn simulate_shelling_side(
                 idx,
                 7,
                 vec![target_idx as i64],
-                day_attack_display_ids(codex, ship, true),
+                SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)),
                 vec![display],
             );
         } else {
@@ -146,7 +146,7 @@ pub(crate) fn simulate_shelling_side(
                     idx,
                     resolved.at_type as i64,
                     vec![target_idx as i64; 2],
-                    day_attack_display_ids(codex, ship, false),
+                    SiListId::text_from_i64(&day_attack_display_ids(codex, ship, false)),
                     damages,
                 );
             } else {
@@ -166,13 +166,16 @@ pub(crate) fn simulate_shelling_side(
                 let display =
                     crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 let display_ids = if resolved.at_type == DayAttackType::CarrierCI {
-                    carrier_ci_display_ids(
+                    SiListId::text_from_i64(&carrier_ci_display_ids(
                         codex,
                         ship,
                         resolved.carrier_sub.expect("CarrierCI must have sub-type"),
-                    )
+                    ))
+                } else if resolved.at_type != DayAttackType::Normal {
+                    // Artillery spotting CI (at_type 3-6)
+                    SiListId::text_from_i64(&day_attack_display_ids(codex, ship, false))
                 } else {
-                    day_attack_display_ids(codex, ship, false)
+                    SiListId::num_from_i64(&day_attack_display_ids(codex, ship, false))
                 };
                 push_attack(
                     &mut at_eflag,
@@ -210,14 +213,14 @@ fn push_attack(
     at_list: &mut Vec<i64>,
     at_type: &mut Vec<i64>,
     df_list: &mut Vec<Vec<i64>>,
-    si_list: &mut Vec<Vec<i64>>,
+    si_list: &mut Vec<Vec<SiListId>>,
     cl_list: &mut Vec<Vec<i64>>,
     damage: &mut Vec<Vec<i64>>,
     attacker_is_enemy: bool,
     attacker_idx: usize,
     attack_type: i64,
     targets: Vec<i64>,
-    display_ids: Vec<i64>,
+    display_ids: Vec<SiListId>,
     damages: Vec<i64>,
 ) {
     at_eflag.push(i64::from(attacker_is_enemy));

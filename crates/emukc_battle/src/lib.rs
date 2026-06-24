@@ -34,7 +34,7 @@ pub use types::{
     AirState, BattleContext, BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
     BattleKoukuStage3, BattleNightHougeki, BattleOpeningAttack, BattleOutcome, BattlePacket,
     BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleSimulation, BattleType,
-    EngagementType, NightBattleInput, NightBattlePacket, NightBattleSimulation,
+    EngagementType, NightBattleInput, NightBattlePacket, NightBattleSimulation, SiListId,
 };
 
 // Public API — RNG

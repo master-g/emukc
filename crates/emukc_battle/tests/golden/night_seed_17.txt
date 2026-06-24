@@ -54,12 +54,20 @@ NightBattlePacket {
             ],
             api_si_list: [
                 [
-                    7,
-                    11,
+                    Text(
+                        "7",
+                    ),
+                    Text(
+                        "11",
+                    ),
                 ],
                 [
-                    7,
-                    11,
+                    Text(
+                        "7",
+                    ),
+                    Text(
+                        "11",
+                    ),
                 ],
             ],
             api_cl_list: [

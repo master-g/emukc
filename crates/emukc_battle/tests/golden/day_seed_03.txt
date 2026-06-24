@@ -145,10 +145,14 @@ BattlePacket {
             ],
             api_si_list: [
                 [
-                    7,
+                    Num(
+                        7,
+                    ),
                 ],
                 [
-                    7,
+                    Num(
+                        7,
+                    ),
                 ],
             ],
             api_cl_list: [
