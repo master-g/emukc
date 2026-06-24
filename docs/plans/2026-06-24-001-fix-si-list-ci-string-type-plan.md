@@ -1,6 +1,6 @@
 ---
 title: "fix: api_si_list CI entries must serialize as JSON strings"
-status: active
+status: completed
 created: 2026-06-24
 type: fix
 origin: user-reported CV cut-in display bug + official server data analysis
