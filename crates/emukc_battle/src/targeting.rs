@@ -300,7 +300,12 @@ pub(crate) fn can_opening_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) 
 }
 
 /// Whether a single ship may participate in the closing torpedo phase.
-pub(crate) fn can_closing_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+pub(crate) fn can_closing_torpedo_ship(_codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    // Base torpedo stat is the sole eligibility gate (wikiwiki 戦闘について): any
+    // ship type with `api_raisou[0] > 0` participates — including BBs with a base
+    // torpedo (Bismarck drei, 金剛型第三改装, Гангут, …) that a ship-type whitelist
+    // wrongly excluded — while ship types with base torpedo 0 (DE, LHA, most BB,
+    // carriers) fall out naturally.
     if ship.is_sunk() || ship.ship.api_raisou[0] <= 0 {
         return false;
     }
@@ -310,23 +315,7 @@ pub(crate) fn can_closing_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) 
         return false;
     }
 
-    matches!(
-        ship_type(codex, ship),
-        Some(
-            KcShipType::DE
-                | KcShipType::DD
-                | KcShipType::CL
-                | KcShipType::CLT
-                | KcShipType::CA
-                | KcShipType::CAV
-                | KcShipType::AV
-                | KcShipType::LHA
-                | KcShipType::SS
-                | KcShipType::SSV
-                | KcShipType::CT
-                | KcShipType::AO
-        )
-    )
+    true
 }
 
 /// Whether a single ship may fire in day shelling.
@@ -1067,7 +1056,8 @@ mod tests {
         let rt_zero_raisou = BattleRuntimeShip::from(zero_raisou);
         assert!(!can_closing_torpedo_ship(&codex, &rt_zero_raisou));
 
-        // BB not in closing-torpedo whitelist regardless of HP
+        // A stock BB has base torpedo 0, so the stat gate excludes it (a BB *with*
+        // base torpedo is covered by closing_torpedo_includes_battleship_with_base_torpedo).
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
         let bb = sample_ship(&codex, bb_mst, 50);
         let rt_bb = BattleRuntimeShip::from(bb);
@@ -1290,5 +1280,35 @@ mod tests {
         assert!(seen[1], "escort index 1 must be selectable");
         assert!(seen[2], "escort index 2 must be selectable");
         assert!(!seen[0], "the flagship (index 0) must never be the interceptor");
+    }
+
+    // ── Closing torpedo eligibility (plan 002 U2: base-torpedo stat is the gate,
+    //    no ship-type whitelist) ───────────────────────────────────────────────
+
+    fn closing_torpedo_ship(
+        codex: &Codex,
+        ty: KcShipType,
+        raisou: i64,
+        nowhp: i64,
+        maxhp: i64,
+    ) -> BattleRuntimeShip {
+        let mst = first_ship_mst_by_type(codex, ty);
+        let mut input = sample_ship(codex, mst, 80);
+        input.ship.api_raisou[0] = raisou;
+        input.ship.api_nowhp = nowhp;
+        input.ship.api_maxhp = maxhp;
+        BattleRuntimeShip::new(input, true, true)
+    }
+
+    /// R3 / U2: a battleship — excluded by the old ship-type whitelist — with a
+    /// base torpedo stat now participates in closing torpedo.
+    #[test]
+    fn closing_torpedo_includes_battleship_with_base_torpedo() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = closing_torpedo_ship(&codex, KcShipType::BB, 50, 90, 90);
+        assert!(
+            can_closing_torpedo_ship(&codex, &bb),
+            "a BB with base torpedo > 0 must fire closing torpedo (no type whitelist)"
+        );
     }
 }
