@@ -1483,6 +1483,21 @@ mod tests {
     }
 
     #[test]
+    fn validate_day_battle_response_accepts_fractional_shield_damage() {
+        // 旗艦援護 (かばう) encodes the shield flag as a `.1` fraction on api_damage
+        // and the torpedo ydam fields. The validator must accept these fractional
+        // values, not reject them as non-integers. The validator does not inspect
+        // damage element values today; this guards against a future change that
+        // adds an integer-only damage check breaking the shield encoding.
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_hougeki1"][0]["api_damage"] = serde_json::json!([[55.1], [13]]);
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+        assert!(!report.has_errors(), "fractional shield damage must validate without error");
+    }
+
+    #[test]
     fn validate_day_battle_response_separates_expected_and_candidate_slot_resources() {
         let assets = build_day_battle_assets();
         let manifest = build_manifest_with_enemy();
