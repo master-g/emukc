@@ -72,4 +72,62 @@ mod tests {
             next.cell_no
         );
     }
+
+    /// Data invariant that keeps the compass rule honest across every map.
+    ///
+    /// `rashin_flg` keys on `next_cells.len() > 1`, while `has_next` keys on
+    /// `next_cells` OR `routing_rules` (see `cell_has_routing_outgoing`). These
+    /// two definitions of "out-degree" only stay consistent as long as
+    /// `next_cells` is a superset of every routable target. If a future
+    /// data-source sync produced a cell whose `routing_rules` could reach a
+    /// branch target absent from `next_cells`, `next_cells` would under-count
+    /// the branch and the compass would wrongly skip at a 分岐点 — the exact bug
+    /// this fix closed, re-introduced through data drift instead of code.
+    ///
+    /// Assert the structural guard: for every cell, each `routing_rules` target
+    /// is listed in that cell's `next_cells`. Currently 0 violations across all
+    /// 676 cells; this fires the moment that stops being true.
+    #[tokio::test]
+    async fn routing_targets_are_subset_of_next_cells() {
+        let context = new_context().await;
+        let catalog = &context.codex().maps;
+
+        let mut violations = Vec::new();
+        for (map_id, def) in &catalog.maps {
+            for (vkey, variant) in &def.variants {
+                let next_by_cell: std::collections::BTreeMap<i64, std::collections::BTreeSet<i64>> =
+                    variant
+                        .cells
+                        .iter()
+                        .map(|c| (c.cell_no, c.next_cells.iter().copied().collect()))
+                        .collect();
+                for (&from_cell, rules) in &variant.routing_rules {
+                    let Some(next) = next_by_cell.get(&from_cell) else {
+                        violations.push(format!(
+                            "map {map_id} variant {vkey:?}: routing_rules key cell {from_cell} \
+                             has no matching cell"
+                        ));
+                        continue;
+                    };
+                    for rule in rules {
+                        if !next.contains(&rule.to_cell_no) {
+                            violations.push(format!(
+                                "map {map_id} variant {vkey:?} cell {from_cell}: routing target {} \
+                                 absent from next_cells {next:?}",
+                                rule.to_cell_no
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        assert!(
+            violations.is_empty(),
+            "routing targets must be a subset of next_cells so rashin_flg never \
+             under-counts a branch ({} violations):\n{}",
+            violations.len(),
+            violations.join("\n")
+        );
+    }
 }
