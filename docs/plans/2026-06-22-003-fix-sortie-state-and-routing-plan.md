@@ -1,5 +1,6 @@
 ---
 title: "fix: Sortie State Cleanup and Map 1-3 Routing — Defensive Start, Practice Leak Prevention, Directed-Graph Routing"
+status: active
 type: fix
 date: 2026-06-22
 origin: openspec/changes/fix-sortie-state-and-routing (translated during openspec sunset)

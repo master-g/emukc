@@ -1,5 +1,6 @@
 ---
 title: "fix: Battle Sim Harness Hardening — Determinism Enforcement and Test-Surface Expansion"
+status: completed
 type: fix
 date: 2026-06-15
 origin: docs/brainstorms/2026-06-09-deterministic-battle-test-harness-requirements.md

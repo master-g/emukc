@@ -1,5 +1,6 @@
 ---
 title: "fix: Boss-Node Equivalence — Recognize All Cells Sharing the Boss Node as Boss"
+status: completed
 type: fix
 date: 2026-06-22
 origin: investigation of 2 stable-failing boss-path tests (plan 003 scope, U1.2/U3.1)

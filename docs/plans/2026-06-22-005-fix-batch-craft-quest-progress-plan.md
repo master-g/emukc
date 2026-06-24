@@ -1,5 +1,6 @@
 ---
 title: "fix: Batch Craft Quest Progress — Diagnostic and Repair of Development-Quest Event Matching"
+status: planned
 type: fix
 date: 2026-06-22
 origin: openspec/changes/fix-batch-craft-quest-progress (translated during openspec sunset, see docs/plans/2026-06-22-001)

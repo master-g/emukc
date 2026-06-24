@@ -1,5 +1,6 @@
 ---
 title: "refactor: Battle RNG and Practice Store Hardening — Finish the Half-Done Extraction"
+status: completed
 type: refactor
 date: 2026-06-22
 origin: openspec/changes/harden-battle-refactor-followup/ (translated into ce-plan format per the openspec sunset migration)
