@@ -137,10 +137,10 @@ BattlePacket {
             ],
             api_df_list: [
                 [
-                    0,
+                    1,
                 ],
                 [
-                    1,
+                    0,
                 ],
             ],
             api_si_list: [
@@ -165,10 +165,10 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    116,
+                    118.1,
                 ],
                 [
-                    118,
+                    114,
                 ],
             ],
         },

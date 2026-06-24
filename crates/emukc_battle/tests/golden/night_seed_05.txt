@@ -44,12 +44,12 @@ NightBattlePacket {
             ],
             api_df_list: [
                 [
-                    0,
-                    0,
+                    1,
+                    1,
                 ],
                 [
-                    1,
-                    1,
+                    0,
+                    0,
                 ],
             ],
             api_si_list: [
@@ -86,8 +86,8 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    286,
-                    0,
+                    286.1,
+                    0.1,
                 ],
                 [
                     283,
