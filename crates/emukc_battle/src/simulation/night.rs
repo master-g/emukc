@@ -741,6 +741,24 @@ fn night_attack_display_ids(
 // Night hougeki simulation
 // ---------------------------------------------------------------------------
 
+/// Build the `api_si_list` entry for a night attacker. Cut-ins and double
+/// attacks (any non-`Normal` type) serialize as JSON strings; normal attacks
+/// stay integers. The `-1` empty-equipment sentinel is kept as `Num` by the
+/// `text_from_i64` / `num_from_i64` helpers. Shared by the friendly and enemy
+/// loops, which differ only in `at_eflag`.
+fn night_si_entry(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    attack_type: NightAttackType,
+) -> Vec<SiListId> {
+    let ids = night_attack_display_ids(codex, ship, attack_type);
+    if attack_type != NightAttackType::Normal {
+        SiListId::text_from_i64(&ids)
+    } else {
+        SiListId::num_from_i64(&ids)
+    }
+}
+
 /// Simulate the night battle hougeki phase.
 pub(crate) fn simulate_night_hougeki(
     codex: &Codex,
@@ -801,18 +819,11 @@ pub(crate) fn simulate_night_hougeki(
         }
         ship.damage_dealt += total_dealt;
 
-        let is_special = attack_type != NightAttackType::Normal;
-        let display_ids = night_attack_display_ids(codex, ship, attack_type);
-        let si_entry = if is_special {
-            SiListId::text_from_i64(&display_ids)
-        } else {
-            SiListId::num_from_i64(&display_ids)
-        };
         at_eflag.push(0);
         at_list.push(idx as i64);
         n_mother_list.push(0);
         df_list.push(vec![target_idx as i64; hits]);
-        si_list.push(si_entry);
+        si_list.push(night_si_entry(codex, ship, attack_type));
         cl_list.push(hit_cls);
         sp_list.push(attack_type.api_sp_list());
         damage.push(hit_damages);
@@ -860,18 +871,11 @@ pub(crate) fn simulate_night_hougeki(
         }
         ship.damage_dealt += total_dealt;
 
-        let is_special_enemy = attack_type != NightAttackType::Normal;
-        let display_ids_enemy = night_attack_display_ids(codex, ship, attack_type);
-        let si_entry_enemy = if is_special_enemy {
-            SiListId::text_from_i64(&display_ids_enemy)
-        } else {
-            SiListId::num_from_i64(&display_ids_enemy)
-        };
         at_eflag.push(1);
         at_list.push(idx as i64);
         n_mother_list.push(0);
         df_list.push(vec![target_idx as i64; hits]);
-        si_list.push(si_entry_enemy);
+        si_list.push(night_si_entry(codex, ship, attack_type));
         cl_list.push(hit_cls);
         sp_list.push(attack_type.api_sp_list());
         damage.push(hit_damages);
