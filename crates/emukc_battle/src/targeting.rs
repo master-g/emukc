@@ -147,8 +147,6 @@ pub(crate) fn select_submarine_target(
 /// 輪形/警戒 75%. Combined-fleet formation IDs (11–14) and any unknown ID return
 /// `None` — combined-fleet interception is out of scope until combined sortie
 /// exists, and an unknown formation never intercepts.
-// `allow(dead_code)`: exercised by unit tests; wired into the battle phases in U3.
-#[allow(dead_code)]
 fn escort_shield_rate(formation_id: i64) -> Option<i64> {
     match formation_id {
         1 => Some(45),         // 単縦陣
@@ -174,8 +172,6 @@ fn escort_shield_rate(formation_id: i64) -> Option<i64> {
 /// one `roll_range` for the probability, then one `choose_index` for the
 /// interceptor on success. Eligibility-fail paths consume no RNG, mirroring
 /// `choose_index`'s "no draw when empty" invariant.
-// `allow(dead_code)`: exercised by unit tests; wired into the battle phases in U3.
-#[allow(dead_code)]
 pub(crate) fn select_escort_shield(
     codex: &Codex,
     rng: &mut impl BattleRng,

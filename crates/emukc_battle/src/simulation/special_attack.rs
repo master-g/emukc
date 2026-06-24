@@ -625,10 +625,24 @@ pub(crate) fn execute_special_attack(
             continue;
         }
 
-        let Some(target_idx) =
+        let Some(mut target_idx) =
             select_random_target_index(codex, rng, attacker, defenders, params.phase)
         else {
             continue;
+        };
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let shield = match crate::targeting::select_escort_shield(
+            codex,
+            rng,
+            defenders,
+            target_idx,
+            params.defender_formation_id,
+        ) {
+            Some(escort) => {
+                target_idx = escort;
+                true
+            }
+            None => false,
         };
 
         let is_sub = target_class(codex, &defenders[target_idx]).is_submarine();
@@ -684,7 +698,18 @@ pub(crate) fn execute_special_attack(
             codex, attacker, false,
         )));
         cl_list.push(hit_cls);
-        damage.push(hit_damages.into_iter().map(DamageCell::from).collect());
+        damage.push(
+            hit_damages
+                .into_iter()
+                .map(|d| {
+                    if shield {
+                        DamageCell::Shielded(d)
+                    } else {
+                        DamageCell::Plain(d)
+                    }
+                })
+                .collect(),
+        );
     }
 
     SpecialAttackResult {
@@ -860,6 +885,7 @@ mod tests {
             &ShellingParams {
                 attacker_is_enemy: false,
                 formation_id: FORMATION_DOUBLE_LINE,
+                defender_formation_id: 0, // unused here: no かばう in this test
                 engagement: EngagementType::SameCourse,
                 phase: BattlePhase::DayShelling,
                 air_state: Some(&air_state),
@@ -1067,6 +1093,7 @@ mod tests {
             resolved,
             &crate::types::ShellingParams {
                 formation_id: FORMATION_ECHELON,
+                defender_formation_id: 0, // unused here: no かばう in this test
                 engagement: crate::types::EngagementType::SameCourse,
                 air_state: None,
                 phase: crate::types::BattlePhase::DayShelling,

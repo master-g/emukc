@@ -142,6 +142,7 @@ fn execute_shelling1(
                 &ShellingParams {
                     attacker_is_enemy: true,
                     formation_id: enemy_form,
+                    defender_formation_id: friendly_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
                     air_state: air_state.as_ref(),
@@ -156,6 +157,7 @@ fn execute_shelling1(
                 &ShellingParams {
                     attacker_is_enemy: false,
                     formation_id: friendly_form,
+                    defender_formation_id: enemy_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
                     air_state: air_state.as_ref(),
@@ -196,6 +198,7 @@ fn execute_shelling2(
                 &ShellingParams {
                     attacker_is_enemy: false,
                     formation_id: friendly_form,
+                    defender_formation_id: enemy_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
                     air_state: air_state.as_ref(),
@@ -210,6 +213,7 @@ fn execute_shelling2(
                 &ShellingParams {
                     attacker_is_enemy: true,
                     formation_id: enemy_form,
+                    defender_formation_id: friendly_form,
                     engagement: eng,
                     phase: BattlePhase::DayShelling,
                     air_state: air_state.as_ref(),

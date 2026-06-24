@@ -65,10 +65,24 @@ pub(crate) fn simulate_shelling_side(
         if !can_shell_day_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
+        let Some(mut target_idx) =
             select_random_target_index(codex, rng, ship, defenders, params.phase)
         else {
             continue;
+        };
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let shield = match crate::targeting::select_escort_shield(
+            codex,
+            rng,
+            defenders,
+            target_idx,
+            params.defender_formation_id,
+        ) {
+            Some(escort) => {
+                target_idx = escort;
+                true
+            }
+            None => false,
         };
         let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
 
@@ -101,6 +115,7 @@ pub(crate) fn simulate_shelling_side(
                 vec![target_idx as i64],
                 SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)),
                 vec![display],
+                shield,
             );
         } else {
             let resolved = resolve_day_attack(codex, rng, ship, params.air_state, fleet_los, idx);
@@ -148,6 +163,7 @@ pub(crate) fn simulate_shelling_side(
                     vec![target_idx as i64; 2],
                     SiListId::text_from_i64(&day_attack_display_ids(codex, ship, false)),
                     damages,
+                    shield,
                 );
             } else {
                 let raw = calculate_shelling_damage(
@@ -191,6 +207,7 @@ pub(crate) fn simulate_shelling_side(
                     vec![target_idx as i64],
                     display_ids,
                     vec![display],
+                    shield,
                 );
             }
         }
@@ -222,6 +239,7 @@ fn push_attack(
     targets: Vec<i64>,
     display_ids: Vec<SiListId>,
     damages: Vec<i64>,
+    shield: bool,
 ) {
     at_eflag.push(i64::from(attacker_is_enemy));
     at_list.push(attacker_idx as i64);
@@ -229,17 +247,120 @@ fn push_attack(
     df_list.push(targets);
     si_list.push(display_ids);
     cl_list.push(vec![1; damages.len()]);
-    // U1: plain (non-shield) damage. U3 wraps the intercepted hit as Shielded.
-    damage.push(damages.into_iter().map(DamageCell::from).collect());
+    // 旗艦援護: an intercepted hit carries the `.1` shield flag (DamageCell::Shielded).
+    damage.push(damages.into_iter().map(|d| damage_cell(d, shield)).collect());
+}
+
+/// Wrap a display-damage value, flagging it as shield-intercepted when `shield`.
+fn damage_cell(value: i64, shield: bool) -> DamageCell {
+    if shield {
+        DamageCell::Shielded(value)
+    } else {
+        DamageCell::Plain(value)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::simulate_shelling_side;
+    use crate::random::SeededRng;
     use crate::test_utils::*;
-    use crate::types::{BattleContext, BattleType, EngagementType};
+    use crate::types::{
+        BattleContext, BattlePhase, BattleRuntimeShip, BattleType, DamageCell, EngagementType,
+        ShellingParams,
+    };
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
+
+    /// Run one day-shelling side and return its hougeki, attacker = enemy side
+    /// (so the friendly flagship is the defender) when `attacker_is_enemy`.
+    /// Defending fleet is [flagship, healthy escort]; both surface (BB + DD).
+    fn shelling_with_shield(
+        codex: &Codex,
+        attacker_is_enemy: bool,
+        defender_formation_id: i64,
+        seed: u64,
+    ) -> Option<crate::types::BattleHougeki> {
+        let bb = first_ship_mst_by_type(codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let mut defenders = vec![
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), !attacker_is_enemy, true),
+            BattleRuntimeShip::new(sample_ship(codex, dd, 80), !attacker_is_enemy, true),
+        ];
+        let mut attackers = vec![
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), attacker_is_enemy, true),
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), attacker_is_enemy, true),
+        ];
+        let mut rng = SeededRng::new(seed);
+        simulate_shelling_side(
+            codex,
+            &mut rng,
+            &mut attackers,
+            &mut defenders,
+            &ShellingParams {
+                attacker_is_enemy,
+                formation_id: 1,
+                defender_formation_id,
+                engagement: EngagementType::SameCourse,
+                phase: BattlePhase::DayShelling,
+                air_state: None,
+            },
+        )
+    }
+
+    /// Covers AE1. When interception fires, the hit's damage cell is Shielded
+    /// (serializes `X.1`) and `api_df_list` points at the escort (index 1),
+    /// never the flagship (index 0).
+    #[test]
+    fn flagship_shield_redirects_to_escort_and_flags_damage() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut found = false;
+        for seed in 0..300u64 {
+            // 輪形陣 (75%) maximises interception frequency for the scan.
+            let Some(h) = shelling_with_shield(&codex, true, 3, seed) else {
+                continue;
+            };
+            for (i, dmgs) in h.api_damage.iter().enumerate() {
+                if dmgs.iter().any(|c| matches!(c, DamageCell::Shielded(_))) {
+                    assert!(
+                        h.api_df_list[i].iter().all(|&t| t == 1),
+                        "intercepted hit must target the escort, got df_list {:?}",
+                        h.api_df_list[i]
+                    );
+                    let json = serde_json::to_string(&dmgs).unwrap();
+                    assert!(json.contains(".1"), "shielded damage must serialize with .1: {json}");
+                    found = true;
+                }
+                // A non-shielded hit on the flagship keeps df_list at 0.
+                if h.api_df_list[i].contains(&0) {
+                    assert!(
+                        dmgs.iter().all(|c| matches!(c, DamageCell::Plain(_))),
+                        "a hit still on the flagship (0) must not be shielded"
+                    );
+                }
+            }
+            if found {
+                break;
+            }
+        }
+        assert!(found, "expected an intercepted flagship hit within the seed scan");
+    }
+
+    /// Covers R9. Interception is bidirectional: a friendly attack on the enemy
+    /// flagship is intercepted by an enemy escort too.
+    #[test]
+    fn enemy_flagship_is_also_protected() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let found = (0..300u64).any(|seed| {
+            shelling_with_shield(&codex, false, 3, seed).is_some_and(|h| {
+                h.api_damage
+                    .iter()
+                    .any(|dmgs| dmgs.iter().any(|c| matches!(c, DamageCell::Shielded(_))))
+            })
+        });
+        assert!(found, "enemy flagship must also be protected by an enemy escort (R9)");
+    }
 
     #[test]
     fn fighter_only_carrier_does_not_shell_in_day_battle() {
@@ -404,6 +525,7 @@ mod tests {
                 &ShellingParams {
                     attacker_is_enemy: false,
                     formation_id: 1,
+                    defender_formation_id: 0, // unused here: no かばう in this test
                     engagement: EngagementType::SameCourse,
                     phase: BattlePhase::DayShelling,
                     air_state: Some(&air_state),

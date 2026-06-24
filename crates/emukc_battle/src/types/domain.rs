@@ -177,6 +177,9 @@ pub(crate) struct TorpedoHit {
 pub(crate) struct ShellingParams<'a> {
     pub attacker_is_enemy: bool,
     pub formation_id: i64,
+    /// The defending fleet's formation, for the 旗艦援護 (かばう) rate. Distinct
+    /// from `formation_id` (the attacker's, used for damage modifiers).
+    pub defender_formation_id: i64,
     pub engagement: EngagementType,
     pub phase: BattlePhase,
     pub air_state: Option<&'a AirState>,
@@ -196,9 +199,8 @@ pub(crate) struct AirstrikeOutput<'a> {
 /// Night battle does not use formation or engagement modifiers
 /// per `KanColle` mechanics.
 pub(crate) struct NightBattleParams<'a> {
-    #[expect(dead_code)]
+    /// Defender formations drive the 旗艦援護 (かばう) interception rate.
     pub friendly_formation_id: i64,
-    #[expect(dead_code)]
     pub enemy_formation_id: i64,
     #[expect(dead_code)]
     pub engagement: EngagementType,

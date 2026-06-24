@@ -780,10 +780,24 @@ pub(crate) fn simulate_night_hougeki(
         if !can_attack_night_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
+        let Some(mut target_idx) =
             select_random_target_index(codex, rng, ship, enemy, BattlePhase::NightShelling)
         else {
             continue;
+        };
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let shield = match crate::targeting::select_escort_shield(
+            codex,
+            rng,
+            enemy,
+            target_idx,
+            params.enemy_formation_id,
+        ) {
+            Some(escort) => {
+                target_idx = escort;
+                true
+            }
+            None => false,
         };
         let is_submarine = target_class(codex, &enemy[target_idx]).is_submarine();
         let attack_type = resolve_night_attack(codex, rng, ship, idx == 0, is_submarine);
@@ -826,17 +840,42 @@ pub(crate) fn simulate_night_hougeki(
         si_list.push(night_si_entry(codex, ship, attack_type));
         cl_list.push(hit_cls);
         sp_list.push(attack_type.api_sp_list());
-        damage.push(hit_damages.into_iter().map(DamageCell::from).collect());
+        damage.push(
+            hit_damages
+                .into_iter()
+                .map(|d| {
+                    if shield {
+                        DamageCell::Shielded(d)
+                    } else {
+                        DamageCell::Plain(d)
+                    }
+                })
+                .collect(),
+        );
     }
 
     for (idx, ship) in enemy.iter_mut().enumerate() {
         if !can_attack_night_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
+        let Some(mut target_idx) =
             select_random_target_index(codex, rng, ship, friendly, BattlePhase::NightShelling)
         else {
             continue;
+        };
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let shield = match crate::targeting::select_escort_shield(
+            codex,
+            rng,
+            friendly,
+            target_idx,
+            params.friendly_formation_id,
+        ) {
+            Some(escort) => {
+                target_idx = escort;
+                true
+            }
+            None => false,
         };
         let is_submarine = target_class(codex, &friendly[target_idx]).is_submarine();
         let attack_type = resolve_night_attack(codex, rng, ship, idx == 0, is_submarine);
@@ -878,7 +917,18 @@ pub(crate) fn simulate_night_hougeki(
         si_list.push(night_si_entry(codex, ship, attack_type));
         cl_list.push(hit_cls);
         sp_list.push(attack_type.api_sp_list());
-        damage.push(hit_damages.into_iter().map(DamageCell::from).collect());
+        damage.push(
+            hit_damages
+                .into_iter()
+                .map(|d| {
+                    if shield {
+                        DamageCell::Shielded(d)
+                    } else {
+                        DamageCell::Plain(d)
+                    }
+                })
+                .collect(),
+        );
     }
 
     if at_list.is_empty() {
