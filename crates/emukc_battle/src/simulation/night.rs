@@ -897,7 +897,7 @@ pub(crate) fn simulate_night_hougeki(
 mod tests {
     use super::*;
     use crate::test_utils::*;
-    use crate::types::{BattleRuntimeShip, EngagementType, NightBattleParams};
+    use crate::types::{BattleRuntimeShip, EngagementType, NightBattleParams, SiListId};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -1039,6 +1039,62 @@ mod tests {
 
         assert_eq!(hougeki.api_sp_list[0], 3, "torpedo CI sp_list should be 3 (魚雷/魚雷)");
         assert_eq!(hougeki.api_damage[0].len(), 2, "torpedo CI should deal 2 hits");
+        // A night CI must serialize its si_list as JSON strings. Guards against
+        // a Text/Num swap at the simulate_night_hougeki push site that the
+        // isolated packet serialization tests cannot catch.
+        assert!(
+            hougeki.api_si_list[0].iter().any(|id| matches!(id, SiListId::Text(_))),
+            "night CI si_list must contain string entries: {:?}",
+            hougeki.api_si_list[0]
+        );
+    }
+
+    #[test]
+    fn night_normal_attack_si_list_is_integers() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // A single main gun cannot form any night cut-in or double attack, so
+        // the attack resolves as Normal (sp_list == 0) and its si_list must
+        // stay integer-typed — the counterpart guard to the CI test above.
+        let main_gun_mst_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
+
+        let mut friend = sample_ship(&codex, dd_mst, 99);
+        friend.ship.api_karyoku[0] = 150;
+        friend.ship.api_nowhp = 200;
+        friend.ship.api_maxhp = 200;
+        friend.slot_items = vec![slotitem_with_mst_id(main_gun_mst_id)];
+
+        let mut enemy_ship = sample_ship(&codex, dd_mst, 50);
+        enemy_ship.ship.api_soukou[0] = 10;
+        enemy_ship.ship.api_nowhp = 500;
+        enemy_ship.ship.api_maxhp = 500;
+        enemy_ship.ship.api_karyoku[0] = 1;
+
+        let mut friendly = vec![BattleRuntimeShip::from(friend)];
+        let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
+        let mut rng = crate::random::SeededRng::new(42);
+
+        let hougeki = simulate_night_hougeki(
+            &codex,
+            &mut rng,
+            &mut friendly,
+            &mut enemies,
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                air_state: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(hougeki.api_sp_list[0], 0, "single-gun DD must do a normal night attack");
+        assert!(
+            hougeki.api_si_list[0].iter().all(|id| matches!(id, SiListId::Num(_))),
+            "normal night attack si_list must be all integers: {:?}",
+            hougeki.api_si_list[0]
+        );
     }
 
     #[test]

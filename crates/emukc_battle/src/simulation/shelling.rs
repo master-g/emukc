@@ -354,6 +354,89 @@ mod tests {
     }
 
     #[test]
+    fn day_shelling_si_list_text_for_ci_num_for_normal() {
+        use super::simulate_shelling_side;
+        use crate::types::{AirState, BattlePhase, BattleRuntimeShip, ShellingParams, SiListId};
+
+        // CI-capable BB (2 main guns + AP shell + seaplane → MainApMainCI).
+        // Across seeds a CI/double sometimes fires and a normal attack fires
+        // otherwise. Drive the real simulate_shelling_side path and assert the
+        // si_list wire type matches the attack branch at the push site — a
+        // text_from_i64/num_from_i64 swap there passes every other test.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let ap_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::ArmorPiercingShell);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedRecon);
+
+        let make_attacker = || {
+            let mut bb = sample_ship(&codex, bb_mst, 99);
+            bb.slot_items = vec![
+                slotitem_with_mst_id(main_gun_id),
+                slotitem_with_mst_id(main_gun_id),
+                slotitem_with_mst_id(ap_id),
+                slotitem_with_mst_id(seaplane_id),
+            ];
+            bb.ship.api_onslot = [0, 0, 0, 1, 0];
+            BattleRuntimeShip::from(bb)
+        };
+        let make_defender = || {
+            let mut dd = sample_ship(&codex, dd_mst, 30);
+            dd.ship.api_soukou[0] = 1;
+            dd.ship.api_nowhp = 800;
+            dd.ship.api_maxhp = 800;
+            BattleRuntimeShip::from(dd)
+        };
+
+        let air_state = AirState::Supremacy;
+        let mut saw_ci_text = false;
+        let mut saw_normal_num = false;
+        for seed in 0..200u64 {
+            let mut attackers = vec![make_attacker()];
+            let mut defenders = vec![make_defender()];
+            let Some(hougeki) = simulate_shelling_side(
+                &codex,
+                &mut crate::random::SeededRng::new(seed),
+                &mut attackers,
+                &mut defenders,
+                &ShellingParams {
+                    attacker_is_enemy: false,
+                    formation_id: 1,
+                    engagement: EngagementType::SameCourse,
+                    phase: BattlePhase::DayShelling,
+                    air_state: Some(&air_state),
+                },
+            ) else {
+                continue;
+            };
+            if hougeki.api_at_type.is_empty() {
+                continue;
+            }
+            let entry = &hougeki.api_si_list[0];
+            if hougeki.api_at_type[0] == 0 {
+                assert!(
+                    entry.iter().all(|id| matches!(id, SiListId::Num(_))),
+                    "normal attack (at_type 0) si_list must be all integers: {entry:?}"
+                );
+                saw_normal_num = true;
+            } else {
+                assert!(
+                    entry.iter().any(|id| matches!(id, SiListId::Text(_))),
+                    "CI/double (at_type {}) si_list must contain string entries: {entry:?}",
+                    hougeki.api_at_type[0]
+                );
+                saw_ci_text = true;
+            }
+            if saw_ci_text && saw_normal_num {
+                break;
+            }
+        }
+        assert!(saw_ci_text, "no CI/double fired across 200 seeds; Text path unverified");
+        assert!(saw_normal_num, "no normal attack across 200 seeds; Num path unverified");
+    }
+
+    #[test]
     fn special_attack_skip_marks_participants_and_spares_others() {
         // Mirror the production loop in `simulate_shelling_side`: when a special attack
         // produces participant indices 0/2/4, the skip array must mark exactly those
