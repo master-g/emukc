@@ -57,9 +57,7 @@ use super::{
         find_map_definition, find_map_record_impl, refresh_all_map_records_impl,
     },
     map_progress::resolve_record_stage_id,
-    map_route::{
-        cell_has_routing_outgoing, evaluate_route_candidate_count, evaluate_route_destination,
-    },
+    map_route::{cell_has_routing_outgoing, evaluate_route_destination},
     material::add_material_impl,
     quest::update::update_quest_progress_for_action,
     sortie_result::{
@@ -330,12 +328,14 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             })
             .await;
 
-        let start_candidate_count =
-            evaluate_route_candidate_count(source_cell, stage, &route_context);
+        // rashin_flg keys on whether the departing cell is a physical branch node
+        // (out-degree > 1), not the fleet-resolved candidate count. See
+        // docs/solutions/architecture-patterns/sortie-compass-rashin-flag.md.
+        let departing_is_branch = source_cell.next_cells.len() > 1;
         Ok(SortieStartResponse {
             cell_data: build_sortie_cell_data(definition.map_id, stage),
-            rashin_flg: start_candidate_count > 1,
-            rashin_id: if start_candidate_count > 1 {
+            rashin_flg: departing_is_branch,
+            rashin_id: if departing_is_branch {
                 1
             } else {
                 0
@@ -452,11 +452,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
                 tx.commit().await?;
 
                 let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
-                let next_candidate_count =
-                    evaluate_route_candidate_count(current, stage, &route_context);
+                // rashin_flg keys on the departing cell's physical out-degree
+                // (branch node), not the fleet-resolved candidate count.
+                let departing_is_branch = current.next_cells.len() > 1;
                 Ok(SortieNextResponse {
-                    rashin_flg: next_candidate_count > 1,
-                    rashin_id: if next_candidate_count > 1 {
+                    rashin_flg: departing_is_branch,
+                    rashin_id: if departing_is_branch {
                         1
                     } else {
                         0
