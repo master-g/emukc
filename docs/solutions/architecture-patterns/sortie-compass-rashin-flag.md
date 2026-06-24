@@ -67,6 +67,47 @@ Regression coverage: `tests/gameplay_tests/map/compass.rs`. It uses map 1-1's br
 node cell 1 (`→[2,3]`) as the stand-in for 2-1's branch node (unlocking 2-1 in-test is
 heavy); advancing from cell 1 reproduces the resource-cell-from-branch structure.
 
+## Data provenance and the `next_cells` authority guard
+
+The rule above is only as correct as `next_cells`. Where does it come from, and why
+trust it?
+
+- **`next_cells` is the authoritative physical out-edge set, sourced from KC's own map
+  data.** `crates/emukc_bootstrap/src/map_pipeline/kcdata.rs` projects the game's
+  `routes` table into per-cell adjacency. It is **not** scraped third-party topology.
+- **`routing_rules` (fleet-conditional routing) comes from a different source** (wikiwiki
+  overlay etc.) and is, by design, allowed to drift from `next_cells` — see the doc on
+  `MapVariantDefinition::cell_has_routing_outgoing` (`crates/emukc_model/src/codex/map.rs`):
+  "a cell can carry routing rules whose targets are disjoint from its topology-level
+  `next_cells`."
+
+This creates a **field-level asymmetry in the same response**:
+
+| field | definition |
+|---|---|
+| `api_rashin_flg` | `departing.next_cells.len() > 1` (only `next_cells`) |
+| `api_has_next` | `next_cells` non-empty **OR** `routing_rules` non-empty |
+
+If a future data sync produced a cell whose branch edge existed **only** in
+`routing_rules` and was missing from `next_cells`, `next_cells` would under-count the
+branch and the compass would wrongly skip — the exact bug above, re-introduced through
+data drift instead of code.
+
+**Guard:** `tests/gameplay_tests/map/compass.rs::routing_targets_are_subset_of_next_cells`
+asserts that for every cell across every map/variant, each `routing_rules` target is
+listed in that cell's `next_cells`. This makes `next_cells` a superset of all routable
+targets, so its out-degree can never under-count a branch. Currently **0 violations
+across all 676 cells**; the only near-miss is 6-2 cell 6, where
+`next_cells [10,14,16] ⊋ routing_targets [10,16]` — a harmless direction (more physical
+edges than routed targets).
+
+**Verification ceiling (honest):** official captures cannot validate topology directly.
+`api_cell_data` carries only `api_no` / `api_color_no` / `api_passed` — **no adjacency** —
+and `api_req_map/next` responses omit `api_from_no` (only `start` carries it). So the only
+cross-check against the official server is "rashin_flg + color along the actually-walked
+route." Topology correctness ultimately rests on the KC `routes` data plus the
+`kcdata.rs` extraction.
+
 ## Related
 
 - `map-data-authority.md` — map topology comes from the codex catalog; sibling fix
