@@ -1,6 +1,6 @@
 ---
 title: "Battle damage foundation: phase damage reports effective post-protection damage"
-date: 2026-06-22
+date: 2026-06-24
 category: architecture-patterns
 module: emukc_battle
 problem_type: architecture_pattern
