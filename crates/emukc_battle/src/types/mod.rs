@@ -119,8 +119,11 @@ mod tests {
         let mut rng = crate::random::SeededRng::new(42);
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
         let (raw, effective) = ship.apply_damage(&mut rng, 999, 0);
-        assert_eq!(ship.hp(), 0, "enemy ships should be sinkable");
-        assert_eq!(effective, 30);
+        // Enemy sortie ships get no protection AND no cap: HP goes negative to
+        // render overkill, and effective == raw (U4.1 / battle-damage-foundation).
+        assert!(ship.is_sunk(), "enemy ships should be sinkable");
+        assert_eq!(ship.hp(), 30 - 999, "enemy sortie HP goes negative (overkill)");
+        assert_eq!(effective, 999, "enemy sortie damage is uncapped");
         assert_eq!(raw, 999);
     }
 
@@ -187,9 +190,10 @@ mod tests {
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, false, true);
         let mut rng = crate::random::SeededRng::new(42);
         let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
-        assert_eq!(effective, 1, "enemy ship should take full effective damage");
+        assert_eq!(effective, 100, "enemy sortie damage is uncapped (overkill)");
         assert_eq!(raw, 100, "raw should show overkill");
-        assert_eq!(ship.current_hp, 0, "enemy ship should be sunk");
+        assert_eq!(ship.current_hp, 1 - 100, "enemy sortie HP goes negative");
+        assert!(ship.is_sunk(), "enemy ship should be sunk");
     }
 
     #[test]
@@ -208,8 +212,21 @@ mod tests {
         let mut rng = crate::random::SeededRng::new(42);
         let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
         assert_eq!(raw, 100, "raw should show full input damage");
-        assert_eq!(effective, 5, "effective capped to current HP");
-        assert_eq!(ship.current_hp, 0, "ship should be sunk");
+        assert_eq!(effective, 100, "enemy sortie effective is uncapped (overkill)");
+        assert_eq!(ship.current_hp, 5 - 100, "enemy sortie HP goes negative for overkill");
+        assert!(ship.is_sunk());
+    }
+
+    /// U4.1 boundary: practice enemy damage stays clamped to current HP — only
+    /// sortie enemies overkill into negative HP.
+    #[test]
+    fn enemy_practice_damage_is_capped() {
+        let mut ship = make_test_ship_ctx(5, 5, 5, 30, false, false);
+        let mut rng = crate::random::SeededRng::new(42);
+        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        assert_eq!(raw, 100, "raw shows full input");
+        assert_eq!(effective, 5, "practice enemy damage capped to current HP");
+        assert_eq!(ship.current_hp, 0, "practice enemy HP clamps at 0, no overkill");
     }
 
     #[test]

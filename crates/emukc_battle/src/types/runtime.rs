@@ -92,7 +92,17 @@ impl BattleRuntimeShip {
             return (0, 0);
         }
 
-        let effective = raw_damage.min(self.current_hp);
+        // Enemy ships in a sortie take uncapped damage so the client renders
+        // overkill (HP goes negative) and the attacker's damage_dealt credits the
+        // full hit toward MVP. Friendly ships and all practice damage stay clamped
+        // to current HP — friendly lethal hits route through sinking protection
+        // below. Downstream HP consumers (win rank, nowhps wire, transcript)
+        // already clamp with `.max(0)`.
+        let effective = if !self.is_friendly && self.is_sortie {
+            raw_damage
+        } else {
+            raw_damage.min(self.current_hp)
+        };
 
         // Sinking protection only applies to friendly ships during sorties.
         if self.is_friendly && self.is_sortie && effective >= self.current_hp {
