@@ -905,7 +905,8 @@ pub(crate) fn simulate_night_hougeki(
             };
             let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
             total_dealt += dealt;
-            hit_damages.push(raw_dmg);
+            let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
+            hit_damages.push(display);
             hit_cls.push(1i64);
         }
         ship.damage_dealt += total_dealt;
@@ -2151,5 +2152,155 @@ mod tests {
             assert!(codex.find::<ApiMstSlotitem>(&id).is_ok(), "Swordfish item {id} missing");
         }
         assert!(codex.find::<ApiMstSlotitem>(&IWAI_FUKUSEN_ID).is_ok(), "岩井爆戦 (154) missing");
+    }
+
+    // ── Flagship escort shield (旗艦援護 / かばう) — night path ────────────
+
+    /// Regression (plan 002 U4): in the night enemy-attack loop, a friendly
+    /// defender's displayed damage must be the capped/protected `dealt` (via
+    /// `display_damage`), never the uncapped lethal `raw_dmg`. Reporting the
+    /// pre-protection value desyncs the client's HP reconstruction.
+    #[test]
+    fn sortie_night_enemy_attack_displays_capped_damage() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Non-taiha friendly (entry HP > 25% max) → eligible for sinking protection.
+        let mut friend = sample_ship(&codex, dd_mst, 99);
+        friend.ship.api_karyoku[0] = 200;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 0;
+        friend.ship.api_nowhp = 100;
+        friend.ship.api_maxhp = 100;
+        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let entry_hp = friendly[0].hp();
+
+        // Enemy with lethal firepower.
+        let mut enemy = sample_ship(&codex, dd_mst, 99);
+        enemy.ship.api_karyoku[0] = 500;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 200;
+        enemy.ship.api_nowhp = 500;
+        enemy.ship.api_maxhp = 500;
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+
+        let mut rng = crate::random::SeededRng::new(42);
+        let hougeki = simulate_night_hougeki(
+            &codex,
+            &mut rng,
+            &mut friendly,
+            &mut enemies, // enemy is the second slice → it attacks via the enemy loop (the fixed path)
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                air_state: None,
+            },
+        )
+        .unwrap();
+
+        // Sinking protection kept the ship alive, so the displayed damage of the
+        // enemy-attack entries (api_at_eflag == 1, friendly is the defender) must
+        // equal the HP actually lost — the capped `dealt`, not the raw lethal
+        // value that would over-report past the ship's real HP.
+        assert!(friendly[0].hp() > 0, "non-taiha ship should survive via sinking protection");
+        let hp_lost = entry_hp - friendly[0].hp();
+        let displayed: i64 = hougeki
+            .api_at_eflag
+            .iter()
+            .zip(hougeki.api_damage.iter())
+            .filter(|&(&eflag, _)| eflag == 1)
+            .flat_map(|(_, dmgs)| dmgs.iter())
+            .map(|c| c.amount())
+            .sum();
+        assert_eq!(
+            displayed, hp_lost,
+            "friendly night defender must display capped dealt ({hp_lost}), not raw: {:?}",
+            hougeki.api_damage
+        );
+    }
+
+    /// 旗艦援護 night helper. Places a flagship + one healthy green escort on the
+    /// defending side and a lone escort-less attacker (extra HP so it survives to
+    /// attack back) on the other, so only the defending pair's side can
+    /// intercept. `defender_is_enemy` selects the friendly-attacks-enemy
+    /// direction (true, R9) vs enemy-attacks-friendly (false). Returns the packet.
+    fn night_shield_packet(
+        codex: &Codex,
+        defender_is_enemy: bool,
+        defender_formation_id: i64,
+        seed: u64,
+    ) -> Option<BattleNightHougeki> {
+        let bb = first_ship_mst_by_type(codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let mut pair = vec![
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), !defender_is_enemy, true),
+            BattleRuntimeShip::new(sample_ship(codex, dd, 80), !defender_is_enemy, true),
+        ];
+        let mut lone_input = sample_ship(codex, bb, 80);
+        lone_input.ship.api_nowhp = 999;
+        lone_input.ship.api_maxhp = 999;
+        let mut lone = vec![BattleRuntimeShip::new(lone_input, defender_is_enemy, true)];
+
+        let mut rng = crate::random::SeededRng::new(seed);
+        let params = NightBattleParams {
+            friendly_formation_id: defender_formation_id,
+            enemy_formation_id: defender_formation_id,
+            engagement: EngagementType::SameCourse,
+            air_state: None,
+        };
+        // simulate_night_hougeki takes (friendly, enemy); the defending pair is
+        // friendly when the enemy attacks it, enemy when the friendly attacks it.
+        if defender_is_enemy {
+            simulate_night_hougeki(codex, &mut rng, &mut lone, &mut pair, &params)
+        } else {
+            simulate_night_hougeki(codex, &mut rng, &mut pair, &mut lone, &params)
+        }
+    }
+
+    /// 旗艦援護 night (enemy-attack loop): a healthy friendly escort intercepts an
+    /// enemy night hit aimed at the friendly flagship; the cell is Shielded
+    /// (serializes `X.1`) and `api_df_list` points to the escort (index 1).
+    #[test]
+    fn night_enemy_attack_shield_redirects_to_friendly_escort() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut found = false;
+        for seed in 0..400u64 {
+            // 輪形陣 (75%) maximises interception frequency for the scan.
+            let Some(h) = night_shield_packet(&codex, false, 3, seed) else {
+                continue;
+            };
+            for (i, dmgs) in h.api_damage.iter().enumerate() {
+                if dmgs.iter().any(|c| matches!(c, DamageCell::Shielded(_))) {
+                    assert!(
+                        h.api_df_list[i].iter().all(|&t| t == 1),
+                        "intercepted night hit must target the escort, got df_list {:?}",
+                        h.api_df_list[i]
+                    );
+                    let json = serde_json::to_string(&dmgs).unwrap();
+                    assert!(json.contains(".1"), "shielded night damage must serialize .1: {json}");
+                    found = true;
+                }
+            }
+            if found {
+                break;
+            }
+        }
+        assert!(found, "expected an intercepted flagship night hit within the seed scan");
+    }
+
+    /// R9 night: a friendly attack on the enemy flagship is intercepted by an
+    /// enemy escort too (friendly-attack loop shield path).
+    #[test]
+    fn night_friendly_attack_shield_protects_enemy_flagship() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let found = (0..400u64).any(|seed| {
+            night_shield_packet(&codex, true, 3, seed).is_some_and(|h| {
+                h.api_damage
+                    .iter()
+                    .any(|dmgs| dmgs.iter().any(|c| matches!(c, DamageCell::Shielded(_))))
+            })
+        });
+        assert!(found, "enemy flagship must also be protected at night by an enemy escort (R9)");
     }
 }
