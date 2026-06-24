@@ -1266,4 +1266,29 @@ mod tests {
             .count();
         assert!(fired > 0, "a submarine escort must protect a submarine flagship");
     }
+
+    /// R4: with more than one eligible escort, the interceptor is chosen
+    /// uniformly at random via `choose_index` — every eligible index must be
+    /// reachable, and the flagship (index 0) is never selected.
+    #[test]
+    fn shield_picks_among_multiple_eligible_escorts() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Flagship + two healthy surface escorts: indices 1 and 2 both eligible.
+        let defenders = vec![
+            rt_ship(&codex, dd, 30, 30),
+            rt_ship(&codex, dd, 30, 30),
+            rt_ship(&codex, dd, 30, 30),
+        ];
+        let mut rng = crate::random::SeededRng::new(7);
+        let mut seen = [false; 3];
+        for _ in 0..4000 {
+            if let Some(idx) = select_escort_shield(&codex, &mut rng, &defenders, 0, 3) {
+                seen[idx] = true;
+            }
+        }
+        assert!(seen[1], "escort index 1 must be selectable");
+        assert!(seen[2], "escort index 2 must be selectable");
+        assert!(!seen[0], "the flagship (index 0) must never be the interceptor");
+    }
 }
