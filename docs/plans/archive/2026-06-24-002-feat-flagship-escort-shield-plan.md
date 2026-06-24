@@ -1,6 +1,6 @@
 ---
 title: "feat: Flagship escort shield (旗艦援護/かばう)"
-status: planned
+status: completed
 created: 2026-06-24
 type: feat
 depth: deep

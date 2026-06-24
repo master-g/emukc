@@ -1,6 +1,6 @@
 ---
 title: "feat: God mode and one hit kill debug flags"
-status: active
+status: completed
 type: feat
 created: 2026-06-22
 sequence: 009
