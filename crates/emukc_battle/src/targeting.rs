@@ -1347,6 +1347,31 @@ mod tests {
         BattleRuntimeShip::new(input, true, true)
     }
 
+    /// U1 / 5.9: a carrier with no attack planes cannot shell in day battle;
+    /// loading a bomber makes it eligible. (Complements the fighter-only
+    /// integration test in shelling.rs, which keeps planes loaded but non-attacking.)
+    #[test]
+    fn day_carrier_without_attack_planes_cannot_shell() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cv_mst = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+
+        // No planes loaded → excluded.
+        let mut empty_input = sample_ship(&codex, cv_mst, 99);
+        empty_input.slot_items = vec![];
+        empty_input.ship.api_onslot = [0; 5];
+        let empty = BattleRuntimeShip::from(empty_input);
+        assert!(!can_shell_day_ship(&codex, &empty), "CV with no attack planes cannot shell");
+
+        // A loaded bomber → eligible.
+        let mut armed_input = sample_ship(&codex, cv_mst, 99);
+        armed_input.slot_items = vec![slotitem_with_mst_id(bomber_id)];
+        armed_input.ship.api_onslot = [12, 0, 0, 0, 0];
+        let armed = BattleRuntimeShip::from(armed_input);
+        assert!(can_shell_day_ship(&codex, &armed), "CV with a loaded bomber can shell");
+    }
+
     /// R3 / U2: a battleship — excluded by the old ship-type whitelist — with a
     /// base torpedo stat now participates in closing torpedo.
     #[test]

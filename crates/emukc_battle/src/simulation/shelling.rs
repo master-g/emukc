@@ -475,6 +475,53 @@ mod tests {
         );
     }
 
+    /// U1 / 5.1 + 5.2: a destroyer with no equipment, or with only a torpedo,
+    /// resolves to a Normal day attack (`api_at_type` 0). Day participation is
+    /// ship-type gated; a lone torpedo forms no day cut-in and never produces a
+    /// non-zero display type.
+    #[test]
+    fn day_destroyer_resolves_normal_attack_type_zero() {
+        use crate::simulation::day_cutin::{
+            DayAttackType, detect_day_attack_type, resolve_day_attack,
+        };
+        use crate::types::AirState;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let torpedo_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
+
+        // 5.1: bare DD. 5.2: DD carrying only a torpedo.
+        let bare = crate::types::BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 99));
+        let mut torp_input = sample_ship(&codex, dd_mst, 99);
+        torp_input.slot_items = vec![slotitem_with_mst_id(torpedo_id)];
+        let torp = crate::types::BattleRuntimeShip::from(torp_input);
+
+        for rt in [&bare, &torp] {
+            assert_eq!(
+                detect_day_attack_type(&codex, rt, Some(&AirState::Supremacy)),
+                None,
+                "a DD with no day-cut-in equipment must not detect a cut-in"
+            );
+            let los = rt.ship.api_sakuteki[0].max(0);
+            for seed in 0..50u64 {
+                let resolved = resolve_day_attack(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    rt,
+                    Some(&AirState::Supremacy),
+                    los,
+                    0,
+                );
+                assert_eq!(
+                    resolved.at_type,
+                    DayAttackType::Normal,
+                    "a DD must always resolve to a Normal attack (api_at_type 0)"
+                );
+            }
+        }
+        assert_eq!(DayAttackType::Normal as i64, 0, "Normal must serialize as api_at_type 0");
+    }
+
     #[test]
     fn day_shelling_si_list_text_for_ci_num_for_normal() {
         use super::simulate_shelling_side;
