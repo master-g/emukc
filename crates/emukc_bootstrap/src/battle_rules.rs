@@ -415,7 +415,13 @@ fn collect_hougeki_slot_ids(
             let Some(slot_ids) = row.as_array() else {
                 continue;
             };
-            for slot_id in slot_ids.iter().filter_map(serde_json::Value::as_i64) {
+            // CI / special-attack si_list entries serialize as JSON strings
+            // (e.g. "22"); normal-attack entries are integers. Accept both so
+            // the incident analyzer still resolves CI slot IDs — exactly the
+            // entries most likely to drive a missing-resource incident.
+            for slot_id in slot_ids.iter().filter_map(|value| {
+                value.as_i64().or_else(|| value.as_str().and_then(|s| s.parse::<i64>().ok()))
+            }) {
                 if slot_id > 0 {
                     entry.insert(slot_id);
                 }
@@ -1558,5 +1564,72 @@ mod tests {
             trigger.protocol_source == "api_hougeki1.api_si_list[*][*]"
                 && trigger.resource_target == "slot/btxt_flat"
         }));
+    }
+
+    #[test]
+    fn analyze_day_battle_incident_matches_string_typed_ci_si_list() {
+        // Carrier CI (at_type 7) entries serialize as JSON strings on the
+        // official server and now in our own output. The slot-id collector
+        // must parse those strings, otherwise the very CI slot driving a
+        // missing-resource incident is silently dropped and the analyzer
+        // reports a false "no known trigger" instead of a protocol suspicion.
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let payload = serde_json::json!({
+            "api_atoll_cell": 0,
+            "api_balloon_cell": 0,
+            "api_deck_id": 1,
+            "api_eParam": [[6,16,6,7],[6,16,6,7]],
+            "api_eSlot": [[1502,513,-1,-1,-1],[1502,513,-1,-1,-1]],
+            "api_e_effect_list": [[0],[0]],
+            "api_e_maxhps": [24,24],
+            "api_e_nowhps": [24,24],
+            "api_fParam": [[15,27,16,6],[104,0,36,75],[0,5,33,29]],
+            "api_f_maxhps": [15,80,71],
+            "api_f_nowhps": [15,80,71],
+            "api_formation": [1,1,2],
+            "api_hougeki1": {
+                "api_at_eflag": [0],
+                "api_at_list": [0],
+                "api_at_type": [7],
+                "api_cl_list": [[1,1,1]],
+                "api_damage": [[11,11,11]],
+                "api_df_list": [[0]],
+                "api_si_list": [["22","291","102"]]
+            },
+            "api_hourai_flag": [1,0,0,0],
+            "api_kouku": {
+                "api_plane_from":[[3],[]],
+                "api_stage1":{"api_disp_seiku":1,"api_e_count":0,"api_e_lostcount":0,"api_f_count":99,"api_f_lostcount":0,"api_touch_plane":[-1,-1]},
+                "api_stage2":{"api_e_count":0,"api_e_lostcount":0,"api_f_count":99,"api_f_lostcount":2},
+                "api_stage3":{"api_e_sp_list":[null,null],"api_ebak":[1,-1,-1],"api_ecl_flag":[0,1],"api_edam":[0,24],"api_erai":[1,-1,-1],"api_f_sp_list":[null,null,null],"api_fbak":[-1,-1],"api_fcl_flag":[0,0,0],"api_fdam":[0,0,0],"api_frai":[-1,-1]}
+            },
+            "api_midnight_flag": 0,
+            "api_opening_flag": 0,
+            "api_opening_taisen_flag": 0,
+            "api_search": [1,1],
+            "api_ship_ke": [1501,1501],
+            "api_ship_lv": [7,7],
+            "api_smoke_type": 0,
+            "api_stage_flag": [1,1,1]
+        });
+
+        let report = analyze_day_battle_incident(
+			&manifest,
+			&payload,
+			&assets,
+			Some(
+				"http://w18i.kancolle-server.com/kcs2/resources/slot/btxt_flat/0102_8293.png?version=3",
+			),
+		)
+		.unwrap();
+
+        assert!(
+            report.trigger_matches.iter().any(|trigger| {
+                trigger.protocol_source == "api_hougeki1.api_si_list[*][*]"
+                    && trigger.resource_target == "slot/btxt_flat"
+            }),
+            "string-typed CI slot id 102 must still match the si_list trigger"
+        );
     }
 }

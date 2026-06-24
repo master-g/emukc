@@ -44,12 +44,6 @@ impl SiListId {
     }
 }
 
-impl From<i64> for SiListId {
-    fn from(v: i64) -> Self {
-        Self::Num(v)
-    }
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct BattleKouku {
     pub api_plane_from: [Vec<i64>; 2],

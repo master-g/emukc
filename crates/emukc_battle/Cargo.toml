@@ -15,7 +15,7 @@ tracing = { workspace = true }
 [dev-dependencies]
 emukc_bootstrap = { path = "../emukc_bootstrap" }
 emukc_crypto = { path = "../emukc_crypto" }
-serde_json = "1"
+serde_json = { workspace = true }
 
 [lints]
 workspace = true
