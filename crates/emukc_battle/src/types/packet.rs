@@ -87,6 +87,15 @@ impl From<i64> for DamageCell {
     }
 }
 
+/// Damage cell for a torpedo hit — `Shielded` when an escort intercepted it.
+fn torpedo_cell(hit: TorpedoHit) -> DamageCell {
+    if hit.shield {
+        DamageCell::Shielded(hit.damage)
+    } else {
+        DamageCell::Plain(hit.damage)
+    }
+}
+
 impl Serialize for DamageCell {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
@@ -178,14 +187,14 @@ impl BattleOpeningAttack {
                 self.api_frai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
                 self.api_fcl_list_items[hit.attacker_index] = Some(vec![1]);
-                self.api_fydam_list_items[hit.attacker_index] = Some(vec![hit.damage.into()]);
+                self.api_fydam_list_items[hit.attacker_index] = Some(vec![torpedo_cell(hit)]);
                 self.api_edam[hit.defender_index] += hit.damage;
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
                 self.api_ecl_list_items[hit.attacker_index] = Some(vec![1]);
-                self.api_eydam_list_items[hit.attacker_index] = Some(vec![hit.damage.into()]);
+                self.api_eydam_list_items[hit.attacker_index] = Some(vec![torpedo_cell(hit)]);
                 self.api_fdam[hit.defender_index] += hit.damage;
             }
         }
@@ -250,13 +259,13 @@ impl BattleRaigeki {
             TorpedoAttackerSide::Friendly => {
                 self.api_frai[hit.attacker_index] = hit.defender_index as i64;
                 self.api_fcl[hit.attacker_index] = 1;
-                self.api_fydam[hit.attacker_index] = hit.damage.into();
+                self.api_fydam[hit.attacker_index] = torpedo_cell(hit);
                 self.api_edam[hit.defender_index] += hit.damage;
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai[hit.attacker_index] = hit.defender_index as i64;
                 self.api_ecl[hit.attacker_index] = 1;
-                self.api_eydam[hit.attacker_index] = hit.damage.into();
+                self.api_eydam[hit.attacker_index] = torpedo_cell(hit);
                 self.api_fdam[hit.defender_index] += hit.damage;
             }
         }

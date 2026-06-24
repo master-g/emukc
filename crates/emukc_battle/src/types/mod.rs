@@ -233,6 +233,7 @@ mod tests {
                 attacker_index: 1,
                 defender_index: 0,
                 damage: 21,
+                shield: false,
             },
         );
         payload.record_torpedo_hit(
@@ -241,6 +242,7 @@ mod tests {
                 attacker_index: 0,
                 defender_index: 1,
                 damage: 34,
+                shield: false,
             },
         );
         let opening = payload;
@@ -264,6 +266,7 @@ mod tests {
                 attacker_index: 1,
                 defender_index: 0,
                 damage: 21,
+                shield: false,
             },
         );
         payload.record_torpedo_hit(
@@ -272,6 +275,7 @@ mod tests {
                 attacker_index: 0,
                 defender_index: 1,
                 damage: 34,
+                shield: false,
             },
         );
         let raigeki = payload;

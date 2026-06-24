@@ -5,7 +5,8 @@ use emukc_model::codex::Codex;
 use crate::damage::calculate_torpedo_damage;
 use crate::random::BattleRng;
 use crate::targeting::{
-    can_closing_torpedo_ship, can_opening_torpedo_ship, select_random_target_index,
+    can_closing_torpedo_ship, can_opening_torpedo_ship, select_escort_shield,
+    select_random_target_index,
 };
 use crate::types::{
     BattleOpeningAttack, BattlePhase, BattleRaigeki, BattleRuntimeShip, EngagementType,
@@ -30,10 +31,18 @@ pub(crate) fn simulate_opening_torpedo(
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
+        let Some(mut target_idx) =
             select_random_target_index(codex, rng, ship, enemy, BattlePhase::OpeningTorpedo)
         else {
             continue;
+        };
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let shield = match select_escort_shield(codex, rng, enemy, target_idx, enemy_formation_id) {
+            Some(escort) => {
+                target_idx = escort;
+                true
+            }
+            None => false,
         };
         let raw = calculate_torpedo_damage(
             codex,
@@ -53,6 +62,7 @@ pub(crate) fn simulate_opening_torpedo(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                shield,
             },
         );
         happened = true;
@@ -62,11 +72,20 @@ pub(crate) fn simulate_opening_torpedo(
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
+        let Some(mut target_idx) =
             select_random_target_index(codex, rng, ship, friendly, BattlePhase::OpeningTorpedo)
         else {
             continue;
         };
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let shield =
+            match select_escort_shield(codex, rng, friendly, target_idx, friendly_formation_id) {
+                Some(escort) => {
+                    target_idx = escort;
+                    true
+                }
+                None => false,
+            };
         let raw = calculate_torpedo_damage(
             codex,
             rng,
@@ -85,6 +104,7 @@ pub(crate) fn simulate_opening_torpedo(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                shield,
             },
         );
         happened = true;
@@ -134,6 +154,7 @@ pub(crate) fn simulate_raigeki(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                shield: false, // closing torpedo is out of scope for かばう
             },
         );
         happened = true;
@@ -166,6 +187,7 @@ pub(crate) fn simulate_raigeki(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                shield: false, // closing torpedo is out of scope for かばう
             },
         );
         happened = true;
@@ -328,5 +350,62 @@ mod tests {
         assert_eq!(raigeki.api_eydam[0], DamageCell::Plain(dealt));
         assert_eq!(raigeki.api_fydam[0], DamageCell::Plain(0));
         assert_eq!(friendly[0].hp(), friendly[0].ship.api_nowhp - dealt);
+    }
+
+    /// Covers AE5. An intercepted opening-torpedo hit on the friendly flagship
+    /// carries the `.1` shield flag on the attacker's `api_eydam_list_items`
+    /// entry, and `api_erai_list_items` points at the escort (index 1), not 0.
+    #[test]
+    fn opening_torpedo_flagship_shield_flags_eydam() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let clt = first_ship_mst_by_type(&codex, KcShipType::CLT);
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut found = false;
+        for seed in 0..400u64 {
+            // Friendly defenders: surface flagship + healthy surface escort.
+            let mut friendly = vec![
+                BattleRuntimeShip::new(sample_ship(&codex, bb, 80), true, true),
+                BattleRuntimeShip::new(sample_ship(&codex, dd, 80), true, true),
+            ];
+            // Enemy attackers: torpedo-capable CLTs.
+            let mut enemy = vec![
+                BattleRuntimeShip::new(sample_ship(&codex, clt, 80), false, true),
+                BattleRuntimeShip::new(sample_ship(&codex, clt, 80), false, true),
+            ];
+            let mut rng = SeededRng::new(seed);
+            // friendly_formation_id = 3 (輪形陣, 75%) maximises interception.
+            let Some(op) = simulate_opening_torpedo(
+                &codex,
+                &mut rng,
+                &mut friendly,
+                &mut enemy,
+                3,
+                1,
+                EngagementType::SameCourse,
+            ) else {
+                continue;
+            };
+            for (i, cell) in op.api_eydam_list_items.iter().enumerate() {
+                let Some(dmgs) = cell else {
+                    continue;
+                };
+                if dmgs.iter().any(|c| matches!(c, DamageCell::Shielded(_))) {
+                    assert_eq!(
+                        op.api_erai_list_items[i],
+                        Some(vec![1]),
+                        "intercepted torpedo must target the escort, not the flagship"
+                    );
+                    let json = serde_json::to_string(dmgs).unwrap();
+                    assert!(json.contains(".1"), "shielded eydam must serialize with .1: {json}");
+                    found = true;
+                }
+            }
+            if found {
+                break;
+            }
+        }
+        assert!(found, "expected an intercepted opening-torpedo hit on the flagship");
     }
 }

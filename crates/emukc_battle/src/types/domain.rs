@@ -171,6 +171,9 @@ pub(crate) struct TorpedoHit {
     pub(crate) attacker_index: usize,
     pub(crate) defender_index: usize,
     pub(crate) damage: i64,
+    /// True when an escort intercepted this hit (旗艦援護) — the damage cell is
+    /// emitted as `DamageCell::Shielded` so the client plays the shield animation.
+    pub(crate) shield: bool,
 }
 
 /// Parameters for a shelling side simulation.
