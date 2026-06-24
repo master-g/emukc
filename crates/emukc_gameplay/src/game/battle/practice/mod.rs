@@ -220,7 +220,12 @@ mod tests {
 
     #[test]
     fn practice_day_battle_enables_midnight_when_both_sides_survive() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // This test asserts real battle outcome (both sides survive → midnight).
+        // Disable god-mode debug flags so a local game_config.json with them on
+        // (one_hit_kill synthesizes a finishing volley) cannot corrupt the result.
+        codex.game_cfg.god_mode = false;
+        codex.game_cfg.one_hit_kill = false;
         let mut friend = sample_ship(&codex, 79, 1);
         friend.ship.api_karyoku[0] = 1;
         friend.ship.api_raisou[0] = 0;

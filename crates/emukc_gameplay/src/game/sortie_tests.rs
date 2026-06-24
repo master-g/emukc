@@ -292,7 +292,12 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
     store.clear();
 
     let db = new_mem_db().await.unwrap();
-    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    // This test asserts real battle outcome (both sides survive → midnight).
+    // Disable god-mode debug flags so a local game_config.json with them on
+    // (one_hit_kill synthesizes a finishing volley) cannot corrupt the result.
+    codex.game_cfg.god_mode = false;
+    codex.game_cfg.one_hit_kill = false;
     let context = (db, codex.clone());
     let profile_id = 42;
 
