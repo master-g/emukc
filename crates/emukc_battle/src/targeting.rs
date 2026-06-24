@@ -138,6 +138,83 @@ pub(crate) fn select_submarine_target(
 }
 
 // ---------------------------------------------------------------------------
+// Flagship escort shield (旗艦援護 / かばう)
+// ---------------------------------------------------------------------------
+
+/// Interception probability for a defending fleet's formation, as a percentage.
+///
+/// Rates from the official wiki (`攻撃対象の選択`): 単縦陣 45%, 複縦/梯形/単横 60%,
+/// 輪形/警戒 75%. Combined-fleet formation IDs (11–14) and any unknown ID return
+/// `None` — combined-fleet interception is out of scope until combined sortie
+/// exists, and an unknown formation never intercepts.
+// `allow(dead_code)`: exercised by unit tests; wired into the battle phases in U3.
+#[allow(dead_code)]
+fn escort_shield_rate(formation_id: i64) -> Option<i64> {
+    match formation_id {
+        1 => Some(45),         // 単縦陣
+        2 | 4 | 5 => Some(60), // 複縦陣 / 梯形陣 / 単横陣
+        3 | 6 => Some(75),     // 輪形陣 / 警戒陣
+        _ => None,
+    }
+}
+
+/// Resolve 旗艦援護 (かばう): when an attack targets the defending fleet's
+/// flagship (`target_idx == 0`), a healthy escort may intercept it and take the
+/// damage instead. Returns the interceptor's index, or `None` when no
+/// interception occurs.
+///
+/// Eligibility (no RNG): the flagship must be the target, the formation must
+/// have a defined rate, and at least one escort must be non-flagship, alive, in
+/// green health (小破未満, HP > 75%), and of the flagship's category (surface-like
+/// ships protect surface-like flagships, submarines protect submarine flagships).
+/// The flagship's own HP does **not** gate — interception fires even when the
+/// flagship is 大破.
+///
+/// RNG draw order (deterministic): only when all eligibility holds does this draw
+/// one `roll_range` for the probability, then one `choose_index` for the
+/// interceptor on success. Eligibility-fail paths consume no RNG, mirroring
+/// `choose_index`'s "no draw when empty" invariant.
+// `allow(dead_code)`: exercised by unit tests; wired into the battle phases in U3.
+#[allow(dead_code)]
+pub(crate) fn select_escort_shield(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    defenders: &[BattleRuntimeShip],
+    target_idx: usize,
+    defender_formation_id: i64,
+) -> Option<usize> {
+    if target_idx != 0 {
+        return None;
+    }
+    let rate = escort_shield_rate(defender_formation_id)?;
+
+    // Surface-like (incl. PT / installation) protects surface-like; submarine
+    // protects submarine. The two categories are complementary.
+    let flagship_is_submarine = target_class(codex, &defenders[0]).is_submarine();
+
+    let eligible: Vec<usize> = defenders
+        .iter()
+        .enumerate()
+        .skip(1)
+        .filter(|(_, ship)| {
+            ship.is_alive()
+                && ship.hp() * 4 > ship.ship.api_maxhp * 3
+                && target_class(codex, ship).is_submarine() == flagship_is_submarine
+        })
+        .map(|(idx, _)| idx)
+        .collect();
+    if eligible.is_empty() {
+        return None;
+    }
+
+    if rng.roll_range(0, 100) >= rate {
+        return None;
+    }
+    let pick = rng.choose_index(eligible.len())?;
+    Some(eligible[pick])
+}
+
+// ---------------------------------------------------------------------------
 // Target classification
 // ---------------------------------------------------------------------------
 
@@ -1067,5 +1144,130 @@ mod tests {
             80,
             "practice friendly should show dealt"
         );
+    }
+
+    // ── Flagship escort shield (旗艦援護 / かばう) ──────────────────────
+
+    /// Build a defending runtime ship with explicit current/max HP.
+    fn rt_ship(codex: &Codex, mst_id: i64, nowhp: i64, maxhp: i64) -> BattleRuntimeShip {
+        let mut input = sample_ship(codex, mst_id, 50);
+        input.ship.api_maxhp = maxhp;
+        input.ship.api_nowhp = nowhp;
+        BattleRuntimeShip::new(input, false, true)
+    }
+
+    #[test]
+    fn escort_shield_rate_table_matches_formations() {
+        assert_eq!(escort_shield_rate(1), Some(45)); // 単縦陣
+        assert_eq!(escort_shield_rate(2), Some(60)); // 複縦陣
+        assert_eq!(escort_shield_rate(4), Some(60)); // 梯形陣
+        assert_eq!(escort_shield_rate(5), Some(60)); // 単横陣
+        assert_eq!(escort_shield_rate(3), Some(75)); // 輪形陣
+        assert_eq!(escort_shield_rate(6), Some(75)); // 警戒陣
+        // Combined-fleet (11-14) and unknown formations are out of scope.
+        assert_eq!(escort_shield_rate(0), None);
+        assert_eq!(escort_shield_rate(11), None);
+        assert_eq!(escort_shield_rate(14), None);
+    }
+
+    /// Covers AE2. Interception fires at the formation rate (単縦 45%, 輪形 75%),
+    /// deterministically under a fixed seed.
+    #[test]
+    fn flagship_shield_fires_at_formation_rate() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Flagship (index 0) + one healthy surface escort.
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 30, 30)];
+
+        let trials = 4000;
+        let count = |formation: i64| {
+            let mut rng = crate::random::SeededRng::new(7);
+            (0..trials)
+                .filter(|_| {
+                    select_escort_shield(&codex, &mut rng, &defenders, 0, formation).is_some()
+                })
+                .count()
+        };
+
+        let single_line = count(1); // 単縦陣 45%
+        let diamond = count(3); // 輪形陣 75%
+        assert!((1600..=2000).contains(&single_line), "単縦 ~45%: got {single_line}/{trials}");
+        assert!((2800..=3200).contains(&diamond), "輪形 ~75%: got {diamond}/{trials}");
+        assert!(diamond > single_line, "higher formation rate must intercept more often");
+    }
+
+    /// Covers AE3. No escort in green health → never intercepts, seed-independent
+    /// (eligibility fails before any RNG draw).
+    #[test]
+    fn no_shield_when_escorts_below_green() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Escort at 50% HP (小破): 50*4=200 is not > 100*3=300 → ineligible.
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 50, 100)];
+        for seed in [1u64, 7, 999] {
+            let mut rng = crate::random::SeededRng::new(seed);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 3), None);
+        }
+    }
+
+    /// Covers AE4. A submarine escort cannot protect a surface flagship.
+    #[test]
+    fn no_shield_on_type_mismatch() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, ss, 30, 30)];
+        for seed in [1u64, 7, 999] {
+            let mut rng = crate::random::SeededRng::new(seed);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 3), None);
+        }
+    }
+
+    /// Green health is strictly above 75% max HP: 75% is 小破 (ineligible), 76% green.
+    #[test]
+    fn green_health_boundary_is_strictly_above_75_percent() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Exactly 75%: 75*4 = 300 == 100*3 → not strictly greater → ineligible.
+        let at_75 = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 75, 100)];
+        let mut rng = crate::random::SeededRng::new(7);
+        assert_eq!(select_escort_shield(&codex, &mut rng, &at_75, 0, 3), None);
+
+        // 76%: 76*4 = 304 > 300 → eligible → fires on some rolls.
+        let at_76 = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 76, 100)];
+        let mut rng = crate::random::SeededRng::new(7);
+        let fired = (0..200)
+            .filter(|_| select_escort_shield(&codex, &mut rng, &at_76, 0, 3).is_some())
+            .count();
+        assert!(fired > 0, "a 76% escort must be eligible and intercept on some rolls");
+    }
+
+    /// Non-flagship targets never intercept and must not consume RNG (KTD-5).
+    #[test]
+    fn non_flagship_target_consumes_no_rng() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 30, 30)];
+
+        let mut rng = crate::random::SeededRng::new(5);
+        assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 1, 1), None);
+        // No draw consumed: the next roll matches a fresh rng's first roll.
+        let next = rng.roll_range(0, 1_000_000);
+        let fresh = crate::random::SeededRng::new(5).roll_range(0, 1_000_000);
+        assert_eq!(next, fresh, "non-flagship target must not draw RNG");
+    }
+
+    /// R5: a submarine escort protects a submarine flagship.
+    #[test]
+    fn submarine_flagship_protected_by_submarine_escort() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let defenders = vec![rt_ship(&codex, ss, 30, 30), rt_ship(&codex, ss, 30, 30)];
+        let mut rng = crate::random::SeededRng::new(7);
+        let fired = (0..200)
+            .filter(|_| select_escort_shield(&codex, &mut rng, &defenders, 0, 3).is_some())
+            .count();
+        assert!(fired > 0, "a submarine escort must protect a submarine flagship");
     }
 }
