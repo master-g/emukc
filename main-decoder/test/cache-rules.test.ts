@@ -218,6 +218,7 @@ describe("extractCacheRules", () => {
 		expect(extracted.shipRules.targetSemantics.cases).toEqual(
 			expect.arrayContaining([
 				{ rawTargetType: "banner_g", selectorScope: "default-friendly", damagedState: "true", targetTypes: ["banner_g_dmg"] },
+				{ rawTargetType: "banner_g", selectorScope: "default-abyssal", damagedState: "true", targetTypes: ["banner_g_dmg"] },
 				{ rawTargetType: "banner", selectorScope: "default-abyssal", damagedState: "variable", targetTypes: ["banner"] },
 				{ rawTargetType: "banner3_g", selectorScope: "default-abyssal", damagedState: "true", targetTypes: ["banner3_g_dmg"] },
 			]),

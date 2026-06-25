@@ -257,6 +257,7 @@ const SHIP_TARGET_SEMANTIC_CASES: CacheRulesAsset["shipRules"]["targetSemantics"
 	{ rawTargetType: "banner", selectorScope: "default-abyssal", damagedState: "true", targetTypes: ["banner"] },
 	{ rawTargetType: "banner", selectorScope: "default-abyssal", damagedState: "variable", targetTypes: ["banner"] },
 	{ rawTargetType: "banner_g", selectorScope: "default-friendly", damagedState: "true", targetTypes: ["banner_g_dmg"] },
+	{ rawTargetType: "banner_g", selectorScope: "default-abyssal", damagedState: "true", targetTypes: ["banner_g_dmg"] },
 	{ rawTargetType: "banner2", selectorScope: "default-friendly", damagedState: "false", targetTypes: ["banner2"] },
 	{ rawTargetType: "banner2", selectorScope: "default-friendly", damagedState: "true", targetTypes: ["banner2_dmg"] },
 	{ rawTargetType: "banner2", selectorScope: "default-friendly", damagedState: "variable", targetTypes: ["banner2", "banner2_dmg"] },
