@@ -485,7 +485,17 @@ fn resolve_slot_ids_for_target(
         return airunit_slot_ids(mst);
     }
 
+    // Standard slot categories (card, item_on, remodel, …) have no player-side
+    // graphics for abyssal equipment. Exclude items past the enemy-slot border,
+    // mirroring the exclusion `item_up` / `btxt_flat` already apply. Absent border
+    // → i64::MAX → no filtering (unchanged behavior).
+    let enemy_slot_border = cache_rules
+        .and_then(|rules| rules.slot_rules.item_up.enemy_slot_border)
+        .unwrap_or(i64::MAX);
     resolve::resolve_slotitem_ids(sources, mst)
+        .into_iter()
+        .filter(|slot_id| *slot_id <= enemy_slot_border)
+        .collect()
 }
 
 pub(crate) fn generate_entry_paths(
@@ -1353,6 +1363,70 @@ mod tests {
         assert!(paths.iter().any(|path| path.contains("slot/item_up2/0525_")));
         assert!(paths.iter().any(|path| path.contains("slot/item_up2/0526_")));
         assert!(!paths.iter().any(|path| path.contains("slot/item_up2/0001_")));
+    }
+
+    #[test]
+    fn test_standard_slot_categories_exclude_abyssal_equipment_past_border() {
+        // Friendly slot (id <= border) + abyssal slot (id > border, sortno>0,
+        // version=None) — the 1658/1659 深海 equipment shape from the incident.
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_slotitem = vec![
+            ApiMstSlotitem {
+                api_id: 1,
+                api_sortno: 1,
+                api_version: Some(1),
+                ..Default::default()
+            },
+            ApiMstSlotitem {
+                api_id: 1658,
+                api_sortno: 1658,
+                api_version: None,
+                ..Default::default()
+            },
+        ];
+
+        let card_entry = || ResourceManifestEntry {
+            kind: ManifestEntryKind::Slotitem,
+            source: "test".to_string(),
+            target_type: "card".to_string(),
+            ship_mst_id_source: None,
+            damaged_source: None,
+            slot_mst_id_sources: Some(vec!["_0x37d3f1".to_string()]),
+            provider: None,
+            texture_ids: None,
+            paths: None,
+            module_ids: vec![],
+            module_names: vec![],
+            other: Default::default(),
+        };
+
+        // R1 + R2: border present (1500) → friendly card kept, abyssal excluded.
+        let mut list = CacheList::new();
+        let cache_rules = make_cache_rules_asset(); // enemy_slot_border = Some(1500)
+        generate_entry_paths(&card_entry(), &mst, None, None, Some(&cache_rules), &mut list);
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|p| p.contains("slot/card/0001_")), "friendly card kept");
+        assert!(!paths.iter().any(|p| p.contains("slot/card/1658_")), "abyssal card excluded");
+
+        // R3: border absent → no filtering, abyssal card generated (prior behavior).
+        let mut list_nb = CacheList::new();
+        let mut cache_rules_nb = make_cache_rules_asset();
+        cache_rules_nb.slot_rules.item_up.enemy_slot_border = None;
+        generate_entry_paths(&card_entry(), &mst, None, None, Some(&cache_rules_nb), &mut list_nb);
+        let paths_nb = list_nb.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(
+            paths_nb.iter().any(|p| p.contains("slot/card/1658_")),
+            "no border → abyssal kept (unchanged behavior)"
+        );
+
+        // R4: the item_up branch is untouched — it still remaps the abyssal id
+        // (1658 - 1500 = 158) rather than excluding it via the fall-through filter.
+        let mut list_iu = CacheList::new();
+        let mut item_up_entry = card_entry();
+        item_up_entry.target_type = "item_up".to_string();
+        generate_entry_paths(&item_up_entry, &mst, None, None, Some(&cache_rules), &mut list_iu);
+        let paths_iu = list_iu.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths_iu.iter().any(|p| p.contains("slot/item_up/0158_")), "item_up remap intact");
     }
 
     #[test]
