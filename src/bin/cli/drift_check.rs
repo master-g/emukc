@@ -39,6 +39,11 @@ pub(super) struct DriftCheckArgs {
     #[arg(long)]
     scaffold: bool,
 
+    #[arg(help = "Accept the current decoded state as the new known-good baseline \
+                (refresh the fingerprint manifest), whether or not it drifted")]
+    #[arg(long)]
+    accept: bool,
+
     #[arg(help = "Print the structured drift report as JSON instead of a human report")]
     #[arg(long)]
     json: bool,
@@ -253,6 +258,27 @@ pub(super) fn exec(args: &DriftCheckArgs) -> Result<()> {
     let previous = load_manifest(&manifest_path)?;
     let report = diff(previous.as_ref(), &current, version_missing);
 
+    // `--accept` closes the refresh loop: record the current state as the new
+    // known-good baseline (whether or not it drifted), so a reviewed drift can be
+    // accepted without hand-deleting the manifest. Refuse while version.txt is
+    // absent — accepting `VERSION_ABSENT` would poison the baseline.
+    if args.accept {
+        if version_missing {
+            bail!(
+                "cannot accept a baseline while main-decoder/out/version.txt is absent; \
+                 run `bun run decode` first"
+            );
+        }
+        write_manifest(&manifest_path, &current)?;
+        if args.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            print_report(&report, &manifest_path);
+            println!("baseline accepted: {}", manifest_path.display());
+        }
+        return Ok(());
+    }
+
     // Seed the baseline on first run so subsequent runs can detect real drift.
     if report.kind == DriftKind::BaselineRecorded {
         write_manifest(&manifest_path, &current)?;
@@ -446,8 +472,9 @@ relative to the client.
 
 - **Goal:** Return `drift-check` to a clean no-drift state.
 - **Files:** `crates/emukc_bootstrap/assets/.sync-fingerprint.json`.
-- **Approach:** Re-run `cargo run -- battle drift-check` (or the sync flow) so the
-  baseline is updated, then commit it.
+- **Approach:** Once the round is reconciled, run
+  `cargo run -- battle drift-check --accept` to record the current state as the new
+  known-good baseline, then commit the refreshed `.sync-fingerprint.json`.
 "#,
         version = report.version_new,
         date = date,
@@ -507,6 +534,28 @@ mod tests {
         let baseline = fingerprint("6.3.0.0", &assets).unwrap();
         let report = diff(Some(&baseline), &baseline, false);
         assert_eq!(report.kind, DriftKind::NoDrift);
+        assert!(!report.is_drift());
+    }
+
+    #[test]
+    fn accepted_baseline_clears_subsequent_drift() {
+        // `--accept` writes the current fingerprint as the new manifest; a follow-up
+        // diff against that same state then reports no drift — the refresh loop
+        // closes instead of re-reporting the accepted drift forever.
+        let asset_dir = tempfile::tempdir().unwrap();
+        let current = fingerprint(
+            "6.3.0.1",
+            &assets(asset_dir.path(), &[("battle_protocol_fields", r#"{"x":2}"#)]),
+        )
+        .unwrap();
+
+        let manifest_dir = tempfile::tempdir().unwrap();
+        let manifest = manifest_dir.path().join(".sync-fingerprint.json");
+        write_manifest(&manifest, &current).unwrap();
+
+        let reloaded = load_manifest(&manifest).unwrap();
+        let report = diff(reloaded.as_ref(), &current, false);
+        assert_eq!(report.kind, DriftKind::NoDrift, "accepted baseline must clear drift");
         assert!(!report.is_drift());
     }
 
