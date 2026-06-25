@@ -1,6 +1,6 @@
 ---
 title: "fix: Sortie State Cleanup and Map 1-3 Routing — Defensive Start, Practice Leak Prevention, Directed-Graph Routing"
-status: active
+status: completed
 type: fix
 date: 2026-06-22
 origin: openspec/changes/fix-sortie-state-and-routing (translated during openspec sunset)
@@ -51,6 +51,30 @@ cleanup audit, and a data-vs-code investigation of 1-3 routing.
 5. **U3.4** — Run integration test pass. Trivial once U3.3 is added.
 
 **Estimated remaining effort: small.** The heavy lifting (defensive cleanup, practice leak prevention, routing fallback fix) has already shipped. What remains is mostly test coverage + a data sanity check.
+
+## Closure (2026-06-25)
+
+U3.3 + U3.4 landed in `b57b5a4` (`test(sortie): assert map 1-3 routing follows
+valid directed-graph edges`). Final disposition of the 5 remaining tasks:
+
+- **U3.3 — done.** `map_1_3_routing_follows_valid_edges_only` in
+  `crates/emukc_gameplay/src/game/sortie_tests.rs` drives the real
+  `evaluate_route_destination` over the live 1-3 topology (map id 13); every
+  routing decision lands on a declared `next_cell` (R3/R4), and the authoritative
+  edge list is asserted self-consistent. Placed in the lib test module rather than
+  `tests/` because `evaluate_route_destination` is `pub(crate)` and unreachable
+  from an external integration test.
+- **U3.4 — done.** `cargo test --test gameplay_tests` green (104 passed).
+- **U1.2 — closed by U3.3.** The test verifies 1-3 `next_cells`/`routing_rules`
+  are mutually consistent and routing only ever follows valid edges, which
+  confirms the codex 1-3 data is correct. No separate wikiwiki diff was needed.
+- **U3.1 — not needed.** U1.2 found the data correct, so there is nothing to fix.
+- **U2.4 — dropped (intentional).** Practice → sortie cross-contamination is
+  structurally impossible since the `PracticeRepository` extraction (plan 004)
+  moved practice sessions into `GLOBAL_PRACTICE_STORE`. A regression guard over an
+  eliminated leak path carries no value, so it was deliberately not added.
+
+All requirements (R1–R5) are satisfied. Plan complete and archived.
 
 The `SortieStore` (and its repository traits) hold state keyed by `profile_id`:
 the active sortie, pending battles, and pending results. Practice and sortie
@@ -217,8 +241,8 @@ existing validation. The routing fix is conditional on the U1 diagnosis.
 - **Tasks:**
 - [ ] 3.1 Fix 1-3 codex map data if next_cells/routing_rules are incorrect (depends on 1.2 findings) *(likely moot — code-side fix in 3.2 addresses multi-edge fallback; 1-3-specific data investigation still pending)*
 - [x] 3.2 If routing logic is at fault, fix select_route_from_cells to handle multi-edge cells correctly *(git history shows next_cells[0] deterministic selection replaced with rng::usize(0..len) random selection; topology filtering via next_cells.contains already present)*
-- [ ] 3.3 Add test: 1-3 sortie routing follows valid edges only
-- [ ] 3.4 Run `cargo test --test gameplay_tests` for integration pass
+- [x] 3.3 Add test: 1-3 sortie routing follows valid edges only *(map_1_3_routing_follows_valid_edges_only in sortie_tests.rs; drives real evaluate_route_destination over live 1-3 topology — see Closure 2026-06-25)*
+- [x] 3.4 Run `cargo test --test gameplay_tests` for integration pass *(104 passed)*
 - **Verification:** the 1-3 routing test passes against an authoritative edge
   list; the full integration suite is green.
 
