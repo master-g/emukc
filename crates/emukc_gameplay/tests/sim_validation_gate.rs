@@ -15,7 +15,9 @@
 //! Codex-gated, fail-loud per the repo convention (R7): a missing `.data/codex`
 //! panics with the bootstrap prerequisite rather than silently skipping.
 
-use emukc_bootstrap::prelude::{load_repo_battle_knowledge_assets, validate_day_battle_response};
+use emukc_bootstrap::prelude::{
+    load_repo_battle_knowledge_assets, validate_day_battle_response, validate_night_battle_response,
+};
 use emukc_crypto::rng;
 use emukc_db::{prelude::new_mem_db, sea_orm::DbConn};
 use emukc_gameplay::prelude::*;
@@ -115,4 +117,65 @@ async fn gate_bites_on_corrupted_payload() {
 
     let report = validate_day_battle_response(&context.1.manifest, &raw, &assets).unwrap();
     assert!(report.has_errors(), "corrupted payload must fail the gate");
+}
+
+/// Night-path gate (plan 2026-06-15-002 U2): drive a real night battle for every
+/// registered preset and validate the emitted `SortieNightBattleResponse` with
+/// `validate_night_battle_response`, mirroring the day gate.
+///
+/// The night packet is produced via `sortie_sp_midnight_battle` (the night-only
+/// sortie entry), NOT the day→midnight branch. The day→midnight path requires the
+/// flagship to survive and *fail* to clear the enemy — a rare RNG branch that is
+/// not reliably reachable in 1-1 within a bounded seed set (the existing CLI
+/// `seed_search_finds_night_and_reproduces` test, which hunts that same branch,
+/// is itself flaky on the current sim). `sortie_sp_midnight_battle` exercises the
+/// identical `simulate_night` → `build_night_response` path deterministically, so
+/// it is the reliable live-sim night packet for this protocol gate. Each preset
+/// is run across the same bounded seed set as the day gate; every produced night
+/// packet must pass protocol validation with zero error findings.
+#[tokio::test]
+async fn every_preset_night_battle_passes_protocol_validation() {
+    let assets = load_repo_battle_knowledge_assets().unwrap();
+
+    for preset in PRESETS {
+        let context = mock_context().await;
+        let pid = new_profile(&context).await;
+        apply_scenario(&context, pid, &(preset.build)())
+            .await
+            .unwrap_or_else(|e| panic!("preset {}: apply_scenario: {e:?}", preset.name));
+
+        let baseline = context.get_ships(pid).await.unwrap();
+
+        for &seed in SEEDS {
+            // Discard any stale sortie state from the previous seed; restore the
+            // fleet so each seed starts from identical state.
+            context.clear_sortie_state_if_any(pid).await;
+            for ship in &baseline {
+                context.update_ship(ship).await.unwrap();
+            }
+            rng::seed(seed);
+
+            context.start_sortie(pid, 1, preset.maparea, preset.mapinfo).await.unwrap_or_else(
+                |e| panic!("preset {} seed {seed}: start_sortie: {e:?}", preset.name),
+            );
+            let night = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_or_else(|e| {
+                panic!("preset {} seed {seed}: sortie_sp_midnight_battle: {e:?}", preset.name)
+            });
+
+            let report =
+                validate_night_battle_response(&context.1.manifest, &night, &assets).unwrap();
+            assert!(
+                !report.has_errors(),
+                "preset {} seed {seed} produced night-battle protocol errors: {:#?}",
+                preset.name,
+                report.findings,
+            );
+            assert!(
+                night.api_hougeki.is_some(),
+                "preset {} seed {seed}: night battle emitted no night shelling",
+                preset.name,
+            );
+        }
+        rng::reseed_from_entropy();
+    }
 }

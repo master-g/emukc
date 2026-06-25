@@ -271,6 +271,33 @@ const DAY_BATTLE_PROTOCOL_PAYLOAD_ALLOWLIST: &[&str] = &[
     "api_raigeki",
 ];
 
+// Night/midnight battle field tables, grounded in the decoded `RawNightBattleData`
+// module (battle_protocol_fields.json, moduleId 72987) and the
+// `SortieNightBattleResponse` emukc actually emits. Night reuses the day
+// validator's helpers (KTD4): only the field tables and hougeki sources differ.
+const NIGHT_BATTLE_ARRAY_FIELDS: &[&str] = &[
+    "api_ship_ke",
+    "api_ship_lv",
+    "api_e_nowhps",
+    "api_e_maxhps",
+    "api_eSlot",
+    "api_eParam",
+    "api_f_nowhps",
+    "api_f_maxhps",
+    "api_fParam",
+    // numArray scalars on RawNightBattleData; emukc emits fixed [i64; 2] pairs.
+    "api_touch_plane",
+    "api_flare_pos",
+];
+
+const NIGHT_BATTLE_SCALAR_FLAG_FIELDS: &[&str] = &["api_deck_id"];
+
+// Night shelling phases. `api_hougeki` is the single-fleet night shelling object;
+// `api_n_hougeki1`/`api_n_hougeki2` are the combined-fleet night shelling objects.
+// All are `object` access on RawNightBattleData and the night analogue of the
+// day validator's `api_hougeki1/2/3`.
+const NIGHT_BATTLE_HOUGEKI_FIELDS: &[&str] = &["api_hougeki", "api_n_hougeki1", "api_n_hougeki2"];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DamageState {
     Healthy,
@@ -1008,6 +1035,246 @@ pub fn validate_day_battle_response<T: Serialize>(
     Ok(report)
 }
 
+/// Validate the per-attacker sub-arrays of a single night hougeki object align.
+///
+/// Each attacker row across `api_at_eflag`/`api_at_list`/`api_df_list`/
+/// `api_si_list`/`api_cl_list`/`api_damage` must have the same length; a mismatch
+/// (e.g. an extra `api_damage` row with no matching `api_df_list`) is a protocol
+/// shape error the client cannot render. Reuses [`check_equal_lengths`] over the
+/// hougeki sub-object, scoping the error messages to the hougeki field.
+fn check_night_hougeki_shape(
+    object: &serde_json::Map<String, serde_json::Value>,
+    report: &mut BattleValidationReport,
+    hougeki_field: &str,
+) {
+    let Some(hougeki) = object.get(hougeki_field) else {
+        return;
+    };
+    if hougeki.is_null() {
+        return;
+    }
+    let Some(hougeki_obj) = hougeki.as_object() else {
+        push_invalid_shape(
+            report,
+            hougeki_field,
+            format!("`{hougeki_field}` is expected to be a night hougeki object"),
+        );
+        return;
+    };
+
+    // The night hougeki object carries one entry per attacker step across all of
+    // these arrays; they must align row-for-row. `api_n_mother_list`/`api_sp_list`
+    // are present only on combined-fleet/special-attack night shelling, so they are
+    // checked only when present.
+    let mut required = vec![
+        "api_at_eflag",
+        "api_at_list",
+        "api_df_list",
+        "api_si_list",
+        "api_cl_list",
+        "api_damage",
+    ];
+    for optional in ["api_n_mother_list", "api_sp_list"] {
+        if hougeki_obj.contains_key(optional) {
+            required.push(optional);
+        }
+    }
+    check_equal_lengths(hougeki_obj, report, &required);
+}
+
+/// Validate a night/midnight battle response against the client-derived protocol
+/// rules (KTD4, R2). Mirrors [`validate_day_battle_response`] and reuses its
+/// helpers; only the field tables and shelling sources differ.
+///
+/// No dedicated `analyze_night_battle_incident` is provided: night banner and
+/// slot resource-path logic is identical to day (same `build_ship_resource_path`
+/// / `build_slotitem_resource_path` / `parse_slot_resource_path`), so
+/// [`analyze_day_battle_incident`] already covers a missing-resource incident on
+/// a night payload. The only night divergence — slot ids living in
+/// `api_hougeki`/`api_n_hougeki*` rather than `api_hougeki1/2/3` — cannot be
+/// matched through the frozen `battle_slot_resource_triggers.json` asset, whose
+/// `protocol_sources` reference only the day `api_hougeki1/2/3` paths, so a
+/// night-specific collector would be machinery that can never fire.
+pub fn validate_night_battle_response<T: Serialize>(
+    manifest: &ApiManifest,
+    response: &T,
+    assets: &BattleKnowledgeAssets,
+) -> Result<BattleValidationReport, serde_json::Error> {
+    let value = serde_json::to_value(response)?;
+    let Some(object) = as_object(&value) else {
+        let mut report = BattleValidationReport::default();
+        push_invalid_shape(
+            &mut report,
+            "<root>",
+            "night battle response must serialize to a JSON object",
+        );
+        return Ok(report);
+    };
+
+    let mut report = BattleValidationReport::default();
+
+    ensure_required_array_fields(object, &mut report, NIGHT_BATTLE_ARRAY_FIELDS);
+    ensure_required_scalar_fields(object, &mut report, NIGHT_BATTLE_SCALAR_FLAG_FIELDS);
+
+    check_equal_lengths(
+        object,
+        &mut report,
+        &["api_ship_ke", "api_ship_lv", "api_e_nowhps", "api_e_maxhps", "api_eSlot", "api_eParam"],
+    );
+    check_equal_lengths(object, &mut report, &["api_f_nowhps", "api_f_maxhps", "api_fParam"]);
+
+    // Night shelling carries no separate flag array (unlike day's
+    // `api_hourai_flag`); a phase is signalled purely by the hougeki object being
+    // present. Validate the shape of whichever night shelling phases are emitted.
+    for hougeki_field in NIGHT_BATTLE_HOUGEKI_FIELDS {
+        check_night_hougeki_shape(object, &mut report, hougeki_field);
+    }
+
+    // `api_touch_plane` is a [spotter_plane_id, -1] pair; when a night recon plane
+    // spots (touch_plane[0] >= 0) the partner slot must still be present so the
+    // client's fixed-length read does not fault. Same for the flare pair.
+    for pair_field in ["api_touch_plane", "api_flare_pos"] {
+        if let Some(len) = read_array(object, pair_field).map(Vec::len)
+            && len != 2
+        {
+            push_invalid_shape(
+                &mut report,
+                pair_field,
+                format!("`{pair_field}` must be a 2-element [primary, partner] pair"),
+            );
+        }
+    }
+
+    let enemy_ship_ids = read_i64_array(object, "api_ship_ke", &mut report).unwrap_or_default();
+    let enemy_nowhps = read_i64_array(object, "api_e_nowhps", &mut report).unwrap_or_default();
+    let enemy_maxhps = read_i64_array(object, "api_e_maxhps", &mut report).unwrap_or_default();
+    let slot_rows = read_array(object, "api_eSlot").cloned().unwrap_or_default();
+    let slot_target_types = collect_slotitem_target_types(assets);
+
+    for (index, ship_id) in enemy_ship_ids.iter().copied().enumerate() {
+        if ship_id <= 0 {
+            continue;
+        }
+
+        let damage_state = enemy_nowhps
+            .get(index)
+            .zip(enemy_maxhps.get(index))
+            .and_then(|(now, max)| classify_damage_state(*now, *max));
+        let uses_damaged_resources = damage_state.is_some_and(uses_damaged_ship_resources);
+        let banner_path =
+            build_ship_resource_path(manifest, ship_id, "banner", uses_damaged_resources);
+        let full_path = build_ship_resource_path(manifest, ship_id, "full", uses_damaged_resources);
+
+        if manifest.find_ship(ship_id).is_none() {
+            push_error(
+                &mut report,
+                BattleValidationFindingKind::UnknownShipMstId,
+                Some("api_ship_ke"),
+                format!("enemy ship mst id `{ship_id}` is not present in the manifest"),
+                banner_path.clone(),
+            );
+            continue;
+        }
+
+        if manifest.find_shipgraph(ship_id).is_none() {
+            push_error(
+                &mut report,
+                BattleValidationFindingKind::MissingShipGraph,
+                Some("api_ship_ke"),
+                format!("enemy ship mst id `{ship_id}` has no shipgraph entry"),
+                banner_path.clone(),
+            );
+            continue;
+        }
+
+        if let Some(path) = banner_path {
+            report.expected_resources.push(ExpectedBattleResource {
+                kind: "ship".to_string(),
+                entity_id: ship_id,
+                target_type: if uses_damaged_resources {
+                    "banner_dmg".to_string()
+                } else {
+                    "banner".to_string()
+                },
+                path,
+                note: "battle banner image expected by ShipBanner".to_string(),
+                protocol_source: None,
+                consumer_module: Some("ShipBanner".to_string()),
+            });
+        }
+        if let Some(path) = full_path {
+            report.expected_resources.push(ExpectedBattleResource {
+                kind: "ship".to_string(),
+                entity_id: ship_id,
+                target_type: if uses_damaged_resources {
+                    "full_dmg".to_string()
+                } else {
+                    "full".to_string()
+                },
+                path,
+                note: "potential cutin preload ship image".to_string(),
+                protocol_source: None,
+                consumer_module: Some("CutinResourcesPreloadTask".to_string()),
+            });
+        }
+    }
+
+    for slot_row in slot_rows {
+        let Some(slot_ids) = slot_row.as_array() else {
+            push_invalid_shape(
+                &mut report,
+                "api_eSlot",
+                "`api_eSlot` rows must be arrays of slotitem ids",
+            );
+            continue;
+        };
+
+        for slot_id in slot_ids.iter().filter_map(serde_json::Value::as_i64) {
+            if slot_id <= 0 {
+                continue;
+            }
+            if manifest.find_slotitem(slot_id).is_none() {
+                push_error(
+                    &mut report,
+                    BattleValidationFindingKind::UnknownSlotitemMstId,
+                    Some("api_eSlot"),
+                    format!("enemy slotitem mst id `{slot_id}` is not present in the manifest"),
+                    None,
+                );
+                continue;
+            }
+
+            for target_type in slot_target_types.expected.iter() {
+                report.expected_resources.push(ExpectedBattleResource {
+                    kind: "slotitem".to_string(),
+                    entity_id: slot_id,
+                    target_type: target_type.to_string(),
+                    path: build_slotitem_resource_path(slot_id, target_type),
+                    note: "potential battle preload slotitem resource".to_string(),
+                    protocol_source: None,
+                    consumer_module: None,
+                });
+            }
+            for target_type in slot_target_types.candidate.iter() {
+                report.candidate_resources.push(ExpectedBattleResource {
+                    kind: "slotitem".to_string(),
+                    entity_id: slot_id,
+                    target_type: target_type.to_string(),
+                    path: build_slotitem_resource_path(slot_id, target_type),
+                    note: "lower-confidence battle preload slotitem resource".to_string(),
+                    protocol_source: None,
+                    consumer_module: None,
+                });
+            }
+        }
+    }
+
+    report.expected_resources = dedupe_resources(report.expected_resources);
+    report.candidate_resources = dedupe_resources(report.candidate_resources);
+
+    Ok(report)
+}
+
 pub fn analyze_day_battle_incident<T: Serialize>(
     manifest: &ApiManifest,
     response: &T,
@@ -1259,6 +1526,37 @@ mod tests {
             ..ApiMstSlotitem::default()
         });
         manifest
+    }
+
+    fn build_valid_night_battle_response() -> serde_json::Value {
+        serde_json::json!({
+            "api_deck_id": 1,
+            "api_formation": [1, 1, 1],
+            "api_ship_ke": [1501],
+            "api_ship_lv": [1],
+            "api_e_nowhps": [75],
+            "api_e_maxhps": [100],
+            "api_eSlot": [[42, -1, -1, -1, -1]],
+            "api_eParam": [[1, 1, 1, 1]],
+            "api_f_nowhps": [20],
+            "api_f_maxhps": [20],
+            "api_fParam": [[1, 1, 1, 1]],
+            "api_smoke_type": 0,
+            "api_balloon_cell": 0,
+            "api_atoll_cell": 0,
+            "api_touch_plane": [-1, -1],
+            "api_flare_pos": [-1, -1],
+            "api_hougeki": {
+                "api_at_eflag": [0, 1],
+                "api_at_list": [0, 1],
+                "api_n_mother_list": [-1, -1],
+                "api_df_list": [[0], [0]],
+                "api_si_list": [[42, -1], [-1, -1]],
+                "api_cl_list": [[1], [1]],
+                "api_sp_list": [0, 0],
+                "api_damage": [[60], [13]]
+            }
+        })
     }
 
     fn build_valid_day_battle_response() -> serde_json::Value {
@@ -1645,6 +1943,79 @@ mod tests {
                     && trigger.resource_target == "slot/btxt_flat"
             }),
             "string-typed CI slot id 102 must still match the si_list trigger"
+        );
+    }
+
+    #[test]
+    fn validate_night_battle_response_accepts_valid_payload() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let report = validate_night_battle_response(
+            &manifest,
+            &build_valid_night_battle_response(),
+            &assets,
+        )
+        .unwrap();
+
+        assert!(!report.has_errors(), "valid night payload must validate: {:#?}", report.findings);
+        // Night reuses the day banner-resource builder.
+        assert!(report.expected_resources.iter().any(|resource| {
+            resource.kind == "ship"
+                && resource.entity_id == 1501
+                && resource.target_type == "banner"
+        }));
+    }
+
+    #[test]
+    fn validate_night_battle_response_reports_missing_hougeki_subfield() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_night_battle_response();
+        // Drop a per-attacker sub-array so the hougeki rows no longer align.
+        response["api_hougeki"].as_object_mut().unwrap().remove("api_df_list");
+
+        let report = validate_night_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(report.has_errors());
+        assert!(report.findings.iter().any(|finding| {
+            finding.kind == BattleValidationFindingKind::MissingField
+                && finding.field.as_deref() == Some("api_df_list")
+        }));
+    }
+
+    #[test]
+    fn validate_night_battle_response_reports_mismatched_damage_df_lengths() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_night_battle_response();
+        // api_damage now has one fewer attacker row than api_df_list / api_at_list.
+        response["api_hougeki"]["api_damage"] = serde_json::json!([[60]]);
+
+        let report = validate_night_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(report.has_errors());
+        assert!(
+            report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::ArrayLengthMismatch
+            })
+        );
+    }
+
+    #[test]
+    fn validate_night_battle_response_reports_unaligned_enemy_arrays() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_night_battle_response();
+        // One enemy ship id but two HP entries: the enemy arrays must align.
+        response["api_e_nowhps"] = serde_json::json!([40, 40]);
+
+        let report = validate_night_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(report.has_errors());
+        assert!(
+            report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::ArrayLengthMismatch
+            })
         );
     }
 }

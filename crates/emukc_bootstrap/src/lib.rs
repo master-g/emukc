@@ -43,7 +43,7 @@ pub mod prelude {
         analyze_day_battle_incident, load_repo_battle_knowledge_assets,
         repo_battle_module_index_path, repo_battle_protocol_fields_path,
         repo_battle_resource_rules_path, repo_battle_slot_resource_triggers_path,
-        validate_day_battle_response,
+        validate_day_battle_response, validate_night_battle_response,
     };
     pub use crate::db::{DbBootstrapError, prepare};
     pub use crate::download::BootstrapDownloadError;
