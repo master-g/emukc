@@ -1,6 +1,6 @@
 ---
 title: "fix: Batch Craft Quest Progress — Diagnostic and Repair of Development-Quest Event Matching"
-status: planned
+status: completed
 type: fix
 date: 2026-06-22
 origin: openspec/changes/fix-batch-craft-quest-progress (translated during openspec sunset, see docs/plans/2026-06-22-001)
@@ -13,6 +13,25 @@ origin: openspec/changes/fix-batch-craft-quest-progress (translated during opens
 批量开发 (`api_multiple_flag=1`) 时，开发相关任务进度不推进。代码层面 `create_slotitem` 已对每个成功 item 调用 `update_quest_progress_for_action`，但用户报告任务计数不前进。本计划定位事件匹配、任务条件解析、或计数逻辑的具体断裂点并修复。
 
 This is a diagnostic-first fix: add trace logging at three points in the quest-event chain, verify the quest manifest data, then repair the break point once diagnosed. It does not restructure the quest system.
+
+## Resolution (2026-06-25): archived — bug does not reproduce
+
+The reported batch-craft bug **no longer reproduces on current code**. Root cause was fixed
+earlier by commit `22b61c9` ("fix: quest progress counting"). End-to-end factory→quest
+integration tests (commit `234422f`, `tests/gameplay_tests/quest/factory_progress.rs`) confirm:
+a batch of 3 successful crafts advances quest 607 from 3→0, a single craft advances 605 from
+1→0, and a batch containing a failure counts only the successes (607: 3→1).
+
+Disposition of the diagnostic-first units:
+- **U1 (trace logs)** and **U2 (manifest verification)** are moot — there is no live break point
+  to diagnose; tests above prove the chain works and the 605/607 `SlotItemConstruction` conditions
+  match correctly.
+- **U3.1 (repair)** was effectively completed by `22b61c9`.
+- **U3.2 (`DevelopmentAttempt` failure event)** stays unbuilt — no quest counts failed attempts
+  (YAGNI, per the plan's own conditional guard).
+- **U4 (integration tests)** landed via `234422f`.
+
+The original 2026-06-22 reconciliation (written before this verification) is preserved below.
 
 ## Reconciliation (2026-06-22)
 
