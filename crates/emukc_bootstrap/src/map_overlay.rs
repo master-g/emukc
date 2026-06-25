@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::real_map_start_asset::RealMapStartAsset;
 
-mod capture;
+pub(crate) mod capture;
 mod matching;
 mod merge;
 

@@ -26,19 +26,19 @@ struct ApiDataEnvelopeRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct CapturedMapCell {
-    pub(super) cell_no: i64,
+pub(crate) struct CapturedMapCell {
+    pub(crate) cell_no: i64,
     pub(super) master_cell_id: i64,
-    pub(super) color_no: i64,
+    pub(crate) color_no: i64,
     pub(super) distance: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct CapturedMapStart {
-    pub(super) map_id: i64,
-    pub(super) boss_cell_no: i64,
+pub(crate) struct CapturedMapStart {
+    pub(crate) map_id: i64,
+    pub(crate) boss_cell_no: i64,
     pub(super) request_path: Option<String>,
-    pub(super) cells: Vec<CapturedMapCell>,
+    pub(crate) cells: Vec<CapturedMapCell>,
 }
 
 pub(super) fn collect_json_files(root: &Path) -> Result<Vec<PathBuf>, MapOverlayBuildError> {
@@ -78,7 +78,7 @@ pub(super) fn load_response_saver_capture(
     Ok((source, capture))
 }
 
-pub(super) fn load_embedded_real_map_start_capture(
+pub(crate) fn load_embedded_real_map_start_capture(
     asset: &RealMapStartAsset,
 ) -> Result<(String, Result<CapturedMapStart, String>), MapOverlayBuildError> {
     let record =

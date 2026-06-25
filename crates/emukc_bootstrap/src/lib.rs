@@ -28,6 +28,7 @@ mod populate;
 mod progress;
 mod real_map_start_asset;
 mod res;
+mod source_crosscheck;
 mod wikiwiki_map_asset;
 /// Manual wikiwiki map download helpers used by examples and one-off tooling.
 pub mod wikiwiki_map_download;
@@ -82,6 +83,10 @@ pub mod prelude {
     };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
+    pub use crate::source_crosscheck::{
+        SourceCrosscheckFinding, SourceCrosscheckFindingKind, SourceCrosscheckReport,
+        SourceCrosscheckSeverity, crosscheck_map_sources, crosscheck_map_sources_embedded,
+    };
     pub use crate::wikiwiki_map_asset::{
         RepoWikiwikiMapCatalogAsset, RepoWikiwikiMapCatalogSource,
         load_repo_wikiwiki_map_catalog_asset, repo_wikiwiki_map_catalog_path,
