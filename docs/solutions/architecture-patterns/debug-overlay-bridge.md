@@ -133,7 +133,7 @@ Absent one of those, plan 010 should not be reopened.
 
 ## Related
 
-- `docs/plans/2026-06-24-004-refactor-harden-debug-overlay-bridge-plan.md`
+- `docs/plans/archive/2026-06-24-004-refactor-harden-debug-overlay-bridge-plan.md`
   — this hardening pass + no-go record
 - `docs/plans/archive/2026-06-22-010-refactor-event-sourced-battle-plan.md` — origin (deferred)
 - `docs/solutions/architecture-patterns/battle-damage-foundation.md` —

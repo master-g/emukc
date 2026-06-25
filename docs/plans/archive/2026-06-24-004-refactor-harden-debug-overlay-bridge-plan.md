@@ -1,6 +1,6 @@
 ---
 title: "refactor: harden debug-overlay bridge; defer owned-pass rewrite"
-status: planned
+status: completed
 created: 2026-06-24
 type: refactor
 origin: ce-brainstorm re-evaluation of owned-pass battle rewrite (docs/plans/archive/2026-06-22-010-refactor-event-sourced-battle-plan.md) — decision: keep bridge, harden weak points
