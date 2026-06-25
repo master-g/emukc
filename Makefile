@@ -45,10 +45,10 @@ help: ## 显示本帮助
 build: ## 编译 workspace
 	$(CARGO) build $(CARGO_PROFILE_FLAG)
 
-run: ## 启动服务器 (等同 serve)
-	$(CARGO) run $(CARGO_PROFILE_FLAG) -- serve
+run: ## 启动服务器
+	$(CARGO) run $(CARGO_PROFILE_FLAG)
 
-serve: ## 启动服务器 (等同 run)
+serve: ## 启动服务器 (serve)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- serve
 
 serve-dump: ## 启动服务器(auto 模式: 自动 auth + 开浏览器)并把 KCSAPI 请求/响应转储到 $(DUMP)
