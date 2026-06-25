@@ -19,6 +19,8 @@ SEED ?= 1
 FIND ?=
 # MAX_SEEDS: --find 搜索时最多尝试的种子数
 MAX_SEEDS ?= 1000
+# DUMP: serve-dump 的 KCSAPI 请求/响应转储输出文件 (JSONL)
+DUMP ?= .data/logs/kcsapi_dump.jsonl
 
 ifeq ($(PROFILE),release)
 CARGO_PROFILE_FLAG := --release
@@ -34,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve test clippy fmt bootstrap decode-main cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -48,6 +50,9 @@ run: ## 启动服务器 (等同 serve)
 
 serve: ## 启动服务器 (等同 run)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- serve
+
+serve-dump: ## 启动服务器(auto 模式: 自动 auth + 开浏览器)并把 KCSAPI 请求/响应转储到 $(DUMP)
+	EMUKC_KCSAPI_DUMP=$(DUMP) $(CARGO) run $(CARGO_PROFILE_FLAG)
 
 test: ## 运行全部测试
 	$(CARGO) test
