@@ -2,7 +2,7 @@
 title: "feat: Battle/Map Client-Sync Loop — Collection → Comparison → Sync-Plan → Implementation → Validation → Loop"
 type: feat
 date: 2026-06-15
-status: active
+status: completed
 depth: deep
 origin: session evaluation "KanColle Battle/Map 系统研究与工作流评估" (2026-06-15)
 related:
@@ -283,6 +283,14 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
 
 ### Deferred to Follow-Up Work
 
+- **Close the drift-check baseline-refresh loop (U3 follow-up).** `battle drift-check`
+  records the last-known-good fingerprint only on first run (absent manifest); a
+  detected drift does not update the baseline. KTD3's vision — the
+  `--sync-battle-assets` flow committing the refreshed manifest — is not yet wired
+  into `main-decoder`. Until then, refreshing the baseline means deleting
+  `.sync-fingerprint.json` and re-running, or adding a `drift-check --accept` flag.
+  The U4 scaffold template's "re-run drift-check refreshes the baseline" line is
+  inaccurate for the same reason and should be corrected when this lands.
 - Decoding the client's routing logic directly from `main.js` (not just the wikiwiki catalog). v1 validates against the parsed catalog; a main.js route-logic decoder is a larger decoder extension and is out of scope here. (This is also why U5/KTD5 catches only structural, not semantic, routing drift.)
 - **Behavioral-equivalence validation** — checking that the sim's *numerical* output (damage, hit/miss, engagement modifiers, attack-type trigger correctness) matches the client, not just that the payload *shape* conforms. The validators wired up here are protocol-conformance checks; behavioral equivalence (cross-checking `api_damage` against the sim's own damage crate, or golden transcripts against real captures) is a separate, larger plan.
 - **`debug_assert` coverage in the simulation finalize step.** KTD1 notes this as a viable extension to cover every battle (not just the bounded test matrix); left out of v1 to keep U1 focused on the test gate, recorded here as a deliberate follow-up.
@@ -321,3 +329,26 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
 - `crates/emukc_bootstrap/src/map_pipeline/` and `parser/wikiwiki_map/` — the map data flow U6 cross-checks.
 - `docs/plans/2026-06-15-001-fix-battle-sim-harness-hardening-plan.md` — the plan-layout template U4 scaffolds into (ce-plan governance: draft a plan → implement → capture → review).
 - `docs/plans/2026-06-15-001-fix-battle-sim-harness-hardening-plan.md` — sibling plan; KTD7 coordinates their codex-gating conventions.
+
+## Closure (2026-06-25)
+
+All six implementation units shipped and verified:
+
+- **U1** `5767f4b` — scenario `Preset`/`PRESETS` registry + sim→validate gate (`crates/emukc_gameplay/tests/sim_validation_gate.rs`).
+- **U2** `3f1a819` — `validate_night_battle_response` + night gate path.
+- **U3+U4** `359d48c` — `battle drift-check` subcommand + `--scaffold` ce-plan generation, tracked baseline at `crates/emukc_bootstrap/assets/.sync-fingerprint.json`.
+- **U5** `8e61373` — `validate_map_route_stage` structural route validator + live-codex behavioral test.
+- **U6** `bb7f1a0` — `crosscheck_map_sources` wikiwiki↔real-start source linter.
+
+Verification: `cargo test --test gameplay_tests` 104 passed; per-unit suites green
+(gate 3, battle_rules 15, drift 14, map_route 39, map_route_rules 7, source_crosscheck 7);
+`cargo fmt --all --check` and `cargo clippy --workspace -- -W warnings` clean.
+
+Known limitations carried as follow-up or signal:
+
+- **Drift-check baseline refresh** is not yet wired to the sync flow — see *Deferred to Follow-Up Work*.
+- **U6 surfaces real shared-surface divergences** on maps 6-5 / 7-2 / 7-3 (reported, not asserted — source-health signal; 7-3 is the expected P-unlock single-snapshot limitation).
+- **Two `make_list` network tests fail offline** (`FailedOnAllCdn`) — pre-existing environmental dependency, green with network access.
+- **Validator/behavioral tests live in-crate** (lib tests) rather than `tests/` because `evaluate_route_destination` is `pub(crate)` and `emukc_bootstrap` cannot depend on `emukc_gameplay` (foreseen by KTD5). U6 reuses the `map_overlay::capture` real-start parser (visibility widened `pub(super)`→`pub(crate)`) instead of rebuilding it.
+
+Plan complete and archived.
