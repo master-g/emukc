@@ -13,9 +13,9 @@ use emukc_internal::{
     crypto::rng,
     db::sea_orm::DbConn,
     prelude::{
-        AccountOps, BattleSimulation, Codex, HasContext, PracticeStore, ProfileOps, Scenario,
-        ShipOps, SortieOps, SortieRepository, SortieStore, apply_scenario, new_mem_db,
-        render_day_battle,
+        AccountOps, BattleSimulation, Codex, HasContext, PRESETS, PracticeStore, Preset,
+        ProfileOps, Scenario, ShipOps, SortieOps, SortieRepository, SortieStore, apply_scenario,
+        new_mem_db, render_day_battle,
     },
 };
 use serde_json::Value;
@@ -211,15 +211,15 @@ fn sim_exec(args: &SimArgs, config: &AppConfig) -> Result<()> {
     }
 }
 
-/// Resolve a named preset to its scenario and default sortie target (area, no).
+/// Resolve a named preset to its scenario and default sortie target (area, no),
+/// reading from the shared [`PRESETS`] registry so the CLI and the sim→validate
+/// gate stay in sync by construction.
 fn resolve_scenario(name: &str) -> Result<(Scenario, i64, i64)> {
-    match name {
-        "fresh_1_1" => Ok((Scenario::fresh_1_1(), 1, 1)),
-        "leveled_for_mid_boss" => Ok((Scenario::leveled_for_mid_boss(), 2, 1)),
-        other => bail!(
-            "unknown scenario preset '{other}' (known presets: fresh_1_1, leveled_for_mid_boss)"
-        ),
-    }
+    let Some(preset) = Preset::lookup(name) else {
+        let known = PRESETS.iter().map(|preset| preset.name).collect::<Vec<_>>().join(", ");
+        bail!("unknown scenario preset '{name}' (known presets: {known})");
+    };
+    Ok(((preset.build)(), preset.maparea, preset.mapinfo))
 }
 
 /// Minimal in-memory gameplay context for the sim, mirroring the integration

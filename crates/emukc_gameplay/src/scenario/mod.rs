@@ -91,6 +91,46 @@ impl Scenario {
     }
 }
 
+/// A named scenario preset plus its default sortie target.
+///
+/// Enumerable so the `battle sim` CLI and the sim→validate gate iterate one
+/// shared list — adding a preset to [`PRESETS`] is automatically picked up by
+/// both, keeping them in sync by construction.
+pub struct Preset {
+    /// The preset name used on the CLI (`--scenario <name>`).
+    pub name: &'static str,
+    /// Builds the scenario state.
+    pub build: fn() -> Scenario,
+    /// Default sortie target map area id.
+    pub maparea: i64,
+    /// Default sortie target map info no.
+    pub mapinfo: i64,
+}
+
+impl Preset {
+    /// Find a preset by name.
+    pub fn lookup(name: &str) -> Option<&'static Preset> {
+        PRESETS.iter().find(|preset| preset.name == name)
+    }
+}
+
+/// The enumerable registry of scenario presets: the single source of truth for
+/// both the `battle sim` CLI and the sim→validate gate test.
+pub const PRESETS: &[Preset] = &[
+    Preset {
+        name: "fresh_1_1",
+        build: Scenario::fresh_1_1,
+        maparea: 1,
+        mapinfo: 1,
+    },
+    Preset {
+        name: "leveled_for_mid_boss",
+        build: Scenario::leveled_for_mid_boss,
+        maparea: 2,
+        mapinfo: 1,
+    },
+];
+
 fn default_materials() -> Vec<(MaterialCategory, i64)> {
     vec![
         (MaterialCategory::Fuel, 10000),
