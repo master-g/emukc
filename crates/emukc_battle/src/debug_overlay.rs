@@ -232,13 +232,22 @@ fn rebuild_day_packet_arrays(
         if let Some(kouku) = &mut packet.kouku {
             kouku.api_stage3.api_fdam.fill(0);
         }
-        // Zero friendly damage in opening torpedo.
+        // Zero friendly damage in opening torpedo. The client animates each
+        // friendly's HP from the per-attacker enemy-torpedo entries
+        // (`api_eydam_list_items`), not the `api_fdam` summary, so those must be
+        // zeroed too — otherwise a god_mode friendly still visibly takes (and can
+        // be taiha'd by) opening-torpedo damage mid-animation.
         if let Some(opening) = &mut packet.opening_attack {
             opening.api_fdam.fill(0);
+            for cells in opening.api_eydam_list_items.iter_mut().flatten() {
+                cells.iter_mut().for_each(|cell| *cell = DamageCell::Plain(0));
+            }
         }
-        // Zero friendly damage in closing torpedo.
+        // Zero friendly damage in closing torpedo. `api_eydam` is the per-attacker
+        // enemy torpedo damage the client animates from (same reason as opening).
         if let Some(raigeki) = &mut packet.raigeki {
             raigeki.api_fdam.fill(0);
+            raigeki.api_eydam.iter_mut().for_each(|cell| *cell = DamageCell::Plain(0));
         }
         // Zero friendly damage in all hougeki phases.
         if let Some(h) = &mut packet.opening_taisen {
@@ -885,6 +894,83 @@ mod tests {
         };
         let result = apply_day_debug(sim, true, false);
         assert!(result.packet.hougeki3.is_none(), "god_mode adds no finishing volley");
+    }
+
+    /// god_mode must zero the per-attacker enemy torpedo damage the client
+    /// animates HP from, not just the `api_fdam` summary. Regression: opening /
+    /// closing torpedo `api_eydam` survived god_mode, so a friendly still visibly
+    /// took (and could be taiha'd by) torpedo damage mid-animation even though the
+    /// summary and final HP were restored.
+    #[test]
+    fn god_mode_zeros_enemy_torpedo_damage() {
+        let mut damaged = make_ship(10, 40, true);
+        damaged.entry_hp = 30;
+
+        let mut packet = day_packet(vec![10], vec![0]);
+
+        // Enemy closing torpedo deals 20 to the friendly ship.
+        let mut raigeki = BattleRaigeki::blank(1);
+        raigeki.api_fdam[0] = 20;
+        raigeki.api_eydam[0] = DamageCell::Plain(20);
+        raigeki.api_erai[0] = 0;
+        raigeki.api_ecl[0] = 1;
+        packet.raigeki = Some(raigeki);
+
+        // Enemy opening torpedo deals 15 to the friendly ship.
+        let mut opening = BattleOpeningAttack::blank(1);
+        opening.api_fdam[0] = 15;
+        opening.api_eydam_list_items[0] = Some(vec![DamageCell::Plain(15)]);
+        opening.api_erai_list_items[0] = Some(vec![0]);
+        opening.api_ecl_list_items[0] = Some(vec![1]);
+        packet.opening_attack = Some(opening);
+
+        let sim = BattleSimulation {
+            friendly: vec![damaged],
+            enemy: vec![make_ship(0, 40, false)],
+            packet,
+            outcome: BattleOutcome {
+                win_rank: KcSortieResultRank::B,
+                mvp: 0,
+                can_midnight: false,
+            },
+        };
+        let result = apply_day_debug(sim, true, false);
+
+        let raigeki = result.packet.raigeki.expect("raigeki retained");
+        assert_eq!(raigeki.api_fdam, vec![0], "closing torpedo summary zeroed");
+        assert_eq!(
+            raigeki.api_eydam,
+            vec![DamageCell::Plain(0)],
+            "closing torpedo per-attacker enemy damage zeroed"
+        );
+        // Only the damage value is neutralized — the attack structure is kept,
+        // mirroring the shelling phase (`zero_friendly_hougeki_damage` leaves
+        // `api_at_eflag` / `api_df_list` intact). The client still plays the
+        // torpedo hit, for zero damage. Pins the target / hit flags against
+        // drift: clearing them would desync the animation, and a future refactor
+        // must zero `api_eydam` without touching `api_erai` / `api_ecl`.
+        assert_eq!(raigeki.api_erai, vec![0], "closing torpedo target flag preserved");
+        assert_eq!(raigeki.api_ecl, vec![1], "closing torpedo hit flag preserved");
+
+        let opening = result.packet.opening_attack.expect("opening retained");
+        assert_eq!(opening.api_fdam, vec![0], "opening torpedo summary zeroed");
+        assert_eq!(
+            opening.api_eydam_list_items[0],
+            Some(vec![DamageCell::Plain(0)]),
+            "opening torpedo per-attacker enemy damage zeroed"
+        );
+        assert_eq!(
+            opening.api_erai_list_items[0],
+            Some(vec![0]),
+            "opening torpedo target flag preserved"
+        );
+        assert_eq!(
+            opening.api_ecl_list_items[0],
+            Some(vec![1]),
+            "opening torpedo hit flag preserved"
+        );
+
+        assert_eq!(result.friendly[0].hp(), 30, "god_mode restores friendly HP");
     }
 
     /// Night finishing volley deals each alive enemy's remaining HP.
