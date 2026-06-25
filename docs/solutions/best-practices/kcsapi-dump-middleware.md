@@ -58,8 +58,8 @@ readable, uncompressed capture.
 - Before sharing or committing anything captured: it has tokens — scrub or keep
   it local.
 - When picking a non-default `EMUKC_KCSAPI_DUMP` path: keep it ignored.
-- When touching the `route_layer` stack in `kcsapi/mod.rs`: keep `dump_middleware`
-  outermost so it dumps uncompressed final responses.
+- When touching the `route_layer` stack in `src/bin/net/router/kcsapi/mod.rs`:
+  keep `dump_middleware` outermost so it dumps uncompressed final responses.
 
 ## Related
 
