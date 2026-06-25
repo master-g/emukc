@@ -73,6 +73,9 @@ Three concrete reasons the auto-wire is wrong, not just unnecessary:
 
 ## Related
 
+- `docs/solutions/architecture-patterns/drift-check-sync-loop.md` — the
+  drift-check mechanism overview (fingerprint, diff, three-state report,
+  scaffold) this boundary is one branch of.
 - `docs/solutions/architecture-patterns/map-data-authority.md` — the
   wikiwiki/overlay assets that the baseline tracks but the decoder does not
   produce.
