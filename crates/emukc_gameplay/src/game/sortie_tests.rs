@@ -2100,3 +2100,86 @@ async fn clearing_map_1_1_unlocks_dependents_via_cascade() {
         assert!(rec.unlocked, "dependent {dep_id} should be unlocked after clearing 1-1");
     }
 }
+
+/// Map 1-3 routing must follow the directed-graph edges declared in the codex
+/// (plan 2026-06-22-003 U3.3, R3/R4). Every decision the router makes from a
+/// cell has to land on one of that cell's declared `next_cells` — the fleet
+/// never skips a cell or jumps to a non-adjacent one. This drives the real
+/// `evaluate_route_destination` over the live 1-3 topology (the authoritative
+/// edge list), unlike the synthetic-data unit tests above.
+///
+/// R4's "fallback never deterministically picks `next_cells[0]`" behavior is
+/// covered against synthetic data by `unknown_rules_fallback_to_random_next_cells`
+/// in `map_route.rs`; here we assert the real-map structural + per-decision
+/// edge-legality invariant.
+#[test]
+fn map_1_3_routing_follows_valid_edges_only() {
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let definition = codex.maps.map_definition(13).expect("map 1-3 (id 13) in codex");
+    let stage = definition.stage("").expect("1-3 default stage");
+
+    let valid_cells: std::collections::BTreeSet<i64> =
+        stage.cells.iter().map(|cell| cell.cell_no).collect();
+
+    // Structural: the authoritative edge list is self-consistent — every
+    // next_cell and every routing-rule target points at a real 1-3 cell, so no
+    // edge can route off the topology.
+    for cell in &stage.cells {
+        for &next in &cell.next_cells {
+            assert!(
+                valid_cells.contains(&next),
+                "1-3 cell {} lists next_cell {next} that is not a real cell",
+                cell.cell_no
+            );
+        }
+    }
+    for (&from, rules) in &stage.routing_rules {
+        let next_cells: std::collections::BTreeSet<i64> = stage
+            .cell(from)
+            .map(|cell| cell.next_cells.iter().copied().collect())
+            .unwrap_or_default();
+        for rule in rules {
+            assert!(
+                next_cells.contains(&rule.to_cell_no),
+                "1-3 cell {from} routing rule targets {} outside next_cells {next_cells:?}",
+                rule.to_cell_no
+            );
+        }
+    }
+
+    // 1-3 must actually branch, else "follows valid edges" would be vacuous and
+    // the multi-edge fallback (U3.2) would never be exercised.
+    assert!(
+        stage.cells.iter().any(|cell| cell.next_cells.len() > 1),
+        "map 1-3 is expected to have at least one branch node"
+    );
+
+    // Behavioral: drive the real router from every cell with out-edges, many
+    // times so random branches are exercised. Each decision must land on a
+    // declared next_cell of the departing cell — proving routing follows the
+    // directed graph and never skips/jumps. Asserting membership holds for every
+    // outcome, so the random sweep is deterministic in pass/fail.
+    let context = FleetRouteContext {
+        fleet_size: 6,
+        ..Default::default()
+    };
+    let mut routed = 0usize;
+    for cell in stage.cells.iter().filter(|cell| !cell.next_cells.is_empty()) {
+        let next_set: std::collections::BTreeSet<i64> = cell.next_cells.iter().copied().collect();
+        for _ in 0..40 {
+            // Headless evaluation (no client-selected cell): some indeterminate
+            // rule sets legitimately return Err without a selection. The
+            // invariant guarded here is "never an illegal edge", not "always
+            // routable headlessly".
+            if let Ok(target) = evaluate_route_destination(cell, stage, &context, None) {
+                assert!(
+                    next_set.contains(&target),
+                    "1-3 cell {} routed to {target}, outside next_cells {next_set:?}",
+                    cell.cell_no
+                );
+                routed += 1;
+            }
+        }
+    }
+    assert!(routed > 0, "expected at least one routable decision on 1-3");
+}
