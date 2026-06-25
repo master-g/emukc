@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-23T04:01:26.685Z",
+  "generatedAt": "2026-06-25T06:45:32.505Z",
   "scriptVersion": "6.3.0.0",
   "summary": {
     "shipRuleCount": 2,
@@ -12,7 +12,7 @@
   },
   "resourceManifest": {
     "version": 2,
-    "generatedAt": "2026-06-23T04:01:26.446Z",
+    "generatedAt": "2026-06-25T06:45:32.270Z",
     "pathRules": {
       "shipDamageVariants": {
         "banner": [
@@ -11080,7 +11080,7 @@
   },
   "resourceCategories": {
     "version": 1,
-    "generatedAt": "2026-06-23T04:01:25.410Z",
+    "generatedAt": "2026-06-25T06:45:31.306Z",
     "scriptVersion": "6.3.0.0",
     "summary": {
       "shipTargetTypeCount": 36,
@@ -12691,6 +12691,14 @@
         {
           "rawTargetType": "banner_g",
           "selectorScope": "default-friendly",
+          "damagedState": "true",
+          "targetTypes": [
+            "banner_g_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner_g",
+          "selectorScope": "default-abyssal",
           "damagedState": "true",
           "targetTypes": [
             "banner_g_dmg"
