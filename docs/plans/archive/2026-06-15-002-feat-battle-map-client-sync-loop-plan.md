@@ -283,14 +283,13 @@ U1 and U3 are independent and parallelizable; U2 extends U1's test harness; U4 c
 
 ### Deferred to Follow-Up Work
 
-- **Close the drift-check baseline-refresh loop (U3 follow-up).** `battle drift-check`
-  records the last-known-good fingerprint only on first run (absent manifest); a
-  detected drift does not update the baseline. KTD3's vision — the
-  `--sync-battle-assets` flow committing the refreshed manifest — is not yet wired
-  into `main-decoder`. Until then, refreshing the baseline means deleting
-  `.sync-fingerprint.json` and re-running, or adding a `drift-check --accept` flag.
-  The U4 scaffold template's "re-run drift-check refreshes the baseline" line is
-  inaccurate for the same reason and should be corrected when this lands.
+- **Close the drift-check baseline-refresh loop (U3 follow-up) — DONE (`ea575cf`).**
+  Shipped as `battle drift-check --accept`: it records the current decoded state as
+  the new known-good baseline whether or not it drifted (refusing while
+  `version.txt` is absent so `VERSION_ABSENT` can't poison the baseline), and the U4
+  scaffold template now points at `--accept`. The deeper KTD3 vision — the
+  `--sync-battle-assets` decode flow auto-committing the refreshed manifest — remains
+  optional follow-up, but the manual refresh loop is now closed.
 - Decoding the client's routing logic directly from `main.js` (not just the wikiwiki catalog). v1 validates against the parsed catalog; a main.js route-logic decoder is a larger decoder extension and is out of scope here. (This is also why U5/KTD5 catches only structural, not semantic, routing drift.)
 - **Behavioral-equivalence validation** — checking that the sim's *numerical* output (damage, hit/miss, engagement modifiers, attack-type trigger correctness) matches the client, not just that the payload *shape* conforms. The validators wired up here are protocol-conformance checks; behavioral equivalence (cross-checking `api_damage` against the sim's own damage crate, or golden transcripts against real captures) is a separate, larger plan.
 - **`debug_assert` coverage in the simulation finalize step.** KTD1 notes this as a viable extension to cover every battle (not just the bounded test matrix); left out of v1 to keep U1 focused on the test gate, recorded here as a deliberate follow-up.
@@ -346,7 +345,7 @@ Verification: `cargo test --test gameplay_tests` 104 passed; per-unit suites gre
 
 Known limitations carried as follow-up or signal:
 
-- **Drift-check baseline refresh** is not yet wired to the sync flow — see *Deferred to Follow-Up Work*.
+- **Drift-check baseline refresh** is closed via `battle drift-check --accept` (`ea575cf`); auto-wiring it into the `--sync-battle-assets` decode flow remains optional follow-up. See *Deferred to Follow-Up Work*.
 - **U6 surfaces real shared-surface divergences** on maps 6-5 / 7-2 / 7-3 (reported, not asserted — source-health signal; 7-3 is the expected P-unlock single-snapshot limitation).
 - **Two `make_list` network tests fail offline** (`FailedOnAllCdn`) — pre-existing environmental dependency, green with network access.
 - **Validator/behavioral tests live in-crate** (lib tests) rather than `tests/` because `evaluate_route_destination` is `pub(crate)` and `emukc_bootstrap` cannot depend on `emukc_gameplay` (foreseen by KTD5). U6 reuses the `map_overlay::capture` real-start parser (visibility widened `pub(super)`→`pub(crate)`) instead of rebuilding it.
