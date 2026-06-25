@@ -1,6 +1,6 @@
 ---
 title: "fix: exclude abyssal equipment from standard slot resource categories"
-status: planned
+status: completed
 type: fix
 date: 2026-06-25
 origin: session diagnosis of cache populate 404s (deep-sea equipment 1658/1659) — 2026-06-25
