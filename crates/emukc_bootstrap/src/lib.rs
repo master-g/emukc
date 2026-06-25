@@ -22,6 +22,7 @@ mod download;
 mod make_list;
 mod map_overlay;
 mod map_pipeline;
+mod map_route_rules;
 mod parser;
 mod populate;
 mod progress;
@@ -70,6 +71,10 @@ pub mod prelude {
         build_final_map_catalog, build_final_map_catalog_from_repo_assets,
         build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_overlay,
         build_final_map_catalog_with_report,
+    };
+    pub use crate::map_route_rules::{
+        MapRouteValidationFinding, MapRouteValidationFindingKind, MapRouteValidationReport,
+        MapRouteValidationSeverity, validate_map_route_stage,
     };
     pub use crate::parser::{
         WikiwikiLabelOverlay, WikiwikiMapCatalog, WikiwikiMapOverlayCatalog,

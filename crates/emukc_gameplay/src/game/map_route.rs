@@ -2009,4 +2009,118 @@ mod tests {
             "cell 3 with fleet 2 should error: rule exists but doesn't match"
         );
     }
+
+    // ========================================================================
+    // U5: map route structural + behavioral validation over the live codex
+    // ========================================================================
+
+    /// A small fleet-config matrix to drive route decisions across (KTD5 R5). Each entry
+    /// varies the inputs the predicates read (fleet size, speed, `LoS`, drums) so different
+    /// rule branches fire; routing legitimately uses weighted random, so we assert
+    /// *edge-legality* (every decision lands on a declared `next_cell`), never a specific
+    /// destination.
+    fn fleet_config_matrix() -> Vec<FleetRouteContext> {
+        vec![
+            FleetRouteContext {
+                fleet_size: 6,
+                min_speed: 20,
+                los_total: 120,
+                los_formula1: 120.0,
+                los_formula3: 120.0,
+                total_drums: 4,
+                ..Default::default()
+            },
+            FleetRouteContext {
+                fleet_size: 4,
+                min_speed: 10,
+                los_total: 40,
+                los_formula1: 40.0,
+                los_formula3: 40.0,
+                total_drums: 0,
+                ..Default::default()
+            },
+            FleetRouteContext {
+                fleet_size: 1,
+                min_speed: 5,
+                los_total: 0,
+                ..Default::default()
+            },
+        ]
+    }
+
+    /// Drive the real `evaluate_route_destination` over a bounded set of live codex map
+    /// stages against a fleet-config matrix, asserting two things (U5, KTD5):
+    ///
+    /// 1. **Structural** (via the independent `emukc_bootstrap` validator): each stage has
+    ///    zero structural errors — every routing-rule target is in the departing cell's
+    ///    `next_cells`, every `next_cells`/rule cell is real. This is the structural-corruption
+    ///    gate, mirroring how the battle validators catch protocol drift.
+    /// 2. **Behavioral edge-legality**: every cell the real router returns is a declared
+    ///    `next_cell` of the departing cell. Driven many times per (cell × fleet config) so
+    ///    weighted-random branches are exercised, but membership must hold for every outcome —
+    ///    the random sweep is deterministic in pass/fail. We assert no *illegal* edge, not that
+    ///    every cell is routable headlessly (some indeterminate rule sets legitimately Err).
+    ///
+    /// This is the in-crate home for the behavioral check because `evaluate_route_destination`
+    /// is `pub(crate)`; an external `tests/` integration test cannot reach it.
+    #[test]
+    fn live_codex_routing_is_structurally_and_behaviorally_consistent() {
+        use emukc_bootstrap::prelude::validate_map_route_stage;
+        use emukc_model::codex::Codex;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex")
+            .expect("codex must be bootstrapped (.data/codex); run `cargo run -- bootstrap` first");
+
+        // Bounded set of early-area maps that are always present and exercise real routing.
+        let map_ids = [11, 12, 13, 14, 21, 22, 23];
+        let configs = fleet_config_matrix();
+
+        let mut stages_checked = 0usize;
+        let mut routed_decisions = 0usize;
+
+        for map_id in map_ids {
+            let Some(definition) = codex.maps.map_definition(map_id) else {
+                continue;
+            };
+            let Some(stage) = definition.stage("") else {
+                continue;
+            };
+
+            // 1. Structural: zero errors from the independent validator. Unsupported-predicate
+            // warnings are allowed (the wiki source is known-incomplete), but a topology error
+            // (edge off the graph, missing cell) must not exist in real codex data.
+            let report = validate_map_route_stage(stage);
+            assert!(
+                !report.has_errors(),
+                "map {map_id} stage has structural route errors: {:?}",
+                report
+                    .findings
+                    .iter()
+                    .filter(|f| f.severity
+                        == emukc_bootstrap::prelude::MapRouteValidationSeverity::Error)
+                    .collect::<Vec<_>>()
+            );
+            stages_checked += 1;
+
+            // 2. Behavioral edge-legality across the fleet-config matrix.
+            for context in &configs {
+                for cell in stage.cells.iter().filter(|cell| !cell.next_cells.is_empty()) {
+                    let next_set: BTreeSet<i64> = cell.next_cells.iter().copied().collect();
+                    for _ in 0..16 {
+                        if let Ok(target) = evaluate_route_destination(cell, stage, context, None) {
+                            assert!(
+                                next_set.contains(&target),
+                                "map {map_id} cell {} routed to {target}, outside next_cells {next_set:?}",
+                                cell.cell_no
+                            );
+                            routed_decisions += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        assert!(stages_checked > 0, "expected at least one live codex stage to validate");
+        assert!(routed_decisions > 0, "expected at least one routable decision over the matrix");
+    }
 }
