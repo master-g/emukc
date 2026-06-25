@@ -1,0 +1,11 @@
+{
+  "version": "6.3.0.0",
+  "assets": {
+    "battle_module_index": "EKyKuciE7ZQ8rUYXhj1tn3eSa4N8RP4kAivvvgRF4hbQ",
+    "battle_protocol_fields": "GhmCYRZw3UMheC5TVj8Vq1NbPkuKcTCh29BkpjAmuTbG",
+    "battle_resource_rules": "Bc4d5HraFJgUhAEfjUdKH2aKd4aK9bAYroE57kR5Sd1s",
+    "battle_slot_resource_triggers": "7NeSZAKznLa1QphuMhWqrXgaFWMVr3pb57cHGnB54Pt1",
+    "public_map_catalog_overlays": "3rUruKjvXavhZrHUpfdS2QMiZ5Aky7MGHEfVMTCVbTVD",
+    "wikiwiki_map_catalog": "8M4spBunEAnxDYpLXhWpNhcR45A955nfc7F6p2hGSiDs"
+  }
+}

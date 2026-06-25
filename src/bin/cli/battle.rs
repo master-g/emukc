@@ -22,6 +22,9 @@ use serde_json::Value;
 
 use crate::cfg::AppConfig;
 
+#[path = "drift_check.rs"]
+mod drift_check;
+
 #[derive(Debug, Args)]
 pub(super) struct BattleArgs {
     #[command(subcommand)]
@@ -36,6 +39,8 @@ enum Command {
     AnalyzeIncident(AnalyzeIncidentArgs),
     #[command(about = "Run a seeded, scenario-driven sortie and print the battle transcript")]
     Sim(SimArgs),
+    #[command(about = "Detect that the decoded client moved (the sync-loop trigger)")]
+    DriftCheck(drift_check::DriftCheckArgs),
 }
 
 #[derive(Debug, Args)]
@@ -105,6 +110,7 @@ pub(super) async fn exec(args: &BattleArgs, config: &AppConfig) -> Result<()> {
         Command::Validate(args) => validate_exec(args, config).await,
         Command::AnalyzeIncident(args) => analyze_incident_exec(args, config).await,
         Command::Sim(args) => sim_exec(args, config),
+        Command::DriftCheck(args) => drift_check::exec(args),
     }
 }
 
