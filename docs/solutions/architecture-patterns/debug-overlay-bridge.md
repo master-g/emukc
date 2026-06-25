@@ -77,8 +77,13 @@ The client reconstructs HP from cumulative per-phase damage arrays
 (see `battle-damage-foundation.md`). After overriding `nowhps`, the
 per-phase arrays must be rebuilt:
 
-- **god_mode**: zero all friendly-directed damage entries
-  (`api_fdam`, `api_damage[i]` where `api_at_eflag[i]==1`)
+- **god_mode**: zero every friendly-directed damage entry the client
+  animates from. This is the **per-attacker / per-attack** array, not just the
+  `api_fdam` summary: shelling/OASW `api_damage[i]` where `api_at_eflag[i]==1`,
+  kouku `api_fdam`, opening torpedo `api_eydam_list_items`, closing torpedo
+  `api_eydam`. Keep `api_fdam` zeroed too. (Zeroing only `api_fdam` for the
+  torpedo phases left friendlies visibly taiha'd mid-animation — see
+  [god-mode-torpedo-damage-not-zeroed](../logic-errors/god-mode-torpedo-damage-not-zeroed-2026-06-25.md).)
 - **one_hit_kill**: synthesize finishing volley in `hougeki3` (day)
   or night hougeki tail, dealing exactly each still-alive enemy's
   remaining HP
