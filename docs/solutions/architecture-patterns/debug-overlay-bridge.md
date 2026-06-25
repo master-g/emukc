@@ -44,12 +44,24 @@ overlay has no `battle_type`, but `finalize_day` already encoded the
 new_can_midnight = original_can_midnight && any_alive(friendly) && any_alive(enemy)
 ```
 
-### 3. Packet array rebuild ordering
+### 3. Packet array rebuild ordering (resolved 2026-06-24)
 
-`rebuild_*_packet_arrays` must run BEFORE `override_ships`. The finishing
-volley synthesis needs to see real simulation HP (alive enemies) to
-calculate remaining HP. If `override_ships` runs first, all enemies already
-have HP=0 and the synthesis is skipped.
+Originally `rebuild_*_packet_arrays` had to run BEFORE `override_ships`: the
+finishing-volley synthesis read real simulation HP (alive enemies) to compute
+remaining HP, so if `override_ships` ran first all enemies already had HP=0 and
+the synthesis was silently skipped. This was a convention-only invariant.
+
+**Now removed.** `apply_day_debug` / `apply_night_debug` capture the volley
+inputs (attacker index + each alive enemy's remaining HP) into a
+`FinishingVolley` snapshot *before* any override, and the synthesis consumes
+that snapshot instead of the live ships. The synthesis no longer reads the
+ships `override_ships` mutates, so the call order is irrelevant — verified by
+reordering the two calls and observing every `debug_overlay` test stays green.
+
+The snapshot was chosen over a `debug_assert!(enemies not all zero)` guard
+because that guard would false-positive on a legitimate battle where the real
+simulation already sank every enemy (one_hit_kill then correctly synthesizes
+nothing).
 
 ### 4. Dead event vocabulary was deleted
 
@@ -71,16 +83,59 @@ per-phase arrays must be rebuilt:
   or night hougeki tail, dealing exactly each still-alive enemy's
   remaining HP
 
-### 6. one_hit_kill synthetic hougegi3 needs client validation
+### 6. one_hit_kill synthetic hougeki3 shape validation (closed 2026-06-24)
 
-The synthetic `hougeki3` shape has not been validated against a real KC
-client render. The data correctness (`enemy_nowhps==0`) is guaranteed by
-the HP override regardless. The array rebuild is for animation fidelity
-only and is a medium-risk item for client compatibility.
+The synthetic `hougeki3` shape was validated against real client day-battle
+payloads decoded from `~/Downloads/kcsapi/battle{,(2),(3)}.txt`. `hougeki3` is
+the same `BattleHougeki` type as `hougeki1` / `hougeki2`, which the captures do
+exercise: all seven arrays are length-aligned, `api_at_eflag` is `0` for
+friendly→enemy attacks, `api_at_type` is `0` for normal attacks, and
+`api_si_list` uses the integer `-1` sentinel for no-equipment normal attacks
+(strings are reserved for cut-in / special attacks, `api_at_type==7`). The
+synthetic volley matches all of these. Asserted by
+`synthetic_finishing_volley_shape_matches_client` in `debug_overlay.rs`.
+
+Data correctness (`enemy_nowhps==0`) was already guaranteed by the HP override;
+this closes the animation-fidelity (shape) gap. **Residual gap:** none of the
+three captures contains a non-null `hougeki3` specifically, so the validation is
+against `hougeki1/2` of the identical type — a targeted capture of a real
+`hougeki3` finishing tail would close it fully. Numeric values are out of scope.
+
+## 2026-06-24 Re-evaluation: owned-pass rewrite stays deferred (no-go)
+
+A `/ce-brainstorm` session re-evaluated the deferred owned-pass / event-sourced
+rewrite (plan 010, units U2/U5/U6) to decide whether the bridge should be
+replaced. Findings:
+
+- The original motivation for owned-pass — debug features (`god_mode`,
+  `one_hit_kill`) being hard to embed under `&mut` — is **already satisfied** by
+  the shipped bridge (`debug_overlay` + `transforms` + `reducer`).
+- The two blockers that killed *pure* event-sourcing (intra-phase HP
+  dependencies; interleaved RNG) did **not** kill owned-pass; owned-pass was
+  deferred for **cost/scope** (~11k lines, 384 `&mut`, 202 tests), not
+  feasibility.
+- There is **no felt pain** today — the rewrite would be justified mainly by
+  aesthetics.
+
+**Decision: keep the bridge; do not undertake the owned-pass rewrite for
+cleanliness alone.** This hardening pass (2026-06-24) paid down the bridge's two
+real weak points instead: the rebuild-before-override ordering is now structural
+(Learning #3) and the synthetic `hougeki3` shape is client-validated (Learning
+#6).
+
+**Restart condition** — revisit owned-pass only on a real driver:
+
+- a feature that needs authoritative per-phase battle events (e.g. re-introducing
+  the `Targeted` / `PhaseStart` / `AirCombat` vocabulary, Learning #4), or
+- the bridge actually causing bugs in production.
+
+Absent one of those, plan 010 should not be reopened.
 
 ## Related
 
-- `docs/plans/2026-06-22-010-refactor-event-sourced-battle-plan.md` — origin
+- `docs/plans/2026-06-24-004-refactor-harden-debug-overlay-bridge-plan.md`
+  — this hardening pass + no-go record
+- `docs/plans/archive/2026-06-22-010-refactor-event-sourced-battle-plan.md` — origin (deferred)
 - `docs/solutions/architecture-patterns/battle-damage-foundation.md` —
   client HP reconstruction invariant
 - `crates/emukc_battle/src/debug_overlay.rs` — implementation

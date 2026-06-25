@@ -17,6 +17,13 @@ origin: docs/brainstorms/2026-06-22-event-sourced-battle-requirements.md
 > `debug_overlay` module that derives events from HP diffs, applies transforms,
 > and overrides packets. See
 > `docs/solutions/architecture-patterns/debug-overlay-bridge.md`.
+>
+> **No-go (2026-06-24):** re-evaluated and confirmed deferred — the bridge
+> satisfies the debug goal with no felt pain; the rewrite is not justified by
+> aesthetics. Do not reopen without a real driver (a feature needing
+> authoritative phase events, or the bridge causing bugs). Decision + restart
+> condition recorded in `debug-overlay-bridge.md` (§ 2026-06-24 Re-evaluation),
+> via plan `2026-06-24-004-refactor-harden-debug-overlay-bridge`.
 
 Refactor `crates/emukc_battle/` from `&mut BattleState` to owned-pass architecture. Phase functions become `fn(state: FleetState, rng) -> (FleetState, Vec<BattleEvent>)` — externally pure (no `&mut` in signatures), internally tracking HP for correct intra-phase targeting. Events carry resolved damage (including RNG-consumed proportional damage). A pure reducer derives final state from events. Debug features (god_mode, one_hit_kill) are event-stream transforms applied between simulation and reduction.
 
