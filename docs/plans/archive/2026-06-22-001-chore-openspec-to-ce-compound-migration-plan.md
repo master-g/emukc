@@ -1,6 +1,6 @@
 ---
 title: "chore: Sunset openspec — Migrate to ce-compound-engineering"
-status: active
+status: completed
 type: chore
 date: 2026-06-22
 ---

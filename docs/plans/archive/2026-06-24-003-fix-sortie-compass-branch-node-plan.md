@@ -1,6 +1,6 @@
 ---
 title: "fix: rashin_flg must key on branch-node out-degree, not fleet-resolved candidate count"
-status: planned
+status: completed
 created: 2026-06-24
 type: fix
 origin: user-reported 2-1 resource-cell compass skip + official server start/next captures (~/Downloads/kcsapi/)
