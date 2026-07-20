@@ -231,15 +231,23 @@ impl MapDefinition {
                 }
             }
 
-            // Unreachable cells (no incoming edge, not cell 0)
+            // Unreachable cells (no incoming edge and not a valid start source)
             let mut has_incoming: BTreeSet<i64> = BTreeSet::new();
             for cell in &variant.cells {
                 for &next in &cell.next_cells {
                     has_incoming.insert(next);
                 }
             }
+            let start_source_cell_nos = variant
+                .start_source_cells()
+                .into_iter()
+                .map(|cell| cell.cell_no)
+                .collect::<BTreeSet<_>>();
             for cell_no in &cell_nos {
-                if *cell_no != 0 && !has_incoming.contains(cell_no) {
+                if *cell_no != 0
+                    && !start_source_cell_nos.contains(cell_no)
+                    && !has_incoming.contains(cell_no)
+                {
                     warnings.push(MapValidationWarning::Unreachable {
                         map_id,
                         cell_no: *cell_no,
@@ -688,6 +696,29 @@ mod tests {
             w,
             MapValidationWarning::Unreachable {
                 cell_no: 99,
+                ..
+            }
+        )));
+    }
+
+    #[test]
+    fn nonzero_start_source_is_not_unreachable() {
+        let mut def = valid_map_definition();
+        let variant = def.variants.get_mut("").unwrap();
+        variant.cells.push(MapCellDefinition {
+            cell_no: 22,
+            next_cells: vec![3],
+            node_label: Some("Start".to_string()),
+            ..Default::default()
+        });
+
+        assert!(variant.start_source_cells().iter().any(|cell| cell.cell_no == 22));
+
+        let warnings = def.validate();
+        assert!(!warnings.iter().any(|warning| matches!(
+            warning,
+            MapValidationWarning::Unreachable {
+                cell_no: 22,
                 ..
             }
         )));

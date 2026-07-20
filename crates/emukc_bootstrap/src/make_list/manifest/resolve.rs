@@ -48,12 +48,15 @@ pub(crate) fn resolve_slotitem_ids(sources: &[String], mst: &ApiManifest) -> Vec
 }
 
 fn is_universal_slotitem_source(source: &str) -> bool {
-    match source {
-        "this._mst_id" | "self._mst_id" | "mst_id" | "slotitemMstID" => true,
+    let normalized = source.to_ascii_lowercase();
+    match normalized.as_str() {
+        "this._mst_id" | "self._mst_id" | "mst_id" | "slotitemmstid" => true,
         s if s.starts_with("_0x") => true,
         s if s.ends_with(".mst_id") => true,
-        s if s.ends_with(".mstID") => true,
+        s if s.ends_with("mstid") => true,
+        s if s.ends_with("_item_id") => true,
         s if s.contains("._slot") => true,
+        s if s.contains("._plane") => true,
         s if s.ends_with("[0]") => true,
         s if s.ends_with("[1]") => true,
         s if s.ends_with("[2]") => true,
@@ -100,5 +103,23 @@ mod tests {
         assert!(is_universal_slotitem_source("this._slot1.mstID"));
         assert!(is_universal_slotitem_source("slotitemMstID"));
         assert!(!is_universal_slotitem_source("totally_unknown"));
+    }
+
+    #[test]
+    fn test_readable_slotitem_source_classification() {
+        for source in [
+            "this._after_item_id",
+            "this._before_item_id",
+            "this._zuiunMstId",
+            "this._mainArmamentMstID",
+            "this._plane_mst_id",
+            "this._plane1",
+            "this._plane2",
+            "this._plane3",
+            "this._plane_f",
+            "this._plane_e",
+        ] {
+            assert!(is_universal_slotitem_source(source), "unrecognized source: {source}");
+        }
     }
 }
