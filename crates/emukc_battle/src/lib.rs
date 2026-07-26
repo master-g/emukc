@@ -7,23 +7,31 @@
 mod config;
 mod damage;
 /// Debug overlay: applies event transforms to simulation results.
-pub mod debug_overlay;
+mod debug_overlay;
 /// Event types for the owned-pass architecture.
-pub mod event;
+#[allow(
+    dead_code,
+    reason = "the debug transform model intentionally represents phases and metadata not emitted yet"
+)]
+mod event;
 mod execution;
 /// Internal battle documentation.
 mod outcome;
 /// Random number generation trait and implementations for battle simulation.
 pub mod random;
 /// Pure reducer: derives state from event log.
-pub mod reducer;
-pub mod simulation;
+#[allow(
+    dead_code,
+    reason = "the debug transform reducer intentionally exposes derived state used by future passes"
+)]
+mod reducer;
+mod simulation;
 mod state;
 mod targeting;
 /// Deterministic text renderer for battle simulations.
 pub mod transcript;
 /// Debug event-stream transforms (god mode, one hit kill).
-pub mod transforms;
+mod transforms;
 #[expect(missing_docs)]
 mod types;
 
@@ -43,15 +51,10 @@ pub use random::BattleRng;
 
 // Public API — utilities
 pub use damage::apply_cap;
-// Public API — debug transforms
-pub use debug_overlay::{apply_day_debug, apply_night_debug};
 // Public API — complete battle execution
 pub use execution::{execute_day, execute_night};
 pub use outcome::{calculate_mvp, calculate_win_rank};
 pub use targeting::any_alive;
-
-// Entry functions
-pub use simulation::{simulate_day, simulate_night};
 
 // Public API — transcript renderer
 pub use transcript::{render_day_battle, render_night_battle};

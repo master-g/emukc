@@ -111,7 +111,7 @@ fn run_debug_transforms(
 /// If neither flag is set, the simulation is returned unchanged.
 /// Otherwise, events are derived from HP diff, transforms are applied,
 /// and the packet's HP arrays and outcome are overridden.
-pub fn apply_day_debug(
+pub(crate) fn apply_day_debug(
     mut sim: BattleSimulation,
     god_mode: bool,
     one_hit_kill: bool,
@@ -137,7 +137,7 @@ pub fn apply_day_debug(
 }
 
 /// Apply debug transforms to a night battle simulation result.
-pub fn apply_night_debug(
+pub(crate) fn apply_night_debug(
     mut sim: NightBattleSimulation,
     god_mode: bool,
     one_hit_kill: bool,

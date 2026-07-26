@@ -157,7 +157,7 @@ pub struct BattleContext {
     pub enemy_ships: Vec<BattleShipInput>,
 }
 
-/// Input parameters for [`simulate_night`](crate::simulation::simulate_night).
+/// Input parameters for [`execute_night`](crate::execute_night).
 pub struct NightBattleInput {
     pub friendly: Vec<BattleRuntimeShip>,
     pub enemy: Vec<BattleRuntimeShip>,

@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 
 use emukc_battle::{
     BattleContext, BattleRng, BattleRuntimeShip, BattleShipInput, BattleType, EngagementType,
-    NightBattleInput, simulate_day, simulate_night,
+    NightBattleInput, execute_day, execute_night,
 };
 use emukc_crypto::rng::GameRng;
 use emukc_model::codex::Codex;
@@ -60,8 +60,11 @@ const FRIENDLY_MST: i64 = 79;
 const ENEMY_MST: i64 = 412;
 
 fn load_codex() -> Codex {
-    Codex::load_without_cache_source("../../.data/codex")
-        .expect("load codex from .data/codex (run `cargo run -- bootstrap` first)")
+    let mut codex = Codex::load_without_cache_source("../../.data/codex")
+        .expect("load codex from .data/codex (run `cargo run -- bootstrap` first)");
+    codex.game_cfg.god_mode = false;
+    codex.game_cfg.one_hit_kill = false;
+    codex
 }
 
 fn golden_dir() -> PathBuf {
@@ -163,12 +166,12 @@ fn day_battle_golden_transcripts() {
     let codex = load_codex();
     for seed in 1..=SEED_COUNT {
         let mut rng = SeededRng::new(seed);
-        let snapshot = format!("{:#?}", simulate_day(&codex, day_context(&codex), &mut rng).packet);
+        let snapshot = format!("{:#?}", execute_day(&codex, day_context(&codex), &mut rng).packet);
 
         // Same seed must reproduce a byte-identical packet.
         let mut rng_repeat = SeededRng::new(seed);
         let repeat =
-            format!("{:#?}", simulate_day(&codex, day_context(&codex), &mut rng_repeat).packet);
+            format!("{:#?}", execute_day(&codex, day_context(&codex), &mut rng_repeat).packet);
         assert_eq!(snapshot, repeat, "day battle not deterministic for seed {seed}");
 
         check_golden(&format!("day_seed_{seed:02}"), &snapshot);
@@ -181,12 +184,12 @@ fn night_battle_golden_transcripts() {
     for seed in 1..=SEED_COUNT {
         let mut rng = SeededRng::new(seed);
         let snapshot =
-            format!("{:#?}", simulate_night(&codex, night_input(&codex), &mut rng).packet);
+            format!("{:#?}", execute_night(&codex, night_input(&codex), &mut rng).packet);
 
         // Same seed must reproduce a byte-identical packet.
         let mut rng_repeat = SeededRng::new(seed);
         let repeat =
-            format!("{:#?}", simulate_night(&codex, night_input(&codex), &mut rng_repeat).packet);
+            format!("{:#?}", execute_night(&codex, night_input(&codex), &mut rng_repeat).packet);
         assert_eq!(snapshot, repeat, "night battle not deterministic for seed {seed}");
 
         check_golden(&format!("night_seed_{seed:02}"), &snapshot);

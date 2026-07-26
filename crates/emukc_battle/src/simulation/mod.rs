@@ -44,7 +44,7 @@ fn enemy_shells_first(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntimeShip
 /// opening torpedo → shelling → closing torpedo), so the same seed produces a
 /// deterministic full battle result. Callers must NOT share the RNG instance across
 /// separate battle simulations if determinism is required.
-pub fn simulate_day(
+pub(crate) fn simulate_day(
     codex: &Codex,
     context: BattleContext,
     rng: &mut impl BattleRng,
@@ -252,7 +252,7 @@ fn execute_closing_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
 }
 
 /// Simulate a night battle.
-pub fn simulate_night(
+pub(crate) fn simulate_night(
     codex: &Codex,
     input: NightBattleInput,
     rng: &mut impl BattleRng,

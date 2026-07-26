@@ -70,7 +70,7 @@ pub(crate) fn build_sortie_session(
 mod tests {
     use super::super::repository::SortieRepository;
     use super::*;
-    use emukc_battle::{BattleShipInput, BattleType, EngagementType, simulate_day};
+    use emukc_battle::{BattleShipInput, BattleType, EngagementType, execute_day};
     use emukc_model::{codex::Codex, kc2::level};
 
     fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
@@ -90,10 +90,12 @@ mod tests {
 
     #[test]
     fn sortie_session_is_stored_until_result_is_taken() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        codex.game_cfg.god_mode = false;
+        codex.game_cfg.one_hit_kill = false;
         let store = crate::game::sortie_store::SortieStore::new();
         let mut rng = super::super::rng::ProductionRng;
-        let simulation = simulate_day(
+        let simulation = execute_day(
             &codex,
             BattleContext {
                 battle_type: BattleType::Normal,

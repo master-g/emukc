@@ -129,7 +129,7 @@ async fn gate_bites_on_corrupted_payload() {
 /// not reliably reachable in 1-1 within a bounded seed set (the existing CLI
 /// `seed_search_finds_night_and_reproduces` test, which hunts that same branch,
 /// is itself flaky on the current sim). `sortie_sp_midnight_battle` exercises the
-/// identical `simulate_night` → `build_night_response` path deterministically, so
+/// identical `execute_night` → `build_night_response` path deterministically, so
 /// it is the reliable live-sim night packet for this protocol gate. Each preset
 /// is run across the same bounded seed set as the day gate; every produced night
 /// packet must pass protocol validation with zero error findings.
