@@ -520,6 +520,15 @@ mod tests {
     use super::*;
     use emukc_internal::prelude::ShipSpec;
 
+    fn load_codex_without_debug_policy() -> Codex {
+        let mut codex = Codex::load_without_cache_source(".data/codex").expect(
+            "Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/",
+        );
+        codex.game_cfg.god_mode = false;
+        codex.game_cfg.one_hit_kill = false;
+        codex
+    }
+
     fn target_1_1() -> SortieTarget {
         SortieTarget {
             area: 1,
@@ -562,10 +571,8 @@ mod tests {
         // Same scenario + seed must produce byte-identical transcripts within one
         // process. Asserting in-process is the point: two separate CLI invocations
         // each build a fresh runtime and would not catch thread-migration drift.
-        let codex_a = Codex::load_without_cache_source(".data/codex").expect(
-            "Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/",
-        );
-        let codex_b = Codex::load_without_cache_source(".data/codex").unwrap();
+        let codex_a = load_codex_without_debug_policy();
+        let codex_b = load_codex_without_debug_policy();
 
         let a = render_sortie_once(codex_a, 7, Scenario::fresh_1_1(), target_1_1()).unwrap();
         let b = render_sortie_once(codex_b, 7, Scenario::fresh_1_1(), target_1_1()).unwrap();
@@ -576,9 +583,7 @@ mod tests {
 
     #[test]
     fn seed_search_reports_not_found_at_cap() {
-        let codex = Codex::load_without_cache_source(".data/codex").expect(
-            "Codex load failed; run `cargo run -- bootstrap` first to populate .data/codex/",
-        );
+        let codex = load_codex_without_debug_policy();
         // An always-false predicate must exhaust the cap and report not-found
         // rather than looping forever.
         let found =
@@ -596,7 +601,7 @@ mod tests {
             ..Default::default()
         };
 
-        let codex = Codex::load_without_cache_source(".data/codex").unwrap();
+        let codex = load_codex_without_debug_policy();
         let found =
             seed_search(codex, 1, 500, night_scenario(), target_1_1(), |o| o.midnight_available)
                 .unwrap();
@@ -604,7 +609,7 @@ mod tests {
         assert!(outcome.midnight_available);
 
         // Re-running the reported seed reproduces the branch on a plain run.
-        let codex2 = Codex::load_without_cache_source(".data/codex").unwrap();
+        let codex2 = load_codex_without_debug_policy();
         let rerun = seed_search(codex2, seed, 1, night_scenario(), target_1_1(), |_| true)
             .unwrap()
             .unwrap()
