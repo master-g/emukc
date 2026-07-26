@@ -2,7 +2,7 @@
 
 use emukc_battle::{
     BattleOutcome, BattlePacket, BattleRng, BattleRuntimeShip, EngagementType, NightBattleInput,
-    apply_day_debug, apply_night_debug, simulate_day, simulate_night,
+    execute_day, execute_night,
 };
 use emukc_model::codex::Codex;
 use emukc_model::kc2::KcSortieResultRank;
@@ -26,11 +26,7 @@ pub fn run_day_battle(
         cell_id,
         context,
     } = input;
-    let simulation = apply_day_debug(
-        simulate_day(codex, context, rng),
-        codex.game_cfg.god_mode,
-        codex.game_cfg.one_hit_kill,
-    );
+    let simulation = execute_day(codex, context, rng);
     let session = build_sortie_session(profile_id, deck_id, map_id, cell_id, simulation);
     store.insert_pending_battle(session.profile_id, session.clone());
     session
@@ -70,21 +66,17 @@ pub fn run_night_battle(
         .kouku
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-    let simulation = apply_night_debug(
-        simulate_night(
-            codex,
-            NightBattleInput {
-                friendly: session.friendly.clone(),
-                enemy: session.enemy.clone(),
-                friendly_formation_id,
-                enemy_formation_id,
-                engagement,
-                air_state,
-            },
-            rng,
-        ),
-        codex.game_cfg.god_mode,
-        codex.game_cfg.one_hit_kill,
+    let simulation = execute_night(
+        codex,
+        NightBattleInput {
+            friendly: session.friendly.clone(),
+            enemy: session.enemy.clone(),
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            air_state,
+        },
+        rng,
     );
     session.friendly = simulation.friendly.clone();
     session.enemy = simulation.enemy.clone();
@@ -167,21 +159,17 @@ pub fn run_sp_midnight_battle(
     store.insert_pending_battle(profile_id, day_session.clone());
 
     // Run night battle using the stored session
-    let night = apply_night_debug(
-        simulate_night(
-            codex,
-            NightBattleInput {
-                friendly,
-                enemy,
-                friendly_formation_id,
-                enemy_formation_id,
-                engagement,
-                air_state: None,
-            },
-            rng,
-        ),
-        codex.game_cfg.god_mode,
-        codex.game_cfg.one_hit_kill,
+    let night = execute_night(
+        codex,
+        NightBattleInput {
+            friendly,
+            enemy,
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            air_state: None,
+        },
+        rng,
     );
 
     // Update the stored day session with night results
