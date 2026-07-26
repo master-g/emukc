@@ -14,6 +14,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - User instructions always override this file.
 - Never include AI attribution (Co-Authored-By, "Generated with Claude", etc.) in commit messages.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the five default canonical labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain documentation uses the single-context layout. See `docs/agents/domain.md`.
+
 ## Project Overview
 
 EmuKC is a server-side emulator for the web browser game Kantai Collection (KanColle), written in Rust. It implements the game's API server, allowing a browser client to connect and play against locally-stored game data.
