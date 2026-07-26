@@ -31,28 +31,31 @@ The following invariants hold for `emukc_battle`:
 
 - **Zero clippy warnings.** `cargo clippy --workspace` SHALL produce zero
   warnings originating from `crates/emukc_battle/`.
-- **Types module allows missing docs.** The `types` module SHALL use
-  `#[allow(missing_docs)]` to suppress missing-doc warnings on data structures
+- **Types module expects missing docs.** The `types` module SHALL use
+  `#[expect(missing_docs)]` to acknowledge missing-doc warnings on data structures
   whose field names are self-explanatory (mirroring KanColle API naming).
 - **Public enums and functions documented.** All public enums (`BattleType`,
   `EngagementType`, `AirState`, `BattleOutcome`) and public functions
-  (`simulate_day`, `simulate_night`, `calculate_mvp`, `calculate_win_rank`,
+  (`execute_day`, `execute_night`, `calculate_mvp`, `calculate_win_rank`,
   `apply_cap`) SHALL have `///` doc comments of at least one line describing
   their purpose.
-- **Dead code annotated.** Unused constants and functions reserved for future
-  features SHALL carry `#[allow(dead_code)]` and a `// TODO:` comment naming
-  the feature that will use them.
+- **Dead code annotated.** Internal models intentionally retaining unused
+  vocabulary for an identified extension SHALL carry a narrowly scoped
+  `#[allow(dead_code, reason = "...")]` that names why the vocabulary remains.
 - **Doc backticks.** Doc comments SHALL wrap type names and code identifiers
   in backticks per rustdoc convention.
 
 ### Documentation of non-obvious behavior
 
-- **RNG cross-phase continuity.** `simulate_day` SHALL have a doc comment
-  explaining that the `rng` parameter is consumed sequentially across all
-  battle phases (kouku, OASW, opening torpedo, shelling 1, shelling 2,
-  closing torpedo), so the same seed always produces a deterministic full
-  battle, and changing phase order or adding/removing phases changes all
-  subsequent random outcomes.
+- **RNG cross-phase continuity.** The crate-internal `simulate_day` SHALL
+  document that `rng` is consumed sequentially across all battle phases
+  (kouku, OASW, opening torpedo, shelling 1, shelling 2, closing torpedo), so
+  changing phase order or membership changes subsequent random outcomes.
+  Public `execute_day` and `execute_night` SHALL preserve that stream: the
+  debug overlay consumes no RNG.
+- **Single public execution boundary.** Cross-crate callers SHALL use
+  `execute_day` or `execute_night`. Raw simulation, debug overlay functions,
+  and their event/reducer/transform support modules remain crate-internal.
 - **Air Stage2 simplification.** The kouku Stage2 anti-air fire calculation in
   `simulation/kouku.rs` SHALL carry a `// NOTE:` comment explaining it uses a
   linear approximation (`total_aa / 400 × plane_count`) instead of the real
@@ -96,6 +99,7 @@ fn asw_formation_modifier(formation: Formation) -> f64 { /* Diamond=1.2 ... */ }
 ## Related
 
 - `crates/emukc_battle/src/damage.rs` — formation modifiers.
-- `crates/emukc_battle/src/simulation/mod.rs` — `simulate_day` RNG-continuity doc.
+- `crates/emukc_battle/src/execution.rs` — public execution boundary.
+- `crates/emukc_battle/src/simulation/mod.rs` — raw simulation RNG-continuity doc.
 - `crates/emukc_battle/src/simulation/kouku.rs` — Stage2 simplification note.
 - `docs/solutions/architecture-patterns/rng-facade.md` — the RNG consumed sequentially here.

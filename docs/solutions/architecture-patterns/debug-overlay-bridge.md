@@ -23,6 +23,13 @@ module derives events from HP diffs, applies transforms, and overrides the
 packet/outcome. This delivers the functional goal (debug features as
 event transforms, zero simulation branching) without the 11k-line rewrite.
 
+As of 2026-07-26, the public `execute_day` and `execute_night` facade owns
+this sequence. Cross-crate callers provide the `Codex`, battle input, and RNG;
+the facade runs the raw simulation, reads `god_mode` and `one_hit_kill` from
+`Codex.game_cfg`, applies the bridge, and returns the final result. Raw
+`simulate_*`, `apply_*_debug`, and the event/reducer/transform support modules
+are crate-internal so callers cannot skip or reorder the overlay.
+
 ## Key Learnings
 
 ### 1. god_mode must filter Sunk{Friendly}, not just Damage
@@ -106,6 +113,15 @@ three captures contains a non-null `hougeki3` specifically, so the validation is
 against `hougeki1/2` of the identical type — a targeted capture of a real
 `hougeki3` finishing tail would close it fully. Numeric values are out of scope.
 
+### 7. Execution facade owns the bridge boundary
+
+The bridge is an implementation detail, not a menu of independently composable
+public steps. `execute_day` and `execute_night` are the only cross-crate battle
+execution entries. They preserve the raw simulation's RNG stream because the
+overlay consumes no RNG. Crate-local equivalence tests compare the facade with
+the former manual pipeline for disabled, individual, and combined debug flags;
+golden and gameplay tests cover the external behavior.
+
 ## 2026-06-24 Re-evaluation: owned-pass rewrite stays deferred (no-go)
 
 A `/ce-brainstorm` session re-evaluated the deferred owned-pass / event-sourced
@@ -143,6 +159,8 @@ Absent one of those, plan 010 should not be reopened.
 - `docs/plans/archive/2026-06-22-010-refactor-event-sourced-battle-plan.md` — origin (deferred)
 - `docs/solutions/architecture-patterns/battle-damage-foundation.md` —
   client HP reconstruction invariant
+- `crates/emukc_battle/src/execution.rs` — public execution facade and
+  raw-versus-executed equivalence tests
 - `crates/emukc_battle/src/debug_overlay.rs` — implementation
 - `crates/emukc_battle/src/transforms.rs` — event transforms
 - `crates/emukc_battle/src/reducer.rs` — pure state derivation

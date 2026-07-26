@@ -10,7 +10,10 @@ use crate::random::BattleRng;
 use crate::simulation::{simulate_day, simulate_night};
 use crate::types::{BattleContext, BattleSimulation, NightBattleInput, NightBattleSimulation};
 
-/// Execute a day battle and apply the configured debug overlay.
+/// Execute a day battle and apply the debug policy from `Codex`.
+///
+/// The raw simulation consumes `rng` sequentially across its phases. The
+/// post-simulation debug overlay consumes no RNG, preserving that stream.
 pub fn execute_day(
     codex: &Codex,
     context: BattleContext,
@@ -23,7 +26,10 @@ pub fn execute_day(
     )
 }
 
-/// Execute a night battle and apply the configured debug overlay.
+/// Execute a night battle and apply the debug policy from `Codex`.
+///
+/// The post-simulation debug overlay consumes no RNG, so this entry point
+/// preserves the raw night simulation's RNG stream.
 pub fn execute_night(
     codex: &Codex,
     input: NightBattleInput,
