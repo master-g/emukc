@@ -10,6 +10,7 @@ mod damage;
 pub mod debug_overlay;
 /// Event types for the owned-pass architecture.
 pub mod event;
+mod execution;
 /// Internal battle documentation.
 mod outcome;
 /// Random number generation trait and implementations for battle simulation.
@@ -44,6 +45,8 @@ pub use random::BattleRng;
 pub use damage::apply_cap;
 // Public API — debug transforms
 pub use debug_overlay::{apply_day_debug, apply_night_debug};
+// Public API — complete battle execution
+pub use execution::{execute_day, execute_night};
 pub use outcome::{calculate_mvp, calculate_win_rank};
 pub use targeting::any_alive;
 
