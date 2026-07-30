@@ -171,7 +171,7 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 
 ## Code Style
 
-- **Rust edition 2024**, stable toolchain, minimum rust-version 1.95.0
+- **Rust edition 2024**, stable toolchain, minimum rust-version 1.96.0
 - **Soft tabs** (4 spaces) for indentation (see `.rustfmt.toml` and `.editorconfig`)
 - `unsafe_code` is **denied** workspace-wide
 - `missing_docs` is warned
@@ -179,7 +179,7 @@ Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `a
 - Configuration: `emukc.config.toml` (see `emukc.config.example.toml`)
 - Database: SQLite via SeaORM, in-memory DB (`new_mem_db()`) for tests
 - Pre-commit hooks are expected (see README)
-- Always use soft tabs, accroding to `.editorconfig` and `.rustfmt.toml`.
+- Always use soft tabs, according to `.editorconfig` and `.rustfmt.toml`.
 
 ## Balance Defaults Policy
 
@@ -235,3 +235,49 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - A diff that regenerates synced assets or re-freezes a golden transcript must explain why in the PR description.
 
 **Review entry points:** `/code-review` and `/review` (standards + spec axes, run in parallel) for self-review before opening a PR; `/commit` runs fmt + clippy and drafts a conventional commit.
+
+## 技术栈
+
+- Rust workspace，edition 2024，`rust-version = "1.96.0"`；`rust-toolchain.toml` 使用 stable，并安装 `rustfmt`、`clippy`。
+- HTTP/异步层：Axum 0.8、Tokio 1.x、Tower/Tower HTTP；日志使用 `tracing`。
+- 持久化：SeaORM 1.1 + SQLite；资源缓存使用 redb；配置使用 TOML。
+- `main-decoder/` 是 Bun + TypeScript 子项目，负责从 `main.js` 解码并生成 Rust 侧消费的战斗/资源资产。
+
+## 命令
+
+- 常用入口：`make build [PROFILE=debug|release]`、`make test`、`make clippy`、`make fmt`、`make serve`。
+- 最终质量门：`cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`、`cargo test`。
+- 数据准备：`make bootstrap`；需要已配置 `emukc.config.toml`，生成的本地数据位于忽略目录 `.data/`、`z/`。
+- 解码并同步生成资产：`make decode-main`；先在 `main-decoder/` 安装 Bun 依赖并完成 bootstrap。
+- 缓存：`make cache-make-list`、`make cache-populate CONCURRENT=16`。
+- 可复现战斗：`make battle-sim SCENARIO=fresh_1_1 SEED=1`；可加 `FIND=night MAX_SEEDS=1000`。
+
+## 代码风格
+
+- 使用空格缩进：Rust/通用文件 4 空格，YAML/JSON 2 空格；以 `.editorconfig` 和 `.rustfmt.toml` 为准。
+- 工作区禁止 `unsafe_code`，`missing_docs` 为 warning；不要绕过 Clippy 告警。
+- 严格保持 crate 单向分层；跨领域写操作使用 gameplay trait，内部事务复用函数采用 `_impl` + `C: ConnectionTrait`。
+- 二进制 crate 可使用 `emukc_internal::prelude::*`；新增代码优先沿用邻近模块既有模式。
+- 提交使用 Conventional Commits，英文消息，不加入 AI attribution。
+
+## 禁止文件
+
+- 不手改 `crates/emukc_bootstrap/assets/*.json` 与 `main-decoder/out/battle/*.json`；通过 `make decode-main`/decoder 同步流程再生。
+- 不逐项手改 `tests/gameplay_tests/battle_golden.rs`；行为变化时必须有意重新冻结并解释差异。
+- 不手改 `Cargo.lock`；依赖升级使用 `cargo update -p <crate>`。
+- 不提交本地/敏感状态：`.env`、`emukc.config.toml`、`.data/`、`z/`、`target/` 及其他 `.gitignore` 所有路径。
+- `docs/solutions/**` 是制度化知识；只在对应行为或决策变化时有意更新，不随无关任务删除或重写。
+
+## 审查规则
+
+- 仓库没有 CI 服务；请求 review 前必须本地通过 fmt、严格 Clippy 与完整测试，并明确报告 skipped/ignored 测试。
+- 改动必须 surgical：每行都能追溯到请求，不顺手重构、格式化邻近代码或清理既有死代码。
+- gameplay 行为、规范变化或跨 crate 合约先写 `docs/plans/` 计划，按 Implementation Units 实施，再沉淀 `docs/solutions/` 并执行代码审查。
+- gameplay 数值默认值遵守 Balance Defaults Policy：独立提交、`feat(balance):`/`chore(balance):`、正文列旧值、关联计划、添加回归测试。
+- 生成资产或 frozen golden 的差异必须在 PR/交付说明中解释来源与必要性。
+- 使用 GitHub Issues 与 `docs/agents/` 约定管理需求、triage 和领域上下文。
+
+## 项目记忆 (回写约定)
+跨会话的持久信息记录在 [PROJECT_MEMORY.md](./PROJECT_MEMORY.md)。
+**完成每个重要任务后务必回写**: 把确认的决策写入「已验证的事实」、踩的坑写入「失败尝试」、用进展更新「上次会话」、把计划写入「下次运行」。
+保持 PROJECT_MEMORY.md 在 300~400 行；超长时使用 `bootstrap-claude` skill 的 `scripts/memory.py status/compact`（保留事实与计划，淘汰最旧日志）。
