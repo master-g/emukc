@@ -67,8 +67,11 @@ struct KcwikiEnemyEquipment {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct KcwikiEnemyEquipmentSlot {
-    equipment: BoolOrString,
-    size: i64,
+    /// Equipment name, or `null`/`false` for an empty slot.
+    /// Upstream switched the empty-slot representation from `false` to `null` (observed 2026-08).
+    equipment: Option<BoolOrString>,
+    /// Slot capacity; `null` for empty slots.
+    size: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -223,12 +226,12 @@ fn enemy_slot_item_id(
     slot: &KcwikiEnemyEquipmentSlot,
 ) -> Result<i64, ParseError> {
     match &slot.equipment {
-        BoolOrString::Bool(false) => Ok(-1),
-        BoolOrString::Bool(true) => Err(ParseError::Generic(format!(
+        None | Some(BoolOrString::Bool(false)) => Ok(-1),
+        Some(BoolOrString::Bool(true)) => Err(ParseError::Generic(format!(
             "unexpected boolean enemy equipment flag for ship {} ({})",
             ship.api_id, ship.japanese_name
         ))),
-        BoolOrString::String(name) => context.find_slotitem_id(name).ok_or_else(|| {
+        Some(BoolOrString::String(name)) => context.find_slotitem_id(name).ok_or_else(|| {
             ParseError::KeyMissing(format!(
                 "enemy equipment `{name}` for ship {} ({})",
                 ship.api_id, ship.japanese_name
@@ -282,12 +285,13 @@ fn parse_enemy_ships(
         let mut maxeq = [0; 5];
         let mut slots = Vec::new();
         for (idx, slot) in ship.equipment.iter().take(5).enumerate() {
-            maxeq[idx] = slot.size.max(0);
+            let size = slot.size.unwrap_or(0).max(0);
+            maxeq[idx] = size;
             let item_id = enemy_slot_item_id(context, &ship, slot)?;
             if item_id > 0 {
                 slots.push(Kc3rdEnemyShipSlotInfo {
                     item_id,
-                    onslot: slot.size.max(0),
+                    onslot: size,
                 });
             }
         }
@@ -402,7 +406,8 @@ mod tests {
     "_equipment": [
       {"equipment": "5inch Single Gun Mount", "size": 0},
       {"equipment": "Abyssal Night Cat Fighter II", "size": 12},
-      {"equipment": false, "size": 0}
+      {"equipment": false, "size": 0},
+      {"equipment": null, "size": null}
     ]
   }
 }"#,
@@ -490,7 +495,7 @@ mod tests {
         assert_eq!(parsed.manifest_ships.len(), 1);
         assert_eq!(parsed.manifest_ships[0].api_taik, Some([20, 20]));
         assert_eq!(parsed.manifest_ships[0].api_maxeq, Some([0, 12, 0, 0, 0]));
-        assert_eq!(parsed.manifest_ships[0].api_slot_num, 3);
+        assert_eq!(parsed.manifest_ships[0].api_slot_num, 4);
         assert_eq!(context.find_slotitem_id("Abyssal Night Cat Fighter II"), Some(601));
 
         let mut codex = Codex {
@@ -573,7 +578,7 @@ mod tests {
                 enemy_data.name
             );
             let (ship, slot_items) = result.unwrap();
-            assert_eq!(ship.api_nowhp, enemy_data.hp, "HP mismatch for {ship_id}");
+            assert_eq!(ship.api_nowhp, enemy_data.hp.max(1), "HP mismatch for {ship_id}");
             assert_eq!(ship.api_karyoku[0], enemy_data.firepower, "FP mismatch for {ship_id}");
             assert_eq!(ship.api_soukou[0], enemy_data.armor, "Armor mismatch for {ship_id}");
             assert_eq!(
