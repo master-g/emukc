@@ -11,7 +11,7 @@ pub(super) struct BootstrapArgs {
     #[arg(short, long)]
     pub(super) overwrite: bool,
 
-    #[arg(help = "Remove version files from cache folder")]
+    #[arg(help = "Remove main.js and version files from cache folder")]
     #[arg(long)]
     pub(super) force_update: bool,
 
@@ -58,6 +58,12 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
             warn!("{:?} not found.", p);
         }
         let p = cfg.cache_root.join("kcs2").join("version.json");
+        if p.exists() {
+            std::fs::remove_file(&p)?;
+        } else {
+            warn!("{:?} not found.", p);
+        }
+        let p = cfg.cache_root.join("kcs2").join("js").join("main.js");
         if p.exists() {
             std::fs::remove_file(&p)?;
         } else {
