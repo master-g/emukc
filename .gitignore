@@ -30,6 +30,7 @@
 .omc/
 .cocoindex_code/
 .sisyphus/
+.pi-glla/
 
 emukc.config.toml
 
