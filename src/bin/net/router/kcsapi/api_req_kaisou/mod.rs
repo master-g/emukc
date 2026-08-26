@@ -1,6 +1,7 @@
 use axum::{Router, routing::post};
 
 mod can_preset_slot_select;
+mod hangar_expand;
 mod lock;
 mod marriage;
 mod open_exslot;
@@ -22,6 +23,7 @@ mod unsetslot_all;
 pub(super) fn router() -> Router {
     Router::new()
         .route("/can_preset_slot_select", post(can_preset_slot_select::handler))
+        .route("/hangar_expand", post(hangar_expand::handler))
         .route("/lock", post(lock::handler))
         .route("/marriage", post(marriage::handler))
         .route("/open_exslot", post(open_exslot::handler))

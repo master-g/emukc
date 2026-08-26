@@ -52,6 +52,7 @@ api_req_init/firstship
 api_req_init/nickname
 
 api_req_kaisou/can_preset_slot_select
+api_req_kaisou/hangar_expand
 api_req_kaisou/lock
 api_req_kaisou/marriage
 api_req_kaisou/open_exslot
