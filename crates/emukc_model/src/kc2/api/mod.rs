@@ -169,6 +169,10 @@ pub struct KcApiShip {
     pub api_onslot: [i64; 5],
     /// Extra slot, 0 for locked, -1 for empty
     pub api_slot_ex: i64,
+    /// Expanded hangar capacity, present only when any slot was expanded.
+    /// Takes precedence over `api_maxeq` in the manifest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_onslot_max: Option<[i64; 5]>,
     /// Modernization, [0]: firepower, [1]: torpedo, [2]: AA, [3]: armor, [4]: luck, [5]: HP, [6]: ASW
     pub api_kyouka: [i64; 7],
     /// Rarity

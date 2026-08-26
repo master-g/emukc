@@ -72,6 +72,9 @@ mod remodel_preserve_fields;
 #[path = "gameplay_tests/sortie_ammo_reaches_battle.rs"]
 mod sortie_ammo_reaches_battle;
 
+#[path = "gameplay_tests/ship_onslot_max.rs"]
+mod ship_onslot_max;
+
 #[path = "gameplay_tests/scenario.rs"]
 mod scenario;
 

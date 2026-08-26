@@ -120,6 +120,7 @@ pub(crate) fn test_api_ship(nowhp: i64, maxhp: i64) -> KcApiShip {
         api_slot: [-1; 5],
         api_onslot: [0; 5],
         api_slot_ex: 0,
+        api_onslot_max: None,
         api_kyouka: [0; 7],
         api_backs: 1,
         api_fuel: 0,

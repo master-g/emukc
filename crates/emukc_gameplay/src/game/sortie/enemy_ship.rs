@@ -133,6 +133,7 @@ fn build_manifest_only_sortie_enemy_ship(
         api_slot: [-1; 5],
         api_onslot: [0; 5],
         api_slot_ex: 0,
+        api_onslot_max: None,
         api_kyouka: [0; 7],
         api_backs: fallback.backs,
         api_fuel: fallback.fuel,

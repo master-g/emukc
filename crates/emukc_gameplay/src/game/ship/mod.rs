@@ -130,10 +130,13 @@ impl<T: HasContext + ?Sized> ShipOps for T {
     }
 
     async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError> {
+        let codex = self.codex();
         let db = self.db();
 
         if let Some((ship, sps)) = find_ship_impl(db, ship_id).await? {
             let mut m: KcApiShip = ship.into();
+
+            fill_onslot_max(codex, &ship, &mut m);
 
             if !sps.is_empty() {
                 m.api_sp_effect_items = Some(sps.into_iter().map(Into::into).collect());
@@ -146,6 +149,7 @@ impl<T: HasContext + ?Sized> ShipOps for T {
     }
 
     async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
+        let codex = self.codex();
         let db = self.db();
         let tx = db.begin().await?;
 
@@ -158,6 +162,8 @@ impl<T: HasContext + ?Sized> ShipOps for T {
             .zip(sps)
             .map(|(s, sp)| {
                 let mut m: KcApiShip = s.into();
+
+                fill_onslot_max(codex, &s, &mut m);
 
                 if !sp.is_empty() {
                     m.api_sp_effect_items = Some(sp.into_iter().map(Into::into).collect());
@@ -348,6 +354,12 @@ where
         onslot_3: ActiveValue::Set(ship.api_onslot[2]),
         onslot_4: ActiveValue::Set(ship.api_onslot[3]),
         onslot_5: ActiveValue::Set(ship.api_onslot[4]),
+        // new ships are never expanded: NotSet -> NULL on insert
+        onslot_plus_1: ActiveValue::NotSet,
+        onslot_plus_2: ActiveValue::NotSet,
+        onslot_plus_3: ActiveValue::NotSet,
+        onslot_plus_4: ActiveValue::NotSet,
+        onslot_plus_5: ActiveValue::NotSet,
         mod_firepower: ActiveValue::Set(ship.api_kyouka[0]),
         mod_torpedo: ActiveValue::Set(ship.api_kyouka[1]),
         mod_aa: ActiveValue::Set(ship.api_kyouka[2]),
@@ -396,6 +408,29 @@ where
     add_ship_to_picturebook_impl(c, profile_id, ship.api_sortno, None, None).await?;
 
     Ok((model.try_into_model()?, ship))
+}
+
+/// Synthesize `api_onslot_max` on the API model from the DB-owned expansion
+/// increments: `manifest_maxeq[i] + plus[i]`, emitted only when any slot was
+/// expanded (otherwise the field stays absent).
+///
+/// The DB layer cannot do this (no Codex access), so this post-fill runs in the
+/// gameplay read wrappers (`find_ship`/`get_ships`), same pattern as
+/// `api_sp_effect_items`.
+fn fill_onslot_max(codex: &Codex, ship: &ship::Model, api: &mut KcApiShip) {
+    let plus = [
+        ship.onslot_plus_1,
+        ship.onslot_plus_2,
+        ship.onslot_plus_3,
+        ship.onslot_plus_4,
+        ship.onslot_plus_5,
+    ];
+    if !plus.iter().any(|p| p.is_some_and(|v| v != 0)) {
+        return;
+    }
+    let maxeq =
+        codex.manifest.find_ship(ship.mst_id).and_then(|mst| mst.api_maxeq).unwrap_or([0; 5]);
+    api.api_onslot_max = Some(std::array::from_fn(|i| maxeq[i] + plus[i].unwrap_or(0)));
 }
 
 pub(crate) async fn find_ship_impl<C>(

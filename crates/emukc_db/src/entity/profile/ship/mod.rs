@@ -1,6 +1,6 @@
 //! Ship related entities
 use emukc_model::kc2::KcApiShip;
-use sea_orm::{ActiveValue, entity::prelude::*};
+use sea_orm::{ActiveValue, ConnectionTrait, Statement, entity::prelude::*};
 
 pub mod morale_timer;
 pub mod picturebook;
@@ -88,6 +88,21 @@ pub struct Model {
 
     /// aircraft capacity left
     pub onslot_5: i64,
+
+    /// hangar expansion increment, first slot (relative, NULL = not expanded)
+    pub onslot_plus_1: Option<i64>,
+
+    /// hangar expansion increment, second slot (relative, NULL = not expanded)
+    pub onslot_plus_2: Option<i64>,
+
+    /// hangar expansion increment, third slot (relative, NULL = not expanded)
+    pub onslot_plus_3: Option<i64>,
+
+    /// hangar expansion increment, fourth slot (relative, NULL = not expanded)
+    pub onslot_plus_4: Option<i64>,
+
+    /// hangar expansion increment, fifth slot (relative, NULL = not expanded)
+    pub onslot_plus_5: Option<i64>,
 
     /// modrenization, firepower
     pub mod_firepower: i64,
@@ -244,6 +259,37 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
         db.execute(db.get_database_backend().build(&stmt)).await?;
     }
 
+    migrate_onslot_plus_columns(db).await?;
+
+    Ok(())
+}
+
+/// Add nullable `onslot_plus_1..5` columns to existing `ship` tables.
+///
+/// Columns must stay nullable without a default: NULL itself carries the
+/// "not expanded" semantics (relative increment storage).
+async fn migrate_onslot_plus_columns(
+    db: &sea_orm::DatabaseConnection,
+) -> Result<(), sea_orm::error::DbErr> {
+    let backend = db.get_database_backend();
+    let columns = db
+        .query_all(Statement::from_string(backend, r#"PRAGMA table_info("ship")"#.to_string()))
+        .await?
+        .into_iter()
+        .map(|row| row.try_get("", "name"))
+        .collect::<Result<Vec<String>, _>>()?;
+
+    for i in 1..=5 {
+        let column = format!("onslot_plus_{i}");
+        if !columns.contains(&column) {
+            db.execute(Statement::from_string(
+                backend,
+                format!(r#"ALTER TABLE "ship" ADD COLUMN "{column}" INTEGER"#),
+            ))
+            .await?;
+        }
+    }
+
     Ok(())
 }
 
@@ -276,6 +322,13 @@ impl From<KcApiShip> for ActiveModel {
             onslot_3: ActiveValue::Set(value.api_onslot[2]),
             onslot_4: ActiveValue::Set(value.api_onslot[3]),
             onslot_5: ActiveValue::Set(value.api_onslot[4]),
+            // hangar expansion increments are DB-owned: never take values from
+            // the API model (NotSet keeps stored values on update, NULL on insert)
+            onslot_plus_1: ActiveValue::NotSet,
+            onslot_plus_2: ActiveValue::NotSet,
+            onslot_plus_3: ActiveValue::NotSet,
+            onslot_plus_4: ActiveValue::NotSet,
+            onslot_plus_5: ActiveValue::NotSet,
             mod_firepower: ActiveValue::Set(value.api_kyouka[0]),
             mod_torpedo: ActiveValue::Set(value.api_kyouka[1]),
             mod_aa: ActiveValue::Set(value.api_kyouka[2]),
@@ -333,6 +386,9 @@ impl From<Model> for KcApiShip {
                 value.onslot_4,
                 value.onslot_5,
             ],
+            // derived output-only field: synthesized by the gameplay read
+            // wrapper (needs the Codex manifest), never here
+            api_onslot_max: None,
             api_slot_ex: value.slot_ex,
             api_kyouka: [
                 value.mod_firepower,
@@ -372,5 +428,62 @@ impl From<Model> for KcApiShip {
             api_sally_area: value.sally_area,
             api_sp_effect_items: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn ship_columns(db: &sea_orm::DatabaseConnection) -> Vec<(String, i64)> {
+        db.query_all(Statement::from_string(
+            db.get_database_backend(),
+            r#"PRAGMA table_info("ship")"#.to_string(),
+        ))
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| {
+            let name: String = row.try_get("", "name").unwrap();
+            let notnull: i64 = row.try_get("", "notnull").unwrap();
+            (name, notnull)
+        })
+        .collect()
+    }
+
+    #[tokio::test]
+    async fn legacy_ship_table_gets_nullable_onslot_plus_columns() {
+        let db = crate::mem::new_mem_db().await.unwrap();
+
+        // fresh table already carries the new columns
+        assert!(ship_columns(&db).await.iter().any(|(name, _)| name == "onslot_plus_1"));
+
+        // simulate a legacy table by dropping them
+        for i in 1..=5 {
+            db.execute(Statement::from_string(
+                db.get_database_backend(),
+                format!(r#"ALTER TABLE "ship" DROP COLUMN "onslot_plus_{i}""#),
+            ))
+            .await
+            .unwrap();
+        }
+        let columns = ship_columns(&db).await;
+        assert!(!columns.iter().any(|(name, _)| name == "onslot_plus_3"));
+
+        // re-running bootstrap migrates the legacy table
+        bootstrap(&db).await.unwrap();
+
+        let columns = ship_columns(&db).await;
+        for i in 1..=5 {
+            let column = format!("onslot_plus_{i}");
+            let (name, notnull) = columns
+                .iter()
+                .find(|(name, _)| *name == column)
+                .unwrap_or_else(|| panic!("{column} missing after migration"));
+            assert_eq!(notnull, &0, "{name} must be nullable (NULL = not expanded)");
+        }
+
+        // migration is idempotent
+        bootstrap(&db).await.unwrap();
     }
 }
