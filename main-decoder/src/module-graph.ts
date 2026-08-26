@@ -20,7 +20,8 @@ import type {
 } from "./types.ts";
 
 const OBFUSCATED_IDENTIFIER_RE = /^_0x[0-9a-fA-F]+$/;
-const GAME_NAME_RE = /(API|Animation|Battle|Cell|Choice|Compass|Cutin|Deck|Dialog|Enemy|Event|Expedition|Fleet|Formation|Furniture|Gauge|Gear|Home|Hougeki|Incentive|Item|Kaizo|Layer|Marriage|Material|Mission|Model|Panel|Phase|Plane|Port|Practice|Preset|Quest|Raigeki|Rank|Repair|RequireInfo|Reward|Scene|Shutter|Ship|Slot|Sortie|Supply|Task|Tutorial|Unset|UseItem|User|View)/;
+const GAME_NAME_RE =
+  /(API|Animation|Battle|Cell|Choice|Compass|Cutin|Deck|Dialog|Enemy|Event|Expedition|Fleet|Formation|Furniture|Gauge|Gear|Home|Hougeki|Incentive|Item|Kaizo|Layer|Marriage|Material|Mission|Model|Panel|Phase|Plane|Port|Practice|Preset|Quest|Raigeki|Rank|Repair|RequireInfo|Reward|Scene|Shutter|Ship|Slot|Sortie|Supply|Task|Tutorial|Unset|UseItem|User|View)/;
 const HELPER_NAME_RE = /(Const|Settings|Util|Utils|Formatter|Parser|Helper)$/;
 const GAME_SOURCE_MARKERS = [
   /\bPIXI\b/,
@@ -113,7 +114,9 @@ interface ReadabilityTransformResult {
   hotspotCleanup?: ModuleHotspotCleanupMetrics;
 }
 
-type RenameableFunctionPath = NodePath<t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression>;
+type RenameableFunctionPath = NodePath<
+  t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression
+>;
 type CleanupRuleName =
   | "enum-annotate"
   | "hex-literals"
@@ -142,7 +145,9 @@ function parseFile(source: string): t.File {
   });
 }
 
-function isModuleFactoryValue(node: t.Node): node is t.FunctionExpression | t.ArrowFunctionExpression {
+function isModuleFactoryValue(
+  node: t.Node,
+): node is t.FunctionExpression | t.ArrowFunctionExpression {
   return t.isFunctionExpression(node) || t.isArrowFunctionExpression(node);
 }
 
@@ -151,9 +156,42 @@ function isModuleTableObject(node: t.ObjectExpression): boolean {
     return false;
   }
 
-  return node.properties.every(property => {
+  return node.properties.every((property) => {
     return t.isObjectProperty(property) && isModuleFactoryValue(property.value);
   });
+}
+
+/**
+ * Webpack/terser builds can emit module factories as shorthand object methods
+ * (`{ 123(){...} }` instead of `{ 123: function(){...} }`; observed in
+ * main.js 6.3.2.1). Rewrite methods to canonical `id: function(){...}`
+ * properties so detection and extraction see one shape.
+ */
+function normalizeModuleFactoryProperties(
+  node: t.ObjectExpression,
+): t.ObjectExpression {
+  const properties = node.properties.map((property) => {
+    if (
+      t.isObjectMethod(property) &&
+      property.kind === "method" &&
+      !property.async &&
+      !property.generator
+    ) {
+      return t.objectProperty(
+        property.key,
+        t.functionExpression(
+          null,
+          property.params,
+          property.body,
+          false,
+          false,
+        ),
+        property.computed,
+      );
+    }
+    return property;
+  });
+  return { ...node, properties };
 }
 
 function extractModuleTable(source: string): t.ObjectExpression {
@@ -166,11 +204,12 @@ function extractModuleTable(source: string): t.ObjectExpression {
         return;
       }
 
-      if (!isModuleTableObject(path.node.init)) {
+      const normalized = normalizeModuleFactoryProperties(path.node.init);
+      if (!isModuleTableObject(normalized)) {
         return;
       }
 
-      moduleTable = path.node.init;
+      moduleTable = normalized;
       path.stop();
     },
   });
@@ -214,12 +253,19 @@ function unwrapTransparentExpression(node: t.Expression): t.Expression {
   return node;
 }
 
-function extractTsHelperName(node: t.Expression | null | undefined): string | undefined {
+function extractTsHelperName(
+  node: t.Expression | null | undefined,
+): string | undefined {
   if (node == null) {
     return undefined;
   }
 
-  if (t.isMemberExpression(node) && t.isThisExpression(node.object) && !node.computed && t.isIdentifier(node.property)) {
+  if (
+    t.isMemberExpression(node) &&
+    t.isThisExpression(node.object) &&
+    !node.computed &&
+    t.isIdentifier(node.property)
+  ) {
     return node.property.name.startsWith("__") ? node.property.name : undefined;
   }
 
@@ -241,7 +287,11 @@ function extractTsHelperName(node: t.Expression | null | undefined): string | un
   }
 
   if (t.isConditionalExpression(node)) {
-    return extractTsHelperName(node.test) ?? extractTsHelperName(node.consequent) ?? extractTsHelperName(node.alternate);
+    return (
+      extractTsHelperName(node.test) ??
+      extractTsHelperName(node.consequent) ??
+      extractTsHelperName(node.alternate)
+    );
   }
 
   if (t.isParenthesizedExpression(node)) {
@@ -275,7 +325,9 @@ function renameKnownTsHelperInternals(
   }
 
   const remainingSignatures = [...signatures];
-  const helperFunctionPaths: Array<NodePath<t.FunctionExpression | t.ArrowFunctionExpression>> = [];
+  const helperFunctionPaths: Array<
+    NodePath<t.FunctionExpression | t.ArrowFunctionExpression>
+  > = [];
 
   if (initPath.isFunctionExpression() || initPath.isArrowFunctionExpression()) {
     helperFunctionPaths.push(initPath);
@@ -291,7 +343,9 @@ function renameKnownTsHelperInternals(
   });
 
   for (const helperPath of helperFunctionPaths) {
-    const signatureIndex = remainingSignatures.findIndex(signature => signature.length === helperPath.node.params.length);
+    const signatureIndex = remainingSignatures.findIndex(
+      (signature) => signature.length === helperPath.node.params.length,
+    );
     if (signatureIndex === -1) {
       continue;
     }
@@ -304,7 +358,9 @@ function renameKnownTsHelperInternals(
   }
 }
 
-function renameTsHelperAliases(factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>): void {
+function renameTsHelperAliases(
+  factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>,
+): void {
   factoryPath.traverse({
     VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
       if (path.getFunctionParent() !== factoryPath) {
@@ -341,7 +397,9 @@ function toLowerCamelCase(value: string): string {
   }
 
   return parts
-    .map((part, index) => (index === 0 ? part : `${part[0]!.toUpperCase()}${part.slice(1)}`))
+    .map((part, index) =>
+      index === 0 ? part : `${part[0]!.toUpperCase()}${part.slice(1)}`,
+    )
     .join("");
 }
 
@@ -353,7 +411,10 @@ function isUsefulReadableName(name: string): boolean {
   return isReadableIdentifier(name) && /[A-Za-z]/.test(name);
 }
 
-function normalizePropertyName(node: t.Expression | t.PrivateName, computed: boolean): string | undefined {
+function normalizePropertyName(
+  node: t.Expression | t.PrivateName,
+  computed: boolean,
+): string | undefined {
   if (t.isIdentifier(node) && !computed) {
     return node.name;
   }
@@ -366,11 +427,17 @@ function normalizePropertyName(node: t.Expression | t.PrivateName, computed: boo
   return undefined;
 }
 
-function normalizeModuleId(node: t.Expression | t.PrivateName): { id: string; displayId: string } {
+function normalizeModuleId(node: t.Expression | t.PrivateName): {
+  id: string;
+  displayId: string;
+} {
   if (t.isNumericLiteral(node)) {
     return {
       id: String(node.value),
-      displayId: typeof node.extra?.raw === "string" ? node.extra.raw : String(node.value),
+      displayId:
+        typeof node.extra?.raw === "string"
+          ? node.extra.raw
+          : String(node.value),
     };
   }
 
@@ -395,8 +462,12 @@ function parseFactoryFile(factorySource: string): t.File {
   return parseFile(`(${factorySource});`);
 }
 
-function findFactoryPath(ast: t.File): NodePath<t.FunctionExpression | t.ArrowFunctionExpression> {
-  let factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression> | undefined;
+function findFactoryPath(
+  ast: t.File,
+): NodePath<t.FunctionExpression | t.ArrowFunctionExpression> {
+  let factoryPath:
+    | NodePath<t.FunctionExpression | t.ArrowFunctionExpression>
+    | undefined;
 
   traverse(ast, {
     FunctionExpression(path: NodePath<t.FunctionExpression>) {
@@ -420,7 +491,11 @@ function findFactoryPath(ast: t.File): NodePath<t.FunctionExpression | t.ArrowFu
   return factoryPath;
 }
 
-function createAvailableName(factoryPath: RenameableFunctionPath, preferredName: string, oldName: string): string {
+function createAvailableName(
+  factoryPath: RenameableFunctionPath,
+  preferredName: string,
+  oldName: string,
+): string {
   if (preferredName === oldName) {
     return preferredName;
   }
@@ -436,7 +511,11 @@ function createAvailableName(factoryPath: RenameableFunctionPath, preferredName:
   return candidate;
 }
 
-function renameBinding(factoryPath: RenameableFunctionPath, oldName: string, preferredName: string): string {
+function renameBinding(
+  factoryPath: RenameableFunctionPath,
+  oldName: string,
+  preferredName: string,
+): string {
   const targetName = createAvailableName(factoryPath, preferredName, oldName);
   if (targetName !== oldName) {
     factoryPath.scope.rename(oldName, targetName);
@@ -444,35 +523,53 @@ function renameBinding(factoryPath: RenameableFunctionPath, oldName: string, pre
   return targetName;
 }
 
-function renameFactoryParameters(factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>): string[] {
+function renameFactoryParameters(
+  factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>,
+): string[] {
   const canonicalNames = ["module", "exports", "require"];
 
-  return factoryPath.node.params.map((parameter: t.FunctionExpression["params"][number], index: number) => {
-    if (!t.isIdentifier(parameter)) {
-      return `<param-${index}>`;
-    }
+  return factoryPath.node.params.map(
+    (parameter: t.FunctionExpression["params"][number], index: number) => {
+      if (!t.isIdentifier(parameter)) {
+        return `<param-${index}>`;
+      }
 
-    const preferredName = canonicalNames[index];
-    if (preferredName === undefined) {
-      return parameter.name;
-    }
+      const preferredName = canonicalNames[index];
+      if (preferredName === undefined) {
+        return parameter.name;
+      }
 
-    return renameBinding(factoryPath, parameter.name, preferredName);
-  });
+      return renameBinding(factoryPath, parameter.name, preferredName);
+    },
+  );
 }
 
-function isExportsMember(node: t.LVal | t.Expression, exportsName: string): node is t.MemberExpression {
-  return t.isMemberExpression(node) && t.isIdentifier(node.object, {
-    name: exportsName,
-  });
+function isExportsMember(
+  node: t.LVal | t.Expression,
+  exportsName: string,
+): node is t.MemberExpression {
+  return (
+    t.isMemberExpression(node) &&
+    t.isIdentifier(node.object, {
+      name: exportsName,
+    })
+  );
 }
 
-function isModuleExportsMember(node: t.LVal | t.Expression, moduleName: string): node is t.MemberExpression {
-  return t.isMemberExpression(node) && t.isIdentifier(node.object, {
-    name: moduleName,
-  }) && t.isIdentifier(node.property, {
-    name: "exports",
-  }) && !node.computed;
+function isModuleExportsMember(
+  node: t.LVal | t.Expression,
+  moduleName: string,
+): node is t.MemberExpression {
+  return (
+    t.isMemberExpression(node) &&
+    t.isIdentifier(node.object, {
+      name: moduleName,
+    }) &&
+    t.isIdentifier(node.property, {
+      name: "exports",
+    }) &&
+    !node.computed
+  );
 }
 
 function extractAssignedIdentifier(node: t.Expression): string | undefined {
@@ -487,12 +584,17 @@ function extractAssignedIdentifier(node: t.Expression): string | undefined {
     return extractAssignedIdentifier(node.right);
   }
 
-  if ((t.isFunctionExpression(node) || t.isClassExpression(node)) && t.isIdentifier(node.id)) {
+  if (
+    (t.isFunctionExpression(node) || t.isClassExpression(node)) &&
+    t.isIdentifier(node.id)
+  ) {
     return node.id.name;
   }
 
   if (t.isSequenceExpression(node) && node.expressions.length > 0) {
-    return extractAssignedIdentifier(node.expressions[node.expressions.length - 1]!);
+    return extractAssignedIdentifier(
+      node.expressions[node.expressions.length - 1]!,
+    );
   }
 
   if (t.isParenthesizedExpression(node)) {
@@ -502,7 +604,9 @@ function extractAssignedIdentifier(node: t.Expression): string | undefined {
   return undefined;
 }
 
-function extractReturnedIdentifier(node: t.Expression | null | undefined): string | undefined {
+function extractReturnedIdentifier(
+  node: t.Expression | null | undefined,
+): string | undefined {
   if (node == null) {
     return undefined;
   }
@@ -513,7 +617,9 @@ function extractReturnedIdentifier(node: t.Expression | null | undefined): strin
   }
 
   if (t.isSequenceExpression(expression) && expression.expressions.length > 0) {
-    return extractReturnedIdentifier(expression.expressions[expression.expressions.length - 1]);
+    return extractReturnedIdentifier(
+      expression.expressions[expression.expressions.length - 1],
+    );
   }
 
   return extractAssignedIdentifier(expression);
@@ -530,7 +636,11 @@ function extractNamespaceWrapperInfo(
 
   const left = unwrapTransparentExpression(expression.left);
   const right = unwrapTransparentExpression(expression.right);
-  if (!t.isIdentifier(left) || !t.isAssignmentExpression(right) || right.operator !== "=") {
+  if (
+    !t.isIdentifier(left) ||
+    !t.isAssignmentExpression(right) ||
+    right.operator !== "="
+  ) {
     return undefined;
   }
 
@@ -538,7 +648,10 @@ function extractNamespaceWrapperInfo(
     return undefined;
   }
 
-  const exportName = normalizePropertyName(right.left.property, right.left.computed);
+  const exportName = normalizePropertyName(
+    right.left.property,
+    right.left.computed,
+  );
   if (exportName === undefined || !isReadableIdentifier(exportName)) {
     return undefined;
   }
@@ -556,7 +669,14 @@ function extractNamespaceWrapperInfo(
 
 function getReturnedFunctionBindingPath(
   path: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>,
-): { returnedIdentifier: string; functionPath: NodePath<t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression> } | undefined {
+):
+  | {
+      returnedIdentifier: string;
+      functionPath: NodePath<
+        t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression
+      >;
+    }
+  | undefined {
   if (!path.get("body").isBlockStatement()) {
     return undefined;
   }
@@ -593,7 +713,10 @@ function getReturnedFunctionBindingPath(
 
   if (binding.path.isVariableDeclarator()) {
     const initPath = binding.path.get("init");
-    if (initPath.isFunctionExpression() || initPath.isArrowFunctionExpression()) {
+    if (
+      initPath.isFunctionExpression() ||
+      initPath.isArrowFunctionExpression()
+    ) {
       return {
         returnedIdentifier,
         functionPath: initPath,
@@ -604,27 +727,45 @@ function getReturnedFunctionBindingPath(
   return undefined;
 }
 
-function isBaseCtorSelfAlias(node: t.Expression | null | undefined, baseCtorName: string): boolean {
+function isBaseCtorSelfAlias(
+  node: t.Expression | null | undefined,
+  baseCtorName: string,
+): boolean {
   if (node == null) {
     return false;
   }
 
   const expression = unwrapTransparentExpression(node);
-  if (!t.isLogicalExpression(expression) || expression.operator !== "||" || !t.isThisExpression(expression.right)) {
+  if (
+    !t.isLogicalExpression(expression) ||
+    expression.operator !== "||" ||
+    !t.isThisExpression(expression.right)
+  ) {
     return false;
   }
 
   const left = unwrapTransparentExpression(expression.left);
-  if (!t.isCallExpression(left) || !t.isMemberExpression(left.callee) || left.callee.computed) {
+  if (
+    !t.isCallExpression(left) ||
+    !t.isMemberExpression(left.callee) ||
+    left.callee.computed
+  ) {
     return false;
   }
 
-  if (!t.isIdentifier(left.callee.object, { name: baseCtorName }) || !t.isIdentifier(left.callee.property, { name: "call" })) {
+  if (
+    !t.isIdentifier(left.callee.object, { name: baseCtorName }) ||
+    !t.isIdentifier(left.callee.property, { name: "call" })
+  ) {
     return false;
   }
 
   const [firstArgument] = left.arguments;
-  if (firstArgument === undefined || t.isSpreadElement(firstArgument) || !t.isThisExpression(firstArgument)) {
+  if (
+    firstArgument === undefined ||
+    t.isSpreadElement(firstArgument) ||
+    !t.isThisExpression(firstArgument)
+  ) {
     return false;
   }
 
@@ -632,7 +773,9 @@ function isBaseCtorSelfAlias(node: t.Expression | null | undefined, baseCtorName
 }
 
 function renameImmediateSelfAlias(
-  functionPath: NodePath<t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression>,
+  functionPath: NodePath<
+    t.FunctionDeclaration | t.FunctionExpression | t.ArrowFunctionExpression
+  >,
   baseCtorName: string,
 ): boolean {
   let renamed = false;
@@ -643,7 +786,10 @@ function renameImmediateSelfAlias(
         return;
       }
 
-      if (!t.isIdentifier(path.node.id) || !OBFUSCATED_IDENTIFIER_RE.test(path.node.id.name)) {
+      if (
+        !t.isIdentifier(path.node.id) ||
+        !OBFUSCATED_IDENTIFIER_RE.test(path.node.id.name)
+      ) {
         return;
       }
 
@@ -660,7 +806,9 @@ function renameImmediateSelfAlias(
   return renamed;
 }
 
-function normalizeUnaryIifeExpression(path: NodePath<t.CallExpression>): boolean {
+function normalizeUnaryIifeExpression(
+  path: NodePath<t.CallExpression>,
+): boolean {
   const parentPath = path.parentPath;
   if (!parentPath.isUnaryExpression({ operator: "!" })) {
     return false;
@@ -692,17 +840,23 @@ function expandReturnedSequenceIntoStatements(
       }
 
       const expression = unwrapTransparentExpression(argument);
-      if (!t.isSequenceExpression(expression) || expression.expressions.length < 2) {
+      if (
+        !t.isSequenceExpression(expression) ||
+        expression.expressions.length < 2
+      ) {
         return;
       }
 
-      const finalExpression = expression.expressions[expression.expressions.length - 1]!;
+      const finalExpression =
+        expression.expressions[expression.expressions.length - 1]!;
       if (!t.isIdentifier(finalExpression, { name: returnedIdentifier })) {
         return;
       }
 
       returnPath.replaceWithMultiple([
-        ...expression.expressions.slice(0, -1).map(currentExpression => t.expressionStatement(currentExpression)),
+        ...expression.expressions
+          .slice(0, -1)
+          .map((currentExpression) => t.expressionStatement(currentExpression)),
         t.returnStatement(finalExpression),
       ]);
       expanded = true;
@@ -722,16 +876,26 @@ function normalizeNamespaceWrapperShells(
   factoryPath.traverse({
     CallExpression(path: NodePath<t.CallExpression>) {
       const calleePath = path.get("callee");
-      if (!calleePath.isFunctionExpression() && !calleePath.isArrowFunctionExpression()) {
+      if (
+        !calleePath.isFunctionExpression() &&
+        !calleePath.isArrowFunctionExpression()
+      ) {
         return;
       }
 
       const [firstArgument] = path.node.arguments;
-      if (firstArgument === undefined || t.isSpreadElement(firstArgument) || !t.isExpression(firstArgument)) {
+      if (
+        firstArgument === undefined ||
+        t.isSpreadElement(firstArgument) ||
+        !t.isExpression(firstArgument)
+      ) {
         return;
       }
 
-      const namespaceInfo = extractNamespaceWrapperInfo(firstArgument, exportsName);
+      const namespaceInfo = extractNamespaceWrapperInfo(
+        firstArgument,
+        exportsName,
+      );
       if (namespaceInfo === undefined) {
         return;
       }
@@ -745,7 +909,13 @@ function normalizeNamespaceWrapperShells(
 
       let normalized = false;
       const originalParameterName = firstParameter.name;
-      if (renameBinding(calleePath, originalParameterName, namespaceInfo.exportName) !== originalParameterName) {
+      if (
+        renameBinding(
+          calleePath,
+          originalParameterName,
+          namespaceInfo.exportName,
+        ) !== originalParameterName
+      ) {
         shellMetrics.structuralTransformCount += 1;
         normalized = true;
       }
@@ -764,7 +934,9 @@ function normalizeNamespaceWrapperShells(
   return shellMetrics;
 }
 
-function normalizeExportedClassShells(factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>): ModuleShellMetrics {
+function normalizeExportedClassShells(
+  factoryPath: NodePath<t.FunctionExpression | t.ArrowFunctionExpression>,
+): ModuleShellMetrics {
   const shellMetrics = createEmptyShellMetrics();
 
   factoryPath.traverse({
@@ -783,11 +955,15 @@ function normalizeExportedClassShells(factoryPath: NodePath<t.FunctionExpression
       }
 
       const calleePath = initPath.get("callee");
-      if (!calleePath.isFunctionExpression() && !calleePath.isArrowFunctionExpression()) {
+      if (
+        !calleePath.isFunctionExpression() &&
+        !calleePath.isArrowFunctionExpression()
+      ) {
         return;
       }
 
-      const returnedFunctionBinding = getReturnedFunctionBindingPath(calleePath);
+      const returnedFunctionBinding =
+        getReturnedFunctionBindingPath(calleePath);
       if (returnedFunctionBinding === undefined) {
         return;
       }
@@ -796,8 +972,16 @@ function normalizeExportedClassShells(factoryPath: NodePath<t.FunctionExpression
 
       let normalized = false;
       let classBindingName = returnedFunctionBinding.returnedIdentifier;
-      if (OBFUSCATED_IDENTIFIER_RE.test(returnedFunctionBinding.returnedIdentifier)) {
-        classBindingName = renameBinding(calleePath, returnedFunctionBinding.returnedIdentifier, path.node.id.name);
+      if (
+        OBFUSCATED_IDENTIFIER_RE.test(
+          returnedFunctionBinding.returnedIdentifier,
+        )
+      ) {
+        classBindingName = renameBinding(
+          calleePath,
+          returnedFunctionBinding.returnedIdentifier,
+          path.node.id.name,
+        );
         if (classBindingName !== returnedFunctionBinding.returnedIdentifier) {
           shellMetrics.structuralTransformCount += 1;
           normalized = true;
@@ -806,10 +990,20 @@ function normalizeExportedClassShells(factoryPath: NodePath<t.FunctionExpression
 
       let baseCtorName: string | undefined;
       const [firstParameter] = calleePath.node.params;
-      if (calleePath.node.params.length === 1 && t.isIdentifier(firstParameter)) {
+      if (
+        calleePath.node.params.length === 1 &&
+        t.isIdentifier(firstParameter)
+      ) {
         const originalParameterName = firstParameter.name;
-        if (OBFUSCATED_IDENTIFIER_RE.test(firstParameter.name) || !isReadableIdentifier(firstParameter.name)) {
-          baseCtorName = renameBinding(calleePath, firstParameter.name, "baseCtor");
+        if (
+          OBFUSCATED_IDENTIFIER_RE.test(firstParameter.name) ||
+          !isReadableIdentifier(firstParameter.name)
+        ) {
+          baseCtorName = renameBinding(
+            calleePath,
+            firstParameter.name,
+            "baseCtor",
+          );
           if (baseCtorName !== originalParameterName) {
             shellMetrics.structuralTransformCount += 1;
             normalized = true;
@@ -819,7 +1013,13 @@ function normalizeExportedClassShells(factoryPath: NodePath<t.FunctionExpression
         }
       }
 
-      if (baseCtorName !== undefined && renameImmediateSelfAlias(returnedFunctionBinding.functionPath, baseCtorName)) {
+      if (
+        baseCtorName !== undefined &&
+        renameImmediateSelfAlias(
+          returnedFunctionBinding.functionPath,
+          baseCtorName,
+        )
+      ) {
         shellMetrics.structuralTransformCount += 1;
         normalized = true;
       }
@@ -843,12 +1043,18 @@ function normalizeExportedShells(
   exportsName: string,
 ): ModuleShellMetrics {
   const shellMetrics = createEmptyShellMetrics();
-  mergeShellMetrics(shellMetrics, normalizeNamespaceWrapperShells(factoryPath, exportsName));
+  mergeShellMetrics(
+    shellMetrics,
+    normalizeNamespaceWrapperShells(factoryPath, exportsName),
+  );
   mergeShellMetrics(shellMetrics, normalizeExportedClassShells(factoryPath));
   return shellMetrics;
 }
 
-function extractRequireTarget(node: t.Node, requireName: string): { moduleId: string; importStyle: ModuleImportStyle } | undefined {
+function extractRequireTarget(
+  node: t.Node,
+  requireName: string,
+): { moduleId: string; importStyle: ModuleImportStyle } | undefined {
   if (!t.isCallExpression(node)) {
     return undefined;
   }
@@ -888,7 +1094,11 @@ function extractRequireTarget(node: t.Node, requireName: string): { moduleId: st
   return undefined;
 }
 
-function inferReadableName(exportNames: string[], hasDefaultExport: boolean, defaultExportName?: string): string | undefined {
+function inferReadableName(
+  exportNames: string[],
+  hasDefaultExport: boolean,
+  defaultExportName?: string,
+): string | undefined {
   const readableExports = exportNames.filter(isUsefulReadableName);
 
   if (readableExports.length === 1) {
@@ -896,13 +1106,19 @@ function inferReadableName(exportNames: string[], hasDefaultExport: boolean, def
   }
 
   if (readableExports.length > 1) {
-    const pascalCaseExports = readableExports.filter(name => /^[A-Z]/.test(name));
+    const pascalCaseExports = readableExports.filter((name) =>
+      /^[A-Z]/.test(name),
+    );
     if (pascalCaseExports.length === 1) {
       return pascalCaseExports[0];
     }
   }
 
-  if (hasDefaultExport && defaultExportName !== undefined && isUsefulReadableName(defaultExportName)) {
+  if (
+    hasDefaultExport &&
+    defaultExportName !== undefined &&
+    isUsefulReadableName(defaultExportName)
+  ) {
     return defaultExportName;
   }
 
@@ -927,7 +1143,10 @@ function createEmptyShellMetrics(): ModuleShellMetrics {
   };
 }
 
-function mergeShellMetrics(target: ModuleShellMetrics, source: ModuleShellMetrics): void {
+function mergeShellMetrics(
+  target: ModuleShellMetrics,
+  source: ModuleShellMetrics,
+): void {
   target.namespaceShellCount += source.namespaceShellCount;
   target.normalizedNamespaceShellCount += source.normalizedNamespaceShellCount;
   target.classShellCount += source.classShellCount;
@@ -955,13 +1174,18 @@ function computeNamedGameHotspotScoreFromCounts(
     return undefined;
   }
 
-  const obfuscatedIdentifierDelta = rawObfuscatedIdentifierCount - transformedObfuscatedIdentifierCount;
-  return transformedObfuscatedIdentifierCount
-    + Math.floor(obfuscatedIdentifierDelta / 2)
-    + shellMetrics.structuralTransformCount * 25;
+  const obfuscatedIdentifierDelta =
+    rawObfuscatedIdentifierCount - transformedObfuscatedIdentifierCount;
+  return (
+    transformedObfuscatedIdentifierCount +
+    Math.floor(obfuscatedIdentifierDelta / 2) +
+    shellMetrics.structuralTransformCount * 25
+  );
 }
 
-function computeNamedGameHotspotScore(module: ModuleArtifact): number | undefined {
+function computeNamedGameHotspotScore(
+  module: ModuleArtifact,
+): number | undefined {
   return computeNamedGameHotspotScoreFromCounts(
     module.moduleKind,
     module.readableName,
@@ -980,15 +1204,23 @@ function selectCleanupTier(
     return "none";
   }
 
-  if (preliminaryHotspotScore !== undefined && preliminaryHotspotScore >= PRIORITY_BODY_HOTSPOT_SCORE_THRESHOLD) {
+  if (
+    preliminaryHotspotScore !== undefined &&
+    preliminaryHotspotScore >= PRIORITY_BODY_HOTSPOT_SCORE_THRESHOLD
+  ) {
     return "priority-body";
   }
 
   return "named-game";
 }
 
-function getBeforeHotspotObfuscatedIdentifierCount(module: ModuleArtifact): number {
-  return module.hotspotCleanup?.beforeObfuscatedIdentifierCount ?? module.transformedObfuscatedIdentifierCount;
+function getBeforeHotspotObfuscatedIdentifierCount(
+  module: ModuleArtifact,
+): number {
+  return (
+    module.hotspotCleanup?.beforeObfuscatedIdentifierCount ??
+    module.transformedObfuscatedIdentifierCount
+  );
 }
 
 function getBeforeHotspotScore(module: ModuleArtifact): number | undefined {
@@ -1009,7 +1241,9 @@ function toNamedGameHotspotSummary(
   } = {},
 ): NamedGameHotspotSummary | undefined {
   const hotspotScore = options.hotspotScore ?? module.hotspotScore;
-  const obfuscatedIdentifierCount = options.obfuscatedIdentifierCount ?? module.transformedObfuscatedIdentifierCount;
+  const obfuscatedIdentifierCount =
+    options.obfuscatedIdentifierCount ??
+    module.transformedObfuscatedIdentifierCount;
   if (module.readableName === undefined || hotspotScore === undefined) {
     return undefined;
   }
@@ -1020,13 +1254,19 @@ function toNamedGameHotspotSummary(
     fileName: module.fileName,
     hotspotScore,
     obfuscatedIdentifierCount,
-    obfuscatedIdentifierDelta: module.rawObfuscatedIdentifierCount - obfuscatedIdentifierCount,
+    obfuscatedIdentifierDelta:
+      module.rawObfuscatedIdentifierCount - obfuscatedIdentifierCount,
     structuralTransformCount: module.shellMetrics.structuralTransformCount,
   };
 }
 
-function toHotspotDeltaReportEntry(module: ModuleArtifact): HotspotDeltaReportEntry | undefined {
-  if (module.readableName === undefined || module.hotspotCleanup === undefined) {
+function toHotspotDeltaReportEntry(
+  module: ModuleArtifact,
+): HotspotDeltaReportEntry | undefined {
+  if (
+    module.readableName === undefined ||
+    module.hotspotCleanup === undefined
+  ) {
     return undefined;
   }
 
@@ -1042,8 +1282,10 @@ function toHotspotDeltaReportEntry(module: ModuleArtifact): HotspotDeltaReportEn
     fileName: module.fileName,
     beforeHotspotScore,
     afterHotspotScore,
-    beforeObfuscatedIdentifierCount: module.hotspotCleanup.beforeObfuscatedIdentifierCount,
-    afterObfuscatedIdentifierCount: module.hotspotCleanup.afterObfuscatedIdentifierCount,
+    beforeObfuscatedIdentifierCount:
+      module.hotspotCleanup.beforeObfuscatedIdentifierCount,
+    afterObfuscatedIdentifierCount:
+      module.hotspotCleanup.afterObfuscatedIdentifierCount,
     obfuscatedIdentifierDelta: module.hotspotCleanup.obfuscatedIdentifierDelta,
     localRenameCount: module.hotspotCleanup.localRenameCount,
     bodyNormalizationCount: module.hotspotCleanup.bodyNormalizationCount,
@@ -1051,9 +1293,11 @@ function toHotspotDeltaReportEntry(module: ModuleArtifact): HotspotDeltaReportEn
 }
 
 function classifyModuleKind(module: ModuleClassificationInput): ModuleKind {
-  const ownNames = [module.readableName, ...module.exportNames].filter((name): name is string => name !== undefined);
+  const ownNames = [module.readableName, ...module.exportNames].filter(
+    (name): name is string => name !== undefined,
+  );
   const dependencyNames = module.dependencies
-    .map(dependency => dependency.readableName)
+    .map((dependency) => dependency.readableName)
     .filter((name): name is string => name !== undefined);
   const uniqueDependencyNames = [...new Set(dependencyNames)];
 
@@ -1082,11 +1326,21 @@ function classifyModuleKind(module: ModuleClassificationInput): ModuleKind {
   gameScore += countMarkerHits(module.source, GAME_SOURCE_MARKERS) * 2;
   vendorScore += countMarkerHits(module.source, VENDOR_SOURCE_MARKERS) * 2;
 
-  if (ownNames.length === 0 && module.exportNames.length === 0 && vendorScore > 0 && gameScore === 0) {
+  if (
+    ownNames.length === 0 &&
+    module.exportNames.length === 0 &&
+    vendorScore > 0 &&
+    gameScore === 0
+  ) {
     vendorScore += 2;
   }
 
-  if (module.readableName === undefined && uniqueDependencyNames.length === 0 && vendorScore === 0 && gameScore === 0) {
+  if (
+    module.readableName === undefined &&
+    uniqueDependencyNames.length === 0 &&
+    vendorScore === 0 &&
+    gameScore === 0
+  ) {
     vendorScore += 1;
   }
 
@@ -1102,15 +1356,15 @@ function classifyModuleKind(module: ModuleClassificationInput): ModuleKind {
     return "vendor";
   }
 
-  if (ownNames.some(name => GAME_NAME_RE.test(name))) {
+  if (ownNames.some((name) => GAME_NAME_RE.test(name))) {
     return "game";
   }
 
-  if (ownNames.some(name => HELPER_NAME_RE.test(name))) {
+  if (ownNames.some((name) => HELPER_NAME_RE.test(name))) {
     return "helper";
   }
 
-  if (uniqueDependencyNames.some(name => GAME_NAME_RE.test(name))) {
+  if (uniqueDependencyNames.some((name) => GAME_NAME_RE.test(name))) {
     return "game";
   }
 
@@ -1118,24 +1372,34 @@ function classifyModuleKind(module: ModuleClassificationInput): ModuleKind {
 }
 
 function buildModuleFileName(moduleId: string, readableName?: string): string {
-  const readableSlugValue = readableName === undefined ? "" : slugify(readableName);
-  const readableSlug = readableSlugValue.length === 0 ? "" : `-${readableSlugValue}`;
+  const readableSlugValue =
+    readableName === undefined ? "" : slugify(readableName);
+  const readableSlug =
+    readableSlugValue.length === 0 ? "" : `-${readableSlugValue}`;
   return `module-${moduleId}${readableSlug}.js`;
 }
 
 function generateFactorySource(ast: t.File): string {
   const expressionStatement = ast.program.body[0];
   if (!t.isExpressionStatement(expressionStatement)) {
-    throw new Error("Expected the factory AST to contain a single expression statement");
+    throw new Error(
+      "Expected the factory AST to contain a single expression statement",
+    );
   }
 
-  return formatJavaScript(generate(expressionStatement.expression, {
-    compact: false,
-    comments: true,
-  }).code);
+  return formatJavaScript(
+    generate(expressionStatement.expression, {
+      compact: false,
+      comments: true,
+    }).code,
+  );
 }
 
-function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: string): FirstPassModuleRecord {
+function analyzeModuleFirstPass(
+  moduleId: string,
+  displayId: string,
+  rawSource: string,
+): FirstPassModuleRecord {
   const rawObfuscatedIdentifierCount = countObfuscatedIdentifiers(rawSource);
   const ast = parseFactoryFile(rawSource);
   const factoryPath = findFactoryPath(ast);
@@ -1147,7 +1411,10 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
   const requireName = canonicalParameterNames[2] ?? "require";
 
   const exportNames = new Set<string>();
-  const namespaceRenameCandidates: Array<{ bindingName: string; exportName: string }> = [];
+  const namespaceRenameCandidates: Array<{
+    bindingName: string;
+    exportName: string;
+  }> = [];
   const dependencies: DependencyCapture[] = [];
   let hasDefaultExport = false;
   let defaultExportName: string | undefined;
@@ -1170,7 +1437,10 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
     },
     AssignmentExpression(path: NodePath<t.AssignmentExpression>) {
       if (isExportsMember(path.node.left, exportsName)) {
-        const exportName = normalizePropertyName(path.node.left.property, path.node.left.computed);
+        const exportName = normalizePropertyName(
+          path.node.left.property,
+          path.node.left.computed,
+        );
         if (exportName === undefined || exportName === "__esModule") {
           return;
         }
@@ -1182,7 +1452,11 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
         }
 
         const assignedIdentifier = extractAssignedIdentifier(path.node.right);
-        if (assignedIdentifier !== undefined && OBFUSCATED_IDENTIFIER_RE.test(assignedIdentifier) && isReadableIdentifier(exportName)) {
+        if (
+          assignedIdentifier !== undefined &&
+          OBFUSCATED_IDENTIFIER_RE.test(assignedIdentifier) &&
+          isReadableIdentifier(exportName)
+        ) {
           namespaceRenameCandidates.push({
             bindingName: assignedIdentifier,
             exportName,
@@ -1197,7 +1471,11 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
       }
 
       hasDefaultExport = true;
-      if ((t.isFunctionExpression(path.node.right) || t.isClassExpression(path.node.right)) && t.isIdentifier(path.node.right.id)) {
+      if (
+        (t.isFunctionExpression(path.node.right) ||
+          t.isClassExpression(path.node.right)) &&
+        t.isIdentifier(path.node.right.id)
+      ) {
         defaultExportName = path.node.right.id.name;
       }
     },
@@ -1208,12 +1486,19 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
       if (!t.isIdentifier(path.node.callee.object, { name: "Object" })) {
         return;
       }
-      if (!t.isIdentifier(path.node.callee.property, { name: "defineProperty" })) {
+      if (
+        !t.isIdentifier(path.node.callee.property, { name: "defineProperty" })
+      ) {
         return;
       }
 
       const [target, property] = path.node.arguments;
-      if (target === undefined || property === undefined || t.isSpreadElement(target) || t.isSpreadElement(property)) {
+      if (
+        target === undefined ||
+        property === undefined ||
+        t.isSpreadElement(target) ||
+        t.isSpreadElement(property)
+      ) {
         return;
       }
 
@@ -1221,7 +1506,11 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
         return;
       }
 
-      if (t.isStringLiteral(property) && property.value !== "__esModule" && property.value !== "default") {
+      if (
+        t.isStringLiteral(property) &&
+        property.value !== "__esModule" &&
+        property.value !== "default"
+      ) {
         exportNames.add(property.value);
       }
     },
@@ -1242,8 +1531,14 @@ function analyzeModuleFirstPass(moduleId: string, displayId: string, rawSource: 
     displayId,
     rawSource,
     firstPassSource,
-    exportNames: [...exportNames].sort((left, right) => left.localeCompare(right)),
-    readableName: inferReadableName([...exportNames], hasDefaultExport, defaultExportName),
+    exportNames: [...exportNames].sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    readableName: inferReadableName(
+      [...exportNames],
+      hasDefaultExport,
+      defaultExportName,
+    ),
     hasDefaultExport,
     canonicalParameterNames,
     rawObfuscatedIdentifierCount,
@@ -1256,8 +1551,13 @@ function buildDependencyAlias(moduleReadableName: string): string {
   return `${toLowerCamelCase(moduleReadableName)}Module`;
 }
 
-function isLegacySequenceIfSplitTarget(readableName: string | undefined): readableName is string {
-  return readableName !== undefined && LEGACY_SEQUENCE_IF_SPLIT_TARGETS.has(readableName);
+function isLegacySequenceIfSplitTarget(
+  readableName: string | undefined,
+): readableName is string {
+  return (
+    readableName !== undefined &&
+    LEGACY_SEQUENCE_IF_SPLIT_TARGETS.has(readableName)
+  );
 }
 
 function isThisOrSelfExpression(node: t.Expression | t.PrivateName): boolean {
@@ -1272,7 +1572,10 @@ function flattenSequenceExpressions(expression: t.Expression): t.Expression[] {
   return [expression];
 }
 
-function replaceStatementWithMany(path: NodePath<t.Statement>, statements: t.Statement[]): void {
+function replaceStatementWithMany(
+  path: NodePath<t.Statement>,
+  statements: t.Statement[],
+): void {
   if (statements.length === 0) {
     return;
   }
@@ -1290,7 +1593,11 @@ function replaceStatementWithMany(path: NodePath<t.Statement>, statements: t.Sta
 
 function toPropertyBindingName(propertyName: string): string | undefined {
   const normalized = propertyName.replace(/^_+/, "");
-  if (normalized.length <= 1 || !isReadableIdentifier(normalized) || !/[A-Za-z]/.test(normalized)) {
+  if (
+    normalized.length <= 1 ||
+    !isReadableIdentifier(normalized) ||
+    !/[A-Za-z]/.test(normalized)
+  ) {
     return undefined;
   }
 
@@ -1307,7 +1614,11 @@ function toCollectionItemBindingName(propertyName: string): string | undefined {
     return `${bindingName.slice(0, -3)}y`;
   }
 
-  if (bindingName.endsWith("s") && !bindingName.endsWith("ss") && bindingName.length > 1) {
+  if (
+    bindingName.endsWith("s") &&
+    !bindingName.endsWith("ss") &&
+    bindingName.length > 1
+  ) {
     return bindingName.slice(0, -1);
   }
 
@@ -1334,23 +1645,38 @@ function toMethodResultBindingName(methodName: string): string | undefined {
   return bindingName;
 }
 
-function deriveBindingNameFromMemberExpression(expression: t.MemberExpression): string | undefined {
+function deriveBindingNameFromMemberExpression(
+  expression: t.MemberExpression,
+): string | undefined {
   if (isThisOrSelfExpression(expression.object)) {
-    const propertyName = normalizePropertyName(expression.property, expression.computed);
+    const propertyName = normalizePropertyName(
+      expression.property,
+      expression.computed,
+    );
     if (propertyName !== undefined) {
       return toPropertyBindingName(propertyName);
     }
   }
 
-  if (expression.computed && t.isMemberExpression(expression.object) && isThisOrSelfExpression(expression.object.object)) {
-    const propertyName = normalizePropertyName(expression.object.property, expression.object.computed);
+  if (
+    expression.computed &&
+    t.isMemberExpression(expression.object) &&
+    isThisOrSelfExpression(expression.object.object)
+  ) {
+    const propertyName = normalizePropertyName(
+      expression.object.property,
+      expression.object.computed,
+    );
     if (propertyName !== undefined) {
       return toCollectionItemBindingName(propertyName);
     }
   }
 
   if (t.isIdentifier(expression.object) && !expression.computed) {
-    const propertyName = normalizePropertyName(expression.property, expression.computed);
+    const propertyName = normalizePropertyName(
+      expression.property,
+      expression.computed,
+    );
     if (propertyName !== undefined) {
       return toPropertyBindingName(propertyName);
     }
@@ -1359,7 +1685,9 @@ function deriveBindingNameFromMemberExpression(expression: t.MemberExpression): 
   return undefined;
 }
 
-function deriveBindingNameFromInitializer(initializer: t.Expression | null | undefined): string | undefined {
+function deriveBindingNameFromInitializer(
+  initializer: t.Expression | null | undefined,
+): string | undefined {
   if (initializer === undefined || initializer === null) {
     return undefined;
   }
@@ -1372,8 +1700,14 @@ function deriveBindingNameFromInitializer(initializer: t.Expression | null | und
     return deriveBindingNameFromMemberExpression(initializer);
   }
 
-  if (t.isCallExpression(initializer) && t.isMemberExpression(initializer.callee)) {
-    const propertyName = normalizePropertyName(initializer.callee.property, initializer.callee.computed);
+  if (
+    t.isCallExpression(initializer) &&
+    t.isMemberExpression(initializer.callee)
+  ) {
+    const propertyName = normalizePropertyName(
+      initializer.callee.property,
+      initializer.callee.computed,
+    );
     if (propertyName !== undefined) {
       return toMethodResultBindingName(propertyName);
     }
@@ -1382,11 +1716,13 @@ function deriveBindingNameFromInitializer(initializer: t.Expression | null | und
   return undefined;
 }
 
-function collectHighConfidenceParamCandidates(functionPath: RenameableFunctionPath): Map<string, string> {
+function collectHighConfidenceParamCandidates(
+  functionPath: RenameableFunctionPath,
+): Map<string, string> {
   const paramNames = functionPath.node.params
     .filter((parameter): parameter is t.Identifier => t.isIdentifier(parameter))
-    .map(parameter => parameter.name)
-    .filter(name => OBFUSCATED_IDENTIFIER_RE.test(name));
+    .map((parameter) => parameter.name)
+    .filter((name) => OBFUSCATED_IDENTIFIER_RE.test(name));
 
   if (paramNames.length === 0) {
     return new Map<string, string>();
@@ -1401,7 +1737,10 @@ function collectHighConfidenceParamCandidates(functionPath: RenameableFunctionPa
         return;
       }
 
-      if (!t.isIdentifier(path.node.right) || !paramNameSet.has(path.node.right.name)) {
+      if (
+        !t.isIdentifier(path.node.right) ||
+        !paramNameSet.has(path.node.right.name)
+      ) {
         return;
       }
 
@@ -1409,11 +1748,17 @@ function collectHighConfidenceParamCandidates(functionPath: RenameableFunctionPa
         return;
       }
 
-      if (!t.isThisExpression(path.node.left.object) && !t.isIdentifier(path.node.left.object, { name: "self" })) {
+      if (
+        !t.isThisExpression(path.node.left.object) &&
+        !t.isIdentifier(path.node.left.object, { name: "self" })
+      ) {
         return;
       }
 
-      const propertyName = normalizePropertyName(path.node.left.property, false);
+      const propertyName = normalizePropertyName(
+        path.node.left.property,
+        false,
+      );
       if (propertyName === undefined) {
         return;
       }
@@ -1423,7 +1768,8 @@ function collectHighConfidenceParamCandidates(functionPath: RenameableFunctionPa
         return;
       }
 
-      const existingNames = candidateNames.get(path.node.right.name) ?? new Set<string>();
+      const existingNames =
+        candidateNames.get(path.node.right.name) ?? new Set<string>();
       existingNames.add(bindingName);
       candidateNames.set(path.node.right.name, existingNames);
     },
@@ -1445,7 +1791,9 @@ function collectHighConfidenceParamCandidates(functionPath: RenameableFunctionPa
   return renameCandidates;
 }
 
-function collectHighConfidenceLocalCandidates(functionPath: RenameableFunctionPath): Map<string, string> {
+function collectHighConfidenceLocalCandidates(
+  functionPath: RenameableFunctionPath,
+): Map<string, string> {
   const renameTargets = new Map<string, string>();
 
   functionPath.traverse({
@@ -1454,7 +1802,10 @@ function collectHighConfidenceLocalCandidates(functionPath: RenameableFunctionPa
         return;
       }
 
-      if (!t.isIdentifier(path.node.id) || !OBFUSCATED_IDENTIFIER_RE.test(path.node.id.name)) {
+      if (
+        !t.isIdentifier(path.node.id) ||
+        !OBFUSCATED_IDENTIFIER_RE.test(path.node.id.name)
+      ) {
         return;
       }
 
@@ -1470,12 +1821,17 @@ function collectHighConfidenceLocalCandidates(functionPath: RenameableFunctionPa
   return renameTargets;
 }
 
-function countPreferredNameUsage(candidateMaps: Array<Map<string, string>>): Map<string, number> {
+function countPreferredNameUsage(
+  candidateMaps: Array<Map<string, string>>,
+): Map<string, number> {
   const preferredNameUsage = new Map<string, number>();
 
   for (const candidateMap of candidateMaps) {
     for (const preferredName of candidateMap.values()) {
-      preferredNameUsage.set(preferredName, (preferredNameUsage.get(preferredName) ?? 0) + 1);
+      preferredNameUsage.set(
+        preferredName,
+        (preferredNameUsage.get(preferredName) ?? 0) + 1,
+      );
     }
   }
 
@@ -1489,7 +1845,10 @@ function renameCollectedBindings(
 ): number {
   let renameCount = 0;
   for (const [oldName, preferredName] of renameTargets) {
-    if (preferredNameUsage.get(preferredName) === 1 && renameBinding(functionPath, oldName, preferredName) !== oldName) {
+    if (
+      preferredNameUsage.get(preferredName) === 1 &&
+      renameBinding(functionPath, oldName, preferredName) !== oldName
+    ) {
       renameCount += 1;
     }
   }
@@ -1503,11 +1862,22 @@ function renameHighConfidenceBindings(functionPath: RenameableFunctionPath): {
 } {
   const paramRenameTargets = collectHighConfidenceParamCandidates(functionPath);
   const localRenameTargets = collectHighConfidenceLocalCandidates(functionPath);
-  const preferredNameUsage = countPreferredNameUsage([paramRenameTargets, localRenameTargets]);
+  const preferredNameUsage = countPreferredNameUsage([
+    paramRenameTargets,
+    localRenameTargets,
+  ]);
 
   return {
-    paramRenameCount: renameCollectedBindings(functionPath, paramRenameTargets, preferredNameUsage),
-    localRenameCount: renameCollectedBindings(functionPath, localRenameTargets, preferredNameUsage),
+    paramRenameCount: renameCollectedBindings(
+      functionPath,
+      paramRenameTargets,
+      preferredNameUsage,
+    ),
+    localRenameCount: renameCollectedBindings(
+      functionPath,
+      localRenameTargets,
+      preferredNameUsage,
+    ),
   };
 }
 
@@ -1526,7 +1896,9 @@ function normalizeSequenceExpressionStatements(ast: t.File): number {
 
       replaceStatementWithMany(
         path,
-        expressions.map(expression => t.expressionStatement(t.cloneNode(expression, true))),
+        expressions.map((expression) =>
+          t.expressionStatement(t.cloneNode(expression, true)),
+        ),
       );
       transformCount += 1;
     },
@@ -1554,7 +1926,9 @@ function normalizeSequenceReturnStatements(ast: t.File): number {
       }
 
       replaceStatementWithMany(path, [
-        ...expressions.map(expression => t.expressionStatement(t.cloneNode(expression, true))),
+        ...expressions.map((expression) =>
+          t.expressionStatement(t.cloneNode(expression, true)),
+        ),
         t.returnStatement(t.cloneNode(returnValue, true)),
       ]);
       transformCount += 1;
@@ -1564,7 +1938,10 @@ function normalizeSequenceReturnStatements(ast: t.File): number {
   return transformCount;
 }
 
-function normalizeLegacySequenceIfTests(ast: t.File, readableName?: string): number {
+function normalizeLegacySequenceIfTests(
+  ast: t.File,
+  readableName?: string,
+): number {
   if (!isLegacySequenceIfSplitTarget(readableName)) {
     return 0;
   }
@@ -1588,11 +1965,15 @@ function normalizeLegacySequenceIfTests(ast: t.File, readableName?: string): num
 
       const alternate = path.node.alternate;
       replaceStatementWithMany(path, [
-        ...expressions.map(expression => t.expressionStatement(t.cloneNode(expression, true))),
+        ...expressions.map((expression) =>
+          t.expressionStatement(t.cloneNode(expression, true)),
+        ),
         t.ifStatement(
           t.cloneNode(testExpression, true),
           t.cloneNode(path.node.consequent, true) as t.Statement,
-          alternate == null ? null : t.cloneNode(alternate, true) as t.Statement,
+          alternate == null
+            ? null
+            : (t.cloneNode(alternate, true) as t.Statement),
         ),
       ]);
       transformCount += 1;
@@ -1607,7 +1988,10 @@ function normalizeHexLiterals(ast: t.File): number {
   traverse(ast, {
     NumericLiteral(path: NodePath<t.NumericLiteral>) {
       const raw = path.node.extra?.raw;
-      if (typeof raw !== "string" || !raw.startsWith("0x") && !raw.startsWith("0X")) {
+      if (
+        typeof raw !== "string" ||
+        (!raw.startsWith("0x") && !raw.startsWith("0X"))
+      ) {
         return;
       }
       path.node.extra = { ...path.node.extra, raw: String(path.node.value) };
@@ -1617,7 +2001,11 @@ function normalizeHexLiterals(ast: t.File): number {
   return transformCount;
 }
 
-function pushAppliedRule(appliedRules: CleanupRuleName[], rule: CleanupRuleName, count: number): void {
+function pushAppliedRule(
+  appliedRules: CleanupRuleName[],
+  rule: CleanupRuleName,
+  count: number,
+): void {
   if (count > 0) {
     appliedRules.push(rule);
   }
@@ -1664,7 +2052,8 @@ function applyReadabilityTransforms(
 
   const ast = parseFactoryFile(factorySource);
   const factoryPath = findFactoryPath(ast);
-  const beforeObfuscatedIdentifierCount = countObfuscatedIdentifiers(factorySource);
+  const beforeObfuscatedIdentifierCount =
+    countObfuscatedIdentifiers(factorySource);
   let localRenameCount = 0;
   const appliedRules: CleanupRuleName[] = [];
   let paramRenameCount = 0;
@@ -1709,17 +2098,34 @@ function applyReadabilityTransforms(
   let bodyNormalizationCount = 0;
   const expressionSplitCount = normalizeSequenceExpressionStatements(ast);
   const returnSplitCount = normalizeSequenceReturnStatements(ast);
-  pushAppliedRule(appliedRules, "sequence-expression-split", expressionSplitCount);
+  pushAppliedRule(
+    appliedRules,
+    "sequence-expression-split",
+    expressionSplitCount,
+  );
   pushAppliedRule(appliedRules, "sequence-return-split", returnSplitCount);
   bodyNormalizationCount += expressionSplitCount + returnSplitCount;
 
   if (cleanupTier === "priority-body") {
-    const legacyIfSplitCount = normalizeLegacySequenceIfTests(ast, readableName);
+    const legacyIfSplitCount = normalizeLegacySequenceIfTests(
+      ast,
+      readableName,
+    );
     bodyNormalizationCount += legacyIfSplitCount;
-    pushAppliedRule(appliedRules, "legacy-sequence-if-split", legacyIfSplitCount);
+    pushAppliedRule(
+      appliedRules,
+      "legacy-sequence-if-split",
+      legacyIfSplitCount,
+    );
   }
 
-  const source = localRenameCount > 0 || bodyNormalizationCount > 0 || hexLiteralCount > 0 || enumAnnotationCount > 0 ? generateFactorySource(ast) : factorySource;
+  const source =
+    localRenameCount > 0 ||
+    bodyNormalizationCount > 0 ||
+    hexLiteralCount > 0 ||
+    enumAnnotationCount > 0
+      ? generateFactorySource(ast)
+      : factorySource;
   const afterObfuscatedIdentifierCount = countObfuscatedIdentifiers(source);
 
   return {
@@ -1732,7 +2138,8 @@ function applyReadabilityTransforms(
     hotspotCleanup: {
       beforeObfuscatedIdentifierCount,
       afterObfuscatedIdentifierCount,
-      obfuscatedIdentifierDelta: beforeObfuscatedIdentifierCount - afterObfuscatedIdentifierCount,
+      obfuscatedIdentifierDelta:
+        beforeObfuscatedIdentifierCount - afterObfuscatedIdentifierCount,
       localRenameCount,
       bodyNormalizationCount,
       appliedRules,
@@ -1745,15 +2152,21 @@ function applyDependencyRenames(
   dependencyCaptures: DependencyCapture[],
   moduleNameById: Map<string, string>,
 ): { source: string; dependencies: ModuleDependencySummary[] } {
-  const dependencies: ModuleDependencySummary[] = dependencyCaptures.map(dependency => ({
-    moduleId: dependency.moduleId,
-    readableName: moduleNameById.get(dependency.moduleId),
-    localName: dependency.localName,
-    importStyle: dependency.importStyle,
-  }));
+  const dependencies: ModuleDependencySummary[] = dependencyCaptures.map(
+    (dependency) => ({
+      moduleId: dependency.moduleId,
+      readableName: moduleNameById.get(dependency.moduleId),
+      localName: dependency.localName,
+      importStyle: dependency.importStyle,
+    }),
+  );
 
-  const renameTargets = dependencies.filter(dependency => {
-    return dependency.localName !== undefined && OBFUSCATED_IDENTIFIER_RE.test(dependency.localName) && dependency.readableName !== undefined;
+  const renameTargets = dependencies.filter((dependency) => {
+    return (
+      dependency.localName !== undefined &&
+      OBFUSCATED_IDENTIFIER_RE.test(dependency.localName) &&
+      dependency.readableName !== undefined
+    );
   });
 
   if (renameTargets.length === 0) {
@@ -1774,12 +2187,19 @@ function applyDependencyRenames(
     }
 
     const preferredName = buildDependencyAlias(target.readableName!);
-    const renamedBinding = renameBinding(factoryPath, originalLocalName, preferredName);
+    const renamedBinding = renameBinding(
+      factoryPath,
+      originalLocalName,
+      preferredName,
+    );
     renameMap.set(originalLocalName, renamedBinding);
   }
 
   for (const dependency of dependencies) {
-    if (dependency.localName !== undefined && renameMap.has(dependency.localName)) {
+    if (
+      dependency.localName !== undefined &&
+      renameMap.has(dependency.localName)
+    ) {
       dependency.localName = renameMap.get(dependency.localName);
     }
   }
@@ -1791,32 +2211,48 @@ function applyDependencyRenames(
 }
 
 function createModuleSummary(modules: ModuleArtifact[]): ModuleGraphSummary {
-  const modulesWithNamedExports = modules.filter(module => module.exportNames.length > 0).length;
-  const modulesWithReadableNames = modules.filter(module => module.readableName !== undefined).length;
+  const modulesWithNamedExports = modules.filter(
+    (module) => module.exportNames.length > 0,
+  ).length;
+  const modulesWithReadableNames = modules.filter(
+    (module) => module.readableName !== undefined,
+  ).length;
   const moduleKindCounts = buildModuleKindCounts();
   const shellMetrics = createEmptyShellMetrics();
   const hotspotCleanupTotals = createEmptyHotspotCleanupTotals();
-  const totalDependencies = modules.reduce((count, module) => count + module.dependencies.length, 0);
-  const totalRawObfuscatedIdentifiers = modules.reduce((count, module) => count + module.rawObfuscatedIdentifierCount, 0);
+  const totalDependencies = modules.reduce(
+    (count, module) => count + module.dependencies.length,
+    0,
+  );
+  const totalRawObfuscatedIdentifiers = modules.reduce(
+    (count, module) => count + module.rawObfuscatedIdentifierCount,
+    0,
+  );
   const totalTransformedObfuscatedIdentifiers = modules.reduce(
     (count, module) => count + module.transformedObfuscatedIdentifierCount,
     0,
   );
-  const totalObfuscatedIdentifierDelta = modules.reduce((count, module) => count + module.obfuscatedIdentifierDelta, 0);
+  const totalObfuscatedIdentifierDelta = modules.reduce(
+    (count, module) => count + module.obfuscatedIdentifierDelta,
+    0,
+  );
 
   for (const module of modules) {
     moduleKindCounts[module.moduleKind] += 1;
     mergeShellMetrics(shellMetrics, module.shellMetrics);
     if (module.hotspotCleanup !== undefined) {
       hotspotCleanupTotals.moduleCount += 1;
-      hotspotCleanupTotals.localRenameCount += module.hotspotCleanup.localRenameCount;
-      hotspotCleanupTotals.bodyNormalizationCount += module.hotspotCleanup.bodyNormalizationCount;
-      hotspotCleanupTotals.obfuscatedIdentifierDelta += module.hotspotCleanup.obfuscatedIdentifierDelta;
+      hotspotCleanupTotals.localRenameCount +=
+        module.hotspotCleanup.localRenameCount;
+      hotspotCleanupTotals.bodyNormalizationCount +=
+        module.hotspotCleanup.bodyNormalizationCount;
+      hotspotCleanupTotals.obfuscatedIdentifierDelta +=
+        module.hotspotCleanup.obfuscatedIdentifierDelta;
     }
   }
 
   const hotspotDeltaReport = modules
-    .map(module => toHotspotDeltaReportEntry(module))
+    .map((module) => toHotspotDeltaReportEntry(module))
     .filter((module): module is HotspotDeltaReportEntry => module !== undefined)
     .sort((left, right) => {
       if (right.obfuscatedIdentifierDelta !== left.obfuscatedIdentifierDelta) {
@@ -1841,17 +2277,24 @@ function createModuleSummary(modules: ModuleArtifact[]): ModuleGraphSummary {
     totalObfuscatedIdentifierDelta,
     shellMetrics,
     namedModulesPreview: modules
-      .filter((module): module is ModuleArtifact & { readableName: string } => module.readableName !== undefined)
+      .filter(
+        (module): module is ModuleArtifact & { readableName: string } =>
+          module.readableName !== undefined,
+      )
       .slice(0, 20)
-      .map(module => ({
+      .map((module) => ({
         id: module.id,
         readableName: module.readableName,
         fileName: module.fileName,
       })),
     topObfuscatedModules: [...modules]
-      .sort((left, right) => right.transformedObfuscatedIdentifierCount - left.transformedObfuscatedIdentifierCount)
+      .sort(
+        (left, right) =>
+          right.transformedObfuscatedIdentifierCount -
+          left.transformedObfuscatedIdentifierCount,
+      )
       .slice(0, 20)
-      .map(module => ({
+      .map((module) => ({
         id: module.id,
         moduleKind: module.moduleKind,
         readableName: module.readableName,
@@ -1859,16 +2302,22 @@ function createModuleSummary(modules: ModuleArtifact[]): ModuleGraphSummary {
         obfuscatedIdentifierCount: module.transformedObfuscatedIdentifierCount,
       })),
     topStructuralTransformModules: modules
-      .filter(module => module.shellMetrics.structuralTransformCount > 0)
+      .filter((module) => module.shellMetrics.structuralTransformCount > 0)
       .sort((left, right) => {
-        if (right.shellMetrics.structuralTransformCount !== left.shellMetrics.structuralTransformCount) {
-          return right.shellMetrics.structuralTransformCount - left.shellMetrics.structuralTransformCount;
+        if (
+          right.shellMetrics.structuralTransformCount !==
+          left.shellMetrics.structuralTransformCount
+        ) {
+          return (
+            right.shellMetrics.structuralTransformCount -
+            left.shellMetrics.structuralTransformCount
+          );
         }
 
         return right.obfuscatedIdentifierDelta - left.obfuscatedIdentifierDelta;
       })
       .slice(0, 20)
-      .map(module => ({
+      .map((module) => ({
         id: module.id,
         readableName: module.readableName,
         fileName: module.fileName,
@@ -1876,10 +2325,14 @@ function createModuleSummary(modules: ModuleArtifact[]): ModuleGraphSummary {
         obfuscatedIdentifierDelta: module.obfuscatedIdentifierDelta,
       })),
     topObfuscatedGameModules: modules
-      .filter(module => module.moduleKind === "game")
-      .sort((left, right) => right.transformedObfuscatedIdentifierCount - left.transformedObfuscatedIdentifierCount)
+      .filter((module) => module.moduleKind === "game")
+      .sort(
+        (left, right) =>
+          right.transformedObfuscatedIdentifierCount -
+          left.transformedObfuscatedIdentifierCount,
+      )
       .slice(0, 20)
-      .map(module => ({
+      .map((module) => ({
         id: module.id,
         readableName: module.readableName,
         fileName: module.fileName,
@@ -1887,7 +2340,9 @@ function createModuleSummary(modules: ModuleArtifact[]): ModuleGraphSummary {
       })),
     topNamedGameHotspotsBeforeCleanup: modules
       .filter((module): module is ModuleArtifact & { readableName: string } => {
-        return module.moduleKind === "game" && module.readableName !== undefined;
+        return (
+          module.moduleKind === "game" && module.readableName !== undefined
+        );
       })
       .sort((left, right) => {
         const leftScore = getBeforeHotspotScore(left) ?? 0;
@@ -1896,28 +2351,53 @@ function createModuleSummary(modules: ModuleArtifact[]): ModuleGraphSummary {
           return rightScore - leftScore;
         }
 
-        return getBeforeHotspotObfuscatedIdentifierCount(right) - getBeforeHotspotObfuscatedIdentifierCount(left);
+        return (
+          getBeforeHotspotObfuscatedIdentifierCount(right) -
+          getBeforeHotspotObfuscatedIdentifierCount(left)
+        );
       })
       .slice(0, 20)
-      .map(module => toNamedGameHotspotSummary(module, {
-        hotspotScore: getBeforeHotspotScore(module),
-        obfuscatedIdentifierCount: getBeforeHotspotObfuscatedIdentifierCount(module),
-      })!)
-      .filter((module): module is NamedGameHotspotSummary => module !== undefined),
+      .map(
+        (module) =>
+          toNamedGameHotspotSummary(module, {
+            hotspotScore: getBeforeHotspotScore(module),
+            obfuscatedIdentifierCount:
+              getBeforeHotspotObfuscatedIdentifierCount(module),
+          })!,
+      )
+      .filter(
+        (module): module is NamedGameHotspotSummary => module !== undefined,
+      ),
     topNamedGameHotspots: modules
-      .filter((module): module is ModuleArtifact & { readableName: string; hotspotScore: number } => {
-        return module.moduleKind === "game" && module.readableName !== undefined && module.hotspotScore !== undefined;
-      })
+      .filter(
+        (
+          module,
+        ): module is ModuleArtifact & {
+          readableName: string;
+          hotspotScore: number;
+        } => {
+          return (
+            module.moduleKind === "game" &&
+            module.readableName !== undefined &&
+            module.hotspotScore !== undefined
+          );
+        },
+      )
       .sort((left, right) => {
         if (right.hotspotScore !== left.hotspotScore) {
           return right.hotspotScore - left.hotspotScore;
         }
 
-        return right.transformedObfuscatedIdentifierCount - left.transformedObfuscatedIdentifierCount;
+        return (
+          right.transformedObfuscatedIdentifierCount -
+          left.transformedObfuscatedIdentifierCount
+        );
       })
       .slice(0, 20)
-      .map(module => toNamedGameHotspotSummary(module)!)
-      .filter((module): module is NamedGameHotspotSummary => module !== undefined),
+      .map((module) => toNamedGameHotspotSummary(module)!)
+      .filter(
+        (module): module is NamedGameHotspotSummary => module !== undefined,
+      ),
     hotspotCleanupTotals,
     hotspotDeltaReport,
   };
@@ -1928,15 +2408,20 @@ export function extractModuleGraph(decodedSource: string): ModuleGraph {
   const firstPassModules: FirstPassModuleRecord[] = [];
 
   for (const property of moduleTable.properties) {
-    if (!t.isObjectProperty(property) || !isModuleFactoryValue(property.value)) {
+    if (
+      !t.isObjectProperty(property) ||
+      !isModuleFactoryValue(property.value)
+    ) {
       continue;
     }
 
     const { id, displayId } = normalizeModuleId(property.key);
-    const rawSource = formatJavaScript(generate(property.value, {
-      compact: false,
-      comments: true,
-    }).code);
+    const rawSource = formatJavaScript(
+      generate(property.value, {
+        compact: false,
+        comments: true,
+      }).code,
+    );
 
     firstPassModules.push(analyzeModuleFirstPass(id, displayId, rawSource));
   }
@@ -1948,8 +2433,12 @@ export function extractModuleGraph(decodedSource: string): ModuleGraph {
     }
   }
 
-  const modules: ModuleArtifact[] = firstPassModules.map(module => {
-    const renamedDependencies = applyDependencyRenames(module.firstPassSource, module.dependencies, moduleNameById);
+  const modules: ModuleArtifact[] = firstPassModules.map((module) => {
+    const renamedDependencies = applyDependencyRenames(
+      module.firstPassSource,
+      module.dependencies,
+      moduleNameById,
+    );
     const dependencyRenamedSource = renamedDependencies.source;
     const moduleKind = classifyModuleKind({
       readableName: module.readableName,
@@ -1957,7 +2446,9 @@ export function extractModuleGraph(decodedSource: string): ModuleGraph {
       dependencies: renamedDependencies.dependencies,
       source: dependencyRenamedSource,
     });
-    const preCleanupObfuscatedIdentifierCount = countObfuscatedIdentifiers(dependencyRenamedSource);
+    const preCleanupObfuscatedIdentifierCount = countObfuscatedIdentifiers(
+      dependencyRenamedSource,
+    );
     const preliminaryHotspotScore = computeNamedGameHotspotScoreFromCounts(
       moduleKind,
       module.readableName,
@@ -1965,11 +2456,22 @@ export function extractModuleGraph(decodedSource: string): ModuleGraph {
       preCleanupObfuscatedIdentifierCount,
       module.shellMetrics,
     );
-    const cleanupTier = selectCleanupTier(moduleKind, module.readableName, preliminaryHotspotScore);
-    const readabilityTransforms = applyReadabilityTransforms(dependencyRenamedSource, cleanupTier, module.readableName);
+    const cleanupTier = selectCleanupTier(
+      moduleKind,
+      module.readableName,
+      preliminaryHotspotScore,
+    );
+    const readabilityTransforms = applyReadabilityTransforms(
+      dependencyRenamedSource,
+      cleanupTier,
+      module.readableName,
+    );
     const source = readabilityTransforms.source;
-    const transformedObfuscatedIdentifierCount = readabilityTransforms.afterObfuscatedIdentifierCount;
-    const obfuscatedIdentifierDelta = module.rawObfuscatedIdentifierCount - transformedObfuscatedIdentifierCount;
+    const transformedObfuscatedIdentifierCount =
+      readabilityTransforms.afterObfuscatedIdentifierCount;
+    const obfuscatedIdentifierDelta =
+      module.rawObfuscatedIdentifierCount -
+      transformedObfuscatedIdentifierCount;
 
     const moduleArtifact: ModuleArtifact = {
       id: module.id,
