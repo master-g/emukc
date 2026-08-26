@@ -17,6 +17,13 @@ mod tests {
         session.profile.id
     }
 
+    /// Regular-sea maps (areas 1-7) are progression-gated; event maps
+    /// (areas outside 1-7, e.g. an active event area) are unlocked by default
+    /// while the codex carries them. Upstream added event area 62 in 6.3.x.
+    fn regular_map_ids(ids: &[i64]) -> Vec<i64> {
+        ids.iter().copied().filter(|id| (1..=7).contains(&(id / 10))).collect()
+    }
+
     #[tokio::test]
     async fn new_profile_mapinfo_only_shows_map_1_1() {
         let context = new_context().await;
@@ -25,7 +32,15 @@ mod tests {
         let infos = context.get_map_infos(pid).await.unwrap();
         let map_ids: Vec<i64> = infos.iter().map(|info| info.api_id).collect();
 
-        assert_eq!(map_ids, vec![11], "expected only map 1-1 for new account");
+        assert_eq!(
+            regular_map_ids(&map_ids),
+            vec![11],
+            "expected only map 1-1 among regular-sea maps for new account, got: {map_ids:?}"
+        );
+        // Everything beyond area 1-7 must be an event map
+        for id in &map_ids {
+            assert!(id / 10 <= 7 || id / 10 >= 60, "unexpected map {id}");
+        }
     }
 
     #[tokio::test]
@@ -42,21 +57,45 @@ mod tests {
         let context = new_context().await;
         let pid = new_profile(&context).await;
 
-        // Initially only 1-1 visible
+        // Initially only 1-1 visible among regular-sea maps
         let infos = context.get_map_infos(pid).await.unwrap();
         let map_ids: Vec<i64> = infos.iter().map(|info| info.api_id).collect();
-        assert_eq!(map_ids, vec![11], "expected only map 1-1 for new account");
+        assert_eq!(
+            regular_map_ids(&map_ids),
+            vec![11],
+            "expected only map 1-1 among regular-sea maps for new account, got: {map_ids:?}"
+        );
 
-        // Set up fleet
-        let mut fleet_slots = [-1; 6];
-        for slot in &mut fleet_slots {
-            *slot = context.add_ship(pid, 951).await.unwrap().api_id;
-        }
-        context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
+        // Set up a leveled fleet with stocked materials. Compass routing in
+        // 1-1 sends most sorties to a dead-end cell, and sortie damage plus
+        // fuel/ammo consumption accumulate across retries (no auto-repair in
+        // the sortie flow), so the loop below restores the fleet before every
+        // attempt and uses a budget that bounds all-dead-end streaks.
+        let scenario = Scenario {
+            fleet: vec![ShipSpec::new(951, 30); 6],
+            materials: vec![(MaterialCategory::Fuel, 10000), (MaterialCategory::Ammo, 10000)],
+            ..Default::default()
+        };
+        let ship_ids = apply_scenario(&context, pid, &scenario).await.unwrap();
 
-        // Retry sorties until boss is defeated and map clears
+        // Retry sorties until boss is defeated and map clears.
+        // 30 attempts bounds all-dead-end routing streaks.
         let mut cleared = false;
-        for _attempt in 0..10 {
+        for _attempt in 0..30 {
+            // Restore HP/fuel/ammo so retries start from a healthy fleet.
+            for id in &ship_ids {
+                let Some(mut ship) = context.find_ship(*id).await.unwrap() else {
+                    continue;
+                };
+                let mst = context.codex().manifest.find_ship(ship.api_ship_id);
+                ship.api_nowhp = ship.api_maxhp;
+                if let Some(mst) = mst {
+                    ship.api_fuel = mst.api_fuel_max.unwrap_or(ship.api_fuel);
+                    ship.api_bull = mst.api_bull_max.unwrap_or(ship.api_bull);
+                }
+                context.update_ship(&ship).await.unwrap();
+            }
+
             let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
             let mut current_cell = start.cell_no;
             let boss_cell = start.boss_cell_no;
@@ -81,7 +120,7 @@ mod tests {
                 break;
             }
         }
-        assert!(cleared, "boss should be defeated within a few sorties");
+        assert!(cleared, "boss should be defeated within 30 sorties");
 
         // After clearing 1-1, mapinfo should include newly unlocked maps
         let infos = context.get_map_infos(pid).await.unwrap();
