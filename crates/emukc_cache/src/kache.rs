@@ -266,7 +266,7 @@ impl Kache {
 
         if opt.enable_remote {
             return self
-                .fetch_from_remote(path, &local_path, &v, opt.enable_shuffle)
+                .fetch_from_remote(path, &local_path, &v, opt.enable_shuffle, opt.enable_local)
                 .await
                 .inspect(|_file| {
                     debug!("✅ {log_tail}");
@@ -536,12 +536,15 @@ impl Kache {
         local_path: &PathBuf,
         version: &str,
         shuffle: bool,
+        check_local: bool,
     ) -> Result<tokio::fs::File, Error> {
         // Acquire download lock to prevent concurrent downloads
         let _permit = self.download_lock.acquire(path).await;
 
-        // Check if file was downloaded by another request
-        if let Ok(file) = self.find_in_local(path, local_path, version).await {
+        // Check if file was downloaded by another request.
+        // Skipped for remote-only lookups (e.g. `kcs2/version.json`): a stale local
+        // copy must never short-circuit a forced refresh.
+        if check_local && let Ok(file) = self.find_in_local(path, local_path, version).await {
             return Ok(file);
         }
 
