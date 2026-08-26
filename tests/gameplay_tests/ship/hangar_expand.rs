@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests {
     use emukc_internal::db::sea_orm::{
-        ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait, IntoActiveModel,
+        ActiveModelTrait, ActiveValue, EntityTrait, IntoActiveModel,
     };
     use emukc_internal::prelude::*;
 

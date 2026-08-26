@@ -9,6 +9,10 @@ use crate::net::{
 };
 use emukc_internal::prelude::*;
 
+/// Event-map combined-fleet UI capability (plan KTD7): emukc supports
+/// combined types 0..=3 including transport, so emit 2 (all selectable).
+const API_EVENT_OBJECT_M_FLAG: i64 = 2;
+
 #[derive(Serialize)]
 struct Resp {
     api_material: Vec<KcApiMaterialElement>,
@@ -19,7 +23,7 @@ struct Resp {
     api_log: Vec<KcApiLogElement>,
     api_combined_flag: i64,
     api_p_bgm_id: i64,
-    // api_event_object: KcApiEventObject,
+    api_event_object: KcApiEventObject,
     api_parallel_quest_count: i64,
     api_dest_ship_slot: i64,
     // api_plane_info: Vec<KcApiPlaneInfo>,
@@ -95,6 +99,11 @@ async fn build_port_response<T: GameOps + ?Sized>(
     let api_parallel_quest_count = api_basic.api_max_quests;
     let api_c_flags: Vec<i64> = vec![0]; // event functional flags
     let api_c_flag2 = 0; // mini event item usage lock flag
+    let api_event_object = KcApiEventObject {
+        api_m_flag: API_EVENT_OBJECT_M_FLAG,
+        api_c_num: None,
+        api_m_flag2: None,
+    };
 
     Ok(Resp {
         api_material,
@@ -105,6 +114,7 @@ async fn build_port_response<T: GameOps + ?Sized>(
         api_basic,
         api_log,
         api_p_bgm_id,
+        api_event_object,
         api_parallel_quest_count,
         api_c_flags,
         api_c_flag2,
@@ -205,5 +215,23 @@ mod tests {
                 after_materials.bauxite
             ]
         );
+    }
+
+    #[tokio::test]
+    async fn port_response_carries_event_object_with_all_formation_flag() {
+        let (context, session) = new_game_session().await;
+        let pid = session.profile.id;
+
+        let port = build_port_response(&context, pid).await.unwrap();
+
+        assert_eq!(port.api_event_object.api_m_flag, 2);
+        assert_eq!(port.api_event_object.api_c_num, None);
+        assert_eq!(port.api_event_object.api_m_flag2, None);
+
+        // Serialization: omitted optional fields must not appear.
+        let json = serde_json::to_value(&port.api_event_object).unwrap();
+        assert_eq!(json["api_m_flag"], 2);
+        assert!(json.get("api_c_num").is_none());
+        assert!(json.get("api_m_flag2").is_none());
     }
 }

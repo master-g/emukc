@@ -715,6 +715,27 @@ pub struct KcApiLogElement {
     pub api_message: String,
 }
 
+/// Port `api_event_object` (event-map UI capability flags, apilist event-62 update).
+///
+/// `api_m_flag` is the event map combined-fleet formation UI capability flag
+/// (0 = carrier/surface only, 1 = transport only, 2 = all selectable), NOT the
+/// player's current fleet type (that is port `api_combined_flag`).
+/// `api_c_num` (friendly-fleet UI table number) and `api_m_flag2` (gimmick SE)
+/// are omitted when unknown — the client has an "absent" branch for them.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct KcApiEventObject {
+    /// Combined-fleet formation UI capability for the event map.
+    pub api_m_flag: i64,
+
+    /// Friendly-fleet random-ship UI table number; omitted when unknown.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_c_num: Option<i64>,
+
+    /// 1 = play gimmick-clear SE; omitted when not applicable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_m_flag2: Option<i64>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiMusicListElement {
     pub api_bgm_flag: i64,
