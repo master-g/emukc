@@ -3,7 +3,8 @@ title: "Align Server APIs with 6.3.x Upstream - Plan"
 type: feat
 date: 2026-08-26
 artifact_contract: ce-unified-plan/v1
-artifact_readiness: implementation-ready
+artifact_readiness: implemented
+status: completed
 product_contract_source: ce-plan-bootstrap
 execution: code
 deepened: 2026-08-26
