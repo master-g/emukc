@@ -421,6 +421,8 @@ pub struct ApiMstShipgraph {
     pub api_pab: Option<[i64; 2]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_sortno: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_sp_flag: Option<i64>,
     pub api_version: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_weda: Option<[i64; 2]>,
@@ -494,6 +496,8 @@ pub struct ApiMstStype {
     pub api_id: i64,
     pub api_equip_type: BTreeMap<String, i64>,
     pub api_kcnt: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_max_slotplus: Option<i64>,
     pub api_name: String,
     pub api_scnt: i64,
     pub api_sortno: i64,
@@ -731,7 +735,76 @@ impl ApiManifest {
 mod tests {
     use std::{fs, path::PathBuf, str::FromStr};
 
-    use super::ApiManifest;
+    use serde_json::json;
+
+    use super::{ApiManifest, ApiMstShipgraph, ApiMstStype};
+
+    #[test]
+    fn passthrough_fields_present_are_kept_and_serialized() {
+        let stype: ApiMstStype = serde_json::from_value(json!({
+            "api_id": 1,
+            "api_equip_type": {},
+            "api_kcnt": 2,
+            "api_name": "海防艦",
+            "api_scnt": 1,
+            "api_sortno": 1,
+            "api_max_slotplus": 1
+        }))
+        .unwrap();
+        assert_eq!(stype.api_max_slotplus, Some(1));
+        let encoded = serde_json::to_value(&stype).unwrap();
+        assert_eq!(encoded.get("api_max_slotplus").and_then(serde_json::Value::as_i64), Some(1));
+
+        let graph: ApiMstShipgraph = serde_json::from_value(json!({
+            "api_id": 1,
+            "api_filename": "001",
+            "api_version": ["1", "1"],
+            "api_sp_flag": 1
+        }))
+        .unwrap();
+        assert_eq!(graph.api_sp_flag, Some(1));
+        let encoded = serde_json::to_value(&graph).unwrap();
+        assert_eq!(encoded.get("api_sp_flag").and_then(serde_json::Value::as_i64), Some(1));
+    }
+
+    #[test]
+    fn passthrough_fields_absent_are_none_and_omitted() {
+        let stype: ApiMstStype = serde_json::from_value(json!({
+            "api_id": 1,
+            "api_equip_type": {},
+            "api_kcnt": 2,
+            "api_name": "海防艦",
+            "api_scnt": 1,
+            "api_sortno": 1
+        }))
+        .unwrap();
+        assert_eq!(stype.api_max_slotplus, None);
+        let encoded = serde_json::to_value(&stype).unwrap();
+        assert!(encoded.get("api_max_slotplus").is_none());
+
+        let graph: ApiMstShipgraph = serde_json::from_value(json!({
+            "api_id": 1,
+            "api_filename": "001",
+            "api_version": ["1", "1"]
+        }))
+        .unwrap();
+        assert_eq!(graph.api_sp_flag, None);
+        let encoded = serde_json::to_value(&graph).unwrap();
+        assert!(encoded.get("api_sp_flag").is_none());
+    }
+
+    #[test]
+    fn real_manifest_parses_with_passthrough_fields_none() {
+        let manifest_path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/codex/start2.json");
+        let raw = fs::read_to_string(manifest_path).unwrap();
+
+        let manifest = ApiManifest::from_str(&raw).unwrap();
+        assert!(!manifest.api_mst_stype.is_empty());
+        assert!(!manifest.api_mst_shipgraph.is_empty());
+        assert!(manifest.api_mst_stype.iter().all(|s| s.api_max_slotplus.is_none()));
+        assert!(manifest.api_mst_shipgraph.iter().all(|g| g.api_sp_flag.is_none()));
+    }
 
     #[test]
     fn manifest_keeps_exslot_limit_table_when_reencoded() {
