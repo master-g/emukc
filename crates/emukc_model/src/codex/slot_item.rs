@@ -28,7 +28,7 @@ impl Codex {
                 unset_slots.insert(key, vec![item.api_id]);
             }
         }
-        for (_, slots) in unset_slots.iter_mut() {
+        for slots in unset_slots.values_mut() {
             slots.sort_unstable();
         }
 
