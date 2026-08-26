@@ -1,3 +1,8 @@
 {
-	"ignore": ["Makefile"]
+	"ignore": ["Makefile"],
+	"rules": {
+		"makefile-gnu-make-syntax": {
+			"disable": ["SC1064", "SC1065", "SC1072", "SC1073"]
+		}
+	}
 }
