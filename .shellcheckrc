@@ -1,0 +1,4 @@
+# This repo's Makefile is GNU Make syntax; shellcheck (run by pi-lens on edit)
+# cannot parse it and cascades SC1064/1065/1072/1073 on every edit.
+# Parse-level codes only — real shell scripts (generate-cert.sh) keep all other checks.
+disable=SC1064,SC1065,SC1072,SC1073
