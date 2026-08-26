@@ -162,11 +162,9 @@ impl Rewards {
                 }
             },
             super::OtherCategory::Furniture => {
-                match mst.find_furniture(api_id) {
-                    Some(mst) => {
-                        debug!("furniture found: {}, {}", mst.api_id, mst.api_title);
-                    }
-                    None => return None,
+                {
+                    let mst = mst.find_furniture(api_id)?;
+                    debug!("furniture found: {}, {}", mst.api_id, mst.api_title);
                 };
 
                 Some(Kc3rdQuestReward {
@@ -177,11 +175,9 @@ impl Rewards {
                 })
             }
             super::OtherCategory::Inventory => {
-                match mst.find_useitem(api_id) {
-                    Some(mst) => {
-                        debug!("use item found: {}, {}", mst.api_id, mst.api_name);
-                    }
-                    None => return None,
+                {
+                    let mst = mst.find_useitem(api_id)?;
+                    debug!("use item found: {}, {}", mst.api_id, mst.api_name);
                 };
 
                 Some(Kc3rdQuestReward {
@@ -198,11 +194,9 @@ impl Rewards {
                 stars,
             }),
             super::OtherCategory::Ship => {
-                match mst.find_ship(api_id) {
-                    Some(mst) => {
-                        debug!("ship found: {}, {}", mst.api_id, mst.api_name);
-                    }
-                    None => return None,
+                {
+                    let mst = mst.find_ship(api_id)?;
+                    debug!("ship found: {}, {}", mst.api_id, mst.api_name);
                 };
 
                 Some(Kc3rdQuestReward {

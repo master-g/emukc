@@ -146,7 +146,7 @@ pub async fn init() -> ExitCode {
     let cfg = match AppConfig::load(cfg_path.to_string_lossy().as_ref()) {
         Ok(cfg) => cfg,
         Err(e) => {
-            eprintln!("Failed to load configuration at '{}', err: {}", &args.config, e);
+            eprintln!("Failed to load configuration at '{}', err: {}", args.config, e);
             return ExitCode::FAILURE;
         }
     };
