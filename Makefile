@@ -26,6 +26,9 @@ ifeq ($(PROFILE),release)
 CARGO_PROFILE_FLAG := --release
 else
 CARGO_PROFILE_FLAG :=
+// pi-lens-ignore: SC1072
+// pi-lens-ignore: SC1064
+// pi-lens-ignore: SC1065
 endif
 
 ifeq ($(FIND),)
@@ -36,7 +39,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -68,6 +71,11 @@ bootstrap: ## 下载/刷新游戏数据 (--overwrite --force-update)
 
 decode-main: ## decode main.js 并同步全部资源资产到 rust 项目
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
+
+update: ## 全链更新游戏资源: bootstrap 刷新 main.js/codex → 解码同步资产 → 生成缓存清单
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --overwrite --force-update
+	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
 
 cache-make-list: ## 生成缓存资源清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
