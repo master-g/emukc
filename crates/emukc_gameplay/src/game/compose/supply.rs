@@ -8,7 +8,7 @@ use emukc_model::{
     prelude::ApiMstShip,
 };
 
-use crate::{err::GameplayError, game::material::deduct_material_impl};
+use crate::{err::GameplayError, game::material::deduct_material_impl, game::ship::onslot_max_of};
 
 pub(crate) async fn supply_fleet_impl<C>(
     c: &C,
@@ -89,7 +89,9 @@ where
             }
         }
         if supply_aircrafts || supply_plane {
-            let max_eq = mst.api_maxeq.unwrap_or([0; 5]);
+            // KTD8: capacity cap is the synthesized value (maxeq + expansion),
+            // not the raw manifest maxeq
+            let max_eq = onslot_max_of(codex, &ship);
             let mut plane_lost = 0;
             [(max_eq[0], ship.onslot_1, &mut am.onslot_1)].into_iter().for_each(
                 |(max, current, am_current)| {

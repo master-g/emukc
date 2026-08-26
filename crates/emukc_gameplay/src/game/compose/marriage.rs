@@ -8,7 +8,8 @@ use emukc_model::{codex::Codex, kc2::KcUseItemType, prelude::ApiMstShip};
 use crate::{
     err::GameplayError,
     game::{
-        picturebook::add_ship_to_picturebook_impl, ship::recalculate_ship_status_with_model,
+        picturebook::add_ship_to_picturebook_impl,
+        ship::{onslot_max_of, recalculate_ship_status_with_model},
         use_item::deduct_use_item_impl,
     },
 };
@@ -51,7 +52,9 @@ where
     let mut am = recalculate_ship_status_with_model(c, codex, &ship).await?;
 
     am.hp_now = ActiveValue::Set(ship.hp_max);
-    let max_eq = mst.api_maxeq.unwrap_or([0; 5]);
+    // KTD8: marriage resets onslot to the synthesized capacity (maxeq +
+    // expansion), not the raw manifest maxeq
+    let max_eq = onslot_max_of(codex, &ship);
     am.onslot_1 = ActiveValue::Set(max_eq[0]);
     am.onslot_2 = ActiveValue::Set(max_eq[1]);
     am.onslot_3 = ActiveValue::Set(max_eq[2]);

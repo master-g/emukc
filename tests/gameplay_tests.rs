@@ -75,6 +75,9 @@ mod sortie_ammo_reaches_battle;
 #[path = "gameplay_tests/ship_onslot_max.rs"]
 mod ship_onslot_max;
 
+#[path = "gameplay_tests/ship/hangar_expand.rs"]
+mod hangar_expand;
+
 #[path = "gameplay_tests/scenario.rs"]
 mod scenario;
 

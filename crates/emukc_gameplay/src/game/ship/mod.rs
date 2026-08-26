@@ -26,6 +26,11 @@ use sp::find_ship_sp_effect_items_impl;
 
 mod sp;
 
+/// useitem 105（格納庫増設）：每次搭载数扩张消耗 1 个。
+/// 不进 `KcUseItemType` 枚举——该枚举无 105，且 `consume_use_item_impl`
+/// 会因 `WrongType` 拒绝；走 `deduct_use_item_impl` 的裸 `mst_id` 路径。
+pub(crate) const HANGAR_EXPAND_USE_ITEM_ID: i64 = 105;
+
 /// A trait for ship related gameplay.
 #[async_trait]
 pub trait ShipOps {
@@ -74,6 +79,25 @@ pub trait ShipOps {
         profile_id: i64,
         ship_id: i64,
     ) -> Result<KcApiShip, GameplayError>;
+
+    /// Expand a hangar slot (搭载数拡張).
+    ///
+    /// Consumes 1x useitem 105 and adds +1 to the expansion increment of the
+    /// given slot (KTD4). Returns the full 5-slot capacity array synthesized
+    /// as `manifest_maxeq[i] + plus[i]` — unexpanded slots carry the base
+    /// value (KTD1).
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID (for ownership verification).
+    /// - `ship_id`: The ship ID.
+    /// - `slot_pos`: The slot position, within `0..5`.
+    async fn expand_hangar_slot(
+        &self,
+        profile_id: i64,
+        ship_id: i64,
+        slot_pos: i64,
+    ) -> Result<[i64; 5], GameplayError>;
 
     /// Set ex-slot item.
     ///
@@ -204,6 +228,23 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         tx.commit().await?;
 
         Ok(ship.into())
+    }
+
+    async fn expand_hangar_slot(
+        &self,
+        profile_id: i64,
+        ship_id: i64,
+        slot_pos: i64,
+    ) -> Result<[i64; 5], GameplayError> {
+        let codex = self.codex();
+        let db = self.db();
+        let tx = db.begin().await?;
+
+        let onslot_max = expand_hangar_slot_impl(&tx, codex, profile_id, ship_id, slot_pos).await?;
+
+        tx.commit().await?;
+
+        Ok(onslot_max)
     }
 
     async fn set_exslot_item(&self, ship_id: i64, slot_item_id: i64) -> Result<(), GameplayError> {
@@ -410,6 +451,28 @@ where
     Ok((model.try_into_model()?, ship))
 }
 
+/// The ship's expansion increments as stored in the DB (KTD1: relative
+/// increments, NULL = never expanded).
+fn onslot_plus_of(ship: &ship::Model) -> [Option<i64>; 5] {
+    [
+        ship.onslot_plus_1,
+        ship.onslot_plus_2,
+        ship.onslot_plus_3,
+        ship.onslot_plus_4,
+        ship.onslot_plus_5,
+    ]
+}
+
+/// The ship's effective per-slot capacity: `manifest_maxeq[i] + plus[i]`
+/// (KTD8). Capacity readers (supply caps, marriage onslot reset) must use
+/// this instead of raw `api_maxeq`; NULL increments count as 0.
+pub(crate) fn onslot_max_of(codex: &Codex, ship: &ship::Model) -> [i64; 5] {
+    let maxeq =
+        codex.manifest.find_ship(ship.mst_id).and_then(|mst| mst.api_maxeq).unwrap_or([0; 5]);
+    let plus = onslot_plus_of(ship);
+    std::array::from_fn(|i| maxeq[i] + plus[i].unwrap_or(0))
+}
+
 /// Synthesize `api_onslot_max` on the API model from the DB-owned expansion
 /// increments: `manifest_maxeq[i] + plus[i]`, emitted only when any slot was
 /// expanded (otherwise the field stays absent).
@@ -418,19 +481,74 @@ where
 /// gameplay read wrappers (`find_ship`/`get_ships`), same pattern as
 /// `api_sp_effect_items`.
 fn fill_onslot_max(codex: &Codex, ship: &ship::Model, api: &mut KcApiShip) {
-    let plus = [
-        ship.onslot_plus_1,
-        ship.onslot_plus_2,
-        ship.onslot_plus_3,
-        ship.onslot_plus_4,
-        ship.onslot_plus_5,
-    ];
+    let plus = onslot_plus_of(ship);
     if !plus.iter().any(|p| p.is_some_and(|v| v != 0)) {
         return;
     }
-    let maxeq =
-        codex.manifest.find_ship(ship.mst_id).and_then(|mst| mst.api_maxeq).unwrap_or([0; 5]);
-    api.api_onslot_max = Some(std::array::from_fn(|i| maxeq[i] + plus[i].unwrap_or(0)));
+    api.api_onslot_max = Some(onslot_max_of(codex, ship));
+}
+
+/// Expand a hangar slot (搭载数拡張, plan U3).
+///
+/// Validation is lenient per KTD3: no `api_max_slotplus` cap check (the field
+/// is absent from the current start2 data source — warn when missing). Only
+/// ownership, `slot_pos` range and item balance are enforced.
+pub(crate) async fn expand_hangar_slot_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    ship_id: i64,
+    slot_pos: i64,
+) -> Result<[i64; 5], GameplayError>
+where
+    C: ConnectionTrait,
+{
+    if !(0..5).contains(&slot_pos) {
+        return Err(GameplayError::WrongType(format!("invalid slot_pos: {slot_pos}")));
+    }
+
+    let ship = ship::Entity::find_by_id(ship_id)
+        .one(c)
+        .await?
+        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
+
+    // normative ownership check (find_ship_impl has no profile filter;
+    // open_ship_exslot_impl lacks this check — do not copy that one)
+    if ship.profile_id != profile_id {
+        return Err(GameplayError::EntryNotFound(format!(
+            "ship {ship_id} does not belong to profile {profile_id}"
+        )));
+    }
+
+    // KTD3: lenient — the expansion cap is not enforced while the start2 data
+    // source carries no api_max_slotplus
+    let cap = codex
+        .manifest
+        .find_ship(ship.mst_id)
+        .and_then(|mst| codex.manifest.api_mst_stype.iter().find(|s| s.api_id == mst.api_stype))
+        .and_then(|stype| stype.api_max_slotplus);
+    if cap.is_none() {
+        warn!(
+            "api_max_slotplus missing in start2 data for ship {ship_id}; expansion cap not enforced"
+        );
+    }
+
+    // KTD4: each expansion consumes 1x useitem 105 (格納庫増設) in the same tx
+    deduct_use_item_impl(c, profile_id, HANGAR_EXPAND_USE_ITEM_ID, 1).await?;
+
+    let mut am = ship.into_active_model();
+    match slot_pos {
+        0 => am.onslot_plus_1 = ActiveValue::Set(Some(ship.onslot_plus_1.unwrap_or(0) + 1)),
+        1 => am.onslot_plus_2 = ActiveValue::Set(Some(ship.onslot_plus_2.unwrap_or(0) + 1)),
+        2 => am.onslot_plus_3 = ActiveValue::Set(Some(ship.onslot_plus_3.unwrap_or(0) + 1)),
+        3 => am.onslot_plus_4 = ActiveValue::Set(Some(ship.onslot_plus_4.unwrap_or(0) + 1)),
+        _ => am.onslot_plus_5 = ActiveValue::Set(Some(ship.onslot_plus_5.unwrap_or(0) + 1)),
+    }
+    let m = am.update(c).await?;
+
+    // full-slot array synthesized inside the tx so the response reflects the
+    // same atomic state as the deduction
+    Ok(onslot_max_of(codex, &m))
 }
 
 pub(crate) async fn find_ship_impl<C>(
