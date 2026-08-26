@@ -1,181 +1,13 @@
 {
-  "scriptVersion": "6.3.0.0",
+  "scriptVersion": "6.3.4.1",
   "summary": {
     "moduleCount": 197,
     "protocolFieldCount": 63
   },
   "fields": [
     {
-      "id": "34922:api_ecl:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_ecl",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_edam:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_edam",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_erai:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_erai",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_eydam:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_eydam",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_fcl:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_fcl",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_fdam:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_fdam",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_frai:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_frai",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "34922:api_fydam:numArray:this._o",
-      "moduleId": "34922",
-      "readableName": "RaigekiData",
-      "field": "api_fydam",
-      "accessKind": "numArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "71769:api_ecl_list_items:objectArray:this._o",
-      "moduleId": "71769",
-      "readableName": "RaigekiOpeningData",
-      "field": "api_ecl_list_items",
-      "accessKind": "objectArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "71769:api_erai_list_items:objectArray:this._o",
-      "moduleId": "71769",
-      "readableName": "RaigekiOpeningData",
-      "field": "api_erai_list_items",
-      "accessKind": "objectArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "71769:api_eydam_list_items:objectArray:this._o",
-      "moduleId": "71769",
-      "readableName": "RaigekiOpeningData",
-      "field": "api_eydam_list_items",
-      "accessKind": "objectArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "71769:api_fcl_list_items:objectArray:this._o",
-      "moduleId": "71769",
-      "readableName": "RaigekiOpeningData",
-      "field": "api_fcl_list_items",
-      "accessKind": "objectArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "71769:api_frai_list_items:objectArray:this._o",
-      "moduleId": "71769",
-      "readableName": "RaigekiOpeningData",
-      "field": "api_frai_list_items",
-      "accessKind": "objectArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "71769:api_fydam_list_items:objectArray:this._o",
-      "moduleId": "71769",
-      "readableName": "RaigekiOpeningData",
-      "field": "api_fydam_list_items",
-      "accessKind": "objectArray",
-      "sourceObject": "this._o",
-      "conditional": false,
-      "phases": [
-        "day"
-      ]
-    },
-    {
-      "id": "72987:api_combat_ration_combined:numArray:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_combat_ration_combined:numArray:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_combat_ration_combined",
       "accessKind": "numArray",
@@ -187,8 +19,8 @@
       ]
     },
     {
-      "id": "72987:api_combat_ration:numArray:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_combat_ration:numArray:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_combat_ration",
       "accessKind": "numArray",
@@ -200,8 +32,8 @@
       ]
     },
     {
-      "id": "72987:api_day_flag:number:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_day_flag:number:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_day_flag",
       "accessKind": "number",
@@ -213,8 +45,8 @@
       ]
     },
     {
-      "id": "72987:api_flare_pos:numArray:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_flare_pos:numArray:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_flare_pos",
       "accessKind": "numArray",
@@ -226,8 +58,8 @@
       ]
     },
     {
-      "id": "72987:api_hougeki:object:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_hougeki:object:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_hougeki",
       "accessKind": "object",
@@ -239,8 +71,8 @@
       ]
     },
     {
-      "id": "72987:api_n_hougeki1:object:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_n_hougeki1:object:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_n_hougeki1",
       "accessKind": "object",
@@ -252,8 +84,8 @@
       ]
     },
     {
-      "id": "72987:api_n_hougeki2:object:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_n_hougeki2:object:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_n_hougeki2",
       "accessKind": "object",
@@ -265,8 +97,8 @@
       ]
     },
     {
-      "id": "72987:api_n_support_flag:number:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_n_support_flag:number:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_n_support_flag",
       "accessKind": "number",
@@ -278,8 +110,8 @@
       ]
     },
     {
-      "id": "72987:api_n_support_info:object:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_n_support_info:object:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_n_support_info",
       "accessKind": "object",
@@ -291,12 +123,12 @@
       ]
     },
     {
-      "id": "72987:api_support_airatack:object:_0x1a4f80",
-      "moduleId": "72987",
+      "id": "25399:api_support_airatack:object:_0x443066",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x1a4f80",
+      "sourceObject": "_0x443066",
       "conditional": false,
       "phases": [
         "day",
@@ -304,12 +136,12 @@
       ]
     },
     {
-      "id": "72987:api_support_airatack:object:_0x2d0c5c",
-      "moduleId": "72987",
+      "id": "25399:api_support_airatack:object:_0xb52aa3",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x2d0c5c",
+      "sourceObject": "_0xb52aa3",
       "conditional": false,
       "phases": [
         "day",
@@ -317,12 +149,12 @@
       ]
     },
     {
-      "id": "72987:api_support_hourai:object:_0x4cd4c7",
-      "moduleId": "72987",
+      "id": "25399:api_support_hourai:object:_0x25c556",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x4cd4c7",
+      "sourceObject": "_0x25c556",
       "conditional": false,
       "phases": [
         "day",
@@ -330,12 +162,12 @@
       ]
     },
     {
-      "id": "72987:api_support_hourai:object:_0x50a746",
-      "moduleId": "72987",
+      "id": "25399:api_support_hourai:object:_0x4d1df3",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x50a746",
+      "sourceObject": "_0x4d1df3",
       "conditional": false,
       "phases": [
         "day",
@@ -343,8 +175,8 @@
       ]
     },
     {
-      "id": "72987:api_touch_plane:numArray:this._o",
-      "moduleId": "72987",
+      "id": "25399:api_touch_plane:numArray:this._o",
+      "moduleId": "25399",
       "readableName": "RawNightBattleData",
       "field": "api_touch_plane",
       "accessKind": "numArray",
@@ -356,8 +188,176 @@
       ]
     },
     {
-      "id": "83034:api_air_base_attack:objectArray:this._o",
-      "moduleId": "83034",
+      "id": "49801:api_ecl:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_ecl",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_edam:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_edam",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_erai:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_erai",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_eydam:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_eydam",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_fcl:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_fcl",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_fdam:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_fdam",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_frai:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_frai",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "49801:api_fydam:numArray:this._o",
+      "moduleId": "49801",
+      "readableName": "RaigekiData",
+      "field": "api_fydam",
+      "accessKind": "numArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "5385:api_ecl_list_items:objectArray:this._o",
+      "moduleId": "5385",
+      "readableName": "RaigekiOpeningData",
+      "field": "api_ecl_list_items",
+      "accessKind": "objectArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "5385:api_erai_list_items:objectArray:this._o",
+      "moduleId": "5385",
+      "readableName": "RaigekiOpeningData",
+      "field": "api_erai_list_items",
+      "accessKind": "objectArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "5385:api_eydam_list_items:objectArray:this._o",
+      "moduleId": "5385",
+      "readableName": "RaigekiOpeningData",
+      "field": "api_eydam_list_items",
+      "accessKind": "objectArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "5385:api_fcl_list_items:objectArray:this._o",
+      "moduleId": "5385",
+      "readableName": "RaigekiOpeningData",
+      "field": "api_fcl_list_items",
+      "accessKind": "objectArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "5385:api_frai_list_items:objectArray:this._o",
+      "moduleId": "5385",
+      "readableName": "RaigekiOpeningData",
+      "field": "api_frai_list_items",
+      "accessKind": "objectArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "5385:api_fydam_list_items:objectArray:this._o",
+      "moduleId": "5385",
+      "readableName": "RaigekiOpeningData",
+      "field": "api_fydam_list_items",
+      "accessKind": "objectArray",
+      "sourceObject": "this._o",
+      "conditional": false,
+      "phases": [
+        "day"
+      ]
+    },
+    {
+      "id": "58435:api_air_base_attack:objectArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_air_base_attack",
       "accessKind": "objectArray",
@@ -368,8 +368,8 @@
       ]
     },
     {
-      "id": "83034:api_air_base_injection:objectArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_air_base_injection:objectArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_air_base_injection",
       "accessKind": "objectArray",
@@ -380,8 +380,8 @@
       ]
     },
     {
-      "id": "83034:api_air_base_rescue_type:number:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_air_base_rescue_type:number:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_air_base_rescue_type",
       "accessKind": "number",
@@ -392,8 +392,8 @@
       ]
     },
     {
-      "id": "83034:api_combat_ration_combined:numArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_combat_ration_combined:numArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_combat_ration_combined",
       "accessKind": "numArray",
@@ -404,8 +404,8 @@
       ]
     },
     {
-      "id": "83034:api_combat_ration:numArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_combat_ration:numArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_combat_ration",
       "accessKind": "numArray",
@@ -416,8 +416,8 @@
       ]
     },
     {
-      "id": "83034:api_hougeki1:objectArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_hougeki1:objectArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_hougeki1",
       "accessKind": "objectArray",
@@ -428,8 +428,8 @@
       ]
     },
     {
-      "id": "83034:api_hougeki2:objectArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_hougeki2:objectArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_hougeki2",
       "accessKind": "objectArray",
@@ -440,8 +440,8 @@
       ]
     },
     {
-      "id": "83034:api_hougeki3:objectArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_hougeki3:objectArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_hougeki3",
       "accessKind": "objectArray",
@@ -452,8 +452,8 @@
       ]
     },
     {
-      "id": "83034:api_injection_kouku:object:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_injection_kouku:object:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_injection_kouku",
       "accessKind": "object",
@@ -464,8 +464,8 @@
       ]
     },
     {
-      "id": "83034:api_kouku:object:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_kouku:object:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_kouku",
       "accessKind": "object",
@@ -476,8 +476,8 @@
       ]
     },
     {
-      "id": "83034:api_kouku2:object:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_kouku2:object:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_kouku2",
       "accessKind": "object",
@@ -488,8 +488,8 @@
       ]
     },
     {
-      "id": "83034:api_midnight_flag:number:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_midnight_flag:number:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_midnight_flag",
       "accessKind": "number",
@@ -500,8 +500,8 @@
       ]
     },
     {
-      "id": "83034:api_opening_atack:object:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_opening_atack:object:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_opening_atack",
       "accessKind": "object",
@@ -512,8 +512,8 @@
       ]
     },
     {
-      "id": "83034:api_opening_taisen:objectArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_opening_taisen:objectArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_opening_taisen",
       "accessKind": "objectArray",
@@ -524,8 +524,8 @@
       ]
     },
     {
-      "id": "83034:api_raigeki:object:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_raigeki:object:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_raigeki",
       "accessKind": "object",
@@ -536,8 +536,8 @@
       ]
     },
     {
-      "id": "83034:api_stage_flag:numArray:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_stage_flag:numArray:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_stage_flag",
       "accessKind": "numArray",
@@ -548,32 +548,32 @@
       ]
     },
     {
-      "id": "83034:api_support_airatack:object:_0x389dda",
-      "moduleId": "83034",
+      "id": "58435:api_support_airatack:object:_0x2ee72a",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x389dda",
+      "sourceObject": "_0x2ee72a",
       "conditional": false,
       "phases": [
         "day"
       ]
     },
     {
-      "id": "83034:api_support_airatack:object:_0x407035",
-      "moduleId": "83034",
+      "id": "58435:api_support_airatack:object:_0x5efcae",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_support_airatack",
       "accessKind": "object",
-      "sourceObject": "_0x407035",
+      "sourceObject": "_0x5efcae",
       "conditional": false,
       "phases": [
         "day"
       ]
     },
     {
-      "id": "83034:api_support_flag:number:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_support_flag:number:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_support_flag",
       "accessKind": "number",
@@ -584,32 +584,32 @@
       ]
     },
     {
-      "id": "83034:api_support_hourai:object:_0x4480b9",
-      "moduleId": "83034",
+      "id": "58435:api_support_hourai:object:_0x16a49c",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x4480b9",
+      "sourceObject": "_0x16a49c",
       "conditional": false,
       "phases": [
         "day"
       ]
     },
     {
-      "id": "83034:api_support_hourai:object:_0x5013fe",
-      "moduleId": "83034",
+      "id": "58435:api_support_hourai:object:_0xc317c4",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_support_hourai",
       "accessKind": "object",
-      "sourceObject": "_0x5013fe",
+      "sourceObject": "_0xc317c4",
       "conditional": false,
       "phases": [
         "day"
       ]
     },
     {
-      "id": "83034:api_support_info:object:this._o",
-      "moduleId": "83034",
+      "id": "58435:api_support_info:object:this._o",
+      "moduleId": "58435",
       "readableName": "RawDayBattleData",
       "field": "api_support_info",
       "accessKind": "object",
@@ -620,8 +620,8 @@
       ]
     },
     {
-      "id": "91589:api_active_deck:numArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_active_deck:numArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_active_deck",
       "accessKind": "numArray",
@@ -632,8 +632,8 @@
       ]
     },
     {
-      "id": "91589:api_atoll_cell:number:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_atoll_cell:number:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_atoll_cell",
       "accessKind": "number",
@@ -644,8 +644,8 @@
       ]
     },
     {
-      "id": "91589:api_balloon_cell:number:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_balloon_cell:number:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_balloon_cell",
       "accessKind": "number",
@@ -656,8 +656,8 @@
       ]
     },
     {
-      "id": "91589:api_deck_id:number:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_deck_id:number:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_deck_id",
       "accessKind": "number",
@@ -668,8 +668,8 @@
       ]
     },
     {
-      "id": "91589:api_e_effect_list:objectArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_e_effect_list:objectArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_e_effect_list",
       "accessKind": "objectArray",
@@ -680,8 +680,8 @@
       ]
     },
     {
-      "id": "91589:api_e_maxhps_combined:numArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_e_maxhps_combined:numArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_e_maxhps_combined",
       "accessKind": "numArray",
@@ -692,8 +692,8 @@
       ]
     },
     {
-      "id": "91589:api_escape_idx_combined:numArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_escape_idx_combined:numArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_escape_idx_combined",
       "accessKind": "numArray",
@@ -704,8 +704,8 @@
       ]
     },
     {
-      "id": "91589:api_escape_idx:numArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_escape_idx:numArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_escape_idx",
       "accessKind": "numArray",
@@ -716,8 +716,8 @@
       ]
     },
     {
-      "id": "91589:api_f_maxhps_combined:numArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_f_maxhps_combined:numArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_f_maxhps_combined",
       "accessKind": "numArray",
@@ -728,8 +728,8 @@
       ]
     },
     {
-      "id": "91589:api_flavor_info:objectArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_flavor_info:objectArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_flavor_info",
       "accessKind": "objectArray",
@@ -740,8 +740,8 @@
       ]
     },
     {
-      "id": "91589:api_formation:numArray:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_formation:numArray:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_formation",
       "accessKind": "numArray",
@@ -752,8 +752,8 @@
       ]
     },
     {
-      "id": "91589:api_smoke_type:number:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_smoke_type:number:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_smoke_type",
       "accessKind": "number",
@@ -764,8 +764,8 @@
       ]
     },
     {
-      "id": "91589:api_xal01:number:this._o",
-      "moduleId": "91589",
+      "id": "89532:api_xal01:number:this._o",
+      "moduleId": "89532",
       "readableName": "BattleCommonModel",
       "field": "api_xal01",
       "accessKind": "number",

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-20T08:56:35.070Z",
-  "scriptVersion": "6.3.0.0",
+  "generatedAt": "2026-08-26T11:15:20.111Z",
+  "scriptVersion": "6.3.4.1",
   "summary": {
     "familyCount": 21,
     "observedCompleteFamilyCount": 12,
@@ -42,7 +42,7 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "96928"
+          "76559"
         ],
         "moduleNames": [
           "AirUnitPanelBanner"
@@ -82,7 +82,7 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "6597"
+          "37177"
         ],
         "moduleNames": [
           "TaskExtendAirUnit"
@@ -122,7 +122,7 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "1136"
+          "62431"
         ],
         "moduleNames": [
           "AreaTextImage"
@@ -164,7 +164,7 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "84159"
+          "43194"
         ],
         "moduleNames": [
           "SoundManager"
@@ -205,11 +205,11 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "15478",
-          "19281",
-          "5529",
-          "56230",
-          "80135"
+          "10247",
+          "42850",
+          "45269",
+          "74775",
+          "93399"
         ],
         "moduleNames": [
           "BonusFurniture",
@@ -254,8 +254,8 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "15478",
-          "55242"
+          "10247",
+          "1463"
         ],
         "moduleNames": [
           "FAnimationData",
@@ -297,9 +297,9 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "15478",
-          "35628",
-          "55242"
+          "10247",
+          "1463",
+          "75664"
         ],
         "moduleNames": [
           "FAnimationData",
@@ -342,8 +342,8 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "15478",
-          "51963"
+          "10247",
+          "52034"
         ],
         "moduleNames": [
           "FurnitureLoader",
@@ -385,8 +385,8 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "15478",
-          "21994"
+          "10247",
+          "6786"
         ],
         "moduleNames": [
           "FurnitureLoader",
@@ -428,11 +428,11 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "11353",
-          "19281",
-          "50493",
-          "56230",
-          "80135"
+          "18214",
+          "22977",
+          "42850",
+          "45269",
+          "93399"
         ],
         "moduleNames": [
           "RewardSelectDialogFurnitureBtn",
@@ -477,7 +477,7 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "55242"
+          "1463"
         ],
         "moduleNames": [
           "FAnimationData"
@@ -518,8 +518,8 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "15478",
-          "35628"
+          "10247",
+          "75664"
         ],
         "moduleNames": [
           "FurnitureLoader",
@@ -558,18 +558,18 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "11039",
-          "24960",
-          "28686",
-          "34389",
-          "37638",
-          "49148",
-          "51479",
-          "56682",
-          "58441",
-          "6695",
-          "79018",
-          "94996"
+          "1053",
+          "11838",
+          "12003",
+          "41940",
+          "52830",
+          "53237",
+          "56446",
+          "57862",
+          "72369",
+          "8102",
+          "85103",
+          "92475"
         ],
         "moduleNames": [
           "CutinResourcesPreloadTask",
@@ -582,8 +582,8 @@
           "TaskCreateMap",
           "TaskLoadResources",
           "TaskMapOpen",
-          "module-34389.js",
-          "module-51479.js"
+          "module-52830.js",
+          "module-92475.js"
         ]
       },
       "completenessBlockers": [
@@ -630,9 +630,9 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "2156",
-          "24960",
-          "94996"
+          "26619",
+          "53237",
+          "57862"
         ],
         "moduleNames": [
           "EventTaskCellOpen",
@@ -676,9 +676,9 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "2156",
-          "24960",
-          "94996"
+          "26619",
+          "53237",
+          "57862"
         ],
         "moduleNames": [
           "EventTaskCellOpen",
@@ -721,15 +721,14 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "16576",
-          "21541",
-          "34581",
-          "50614",
-          "58262",
-          "6934",
-          "70631",
-          "76095",
-          "97926"
+          "10303",
+          "25003",
+          "3108",
+          "4490",
+          "5150",
+          "81322",
+          "85120",
+          "90657"
         ],
         "moduleNames": [
           "AnimPlane",
@@ -738,8 +737,7 @@
           "PhaseEnding",
           "TaskBossCutin",
           "TaskEnemyDamageCutin",
-          "VoiceManager",
-          "module-70631.js"
+          "VoiceManager"
         ]
       },
       "completenessBlockers": [
@@ -777,7 +775,7 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "79787"
+          "28029"
         ],
         "moduleNames": [
           "UseitemLoader"
@@ -809,7 +807,7 @@
       "coverageMode": "partial",
       "provenance": {
         "moduleIds": [
-          "79787"
+          "28029"
         ],
         "moduleNames": [
           "UseitemLoader"
@@ -841,7 +839,7 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "93788"
+          "69168"
         ],
         "moduleNames": [
           "AppInitializeTask"
@@ -878,7 +876,7 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "93788"
+          "69168"
         ],
         "moduleNames": [
           "AppInitializeTask"

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-20T08:56:35.008Z",
-  "scriptVersion": "6.3.0.0",
+  "generatedAt": "2026-08-26T11:15:20.021Z",
+  "scriptVersion": "6.3.4.1",
   "coverageMode": "mainjs-observed",
   "summary": {
     "shipCategoryCount": 5,
@@ -25,9 +25,9 @@
         1496
       ],
       "moduleIds": [
-        "11166",
-        "25955",
-        "93634"
+        "23534",
+        "28409",
+        "47921"
       ],
       "moduleNames": [
         "CutinSpSSF",

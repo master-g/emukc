@@ -1,14 +1,14 @@
 {
-  "scriptVersion": "6.3.0.0",
+  "scriptVersion": "6.3.4.1",
   "summary": {
     "moduleCount": 197,
     "slotResourceTriggerCount": 17
   },
   "triggers": [
     {
-      "id": "20894:slot/btxt_flat",
-      "consumerModuleId": "20894",
-      "consumerReadableName": "CutinAntiAircraft",
+      "id": "11173:slot/btxt_flat",
+      "consumerModuleId": "11173",
+      "consumerReadableName": "CutinCanvasSpRR",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
         "api_hougeki2.api_si_list[*][*]",
@@ -19,35 +19,9 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "26431:slot/btxt_flat",
-      "consumerModuleId": "26431",
-      "consumerReadableName": "CutinCanvasSpSRD",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/btxt_flat",
-      "confidence": "high",
-      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
-    },
-    {
-      "id": "56434:slot/btxt_flat",
-      "consumerModuleId": "56434",
-      "consumerReadableName": "CutinCanvasSpSR",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/btxt_flat",
-      "confidence": "high",
-      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
-    },
-    {
-      "id": "56434:slot/item_up",
-      "consumerModuleId": "56434",
-      "consumerReadableName": "CutinCanvasSpSR",
+      "id": "11173:slot/item_up",
+      "consumerModuleId": "11173",
+      "consumerReadableName": "CutinCanvasSpRR",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
         "api_hougeki2.api_si_list[*][*]",
@@ -58,73 +32,8 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "58441:slot/item_on",
-      "consumerModuleId": "58441",
-      "consumerReadableName": "CutinResourcesPreloadTask",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/item_on",
-      "confidence": "candidate",
-      "notes": "Cutin preload logic loads slot images and labels before battle cutin rendering."
-    },
-    {
-      "id": "58441:slot/item_up",
-      "consumerModuleId": "58441",
-      "consumerReadableName": "CutinResourcesPreloadTask",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/item_up",
-      "confidence": "candidate",
-      "notes": "Cutin preload logic loads slot images and labels before battle cutin rendering."
-    },
-    {
-      "id": "66157:slot/btxt_flat",
-      "consumerModuleId": "66157",
-      "consumerReadableName": "CutinCanvasSpSSF",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/btxt_flat",
-      "confidence": "high",
-      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
-    },
-    {
-      "id": "66157:slot/item_up",
-      "consumerModuleId": "66157",
-      "consumerReadableName": "CutinCanvasSpSSF",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/item_up",
-      "confidence": "candidate",
-      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
-    },
-    {
-      "id": "66609:slot/btxt_flat",
-      "consumerModuleId": "66609",
-      "consumerReadableName": "CutinCanvasSpSuirai",
-      "protocolSources": [
-        "api_hougeki1.api_si_list[*][*]",
-        "api_hougeki2.api_si_list[*][*]",
-        "api_hougeki3.api_si_list[*][*]"
-      ],
-      "resourceTarget": "slot/btxt_flat",
-      "confidence": "high",
-      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
-    },
-    {
-      "id": "69595:slot/btxt_flat",
-      "consumerModuleId": "69595",
+      "id": "19773:slot/btxt_flat",
+      "consumerModuleId": "19773",
       "consumerReadableName": "CutinCanvasSpRDJ",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
@@ -136,8 +45,8 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "7438:slot/btxt_flat",
-      "consumerModuleId": "7438",
+      "id": "36177:slot/btxt_flat",
+      "consumerModuleId": "36177",
       "consumerReadableName": "CutinZRK",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
@@ -149,8 +58,8 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "7438:slot/item_up",
-      "consumerModuleId": "7438",
+      "id": "36177:slot/item_up",
+      "consumerModuleId": "36177",
       "consumerReadableName": "CutinZRK",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
@@ -162,9 +71,9 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "75803:slot/btxt_flat",
-      "consumerModuleId": "75803",
-      "consumerReadableName": "CutinCanvasSpRR",
+      "id": "37537:slot/btxt_flat",
+      "consumerModuleId": "37537",
+      "consumerReadableName": "CutinCanvasSpSSF",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
         "api_hougeki2.api_si_list[*][*]",
@@ -175,9 +84,9 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "75803:slot/item_up",
-      "consumerModuleId": "75803",
-      "consumerReadableName": "CutinCanvasSpRR",
+      "id": "37537:slot/item_up",
+      "consumerModuleId": "37537",
+      "consumerReadableName": "CutinCanvasSpSSF",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
         "api_hougeki2.api_si_list[*][*]",
@@ -188,8 +97,73 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "77357:slot/btxt_flat",
-      "consumerModuleId": "77357",
+      "id": "38046:slot/btxt_flat",
+      "consumerModuleId": "38046",
+      "consumerReadableName": "CutinCanvasSpSRD",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/btxt_flat",
+      "confidence": "high",
+      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
+    },
+    {
+      "id": "38288:slot/btxt_flat",
+      "consumerModuleId": "38288",
+      "consumerReadableName": "CutinAntiAircraft",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/btxt_flat",
+      "confidence": "high",
+      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
+    },
+    {
+      "id": "72369:slot/item_on",
+      "consumerModuleId": "72369",
+      "consumerReadableName": "CutinResourcesPreloadTask",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/item_on",
+      "confidence": "candidate",
+      "notes": "Cutin preload logic loads slot images and labels before battle cutin rendering."
+    },
+    {
+      "id": "72369:slot/item_up",
+      "consumerModuleId": "72369",
+      "consumerReadableName": "CutinResourcesPreloadTask",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/item_up",
+      "confidence": "candidate",
+      "notes": "Cutin preload logic loads slot images and labels before battle cutin rendering."
+    },
+    {
+      "id": "74671:slot/btxt_flat",
+      "consumerModuleId": "74671",
+      "consumerReadableName": "CutinKuboNightCanvas",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/btxt_flat",
+      "confidence": "high",
+      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
+    },
+    {
+      "id": "79342:slot/btxt_flat",
+      "consumerModuleId": "79342",
       "consumerReadableName": "CutinTelop",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
@@ -201,9 +175,9 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "86346:slot/btxt_flat",
-      "consumerModuleId": "86346",
-      "consumerReadableName": "CutinCanvasSpYusou",
+      "id": "84952:slot/btxt_flat",
+      "consumerModuleId": "84952",
+      "consumerReadableName": "CutinCanvasSpSuirai",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
         "api_hougeki2.api_si_list[*][*]",
@@ -214,9 +188,35 @@
       "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
     },
     {
-      "id": "95403:slot/btxt_flat",
-      "consumerModuleId": "95403",
-      "consumerReadableName": "CutinKuboNightCanvas",
+      "id": "88752:slot/btxt_flat",
+      "consumerModuleId": "88752",
+      "consumerReadableName": "CutinCanvasSpSR",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/btxt_flat",
+      "confidence": "high",
+      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
+    },
+    {
+      "id": "88752:slot/item_up",
+      "consumerModuleId": "88752",
+      "consumerReadableName": "CutinCanvasSpSR",
+      "protocolSources": [
+        "api_hougeki1.api_si_list[*][*]",
+        "api_hougeki2.api_si_list[*][*]",
+        "api_hougeki3.api_si_list[*][*]"
+      ],
+      "resourceTarget": "slot/item_up",
+      "confidence": "candidate",
+      "notes": "Cutin rendering module requests slot resources derived from attack equipment ids."
+    },
+    {
+      "id": "88762:slot/btxt_flat",
+      "consumerModuleId": "88762",
+      "consumerReadableName": "CutinCanvasSpYusou",
       "protocolSources": [
         "api_hougeki1.api_si_list[*][*]",
         "api_hougeki2.api_si_list[*][*]",

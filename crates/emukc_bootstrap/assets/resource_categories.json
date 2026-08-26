@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-20T08:56:33.705Z",
-  "scriptVersion": "6.3.0.0",
+  "generatedAt": "2026-08-26T11:15:16.434Z",
+  "scriptVersion": "6.3.4.1",
   "summary": {
     "shipTargetTypeCount": 36,
     "slotTargetTypeCount": 13,
@@ -14,7 +14,7 @@
       "source": "resources.getShip",
       "targetType": "album_status",
       "moduleIds": [
-        "3609"
+        "48531"
       ],
       "moduleNames": [
         "ShipDetailPanel"
@@ -24,7 +24,7 @@
       "source": "ShipLoader.add",
       "targetType": "album_status",
       "moduleIds": [
-        "17775"
+        "51408"
       ],
       "moduleNames": [
         "TaskShowShipDetail"
@@ -34,9 +34,9 @@
       "source": "explicit-path",
       "targetType": "banner",
       "moduleIds": [
-        "30843",
-        "37638",
-        "77190"
+        "11838",
+        "19615",
+        "96188"
       ],
       "moduleNames": [
         "PresetEditSlot",
@@ -48,13 +48,13 @@
       "source": "resources.getShip",
       "targetType": "banner",
       "moduleIds": [
-        "18168",
-        "27793",
-        "31394",
-        "37638",
-        "56817",
-        "72878",
-        "86523"
+        "10037",
+        "11838",
+        "14283",
+        "27601",
+        "68695",
+        "73268",
+        "98934"
       ],
       "moduleNames": [
         "AnchorageRepairShipBanner",
@@ -70,15 +70,15 @@
       "source": "ShipLoader.add",
       "targetType": "banner",
       "moduleIds": [
-        "11409",
-        "32703",
-        "35773",
-        "68686",
-        "70461",
-        "80845",
-        "86523",
-        "87371",
-        "94663"
+        "10037",
+        "29417",
+        "43774",
+        "46606",
+        "48184",
+        "53066",
+        "7076",
+        "8684",
+        "9288"
       ],
       "moduleNames": [
         "EscapeGoeiTask",
@@ -88,20 +88,20 @@
         "TaskExpeditionEndCutin",
         "TaskExpeditionResultShow",
         "TaskSupportDeckCutin",
-        "module-87371.js"
+        "module-8684.js"
       ]
     },
     {
       "source": "resources.getShip",
       "targetType": "banner_dmg",
       "moduleIds": [
-        "18168",
-        "27793",
-        "31394",
-        "37638",
-        "56817",
-        "72878",
-        "86523"
+        "10037",
+        "11838",
+        "14283",
+        "27601",
+        "68695",
+        "73268",
+        "98934"
       ],
       "moduleNames": [
         "AnchorageRepairShipBanner",
@@ -117,15 +117,15 @@
       "source": "ShipLoader.add",
       "targetType": "banner_dmg",
       "moduleIds": [
-        "11409",
-        "32703",
-        "35773",
-        "68686",
-        "70461",
-        "80845",
-        "86523",
-        "87371",
-        "94663"
+        "10037",
+        "29417",
+        "43774",
+        "46606",
+        "48184",
+        "53066",
+        "7076",
+        "8684",
+        "9288"
       ],
       "moduleNames": [
         "EscapeGoeiTask",
@@ -135,15 +135,15 @@
         "TaskExpeditionEndCutin",
         "TaskExpeditionResultShow",
         "TaskSupportDeckCutin",
-        "module-87371.js"
+        "module-8684.js"
       ]
     },
     {
       "source": "resources.getShip",
       "targetType": "banner_g_dmg",
       "moduleIds": [
-        "56817",
-        "72878"
+        "68695",
+        "98934"
       ],
       "moduleNames": [
         "BannerImage",
@@ -154,7 +154,7 @@
       "source": "resources.getShip",
       "targetType": "banner2",
       "moduleIds": [
-        "56817"
+        "68695"
       ],
       "moduleNames": [
         "BannerImage"
@@ -164,7 +164,7 @@
       "source": "resources.getShip",
       "targetType": "banner2_dmg",
       "moduleIds": [
-        "56817"
+        "68695"
       ],
       "moduleNames": [
         "BannerImage"
@@ -174,7 +174,7 @@
       "source": "resources.getShip",
       "targetType": "banner2_g_dmg",
       "moduleIds": [
-        "56817"
+        "68695"
       ],
       "moduleNames": [
         "BannerImage"
@@ -184,7 +184,7 @@
       "source": "explicit-path",
       "targetType": "banner3",
       "moduleIds": [
-        "51724"
+        "47747"
       ],
       "moduleNames": [
         "EnemyDeckSilhouette"
@@ -194,8 +194,8 @@
       "source": "resources.getShip",
       "targetType": "banner3",
       "moduleIds": [
-        "51724",
-        "56817"
+        "47747",
+        "68695"
       ],
       "moduleNames": [
         "BannerImage",
@@ -206,7 +206,7 @@
       "source": "resources.getShip",
       "targetType": "banner3_dmg",
       "moduleIds": [
-        "56817"
+        "68695"
       ],
       "moduleNames": [
         "BannerImage"
@@ -216,7 +216,7 @@
       "source": "resources.getShip",
       "targetType": "banner3_g_dmg",
       "moduleIds": [
-        "56817"
+        "68695"
       ],
       "moduleNames": [
         "BannerImage"
@@ -226,8 +226,8 @@
       "source": "explicit-path",
       "targetType": "card",
       "moduleIds": [
-        "17733",
-        "41940"
+        "78278",
+        "84462"
       ],
       "moduleNames": [
         "MainItemShip",
@@ -238,11 +238,11 @@
       "source": "resources.getShip",
       "targetType": "card",
       "moduleIds": [
-        "17265",
-        "17733",
-        "20473",
-        "29168",
-        "44896"
+        "26350",
+        "56079",
+        "74400",
+        "84080",
+        "84462"
       ],
       "moduleNames": [
         "KaizoAnimationMain",
@@ -256,10 +256,10 @@
       "source": "ShipLoader.add",
       "targetType": "card",
       "moduleIds": [
-        "17265",
-        "17775",
-        "29168",
-        "44896"
+        "26350",
+        "51408",
+        "56079",
+        "84080"
       ],
       "moduleNames": [
         "KaizoAnimationMain",
@@ -272,8 +272,8 @@
       "source": "resources.getShip",
       "targetType": "card_dmg",
       "moduleIds": [
-        "17265",
-        "17733"
+        "26350",
+        "84462"
       ],
       "moduleNames": [
         "KaizoAnimationMain",
@@ -284,7 +284,7 @@
       "source": "ShipLoader.add",
       "targetType": "card_dmg",
       "moduleIds": [
-        "17265"
+        "26350"
       ],
       "moduleNames": [
         "KaizoAnimationMain"
@@ -294,7 +294,7 @@
       "source": "resources.getShip",
       "targetType": "card_round",
       "moduleIds": [
-        "38661"
+        "56884"
       ],
       "moduleNames": [
         "RewardSelectDialogShipBtnOld"
@@ -304,7 +304,7 @@
       "source": "ShipLoader.add",
       "targetType": "card_round",
       "moduleIds": [
-        "22027"
+        "65769"
       ],
       "moduleNames": [
         "TaskLoadResources"
@@ -314,7 +314,7 @@
       "source": "resources.getShip",
       "targetType": "character_full",
       "moduleIds": [
-        "20473"
+        "74400"
       ],
       "moduleNames": [
         "ShipDetailContent"
@@ -324,7 +324,7 @@
       "source": "ShipLoader.add",
       "targetType": "character_full",
       "moduleIds": [
-        "17775"
+        "51408"
       ],
       "moduleNames": [
         "TaskShowShipDetail"
@@ -334,7 +334,7 @@
       "source": "resources.getShip",
       "targetType": "character_full_dmg",
       "moduleIds": [
-        "20473"
+        "74400"
       ],
       "moduleNames": [
         "ShipDetailContent"
@@ -344,7 +344,7 @@
       "source": "ShipLoader.add",
       "targetType": "character_full_dmg",
       "moduleIds": [
-        "17775"
+        "51408"
       ],
       "moduleNames": [
         "TaskShowShipDetail"
@@ -354,7 +354,7 @@
       "source": "resources.getShip",
       "targetType": "character_up",
       "moduleIds": [
-        "20473"
+        "74400"
       ],
       "moduleNames": [
         "ShipDetailContent"
@@ -364,7 +364,7 @@
       "source": "ShipLoader.add",
       "targetType": "character_up",
       "moduleIds": [
-        "17775"
+        "51408"
       ],
       "moduleNames": [
         "TaskShowShipDetail"
@@ -374,7 +374,7 @@
       "source": "resources.getShip",
       "targetType": "character_up_dmg",
       "moduleIds": [
-        "20473"
+        "74400"
       ],
       "moduleNames": [
         "ShipDetailContent"
@@ -384,7 +384,7 @@
       "source": "ShipLoader.add",
       "targetType": "character_up_dmg",
       "moduleIds": [
-        "17775"
+        "51408"
       ],
       "moduleNames": [
         "TaskShowShipDetail"
@@ -394,51 +394,51 @@
       "source": "resources.getShip",
       "targetType": "full",
       "moduleIds": [
-        "13292",
-        "17172",
-        "17265",
-        "19639",
-        "2067",
-        "20894",
-        "2212",
-        "3087",
-        "32611",
-        "35601",
-        "35773",
-        "38083",
-        "38538",
-        "40637",
-        "4146",
-        "425",
-        "43136",
-        "43201",
-        "45950",
-        "46595",
-        "48579",
-        "50527",
-        "51225",
-        "54018",
-        "55226",
-        "58441",
-        "6148",
-        "62174",
-        "62473",
-        "68173",
-        "68432",
-        "76095",
-        "80845",
-        "82850",
-        "83645",
-        "84085",
-        "85270",
-        "85373",
-        "85426",
-        "86156",
-        "87371",
-        "94206",
-        "94663",
-        "99411",
-        "99929"
+        "11424",
+        "15015",
+        "18215",
+        "18378",
+        "19362",
+        "21125",
+        "24408",
+        "26350",
+        "27642",
+        "30432",
+        "30724",
+        "32024",
+        "33610",
+        "33911",
+        "35523",
+        "37012",
+        "37375",
+        "38288",
+        "38703",
+        "38726",
+        "41319",
+        "4490",
+        "46606",
+        "48856",
+        "58211",
+        "60038",
+        "60621",
+        "62604",
+        "65299",
+        "69494",
+        "69636",
+        "7076",
+        "72369",
+        "75985",
+        "84582",
+        "84685",
+        "86325",
+        "8684",
+        "87166",
+        "88188",
+        "89001",
+        "9288",
+        "94408",
+        "94669",
+        "96909"
       ],
       "moduleNames": [
         "AnimFlagShip",
@@ -472,64 +472,64 @@
         "TaskGouchinCutinRepair",
         "TaskReplenishmentEffect",
         "TaskRevampStart",
-        "module-13292.js",
-        "module-2212.js",
-        "module-38538.js",
-        "module-40637.js",
-        "module-425.js",
-        "module-45950.js",
-        "module-51225.js",
-        "module-54018.js",
-        "module-6148.js",
-        "module-84085.js",
-        "module-87371.js",
-        "module-94206.js"
+        "module-11424.js",
+        "module-18378.js",
+        "module-37375.js",
+        "module-69494.js",
+        "module-75985.js",
+        "module-86325.js",
+        "module-8684.js",
+        "module-87166.js",
+        "module-88188.js",
+        "module-89001.js",
+        "module-94408.js",
+        "module-96909.js"
       ]
     },
     {
       "source": "ShipLoader.add",
       "targetType": "full",
       "moduleIds": [
-        "11166",
-        "16699",
-        "17172",
-        "17265",
-        "17325",
-        "19639",
-        "20894",
-        "2212",
-        "25955",
-        "30503",
-        "35601",
-        "35773",
-        "38538",
-        "40637",
-        "4146",
-        "425",
-        "43136",
-        "43201",
-        "45950",
-        "48059",
-        "51225",
-        "58441",
-        "6148",
-        "61953",
-        "62174",
-        "68432",
-        "69780",
-        "76095",
-        "80845",
-        "82850",
-        "83645",
-        "84085",
-        "86156",
-        "87371",
-        "93634",
-        "94206",
-        "94663",
-        "95484",
-        "99411",
-        "99929"
+        "11424",
+        "15015",
+        "19362",
+        "23534",
+        "24408",
+        "26350",
+        "28409",
+        "30432",
+        "32024",
+        "33610",
+        "35523",
+        "37375",
+        "38288",
+        "40921",
+        "4490",
+        "46606",
+        "47921",
+        "482",
+        "48856",
+        "58211",
+        "60038",
+        "6439",
+        "6674",
+        "68985",
+        "69494",
+        "7076",
+        "71305",
+        "72369",
+        "84582",
+        "84685",
+        "86325",
+        "8684",
+        "87166",
+        "88188",
+        "89001",
+        "9288",
+        "94408",
+        "94669",
+        "96909",
+        "99288"
       ],
       "moduleNames": [
         "AnimFlagShip",
@@ -561,63 +561,63 @@
         "TaskGouchinCutinRepair",
         "TaskReplenishmentEffect",
         "TaskRevampStart",
-        "module-2212.js",
-        "module-38538.js",
-        "module-40637.js",
-        "module-425.js",
-        "module-45950.js",
-        "module-51225.js",
-        "module-6148.js",
-        "module-84085.js",
-        "module-87371.js",
-        "module-94206.js"
+        "module-11424.js",
+        "module-37375.js",
+        "module-69494.js",
+        "module-86325.js",
+        "module-8684.js",
+        "module-87166.js",
+        "module-88188.js",
+        "module-89001.js",
+        "module-94408.js",
+        "module-96909.js"
       ]
     },
     {
       "source": "resources.getShip",
       "targetType": "full_dmg",
       "moduleIds": [
-        "10021",
-        "13292",
-        "17172",
-        "17265",
-        "19639",
-        "2067",
-        "20894",
-        "21541",
-        "2212",
-        "32611",
-        "35773",
-        "38083",
-        "38538",
-        "40637",
-        "4146",
-        "425",
-        "43136",
-        "43201",
-        "45950",
-        "46595",
-        "46997",
-        "48579",
-        "50527",
-        "51225",
-        "54018",
-        "55226",
-        "58441",
-        "6148",
-        "62473",
-        "68173",
-        "68432",
-        "80845",
-        "82850",
-        "83645",
-        "84085",
-        "85373",
-        "86156",
-        "94206",
-        "94663",
-        "99411",
-        "99929"
+        "10158",
+        "11424",
+        "15015",
+        "18215",
+        "18378",
+        "19362",
+        "21125",
+        "24408",
+        "25195",
+        "26350",
+        "30432",
+        "30724",
+        "3108",
+        "32024",
+        "33610",
+        "35523",
+        "37012",
+        "37375",
+        "38288",
+        "38703",
+        "41319",
+        "46606",
+        "58211",
+        "60621",
+        "62604",
+        "65299",
+        "69494",
+        "69636",
+        "7076",
+        "72369",
+        "75985",
+        "84582",
+        "84685",
+        "86325",
+        "87166",
+        "88188",
+        "89001",
+        "9288",
+        "94408",
+        "94669",
+        "96909"
       ],
       "moduleNames": [
         "AnimFlagShip",
@@ -648,60 +648,60 @@
         "TaskGouchinCutin",
         "TaskGouchinCutinRepair",
         "TaskReplenishmentEffect",
-        "module-13292.js",
-        "module-2212.js",
-        "module-38538.js",
-        "module-40637.js",
-        "module-425.js",
-        "module-45950.js",
-        "module-51225.js",
-        "module-54018.js",
-        "module-6148.js",
-        "module-84085.js",
-        "module-94206.js"
+        "module-11424.js",
+        "module-18378.js",
+        "module-37375.js",
+        "module-69494.js",
+        "module-75985.js",
+        "module-86325.js",
+        "module-87166.js",
+        "module-88188.js",
+        "module-89001.js",
+        "module-94408.js",
+        "module-96909.js"
       ]
     },
     {
       "source": "ShipLoader.add",
       "targetType": "full_dmg",
       "moduleIds": [
-        "11166",
-        "16699",
-        "17172",
-        "17265",
-        "17325",
-        "19639",
-        "20894",
-        "21541",
-        "2212",
-        "25955",
-        "30503",
-        "35773",
-        "38538",
-        "40637",
-        "4146",
-        "425",
-        "43136",
-        "43201",
-        "45950",
-        "46997",
-        "48059",
-        "58441",
-        "6148",
-        "68173",
-        "68432",
-        "69780",
-        "80845",
-        "82850",
-        "83645",
-        "84085",
-        "86156",
-        "93634",
-        "94206",
-        "94663",
-        "95484",
-        "99411",
-        "99929"
+        "10158",
+        "11424",
+        "15015",
+        "19362",
+        "23534",
+        "24408",
+        "26350",
+        "28409",
+        "30432",
+        "30724",
+        "3108",
+        "32024",
+        "33610",
+        "35523",
+        "37375",
+        "38288",
+        "40921",
+        "46606",
+        "47921",
+        "482",
+        "58211",
+        "6439",
+        "6674",
+        "69494",
+        "7076",
+        "71305",
+        "72369",
+        "84582",
+        "84685",
+        "87166",
+        "88188",
+        "89001",
+        "9288",
+        "94408",
+        "94669",
+        "96909",
+        "99288"
       ],
       "moduleNames": [
         "AnimFlagShip",
@@ -732,22 +732,22 @@
         "TaskGouchinCutin",
         "TaskGouchinCutinRepair",
         "TaskReplenishmentEffect",
-        "module-2212.js",
-        "module-38538.js",
-        "module-40637.js",
-        "module-425.js",
-        "module-45950.js",
-        "module-6148.js",
-        "module-84085.js",
-        "module-94206.js"
+        "module-11424.js",
+        "module-37375.js",
+        "module-69494.js",
+        "module-87166.js",
+        "module-88188.js",
+        "module-89001.js",
+        "module-94408.js",
+        "module-96909.js"
       ]
     },
     {
       "source": "resources.getShip",
       "targetType": "icon_box",
       "moduleIds": [
-        "56230",
-        "80135"
+        "45269",
+        "93399"
       ],
       "moduleNames": [
         "TaskRewardSelect",
@@ -758,7 +758,7 @@
       "source": "ShipLoader.add",
       "targetType": "icon_box",
       "moduleIds": [
-        "22027"
+        "65769"
       ],
       "moduleNames": [
         "TaskLoadResources"
@@ -768,7 +768,7 @@
       "source": "explicit-path",
       "targetType": "power_up",
       "moduleIds": [
-        "66034"
+        "97235"
       ],
       "moduleNames": [
         "TaskKindaika"
@@ -778,7 +778,7 @@
       "source": "resources.getShip",
       "targetType": "power_up",
       "moduleIds": [
-        "66034"
+        "97235"
       ],
       "moduleNames": [
         "TaskKindaika"
@@ -788,7 +788,7 @@
       "source": "resources.getShip",
       "targetType": "power_up_dmg",
       "moduleIds": [
-        "66034"
+        "97235"
       ],
       "moduleNames": [
         "TaskKindaika"
@@ -798,7 +798,7 @@
       "source": "explicit-path",
       "targetType": "remodel",
       "moduleIds": [
-        "78084"
+        "29703"
       ],
       "moduleNames": [
         "KaizoDetailHeader"
@@ -808,7 +808,7 @@
       "source": "resources.getShip",
       "targetType": "remodel",
       "moduleIds": [
-        "78084"
+        "29703"
       ],
       "moduleNames": [
         "KaizoDetailHeader"
@@ -818,7 +818,7 @@
       "source": "resources.getShip",
       "targetType": "remodel_dmg",
       "moduleIds": [
-        "78084"
+        "29703"
       ],
       "moduleNames": [
         "KaizoDetailHeader"
@@ -828,7 +828,7 @@
       "source": "resources.getShip",
       "targetType": "reward_card",
       "moduleIds": [
-        "46091"
+        "23881"
       ],
       "moduleNames": [
         "RewardSelectDialogShipBtn"
@@ -838,7 +838,7 @@
       "source": "ShipLoader.add",
       "targetType": "reward_card",
       "moduleIds": [
-        "22027"
+        "65769"
       ],
       "moduleNames": [
         "TaskLoadResources"
@@ -848,8 +848,8 @@
       "source": "resources.getShip",
       "targetType": "reward_icon",
       "moduleIds": [
-        "19281",
-        "80135"
+        "42850",
+        "45269"
       ],
       "moduleNames": [
         "TaskEventRewardsSelect",
@@ -860,7 +860,7 @@
       "source": "ShipLoader.add",
       "targetType": "reward_icon",
       "moduleIds": [
-        "22027"
+        "65769"
       ],
       "moduleNames": [
         "TaskLoadResources"
@@ -870,7 +870,7 @@
       "source": "explicit-path",
       "targetType": "sp_remodel/animation_key",
       "moduleIds": [
-        "59611"
+        "26075"
       ],
       "moduleNames": [
         "TaskKaizo"
@@ -880,7 +880,7 @@
       "source": "resources.getShip",
       "targetType": "sp_remodel/full_x2",
       "moduleIds": [
-        "7248"
+        "55982"
       ],
       "moduleNames": [
         "SpecialRemodelStartStage"
@@ -890,7 +890,7 @@
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/full_x2",
       "moduleIds": [
-        "59611"
+        "26075"
       ],
       "moduleNames": [
         "TaskKaizo"
@@ -900,7 +900,7 @@
       "source": "resources.getShip",
       "targetType": "sp_remodel/silhouette",
       "moduleIds": [
-        "35601"
+        "48856"
       ],
       "moduleNames": [
         "SpKaizoIntro"
@@ -910,7 +910,7 @@
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/silhouette",
       "moduleIds": [
-        "35601"
+        "48856"
       ],
       "moduleNames": [
         "SpKaizoIntro"
@@ -920,7 +920,7 @@
       "source": "resources.getShip",
       "targetType": "sp_remodel/text_class",
       "moduleIds": [
-        "7248"
+        "55982"
       ],
       "moduleNames": [
         "SpecialRemodelStartStage"
@@ -930,7 +930,7 @@
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/text_class",
       "moduleIds": [
-        "59611"
+        "26075"
       ],
       "moduleNames": [
         "TaskKaizo"
@@ -940,7 +940,7 @@
       "source": "resources.getShip",
       "targetType": "sp_remodel/text_name",
       "moduleIds": [
-        "7248"
+        "55982"
       ],
       "moduleNames": [
         "SpecialRemodelStartStage"
@@ -950,7 +950,7 @@
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/text_name",
       "moduleIds": [
-        "59611"
+        "26075"
       ],
       "moduleNames": [
         "TaskKaizo"
@@ -960,7 +960,7 @@
       "source": "resources.getShip",
       "targetType": "sp_remodel/text_remodel_mes",
       "moduleIds": [
-        "50402"
+        "96208"
       ],
       "moduleNames": [
         "SpKaizoConfirm"
@@ -970,7 +970,7 @@
       "source": "ShipLoader.add",
       "targetType": "sp_remodel/text_remodel_mes",
       "moduleIds": [
-        "50402"
+        "96208"
       ],
       "moduleNames": [
         "SpKaizoConfirm"
@@ -980,38 +980,38 @@
       "source": "resources.getShip",
       "targetType": "special",
       "moduleIds": [
-        "425",
-        "43136",
-        "43367",
-        "51225",
-        "6148",
-        "7438",
-        "84085"
+        "24408",
+        "36177",
+        "69494",
+        "74003",
+        "86325",
+        "87166",
+        "88188"
       ],
       "moduleNames": [
         "CutinSSAttack",
         "CutinYamatoAttack",
         "CutinZRK",
-        "module-425.js",
-        "module-51225.js",
-        "module-6148.js",
-        "module-84085.js"
+        "module-69494.js",
+        "module-86325.js",
+        "module-87166.js",
+        "module-88188.js"
       ]
     },
     {
       "source": "ShipLoader.add",
       "targetType": "special",
       "moduleIds": [
-        "11166",
-        "25955",
-        "425",
-        "43136",
-        "43367",
-        "51225",
-        "6148",
-        "7438",
-        "84085",
-        "93634"
+        "23534",
+        "24408",
+        "28409",
+        "36177",
+        "47921",
+        "69494",
+        "74003",
+        "86325",
+        "87166",
+        "88188"
       ],
       "moduleNames": [
         "CutinSSAttack",
@@ -1020,18 +1020,18 @@
         "CutinYamatoAttack",
         "CutinZRK",
         "CutinZuiunNight",
-        "module-425.js",
-        "module-51225.js",
-        "module-6148.js",
-        "module-84085.js"
+        "module-69494.js",
+        "module-86325.js",
+        "module-87166.js",
+        "module-88188.js"
       ]
     },
     {
       "source": "resources.getShip",
       "targetType": "special_dmg",
       "moduleIds": [
-        "43136",
-        "7438"
+        "24408",
+        "36177"
       ],
       "moduleNames": [
         "CutinSSAttack",
@@ -1042,21 +1042,21 @@
       "source": "ShipLoader.add",
       "targetType": "special_dmg",
       "moduleIds": [
-        "43136",
-        "6148",
-        "7438"
+        "24408",
+        "36177",
+        "87166"
       ],
       "moduleNames": [
         "CutinSSAttack",
         "CutinZRK",
-        "module-6148.js"
+        "module-87166.js"
       ]
     },
     {
       "source": "explicit-path",
       "targetType": "supply_character",
       "moduleIds": [
-        "64289"
+        "88948"
       ],
       "moduleNames": [
         "LongShipBanner"
@@ -1066,7 +1066,7 @@
       "source": "resources.getShip",
       "targetType": "supply_character",
       "moduleIds": [
-        "64289"
+        "88948"
       ],
       "moduleNames": [
         "LongShipBanner"
@@ -1076,7 +1076,7 @@
       "source": "resources.getShip",
       "targetType": "supply_character_dmg",
       "moduleIds": [
-        "64289"
+        "88948"
       ],
       "moduleNames": [
         "LongShipBanner"
@@ -1088,21 +1088,21 @@
       "source": "resources.getSlotitem",
       "targetType": "airunit_banner",
       "moduleIds": [
-        "12922",
-        "25832",
-        "51968"
+        "15820",
+        "27945",
+        "43134"
       ],
       "moduleNames": [
         "AirUnitPanel",
         "AirUnitPanelItem",
-        "module-25832.js"
+        "module-15820.js"
       ]
     },
     {
       "source": "resources.getSlotitem",
       "targetType": "airunit_fairy",
       "moduleIds": [
-        "96928"
+        "76559"
       ],
       "moduleNames": [
         "AirUnitPanelBanner"
@@ -1112,7 +1112,7 @@
       "source": "resources.getSlotitem",
       "targetType": "airunit_name",
       "moduleIds": [
-        "51968"
+        "43134"
       ],
       "moduleNames": [
         "AirUnitPanelItem"
@@ -1122,20 +1122,20 @@
       "source": "resources.getSlotitem",
       "targetType": "btxt_flat",
       "moduleIds": [
-        "13292",
-        "20894",
-        "26431",
-        "41768",
-        "56434",
-        "66157",
-        "66609",
-        "69595",
-        "7438",
-        "75803",
-        "77357",
-        "86346",
-        "87110",
-        "95403"
+        "11173",
+        "19773",
+        "36177",
+        "37537",
+        "37686",
+        "38046",
+        "38288",
+        "74671",
+        "75985",
+        "77625",
+        "79342",
+        "84952",
+        "88752",
+        "88762"
       ],
       "moduleNames": [
         "CutinAntiAircraft",
@@ -1149,26 +1149,26 @@
         "CutinKuboNightCanvas",
         "CutinTelop",
         "CutinZRK",
-        "module-13292.js",
-        "module-41768.js",
-        "module-87110.js"
+        "module-37686.js",
+        "module-75985.js",
+        "module-77625.js"
       ]
     },
     {
       "source": "SlotLoader.add",
       "targetType": "btxt_flat",
       "moduleIds": [
-        "11166",
-        "16699",
-        "20894",
-        "25955",
-        "69780",
-        "7438",
-        "83645",
-        "93634",
-        "95484",
-        "99411",
-        "99929"
+        "19362",
+        "23534",
+        "28409",
+        "32024",
+        "36177",
+        "38288",
+        "47921",
+        "482",
+        "6439",
+        "6674",
+        "94669"
       ],
       "moduleNames": [
         "CutinAntiAircraft",
@@ -1188,21 +1188,21 @@
       "source": "resources.getSlotitem",
       "targetType": "card",
       "moduleIds": [
-        "11039",
-        "13090",
-        "19281",
-        "20324",
-        "31930",
-        "34931",
-        "38287",
-        "4146",
-        "56230",
-        "60988",
-        "63476",
-        "70041",
-        "80135",
-        "92410",
-        "99469"
+        "12003",
+        "21574",
+        "42850",
+        "43639",
+        "45269",
+        "50857",
+        "58035",
+        "58357",
+        "65285",
+        "68676",
+        "69802",
+        "84685",
+        "93399",
+        "93482",
+        "99417"
       ],
       "moduleNames": [
         "BonusSlot",
@@ -1226,16 +1226,16 @@
       "source": "SlotLoader.add",
       "targetType": "card",
       "moduleIds": [
-        "11039",
-        "13090",
-        "20324",
-        "22027",
-        "31930",
-        "40545",
-        "4146",
-        "53456",
-        "70041",
-        "75223"
+        "12003",
+        "44031",
+        "45326",
+        "58035",
+        "58357",
+        "65285",
+        "65769",
+        "80646",
+        "84685",
+        "99417"
       ],
       "moduleNames": [
         "MeltIntoSprite",
@@ -1254,7 +1254,7 @@
       "source": "explicit-path",
       "targetType": "card_t",
       "moduleIds": [
-        "20955"
+        "92888"
       ],
       "moduleNames": [
         "MainItemSlot"
@@ -1264,7 +1264,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_character",
       "moduleIds": [
-        "60988"
+        "69802"
       ],
       "moduleNames": [
         "SlotDetailContent"
@@ -1274,7 +1274,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_character",
       "moduleIds": [
-        "40545"
+        "45326"
       ],
       "moduleNames": [
         "TaskShowSlotDetail"
@@ -1284,7 +1284,7 @@
       "source": "explicit-path",
       "targetType": "item_on",
       "moduleIds": [
-        "84231"
+        "35624"
       ],
       "moduleNames": [
         "SlotDisassemblyConfirm"
@@ -1294,8 +1294,8 @@
       "source": "resources.getSlotitem",
       "targetType": "item_on",
       "moduleIds": [
-        "58441",
-        "60988"
+        "69802",
+        "72369"
       ],
       "moduleNames": [
         "CutinResourcesPreloadTask",
@@ -1306,7 +1306,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_on",
       "moduleIds": [
-        "40545"
+        "45326"
       ],
       "moduleNames": [
         "TaskShowSlotDetail"
@@ -1316,7 +1316,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_on2",
       "moduleIds": [
-        "60988"
+        "69802"
       ],
       "moduleNames": [
         "SlotDetailContent"
@@ -1326,7 +1326,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_on2",
       "moduleIds": [
-        "40545"
+        "45326"
       ],
       "moduleNames": [
         "TaskShowSlotDetail"
@@ -1336,17 +1336,17 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up",
       "moduleIds": [
-        "13292",
-        "41768",
-        "46682",
-        "56434",
-        "58441",
-        "60988",
-        "66157",
-        "7438",
-        "75803",
-        "87110",
-        "89916"
+        "11173",
+        "36177",
+        "37537",
+        "37686",
+        "43851",
+        "69802",
+        "72369",
+        "75985",
+        "77625",
+        "84192",
+        "88752"
       ],
       "moduleNames": [
         "CutinCanvasSpRR",
@@ -1357,27 +1357,27 @@
         "PhaseSakuteki",
         "Plane",
         "SlotDetailContent",
-        "module-13292.js",
-        "module-41768.js",
-        "module-87110.js"
+        "module-37686.js",
+        "module-75985.js",
+        "module-77625.js"
       ]
     },
     {
       "source": "SlotLoader.add",
       "targetType": "item_up",
       "moduleIds": [
-        "11166",
-        "16699",
-        "17325",
-        "25955",
-        "40545",
-        "43705",
-        "69780",
-        "7438",
-        "89916",
-        "93634",
-        "99411",
-        "99929"
+        "23534",
+        "28409",
+        "32024",
+        "35210",
+        "36177",
+        "45326",
+        "47921",
+        "482",
+        "6674",
+        "71305",
+        "84192",
+        "94669"
       ],
       "moduleNames": [
         "CutinSpRR",
@@ -1398,7 +1398,7 @@
       "source": "resources.getSlotitem",
       "targetType": "item_up2",
       "moduleIds": [
-        "60988"
+        "69802"
       ],
       "moduleNames": [
         "SlotDetailContent"
@@ -1408,7 +1408,7 @@
       "source": "SlotLoader.add",
       "targetType": "item_up2",
       "moduleIds": [
-        "40545"
+        "45326"
       ],
       "moduleNames": [
         "TaskShowSlotDetail"
@@ -1418,8 +1418,8 @@
       "source": "explicit-path",
       "targetType": "remodel",
       "moduleIds": [
-        "12061",
-        "8263"
+        "22982",
+        "25501"
       ],
       "moduleNames": [
         "AirUnitChangeConfirmPanel",
@@ -1430,7 +1430,7 @@
       "source": "resources.getSlotitem",
       "targetType": "remodel",
       "moduleIds": [
-        "8263"
+        "25501"
       ],
       "moduleNames": [
         "AirUnitChangeConfirmPanel"
@@ -1440,7 +1440,7 @@
       "source": "resources.getSlotitem",
       "targetType": "statustop_item",
       "moduleIds": [
-        "53285"
+        "50569"
       ],
       "moduleNames": [
         "SlotDetailPanel"
@@ -1450,7 +1450,7 @@
       "source": "SlotLoader.add",
       "targetType": "statustop_item",
       "moduleIds": [
-        "40545"
+        "45326"
       ],
       "moduleNames": [
         "TaskShowSlotDetail"
