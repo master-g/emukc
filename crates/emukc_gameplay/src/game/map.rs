@@ -365,6 +365,7 @@ fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcA
         api_defeat_count: required_defeat_count.map(|_| record.defeat_count.unwrap_or(0)),
         api_gauge_num: definition.gauge_count.or_else(|| required_defeat_count.map(|_| 1)),
         api_gauge_type: definition.gauge_type,
+        api_gauge_type_e: definition.gauge_type_e,
         api_required_defeat_count: required_defeat_count,
         api_air_base_decks: definition.airbase_count,
         api_eventmap: None,
@@ -382,6 +383,7 @@ fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcA
             api_max_maphp: definition.max_hp.unwrap_or(record.current_hp.unwrap_or(0)),
             api_selected_rank: record.selected_rank.clone() as i64,
             api_state: record.event_state.unwrap_or(1),
+            api_limit_flag: Some(0),
         });
         info.api_sally_flag = Some(sally_flag_array(definition));
         info.api_s_no = Some(definition.mapinfo_no);
@@ -542,6 +544,7 @@ mod tests {
             reset_policy: MapResetPolicy::Never,
             airbase_count: None,
             gauge_type: None,
+            gauge_type_e: None,
             gauge_count: None,
             required_defeat_count: None,
             max_hp: None,
@@ -708,6 +711,7 @@ mod tests {
             reset_policy: MapResetPolicy::Never,
             airbase_count: None,
             gauge_type: Some(2),
+            gauge_type_e: None,
             gauge_count: Some(2),
             required_defeat_count: None,
             max_hp: Some(500),
@@ -758,5 +762,51 @@ mod tests {
         // gauge_index stays at the value from the record (not reset to 1)
         assert!(am.gauge_index.is_unchanged());
         assert!(am.current_hp.is_unchanged());
+    }
+
+    // ------------------------------------------------------------------ U5: api_limit_flag / api_gauge_type_e
+
+    /// Event map → `api_eventmap.api_limit_flag` is fixed `Some(0)` (KTD5).
+    #[test]
+    fn build_map_info_event_map_emits_limit_flag_zero() {
+        let definition = MapDefinition {
+            is_event: true,
+            max_hp: Some(999),
+            ..MapDefinition::minimal(621)
+        };
+        let info = build_map_info(&definition, &sample_record(None));
+
+        let eventmap = info.api_eventmap.expect("event map must carry api_eventmap");
+        assert_eq!(eventmap.api_limit_flag, Some(0));
+    }
+
+    /// Regular map (1-1) → no `api_eventmap` at all, hence no `api_limit_flag`.
+    #[test]
+    fn build_map_info_regular_map_has_no_eventmap() {
+        let definition = sample_definition();
+        let info = build_map_info(&definition, &sample_record(None));
+
+        assert!(info.api_eventmap.is_none());
+    }
+
+    /// `gauge_type_e` present in definition → mapinfo emits the same value (KTD6).
+    #[test]
+    fn build_map_info_emits_gauge_type_e_when_present() {
+        let definition = MapDefinition {
+            gauge_type_e: Some(2),
+            ..event_definition_with_hp()
+        };
+        let info = build_map_info(&definition, &sample_record(None));
+
+        assert_eq!(info.api_gauge_type_e, Some(2));
+    }
+
+    /// `gauge_type_e` absent → field stays `None` (serialized omitted).
+    #[test]
+    fn build_map_info_gauge_type_e_none_when_absent() {
+        let definition = event_definition_with_hp();
+        let info = build_map_info(&definition, &sample_record(None));
+
+        assert!(info.api_gauge_type_e.is_none());
     }
 }

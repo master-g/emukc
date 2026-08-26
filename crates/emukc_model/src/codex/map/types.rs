@@ -51,6 +51,7 @@ pub struct MapDefinition {
     pub gauge_count: Option<i64>,
     pub required_defeat_count: Option<i64>,
     pub max_hp: Option<i64>,
+    pub gauge_type_e: Option<i64>,
     pub default_variant: String,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub rank_stage_ids: BTreeMap<i64, String>,
@@ -77,6 +78,7 @@ impl MapDefinition {
             gauge_count: None,
             required_defeat_count: None,
             max_hp: None,
+            gauge_type_e: None,
             default_variant: String::new(),
             rank_stage_ids: BTreeMap::new(),
             variants: BTreeMap::new(),

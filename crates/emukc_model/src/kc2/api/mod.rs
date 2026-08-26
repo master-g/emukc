@@ -531,6 +531,9 @@ pub struct KcApiMapInfo {
     pub api_gauge_type: Option<i64>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_gauge_type_e: Option<i64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub api_required_defeat_count: Option<i64>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -555,6 +558,9 @@ pub struct KcApiEventmap {
     pub api_now_maphp: i64,
     pub api_selected_rank: i64,
     pub api_state: i64,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_limit_flag: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

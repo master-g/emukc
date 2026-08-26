@@ -633,6 +633,7 @@ async fn monthly_map_record_resets_on_map_info_read() {
             reset_policy: MapResetPolicy::Monthly,
             airbase_count: None,
             gauge_type: None,
+            gauge_type_e: None,
             gauge_count: Some(1),
             required_defeat_count: Some(4),
             max_hp: None,

@@ -218,6 +218,7 @@ mod tests {
             reset_policy: Default::default(),
             airbase_count: None,
             gauge_type: None,
+            gauge_type_e: None,
             gauge_count: None,
             required_defeat_count: None,
             max_hp: None,

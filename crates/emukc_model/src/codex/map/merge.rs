@@ -24,6 +24,9 @@ pub(super) fn merge_definition(definition: &mut MapDefinition, other: MapDefinit
     if definition.gauge_type.is_none() {
         definition.gauge_type = other.gauge_type;
     }
+    if definition.gauge_type_e.is_none() {
+        definition.gauge_type_e = other.gauge_type_e;
+    }
     if definition.gauge_count.is_none() {
         definition.gauge_count = other.gauge_count;
     }

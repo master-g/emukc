@@ -247,6 +247,7 @@ impl WikiwikiMapCatalog {
                     reset_policy: MapResetPolicy::Never,
                     airbase_count: None,
                     gauge_type: None,
+                    gauge_type_e: None,
                     gauge_count,
                     required_defeat_count: first_variant_required_defeat_count
                         .or_else(|| manifest_map.and_then(|map| map.api_required_defeat_count)),

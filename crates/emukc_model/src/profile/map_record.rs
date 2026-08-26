@@ -134,6 +134,7 @@ impl From<MapRecord> for KcApiMapInfo {
             api_defeat_count: value.defeat_ctx.map(|x| x.defeat_count),
             api_required_defeat_count: value.defeat_ctx.map(|x| x.defeat_required),
             api_gauge_type: value.defeat_ctx.map(|x| x.gauge_type as i64),
+            api_gauge_type_e: None,
             api_gauge_num: value.defeat_ctx.map(|x| x.gauge_num),
             api_air_base_decks: value.airbase_count,
             api_s_no: value.event_ctx.map(|x| x.s_no),
@@ -143,6 +144,7 @@ impl From<MapRecord> for KcApiMapInfo {
                 api_max_maphp: x.max_hp,
                 api_state: x.state as i64,
                 api_selected_rank: x.selected_rank as i64,
+                api_limit_flag: Some(0),
             }),
         }
     }
