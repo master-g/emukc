@@ -41,6 +41,9 @@ Current verification baseline:
 - [2026-07-30] The 2026-06-22 "known broken tests" list is resolved and must not be used as a current baseline; use a fresh command exit status for every verification.
 - [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
 - [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions; final linear commit is `0395121`. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
+- [2026-08-26] Update chain is three steps: `bootstrap --overwrite --force-update` (refresh main.js/version.json/codex; `--force-update` now also deletes main.js) → `cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. `make update` runs all three. Verified end-to-end: upstream 6.3.2.1 landed in `z/cache/cache_resources.nedb` (album_main 6.2.5.0 → 6.3.1.0, 70706 → 72743 entries).
+- [2026-08-26] Upstream data drift landed 2026-08: kcwiki empty equipment slots use `null` (not `false`); `version.json` has a nested `resources` object (flattened to dotted keys in `parse_version_info`); webpack module table emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); new event area 62 (maps 621-625, `api_type=1`) is visible to new profiles by design (`is_map_unlocked_by_default`).
+- [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 
 ## Failed Attempts / Pitfalls
 
@@ -54,20 +57,23 @@ Current verification baseline:
 | `cargo clippy` (default) ≠ `cargo clippy -- -D warnings`. Default run missed a U6 `match`→`let-else` lint; `-D warnings` caught it. The CLAUDE.md gate specifies `-W warnings`; the plan 004 U7 gate specifies `-D warnings` (strict). Use `-D warnings` for final verification. | plan 004 U7 (2026-06-22) |
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
 | [2026-07-30] Do not delete a divergent branch merely during cleanup. `codex/fix-cache-list-warnings` contained one valuable commit; it was inspected, rebased onto current `main`, retested, fast-forwarded, then deleted. | git `0395121` |
+| [2026-08-26] The 2026-08-26 stale cache-list incident root cause: `cargo run -- bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed `z/cache/kcs2/js/main.js` (mtime stuck at download date); decode and make-list then faithfully consumed stale inputs. Never diagnose "make-list didn't update" from make-list alone — check `z/cache/kcs2/version.json` content and main.js mtime first. | session 2026-08-26 |
+| [2026-08-26] `clearing_1_1_unlocks_1_2` flakiness is compass-routing + unrepaired damage accumulation, not damage RNG: ~80% of 1-1 sorties dead-end before the boss, and sortie damage/fuel/ammo persist across retries. Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt (12/12 stable). Leveling the fleet alone does NOT fix it (1/8 vs 1/6 failure). | session 2026-08-26 |
+| [2026-08-26] pi-lens edit-time dispatch re-runs shellcheck on every Makefile edit and ignores the `.pi-lens.json` ignore glob (scan path only); shellcheck cannot parse Make syntax, so each edit spawns new SC findings at drifting lines. Do not "fix" these — stop editing the Makefile and let the session cache die. | session 2026-08-26 |
 
 ## Last Session
 
-[2026-07-30] `main` at `0395121`:
+[2026-08-26] `main`, all work uncommitted in working tree:
 
-- Shipped the unified battle execution boundary in five commits (`8e4743b`..`64a8239`): public `execute_day` / `execute_night`, gameplay migration, crate-private raw execution internals, architecture documentation, and hermetic CLI seed-search tests.
-- Added repository agent skills / GitHub Issue conventions (`7c341fe`), refreshed decoder provenance timestamps without semantic resource changes (`53df168`), and added the in-progress Debian 12 VPS plan (`ba9fd47`).
-- Preserved the divergent cache-list repair by rebasing it onto current `main`; direct regressions, `cargo fmt --all --check`, and root `cargo test` passed before fast-forward and branch deletion.
-- Cleaned all local feature branches after ancestry and worktree checks. At the final snapshot, `main == origin/main == 0395121`.
-- Ran `bootstrap-claude`: `CLAUDE.md` remains the source of truth, `AGENTS.md` points to it, and the required context/memory contract is now populated. These bootstrap edits are intentionally left uncommitted for review.
+- Fixed the stale cache-list update chain (user report: "make-list 生成的资源配置不更新"). Root cause was bootstrap Phase 2 parse failure on new kcwiki data; three upstream format changes needed adaptation (null equipment slots, nested version.json resources, ObjectMethod module table).
+- Changes: `parser/kcwiki/enemy.rs` (Option<BoolOrString> + Option<i64> size), `make_list/source/kcs2/versioned/mod.rs` (flatten nested version.json + tests), `kache.rs` (remote_only skips local dedup), `bootstrap.rs` (--force-update deletes main.js), `main-decoder/src/module-graph.ts` (ObjectMethod normalization), `tests/gameplay_tests/map/unlock.rs` (event-map tolerance + fleet-restore between retries), `Makefile` (+`update` target), `.pi-lens.json` (new, ignore Makefile).
+- Decoder assets re-synced from main.js 6.3.4.1 (`crates/emukc_bootstrap/assets/*.json` + `main-decoder/out/battle/*.json` modified — regenerate via `make decode-main`, never hand-edit).
+- Verified: `cargo fmt --all --check` OK; clippy warnings all pre-existing in untouched files; `cargo test` 63 + 104 + crate suites green; flaky test 12/12 stable; `make update` three steps ran end-to-end with real network.
 
 ## Next Session
 
+- [2026-08-26] Commit the working tree in separate conventional commits: fix(bootstrap) kcwiki null parsing; fix(cache) remote_only + version.json flatten; fix(cli) force-update main.js; fix(main-decoder) ObjectMethod module table; test(gameplay) unlock assertions + fleet restore; chore(assets) decoder re-sync from 6.3.4.1; chore Makefile update target + .pi-lens.json. Explain regenerated assets in the PR body.
+- [2026-08-26] Decoder reported "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1 — check whether the id-set extraction patterns need updating for the new bundle.
 - [2026-07-30] Review and commit the `CLAUDE.md` / `PROJECT_MEMORY.md` bootstrap changes as their own documentation commit.
 - [2026-07-30] `docs/plans/2026-07-02-001-feat-vps-deployment-plan.md` is the only explicitly `in-progress` implementation plan; revalidate Docker/Rust/dependency assumptions before executing its units.
 - [2026-07-30] The battle execution plan is implemented but remains under `docs/plans/`; archive or mark it complete deliberately rather than mixing that housekeeping into unrelated code work.
-- [2026-07-30] No further feature implementation is authorized by this memory entry; select the next plan or issue before changing production code.
