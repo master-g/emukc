@@ -26,9 +26,6 @@ ifeq ($(PROFILE),release)
 CARGO_PROFILE_FLAG := --release
 else
 CARGO_PROFILE_FLAG :=
-// pi-lens-ignore: SC1072
-// pi-lens-ignore: SC1064
-// pi-lens-ignore: SC1065
 endif
 
 ifeq ($(FIND),)
