@@ -117,6 +117,7 @@ api_world/register
 ## Missing APIs (Not Yet Implemented)
 
 ### Core Battle System
+
 ```plain
 api_req_sortie/battle
 api_req_sortie/airbattle
@@ -145,6 +146,7 @@ api_req_combined_battle/sp_midnight
 ```
 
 ### Map & Sortie System
+
 ```plain
 api_req_map/start
 api_req_map/next
@@ -155,6 +157,7 @@ api_req_map/start_air_base
 ```
 
 ### Mission System
+
 ```plain
 api_req_mission/start
 api_req_mission/result
@@ -162,6 +165,7 @@ api_req_mission/return_instruction
 ```
 
 ### Practice System
+
 ```plain
 api_req_practice/battle
 api_req_practice/battle_result
@@ -170,6 +174,7 @@ api_req_practice/change_matching_kind
 ```
 
 ### Air Corps System
+
 ```plain
 api_get_member/base_air_corps
 api_port/airCorpsCondRecoveryWithTimer
@@ -184,6 +189,7 @@ api_req_air_corps/cond_recovery
 ```
 
 ### Equipment Improvement
+
 ```plain
 api_req_kousyou/remodel_slot
 api_req_kousyou/remodel_slotlist
@@ -191,17 +197,20 @@ api_req_kousyou/remodel_slotlist_detail
 ```
 
 ### Fleet Preset
+
 ```plain
 api_req_hensei/preset_lock
 api_req_hensei/preset_order_change
 ```
 
 ### Ranking
+
 ```plain
 api_req_ranking/getlist
 ```
 
 ### Payment System
+
 ```plain
 api_dmm_payment/paycheck
 ```
@@ -209,16 +218,19 @@ api_dmm_payment/paycheck
 ## Implementation Priority
 
 ### High Priority (Core Gameplay)
+
 1. **Map & Sortie System** - Required for basic gameplay
 2. **Battle System** - Core combat mechanics
 3. **Mission System** - Expedition functionality
 
 ### Medium Priority (Enhanced Features)
+
 4. **Practice System** - PvP functionality
 5. **Air Corps System** - Event map support
 6. **Equipment Improvement** - Arsenal functionality
 
 ### Low Priority (Optional Features)
+
 7. **Fleet Presets** - QoL enhancements (preset_lock, preset_order_change)
 8. **Ranking** - Ranking list display
 9. **Payment System** - Monetization (not needed for emulator)
