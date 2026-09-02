@@ -225,12 +225,12 @@ api_dmm_payment/paycheck
 
 ### Medium Priority (Enhanced Features)
 
-4. **Practice System** - PvP functionality
-5. **Air Corps System** - Event map support
-6. **Equipment Improvement** - Arsenal functionality
+1. **Practice System** - PvP functionality
+2. **Air Corps System** - Event map support
+3. **Equipment Improvement** - Arsenal functionality
 
 ### Low Priority (Optional Features)
 
-7. **Fleet Presets** - QoL enhancements (preset_lock, preset_order_change)
-8. **Ranking** - Ranking list display
-9. **Payment System** - Monetization (not needed for emulator)
+1. **Fleet Presets** - QoL enhancements (preset_lock, preset_order_change)
+2. **Ranking** - Ranking list display
+3. **Payment System** - Monetization (not needed for emulator)
