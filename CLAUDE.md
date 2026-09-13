@@ -278,6 +278,16 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 使用 GitHub Issues 与 `docs/agents/` 约定管理需求、triage 和领域上下文。
 
 ## 项目记忆 (回写约定)
-跨会话的持久信息记录在 [PROJECT_MEMORY.md](./PROJECT_MEMORY.md)。
-**完成每个重要任务后务必回写**: 把确认的决策写入「已验证的事实」、踩的坑写入「失败尝试」、用进展更新「上次会话」、把计划写入「下次运行」。
-保持 PROJECT_MEMORY.md 在 300~400 行；超长时使用 `bootstrap-claude` skill 的 `scripts/memory.py status/compact`（保留事实与计划，淘汰最旧日志）。
+
+跨会话的持久信息记录在 [PROJECT_MEMORY.md](./PROJECT_MEMORY.md)，只写代码、Git 和文档推导不出的内容。
+
+收尾顺序：验证 → 回写记忆 → 提交 → 推送。回写与本次改动进同一个提交；不提交的任务在结束前回写。
+
+回写是提炼，不是记录：
+
+- 「上次会话」「下次运行」整节改写成一块（分支、验证命令与实际结果、停在何处；接下来做什么），旧块直接删，历史由 Git 保存。
+- 本次确认的决策追加到「已验证的事实」，走不通的路径及原因追加到「失败尝试」；每条一行，写结论、原因和来源或适用范围。能从 `git log`、代码或计划文档 30 秒内推出来的（commit SHA、进度状态、计划内容）不写，只留一行指向证据目录。
+- 同主题已有条目就改写它，不追加；结论被推翻就删旧条。写不进两行的长期知识搬进 docs/ 后只留一行指针。
+- 结束前运行 `python3 ~/.claude/skills/bootstrap-claude/scripts/memory.py check PROJECT_MEMORY.md`，不通过不算完成：全文 ≤ 24 KB，单行 ≤ 300 字符，改写节各一块。超限先 `compact` 压改写节，再合并或搬出事实；脚本不自动删追加节条目。
+
+<!-- bootstrap-claude convention v2 -->
