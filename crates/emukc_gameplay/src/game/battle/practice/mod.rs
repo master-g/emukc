@@ -144,7 +144,7 @@ mod tests {
             run_day_battle(&codex, input, &PracticeStore::new(), &mut rng).unwrap();
         assert_eq!(battle.api_deck_id, 1);
         assert_eq!(battle.api_formation, [1, 1, 1]);
-        assert_eq!(battle.api_f_maxhps.len(), 2);
+        assert_eq!(battle.api_f_nowhps.len(), 2);
         assert_eq!(battle.api_ship_ke.len(), 1);
         assert_eq!(result.enemy_ship_ids.len(), 1);
         assert_eq!(result.member_lv, 120);

@@ -65,26 +65,24 @@ Current verification baseline:
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `crates/emukc_gameplay/tests/practice_battle.rs` asserts an unseeded battle's `api_win_rank`, so 2 of its 11 tests fail at roughly a 1-in-3 rate on any commit — it is not a regression signal. Re-run the single target before blaming a change. | session 2026-09-18 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
+| [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
+| [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
+| [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 
 ## Last Session
 
-- [2026-09-18] `main`, all committed and unpushed.
-  `docs/plans/2026-09-18-001-refactor-eliminate-boilerplate-plan.md` is fully executed (U1-U8; U5 withdrawn):
-  handler prelude + `Pid` extractor, `entity::create_table` + `profile_relation!`, struct-literal
-  convergence, and the removal of the whole gameplay trait layer in favour of `Ctx`.
-  Gate green at `cargo fmt --all --check`, `cargo clippy --workspace -- -W warnings` and `cargo test`,
-  with generated assets and `battle_golden.rs` byte-identical to the `3822dd8` baseline.
-  Nothing left half-done.
+- [2026-09-18] `main`, committed and unpushed. Plan 002 Phase A done and independently
+  accepted via `/farm` (worker: claude in herdr pane, briefs and gates under `.farm/deepen-u*`):
+  U1 `4cfe514` repository traits deleted (+ `0066096` orphaned helper), U2 `3f615cb` sortie
+  tests moved home (3 duplicates removed, 135 -> 132 cases), U3 `cc075e8` one battle response
+  module (`DayBattleResponse` / `NightBattleResponse`, one `enemy_slot_ids`). Every unit passed
+  fmt, `clippy -W warnings`, `cargo test`; assets, golden and `Cargo.lock` byte-identical to `e93e1f8`.
 
 ## Next Session
 
-- [2026-09-18] Next refactor line is `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md`
-  (planning-ready, uncommitted): 10 units in 4 phases. Start with Phase A (U1 delete the repository
-  traits, U2 move sortie tests home, U3 merge the battle response builders); U10 (debug overlay
-  collapse) runs right after Phase A by user decision; the plan's 4 decisions are resolved in-plan (RD1-RD4).
-  Still open behind it, in priority order: make the two `practice_battle` win-rank assertions
-  deterministic; real-client smoke test for KTD4 of the 6.3.x alignment plan (+1 per useitem 105
-  increment is unverified); wikiwiki scrape for the `gauge_type_e` asset key (model/merge plumbing is
-  ready); decoder "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1; revalidate the
-  VPS deployment plan's Docker/Rust assumptions before executing it; archive or mark complete the
-  already-implemented battle execution plan deliberately.
+- [2026-09-18] Continue `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md`:
+  next is U10 (debug overlay collapse, `emukc_battle` only, KTD8 differential test over >=1000 seeds
+  before deleting the old modules), then Phase B U4 -> U5 -> U6, then U7 -> U8 -> U9. Reuse the
+  `.farm/deepen-u3-gate.sh` shape (touched-file warning check) for every gate. Older open items
+  (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke test, `gauge_type_e` scrape,
+  decoder unresolved id-sets, VPS plan revalidation, archiving the battle execution plan) are unchanged.
