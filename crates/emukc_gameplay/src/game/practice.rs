@@ -23,11 +23,11 @@ use crate::{err::GameplayError, gameplay::Ctx};
 use super::{
     basic::find_profile,
     battle::practice::{
-        PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultResponse,
-        PracticeBattleResultSnapshot, PracticeBattleShipInput, PracticeNightBattleResponse,
-        build_result_response, calculate_admiral_exp, calculate_ship_exp, run_day_battle,
-        run_night_battle,
+        PracticeBattleInput, PracticeBattleResultResponse, PracticeBattleResultSnapshot,
+        PracticeBattleShipInput, build_result_response, calculate_admiral_exp, calculate_ship_exp,
+        run_day_battle, run_night_battle,
     },
+    battle::response::{DayBattleResponse, NightBattleResponse},
     battle::rng::ProductionRng,
     fleet::get_fleet_ships_impl,
     quest::update::update_quest_progress_for_action,
@@ -95,7 +95,7 @@ impl Ctx {
         deck_id: i64,
         formation_id: i64,
         enemy_id: i64,
-    ) -> Result<PracticeBattleResponse, GameplayError> {
+    ) -> Result<DayBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
         let tx = db.begin().await?;
@@ -172,7 +172,7 @@ impl Ctx {
     pub async fn practice_midnight_battle(
         &self,
         profile_id: i64,
-    ) -> Result<PracticeNightBattleResponse, GameplayError> {
+    ) -> Result<NightBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let practice_repo = self.practice_store.as_ref();
         let mut rng = ProductionRng;

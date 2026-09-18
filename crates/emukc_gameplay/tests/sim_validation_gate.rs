@@ -122,7 +122,7 @@ async fn gate_bites_on_corrupted_payload() {
 }
 
 /// Night-path gate (plan 2026-06-15-002 U2): drive a real night battle for every
-/// registered preset and validate the emitted `SortieNightBattleResponse` with
+/// registered preset and validate the emitted `NightBattleResponse` with
 /// `validate_night_battle_response`, mirroring the day gate.
 ///
 /// The night packet is produced via `sortie_sp_midnight_battle` (the night-only

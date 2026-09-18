@@ -296,7 +296,7 @@ mod tests {
 
     use emukc_model::prelude::{Kc3rdEnemyShip, Kc3rdEnemyShipSlotInfo};
 
-    use crate::game::battle::sortie::enemy_slot_ids;
+    use crate::game::battle::response::enemy_slot_ids;
 
     use super::*;
     use std::collections::BTreeMap;
@@ -697,7 +697,7 @@ mod tests {
         assert_eq!(enemy.ship.api_taiku, [40, 40]);
         assert_eq!(enemy.ship.api_taisen, [30, 30]);
         assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
-        assert_eq!(enemy_slot_ids(&enemy), [1519, 525, -1, -1, -1]);
+        assert_eq!(enemy_slot_ids(&enemy.ship, &enemy.slot_items), [1519, 525, -1, -1, -1]);
     }
 
     #[test]
@@ -708,7 +708,7 @@ mod tests {
 
         let enemy = build_sortie_enemy_ship(&codex, 19991, 45).unwrap();
         assert_eq!(enemy.ship.api_onslot, [0, 6, 0, 0, 0]);
-        assert_eq!(enemy_slot_ids(&enemy), [-1, 525, -1, -1, -1]);
+        assert_eq!(enemy_slot_ids(&enemy.ship, &enemy.slot_items), [-1, 525, -1, -1, -1]);
     }
 
     #[test]
@@ -738,7 +738,7 @@ mod tests {
         assert_eq!(enemy.ship.api_taiku, [40, 40]);
         assert_eq!(enemy.ship.api_taisen, [30, 30]);
         assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
-        assert_eq!(enemy_slot_ids(&enemy), [1519, 525, -1, -1, -1]);
+        assert_eq!(enemy_slot_ids(&enemy.ship, &enemy.slot_items), [1519, 525, -1, -1, -1]);
     }
 
     #[test]
@@ -758,7 +758,10 @@ mod tests {
         assert_eq!(enemy.ship.api_taisen, expected.ship.api_taisen);
         assert_eq!(enemy.ship.api_lucky, expected.ship.api_lucky);
         assert_eq!(enemy.ship.api_onslot, expected.ship.api_onslot);
-        assert_eq!(enemy_slot_ids(&enemy), enemy_slot_ids(&expected));
+        assert_eq!(
+            enemy_slot_ids(&enemy.ship, &enemy.slot_items),
+            enemy_slot_ids(&expected.ship, &expected.slot_items)
+        );
     }
 
     #[test]

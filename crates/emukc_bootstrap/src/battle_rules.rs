@@ -273,7 +273,7 @@ const DAY_BATTLE_PROTOCOL_PAYLOAD_ALLOWLIST: &[&str] = &[
 
 // Night/midnight battle field tables, grounded in the decoded `RawNightBattleData`
 // module (battle_protocol_fields.json, moduleId 72987) and the
-// `SortieNightBattleResponse` emukc actually emits. Night reuses the day
+// `NightBattleResponse` emukc actually emits. Night reuses the day
 // validator's helpers (KTD4): only the field tables and hougeki sources differ.
 const NIGHT_BATTLE_ARRAY_FIELDS: &[&str] = &[
     "api_ship_ke",

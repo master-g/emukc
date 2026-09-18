@@ -1,15 +1,10 @@
-#![allow(non_snake_case)]
-
 use serde::Serialize;
 
 use emukc_model::{
     kc2::KcSortieResultRank, profile::practice::Rival, thirdparty::FleetShipSnapshot,
 };
 
-use emukc_battle::{
-    AirState, BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleOutcome,
-    BattleRaigeki, BattleRuntimeShip, BattleShipInput,
-};
+use emukc_battle::{AirState, BattleOutcome, BattleRuntimeShip, BattleShipInput};
 
 pub(crate) mod exp;
 pub mod orchestrate;
@@ -19,7 +14,6 @@ pub(crate) mod response;
 pub(crate) use exp::{calculate_admiral_exp, calculate_ship_exp};
 pub use orchestrate::{run_day_battle, run_night_battle};
 pub use response::build_result_response;
-pub(crate) use response::enemy_slot_ids;
 
 pub type PracticeBattleShipInput = BattleShipInput;
 
@@ -34,45 +28,6 @@ pub struct PracticeBattleInput {
     pub friend_ships: Vec<PracticeBattleShipInput>,
     pub enemy_ships: Vec<PracticeBattleShipInput>,
     pub rival: Rival,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct PracticeBattleResponse {
-    pub api_deck_id: i64,
-    pub api_formation: [i64; 3],
-    pub api_f_nowhps: Vec<i64>,
-    pub api_f_maxhps: Vec<i64>,
-    pub api_fParam: Vec<[i64; 4]>,
-    pub api_ship_ke: Vec<i64>,
-    pub api_ship_lv: Vec<i64>,
-    pub api_e_nowhps: Vec<i64>,
-    pub api_e_maxhps: Vec<i64>,
-    pub api_eSlot: Vec<[i64; 5]>,
-    pub api_eParam: Vec<[i64; 4]>,
-    pub api_e_effect_list: Vec<Vec<i64>>,
-    pub api_smoke_type: i64,
-    pub api_balloon_cell: i64,
-    pub api_atoll_cell: i64,
-    pub api_midnight_flag: i64,
-    pub api_search: [i64; 2],
-    pub api_stage_flag: [i64; 3],
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_kouku: Option<BattleKouku>,
-    pub api_opening_taisen_flag: i64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_opening_taisen: Option<BattleHougeki>,
-    pub api_opening_flag: i64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_opening_atack: Option<BattleOpeningAttack>,
-    pub api_hourai_flag: [i64; 4],
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_hougeki1: Option<BattleHougeki>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_hougeki2: Option<BattleHougeki>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_hougeki3: Option<BattleHougeki>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_raigeki: Option<BattleRaigeki>,
 }
 
 #[derive(Debug, Clone)]
@@ -128,28 +83,6 @@ pub struct PracticeBattleEnemyInfo {
     pub api_level: i64,
     pub api_rank: String,
     pub api_deck_name: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct PracticeNightBattleResponse {
-    pub api_deck_id: i64,
-    pub api_formation: [i64; 3],
-    pub api_f_nowhps: Vec<i64>,
-    pub api_f_maxhps: Vec<i64>,
-    pub api_fParam: Vec<[i64; 4]>,
-    pub api_ship_ke: Vec<i64>,
-    pub api_ship_lv: Vec<i64>,
-    pub api_e_nowhps: Vec<i64>,
-    pub api_e_maxhps: Vec<i64>,
-    pub api_eSlot: Vec<[i64; 5]>,
-    pub api_eParam: Vec<[i64; 4]>,
-    pub api_smoke_type: i64,
-    pub api_balloon_cell: i64,
-    pub api_atoll_cell: i64,
-    pub api_touch_plane: [i64; 2],
-    pub api_flare_pos: [i64; 2],
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_hougeki: Option<BattleNightHougeki>,
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -211,7 +144,7 @@ mod tests {
             run_day_battle(&codex, input, &PracticeStore::new(), &mut rng).unwrap();
         assert_eq!(battle.api_deck_id, 1);
         assert_eq!(battle.api_formation, [1, 1, 1]);
-        assert_eq!(battle.api_f_nowhps.len(), 2);
+        assert_eq!(battle.api_f_maxhps.len(), 2);
         assert_eq!(battle.api_ship_ke.len(), 1);
         assert_eq!(result.enemy_ship_ids.len(), 1);
         assert_eq!(result.member_lv, 120);

@@ -4,15 +4,11 @@ use emukc_battle::{
 };
 
 pub(crate) mod orchestrate;
-pub(crate) mod response;
 
 pub use orchestrate::{
     pending_battle, run_day_battle, run_night_battle, run_sp_midnight_battle,
     take_day_battle_result,
 };
-#[cfg(test)]
-pub(crate) use response::enemy_slot_ids;
-pub use response::{build_day_response, build_night_response};
 
 #[derive(Debug, Clone)]
 pub struct SortieBattleInput {

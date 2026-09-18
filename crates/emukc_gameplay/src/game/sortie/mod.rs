@@ -24,18 +24,18 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use emukc_battle::{
-    BattleContext, BattleNightHougeki, BattleShipInput, BattleType, EngagementType,
-};
+use emukc_battle::{BattleContext, BattleShipInput, BattleType, EngagementType};
 
 use super::{
     basic::find_profile,
     battle::{
-        practice::PracticeBattleResponse,
+        response::{
+            DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
+        },
         rng::ProductionRng,
         sortie::{
-            SortieBattleInput, build_day_response, build_night_response, pending_battle,
-            run_day_battle, run_night_battle, run_sp_midnight_battle, take_day_battle_result,
+            SortieBattleInput, pending_battle, run_day_battle, run_night_battle,
+            run_sp_midnight_battle, take_day_battle_result,
         },
     },
     fleet::get_fleet_ships_impl,
@@ -56,8 +56,6 @@ use super::{
 };
 
 pub use super::sortie_result::{SortieBattleResultEnemyInfo, SortieBattleResultResponse};
-
-pub type SortieBattleResponse = PracticeBattleResponse;
 
 #[derive(Debug, Clone)]
 pub struct ActiveSortieState {
@@ -152,29 +150,6 @@ pub struct SortieNextResponse {
     pub limit_state: Option<i64>,
     pub itemget: Option<Vec<SortieItemGet>>,
     pub happening: Option<SortieHappening>,
-}
-
-#[expect(non_snake_case)]
-#[derive(Debug, Clone, Serialize)]
-pub struct SortieNightBattleResponse {
-    pub api_deck_id: i64,
-    pub api_formation: [i64; 3],
-    pub api_f_nowhps: Vec<i64>,
-    pub api_f_maxhps: Vec<i64>,
-    pub api_fParam: Vec<[i64; 4]>,
-    pub api_ship_ke: Vec<i64>,
-    pub api_ship_lv: Vec<i64>,
-    pub api_e_nowhps: Vec<i64>,
-    pub api_e_maxhps: Vec<i64>,
-    pub api_eSlot: Vec<[i64; 5]>,
-    pub api_eParam: Vec<[i64; 4]>,
-    pub api_smoke_type: i64,
-    pub api_balloon_cell: i64,
-    pub api_atoll_cell: i64,
-    pub api_touch_plane: [i64; 2],
-    pub api_flare_pos: [i64; 2],
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_hougeki: Option<BattleNightHougeki>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -415,7 +390,7 @@ impl Ctx {
         &self,
         profile_id: i64,
         formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError> {
+    ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
@@ -431,7 +406,7 @@ impl Ctx {
         &self,
         profile_id: i64,
         formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError> {
+    ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
@@ -447,7 +422,7 @@ impl Ctx {
         &self,
         profile_id: i64,
         formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError> {
+    ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
@@ -463,7 +438,7 @@ impl Ctx {
         &self,
         profile_id: i64,
         formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError> {
+    ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
@@ -672,7 +647,7 @@ impl Ctx {
     pub async fn sortie_midnight_battle(
         &self,
         profile_id: i64,
-    ) -> Result<SortieNightBattleResponse, GameplayError> {
+    ) -> Result<NightBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let store = self.sortie_store.as_ref();
         let pending = pending_battle(store, profile_id).ok_or_else(|| {
@@ -745,14 +720,14 @@ impl Ctx {
                 "sortie battle session not found for profile {profile_id}",
             ))
         })?;
-        Ok(build_night_response(current.deck_id, &current, night.packet))
+        Ok(build_night_response(current.deck_id, &current.friendly, &current.enemy, night.packet))
     }
 
     pub async fn sortie_sp_midnight_battle(
         &self,
         profile_id: i64,
         formation_id: i64,
-    ) -> Result<SortieNightBattleResponse, GameplayError> {
+    ) -> Result<NightBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
         let store = self.sortie_store.as_ref();
@@ -877,7 +852,12 @@ impl Ctx {
 
         tx.commit().await?;
         let _ = store.insert_active(profile_id, active);
-        Ok(build_night_response(current.deck_id, &current, night_session.packet))
+        Ok(build_night_response(
+            current.deck_id,
+            &current.friendly,
+            &current.enemy,
+            night_session.packet,
+        ))
     }
 
     pub async fn sortie_goback_port(
@@ -941,7 +921,7 @@ async fn sortie_battle_impl(
     profile_id: i64,
     formation_id: i64,
     battle_type: BattleType,
-) -> Result<SortieBattleResponse, GameplayError> {
+) -> Result<DayBattleResponse, GameplayError> {
     store
         .with_profile_lock(profile_id, async {
             let tx = db.begin().await?;
@@ -1045,8 +1025,8 @@ async fn sortie_battle_impl(
             );
             let response = build_day_response(
                 active.deck_id,
-                friend_ships,
-                enemy_ships,
+                &friend_ships,
+                &enemy_ships,
                 session.packet.clone(),
             );
             store.insert_pending_result(

@@ -9,12 +9,12 @@ use emukc_model::codex::Codex;
 use crate::err::GameplayError;
 
 use super::exp::{calculate_admiral_exp, calculate_ship_exp};
-use super::response::{build_night_response, calculate_base_exp, enemy_slot_ids};
-use super::{
-    PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultSnapshot,
-    PracticeBattleSession, PracticeNightBattleResponse,
-};
+use super::response::calculate_base_exp;
+use super::{PracticeBattleInput, PracticeBattleResultSnapshot, PracticeBattleSession};
 use crate::game::PracticeStore;
+use crate::game::battle::response::{
+    DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
+};
 
 /// Run a practice day battle and produce response + result snapshot.
 pub fn run_day_battle(
@@ -22,13 +22,9 @@ pub fn run_day_battle(
     input: PracticeBattleInput,
     practice_repo: &PracticeStore,
     rng: &mut impl BattleRng,
-) -> Result<(PracticeBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
-    let friendly_nowhps =
-        input.friend_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
-    let friendly_maxhps =
-        input.friend_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
-    let enemy_nowhps = input.enemy_ships.iter().map(|ship| ship.ship.api_nowhp).collect::<Vec<_>>();
-    let enemy_maxhps = input.enemy_ships.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
+) -> Result<(DayBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
+    let friend_ships = input.friend_ships.clone();
+    let enemy_ships = input.enemy_ships.clone();
     let simulation = execute_day(
         codex,
         BattleContext {
@@ -65,68 +61,8 @@ pub fn run_day_battle(
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
 
-    let response = PracticeBattleResponse {
-        api_deck_id: input.deck_id,
-        api_formation: simulation.packet.formation,
-        api_f_nowhps: friendly_nowhps,
-        api_f_maxhps: friendly_maxhps,
-        api_fParam: simulation
-            .friendly
-            .iter()
-            .map(|ship| {
-                [
-                    ship.ship.api_karyoku[0],
-                    ship.ship.api_raisou[0],
-                    ship.ship.api_taiku[0],
-                    ship.ship.api_soukou[0],
-                ]
-            })
-            .collect(),
-        api_ship_ke: simulation.enemy.iter().map(|ship| ship.ship.api_ship_id).collect(),
-        api_ship_lv: simulation.enemy.iter().map(|ship| ship.ship.api_lv).collect(),
-        api_e_nowhps: enemy_nowhps,
-        api_e_maxhps: enemy_maxhps,
-        api_eSlot: simulation.enemy.iter().map(enemy_slot_ids).collect(),
-        api_eParam: simulation
-            .enemy
-            .iter()
-            .map(|ship| {
-                [
-                    ship.ship.api_karyoku[0],
-                    ship.ship.api_raisou[0],
-                    ship.ship.api_taiku[0],
-                    ship.ship.api_soukou[0],
-                ]
-            })
-            .collect(),
-        api_e_effect_list: simulation
-            .enemy
-            .iter()
-            .map(|ship| {
-                if ship.effect_list.is_empty() {
-                    vec![0]
-                } else {
-                    ship.effect_list.clone()
-                }
-            })
-            .collect(),
-        api_smoke_type: simulation.packet.smoke_type,
-        api_balloon_cell: simulation.packet.balloon_cell,
-        api_atoll_cell: simulation.packet.atoll_cell,
-        api_midnight_flag: simulation.packet.midnight_flag,
-        api_search: simulation.packet.search,
-        api_stage_flag: simulation.packet.stage_flag,
-        api_kouku: simulation.packet.kouku,
-        api_opening_taisen_flag: simulation.packet.opening_taisen_flag,
-        api_opening_taisen: simulation.packet.opening_taisen,
-        api_opening_flag: simulation.packet.opening_flag,
-        api_opening_atack: simulation.packet.opening_attack,
-        api_hourai_flag: simulation.packet.hourai_flag,
-        api_hougeki1: simulation.packet.hougeki1,
-        api_hougeki2: simulation.packet.hougeki2,
-        api_hougeki3: simulation.packet.hougeki3,
-        api_raigeki: simulation.packet.raigeki,
-    };
+    let response =
+        build_day_response(input.deck_id, &friend_ships, &enemy_ships, simulation.packet);
 
     let snapshot = PracticeBattleResultSnapshot {
         deck_id: input.deck_id,
@@ -184,7 +120,7 @@ pub fn run_night_battle(
     profile_id: i64,
     practice_repo: &PracticeStore,
     rng: &mut impl BattleRng,
-) -> Option<(PracticeNightBattleResponse, PracticeBattleResultSnapshot)> {
+) -> Option<(NightBattleResponse, PracticeBattleResultSnapshot)> {
     let mut session = practice_repo.take_pending_battle(profile_id)?;
     if !session.outcome.can_midnight {
         practice_repo.insert_pending_battle(profile_id, session);
@@ -215,7 +151,8 @@ pub fn run_night_battle(
     session.enemy = simulation.enemy.clone();
     session.outcome = simulation.outcome.clone();
 
-    let response = build_night_response(&session, &simulation.packet);
+    let response =
+        build_night_response(session.deck_id, &session.friendly, &session.enemy, simulation.packet);
 
     let snapshot = PracticeBattleResultSnapshot {
         deck_id: session.deck_id,
