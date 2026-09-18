@@ -6,32 +6,18 @@
 /// Internal battle configuration.
 mod config;
 mod damage;
-/// Debug overlay: applies event transforms to simulation results.
+/// Debug overlay: overrides simulation results for god mode / one hit kill.
 mod debug_overlay;
-/// Event types for the owned-pass architecture.
-#[allow(
-    dead_code,
-    reason = "the debug transform model intentionally represents phases and metadata not emitted yet"
-)]
-mod event;
 mod execution;
 /// Internal battle documentation.
 mod outcome;
 /// Random number generation trait and implementations for battle simulation.
 pub mod random;
-/// Pure reducer: derives state from event log.
-#[allow(
-    dead_code,
-    reason = "the debug transform reducer intentionally exposes derived state used by future passes"
-)]
-mod reducer;
 mod simulation;
 mod state;
 mod targeting;
 /// Deterministic text renderer for battle simulations.
 pub mod transcript;
-/// Debug event-stream transforms (god mode, one hit kill).
-mod transforms;
 #[expect(missing_docs)]
 mod types;
 

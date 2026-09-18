@@ -54,8 +54,8 @@ The following invariants hold for `emukc_battle`:
   Public `execute_day` and `execute_night` SHALL preserve that stream: the
   debug overlay consumes no RNG.
 - **Single public execution boundary.** Cross-crate callers SHALL use
-  `execute_day` or `execute_night`. Raw simulation, debug overlay functions,
-  and their event/reducer/transform support modules remain crate-internal.
+  `execute_day` or `execute_night`. Raw simulation and the debug overlay
+  remain crate-internal.
 - **Air Stage2 simplification.** The kouku Stage2 anti-air fire calculation in
   `simulation/kouku.rs` SHALL carry a `// NOTE:` comment explaining it uses a
   linear approximation (`total_aa / 400 × plane_count`) instead of the real

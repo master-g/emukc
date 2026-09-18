@@ -1,87 +1,20 @@
-//! Debug overlay: applies god_mode and one_hit_kill transforms to a
-//! completed [`BattleSimulation`] by diffing HP and overriding the result.
-//!
-//! This is the integration layer between the simulation, the [event
-//! transforms](crate::transforms), and the [reducer](crate::reducer).
+//! Debug overlay: applies god_mode and one_hit_kill to a completed
+//! [`BattleSimulation`] by overriding HP and everything derived from it.
 //!
 //! # Flow
 //!
 //! 1. Simulate normally (no debug branching in simulation code)
-//! 2. Derive events from HP diff (entry HP → final HP)
-//! 3. Apply transforms (god_mode filters friendly damage, one_hit_kill sinks enemies)
-//! 4. Reduce transformed events to get modified HP
-//! 5. Override the simulation packet's HP arrays and outcome
+//! 2. Derive the debug HP directly from post-simulation ship state
+//! 3. Override the packet HP arrays and rebuild the per-phase damage arrays
+//!    so the client animation agrees with them
+//! 4. Override the runtime ships and the outcome (win rank, MVP)
+//! 5. Recompute `can_midnight` from the overridden alive sets (day only)
 
 use crate::BattleRuntimeShip;
-use crate::event::{BattleEvent, EventLog, Phase, ShipRef, Side};
-use crate::reducer::{DerivedState, InitialState, reduce};
-use crate::transforms::{god_mode_transform, one_hit_kill_transform};
 use crate::types::{
     BattleHougeki, BattleNightHougeki, BattleOutcome, BattlePacket, BattleSimulation, DamageCell,
     NightBattleSimulation, SiListId,
 };
-
-/// Derive a damage event log from HP diff between entry and final state.
-///
-/// Each ship's total damage = `entry_hp - final_hp`. We emit one `Damage`
-/// event per ship that took damage, plus a `Sunk` event if HP reached 0.
-///
-/// This is lossy (no per-phase breakdown) but sufficient for transform
-/// application — transforms only care about total damage per ship and
-/// which ships are sunk.
-fn derive_events_from_ships(
-    friendly: &[BattleRuntimeShip],
-    enemy: &[BattleRuntimeShip],
-) -> EventLog {
-    let mut events = Vec::new();
-
-    for (i, ship) in friendly.iter().enumerate() {
-        let damage = ship.entry_hp - ship.hp();
-        if damage > 0 {
-            events.push(BattleEvent::Damage {
-                target: ShipRef(Side::Friendly, i),
-                raw: damage,
-                dealt: damage,
-                phase: Phase::Shelling1,
-            });
-        }
-        if ship.is_sunk() {
-            events.push(BattleEvent::Sunk {
-                target: ShipRef(Side::Friendly, i),
-            });
-        }
-    }
-
-    for (i, ship) in enemy.iter().enumerate() {
-        let damage = ship.entry_hp - ship.hp();
-        if damage > 0 {
-            events.push(BattleEvent::Damage {
-                target: ShipRef(Side::Enemy, i),
-                raw: damage,
-                dealt: damage,
-                phase: Phase::Shelling1,
-            });
-        }
-        if ship.is_sunk() {
-            events.push(BattleEvent::Sunk {
-                target: ShipRef(Side::Enemy, i),
-            });
-        }
-    }
-
-    events
-}
-
-/// Build initial state from ship entry HP values.
-fn initial_state_from_ships(
-    friendly: &[BattleRuntimeShip],
-    enemy: &[BattleRuntimeShip],
-) -> InitialState {
-    InitialState::new(
-        friendly.iter().map(|s| s.entry_hp).collect(),
-        enemy.iter().map(|s| s.entry_hp).collect(),
-    )
-}
 
 /// Debug HP overrides for one battle, indexed by fleet position.
 struct DebugHp {
@@ -134,34 +67,11 @@ fn debug_hp(
     }
 }
 
-/// Run the shared derive → transform → reduce pipeline.
+/// Apply the debug policy to a day battle simulation result.
 ///
-/// Returns the initial state (for reference) and the derived state
-/// after applying debug transforms.
-fn run_debug_transforms(
-    friendly: &[BattleRuntimeShip],
-    enemy: &[BattleRuntimeShip],
-    god_mode: bool,
-    one_hit_kill: bool,
-) -> DerivedState {
-    let initial = initial_state_from_ships(friendly, enemy);
-    let mut events = derive_events_from_ships(friendly, enemy);
-
-    if god_mode {
-        events = god_mode_transform(events);
-    }
-    if one_hit_kill {
-        events = one_hit_kill_transform(events, enemy.len());
-    }
-
-    reduce(&events, &initial)
-}
-
-/// Apply debug transforms to a day battle simulation result.
-///
-/// If neither flag is set, the simulation is returned unchanged.
-/// Otherwise, events are derived from HP diff, transforms are applied,
-/// and the packet's HP arrays and outcome are overridden.
+/// If neither flag is set, the simulation is returned unchanged. Otherwise the
+/// debug HP is derived from the post-simulation ships and the packet's HP
+/// arrays, per-phase damage arrays, ships and outcome are overridden.
 pub(crate) fn apply_day_debug(
     mut sim: BattleSimulation,
     god_mode: bool,
@@ -187,7 +97,7 @@ pub(crate) fn apply_day_debug(
     sim
 }
 
-/// Apply debug transforms to a night battle simulation result.
+/// Apply the debug policy to a night battle simulation result.
 pub(crate) fn apply_night_debug(
     mut sim: NightBattleSimulation,
     god_mode: bool,
@@ -448,8 +358,8 @@ fn synthesize_night_finishing_volley(
     }
 }
 
-/// After debug transforms, recompute `can_midnight` via conjunction:
-/// the original value already encodes the `battle_type` gate; transforms
+/// After the debug override, recompute `can_midnight` via conjunction:
+/// the original value already encodes the `battle_type` gate; the override
 /// can only reduce the alive set on the gating side.
 fn recompute_midnight(
     outcome: &mut BattleOutcome,
@@ -1051,175 +961,5 @@ mod tests {
         assert_eq!(h.api_at_eflag, vec![0, 0], "both attacks friendly→enemy");
         assert_eq!(h.api_damage[0], vec![DamageCell::Plain(25)]);
         assert_eq!(h.api_damage[1], vec![DamageCell::Plain(12)]);
-    }
-
-    /// Temporary equivalence proof for U10: the direct [`debug_hp`] rule must
-    /// agree with the derive → transform → reduce event round trip on every
-    /// fleet shape, seed and flag combination. Deleted together with the event
-    /// pipeline once this has run green.
-    mod round_trip {
-        use emukc_model::codex::Codex;
-
-        use crate::debug_overlay::{debug_hp, run_debug_transforms};
-        use crate::random::SeededRng;
-        use crate::simulation::{simulate_day, simulate_night};
-        use crate::test_utils::sample_ship;
-        use crate::types::{
-            BattleContext, BattleRuntimeShip, BattleShipInput, BattleType, EngagementType,
-            NightBattleInput,
-        };
-
-        const SEEDS: u64 = 1000;
-        const FLAGS: [(bool, bool); 3] = [(true, false), (false, true), (true, true)];
-
-        struct Fleets {
-            name: &'static str,
-            is_sortie: bool,
-            friendly: Vec<BattleShipInput>,
-            enemy: Vec<BattleShipInput>,
-        }
-
-        fn configs(codex: &Codex) -> Vec<Fleets> {
-            vec![
-                Fleets {
-                    name: "2v2 high level sortie",
-                    is_sortie: true,
-                    friendly: vec![sample_ship(codex, 79, 99), sample_ship(codex, 79, 99)],
-                    enemy: vec![sample_ship(codex, 412, 99), sample_ship(codex, 412, 99)],
-                },
-                Fleets {
-                    name: "6v6 mixed level sortie",
-                    is_sortie: true,
-                    friendly: vec![
-                        sample_ship(codex, 79, 99),
-                        sample_ship(codex, 79, 50),
-                        sample_ship(codex, 79, 20),
-                        sample_ship(codex, 79, 99),
-                        sample_ship(codex, 79, 50),
-                        sample_ship(codex, 79, 20),
-                    ],
-                    enemy: vec![
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 50),
-                        sample_ship(codex, 412, 20),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 50),
-                        sample_ship(codex, 412, 20),
-                    ],
-                },
-                Fleets {
-                    name: "6v6 weak practice (friendlies can sink)",
-                    is_sortie: false,
-                    friendly: vec![
-                        sample_ship(codex, 79, 1),
-                        sample_ship(codex, 79, 1),
-                        sample_ship(codex, 79, 1),
-                        sample_ship(codex, 79, 1),
-                        sample_ship(codex, 79, 1),
-                        sample_ship(codex, 79, 1),
-                    ],
-                    enemy: vec![
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                    ],
-                },
-                Fleets {
-                    name: "1v6 sortie (most enemies survive)",
-                    is_sortie: true,
-                    friendly: vec![sample_ship(codex, 79, 99)],
-                    enemy: vec![
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                        sample_ship(codex, 412, 99),
-                    ],
-                },
-            ]
-        }
-
-        fn assert_same(
-            friendly: &[BattleRuntimeShip],
-            enemy: &[BattleRuntimeShip],
-            label: &str,
-            seed: u64,
-        ) {
-            for (god_mode, one_hit_kill) in FLAGS {
-                let direct = debug_hp(friendly, enemy, god_mode, one_hit_kill);
-                let piped = run_debug_transforms(friendly, enemy, god_mode, one_hit_kill);
-                assert_eq!(
-                    direct.friendly, piped.friendly_hp,
-                    "friendly HP drift: {label}, seed={seed}, \
-                     god_mode={god_mode}, one_hit_kill={one_hit_kill}"
-                );
-                assert_eq!(
-                    direct.enemy, piped.enemy_hp,
-                    "enemy HP drift: {label}, seed={seed}, \
-                     god_mode={god_mode}, one_hit_kill={one_hit_kill}"
-                );
-            }
-        }
-
-        #[test]
-        fn debug_hp_matches_event_round_trip() {
-            let codex = Codex::load_without_cache_source("../../.data/codex")
-                .expect("load codex from ../../.data/codex (run `cargo run -- bootstrap` first)");
-            let start = std::time::Instant::now();
-            let mut checked = 0_u64;
-
-            for cfg in configs(&codex) {
-                for seed in 0..SEEDS {
-                    let mut rng = SeededRng::new(seed);
-                    let day = simulate_day(
-                        &codex,
-                        BattleContext::head_on(
-                            BattleType::Normal,
-                            cfg.is_sortie,
-                            cfg.friendly.clone(),
-                            cfg.enemy.clone(),
-                        ),
-                        &mut rng,
-                    );
-                    assert_same(&day.friendly, &day.enemy, cfg.name, seed);
-
-                    let mut rng = SeededRng::new(seed);
-                    let night = simulate_night(
-                        &codex,
-                        NightBattleInput {
-                            friendly: cfg
-                                .friendly
-                                .iter()
-                                .cloned()
-                                .map(|s| BattleRuntimeShip::new(s, true, cfg.is_sortie))
-                                .collect(),
-                            enemy: cfg
-                                .enemy
-                                .iter()
-                                .cloned()
-                                .map(|s| BattleRuntimeShip::new(s, false, cfg.is_sortie))
-                                .collect(),
-                            friendly_formation_id: 1,
-                            enemy_formation_id: 1,
-                            engagement: EngagementType::SameCourse,
-                            air_state: None,
-                        },
-                        &mut rng,
-                    );
-                    assert_same(&night.friendly, &night.enemy, cfg.name, seed);
-                    checked += 2;
-                }
-            }
-
-            println!(
-                "round trip equivalence: {checked} simulations \u{00d7} {} flag combos in {:.1?}",
-                FLAGS.len(),
-                start.elapsed()
-            );
-        }
     }
 }

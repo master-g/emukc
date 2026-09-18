@@ -152,6 +152,60 @@ real weak points instead: the rebuild-before-override ordering is now structural
 
 Absent one of those, plan 010 should not be reopened.
 
+## 2026-09-18 Event round-trip collapsed into a direct HP rule
+
+**Driver:** plan `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md`
+unit U10, on the user's ruling that the event skeleton has no future consumer —
+the owned-pass rewrite is a standing no-go (see the 2026-06-24 re-evaluation
+above), so the restart condition that would have justified keeping the
+vocabulary alive never fired.
+
+**What the bridge did:** `debug_overlay` derived a `Damage`/`Sunk` event log
+from the HP diff, ran it through `god_mode_transform` / `one_hit_kill_transform`,
+and reduced it back to a `DerivedState` — of which only `friendly_hp` and
+`enemy_hp` were ever read. `friendly_sunk`, `enemy_sunk`, `any_alive` and `hp()`
+had no callers, and `event.rs` / `reducer.rs` carried `#[allow(dead_code)]` to
+stay compilable.
+
+**What it does now:** `debug_hp` computes those two vectors directly from the
+post-simulation ships, per fleet position `i`:
+
+```
+friendly[i] = god_mode     ? entry_hp : clamped_hp(ship)
+enemy[i]    = one_hit_kill ? 0        : clamped_hp(ship)
+clamped_hp  = is_sunk ? 0 : max(entry_hp - max(entry_hp - hp, 0), 0)
+```
+
+`clamped_hp` is exactly what the round trip computed for a side no debug flag
+covers: the reducer subtracted a single `Damage` event of `max(entry_hp - hp, 0)`
+from `entry_hp` with a floor of 0, then a `Sunk` event forced 0. The reducer's
+"skip `Damage` on an already-sunk ship" branch never fired, because the derive
+step emitted at most one `Damage` per ship and always ordered it before that
+ship's `Sunk`.
+
+**Proof before deletion:** a temporary differential test asserted
+`debug_hp(...)` equal to `run_debug_transforms(...).{friendly_hp, enemy_hp}`
+element-wise over 4 fleet configurations (2v2 lv99 sortie; 6v6 mixed-level
+sortie; 6v6 lv1 practice with `is_sortie=false` so friendlies can actually sink;
+1v6 sortie where most enemies survive) × seeds `0..1000` × day and night × the
+three flag combinations `(true,false)`, `(false,true)`, `(true,true)` — 8000
+simulations × 3 combos, all equal, 425 ms in release. The test was deleted with
+the pipeline in the follow-up commit; `execution.rs`'s facade-versus-manual
+equivalence tests and the gameplay end-to-end god_mode / one_hit_kill tests are
+the standing regression net.
+
+**Deleted:** `event.rs`, `reducer.rs`, `transforms.rs`, the two `dead_code`
+allows in `lib.rs`, and `derive_events_from_ships` / `initial_state_from_ships` /
+`run_debug_transforms` in `debug_overlay.rs`.
+
+**Unaffected:** every learning above survives the change. Learning #1 (god_mode
+must also revive a sunk friendly) is now the `god_mode ? entry_hp` branch, which
+ignores `is_sunk` by construction. Learnings #2, #3, #5, #6 and #7 live in
+`recompute_midnight`, `FinishingVolley`, `rebuild_*_packet_arrays`,
+`synthesize_*_finishing_volley` and `execution.rs` — none of which the event
+pipeline ever touched. Learning #4 is now moot: the vocabulary it described is
+gone entirely, and an owned-pass rewrite would reintroduce it from scratch.
+
 ## Related
 
 - `docs/plans/archive/2026-06-24-004-refactor-harden-debug-overlay-bridge-plan.md`
@@ -162,5 +216,5 @@ Absent one of those, plan 010 should not be reopened.
 - `crates/emukc_battle/src/execution.rs` — public execution facade and
   raw-versus-executed equivalence tests
 - `crates/emukc_battle/src/debug_overlay.rs` — implementation
-- `crates/emukc_battle/src/transforms.rs` — event transforms
-- `crates/emukc_battle/src/reducer.rs` — pure state derivation
+- `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md` — U10,
+  the event round-trip collapse
