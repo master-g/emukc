@@ -12,8 +12,8 @@ use emukc::bootstrap::prelude::{
 use emukc_internal::{
     crypto::rng,
     prelude::{
-        BattleSimulation, Codex, Ctx, PRESETS, Preset, Scenario, SortieRepository, apply_scenario,
-        new_mem_db, render_day_battle,
+        BattleSimulation, Codex, Ctx, PRESETS, Preset, Scenario, apply_scenario, new_mem_db,
+        render_day_battle,
     },
 };
 use serde_json::Value;

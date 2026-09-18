@@ -30,8 +30,6 @@ pub mod prelude {
         err::GameplayError,
         game::PracticeStore,
         game::SortieStore,
-        game::battle::practice_repository::PracticeRepository,
-        game::battle::repository::SortieRepository,
         game::types::*,
         gameplay::Ctx,
         scenario::{PRESETS, Preset, Scenario, ShipSpec, apply_scenario},

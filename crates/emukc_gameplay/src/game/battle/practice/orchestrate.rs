@@ -8,19 +8,19 @@ use emukc_model::codex::Codex;
 
 use crate::err::GameplayError;
 
-use super::super::practice_repository::PracticeRepository;
 use super::exp::{calculate_admiral_exp, calculate_ship_exp};
 use super::response::{build_night_response, calculate_base_exp, enemy_slot_ids};
 use super::{
     PracticeBattleInput, PracticeBattleResponse, PracticeBattleResultSnapshot,
     PracticeBattleSession, PracticeNightBattleResponse,
 };
+use crate::game::PracticeStore;
 
 /// Run a practice day battle and produce response + result snapshot.
 pub fn run_day_battle(
     codex: &Codex,
     input: PracticeBattleInput,
-    practice_repo: &dyn PracticeRepository,
+    practice_repo: &PracticeStore,
     rng: &mut impl BattleRng,
 ) -> Result<(PracticeBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
     let friendly_nowhps =
@@ -182,7 +182,7 @@ pub fn run_day_battle(
 pub fn run_night_battle(
     codex: &Codex,
     profile_id: i64,
-    practice_repo: &dyn PracticeRepository,
+    practice_repo: &PracticeStore,
     rng: &mut impl BattleRng,
 ) -> Option<(PracticeNightBattleResponse, PracticeBattleResultSnapshot)> {
     let mut session = practice_repo.take_pending_battle(profile_id)?;

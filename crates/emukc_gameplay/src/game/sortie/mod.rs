@@ -26,8 +26,6 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use super::battle::repository::SortieRepository;
-
 #[cfg(test)]
 use super::map_progress::assign_stage_id;
 #[cfg(test)]
@@ -64,6 +62,7 @@ use super::{
         calculate_battle_admiral_exp, calculate_sortie_base_exp, calculate_sortie_ship_exp,
         try_grant_sortie_ship_drop, update_sortie_result_stats,
     },
+    sortie_store::SortieStore,
 };
 
 pub use super::sortie_result::{SortieBattleResultEnemyInfo, SortieBattleResultResponse};
@@ -1295,7 +1294,7 @@ where
     }
 }
 
-fn clear_pending_sortie_runtime_state(store: &dyn SortieRepository, profile_id: i64) {
+fn clear_pending_sortie_runtime_state(store: &SortieStore, profile_id: i64) {
     store.remove_active(profile_id);
     store.take_pending_result(profile_id);
     let _ = take_day_battle_result(store, profile_id);

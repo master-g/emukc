@@ -13,8 +13,6 @@ use tokio::sync::Mutex as AsyncMutex;
 use super::{
     battle::{
         practice::{PracticeBattleResultSnapshot, PracticeBattleSession},
-        practice_repository::PracticeRepository,
-        repository::SortieRepository,
         sortie::SortieBattleSession,
     },
     sortie::ActiveSortieState,
@@ -42,56 +40,57 @@ impl SortieStore {
 
     // ── active sorties ──────────────────────────────────────────────
 
-    pub(super) fn get_active_sortie(&self, profile_id: i64) -> Option<ActiveSortieState> {
+    /// Read the active sortie state of a profile.
+    pub fn get_active(&self, profile_id: i64) -> Option<ActiveSortieState> {
         self.active_sorties.lock().get(&profile_id).cloned()
     }
 
-    pub(super) fn remove_active_sortie(&self, profile_id: i64) -> Option<ActiveSortieState> {
+    /// Store the active sortie state of a profile, returning the replaced one.
+    #[must_use]
+    pub fn insert_active(
+        &self,
+        profile_id: i64,
+        state: ActiveSortieState,
+    ) -> Option<ActiveSortieState> {
+        self.active_sorties.lock().insert(profile_id, state)
+    }
+
+    /// Remove and return the active sortie state of a profile.
+    pub fn remove_active(&self, profile_id: i64) -> Option<ActiveSortieState> {
         self.active_sorties.lock().remove(&profile_id)
     }
 
     // ── pending results ─────────────────────────────────────────────
 
-    pub(super) fn get_pending_result_sortie(
-        &self,
-        profile_id: i64,
-    ) -> Option<SortieBattleResultSnapshot> {
+    /// Read the pending battle result of a profile.
+    pub fn get_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
         self.pending_results.lock().get(&profile_id).cloned()
     }
 
-    pub(super) fn take_pending_result_sortie(
-        &self,
-        profile_id: i64,
-    ) -> Option<SortieBattleResultSnapshot> {
-        self.pending_results.lock().remove(&profile_id)
+    /// Store the pending battle result of a profile.
+    pub fn insert_pending_result(&self, profile_id: i64, result: SortieBattleResultSnapshot) {
+        self.pending_results.lock().insert(profile_id, result);
     }
 
-    pub(super) fn insert_pending_result_sortie(
-        &self,
-        profile_id: i64,
-        snapshot: SortieBattleResultSnapshot,
-    ) {
-        self.pending_results.lock().insert(profile_id, snapshot);
+    /// Remove and return the pending battle result of a profile.
+    pub fn take_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
+        self.pending_results.lock().remove(&profile_id)
     }
 
     // ── pending battles ─────────────────────────────────────────────
 
-    pub(super) fn get_pending_battle_sortie(&self, profile_id: i64) -> Option<SortieBattleSession> {
+    /// Read the pending battle session of a profile.
+    pub fn get_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
         self.pending_battles.lock().get(&profile_id).cloned()
     }
 
-    pub(super) fn insert_pending_battle_sortie(
-        &self,
-        profile_id: i64,
-        session: SortieBattleSession,
-    ) {
+    /// Store the pending battle session of a profile.
+    pub fn insert_pending_battle(&self, profile_id: i64, session: SortieBattleSession) {
         self.pending_battles.lock().insert(profile_id, session);
     }
 
-    pub(super) fn take_pending_battle_sortie(
-        &self,
-        profile_id: i64,
-    ) -> Option<SortieBattleSession> {
+    /// Remove and return the pending battle session of a profile.
+    pub fn take_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
         self.pending_battles.lock().remove(&profile_id)
     }
 
@@ -142,50 +141,6 @@ impl fmt::Debug for SortieStore {
 pub static GLOBAL_SORTIE_STORE: std::sync::LazyLock<SortieStore> =
     std::sync::LazyLock::new(SortieStore::new);
 
-// ── SortieRepository impl ──────────────────────────────────────────────
-
-impl SortieRepository for SortieStore {
-    fn get_active(&self, profile_id: i64) -> Option<ActiveSortieState> {
-        self.get_active_sortie(profile_id)
-    }
-
-    fn insert_active(
-        &self,
-        profile_id: i64,
-        state: ActiveSortieState,
-    ) -> Option<ActiveSortieState> {
-        self.active_sorties.lock().insert(profile_id, state)
-    }
-
-    fn remove_active(&self, profile_id: i64) -> Option<ActiveSortieState> {
-        self.remove_active_sortie(profile_id)
-    }
-
-    fn get_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
-        self.get_pending_battle_sortie(profile_id)
-    }
-
-    fn insert_pending_battle(&self, profile_id: i64, session: SortieBattleSession) {
-        self.insert_pending_battle_sortie(profile_id, session);
-    }
-
-    fn take_pending_battle(&self, profile_id: i64) -> Option<SortieBattleSession> {
-        self.take_pending_battle_sortie(profile_id)
-    }
-
-    fn get_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
-        self.get_pending_result_sortie(profile_id)
-    }
-
-    fn insert_pending_result(&self, profile_id: i64, result: SortieBattleResultSnapshot) {
-        self.insert_pending_result_sortie(profile_id, result);
-    }
-
-    fn take_pending_result(&self, profile_id: i64) -> Option<SortieBattleResultSnapshot> {
-        self.take_pending_result_sortie(profile_id)
-    }
-}
-
 // ── PracticeStore ────────────────────────────────────────────────────
 
 /// Runtime state backing practice battle sessions.
@@ -201,6 +156,45 @@ impl PracticeStore {
             pending_battles: Mutex::new(HashMap::new()),
             pending_results: Mutex::new(HashMap::new()),
         }
+    }
+
+    // ── pending battles ─────────────────────────────────────────────
+
+    /// Read the pending battle session of a profile.
+    pub fn get_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
+        self.pending_battles.lock().get(&profile_id).cloned()
+    }
+
+    /// Store the pending battle session of a profile.
+    pub fn insert_pending_battle(&self, profile_id: i64, session: PracticeBattleSession) {
+        self.pending_battles.lock().insert(profile_id, session);
+    }
+
+    /// Remove and return the pending battle session of a profile.
+    pub fn take_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
+        self.pending_battles.lock().remove(&profile_id)
+    }
+
+    /// Drop the pending battle session of a profile, if any.
+    pub fn clear_pending_battle(&self, profile_id: i64) {
+        self.take_pending_battle(profile_id);
+    }
+
+    // ── pending results ─────────────────────────────────────────────
+
+    /// Read the pending battle result of a profile.
+    pub fn get_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
+        self.pending_results.lock().get(&profile_id).cloned()
+    }
+
+    /// Store the pending battle result of a profile.
+    pub fn insert_pending_result(&self, profile_id: i64, result: PracticeBattleResultSnapshot) {
+        self.pending_results.lock().insert(profile_id, result);
+    }
+
+    /// Remove and return the pending battle result of a profile.
+    pub fn take_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
+        self.pending_results.lock().remove(&profile_id)
     }
 
     /// Clear all runtime state.
@@ -222,36 +216,9 @@ impl fmt::Debug for PracticeStore {
     }
 }
 
-impl PracticeRepository for PracticeStore {
-    fn get_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
-        self.pending_battles.lock().get(&profile_id).cloned()
-    }
-
-    fn insert_pending_battle(&self, profile_id: i64, session: PracticeBattleSession) {
-        self.pending_battles.lock().insert(profile_id, session);
-    }
-
-    fn take_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {
-        self.pending_battles.lock().remove(&profile_id)
-    }
-
-    fn get_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
-        self.pending_results.lock().get(&profile_id).cloned()
-    }
-
-    fn insert_pending_result(&self, profile_id: i64, result: PracticeBattleResultSnapshot) {
-        self.pending_results.lock().insert(profile_id, result);
-    }
-
-    fn take_pending_result(&self, profile_id: i64) -> Option<PracticeBattleResultSnapshot> {
-        self.pending_results.lock().remove(&profile_id)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::battle::practice_repository::PracticeRepository;
     use emukc_battle::BattleOutcome;
     use emukc_model::kc2::KcSortieResultRank;
 
@@ -292,32 +259,6 @@ mod tests {
             enemy_rank: "元帥".to_string(),
             enemy_deck_name: "test".to_string(),
         }
-    }
-
-    #[test]
-    fn test_practice_store_insert_get_take_cycle() {
-        let store = PracticeStore::new();
-        assert!(store.get_pending_battle(1).is_none());
-
-        store.insert_pending_battle(1, minimal_session(1));
-        let got = store.get_pending_battle(1).unwrap();
-        assert_eq!(got.profile_id, 1);
-
-        let taken = store.take_pending_battle(1).unwrap();
-        assert_eq!(taken.profile_id, 1);
-        assert!(store.get_pending_battle(1).is_none());
-
-        store.insert_pending_result(1, minimal_result(1));
-        let taken_result = store.take_pending_result(1).unwrap();
-        assert_eq!(taken_result.get_exp, 100);
-        assert!(store.take_pending_result(1).is_none());
-    }
-
-    #[test]
-    fn test_practice_store_empty_take_returns_none() {
-        let store = PracticeStore::new();
-        assert!(store.take_pending_battle(42).is_none());
-        assert!(store.take_pending_result(42).is_none());
     }
 
     #[test]

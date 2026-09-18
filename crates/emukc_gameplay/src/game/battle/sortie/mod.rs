@@ -68,7 +68,6 @@ pub(crate) fn build_sortie_session(
 
 #[cfg(test)]
 mod tests {
-    use super::super::repository::SortieRepository;
     use super::*;
     use emukc_battle::{BattleShipInput, BattleType, EngagementType, execute_day};
     use emukc_model::{codex::Codex, kc2::level};

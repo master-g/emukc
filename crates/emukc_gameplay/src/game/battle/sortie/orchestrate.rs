@@ -7,14 +7,14 @@ use emukc_battle::{
 use emukc_model::codex::Codex;
 use emukc_model::kc2::KcSortieResultRank;
 
-use super::super::repository::SortieRepository;
 use super::{
     SortieBattleInput, SortieBattleSession, SortieNightBattleSession, build_sortie_session,
 };
+use crate::game::SortieStore;
 
 /// Run a day battle, store the session, return it.
 pub fn run_day_battle(
-    store: &dyn SortieRepository,
+    store: &SortieStore,
     codex: &Codex,
     input: SortieBattleInput,
     rng: &mut impl BattleRng,
@@ -33,24 +33,18 @@ pub fn run_day_battle(
 }
 
 /// Remove and return a pending day battle session.
-pub fn take_day_battle_result(
-    store: &dyn SortieRepository,
-    profile_id: i64,
-) -> Option<SortieBattleSession> {
+pub fn take_day_battle_result(store: &SortieStore, profile_id: i64) -> Option<SortieBattleSession> {
     store.take_pending_battle(profile_id)
 }
 
 /// Check whether a pending battle session exists.
-pub fn pending_battle(
-    store: &dyn SortieRepository,
-    profile_id: i64,
-) -> Option<SortieBattleSession> {
+pub fn pending_battle(store: &SortieStore, profile_id: i64) -> Option<SortieBattleSession> {
     store.get_pending_battle(profile_id)
 }
 
 /// Run a night battle following a day battle, update the stored session.
 pub fn run_night_battle(
-    store: &dyn SortieRepository,
+    store: &SortieStore,
     codex: &Codex,
     profile_id: i64,
     friendly_formation_id: i64,
@@ -98,7 +92,7 @@ pub fn run_night_battle(
 /// Constructs a minimal day session (no combat phases), stores it, then
 /// immediately runs the night simulation and updates the stored session.
 pub fn run_sp_midnight_battle(
-    store: &dyn SortieRepository,
+    store: &SortieStore,
     codex: &Codex,
     input: SortieBattleInput,
     enemy_formation_id: i64,

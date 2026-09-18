@@ -157,7 +157,6 @@ pub struct PracticeNightBattleResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::battle::practice_repository::PracticeRepository;
     use crate::game::battle::rng::ProductionRng;
     use crate::game::sortie_store::PracticeStore;
     use emukc_model::codex::Codex;

@@ -28,12 +28,12 @@ use super::{
         build_result_response, calculate_admiral_exp, calculate_ship_exp, run_day_battle,
         run_night_battle,
     },
-    battle::practice_repository::PracticeRepository,
     battle::rng::ProductionRng,
     fleet::get_fleet_ships_impl,
     quest::update::update_quest_progress_for_action,
     ship::update_ship_impl,
     slot_item::find_slot_items_by_id_impl,
+    sortie_store::PracticeStore,
 };
 
 /// Practice information.
@@ -621,7 +621,7 @@ async fn update_practice_result_stats<C>(
     codex: &Codex,
     profile_id: i64,
     mut snapshot: PracticeBattleResultSnapshot,
-    practice_repo: &dyn PracticeRepository,
+    practice_repo: &PracticeStore,
 ) -> Result<PracticeBattleResultSnapshot, GameplayError>
 where
     C: ConnectionTrait,
