@@ -70,25 +70,26 @@ Current verification baseline:
 | [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
+| [2026-09-18] `clippy --workspace --all-targets -- -D warnings` fails on a pre-existing `result_large_err` in `emukc_network/src/download.rs:236`; the repo gate is `-W warnings`, so the U4/U5 gate's touched-file check is the `-D`-strength check for new code. | session 2026-09-18, U5 |
 
 ## Last Session
 
-- [2026-09-18] `main`, committed and unpushed. Plan 002: Phase A (U1-U3), U10 and Phase B U4 done and
-  independently accepted via `/farm` (worker: claude in herdr pane, briefs/gates under `.farm/deepen-u*`).
-  U4 `f5541c2` (fix: expedition now pins exp at the level cap; the new expedition test was re-run by me
-  on the pre-fix tree and failed with 1000014 vs 1000000) + `9c07055` (`game/ship/exp.rs`: pure
-  `settle_ship_exp`, one `calculate_admiral_exp`, one `build_exp_lvup_vector`). `CONTEXT.md` created
-  with the first two glossary terms (KTD9). Every unit passed fmt, `clippy -W warnings`, `cargo test`;
-  assets, golden and `Cargo.lock` byte-identical to `e93e1f8`.
+- [2026-09-18] `main`, committed and unpushed. Plan 002 U5 done by me directly (no farm worker): `game/sortie/setup.rs`
+  holds `resolve_sortie_battle_setup_impl` + `SortieBattleSetup::{battle_input,result_snapshot}`; day-start and
+  sp_midnight both go through it, so sp_midnight gained the `combined_type` / cell-exists / `event_kind` guards
+  (the two new `sortie/tests.rs` guard tests failed on the pre-change tree with "fleet 1 has no ships").
+  `run_sp_midnight_battle` now runs `execute_night` first and builds the session from its result. Gate
+  `.farm/deepen-u5-gate.sh` (U4 shape, BASE `de627f4`) passed; assets, golden and `Cargo.lock` byte-identical.
 
 ## Next Session
 
-- [2026-09-18] Continue `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md` with U5
-  (sortie battle setup: one `resolve_sortie_battle_setup_impl`, sp_midnight gains the `combined_type`
-  and `event_kind` guards, drop the zero-filled packet anchor; night-start `SortieBattleSession.packet`
-  must keep `enemy_nowhps` + `formation`), then U6, then U7 -> U8 -> U9. Reuse the `.farm/deepen-u4-gate.sh`
-  shape (touched-file warning check + path allowlist + structural greps matching assignments only).
-  Small follow-ups noted, not done: `battle/practice/mod.rs::exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`
-  asserts a literal and never calls the function. Older open items (deterministic `practice_battle`
-  win-rank asserts, 6.3.x KTD4 smoke test, `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan
-  revalidation, archiving the battle execution plan, stale `wt-base` worktree) are unchanged.
+- [2026-09-18] Continue plan 002 with U6 (`settle_sortie_battle_impl` + `SortieSettlement` in `sortie_result.rs`,
+  `Ctx::sortie_battle_result` shrinks to lock / tx / stage refresh / one response; the four gauge tests in
+  `sortie/tests.rs` assert on the settlement), then U7 -> U8 -> U9. Reuse `.farm/deepen-u5-gate.sh` (touched-file
+  warning check + path allowlist + structural greps). Not done, noted: sp_midnight still lacks the
+  `with_profile_lock` the day path holds (outside R6's guard scope); `run_sp_midnight_battle`'s
+  `enemy_formation_id` parameter duplicates `input.context.enemy_formation_id`;
+  `battle/practice/mod.rs::exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds` asserts a literal and never
+  calls the function. Older open items (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke test,
+  `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan revalidation, archiving the battle execution plan,
+  stale `wt-base` worktree) are unchanged.
