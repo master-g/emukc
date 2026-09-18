@@ -12,7 +12,6 @@ pub use factory::FactoryOps;
 pub use furniture::FurnitureOps;
 pub use incentive::IncentiveOps;
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
-pub use kdock::KDockOps;
 pub use map::MapOps;
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use ndock::NDockOps;
@@ -75,7 +74,6 @@ pub trait GameOps:
     + FurnitureOps
     + SettingsOps
     + IncentiveOps
-    + KDockOps
     + MapOps
     + NDockOps
     + PayItemOps
@@ -99,8 +97,8 @@ pub mod ops {
     #[doc(hidden)]
     pub use crate::game::{
         AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FurnitureOps, GameOps,
-        IncentiveOps, KDockOps, MapOps, NDockOps, PayItemOps, PictureBookOps, PracticeOps,
-        PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
+        IncentiveOps, MapOps, NDockOps, PayItemOps, PictureBookOps, PracticeOps, PresetOps,
+        QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
     };
 }
 

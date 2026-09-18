@@ -1,64 +1,26 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::kdock,
     sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{kc2::KcUseItemType, profile::kdock::ConstructionDock};
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::use_item::deduct_use_item_impl;
 
-/// A trait for construction dock related gameplay.
-#[async_trait]
-pub trait KDockOps {
+impl Ctx {
     /// Unlock new construction dock.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `index`: The construction dock index, must be one of 2, 3, 4.
-    async fn unlock_kdock(
-        &self,
-        profile_id: i64,
-        index: i64,
-    ) -> Result<ConstructionDock, GameplayError>;
-
-    /// Get single construction dock.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `index`: The construction dock index, must be one of 1, 2, 3, 4.
-    async fn get_kdock(
-        &self,
-        profile_id: i64,
-        index: i64,
-    ) -> Result<ConstructionDock, GameplayError>;
-
-    /// Get all construction docks.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError>;
-
-    /// Expand construction dock.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> KDockOps for T {
-    async fn unlock_kdock(
+    pub async fn unlock_kdock(
         &self,
         profile_id: i64,
         index: i64,
     ) -> Result<ConstructionDock, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = unlock_kdock_impl(&tx, profile_id, index).await?;
@@ -68,26 +30,45 @@ impl<T: HasContext + ?Sized> KDockOps for T {
         Ok(m.into())
     }
 
-    async fn get_kdock(
+    /// Get single construction dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The construction dock index, must be one of 1, 2, 3, 4.
+    pub async fn get_kdock(
         &self,
         profile_id: i64,
         index: i64,
     ) -> Result<ConstructionDock, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let dock = get_kdock_impl(db, profile_id, index).await?;
 
         Ok(dock)
     }
 
-    async fn get_kdocks(&self, profile_id: i64) -> Result<Vec<ConstructionDock>, GameplayError> {
-        let db = self.db();
+    /// Get all construction docks.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_kdocks(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<ConstructionDock>, GameplayError> {
+        let db = self.db.as_ref();
         let docks = get_kdocks_impl(db, profile_id).await?;
 
         Ok(docks.into_iter().map(std::convert::Into::into).collect())
     }
 
-    async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Expand construction dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         expand_construction_dock_impl(&tx, profile_id).await?;
