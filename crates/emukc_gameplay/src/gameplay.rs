@@ -2,29 +2,10 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
-use crate::game::{
-    GameOps,
-    sortie_store::{PracticeStore, SortieStore},
-};
-
-/// A trait for types that have a database connection and a codex.
-pub trait HasContext: Send + Sync {
-    /// Get the database connection.
-    fn db(&self) -> &DbConn;
-
-    /// Get the game's codex.
-    fn codex(&self) -> &Codex;
-
-    /// Get the sortie runtime store.
-    fn sortie_store(&self) -> &SortieStore;
-
-    /// Get the practice runtime store.
-    fn practice_store(&self) -> &PracticeStore;
-}
+use crate::game::sortie_store::{PracticeStore, SortieStore};
 
 /// Everything a gameplay operation needs, as a concrete type.
 ///
@@ -57,30 +38,24 @@ impl Ctx {
             practice_store: Arc::new(PracticeStore::new()),
         }
     }
-}
 
-impl HasContext for Ctx {
-    fn db(&self) -> &DbConn {
+    /// Get the database connection.
+    pub fn db(&self) -> &DbConn {
         &self.db
     }
 
-    fn codex(&self) -> &Codex {
+    /// Get the game's codex.
+    pub fn codex(&self) -> &Codex {
         &self.codex
     }
 
-    fn sortie_store(&self) -> &SortieStore {
+    /// Get the sortie runtime store.
+    pub fn sortie_store(&self) -> &SortieStore {
         &self.sortie_store
     }
 
-    fn practice_store(&self) -> &PracticeStore {
+    /// Get the practice runtime store.
+    pub fn practice_store(&self) -> &PracticeStore {
         &self.practice_store
     }
 }
-
-/// Gameplay trait for the game's data and logic.
-#[async_trait]
-pub trait Gameplay: GameOps {}
-
-/// Blanket implementation of `Gameplay` for types that implement `HasContext`.
-#[async_trait]
-impl<T: HasContext + ?Sized> Gameplay for T {}

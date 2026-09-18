@@ -13,7 +13,6 @@ emukc_model = { path = "../emukc_model" }
 emukc_time = { path = "../emukc_time" }
 
 # other
-async-trait = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

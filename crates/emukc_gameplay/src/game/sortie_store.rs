@@ -1,11 +1,9 @@
 //! Instance-scoped store for sortie runtime state.
 //!
 //! Replaces the former process-global statics (`ACTIVE_SORTIES`,
-//! `PENDING_SORTIE_RESULTS`, `PENDING_SORTIE_BATTLES`) with a value that can
-//! be owned per-context.  [`HasContext`] exposes a default implementation that
-//! falls back to a process-global instance, so existing tuple-based test
-//! contexts keep working.  The binary-crate [`State`] overrides it with an
-//! instance-scoped store, giving each route-test its own isolated copy.
+//! `PENDING_SORTIE_RESULTS`, `PENDING_SORTIE_BATTLES`) with a value that is
+//! owned per-context: every [`Ctx`](crate::gameplay::Ctx) builds its own, so
+//! each server instance and each test gets an isolated copy.
 
 use std::{collections::HashMap, fmt, future::Future, sync::Arc};
 

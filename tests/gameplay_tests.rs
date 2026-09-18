@@ -39,24 +39,6 @@ impl Deref for TestContext {
     }
 }
 
-impl HasContext for TestContext {
-    fn db(&self) -> &emukc_internal::db::sea_orm::DbConn {
-        self.ctx.db()
-    }
-
-    fn codex(&self) -> &Codex {
-        self.ctx.codex()
-    }
-
-    fn sortie_store(&self) -> &SortieStore {
-        self.ctx.sortie_store()
-    }
-
-    fn practice_store(&self) -> &PracticeStore {
-        self.ctx.practice_store()
-    }
-}
-
 #[path = "gameplay_tests/map/mod.rs"]
 mod map;
 

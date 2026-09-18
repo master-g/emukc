@@ -11,10 +11,9 @@ use emukc::bootstrap::prelude::{
 };
 use emukc_internal::{
     crypto::rng,
-    db::sea_orm::DbConn,
     prelude::{
-        BattleSimulation, Codex, Ctx, HasContext, PRESETS, PracticeStore, Preset, Scenario,
-        SortieRepository, SortieStore, apply_scenario, new_mem_db, render_day_battle,
+        BattleSimulation, Codex, Ctx, PRESETS, Preset, Scenario, SortieRepository, apply_scenario,
+        new_mem_db, render_day_battle,
     },
 };
 use serde_json::Value;
@@ -238,21 +237,6 @@ impl std::ops::Deref for SimContext {
 
     fn deref(&self) -> &Ctx {
         &self.ctx
-    }
-}
-
-impl HasContext for SimContext {
-    fn db(&self) -> &DbConn {
-        self.ctx.db()
-    }
-    fn codex(&self) -> &Codex {
-        self.ctx.codex()
-    }
-    fn sortie_store(&self) -> &SortieStore {
-        self.ctx.sortie_store()
-    }
-    fn practice_store(&self) -> &PracticeStore {
-        self.ctx.practice_store()
     }
 }
 

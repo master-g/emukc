@@ -13,8 +13,6 @@ pub use sortie::{
 pub use sortie_store::PracticeStore;
 pub use sortie_store::SortieStore;
 
-use crate::gameplay::HasContext;
-
 // modules
 
 mod airbase;
@@ -44,20 +42,6 @@ mod sortie;
 mod sortie_result;
 pub(crate) mod sortie_store;
 mod use_item;
-
-/// A trait for gameplay logic.
-#[async_trait::async_trait]
-pub trait GameOps {}
-
-#[async_trait::async_trait]
-impl<T: HasContext + ?Sized> GameOps for T {}
-
-pub mod ops {
-    //! The ops traits prelude.
-
-    #[doc(hidden)]
-    pub use crate::game::GameOps;
-}
 
 pub mod types {
     //! The types prelude.

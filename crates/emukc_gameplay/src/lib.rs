@@ -17,8 +17,6 @@ pub mod user;
 pub mod gameplay;
 pub mod scenario;
 
-pub use game::ops as game_ops;
-
 pub mod prelude {
     //! The `emukc_gameplay` crate prelude.
 
@@ -34,9 +32,8 @@ pub mod prelude {
         game::SortieStore,
         game::battle::practice_repository::PracticeRepository,
         game::battle::repository::SortieRepository,
-        game::ops::*,
         game::types::*,
-        gameplay::{Ctx, Gameplay, HasContext},
+        gameplay::Ctx,
         scenario::{PRESETS, Preset, Scenario, ShipSpec, apply_scenario},
         user::{AccountInfo, AuthInfo, StartGameInfo, UserError},
     };

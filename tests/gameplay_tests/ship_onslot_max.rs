@@ -7,7 +7,6 @@ mod tests {
     use emukc_internal::db::sea_orm::{
         ActiveModelTrait, ActiveValue, EntityTrait, IntoActiveModel,
     };
-    use emukc_internal::prelude::*;
 
     /// 赤城, api_maxeq = [18, 18, 27, 10, 0]
     const AKAGI_MST_ID: i64 = 83;

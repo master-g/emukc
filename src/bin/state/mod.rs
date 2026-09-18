@@ -3,10 +3,7 @@
 use std::{fs::create_dir, ops::Deref, sync::Arc};
 
 use anyhow::bail;
-use emukc_internal::{
-    db::sea_orm::DbConn,
-    prelude::{Codex, Ctx, HasContext, Kache, PracticeStore, SortieStore, prepare},
-};
+use emukc_internal::prelude::{Codex, Ctx, Kache, prepare};
 
 use crate::cfg::AppConfig;
 
@@ -81,24 +78,6 @@ impl State {
 }
 
 pub type StateArc = Arc<State>;
-
-impl HasContext for State {
-    fn db(&self) -> &DbConn {
-        self.ctx.db()
-    }
-
-    fn codex(&self) -> &Codex {
-        self.ctx.codex()
-    }
-
-    fn sortie_store(&self) -> &SortieStore {
-        self.ctx.sortie_store()
-    }
-
-    fn practice_store(&self) -> &PracticeStore {
-        self.ctx.practice_store()
-    }
-}
 
 #[cfg(test)]
 mod tests {
