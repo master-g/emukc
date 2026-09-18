@@ -1,11 +1,12 @@
 mod enemy_ship;
 mod route_context;
+mod setup;
 
 use enemy_ship::{
-    build_sortie_enemy_ships, fallback_enemy_composition, resolve_sortie_enemy_fleet,
-    select_random_enemy_composition,
+    fallback_enemy_composition, resolve_sortie_enemy_fleet, select_random_enemy_composition,
 };
-use route_context::{build_fleet_route_context, build_sortie_friend_ships, engagement_for_cell};
+use route_context::build_fleet_route_context;
+use setup::resolve_sortie_battle_setup_impl;
 
 use std::collections::BTreeSet;
 
@@ -17,14 +18,14 @@ use emukc_model::{
         Codex,
         map::{EnemyComposition, MapCellDefinition, MapStageDefinition, split_map_id},
     },
-    kc2::{MaterialCategory, start2::ApiMstShip},
+    kc2::MaterialCategory,
     thirdparty::QuestActionEvent,
 };
 use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use emukc_battle::{BattleContext, BattleShipInput, BattleType, EngagementType};
+use emukc_battle::{BattleShipInput, BattleType, EngagementType};
 
 use super::{
     basic::find_profile,
@@ -34,8 +35,8 @@ use super::{
         },
         rng::ProductionRng,
         sortie::{
-            SortieBattleInput, pending_battle, run_day_battle, run_night_battle,
-            run_sp_midnight_battle, take_day_battle_result,
+            pending_battle, run_day_battle, run_night_battle, run_sp_midnight_battle,
+            take_day_battle_result,
         },
     },
     fleet::get_fleet_ships_impl,
@@ -49,9 +50,8 @@ use super::{
     quest::update::update_quest_progress_for_action,
     ship::exp::calculate_admiral_exp,
     sortie_result::{
-        SortieBattleResultSnapshot, apply_sortie_map_result, build_sortie_quest_event,
-        calculate_sortie_base_exp, calculate_sortie_ship_exp, try_grant_sortie_ship_drop,
-        update_sortie_result_stats,
+        apply_sortie_map_result, build_sortie_quest_event, calculate_sortie_ship_exp,
+        try_grant_sortie_ship_drop, update_sortie_result_stats,
     },
     sortie_store::SortieStore,
 };
@@ -733,128 +733,26 @@ impl Ctx {
         let store = self.sortie_store.as_ref();
         let tx = db.begin().await?;
 
-        let mut active = store.get_active(profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "active sortie not found for profile {profile_id}",
-            ))
-        })?;
-        if active.pending_battle_cell_id.is_some() {
-            return Err(GameplayError::WrongType("sortie battle already pending".to_string()));
-        }
-
-        let profile = find_profile(&tx, profile_id).await?;
-        let catalog = active_map_catalog(codex);
-        let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
-        })?;
-        let stage = definition.stage(&active.stage_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "stage `{}` not found for map {}",
-                active.stage_id, active.map_id,
-            ))
-        })?;
-
-        let fleet_ships = get_fleet_ships_impl(&tx, profile_id, active.deck_id).await?;
-        if fleet_ships.is_empty() {
-            return Err(GameplayError::WrongType(format!(
-                "fleet {} has no ships for sortie battle",
-                active.deck_id,
-            )));
-        }
-
-        let friend_ships = build_sortie_friend_ships(&tx, &fleet_ships).await?;
-        let enemy_fleet = resolve_sortie_enemy_fleet(active.map_id, stage, active.current_cell_id);
-        let enemy_composition = active
-            .locked_enemy_composition
-            .clone()
-            .or_else(|| select_random_enemy_composition(&enemy_fleet))
-            .unwrap_or_else(|| fallback_enemy_composition(active.current_cell_id));
-        let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
-            build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
-
-        let enemy_formation_id = enemy_fleet.formations.first().copied().unwrap_or(1);
+        let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
         let mut rng = ProductionRng;
-        let (day_session, night_session) = run_sp_midnight_battle(
+        let (session, night_session) = run_sp_midnight_battle(
             store,
             codex,
-            SortieBattleInput {
-                profile_id,
-                deck_id: active.deck_id,
-                map_id: active.map_id,
-                cell_id: active.current_cell_id,
-                context: BattleContext {
-                    battle_type: BattleType::Normal,
-                    is_sortie: true,
-                    friendly_formation_id: formation_id,
-                    enemy_formation_id,
-                    engagement: engagement_for_cell(active.map_id, active.current_cell_id),
-                    friend_ships: friend_ships.clone(),
-                    enemy_ships: enemy_ships.clone(),
-                },
-            },
-            enemy_formation_id,
+            setup.battle_input(BattleType::Normal, formation_id),
+            setup.enemy_formation_id,
             &mut rng,
         );
+        store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
 
-        let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
-        let get_exp = calculate_admiral_exp(base_exp, &night_session.outcome.win_rank.to_string());
-        let friendly_nowhps: Vec<i64> = pending_battle(store, profile_id)
-            .map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
-            .unwrap_or_default();
-        let ct_flagship = friend_ships
-            .first()
-            .and_then(|s| codex.manifest.find_ship(s.ship.api_ship_id))
-            .is_some_and(|m| m.api_stype == 21);
-        let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
-            &friend_ships,
-            base_exp,
-            night_session.outcome.mvp,
-            &friendly_nowhps,
-            ct_flagship,
-            codex.game_cfg.exp.ct_exp_boost,
-        );
-        store.insert_pending_result(
-            profile_id,
-            SortieBattleResultSnapshot {
-                friendly_ship_ids: day_session.friendly_ship_ids.clone(),
-                enemy_ship_ids: day_session.enemy_ship_ids.clone(),
-                friendly_nowhps,
-                enemy_ship_types: day_session
-                    .enemy_ship_ids
-                    .iter()
-                    .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
-                    .collect(),
-                enemy_nowhps: night_session.packet.enemy_nowhps.clone(),
-                win_rank: night_session.outcome.win_rank.to_string(),
-                get_exp,
-                member_lv: profile.hq_level,
-                member_exp: profile.experience,
-                get_base_exp: base_exp,
-                mvp: night_session.outcome.mvp,
-                get_ship_exp: ship_exp,
-                get_exp_lvup: ship_lvup,
-                quest_name: active.map_name.clone(),
-                quest_level: active.map_level,
-                enemy_level,
-                enemy_rank,
-                enemy_deck_name,
-            },
-        );
-
+        let mut active = setup.active;
         active.pending_battle_cell_id = Some(active.current_cell_id);
-
-        let current = pending_battle(store, profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "sortie battle session not found for profile {profile_id}",
-            ))
-        })?;
 
         tx.commit().await?;
         let _ = store.insert_active(profile_id, active);
         Ok(build_night_response(
-            current.deck_id,
-            &current.friendly,
-            &current.enemy,
+            session.deck_id,
+            &session.friendly,
+            &session.enemy,
             night_session.packet,
         ))
     }
@@ -925,136 +823,23 @@ async fn sortie_battle_impl(
         .with_profile_lock(profile_id, async {
             let tx = db.begin().await?;
 
-            let mut active = store.get_active(profile_id).ok_or_else(|| {
-                GameplayError::EntryNotFound(format!(
-                    "active sortie not found for profile {profile_id}",
-                ))
-            })?;
-            if active.pending_battle_cell_id.is_some() {
-                return Err(GameplayError::WrongType("sortie battle already pending".to_string()));
-            }
-
-            let profile = find_profile(&tx, profile_id).await?;
-            if profile.combined_type > 0 {
-                return Err(GameplayError::WrongType(
-                    "combined sortie battle is not implemented yet".to_string(),
-                ));
-            }
-
-            let catalog = active_map_catalog(codex);
-            let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
-                GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
-            })?;
-            let stage = definition.stage(&active.stage_id).ok_or_else(|| {
-                GameplayError::EntryNotFound(format!(
-                    "stage `{}` not found for map {}",
-                    active.stage_id, active.map_id,
-                ))
-            })?;
-            let current_cell = stage.cell(active.current_cell_id).ok_or_else(|| {
-                GameplayError::EntryNotFound(format!(
-                    "cell {} not found in map {}",
-                    active.current_cell_id, active.map_id,
-                ))
-            })?;
-            if current_cell.event_kind != 1 {
-                return Err(GameplayError::WrongType(format!(
-                    "cell {} is not a battle cell",
-                    current_cell.cell_no,
-                )));
-            }
-
-            let fleet_ships = get_fleet_ships_impl(&tx, profile_id, active.deck_id).await?;
-            if fleet_ships.is_empty() {
-                return Err(GameplayError::WrongType(format!(
-                    "fleet {} has no ships for sortie battle",
-                    active.deck_id,
-                )));
-            }
-
-            let friend_ships = build_sortie_friend_ships(&tx, &fleet_ships).await?;
-            let enemy_fleet =
-                resolve_sortie_enemy_fleet(active.map_id, stage, current_cell.cell_no);
-            let enemy_composition = active
-                .locked_enemy_composition
-                .clone()
-                .or_else(|| select_random_enemy_composition(&enemy_fleet))
-                .unwrap_or_else(|| fallback_enemy_composition(current_cell.cell_no));
-            let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
-                build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
-
+            let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
             let mut rng = ProductionRng;
             let session = run_day_battle(
                 store,
                 codex,
-                SortieBattleInput {
-                    profile_id,
-                    deck_id: active.deck_id,
-                    map_id: active.map_id,
-                    cell_id: active.current_cell_id,
-                    context: BattleContext {
-                        battle_type,
-                        is_sortie: true,
-                        friendly_formation_id: formation_id,
-                        enemy_formation_id: enemy_fleet.formations.first().copied().unwrap_or(1),
-                        engagement: engagement_for_cell(active.map_id, active.current_cell_id),
-                        friend_ships: friend_ships.clone(),
-                        enemy_ships: enemy_ships.clone(),
-                    },
-                },
+                setup.battle_input(battle_type, formation_id),
                 &mut rng,
             );
-
-            let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
-            let get_exp = calculate_admiral_exp(base_exp, &session.outcome.win_rank.to_string());
-            let friendly_nowhps: Vec<i64> =
-                session.friendly.iter().map(|f| f.hp().max(0)).collect();
-            let ct_flagship = friend_ships
-                .first()
-                .and_then(|s| codex.manifest.find_ship(s.ship.api_ship_id))
-                .is_some_and(|m| m.api_stype == 21);
-            let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
-                &friend_ships,
-                base_exp,
-                session.outcome.mvp,
-                &friendly_nowhps,
-                ct_flagship,
-                codex.game_cfg.exp.ct_exp_boost,
-            );
             let response = build_day_response(
-                active.deck_id,
-                &friend_ships,
-                &enemy_ships,
+                setup.active.deck_id,
+                &setup.friend_ships,
+                &setup.enemy_ships,
                 session.packet.clone(),
             );
-            store.insert_pending_result(
-                profile_id,
-                SortieBattleResultSnapshot {
-                    friendly_ship_ids: session.friendly_ship_ids.clone(),
-                    enemy_ship_ids: session.enemy_ship_ids.clone(),
-                    friendly_nowhps,
-                    enemy_ship_types: session
-                        .enemy_ship_ids
-                        .iter()
-                        .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
-                        .collect(),
-                    enemy_nowhps: session.packet.enemy_nowhps.clone(),
-                    win_rank: session.outcome.win_rank.to_string(),
-                    get_exp,
-                    member_lv: profile.hq_level,
-                    member_exp: profile.experience,
-                    get_base_exp: base_exp,
-                    mvp: session.outcome.mvp,
-                    get_ship_exp: ship_exp,
-                    get_exp_lvup: ship_lvup,
-                    quest_name: active.map_name.clone(),
-                    quest_level: active.map_level,
-                    enemy_level,
-                    enemy_rank,
-                    enemy_deck_name,
-                },
-            );
+            store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
 
+            let mut active = setup.active;
             active.pending_battle_cell_id = Some(active.current_cell_id);
 
             tx.commit().await?;

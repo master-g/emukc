@@ -1,6 +1,10 @@
 use super::*;
-use crate::game::battle::sortie::{pending_battle, run_day_battle, run_sp_midnight_battle};
+use crate::game::battle::sortie::{
+    SortieBattleInput, pending_battle, run_day_battle, run_sp_midnight_battle,
+};
 use crate::game::map_progress::assign_stage_id;
+use crate::game::sortie_result::SortieBattleResultSnapshot;
+use emukc_battle::BattleContext;
 use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
 use emukc_db::{
     entity::profile::{map_record, material as profile_material, ship as profile_ship},
@@ -1271,4 +1275,73 @@ async fn clearing_map_1_1_unlocks_dependents_via_cascade() {
         let rec = find_map_record_impl(context.db.as_ref(), profile_id, dep_id).await.unwrap();
         assert!(rec.unlocked, "dependent {dep_id} should be unlocked after clearing 1-1");
     }
+}
+
+async fn guard_context() -> (Ctx, i64) {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("sp-guard", "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, "sp-guard").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    (context, session.profile.id)
+}
+
+/// An active sortie on map 1-1 parked at the first cell of its default stage that
+/// satisfies `pick`, with no battle pending.
+fn active_sortie_on_cell(
+    codex: &Codex,
+    pick: impl Fn(&MapCellDefinition) -> bool,
+) -> ActiveSortieState {
+    let definition = codex.maps.map_definition(11).unwrap();
+    let stage = definition.stage(&definition.default_variant).unwrap();
+    let cell = stage.cells.iter().find(|cell| pick(cell)).unwrap();
+    ActiveSortieState {
+        deck_id: 1,
+        map_id: 11,
+        map_name: definition.name.clone(),
+        map_level: definition.level,
+        stage_id: definition.default_variant.clone(),
+        current_cell_id: cell.cell_no,
+        boss_cell_id: stage.boss_cell_no,
+        pending_battle_cell_id: None,
+        visited_cell_ids: BTreeSet::from([cell.cell_no]),
+        locked_enemy_composition: None,
+    }
+}
+
+#[tokio::test]
+async fn sortie_sp_midnight_battle_rejects_combined_fleet_like_sortie_battle() {
+    let (context, pid) = guard_context().await;
+    let mut profile = find_profile(context.db.as_ref(), pid).await.unwrap().into_active_model();
+    profile.combined_type = ActiveValue::Set(1);
+    profile.update(context.db.as_ref()).await.unwrap();
+    let store = context.sortie_store.as_ref();
+    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind == 1));
+
+    let day = context.sortie_battle(pid, 1).await.unwrap_err();
+    let night = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_err();
+
+    assert!(
+        matches!(day, GameplayError::WrongType(ref msg) if msg.contains("combined")),
+        "{day:?}"
+    );
+    assert_eq!(night.to_string(), day.to_string());
+}
+
+#[tokio::test]
+async fn sortie_sp_midnight_battle_rejects_non_battle_cell_like_sortie_battle() {
+    let (context, pid) = guard_context().await;
+    let store = context.sortie_store.as_ref();
+    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind != 1));
+
+    let day = context.sortie_battle(pid, 1).await.unwrap_err();
+    let night = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_err();
+
+    assert!(
+        matches!(day, GameplayError::WrongType(ref msg) if msg.contains("is not a battle cell")),
+        "{day:?}"
+    );
+    assert_eq!(night.to_string(), day.to_string());
 }

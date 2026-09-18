@@ -1,11 +1,10 @@
 //! Sortie battle orchestration — build context → call `emukc_battle` → persist.
 
 use emukc_battle::{
-    BattleOutcome, BattlePacket, BattleRng, BattleRuntimeShip, EngagementType, NightBattleInput,
-    execute_day, execute_night,
+    BattlePacket, BattleRng, BattleRuntimeShip, EngagementType, NightBattleInput,
+    NightBattlePacket, execute_day, execute_night,
 };
 use emukc_model::codex::Codex;
-use emukc_model::kc2::KcSortieResultRank;
 
 use super::{
     SortieBattleInput, SortieBattleSession, SortieNightBattleSession, build_sortie_session,
@@ -89,8 +88,9 @@ pub fn run_night_battle(
 
 /// Run a night-start (`sp_midnight`) battle — no preceding day battle.
 ///
-/// Constructs a minimal day session (no combat phases), stores it, then
-/// immediately runs the night simulation and updates the stored session.
+/// Runs the night simulation on the setup fleets and stores the outcome as the
+/// pending session, so `sortie_battle_result` (`enemy_nowhps`) and
+/// `sortie_midnight_battle` (`formation`) read it the same way as after a day battle.
 pub fn run_sp_midnight_battle(
     store: &SortieStore,
     codex: &Codex,
@@ -106,76 +106,40 @@ pub fn run_sp_midnight_battle(
         context,
     } = input;
 
-    let friendly_formation_id = context.friendly_formation_id;
-    let engagement = context.engagement;
-    let friendly: Vec<BattleRuntimeShip> =
-        context.friend_ships.into_iter().map(|s| BattleRuntimeShip::new(s, true, true)).collect();
-    let enemy: Vec<BattleRuntimeShip> =
-        context.enemy_ships.into_iter().map(|s| BattleRuntimeShip::new(s, false, true)).collect();
-
-    // Create a minimal day session to anchor the night battle
-    let day_session = SortieBattleSession {
-        profile_id,
-        deck_id,
-        map_id,
-        cell_id,
-        friendly_ship_ids: friendly.iter().map(|s| s.ship.api_id).collect(),
-        enemy_ship_ids: enemy.iter().map(|s| s.ship.api_ship_id).collect(),
-        friendly: friendly.clone(),
-        enemy: enemy.clone(),
-        packet: BattlePacket {
-            formation: [friendly_formation_id, enemy_formation_id, engagement.api_id()],
-            friendly_nowhps: friendly.iter().map(BattleRuntimeShip::hp).collect(),
-            enemy_nowhps: enemy.iter().map(BattleRuntimeShip::hp).collect(),
-            smoke_type: 0,
-            balloon_cell: 0,
-            atoll_cell: 0,
-            midnight_flag: 1,
-            search: [1, 1],
-            stage_flag: [0, 0, 0],
-            kouku: None,
-            opening_taisen_flag: 0,
-            opening_taisen: None,
-            opening_flag: 0,
-            opening_attack: None,
-            hourai_flag: [0, 0, 0, 0],
-            hougeki1: None,
-            hougeki2: None,
-            hougeki3: None,
-            raigeki: None,
-        },
-        outcome: BattleOutcome {
-            win_rank: KcSortieResultRank::D,
-            mvp: 0,
-            can_midnight: true,
-        },
-    };
-    store.insert_pending_battle(profile_id, day_session.clone());
-
-    // Run night battle using the stored session
     let night = execute_night(
         codex,
         NightBattleInput {
-            friendly,
-            enemy,
-            friendly_formation_id,
+            friendly: context
+                .friend_ships
+                .into_iter()
+                .map(|s| BattleRuntimeShip::new(s, true, true))
+                .collect(),
+            enemy: context
+                .enemy_ships
+                .into_iter()
+                .map(|s| BattleRuntimeShip::new(s, false, true))
+                .collect(),
+            friendly_formation_id: context.friendly_formation_id,
             enemy_formation_id,
-            engagement,
+            engagement: context.engagement,
             air_state: None,
         },
         rng,
     );
 
-    // Update the stored day session with night results
-    if let Some(mut stored) = store.take_pending_battle(profile_id) {
-        stored.friendly = night.friendly.clone();
-        stored.enemy = night.enemy.clone();
-        stored.outcome = night.outcome.clone();
-        stored.packet.friendly_nowhps = night.packet.friendly_nowhps.clone();
-        stored.packet.enemy_nowhps = night.packet.enemy_nowhps.clone();
-        stored.packet.midnight_flag = 0;
-        store.insert_pending_battle(profile_id, stored);
-    }
+    let session = SortieBattleSession {
+        profile_id,
+        deck_id,
+        map_id,
+        cell_id,
+        friendly_ship_ids: night.friendly.iter().map(|s| s.ship.api_id).collect(),
+        enemy_ship_ids: night.enemy.iter().map(|s| s.ship.api_ship_id).collect(),
+        friendly: night.friendly,
+        enemy: night.enemy,
+        packet: night_start_packet(&night.packet),
+        outcome: night.outcome.clone(),
+    };
+    store.insert_pending_battle(profile_id, session.clone());
 
     let night_session = SortieNightBattleSession {
         profile_id,
@@ -183,5 +147,31 @@ pub fn run_sp_midnight_battle(
         outcome: night.outcome,
     };
 
-    (day_session, night_session)
+    (session, night_session)
+}
+
+/// The day-packet view of a night-start battle: no day phase ran, so only the
+/// fields later readers consume (`formation` and both `nowhps`) carry values.
+fn night_start_packet(night: &NightBattlePacket) -> BattlePacket {
+    BattlePacket {
+        formation: night.formation,
+        friendly_nowhps: night.friendly_nowhps.clone(),
+        enemy_nowhps: night.enemy_nowhps.clone(),
+        smoke_type: 0,
+        balloon_cell: 0,
+        atoll_cell: 0,
+        midnight_flag: 0,
+        search: [1, 1],
+        stage_flag: [0, 0, 0],
+        kouku: None,
+        opening_taisen_flag: 0,
+        opening_taisen: None,
+        opening_flag: 0,
+        opening_attack: None,
+        hourai_flag: [0, 0, 0, 0],
+        hougeki1: None,
+        hougeki2: None,
+        hougeki3: None,
+        raigeki: None,
+    }
 }
