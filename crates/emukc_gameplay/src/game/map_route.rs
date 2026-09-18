@@ -756,6 +756,8 @@ impl RoutePredicateEval {
 
 #[cfg(test)]
 mod tests {
+    use emukc_model::codex::map::MapVariantDefinition;
+
     use super::*;
 
     #[test]
@@ -2122,5 +2124,516 @@ mod tests {
 
         assert!(stages_checked > 0, "expected at least one live codex stage to validate");
         assert!(routed_decisions > 0, "expected at least one routable decision over the matrix");
+    }
+
+    fn empty_stage() -> MapStageDefinition {
+        MapStageDefinition::default()
+    }
+
+    #[test]
+    fn route_predicate_matches_ship_set_variants() {
+        fn route_entry(
+            ship_id: i64,
+            ship_type: i64,
+            speed: i64,
+            slotitem_types: &[i64],
+        ) -> FleetRouteShipEntry {
+            FleetRouteShipEntry {
+                ship_id,
+                ship_type,
+                speed,
+                slotitem_types: slotitem_types.iter().copied().collect(),
+            }
+        }
+
+        let context = FleetRouteContext {
+            fleet_size: 3,
+            visited_cell_ids: BTreeSet::new(),
+            ship_ids: BTreeSet::from([526, 6001, 6002]),
+            flagship_ship_id: Some(526),
+            flagship_ship_type: Some(7),
+            ship_type_counts: BTreeMap::from([(2, 2), (7, 1)]),
+            ship_entries: vec![
+                route_entry(526, 7, 10, &[]),
+                route_entry(6001, 2, 10, &[]),
+                route_entry(6002, 2, 10, &[]),
+            ],
+            min_speed: 10,
+            los_total: 20,
+            total_drums: 0,
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::ContainsShipSet {
+                    ship_types: vec![1],
+                    ship_ids: vec![526],
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::OnlyShipSet {
+                    ship_types: vec![2],
+                    ship_ids: vec![526],
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::ShipSetCount {
+                    ship_types: vec![2],
+                    ship_ids: vec![526],
+                    op: RouteOperator::Eq,
+                    value: 3,
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::FlagshipShipId {
+                    ship_ids: vec![526],
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+    }
+
+    #[test]
+    fn route_predicate_matches_visited_equipment_and_speed_qualified_predicates() {
+        let context = FleetRouteContext {
+            fleet_size: 4,
+            visited_cell_ids: BTreeSet::from([1, 4]),
+            ship_ids: BTreeSet::from([9001, 9002, 9003, 9004]),
+            flagship_ship_id: Some(9001),
+            flagship_ship_type: Some(3),
+            ship_type_counts: BTreeMap::from([(3, 1), (8, 2), (11, 1)]),
+            ship_entries: vec![
+                FleetRouteShipEntry {
+                    ship_id: 9001,
+                    ship_type: 3,
+                    speed: 10,
+                    slotitem_types: BTreeSet::from([12]),
+                },
+                FleetRouteShipEntry {
+                    ship_id: 9002,
+                    ship_type: 8,
+                    speed: 5,
+                    slotitem_types: BTreeSet::new(),
+                },
+                FleetRouteShipEntry {
+                    ship_id: 9003,
+                    ship_type: 8,
+                    speed: 5,
+                    slotitem_types: BTreeSet::new(),
+                },
+                FleetRouteShipEntry {
+                    ship_id: 9004,
+                    ship_type: 11,
+                    speed: 10,
+                    slotitem_types: BTreeSet::new(),
+                },
+            ],
+            min_speed: 5,
+            los_total: 20,
+            total_drums: 0,
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::VisitedNode {
+                    cell_nos: vec![4],
+                    visited: true,
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::VisitedNode {
+                    cell_nos: vec![7],
+                    visited: false,
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::EquipmentCount {
+                    slotitem_types: vec![12, 13, 93],
+                    op: RouteOperator::Eq,
+                    value: 1,
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::FlagshipShipType {
+                    ship_types: vec![3],
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(
+                &RoutePredicate::ShipSetSpeedCount {
+                    ship_types: vec![8],
+                    ship_ids: vec![],
+                    speed_op: RouteOperator::Lte,
+                    speed_class: SpeedClass::Slow,
+                    op: RouteOperator::Gte,
+                    value: 2,
+                },
+                &context,
+                &empty_stage(),
+            ),
+            crate::game::map_route::RoutePredicateEval::Matched
+        ));
+    }
+
+    #[test]
+    fn route_rules_prefer_executable_predicates_over_static_next_cells() {
+        let current = MapCellDefinition {
+            cell_no: 1,
+            color_no: 4,
+            event_id: 4,
+            event_kind: 1,
+            next_cells: vec![2, 3],
+            node_label: None,
+            master_cell_id: None,
+            distance: None,
+        };
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![current.clone()],
+            routing_rules: BTreeMap::from([(
+                1,
+                vec![
+                    RouteRule {
+                        from_cell_no: 1,
+                        to_cell_no: 2,
+                        priority: 0,
+                        weight: None,
+                        probability_pct: None,
+                        predicate: RoutePredicate::ContainsShipType {
+                            ship_types: vec![13],
+                        },
+                        raw_text: "潜水艦を含む".to_string(),
+                    },
+                    RouteRule {
+                        from_cell_no: 1,
+                        to_cell_no: 3,
+                        priority: 1,
+                        weight: None,
+                        probability_pct: None,
+                        predicate: RoutePredicate::Always,
+                        raw_text: "それ以外".to_string(),
+                    },
+                ],
+            )]),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+        let context = FleetRouteContext {
+            fleet_size: 4,
+            visited_cell_ids: BTreeSet::new(),
+            ship_ids: BTreeSet::new(),
+            flagship_ship_id: None,
+            flagship_ship_type: None,
+            ship_type_counts: BTreeMap::from([(2, 4)]),
+            ship_entries: vec![
+                FleetRouteShipEntry::default(),
+                FleetRouteShipEntry::default(),
+                FleetRouteShipEntry::default(),
+                FleetRouteShipEntry::default(),
+            ],
+            min_speed: 10,
+            los_total: 20,
+            total_drums: 0,
+            ..Default::default()
+        };
+
+        let next = evaluate_route_destination(&current, &variant, &context, None).unwrap();
+        assert_eq!(next, 3);
+    }
+
+    #[test]
+    fn fallback_rule_does_not_compete_with_matching_specific_rule() {
+        let current = MapCellDefinition {
+            cell_no: 1,
+            color_no: 4,
+            event_id: 4,
+            event_kind: 1,
+            next_cells: vec![2, 3],
+            node_label: None,
+            master_cell_id: None,
+            distance: None,
+        };
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![current.clone()],
+            routing_rules: BTreeMap::from([(
+                1,
+                vec![
+                    RouteRule {
+                        from_cell_no: 1,
+                        to_cell_no: 2,
+                        priority: 0,
+                        weight: None,
+                        probability_pct: None,
+                        predicate: RoutePredicate::ContainsShipType {
+                            ship_types: vec![13],
+                        },
+                        raw_text: "潜水艦を含む".to_string(),
+                    },
+                    RouteRule {
+                        from_cell_no: 1,
+                        to_cell_no: 3,
+                        priority: 1,
+                        weight: None,
+                        probability_pct: None,
+                        predicate: RoutePredicate::Always,
+                        raw_text: "それ以外".to_string(),
+                    },
+                ],
+            )]),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+        let context = FleetRouteContext {
+            fleet_size: 4,
+            visited_cell_ids: BTreeSet::new(),
+            ship_ids: BTreeSet::new(),
+            flagship_ship_id: None,
+            flagship_ship_type: None,
+            ship_type_counts: BTreeMap::from([(13, 1)]),
+            ship_entries: vec![
+                FleetRouteShipEntry {
+                    ship_id: 1601,
+                    ship_type: 13,
+                    speed: 10,
+                    slotitem_types: BTreeSet::new(),
+                },
+                FleetRouteShipEntry::default(),
+                FleetRouteShipEntry::default(),
+                FleetRouteShipEntry::default(),
+            ],
+            min_speed: 10,
+            los_total: 20,
+            total_drums: 0,
+            ..Default::default()
+        };
+
+        let next = evaluate_route_destination(&current, &variant, &context, None).unwrap();
+        assert_eq!(next, 2);
+    }
+
+    #[test]
+    fn cell_zero_uses_explicit_start_rules_before_static_next_cells() {
+        let current = MapCellDefinition {
+            cell_no: 0,
+            color_no: 0,
+            event_id: 0,
+            event_kind: 0,
+            next_cells: vec![1, 2],
+            node_label: Some("Start".to_string()),
+            master_cell_id: None,
+            distance: None,
+        };
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 2,
+            cells: vec![
+                current.clone(),
+                MapCellDefinition {
+                    cell_no: 1,
+                    color_no: 4,
+                    event_id: 4,
+                    event_kind: 1,
+                    next_cells: vec![],
+                    node_label: Some("A".to_string()),
+                    master_cell_id: None,
+                    distance: None,
+                },
+                MapCellDefinition {
+                    cell_no: 2,
+                    color_no: 5,
+                    event_id: 5,
+                    event_kind: 1,
+                    next_cells: vec![],
+                    node_label: Some("C".to_string()),
+                    master_cell_id: None,
+                    distance: None,
+                },
+            ],
+            routing_rules: BTreeMap::from([(
+                0,
+                vec![RouteRule {
+                    from_cell_no: 0,
+                    to_cell_no: 2,
+                    priority: 0,
+                    weight: None,
+                    probability_pct: None,
+                    predicate: RoutePredicate::Always,
+                    raw_text: "出撃".to_string(),
+                }],
+            )]),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+
+        let next =
+            evaluate_route_destination(&current, &variant, &FleetRouteContext::default(), None)
+                .unwrap();
+        assert_eq!(next, 2);
+    }
+
+    #[test]
+    fn ambiguous_cell_zero_without_rules_is_rejected() {
+        let current = MapCellDefinition {
+            cell_no: 0,
+            color_no: 0,
+            event_id: 0,
+            event_kind: 0,
+            next_cells: vec![1, 2],
+            node_label: Some("Start".to_string()),
+            master_cell_id: None,
+            distance: None,
+        };
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 2,
+            cells: vec![current.clone()],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: vec!["missing_start_routes".to_string()],
+        };
+
+        let error =
+            evaluate_route_destination(&current, &variant, &FleetRouteContext::default(), None)
+                .unwrap_err();
+        assert!(error.to_string().contains("explicit start routing rules"));
+    }
+
+    /// Map 1-3 routing must follow the directed-graph edges declared in the codex
+    /// (plan 2026-06-22-003 U3.3, R3/R4). Every decision the router makes from a
+    /// cell has to land on one of that cell's declared `next_cells` — the fleet
+    /// never skips a cell or jumps to a non-adjacent one. This drives the real
+    /// `evaluate_route_destination` over the live 1-3 topology (the authoritative
+    /// edge list), unlike the synthetic-data unit tests above.
+    ///
+    /// R4's "fallback never deterministically picks `next_cells[0]`" behavior is
+    /// covered against synthetic data by `unknown_rules_fallback_to_random_next_cells`
+    /// in `map_route.rs`; here we assert the real-map structural + per-decision
+    /// edge-legality invariant.
+    #[test]
+    fn map_1_3_routing_follows_valid_edges_only() {
+        use emukc_model::codex::Codex;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let definition = codex.maps.map_definition(13).expect("map 1-3 (id 13) in codex");
+        let stage = definition.stage("").expect("1-3 default stage");
+
+        let valid_cells: std::collections::BTreeSet<i64> =
+            stage.cells.iter().map(|cell| cell.cell_no).collect();
+
+        // Structural: the authoritative edge list is self-consistent — every
+        // next_cell and every routing-rule target points at a real 1-3 cell, so no
+        // edge can route off the topology.
+        for cell in &stage.cells {
+            for &next in &cell.next_cells {
+                assert!(
+                    valid_cells.contains(&next),
+                    "1-3 cell {} lists next_cell {next} that is not a real cell",
+                    cell.cell_no
+                );
+            }
+        }
+        for (&from, rules) in &stage.routing_rules {
+            let next_cells: std::collections::BTreeSet<i64> = stage
+                .cell(from)
+                .map(|cell| cell.next_cells.iter().copied().collect())
+                .unwrap_or_default();
+            for rule in rules {
+                assert!(
+                    next_cells.contains(&rule.to_cell_no),
+                    "1-3 cell {from} routing rule targets {} outside next_cells {next_cells:?}",
+                    rule.to_cell_no
+                );
+            }
+        }
+
+        // 1-3 must actually branch, else "follows valid edges" would be vacuous and
+        // the multi-edge fallback (U3.2) would never be exercised.
+        assert!(
+            stage.cells.iter().any(|cell| cell.next_cells.len() > 1),
+            "map 1-3 is expected to have at least one branch node"
+        );
+
+        // Behavioral: drive the real router from every cell with out-edges, many
+        // times so random branches are exercised. Each decision must land on a
+        // declared next_cell of the departing cell — proving routing follows the
+        // directed graph and never skips/jumps. Asserting membership holds for every
+        // outcome, so the random sweep is deterministic in pass/fail.
+        let context = FleetRouteContext {
+            fleet_size: 6,
+            ..Default::default()
+        };
+        let mut routed = 0usize;
+        for cell in stage.cells.iter().filter(|cell| !cell.next_cells.is_empty()) {
+            let next_set: std::collections::BTreeSet<i64> =
+                cell.next_cells.iter().copied().collect();
+            for _ in 0..40 {
+                // Headless evaluation (no client-selected cell): some indeterminate
+                // rule sets legitimately return Err without a selection. The
+                // invariant guarded here is "never an illegal edge", not "always
+                // routable headlessly".
+                if let Ok(target) = evaluate_route_destination(cell, stage, &context, None) {
+                    assert!(
+                        next_set.contains(&target),
+                        "1-3 cell {} routed to {target}, outside next_cells {next_set:?}",
+                        cell.cell_no
+                    );
+                    routed += 1;
+                }
+            }
+        }
+        assert!(routed > 0, "expected at least one routable decision on 1-3");
     }
 }

@@ -292,6 +292,12 @@ pub(super) fn select_enemy_composition_for_roll(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use emukc_model::prelude::{Kc3rdEnemyShip, Kc3rdEnemyShipSlotInfo};
+
+    use crate::game::battle::sortie::enemy_slot_ids;
+
     use super::*;
     use std::collections::BTreeMap;
 
@@ -589,5 +595,303 @@ mod tests {
         let battle_ship = build_sortie_enemy_ship(&codex, 1501, 1).unwrap();
         assert_eq!(battle_ship.ship.api_ship_id, 1501);
         assert!(battle_ship.ship.api_nowhp > 0);
+    }
+
+    fn enemy_test_codex() -> Codex {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let enemy_ship_id = 19991;
+        let enemy_slot_id = 1519;
+        codex.manifest.api_mst_ship.push(ApiMstShip {
+            api_id: enemy_ship_id,
+            api_name: "enemy-test".to_string(),
+            api_yomi: "enemy-test".to_string(),
+            api_stype: 7,
+            api_ctype: 1,
+            api_soku: 10,
+            api_slot_num: 2,
+            api_sort_id: enemy_ship_id,
+            api_sortno: Some(enemy_ship_id),
+            api_taik: Some([45, 45]),
+            api_houg: Some([35, 35]),
+            api_raig: Some([10, 10]),
+            api_tyku: Some([40, 40]),
+            api_souk: Some([20, 20]),
+            api_tais: Some([30]),
+            api_luck: Some([5, 5]),
+            api_maxeq: Some([18, 6, 0, 0, 0]),
+            api_leng: Some(2),
+            api_backs: Some(4),
+            api_fuel_max: Some(0),
+            api_bull_max: Some(0),
+            ..ApiMstShip::default()
+        });
+        codex.enemy_ship_extra.insert(
+            enemy_ship_id,
+            Kc3rdEnemyShip {
+                api_id: enemy_ship_id,
+                name: "enemy-test".to_string(),
+                yomi: "enemy-test".to_string(),
+                stype: 7,
+                ctype: 1,
+                hp: 45,
+                firepower: 35,
+                torpedo: 10,
+                aa: 40,
+                armor: 20,
+                evasion: 12,
+                asw: 30,
+                los: 18,
+                luck: 5,
+                speed: 10,
+                range: 2,
+                rarity: 4,
+                backs: 4,
+                slot_num: 2,
+                maxeq: [18, 6, 0, 0, 0],
+                slots: vec![
+                    Kc3rdEnemyShipSlotInfo {
+                        item_id: enemy_slot_id,
+                        onslot: 18,
+                    },
+                    Kc3rdEnemyShipSlotInfo {
+                        item_id: 525,
+                        onslot: 6,
+                    },
+                ],
+            },
+        );
+        codex
+    }
+
+    fn manifest_only_test_codex(mst: ApiMstShip) -> Codex {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        codex.manifest.api_mst_ship.retain(|ship| ship.api_id != mst.api_id);
+        codex.ship_extra.remove(&mst.api_id);
+        codex.enemy_ship_extra.remove(&mst.api_id);
+        codex.manifest.api_mst_ship.push(mst);
+        codex
+    }
+
+    fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
+        let (mut ship, slot_items) = codex.new_ship(mst_id).unwrap();
+        let exp_now = level::ship_level_required_exp(level);
+        let (_, next_exp) = level::exp_to_ship_level(exp_now);
+        ship.api_lv = level;
+        ship.api_exp = [exp_now, next_exp, 0];
+        codex.cal_ship_status(&mut ship, &slot_items, false).unwrap();
+        BattleShipInput {
+            ship,
+            slot_items,
+            effect_list: vec![0],
+            married: false,
+        }
+    }
+
+    #[test]
+    fn build_sortie_enemy_ship_prefers_enemy_bootstrap_stats_and_slots() {
+        let codex = enemy_test_codex();
+        let enemy = build_sortie_enemy_ship(&codex, 19991, 45).unwrap();
+        assert_eq!(enemy.ship.api_ship_id, 19991);
+        assert_eq!(enemy.ship.api_nowhp, 45);
+        assert_eq!(enemy.ship.api_karyoku, [35, 35]);
+        assert_eq!(enemy.ship.api_taiku, [40, 40]);
+        assert_eq!(enemy.ship.api_taisen, [30, 30]);
+        assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
+        assert_eq!(enemy_slot_ids(&enemy), [1519, 525, -1, -1, -1]);
+    }
+
+    #[test]
+    fn build_sortie_enemy_ship_drops_enemy_slots_missing_from_manifest() {
+        let mut codex = enemy_test_codex();
+        let enemy_extra = codex.enemy_ship_extra.get_mut(&19991).unwrap();
+        enemy_extra.slots[0].item_id = 999999;
+
+        let enemy = build_sortie_enemy_ship(&codex, 19991, 45).unwrap();
+        assert_eq!(enemy.ship.api_onslot, [0, 6, 0, 0, 0]);
+        assert_eq!(enemy_slot_ids(&enemy), [-1, 525, -1, -1, -1]);
+    }
+
+    #[test]
+    fn build_sortie_enemy_ship_uses_enemy_bootstrap_when_manifest_entry_is_missing() {
+        let mut codex = enemy_test_codex();
+        codex.manifest.api_mst_ship.retain(|ship| ship.api_id != 19991);
+        assert!(codex.manifest.find_ship(19991).is_none());
+        assert!(codex.new_ship(19991).is_none());
+
+        let (bootstrap_ship, bootstrap_slots) = codex.new_enemy_ship(19991).unwrap();
+        assert_eq!(bootstrap_ship.api_sortno, 19991);
+        assert_eq!(bootstrap_ship.api_fuel, 0);
+        assert_eq!(bootstrap_ship.api_bull, 0);
+        assert_eq!(bootstrap_ship.api_onslot, [18, 6, 0, 0, 0]);
+        assert_eq!(
+            bootstrap_slots.iter().map(|slot| slot.api_slotitem_id).collect::<Vec<_>>(),
+            vec![1519, 525]
+        );
+
+        let enemy = build_sortie_enemy_ship(&codex, 19991, 45).unwrap();
+        assert_eq!(enemy.ship.api_ship_id, 19991);
+        assert_eq!(enemy.ship.api_sortno, 19991);
+        assert_eq!(enemy.ship.api_fuel, 0);
+        assert_eq!(enemy.ship.api_bull, 0);
+        assert_eq!(enemy.ship.api_nowhp, 45);
+        assert_eq!(enemy.ship.api_karyoku, [35, 35]);
+        assert_eq!(enemy.ship.api_taiku, [40, 40]);
+        assert_eq!(enemy.ship.api_taisen, [30, 30]);
+        assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
+        assert_eq!(enemy_slot_ids(&enemy), [1519, 525, -1, -1, -1]);
+    }
+
+    #[test]
+    fn build_sortie_enemy_ship_falls_back_to_ship_extra_data_when_enemy_bootstrap_is_missing() {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship_id = 518;
+        codex.enemy_ship_extra.remove(&ship_id);
+        assert!(codex.new_enemy_ship(ship_id).is_none());
+
+        let expected = sample_ship(&codex, ship_id, 55);
+        let enemy = build_sortie_enemy_ship(&codex, ship_id, 55).unwrap();
+        assert_eq!(enemy.ship.api_ship_id, ship_id);
+        assert_eq!(enemy.ship.api_lv, 55);
+        assert_eq!(enemy.ship.api_nowhp, expected.ship.api_nowhp);
+        assert_eq!(enemy.ship.api_karyoku, expected.ship.api_karyoku);
+        assert_eq!(enemy.ship.api_kaihi, expected.ship.api_kaihi);
+        assert_eq!(enemy.ship.api_taisen, expected.ship.api_taisen);
+        assert_eq!(enemy.ship.api_lucky, expected.ship.api_lucky);
+        assert_eq!(enemy.ship.api_onslot, expected.ship.api_onslot);
+        assert_eq!(enemy_slot_ids(&enemy), enemy_slot_ids(&expected));
+    }
+
+    #[test]
+    fn build_sortie_enemy_ship_keeps_common_abyssals_buildable_without_enemy_bootstrap() {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        for ship_id in [1501, 1505, 1538] {
+            codex.enemy_ship_extra.remove(&ship_id);
+            assert!(codex.new_enemy_ship(ship_id).is_none());
+            assert!(codex.new_ship(ship_id).is_none());
+
+            let mst = codex.manifest.find_ship(ship_id).unwrap();
+            let enemy = build_sortie_enemy_ship(&codex, ship_id, 45).unwrap();
+            assert_eq!(enemy.ship.api_ship_id, ship_id);
+            assert_eq!(enemy.ship.api_lv, 45);
+            assert_eq!(enemy.ship.api_sortno, mst.api_sortno.unwrap_or(mst.api_sort_id));
+            assert_eq!(enemy.ship.api_slotnum, mst.api_slot_num);
+            assert_eq!(enemy.ship.api_nowhp, mst.api_taik.unwrap_or([1, 1])[0].max(1));
+            assert_eq!(enemy.ship.api_karyoku, mst.api_houg.unwrap_or([0, 0]));
+            assert_eq!(enemy.ship.api_taiku, mst.api_tyku.unwrap_or([0, 0]));
+            assert_eq!(
+                enemy.ship.api_taisen,
+                mst.api_tais.map(|[stat]| [stat, stat]).unwrap_or([0, 0]),
+            );
+            assert_eq!(enemy.ship.api_lucky, mst.api_luck.unwrap_or([0, 0]));
+            assert_eq!(enemy.ship.api_onslot, [0; 5]);
+            assert!(enemy.slot_items.is_empty());
+        }
+    }
+
+    #[test]
+    fn build_sortie_enemy_ship_manifest_fallback_uses_available_manifest_stats() {
+        let ship_id = 29991;
+        let codex = manifest_only_test_codex(ApiMstShip {
+            api_id: ship_id,
+            api_name: "enemy-manifest-only".to_string(),
+            api_yomi: "enemy-manifest-only".to_string(),
+            api_stype: 7,
+            api_ctype: 1,
+            api_soku: 10,
+            api_slot_num: 2,
+            api_sort_id: ship_id,
+            api_taik: Some([45, 45]),
+            api_houg: Some([35, 35]),
+            api_raig: Some([10, 10]),
+            api_tyku: Some([40, 40]),
+            api_souk: Some([20, 20]),
+            api_tais: Some([30]),
+            api_luck: Some([5, 5]),
+            api_maxeq: Some([18, 6, 0, 0, 0]),
+            api_leng: Some(2),
+            api_backs: Some(4),
+            api_fuel_max: Some(0),
+            api_bull_max: Some(0),
+            ..ApiMstShip::default()
+        });
+
+        let enemy = build_sortie_enemy_ship(&codex, ship_id, 45).unwrap();
+        assert_eq!(enemy.ship.api_ship_id, ship_id);
+        assert_eq!(enemy.ship.api_sortno, ship_id);
+        assert_eq!(enemy.ship.api_nowhp, 45);
+        assert_eq!(enemy.ship.api_karyoku, [35, 35]);
+        assert_eq!(enemy.ship.api_raisou, [10, 10]);
+        assert_eq!(enemy.ship.api_taiku, [40, 40]);
+        assert_eq!(enemy.ship.api_soukou, [20, 20]);
+        assert_eq!(enemy.ship.api_taisen, [30, 30]);
+        assert_eq!(enemy.ship.api_lucky, [5, 5]);
+        assert_eq!(enemy.ship.api_onslot, [0; 5]);
+        assert!(enemy.slot_items.is_empty());
+    }
+
+    #[test]
+    fn weighted_enemy_composition_selection_uses_weights() {
+        let enemy_fleet = EnemyFleetDefinition {
+            cell_no: 3,
+            battle_kind: 1,
+            formations: vec![1],
+            compositions: vec![
+                EnemyComposition {
+                    comp_id: "light".to_string(),
+                    weight: 1,
+                    ship_ids: vec![501],
+                    formation: Some(1),
+                    raw_ship_names: Vec::new(),
+                },
+                EnemyComposition {
+                    comp_id: "heavy".to_string(),
+                    weight: 3,
+                    ship_ids: vec![502],
+                    formation: Some(1),
+                    raw_ship_names: Vec::new(),
+                },
+            ],
+        };
+
+        assert_eq!(select_enemy_composition_for_roll(&enemy_fleet, 0).unwrap().comp_id, "light",);
+        assert_eq!(select_enemy_composition_for_roll(&enemy_fleet, 1).unwrap().comp_id, "heavy",);
+        assert_eq!(select_enemy_composition_for_roll(&enemy_fleet, 3).unwrap().comp_id, "heavy",);
+    }
+
+    #[test]
+    fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
+        let mut variant = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 5,
+            cells: vec![],
+            routing_rules: HashMap::new().into_iter().collect(),
+            enemy_fleets: HashMap::new().into_iter().collect(),
+            ship_drops: BTreeMap::new(),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+        variant.enemy_fleets.insert(
+            2,
+            EnemyFleetDefinition {
+                cell_no: 2,
+                battle_kind: 1,
+                formations: vec![2],
+                compositions: vec![EnemyComposition {
+                    comp_id: "real".to_string(),
+                    weight: 1,
+                    ship_ids: vec![501, 502],
+                    formation: Some(2),
+                    raw_ship_names: Vec::new(),
+                }],
+            },
+        );
+
+        let real = resolve_sortie_enemy_fleet(11, &variant, 2);
+        assert_eq!(real.formations, vec![2]);
+        assert_eq!(real.compositions[0].ship_ids, vec![501, 502]);
+
+        let fallback = resolve_sortie_enemy_fleet(11, &variant, 7);
+        assert_eq!(fallback.compositions[0].ship_ids, vec![1501]);
     }
 }

@@ -813,4 +813,44 @@ mod tests {
         let idx = get_gauge_index(&db, pid, definition.map_id).await;
         assert_eq!(idx, 1, "gauge_index should not change on non-boss cell");
     }
+
+    #[test]
+    fn eligible_sortie_ship_drops_skip_limited_and_non_victory_results() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let variant = MapVariantDefinition {
+            variant_key: String::new(),
+            boss_cell_no: 3,
+            cells: vec![],
+            routing_rules: BTreeMap::new(),
+            enemy_fleets: BTreeMap::new(),
+            ship_drops: BTreeMap::from([(
+                1,
+                vec![
+                    emukc_model::codex::map::ShipDropDefinition {
+                        ship_id: 1,
+                        raw_ship_name: "睦月".to_string(),
+                        tags: Vec::new(),
+                    },
+                    emukc_model::codex::map::ShipDropDefinition {
+                        ship_id: 2,
+                        raw_ship_name: "如月".to_string(),
+                        tags: vec!["limited".to_string()],
+                    },
+                    emukc_model::codex::map::ShipDropDefinition {
+                        ship_id: 999999,
+                        raw_ship_name: "missing".to_string(),
+                        tags: Vec::new(),
+                    },
+                ],
+            )]),
+            required_defeat_count: None,
+            clear_to_variant_key: None,
+            parse_warnings: Vec::new(),
+        };
+
+        let eligible = eligible_sortie_ship_drops(&codex, &variant, 1, "S");
+        assert_eq!(eligible.len(), 1);
+        assert_eq!(eligible[0].ship_id, 1);
+        assert!(eligible_sortie_ship_drops(&codex, &variant, 1, "C").is_empty());
+    }
 }

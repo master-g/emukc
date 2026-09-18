@@ -12,8 +12,6 @@ use std::collections::BTreeSet;
 use emukc_crypto::rng;
 use emukc_db::entity::profile::{item::slot_item, ship};
 use emukc_db::sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*};
-#[cfg(test)]
-use emukc_model::codex::map::{RouteOperator, RoutePredicate, RouteRule, SpeedClass};
 use emukc_model::{
     codex::{
         Codex,
@@ -26,17 +24,9 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-#[cfg(test)]
-use super::map_progress::assign_stage_id;
-#[cfg(test)]
-use super::map_route::{route_predicate_matches, select_route_target_for_roll};
-#[cfg(test)]
-use super::sortie_result::eligible_sortie_ship_drops;
 use emukc_battle::{
     BattleContext, BattleNightHougeki, BattleShipInput, BattleType, EngagementType,
 };
-#[cfg(test)]
-use enemy_ship::{build_sortie_enemy_ship, select_enemy_composition_for_roll};
 
 use super::{
     basic::find_profile,
@@ -1301,5 +1291,4 @@ fn clear_pending_sortie_runtime_state(store: &SortieStore, profile_id: i64) {
 }
 
 #[cfg(test)]
-#[path = "../sortie_tests.rs"]
 mod tests;
