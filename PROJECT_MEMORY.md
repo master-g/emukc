@@ -78,11 +78,13 @@ Current verification baseline:
 
 ## Next Session
 
-- [2026-09-18] Open items, in priority order:
-  1. Make the two `practice_battle` win-rank assertions deterministic (seed the RNG or assert on the recorded result), so `cargo test` stops failing at random.
-  2. Real-client smoke test for KTD4 of the 6.3.x alignment plan (+1 per useitem 105 increment is still an unverified assumption).
-  3. wikiwiki scrape for the `gauge_type_e` asset key — model/merge plumbing is ready, the data side is open.
-  4. Decoder reports "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1; check the id-set extraction patterns against the new bundle.
-  5. `docs/plans/2026-07-02-001-feat-vps-deployment-plan.md` is the only `in-progress` plan; revalidate its Docker/Rust/dependency assumptions before executing its units.
-  6. Archive or mark complete the already-implemented battle execution plan under `docs/plans/`, deliberately rather than mixed into unrelated work.
-
+- [2026-09-18] Next refactor line is `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md`
+  (planning-ready, uncommitted): 10 units in 4 phases. Start with Phase A (U1 delete the repository
+  traits, U2 move sortie tests home, U3 merge the battle response builders); U10 (debug overlay
+  collapse) runs right after Phase A by user decision; the plan's 4 decisions are resolved in-plan (RD1-RD4).
+  Still open behind it, in priority order: make the two `practice_battle` win-rank assertions
+  deterministic; real-client smoke test for KTD4 of the 6.3.x alignment plan (+1 per useitem 105
+  increment is unverified); wikiwiki scrape for the `gauge_type_e` asset key (model/merge plumbing is
+  ready); decoder "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1; revalidate the
+  VPS deployment plan's Docker/Rust assumptions before executing it; archive or mark complete the
+  already-implemented battle execution plan deliberately.
