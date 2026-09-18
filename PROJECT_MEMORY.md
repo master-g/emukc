@@ -44,6 +44,7 @@ Current verification baseline:
 - [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions; final linear commit is `0395121`. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
 - [2026-08-26] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` (also deletes main.js) → `main-decoder` decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified end-to-end on upstream 6.3.2.1.
 - [2026-08-26] Upstream drift: kcwiki empty equipment slots are `null`, not `false`; `version.json` nests a `resources` object (flattened in `parse_version_info`); webpack emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); event area 62 is unlocked by default by design.
+- [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 
 ## Failed Attempts / Pitfalls
@@ -68,24 +69,26 @@ Current verification baseline:
 | [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
 | [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
+| [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
 
 ## Last Session
 
-- [2026-09-18] `main`, committed and unpushed. Plan 002 Phase A (U1-U3) and Phase D (U10) done and
+- [2026-09-18] `main`, committed and unpushed. Plan 002: Phase A (U1-U3), U10 and Phase B U4 done and
   independently accepted via `/farm` (worker: claude in herdr pane, briefs/gates under `.farm/deepen-u*`).
-  U10 `17b0eb2` + `d4c965e`: debug overlay HP now computed directly (`debug_hp`), `event.rs` /
-  `reducer.rs` / `transforms.rs` deleted (-783 lines); equivalence proven by a temporary differential
-  test (4 fleets x 1000 seeds x day+night x 3 flag combos, all equal) that I re-ran myself at `17b0eb2`
-  before accepting. Every unit passed fmt, `clippy -W warnings`, `cargo test`; assets, golden and
-  `Cargo.lock` byte-identical to `e93e1f8`.
+  U4 `f5541c2` (fix: expedition now pins exp at the level cap; the new expedition test was re-run by me
+  on the pre-fix tree and failed with 1000014 vs 1000000) + `9c07055` (`game/ship/exp.rs`: pure
+  `settle_ship_exp`, one `calculate_admiral_exp`, one `build_exp_lvup_vector`). `CONTEXT.md` created
+  with the first two glossary terms (KTD9). Every unit passed fmt, `clippy -W warnings`, `cargo test`;
+  assets, golden and `Cargo.lock` byte-identical to `e93e1f8`.
 
 ## Next Session
 
-- [2026-09-18] Continue `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md` with
-  Phase B: U4 (ship exp settlement, starts with the failing expedition cap test in
-  `tests/gameplay_tests/level_cap_exp.rs`, two commits: `fix(expedition):` then `refactor`), then U5, U6,
-  then U7 -> U8 -> U9. Reuse the `.farm/deepen-u10-gate.sh` shape (touched-file warning check + path
-  allowlist). Older open items (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke
-  test, `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan revalidation, archiving the battle
-  execution plan) are unchanged. A stale `git worktree` (`wt-base`, from an earlier session's
-  scratchpad) is still registered; `git worktree prune` once its directory is gone.
+- [2026-09-18] Continue `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md` with U5
+  (sortie battle setup: one `resolve_sortie_battle_setup_impl`, sp_midnight gains the `combined_type`
+  and `event_kind` guards, drop the zero-filled packet anchor; night-start `SortieBattleSession.packet`
+  must keep `enemy_nowhps` + `formation`), then U6, then U7 -> U8 -> U9. Reuse the `.farm/deepen-u4-gate.sh`
+  shape (touched-file warning check + path allowlist + structural greps matching assignments only).
+  Small follow-ups noted, not done: `battle/practice/mod.rs::exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`
+  asserts a literal and never calls the function. Older open items (deterministic `practice_battle`
+  win-rank asserts, 6.3.x KTD4 smoke test, `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan
+  revalidation, archiving the battle execution plan, stale `wt-base` worktree) are unchanged.

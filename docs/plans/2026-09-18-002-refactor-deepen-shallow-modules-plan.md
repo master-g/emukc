@@ -84,7 +84,7 @@ execution: code
 - AE1. 删除 `game/battle/repository.rs` 后，`orchestrate.rs` 的参数类型改为 `&SortieStore` / `&PracticeStore`，全部 sortie / practice 测试与 battle golden 逐字节不变。 Covers R1, R12。
 - AE2. `git grep -n '#\[cfg(test)\]' crates/emukc_gameplay/src/game/sortie/mod.rs` 无跨模块导入；`map_route.rs` 的谓词测试只剩一份。 Covers R2。
 - AE3. `git grep -c 'api_f_nowhps' crates/emukc_gameplay/src/game/battle/` 从 3 个文件降为 1 个；`sortie_battle` 与 `practice_battle` crate 测试全绿；golden 不变。 Covers R3, R12。
-- AE4. 一艘已婚 Lv.99 舰船完成一次远征后，`exp_now == ship_level_required_exp(cap)`、`exp_next == 0`，与同舰完成一次出击后的值一致；`tests/gameplay_tests/level_cap_exp.rs` 新增的 expedition 用例在 U4 前失败、后通过。 Covers R4。
+- AE4. 一艘未婚 Lv.98、`exp_now == ship_level_required_exp(99) - 1` 的旗舰完成一次远征后，`level == 99`、`exp_now == ship_level_required_exp(99)`、`exp_next == 0`、`exp_progress == 0`，与同舰经出击结算的值一致（修复前 expedition 写入原始经验、`exp_next == required_exp(100)` 与一个非零进度）；`crates/emukc_gameplay/tests/expedition.rs` 新增的用例在 U4 前失败、后通过。已婚 Lv.99 触不到这个分叉，因为已婚上限是 175。 Covers R4。
 - AE5. `sortie_sp_midnight_battle` 对 `combined_type > 0` 与非战斗格返回与 `sortie_battle` 相同的错误；`sortie_tests.rs:368` 之外新增两个守卫用例。 Covers R6。
 - AE6. 在「海域中途清 gauge」路径与普通路径上，`SortieBattleResultResponse` 由同一个构造点产出；`sortie_tests.rs:1670-2050` 的四个 gauge 用例改从 snapshot 断言。 Covers R7。
 - AE7. `api_port` handler 的函数体只剩一次 `state.port_view(pid)` 与投影；`tests/gameplay_tests` 新增一个用例：处于 pending battle 的 profile 调用 `port_view` 后 `SortieStore` 中无 active sortie。 Covers R8。
@@ -120,7 +120,7 @@ execution: code
 
 ### Key Technical Decisions
 
-- KTD1. **舰船经验结算模块放在 `game/ship/exp.rs`。** 一个 `_impl`：`settle_ship_exp_impl<C>(c, codex, ship: &ship::Model, gain: i64) -> Result<ShipExpSettlement>`，返回持久化后的 `level / exp_now / exp_next / exp_progress` 与是否升级；内部先 `level::exp_to_ship_level` 再按 `ship_level_cap(married)` 封顶，到 cap 时 `exp_now = required_exp(cap)`、`exp_next = 0`、`progress = 0`（沿用 sortie / practice 现有语义）。`calculate_admiral_exp` 与 `build_exp_lvup_vector` 搬到同文件，`battle/practice/exp.rs` 删除。expedition 调用点继续走 `recalculate_ship_status_with_model` 持久化，只是数值来源改为结算结果。 Governs R4, R5。
+- KTD1. **舰船经验结算是 `game/ship/exp.rs` 里的一个纯函数。** `settle_ship_exp(exp_now: i64, gain: i64, married: bool) -> ShipExpSettlement { level, exp_now, exp_next, progress }`：先 `level::exp_to_ship_level` 再按 `ship_level_cap(married)` 封顶，到 cap 时 `exp_now = required_exp(cap)`、`exp_next = 0`、`progress = 0`（沿用 sortie / practice 现有语义）。不持久化：三处调用方的持久化载体不同（sortie / practice 经 `KcApiShip` 在同一次 `update_ship_impl` 里连同燃弹一起写，expedition 经 `ship::Model` 走 `recalculate_ship_status_with_model`），结算函数若自己写库会让同一艘舰在一个事务里写两次。`calculate_admiral_exp` 与 `build_exp_lvup_vector` 这两份逐字节相同的函数搬到同文件；`calculate_sortie_ship_exp` 与 practice 的 `calculate_ship_exp` 并不相同（练习多 `practice_exp_boost`，出击多沉没舰不给经验的门，输入类型不同），各自保留。`battle/practice/exp.rs` 删除。 Governs R4, R5。
 - KTD2. **sortie 战斗前置收成 `game/sortie/setup.rs`。** `resolve_sortie_battle_setup_impl<C>(c, codex, store, pid) -> Result<SortieBattleSetup>`，返回 active state、profile、stage、我方 `BattleShipInput` 列表、敌方舰队与锁定的 composition；两个守卫在这里。`sortie_battle_impl` 与 `sortie_sp_midnight_battle` 各自缩为「setup → execute_{day,night} → snapshot」。`run_sp_midnight_battle` 的零填充 packet 锚点改为 `execute_night` 直接接收 setup 产出的舰队，`SortieBattleSession.packet` 在 night-start 由 `execute_night` 的结果直接填充；该字段的读者是 `sortie_battle_result`（`api_dests` 取 `enemy_nowhps`，`sortie/mod.rs:615,663`）与 `sortie_midnight_battle`（`formation`，`:705`），因此不能为 `None`。 Governs R6。
 - KTD3. **战后写集合收成 `game/sortie_result.rs` 的一个 `_impl`。** `settle_sortie_battle_impl<C>(c, codex, pid, active: &ActiveSortieState, snapshot: SortieBattleResultSnapshot) -> Result<SortieSettlement>`，内部依次调用现有的 `update_sortie_result_stats`、`settle_ship_exp_impl`（U4）、`apply_sortie_map_result`、`quest::observe`（U8 之前先直接调 `update_quest_progress_for_action`）、`add_ship_impl`、`check_and_unlock_dependencies_impl`；`SortieSettlement` 携带响应所需全部字段，`Ctx::sortie_battle_result` 只做 store 锁、`begin/commit`、stage 刷新与一次 `SortieBattleResultResponse::from(settlement)`。 Governs R7。
 - KTD4. **wire 构建收成 `game/battle/response.rs`。** `build_battle_response(packet: &BattlePacket, friend: &[BattleShipInput], enemy: &[BattleShipInput]) -> DayBattleResponse` 与 `build_night_response(..) -> NightBattleResponse`；`PracticeBattleResponse` 改名为 `DayBattleResponse` 并删除 `sortie/mod.rs:71` 现有的 `pub type SortieBattleResponse = PracticeBattleResponse;` 别名（该别名是为掩盖误命名而设，`src/bin/` 无任何引用，全部使用点都在 gameplay crate 内；结构名不上 wire），`SortieNightBattleResponse` 与 `PracticeNightBattleResponse` 合并为 `NightBattleResponse`；practice 的 `BattleRuntimeShip` 入口先转 `BattleShipInput` 再进同一 builder，删除 `enemy_slot_ids_from_input` 那种为跨类型造假结构的做法。 Governs R3。
@@ -225,14 +225,14 @@ Phase A 三个单元互不依赖。U5 依赖 U3（setup 产出的舰队类型要
 - **Requirements:** R4, R5, R12。
 - **Dependencies:** None（Phase B 起点）。
 - **Files:**
-  - `tests/gameplay_tests/level_cap_exp.rs` — 先加 `married_ship_at_cap_expedition_matches_sortie`（AE4），确认在当前代码失败。
+  - `crates/emukc_gameplay/tests/expedition.rs` — 先加 `expedition_exp_pins_unmarried_ship_at_level_99`（AE4，复用该文件的加舰 / 编队 / 拨返航时间 / `complete_expedition` 夹具），确认在当前代码失败。
   - `crates/emukc_gameplay/src/game/ship/exp.rs` — 新建，KTD1。
-  - `crates/emukc_gameplay/src/game/sortie_result.rs:93-101,147,329-345`、`practice.rs:654-672`、`expedition.rs:1098-1111` — 改为调用结算。
+  - `crates/emukc_gameplay/src/game/sortie_result.rs:93-101,147-165,329-345`、`practice.rs:650-668`、`expedition.rs:1098-1111` — 改为调用结算；`sortie/mod.rs` 与 `battle/practice/orchestrate.rs` 的提督经验调用改指向 `ship/exp.rs`。
   - `crates/emukc_gameplay/src/game/battle/practice/exp.rs` — 删除。
 - **Approach:** 两个提交。第一个 `fix(expedition):` 只改 expedition 的封顶分支使其与 sortie 一致并让新用例通过；第二个 `refactor(gameplay):` 把三处收成一个模块，此时无行为变化。
 - **Test scenarios:**
   1. AE4。
-  2. `level_cap_exp.rs` 现有 5 个用例不变。
+  2. `tests/gameplay_tests/level_cap_exp.rs` 现有 5 个用例不变。
   3. golden 不变（golden 是出击路径，出击路径行为不变）。
 - **Verification:** 三门 + golden。
 
