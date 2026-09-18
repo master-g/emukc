@@ -1,5 +1,7 @@
 //! Practice battle integration tests.
 
+use std::sync::Arc;
+
 use std::sync::atomic::{AtomicI64, Ordering};
 
 use emukc_db::{
@@ -19,13 +21,13 @@ use emukc_time::chrono::Utc;
 
 static PROFILE_ID_BUMP: AtomicI64 = AtomicI64::new(0);
 
-async fn mock_context() -> (emukc_db::sea_orm::DbConn, Codex) {
+async fn mock_context() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
-async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
+async fn new_game_session() -> (Ctx, StartGameInfo) {
     let context = mock_context().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
@@ -51,11 +53,7 @@ fn first_ship_mst_by_type(codex: &Codex, ship_type: KcShipType) -> i64 {
         .unwrap()
 }
 
-async fn ensure_started_quest(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    quest_id: i64,
-) {
+async fn ensure_started_quest(context: &Ctx, profile_id: i64, quest_id: i64) {
     if !context
         .get_quest_records(profile_id)
         .await
@@ -63,7 +61,7 @@ async fn ensure_started_quest(
         .iter()
         .any(|record| record.quest_id == quest_id)
     {
-        let quest_manifest = context.1.quest.get(&quest_id).unwrap();
+        let quest_manifest = context.codex.quest.get(&quest_id).unwrap();
         let (requirements, requirement_type) = match &quest_manifest.requirements {
             Kc3rdQuestRequirement::And(conditions) => {
                 (conditions.clone(), quest::progress::RequirementType::And)
@@ -87,7 +85,7 @@ async fn ensure_started_quest(
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(requirement_type),
         }
-        .insert(&context.0)
+        .insert(context.db.as_ref())
         .await
         .unwrap();
     }
@@ -95,7 +93,7 @@ async fn ensure_started_quest(
 }
 
 async fn quest_progress_of(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
+    context: &Ctx,
     profile_id: i64,
     quest_id: i64,
 ) -> quest::progress::Progress {
@@ -109,25 +107,17 @@ async fn quest_progress_of(
         .progress
 }
 
-async fn raw_quest_record(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    quest_id: i64,
-) -> quest::progress::Model {
+async fn raw_quest_record(context: &Ctx, profile_id: i64, quest_id: i64) -> quest::progress::Model {
     quest::progress::Entity::find()
         .filter(quest::progress::Column::ProfileId.eq(profile_id))
         .filter(quest::progress::Column::QuestId.eq(quest_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap()
 }
 
-async fn ensure_idle_quest(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    quest_id: i64,
-) {
+async fn ensure_idle_quest(context: &Ctx, profile_id: i64, quest_id: i64) {
     if !context
         .get_quest_records(profile_id)
         .await
@@ -135,7 +125,7 @@ async fn ensure_idle_quest(
         .iter()
         .any(|record| record.quest_id == quest_id)
     {
-        let quest_manifest = context.1.quest.get(&quest_id).unwrap();
+        let quest_manifest = context.codex.quest.get(&quest_id).unwrap();
         let (requirements, requirement_type) = match &quest_manifest.requirements {
             Kc3rdQuestRequirement::And(conditions) => {
                 (conditions.clone(), quest::progress::RequirementType::And)
@@ -159,17 +149,13 @@ async fn ensure_idle_quest(
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(requirement_type),
         }
-        .insert(&context.0)
+        .insert(context.db.as_ref())
         .await
         .unwrap();
     }
 }
 
-async fn exercise_times_remaining(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    quest_id: i64,
-) -> i64 {
+async fn exercise_times_remaining(context: &Ctx, profile_id: i64, quest_id: i64) -> i64 {
     let quest = context
         .get_quest_records(profile_id)
         .await
@@ -187,11 +173,7 @@ async fn exercise_times_remaining(
         .unwrap()
 }
 
-async fn set_ship_level(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    ship_id: i64,
-    level_req: i64,
-) {
+async fn set_ship_level(context: &Ctx, ship_id: i64, level_req: i64) {
     let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
     let exp_now = level::ship_level_required_exp(level_req);
     let (_, next_exp) = level::exp_to_ship_level(exp_now);
@@ -201,13 +183,13 @@ async fn set_ship_level(
 }
 
 async fn add_ships_with_type(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
+    context: &Ctx,
     profile_id: i64,
     ship_type: KcShipType,
     count: usize,
     level_req: i64,
 ) -> Vec<i64> {
-    let mst_id = first_ship_mst_by_type(&context.1, ship_type);
+    let mst_id = first_ship_mst_by_type(context.codex.as_ref(), ship_type);
     let mut ship_ids = Vec::with_capacity(count);
     for _ in 0..count {
         let ship = context.add_ship(profile_id, mst_id).await.unwrap();
@@ -224,16 +206,18 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
 
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
-    let before_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
-    let before_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let before_profile =
+        profile::Entity::find_by_id(pid).one(context.db.as_ref()).await.unwrap().unwrap();
+    let before_ship =
+        ship::Entity::find_by_id(ship.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
 
     let mut damaged = before_ship.into_active_model();
     damaged.hp_now = ActiveValue::Set((before_ship.hp_now - 3).max(1));
     damaged.exp_now = ActiveValue::Set(before_ship.exp_next - 1);
     damaged.exp_progress = ActiveValue::Set(99);
-    damaged.update(&context.0).await.unwrap();
+    damaged.update(context.db.as_ref()).await.unwrap();
     let configured_ship =
-        ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+        ship::Entity::find_by_id(ship.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
 
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
@@ -251,8 +235,10 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
     let rival = context.get_practice_rival_details(pid, enemy_id).await.unwrap();
     assert_ne!(rival.status as i64, 0);
 
-    let after_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
-    let after_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let after_profile =
+        profile::Entity::find_by_id(pid).one(context.db.as_ref()).await.unwrap().unwrap();
+    let after_ship =
+        ship::Entity::find_by_id(ship.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
     assert_eq!(after_profile.experience, before_profile.experience + result.api_get_exp);
     assert_eq!(after_ship.exp_now, configured_ship.exp_now + result.api_get_ship_exp[1]);
     assert!(after_ship.level > configured_ship.level);
@@ -264,13 +250,13 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
 async fn practice_battle_result_consumes_resources_and_planes_for_carrier() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
-    let carrier_mst = first_ship_mst_by_type(&context.1, KcShipType::CVL);
+    let carrier_mst = first_ship_mst_by_type(context.codex.as_ref(), KcShipType::CVL);
 
     let carrier = context.add_ship(pid, carrier_mst).await.unwrap();
     context.update_fleet_ships(pid, 1, &[carrier.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
     let before_ship =
-        ship::Entity::find_by_id(carrier.api_id).one(&context.0).await.unwrap().unwrap();
+        ship::Entity::find_by_id(carrier.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
@@ -278,7 +264,7 @@ async fn practice_battle_result_consumes_resources_and_planes_for_carrier() {
     context.practice_battle_result(pid).await.unwrap();
 
     let after_ship =
-        ship::Entity::find_by_id(carrier.api_id).one(&context.0).await.unwrap().unwrap();
+        ship::Entity::find_by_id(carrier.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
     assert!(after_ship.fuel < before_ship.fuel);
     assert!(after_ship.ammo < before_ship.ammo);
     let before_onslot = before_ship.onslot_1

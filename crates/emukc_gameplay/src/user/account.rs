@@ -288,16 +288,19 @@ mod tests {
 
     use std::time::Duration;
 
+    use std::sync::Arc;
+
     use emukc_db::entity::user::{self, token::TokenTypeDef};
     use emukc_model::codex::Codex;
-    use prelude::DbConn;
+
+    use crate::gameplay::Ctx;
 
     use super::*;
 
-    async fn new_mock() -> (DbConn, Codex) {
+    async fn new_mock() -> Ctx {
         let db = emukc_db::prelude::new_mem_db().await.unwrap();
         let codex = Codex::default();
-        (db, codex)
+        Ctx::new(Arc::new(db), Arc::new(codex))
     }
 
     #[tokio::test]
@@ -319,7 +322,7 @@ mod tests {
         let result = gp.sign_up("test", "1234567").await.unwrap();
         let uid = result.account.uid;
 
-        let db = &gp.0;
+        let db = gp.db.as_ref();
         let tx = db.begin().await.unwrap();
 
         for _ in 0..3 {

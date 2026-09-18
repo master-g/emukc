@@ -13,7 +13,7 @@ use emukc_internal::{
     crypto::rng,
     db::sea_orm::DbConn,
     prelude::{
-        AccountOps, BattleSimulation, Codex, HasContext, PRESETS, PracticeStore, Preset,
+        AccountOps, BattleSimulation, Codex, Ctx, HasContext, PRESETS, PracticeStore, Preset,
         ProfileOps, Scenario, ShipOps, SortieOps, SortieRepository, SortieStore, apply_scenario,
         new_mem_db, render_day_battle,
     },
@@ -231,24 +231,29 @@ fn resolve_scenario(name: &str) -> Result<(Scenario, i64, i64)> {
 /// Minimal in-memory gameplay context for the sim, mirroring the integration
 /// `TestContext` shape (codex + in-mem DB + isolated sortie/practice stores).
 struct SimContext {
-    db: DbConn,
-    codex: Codex,
-    sortie_store: SortieStore,
-    practice_store: PracticeStore,
+    ctx: Ctx,
+}
+
+impl std::ops::Deref for SimContext {
+    type Target = Ctx;
+
+    fn deref(&self) -> &Ctx {
+        &self.ctx
+    }
 }
 
 impl HasContext for SimContext {
     fn db(&self) -> &DbConn {
-        &self.db
+        self.ctx.db()
     }
     fn codex(&self) -> &Codex {
-        &self.codex
+        self.ctx.codex()
     }
     fn sortie_store(&self) -> &SortieStore {
-        &self.sortie_store
+        self.ctx.sortie_store()
     }
     fn practice_store(&self) -> &PracticeStore {
-        &self.practice_store
+        self.ctx.practice_store()
     }
 }
 
@@ -322,10 +327,7 @@ where
         rt.block_on(async move {
             let db = new_mem_db().await.context("failed to create in-memory database")?;
             let ctx = SimContext {
-                db,
-                codex,
-                sortie_store: SortieStore::new(),
-                practice_store: PracticeStore::new(),
+                ctx: Ctx::new(std::sync::Arc::new(db), std::sync::Arc::new(codex)),
             };
             let profile_id = create_sim_profile(&ctx).await?;
             apply_scenario(&ctx, profile_id, &scenario).await.context("apply scenario")?;

@@ -1,11 +1,11 @@
 //! Application state
 
-use std::{fs::create_dir, sync::Arc};
+use std::{fs::create_dir, ops::Deref, sync::Arc};
 
 use anyhow::bail;
 use emukc_internal::{
     db::sea_orm::DbConn,
-    prelude::{Codex, HasContext, Kache, PracticeStore, SortieStore, prepare},
+    prelude::{Codex, Ctx, HasContext, Kache, PracticeStore, SortieStore, prepare},
 };
 
 use crate::cfg::AppConfig;
@@ -19,23 +19,22 @@ const DB_NAME: &str = "emukc.db";
 /// Application state
 #[derive(Debug, Clone)]
 pub struct State {
-    /// Database connection
-    pub db: Arc<DbConn>,
+    /// Gameplay context: database, codex and the instance-scoped runtime stores
+    pub ctx: Ctx,
 
     /// kache
     pub kache: Arc<Kache>,
 
-    /// Codex instance
-    pub codex: Arc<Codex>,
-
-    /// Sortie runtime state store (instance-scoped)
-    pub sortie_store: Arc<SortieStore>,
-
-    /// Practice runtime state store (instance-scoped)
-    pub practice_store: Arc<PracticeStore>,
-
     /// Payment session store (instance-scoped)
     pub payment_store: Arc<PaymentStore>,
+}
+
+impl Deref for State {
+    type Target = Ctx;
+
+    fn deref(&self) -> &Ctx {
+        &self.ctx
+    }
 }
 
 impl State {
@@ -74,11 +73,8 @@ impl State {
         let codex = Arc::new(codex);
 
         Ok(Self {
-            db,
+            ctx: Ctx::new(db, codex),
             kache,
-            codex,
-            sortie_store: Arc::new(SortieStore::new()),
-            practice_store: Arc::new(PracticeStore::new()),
             payment_store: Arc::new(PaymentStore::new()),
         })
     }
@@ -88,19 +84,19 @@ pub type StateArc = Arc<State>;
 
 impl HasContext for State {
     fn db(&self) -> &DbConn {
-        self.db.as_ref()
+        self.ctx.db()
     }
 
     fn codex(&self) -> &Codex {
-        self.codex.as_ref()
+        self.ctx.codex()
     }
 
     fn sortie_store(&self) -> &SortieStore {
-        self.sortie_store.as_ref()
+        self.ctx.sortie_store()
     }
 
     fn practice_store(&self) -> &PracticeStore {
-        self.practice_store.as_ref()
+        self.ctx.practice_store()
     }
 }
 

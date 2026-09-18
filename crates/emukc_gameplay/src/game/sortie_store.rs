@@ -7,7 +7,7 @@
 //! contexts keep working.  The binary-crate [`State`] overrides it with an
 //! instance-scoped store, giving each route-test its own isolated copy.
 
-use std::{collections::HashMap, fmt, future::Future, sync::Arc, sync::LazyLock};
+use std::{collections::HashMap, fmt, future::Future, sync::Arc};
 
 use parking_lot::Mutex;
 use tokio::sync::Mutex as AsyncMutex;
@@ -136,8 +136,13 @@ impl fmt::Debug for SortieStore {
     }
 }
 
-/// Process-global fallback used by tuple-based [`HasContext`] impls.
-pub static GLOBAL_SORTIE_STORE: LazyLock<SortieStore> = LazyLock::new(SortieStore::new);
+/// Process-global store, now only used by this crate's own sortie tests.
+///
+/// It used to back the tuple `(DbConn, Codex)` context; `Ctx` owns its stores
+/// instead, so outside `cfg(test)` nothing reaches for it.
+#[cfg(test)]
+pub static GLOBAL_SORTIE_STORE: std::sync::LazyLock<SortieStore> =
+    std::sync::LazyLock::new(SortieStore::new);
 
 // ── SortieRepository impl ──────────────────────────────────────────────
 
@@ -218,9 +223,6 @@ impl fmt::Debug for PracticeStore {
         f.debug_struct("PracticeStore").finish_non_exhaustive()
     }
 }
-
-/// Process-global fallback used by tuple-based [`HasContext`] impls.
-pub static GLOBAL_PRACTICE_STORE: LazyLock<PracticeStore> = LazyLock::new(PracticeStore::new);
 
 impl PracticeRepository for PracticeStore {
     fn get_pending_battle(&self, profile_id: i64) -> Option<PracticeBattleSession> {

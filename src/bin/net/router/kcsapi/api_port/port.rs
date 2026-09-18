@@ -35,10 +35,7 @@ pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     Ok(KcApiResponse::success(&resp))
 }
 
-async fn build_port_response<T: GameOps + ?Sized>(
-    state: &T,
-    pid: i64,
-) -> Result<Resp, GameplayError> {
+async fn build_port_response(state: &Ctx, pid: i64) -> Result<Resp, GameplayError> {
     let (_, api_basic) = state.get_user_basic(pid).await?;
 
     state.update_materials(pid).await?;
@@ -124,11 +121,11 @@ mod tests {
     };
     use std::path::PathBuf;
 
-    async fn new_game_session() -> ((emukc_internal::db::sea_orm::DbConn, Codex), StartGameInfo) {
+    async fn new_game_session() -> (Ctx, StartGameInfo) {
         let db = new_mem_db().await.unwrap();
         let codex_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex");
         let codex = Codex::load_without_cache_source(codex_root).unwrap();
-        let context = (db, codex);
+        let context = Ctx::new(std::sync::Arc::new(db), std::sync::Arc::new(codex));
 
         let account = context.sign_up("test", "1234567").await.unwrap();
         let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
@@ -138,12 +135,8 @@ mod tests {
         (context, session)
     }
 
-    async fn insert_completed_quest(
-        context: &(emukc_internal::db::sea_orm::DbConn, Codex),
-        profile_id: i64,
-        quest_id: i64,
-    ) {
-        let quest_manifest = context.1.quest.get(&quest_id).unwrap();
+    async fn insert_completed_quest(context: &Ctx, profile_id: i64, quest_id: i64) {
+        let quest_manifest = context.codex.quest.get(&quest_id).unwrap();
         let (requirements, requirement_type) = match &quest_manifest.requirements {
             Kc3rdQuestRequirement::And(conditions) => {
                 (conditions.clone(), quest::progress::RequirementType::And)
@@ -167,7 +160,7 @@ mod tests {
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(requirement_type),
         }
-        .insert(&context.0)
+        .insert(context.db.as_ref())
         .await
         .unwrap();
     }

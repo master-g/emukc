@@ -1,65 +1,27 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::material,
     sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{codex::Codex, kc2::MaterialCategory, profile::material::Material};
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::basic::find_profile;
 
-/// A trait for material related gameplay.
-#[async_trait]
-pub trait MaterialOps {
+impl Ctx {
     /// Add material to a profile.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `values`: The materials to add.
-    async fn add_material(
-        &self,
-        profile_id: i64,
-        values: &[(MaterialCategory, i64)],
-    ) -> Result<(), GameplayError>;
-
-    /// Deduct materials from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `values`: The materials to deduct.
-    async fn deduct_material(
-        &self,
-        profile_id: i64,
-        values: &[(MaterialCategory, i64)],
-    ) -> Result<Material, GameplayError>;
-
-    /// Get materials of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError>;
-
-    /// Update materials of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn update_materials(&self, profile_id: i64) -> Result<Material, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> MaterialOps for T {
-    async fn add_material(
+    pub async fn add_material(
         &self,
         profile_id: i64,
         values: &[(MaterialCategory, i64)],
     ) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = &self.codex;
+        let db = &self.db;
         let tx = db.begin().await?;
 
         add_material_impl(&tx, codex, profile_id, values).await?;
@@ -69,12 +31,18 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
         Ok(())
     }
 
-    async fn deduct_material(
+    /// Deduct materials from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `values`: The materials to deduct.
+    pub async fn deduct_material(
         &self,
         profile_id: i64,
         values: &[(MaterialCategory, i64)],
     ) -> Result<Material, GameplayError> {
-        let db = self.db();
+        let db = &self.db;
         let tx = db.begin().await?;
 
         let m = deduct_material_impl(&tx, profile_id, values).await?;
@@ -84,17 +52,26 @@ impl<T: HasContext + ?Sized> MaterialOps for T {
         Ok(m.into())
     }
 
-    async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
-        let db = self.db();
-        let record = get_mat_impl(db, profile_id).await?;
+    /// Get materials of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
+        let record = get_mat_impl(self.db.as_ref(), profile_id).await?;
         let model: Material = record.into();
 
         Ok(model)
     }
 
-    async fn update_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Update materials of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn update_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
+        let codex = &self.codex;
+        let db = &self.db;
         let tx = db.begin().await?;
 
         let profile = find_profile(&tx, profile_id).await?;

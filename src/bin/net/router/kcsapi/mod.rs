@@ -261,11 +261,8 @@ pub(super) mod test_utils {
                 .unwrap(),
         );
         let state = Arc::new(State {
-            db,
+            ctx: Ctx::new(db, Arc::new(codex)),
             kache,
-            codex: Arc::new(codex),
-            sortie_store: Arc::new(SortieStore::new()),
-            practice_store: Arc::new(PracticeStore::new()),
             payment_store: Arc::new(crate::state::PaymentStore::new()),
         });
 

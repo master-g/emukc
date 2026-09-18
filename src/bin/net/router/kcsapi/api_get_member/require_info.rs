@@ -29,11 +29,8 @@ pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     Ok(KcApiResponse::success(&resp))
 }
 
-async fn build_require_info_response<T: GameOps + HasContext + ?Sized>(
-    state: &T,
-    pid: i64,
-) -> Result<Resp, GameplayError> {
-    let codex = state.codex();
+async fn build_require_info_response(state: &Ctx, pid: i64) -> Result<Resp, GameplayError> {
+    let codex = &state.codex;
     let (_, api_basic) = state.get_user_basic(pid).await?;
     let api_furniture = state.get_furnitures(pid).await?;
     let api_kdock = state.get_kdocks(pid).await?;
@@ -76,11 +73,11 @@ mod tests {
     use emukc_internal::db::prelude::new_mem_db;
     use std::path::PathBuf;
 
-    async fn new_game_session() -> ((emukc_internal::db::sea_orm::DbConn, Codex), StartGameInfo) {
+    async fn new_game_session() -> (Ctx, StartGameInfo) {
         let db = new_mem_db().await.unwrap();
         let codex_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex");
         let codex = Codex::load_without_cache_source(codex_root).unwrap();
-        let context = (db, codex);
+        let context = Ctx::new(std::sync::Arc::new(db), std::sync::Arc::new(codex));
 
         let account = context.sign_up("test", "1234567").await.unwrap();
         let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
@@ -97,7 +94,7 @@ mod tests {
 
         let before = build_require_info_response(&context, pid).await.unwrap();
         let craftable =
-            context.1.slotitem_extra_info.values().find(|item| item.craftable).unwrap().api_id;
+            context.codex.slotitem_extra_info.values().find(|item| item.craftable).unwrap().api_id;
         let costs = vec![
             (MaterialCategory::Fuel, 10),
             (MaterialCategory::Ammo, 10),
@@ -114,7 +111,8 @@ mod tests {
         assert_eq!(after.api_slot_item.len(), before.api_slot_item.len() + 1);
         assert!(after.api_slot_item.iter().any(|item| item.api_id == created_id));
 
-        let type3 = context.1.find::<ApiMstSlotitem>(&craftable).unwrap().api_type[2].to_string();
+        let type3 =
+            context.codex.find::<ApiMstSlotitem>(&craftable).unwrap().api_type[2].to_string();
         let unset_key = format!("api_slottype{type3}");
         assert!(
             after.api_unsetslot.get(&unset_key).is_some_and(|items| items.contains(&created_id))

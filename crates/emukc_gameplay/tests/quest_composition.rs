@@ -1,5 +1,7 @@
 //! Composition quest activation integration tests.
 
+use std::sync::Arc;
+
 use emukc_db::{
     entity::profile::quest::progress,
     prelude::new_mem_db,
@@ -16,13 +18,13 @@ use emukc_model::{
 };
 use emukc_time::chrono::Utc;
 
-async fn mock_context() -> (emukc_db::sea_orm::DbConn, Codex) {
+async fn mock_context() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
-async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
+async fn new_game_session() -> (Ctx, StartGameInfo) {
     let context = mock_context().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
@@ -47,7 +49,7 @@ fn first_ship_mst_by_type(codex: &Codex, ship_type: KcShipType) -> i64 {
 async fn activating_satisfied_composition_quest_completes_it_immediately() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
-    let dd_mst = first_ship_mst_by_type(&context.1, KcShipType::DD);
+    let dd_mst = first_ship_mst_by_type(context.codex.as_ref(), KcShipType::DD);
     let ship = context.add_ship(pid, dd_mst).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
@@ -75,7 +77,7 @@ async fn activating_satisfied_composition_quest_completes_it_immediately() {
         requirement_type: ActiveValue::Set(progress::RequirementType::And),
         requirements: ActiveValue::Set(serde_json::to_value(conditions).unwrap()),
     }
-    .insert(&context.0)
+    .insert(context.db.as_ref())
     .await
     .unwrap();
 
@@ -84,7 +86,7 @@ async fn activating_satisfied_composition_quest_completes_it_immediately() {
     let quest = progress::Entity::find()
         .filter(progress::Column::ProfileId.eq(pid))
         .filter(progress::Column::QuestId.eq(999001))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -97,7 +99,7 @@ async fn activating_satisfied_composition_quest_completes_it_immediately() {
 async fn activating_a1_with_more_than_two_ships_completes_immediately() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
-    let dd_mst = first_ship_mst_by_type(&context.1, KcShipType::DD);
+    let dd_mst = first_ship_mst_by_type(context.codex.as_ref(), KcShipType::DD);
     let ship1 = context.add_ship(pid, dd_mst).await.unwrap();
     let ship2 = context.add_ship(pid, dd_mst).await.unwrap();
     let ship3 = context.add_ship(pid, dd_mst).await.unwrap();
@@ -106,7 +108,7 @@ async fn activating_a1_with_more_than_two_ships_completes_immediately() {
         .await
         .unwrap();
 
-    let quest_manifest = Kc3rdQuest::find_in_codex(&context.1, &101).unwrap();
+    let quest_manifest = Kc3rdQuest::find_in_codex(context.codex.as_ref(), &101).unwrap();
     let (requirement_type, requirements) = match &quest_manifest.requirements {
         Kc3rdQuestRequirement::And(conditions) => {
             (progress::RequirementType::And, conditions.clone())
@@ -130,7 +132,7 @@ async fn activating_a1_with_more_than_two_ships_completes_immediately() {
         requirement_type: ActiveValue::Set(requirement_type),
         requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
     }
-    .insert(&context.0)
+    .insert(context.db.as_ref())
     .await
     .unwrap();
 
@@ -139,7 +141,7 @@ async fn activating_a1_with_more_than_two_ships_completes_immediately() {
     let quest = progress::Entity::find()
         .filter(progress::Column::ProfileId.eq(pid))
         .filter(progress::Column::QuestId.eq(101))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -152,7 +154,7 @@ async fn activating_a1_with_more_than_two_ships_completes_immediately() {
 async fn activating_a1_with_stale_stored_requirements_still_completes() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
-    let dd_mst = first_ship_mst_by_type(&context.1, KcShipType::DD);
+    let dd_mst = first_ship_mst_by_type(context.codex.as_ref(), KcShipType::DD);
     let ship1 = context.add_ship(pid, dd_mst).await.unwrap();
     let ship2 = context.add_ship(pid, dd_mst).await.unwrap();
     let ship3 = context.add_ship(pid, dd_mst).await.unwrap();
@@ -186,7 +188,7 @@ async fn activating_a1_with_stale_stored_requirements_still_completes() {
         requirement_type: ActiveValue::Set(progress::RequirementType::And),
         requirements: ActiveValue::Set(serde_json::to_value(stale_conditions).unwrap()),
     }
-    .insert(&context.0)
+    .insert(context.db.as_ref())
     .await
     .unwrap();
 
@@ -195,7 +197,7 @@ async fn activating_a1_with_stale_stored_requirements_still_completes() {
     let quest = progress::Entity::find()
         .filter(progress::Column::ProfileId.eq(pid))
         .filter(progress::Column::QuestId.eq(101))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();

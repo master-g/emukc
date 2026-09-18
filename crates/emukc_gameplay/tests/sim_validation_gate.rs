@@ -15,11 +15,13 @@
 //! Codex-gated, fail-loud per the repo convention (R7): a missing `.data/codex`
 //! panics with the bootstrap prerequisite rather than silently skipping.
 
+use std::sync::Arc;
+
 use emukc_bootstrap::prelude::{
     load_repo_battle_knowledge_assets, validate_day_battle_response, validate_night_battle_response,
 };
 use emukc_crypto::rng;
-use emukc_db::{prelude::new_mem_db, sea_orm::DbConn};
+use emukc_db::prelude::new_mem_db;
 use emukc_gameplay::prelude::*;
 use emukc_model::codex::Codex;
 
@@ -29,14 +31,14 @@ use emukc_model::codex::Codex;
 /// for every outcome, so a fixed seed list keeps the gate deterministic.
 const SEEDS: &[u64] = &[1, 2, 3, 5, 8, 13];
 
-async fn mock_context() -> (DbConn, Codex) {
+async fn mock_context() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex")
         .expect("load codex from ../../.data/codex (run `cargo run -- bootstrap` first)");
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
-async fn new_profile(context: &(DbConn, Codex)) -> i64 {
+async fn new_profile(context: &Ctx) -> i64 {
     let account = context.sign_up("sim-gate", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "sim-gate").await.unwrap();
     let session =
@@ -76,7 +78,7 @@ async fn every_preset_day_battle_passes_protocol_validation() {
             });
 
             let report =
-                validate_day_battle_response(&context.1.manifest, &battle, &assets).unwrap();
+                validate_day_battle_response(&context.codex.manifest, &battle, &assets).unwrap();
             assert!(
                 !report.has_errors(),
                 "preset {} seed {seed} produced day-battle protocol errors: {:#?}",
@@ -115,7 +117,7 @@ async fn gate_bites_on_corrupted_payload() {
     raw["api_ship_ke"][0] = serde_json::json!(999999);
     raw["api_eSlot"][0][0] = serde_json::json!(888888);
 
-    let report = validate_day_battle_response(&context.1.manifest, &raw, &assets).unwrap();
+    let report = validate_day_battle_response(&context.codex.manifest, &raw, &assets).unwrap();
     assert!(report.has_errors(), "corrupted payload must fail the gate");
 }
 
@@ -163,7 +165,7 @@ async fn every_preset_night_battle_passes_protocol_validation() {
             });
 
             let report =
-                validate_night_battle_response(&context.1.manifest, &night, &assets).unwrap();
+                validate_night_battle_response(&context.codex.manifest, &night, &assets).unwrap();
             assert!(
                 !report.has_errors(),
                 "preset {} seed {seed} produced night-battle protocol errors: {:#?}",

@@ -2,7 +2,7 @@
 //!
 //! Puts a fresh profile into a declared target state in a single call, skipping
 //! the manual create-account → PvP-for-exp → sortie-to-unlock → repair loop. It
-//! composes the existing gameplay traits ([`ShipOps`], [`MaterialOps`],
+//! composes the existing gameplay operations ([`ShipOps`], material ops,
 //! [`FleetOps`]) plus the KTD-5 direct map clear/unlock setter, so the
 //! `battle sim` CLI and the integration tests share one builder.
 //!
@@ -15,8 +15,8 @@ use emukc_model::kc2::{KcApiShip, MaterialCategory, level};
 
 use crate::{
     err::GameplayError,
-    game::{FleetOps, MaterialOps, ShipOps, clear_and_unlock_map_impl, unlock_map_impl},
-    gameplay::HasContext,
+    game::{FleetOps, ShipOps, clear_and_unlock_map_impl, unlock_map_impl},
+    gameplay::Ctx,
 };
 
 /// A single ship to place in the scenario fleet.
@@ -147,14 +147,11 @@ fn default_materials() -> Vec<(MaterialCategory, i64)> {
 /// Ships, materials, and fleet assignment go through the public gameplay trait
 /// methods; map unlock/clear goes through the KTD-5 minimal setter in a single
 /// transaction.
-pub async fn apply_scenario<C>(
-    ctx: &C,
+pub async fn apply_scenario(
+    ctx: &Ctx,
     profile_id: i64,
     scenario: &Scenario,
-) -> Result<Vec<i64>, GameplayError>
-where
-    C: HasContext + ?Sized,
-{
+) -> Result<Vec<i64>, GameplayError> {
     if !scenario.materials.is_empty() {
         ctx.add_material(profile_id, &scenario.materials).await?;
     }
@@ -176,8 +173,8 @@ where
     }
 
     if !scenario.unlock_maps.is_empty() || !scenario.clear_maps.is_empty() {
-        let codex = ctx.codex();
-        let tx = ctx.db().begin().await?;
+        let codex = &ctx.codex;
+        let tx = ctx.db.begin().await?;
         for &map_id in &scenario.unlock_maps {
             unlock_map_impl(&tx, codex, profile_id, map_id).await?;
         }

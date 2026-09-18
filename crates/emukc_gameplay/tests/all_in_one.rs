@@ -1,7 +1,8 @@
 //! test game db and play stuff
 
+use std::sync::Arc;
+
 use emukc_db::prelude::new_mem_db;
-use emukc_db::sea_orm::DbConn;
 use emukc_gameplay::prelude::*;
 use emukc_model::codex::Codex;
 use emukc_model::codex::group::DeGroupParam;
@@ -12,13 +13,13 @@ use emukc_model::prelude::{ApiMstShip, Kc3rdQuest, Kc3rdSlotItem};
 use emukc_model::profile::kdock::ConstructionDockStatus;
 use emukc_model::profile::ndock::RepairDockStatus;
 
-async fn mock_context() -> (DbConn, Codex) {
+async fn mock_context() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
-async fn new_game_session() -> ((DbConn, Codex), AccountInfo, StartGameInfo) {
+async fn new_game_session() -> (Ctx, AccountInfo, StartGameInfo) {
     let context = mock_context().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
@@ -73,7 +74,7 @@ async fn incentive() {
 
     let pid = session.profile.id;
 
-    let codex = &context.1;
+    let codex = context.codex.as_ref();
     let ship_mst = codex.manifest.find_ship(181).unwrap();
 
     context
@@ -135,7 +136,7 @@ async fn add_ship() {
 async fn ship_incentive() {
     let (context, _, _) = new_game_session().await;
 
-    let incentive = context.1.new_incentive_with_ship(951).unwrap();
+    let incentive = context.codex.new_incentive_with_ship(951).unwrap();
     println!("{:?}", incentive);
 }
 
@@ -145,7 +146,7 @@ async fn create_slotitems() {
     let pid = session.profile.id;
 
     let slot_items = context
-        .1
+        .codex
         .slotitem_extra_info
         .values()
         .filter_map(|v| {
@@ -267,7 +268,8 @@ async fn quests() {
 
 #[tokio::test]
 async fn c_list_quests() {
-    let ((_, codex), _, _) = new_game_session().await;
+    let (context, _, _) = new_game_session().await;
+    let codex = &context.codex;
     [
         506, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 658, 666, 668, 966,
         1101, 1102, 1103, 1104, 1105, 1110, 1111, 1112, 1113, 1114, 1115, 1116, 1117, 1119, 1120,
@@ -288,7 +290,8 @@ async fn c_list_quests() {
 
 #[tokio::test]
 async fn ship_before_and_after() {
-    let ((_, codex), _, _) = new_game_session().await;
+    let (context, _, _) = new_game_session().await;
+    let codex = &context.codex;
     let list = codex.ships_before_and_after(518).unwrap();
     list.iter().filter_map(|id| codex.find::<ApiMstShip>(id).ok()).for_each(|mst| {
         println!("--- {} | {} ---", mst.api_id, mst.api_name);
@@ -297,7 +300,8 @@ async fn ship_before_and_after() {
 
 #[tokio::test]
 async fn de_group() {
-    let ((_, codex), _, _) = new_game_session().await;
+    let (context, _, _) = new_game_session().await;
+    let codex = &context.codex;
 
     {
         let grouped = codex.group_de_ships(&[]);

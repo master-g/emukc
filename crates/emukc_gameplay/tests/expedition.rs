@@ -1,5 +1,7 @@
 //! Expedition gameplay integration tests.
 
+use std::sync::Arc;
+
 use emukc_db::{
     entity::profile::{expedition, fleet, quest, ship::morale_timer},
     prelude::new_mem_db,
@@ -11,13 +13,13 @@ use emukc_gameplay::prelude::*;
 use emukc_model::{codex::Codex, kc2::level, prelude::ExpeditionResult};
 use emukc_time::chrono::{DateTime, Duration, Utc};
 
-async fn mock_context() -> (emukc_db::sea_orm::DbConn, Codex) {
+async fn mock_context() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
-async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
+async fn new_game_session() -> (Ctx, StartGameInfo) {
     let context = mock_context().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
@@ -28,12 +30,7 @@ async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInf
     (context, session)
 }
 
-async fn add_ship_with_type(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    ship_type: i64,
-    level_req: i64,
-) -> i64 {
+async fn add_ship_with_type(context: &Ctx, profile_id: i64, ship_type: i64, level_req: i64) -> i64 {
     let mst_id = context
         .codex()
         .manifest
@@ -57,12 +54,7 @@ async fn add_ship_with_type(
     ship.api_id
 }
 
-async fn set_fleet_ships(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    fleet_id: i64,
-    ship_ids: &[i64],
-) {
+async fn set_fleet_ships(context: &Ctx, profile_id: i64, fleet_id: i64, ship_ids: &[i64]) {
     let mut slots = [-1; 6];
     for (idx, ship_id) in ship_ids.iter().enumerate() {
         slots[idx] = *ship_id;
@@ -70,16 +62,12 @@ async fn set_fleet_ships(
     context.update_fleet_ships(profile_id, fleet_id, &slots).await.unwrap();
 }
 
-async fn make_fleet_ready_for_result(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    fleet_id: i64,
-) {
+async fn make_fleet_ready_for_result(context: &Ctx, profile_id: i64, fleet_id: i64) {
     set_fleet_return_time(context, profile_id, fleet_id, Utc::now() - Duration::minutes(1)).await;
 }
 
 async fn set_fleet_return_time(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
+    context: &Ctx,
     profile_id: i64,
     fleet_id: i64,
     return_time: DateTime<Utc>,
@@ -97,28 +85,19 @@ async fn set_fleet_return_time(
     am.update(context.db()).await.unwrap();
 }
 
-async fn get_ship_supply(context: &(emukc_db::sea_orm::DbConn, Codex), ship_id: i64) -> (i64, i64) {
+async fn get_ship_supply(context: &Ctx, ship_id: i64) -> (i64, i64) {
     let ship = context.find_ship(ship_id).await.unwrap().unwrap();
     (ship.api_fuel, ship.api_bull)
 }
 
-async fn set_ship_supply(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    ship_id: i64,
-    fuel: i64,
-    ammo: i64,
-) {
+async fn set_ship_supply(context: &Ctx, ship_id: i64, fuel: i64, ammo: i64) {
     let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
     ship.api_fuel = fuel;
     ship.api_bull = ammo;
     context.update_ship(&ship).await.unwrap();
 }
 
-async fn set_ship_condition(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    ship_id: i64,
-    condition: i64,
-) {
+async fn set_ship_condition(context: &Ctx, ship_id: i64, condition: i64) {
     let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
     ship.api_cond = condition;
     context.update_ship(&ship).await.unwrap();

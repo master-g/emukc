@@ -22,6 +22,7 @@ use emukc_model::{
 };
 use emukc_time::chrono::Utc;
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
     let (mut ship, slot_items) = codex.new_ship(mst_id).unwrap();
@@ -287,10 +288,6 @@ fn build_sortie_enemy_ship_manifest_fallback_uses_available_manifest_stats() {
 
 #[tokio::test]
 async fn sortie_midnight_battle_updates_pending_snapshot() {
-    use crate::game::sortie_store::GLOBAL_SORTIE_STORE;
-    let store = &*GLOBAL_SORTIE_STORE;
-    store.clear();
-
     let db = new_mem_db().await.unwrap();
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     // This test asserts real battle outcome (both sides survive → midnight).
@@ -298,7 +295,9 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
     // (one_hit_kill synthesizes a finishing volley) cannot corrupt the result.
     codex.game_cfg.god_mode = false;
     codex.game_cfg.one_hit_kill = false;
-    let context = (db, codex.clone());
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
+    // Seed the same store the context reads from.
+    let store = context.sortie_store.as_ref();
     let profile_id = 42;
 
     let friend = weaken_for_midnight(sample_ship(&codex, 79, 1));
@@ -461,13 +460,11 @@ async fn sortie_god_mode_keeps_friendly_at_full_hp_end_to_end() {
 
 #[tokio::test]
 async fn sortie_one_hit_kill_clears_enemies_and_rejects_night_battle() {
-    use crate::game::sortie_store::GLOBAL_SORTIE_STORE;
-    let store = &*GLOBAL_SORTIE_STORE;
-    store.clear();
-
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     codex.game_cfg.one_hit_kill = true;
-    let context = (new_mem_db().await.unwrap(), codex.clone());
+    let context = Ctx::new(Arc::new(new_mem_db().await.unwrap()), Arc::new(codex.clone()));
+    // Seed the same store the context reads from.
+    let store = context.sortie_store.as_ref();
     let profile_id = 770_002;
 
     // Tanky friendly + two tanky enemies with weak attack: a normal day battle
@@ -597,7 +594,7 @@ fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
 async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("maelstrom-loss", "1234567").await.unwrap();
     let profile =
         context.new_profile(&account.access_token.token, "maelstrom-admin").await.unwrap();
@@ -606,11 +603,14 @@ async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
     let profile_id = session.profile.id;
     let ship = context.add_ship(profile_id, 951).await.unwrap();
 
-    let ship_before =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_before = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     let materials_before = profile_material::Entity::find()
         .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -627,8 +627,8 @@ async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
     };
 
     let (itemget, happening) = resolve_non_battle_node_effect(
-        &context.0,
-        &context.1,
+        context.db.as_ref(),
+        context.codex.as_ref(),
         profile_id,
         &cell,
         std::slice::from_ref(&ship_before),
@@ -640,11 +640,14 @@ async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
     assert_eq!(happening.resource_type, 1);
     assert!(happening.amount > 0);
 
-    let ship_after =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_after = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     let materials_after = profile_material::Entity::find()
         .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -659,7 +662,7 @@ async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
 async fn maelstrom_drains_ammo_when_color_no_is_4() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("maelstrom-ammo", "1234567").await.unwrap();
     let profile =
         context.new_profile(&account.access_token.token, "maelstrom-ammo-admin").await.unwrap();
@@ -668,11 +671,14 @@ async fn maelstrom_drains_ammo_when_color_no_is_4() {
     let profile_id = session.profile.id;
     let ship = context.add_ship(profile_id, 951).await.unwrap();
 
-    let ship_before =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_before = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     let materials_before = profile_material::Entity::find()
         .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -689,8 +695,8 @@ async fn maelstrom_drains_ammo_when_color_no_is_4() {
     };
 
     let (itemget, happening) = resolve_non_battle_node_effect(
-        &context.0,
-        &context.1,
+        context.db.as_ref(),
+        context.codex.as_ref(),
         profile_id,
         &cell,
         std::slice::from_ref(&ship_before),
@@ -703,11 +709,14 @@ async fn maelstrom_drains_ammo_when_color_no_is_4() {
     assert_eq!(happening.resource_type, 2, "color_no=4 should drain ammo");
     assert!(happening.amount > 0);
 
-    let ship_after =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_after = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     let materials_after = profile_material::Entity::find()
         .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -761,7 +770,7 @@ async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
     //   N=6 r=0.60 -> per_ship=120 -> total= 720
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex.clone());
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
     let account = context.sign_up("maelstrom-radar", "1234567").await.unwrap();
     let profile =
         context.new_profile(&account.access_token.token, "maelstrom-radar-admin").await.unwrap();
@@ -793,28 +802,39 @@ async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
 
         // Equip radars on the first N ships of this fleet.
         for &api_id in &ship_ids[..n_radars] {
-            equip_radar_on_ship(&context.0, &codex, profile_id, api_id).await;
+            equip_radar_on_ship(context.db.as_ref(), &codex, profile_id, api_id).await;
         }
 
         // Override fuel to STOCK on all 6 ships AFTER equip (equip_radar_on_ship
         // rewrites the ship row and would otherwise reset `fuel`).
         let mut fleet = Vec::with_capacity(6);
         for &api_id in &ship_ids {
-            let model =
-                profile_ship::Entity::find_by_id(api_id).one(&context.0).await.unwrap().unwrap();
+            let model = profile_ship::Entity::find_by_id(api_id)
+                .one(context.db.as_ref())
+                .await
+                .unwrap()
+                .unwrap();
             let mut am = model.into_active_model();
             am.fuel = ActiveValue::Set(STOCK);
-            am.update(&context.0).await.unwrap();
-            let fresh =
-                profile_ship::Entity::find_by_id(api_id).one(&context.0).await.unwrap().unwrap();
+            am.update(context.db.as_ref()).await.unwrap();
+            let fresh = profile_ship::Entity::find_by_id(api_id)
+                .one(context.db.as_ref())
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(fresh.fuel, STOCK);
             fleet.push(fresh);
         }
 
-        let (itemget, happening) =
-            resolve_non_battle_node_effect(&context.0, &context.1, profile_id, &cell, &fleet)
-                .await
-                .unwrap();
+        let (itemget, happening) = resolve_non_battle_node_effect(
+            context.db.as_ref(),
+            context.codex.as_ref(),
+            profile_id,
+            &cell,
+            &fleet,
+        )
+        .await
+        .unwrap();
         assert!(itemget.is_none());
         let happening = happening.expect("maelstrom always emits a happening");
         assert_eq!(happening.resource_type, 1);
@@ -828,8 +848,11 @@ async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
         // Integration: fuel loss is persisted per-ship, not only reported.
         let per_ship_loss = expected_totals[n_radars] / 6;
         for &api_id in &ship_ids {
-            let after =
-                profile_ship::Entity::find_by_id(api_id).one(&context.0).await.unwrap().unwrap();
+            let after = profile_ship::Entity::find_by_id(api_id)
+                .one(context.db.as_ref())
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(
                 after.fuel,
                 STOCK - per_ship_loss,
@@ -843,7 +866,7 @@ async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
 async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("maelstrom-zero", "1234567").await.unwrap();
     let profile =
         context.new_profile(&account.access_token.token, "maelstrom-zero-admin").await.unwrap();
@@ -853,14 +876,20 @@ async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
     let ship = context.add_ship(profile_id, 951).await.unwrap();
 
     // Drain fuel to 0
-    let ship_model =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_model = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     let mut am = ship_model.into_active_model();
     am.fuel = ActiveValue::Set(0);
-    am.update(&context.0).await.unwrap();
+    am.update(context.db.as_ref()).await.unwrap();
 
-    let ship_zero =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_zero = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(ship_zero.fuel, 0);
 
     let cell = MapCellDefinition {
@@ -875,8 +904,8 @@ async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
     };
 
     let (itemget, happening) = resolve_non_battle_node_effect(
-        &context.0,
-        &context.1,
+        context.db.as_ref(),
+        context.codex.as_ref(),
         profile_id,
         &cell,
         std::slice::from_ref(&ship_zero),
@@ -892,8 +921,11 @@ async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
     assert_eq!(happening.amount, 0, "zero-stock ship contributes zero loss");
     assert!(!happening.radar_reduced, "no radars equipped");
 
-    let ship_after =
-        profile_ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let ship_after = profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(ship_after.fuel, 0, "no underflow");
 }
 
@@ -1639,14 +1671,14 @@ fn start_source_cells_include_nonzero_route_cell_roots() {
 async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("variant-switch", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "variant-admin").await.unwrap();
     let session =
         context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
     let profile_id = session.profile.id;
     let now = Utc::now();
-    if let Ok(record) = find_map_record_impl(&context.0, profile_id, 73).await {
+    if let Ok(record) = find_map_record_impl(context.db.as_ref(), profile_id, 73).await {
         let mut am = record.into_active_model();
         am.cleared = ActiveValue::Set(false);
         am.unlocked = ActiveValue::Set(true);
@@ -1658,7 +1690,7 @@ async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
         assign_stage_id(&mut am, Some("pre_p_unlock".to_string()));
         am.selected_rank = ActiveValue::Set(map_record::SelectedRank::NotSet);
         am.event_state = ActiveValue::Set(None);
-        am.update(&context.0).await.unwrap();
+        am.update(context.db.as_ref()).await.unwrap();
     } else {
         map_record::ActiveModel {
             id: ActiveValue::NotSet,
@@ -1675,12 +1707,12 @@ async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
             event_state: ActiveValue::Set(None),
             unlocked: ActiveValue::Set(true),
         }
-        .insert(&context.0)
+        .insert(context.db.as_ref())
         .await
         .unwrap();
     }
 
-    let definition = context.1.maps.map_definition(73).unwrap().clone();
+    let definition = context.codex.maps.map_definition(73).unwrap().clone();
     assert_eq!(definition.default_variant, "pre_p_unlock");
     assert_eq!(definition.gauge_count, Some(2));
     let variant = definition.variant("pre_p_unlock").unwrap().clone();
@@ -1689,16 +1721,23 @@ async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
     let snapshot = successful_boss_snapshot();
 
     assert_eq!(
-        apply_sortie_map_result(&context.0, profile_id, &definition, &variant, true, &snapshot)
-            .await
-            .unwrap(),
+        apply_sortie_map_result(
+            context.db.as_ref(),
+            profile_id,
+            &definition,
+            &variant,
+            true,
+            &snapshot
+        )
+        .await
+        .unwrap(),
         0
     );
 
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
         .filter(map_record::Column::MapId.eq(73))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -1715,7 +1754,7 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     codex.maps =
         build_final_map_catalog_from_repo_assets("../../.data/temp", &codex.manifest).unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("variant-layout", "1234567").await.unwrap();
     let profile =
         context.new_profile(&account.access_token.token, "variant-layout-admin").await.unwrap();
@@ -1723,7 +1762,7 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
         context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
     let profile_id = session.profile.id;
     let now = Utc::now();
-    if let Ok(record) = find_map_record_impl(&context.0, profile_id, 73).await {
+    if let Ok(record) = find_map_record_impl(context.db.as_ref(), profile_id, 73).await {
         let mut am = record.into_active_model();
         am.cleared = ActiveValue::Set(false);
         am.unlocked = ActiveValue::Set(true);
@@ -1735,7 +1774,7 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
         assign_stage_id(&mut am, Some("pre_p_unlock".to_string()));
         am.selected_rank = ActiveValue::Set(map_record::SelectedRank::NotSet);
         am.event_state = ActiveValue::Set(None);
-        am.update(&context.0).await.unwrap();
+        am.update(context.db.as_ref()).await.unwrap();
     } else {
         map_record::ActiveModel {
             id: ActiveValue::NotSet,
@@ -1752,17 +1791,24 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
             event_state: ActiveValue::Set(None),
             unlocked: ActiveValue::Set(true),
         }
-        .insert(&context.0)
+        .insert(context.db.as_ref())
         .await
         .unwrap();
     }
 
-    let definition = context.1.maps.map_definition(73).unwrap().clone();
+    let definition = context.codex.maps.map_definition(73).unwrap().clone();
     let variant = definition.variant("pre_p_unlock").unwrap().clone();
     let snapshot = successful_boss_snapshot();
-    apply_sortie_map_result(&context.0, profile_id, &definition, &variant, true, &snapshot)
-        .await
-        .unwrap();
+    apply_sortie_map_result(
+        context.db.as_ref(),
+        profile_id,
+        &definition,
+        &variant,
+        true,
+        &snapshot,
+    )
+    .await
+    .unwrap();
 
     let ship = context.add_ship(profile_id, 951).await.unwrap();
     context.update_fleet_ships(profile_id, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
@@ -1780,7 +1826,7 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
 async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("hp-gauge", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "hp-gauge-admin").await.unwrap();
     let session =
@@ -1828,13 +1874,13 @@ async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
         event_state: ActiveValue::Set(Some(1)),
         unlocked: ActiveValue::Set(true),
     }
-    .insert(&context.0)
+    .insert(context.db.as_ref())
     .await
     .unwrap();
 
     assert_eq!(
         apply_sortie_map_result(
-            &context.0,
+            context.db.as_ref(),
             profile_id,
             &definition,
             &stage,
@@ -1849,7 +1895,7 @@ async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
         .filter(map_record::Column::MapId.eq(definition.map_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -1864,7 +1910,7 @@ async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
 async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("hp-stage", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "hp-stage-admin").await.unwrap();
     let session =
@@ -1922,13 +1968,13 @@ async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
         event_state: ActiveValue::Set(Some(1)),
         unlocked: ActiveValue::Set(true),
     }
-    .insert(&context.0)
+    .insert(context.db.as_ref())
     .await
     .unwrap();
 
     assert_eq!(
         apply_sortie_map_result(
-            &context.0,
+            context.db.as_ref(),
             profile_id,
             &definition,
             &stage,
@@ -1943,7 +1989,7 @@ async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
         .filter(map_record::Column::MapId.eq(definition.map_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -1959,7 +2005,7 @@ async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
 async fn final_hp_gauge_clear_marks_map_cleared() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("hp-final", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "hp-final-admin").await.unwrap();
     let session =
@@ -2007,13 +2053,13 @@ async fn final_hp_gauge_clear_marks_map_cleared() {
         event_state: ActiveValue::Set(Some(1)),
         unlocked: ActiveValue::Set(true),
     }
-    .insert(&context.0)
+    .insert(context.db.as_ref())
     .await
     .unwrap();
 
     assert_eq!(
         apply_sortie_map_result(
-            &context.0,
+            context.db.as_ref(),
             profile_id,
             &definition,
             &stage,
@@ -2028,7 +2074,7 @@ async fn final_hp_gauge_clear_marks_map_cleared() {
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
         .filter(map_record::Column::MapId.eq(definition.map_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -2043,20 +2089,20 @@ async fn final_hp_gauge_clear_marks_map_cleared() {
 async fn clearing_map_1_1_unlocks_dependents_via_cascade() {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("cascade-test", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "cascade-tester").await.unwrap();
     let session =
         context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
     let profile_id = session.profile.id;
 
-    let catalog = active_map_catalog(&context.1);
+    let catalog = active_map_catalog(context.codex.as_ref());
     let deps = catalog.dependents_of(11);
     assert!(!deps.is_empty(), "1-1 should have dependents");
 
     // Verify dependents start locked
     for &dep_id in &deps {
-        let rec = find_map_record_impl(&context.0, profile_id, dep_id).await.unwrap();
+        let rec = find_map_record_impl(context.db.as_ref(), profile_id, dep_id).await.unwrap();
         assert!(!rec.unlocked, "dependent {dep_id} should start locked");
     }
 
@@ -2066,20 +2112,30 @@ async fn clearing_map_1_1_unlocks_dependents_via_cascade() {
     let snapshot = successful_boss_snapshot();
 
     let first_clear = apply_sortie_map_result(
-        &context.0, profile_id, definition, stage, true, // boss cell
+        context.db.as_ref(),
+        profile_id,
+        definition,
+        stage,
+        true, // boss cell
         &snapshot,
     )
     .await
     .unwrap();
     assert_eq!(first_clear, 1, "first clear should return 1");
 
-    let unlocked =
-        check_and_unlock_dependencies_impl(&context.0, &context.1, profile_id, 11).await.unwrap();
+    let unlocked = check_and_unlock_dependencies_impl(
+        context.db.as_ref(),
+        context.codex.as_ref(),
+        profile_id,
+        11,
+    )
+    .await
+    .unwrap();
     assert!(!unlocked.is_empty(), "should unlock at least one map");
 
     // Verify dependents are now unlocked
     for &dep_id in &deps {
-        let rec = find_map_record_impl(&context.0, profile_id, dep_id).await.unwrap();
+        let rec = find_map_record_impl(context.db.as_ref(), profile_id, dep_id).await.unwrap();
         assert!(rec.unlocked, "dependent {dep_id} should be unlocked after clearing 1-1");
     }
 }

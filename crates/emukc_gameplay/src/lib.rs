@@ -36,7 +36,7 @@ pub mod prelude {
         game::battle::repository::SortieRepository,
         game::ops::*,
         game::types::*,
-        gameplay::{Gameplay, HasContext},
+        gameplay::{Ctx, Gameplay, HasContext},
         scenario::{PRESETS, Preset, Scenario, ShipSpec, apply_scenario},
         user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
     };

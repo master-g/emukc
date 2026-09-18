@@ -1,5 +1,7 @@
 //! Sortie battle integration tests.
 
+use std::sync::Arc;
+
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI64, Ordering};
 
@@ -24,15 +26,15 @@ use emukc_time::chrono::{TimeZone, Utc};
 
 static PROFILE_ID_BUMP: AtomicI64 = AtomicI64::new(0);
 
-async fn mock_context() -> (emukc_db::sea_orm::DbConn, Codex) {
+async fn mock_context() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
 /// Rebuild `codex.maps` from the repo-tracked wikiwiki asset instead of trusting the
 /// bootstrap snapshot already stored in `.data/codex/map_catalog.json`.
-async fn mock_context_with_repo_wikiwiki_maps() -> (emukc_db::sea_orm::DbConn, Codex) {
+async fn mock_context_with_repo_wikiwiki_maps() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     let asset_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -44,7 +46,7 @@ async fn mock_context_with_repo_wikiwiki_maps() -> (emukc_db::sea_orm::DbConn, C
     codex.maps =
         build_final_map_catalog(&data_root, &codex.manifest, Some(wikiwiki_catalog)).unwrap();
     ensure_enemy_manifest_entries(&mut codex);
-    (db, codex)
+    Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
 fn ensure_enemy_manifest_entries(codex: &mut Codex) {
@@ -131,7 +133,7 @@ fn ensure_enemy_manifest_entries(codex: &mut Codex) {
     }
 }
 
-async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
+async fn new_game_session() -> (Ctx, StartGameInfo) {
     let context = mock_context().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
@@ -147,8 +149,7 @@ async fn new_game_session() -> ((emukc_db::sea_orm::DbConn, Codex), StartGameInf
     (context, session)
 }
 
-async fn new_game_session_with_repo_wikiwiki_maps()
--> ((emukc_db::sea_orm::DbConn, Codex), StartGameInfo) {
+async fn new_game_session_with_repo_wikiwiki_maps() -> (Ctx, StartGameInfo) {
     let context = mock_context_with_repo_wikiwiki_maps().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
@@ -164,30 +165,22 @@ async fn new_game_session_with_repo_wikiwiki_maps()
     (context, session)
 }
 
-async fn ensure_map_unlocked(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    map_id: i64,
-) {
+async fn ensure_map_unlocked(context: &Ctx, profile_id: i64, map_id: i64) {
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
         .filter(map_record::Column::MapId.eq(map_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
     if !record.unlocked {
         let mut am = record.into_active_model();
         am.unlocked = ActiveValue::Set(true);
-        am.update(&context.0).await.unwrap();
+        am.update(context.db.as_ref()).await.unwrap();
     }
 }
 
-async fn ensure_started_quest(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
-    profile_id: i64,
-    quest_id: i64,
-) {
+async fn ensure_started_quest(context: &Ctx, profile_id: i64, quest_id: i64) {
     if !context
         .get_quest_records(profile_id)
         .await
@@ -195,7 +188,7 @@ async fn ensure_started_quest(
         .iter()
         .any(|record| record.quest_id == quest_id)
     {
-        let quest_manifest = context.1.quest.get(&quest_id).unwrap();
+        let quest_manifest = context.codex.quest.get(&quest_id).unwrap();
         let (requirements, requirement_type) = match &quest_manifest.requirements {
             Kc3rdQuestRequirement::And(conditions) => {
                 (conditions.clone(), quest::progress::RequirementType::And)
@@ -219,7 +212,7 @@ async fn ensure_started_quest(
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(requirement_type),
         }
-        .insert(&context.0)
+        .insert(context.db.as_ref())
         .await
         .unwrap();
     }
@@ -227,7 +220,7 @@ async fn ensure_started_quest(
 }
 
 async fn quest_progress_of(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
+    context: &Ctx,
     profile_id: i64,
     quest_id: i64,
 ) -> quest::progress::Progress {
@@ -276,7 +269,7 @@ fn path_to_boss(codex: &Codex, map_id: i64, start_cell_no: i64) -> Option<Vec<i6
 }
 
 async fn start_sortie_with_boss_path(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
+    context: &Ctx,
     profile_id: i64,
     deck_id: i64,
     maparea_id: i64,
@@ -296,12 +289,12 @@ async fn start_sortie_with_boss_path(
 }
 
 async fn advance_sortie_to_boss(
-    context: &(emukc_db::sea_orm::DbConn, Codex),
+    context: &Ctx,
     profile_id: i64,
     map_id: i64,
     start_cell_no: i64,
 ) -> Option<Vec<i64>> {
-    let definition = context.1.maps.map_definition(map_id)?;
+    let definition = context.codex.maps.map_definition(map_id)?;
     let variant = definition.variant("")?;
     let boss_cells = variant.boss_cell_nos();
     let mut current = start_cell_no;
@@ -311,7 +304,8 @@ async fn advance_sortie_to_boss(
     while !boss_cells.contains(&current) {
         let cell = variant.cell(current)?;
         let mut candidates = cell.next_cells.clone();
-        candidates.sort_by_key(|next| path_to_boss(&context.1, map_id, *next).is_none());
+        candidates
+            .sort_by_key(|next| path_to_boss(context.codex.as_ref(), map_id, *next).is_none());
         let mut advanced = None;
         for next in candidates {
             if visited.contains(&next) {
@@ -341,8 +335,10 @@ async fn sortie_start_battle_result_flow_updates_stats() {
 
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
-    let before_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
-    let before_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let before_profile =
+        profile::Entity::find_by_id(pid).one(context.db.as_ref()).await.unwrap().unwrap();
+    let before_ship =
+        ship::Entity::find_by_id(ship.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
 
     let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
     assert_eq!(start.maparea_id, 1);
@@ -360,8 +356,10 @@ async fn sortie_start_battle_result_flow_updates_stats() {
 
     let (profile, _) = context.get_user_basic(pid).await.unwrap();
     assert_eq!(profile.sortie_wins + profile.sortie_loses, 1);
-    let after_profile = profile::Entity::find_by_id(pid).one(&context.0).await.unwrap().unwrap();
-    let after_ship = ship::Entity::find_by_id(ship.api_id).one(&context.0).await.unwrap().unwrap();
+    let after_profile =
+        profile::Entity::find_by_id(pid).one(context.db.as_ref()).await.unwrap().unwrap();
+    let after_ship =
+        ship::Entity::find_by_id(ship.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
     assert_eq!(after_profile.experience, before_profile.experience + result.api_get_exp);
     assert_eq!(after_ship.exp_now, before_ship.exp_now + result.api_get_ship_exp[1]);
 }
@@ -498,7 +496,7 @@ async fn sortie_battle_result_advances_boss_quest_on_real_boss_node() {
     let (start, path) =
         start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, map_id).await;
     assert_eq!(start.cell_no, path[0]);
-    let definition = context.1.maps.map_definition(map_id).unwrap();
+    let definition = context.codex.maps.map_definition(map_id).unwrap();
     let variant = definition.variant("").unwrap();
     assert!(variant.boss_cell_nos().contains(path.last().unwrap()));
 
@@ -533,7 +531,7 @@ async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
     let (start, path) =
         start_sortie_with_boss_path(&context, pid, 1, maparea_id, mapinfo_no, map_id).await;
     assert_eq!(start.cell_no, path[0]);
-    let definition = context.1.maps.map_definition(map_id).unwrap();
+    let definition = context.codex.maps.map_definition(map_id).unwrap();
     let variant = definition.variant("").unwrap();
     assert!(variant.boss_cell_nos().contains(path.last().unwrap()));
 
@@ -554,7 +552,7 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
     let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
-    let definition = context.1.maps.map_definition(11).unwrap();
+    let definition = context.codex.maps.map_definition(11).unwrap();
     let variant = definition.variant("").unwrap();
     let expected_drop_ship_ids = variant
         .ship_drops(start.cell_no)
@@ -579,7 +577,7 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
 
 #[tokio::test]
 async fn repo_wikiwiki_map_enemy_ids_are_covered_by_enemy_bootstrap_data() {
-    let (_, codex) = mock_context_with_repo_wikiwiki_maps().await;
+    let codex = mock_context_with_repo_wikiwiki_maps().await.codex;
     let missing = codex
         .maps
         .maps
@@ -618,7 +616,8 @@ async fn sortie_goback_port_does_not_advance_sortie_quest() {
 
 #[tokio::test]
 async fn monthly_map_record_resets_on_map_info_read() {
-    let (db, mut codex) = mock_context().await;
+    let db = new_mem_db().await.unwrap();
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     let map_id = 99001;
     codex.maps.maps.insert(
         map_id,
@@ -663,7 +662,7 @@ async fn monthly_map_record_resets_on_map_info_read() {
         api_level: 1,
         ..ApiMstMapinfo::default()
     });
-    let context = (db, codex);
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("monthly-test", "1234567").await.unwrap();
     let profile = context.new_profile(&account.access_token.token, "monthly-admin").await.unwrap();
     let session =
@@ -675,7 +674,7 @@ async fn monthly_map_record_resets_on_map_info_read() {
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(pid))
         .filter(map_record::Column::MapId.eq(map_id))
-        .one(&context.0)
+        .one(context.db.as_ref())
         .await
         .unwrap()
         .unwrap();
@@ -683,7 +682,7 @@ async fn monthly_map_record_resets_on_map_info_read() {
     am.cleared = ActiveValue::Set(true);
     am.defeat_count = ActiveValue::Set(Some(4));
     am.last_reset_at = ActiveValue::Set(Some(Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap()));
-    am.update(&context.0).await.unwrap();
+    am.update(context.db.as_ref()).await.unwrap();
 
     let infos = context.get_map_infos(pid).await.unwrap();
     let map_info = infos.into_iter().find(|info| info.api_id == map_id).unwrap();
@@ -718,7 +717,7 @@ async fn sortie_battle_response_passes_battle_rule_validation() {
     let battle = context.sortie_battle(pid, 1).await.unwrap();
     let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
     let report = emukc_bootstrap::prelude::validate_day_battle_response(
-        &context.1.manifest,
+        &context.codex.manifest,
         &battle,
         &assets,
     )
@@ -745,9 +744,12 @@ async fn sortie_battle_validation_reports_invalid_enemy_ids() {
     raw["api_eSlot"][0][0] = serde_json::json!(888888);
 
     let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
-    let report =
-        emukc_bootstrap::prelude::validate_day_battle_response(&context.1.manifest, &raw, &assets)
-            .unwrap();
+    let report = emukc_bootstrap::prelude::validate_day_battle_response(
+        &context.codex.manifest,
+        &raw,
+        &assets,
+    )
+    .unwrap();
 
     assert!(report.has_errors(), "mutated battle response should fail validation");
     assert!(report.findings.iter().any(|finding| {
