@@ -6,12 +6,11 @@ use emukc_model::{
 
 use emukc_battle::{AirState, BattleOutcome, BattleRuntimeShip, BattleShipInput};
 
-pub(crate) mod exp;
 pub mod orchestrate;
 pub(crate) mod response;
 
 // Re-export key items for convenience
-pub(crate) use exp::{calculate_admiral_exp, calculate_ship_exp};
+pub(crate) use orchestrate::calculate_ship_exp;
 pub use orchestrate::{run_day_battle, run_night_battle};
 pub use response::build_result_response;
 

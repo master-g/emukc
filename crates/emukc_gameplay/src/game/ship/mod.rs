@@ -23,6 +23,7 @@ use super::{
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::Ctx};
 use sp::find_ship_sp_effect_items_impl;
 
+pub(crate) mod exp;
 mod sp;
 
 /// useitem 105（格納庫増設）：每次搭载数扩张消耗 1 个。

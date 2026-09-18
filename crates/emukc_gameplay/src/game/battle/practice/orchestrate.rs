@@ -8,13 +8,57 @@ use emukc_model::codex::Codex;
 
 use crate::err::GameplayError;
 
-use super::exp::{calculate_admiral_exp, calculate_ship_exp};
 use super::response::calculate_base_exp;
 use super::{PracticeBattleInput, PracticeBattleResultSnapshot, PracticeBattleSession};
 use crate::game::PracticeStore;
 use crate::game::battle::response::{
     DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
 };
+use crate::game::ship::exp::{build_exp_lvup_vector, calculate_admiral_exp};
+
+/// Calculate ship experience gains for a practice battle.
+pub(crate) fn calculate_ship_exp(
+    friendly: &[emukc_battle::BattleRuntimeShip],
+    base_exp: i64,
+    mvp_idx: i64,
+    ct_flagship: bool,
+    ct_exp_boost: f64,
+    practice_exp_boost: f64,
+) -> (Vec<i64>, Vec<Vec<i64>>) {
+    use emukc_model::kc2::level;
+
+    let mut exp = vec![-1];
+    let mut lvup = Vec::with_capacity(friendly.len());
+    let ct_mult = if ct_flagship {
+        ct_exp_boost
+    } else {
+        1.0
+    };
+
+    for (idx, ship) in friendly.iter().enumerate() {
+        let gain = if !ship.married && ship.ship.api_lv >= 99 {
+            0
+        } else if idx as i64 + 1 == mvp_idx {
+            (base_exp as f64 * 2.0 * ct_mult * practice_exp_boost).floor() as i64
+        } else if idx == 0 {
+            (base_exp as f64 * 1.5 * ct_mult * practice_exp_boost).floor() as i64
+        } else {
+            (base_exp as f64 * ct_mult * practice_exp_boost).floor() as i64
+        };
+        exp.push(gain);
+
+        let new_exp = ship.ship.api_exp[0] + gain;
+        let level_cap = level::ship_level_cap(ship.married);
+        let mut lvup_vec = build_exp_lvup_vector(ship.ship.api_exp[0], new_exp);
+        if level_cap < 180 {
+            let cap_threshold = level::ship_level_required_exp(level_cap + 1);
+            lvup_vec.retain(|&exp| exp < cap_threshold);
+        }
+        lvup.push(lvup_vec);
+    }
+
+    (exp, lvup)
+}
 
 /// Run a practice day battle and produce response + result snapshot.
 pub fn run_day_battle(

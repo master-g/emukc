@@ -24,14 +24,17 @@ use super::{
     basic::find_profile,
     battle::practice::{
         PracticeBattleInput, PracticeBattleResultResponse, PracticeBattleResultSnapshot,
-        PracticeBattleShipInput, build_result_response, calculate_admiral_exp, calculate_ship_exp,
-        run_day_battle, run_night_battle,
+        PracticeBattleShipInput, build_result_response, calculate_ship_exp, run_day_battle,
+        run_night_battle,
     },
     battle::response::{DayBattleResponse, NightBattleResponse},
     battle::rng::ProductionRng,
     fleet::get_fleet_ships_impl,
     quest::update::update_quest_progress_for_action,
-    ship::update_ship_impl,
+    ship::{
+        exp::{calculate_admiral_exp, settle_ship_exp},
+        update_ship_impl,
+    },
     slot_item::find_slot_items_by_id_impl,
     sortie_store::PracticeStore,
 };
@@ -650,24 +653,9 @@ where
         })?;
         let mst = codex.find::<emukc_model::prelude::ApiMstShip>(&ship_model.mst_id)?;
         let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.into();
-        let raw_exp = ship_model.exp_now + gain.max(0);
-        let (mut ship_level, next_exp) = level::exp_to_ship_level(raw_exp);
-        let level_cap = level::ship_level_cap(ship_model.married);
-        ship_level = ship_level.min(level_cap);
-        let (next_exp, progress, new_ship_exp) = if ship_level >= level_cap {
-            let cap_exp = level::ship_level_required_exp(level_cap);
-            (0, 0, cap_exp)
-        } else {
-            let current_level_exp = level::ship_level_required_exp(ship_level);
-            let progress = if next_exp > current_level_exp {
-                ((raw_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
-            } else {
-                0
-            };
-            (next_exp, progress, raw_exp)
-        };
-        api_ship.api_lv = ship_level;
-        api_ship.api_exp = [new_ship_exp, next_exp, progress];
+        let settled = settle_ship_exp(ship_model.exp_now, gain.max(0), ship_model.married);
+        api_ship.api_lv = settled.level;
+        api_ship.api_exp = [settled.exp_now, settled.exp_next, settled.progress];
         api_ship.api_fuel =
             (ship_model.fuel - practice_fuel_cost(mst.api_fuel_max.unwrap_or(0))).max(0);
         api_ship.api_bull = (ship_model.ammo

@@ -20,7 +20,11 @@ use super::{
     basic::find_profile,
     map::find_map_record_impl,
     map_progress::assign_stage_id,
-    ship::{add_ship_impl, update_ship_impl},
+    ship::{
+        add_ship_impl,
+        exp::{build_exp_lvup_vector, settle_ship_exp},
+        update_ship_impl,
+    },
     sortie::ActiveSortieState,
 };
 
@@ -90,16 +94,6 @@ pub(super) fn calculate_sortie_base_exp(map_level: i64, cell_id: i64) -> i64 {
     (map_level.max(1) * 25 + cell_id * 10).clamp(30, 1200)
 }
 
-pub(super) fn calculate_battle_admiral_exp(base_exp: i64, win_rank: &str) -> i64 {
-    match win_rank {
-        "S" => (base_exp as f64 * 0.12).round() as i64,
-        "A" => (base_exp as f64 * 0.1).round() as i64,
-        "B" => (base_exp as f64 * 0.08).round() as i64,
-        "C" => (base_exp as f64 * 0.05).round() as i64,
-        _ => (base_exp as f64 * 0.03).round() as i64,
-    }
-}
-
 pub(super) fn calculate_sortie_ship_exp(
     friend_ships: &[emukc_battle::BattleShipInput],
     base_exp: i64,
@@ -142,31 +136,6 @@ pub(super) fn calculate_sortie_ship_exp(
     }
 
     (exp, lvup)
-}
-
-fn build_exp_lvup_vector(before_exp: i64, after_exp: i64) -> Vec<i64> {
-    let mut result = vec![before_exp];
-    let (_, mut next_exp) = level::exp_to_ship_level(before_exp);
-    if next_exp <= 0 {
-        result.push(-1);
-        return result;
-    }
-    result.push(next_exp);
-
-    while next_exp > 0 && after_exp >= next_exp {
-        let (_, candidate_next) = level::exp_to_ship_level(next_exp);
-        if candidate_next <= 0 {
-            result.push(-1);
-            break;
-        }
-        if candidate_next == next_exp {
-            break;
-        }
-        result.push(candidate_next);
-        next_exp = candidate_next;
-    }
-
-    result
 }
 
 pub(super) fn build_sortie_quest_event(
@@ -325,27 +294,9 @@ where
             // Apply EXP gain.
             let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
             if gain > 0 {
-                let raw_exp = ship_model.exp_now + gain;
-                let (ship_level, next_exp) = level::exp_to_ship_level(raw_exp);
-                let level_cap = level::ship_level_cap(ship_model.married);
-                let ship_level = ship_level.min(level_cap);
-
-                let (next_exp, progress, new_ship_exp) = if ship_level >= level_cap {
-                    let cap_exp = level::ship_level_required_exp(level_cap);
-                    (0, 0, cap_exp)
-                } else {
-                    let current_level_exp = level::ship_level_required_exp(ship_level);
-                    let progress = if next_exp > current_level_exp {
-                        ((raw_exp - current_level_exp) * 100 / (next_exp - current_level_exp))
-                            .clamp(0, 99)
-                    } else {
-                        0
-                    };
-                    (next_exp, progress, raw_exp)
-                };
-
-                api_ship.api_lv = ship_level;
-                api_ship.api_exp = [new_ship_exp, next_exp, progress];
+                let settled = settle_ship_exp(ship_model.exp_now, gain, ship_model.married);
+                api_ship.api_lv = settled.level;
+                api_ship.api_exp = [settled.exp_now, settled.exp_next, settled.progress];
             }
         }
 

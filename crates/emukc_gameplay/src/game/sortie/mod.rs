@@ -47,10 +47,11 @@ use super::{
     map_route::{cell_has_routing_outgoing, evaluate_route_destination},
     material::add_material_impl,
     quest::update::update_quest_progress_for_action,
+    ship::exp::calculate_admiral_exp,
     sortie_result::{
         SortieBattleResultSnapshot, apply_sortie_map_result, build_sortie_quest_event,
-        calculate_battle_admiral_exp, calculate_sortie_base_exp, calculate_sortie_ship_exp,
-        try_grant_sortie_ship_drop, update_sortie_result_stats,
+        calculate_sortie_base_exp, calculate_sortie_ship_exp, try_grant_sortie_ship_drop,
+        update_sortie_result_stats,
     },
     sortie_store::SortieStore,
 };
@@ -686,8 +687,7 @@ impl Ctx {
         if let Some(mut snapshot) = store.take_pending_result(profile_id) {
             snapshot.win_rank = night.outcome.win_rank.to_string();
             snapshot.mvp = night.outcome.mvp;
-            snapshot.get_exp =
-                calculate_battle_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
+            snapshot.get_exp = calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
             if let Some(updated) = pending_battle(store, profile_id) {
                 snapshot.friendly_nowhps = updated.friendly.iter().map(|f| f.hp().max(0)).collect();
                 let friend_ships = updated
@@ -797,8 +797,7 @@ impl Ctx {
         );
 
         let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
-        let get_exp =
-            calculate_battle_admiral_exp(base_exp, &night_session.outcome.win_rank.to_string());
+        let get_exp = calculate_admiral_exp(base_exp, &night_session.outcome.win_rank.to_string());
         let friendly_nowhps: Vec<i64> = pending_battle(store, profile_id)
             .map(|s| s.friendly.iter().map(|f| f.hp().max(0)).collect())
             .unwrap_or_default();
@@ -1007,8 +1006,7 @@ async fn sortie_battle_impl(
             );
 
             let base_exp = calculate_sortie_base_exp(active.map_level, active.current_cell_id);
-            let get_exp =
-                calculate_battle_admiral_exp(base_exp, &session.outcome.win_rank.to_string());
+            let get_exp = calculate_admiral_exp(base_exp, &session.outcome.win_rank.to_string());
             let friendly_nowhps: Vec<i64> =
                 session.friendly.iter().map(|f| f.hp().max(0)).collect();
             let ct_flagship = friend_ships

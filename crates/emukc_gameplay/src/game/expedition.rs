@@ -24,7 +24,7 @@ use super::{
     fleet::{find_fleet, get_fleet_ships_impl},
     material::add_material_impl,
     quest::update::update_quest_progress_for_action,
-    ship::{get_ships_impl, recalculate_ship_status_with_model},
+    ship::{exp::settle_ship_exp, get_ships_impl, recalculate_ship_status_with_model},
     use_item::add_use_item_impl,
 };
 
@@ -1095,27 +1095,11 @@ where
         gains.push(gain);
 
         let mut updated = *model;
-        let raw_exp = updated.exp_now + gain;
-        let (level, next_exp) = level::exp_to_ship_level(raw_exp);
-        let level_cap = level::ship_level_cap(updated.married);
-        let level = level.min(level_cap);
-        let (next_exp, progress, new_ship_exp) = if level >= level_cap {
-            let cap_exp = level::ship_level_required_exp(level_cap);
-            (0, 0, cap_exp)
-        } else {
-            let current_level_exp = level::ship_level_required_exp(level);
-            let progress = if next_exp > current_level_exp {
-                ((raw_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
-            } else {
-                0
-            };
-            (next_exp, progress, raw_exp)
-        };
-
-        updated.level = level;
-        updated.exp_now = new_ship_exp;
-        updated.exp_next = next_exp;
-        updated.exp_progress = progress;
+        let settled = settle_ship_exp(updated.exp_now, gain, updated.married);
+        updated.level = settled.level;
+        updated.exp_now = settled.exp_now;
+        updated.exp_next = settled.exp_next;
+        updated.exp_progress = settled.progress;
 
         let persisted =
             recalculate_ship_status_with_model(c, codex, &updated).await?.update(c).await?;
