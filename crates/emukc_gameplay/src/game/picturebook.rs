@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{
         item::{self},
@@ -8,11 +7,9 @@ use emukc_db::{
 };
 use emukc_model::profile::picture_book::{PictureBookShip, PictureBookSlotItem};
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
-/// A trait for picturebook related gameplay.
-#[async_trait]
-pub trait PictureBookOps {
+impl Ctx {
     /// Add ship record to picture book.
     ///
     /// # Parameters
@@ -21,57 +18,14 @@ pub trait PictureBookOps {
     /// - `sortno`: The ship's sort number.
     /// - `damaged`: Whether the ship is damaged.
     /// - `married`: Whether the ship is married.
-    async fn add_ship_to_picturebook(
-        &self,
-        profile_id: i64,
-        sortno: i64,
-        damaged: Option<bool>,
-        married: Option<bool>,
-    ) -> Result<(), GameplayError>;
-
-    /// Add slot item record to picture book.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `sortno`: The slot item's sort number.
-    async fn add_slot_item_to_picturebook(
-        &self,
-        profile_id: i64,
-        sortno: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Get picture book of ships.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_ship_picturebook(
-        &self,
-        profile_id: i64,
-    ) -> Result<Vec<PictureBookShip>, GameplayError>;
-
-    /// Get picture book of slot items.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_slot_item_picturebook(
-        &self,
-        profile_id: i64,
-    ) -> Result<Vec<PictureBookSlotItem>, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> PictureBookOps for T {
-    async fn add_ship_to_picturebook(
+    pub async fn add_ship_to_picturebook(
         &self,
         profile_id: i64,
         sortno: i64,
         damaged: Option<bool>,
         married: Option<bool>,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         add_ship_to_picturebook_impl(&tx, profile_id, sortno, damaged, married).await?;
@@ -81,12 +35,18 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
         Ok(())
     }
 
-    async fn add_slot_item_to_picturebook(
+    /// Add slot item record to picture book.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `sortno`: The slot item's sort number.
+    pub async fn add_slot_item_to_picturebook(
         &self,
         profile_id: i64,
         sortno: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         add_slot_item_to_picturebook_impl(&tx, profile_id, sortno).await?;
@@ -96,11 +56,16 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
         Ok(())
     }
 
-    async fn get_ship_picturebook(
+    /// Get picture book of ships.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_ship_picturebook(
         &self,
         profile_id: i64,
     ) -> Result<Vec<PictureBookShip>, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let records = get_ship_picturebook_impl(db, profile_id).await?;
         let records = records.into_iter().map(std::convert::Into::into).collect();
@@ -108,11 +73,16 @@ impl<T: HasContext + ?Sized> PictureBookOps for T {
         Ok(records)
     }
 
-    async fn get_slot_item_picturebook(
+    /// Get picture book of slot items.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_slot_item_picturebook(
         &self,
         profile_id: i64,
     ) -> Result<Vec<PictureBookSlotItem>, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let records = get_slot_item_picturebook_impl(db, profile_id).await?;
         let records = records.into_iter().map(std::convert::Into::into).collect();

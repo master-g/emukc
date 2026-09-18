@@ -15,7 +15,6 @@ pub use map::MapOps;
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use ndock::NDockOps;
 pub use pay_item::PayItemOps;
-pub use picturebook::PictureBookOps;
 pub use practice::PracticeOps;
 pub use presets::PresetOps;
 pub use quest::QuestOps;
@@ -75,7 +74,6 @@ pub trait GameOps:
     + MapOps
     + NDockOps
     + PayItemOps
-    + PictureBookOps
     + PracticeOps
     + PresetOps
     + QuestOps
@@ -95,8 +93,8 @@ pub mod ops {
     #[doc(hidden)]
     pub use crate::game::{
         AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FurnitureOps, GameOps, MapOps,
-        NDockOps, PayItemOps, PictureBookOps, PracticeOps, PresetOps, QuestOps, SettingsOps,
-        ShipOps, SlotItemOps, SortieOps, UseItemOps,
+        NDockOps, PayItemOps, PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps,
+        SortieOps, UseItemOps,
     };
 }
 
