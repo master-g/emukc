@@ -3,7 +3,6 @@
 
 #[cfg(test)]
 mod tests {
-    use emukc_internal::prelude::*;
 
     /// 赤城, api_maxeq = [18, 18, 27, 10, 0]
     const AKAGI_MST_ID: i64 = 83;

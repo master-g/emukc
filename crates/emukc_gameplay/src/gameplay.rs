@@ -6,12 +6,9 @@ use async_trait::async_trait;
 use emukc_db::sea_orm::DbConn;
 use emukc_model::codex::Codex;
 
-use crate::{
-    game::{
-        GameOps,
-        sortie_store::{PracticeStore, SortieStore},
-    },
-    user::ProfileOps,
+use crate::game::{
+    GameOps,
+    sortie_store::{PracticeStore, SortieStore},
 };
 
 /// A trait for types that have a database connection and a codex.
@@ -82,7 +79,7 @@ impl HasContext for Ctx {
 
 /// Gameplay trait for the game's data and logic.
 #[async_trait]
-pub trait Gameplay: ProfileOps + GameOps {}
+pub trait Gameplay: GameOps {}
 
 /// Blanket implementation of `Gameplay` for types that implement `HasContext`.
 #[async_trait]

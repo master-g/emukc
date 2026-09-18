@@ -9,7 +9,6 @@
 
 #[cfg(test)]
 mod tests {
-    use emukc_internal::prelude::*;
 
     async fn new_profile(context: &crate::TestContext) -> i64 {
         let account = context.sign_up("test-ammo-battle", "1234567").await.unwrap();

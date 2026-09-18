@@ -8,12 +8,11 @@ use emukc_model::{
     profile::Profile,
     user::token::{Token, TokenType},
 };
-use prelude::async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     game::{init_profile_game_data, wipe_profile_game_data},
-    gameplay::HasContext,
+    gameplay::Ctx,
 };
 
 use super::{
@@ -27,66 +26,20 @@ pub struct StartGameInfo {
     pub session: Token,
 }
 
-/// A trait for account related gameplay.
-#[async_trait]
-pub trait ProfileOps {
+impl Ctx {
     /// Create a new profile.
     ///
     /// # Arguments
     ///
     /// * `access_token` - The access token of the account.
     /// * `profile_name` - The name of the new profile.
-    async fn new_profile(
-        &self,
-        access_token: &str,
-        profile_name: &str,
-    ) -> Result<StartGameInfo, UserError>;
-
-    /// Start a game session.
-    ///
-    /// # Arguments
-    ///
-    /// * `access_token` - The access token of the account.
-    /// * `profile_id` - The profile ID to start the game with.
-    async fn start_game(
-        &self,
-        access_token: &str,
-        profile_id: i64,
-    ) -> Result<StartGameInfo, UserError>;
-
-    /// Select a world for the profile.
-    ///
-    /// # Arguments
-    ///
-    /// * `profile_id` - The profile ID to select the world for.
-    /// * `world_id` - The world ID to select.
-    async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError>;
-
-    /// Wipe a profile.
-    ///
-    /// # Arguments
-    ///
-    /// - `access_token` - The access token of the account.
-    /// - `profile_id` - The profile ID to wipe.
-    async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError>;
-
-    /// Find a profile by its ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `profile_id` - The profile ID to find.
-    async fn find_profile(&self, profile_id: i64) -> Result<Profile, UserError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> ProfileOps for T {
-    async fn new_profile(
+    pub async fn new_profile(
         &self,
         access_token: &str,
         profile_name: &str,
     ) -> Result<StartGameInfo, UserError> {
-        let db = self.db();
-        let codex = self.codex();
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
         let tx = db.begin().await?;
 
         // verify access token
@@ -122,12 +75,18 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
         })
     }
 
-    async fn start_game(
+    /// Start a game session.
+    ///
+    /// # Arguments
+    ///
+    /// * `access_token` - The access token of the account.
+    /// * `profile_id` - The profile ID to start the game with.
+    pub async fn start_game(
         &self,
         access_token: &str,
         profile_id: i64,
     ) -> Result<StartGameInfo, UserError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         // verify access token
@@ -152,8 +111,14 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
         })
     }
 
-    async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError> {
-        let db = self.db();
+    /// Select a world for the profile.
+    ///
+    /// # Arguments
+    ///
+    /// * `profile_id` - The profile ID to select the world for.
+    /// * `world_id` - The world ID to select.
+    pub async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let profile_model = profile::Entity::find_by_id(profile_id)
@@ -170,8 +135,13 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
         Ok(())
     }
 
-    async fn find_profile(&self, profile_id: i64) -> Result<Profile, UserError> {
-        let db = self.db();
+    /// Find a profile by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `profile_id` - The profile ID to find.
+    pub async fn find_profile(&self, profile_id: i64) -> Result<Profile, UserError> {
+        let db = self.db.as_ref();
 
         let profile_model = profile::Entity::find_by_id(profile_id)
             .one(db)
@@ -181,9 +151,15 @@ impl<T: HasContext + ?Sized> ProfileOps for T {
         Ok(profile_model.into())
     }
 
-    async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Wipe a profile.
+    ///
+    /// # Arguments
+    ///
+    /// - `access_token` - The access token of the account.
+    /// - `profile_id` - The profile ID to wipe.
+    pub async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         verify_access_token(&tx, access_token).await?;

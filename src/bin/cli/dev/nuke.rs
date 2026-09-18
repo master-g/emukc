@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use emukc::{
     model::profile::furniture::FurnitureConfig,
-    prelude::{HasContext, KcApiIncentiveItem, KcUseItemType, MaterialCategory, ProfileOps},
+    prelude::{HasContext, KcApiIncentiveItem, KcUseItemType, MaterialCategory},
 };
 use emukc_internal::crypto::rng;
 

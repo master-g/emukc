@@ -6,8 +6,6 @@ use crate::net::{
     resp::{KcApiError, KcApiResponse, KcApiResult},
 };
 
-use emukc_internal::prelude::*;
-
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct RegisterForm {
     api_verno: i64,

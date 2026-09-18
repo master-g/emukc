@@ -14,4 +14,4 @@ pub mod profile;
 
 pub use account::{AccountInfo, AuthInfo};
 pub use err::UserError;
-pub use profile::{ProfileOps, StartGameInfo};
+pub use profile::StartGameInfo;

@@ -6,8 +6,6 @@
 
 #[cfg(test)]
 mod tests {
-    use emukc_internal::prelude::*;
-
     async fn new_context() -> crate::TestContext {
         crate::TestContext::new().await
     }
