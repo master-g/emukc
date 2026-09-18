@@ -1,5 +1,6 @@
 //! Fleet entity
 
+use crate::entity::create_table;
 use chrono::{DateTime, Utc};
 use emukc_model::profile::fleet::{Fleet, FleetMissionContext, FleetMissionStatus};
 use sea_orm::{ActiveValue, entity::prelude::*};
@@ -183,9 +184,7 @@ impl From<Model> for Fleet {
 
 /// Bootstrap the fleet table.
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
-    let schema = sea_orm::Schema::new(db.get_database_backend());
-    let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
-    db.execute(db.get_database_backend().build(&stmt)).await?;
+    create_table(db, Entity).await?;
 
     Ok(())
 }

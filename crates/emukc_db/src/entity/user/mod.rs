@@ -1,4 +1,4 @@
-use sea_orm::ConnectionTrait;
+use crate::entity::create_table;
 
 /// Account entity
 pub mod account;
@@ -7,18 +7,10 @@ pub mod token;
 
 /// Bootstrap the database with the necessary tables
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
-    let schema = sea_orm::Schema::new(db.get_database_backend());
-
     // account
-    {
-        let stmt = schema.create_table_from_entity(account::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, account::Entity).await?;
     // token
-    {
-        let stmt = schema.create_table_from_entity(token::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, token::Entity).await?;
 
     Ok(())
 }

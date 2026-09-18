@@ -1,3 +1,4 @@
+use crate::entity::create_table;
 use chrono::{DateTime, Utc};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
@@ -323,13 +324,8 @@ pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
 
 /// Bootstrap the database with the necessary tables
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
-    let schema = sea_orm::Schema::new(db.get_database_backend());
-
     // profile
-    {
-        let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, Entity).await?;
     // settings
     {
         settings::bootstrap(db).await?;
@@ -339,10 +335,7 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
         airbase::bootstrap(db).await?;
     }
     // expedition
-    {
-        let stmt = schema.create_table_from_entity(expedition::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, expedition::Entity).await?;
     // fleet
     {
         fleet::bootstrap(db).await?;
@@ -352,29 +345,17 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
         furniture::bootstrap(db).await?;
     }
     // incentive
-    {
-        let stmt = schema.create_table_from_entity(incentive::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, incentive::Entity).await?;
     // kdock
-    {
-        let stmt = schema.create_table_from_entity(kdock::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, kdock::Entity).await?;
     // map_record
     {
         map_record::bootstrap(db).await?;
     }
     // material
-    {
-        let stmt = schema.create_table_from_entity(material::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, material::Entity).await?;
     // ndock
-    {
-        let stmt = schema.create_table_from_entity(ndock::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, ndock::Entity).await?;
     // practice
     {
         practice::bootstrap(db).await?;

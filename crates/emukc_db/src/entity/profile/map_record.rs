@@ -1,5 +1,6 @@
 //! Map record entity
 
+use crate::entity::create_table;
 use chrono::{DateTime, Utc};
 use emukc_model::profile::map_record::MapSelectRank;
 use sea_orm::{ConnectionTrait, Statement, entity::prelude::*};
@@ -96,9 +97,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// Bootstrap the map record table.
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
-    let schema = sea_orm::Schema::new(db.get_database_backend());
-    let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
-    db.execute(db.get_database_backend().build(&stmt)).await?;
+    create_table(db, Entity).await?;
     migrate_legacy_stage_id_schema(db).await?;
     migrate_unlocked_column(db).await?;
     Ok(())

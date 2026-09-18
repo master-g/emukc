@@ -1,4 +1,5 @@
 //! Ship related entities
+use crate::entity::create_table;
 use emukc_model::kc2::KcApiShip;
 use sea_orm::{ActiveValue, ConnectionTrait, Statement, entity::prelude::*};
 
@@ -236,28 +237,14 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// Bootstrap the database with the necessary tables
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
-    let schema = sea_orm::Schema::new(db.get_database_backend());
     // ship
-    {
-        let stmt = schema.create_table_from_entity(Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, Entity).await?;
     // sp_effect_item
-    {
-        let stmt =
-            schema.create_table_from_entity(sp_effect_item::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, sp_effect_item::Entity).await?;
     // picturebook
-    {
-        let stmt = schema.create_table_from_entity(picturebook::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, picturebook::Entity).await?;
     // morale timer
-    {
-        let stmt = schema.create_table_from_entity(morale_timer::Entity).if_not_exists().to_owned();
-        db.execute(db.get_database_backend().build(&stmt)).await?;
-    }
+    create_table(db, morale_timer::Entity).await?;
 
     migrate_onslot_plus_columns(db).await?;
 
