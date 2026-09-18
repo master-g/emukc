@@ -3,7 +3,10 @@
 use std::sync::Arc;
 
 use emukc_db::{
-    entity::profile::{expedition, fleet, quest, ship::morale_timer},
+    entity::profile::{
+        expedition, fleet, quest,
+        ship::{self, morale_timer},
+    },
     prelude::new_mem_db,
     sea_orm::{
         ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
@@ -376,6 +379,38 @@ async fn expedition_failure_from_fatigue_still_grants_failure_exp() {
     assert_eq!(mission_record.state, expedition::Status::Unfinished);
     assert_eq!(context.find_ship(ship_1).await.unwrap().unwrap().api_cond, 39);
     assert_eq!(context.find_ship(ship_2).await.unwrap().unwrap().api_cond, 39);
+}
+
+#[tokio::test]
+async fn expedition_exp_pins_unmarried_ship_at_level_99() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+
+    let ship_1 = add_ship_with_type(&context, pid, 2, 98).await;
+    let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
+    set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
+    set_ship_condition(&context, ship_1, 43).await;
+    set_ship_condition(&context, ship_2, 43).await;
+
+    // Park the flagship one exp point below the unmarried level cap.
+    let model = ship::Entity::find_by_id(ship_1).one(context.db()).await.unwrap().unwrap();
+    let mut am = model.into_active_model();
+    am.level = ActiveValue::Set(98);
+    am.exp_now = ActiveValue::Set(level::ship_level_required_exp(99) - 1);
+    am.exp_next = ActiveValue::Set(level::ship_level_required_exp(99));
+    am.exp_progress = ActiveValue::Set(99);
+    am.married = ActiveValue::Set(false);
+    am.update(context.db()).await.unwrap();
+
+    context.start_expedition(pid, 1, 1).await.unwrap();
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    context.complete_expedition(pid, 1).await.unwrap();
+
+    let after = ship::Entity::find_by_id(ship_1).one(context.db()).await.unwrap().unwrap();
+    assert_eq!(after.level, 99);
+    assert_eq!(after.exp_now, level::ship_level_required_exp(99));
+    assert_eq!(after.exp_next, 0);
+    assert_eq!(after.exp_progress, 0);
 }
 
 #[tokio::test]

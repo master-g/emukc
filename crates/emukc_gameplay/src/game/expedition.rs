@@ -1095,19 +1095,25 @@ where
         gains.push(gain);
 
         let mut updated = *model;
-        updated.exp_now += gain;
-
-        let (level, next_exp) = level::exp_to_ship_level(updated.exp_now);
-        let level = level.min(level::ship_level_cap(updated.married));
-        let current_level_exp = level::ship_level_required_exp(level);
-        let progress = if next_exp > current_level_exp {
-            ((updated.exp_now - current_level_exp) * 100 / (next_exp - current_level_exp))
-                .clamp(0, 99)
+        let raw_exp = updated.exp_now + gain;
+        let (level, next_exp) = level::exp_to_ship_level(raw_exp);
+        let level_cap = level::ship_level_cap(updated.married);
+        let level = level.min(level_cap);
+        let (next_exp, progress, new_ship_exp) = if level >= level_cap {
+            let cap_exp = level::ship_level_required_exp(level_cap);
+            (0, 0, cap_exp)
         } else {
-            0
+            let current_level_exp = level::ship_level_required_exp(level);
+            let progress = if next_exp > current_level_exp {
+                ((raw_exp - current_level_exp) * 100 / (next_exp - current_level_exp)).clamp(0, 99)
+            } else {
+                0
+            };
+            (next_exp, progress, raw_exp)
         };
 
         updated.level = level;
+        updated.exp_now = new_ship_exp;
         updated.exp_next = next_exp;
         updated.exp_progress = progress;
 
