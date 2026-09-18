@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{fleet, ship},
     sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
@@ -6,79 +5,17 @@ use emukc_db::{
 use emukc_model::profile::fleet::Fleet;
 use emukc_time::chrono::Utc;
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
-/// A trait for fleet related gameplay.
-#[async_trait]
-pub trait FleetOps {
+impl Ctx {
     /// Unlock new deck port.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `index`: The fleet index, must be one of 2, 3, 4.
-    async fn unlock_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError>;
-
-    /// Get single deck port.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
-    async fn get_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError>;
-
-    /// Get ship from deck port.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
-    async fn get_fleet_ships(
-        &self,
-        profile_id: i64,
-        index: i64,
-    ) -> Result<Vec<ship::Model>, GameplayError>;
-
-    /// Get all deck ports.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_fleets(&self, profile_id: i64) -> Result<Vec<Fleet>, GameplayError>;
-
-    /// Change ship position in deck port.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
-    /// - `ship_ids`: The ship IDs, must be 6 elements.
-    async fn update_fleet_ships(
-        &self,
-        profile_id: i64,
-        index: i64,
-        ship_ids: &[i64; 6],
-    ) -> Result<Fleet, GameplayError>;
-
-    /// Update deck name.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `index`: The deck index.
-    /// - `name`: The new deck name.
-    async fn update_deck_name(
-        &self,
-        profile_id: i64,
-        index: i64,
-        name: &str,
-    ) -> Result<(), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> FleetOps for T {
-    async fn unlock_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError> {
-        let db = self.db();
+    pub async fn unlock_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = unlock_fleet_impl(&tx, profile_id, index).await?;
@@ -88,39 +25,63 @@ impl<T: HasContext + ?Sized> FleetOps for T {
         Ok(m.into())
     }
 
-    async fn get_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError> {
-        let db = self.db();
+    /// Get single deck port.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
+    pub async fn get_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError> {
+        let db = self.db.as_ref();
         let fleet = get_fleet_impl(db, profile_id, index).await?;
 
         Ok(fleet)
     }
 
-    async fn get_fleets(&self, profile_id: i64) -> Result<Vec<Fleet>, GameplayError> {
-        let db = self.db();
+    /// Get all deck ports.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_fleets(&self, profile_id: i64) -> Result<Vec<Fleet>, GameplayError> {
+        let db = self.db.as_ref();
         let fleets = get_fleets_impl(db, profile_id).await?;
 
         Ok(fleets.into_iter().map(std::convert::Into::into).collect())
     }
 
-    async fn get_fleet_ships(
+    /// Get ship from deck port.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
+    pub async fn get_fleet_ships(
         &self,
         profile_id: i64,
         index: i64,
     ) -> Result<Vec<ship::Model>, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let ships = get_fleet_ships_impl(db, profile_id, index).await?;
 
         Ok(ships)
     }
 
-    async fn update_fleet_ships(
+    /// Change ship position in deck port.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The fleet index, must be one of 1, 2, 3, 4.
+    /// - `ship_ids`: The ship IDs, must be 6 elements.
+    pub async fn update_fleet_ships(
         &self,
         profile_id: i64,
         index: i64,
         ship_ids: &[i64; 6],
     ) -> Result<Fleet, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
         let m = update_fleet_ships_impl(&tx, profile_id, index, ship_ids).await?;
 
@@ -129,13 +90,20 @@ impl<T: HasContext + ?Sized> FleetOps for T {
         Ok(m.into())
     }
 
-    async fn update_deck_name(
+    /// Update deck name.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The deck index.
+    /// - `name`: The new deck name.
+    pub async fn update_deck_name(
         &self,
         profile_id: i64,
         index: i64,
         name: &str,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_deck_name_impl(&tx, profile_id, index, name).await?;

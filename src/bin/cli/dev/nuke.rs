@@ -3,7 +3,7 @@ use anyhow::Result;
 use emukc::{
     model::profile::furniture::FurnitureConfig,
     prelude::{
-        AccountOps, BasicOps, FleetOps, FurnitureOps, HasContext, IncentiveOps, KcApiIncentiveItem,
+        AccountOps, BasicOps, FurnitureOps, HasContext, IncentiveOps, KcApiIncentiveItem,
         KcUseItemType, MaterialCategory, PayItemOps, ProfileOps, ShipOps, SlotItemOps, UseItemOps,
     },
 };
