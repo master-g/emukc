@@ -100,12 +100,6 @@ impl Ctx {
     ///
     /// * `username` - The username of the account.
     /// * `password` - The password of the account.
-    /// Sign in with username and password.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - The username of the account.
-    /// * `password` - The password of the account.
     pub async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
         let db = self.db.as_ref();
         let tx = db.begin().await?;

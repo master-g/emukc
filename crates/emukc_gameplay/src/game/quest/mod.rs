@@ -124,11 +124,6 @@ impl Ctx {
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    /// Get all quest records of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
     pub async fn get_quest_records(
         &self,
         profile_id: i64,
