@@ -239,28 +239,6 @@ mod tests {
         }
     }
 
-    fn minimal_result(_profile_id: i64) -> PracticeBattleResultSnapshot {
-        PracticeBattleResultSnapshot {
-            deck_id: 1,
-            enemy_id: 1,
-            friendly_ship_ids: vec![],
-            friendly_fleet_snapshot: vec![],
-            enemy_ship_ids: vec![],
-            win_rank: KcSortieResultRank::S,
-            get_exp: 100,
-            member_lv: 120,
-            member_exp: 0,
-            get_base_exp: 80,
-            mvp: 1,
-            get_ship_exp: vec![],
-            get_exp_lvup: vec![],
-            did_night_battle: false,
-            enemy_level: 100,
-            enemy_rank: "元帥".to_string(),
-            enemy_deck_name: "test".to_string(),
-        }
-    }
-
     #[test]
     fn test_practice_store_instances_are_isolated() {
         let a = PracticeStore::new();
