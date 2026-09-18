@@ -8,7 +8,6 @@ pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use presets::PresetOps;
 pub use quest::QuestOps;
-pub use settings::SettingsOps;
 pub use ship::ShipOps;
 pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
@@ -51,7 +50,7 @@ mod use_item;
 
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
-pub trait GameOps: ComposeOps + SettingsOps + PresetOps + QuestOps + ShipOps + SortieOps {}
+pub trait GameOps: ComposeOps + PresetOps + QuestOps + ShipOps + SortieOps {}
 
 #[async_trait::async_trait]
 impl<T: HasContext + ?Sized> GameOps for T {}
@@ -60,9 +59,7 @@ pub mod ops {
     //! The ops traits prelude.
 
     #[doc(hidden)]
-    pub use crate::game::{
-        ComposeOps, GameOps, PresetOps, QuestOps, SettingsOps, ShipOps, SortieOps,
-    };
+    pub use crate::game::{ComposeOps, GameOps, PresetOps, QuestOps, ShipOps, SortieOps};
 }
 
 pub mod types {

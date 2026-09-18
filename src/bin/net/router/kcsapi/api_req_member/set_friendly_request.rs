@@ -1,5 +1,4 @@
 use axum::Form;
-use emukc::prelude::SettingsOps;
 use serde::Deserialize;
 
 use crate::net::prelude::*;
