@@ -2,7 +2,6 @@
 
 pub mod battle;
 
-pub use airbase::AirbaseOps;
 pub use basic::BasicOps;
 pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
 pub use expedition::{
@@ -65,7 +64,6 @@ mod use_item;
 #[async_trait::async_trait]
 pub trait GameOps:
     BasicOps
-    + AirbaseOps
     + ComposeOps
     + ExpeditionOps
     + FactoryOps
@@ -92,9 +90,9 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        AirbaseOps, BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FurnitureOps, GameOps, MapOps,
-        NDockOps, PayItemOps, PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps,
-        SortieOps, UseItemOps,
+        BasicOps, ComposeOps, ExpeditionOps, FactoryOps, FurnitureOps, GameOps, MapOps, NDockOps,
+        PayItemOps, PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps,
+        UseItemOps,
     };
 }
 

@@ -1,17 +1,14 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::airbase::{base, plane as plane_db},
     sea_orm::{ActiveValue, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::profile::airbase::Airbase;
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 mod plane;
 
-/// A trait for airbase related gameplay.
-#[async_trait]
-pub trait AirbaseOps {
+impl Ctx {
     /// Unlock an airbase.
     ///
     /// # Parameters
@@ -19,30 +16,13 @@ pub trait AirbaseOps {
     /// - `profile_id`: The profile ID.
     /// - `area_id`: The area ID.
     /// - `rid`: The airbase ID.
-    async fn unlock_airbase(
-        &self,
-        profile_id: i64,
-        area_id: i64,
-        rid: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Get airbases of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_airbases(&self, profile_id: i64) -> Result<Vec<Airbase>, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> AirbaseOps for T {
-    async fn unlock_airbase(
+    pub async fn unlock_airbase(
         &self,
         profile_id: i64,
         area_id: i64,
         rid: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         unlock_airbase_impl(&tx, profile_id, area_id, rid).await?;
@@ -52,8 +32,13 @@ impl<T: HasContext + ?Sized> AirbaseOps for T {
         Ok(())
     }
 
-    async fn get_airbases(&self, profile_id: i64) -> Result<Vec<Airbase>, GameplayError> {
-        let db = self.db();
+    /// Get airbases of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_airbases(&self, profile_id: i64) -> Result<Vec<Airbase>, GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let models = get_airbases_impl(&tx, profile_id).await?;
