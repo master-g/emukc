@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{furniture, item::use_item},
     sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
@@ -9,67 +8,17 @@ use emukc_model::{
     profile::furniture::FurnitureConfig,
 };
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
-/// A trait for furniture related gameplay.
-#[async_trait]
-pub trait FurnitureOps {
+impl Ctx {
     /// Add furniture to a profile.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `mst_id`: The furniture manifest ID.
-    async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError>;
-
-    /// Buy furniture.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `mst_id`: The furniture manifest ID.
-    /// - `price`: The price of the furniture.
-    /// - `need_craftman`: Whether the furniture needs a craftman to build.
-    async fn buy_furniture(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        price: i64,
-        need_craftman: bool,
-    ) -> Result<(), GameplayError>;
-
-    /// Get furniture configuration.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_furniture_config(&self, profile_id: i64)
-    -> Result<FurnitureConfig, GameplayError>;
-
-    /// Update furniture configuration.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `config`: The new configuration.
-    async fn update_furniture_config(
-        &self,
-        profile_id: i64,
-        config: &FurnitureConfig,
-    ) -> Result<(), GameplayError>;
-
-    /// Get furnitures of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_furnitures(&self, profile_id: i64) -> Result<Vec<KcApiFurniture>, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> FurnitureOps for T {
-    async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    pub async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
 
         let tx = db.begin().await?;
 
@@ -80,14 +29,22 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
         Ok(())
     }
 
-    async fn buy_furniture(
+    /// Buy furniture.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `mst_id`: The furniture manifest ID.
+    /// - `price`: The price of the furniture.
+    /// - `need_craftman`: Whether the furniture needs a craftman to build.
+    pub async fn buy_furniture(
         &self,
         profile_id: i64,
         mst_id: i64,
         price: i64,
         need_craftman: bool,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         buy_furniture_impl(&tx, profile_id, mst_id, price, need_craftman).await?;
@@ -97,22 +54,33 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
         Ok(())
     }
 
-    async fn get_furniture_config(
+    /// Get furniture configuration.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_furniture_config(
         &self,
         profile_id: i64,
     ) -> Result<FurnitureConfig, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let (_, cfg) = get_furniture_config_impl(db, profile_id).await?;
 
         Ok(cfg)
     }
 
-    async fn update_furniture_config(
+    /// Update furniture configuration.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `config`: The new configuration.
+    pub async fn update_furniture_config(
         &self,
         profile_id: i64,
         config: &FurnitureConfig,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_furniture_config_impl(&tx, profile_id, config).await?;
@@ -122,9 +90,17 @@ impl<T: HasContext + ?Sized> FurnitureOps for T {
         Ok(())
     }
 
-    async fn get_furnitures(&self, profile_id: i64) -> Result<Vec<KcApiFurniture>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Get furnitures of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_furnitures(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<KcApiFurniture>, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
 
         let models = get_furnitures_impl(db, profile_id).await?;
 

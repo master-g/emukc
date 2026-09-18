@@ -3,8 +3,8 @@ use anyhow::Result;
 use emukc::{
     model::profile::furniture::FurnitureConfig,
     prelude::{
-        AccountOps, BasicOps, FurnitureOps, HasContext, KcApiIncentiveItem, KcUseItemType,
-        MaterialCategory, PayItemOps, ProfileOps, ShipOps, SlotItemOps, UseItemOps,
+        AccountOps, BasicOps, HasContext, KcApiIncentiveItem, KcUseItemType, MaterialCategory,
+        PayItemOps, ProfileOps, ShipOps, SlotItemOps, UseItemOps,
     },
 };
 use emukc_internal::crypto::rng;
