@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_crypto::SimpleHash;
 use emukc_db::{
     entity::profile::{self, kdock, ndock},
@@ -9,25 +8,29 @@ use emukc_model::{
     kc2::{KcApiUserBasic, KcUseItemType},
 };
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     fleet::get_fleets_impl, furniture::get_furniture_config_impl, kdock::get_kdocks_impl,
     use_item::find_use_item_impl,
 };
 
-/// A trait for furniture related gameplay.
-#[async_trait]
-pub trait BasicOps {
+impl Ctx {
     /// Get user basics.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    async fn get_user_basic(
+    pub async fn get_user_basic(
         &self,
         profile_id: i64,
-    ) -> Result<(profile::Model, KcApiUserBasic), GameplayError>;
+    ) -> Result<(profile::Model, KcApiUserBasic), GameplayError> {
+        let db = self.db.as_ref();
+
+        let (model, basic) = get_user_basic_impl(db, profile_id).await?;
+
+        Ok((model, basic))
+    }
 
     /// Update user nickname.
     ///
@@ -35,68 +38,12 @@ pub trait BasicOps {
     ///
     /// - `profile_id`: The profile ID.
     /// - `nickname`: The new nickname.
-    async fn update_user_nickname(
-        &self,
-        profile_id: i64,
-        nickname: &str,
-    ) -> Result<(), GameplayError>;
-
-    /// Update user comment.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `comment`: The new comment.
-    async fn update_user_comment(
-        &self,
-        profile_id: i64,
-        comment: &str,
-    ) -> Result<(), GameplayError>;
-
-    /// Update user firstflag.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `firstflag`: The new firstflag.
-    async fn update_user_first_flag(
-        &self,
-        profile_id: i64,
-        firstflag: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Update user tutorial progress.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `progress`: The new tutorial progress.
-    async fn update_tutorial_progress(
-        &self,
-        profile_id: i64,
-        progress: i64,
-    ) -> Result<(), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> BasicOps for T {
-    async fn get_user_basic(
-        &self,
-        profile_id: i64,
-    ) -> Result<(profile::Model, KcApiUserBasic), GameplayError> {
-        let db = self.db();
-
-        let (model, basic) = get_user_basic_impl(db, profile_id).await?;
-
-        Ok((model, basic))
-    }
-
-    async fn update_user_nickname(
+    pub async fn update_user_nickname(
         &self,
         profile_id: i64,
         nickname: &str,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_user_nickname_impl(&tx, profile_id, nickname).await?;
@@ -106,12 +53,18 @@ impl<T: HasContext + ?Sized> BasicOps for T {
         Ok(())
     }
 
-    async fn update_user_comment(
+    /// Update user comment.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `comment`: The new comment.
+    pub async fn update_user_comment(
         &self,
         profile_id: i64,
         comment: &str,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_user_comment_impl(&tx, profile_id, comment).await?;
@@ -121,12 +74,18 @@ impl<T: HasContext + ?Sized> BasicOps for T {
         Ok(())
     }
 
-    async fn update_user_first_flag(
+    /// Update user firstflag.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `firstflag`: The new firstflag.
+    pub async fn update_user_first_flag(
         &self,
         profile_id: i64,
         firstflag: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_user_first_flag_impl(&tx, profile_id, firstflag).await?;
@@ -136,12 +95,18 @@ impl<T: HasContext + ?Sized> BasicOps for T {
         Ok(())
     }
 
-    async fn update_tutorial_progress(
+    /// Update user tutorial progress.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `progress`: The new tutorial progress.
+    pub async fn update_tutorial_progress(
         &self,
         profile_id: i64,
         progress: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_tutorial_progress_impl(&tx, profile_id, progress).await?;

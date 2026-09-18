@@ -2,7 +2,6 @@
 
 pub mod battle;
 
-pub use basic::BasicOps;
 pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
 pub use expedition::{
     ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
@@ -58,8 +57,7 @@ mod use_item;
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
 pub trait GameOps:
-    BasicOps
-    + ComposeOps
+    ComposeOps
     + ExpeditionOps
     + SettingsOps
     + MapOps
@@ -80,8 +78,8 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        BasicOps, ComposeOps, ExpeditionOps, GameOps, MapOps, PracticeOps, PresetOps, QuestOps,
-        SettingsOps, ShipOps, SortieOps, UseItemOps,
+        ComposeOps, ExpeditionOps, GameOps, MapOps, PracticeOps, PresetOps, QuestOps, SettingsOps,
+        ShipOps, SortieOps, UseItemOps,
     };
 }
 
