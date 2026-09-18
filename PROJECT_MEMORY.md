@@ -71,18 +71,21 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-18] `main`, committed and unpushed. Plan 002 Phase A done and independently
-  accepted via `/farm` (worker: claude in herdr pane, briefs and gates under `.farm/deepen-u*`):
-  U1 `4cfe514` repository traits deleted (+ `0066096` orphaned helper), U2 `3f615cb` sortie
-  tests moved home (3 duplicates removed, 135 -> 132 cases), U3 `cc075e8` one battle response
-  module (`DayBattleResponse` / `NightBattleResponse`, one `enemy_slot_ids`). Every unit passed
-  fmt, `clippy -W warnings`, `cargo test`; assets, golden and `Cargo.lock` byte-identical to `e93e1f8`.
+- [2026-09-18] `main`, committed and unpushed. Plan 002 Phase A (U1-U3) and Phase D (U10) done and
+  independently accepted via `/farm` (worker: claude in herdr pane, briefs/gates under `.farm/deepen-u*`).
+  U10 `17b0eb2` + `d4c965e`: debug overlay HP now computed directly (`debug_hp`), `event.rs` /
+  `reducer.rs` / `transforms.rs` deleted (-783 lines); equivalence proven by a temporary differential
+  test (4 fleets x 1000 seeds x day+night x 3 flag combos, all equal) that I re-ran myself at `17b0eb2`
+  before accepting. Every unit passed fmt, `clippy -W warnings`, `cargo test`; assets, golden and
+  `Cargo.lock` byte-identical to `e93e1f8`.
 
 ## Next Session
 
-- [2026-09-18] Continue `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md`:
-  next is U10 (debug overlay collapse, `emukc_battle` only, KTD8 differential test over >=1000 seeds
-  before deleting the old modules), then Phase B U4 -> U5 -> U6, then U7 -> U8 -> U9. Reuse the
-  `.farm/deepen-u3-gate.sh` shape (touched-file warning check) for every gate. Older open items
-  (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke test, `gauge_type_e` scrape,
-  decoder unresolved id-sets, VPS plan revalidation, archiving the battle execution plan) are unchanged.
+- [2026-09-18] Continue `docs/plans/2026-09-18-002-refactor-deepen-shallow-modules-plan.md` with
+  Phase B: U4 (ship exp settlement, starts with the failing expedition cap test in
+  `tests/gameplay_tests/level_cap_exp.rs`, two commits: `fix(expedition):` then `refactor`), then U5, U6,
+  then U7 -> U8 -> U9. Reuse the `.farm/deepen-u10-gate.sh` shape (touched-file warning check + path
+  allowlist). Older open items (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke
+  test, `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan revalidation, archiving the battle
+  execution plan) are unchanged. A stale `git worktree` (`wt-base`, from an earlier session's
+  scratchpad) is still registered; `git worktree prune` once its directory is gone.

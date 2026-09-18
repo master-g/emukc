@@ -27,8 +27,9 @@ As of 2026-07-26, the public `execute_day` and `execute_night` facade owns
 this sequence. Cross-crate callers provide the `Codex`, battle input, and RNG;
 the facade runs the raw simulation, reads `god_mode` and `one_hit_kill` from
 `Codex.game_cfg`, applies the bridge, and returns the final result. Raw
-`simulate_*`, `apply_*_debug`, and the event/reducer/transform support modules
-are crate-internal so callers cannot skip or reorder the overlay.
+`simulate_*` and `apply_*_debug` are crate-internal so callers cannot skip or
+reorder the overlay. (The event/reducer/transform support modules named here
+until 2026-09-18 are gone; see the section at the end.)
 
 ## Key Learnings
 
