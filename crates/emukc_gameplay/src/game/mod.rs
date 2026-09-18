@@ -19,7 +19,6 @@ pub use sortie::{
 };
 pub use sortie_store::PracticeStore;
 pub use sortie_store::SortieStore;
-pub use use_item::UseItemOps;
 
 use crate::gameplay::HasContext;
 
@@ -56,15 +55,7 @@ mod use_item;
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
 pub trait GameOps:
-    ComposeOps
-    + ExpeditionOps
-    + SettingsOps
-    + PracticeOps
-    + PresetOps
-    + QuestOps
-    + ShipOps
-    + SortieOps
-    + UseItemOps
+    ComposeOps + ExpeditionOps + SettingsOps + PracticeOps + PresetOps + QuestOps + ShipOps + SortieOps
 {
 }
 
@@ -77,7 +68,7 @@ pub mod ops {
     #[doc(hidden)]
     pub use crate::game::{
         ComposeOps, ExpeditionOps, GameOps, PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps,
-        SortieOps, UseItemOps,
+        SortieOps,
     };
 }
 

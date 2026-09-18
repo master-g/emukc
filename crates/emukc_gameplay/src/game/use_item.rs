@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_crypto::rng;
 
 use emukc_db::{
@@ -12,14 +11,12 @@ use emukc_model::{
 
 use crate::game::material::{add_material_impl, get_mat_impl};
 use crate::game::slot_item::add_slot_item_impl;
-use crate::gameplay::HasContext;
+use crate::gameplay::Ctx;
 use crate::{err::GameplayError, game::basic::inc_parallel_quest_max_impl};
 
 use super::fleet::get_fleet_ships_impl;
 
-/// A trait for use item related gameplay.
-#[async_trait]
-pub trait UseItemOps {
+impl Ctx {
     /// Add use item to a profile.
     ///
     /// # Parameters
@@ -27,86 +24,13 @@ pub trait UseItemOps {
     /// - `profile_id`: The profile ID.
     /// - `mst_id`: The use item manifest ID.
     /// - `amount`: The amount of the use item.
-    async fn add_use_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        amount: i64,
-    ) -> Result<KcApiUserItem, GameplayError>;
-
-    /// Find use item from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `mst_id`: The use item manifest ID.
-    async fn find_use_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-    ) -> Result<KcApiUserItem, GameplayError>;
-
-    /// Get all use items from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_use_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError>;
-
-    /// Deduct use item from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `mst_id`: The use item manifest ID.
-    /// - `amount`: The amount of the use item.
-    async fn deduct_use_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        amount: i64,
-    ) -> Result<KcApiUserItem, GameplayError>;
-
-    /// Consume use item from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `mst_id`: The use item manifest ID.
-    /// - `use_type`: The use type.
-    /// - `force`: The force flag.
-    async fn consume_use_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        use_type: i64,
-        forced: bool,
-    ) -> Result<KcApiUseItemResp, GameplayError>;
-
-    /// Consume Irako and/or Mamiya use item.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `deck_id`: The deck ID.
-    /// - `use_type`: The use type.
-    async fn consume_cond_use_item(
-        &self,
-        profile_id: i64,
-        deck_id: i64,
-        use_type: i64,
-    ) -> Result<(), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> UseItemOps for T {
-    async fn add_use_item(
+    pub async fn add_use_item(
         &self,
         profile_id: i64,
         mst_id: i64,
         amount: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let am = add_use_item_impl(&tx, profile_id, mst_id, amount).await?;
@@ -119,12 +43,18 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
         })
     }
 
-    async fn find_use_item(
+    /// Find use item from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `mst_id`: The use item manifest ID.
+    pub async fn find_use_item(
         &self,
         profile_id: i64,
         mst_id: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let am = find_use_item_impl(db, profile_id, mst_id).await?;
 
         Ok(KcApiUserItem {
@@ -133,8 +63,16 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
         })
     }
 
-    async fn get_use_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError> {
-        let db = self.db();
+    /// Get all use items from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_use_items(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<KcApiUserItem>, GameplayError> {
+        let db = self.db.as_ref();
         let items = get_use_items_impl(db, profile_id).await?;
 
         let items: Vec<UserItem> = items.into_iter().map(std::convert::Into::into).collect();
@@ -143,13 +81,20 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
         Ok(items)
     }
 
-    async fn deduct_use_item(
+    /// Deduct use item from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `mst_id`: The use item manifest ID.
+    /// - `amount`: The amount of the use item.
+    pub async fn deduct_use_item(
         &self,
         profile_id: i64,
         mst_id: i64,
         amount: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let am = deduct_use_item_impl(&tx, profile_id, mst_id, amount).await?;
@@ -162,15 +107,23 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
         })
     }
 
-    async fn consume_use_item(
+    /// Consume use item from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `mst_id`: The use item manifest ID.
+    /// - `use_type`: The use type.
+    /// - `force`: The force flag.
+    pub async fn consume_use_item(
         &self,
         profile_id: i64,
         mst_id: i64,
         exchange_type: i64,
         forced: bool,
     ) -> Result<KcApiUseItemResp, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let resp =
@@ -181,13 +134,20 @@ impl<T: HasContext + ?Sized> UseItemOps for T {
         Ok(resp)
     }
 
-    async fn consume_cond_use_item(
+    /// Consume Irako and/or Mamiya use item.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `deck_id`: The deck ID.
+    /// - `use_type`: The use type.
+    pub async fn consume_cond_use_item(
         &self,
         profile_id: i64,
         deck_id: i64,
         use_type: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         consume_cond_use_item_impl(&tx, profile_id, deck_id, use_type).await?;

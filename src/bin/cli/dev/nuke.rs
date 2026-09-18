@@ -4,7 +4,7 @@ use emukc::{
     model::profile::furniture::FurnitureConfig,
     prelude::{
         AccountOps, HasContext, KcApiIncentiveItem, KcUseItemType, MaterialCategory, ProfileOps,
-        ShipOps, UseItemOps,
+        ShipOps,
     },
 };
 use emukc_internal::crypto::rng;
