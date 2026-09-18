@@ -388,15 +388,13 @@ mod tests {
             event_kind,
             next_cells,
             node_label: Some(node_label.to_string()),
-            master_cell_id: None,
-            distance: None,
+            ..Default::default()
         }
     }
 
     #[test]
     fn merge_variant_definition_remaps_secondary_cells_by_node_label() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 7,
             cells: vec![
                 cell(0, "Start", vec![], 0, 0, 0),
@@ -404,15 +402,9 @@ mod tests {
                 cell(2, "B", vec![], 3, 0, 3),
                 cell(3, "C", vec![], 4, 1, 4),
             ],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
         let other = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 1,
             cells: vec![
                 cell(0, "Start", vec![2, 1], 0, 0, 0),
@@ -452,13 +444,11 @@ mod tests {
                     cell_no: 1,
                     battle_kind: 1,
                     formations: vec![1],
-                    compositions: Vec::new(),
+                    ..Default::default()
                 },
             )]),
             ship_drops: BTreeMap::from([(1, vec![ShipDropDefinition::default()])]),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
 
         merge_variant_definition(&mut definition, other);
@@ -490,7 +480,6 @@ mod tests {
     #[test]
     fn merge_routing_overlay_remaps_rules_without_touching_cells() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 5,
             cells: vec![
                 cell(0, "Start", vec![1], 0, 0, 0),
@@ -498,12 +487,7 @@ mod tests {
                 cell(2, "B", vec![4], 3, 0, 3),
                 cell(3, "C", vec![5], 4, 1, 4),
             ],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
 
         // WikiWiki uses different cell numbering: A=5, B=6, C=7
@@ -538,7 +522,7 @@ mod tests {
                 cell_no: 6,
                 battle_kind: 1,
                 formations: vec![1],
-                compositions: Vec::new(),
+                ..Default::default()
             },
         )]);
         let other_ship_drops = BTreeMap::from([(7, vec![ShipDropDefinition::default()])]);
@@ -579,19 +563,13 @@ mod tests {
     #[test]
     fn merge_routing_overlay_preserves_unmapped_labels() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 3,
             cells: vec![
                 cell(0, "Start", vec![1], 0, 0, 0),
                 cell(1, "A", vec![2], 2, 0, 2),
                 cell(2, "B", vec![3], 3, 0, 3),
             ],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
 
         // "Z" doesn't exist in primary — rule should preserve original cell_no
@@ -628,15 +606,9 @@ mod tests {
     #[test]
     fn merge_routing_overlay_noop_with_empty_map() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 1,
             cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![], 2, 0, 2)],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
 
         let empty_map = BTreeMap::new();
@@ -694,15 +666,9 @@ mod tests {
     #[test]
     fn merge_routing_overlay_drops_rule_targeting_nonexistent_cell() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 3,
             cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![2], 2, 0, 2)],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
         let other_labels: BTreeMap<String, i64> = BTreeMap::from([("A".into(), 10)]);
         // Rule targets cell 99 which doesn't exist in primary topology
@@ -734,24 +700,16 @@ mod tests {
     #[test]
     fn merge_routing_overlay_drops_enemy_fleet_at_nonexistent_cell() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 3,
             cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![2], 2, 0, 2)],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
         let other_labels: BTreeMap<String, i64> = BTreeMap::from([("A".into(), 10)]);
         let fleets = BTreeMap::from([(
             99,
             EnemyFleetDefinition {
                 cell_no: 99,
-                battle_kind: 0,
-                formations: vec![],
-                compositions: vec![],
+                ..Default::default()
             },
         )]);
         let cell_no_map = super::build_cell_no_map(&definition, &other_labels);
@@ -769,15 +727,9 @@ mod tests {
     #[test]
     fn merge_routing_overlay_keeps_rule_targeting_existing_cell() {
         let mut definition = MapVariantDefinition {
-            variant_key: String::new(),
             boss_cell_no: 3,
             cells: vec![cell(0, "Start", vec![1], 0, 0, 0), cell(1, "A", vec![2], 2, 0, 2)],
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         };
         let other_labels: BTreeMap<String, i64> =
             BTreeMap::from([("A".into(), 10), ("Start".into(), 20)]);
@@ -811,15 +763,8 @@ mod tests {
 
     fn make_variant_with_cells(cells: Vec<MapCellDefinition>) -> MapVariantDefinition {
         MapVariantDefinition {
-            variant_key: String::new(),
-            boss_cell_no: 0,
             cells,
-            routing_rules: BTreeMap::new(),
-            enemy_fleets: BTreeMap::new(),
-            ship_drops: BTreeMap::new(),
-            required_defeat_count: None,
-            clear_to_variant_key: None,
-            parse_warnings: Vec::new(),
+            ..Default::default()
         }
     }
 

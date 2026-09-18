@@ -120,15 +120,7 @@ mod tests {
         enemy.ship.api_nowhp = 30;
         enemy.ship.api_maxhp = 30;
 
-        let context = BattleContext {
-            battle_type: BattleType::Normal,
-            is_sortie: true,
-            friendly_formation_id: 1,
-            enemy_formation_id: 1,
-            engagement: EngagementType::SameCourse,
-            friend_ships: vec![friend],
-            enemy_ships: vec![enemy],
-        };
+        let context = BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]);
 
         let result =
             crate::simulation::simulate_day(&codex, context, &mut crate::random::SeededRng::new(1));

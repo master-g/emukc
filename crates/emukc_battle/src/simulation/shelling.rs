@@ -378,15 +378,7 @@ mod tests {
 
         let simulation = crate::simulation::simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: false,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![carrier, bb],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, false, vec![carrier, bb], vec![enemy]),
             &mut crate::random::SeededRng::new(1),
         );
 

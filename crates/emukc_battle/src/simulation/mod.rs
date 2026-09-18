@@ -326,15 +326,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -357,15 +349,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: false,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![carrier],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, false, vec![carrier], vec![enemy]),
             &mut rng,
         );
 
@@ -388,15 +372,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::AirBattle,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::AirBattle, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -427,15 +403,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::AirBattle,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![carrier],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::AirBattle, true, vec![carrier], vec![enemy]),
             &mut rng,
         );
 
@@ -463,15 +431,7 @@ mod tests {
         let mut rng = SeededRng::new(42);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -502,15 +462,7 @@ mod tests {
         let mut rng = SeededRng::new(42);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -563,15 +515,7 @@ mod tests {
         let mut rng = SeededRng::new(42);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![dd],
-                enemy_ships: vec![enemy1, enemy2],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![dd], vec![enemy1, enemy2]),
             &mut rng,
         );
 
@@ -620,15 +564,7 @@ mod tests {
         let mut rng = SeededRng::new(42);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships,
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, friend_ships, vec![enemy]),
             &mut rng,
         );
 
@@ -663,15 +599,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -698,15 +626,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -733,15 +653,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -767,15 +679,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -801,15 +705,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -835,15 +731,7 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -878,15 +766,12 @@ mod tests {
         let mut rng = SeededRng::new(1);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: false,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy_bb, enemy_dd],
-            },
+            BattleContext::head_on(
+                BattleType::Normal,
+                false,
+                vec![friend],
+                vec![enemy_bb, enemy_dd],
+            ),
             &mut rng,
         );
 
@@ -929,15 +814,7 @@ mod tests {
         let mut rng = SeededRng::new(7);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 
@@ -983,15 +860,7 @@ mod tests {
         let mut rng = SeededRng::new(7);
         let simulation = simulate_day(
             &codex,
-            BattleContext {
-                battle_type: BattleType::Normal,
-                is_sortie: true,
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                friend_ships: vec![friend],
-                enemy_ships: vec![enemy],
-            },
+            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
             &mut rng,
         );
 

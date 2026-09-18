@@ -111,15 +111,12 @@ fn target(codex: &Codex) -> BattleShipInput {
 }
 
 fn day_context(codex: &Codex) -> BattleContext {
-    BattleContext {
-        battle_type: BattleType::Normal,
-        is_sortie: true,
-        friendly_formation_id: 1,
-        enemy_formation_id: 1,
-        engagement: EngagementType::SameCourse,
-        friend_ships: vec![attacker(codex), attacker(codex)],
-        enemy_ships: vec![target(codex), target(codex)],
-    }
+    BattleContext::head_on(
+        BattleType::Normal,
+        true,
+        vec![attacker(codex), attacker(codex)],
+        vec![target(codex), target(codex)],
+    )
 }
 
 fn night_input(codex: &Codex) -> NightBattleInput {

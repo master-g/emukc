@@ -157,6 +157,27 @@ pub struct BattleContext {
     pub enemy_ships: Vec<BattleShipInput>,
 }
 
+impl BattleContext {
+    /// Build a context for the fixed head-on setup every battle test uses:
+    /// formation 1 on both sides, `EngagementType::SameCourse`.
+    pub fn head_on(
+        battle_type: BattleType,
+        is_sortie: bool,
+        friend_ships: Vec<BattleShipInput>,
+        enemy_ships: Vec<BattleShipInput>,
+    ) -> Self {
+        Self {
+            battle_type,
+            is_sortie,
+            friendly_formation_id: 1,
+            enemy_formation_id: 1,
+            engagement: EngagementType::SameCourse,
+            friend_ships,
+            enemy_ships,
+        }
+    }
+}
+
 /// Input parameters for [`execute_night`](crate::execute_night).
 pub struct NightBattleInput {
     pub friendly: Vec<BattleRuntimeShip>,

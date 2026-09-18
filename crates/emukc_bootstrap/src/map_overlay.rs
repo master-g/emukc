@@ -110,32 +110,15 @@ mod tests {
                 mapinfo_no: 1,
                 name: "1-1".to_string(),
                 level: 1,
-                sally_flag: vec![],
-                is_event: false,
-                reset_policy: Default::default(),
-                airbase_count: None,
-                gauge_type: None,
-                gauge_type_e: None,
-                gauge_count: None,
-                required_defeat_count: None,
-                max_hp: None,
-                default_variant: String::new(),
-                rank_stage_ids: BTreeMap::new(),
                 variants: BTreeMap::from([(
                     String::new(),
                     MapVariantDefinition {
-                        variant_key: String::new(),
                         boss_cell_no: 3,
                         cells: vec![
                             emukc_model::codex::map::MapCellDefinition {
-                                cell_no: 0,
-                                color_no: 0,
-                                event_id: 0,
-                                event_kind: 0,
                                 next_cells: vec![1],
                                 node_label: Some("Start".to_string()),
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             },
                             emukc_model::codex::map::MapCellDefinition {
                                 cell_no: 1,
@@ -143,39 +126,27 @@ mod tests {
                                 event_id: 4,
                                 event_kind: 1,
                                 next_cells: vec![2, 3],
-                                node_label: None,
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             },
                             emukc_model::codex::map::MapCellDefinition {
                                 cell_no: 2,
                                 color_no: 4,
                                 event_id: 4,
                                 event_kind: 1,
-                                next_cells: vec![],
-                                node_label: None,
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             },
                             emukc_model::codex::map::MapCellDefinition {
                                 cell_no: 3,
                                 color_no: 5,
                                 event_id: 5,
                                 event_kind: 1,
-                                next_cells: vec![],
-                                node_label: None,
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             },
                         ],
-                        routing_rules: BTreeMap::new(),
-                        enemy_fleets: BTreeMap::new(),
-                        ship_drops: BTreeMap::new(),
-                        required_defeat_count: None,
-                        clear_to_variant_key: None,
-                        parse_warnings: Vec::new(),
+                        ..Default::default()
                     },
                 )]),
+                ..Default::default()
             },
         );
         catalog
@@ -185,13 +156,7 @@ mod tests {
         fn cell(cell_no: i64) -> emukc_model::codex::map::MapCellDefinition {
             emukc_model::codex::map::MapCellDefinition {
                 cell_no,
-                color_no: 0,
-                event_id: 0,
-                event_kind: 0,
-                next_cells: Vec::new(),
-                node_label: None,
-                master_cell_id: None,
-                distance: None,
+                ..Default::default()
             }
         }
 
@@ -204,12 +169,8 @@ mod tests {
                 variant_key: variant_key.to_string(),
                 boss_cell_no: 5,
                 cells: cells.map(cell).collect(),
-                routing_rules: BTreeMap::new(),
-                enemy_fleets: BTreeMap::new(),
-                ship_drops: BTreeMap::new(),
-                required_defeat_count: None,
                 clear_to_variant_key: clear_to_variant_key.map(ToOwned::to_owned),
-                parse_warnings: Vec::new(),
+                ..Default::default()
             }
         }
 
@@ -348,26 +309,14 @@ mod tests {
                 variants: BTreeMap::from([(
                     String::new(),
                     MapVariantDefinition {
-                        variant_key: String::new(),
                         boss_cell_no: 5,
                         cells: (0..=5)
                             .map(|cell_no| emukc_model::codex::map::MapCellDefinition {
                                 cell_no,
-                                color_no: 0,
-                                event_id: 0,
-                                event_kind: 0,
-                                next_cells: Vec::new(),
-                                node_label: None,
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             })
                             .collect(),
-                        routing_rules: BTreeMap::new(),
-                        enemy_fleets: BTreeMap::new(),
-                        ship_drops: BTreeMap::new(),
-                        required_defeat_count: None,
-                        clear_to_variant_key: None,
-                        parse_warnings: Vec::new(),
+                        ..Default::default()
                     },
                 )]),
             },
@@ -412,13 +361,7 @@ mod tests {
                         cells: (0..=16)
                             .map(|cell_no| emukc_model::codex::map::MapCellDefinition {
                                 cell_no,
-                                color_no: 0,
-                                event_id: 0,
-                                event_kind: 0,
-                                next_cells: Vec::new(),
-                                node_label: None,
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             })
                             .collect(),
                         ..Default::default()
@@ -431,13 +374,7 @@ mod tests {
                         cells: (0..=16)
                             .map(|cell_no| emukc_model::codex::map::MapCellDefinition {
                                 cell_no,
-                                color_no: 0,
-                                event_id: 0,
-                                event_kind: 0,
-                                next_cells: Vec::new(),
-                                node_label: None,
-                                master_cell_id: None,
-                                distance: None,
+                                ..Default::default()
                             })
                             .collect(),
                         ..Default::default()
