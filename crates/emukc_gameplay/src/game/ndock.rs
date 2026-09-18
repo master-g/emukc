@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{material, ndock, ship},
     sea_orm::{
@@ -14,81 +13,26 @@ use emukc_model::{
 };
 use emukc_time::chrono;
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     material::deduct_material_impl, ship::recalculate_ship_status_with_model,
     use_item::deduct_use_item_impl,
 };
 
-/// A trait for repair dock related gameplay.
-#[async_trait]
-pub trait NDockOps {
+impl Ctx {
     /// Unlock new repair dock.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `index`: The repair dock index, must be one of 2, 3, 4.
-    async fn unlock_ndock(&self, profile_id: i64, index: i64) -> Result<RepairDock, GameplayError>;
-
-    /// Get single repair dock.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `index`: The repair dock index, must be one of 1, 2, 3, 4.
-    async fn get_ndock(&self, profile_id: i64, index: i64) -> Result<RepairDock, GameplayError>;
-
-    /// Get all repair docks.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError>;
-
-    /// Expand repair dock.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn expand_repair_dock(&self, profile_id: i64) -> Result<(), GameplayError>;
-
-    /// Start ship repairation.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `ndock_id`: The repair dock ID.
-    /// - `ship_id`: The ship ID.
-    /// - `highspeed`: Whether to use high-speed repair.
-    async fn ndock_start_repair(
+    pub async fn unlock_ndock(
         &self,
         profile_id: i64,
-        ndock_id: i64,
-        ship_id: i64,
-        highspeed: bool,
-    ) -> Result<Option<Material>, GameplayError>;
-
-    /// Speed up ship repairation.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `ndock_id`: The repair dock ID.
-    ///
-    /// Returns the updated material after deducting the bucket.
-    async fn speed_up_ship_repairation(
-        &self,
-        profile_id: i64,
-        ndock_id: i64,
-    ) -> Result<Material, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> NDockOps for T {
-    async fn unlock_ndock(&self, profile_id: i64, index: i64) -> Result<RepairDock, GameplayError> {
-        let db = self.db();
+        index: i64,
+    ) -> Result<RepairDock, GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = unlock_ndock_impl(&tx, profile_id, index).await?;
@@ -98,16 +42,31 @@ impl<T: HasContext + ?Sized> NDockOps for T {
         Ok(m.into())
     }
 
-    async fn get_ndock(&self, profile_id: i64, index: i64) -> Result<RepairDock, GameplayError> {
-        let db = self.db();
+    /// Get single repair dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `index`: The repair dock index, must be one of 1, 2, 3, 4.
+    pub async fn get_ndock(
+        &self,
+        profile_id: i64,
+        index: i64,
+    ) -> Result<RepairDock, GameplayError> {
+        let db = self.db.as_ref();
         let dock = get_ndock_impl(db, profile_id, index).await?;
 
         Ok(dock)
     }
 
-    async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Get all repair docks.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let docks = get_ndocks_impl(&tx, codex, profile_id).await?;
@@ -117,8 +76,13 @@ impl<T: HasContext + ?Sized> NDockOps for T {
         Ok(docks.into_iter().map(std::convert::Into::into).collect())
     }
 
-    async fn expand_repair_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Expand repair dock.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn expand_repair_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         expand_repair_dock_impl(&tx, profile_id).await?;
@@ -128,15 +92,23 @@ impl<T: HasContext + ?Sized> NDockOps for T {
         Ok(())
     }
 
-    async fn ndock_start_repair(
+    /// Start ship repairation.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `ndock_id`: The repair dock ID.
+    /// - `ship_id`: The ship ID.
+    /// - `highspeed`: Whether to use high-speed repair.
+    pub async fn ndock_start_repair(
         &self,
         profile_id: i64,
         ndock_id: i64,
         ship_id: i64,
         highspeed: bool,
     ) -> Result<Option<Material>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m =
@@ -147,13 +119,21 @@ impl<T: HasContext + ?Sized> NDockOps for T {
         Ok(m.map(Into::into))
     }
 
-    async fn speed_up_ship_repairation(
+    /// Speed up ship repairation.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `ndock_id`: The repair dock ID.
+    ///
+    /// Returns the updated material after deducting the bucket.
+    pub async fn speed_up_ship_repairation(
         &self,
         profile_id: i64,
         ndock_id: i64,
     ) -> Result<Material, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m: Material =

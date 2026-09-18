@@ -11,7 +11,6 @@ pub use factory::FactoryOps;
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub use map::MapOps;
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
-pub use ndock::NDockOps;
 pub use practice::PracticeOps;
 pub use presets::PresetOps;
 pub use quest::QuestOps;
@@ -67,7 +66,6 @@ pub trait GameOps:
     + FactoryOps
     + SettingsOps
     + MapOps
-    + NDockOps
     + PracticeOps
     + PresetOps
     + QuestOps
@@ -86,8 +84,8 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        BasicOps, ComposeOps, ExpeditionOps, FactoryOps, GameOps, MapOps, NDockOps, PracticeOps,
-        PresetOps, QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
+        BasicOps, ComposeOps, ExpeditionOps, FactoryOps, GameOps, MapOps, PracticeOps, PresetOps,
+        QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
     };
 }
 
