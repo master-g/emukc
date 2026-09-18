@@ -9,7 +9,6 @@ use route_context::{build_fleet_route_context, build_sortie_friend_ships, engage
 
 use std::collections::BTreeSet;
 
-use async_trait::async_trait;
 use emukc_crypto::rng;
 use emukc_db::entity::profile::{item::slot_item, ship};
 use emukc_db::sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*};
@@ -25,7 +24,7 @@ use emukc_model::{
 };
 use serde::Serialize;
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::battle::repository::SortieRepository;
 
@@ -192,82 +191,16 @@ pub struct SortieNightBattleResponse {
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct SortieGobackPortResponse {}
 
-#[async_trait]
-pub trait SortieOps {
-    async fn start_sortie(
-        &self,
-        profile_id: i64,
-        deck_id: i64,
-        maparea_id: i64,
-        mapinfo_no: i64,
-    ) -> Result<SortieStartResponse, GameplayError>;
-
-    async fn next_sortie(
-        &self,
-        profile_id: i64,
-        selected_cell_id: Option<i64>,
-    ) -> Result<SortieNextResponse, GameplayError>;
-
-    async fn sortie_battle(
-        &self,
-        profile_id: i64,
-        formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError>;
-
-    async fn sortie_airbattle(
-        &self,
-        profile_id: i64,
-        formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError>;
-
-    async fn sortie_ld_airbattle(
-        &self,
-        profile_id: i64,
-        formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError>;
-
-    async fn sortie_ld_shooting(
-        &self,
-        profile_id: i64,
-        formation_id: i64,
-    ) -> Result<SortieBattleResponse, GameplayError>;
-
-    async fn sortie_battle_result(
-        &self,
-        profile_id: i64,
-    ) -> Result<SortieBattleResultResponse, GameplayError>;
-
-    async fn sortie_midnight_battle(
-        &self,
-        profile_id: i64,
-    ) -> Result<SortieNightBattleResponse, GameplayError>;
-
-    async fn sortie_sp_midnight_battle(
-        &self,
-        profile_id: i64,
-        formation_id: i64,
-    ) -> Result<SortieNightBattleResponse, GameplayError>;
-
-    async fn sortie_goback_port(
-        &self,
-        profile_id: i64,
-    ) -> Result<SortieGobackPortResponse, GameplayError>;
-
-    /// Clear any stale sortie state for a profile without erroring if none exists.
-    async fn clear_sortie_state_if_any(&self, profile_id: i64);
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> SortieOps for T {
-    async fn start_sortie(
+impl Ctx {
+    pub async fn start_sortie(
         &self,
         profile_id: i64,
         deck_id: i64,
         maparea_id: i64,
         mapinfo_no: i64,
     ) -> Result<SortieStartResponse, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let profile = find_profile(&tx, profile_id).await?;
@@ -321,10 +254,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             locked_enemy_composition: locked_enemy_composition.clone(),
         };
         tx.commit().await?;
-        self.sortie_store()
+        self.sortie_store
+            .as_ref()
             .with_profile_lock(profile_id, async {
-                clear_pending_sortie_runtime_state(self.sortie_store(), profile_id);
-                let _ = self.sortie_store().insert_active(profile_id, active);
+                clear_pending_sortie_runtime_state(self.sortie_store.as_ref(), profile_id);
+                let _ = self.sortie_store.as_ref().insert_active(profile_id, active);
             })
             .await;
 
@@ -359,16 +293,17 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         })
     }
 
-    async fn next_sortie(
+    pub async fn next_sortie(
         &self,
         profile_id: i64,
         selected_cell_id: Option<i64>,
     ) -> Result<SortieNextResponse, GameplayError> {
-        self.sortie_store()
+        self.sortie_store
+            .as_ref()
             .with_profile_lock(profile_id, async {
-                let codex = self.codex();
-                let db = self.db();
-                let store = self.sortie_store();
+                let codex = self.codex.as_ref();
+                let db = self.db.as_ref();
+                let store = self.sortie_store.as_ref();
                 let mut active = store.get_active(profile_id).ok_or_else(|| {
                     GameplayError::EntryNotFound(format!(
                         "active sortie not found for profile {profile_id}",
@@ -487,15 +422,15 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             .await
     }
 
-    async fn sortie_battle(
+    pub async fn sortie_battle(
         &self,
         profile_id: i64,
         formation_id: i64,
     ) -> Result<SortieBattleResponse, GameplayError> {
         sortie_battle_impl(
-            self.sortie_store(),
-            self.codex(),
-            self.db(),
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
             profile_id,
             formation_id,
             BattleType::Normal,
@@ -503,15 +438,15 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         .await
     }
 
-    async fn sortie_airbattle(
+    pub async fn sortie_airbattle(
         &self,
         profile_id: i64,
         formation_id: i64,
     ) -> Result<SortieBattleResponse, GameplayError> {
         sortie_battle_impl(
-            self.sortie_store(),
-            self.codex(),
-            self.db(),
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
             profile_id,
             formation_id,
             BattleType::AirBattle,
@@ -519,15 +454,15 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         .await
     }
 
-    async fn sortie_ld_airbattle(
+    pub async fn sortie_ld_airbattle(
         &self,
         profile_id: i64,
         formation_id: i64,
     ) -> Result<SortieBattleResponse, GameplayError> {
         sortie_battle_impl(
-            self.sortie_store(),
-            self.codex(),
-            self.db(),
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
             profile_id,
             formation_id,
             BattleType::LdAirBattle,
@@ -535,15 +470,15 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         .await
     }
 
-    async fn sortie_ld_shooting(
+    pub async fn sortie_ld_shooting(
         &self,
         profile_id: i64,
         formation_id: i64,
     ) -> Result<SortieBattleResponse, GameplayError> {
         sortie_battle_impl(
-            self.sortie_store(),
-            self.codex(),
-            self.db(),
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
             profile_id,
             formation_id,
             BattleType::LdShooting,
@@ -551,13 +486,13 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         .await
     }
 
-    async fn sortie_battle_result(
+    pub async fn sortie_battle_result(
         &self,
         profile_id: i64,
     ) -> Result<SortieBattleResultResponse, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
-        let store = self.sortie_store();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
+        let store = self.sortie_store.as_ref();
         let tx = db.begin().await?;
 
         let snapshot = store.take_pending_result(profile_id).ok_or_else(|| {
@@ -658,9 +593,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         // Refresh stage identity from DB before deciding sortie fate.
         // apply_sortie_map_result may have changed stage_id via gauge clear.
         // Serialize the in-memory state mutation to prevent TOCTOU races.
-        self.sortie_store()
+        self.sortie_store.as_ref()
             .with_profile_lock(profile_id, async {
-                let store = self.sortie_store();
+                let store = self.sortie_store.as_ref();
                 let stage_refreshed = refresh_sortie_stage(db, codex, profile_id, &mut active).await?;
                 if !stage_refreshed {
                     tracing::debug!(
@@ -745,12 +680,12 @@ impl<T: HasContext + ?Sized> SortieOps for T {
             .await
     }
 
-    async fn sortie_midnight_battle(
+    pub async fn sortie_midnight_battle(
         &self,
         profile_id: i64,
     ) -> Result<SortieNightBattleResponse, GameplayError> {
-        let codex = self.codex();
-        let store = self.sortie_store();
+        let codex = self.codex.as_ref();
+        let store = self.sortie_store.as_ref();
         let pending = pending_battle(store, profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "sortie battle session not found for profile {profile_id}",
@@ -824,14 +759,14 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         Ok(build_night_response(current.deck_id, &current, night.packet))
     }
 
-    async fn sortie_sp_midnight_battle(
+    pub async fn sortie_sp_midnight_battle(
         &self,
         profile_id: i64,
         formation_id: i64,
     ) -> Result<SortieNightBattleResponse, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
-        let store = self.sortie_store();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
+        let store = self.sortie_store.as_ref();
         let tx = db.begin().await?;
 
         let mut active = store.get_active(profile_id).ok_or_else(|| {
@@ -956,11 +891,11 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         Ok(build_night_response(current.deck_id, &current, night_session.packet))
     }
 
-    async fn sortie_goback_port(
+    pub async fn sortie_goback_port(
         &self,
         profile_id: i64,
     ) -> Result<SortieGobackPortResponse, GameplayError> {
-        let store = self.sortie_store();
+        let store = self.sortie_store.as_ref();
         let removed = store.remove_active(profile_id);
         if removed.is_none() {
             return Err(GameplayError::EntryNotFound(format!(
@@ -973,8 +908,9 @@ impl<T: HasContext + ?Sized> SortieOps for T {
         Ok(SortieGobackPortResponse::default())
     }
 
-    async fn clear_sortie_state_if_any(&self, profile_id: i64) {
-        let store = self.sortie_store();
+    /// Clear any stale sortie state for a profile without erroring if none exists.
+    pub async fn clear_sortie_state_if_any(&self, profile_id: i64) {
+        let store = self.sortie_store.as_ref();
         clear_pending_sortie_runtime_state(store, profile_id);
     }
 }

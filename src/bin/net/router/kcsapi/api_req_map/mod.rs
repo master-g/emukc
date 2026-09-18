@@ -20,7 +20,6 @@ mod tests {
         app_state, new_test_context, seed_single_ship_fleet,
     };
     use axum::Form;
-    use emukc_internal::prelude::SortieOps;
 
     #[tokio::test]
     async fn start_and_next_handlers_drive_map_progression() {

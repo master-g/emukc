@@ -25,7 +25,6 @@ mod tests {
         app_state, new_test_context, seed_single_ship_fleet,
     };
     use axum::Form;
-    use emukc_internal::prelude::SortieOps;
 
     #[tokio::test]
     async fn battle_battleresult_and_goback_handlers_drive_sortie_flow() {

@@ -14,7 +14,7 @@ use emukc_internal::{
     db::sea_orm::DbConn,
     prelude::{
         AccountOps, BattleSimulation, Codex, Ctx, HasContext, PRESETS, PracticeStore, Preset,
-        ProfileOps, Scenario, SortieOps, SortieRepository, SortieStore, apply_scenario, new_mem_db,
+        ProfileOps, Scenario, SortieRepository, SortieStore, apply_scenario, new_mem_db,
         render_day_battle,
     },
 };

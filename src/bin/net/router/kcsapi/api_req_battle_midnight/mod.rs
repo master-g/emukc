@@ -17,7 +17,6 @@ mod tests {
         app_state, new_test_context, seed_single_ship_fleet,
     };
     use axum::Form;
-    use emukc_internal::prelude::SortieOps;
 
     #[tokio::test]
     async fn sp_midnight_handler_accepts_formation_and_returns_night_packet() {
