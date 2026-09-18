@@ -2,7 +2,6 @@ use axum::Form;
 use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
-use emukc::prelude::PresetOps;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {

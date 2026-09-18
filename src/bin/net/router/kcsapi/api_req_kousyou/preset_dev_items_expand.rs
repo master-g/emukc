@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
-use emukc::prelude::PresetOps;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Resp {

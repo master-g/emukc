@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use deck::{
     apply_preset_deck_impl, delete_preset_deck_impl, expand_preset_deck_capacity_impl,
     find_preset_deck_impl, get_preset_decks_impl, register_preset_deck_impl,
@@ -28,7 +27,7 @@ use slot::{
     toggle_preset_slot_locked_impl, update_preset_slot_name_impl,
 };
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     fleet::{get_fleets_impl, update_fleet_ships_impl},
@@ -40,199 +39,14 @@ pub(crate) mod deck;
 pub(crate) mod dev_item;
 pub(crate) mod slot;
 
-#[async_trait]
-pub trait PresetOps {
+impl Ctx {
     /// Get preset deck
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    async fn get_preset_decks(&self, profile_id: i64) -> Result<PresetDeck, GameplayError>;
-
-    /// Find preset deck
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    async fn find_preset_deck(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-    ) -> Result<PresetDeckItem, GameplayError>;
-
-    /// Get preset slot
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_preset_slots(&self, profile_id: i64) -> Result<PresetSlot, GameplayError>;
-
-    /// Register preset deck
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset`: The preset deck item.
-    async fn register_preset_deck(
-        &self,
-        profile_id: i64,
-        preset: &PresetDeckItem,
-    ) -> Result<preset_deck::Model, GameplayError>;
-
-    /// Register preset slot
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    /// - `ship_id`: The ship ID.
-    async fn register_preset_slot(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-        ship_id: i64,
-    ) -> Result<preset_slot::Model, GameplayError>;
-
-    /// Delete preset deck
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    async fn delete_preset_deck(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Expand preset deck capacity
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn expand_preset_deck_capacity(&self, profile_id: i64) -> Result<(), GameplayError>;
-
-    /// Expand preset slot capacity
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn expand_preset_slot_capacity(&self, profile_id: i64) -> Result<i64, GameplayError>;
-
-    /// Apply preset deck
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `deck_id`: The deck ID.
-    /// - `preset_no`: The preset number.
-    async fn apply_preset_deck(
-        &self,
-        profile_id: i64,
-        deck_id: i64,
-        preset_no: i64,
-    ) -> Result<fleet::Model, GameplayError>;
-
-    /// Apply preset slot
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    /// - `ship_id`: The ship ID.
-    /// - `mode`: The mode.
-    async fn apply_preset_slot(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-        ship_id: i64,
-        mode: i64,
-    ) -> Result<i64, GameplayError>;
-
-    /// Delete preset slot
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    async fn delete_preset_slot(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Toggle preset slot ex flag
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    async fn toggle_preset_slot_ex_flag(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Toggle preset slot locked
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    async fn toggle_preset_slot_locked(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Update preset slot name
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `preset_no`: The preset number.
-    /// - `name`: The new name.
-    async fn update_preset_slot_name(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-        name: &str,
-    ) -> Result<(), GameplayError>;
-
-    /// Get preset dev items
-    async fn get_preset_dev_items(&self, profile_id: i64) -> Result<PresetDevItem, GameplayError>;
-
-    /// Register preset dev item
-    async fn register_preset_dev_item(
-        &self,
-        profile_id: i64,
-        preset: &PresetDevItemElement,
-    ) -> Result<preset_dev_item::Model, GameplayError>;
-
-    /// Delete preset dev item
-    async fn delete_preset_dev_item(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Update preset dev item name
-    async fn update_preset_dev_item_name(
-        &self,
-        profile_id: i64,
-        preset_no: i64,
-        name: String,
-    ) -> Result<(), GameplayError>;
-
-    /// Expand preset dev item capacity
-    async fn expand_preset_dev_item_capacity(&self, profile_id: i64) -> Result<i64, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> PresetOps for T {
-    async fn get_preset_decks(&self, profile_id: i64) -> Result<PresetDeck, GameplayError> {
-        let db = self.db();
+    pub async fn get_preset_decks(&self, profile_id: i64) -> Result<PresetDeck, GameplayError> {
+        let db = self.db.as_ref();
 
         let (caps, decks) = get_preset_decks_impl(db, profile_id).await?;
 
@@ -242,20 +56,31 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         })
     }
 
-    async fn find_preset_deck(
+    /// Find preset deck
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    pub async fn find_preset_deck(
         &self,
         profile_id: i64,
         preset_no: i64,
     ) -> Result<PresetDeckItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let model = find_preset_deck_impl(db, profile_id, preset_no).await?;
 
         Ok(model.into())
     }
 
-    async fn get_preset_slots(&self, profile_id: i64) -> Result<PresetSlot, GameplayError> {
-        let db = self.db();
+    /// Get preset slot
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_preset_slots(&self, profile_id: i64) -> Result<PresetSlot, GameplayError> {
+        let db = self.db.as_ref();
 
         let (caps, slots) = get_preset_slots_impl(db, profile_id).await?;
 
@@ -266,12 +91,18 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         })
     }
 
-    async fn register_preset_deck(
+    /// Register preset deck
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset`: The preset deck item.
+    pub async fn register_preset_deck(
         &self,
         profile_id: i64,
         preset: &PresetDeckItem,
     ) -> Result<preset_deck::Model, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = register_preset_deck_impl(&tx, profile_id, preset).await?;
@@ -281,13 +112,20 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(m)
     }
 
-    async fn register_preset_slot(
+    /// Register preset slot
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    /// - `ship_id`: The ship ID.
+    pub async fn register_preset_slot(
         &self,
         profile_id: i64,
         preset_no: i64,
         ship_id: i64,
     ) -> Result<preset_slot::Model, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = register_preset_slot_impl(&tx, profile_id, preset_no, ship_id).await?;
@@ -297,12 +135,18 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(m)
     }
 
-    async fn delete_preset_deck(
+    /// Delete preset deck
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    pub async fn delete_preset_deck(
         &self,
         profile_id: i64,
         preset_no: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         delete_preset_deck_impl(&tx, profile_id, preset_no).await?;
@@ -312,8 +156,13 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn expand_preset_deck_capacity(&self, profile_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Expand preset deck capacity
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn expand_preset_deck_capacity(&self, profile_id: i64) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         expand_preset_deck_capacity_impl(&tx, profile_id).await?;
@@ -323,8 +172,13 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn expand_preset_slot_capacity(&self, profile_id: i64) -> Result<i64, GameplayError> {
-        let db = self.db();
+    /// Expand preset slot capacity
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn expand_preset_slot_capacity(&self, profile_id: i64) -> Result<i64, GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let new_cap = expand_preset_slot_capacity_impl(&tx, profile_id).await?;
@@ -334,13 +188,20 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(new_cap)
     }
 
-    async fn apply_preset_deck(
+    /// Apply preset deck
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `deck_id`: The deck ID.
+    /// - `preset_no`: The preset number.
+    pub async fn apply_preset_deck(
         &self,
         profile_id: i64,
         deck_id: i64,
         preset_no: i64,
     ) -> Result<fleet::Model, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = apply_preset_deck_impl(&tx, profile_id, deck_id, preset_no).await?;
@@ -350,15 +211,23 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(m)
     }
 
-    async fn apply_preset_slot(
+    /// Apply preset slot
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    /// - `ship_id`: The ship ID.
+    /// - `mode`: The mode.
+    pub async fn apply_preset_slot(
         &self,
         profile_id: i64,
         preset_no: i64,
         ship_id: i64,
         mode: i64,
     ) -> Result<i64, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let bauxite =
@@ -369,12 +238,18 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(bauxite)
     }
 
-    async fn delete_preset_slot(
+    /// Delete preset slot
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    pub async fn delete_preset_slot(
         &self,
         profile_id: i64,
         preset_no: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         delete_preset_slot_impl(&tx, profile_id, preset_no).await?;
@@ -384,12 +259,18 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn toggle_preset_slot_ex_flag(
+    /// Toggle preset slot ex flag
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    pub async fn toggle_preset_slot_ex_flag(
         &self,
         profile_id: i64,
         preset_no: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         toggle_preset_slot_ex_flag_impl(&tx, profile_id, preset_no).await?;
@@ -399,12 +280,18 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn toggle_preset_slot_locked(
+    /// Toggle preset slot locked
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    pub async fn toggle_preset_slot_locked(
         &self,
         profile_id: i64,
         preset_no: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         toggle_preset_slot_locked_impl(&tx, profile_id, preset_no).await?;
@@ -414,13 +301,20 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn update_preset_slot_name(
+    /// Update preset slot name
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `preset_no`: The preset number.
+    /// - `name`: The new name.
+    pub async fn update_preset_slot_name(
         &self,
         profile_id: i64,
         preset_no: i64,
         name: &str,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_preset_slot_name_impl(&tx, profile_id, preset_no, name).await?;
@@ -430,8 +324,12 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn get_preset_dev_items(&self, profile_id: i64) -> Result<PresetDevItem, GameplayError> {
-        let db = self.db();
+    /// Get preset dev items
+    pub async fn get_preset_dev_items(
+        &self,
+        profile_id: i64,
+    ) -> Result<PresetDevItem, GameplayError> {
+        let db = self.db.as_ref();
 
         let (caps, items) = get_preset_dev_items_impl(db, profile_id).await?;
 
@@ -451,12 +349,13 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         })
     }
 
-    async fn register_preset_dev_item(
+    /// Register preset dev item
+    pub async fn register_preset_dev_item(
         &self,
         profile_id: i64,
         preset: &PresetDevItemElement,
     ) -> Result<preset_dev_item::Model, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = register_preset_dev_item_impl(&tx, profile_id, preset).await?;
@@ -466,12 +365,13 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(m)
     }
 
-    async fn delete_preset_dev_item(
+    /// Delete preset dev item
+    pub async fn delete_preset_dev_item(
         &self,
         profile_id: i64,
         preset_no: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         delete_preset_dev_item_impl(&tx, profile_id, preset_no).await?;
@@ -481,13 +381,14 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn update_preset_dev_item_name(
+    /// Update preset dev item name
+    pub async fn update_preset_dev_item_name(
         &self,
         profile_id: i64,
         preset_no: i64,
         name: String,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_preset_dev_item_name_impl(&tx, profile_id, preset_no, name).await?;
@@ -497,8 +398,12 @@ impl<T: HasContext + ?Sized> PresetOps for T {
         Ok(())
     }
 
-    async fn expand_preset_dev_item_capacity(&self, profile_id: i64) -> Result<i64, GameplayError> {
-        let db = self.db();
+    /// Expand preset dev item capacity
+    pub async fn expand_preset_dev_item_capacity(
+        &self,
+        profile_id: i64,
+    ) -> Result<i64, GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let new_cap = expand_preset_dev_item_capacity_impl(&tx, profile_id).await?;
