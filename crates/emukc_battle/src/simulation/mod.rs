@@ -306,7 +306,7 @@ mod tests {
     use super::*;
     use crate::random::SeededRng;
     use crate::test_utils::*;
-    use crate::types::{BattleContext, BattleType, EngagementType};
+    use crate::types::{BattleContext, BattleType};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
 
