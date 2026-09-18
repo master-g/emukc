@@ -1,19 +1,16 @@
 use std::collections::BTreeMap;
 
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::item::slot_item,
     sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
-use crate::{err::GameplayError, game::material::add_material_impl, gameplay::HasContext};
+use crate::{err::GameplayError, game::material::add_material_impl, gameplay::Ctx};
 
 use super::picturebook::add_slot_item_to_picturebook_impl;
 
-/// A trait for slot item related gameplay.
-#[async_trait]
-pub trait SlotItemOps {
+impl Ctx {
     /// Add slot item to a profile.
     ///
     /// # Parameters
@@ -22,106 +19,16 @@ pub trait SlotItemOps {
     /// - `mst_id`: The slot item manifest ID.
     /// - `stars`: The stars of the item.
     /// - `alv`: The aircraft level of the item.
-    async fn add_slot_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        stars: i64,
-        alv: i64,
-    ) -> Result<KcApiSlotItem, GameplayError>;
-
-    /// Find slot item from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `id`: The slot item instance ID.
-    async fn find_slot_item(&self, id: i64) -> Result<KcApiSlotItem, GameplayError>;
-
-    /// Get all slot items from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_slot_items(&self, profile_id: i64) -> Result<Vec<KcApiSlotItem>, GameplayError>;
-
-    /// Update slot item.
-    ///
-    /// # Parameters
-    ///
-    /// - `id`: The slot item instance ID.
-    /// - `stars`: The stars of the item.
-    /// - `alv`: The aircraft level of the item.
-    /// - `equip_on`: The ship instance ID the item is equipped on.
-    async fn update_slot_item(
-        &self,
-        id: i64,
-        stars: Option<i64>,
-        alv: Option<i64>,
-        equip_on: Option<i64>,
-    ) -> Result<KcApiSlotItem, GameplayError>;
-
-    /// Get all unset slot items from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_unset_slot_items(
-        &self,
-        profile_id: i64,
-    ) -> Result<Vec<KcApiSlotItem>, GameplayError>;
-
-    /// Get unset slot items by types.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `type3`: The item types.
-    async fn get_unset_slot_items_by_types(
-        &self,
-        profile_id: i64,
-        type3: &[i64],
-    ) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError>;
-
-    /// Toggle slot item locked status.
-    ///
-    /// for now (5.9.4.0) this can only lock or unlock the item that is not equipped on any ship.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID (for ownership verification).
-    /// - `item_id`: The slot item instance ID.
-    async fn toggle_slot_item_locked(
-        &self,
-        profile_id: i64,
-        item_id: i64,
-    ) -> Result<KcApiSlotItem, GameplayError>;
-
-    /// Destroy slot items.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `item_ids`: The slot item instance IDs.
-    async fn destroy_items(
-        &self,
-        profile_id: i64,
-        item_ids: &[i64],
-    ) -> Result<Vec<(MaterialCategory, i64)>, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> SlotItemOps for T {
-    async fn add_slot_item(
+    pub async fn add_slot_item(
         &self,
         profile_id: i64,
         mst_id: i64,
         stars: i64,
         alv: i64,
     ) -> Result<KcApiSlotItem, GameplayError> {
-        let codex = self.codex();
+        let codex = self.codex.as_ref();
 
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = add_slot_item_impl(&tx, codex, profile_id, mst_id, stars, alv).await?;
@@ -137,16 +44,30 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
         })
     }
 
-    async fn find_slot_item(&self, id: i64) -> Result<KcApiSlotItem, GameplayError> {
-        let db = self.db();
+    /// Find slot item from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `id`: The slot item instance ID.
+    pub async fn find_slot_item(&self, id: i64) -> Result<KcApiSlotItem, GameplayError> {
+        let db = self.db.as_ref();
         let m = find_slot_item_impl(db, id).await?;
         let slot_item: SlotItem = m.into();
 
         Ok(slot_item.into())
     }
 
-    async fn get_slot_items(&self, profile_id: i64) -> Result<Vec<KcApiSlotItem>, GameplayError> {
-        let db = self.db();
+    /// Get all slot items from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_slot_items(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<KcApiSlotItem>, GameplayError> {
+        let db = self.db.as_ref();
         let ms = get_slot_items_impl(db, profile_id).await?;
 
         let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
@@ -156,14 +77,22 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
         Ok(slot_items)
     }
 
-    async fn update_slot_item(
+    /// Update slot item.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: The slot item instance ID.
+    /// - `stars`: The stars of the item.
+    /// - `alv`: The aircraft level of the item.
+    /// - `equip_on`: The ship instance ID the item is equipped on.
+    pub async fn update_slot_item(
         &self,
         id: i64,
         stars: Option<i64>,
         alv: Option<i64>,
         equip_on: Option<i64>,
     ) -> Result<KcApiSlotItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = update_slot_item_impl(&tx, id, stars, alv, equip_on).await?;
@@ -179,11 +108,16 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
         })
     }
 
-    async fn get_unset_slot_items(
+    /// Get all unset slot items from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_unset_slot_items(
         &self,
         profile_id: i64,
     ) -> Result<Vec<KcApiSlotItem>, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let ms = get_unset_slot_items_impl(db, profile_id).await?;
 
         let slot_items: Vec<SlotItem> = ms.into_iter().map(std::convert::Into::into).collect();
@@ -193,25 +127,39 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
         Ok(slot_items)
     }
 
-    async fn get_unset_slot_items_by_types(
+    /// Get unset slot items by types.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `type3`: The item types.
+    pub async fn get_unset_slot_items_by_types(
         &self,
         profile_id: i64,
         type3: &[i64],
     ) -> Result<BTreeMap<i64, Vec<i64>>, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let item_ids = get_unset_slot_items_by_types_impl(db, profile_id, type3).await?;
 
         Ok(item_ids)
     }
 
-    async fn toggle_slot_item_locked(
+    /// Toggle slot item locked status.
+    ///
+    /// for now (5.9.4.0) this can only lock or unlock the item that is not equipped on any ship.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID (for ownership verification).
+    /// - `item_id`: The slot item instance ID.
+    pub async fn toggle_slot_item_locked(
         &self,
         profile_id: i64,
         item_id: i64,
     ) -> Result<KcApiSlotItem, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let m = toggle_slot_item_locked_impl(&tx, profile_id, item_id).await?;
@@ -234,13 +182,19 @@ impl<T: HasContext + ?Sized> SlotItemOps for T {
         Ok(m.into())
     }
 
-    async fn destroy_items(
+    /// Destroy slot items.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `item_ids`: The slot item instance IDs.
+    pub async fn destroy_items(
         &self,
         profile_id: i64,
         item_ids: &[i64],
     ) -> Result<Vec<(MaterialCategory, i64)>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let scrapped_materials = destroy_items_impl(&tx, codex, profile_id, item_ids).await?;

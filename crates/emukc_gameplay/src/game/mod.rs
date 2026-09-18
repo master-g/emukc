@@ -15,7 +15,6 @@ pub use presets::PresetOps;
 pub use quest::QuestOps;
 pub use settings::SettingsOps;
 pub use ship::ShipOps;
-pub use slot_item::SlotItemOps;
 pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
     SortieNextResponse, SortieOps, SortieStartResponse,
@@ -68,7 +67,6 @@ pub trait GameOps:
     + PresetOps
     + QuestOps
     + ShipOps
-    + SlotItemOps
     + SortieOps
     + UseItemOps
 {
@@ -83,7 +81,7 @@ pub mod ops {
     #[doc(hidden)]
     pub use crate::game::{
         BasicOps, ComposeOps, ExpeditionOps, GameOps, MapOps, PracticeOps, PresetOps, QuestOps,
-        SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
+        SettingsOps, ShipOps, SortieOps, UseItemOps,
     };
 }
 
