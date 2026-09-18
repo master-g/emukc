@@ -7,7 +7,6 @@ pub use expedition::{
     ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
 };
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
-pub use map::MapOps;
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use practice::PracticeOps;
 pub use presets::PresetOps;
@@ -60,7 +59,6 @@ pub trait GameOps:
     ComposeOps
     + ExpeditionOps
     + SettingsOps
-    + MapOps
     + PracticeOps
     + PresetOps
     + QuestOps
@@ -78,8 +76,8 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        ComposeOps, ExpeditionOps, GameOps, MapOps, PracticeOps, PresetOps, QuestOps, SettingsOps,
-        ShipOps, SortieOps, UseItemOps,
+        ComposeOps, ExpeditionOps, GameOps, PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps,
+        SortieOps, UseItemOps,
     };
 }
 

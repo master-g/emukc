@@ -3,7 +3,6 @@ use std::{
     collections::{BTreeMap, BTreeSet},
 };
 
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::map_record,
     sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
@@ -20,7 +19,7 @@ use emukc_model::{
 };
 use emukc_time::{KcTime, chrono::Utc};
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     basic::find_profile,
@@ -37,46 +36,14 @@ pub struct EventMapRankSelection {
     pub sally_flag: [i64; 3],
 }
 
-/// A trait for map related gameplay.
-#[async_trait]
-pub trait MapOps {
+impl Ctx {
     /// Get map records of a profile.
-    async fn get_map_records(
-        &self,
-        profile_id: i64,
-    ) -> Result<Vec<map_record::Model>, GameplayError>;
-
-    /// Get map info view for KCS API.
-    async fn get_map_infos(&self, profile_id: i64) -> Result<Vec<KcApiMapInfo>, GameplayError>;
-
-    /// Select event map rank.
-    async fn select_eventmap_rank(
-        &self,
-        profile_id: i64,
-        maparea_id: i64,
-        mapinfo_no: i64,
-        rank: i64,
-    ) -> Result<EventMapRankSelection, GameplayError>;
-
-    /// Get current combined fleet type.
-    async fn get_combined_type(&self, profile_id: i64) -> Result<i64, GameplayError>;
-
-    /// Set current combined fleet type.
-    async fn set_combined_type(
-        &self,
-        profile_id: i64,
-        combined_type: i64,
-    ) -> Result<i64, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> MapOps for T {
-    async fn get_map_records(
+    pub async fn get_map_records(
         &self,
         profile_id: i64,
     ) -> Result<Vec<map_record::Model>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         ensure_map_records_impl(&tx, codex, profile_id).await?;
@@ -87,9 +54,10 @@ impl<T: HasContext + ?Sized> MapOps for T {
         Ok(records)
     }
 
-    async fn get_map_infos(&self, profile_id: i64) -> Result<Vec<KcApiMapInfo>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Get map info view for KCS API.
+    pub async fn get_map_infos(&self, profile_id: i64) -> Result<Vec<KcApiMapInfo>, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         ensure_map_records_impl(&tx, codex, profile_id).await?;
@@ -101,15 +69,16 @@ impl<T: HasContext + ?Sized> MapOps for T {
         Ok(infos)
     }
 
-    async fn select_eventmap_rank(
+    /// Select event map rank.
+    pub async fn select_eventmap_rank(
         &self,
         profile_id: i64,
         maparea_id: i64,
         mapinfo_no: i64,
         rank: i64,
     ) -> Result<EventMapRankSelection, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         ensure_map_records_impl(&tx, codex, profile_id).await?;
@@ -145,13 +114,15 @@ impl<T: HasContext + ?Sized> MapOps for T {
         })
     }
 
-    async fn get_combined_type(&self, profile_id: i64) -> Result<i64, GameplayError> {
-        let db = self.db();
+    /// Get current combined fleet type.
+    pub async fn get_combined_type(&self, profile_id: i64) -> Result<i64, GameplayError> {
+        let db = self.db.as_ref();
         let profile = find_profile(db, profile_id).await?;
         Ok(profile.combined_type)
     }
 
-    async fn set_combined_type(
+    /// Set current combined fleet type.
+    pub async fn set_combined_type(
         &self,
         profile_id: i64,
         combined_type: i64,
@@ -162,7 +133,7 @@ impl<T: HasContext + ?Sized> MapOps for T {
             ));
         }
 
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         find_profile(&tx, profile_id).await?;
