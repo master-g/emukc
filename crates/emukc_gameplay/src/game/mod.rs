@@ -7,7 +7,6 @@ pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
 pub use expedition::{
     ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
 };
-pub use factory::FactoryOps;
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub use map::MapOps;
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
@@ -63,7 +62,6 @@ pub trait GameOps:
     BasicOps
     + ComposeOps
     + ExpeditionOps
-    + FactoryOps
     + SettingsOps
     + MapOps
     + PracticeOps
@@ -84,8 +82,8 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        BasicOps, ComposeOps, ExpeditionOps, FactoryOps, GameOps, MapOps, PracticeOps, PresetOps,
-        QuestOps, SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
+        BasicOps, ComposeOps, ExpeditionOps, GameOps, MapOps, PracticeOps, PresetOps, QuestOps,
+        SettingsOps, ShipOps, SlotItemOps, SortieOps, UseItemOps,
     };
 }
 

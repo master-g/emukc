@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{kdock, ship},
     sea_orm::{ActiveValue, TransactionTrait, entity::prelude::*},
@@ -17,14 +16,12 @@ use crate::{
         material::{add_material_impl, deduct_material_impl},
         slot_item::{add_slot_item_impl, destroy_items_impl},
     },
-    gameplay::HasContext,
+    gameplay::Ctx,
 };
 
 use super::{ship::add_ship_impl, slot_item::find_slot_item_impl};
 
-/// A trait for factory related gameplay.
-#[async_trait]
-pub trait FactoryOps {
+impl Ctx {
     /// Create slot items.
     ///
     /// # Parameters
@@ -32,82 +29,14 @@ pub trait FactoryOps {
     /// - `profile_id`: The profile ID.
     /// - `mst_id`: The slot item manifest ID.
     /// - `consumption`: The materials consumption.
-    async fn create_slotitem(
-        &self,
-        profile_id: i64,
-        mst_id: &[i64],
-        consumption: &[(MaterialCategory, i64)],
-    ) -> Result<(Vec<i64>, Material), GameplayError>;
-
-    /// Create a ship.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `kdock_id`: The construction dock ID.
-    /// - `mst_id`: The ship manifest ID.
-    /// - `large`: Whether it is a large ship construction.
-    /// - `fast`: Whether it is a high-speed construction.
-    /// - `consumption`: The materials consumption.
-    async fn create_ship(
-        &self,
-        profile_id: i64,
-        kdock_id: i64,
-        mst_id: i64,
-        large: bool,
-        fast: bool,
-        consumption: &[(MaterialCategory, i64)],
-    ) -> Result<(), GameplayError>;
-
-    /// High-speed construction.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `kdock_id`: The construction dock ID.
-    async fn speed_up_ship_construction(
-        &self,
-        profile_id: i64,
-        kdock_id: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Destroy a ship.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `ship_id`: The ship ID.
-    /// - `keep_equipment`: Whether to keep the equipment.
-    async fn destroy_ship(
-        &self,
-        profile_id: i64,
-        ship_id: i64,
-        keep_equipment: bool,
-    ) -> Result<(), GameplayError>;
-
-    /// Complete ship construction.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `kdock_id`: The construction dock ID.
-    async fn complete_ship_construction(
-        &self,
-        profile_id: i64,
-        kdock_id: i64,
-    ) -> Result<(KcApiShip, Vec<KcApiSlotItem>), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> FactoryOps for T {
-    async fn create_slotitem(
+    pub async fn create_slotitem(
         &self,
         profile_id: i64,
         mst_id: &[i64],
         consumption: &[(MaterialCategory, i64)],
     ) -> Result<(Vec<i64>, Material), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let mut slot_ids: Vec<i64> = Vec::new();
@@ -143,7 +72,17 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
         Ok((slot_ids, m))
     }
 
-    async fn create_ship(
+    /// Create a ship.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `kdock_id`: The construction dock ID.
+    /// - `mst_id`: The ship manifest ID.
+    /// - `large`: Whether it is a large ship construction.
+    /// - `fast`: Whether it is a high-speed construction.
+    /// - `consumption`: The materials consumption.
+    pub async fn create_ship(
         &self,
         profile_id: i64,
         kdock_id: i64,
@@ -152,8 +91,8 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
         fast: bool,
         consumption: &[(MaterialCategory, i64)],
     ) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         // deduct material consumption
@@ -207,12 +146,18 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
         Ok(())
     }
 
-    async fn speed_up_ship_construction(
+    /// High-speed construction.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `kdock_id`: The construction dock ID.
+    pub async fn speed_up_ship_construction(
         &self,
         profile_id: i64,
         kdock_id: i64,
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let kdock = find_kdock_impl(&tx, profile_id, kdock_id).await?;
@@ -240,14 +185,21 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
         Ok(())
     }
 
-    async fn destroy_ship(
+    /// Destroy a ship.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `ship_id`: The ship ID.
+    /// - `keep_equipment`: Whether to keep the equipment.
+    pub async fn destroy_ship(
         &self,
         profile_id: i64,
         ship_id: i64,
         keep_equipment: bool,
     ) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let ship_model = ship::Entity::find_by_id(ship_id)
@@ -310,13 +262,19 @@ impl<T: HasContext + ?Sized> FactoryOps for T {
         Ok(())
     }
 
-    async fn complete_ship_construction(
+    /// Complete ship construction.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `kdock_id`: The construction dock ID.
+    pub async fn complete_ship_construction(
         &self,
         profile_id: i64,
         kdock_id: i64,
     ) -> Result<(KcApiShip, Vec<KcApiSlotItem>), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         // find the construction dock
