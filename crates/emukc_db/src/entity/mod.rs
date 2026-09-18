@@ -3,6 +3,41 @@ pub mod profile;
 /// Entities for `EmuKC` user related stuff.
 pub mod user;
 
+/// Declare the single `belongs_to` relation a per-profile entity has.
+///
+/// `find_related` is never called, but `Schema::create_table_from_entity` reads
+/// `Relation` to emit the `FOREIGN KEY` clause, so the declaration has to stay.
+/// `$from` names the local column holding the profile id.
+///
+/// `rustfmt::skip`: rustfmt re-indents the `sea_orm` attribute inside a macro body
+/// on every run, so `cargo fmt --all --check` never converges without it.
+#[rustfmt::skip]
+macro_rules! profile_relation {
+    ($from:literal) => {
+        /// Relation
+        #[derive(Copy, Clone, Debug, sea_orm::EnumIter, sea_orm::DeriveRelation)]
+        pub enum Relation {
+            /// Relation to `Profile`
+            #[sea_orm(
+                belongs_to = "crate::entity::profile::Entity",
+                from = $from,
+                to = "crate::entity::profile::Column::Id"
+            )]
+            Profile,
+        }
+
+        impl sea_orm::Related<crate::entity::profile::Entity> for Entity {
+            fn to() -> sea_orm::RelationDef {
+                sea_orm::RelationTrait::def(&Relation::Profile)
+            }
+        }
+
+        impl sea_orm::ActiveModelBehavior for ActiveModel {}
+    };
+}
+
+pub(crate) use profile_relation;
+
 /// Create the table backing `e` if it does not exist yet.
 pub(crate) async fn create_table<E: sea_orm::EntityTrait>(
     db: &sea_orm::DbConn,

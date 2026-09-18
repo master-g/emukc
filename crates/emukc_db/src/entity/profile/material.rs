@@ -43,21 +43,7 @@ pub struct Model {
     pub last_update_bauxite: DateTime<Utc>,
 }
 
-/// Relation
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    /// Relation to `Profile`
-    #[sea_orm(belongs_to = "super::Entity", from = "Column::ProfileId", to = "super::Column::Id")]
-    Profile,
-}
-
-impl Related<super::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Profile.def()
-    }
-}
-
-impl ActiveModelBehavior for ActiveModel {}
+crate::entity::profile_relation!("Column::ProfileId");
 
 impl From<Material> for ActiveModel {
     fn from(t: Material) -> Self {

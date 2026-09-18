@@ -22,25 +22,7 @@ pub struct Model {
     pub complete_time: DateTime<Utc>,
 }
 
-/// Relation
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    /// Relation to `Profile`
-    #[sea_orm(
-        belongs_to = "crate::entity::profile::Entity",
-        from = "Column::ProfileId",
-        to = "crate::entity::profile::Column::Id"
-    )]
-    Profile,
-}
-
-impl Related<crate::entity::profile::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Profile.def()
-    }
-}
-
-impl ActiveModelBehavior for ActiveModel {}
+crate::entity::profile_relation!("Column::ProfileId");
 
 impl From<QuestOneshotRecord> for ActiveModel {
     fn from(record: QuestOneshotRecord) -> Self {
