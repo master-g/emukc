@@ -1,6 +1,5 @@
 use crate::err::GameplayError;
-use crate::gameplay::HasContext;
-use async_trait::async_trait;
+use crate::gameplay::Ctx;
 use emukc_db::{
     entity::profile::item::pay_item::{self, ActiveModel},
     sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel, entity::prelude::*},
@@ -18,9 +17,7 @@ use super::{
     use_item::add_use_item_impl,
 };
 
-/// A trait for pay item related gameplay.
-#[async_trait]
-pub trait PayItemOps {
+impl Ctx {
     /// Add pay item to a profile.
     ///
     /// # Parameters
@@ -28,56 +25,13 @@ pub trait PayItemOps {
     /// - `profile_id`: The profile ID.
     /// - `mst_id`: The pay item manifest ID.
     /// - `amount`: The amount of the pay item.
-    async fn add_pay_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        amount: i64,
-    ) -> Result<KcApiUserItem, GameplayError>;
-
-    /// Find pay item from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `mst_id`: The pay item manifest ID.
-    async fn find_pay_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-    ) -> Result<KcApiUserItem, GameplayError>;
-
-    /// Get all pay items from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_pay_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError>;
-
-    /// Consume pay item from a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `mst_id`: The pay item manifest ID.
-    /// - `forced`: Whether to force consume the item.
-    async fn consume_pay_item(
-        &self,
-        profile_id: i64,
-        mst_id: i64,
-        forced: bool,
-    ) -> Result<bool, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> PayItemOps for T {
-    async fn add_pay_item(
+    pub async fn add_pay_item(
         &self,
         profile_id: i64,
         mst_id: i64,
         amount: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let am = add_pay_item_impl(&tx, profile_id, mst_id, amount).await?;
@@ -90,12 +44,18 @@ impl<T: HasContext + ?Sized> PayItemOps for T {
         })
     }
 
-    async fn find_pay_item(
+    /// Find pay item from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `mst_id`: The pay item manifest ID.
+    pub async fn find_pay_item(
         &self,
         profile_id: i64,
         mst_id: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let am = find_pay_item_impl(db, profile_id, mst_id).await?;
 
         Ok(KcApiUserItem {
@@ -104,8 +64,16 @@ impl<T: HasContext + ?Sized> PayItemOps for T {
         })
     }
 
-    async fn get_pay_items(&self, profile_id: i64) -> Result<Vec<KcApiUserItem>, GameplayError> {
-        let db = self.db();
+    /// Get all pay items from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_pay_items(
+        &self,
+        profile_id: i64,
+    ) -> Result<Vec<KcApiUserItem>, GameplayError> {
+        let db = self.db.as_ref();
         let items = get_pay_items_impl(db, profile_id).await?;
 
         let items: Vec<UserItem> = items.into_iter().map(std::convert::Into::into).collect();
@@ -114,14 +82,21 @@ impl<T: HasContext + ?Sized> PayItemOps for T {
         Ok(items)
     }
 
-    async fn consume_pay_item(
+    /// Consume pay item from a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `mst_id`: The pay item manifest ID.
+    /// - `forced`: Whether to force consume the item.
+    pub async fn consume_pay_item(
         &self,
         profile_id: i64,
         mst_id: i64,
         forced: bool,
     ) -> Result<bool, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let caution = consume_pay_item_impl(&tx, codex, profile_id, mst_id, forced).await?;
