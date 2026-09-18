@@ -1,11 +1,7 @@
-use axum::{Extension, Router, routing::post};
+use axum::{Router, routing::post};
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
+use crate::net::prelude::*;
 
 pub(super) fn router() -> Router {
     Router::new().route("/mxltvkpyuklh", post(handler))
@@ -37,8 +33,7 @@ pub struct Item {
     api_wuhnhojjxmke: i64,
 }
 
-async fn handler(state: AppState, Extension(session): Extension<GameSession>) -> KcApiResult {
-    let pid = session.profile.id;
+async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let (_, basic) = state.get_user_basic(pid).await?;
 
     let me = Item {
