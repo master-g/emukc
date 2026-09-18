@@ -8,7 +8,6 @@ pub use expedition::{
 };
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
-pub use practice::PracticeOps;
 pub use presets::PresetOps;
 pub use quest::QuestOps;
 pub use settings::SettingsOps;
@@ -55,7 +54,7 @@ mod use_item;
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
 pub trait GameOps:
-    ComposeOps + ExpeditionOps + SettingsOps + PracticeOps + PresetOps + QuestOps + ShipOps + SortieOps
+    ComposeOps + ExpeditionOps + SettingsOps + PresetOps + QuestOps + ShipOps + SortieOps
 {
 }
 
@@ -67,8 +66,7 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        ComposeOps, ExpeditionOps, GameOps, PracticeOps, PresetOps, QuestOps, SettingsOps, ShipOps,
-        SortieOps,
+        ComposeOps, ExpeditionOps, GameOps, PresetOps, QuestOps, SettingsOps, ShipOps, SortieOps,
     };
 }
 

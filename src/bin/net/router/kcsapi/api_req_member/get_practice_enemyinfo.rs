@@ -1,9 +1,7 @@
 use axum::Form;
 use emukc::{
     crypto::SimpleHash,
-    prelude::{
-        KcApiPracticeEnemyDeck, KcApiPracticeEnemyInfo, KcApiPracticeEnemyShip, PracticeOps,
-    },
+    prelude::{KcApiPracticeEnemyDeck, KcApiPracticeEnemyInfo, KcApiPracticeEnemyShip},
 };
 use serde::Deserialize;
 

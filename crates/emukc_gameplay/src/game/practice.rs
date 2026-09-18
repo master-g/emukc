@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::{
@@ -19,7 +18,7 @@ use emukc_time::{
     chrono::{DateTime, Duration, Utc},
 };
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     basic::find_profile,
@@ -50,54 +49,18 @@ pub struct PracticeInfo {
     pub entry_limit: Option<i64>,
 }
 
-/// A trait for practice related gameplay.
-#[async_trait]
-pub trait PracticeOps {
+impl Ctx {
     /// Get practice rivals.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    async fn get_practice_rivals(&self, profile_id: i64) -> Result<PracticeInfo, GameplayError>;
-
-    /// Get practice rival details.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `rival_id`: The rival ID.
-    async fn get_practice_rival_details(
+    pub async fn get_practice_rivals(
         &self,
         profile_id: i64,
-        rival_id: i64,
-    ) -> Result<Rival, GameplayError>;
-
-    /// Start a practice day battle.
-    async fn practice_battle(
-        &self,
-        profile_id: i64,
-        deck_id: i64,
-        formation_id: i64,
-        enemy_id: i64,
-    ) -> Result<PracticeBattleResponse, GameplayError>;
-
-    /// Get the latest practice battle result.
-    async fn practice_battle_result(
-        &self,
-        profile_id: i64,
-    ) -> Result<PracticeBattleResultResponse, GameplayError>;
-
-    async fn practice_midnight_battle(
-        &self,
-        profile_id: i64,
-    ) -> Result<PracticeNightBattleResponse, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> PracticeOps for T {
-    async fn get_practice_rivals(&self, profile_id: i64) -> Result<PracticeInfo, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    ) -> Result<PracticeInfo, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let rivals = get_practice_rivals_impl(&tx, codex, profile_id).await?;
@@ -107,27 +70,34 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         Ok(rivals)
     }
 
-    async fn get_practice_rival_details(
+    /// Get practice rival details.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `rival_id`: The rival ID.
+    pub async fn get_practice_rival_details(
         &self,
         profile_id: i64,
         rival_id: i64,
     ) -> Result<Rival, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let rival = get_practice_rival_details_impl(db, profile_id, rival_id).await?;
 
         Ok(rival)
     }
 
-    async fn practice_battle(
+    /// Start a practice day battle.
+    pub async fn practice_battle(
         &self,
         profile_id: i64,
         deck_id: i64,
         formation_id: i64,
         enemy_id: i64,
     ) -> Result<PracticeBattleResponse, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let rival = get_practice_rival_details_impl(&tx, profile_id, enemy_id).await?;
@@ -153,7 +123,7 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
             member_exp: profile.experience,
         };
 
-        let practice_repo = self.practice_store();
+        let practice_repo = self.practice_store.as_ref();
         let _rng = ProductionRng;
         let mut rng = ProductionRng;
         let (response, snapshot) = run_day_battle(codex, input, practice_repo, &mut rng)?;
@@ -164,27 +134,34 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         Ok(response)
     }
 
-    async fn practice_battle_result(
+    /// Get the latest practice battle result.
+    pub async fn practice_battle_result(
         &self,
         profile_id: i64,
     ) -> Result<PracticeBattleResultResponse, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let practice_repo = self.practice_store();
+        let practice_repo = self.practice_store.as_ref();
         let snapshot = practice_repo.take_pending_result(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "practice battle result not found for profile {profile_id}",
             ))
         })?;
 
-        let snapshot =
-            update_practice_result_stats(&tx, self.codex(), profile_id, snapshot, practice_repo)
-                .await?;
+        let snapshot = update_practice_result_stats(
+            &tx,
+            self.codex.as_ref(),
+            profile_id,
+            snapshot,
+            practice_repo,
+        )
+        .await?;
         update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
             .await?;
         let quest_event = build_practice_quest_event(&snapshot)?;
-        update_quest_progress_for_action(&tx, self.codex(), profile_id, &quest_event).await?;
+        update_quest_progress_for_action(&tx, self.codex.as_ref(), profile_id, &quest_event)
+            .await?;
         practice_repo.clear_pending_battle(profile_id);
 
         tx.commit().await?;
@@ -192,12 +169,12 @@ impl<T: HasContext + ?Sized> PracticeOps for T {
         Ok(build_result_response(snapshot))
     }
 
-    async fn practice_midnight_battle(
+    pub async fn practice_midnight_battle(
         &self,
         profile_id: i64,
     ) -> Result<PracticeNightBattleResponse, GameplayError> {
-        let codex = self.codex();
-        let practice_repo = self.practice_store();
+        let codex = self.codex.as_ref();
+        let practice_repo = self.practice_store.as_ref();
         let mut rng = ProductionRng;
         let (response, snapshot) = run_night_battle(codex, profile_id, practice_repo, &mut rng)
             .ok_or_else(|| {
