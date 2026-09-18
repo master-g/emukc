@@ -1,7 +1,7 @@
 use axum::{Json, Router, routing::post};
 use emukc_internal::{
     model::{profile::Profile, user::token::Token},
-    prelude::{AccountOps, ProfileOps},
+    prelude::ProfileOps,
 };
 use serde::{Deserialize, Serialize};
 use validator::Validate;

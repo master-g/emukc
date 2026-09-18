@@ -13,9 +13,8 @@ use emukc_internal::{
     crypto::rng,
     db::sea_orm::DbConn,
     prelude::{
-        AccountOps, BattleSimulation, Codex, Ctx, HasContext, PRESETS, PracticeStore, Preset,
-        ProfileOps, Scenario, SortieRepository, SortieStore, apply_scenario, new_mem_db,
-        render_day_battle,
+        BattleSimulation, Codex, Ctx, HasContext, PRESETS, PracticeStore, Preset, ProfileOps,
+        Scenario, SortieRepository, SortieStore, apply_scenario, new_mem_db, render_day_battle,
     },
 };
 use serde_json::Value;

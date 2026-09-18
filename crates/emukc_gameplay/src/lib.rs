@@ -38,6 +38,6 @@ pub mod prelude {
         game::types::*,
         gameplay::{Ctx, Gameplay, HasContext},
         scenario::{PRESETS, Preset, Scenario, ShipSpec, apply_scenario},
-        user::{AccountInfo, AccountOps, AuthInfo, ProfileOps, StartGameInfo, UserError},
+        user::{AccountInfo, AuthInfo, ProfileOps, StartGameInfo, UserError},
     };
 }

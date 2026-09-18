@@ -11,7 +11,7 @@ use crate::{
         GameOps,
         sortie_store::{PracticeStore, SortieStore},
     },
-    user::{AccountOps, ProfileOps},
+    user::ProfileOps,
 };
 
 /// A trait for types that have a database connection and a codex.
@@ -82,7 +82,7 @@ impl HasContext for Ctx {
 
 /// Gameplay trait for the game's data and logic.
 #[async_trait]
-pub trait Gameplay: AccountOps + ProfileOps + GameOps {}
+pub trait Gameplay: ProfileOps + GameOps {}
 
 /// Blanket implementation of `Gameplay` for types that implement `HasContext`.
 #[async_trait]

@@ -7,7 +7,7 @@ use axum::{
 };
 use emukc_internal::{
     model::{profile::Profile, user::account::Account},
-    prelude::{AccountOps, AuthInfo},
+    prelude::AuthInfo,
 };
 use http::{StatusCode, header, request::Parts};
 use http_body_util::BodyExt;

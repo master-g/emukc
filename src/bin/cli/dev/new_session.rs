@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 
 use crate::{cfg::AppConfig, state::State};
-use emukc_internal::prelude::{AccountOps, ProfileOps};
+use emukc_internal::prelude::ProfileOps;
 
 /// Bootstrap command arguments
 #[derive(Args, Debug)]

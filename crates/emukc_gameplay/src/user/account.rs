@@ -16,10 +16,9 @@ use emukc_model::{
     },
 };
 use emukc_time::chrono::Utc;
-use prelude::async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::gameplay::HasContext;
+use crate::gameplay::Ctx;
 
 use super::{
     UserError,
@@ -42,52 +41,15 @@ pub enum AuthInfo {
     Profile(Profile),
 }
 
-/// A trait for account related gameplay.
-#[async_trait]
-pub trait AccountOps {
+impl Ctx {
     /// Create a new account.
     ///
     /// # Arguments
     ///
     /// * `username` - The username of the new account.
     /// * `password` - The password of the new account.
-    async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, UserError>;
-
-    /// Sign in with username and password.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - The username of the account.
-    /// * `password` - The password of the account.
-    async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, UserError>;
-
-    /// Authenticate with an access token.
-    ///
-    /// # Arguments
-    ///
-    /// * `token` - The token to authenticate with, usually an access token, or game session token.
-    async fn auth(&self, token: &str) -> Result<AuthInfo, UserError>;
-
-    /// Logout with an access token.
-    ///
-    /// # Arguments
-    ///
-    /// * `access_token` - The access token to logout with.
-    async fn logout(&self, access_token: &str) -> Result<(), UserError>;
-
-    /// Remove an account and all its data.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - The username of the account.
-    /// * `password` - The password of the account.
-    async fn delete_account(&self, username: &str, password: &str) -> Result<(), UserError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> AccountOps for T {
-    async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
-        let db = self.db();
+    pub async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
+        let db = self.db.as_ref();
 
         let tx = db.begin().await?;
 
@@ -138,8 +100,14 @@ impl<T: HasContext + ?Sized> AccountOps for T {
     ///
     /// * `username` - The username of the account.
     /// * `password` - The password of the account.
-    async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
-        let db = self.db();
+    /// Sign in with username and password.
+    ///
+    /// # Arguments
+    ///
+    /// * `username` - The username of the account.
+    /// * `password` - The password of the account.
+    pub async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let model = account::Entity::find()
@@ -169,8 +137,13 @@ impl<T: HasContext + ?Sized> AccountOps for T {
         })
     }
 
-    async fn auth(&self, token: &str) -> Result<AuthInfo, UserError> {
-        let db = self.db();
+    /// Authenticate with an access token.
+    ///
+    /// # Arguments
+    ///
+    /// * `token` - The token to authenticate with, usually an access token, or game session token.
+    pub async fn auth(&self, token: &str) -> Result<AuthInfo, UserError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         // find token record
@@ -235,8 +208,13 @@ impl<T: HasContext + ?Sized> AccountOps for T {
         Ok(info)
     }
 
-    async fn logout(&self, access_token: &str) -> Result<(), UserError> {
-        let db = self.db();
+    /// Logout with an access token.
+    ///
+    /// # Arguments
+    ///
+    /// * `access_token` - The access token to logout with.
+    pub async fn logout(&self, access_token: &str) -> Result<(), UserError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         // find token record
@@ -251,8 +229,14 @@ impl<T: HasContext + ?Sized> AccountOps for T {
         Ok(())
     }
 
-    async fn delete_account(&self, username: &str, password: &str) -> Result<(), UserError> {
-        let db = self.db();
+    /// Remove an account and all its data.
+    ///
+    /// # Arguments
+    ///
+    /// * `username` - The username of the account.
+    /// * `password` - The password of the account.
+    pub async fn delete_account(&self, username: &str, password: &str) -> Result<(), UserError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let model = account::Entity::find()

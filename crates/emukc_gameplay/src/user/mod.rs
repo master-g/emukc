@@ -12,6 +12,6 @@ pub mod err;
 #[doc(hidden)]
 pub mod profile;
 
-pub use account::{AccountInfo, AccountOps, AuthInfo};
+pub use account::{AccountInfo, AuthInfo};
 pub use err::UserError;
 pub use profile::{ProfileOps, StartGameInfo};
