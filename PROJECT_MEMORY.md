@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-07-30 · branch `main`
+Last updated: 2026-09-18 · branch `main`
 
 ## Verified Facts
 
@@ -41,8 +41,8 @@ Current verification baseline:
 - [2026-07-30] The 2026-06-22 "known broken tests" list is resolved and must not be used as a current baseline; use a fresh command exit status for every verification.
 - [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
 - [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions; final linear commit is `0395121`. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
-- [2026-08-26] Update chain is three steps: `bootstrap --overwrite --force-update` (refresh main.js/version.json/codex; `--force-update` now also deletes main.js) → `cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. `make update` runs all three. Verified end-to-end: upstream 6.3.2.1 landed in `z/cache/cache_resources.nedb` (album_main 6.2.5.0 → 6.3.1.0, 70706 → 72743 entries).
-- [2026-08-26] Upstream data drift landed 2026-08: kcwiki empty equipment slots use `null` (not `false`); `version.json` has a nested `resources` object (flattened to dotted keys in `parse_version_info`); webpack module table emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); new event area 62 (maps 621-625, `api_type=1`) is visible to new profiles by design (`is_map_unlocked_by_default`).
+- [2026-08-26] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` (also deletes main.js) → `main-decoder` decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified end-to-end on upstream 6.3.2.1.
+- [2026-08-26] Upstream drift: kcwiki empty equipment slots are `null`, not `false`; `version.json` nests a `resources` object (flattened in `parse_version_info`); webpack emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); event area 62 is unlocked by default by design.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 
 ## Failed Attempts / Pitfalls
@@ -53,29 +53,26 @@ Current verification baseline:
 | Cache downgraded to an older local file on version rollback instead of serving the newer local copy. | git `185c0b8` |
 | `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
 | Clippy warning triage across the workspace. | `docs/solutions/best-practices/resolve-clippy-warnings-triage-2026-05-28.md` |
-| Verifying tests via `grep "test result:"` only catches green lines; FAILED test targets still print a `test result: FAILED` line but it's easy to miss when many suites run. Always check the cargo exit code (`echo $?`) or `\| grep FAILED`, not just the presence of `ok` lines. | plan 004 U5 (2026-06-22) — reported "821 passed" but 3 `sortie_battle.rs` tests were already failing; caught at U7 `-D warnings` sweep |
-| `cargo clippy` (default) ≠ `cargo clippy -- -D warnings`. Default run missed a U6 `match`→`let-else` lint; `-D warnings` caught it. The CLAUDE.md gate specifies `-W warnings`; the plan 004 U7 gate specifies `-D warnings` (strict). Use `-D warnings` for final verification. | plan 004 U7 (2026-06-22) |
+| Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
+| `cargo clippy` default ≠ `-D warnings`: the default run missed a `match`→`let-else` lint. CLAUDE.md gates on `-W warnings`; use `-D warnings` for final verification. | plan 004 U7 (2026-06-22) |
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
 | [2026-07-30] Do not delete a divergent branch merely during cleanup. `codex/fix-cache-list-warnings` contained one valuable commit; it was inspected, rebased onto current `main`, retested, fast-forwarded, then deleted. | git `0395121` |
-| [2026-08-26] The 2026-08-26 stale cache-list incident root cause: `cargo run -- bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed `z/cache/kcs2/js/main.js` (mtime stuck at download date); decode and make-list then faithfully consumed stale inputs. Never diagnose "make-list didn't update" from make-list alone — check `z/cache/kcs2/version.json` content and main.js mtime first. | session 2026-08-26 |
-| [2026-08-26] `clearing_1_1_unlocks_1_2` flakiness is compass-routing + unrepaired damage accumulation, not damage RNG: ~80% of 1-1 sorties dead-end before the boss, and sortie damage/fuel/ammo persist across retries. Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt (12/12 stable). Leveling the fleet alone does NOT fix it (1/8 vs 1/6 failure). | session 2026-08-26 |
-| [2026-08-26] pi-lens edit-time dispatch re-runs shellcheck on every Makefile edit and ignores the `.pi-lens.json` ignore glob (scan path only); shellcheck cannot parse Make syntax, so each edit spawns new SC findings at drifting lines. Fixed at both layers: `.shellcheckrc` (direct runs) + `.pi-lens.json` rules.disable (dispatch output layer) — both committed. Session cache replays persist until the session ends; verify with a live `shellcheck -f json Makefile` run before reacting. | git `b0284d1`, `83ecebb` |
-| [2026-08-26] `find_ship_impl` does NOT filter by profile_id; the natural deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New gameplay ops that find-then-mutate must explicitly compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
-| [2026-08-26] SeaORM `update()` does not write `NotSet` columns — remodel's rebuild-via-`codex.new_ship` + `am.update()` preserves columns the KcApiShip cannot carry. Derived output-only fields (like `api_onslot_max`) must never be round-tripped into their source-of-truth increment columns. | session 2026-08-26 |
+| 2026-08-26 stale cache-list incident: `bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed main.js; decode and make-list then consumed stale inputs. Diagnose from `version.json` and main.js mtime, not from make-list. | session 2026-08-26 |
+| `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
+| pi-lens edit-time dispatch re-runs shellcheck on every Makefile edit and ignores `.pi-lens.json`'s ignore glob; shellcheck cannot parse Make syntax. Fixed in both `.shellcheckrc` and `.pi-lens.json` rules.disable. Session cache replays persist until the session ends. | git `b0284d1`, `83ecebb` |
+| `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
+| SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 
 ## Last Session
 
-[2026-08-26] `main` at `7f510c0` (+`83ecebb`), everything committed (unpushed):
-
-- Fixed the stale cache-list update chain and committed it as 10 commits (`5e6e717`..`247f154`); root cause was bootstrap Phase 2 parse failure on new kcwiki data.
-- Audited upstream 6.3.0.0→6.3.4.0 API drift against sinsinpub/kcs2-assets `api_info/apilist.txt`: 1 new endpoint (`hangar_expand`), 6 new fields, 2 semantic changes, 1 removed field (furnituregraph, already tolerated).
-- Planned and implemented API alignment (plan `docs/plans/2026-08-26-001-feat-api-alignment-6-3-x-plan.md`, deepened by 3 agents + doc-reviewed with 8 fixes): U1 start2 passthrough fields (`df82698`), U2 onslot_plus columns + derived api_onslot_max (`dfaee6f`), U3 expand_hangar_slot + KTD8 read sites (`375ca2f`), U4 HTTP endpoint (`88443f1`), U5 limit_flag/gauge_type_e (`318cebd`), U6 port event_object (`db5c381`), U7 e2e anchor (`7905d5e`). Plus 2 style commits for hook-forced autofixes and 2 chore commits for tooling (`.shellcheckrc`, `.pi-lens.json` rules).
-- Quality gates green: fmt OK, clippy zero new warnings on touched files (pre-existing result_large_err/for_kv_map untouched), `cargo test` 64 + 119 gameplay + crate suites, zero FAILED/skipped.
+- [2026-08-26] `main`, everything committed but unpushed; `cargo fmt`, `clippy -W warnings` and `cargo test` (64 binary + 119 gameplay) all green, zero FAILED or skipped.
+  6.3.x API alignment is fully implemented against `docs/plans/2026-08-26-001-feat-api-alignment-6-3-x-plan.md` (U1-U7), and the stale cache-list update chain was fixed in the same session. Nothing left half-done.
 
 ## Next Session
 
-- [2026-08-26] Real-client smoke test for KTD4 (+1 per useitem 105 expansion increment — unverifiable assumption); decoder extraction of the client-side expansion cap definitions would firm up KTD3's lenient validation.
-- [2026-08-26] wikiwiki scrape for `gauge_type_e` asset key (U5 deferred the data side; model/merge plumbing is ready).
-- [2026-08-26] Decoder reported "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1 — check whether the id-set extraction patterns need updating for the new bundle.
-- [2026-07-30] `docs/plans/2026-07-02-001-feat-vps-deployment-plan.md` is the only explicitly `in-progress` implementation plan; revalidate Docker/Rust/dependency assumptions before executing its units.
-- [2026-07-30] The battle execution plan is implemented but remains under `docs/plans/`; archive or mark it complete deliberately rather than mixing that housekeeping into unrelated code work.
+- [2026-08-26] Open items, in priority order:
+  1. Real-client smoke test for KTD4 (+1 per useitem 105 increment is an unverified assumption); decoding the client-side expansion cap would firm up KTD3's lenient validation.
+  2. wikiwiki scrape for the `gauge_type_e` asset key — U5 left the data side open, model/merge plumbing is ready.
+  3. Decoder reports "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1; check whether the id-set extraction patterns need updating for the new bundle.
+  4. `docs/plans/2026-07-02-001-feat-vps-deployment-plan.md` is the only `in-progress` plan; revalidate its Docker/Rust/dependency assumptions before executing its units.
+  5. Archive or mark complete the already-implemented battle execution plan under `docs/plans/`, deliberately rather than mixed into unrelated work.
