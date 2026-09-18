@@ -6,7 +6,6 @@ pub use compose::{PowerupResp, SlotDepriveParams};
 pub use expedition::{ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo};
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
-pub use quest::QuestOps;
 pub use ship::ShipOps;
 pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
@@ -49,7 +48,7 @@ mod use_item;
 
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
-pub trait GameOps: QuestOps + ShipOps + SortieOps {}
+pub trait GameOps: ShipOps + SortieOps {}
 
 #[async_trait::async_trait]
 impl<T: HasContext + ?Sized> GameOps for T {}
@@ -58,7 +57,7 @@ pub mod ops {
     //! The ops traits prelude.
 
     #[doc(hidden)]
-    pub use crate::game::{GameOps, QuestOps, ShipOps, SortieOps};
+    pub use crate::game::{GameOps, ShipOps, SortieOps};
 }
 
 pub mod types {

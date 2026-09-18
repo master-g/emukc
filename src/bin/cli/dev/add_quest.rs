@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::Args;
 
 use crate::{cfg::AppConfig, state::State};
-use emukc_internal::prelude::QuestOps;
 
 /// Bootstrap command arguments
 #[derive(Args, Debug)]

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{
         expedition,
@@ -22,65 +21,12 @@ use crate::{
         consume::handle_consumption, consume::handle_module_conversion,
         record::mark_quest_as_completed,
     },
-    gameplay::HasContext,
+    gameplay::Ctx,
 };
 
 mod consume;
 mod record;
 pub(crate) mod update;
-
-/// A trait for quest related gameplay.
-#[async_trait]
-pub trait QuestOps {
-    /// Get all quest records of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_quest_records(
-        &self,
-        profile_id: i64,
-    ) -> Result<Vec<quest::progress::Model>, GameplayError>;
-
-    /// Add a quest to a profile.
-    /// for debugging only
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `quest_id`: The quest ID.
-    async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
-
-    /// Start a quest for a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `quest_id`: The quest ID.
-    async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
-
-    /// Stop a quest for a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `quest_id`: The quest ID.
-    async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError>;
-
-    /// Clear a quest and claim its reward for a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `quest_id`: The quest ID.
-    /// - `reward_choices`: The reward choices, if any.
-    async fn quest_clear_and_claim_reward(
-        &self,
-        profile_id: i64,
-        quest_id: i64,
-        reward_choices: Option<Vec<i64>>,
-    ) -> Result<KcApiQuestClearItemGet, GameplayError>;
-}
 
 async fn update_quest_status<C>(
     c: &C,
@@ -172,19 +118,23 @@ where
     Ok(())
 }
 
-#[async_trait]
-impl<T: HasContext + ?Sized> QuestOps for T {
+impl Ctx {
     /// Get all quest records of a profile.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    async fn get_quest_records(
+    /// Get all quest records of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_quest_records(
         &self,
         profile_id: i64,
     ) -> Result<Vec<quest::progress::Model>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let mut tx = db.begin().await?;
 
         if update_quests_impl(&tx, codex, profile_id).await? {
@@ -206,11 +156,18 @@ impl<T: HasContext + ?Sized> QuestOps for T {
             .await?)
     }
 
-    async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Add a quest to a profile.
+    /// for debugging only
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    pub async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let codex = self.codex();
+        let codex = self.codex.as_ref();
         let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
 
         let (requirements, typ) = match &quest_manifest.requirements {
@@ -246,9 +203,15 @@ impl<T: HasContext + ?Sized> QuestOps for T {
         Ok(())
     }
 
-    async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Start a quest for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    pub async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_quest_status(&tx, profile_id, quest_id, Status::Activated, Some(codex)).await?;
@@ -259,8 +222,14 @@ impl<T: HasContext + ?Sized> QuestOps for T {
         Ok(())
     }
 
-    async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Stop a quest for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    pub async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_quest_status(&tx, profile_id, quest_id, Status::Idle, None).await?;
@@ -270,13 +239,20 @@ impl<T: HasContext + ?Sized> QuestOps for T {
         Ok(())
     }
 
-    async fn quest_clear_and_claim_reward(
+    /// Clear a quest and claim its reward for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    /// - `reward_choices`: The reward choices, if any.
+    pub async fn quest_clear_and_claim_reward(
         &self,
         profile_id: i64,
         quest_id: i64,
         reward_choices: Option<Vec<i64>>,
     ) -> Result<KcApiQuestClearItemGet, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         // find the quest
@@ -314,7 +290,7 @@ impl<T: HasContext + ?Sized> QuestOps for T {
 
         // reconstruct quest tree
         // this will be called by mainjs, but we do it here to ensure consistency
-        let codex = self.codex();
+        let codex = self.codex.as_ref();
         update_quests_impl(&tx, codex, profile_id).await?;
 
         let quest_mst = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
