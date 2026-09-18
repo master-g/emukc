@@ -117,7 +117,7 @@ emukc (binary)          - CLI + HTTP server (axum)
 
 ### Key Architectural Patterns
 
-**Gameplay trait system** (`emukc_gameplay`): Each game domain (ships, quests, materials, fleets, etc.) defines an async trait (e.g., `ShipOps`, `QuestOps`, `MaterialOps`). All traits have blanket implementations for any type implementing `HasContext`, which provides access to `DbConn` and `Codex`. The top-level `Gameplay` trait composes all domain traits.
+**Gameplay context** (`emukc_gameplay`): `gameplay::Ctx` is a concrete type holding `Arc<DbConn>`, `Arc<Codex>` and the two runtime stores (`SortieStore`, `PracticeStore`). Every game domain (ships, quests, materials, fleets, etc.) adds its operations as inherent `pub async fn`s in an `impl Ctx` block in its own module — one signature, one body, no `#[async_trait]`. Types that own a context (the server `State`, the integration `TestContext`, the `battle sim` `SimContext`) embed a `Ctx` and `Deref` to it, so `state.some_op(..)` resolves through autoderef. See `docs/solutions/architecture-patterns/gameplay-context.md`.
 
 **Codex** (`emukc_model::codex::Codex`): An in-memory read-only snapshot of all game manifest data (ship stats, equipment data, quest definitions, etc.), loaded from disk at startup. It is the single source of truth for game configuration.
 
@@ -162,12 +162,12 @@ Typical workflow for a bad battle payload:
 
 1. **Database**: Add SeaORM entity in `crates/emukc_db/src/entity/profile/`
 2. **Model**: Add API types in `crates/emukc_model/src/kc2/`
-3. **Gameplay**: Add `XxxOps` trait in `crates/emukc_gameplay/src/game/`, with `_impl` functions for reuse, blanket impl on `HasContext`
+3. **Gameplay**: Add the operation as an inherent `pub async fn` on `Ctx` in `crates/emukc_gameplay/src/game/`, with `_impl` functions for cross-domain and in-transaction reuse
 4. **Handler**: Add axum handler in `src/bin/net/router/kcsapi/`, register route in the module's `router()` function
 
 ### Gameplay `_impl` Pattern
 
-Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `add_material_impl`) and take a generic `C: ConnectionTrait` parameter. This allows them to participate in database transactions started by the public trait methods and be called from other gameplay modules.
+Internal gameplay functions are suffixed with `_impl` (e.g., `add_ship_impl`, `add_material_impl`) and take a generic `C: ConnectionTrait` parameter. This allows them to participate in database transactions started by the public `Ctx` methods and be called from other gameplay modules.
 
 ## Code Style
 
@@ -256,7 +256,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 
 - 使用空格缩进：Rust/通用文件 4 空格，YAML/JSON 2 空格；以 `.editorconfig` 和 `.rustfmt.toml` 为准。
 - 工作区禁止 `unsafe_code`，`missing_docs` 为 warning；不要绕过 Clippy 告警。
-- 严格保持 crate 单向分层；跨领域写操作使用 gameplay trait，内部事务复用函数采用 `_impl` + `C: ConnectionTrait`。
+- 严格保持 crate 单向分层；跨领域写操作使用 `Ctx` 上的 gameplay 方法，内部事务复用函数采用 `_impl` + `C: ConnectionTrait`。
 - 二进制 crate 可使用 `emukc_internal::prelude::*`；新增代码优先沿用邻近模块既有模式。
 - 提交使用 Conventional Commits，英文消息，不加入 AI attribution。
 

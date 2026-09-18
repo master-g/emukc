@@ -18,8 +18,8 @@ related_components: [emukc_db, emukc_model]
 
 ## Context
 
-Materials are the 8 core resources tracked per profile. `MaterialOps`
-(`emukc_gameplay`) governs representation, caps, atomic deduction,
+Materials are the 8 core resources tracked per profile. The material operations
+on `gameplay::Ctx` (`emukc_gameplay`) govern representation, caps, atomic deduction,
 regeneration, initialization, and SeaORM persistence under
 `entity::profile::material`. Migrated from the retired openspec material capability spec (see `docs/migration/openspec-sunset-log.md`).
 

@@ -19,7 +19,8 @@ related_components: [emukc_model, emukc_db]
 ## Context
 
 Quests follow a state machine and receive progress updates from virtually
-every gameplay domain. `QuestOps` (`emukc_gameplay`) manages activation,
+every gameplay domain. The quest operations on `gameplay::Ctx`
+(`emukc_gameplay`) manage activation,
 condition evaluation (And/OneOf/Sequential), reward distribution, and
 persistence across three entity types under `entity::profile::quest`.
 Definitions come from the Codex's third-party quest data (`Kc3rdQuestMap`).
@@ -30,7 +31,8 @@ Migrated from the retired openspec quest capability spec (see `docs/migration/op
 ### Quest lifecycle
 
 Quests SHALL follow a state machine: idle → activated → completed (claimed),
-via `QuestOps`. Definitions come from the Codex `Kc3rdQuestMap`.
+via the quest operations on `Ctx`. Definitions come from the Codex
+`Kc3rdQuestMap`.
 
 - Availability: when quest records are retrieved (`get_quest_records`), the
   quest tree is updated via `update_quests_impl` (adds new quests, removes

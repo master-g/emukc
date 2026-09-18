@@ -17,8 +17,9 @@ Last updated: 2026-09-18 · branch `main`
 Architecture (→ CLAUDE.md § Architecture):
 
 - Layered crates; dependencies flow downward only.
-- Gameplay domain traits are async, with blanket impls on `HasContext`; the top-level trait composes all domains.
-- Internal helpers are suffixed `_impl` and take `C: ConnectionTrait`, so they can join transactions started by public trait methods and be reused across modules.
+- [2026-09-18] Gameplay ops are inherent `async fn`s on the concrete `gameplay::Ctx`; owners (`State`, `TestContext`, `SimContext`) embed it and `Deref`, which keeps `state.foo(..)` call sites unchanged.
+- [2026-09-18] No `XxxOps`/`GameOps`/`Gameplay`/`HasContext` trait and no `async-trait` in `emukc_gameplay`. Source: `docs/solutions/architecture-patterns/gameplay-context.md`.
+- Internal helpers are suffixed `_impl` and take `C: ConnectionTrait`, so they can join transactions started by public `Ctx` methods and be reused across modules. Cross-domain writes go through `_impl`, not through a second inherent method (that would open a nested transaction).
 - `Codex`: read-only in-memory manifest snapshot, loaded at startup, never mutates — single source of truth for game config.
 - DB scope split: `entity::user` (accounts / tokens) vs `entity::profile` (per-player state).
 - KCSAPI responses use the `svdata=` prefix; handlers return `KcApiResponse`.
@@ -62,17 +63,26 @@ Current verification baseline:
 | pi-lens edit-time dispatch re-runs shellcheck on every Makefile edit and ignores `.pi-lens.json`'s ignore glob; shellcheck cannot parse Make syntax. Fixed in both `.shellcheckrc` and `.pi-lens.json` rules.disable. Session cache replays persist until the session ends. | git `b0284d1`, `83ecebb` |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
+| [2026-09-18] `crates/emukc_gameplay/tests/practice_battle.rs` asserts an unseeded battle's `api_win_rank`, so 2 of its 11 tests fail at roughly a 1-in-3 rate on any commit — it is not a regression signal. Re-run the single target before blaming a change. | session 2026-09-18 |
+| [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
 
 ## Last Session
 
-- [2026-08-26] `main`, everything committed but unpushed; `cargo fmt`, `clippy -W warnings` and `cargo test` (64 binary + 119 gameplay) all green, zero FAILED or skipped.
-  6.3.x API alignment is fully implemented against `docs/plans/2026-08-26-001-feat-api-alignment-6-3-x-plan.md` (U1-U7), and the stale cache-list update chain was fixed in the same session. Nothing left half-done.
+- [2026-09-18] `main`, all committed and unpushed.
+  `docs/plans/2026-09-18-001-refactor-eliminate-boilerplate-plan.md` is fully executed (U1-U8; U5 withdrawn):
+  handler prelude + `Pid` extractor, `entity::create_table` + `profile_relation!`, struct-literal
+  convergence, and the removal of the whole gameplay trait layer in favour of `Ctx`.
+  Gate green at `cargo fmt --all --check`, `cargo clippy --workspace -- -W warnings` and `cargo test`,
+  with generated assets and `battle_golden.rs` byte-identical to the `3822dd8` baseline.
+  Nothing left half-done.
 
 ## Next Session
 
-- [2026-08-26] Open items, in priority order:
-  1. Real-client smoke test for KTD4 (+1 per useitem 105 increment is an unverified assumption); decoding the client-side expansion cap would firm up KTD3's lenient validation.
-  2. wikiwiki scrape for the `gauge_type_e` asset key — U5 left the data side open, model/merge plumbing is ready.
-  3. Decoder reports "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1; check whether the id-set extraction patterns need updating for the new bundle.
-  4. `docs/plans/2026-07-02-001-feat-vps-deployment-plan.md` is the only `in-progress` plan; revalidate its Docker/Rust/dependency assumptions before executing its units.
-  5. Archive or mark complete the already-implemented battle execution plan under `docs/plans/`, deliberately rather than mixed into unrelated work.
+- [2026-09-18] Open items, in priority order:
+  1. Make the two `practice_battle` win-rank assertions deterministic (seed the RNG or assert on the recorded result), so `cargo test` stops failing at random.
+  2. Real-client smoke test for KTD4 of the 6.3.x alignment plan (+1 per useitem 105 increment is still an unverified assumption).
+  3. wikiwiki scrape for the `gauge_type_e` asset key — model/merge plumbing is ready, the data side is open.
+  4. Decoder reports "ship id-sets unresolved: 4, slot id-sets unresolved: 2" on 6.3.4.1; check the id-set extraction patterns against the new bundle.
+  5. `docs/plans/2026-07-02-001-feat-vps-deployment-plan.md` is the only `in-progress` plan; revalidate its Docker/Rust/dependency assumptions before executing its units.
+  6. Archive or mark complete the already-implemented battle execution plan under `docs/plans/`, deliberately rather than mixed into unrelated work.
+

@@ -18,8 +18,8 @@ related_components: [emukc_db, emukc_crypto]
 ## Context
 
 Accounts authenticate via username/password and tokens; accounts support
-multiple profiles with independent game state. `AccountOps` and `ProfileOps`
-(`emukc_gameplay`) govern registration, token issuance/validation, session
+multiple profiles with independent game state. The account and profile
+operations on `gameplay::Ctx` (`emukc_gameplay`) govern registration, token issuance/validation, session
 management, and per-profile initialization. Migrated from
 the retired openspec user-lifecycle capability spec (see `docs/migration/openspec-sunset-log.md`).
 
@@ -28,7 +28,7 @@ the retired openspec user-lifecycle capability spec (see `docs/migration/openspe
 ### Account registration and authentication
 
 The system SHALL allow account creation with username/password and
-authentication via tokens, via `AccountOps`.
+authentication via tokens, via the account operations on `Ctx`.
 
 - New account registration: valid username (≥ 4 chars) + password (≥ 7 chars)
   → hashed password, access token + refresh token issued, no profiles
@@ -51,8 +51,8 @@ authentication via tokens, via `AccountOps`.
 
 ### Profile management
 
-Accounts SHALL support multiple profiles with independent game state, via
-`ProfileOps`.
+Accounts SHALL support multiple profiles with independent game state, via the
+profile operations on `Ctx`.
 
 - New profile creation (authenticated account, unique name) → new profile
   record with a session token; game data initialized via

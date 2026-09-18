@@ -17,8 +17,9 @@ related_components: [emukc_battle, emukc_model]
 
 ## Context
 
-A sortie is a stateful progression through a map. The `SortieOps` trait
-(`emukc_gameplay`) manages the in-memory `SortieStore` keyed to a profile, the
+A sortie is a stateful progression through a map. The sortie operations on
+`gameplay::Ctx` (`emukc_gameplay`) manage the in-memory `SortieStore` keyed to a
+profile, the
 fleet consumption gating, battle node simulation via the `emukc_battle`
 subsystem, and the Codex map cell metadata that the client relies on for
 correct UI (battle triggers, boss cell, level caps). Migrated from
@@ -29,7 +30,7 @@ the retired openspec sortie capability spec (see `docs/migration/openspec-sunset
 ### Day battle simulation
 
 When the player encounters a battle node, a day battle SHALL be simulated via
-`SortieOps::sortie_battle`.
+`Ctx::sortie_battle`.
 
 - For a normal day battle, enemy fleet composition is resolved from the Codex
   map cell definition (or the fallback enemy builder on the degraded path); the
@@ -99,7 +100,7 @@ marriage/leveling progression economy.
 
 ## When to Apply
 
-- When implementing or modifying `SortieOps` or the `SortieStore`.
+- When implementing or modifying the sortie operations or the `SortieStore`.
 - When authoring or regenerating Codex `map_catalog.json` cell metadata.
 - When adding any XP-granting mechanism (sortie, practice, quest rewards).
 

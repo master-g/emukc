@@ -19,7 +19,8 @@ related_components: [emukc_db]
 
 The `api_get_member/useitem` and `api_get_member/require_info` endpoints expose
 bucket, torch, devmat, and screw counts. These four special resources live in
-the `material` table (managed by `MaterialOps`), not the `use_item` table.
+the `material` table (managed by the material operations on `Ctx`), not the
+`use_item` table.
 Migrated from the retired openspec useitem-response capability spec (see `docs/migration/openspec-sunset-log.md`).
 
 ## Guidance

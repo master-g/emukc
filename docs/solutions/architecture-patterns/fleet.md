@@ -18,9 +18,9 @@ related_components: [emukc_model, emukc_db]
 
 ## Context
 
-Fleets (up to 4 decks of 6 ship positions) are managed by `FleetOps`
-(`emukc_gameplay`), with presets via `PresetOps` and resupply via
-`ComposeOps::charge_supply`. This contract also covers remodel-time equipment
+Fleets (up to 4 decks of 6 ship positions) are managed by the fleet operations
+on `gameplay::Ctx` (`emukc_gameplay`), with presets via the preset operations
+and resupply via `Ctx::charge_supply`. This contract also covers remodel-time equipment
 assignment correctness, aircraft-capacity data audit bounds, existing-data
 repair, HP restoration, and the CT repair-time modifier. Migrated from
 the retired openspec fleet capability spec (see `docs/migration/openspec-sunset-log.md`).
@@ -30,7 +30,7 @@ the retired openspec fleet capability spec (see `docs/migration/openspec-sunset-
 ### Fleet slots
 
 Each profile SHALL have up to 4 fleet slots (decks), each holding up to 6 ship
-positions, via `FleetOps`.
+positions, via the fleet operations on `Ctx`.
 
 - Initial state: on profile initialization, fleet slot 1 is unlocked via
   `unlock_fleet_impl` with no ships assigned (all -1); slots 2–4 do not exist
@@ -43,7 +43,7 @@ positions, via `FleetOps`.
 ### Ship assignment
 
 Ships SHALL be assigned as an ordered array of 6 ship IDs (-1 for empty) via
-`FleetOps::update_fleet_ships`.
+`Ctx::update_fleet_ships`.
 
 - Valid index + 6-element array: positions updated to match, stored in order.
 - Invalid fleet index (no fleet record) SHALL fail with an `EntryNotFound`
@@ -65,7 +65,7 @@ Ships SHALL be assigned as an ordered array of 6 ship IDs (-1 for empty) via
 ### Resupply
 
 Fleets consume fuel/ammo during sorties and MUST be resupplied via
-`ComposeOps::charge_supply`:
+`Ctx::charge_supply`:
 
 - Fuel and ammo are deducted from the profile's materials; each ship's current
   fuel/ammo are restored toward maximum values.
@@ -73,7 +73,8 @@ Fleets consume fuel/ammo during sorties and MUST be resupplied via
 
 ### Presets
 
-Profiles SHALL save/load fleet composition presets via `PresetOps`: saving
+Profiles SHALL save/load fleet composition presets via the preset operations on
+`Ctx`: saving
 stores ship IDs; loading replaces the current composition with the preset's
 ships.
 
