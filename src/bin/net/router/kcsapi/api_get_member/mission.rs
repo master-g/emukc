@@ -1,12 +1,6 @@
-use axum::Extension;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Resp {
@@ -14,12 +8,8 @@ struct Resp {
     api_limit_time: Option<[i64; 1]>,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let codex = state.codex();
-    let pid = session.profile.id;
     let (models, enter_limit) = state.get_expeditions(pid).await?;
 
     let api_list_items = codex

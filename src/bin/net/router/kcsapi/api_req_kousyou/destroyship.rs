@@ -1,13 +1,7 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::prelude::*;
-
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
+use crate::net::prelude::*;
 
 #[derive(Deserialize, Debug)]
 pub(super) struct Params {
@@ -27,10 +21,9 @@ struct Resp {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
     let keep_equipment = params.api_slot_dest_flag == 0;
 
     for ship_id_str in params.api_ship_id.split(',') {

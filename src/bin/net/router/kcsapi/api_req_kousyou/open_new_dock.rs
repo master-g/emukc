@@ -1,19 +1,6 @@
-use axum::Extension;
+use crate::net::prelude::*;
 
-use emukc_internal::prelude::*;
-
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
-
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     state.expand_construction_dock(pid).await?;
 
     Ok(KcApiResponse::empty())

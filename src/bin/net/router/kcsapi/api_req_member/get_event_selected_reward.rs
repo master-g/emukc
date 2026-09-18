@@ -1,13 +1,8 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::Deserialize;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-// use emukc_internal::prelude::*;
-
+use crate::net::prelude::*;
+//
 #[derive(Deserialize)]
 pub(super) struct Params {
     api_selected_dict: i64,
@@ -15,11 +10,9 @@ pub(super) struct Params {
 
 pub(super) async fn handler(
     _state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
-
     debug!("get_event_selected_reward: pid={}, selected_dict={}", pid, params.api_selected_dict);
 
     Ok(KcApiResponse::empty())

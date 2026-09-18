@@ -1,12 +1,6 @@
-use axum::Extension;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Item {
@@ -18,11 +12,7 @@ struct Item {
     api_count: i64,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let pay_items = state.get_pay_items(pid).await?;
 
     let resp: Vec<Item> = pay_items

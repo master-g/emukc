@@ -1,14 +1,10 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::{crypto::rng, prelude::*};
+use emukc_internal::crypto::rng;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    err::ApiError,
-    resp::{KcApiResponse, KcApiResult},
-};
+use crate::net::err::ApiError;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {
@@ -47,10 +43,9 @@ pub struct UnsetItem {
 #[axum_macros::debug_handler]
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
     let codex = state.codex();
 
     let costs = if params.api_multiple_flag == 0 {

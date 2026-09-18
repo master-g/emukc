@@ -1,11 +1,7 @@
-use axum::{Extension, Router, routing::post};
+use axum::{Router, routing::post};
 use serde::Serialize;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
+use crate::net::prelude::*;
 
 pub(super) fn router() -> Router {
     Router::new().route("/paycheck", post(handler))
@@ -16,10 +12,7 @@ struct PaycheckResp {
     api_check_value: i64,
 }
 
-pub(super) async fn handler(
-    _state: AppState,
-    Extension(_session): Extension<GameSession>,
-) -> KcApiResult {
+pub(super) async fn handler(_state: AppState) -> KcApiResult {
     Ok(KcApiResponse::success(&PaycheckResp {
         api_check_value: 1,
     }))
@@ -33,8 +26,7 @@ mod tests {
     #[tokio::test]
     async fn paycheck_returns_success_with_check_value_1() {
         let context = new_test_context().await;
-        let resp =
-            handler(app_state(&context.state), Extension(context.session.clone())).await.unwrap();
+        let resp = handler(app_state(&context.state)).await.unwrap();
         let data = resp.api_data.unwrap();
         assert_eq!(data["api_check_value"], 1);
     }

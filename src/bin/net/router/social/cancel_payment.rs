@@ -1,7 +1,7 @@
-use axum::{Extension, Json};
+use axum::Json;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{AppState, auth::GameSession};
+use crate::net::prelude::*;
 use crate::state::State;
 
 #[derive(Debug, Deserialize)]
@@ -25,14 +25,14 @@ struct ErrorResponse {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     axum::extract::Query(query): axum::extract::Query<CancelQuery>,
 ) -> Json<serde_json::Value> {
     let state: &State = state.as_ref();
     let payment_id = query.payment_id.clone();
 
     match state.payment_store.get(&payment_id) {
-        Some(session_data) if session_data.profile_id != session.profile.id => {
+        Some(session_data) if session_data.profile_id != pid => {
             return Json(serde_json::json!(ErrorResponse {
                 response_code: "ERROR".to_string(),
                 msg: "profile mismatch".to_string(),
@@ -54,7 +54,7 @@ pub(super) async fn handler(
 mod tests {
     use super::*;
     use crate::state::PaymentSession;
-    use emukc_internal::prelude::*;
+    use axum::Extension;
     use std::sync::Arc;
 
     async fn setup() -> (Arc<State>, GameSession) {
@@ -132,12 +132,12 @@ mod tests {
         payment_id: &str,
     ) -> serde_json::Value {
         let state_ext: AppState = Extension(state.clone());
-        let session_ext: Extension<GameSession> = Extension(session.clone());
+        let pid = Pid(session.profile.id);
         let query = axum::extract::Query(CancelQuery {
             payment_id: payment_id.to_string(),
             st: None,
         });
-        handler(state_ext, session_ext, query).await.0
+        handler(state_ext, pid, query).await.0
     }
 
     #[tokio::test]

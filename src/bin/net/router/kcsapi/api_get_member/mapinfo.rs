@@ -1,12 +1,6 @@
-use axum::Extension;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Resp {
@@ -15,12 +9,7 @@ struct Resp {
     api_map_info: Vec<KcApiMapInfo>,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
-
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let airbases = state.get_airbases(pid).await?;
     let api_air_base_expanded_info = airbases
         .iter()
@@ -49,7 +38,7 @@ mod tests {
     async fn handler_returns_runtime_map_catalog_entries() {
         let context = new_test_context().await;
         let resp =
-            handler(app_state(&context.state), Extension(context.session.clone())).await.unwrap();
+            handler(app_state(&context.state), Pid(context.session.profile.id)).await.unwrap();
         let data = resp.api_data.unwrap();
         let infos = data["api_map_info"].as_array().unwrap();
 

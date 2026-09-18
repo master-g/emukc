@@ -1,5 +1,5 @@
 use axum::{
-    Form, RequestPartsExt,
+    Extension, Form, RequestPartsExt,
     body::Body,
     extract::{FromRef, FromRequest, FromRequestParts, Request},
     middleware::Next,
@@ -64,6 +64,25 @@ pub(super) async fn auth_middleware(request: Request, next: Next) -> Result<Resp
 pub(super) struct GameSession {
     pub token: String,
     pub profile: Profile,
+}
+
+/// Profile id of the authenticated game session.
+///
+/// Rejects exactly like `Extension<GameSession>`, which it reads from.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct Pid(pub i64);
+
+impl<S> FromRequestParts<S> for Pid
+where
+    S: Send + Sync,
+{
+    type Rejection = <Extension<GameSession> as FromRequestParts<S>>::Rejection;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        Extension::<GameSession>::from_request_parts(parts, state)
+            .await
+            .map(|Extension(session)| Self(session.profile.id))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

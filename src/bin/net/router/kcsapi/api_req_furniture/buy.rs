@@ -1,12 +1,7 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub(super) struct Params {
@@ -17,13 +12,11 @@ pub(super) struct Params {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
     let codex = state.codex();
     let mst = codex.find::<ApiMstFurniture>(&params.api_no)?;
-
-    let pid = session.profile.id;
 
     let price = mst.api_price;
     let needs_craftman = Codex::furniture_needs_craftman(price);

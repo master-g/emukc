@@ -1,13 +1,7 @@
-use axum::Extension;
 use serde::Serialize;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-    router::kcs2::GIT_HASH,
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
+use crate::net::router::kcs2::GIT_HASH;
 
 /// Event-map combined-fleet UI capability (plan KTD7): emukc supports
 /// combined types 0..=3 including transport, so emit 2 (all selectable).
@@ -32,12 +26,7 @@ struct Resp {
     api_c_flag2: i64,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
-
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     // Clear stale sortie state from mid-sortie disconnects.
     state.clear_sortie_state_if_any(pid).await;
 

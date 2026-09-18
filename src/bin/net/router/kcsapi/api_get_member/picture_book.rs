@@ -1,16 +1,11 @@
 use std::collections::BTreeMap;
 
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::{model::profile::picture_book::PictureBookShip, prelude::*};
+use emukc_internal::model::profile::picture_book::PictureBookShip;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    err::ApiError,
-    resp::{KcApiError, KcApiResponse, KcApiResult},
-};
+use crate::net::{err::ApiError, prelude::*, resp::KcApiError};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {
@@ -74,13 +69,11 @@ struct SlotItem {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
     let start_index = (params.api_no - 1) * 70 + 1;
     let end_index = start_index + 70;
-
-    let pid = session.profile.id;
 
     match params.api_type {
         1 => ship_book(state, pid, start_index, end_index).await,

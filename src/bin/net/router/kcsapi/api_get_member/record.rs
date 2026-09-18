@@ -1,12 +1,7 @@
-use axum::Extension;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::{model::kc2::level, prelude::*};
+use crate::net::prelude::*;
+use emukc_internal::model::kc2::level;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Record {
@@ -50,12 +45,7 @@ struct Rate {
     api_win: String,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
-
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let air_bases = state.get_airbases(pid).await?;
     let api_air_base_expanded_info = air_bases
         .iter()

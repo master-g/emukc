@@ -1,14 +1,9 @@
-use axum::{Extension, Form};
+use axum::Form;
 use emukc::prelude::SettingsOps;
 use serde::Deserialize;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-// use emukc_internal::prelude::*;
-
+use crate::net::prelude::*;
+//
 #[derive(Deserialize)]
 pub(super) struct Params {
     // 0: denied, 1: approved
@@ -20,11 +15,9 @@ pub(super) struct Params {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
-
     debug!(
         "set_friendly_request: pid={}, request_flag={}, request_type={}",
         pid, params.api_request_flag, params.api_request_type

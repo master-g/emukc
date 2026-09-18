@@ -1,13 +1,8 @@
-use axum::{Extension, Form};
+use axum::Form;
 use emukc::model::profile::preset_deck::PresetDeckItem;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {
@@ -18,10 +13,9 @@ pub(super) struct Params {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
     let fleet = state.get_fleet(pid, params.api_deck_id).await?;
 
     let preset = PresetDeckItem {

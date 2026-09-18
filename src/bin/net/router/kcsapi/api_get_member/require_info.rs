@@ -1,14 +1,8 @@
 use std::collections::BTreeMap;
 
-use axum::Extension;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct UserBasic {
@@ -30,11 +24,7 @@ struct Resp {
     api_useitem: Vec<KcApiUserItem>,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let resp = build_require_info_response(state.0.as_ref(), pid).await?;
     Ok(KcApiResponse::success(&resp))
 }

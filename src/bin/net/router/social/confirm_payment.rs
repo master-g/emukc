@@ -1,8 +1,8 @@
-use axum::{Extension, Json};
+use axum::Json;
 use emukc_internal::prelude::PayItemOps;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{AppState, auth::GameSession};
+use crate::net::prelude::*;
 use crate::state::State;
 
 #[derive(Debug, Deserialize)]
@@ -26,7 +26,7 @@ struct ErrorResponse {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     axum::extract::Query(query): axum::extract::Query<ConfirmQuery>,
 ) -> Json<serde_json::Value> {
     let state: &State = state.as_ref();
@@ -38,7 +38,7 @@ pub(super) async fn handler(
         }));
     };
 
-    if session_data.profile_id != session.profile.id {
+    if session_data.profile_id != pid {
         return Json(serde_json::json!(ErrorResponse {
             response_code: "ERROR".to_string(),
             msg: "profile mismatch".to_string(),
@@ -47,9 +47,7 @@ pub(super) async fn handler(
 
     let session_data = state.payment_store.take(&query.payment_id).unwrap();
 
-    if let Err(_e) =
-        state.add_pay_item(session.profile.id, session_data.sku_id, session_data.count).await
-    {
+    if let Err(_e) = state.add_pay_item(pid, session_data.sku_id, session_data.count).await {
         return Json(serde_json::json!(ErrorResponse {
             response_code: "ERROR".to_string(),
             msg: "failed to add item".to_string(),
@@ -66,7 +64,7 @@ pub(super) async fn handler(
 mod tests {
     use super::*;
     use crate::state::PaymentSession;
-    use emukc_internal::prelude::*;
+    use axum::Extension;
     use std::sync::Arc;
 
     async fn setup() -> (Arc<State>, GameSession) {
@@ -144,12 +142,12 @@ mod tests {
         payment_id: &str,
     ) -> serde_json::Value {
         let state_ext: AppState = Extension(state.clone());
-        let session_ext: Extension<GameSession> = Extension(session.clone());
+        let pid = Pid(session.profile.id);
         let query = axum::extract::Query(ConfirmQuery {
             payment_id: payment_id.to_string(),
             st: None,
         });
-        handler(state_ext, session_ext, query).await.0
+        handler(state_ext, pid, query).await.0
     }
 
     #[tokio::test]

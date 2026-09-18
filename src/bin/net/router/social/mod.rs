@@ -4,10 +4,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::{GameSession, kcs_api_auth_middleware},
-};
+use crate::net::{auth::kcs_api_auth_middleware, prelude::*};
 
 mod cancel_payment;
 mod confirm_payment;

@@ -1,17 +1,8 @@
-use axum::Extension;
 use emukc::prelude::PresetOps;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
+use crate::net::prelude::*;
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let preset_slots = state.get_preset_slots(pid).await?;
     let flag = if preset_slots.records.is_empty() {
         0

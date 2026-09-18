@@ -1,12 +1,7 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct Params {
@@ -25,11 +20,7 @@ struct Resp {
     api_ship_data: KcApiShip,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(_session): Extension<GameSession>,
-    Form(params): Form<Params>,
-) -> KcApiResult {
+pub(super) async fn handler(state: AppState, Form(params): Form<Params>) -> KcApiResult {
     let ship = state.slot_exchange(params.api_id, params.api_src_idx, params.api_dst_idx).await?;
     let api_ship_data: KcApiShip = ship.into();
 

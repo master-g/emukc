@@ -1,12 +1,7 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::Deserialize;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Deserialize)]
 pub(super) struct Params {
@@ -15,11 +10,9 @@ pub(super) struct Params {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
-
     state.quest_start(pid, params.api_quest_id).await?;
 
     Ok(KcApiResponse::empty())

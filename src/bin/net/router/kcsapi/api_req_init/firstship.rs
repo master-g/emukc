@@ -1,13 +1,7 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use emukc_internal::prelude::*;
-
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(super) struct FirstShipParams {
@@ -16,10 +10,9 @@ pub(super) struct FirstShipParams {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<FirstShipParams>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
     let ship = state.add_ship(pid, params.api_ship_id).await?;
     state.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await?;
 

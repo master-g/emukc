@@ -12,10 +12,11 @@ pub(super) fn router() -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::net::auth::Pid;
     use crate::net::router::kcsapi::test_utils::{
         app_state, new_test_context, seed_single_ship_fleet,
     };
-    use axum::{Extension, Form};
+    use axum::Form;
     use emukc_internal::prelude::SortieOps;
 
     #[tokio::test]
@@ -28,7 +29,7 @@ mod tests {
 
         let resp = sp_midnight::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(sp_midnight::Params {
                 api_formation: 3,
             }),

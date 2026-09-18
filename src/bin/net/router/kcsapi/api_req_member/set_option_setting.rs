@@ -1,19 +1,12 @@
-use axum::{Extension, Form};
+use axum::Form;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<KcApiOptionSetting>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
-
     state.update_options_settings(pid, &params).await?;
 
     Ok(KcApiResponse::empty())

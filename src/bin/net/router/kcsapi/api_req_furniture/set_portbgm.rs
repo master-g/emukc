@@ -1,12 +1,7 @@
-use axum::{Extension, Form};
+use axum::Form;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub(super) struct Params {
@@ -15,12 +10,11 @@ pub(super) struct Params {
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
     let codex = state.codex();
     let mst = codex.find::<KcApiMusicListElement>(&params.api_music_id)?;
-    let pid = session.profile.id;
 
     state.update_port_bgm(pid, mst.api_bgm_id).await?;
 

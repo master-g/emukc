@@ -20,10 +20,11 @@ pub(super) fn router() -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::net::auth::Pid;
     use crate::net::router::kcsapi::test_utils::{
         app_state, new_test_context, seed_single_ship_fleet,
     };
-    use axum::{Extension, Form};
+    use axum::Form;
     use emukc_internal::prelude::SortieOps;
 
     #[tokio::test]
@@ -36,7 +37,7 @@ mod tests {
 
         let battle = battle::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(battle::Params {
                 api_formation: 1,
                 api_recovery_type: 0,
@@ -52,7 +53,7 @@ mod tests {
 
         let result = battleresult::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(battleresult::Params::default()),
         )
         .await
@@ -62,7 +63,7 @@ mod tests {
         assert!(result_data["api_get_flag"].as_array().is_some());
 
         let goback =
-            goback_port::handler(app_state(&context.state), Extension(context.session.clone()))
+            goback_port::handler(app_state(&context.state), Pid(context.session.profile.id))
                 .await
                 .unwrap();
         assert_eq!(goback.api_result, 1);
@@ -78,7 +79,7 @@ mod tests {
 
         let resp = airbattle::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(airbattle::Params {
                 api_formation: 1,
                 api_recovery_type: 0,
@@ -107,7 +108,7 @@ mod tests {
 
         let resp = ld_airbattle::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(ld_airbattle::Params {
                 api_formation: 1,
                 api_recovery_type: 0,
@@ -137,7 +138,7 @@ mod tests {
 
         let resp = ld_shooting::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(ld_shooting::Params {
                 api_formation: 1,
                 api_recovery_type: 0,

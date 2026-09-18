@@ -15,10 +15,11 @@ pub(super) fn router() -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::net::auth::Pid;
     use crate::net::router::kcsapi::test_utils::{
         app_state, new_test_context, seed_single_ship_fleet,
     };
-    use axum::{Extension, Form};
+    use axum::Form;
     use emukc_internal::prelude::SortieOps;
 
     #[tokio::test]
@@ -29,7 +30,7 @@ mod tests {
 
         let start = start::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(start::Params {
                 api_deck_id: 1,
                 api_maparea_id: 1,
@@ -45,7 +46,7 @@ mod tests {
 
         let next = next::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(next::Params {
                 api_recovery_type: 0,
                 api_cell_id: Some(2),
@@ -67,7 +68,7 @@ mod tests {
 
         let start = start::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(start::Params {
                 api_deck_id: 1,
                 api_maparea_id: 1,
@@ -97,7 +98,7 @@ mod tests {
 
         start::handler(
             app_state(&context.state),
-            Extension(context.session.clone()),
+            Pid(context.session.profile.id),
             Form(start::Params {
                 api_deck_id: 1,
                 api_maparea_id: 1,
@@ -113,7 +114,7 @@ mod tests {
         assert!(
             next::handler(
                 app_state(&context.state),
-                Extension(context.session.clone()),
+                Pid(context.session.profile.id),
                 Form(next::Params {
                     api_recovery_type: 0,
                     api_cell_id: None,

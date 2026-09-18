@@ -1,12 +1,6 @@
-use axum::Extension;
 use serde::{Deserialize, Serialize};
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Resp {
@@ -15,12 +9,7 @@ struct Resp {
     api_rate: String,
 }
 
-pub(super) async fn handler(
-    state: AppState,
-    Extension(session): Extension<GameSession>,
-) -> KcApiResult {
-    let pid = session.profile.id;
-
+pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let (m, _) = state.get_user_basic(pid).await?;
 
     let rate = m.sortie_wins as f64 / (m.sortie_loses + m.sortie_wins) as f64;

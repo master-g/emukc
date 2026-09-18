@@ -1,14 +1,9 @@
 use std::collections::BTreeMap;
 
-use axum::{Extension, Form};
+use axum::Form;
 use serde::Deserialize;
 
-use crate::net::{
-    AppState,
-    auth::GameSession,
-    resp::{KcApiResponse, KcApiResult},
-};
-use emukc_internal::prelude::*;
+use crate::net::prelude::*;
 
 #[derive(Deserialize)]
 pub(super) struct Params {
@@ -62,11 +57,9 @@ where
 
 pub(super) async fn handler(
     state: AppState,
-    Extension(session): Extension<GameSession>,
+    Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let pid = session.profile.id;
-
     let resp =
         state.quest_clear_and_claim_reward(pid, params.api_quest_id, params.select_no).await?;
 
