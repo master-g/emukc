@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use emukc_db::{
     entity::profile::{
         self,
@@ -21,7 +20,7 @@ use super::{
     slot_item::{find_slot_items_by_id_impl, update_slot_item_impl},
     use_item::deduct_use_item_impl,
 };
-use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::HasContext};
+use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::Ctx};
 use sp::find_ship_sp_effect_items_impl;
 
 mod sp;
@@ -31,118 +30,16 @@ mod sp;
 /// 会因 `WrongType` 拒绝；走 `deduct_use_item_impl` 的裸 `mst_id` 路径。
 pub(crate) const HANGAR_EXPAND_USE_ITEM_ID: i64 = 105;
 
-/// A trait for ship related gameplay.
-#[async_trait]
-pub trait ShipOps {
+impl Ctx {
     /// Add ship to a profile.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `mst_id`: The ship manifest ID.
-    async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<KcApiShip, GameplayError>;
-
-    /// Find a ship by ID.
-    ///
-    /// # Parameters
-    ///
-    /// - `ship_id`: The ship ID.
-    async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError>;
-
-    /// Get ships of a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError>;
-
-    /// Toggle ship locked status.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID (for ownership verification).
-    /// - `ship_id`: The ship ID.
-    async fn toggle_ship_locked(
-        &self,
-        profile_id: i64,
-        ship_id: i64,
-    ) -> Result<KcApiShip, GameplayError>;
-
-    /// Open ship ex-slot.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    /// - `ship_id`: The ship ID.
-    async fn open_ship_exslot(
-        &self,
-        profile_id: i64,
-        ship_id: i64,
-    ) -> Result<KcApiShip, GameplayError>;
-
-    /// Expand a hangar slot (搭载数拡張).
-    ///
-    /// Consumes 1x useitem 105 and adds +1 to the expansion increment of the
-    /// given slot (KTD4). Returns the full 5-slot capacity array synthesized
-    /// as `manifest_maxeq[i] + plus[i]` — unexpanded slots carry the base
-    /// value (KTD1).
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID (for ownership verification).
-    /// - `ship_id`: The ship ID.
-    /// - `slot_pos`: The slot position, within `0..5`.
-    async fn expand_hangar_slot(
-        &self,
-        profile_id: i64,
-        ship_id: i64,
-        slot_pos: i64,
-    ) -> Result<[i64; 5], GameplayError>;
-
-    /// Set ex-slot item.
-    ///
-    /// # Parameters
-    ///
-    /// - `ship_id`: The ship ID.
-    /// - `slot_item_id`: The slot item ID.
-    async fn set_exslot_item(&self, ship_id: i64, slot_item_id: i64) -> Result<(), GameplayError>;
-
-    /// Set slot item.
-    ///
-    /// # Parameters
-    ///
-    /// - `ship_id`: The ship ID.
-    /// - `slot_idx`: The slot index.
-    /// - `slot_item_id`: The slot item ID.
-    async fn set_slot_item(
-        &self,
-        ship_id: i64,
-        slot_idx: i64,
-        slot_item_id: i64,
-    ) -> Result<(), GameplayError>;
-
-    /// Unset all slots of a ship.
-    ///
-    /// # Parameters
-    ///
-    /// - `ship_id`: The ship ID.
-    async fn unset_all_slots(&self, ship_id: i64) -> Result<(), GameplayError>;
-
-    /// Update ship.
-    ///
-    /// TODO(#0): this is a temporary implementation.
-    ///
-    /// # Parameters
-    ///
-    /// - `ship`: The ship to update.
-    async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> ShipOps for T {
-    async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<KcApiShip, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    pub async fn add_ship(&self, profile_id: i64, mst_id: i64) -> Result<KcApiShip, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
 
         let tx = db.begin().await?;
 
@@ -153,9 +50,14 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(ship)
     }
 
-    async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Find a ship by ID.
+    ///
+    /// # Parameters
+    ///
+    /// - `ship_id`: The ship ID.
+    pub async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
 
         if let Some((ship, sps)) = find_ship_impl(db, ship_id).await? {
             let mut m: KcApiShip = ship.into();
@@ -172,9 +74,14 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         }
     }
 
-    async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Get ships of a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let (ships, sps) = get_ships_impl(&tx, profile_id).await?;
@@ -200,12 +107,18 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(ships)
     }
 
-    async fn toggle_ship_locked(
+    /// Toggle ship locked status.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID (for ownership verification).
+    /// - `ship_id`: The ship ID.
+    pub async fn toggle_ship_locked(
         &self,
         profile_id: i64,
         ship_id: i64,
     ) -> Result<KcApiShip, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let ship = toggle_ship_locked_impl(&tx, profile_id, ship_id).await?;
@@ -215,12 +128,18 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(ship.into())
     }
 
-    async fn open_ship_exslot(
+    /// Open ship ex-slot.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `ship_id`: The ship ID.
+    pub async fn open_ship_exslot(
         &self,
         profile_id: i64,
         ship_id: i64,
     ) -> Result<KcApiShip, GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let ship = open_ship_exslot_impl(&tx, profile_id, ship_id).await?;
@@ -230,14 +149,26 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(ship.into())
     }
 
-    async fn expand_hangar_slot(
+    /// Expand a hangar slot (搭载数拡張).
+    ///
+    /// Consumes 1x useitem 105 and adds +1 to the expansion increment of the
+    /// given slot (KTD4). Returns the full 5-slot capacity array synthesized
+    /// as `manifest_maxeq[i] + plus[i]` — unexpanded slots carry the base
+    /// value (KTD1).
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID (for ownership verification).
+    /// - `ship_id`: The ship ID.
+    /// - `slot_pos`: The slot position, within `0..5`.
+    pub async fn expand_hangar_slot(
         &self,
         profile_id: i64,
         ship_id: i64,
         slot_pos: i64,
     ) -> Result<[i64; 5], GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let onslot_max = expand_hangar_slot_impl(&tx, codex, profile_id, ship_id, slot_pos).await?;
@@ -247,8 +178,18 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(onslot_max)
     }
 
-    async fn set_exslot_item(&self, ship_id: i64, slot_item_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Set ex-slot item.
+    ///
+    /// # Parameters
+    ///
+    /// - `ship_id`: The ship ID.
+    /// - `slot_item_id`: The slot item ID.
+    pub async fn set_exslot_item(
+        &self,
+        ship_id: i64,
+        slot_item_id: i64,
+    ) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         set_exslot_item_impl(&tx, ship_id, slot_item_id).await?;
@@ -258,14 +199,21 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(())
     }
 
-    async fn set_slot_item(
+    /// Set slot item.
+    ///
+    /// # Parameters
+    ///
+    /// - `ship_id`: The ship ID.
+    /// - `slot_idx`: The slot index.
+    /// - `slot_item_id`: The slot item ID.
+    pub async fn set_slot_item(
         &self,
         ship_id: i64,
         slot_idx: i64,
         slot_item_id: i64,
     ) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         set_slot_item_impl(&tx, codex, ship_id, slot_idx, slot_item_id).await?;
@@ -275,9 +223,14 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(())
     }
 
-    async fn unset_all_slots(&self, ship_id: i64) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Unset all slots of a ship.
+    ///
+    /// # Parameters
+    ///
+    /// - `ship_id`: The ship ID.
+    pub async fn unset_all_slots(&self, ship_id: i64) -> Result<(), GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         unset_all_slots_impl(&tx, codex, ship_id).await?;
@@ -287,9 +240,16 @@ impl<T: HasContext + ?Sized> ShipOps for T {
         Ok(())
     }
 
-    async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+    /// Update ship.
+    ///
+    /// TODO(#0): this is a temporary implementation.
+    ///
+    /// # Parameters
+    ///
+    /// - `ship`: The ship to update.
+    pub async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError> {
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         update_ship_impl(&tx, codex, ship).await?;

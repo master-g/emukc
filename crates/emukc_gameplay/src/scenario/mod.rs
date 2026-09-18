@@ -2,7 +2,7 @@
 //!
 //! Puts a fresh profile into a declared target state in a single call, skipping
 //! the manual create-account → PvP-for-exp → sortie-to-unlock → repair loop. It
-//! composes the existing gameplay operations ([`ShipOps`], material ops,
+//! composes the existing gameplay operations (ship ops, material ops,
 //! fleet ops) plus the KTD-5 direct map clear/unlock setter, so the
 //! `battle sim` CLI and the integration tests share one builder.
 //!
@@ -15,7 +15,7 @@ use emukc_model::kc2::{KcApiShip, MaterialCategory, level};
 
 use crate::{
     err::GameplayError,
-    game::{ShipOps, clear_and_unlock_map_impl, unlock_map_impl},
+    game::{clear_and_unlock_map_impl, unlock_map_impl},
     gameplay::Ctx,
 };
 
