@@ -5,49 +5,28 @@ use emukc_db::{
     sea_orm::{QueryOrder, TransactionTrait, entity::*},
 };
 use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory};
-use prelude::{ConnectionTrait, QueryFilter, async_trait::async_trait};
+use prelude::{ConnectionTrait, QueryFilter};
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     furniture::add_furniture_impl, material::add_material_impl, ship::add_ship_impl,
     slot_item::add_slot_item_impl, use_item::add_use_item_impl,
 };
 
-/// A trait for incentive related gameplay.
-#[async_trait]
-pub trait IncentiveOps {
+impl Ctx {
     /// Add incentives to a profile.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
     /// - `items`: The items to add.
-    async fn add_incentive(
-        &self,
-        profile_id: i64,
-        items: &[KcApiIncentiveItem],
-    ) -> Result<(), GameplayError>;
-
-    /// Confirm incentives for a profile.
-    ///
-    /// # Parameters
-    ///
-    /// - `profile_id`: The profile ID.
-    async fn confirm_incentives(
-        &self,
-        profile_id: i64,
-    ) -> Result<Vec<KcApiIncentiveItem>, GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> IncentiveOps for T {
-    async fn add_incentive(
+    pub async fn add_incentive(
         &self,
         profile_id: i64,
         items: &[KcApiIncentiveItem],
     ) -> Result<(), GameplayError> {
-        let db = self.db();
+        let db = self.db.as_ref();
 
         let tx = db.begin().await?;
 
@@ -87,12 +66,17 @@ impl<T: HasContext + ?Sized> IncentiveOps for T {
         Ok(())
     }
 
-    async fn confirm_incentives(
+    /// Confirm incentives for a profile.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    pub async fn confirm_incentives(
         &self,
         profile_id: i64,
     ) -> Result<Vec<KcApiIncentiveItem>, GameplayError> {
-        let db = self.db();
-        let codex = self.codex();
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
 
         let tx = db.begin().await?;
 
