@@ -1,5 +1,3 @@
-use async_trait::async_trait;
-
 use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::{self, expedition, fleet, item::slot_item, ship},
@@ -19,7 +17,7 @@ use emukc_time::{
     chrono::{DateTime, Datelike, Duration, FixedOffset, TimeZone, Utc},
 };
 
-use crate::{err::GameplayError, gameplay::HasContext};
+use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
     basic::find_profile,
@@ -92,46 +90,18 @@ struct ExpeditionLaunchSnapshot {
     total_drums: i64,
 }
 
-/// A trait for expedition(mission) related gameplay.
-#[async_trait]
-pub trait ExpeditionOps {
+impl Ctx {
     /// Get all expedition records of a profile.
     ///
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    async fn get_expeditions(
-        &self,
-        profile_id: i64,
-    ) -> Result<(Vec<expedition::Model>, Option<i64>), GameplayError>;
-
-    /// Start an expedition for a fleet.
-    async fn start_expedition(
-        &self,
-        profile_id: i64,
-        fleet_id: i64,
-        mission_id: i64,
-    ) -> Result<ExpeditionStartInfo, GameplayError>;
-
-    /// Complete an expedition and receive its rewards.
-    async fn complete_expedition(
-        &self,
-        profile_id: i64,
-        fleet_id: i64,
-    ) -> Result<ExpeditionCompletion, GameplayError>;
-
-    /// Recall an expedition currently in progress.
-    async fn recall_expedition(&self, profile_id: i64, fleet_id: i64) -> Result<(), GameplayError>;
-}
-
-#[async_trait]
-impl<T: HasContext + ?Sized> ExpeditionOps for T {
-    async fn get_expeditions(
+    pub async fn get_expeditions(
         &self,
         profile_id: i64,
     ) -> Result<(Vec<expedition::Model>, Option<i64>), GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let records = expedition::Entity::find()
@@ -160,14 +130,15 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
         Ok((result, next_refresh_time))
     }
 
-    async fn start_expedition(
+    /// Start an expedition for a fleet.
+    pub async fn start_expedition(
         &self,
         profile_id: i64,
         fleet_id: i64,
         mission_id: i64,
     ) -> Result<ExpeditionStartInfo, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let mission_mst = find_mission_mst(codex, mission_id)
@@ -215,13 +186,14 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
         })
     }
 
-    async fn complete_expedition(
+    /// Complete an expedition and receive its rewards.
+    pub async fn complete_expedition(
         &self,
         profile_id: i64,
         fleet_id: i64,
     ) -> Result<ExpeditionCompletion, GameplayError> {
-        let codex = self.codex();
-        let db = self.db();
+        let codex = self.codex.as_ref();
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let fleet_model = find_fleet(&tx, profile_id, fleet_id).await?;
@@ -414,8 +386,13 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
         })
     }
 
-    async fn recall_expedition(&self, profile_id: i64, fleet_id: i64) -> Result<(), GameplayError> {
-        let db = self.db();
+    /// Recall an expedition currently in progress.
+    pub async fn recall_expedition(
+        &self,
+        profile_id: i64,
+        fleet_id: i64,
+    ) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
         let tx = db.begin().await?;
 
         let fleet_model = find_fleet(&tx, profile_id, fleet_id).await?;
@@ -425,7 +402,7 @@ impl<T: HasContext + ?Sized> ExpeditionOps for T {
             ));
         }
 
-        let mission_mst = find_mission_mst(self.codex(), fleet_model.mission_id)
+        let mission_mst = find_mission_mst(self.codex.as_ref(), fleet_model.mission_id)
             .ok_or(GameplayError::ManifestNotFound(fleet_model.mission_id))?;
         let now = Utc::now();
         let current_return_time = fleet_model.return_time.ok_or_else(|| {

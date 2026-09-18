@@ -3,9 +3,7 @@
 pub mod battle;
 
 pub use compose::{ComposeOps, PowerupResp, SlotDepriveParams};
-pub use expedition::{
-    ExpeditionCompletion, ExpeditionItemReward, ExpeditionOps, ExpeditionStartInfo,
-};
+pub use expedition::{ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo};
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use presets::PresetOps;
@@ -53,10 +51,7 @@ mod use_item;
 
 /// A trait for gameplay logic.
 #[async_trait::async_trait]
-pub trait GameOps:
-    ComposeOps + ExpeditionOps + SettingsOps + PresetOps + QuestOps + ShipOps + SortieOps
-{
-}
+pub trait GameOps: ComposeOps + SettingsOps + PresetOps + QuestOps + ShipOps + SortieOps {}
 
 #[async_trait::async_trait]
 impl<T: HasContext + ?Sized> GameOps for T {}
@@ -66,7 +61,7 @@ pub mod ops {
 
     #[doc(hidden)]
     pub use crate::game::{
-        ComposeOps, ExpeditionOps, GameOps, PresetOps, QuestOps, SettingsOps, ShipOps, SortieOps,
+        ComposeOps, GameOps, PresetOps, QuestOps, SettingsOps, ShipOps, SortieOps,
     };
 }
 
