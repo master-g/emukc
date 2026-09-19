@@ -81,11 +81,11 @@ Current verification baseline:
   `emukc_cache` / `emukc_gameplay` / `emukc_bootstrap battle_rules` subsets: all exit 0. Then fixed
   `Ctx::destroy_items` (missing `tx.commit()`, predates plan 002) with
   `tests/gameplay_tests/destroy_items_persist.rs` failing before / passing after; root `cargo test` 63 + 125,
-  `clippy --all-targets` clean on touched files. Fix commit is local, not pushed.
+  `clippy --all-targets` clean on touched files; pushed as `9cb6660`.
 
 ## Next Session
 
-- [2026-09-19] Push the `destroy_items` fix when the user says so. Candidate next work, in order: (1) questlist
+- [2026-09-19] Candidate next work, in order: (1) questlist
   tab 9 always empty (`label_type` never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (2)
   `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`.
   (3) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
