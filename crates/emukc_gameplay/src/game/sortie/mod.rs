@@ -616,30 +616,35 @@ impl Ctx {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
         let store = self.sortie_store.as_ref();
-        let tx = db.begin().await?;
 
-        let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
-        let mut rng = ProductionRng;
-        let (session, night_session) = run_sp_midnight_battle(
-            store,
-            codex,
-            setup.battle_input(BattleType::Normal, formation_id),
-            setup.enemy_formation_id,
-            &mut rng,
-        );
-        store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
+        // Same write set as `sortie_battle_impl`, so it takes the same lock.
+        store
+            .with_profile_lock(profile_id, async {
+                let tx = db.begin().await?;
 
-        let mut active = setup.active;
-        active.pending_battle_cell_id = Some(active.current_cell_id);
+                let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
+                let mut rng = ProductionRng;
+                let (session, night_session) = run_sp_midnight_battle(
+                    store,
+                    codex,
+                    setup.battle_input(BattleType::Normal, formation_id),
+                    &mut rng,
+                );
+                store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
 
-        tx.commit().await?;
-        let _ = store.insert_active(profile_id, active);
-        Ok(build_night_response(
-            session.deck_id,
-            &session.friendly,
-            &session.enemy,
-            night_session.packet,
-        ))
+                let mut active = setup.active;
+                active.pending_battle_cell_id = Some(active.current_cell_id);
+
+                tx.commit().await?;
+                let _ = store.insert_active(profile_id, active);
+                Ok(build_night_response(
+                    session.deck_id,
+                    &session.friendly,
+                    &session.enemy,
+                    night_session.packet,
+                ))
+            })
+            .await
     }
 
     pub async fn sortie_goback_port(

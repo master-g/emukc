@@ -62,6 +62,10 @@ Current verification baseline:
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
 - [2026-09-19] `questlist` `api_tab_id` is the client tab bar (0,9,1,2,3,4,5 = all, activated, daily, weekly, monthly, oneshot, other); the client filters nothing itself. `api_label_type` keys the row label (1,2,3,6,7,101..=112). Source: `main.decoded.js` `DutyDataHolder`, `_createTab`.
+- [2026-09-19] `SortieStore::with_profile_lock` is held by exactly five top-level entries: `start_sortie`,
+  `next_sortie`, `sortie_battle_result`, `sortie_sp_midnight_battle` and `sortie_battle_impl`. None nests
+  another, and nothing they call takes the lock, so a new sortie entry can take it without reentrancy risk.
+  `sortie_midnight_battle` stays unlocked on purpose: it mutates an existing pending session, not `active`.
 - [2026-09-19] `apilist.md` is mechanically aligned with the router: 113 implemented, 34 missing, no overlap.
   Re-verify by extracting `nest("/prefix", mod::router())` from `kcsapi/mod.rs` plus each submodule's
   `.route("/leaf"` and diffing against the two fenced blocks; do not hand-audit it.
@@ -104,20 +108,20 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`, pushed through `fe4ef24`: night-sink quest fix (`653a5d5`), assets to 6.3.5.0
-  (`688e29c` / `b1016fc` / `940b5ae`), `cache make-list` re-run, apilist/TODO realigned (`fe4ef24`).
-  Rejected `obfuscator-io-deobfuscator` (see Verified Facts). Then closed the KTD7 gap: `api_port/port.rs`
-  has a handler-level test pinning `api_m_flag == 2`, the two `skip_serializing_if` fields staying absent
-  rather than null, and `api_combined_flag` being a different thing. Red-checked both ways. Gates green:
-  `fmt --check`, `clippy --workspace --all-targets` 0 errors, root `cargo test` 64 + 125,
-  `-p emukc_bootstrap` battle_rules 15, `-p emukc_gameplay` 143 + 64.
+- [2026-09-19] `main`, pushed through `edfb027`: night-sink quest fix, assets to 6.3.5.0, `cache make-list`,
+  apilist/TODO realignment, KTD7 port event-object test. Then the sp_midnight cleanup: wrapped
+  `sortie_sp_midnight_battle` in `with_profile_lock` (it has the same write set as `sortie_battle_impl`) and
+  dropped `run_sp_midnight_battle`'s redundant `enemy_formation_id` parameter, which every caller passed
+  equal to `context.enemy_formation_id`. Gates green: `fmt --check`, `clippy --workspace --all-targets`
+  0 errors, root `cargo test` 64 + 125, `-p emukc_gameplay` 143 + 64. `practice_battle` failed once in the
+  batch run and passed 11/11 on three reruns — the known unseeded win-rank flake, not a regression.
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) `sp_midnight` lacks `with_profile_lock`;
-  `run_sp_midnight_battle` takes a redundant `enemy_formation_id`. (2) The 14 `api_req_combined_battle/*`
-  endpoints are the largest gameplay gap, then the Air Corps set; EO74 field specs for all 34 missing
-  endpoints are at sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, a starting point, not a contract).
-  Smaller: literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up;
-  deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder
+- [2026-09-19] Candidate next work, in order: (1) The 14 `api_req_combined_battle/*` endpoints are now the
+  largest gameplay gap, then the Air Corps set; EO74 field specs for all 34 missing endpoints are at
+  sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, a starting point, not a contract). (2) Make
+  `practice_battle`'s win-rank asserts deterministic — it is the only recurring false alarm in the gate.
+  Smaller: literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up
+  (inline `_impl`s that now have a single caller); 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder
   unresolved id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.

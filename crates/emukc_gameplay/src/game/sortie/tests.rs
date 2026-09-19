@@ -230,7 +230,6 @@ async fn sortie_sp_midnight_battle_runs_night_only() {
                 vec![enemy.clone()],
             ),
         },
-        1,
         &mut rng,
     );
 

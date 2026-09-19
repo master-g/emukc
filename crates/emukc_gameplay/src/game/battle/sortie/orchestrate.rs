@@ -95,7 +95,6 @@ pub fn run_sp_midnight_battle(
     store: &SortieStore,
     codex: &Codex,
     input: SortieBattleInput,
-    enemy_formation_id: i64,
     rng: &mut impl BattleRng,
 ) -> (SortieBattleSession, SortieNightBattleSession) {
     let SortieBattleInput {
@@ -105,6 +104,7 @@ pub fn run_sp_midnight_battle(
         cell_id,
         context,
     } = input;
+    let enemy_formation_id = context.enemy_formation_id;
 
     let night = execute_night(
         codex,
