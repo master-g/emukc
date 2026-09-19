@@ -17,29 +17,41 @@ mod tests {
         let pid = new_profile(&context, "tab").await;
         context.quest_add(pid, 605).await.unwrap();
         context.quest_start(pid, 605).await.unwrap();
+        context.quest_add(pid, 426).await.unwrap(); // quarterly, label 7
 
         let all = context.quest_list_view(pid, 0).await.unwrap();
         assert!(all.items.iter().any(|item| item.label_type == 1), "tab 0 keeps oneshot quests");
         assert!(all.items.iter().any(|item| item.label_type == 2), "tab 0 keeps daily quests");
         assert_eq!(all.exec_count, 1);
 
-        let daily = context.quest_list_view(pid, 2).await.unwrap();
+        // Tab ids follow the client's tab bar, label types follow api_label_type:
+        // tab 1 is daily (label 2), tab 4 is oneshot (label 1).
+        let daily = context.quest_list_view(pid, 1).await.unwrap();
         assert!(!daily.items.is_empty());
         assert!(daily.items.iter().all(|item| item.label_type == 2));
         assert!(daily.items.len() < all.items.len());
         assert!(daily.items.iter().any(|item| item.no == 605));
 
-        let oneshot = context.quest_list_view(pid, 1).await.unwrap();
+        let oneshot = context.quest_list_view(pid, 4).await.unwrap();
         assert!(!oneshot.items.is_empty());
         assert!(oneshot.items.iter().all(|item| item.label_type == 1));
         assert!(oneshot.items.iter().all(|item| item.no != 605));
 
-        // Tab 9 drops every non-activated quest. The label-type filter still runs
-        // after it and no quest carries label type 9, so the tab stays empty;
-        // pinned here so that changing it has to be deliberate.
+        let other = context.quest_list_view(pid, 5).await.unwrap();
+        assert!(other.items.iter().any(|item| item.no == 426));
+        assert!(oneshot.items.iter().all(|item| item.no != 426));
+        assert!(
+            other
+                .items
+                .iter()
+                .all(|item| item.label_type == 7 || (101..=112).contains(&item.label_type))
+        );
+
+        // Tab 9 keeps every activated quest regardless of label.
         let activated = context.quest_list_view(pid, 9).await.unwrap();
+        assert_eq!(activated.items.len(), 1);
+        assert_eq!(activated.items[0].no, 605);
         assert!(activated.items.iter().all(|item| item.state != 1));
-        assert!(activated.items.is_empty());
     }
 
     #[tokio::test]

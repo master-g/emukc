@@ -67,7 +67,8 @@ impl Ctx {
     /// # Parameters
     ///
     /// - `profile_id`: The profile ID.
-    /// - `tab_id`: The tab: 0 = all, 9 = activated, otherwise a quest label type.
+    /// - `tab_id`: The tab: 0 = all, 9 = activated, 1 = daily, 2 = weekly,
+    ///   3 = monthly, 4 = oneshot, 5 = other (quarterly and yearly).
     pub async fn quest_list_view(
         &self,
         profile_id: i64,
@@ -89,7 +90,7 @@ impl Ctx {
 
                 let mst = codex.find::<Kc3rdQuest>(&model.quest_id).ok()?;
 
-                if tab_id > 0 && mst.label_type != tab_id {
+                if !tab_shows(tab_id, mst.label_type) {
                     return None;
                 }
 
@@ -148,5 +149,22 @@ impl Ctx {
             exec_count,
             items,
         })
+    }
+}
+
+/// Whether a quest with `label_type` belongs on `questlist` tab `tab_id`.
+///
+/// Tab ids follow the client's tab bar; label types follow `api_label_type`
+/// (1 = oneshot, 2 = daily, 3 = weekly, 6 = monthly, 7 = quarterly, 101..=112
+/// = yearly by month), which is also what the client draws as the row label.
+fn tab_shows(tab_id: i64, label_type: i64) -> bool {
+    match tab_id {
+        0 | 9 => true,
+        1 => label_type == 2,
+        2 => label_type == 3,
+        3 => label_type == 6,
+        4 => label_type == 1,
+        5 => label_type == 7 || (101..=112).contains(&label_type),
+        _ => false,
     }
 }

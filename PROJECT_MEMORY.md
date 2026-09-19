@@ -46,6 +46,7 @@ Current verification baseline:
 - [2026-08-26] Upstream drift: kcwiki empty equipment slots are `null`, not `false`; `version.json` nests a `resources` object (flattened in `parse_version_info`); webpack emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); event area 62 is unlocked by default by design.
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
+- [2026-09-19] `questlist` `api_tab_id` is the client tab bar (0,9,1,2,3,4,5 = all, activated, daily, weekly, monthly, oneshot, other); the client filters nothing itself. `api_label_type` keys the row label (1,2,3,6,7,101..=112). Source: `main.decoded.js` `DutyDataHolder`, `_createTab`.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 
 ## Failed Attempts / Pitfalls
@@ -77,18 +78,17 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`. Pushed plan 002 (`e93e1f8..ab04977`) after re-running the three gates plus the
-  `emukc_cache` / `emukc_gameplay` / `emukc_bootstrap battle_rules` subsets: all exit 0. Then fixed
-  `Ctx::destroy_items` (missing `tx.commit()`, predates plan 002) with
-  `tests/gameplay_tests/destroy_items_persist.rs` failing before / passing after; root `cargo test` 63 + 125,
-  `clippy --all-targets` clean on touched files; pushed as `9cb6660`.
+- [2026-09-19] `main`. Pushed plan 002 (`e93e1f8..ab04977`) and the `destroy_items` commit fix (`9cb6660`).
+  Then fixed `quest_list_view` tab filtering: it compared `tab_id` to `label_type`, but client tabs are
+  1 daily / 2 weekly / 3 monthly / 4 oneshot / 5 other / 9 activated while `label_type` is 1 oneshot / 2 daily /
+  3 weekly / 6 monthly / 7 quarterly / 101..=112 yearly, so tabs 1-5 were misfiled and tab 9 always empty.
+  `tab_shows` maps them; the pinned test and `client-views.md` updated. Gates green; commit local, not pushed.
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) questlist
-  tab 9 always empty (`label_type` never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (2)
+- [2026-09-19] Push the questlist tab fix when the user says so. Candidate next work, in order: (1)
   `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`.
-  (3) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
+  (2) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
   `enemy_formation_id` param on `run_sp_midnight_battle`; literal-only
   `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline `_impl`s that now
   have a single caller). Older: deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test;

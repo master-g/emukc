@@ -67,10 +67,12 @@ transaction because `Ctx::get_ships` owns the `api_onslot_max` /
 ### Derived state moves with the read
 
 `quest_list_view` owns the tab filtering, the counts and the `state` /
-`progress_flag` / `quest_type` derivation that used to sit in the handler. Tab 9
-filters Activated quests by `label_type == 9`, and no quest has label type 9, so
-it always returns an empty list. That is existing behavior, kept as is and
-pinned by a test rather than quietly fixed.
+`progress_flag` / `quest_type` derivation that used to sit in the handler. Tab
+ids are the client's tab bar (1 daily, 2 weekly, 3 monthly, 4 oneshot, 5 other,
+9 activated), while `label_type` is `api_label_type` (1 oneshot, 2 daily, 3
+weekly, 6 monthly, 7 quarterly, 101..=112 yearly), so `tab_shows` maps one to
+the other. The move first kept the old `label_type == tab_id` compare, pinned by
+a test, and fixed it in its own commit.
 
 ## Rationale
 
