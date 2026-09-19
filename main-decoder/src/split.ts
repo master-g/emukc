@@ -25,7 +25,7 @@ function findDecoderInPrefix(prefixSource: string): { decoderFunctionName: strin
 
 	// Fallback: first function if prefix contains base64 somewhere
 	if (decoderFunctionName === undefined && allFnMatches.length > 0 && prefixSource.includes(BASE64_ALPHABET)) {
-		decoderFunctionName = allFnMatches[0][1];
+		decoderFunctionName = allFnMatches[0]?.[1];
 		hasBase64 = false;
 	}
 
