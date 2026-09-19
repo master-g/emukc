@@ -25,97 +25,24 @@ struct Resp {
 }
 
 pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
-    let resp = build_require_info_response(state.0.as_ref(), pid).await?;
-    Ok(KcApiResponse::success(&resp))
+    let view = state.require_info_view(pid).await?;
+    Ok(KcApiResponse::success(&project(view)))
 }
 
-async fn build_require_info_response(state: &Ctx, pid: i64) -> Result<Resp, GameplayError> {
-    let codex = &state.codex;
-    let (_, api_basic) = state.get_user_basic(pid).await?;
-    let api_furniture = state.get_furnitures(pid).await?;
-    let api_kdock = state.get_kdocks(pid).await?;
-    let api_kdock = api_kdock.iter().map(|k| k.to_owned().into()).collect();
-
-    let api_oss_setting = state.get_oss_settings(pid).await?;
-    let api_game_settings = state.get_game_settings(pid).await?;
-    let api_option_settings = state.get_option_settings(pid).await?;
-
-    let api_extra_supply = api_basic.api_extra_supply;
-    let api_position_id = api_game_settings.api_position_id;
-    let api_skin_id = api_option_settings.map(|s| s.api_skin_id).unwrap_or(101);
-
-    let api_slot_item = state.get_slot_items(pid).await?;
-    let api_useitem = state.get_use_items(pid).await?;
-
-    let unused_slot_items = state.get_unset_slot_items(pid).await?;
-    let api_unsetslot = codex.convert_unused_slot_items_to_api(&unused_slot_items)?;
-
-    Ok(Resp {
+fn project(view: RequireInfoView) -> Resp {
+    Resp {
         api_basic: UserBasic {
-            api_member_id: api_basic.api_member_id,
-            api_firstflag: api_basic.api_firstflag,
+            api_member_id: view.member_id,
+            api_firstflag: view.firstflag,
         },
-        api_extra_supply,
-        api_furniture,
-        api_kdock,
-        api_oss_setting,
-        api_position_id,
-        api_skin_id,
-        api_slot_item,
-        api_unsetslot,
-        api_useitem,
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use emukc_internal::db::prelude::new_mem_db;
-    use std::path::PathBuf;
-
-    async fn new_game_session() -> (Ctx, StartGameInfo) {
-        let db = new_mem_db().await.unwrap();
-        let codex_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data/codex");
-        let codex = Codex::load_without_cache_source(codex_root).unwrap();
-        let context = Ctx::new(std::sync::Arc::new(db), std::sync::Arc::new(codex));
-
-        let account = context.sign_up("test", "1234567").await.unwrap();
-        let profile = context.new_profile(&account.access_token.token, "admin").await.unwrap();
-        let session =
-            context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-
-        (context, session)
-    }
-
-    #[tokio::test]
-    async fn create_slotitem_is_visible_in_require_info() {
-        let (context, session) = new_game_session().await;
-        let pid = session.profile.id;
-
-        let before = build_require_info_response(&context, pid).await.unwrap();
-        let craftable =
-            context.codex.slotitem_extra_info.values().find(|item| item.craftable).unwrap().api_id;
-        let costs = vec![
-            (MaterialCategory::Fuel, 10),
-            (MaterialCategory::Ammo, 10),
-            (MaterialCategory::Steel, 10),
-            (MaterialCategory::Bauxite, 10),
-            (MaterialCategory::DevMat, 1),
-        ];
-
-        let (ids, _materials) = context.create_slotitem(pid, &[craftable], &costs).await.unwrap();
-        let created_id = ids[0];
-        assert!(created_id > 0);
-
-        let after = build_require_info_response(&context, pid).await.unwrap();
-        assert_eq!(after.api_slot_item.len(), before.api_slot_item.len() + 1);
-        assert!(after.api_slot_item.iter().any(|item| item.api_id == created_id));
-
-        let type3 =
-            context.codex.find::<ApiMstSlotitem>(&craftable).unwrap().api_type[2].to_string();
-        let unset_key = format!("api_slottype{type3}");
-        assert!(
-            after.api_unsetslot.get(&unset_key).is_some_and(|items| items.contains(&created_id))
-        );
+        api_extra_supply: view.extra_supply,
+        api_furniture: view.furnitures,
+        api_kdock: view.kdocks.into_iter().map(std::convert::Into::into).collect(),
+        api_oss_setting: view.oss_settings,
+        api_position_id: view.position_id,
+        api_skin_id: view.skin_id,
+        api_slot_item: view.slot_items,
+        api_unsetslot: view.unset_slots,
+        api_useitem: view.use_items,
     }
 }

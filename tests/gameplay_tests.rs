@@ -45,6 +45,9 @@ mod map;
 #[path = "gameplay_tests/quest/mod.rs"]
 mod quest;
 
+#[path = "gameplay_tests/view/mod.rs"]
+mod view;
+
 #[path = "gameplay_tests/useitem_material_sync.rs"]
 mod useitem_material_sync;
 
