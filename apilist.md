@@ -2,7 +2,13 @@
 
 ## Implemented APIs
 
+`api_req_sortie/airbattle`, `ld_airbattle`, `ld_shooting` and
+`api_req_battle_midnight/sp_midnight` cover the single-fleet simulation only; the combined-fleet
+variants are still missing.
+
 ```plain
+api_dmm_payment/paycheck
+
 api_get_member/basic
 api_get_member/chart_additional_info
 api_get_member/deck
@@ -30,6 +36,9 @@ api_get_member/unsetslot
 api_get_member/useitem
 
 api_port/port
+
+api_req_battle_midnight/battle
+api_req_battle_midnight/sp_midnight
 
 api_req_furniture/buy
 api_req_furniture/change
@@ -83,6 +92,10 @@ api_req_kousyou/preset_dev_items_expand
 api_req_kousyou/preset_dev_items_register
 api_req_kousyou/preset_dev_items_update_name
 
+api_req_map/next
+api_req_map/select_eventmap_rank
+api_req_map/start
+
 api_req_member/get_event_selected_reward
 api_req_member/get_incentive
 api_req_member/get_practice_enemyinfo
@@ -97,15 +110,30 @@ api_req_member/update_tutorial_progress
 api_req_member/updatecomment
 api_req_member/updatedeckname
 
+api_req_mission/result
+api_req_mission/return_instruction
+api_req_mission/start
+
 api_req_nyukyo/open_new_dock
 api_req_nyukyo/speedchange
 api_req_nyukyo/start
+
+api_req_practice/battle
+api_req_practice/battle_result
+api_req_practice/midnight_battle
 
 api_req_quest/clearitemget
 api_req_quest/start
 api_req_quest/stop
 
 api_req_ranking/mxltvkpyuklh
+
+api_req_sortie/airbattle
+api_req_sortie/battle
+api_req_sortie/battleresult
+api_req_sortie/goback_port
+api_req_sortie/ld_airbattle
+api_req_sortie/ld_shooting
 
 api_start2/get_option_setting
 api_start2/getData
@@ -118,17 +146,9 @@ api_world/register
 
 ### Core Battle System
 
+Combined-fleet variants only; the single-fleet day, night and aerial battles are implemented.
+
 ```plain
-api_req_sortie/battle
-api_req_sortie/airbattle
-api_req_sortie/battleresult
-api_req_sortie/goback_port
-api_req_sortie/ld_airbattle
-api_req_sortie/ld_shooting
-
-api_req_battle_midnight/battle
-api_req_battle_midnight/sp_midnight
-
 api_req_combined_battle/airbattle
 api_req_combined_battle/battle
 api_req_combined_battle/battle_water
@@ -148,28 +168,14 @@ api_req_combined_battle/sp_midnight
 ### Map & Sortie System
 
 ```plain
-api_req_map/start
-api_req_map/next
-api_req_map/select_eventmap_rank
 api_req_map/air_raid
 api_req_map/anchorage_repair
 api_req_map/start_air_base
 ```
 
-### Mission System
-
-```plain
-api_req_mission/start
-api_req_mission/result
-api_req_mission/return_instruction
-```
-
 ### Practice System
 
 ```plain
-api_req_practice/battle
-api_req_practice/battle_result
-api_req_practice/midnight_battle
 api_req_practice/change_matching_kind
 ```
 
@@ -209,28 +215,20 @@ api_req_hensei/preset_order_change
 api_req_ranking/getlist
 ```
 
-### Payment System
-
-```plain
-api_dmm_payment/paycheck
-```
-
 ## Implementation Priority
 
 ### High Priority (Core Gameplay)
 
-1. **Map & Sortie System** - Required for basic gameplay
-2. **Battle System** - Core combat mechanics
-3. **Mission System** - Expedition functionality
+1. **Combined Fleet Battles** - the 14 `api_req_combined_battle/*` endpoints
+2. **Air Corps System** - event map support, and the only remaining `api_get_member` gap
 
 ### Medium Priority (Enhanced Features)
 
-1. **Practice System** - PvP functionality
-2. **Air Corps System** - Event map support
-3. **Equipment Improvement** - Arsenal functionality
+1. **Map & Sortie remainder** - air_raid, anchorage_repair, start_air_base
+2. **Equipment Improvement** - Arsenal functionality
 
 ### Low Priority (Optional Features)
 
 1. **Fleet Presets** - QoL enhancements (preset_lock, preset_order_change)
-2. **Ranking** - Ranking list display
-3. **Payment System** - Monetization (not needed for emulator)
+2. **Practice matching** - change_matching_kind
+3. **Ranking** - Ranking list display

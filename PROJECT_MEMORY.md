@@ -44,10 +44,17 @@ Current verification baseline:
 - [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions; final linear commit is `0395121`. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
 - [2026-09-19] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` (also deletes
   main.js) → decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list
-  --overwrite`. Verified end-to-end on 6.3.2.1; on 6.3.5.0 only the decode step ran (main.js fetched by hand).
+  --overwrite`. Verified on 6.3.2.1 and 6.3.5.0 (the latter with main.js fetched by hand instead of bootstrap).
+- [2026-09-19] The 6.3.5.0 cache list changed by exactly two lines: the `kcs2/js/main.js` version row and one new
+  `kcs2/resources/stype/etext/sp014.png` entry (72,743 → 72,744), matching the asset-level analysis. `make-list`
+  under the default strategy does pick up new explicit paths from `cache_rules.json`; `--manifest` is not needed.
 - [2026-09-19] Client 6.3.4.1 → 6.3.5.0 changed no battle knowledge: all four battle assets are byte-identical
   once `_0x` names are normalized, and `kcs2/version.json` is unchanged upstream. The only real content deltas
   are one explicit path `resources/stype/etext/sp014.png` and a `TaskReward` (88313) provenance entry.
+- [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb, v1.0.6) does NOT replace `main-decoder`: on 6.3.5.0 it left
+  263,127 `_0x455a(0x..)` calls unevaluated and 0/55 battle protocol fields visible, in 304 s and 5.1 GB peak,
+  vs our 0 calls / 55 fields in ~20 s. Its ControlFlowRecoverer and AntiTamperRemover never fire — KanColle's
+  obfuscator.io config has no control-flow flattening or self-defending. Re-evaluating it is wasted work.
 - [2026-09-19] Two `main.js` version axes: `kcs_const.js` `scriptVesion` (note the upstream typo) is the client
   script version and drives `out/version.txt` plus every synced asset's `scriptVersion`; `kcs2/version.json`
   holds per-subsystem asset versions and moves independently. A main.js-only release bumps the first, not both.
@@ -55,6 +62,9 @@ Current verification baseline:
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
 - [2026-09-19] `questlist` `api_tab_id` is the client tab bar (0,9,1,2,3,4,5 = all, activated, daily, weekly, monthly, oneshot, other); the client filters nothing itself. `api_label_type` keys the row label (1,2,3,6,7,101..=112). Source: `main.decoded.js` `DutyDataHolder`, `_createTab`.
+- [2026-09-19] `apilist.md` is mechanically aligned with the router: 113 implemented, 34 missing, no overlap.
+  Re-verify by extracting `nest("/prefix", mod::router())` from `kcsapi/mod.rs` plus each submodule's
+  `.route("/leaf"` and diffing against the two fenced blocks; do not hand-audit it.
 - [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
@@ -93,22 +103,22 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`. (a) Fixed night-only enemy sinks reporting no `EnemyShipSunk` — `settle_sortie_battle_impl`
-  now reads `final_enemy_nowhps` and the day-frozen snapshot copy is gone (`653a5d5`, pushed). (b) Refreshed the
-  client assets to 6.3.5.0: fetched `main.js` by hand into `z/cache/kcs2/js/`, `bun install` in `main-decoder`,
-  then `make decode-main`. Battle knowledge is semantically unchanged; see Verified Facts for the two real
-  deltas. Fixed `split.ts` TS2532 (`688e29c`) and the id-pinned decoder test (`b1016fc`). Gates green:
-  `fmt --check`, `clippy --workspace --all-targets` (no new warnings), root `cargo test` 63 + 125,
-  `-p emukc_bootstrap` 213 + battle_rules 15, `-p emukc_gameplay` 143 + 64, `bun test` 61, `bun run check`.
+- [2026-09-19] `main`. (a) `653a5d5` (pushed): night-only enemy sinks now reach the quest observer.
+  (b) `688e29c` / `b1016fc` / `940b5ae`: refreshed client assets to 6.3.5.0 (main.js fetched by hand,
+  `bun install`, `make decode-main`), fixed a TS2532 in `split.ts` and the id-pinned decoder test.
+  (c) Ran `make cache-make-list`; the list moved by exactly the two expected lines. (d) Realigned
+  `apilist.md` and TODO.md's Mission section with the router. Evaluated `obfuscator-io-deobfuscator` and
+  rejected it (see Verified Facts). Gates green: `fmt --check`, `clippy --workspace --all-targets`,
+  root `cargo test` 63 + 125, `-p emukc_bootstrap` 213, `-p emukc_gameplay` 143 + 64, `bun test` 61,
+  `bun run check`.
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) `cache make-list --overwrite` has NOT run since the 6.3.5.0
-  sync, so `resources/stype/etext/sp014.png` is not in the cache list yet. (2) `apilist.md` lists 18 routed
-  endpoints under "Missing APIs" (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_map/start|next|
-  select_eventmap_rank`, `api_req_practice/*`, `api_req_mission/*`, `api_dmm_payment/paycheck`); TODO.md's
-  Mission section is stale the same way. Nothing is over-claimed. (3) KTD7 `api_m_flag = 2` has no assertion.
-  (4) `sp_midnight` lacks `with_profile_lock`; `run_sp_midnight_battle` takes a redundant `enemy_formation_id`.
-  Older: literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up;
-  deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder
-  unresolved id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.
+- [2026-09-19] Candidate next work, in order: (1) KTD7 `api_m_flag = 2` has no assertion. (2) `sp_midnight`
+  lacks `with_profile_lock`; `run_sp_midnight_battle` takes a redundant `enemy_formation_id`. (3) The 14
+  `api_req_combined_battle/*` endpoints are now the largest gameplay gap, then the Air Corps set; EO74 field
+  specs for all 34 missing endpoints are at sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, treat as a
+  starting point, not a contract). Smaller: literal-only
+  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up; deterministic
+  `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved
+  id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.

@@ -52,9 +52,9 @@
   - [x] `api_req_battle_midnight/sp_midnight` - night-start battle (partial: core sim, no combined)
   - [ ] Combined battle variants (14 endpoints)
 - [ ] **Mission / Expedition System** (`api_req_mission/*`)
-  - [ ] `api_req_mission/start` - start expedition
-  - [ ] `api_req_mission/result` - expedition result
-  - [ ] `api_req_mission/return_instruction` - recall expedition
+  - [x] `api_req_mission/start` - start expedition
+  - [x] `api_req_mission/result` - expedition result
+  - [x] `api_req_mission/return_instruction` - recall expedition
   - [ ] Static expedition unlock table from verified external data
     Priority: low until a reliable structured data source is available
 
