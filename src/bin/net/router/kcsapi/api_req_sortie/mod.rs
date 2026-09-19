@@ -39,10 +39,6 @@ mod tests {
             Pid(context.session.profile.id),
             Form(battle::Params {
                 api_formation: 1,
-                api_recovery_type: 0,
-                api_supply_flag: None,
-                api_ration_flag: None,
-                api_smoke_flag: None,
             }),
         )
         .await
@@ -50,13 +46,10 @@ mod tests {
         let battle_data = battle.api_data.unwrap();
         assert_eq!(battle_data["api_deck_id"], 1);
 
-        let result = battleresult::handler(
-            app_state(&context.state),
-            Pid(context.session.profile.id),
-            Form(battleresult::Params::default()),
-        )
-        .await
-        .unwrap();
+        let result =
+            battleresult::handler(app_state(&context.state), Pid(context.session.profile.id))
+                .await
+                .unwrap();
         let result_data = result.api_data.unwrap();
         assert!(result_data["api_win_rank"].as_str().is_some());
         assert!(result_data["api_get_flag"].as_array().is_some());
@@ -81,10 +74,6 @@ mod tests {
             Pid(context.session.profile.id),
             Form(airbattle::Params {
                 api_formation: 1,
-                api_recovery_type: 0,
-                api_supply_flag: None,
-                api_ration_flag: None,
-                api_smoke_flag: None,
             }),
         )
         .await
@@ -110,10 +99,6 @@ mod tests {
             Pid(context.session.profile.id),
             Form(ld_airbattle::Params {
                 api_formation: 1,
-                api_recovery_type: 0,
-                api_supply_flag: None,
-                api_ration_flag: None,
-                api_smoke_flag: None,
             }),
         )
         .await
@@ -140,10 +125,6 @@ mod tests {
             Pid(context.session.profile.id),
             Form(ld_shooting::Params {
                 api_formation: 1,
-                api_recovery_type: 0,
-                api_supply_flag: None,
-                api_ration_flag: None,
-                api_smoke_flag: None,
             }),
         )
         .await
