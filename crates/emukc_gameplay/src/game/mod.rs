@@ -12,7 +12,7 @@ pub use sortie::{
 };
 pub use sortie_store::PracticeStore;
 pub use sortie_store::SortieStore;
-pub use view::{PortView, RequireInfoView};
+pub use view::{PortView, QuestListItem, QuestListView, RequireInfoView};
 
 // modules
 
@@ -51,8 +51,8 @@ pub mod types {
     #[doc(hidden)]
     pub use crate::game::{
         ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PortView, PowerupResp,
-        RequireInfoView, SlotDepriveParams, SortieAirSearch, SortieCellData,
-        SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
+        QuestListItem, QuestListView, RequireInfoView, SlotDepriveParams, SortieAirSearch,
+        SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
         SortieStartResponse,
     };
 }

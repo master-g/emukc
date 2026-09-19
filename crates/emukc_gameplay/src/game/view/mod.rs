@@ -5,7 +5,9 @@
 //! that structure onto the wire format (plan 002 KD4, KTD5).
 
 pub use port::PortView;
+pub use quest_list::{QuestListItem, QuestListView};
 pub use require_info::RequireInfoView;
 
 mod port;
+mod quest_list;
 mod require_info;

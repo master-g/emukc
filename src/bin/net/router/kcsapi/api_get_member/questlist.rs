@@ -1,5 +1,4 @@
 use axum::Form;
-use emukc::db::entity::profile::quest::progress;
 use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
@@ -46,84 +45,39 @@ pub(super) async fn handler(
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let codex = state.codex();
+    let view = state.quest_list_view(pid, params.api_tab_id).await?;
 
-    let quests = state.get_quest_records(pid).await?;
+    Ok(KcApiResponse::success(&project(view)))
+}
 
-    let mut api_completed_kind = 0;
-    let mut api_exec_count = 0;
+fn project(view: QuestListView) -> Resp {
+    let api_list: Vec<KcApiQuestItem> = view.items.into_iter().map(project_item).collect();
 
-    let api_list: Vec<KcApiQuestItem> = quests
-        .iter()
-        .filter_map(|model| {
-            if params.api_tab_id == 9 && model.status != progress::Status::Activated {
-                return None;
-            }
-
-            let mst = codex.find::<Kc3rdQuest>(&model.quest_id).ok()?;
-
-            if params.api_tab_id > 0 && mst.label_type != params.api_tab_id {
-                return None;
-            }
-
-            if model.status == progress::Status::Activated {
-                api_exec_count += 1;
-                if model.progress == progress::Progress::Completed {
-                    api_completed_kind = 1;
-                }
-            }
-
-            Some(KcApiQuestItem {
-                api_no: mst.api_no,
-                api_category: mst.category as i64,
-                api_type: match mst.period {
-                    Kc3rdQuestPeriod::Oneshot => KcApiQuestType::Oneshot as i64,
-                    Kc3rdQuestPeriod::Daily
-                    | Kc3rdQuestPeriod::Daily3rd7th0th
-                    | Kc3rdQuestPeriod::Daily2nd8th => KcApiQuestType::Daily as i64,
-                    Kc3rdQuestPeriod::Weekly => KcApiQuestType::Weekly as i64,
-                    Kc3rdQuestPeriod::Monthly => KcApiQuestType::Monthly as i64,
-                    Kc3rdQuestPeriod::Quarterly | Kc3rdQuestPeriod::Annual => {
-                        KcApiQuestType::Other as i64
-                    }
-                    Kc3rdQuestPeriod::Unknown => KcApiQuestType::Other as i64,
-                },
-                api_label_type: mst.label_type,
-                api_state: if model.status == progress::Status::Idle {
-                    1
-                } else if model.progress == progress::Progress::Completed {
-                    3
-                } else {
-                    2
-                },
-                api_title: mst.name.clone(),
-                api_detail: mst.detail.clone(),
-                api_lost_badges: mst.requirements.lost_badges(),
-                api_voice_id: 0, // TODO(#0): voice_id is missing now
-                api_get_material: vec![
-                    mst.reward_fuel,
-                    mst.reward_ammo,
-                    mst.reward_steel,
-                    mst.reward_bauxite,
-                ],
-                api_select_rewards: mst.to_api_reward_selection(),
-                api_bonus_flag: mst.bonus_flag(),
-                api_progress_flag: if model.progress == progress::Progress::Completed {
-                    0
-                } else {
-                    model.progress as i64
-                },
-                api_invalid_flag: 0, // TODO(#0): invalid_flag is missing now, (e.g: plane convert)
-            })
-        })
-        .collect();
-
-    Ok(KcApiResponse::success(&Resp {
+    Resp {
         api_count: api_list.len() as i64,
-        api_completed_kind,
+        api_completed_kind: view.completed_kind,
         api_list,
-        api_exec_count,
+        api_exec_count: view.exec_count,
         api_exec_type: 0,
         api_c_list: vec![], // TODO(#0): we are not there yet
-    }))
+    }
+}
+
+fn project_item(item: QuestListItem) -> KcApiQuestItem {
+    KcApiQuestItem {
+        api_no: item.no,
+        api_category: item.category,
+        api_type: item.quest_type,
+        api_label_type: item.label_type,
+        api_state: item.state,
+        api_title: item.title,
+        api_detail: item.detail,
+        api_lost_badges: item.lost_badges,
+        api_voice_id: 0, // TODO(#0): voice_id is missing now
+        api_get_material: item.reward_materials,
+        api_select_rewards: item.select_rewards,
+        api_bonus_flag: item.bonus_flag,
+        api_progress_flag: item.progress_flag,
+        api_invalid_flag: 0, // TODO(#0): invalid_flag is missing now, (e.g: plane convert)
+    }
 }
