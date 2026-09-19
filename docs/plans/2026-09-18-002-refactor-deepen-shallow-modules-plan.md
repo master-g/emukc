@@ -89,7 +89,7 @@ execution: code
 - AE6. 在「海域中途清 gauge」路径与普通路径上，`SortieBattleResultResponse` 只由 `From<SortieSettlement>` 产出（`sortie/mod.rs` 与 `sortie_result.rs` 里不再有该结构的字面量）；`sortie/tests.rs` 的四个 gauge 用例（`first_gauge_clear_switches_map_variant_without_finishing_map`、`hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared`、`hp_gauge_clear_switches_stage_before_marking_map_cleared`、`final_hp_gauge_clear_marks_map_cleared`）经 `settle_sortie_battle_impl` 走完整写集合后从 `SortieSettlement::first_clear` / `next_map_ids` 断言。 Covers R7。
 - AE7. `api_port` handler 的函数体只剩一次 `state.port_view(pid)` 与投影（`require_info` / `questlist` 同形）；`tests/gameplay_tests/view/port.rs::port_view_clears_pending_sortie_state` 让 profile 经真实 `start_sortie` + `sortie_battle` 进入 pending battle，调用 `port_view` 后 `SortieStore` 中无 active sortie 也无 pending result。三个 handler 改前后对同一夹具的响应体 diff 为空（port 只差 `api_starttime` 与嵌入 `GIT_HASH` 的 `api_message`）。 Covers R8。
 - AE8. `git grep -n 'update_quest_progress_for_action' crates/emukc_gameplay/src` 只命中 `game/quest/`（`observe.rs` 与 `update.rs`）；`tests/gameplay_tests/quest/progress.rs` 的 33 个与 `event_matching.rs` 的 17 个用例（均为同步 `#[test]`）零改动、全绿，`tests/gameplay_tests/**` 在 U8 中一行未改。 Covers R9。
-- AE9. `api_req_sortie/battle.rs` 不再有 `let _ = (…)`；`form_utils.rs` 的每个 helper 有一个 `#[test]`。 Covers R10。
+- AE9. `git grep 'let _ = (' -- src/bin` 无命中（五个 `api_req_sortie` handler 的丢弃字段删除，`battleresult` 不再提取表单）；`form_utils.rs` 的两个 helper（`deserialize_form_ivec`、`deserialize_form_flag`）各有一个 `#[test]`，各有真实 handler 用户；七个 "0"/"1" 标志字段改为 `bool` 后，对 "0" / "1" / 缺失的解析结果与改前逐项一致。 Covers R10。
 
 ### Success Criteria
 
@@ -126,7 +126,7 @@ execution: code
 - KTD4. **wire 构建收成 `game/battle/response.rs`。** `build_battle_response(packet: &BattlePacket, friend: &[BattleShipInput], enemy: &[BattleShipInput]) -> DayBattleResponse` 与 `build_night_response(..) -> NightBattleResponse`；`PracticeBattleResponse` 改名为 `DayBattleResponse` 并删除 `sortie/mod.rs:71` 现有的 `pub type SortieBattleResponse = PracticeBattleResponse;` 别名（该别名是为掩盖误命名而设，`src/bin/` 无任何引用，全部使用点都在 gameplay crate 内；结构名不上 wire），`SortieNightBattleResponse` 与 `PracticeNightBattleResponse` 合并为 `NightBattleResponse`；practice 的 `BattleRuntimeShip` 入口先转 `BattleShipInput` 再进同一 builder，删除 `enemy_slot_ids_from_input` 那种为跨类型造假结构的做法。 Governs R3。
 - KTD5. **视图操作命名为 `Ctx::port_view`、`Ctx::require_info_view`、`Ctx::quest_list_view(pid, tab_id)`。** 返回 gameplay 内的 `PortView` / `RequireInfoView` / `QuestListView` 结构（领域类型，不带 `api_` 前缀），handler 在 `src/bin/` 内投影到现有 `Resp`。`port_view` 内部顺序固定为：清 stale sortie → `find_profile` + `update_materials_impl` → 同一事务读 basic / materials / fleets / ndocks / game settings → commit → `self.get_ships`（`KcApiShip` 的 `api_onslot_max` / `api_sp_effect_items` 填充是 `ship` 模块私有，没有 `_impl`，读取位置与原 handler 一致）；`require_info_view` 同理先 `self.get_furnitures` 再一事务读齐其余八项。`questlist.rs` 的 tab 过滤、计数与 `state` / `progress_flag` / `quest_type` 派生搬进 `quest_list_view(pid, tab_id)`，返回 `QuestListView { completed_kind, exec_count, items: Vec<QuestListItem> }`；tab 9 先按 Activated 过滤再按 `label_type == 9` 过滤而 `label_type` 无 9，恒返回空列表，这是既有行为，R12 之下原样保留并由测试钉住。新类型经 `game::types` 进 prelude，`lib.rs` 不动。 Governs R8。
 - KTD6. **quest 观察点。** `game/quest/observe.rs` 定义 `pub(crate) enum GameplayOutcome { ShipConstructed{..}, SlotItemConstructed{..}, … }`，与 `QuestActionEvent` 一一对应但由领域模块构造；`observe<C>(c, codex, pid, outcomes: &[GameplayOutcome])` 按切片顺序把每个 outcome 映射为 event 并调用现有 `update_quest_progress_for_action`；取切片而不是单个 outcome，是因为 `create_slotitem`、`charge_supply`、`destroy_ship`（`ShipScrapped` + 各 `SlotItemScrapped`）与 `sortie_battle_result`（`SortieBattleCompleted` + 各 `EnemyShipSunk`）一次写入产生多条，而 KD3 要求每个 `Ctx` 方法只调用一次。每个领域的 `Ctx` 方法在写入完成、`tx.commit()` 之前调用一次 `observe(&tx, ..)`；`_impl` 内部不再调用 quest，改为返回 outcome（`destroy_items_impl` 返回材料与 outcomes，`ndock_start_repair_impl` / `speed_up_ship_repairation_impl` / `supply_fleet_impl` / `powerup_impl` 同理，`settle_sortie_battle_impl` 把 outcomes 放在 `SortieSettlement.outcomes`）。位置可移的依据：`update.rs:174-244` 只读 quest progress 表与 codex，`progress_after_event` 是纯算术，不依赖同事务其他表的中间状态。`speed_up_ship_repairation_impl` 摘掉 quest 调用后不再用 `codex`，该参数随之删除。`SlotItemImproved` 保留：`.data/codex/quest.json` 有 4 个任务（618、619、1166、1167）以 `SlotItemImprovement` 为条件，`matcher.rs` 已有匹配分支与测试；没有 producer 是因为 `api_req_kousyou/remodel_slot*` 尚未实现（`docs/api_coverage.md` 列为 P1）。U8 在 `observe.rs` 的文件头注明这一点，producer 随改修功能一起到来。 Governs R9。
-- KTD7. **表单约定。** `form_utils.rs` 增加 `deserialize_form_flag`（"0"/"1" → bool）、`deserialize_form_opt_ivec`；随即丢弃的字段直接从 `Params` 删除（serde 默认忽略未知字段），在结构上方一行注释列出客户端实际发送但未使用的字段名。不引入 derive 宏。 Governs R10。
+- KTD7. **表单约定。** `form_utils.rs` 增加 `deserialize_form_flag`（"0"/"1" → bool，其它值在反序列化阶段拒绝——这是 U9 唯一的行为差异，改前各 handler 按 `== 1` / `== 0` 各自折进某个分支）；`deserialize_form_opt_ivec` **未加**：kcsapi 下没有 `Option<Vec<i64>>` 形式的表单字段（唯一候选 `battleresult` 的 `Option<Vec<String>>` 随丢弃字段一起删除），无用户的 helper 会触发 dead_code 且违背 R13 的精神。随即丢弃的字段直接从 `Params` 删除（serde 默认忽略未知字段），在结构上方一行注释列出客户端实际发送但未使用的字段名；`battleresult` 删空后连 `Form` 提取一起去掉。`createship` 的 `api_large_flag` 参与算术，保持 `i64`。测试用 `serde::de::value::StrDeserializer`，不把 `serde_urlencoded` 提为直接依赖。不引入 derive 宏。 Governs R10。
 - KTD8. **U10 的等价性证明。** 先写一次性差分测试，对 `fresh_1_1` 等预设在 ≥1000 个 seed 上比较旧 overlay 与新钳位的 `execute_day` / `execute_night` 输出，全部相等后再删旧模块；golden 必须逐字节不变。差分测试用后删除，不留夹具。 Governs R11。
 - KTD9. **交付顺序与 CONTEXT.md。** 仓库尚无 `CONTEXT.md`；U4、U6、U7、U8 各引入一个新领域名词（经验结算、战后结算、视图、观察点）。每个单元落地时在 `CONTEXT.md` 追加该词条（首个单元创建文件），不提前创建。
 
@@ -297,8 +297,8 @@ Phase A 三个单元互不依赖。U5 依赖 U3（setup 产出的舰队类型要
 - **Requirements:** R10, R12, 全部。
 - **Dependencies:** U7, U8。
 - **Files:**
-  - `src/bin/net/router/kcsapi/form_utils.rs` — KTD7 的两个 helper 与测试。
-  - `src/bin/net/router/kcsapi/**` 中含 `let _ = (` 或 `#[allow(dead_code)]` 字段的 `Params` — 删除丢弃字段，加注释。
+  - `src/bin/net/router/kcsapi/form_utils.rs` — `deserialize_form_flag` 与两个 helper 的测试（`deserialize_form_opt_ivec` 不加，见 KTD7）。
+  - `src/bin/net/router/kcsapi/api_req_sortie/{battle,airbattle,ld_airbattle,ld_shooting,battleresult,mod}.rs` — 删除丢弃字段，加注释（kcsapi 下没有 `#[allow(dead_code)]` 字段，该项为空）；`api_req_member/{itemuse,payitemuse,set_friendly_request}.rs`、`api_req_kousyou/{destroyship,createitem}.rs`、`api_req_kaisou/powerup.rs`、`api_req_furniture/buy.rs` — 七个标志字段改 `bool`。`destroyship.rs` 的手写 `split(',')` 未改用 helper：错误响应形状（`GameplayError` vs axum 422）与 `trim` 行为都会变。
   - `docs/solutions/architecture-patterns/` — 新增：舰船经验结算、战后结算、视图操作、quest 观察点四篇；更新 `sortie.md`、`quest.md`、`fleet.md` 中受影响段落。
   - `CLAUDE.md` — 「Adding a New Game API」第 3 步补一句：可推进任务的操作在 `Ctx` 方法内调用 `quest::observe`。
   - `CONTEXT.md` — 各单元累积的词条（KTD9）。
@@ -353,6 +353,15 @@ Phase A 三个单元互不依赖。U5 依赖 U3（setup 产出的舰队类型要
 - 唯一的行为变化是 AE4（expedition 封顶）与 AE5（sp_midnight 补齐守卫），均在提交正文写明旧行为。
 - `docs/solutions/` 四篇新知识、`CONTEXT.md` 词条、`CLAUDE.md` 一句、`PROJECT_MEMORY.md` 回写完成。
 - 三门通过，无 skipped / ignored，golden 与生成资产逐字节不变。
+
+### 验收记录（2026-09-19）
+
+- R1-R13 均已覆盖：U1-U3（Phase A）、U4-U6（Phase B）、U7-U9（Phase C）、U10（Phase D）全部落地，提交序列 `4cfe514`..`4f9ab42`，每个单元独立提交且 diff 只含所列路径（U5-U9 由 `.farm/deepen-u{5..9}-gate.sh` 的路径白名单验证）。
+- AE1-AE9 逐条有证据，记在各 AE 条目里。两处与原文的字面差异：AE3「`api_f_nowhps` 降为 1 个文件」实际是 2 个，多出的一处是 `87de0d5` 恢复的测试断言；R11 的钳位 pass 落在保留的 `debug_overlay.rs` 并由 `execution.rs` 调用，而不是「在 `execution.rs` 内」。
+- 行为变化共三处，均在提交正文写明旧行为：AE4（expedition 封顶，`f5541c2`）、AE5（sp_midnight 补齐守卫，`fda1c82`）、U9 的标志字段对 "0"/"1" 之外的值改为拒绝（`a243ebd`，原文 DoD 未预见，客户端不发这类值）。另有一处宽松化：`battleresult` 不再提取表单，坏 `Content-Type` 的请求改为接受。
+- 知识沉淀：`docs/solutions/architecture-patterns/{ship-exp-settlement,sortie-settlement,client-views,quest-observation}.md` 新增，`sortie.md`、`quest.md`、`fleet.md` 受影响段落改写，`CLAUDE.md` 第 3 步补 `quest::observe` 一句，`CONTEXT.md` 四条词条（KTD9），`PROJECT_MEMORY.md` 回写。
+- 三门在每个单元的门禁里通过，无 skipped / ignored；golden、生成资产、`Cargo.lock` 相对 `e93e1f8` 逐字节不变。
+- 计划执行中发现、未在本计划处理的既有问题：`Ctx::destroy_items` 开事务从不 commit（`destroyitem2` 的拆解不持久化）；questlist tab 9 恒空；`sortie_midnight_battle` 不刷新 `snapshot.enemy_nowhps`（夜战击沉不触发 `EnemyShipSunk`）；KTD7 的 `api_m_flag = 2` 失去断言；sp_midnight 无 `with_profile_lock`。均记在 `PROJECT_MEMORY.md`。
 
 ## Resolved Decisions（2026-09-18，依据仓库记录与 Rust 惯例）
 

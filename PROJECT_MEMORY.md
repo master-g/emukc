@@ -77,23 +77,23 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`, committed and unpushed. Plan 002 U5/U6 by me; U7 and U8 by the claude worker in herdr pane
-  `w1C:p8E` (briefs/gates/reports under `.farm/deepen-u{7,8}-*`). U8: `game/quest/observe.rs` (`GameplayOutcome`
-  + `observe(c, codex, pid, &[outcomes])`) is the only quest entry; `_impl`s return outcomes, `Ctx` methods
-  observe once before `tx.commit()`; `SortieSettlement.outcomes`. Four commits `053aacf`..`b2a1a65`. Both U7 and
-  U8 gates failed once on my script bugs (see pitfalls), fixed and re-run by me. Assets, golden and `Cargo.lock`
-  byte-identical throughout.
+- [2026-09-19] `main`, committed and unpushed (about 30 commits ahead of origin). Plan 002 (deepen shallow modules)
+  is complete: U5/U6 by me, U7/U8/U9 by the claude worker in herdr pane `w1C:p8E` (briefs/gates/reports under
+  `.farm/deepen-u*`), each unit as code commits plus a docs commit; the DoD acceptance record is in the plan's
+  "验收记录（2026-09-19）". U9: `form_utils::deserialize_form_flag`, seven "0"/"1" fields are `bool`, sortie
+  handlers dropped discarded fields, four new `docs/solutions/architecture-patterns/` notes. Gates passed
+  (my re-runs); assets, golden and `Cargo.lock` byte-identical to `e93e1f8` throughout.
 
 ## Next Session
 
-- [2026-09-19] Continue plan 002 with U9 (KTD7 form conventions in `src/bin/.../form_utils.rs`: `deserialize_form_flag`,
-  `deserialize_form_opt_ivec`, drop discarded `Params` fields, one `#[test]` per helper; then the plan's closing
-  items: four `docs/solutions/` notes, `CLAUDE.md` sentence, DoD check). Reuse `.farm/deepen-u8-gate.sh` shape.
-  Real bug found by the U8 worker, not fixed (out of U8 scope): `Ctx::destroy_items` (`slot_item.rs`) opens a tx
-  and never commits it, so `api_req_kousyou/destroyitem2` scrapping is rolled back; one `tx.commit().await?`
-  plus a persistence assertion. Other open items: questlist tab 9 always empty; KTD7 `api_m_flag = 2` has no
-  assertion; `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps` (night sinks fire no
-  `EnemyShipSunk`); sp_midnight lacks `with_profile_lock`; redundant `enemy_formation_id` param; literal-only
-  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; deterministic `practice_battle` win-rank asserts;
-  6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation; archiving the
-  battle execution plan; stale `wt-base` worktree.
+- [2026-09-19] Plan 002 is done; push is still pending the user's call. Candidate next work, in order: (1) `fix:`
+  `Ctx::destroy_items` (`slot_item.rs`) never commits its tx, so `api_req_kousyou/destroyitem2` scrapping rolls
+  back; add `tx.commit().await?` plus a persistence assertion. (2) questlist tab 9 always empty (`label_type`
+  never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (3) `sortie_midnight_battle` never refreshes
+  `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`. (4) KTD7 `api_m_flag = 2` has no assertion.
+  Smaller: sp_midnight lacks `with_profile_lock`; redundant `enemy_formation_id` param on
+  `run_sp_midnight_battle`; literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's
+  KD6 follow-up (inline `_impl`s that now have a single caller). Older: deterministic `practice_battle` win-rank
+  asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation;
+  archiving the battle execution plan; stale `wt-base` worktree. Worker dispatch recipe: `.farm/deepen-u9-brief.md`
+  + gate shape; allowlist `tests/gameplay_tests.rs`, judge structure by grep not per file.
