@@ -19,7 +19,6 @@ use emukc_model::{
         map::{EnemyComposition, MapCellDefinition, MapStageDefinition, split_map_id},
     },
     kc2::MaterialCategory,
-    thirdparty::QuestActionEvent,
 };
 use serde::Serialize;
 
@@ -41,22 +40,18 @@ use super::{
     },
     fleet::get_fleet_ships_impl,
     map::{
-        active_map_catalog, check_and_unlock_dependencies_impl, ensure_map_records_impl,
-        find_map_definition, find_map_record_impl, refresh_all_map_records_impl,
+        active_map_catalog, ensure_map_records_impl, find_map_definition, find_map_record_impl,
+        refresh_all_map_records_impl,
     },
     map_progress::resolve_record_stage_id,
     map_route::{cell_has_routing_outgoing, evaluate_route_destination},
     material::add_material_impl,
-    quest::update::update_quest_progress_for_action,
     ship::exp::calculate_admiral_exp,
-    sortie_result::{
-        apply_sortie_map_result, build_sortie_quest_event, calculate_sortie_ship_exp,
-        try_grant_sortie_ship_drop, update_sortie_result_stats,
-    },
+    sortie_result::{calculate_sortie_ship_exp, settle_sortie_battle_impl},
     sortie_store::SortieStore,
 };
 
-pub use super::sortie_result::{SortieBattleResultEnemyInfo, SortieBattleResultResponse};
+pub use super::sortie_result::SortieBattleResultResponse;
 
 #[derive(Debug, Clone)]
 pub struct ActiveSortieState {
@@ -475,172 +470,58 @@ impl Ctx {
                 "active sortie not found for profile {profile_id}",
             ))
         })?;
-        let pending_cell_id = active.pending_battle_cell_id.ok_or_else(|| {
-            GameplayError::WrongType("no pending sortie battle to resolve".to_string())
-        })?;
-
         let catalog = active_map_catalog(codex);
         let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
         })?;
-        let stage = definition.stage(&active.stage_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "stage `{}` not found for map {}",
-                active.stage_id, active.map_id,
-            ))
-        })?;
-        let current_cell = stage.cell(pending_cell_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found"))
-        })?;
 
-        let snapshot = update_sortie_result_stats(&tx, codex, profile_id, snapshot).await?;
-        let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);
-        tracing::debug!(
-            map_id = definition.map_id,
-            cell_no = current_cell.cell_no,
-            boss_cell_id = active.boss_cell_id,
-            is_boss_cell,
-            win_rank = %snapshot.win_rank,
-            "sortie_battle_result: boss check"
-        );
-        let first_clear =
-            apply_sortie_map_result(&tx, profile_id, definition, stage, is_boss_cell, &snapshot)
-                .await?;
-        tracing::debug!(
-            map_id = definition.map_id,
-            first_clear,
-            "sortie_battle_result: map result applied"
-        );
-        let ship_drop = try_grant_sortie_ship_drop(
+        let settlement = settle_sortie_battle_impl(
             &tx,
             codex,
             profile_id,
-            stage,
-            pending_cell_id,
-            &snapshot.win_rank,
+            definition,
+            &active,
+            snapshot,
+            &session.packet.enemy_nowhps,
         )
         .await?;
-        let quest_event = build_sortie_quest_event(definition, &active, &snapshot)?;
-        update_quest_progress_for_action(&tx, codex, profile_id, &quest_event).await?;
-
-        // Fire EnemyShipSunk events for each sunk enemy ship
-        for (i, &hp) in snapshot.enemy_nowhps.iter().enumerate() {
-            if hp <= 0
-                && let Some(&stype) = snapshot.enemy_ship_types.get(i)
-            {
-                let sink_event = QuestActionEvent::EnemyShipSunk {
-                    ship_stype: stype,
-                };
-                update_quest_progress_for_action(&tx, codex, profile_id, &sink_event).await?;
-            }
-        }
-
-        let next_map_ids = if first_clear > 0 {
-            let unlocked =
-                check_and_unlock_dependencies_impl(&tx, codex, profile_id, definition.map_id)
-                    .await?;
-            tracing::debug!(
-                map_id = definition.map_id,
-                unlocked = ?unlocked,
-                "sortie_battle_result: dependency unlock"
-            );
-            if unlocked.is_empty() {
-                None
-            } else {
-                Some(unlocked)
-            }
-        } else {
-            None
-        };
-
         tx.commit().await?;
 
         // Refresh stage identity from DB before deciding sortie fate.
         // apply_sortie_map_result may have changed stage_id via gauge clear.
         // Serialize the in-memory state mutation to prevent TOCTOU races.
-        self.sortie_store.as_ref()
+        store
             .with_profile_lock(profile_id, async {
-                let store = self.sortie_store.as_ref();
                 let stage_refreshed = refresh_sortie_stage(db, codex, profile_id, &mut active).await?;
                 if !stage_refreshed {
                     tracing::debug!(
                         "active sortie removed: stage no longer contains current cell after gauge clear"
                     );
                     store.remove_active(profile_id);
-                    return Ok(SortieBattleResultResponse {
-                        api_ship_id: snapshot.enemy_ship_ids,
-                        api_win_rank: snapshot.win_rank,
-                        api_get_exp: snapshot.get_exp,
-                        api_mvp: snapshot.mvp,
-                        api_member_lv: snapshot.member_lv,
-                        api_member_exp: snapshot.member_exp,
-                        api_get_base_exp: snapshot.get_base_exp,
-                        api_get_ship_exp: snapshot.get_ship_exp,
-                        api_get_exp_lvup: snapshot.get_exp_lvup,
-                        api_dests: session.packet.enemy_nowhps.iter().filter(|hp| **hp <= 0).count() as i64,
-                        api_destsf: i64::from(
-                            session.packet.enemy_nowhps.first().copied().unwrap_or(1) <= 0,
-                        ),
-                        api_quest_name: snapshot.quest_name,
-                        api_quest_level: snapshot.quest_level,
-                        api_enemy_info: SortieBattleResultEnemyInfo {
-                            api_level: snapshot.enemy_level,
-                            api_rank: snapshot.enemy_rank,
-                            api_deck_name: snapshot.enemy_deck_name,
-                        },
-                        api_first_clear: first_clear,
-                        api_get_flag: [0, i64::from(ship_drop.is_some()), 0],
-                        api_get_ship: ship_drop,
-                        api_next_map_ids: next_map_ids,
-                    });
-                }
-                let stage = definition.stage(&active.stage_id).ok_or_else(|| {
-                    GameplayError::EntryNotFound(format!(
-                        "stage `{}` not found for map {}",
-                        active.stage_id, active.map_id,
-                    ))
-                })?;
-                let current_cell = stage.cell(pending_cell_id).ok_or_else(|| {
-                    GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found"))
-                })?;
-
-                let should_finish_sortie = stage
-                    .boss_cell_nos()
-                    .contains(&current_cell.cell_no)
-                    || !cell_has_routing_outgoing(current_cell.cell_no, stage);
-                if should_finish_sortie {
-                    store.remove_active(profile_id);
                 } else {
-                    active.pending_battle_cell_id = None;
-                    let _ = store.insert_active(profile_id, active);
+                    let stage = definition.stage(&active.stage_id).ok_or_else(|| {
+                        GameplayError::EntryNotFound(format!(
+                            "stage `{}` not found for map {}",
+                            active.stage_id, active.map_id,
+                        ))
+                    })?;
+                    let current_cell = stage.cell(settlement.cell_no).ok_or_else(|| {
+                        GameplayError::EntryNotFound(format!("cell {} not found", settlement.cell_no))
+                    })?;
+
+                    let should_finish_sortie = stage
+                        .boss_cell_nos()
+                        .contains(&current_cell.cell_no)
+                        || !cell_has_routing_outgoing(current_cell.cell_no, stage);
+                    if should_finish_sortie {
+                        store.remove_active(profile_id);
+                    } else {
+                        active.pending_battle_cell_id = None;
+                        let _ = store.insert_active(profile_id, active);
+                    }
                 }
 
-                Ok(SortieBattleResultResponse {
-                    api_ship_id: snapshot.enemy_ship_ids,
-                    api_win_rank: snapshot.win_rank,
-                    api_get_exp: snapshot.get_exp,
-                    api_mvp: snapshot.mvp,
-                    api_member_lv: snapshot.member_lv,
-                    api_member_exp: snapshot.member_exp,
-                    api_get_base_exp: snapshot.get_base_exp,
-                    api_get_ship_exp: snapshot.get_ship_exp,
-                    api_get_exp_lvup: snapshot.get_exp_lvup,
-                    api_dests: session.packet.enemy_nowhps.iter().filter(|hp| **hp <= 0).count() as i64,
-                    api_destsf: i64::from(
-                        session.packet.enemy_nowhps.first().copied().unwrap_or(1) <= 0,
-                    ),
-                    api_quest_name: snapshot.quest_name,
-                    api_quest_level: snapshot.quest_level,
-                    api_enemy_info: SortieBattleResultEnemyInfo {
-                        api_level: snapshot.enemy_level,
-                        api_rank: snapshot.enemy_rank,
-                        api_deck_name: snapshot.enemy_deck_name,
-                    },
-                    api_first_clear: first_clear,
-                    api_get_flag: [0, i64::from(ship_drop.is_some()), 0],
-                    api_get_ship: ship_drop,
-                    api_next_map_ids: next_map_ids,
-                })
+                Ok(settlement.into())
             })
             .await
     }

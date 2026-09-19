@@ -2,8 +2,12 @@ use super::*;
 use crate::game::battle::sortie::{
     SortieBattleInput, pending_battle, run_day_battle, run_sp_midnight_battle,
 };
+use crate::game::map::check_and_unlock_dependencies_impl;
 use crate::game::map_progress::assign_stage_id;
-use crate::game::sortie_result::SortieBattleResultSnapshot;
+use crate::game::sortie_result::{
+    SortieBattleResultSnapshot, SortieSettlement, apply_sortie_map_result,
+    settle_sortie_battle_impl,
+};
 use emukc_battle::BattleContext;
 use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
 use emukc_db::{
@@ -45,6 +49,40 @@ fn weaken_for_midnight(mut ship: BattleShipInput) -> BattleShipInput {
     ship.ship.api_raisou[0] = 0;
     ship.ship.api_soukou[0] = 200;
     ship
+}
+
+/// Settle an S-rank boss win on `stage_id` of `definition` through the full
+/// post-battle write set.
+async fn settle_boss_win(
+    context: &Ctx,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage_id: &str,
+) -> SortieSettlement {
+    let stage = definition.stage(stage_id).unwrap();
+    let active = ActiveSortieState {
+        deck_id: 1,
+        map_id: definition.map_id,
+        map_name: definition.name.clone(),
+        map_level: definition.level,
+        stage_id: stage_id.to_string(),
+        current_cell_id: stage.boss_cell_no,
+        boss_cell_id: stage.boss_cell_no,
+        pending_battle_cell_id: Some(stage.boss_cell_no),
+        visited_cell_ids: BTreeSet::from([stage.boss_cell_no]),
+        locked_enemy_composition: None,
+    };
+    settle_sortie_battle_impl(
+        context.db.as_ref(),
+        context.codex.as_ref(),
+        profile_id,
+        definition,
+        &active,
+        successful_boss_snapshot(),
+        &[],
+    )
+    .await
+    .unwrap()
 }
 
 fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
@@ -855,21 +893,10 @@ async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
     let variant = definition.variant("pre_p_unlock").unwrap().clone();
     assert_eq!(variant.required_defeat_count, Some(3));
     assert_eq!(variant.clear_to_variant_key.as_deref(), Some("post_p_unlock"));
-    let snapshot = successful_boss_snapshot();
 
-    assert_eq!(
-        apply_sortie_map_result(
-            context.db.as_ref(),
-            profile_id,
-            &definition,
-            &variant,
-            true,
-            &snapshot
-        )
-        .await
-        .unwrap(),
-        0
-    );
+    let settlement = settle_boss_win(&context, profile_id, &definition, "pre_p_unlock").await;
+    assert_eq!(settlement.first_clear, 0);
+    assert!(settlement.next_map_ids.is_none());
 
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
@@ -991,11 +1018,16 @@ async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
             String::new(),
             MapStageDefinition {
                 variant_key: String::new(),
+                boss_cell_no: 1,
+                cells: vec![MapCellDefinition {
+                    cell_no: 1,
+                    event_kind: 1,
+                    ..Default::default()
+                }],
                 ..Default::default()
             },
         )]),
     };
-    let stage = definition.variant("").unwrap().clone();
     map_record::ActiveModel {
         id: ActiveValue::NotSet,
         profile_id: ActiveValue::Set(profile_id),
@@ -1015,19 +1047,9 @@ async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
     .await
     .unwrap();
 
-    assert_eq!(
-        apply_sortie_map_result(
-            context.db.as_ref(),
-            profile_id,
-            &definition,
-            &stage,
-            true,
-            &successful_boss_snapshot(),
-        )
-        .await
-        .unwrap(),
-        0
-    );
+    let settlement = settle_boss_win(&context, profile_id, &definition, "").await;
+    assert_eq!(settlement.first_clear, 0);
+    assert!(settlement.next_map_ids.is_none());
 
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
@@ -1077,6 +1099,12 @@ async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
                 MapStageDefinition {
                     variant_key: "pre".to_string(),
                     clear_to_variant_key: Some("post".to_string()),
+                    boss_cell_no: 1,
+                    cells: vec![MapCellDefinition {
+                        cell_no: 1,
+                        event_kind: 1,
+                        ..Default::default()
+                    }],
                     ..Default::default()
                 },
             ),
@@ -1089,7 +1117,6 @@ async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
             ),
         ]),
     };
-    let stage = definition.variant("pre").unwrap().clone();
     map_record::ActiveModel {
         id: ActiveValue::NotSet,
         profile_id: ActiveValue::Set(profile_id),
@@ -1109,19 +1136,9 @@ async fn hp_gauge_clear_switches_stage_before_marking_map_cleared() {
     .await
     .unwrap();
 
-    assert_eq!(
-        apply_sortie_map_result(
-            context.db.as_ref(),
-            profile_id,
-            &definition,
-            &stage,
-            true,
-            &successful_boss_snapshot(),
-        )
-        .await
-        .unwrap(),
-        0
-    );
+    let settlement = settle_boss_win(&context, profile_id, &definition, "pre").await;
+    assert_eq!(settlement.first_clear, 0);
+    assert!(settlement.next_map_ids.is_none());
 
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))
@@ -1170,11 +1187,16 @@ async fn final_hp_gauge_clear_marks_map_cleared() {
             String::new(),
             MapStageDefinition {
                 variant_key: String::new(),
+                boss_cell_no: 1,
+                cells: vec![MapCellDefinition {
+                    cell_no: 1,
+                    event_kind: 1,
+                    ..Default::default()
+                }],
                 ..Default::default()
             },
         )]),
     };
-    let stage = definition.variant("").unwrap().clone();
     map_record::ActiveModel {
         id: ActiveValue::NotSet,
         profile_id: ActiveValue::Set(profile_id),
@@ -1194,19 +1216,9 @@ async fn final_hp_gauge_clear_marks_map_cleared() {
     .await
     .unwrap();
 
-    assert_eq!(
-        apply_sortie_map_result(
-            context.db.as_ref(),
-            profile_id,
-            &definition,
-            &stage,
-            true,
-            &successful_boss_snapshot(),
-        )
-        .await
-        .unwrap(),
-        1
-    );
+    let settlement = settle_boss_win(&context, profile_id, &definition, "").await;
+    assert_eq!(settlement.first_clear, 1);
+    assert!(settlement.next_map_ids.is_none(), "synthetic map has no dependents");
 
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))

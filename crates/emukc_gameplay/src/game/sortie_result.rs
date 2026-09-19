@@ -18,8 +18,9 @@ use crate::err::GameplayError;
 
 use super::{
     basic::find_profile,
-    map::find_map_record_impl,
+    map::{check_and_unlock_dependencies_impl, find_map_record_impl},
     map_progress::assign_stage_id,
+    quest::update::update_quest_progress_for_action,
     ship::{
         add_ship_impl,
         exp::{build_exp_lvup_vector, settle_ship_exp},
@@ -88,6 +89,159 @@ pub struct SortieBattleResultResponse {
     pub api_get_ship: Option<SortieBattleResultGetShip>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_next_map_ids: Option<Vec<i64>>,
+}
+
+/// The persisted outcome of one sortie battle: everything the result response
+/// needs, produced by [`settle_sortie_battle_impl`].
+pub(super) struct SortieSettlement {
+    /// The cell the battle was fought on.
+    pub cell_no: i64,
+    /// The snapshot after profile and ship stats were applied.
+    pub snapshot: SortieBattleResultSnapshot,
+    pub first_clear: i64,
+    pub ship_drop: Option<SortieBattleResultGetShip>,
+    pub next_map_ids: Option<Vec<i64>>,
+    pub dests: i64,
+    pub destsf: i64,
+}
+
+/// Persist one sortie battle's write set inside `c`: profile and ship stats,
+/// map record, ship drop, quest progress and dependency unlocks, in that order
+/// (the drop roll is the only RNG consumer).
+///
+/// `final_enemy_nowhps` is the session packet after any night battle and feeds
+/// `api_dests` / `api_destsf`; the snapshot's own `enemy_nowhps` is frozen at
+/// the day battle and keeps feeding the enemy-sunk quest events as before.
+pub(super) async fn settle_sortie_battle_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    definition: &MapDefinition,
+    active: &ActiveSortieState,
+    snapshot: SortieBattleResultSnapshot,
+    final_enemy_nowhps: &[i64],
+) -> Result<SortieSettlement, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let pending_cell_id = active.pending_battle_cell_id.ok_or_else(|| {
+        GameplayError::WrongType("no pending sortie battle to resolve".to_string())
+    })?;
+    let stage = definition.stage(&active.stage_id).ok_or_else(|| {
+        GameplayError::EntryNotFound(format!(
+            "stage `{}` not found for map {}",
+            active.stage_id, active.map_id,
+        ))
+    })?;
+    let current_cell = stage
+        .cell(pending_cell_id)
+        .ok_or_else(|| GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found")))?;
+
+    let snapshot = update_sortie_result_stats(c, codex, profile_id, snapshot).await?;
+    let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);
+    tracing::debug!(
+        map_id = definition.map_id,
+        cell_no = current_cell.cell_no,
+        boss_cell_id = active.boss_cell_id,
+        is_boss_cell,
+        win_rank = %snapshot.win_rank,
+        "sortie_battle_result: boss check"
+    );
+    let first_clear =
+        apply_sortie_map_result(c, profile_id, definition, stage, is_boss_cell, &snapshot).await?;
+    tracing::debug!(
+        map_id = definition.map_id,
+        first_clear,
+        "sortie_battle_result: map result applied"
+    );
+    let ship_drop = try_grant_sortie_ship_drop(
+        c,
+        codex,
+        profile_id,
+        stage,
+        pending_cell_id,
+        &snapshot.win_rank,
+    )
+    .await?;
+    let quest_event = build_sortie_quest_event(definition, active, &snapshot)?;
+    update_quest_progress_for_action(c, codex, profile_id, &quest_event).await?;
+
+    // Fire EnemyShipSunk events for each sunk enemy ship
+    for (i, &hp) in snapshot.enemy_nowhps.iter().enumerate() {
+        if hp <= 0
+            && let Some(&stype) = snapshot.enemy_ship_types.get(i)
+        {
+            let sink_event = QuestActionEvent::EnemyShipSunk {
+                ship_stype: stype,
+            };
+            update_quest_progress_for_action(c, codex, profile_id, &sink_event).await?;
+        }
+    }
+
+    let next_map_ids = if first_clear > 0 {
+        let unlocked =
+            check_and_unlock_dependencies_impl(c, codex, profile_id, definition.map_id).await?;
+        tracing::debug!(
+            map_id = definition.map_id,
+            unlocked = ?unlocked,
+            "sortie_battle_result: dependency unlock"
+        );
+        if unlocked.is_empty() {
+            None
+        } else {
+            Some(unlocked)
+        }
+    } else {
+        None
+    };
+
+    Ok(SortieSettlement {
+        cell_no: current_cell.cell_no,
+        dests: final_enemy_nowhps.iter().filter(|hp| **hp <= 0).count() as i64,
+        destsf: i64::from(final_enemy_nowhps.first().copied().unwrap_or(1) <= 0),
+        snapshot,
+        first_clear,
+        ship_drop,
+        next_map_ids,
+    })
+}
+
+impl From<SortieSettlement> for SortieBattleResultResponse {
+    fn from(settlement: SortieSettlement) -> Self {
+        let SortieSettlement {
+            cell_no: _,
+            snapshot,
+            first_clear,
+            ship_drop,
+            next_map_ids,
+            dests,
+            destsf,
+        } = settlement;
+        Self {
+            api_ship_id: snapshot.enemy_ship_ids,
+            api_win_rank: snapshot.win_rank,
+            api_get_exp: snapshot.get_exp,
+            api_mvp: snapshot.mvp,
+            api_member_lv: snapshot.member_lv,
+            api_member_exp: snapshot.member_exp,
+            api_get_base_exp: snapshot.get_base_exp,
+            api_get_ship_exp: snapshot.get_ship_exp,
+            api_get_exp_lvup: snapshot.get_exp_lvup,
+            api_dests: dests,
+            api_destsf: destsf,
+            api_quest_name: snapshot.quest_name,
+            api_quest_level: snapshot.quest_level,
+            api_enemy_info: SortieBattleResultEnemyInfo {
+                api_level: snapshot.enemy_level,
+                api_rank: snapshot.enemy_rank,
+                api_deck_name: snapshot.enemy_deck_name,
+            },
+            api_first_clear: first_clear,
+            api_get_flag: [0, i64::from(ship_drop.is_some()), 0],
+            api_get_ship: ship_drop,
+            api_next_map_ids: next_map_ids,
+        }
+    }
 }
 
 pub(super) fn calculate_sortie_base_exp(map_level: i64, cell_id: i64) -> i64 {
