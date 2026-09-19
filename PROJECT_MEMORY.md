@@ -42,7 +42,15 @@ Current verification baseline:
 - [2026-07-30] The 2026-06-22 "known broken tests" list is resolved and must not be used as a current baseline; use a fresh command exit status for every verification.
 - [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
 - [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions; final linear commit is `0395121`. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
-- [2026-08-26] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` (also deletes main.js) → `main-decoder` decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified end-to-end on upstream 6.3.2.1.
+- [2026-09-19] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` (also deletes
+  main.js) → decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list
+  --overwrite`. Verified end-to-end on 6.3.2.1; on 6.3.5.0 only the decode step ran (main.js fetched by hand).
+- [2026-09-19] Client 6.3.4.1 → 6.3.5.0 changed no battle knowledge: all four battle assets are byte-identical
+  once `_0x` names are normalized, and `kcs2/version.json` is unchanged upstream. The only real content deltas
+  are one explicit path `resources/stype/etext/sp014.png` and a `TaskReward` (88313) provenance entry.
+- [2026-09-19] Two `main.js` version axes: `kcs_const.js` `scriptVesion` (note the upstream typo) is the client
+  script version and drives `out/version.txt` plus every synced asset's `scriptVersion`; `kcs2/version.json`
+  holds per-subsystem asset versions and moves independently. A main.js-only release bumps the first, not both.
 - [2026-08-26] Upstream drift: kcwiki empty equipment slots are `null`, not `false`; `version.json` nests a `resources` object (flattened in `parse_version_info`); webpack emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); event area 62 is unlocked by default by design.
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
@@ -77,26 +85,30 @@ Current verification baseline:
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
 | [2026-09-18] `clippy -- -D warnings` fails on old `result_large_err` at `emukc_network/src/download.rs:236` and (rustc 1.98.1) `src/bin/net/auth.rs:139`, both older than plan 002. Repo gate is `-W warnings`; touched-file checks give `-D` strength for new code. | sessions 2026-09-18, 09-19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
+| [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
+| [2026-09-19] `bootstrap --overwrite --force-update` deletes `z/cache/kcs2/js/main.js`; the 2026-09-18 run never re-fetched it, so decode had no input for a month. After a forced bootstrap, confirm that file exists before trusting the assets. | session 2026-09-19 |
+| [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
 | [2026-09-19] A refactor comment saying "keeps feeding X as before" was preserving a bug: plan 002 froze the day-battle `enemy_nowhps` copy, so night-only sinks fired no quest event. Treat "as before" as unverified. | git `HEAD` |
 | [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
 
 ## Last Session
 
-- [2026-09-19] `main`. Fixed night-only enemy sinks reporting no `EnemyShipSunk`: `settle_sortie_battle_impl`
-  now derives the sunk list from `final_enemy_nowhps` instead of the day-frozen snapshot copy, and the
-  `SortieBattleResultSnapshot.enemy_nowhps` field is gone (it had exactly one reader). New test
-  `enemies_sunk_at_night_reach_the_quest_outcomes` in `game/sortie/tests.rs`, confirmed red against the old
-  snapshot-side read. Gates green: `fmt --check`, `clippy --workspace --all-targets` (no warnings in
-  `emukc_gameplay`; the pre-existing `result_large_err` / backtick ones remain elsewhere), root `cargo test`
-  63 + 125, `cargo test -p emukc_gameplay` 143 + 64 (practice_battle passed this run).
+- [2026-09-19] `main`. (a) Fixed night-only enemy sinks reporting no `EnemyShipSunk` — `settle_sortie_battle_impl`
+  now reads `final_enemy_nowhps` and the day-frozen snapshot copy is gone (`653a5d5`, pushed). (b) Refreshed the
+  client assets to 6.3.5.0: fetched `main.js` by hand into `z/cache/kcs2/js/`, `bun install` in `main-decoder`,
+  then `make decode-main`. Battle knowledge is semantically unchanged; see Verified Facts for the two real
+  deltas. Fixed `split.ts` TS2532 (`688e29c`) and the id-pinned decoder test (`b1016fc`). Gates green:
+  `fmt --check`, `clippy --workspace --all-targets` (no new warnings), root `cargo test` 63 + 125,
+  `-p emukc_bootstrap` 213 + battle_rules 15, `-p emukc_gameplay` 143 + 64, `bun test` 61, `bun run check`.
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) KTD7 `api_m_flag = 2` has no assertion. (2) `sp_midnight`
-  lacks `with_profile_lock` and `run_sp_midnight_battle` takes a redundant `enemy_formation_id`. Smaller:
-  literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline
-  `_impl`s that now have a single caller). Older: deterministic `practice_battle` win-rank asserts; 6.3.x KTD4
-  smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation; archiving the battle
-  execution plan; stale `wt-base` worktree in the 2026-09-18 scratchpad. Worker dispatch recipe:
-  `.farm/deepen-u9-brief.md` + gate shape; allowlist `tests/gameplay_tests.rs`, judge structure by grep not
-  per file.
+- [2026-09-19] Candidate next work, in order: (1) `cache make-list --overwrite` has NOT run since the 6.3.5.0
+  sync, so `resources/stype/etext/sp014.png` is not in the cache list yet. (2) `apilist.md` lists 18 routed
+  endpoints under "Missing APIs" (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_map/start|next|
+  select_eventmap_rank`, `api_req_practice/*`, `api_req_mission/*`, `api_dmm_payment/paycheck`); TODO.md's
+  Mission section is stale the same way. Nothing is over-claimed. (3) KTD7 `api_m_flag = 2` has no assertion.
+  (4) `sp_midnight` lacks `with_profile_lock`; `run_sp_midnight_battle` takes a redundant `enemy_formation_id`.
+  Older: literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up;
+  deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder
+  unresolved id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.
