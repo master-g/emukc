@@ -71,26 +71,27 @@ Current verification baseline:
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
 | [2026-09-18] `clippy --workspace --all-targets -- -D warnings` fails on a pre-existing `result_large_err` in `emukc_network/src/download.rs:236`; the repo gate is `-W warnings`, so the U4/U5 gate's touched-file check is the `-D`-strength check for new code. | session 2026-09-18, U5 |
+| [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
 
 ## Last Session
 
-- [2026-09-19] `main`, committed and unpushed. Plan 002 U5 and U6 done by me directly (no farm worker), each as a
-  code commit plus a docs commit. U6: `sortie_result.rs::settle_sortie_battle_impl` owns the post-battle write set
-  and `From<SortieSettlement>` is the only `SortieBattleResultResponse` constructor; `Ctx::sortie_battle_result`
-  keeps store take / tx / locked stage refresh / sortie fate. Four gauge tests in `sortie/tests.rs` now assert on
-  the settlement (synthetic stages gained a boss cell so the settlement can resolve it). Gates
-  `.farm/deepen-u{5,6}-gate.sh` (U4 shape) passed; assets, golden and `Cargo.lock` byte-identical.
+- [2026-09-19] `main`, committed and unpushed. Plan 002 U5 and U6 done by me; U7 done by the `deepen-u7` claude
+  worker in herdr pane `w1C:p8E` (brief/gate/report under `.farm/deepen-u7-*`), three commits `5ea3d0a` /
+  `39a926a` / `a0b63d3`: `game/view/{port,require_info,quest_list}.rs` with `Ctx::{port,require_info,quest_list}_view`,
+  handlers only project. The worker's before/after response dumps were empty diffs (port: only `api_starttime` and
+  the `GIT_HASH` message). Gate failed once on my allowlist (real test entry is `tests/gameplay_tests.rs`), fixed
+  and re-run by me. Assets, golden and `Cargo.lock` byte-identical.
 
 ## Next Session
 
-- [2026-09-19] Continue plan 002 with U7 (`Ctx::port_view` / `require_info_view` / `quest_list_view` returning
-  domain structs, handlers in `src/bin/` project them; three commits), then U8 -> U9. Reuse
-  `.farm/deepen-u6-gate.sh` (touched-file warning check + path allowlist + structural greps). Not done, noted:
-  `sortie_midnight_battle` refreshes `snapshot.friendly_nowhps` but not `snapshot.enemy_nowhps`, so enemies sunk
-  at night never fire `EnemyShipSunk` quest events (pre-existing; `api_dests` reads the session, so the wire is
-  right); sp_midnight still lacks the day path's `with_profile_lock`; `run_sp_midnight_battle`'s
-  `enemy_formation_id` parameter duplicates `input.context.enemy_formation_id`;
-  `battle/practice/mod.rs::exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds` asserts a literal and never
-  calls the function. Older open items (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke test,
-  `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan revalidation, archiving the battle execution plan,
-  stale `wt-base` worktree) are unchanged.
+- [2026-09-19] Continue plan 002 with U8 (`game/quest/observe.rs`: `GameplayOutcome` enum + `quest::observe`, domain
+  `Ctx` methods call it once after writing, `_impl`s stop calling quest; KTD6 keeps `SlotItemImproved`), then U9.
+  Reuse `.farm/deepen-u7-gate.sh` shape; allowlist must include `tests/gameplay_tests.rs`, not the dead
+  `tests/gameplay_tests/mod.rs`. Not done, noted: questlist tab 9 always returns an empty list (`label_type` never
+  equals 9; pinned by `tests/gameplay_tests/view/quest_list.rs`, needs its own fix); KTD7's `api_m_flag = 2` lost
+  its assertion when the inline port test was deleted; `sortie_midnight_battle` never refreshes
+  `snapshot.enemy_nowhps` so night sinks fire no `EnemyShipSunk` events; sp_midnight lacks `with_profile_lock`;
+  `run_sp_midnight_battle`'s `enemy_formation_id` parameter is redundant; the literal-only
+  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds` test. Older open items (deterministic `practice_battle`
+  win-rank asserts, 6.3.x KTD4 smoke test, `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan revalidation,
+  archiving the battle execution plan, stale `wt-base` worktree) are unchanged.
