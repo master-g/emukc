@@ -4,6 +4,8 @@
 //! fixed order, and returns a domain structure. The HTTP layer only projects
 //! that structure onto the wire format (plan 002 KD4, KTD5).
 
+pub use port::PortView;
 pub use require_info::RequireInfoView;
 
+mod port;
 mod require_info;
