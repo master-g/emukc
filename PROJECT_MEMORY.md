@@ -45,6 +45,7 @@ Current verification baseline:
 - [2026-08-26] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` (also deletes main.js) → `main-decoder` decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified end-to-end on upstream 6.3.2.1.
 - [2026-08-26] Upstream drift: kcwiki empty equipment slots are `null`, not `false`; `version.json` nests a `resources` object (flattened in `parse_version_info`); webpack emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); event area 62 is unlocked by default by design.
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
+- [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 
 ## Failed Attempts / Pitfalls
@@ -72,26 +73,27 @@ Current verification baseline:
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
 | [2026-09-18] `clippy --workspace --all-targets -- -D warnings` fails on a pre-existing `result_large_err` in `emukc_network/src/download.rs:236`; the repo gate is `-W warnings`, so the U4/U5 gate's touched-file check is the `-D`-strength check for new code. | session 2026-09-18, U5 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
+| [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
 
 ## Last Session
 
-- [2026-09-19] `main`, committed and unpushed. Plan 002 U5 and U6 done by me; U7 done by the `deepen-u7` claude
-  worker in herdr pane `w1C:p8E` (brief/gate/report under `.farm/deepen-u7-*`), three commits `5ea3d0a` /
-  `39a926a` / `a0b63d3`: `game/view/{port,require_info,quest_list}.rs` with `Ctx::{port,require_info,quest_list}_view`,
-  handlers only project. The worker's before/after response dumps were empty diffs (port: only `api_starttime` and
-  the `GIT_HASH` message). Gate failed once on my allowlist (real test entry is `tests/gameplay_tests.rs`), fixed
-  and re-run by me. Assets, golden and `Cargo.lock` byte-identical.
+- [2026-09-19] `main`, committed and unpushed. Plan 002 U5/U6 by me; U7 and U8 by the claude worker in herdr pane
+  `w1C:p8E` (briefs/gates/reports under `.farm/deepen-u{7,8}-*`). U8: `game/quest/observe.rs` (`GameplayOutcome`
+  + `observe(c, codex, pid, &[outcomes])`) is the only quest entry; `_impl`s return outcomes, `Ctx` methods
+  observe once before `tx.commit()`; `SortieSettlement.outcomes`. Four commits `053aacf`..`b2a1a65`. Both U7 and
+  U8 gates failed once on my script bugs (see pitfalls), fixed and re-run by me. Assets, golden and `Cargo.lock`
+  byte-identical throughout.
 
 ## Next Session
 
-- [2026-09-19] Continue plan 002 with U8 (`game/quest/observe.rs`: `GameplayOutcome` enum + `quest::observe`, domain
-  `Ctx` methods call it once after writing, `_impl`s stop calling quest; KTD6 keeps `SlotItemImproved`), then U9.
-  Reuse `.farm/deepen-u7-gate.sh` shape; allowlist must include `tests/gameplay_tests.rs`, not the dead
-  `tests/gameplay_tests/mod.rs`. Not done, noted: questlist tab 9 always returns an empty list (`label_type` never
-  equals 9; pinned by `tests/gameplay_tests/view/quest_list.rs`, needs its own fix); KTD7's `api_m_flag = 2` lost
-  its assertion when the inline port test was deleted; `sortie_midnight_battle` never refreshes
-  `snapshot.enemy_nowhps` so night sinks fire no `EnemyShipSunk` events; sp_midnight lacks `with_profile_lock`;
-  `run_sp_midnight_battle`'s `enemy_formation_id` parameter is redundant; the literal-only
-  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds` test. Older open items (deterministic `practice_battle`
-  win-rank asserts, 6.3.x KTD4 smoke test, `gauge_type_e` scrape, decoder unresolved id-sets, VPS plan revalidation,
-  archiving the battle execution plan, stale `wt-base` worktree) are unchanged.
+- [2026-09-19] Continue plan 002 with U9 (KTD7 form conventions in `src/bin/.../form_utils.rs`: `deserialize_form_flag`,
+  `deserialize_form_opt_ivec`, drop discarded `Params` fields, one `#[test]` per helper; then the plan's closing
+  items: four `docs/solutions/` notes, `CLAUDE.md` sentence, DoD check). Reuse `.farm/deepen-u8-gate.sh` shape.
+  Real bug found by the U8 worker, not fixed (out of U8 scope): `Ctx::destroy_items` (`slot_item.rs`) opens a tx
+  and never commits it, so `api_req_kousyou/destroyitem2` scrapping is rolled back; one `tx.commit().await?`
+  plus a persistence assertion. Other open items: questlist tab 9 always empty; KTD7 `api_m_flag = 2` has no
+  assertion; `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps` (night sinks fire no
+  `EnemyShipSunk`); sp_midnight lacks `with_profile_lock`; redundant `enemy_formation_id` param; literal-only
+  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; deterministic `practice_battle` win-rank asserts;
+  6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation; archiving the
+  battle execution plan; stale `wt-base` worktree.
