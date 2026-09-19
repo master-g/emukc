@@ -82,11 +82,11 @@ Current verification baseline:
   Then fixed `quest_list_view` tab filtering: it compared `tab_id` to `label_type`, but client tabs are
   1 daily / 2 weekly / 3 monthly / 4 oneshot / 5 other / 9 activated while `label_type` is 1 oneshot / 2 daily /
   3 weekly / 6 monthly / 7 quarterly / 101..=112 yearly, so tabs 1-5 were misfiled and tab 9 always empty.
-  `tab_shows` maps them; the pinned test and `client-views.md` updated. Gates green; commit local, not pushed.
+  `tab_shows` maps them; the pinned test and `client-views.md` updated. Gates green; pushed as `eba18d3`.
 
 ## Next Session
 
-- [2026-09-19] Push the questlist tab fix when the user says so. Candidate next work, in order: (1)
+- [2026-09-19] Candidate next work, in order: (1)
   `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`.
   (2) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
   `enemy_formation_id` param on `run_sp_midnight_battle`; literal-only
