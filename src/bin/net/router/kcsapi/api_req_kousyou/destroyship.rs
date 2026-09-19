@@ -9,7 +9,8 @@ pub(super) struct Params {
     api_ship_id: String,
 
     /// 0: keep equipment, 1: destroy equipment
-    api_slot_dest_flag: i64,
+    #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_flag")]
+    api_slot_dest_flag: bool,
 }
 
 #[derive(Serialize)]
@@ -24,7 +25,7 @@ pub(super) async fn handler(
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let keep_equipment = params.api_slot_dest_flag == 0;
+    let keep_equipment = !params.api_slot_dest_flag;
 
     for ship_id_str in params.api_ship_id.split(',') {
         let ship_id: i64 = ship_id_str

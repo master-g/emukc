@@ -13,7 +13,8 @@ pub(super) struct Params {
     api_id_items: Vec<i64>,
 
     /// 0: keep slot items, 1: destroy slot items
-    api_slot_dest_flag: i64,
+    #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_flag")]
+    api_slot_dest_flag: bool,
 
     /// 0: default, 1: pumpkin involes
     /// this feature is not supported in this implementation yet
@@ -33,9 +34,8 @@ pub(super) async fn handler(
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let r = state
-        .powerup(pid, params.api_id, &params.api_id_items, params.api_slot_dest_flag == 0)
-        .await?;
+    let r =
+        state.powerup(pid, params.api_id, &params.api_id_items, !params.api_slot_dest_flag).await?;
 
     Ok(KcApiResponse::success(&Resp {
         api_powerup_flag: r.success as i64,

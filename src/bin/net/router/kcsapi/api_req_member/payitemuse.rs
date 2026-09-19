@@ -9,7 +9,8 @@ pub(super) struct Params {
 
     // 0: response.api_caution_flag will be 1 if the material will be capped by limit.
     // 1: response.api_caution_flag will be 0 if the material will be capped by limit.
-    api_force_flag: i64,
+    #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_flag")]
+    api_force_flag: bool,
 }
 
 #[derive(Serialize, Default)]
@@ -23,8 +24,7 @@ pub(super) async fn handler(
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let caution =
-        state.consume_pay_item(pid, params.api_payitem_id, params.api_force_flag == 1).await?;
+    let caution = state.consume_pay_item(pid, params.api_payitem_id, params.api_force_flag).await?;
 
     Ok(KcApiResponse::success(&Resp {
         api_caution_flag: if caution {

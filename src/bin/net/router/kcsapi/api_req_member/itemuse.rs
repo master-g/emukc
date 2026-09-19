@@ -13,7 +13,8 @@ pub(super) struct Params {
 
     // 0: response.api_caution_flag will be 1 if the material will be capped by limit.
     // 1: response.api_caution_flag will be 0 if the material will be capped by limit.
-    api_force_flag: i64,
+    #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_flag")]
+    api_force_flag: bool,
 }
 
 pub(super) async fn handler(
@@ -26,7 +27,7 @@ pub(super) async fn handler(
             pid,
             params.api_useitem_id,
             params.api_exchange_type.unwrap_or(0),
-            params.api_force_flag == 1,
+            params.api_force_flag,
         )
         .await?;
 

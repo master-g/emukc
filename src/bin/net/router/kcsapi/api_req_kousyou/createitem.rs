@@ -17,7 +17,8 @@ pub(super) struct Params {
     /// bauxite
     api_item4: i64,
     /// 0: normal, 1: three in a row
-    api_multiple_flag: i64,
+    #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_flag")]
+    api_multiple_flag: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -48,7 +49,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
     let codex = state.codex();
 
-    let costs = if params.api_multiple_flag == 0 {
+    let costs = if !params.api_multiple_flag {
         vec![
             (MaterialCategory::Fuel, params.api_item1),
             (MaterialCategory::Ammo, params.api_item2),
@@ -80,7 +81,7 @@ pub(super) async fn handler(
 
     let _crafted_mst_ids: Vec<i64> = Vec::new();
 
-    let upper = if params.api_multiple_flag == 1 {
+    let upper = if params.api_multiple_flag {
         3
     } else {
         1
