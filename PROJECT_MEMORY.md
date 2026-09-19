@@ -95,6 +95,7 @@ Current verification baseline:
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
 | [2026-09-18] `clippy -- -D warnings` fails on old `result_large_err` at `emukc_network/src/download.rs:236` and (rustc 1.98.1) `src/bin/net/auth.rs:139`, both older than plan 002. Repo gate is `-W warnings`; touched-file checks give `-D` strength for new code. | sessions 2026-09-18, 09-19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
+| [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` gives FALSE results: `.bak` keeps the ORIGINAL mtime, so cargo sees no change and reuses the artifact built from the EDITED file. `touch` X after restoring and re-run. | session 2026-09-19 |
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
 | [2026-09-19] `bootstrap --overwrite --force-update` deletes `z/cache/kcs2/js/main.js`; the 2026-09-18 run never re-fetched it, so decode had no input for a month. After a forced bootstrap, confirm that file exists before trusting the assets. | session 2026-09-19 |
 | [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
@@ -103,22 +104,20 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`. (a) `653a5d5` (pushed): night-only enemy sinks now reach the quest observer.
-  (b) `688e29c` / `b1016fc` / `940b5ae`: refreshed client assets to 6.3.5.0 (main.js fetched by hand,
-  `bun install`, `make decode-main`), fixed a TS2532 in `split.ts` and the id-pinned decoder test.
-  (c) Ran `make cache-make-list`; the list moved by exactly the two expected lines. (d) Realigned
-  `apilist.md` and TODO.md's Mission section with the router. Evaluated `obfuscator-io-deobfuscator` and
-  rejected it (see Verified Facts). Gates green: `fmt --check`, `clippy --workspace --all-targets`,
-  root `cargo test` 63 + 125, `-p emukc_bootstrap` 213, `-p emukc_gameplay` 143 + 64, `bun test` 61,
-  `bun run check`.
+- [2026-09-19] `main`, pushed through `fe4ef24`: night-sink quest fix (`653a5d5`), assets to 6.3.5.0
+  (`688e29c` / `b1016fc` / `940b5ae`), `cache make-list` re-run, apilist/TODO realigned (`fe4ef24`).
+  Rejected `obfuscator-io-deobfuscator` (see Verified Facts). Then closed the KTD7 gap: `api_port/port.rs`
+  has a handler-level test pinning `api_m_flag == 2`, the two `skip_serializing_if` fields staying absent
+  rather than null, and `api_combined_flag` being a different thing. Red-checked both ways. Gates green:
+  `fmt --check`, `clippy --workspace --all-targets` 0 errors, root `cargo test` 64 + 125,
+  `-p emukc_bootstrap` battle_rules 15, `-p emukc_gameplay` 143 + 64.
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) KTD7 `api_m_flag = 2` has no assertion. (2) `sp_midnight`
-  lacks `with_profile_lock`; `run_sp_midnight_battle` takes a redundant `enemy_formation_id`. (3) The 14
-  `api_req_combined_battle/*` endpoints are now the largest gameplay gap, then the Air Corps set; EO74 field
-  specs for all 34 missing endpoints are at sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, treat as a
-  starting point, not a contract). Smaller: literal-only
-  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up; deterministic
-  `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved
-  id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.
+- [2026-09-19] Candidate next work, in order: (1) `sp_midnight` lacks `with_profile_lock`;
+  `run_sp_midnight_battle` takes a redundant `enemy_formation_id`. (2) The 14 `api_req_combined_battle/*`
+  endpoints are the largest gameplay gap, then the Air Corps set; EO74 field specs for all 34 missing
+  endpoints are at sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, a starting point, not a contract).
+  Smaller: literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up;
+  deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder
+  unresolved id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.

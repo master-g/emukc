@@ -78,3 +78,27 @@ fn project(view: PortView) -> Resp {
         api_combined_flag: view.combined_type,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::net::router::kcsapi::test_utils::{app_state, new_test_context};
+
+    #[tokio::test]
+    async fn port_response_carries_event_object_with_all_formation_flag() {
+        let context = new_test_context().await;
+        let resp =
+            handler(app_state(&context.state), Pid(context.session.profile.id)).await.unwrap();
+        let data = resp.api_data.unwrap();
+        let event_object = &data["api_event_object"];
+
+        assert_eq!(event_object["api_m_flag"], 2);
+        // Both are declared skip_serializing_if = "Option::is_none": the client has an
+        // "absent" branch for them, so they must not surface as null.
+        assert!(event_object.get("api_c_num").is_none());
+        assert!(event_object.get("api_m_flag2").is_none());
+        // api_m_flag is the map's formation-UI capability, not the player's current
+        // fleet type -- that is api_combined_flag, which a fresh profile reports as 0.
+        assert_eq!(data["api_combined_flag"], 0);
+    }
+}
