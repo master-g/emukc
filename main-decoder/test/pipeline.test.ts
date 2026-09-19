@@ -53,8 +53,11 @@ test("decodes the current cached main.js", async () => {
   const shipChoiceView = result.moduleGraph.modules.find(module => module.readableName === "ShipChoiceView");
   const shipBanner = result.moduleGraph.modules.find(module => module.readableName === "ShipBanner");
   const cutinPreload = result.moduleGraph.modules.find(module => module.readableName === "CutinResourcesPreloadTask");
-  const dutyModel = result.moduleGraph.modules.find(module => module.id === "56360");
-  const phaseHougeki = result.moduleGraph.modules.find(module => module.id === "65622");
+  const dutyModel = result.moduleGraph.modules.find(module => module.readableName === "DutyModel_");
+  // Two modules carry this name; the hotspot one is whichever got the deepest cleanup.
+  const phaseHougeki = result.moduleGraph.modules
+    .filter(module => module.readableName === "PhaseHougeki")
+    .sort((a, b) => (b.hotspotCleanup?.obfuscatedIdentifierDelta ?? 0) - (a.hotspotCleanup?.obfuscatedIdentifierDelta ?? 0))[0];
   expect(result.battleKnowledge.protocolFields.some(field => field.field === "api_stage_flag")).toBe(true);
   expect(result.battleKnowledge.protocolFields.some(field => field.field === "api_kouku")).toBe(true);
   expect(result.battleKnowledge.resourceRules.some(rule => rule.action === "getShip" && rule.targetType === "banner")).toBe(true);
@@ -63,7 +66,7 @@ test("decodes the current cached main.js", async () => {
   expect(suffixUtil?.moduleKind).toBe("helper");
   expect(suffixUtil?.shellMetrics.namespaceShellCount).toBeGreaterThan(0);
   expect(suffixUtil?.shellMetrics.normalizedNamespaceShellCount).toBeGreaterThan(0);
-  expect(suffixUtil?.source).toContain("var __createBinding = this && this.__createBinding");
+  expect(suffixUtil?.source).toContain("__createBinding = this && this.__createBinding");
   expect(suffixUtil?.source).toContain("__importStar = this && this.__importStar");
   expect(suffixUtil?.source).toContain("(function(SuffixUtil) {");
   expect(dutyModel?.moduleKind).toBe("game");
