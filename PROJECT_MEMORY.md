@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-18 · branch `main`
+Last updated: 2026-09-19 · branch `main`
 
 ## Verified Facts
 
@@ -74,20 +74,21 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-18] `main`, committed and unpushed. Plan 002 U5 done by me directly (no farm worker): `game/sortie/setup.rs`
-  holds `resolve_sortie_battle_setup_impl` + `SortieBattleSetup::{battle_input,result_snapshot}`; day-start and
-  sp_midnight both go through it, so sp_midnight gained the `combined_type` / cell-exists / `event_kind` guards
-  (the two new `sortie/tests.rs` guard tests failed on the pre-change tree with "fleet 1 has no ships").
-  `run_sp_midnight_battle` now runs `execute_night` first and builds the session from its result. Gate
-  `.farm/deepen-u5-gate.sh` (U4 shape, BASE `de627f4`) passed; assets, golden and `Cargo.lock` byte-identical.
+- [2026-09-19] `main`, committed and unpushed. Plan 002 U5 and U6 done by me directly (no farm worker), each as a
+  code commit plus a docs commit. U6: `sortie_result.rs::settle_sortie_battle_impl` owns the post-battle write set
+  and `From<SortieSettlement>` is the only `SortieBattleResultResponse` constructor; `Ctx::sortie_battle_result`
+  keeps store take / tx / locked stage refresh / sortie fate. Four gauge tests in `sortie/tests.rs` now assert on
+  the settlement (synthetic stages gained a boss cell so the settlement can resolve it). Gates
+  `.farm/deepen-u{5,6}-gate.sh` (U4 shape) passed; assets, golden and `Cargo.lock` byte-identical.
 
 ## Next Session
 
-- [2026-09-18] Continue plan 002 with U6 (`settle_sortie_battle_impl` + `SortieSettlement` in `sortie_result.rs`,
-  `Ctx::sortie_battle_result` shrinks to lock / tx / stage refresh / one response; the four gauge tests in
-  `sortie/tests.rs` assert on the settlement), then U7 -> U8 -> U9. Reuse `.farm/deepen-u5-gate.sh` (touched-file
-  warning check + path allowlist + structural greps). Not done, noted: sp_midnight still lacks the
-  `with_profile_lock` the day path holds (outside R6's guard scope); `run_sp_midnight_battle`'s
+- [2026-09-19] Continue plan 002 with U7 (`Ctx::port_view` / `require_info_view` / `quest_list_view` returning
+  domain structs, handlers in `src/bin/` project them; three commits), then U8 -> U9. Reuse
+  `.farm/deepen-u6-gate.sh` (touched-file warning check + path allowlist + structural greps). Not done, noted:
+  `sortie_midnight_battle` refreshes `snapshot.friendly_nowhps` but not `snapshot.enemy_nowhps`, so enemies sunk
+  at night never fire `EnemyShipSunk` quest events (pre-existing; `api_dests` reads the session, so the wire is
+  right); sp_midnight still lacks the day path's `with_profile_lock`; `run_sp_midnight_battle`'s
   `enemy_formation_id` parameter duplicates `input.context.enemy_formation_id`;
   `battle/practice/mod.rs::exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds` asserts a literal and never
   calls the function. Older open items (deterministic `practice_battle` win-rank asserts, 6.3.x KTD4 smoke test,
