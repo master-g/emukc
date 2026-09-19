@@ -14,6 +14,7 @@ use crate::{
     game::{
         kdock::find_kdock_impl,
         material::{add_material_impl, deduct_material_impl},
+        quest::observe::{GameplayOutcome, observe},
         slot_item::{add_slot_item_impl, destroy_items_impl},
     },
     gameplay::Ctx,
@@ -55,18 +56,15 @@ impl Ctx {
             }
         }
 
-        // Update quest progress for each item
-        for id in mst_id.iter() {
-            if *id > 0 {
-                let event = emukc_model::thirdparty::QuestActionEvent::SlotItemConstructed {
-                    item_mst_id: *id,
-                };
-                crate::game::quest::update::update_quest_progress_for_action(
-                    &tx, codex, profile_id, &event,
-                )
-                .await?;
-            }
-        }
+        let outcomes: Vec<GameplayOutcome> = mst_id
+            .iter()
+            .filter(|id| **id > 0)
+            .map(|id| GameplayOutcome::SlotItemConstructed {
+                item_mst_id: *id,
+            })
+            .collect();
+        observe(&tx, codex, profile_id, &outcomes).await?;
+
         tx.commit().await?;
 
         Ok((slot_ids, m))
@@ -132,15 +130,12 @@ impl Ctx {
 
         kdock_am.update(&tx).await?;
 
-        // Update quest progress
-        let event = emukc_model::thirdparty::QuestActionEvent::ShipConstructed {
+        let outcome = GameplayOutcome::ShipConstructed {
             ship_mst_id: mst_id,
             large,
         };
-        crate::game::quest::update::update_quest_progress_for_action(
-            &tx, codex, profile_id, &event,
-        )
-        .await?;
+        observe(&tx, codex, profile_id, &[outcome]).await?;
+
         tx.commit().await?;
 
         Ok(())
@@ -209,6 +204,8 @@ impl Ctx {
 
         let ship_mst = codex.find::<ApiMstShip>(&ship_model.mst_id)?;
 
+        let mut outcomes: Vec<GameplayOutcome> = Vec::new();
+
         if !keep_equipment {
             let slot_ids: Vec<i64> = [
                 ship_model.slot_1,
@@ -228,15 +225,12 @@ impl Ctx {
             })
             .collect();
 
-            // Update quest progress
-            let event = emukc_model::thirdparty::QuestActionEvent::ShipScrapped {
+            outcomes.push(GameplayOutcome::ShipScrapped {
                 ship_mst_id: ship_model.mst_id,
-            };
-            crate::game::quest::update::update_quest_progress_for_action(
-                &tx, codex, profile_id, &event,
-            )
-            .await?;
-            destroy_items_impl(&tx, codex, profile_id, &slot_ids).await?;
+            });
+
+            let (_, scrapped) = destroy_items_impl(&tx, codex, profile_id, &slot_ids).await?;
+            outcomes.extend(scrapped);
         }
 
         let mut scrap_materials = [
@@ -256,6 +250,8 @@ impl Ctx {
 
         // Delete the ship from database
         ship::Entity::delete_by_id(ship_id).exec(&tx).await?;
+
+        observe(&tx, codex, profile_id, &outcomes).await?;
 
         tx.commit().await?;
 
