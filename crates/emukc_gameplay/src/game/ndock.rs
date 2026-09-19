@@ -16,7 +16,9 @@ use emukc_time::chrono;
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
-    material::deduct_material_impl, ship::recalculate_ship_status_with_model,
+    material::deduct_material_impl,
+    quest::observe::{GameplayOutcome, observe},
+    ship::recalculate_ship_status_with_model,
     use_item::deduct_use_item_impl,
 };
 
@@ -111,8 +113,10 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let m =
+        let (m, outcomes) =
             ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
+
+        observe(&tx, codex, profile_id, &outcomes).await?;
 
         tx.commit().await?;
 
@@ -136,12 +140,13 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let m: Material =
-            speed_up_ship_repairation_impl(&tx, codex, profile_id, ndock_id).await?.into();
+        let (m, outcomes) = speed_up_ship_repairation_impl(&tx, profile_id, ndock_id).await?;
+
+        observe(&tx, codex, profile_id, &outcomes).await?;
 
         tx.commit().await?;
 
-        Ok(m)
+        Ok(m.into())
     }
 }
 
@@ -294,6 +299,10 @@ where
     Ok(())
 }
 
+/// Start repairing a ship, optionally with a bucket.
+///
+/// Returns the material state after the bucket was spent (high speed only)
+/// plus what happened, for the caller to observe.
 pub(crate) async fn ndock_start_repair_impl<C>(
     c: &C,
     codex: &Codex,
@@ -301,7 +310,7 @@ pub(crate) async fn ndock_start_repair_impl<C>(
     ndock_id: i64,
     ship_id: i64,
     highspeed: bool,
-) -> Result<Option<material::Model>, GameplayError>
+) -> Result<(Option<material::Model>, Vec<GameplayOutcome>), GameplayError>
 where
     C: ConnectionTrait,
 {
@@ -383,28 +392,27 @@ where
         am.update(c).await?;
     }
 
-    // Update quest progress
-    if highspeed {
-        let event = emukc_model::thirdparty::QuestActionEvent::ShipRepaired {
-            ship_id,
-        };
-        crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
-            .await?;
-    }
-
     Ok(if highspeed {
-        Some(material)
+        (
+            Some(material),
+            vec![GameplayOutcome::ShipRepaired {
+                ship_id,
+            }],
+        )
     } else {
-        None
+        (None, Vec::new())
     })
 }
 
+/// Finish a docked repair with a bucket.
+///
+/// Returns the material state after the bucket was spent plus what happened,
+/// for the caller to observe.
 pub(crate) async fn speed_up_ship_repairation_impl<C>(
     c: &C,
-    codex: &Codex,
     profile_id: i64,
     ndock_id: i64,
-) -> Result<material::Model, GameplayError>
+) -> Result<(material::Model, Vec<GameplayOutcome>), GameplayError>
 where
     C: ConnectionTrait,
 {
@@ -449,14 +457,12 @@ where
         am.update(c).await?;
     }
 
-    // Update quest progress
-    let event = emukc_model::thirdparty::QuestActionEvent::ShipRepaired {
-        ship_id,
-    };
-    crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
-        .await?;
-
-    Ok(material)
+    Ok((
+        material,
+        vec![GameplayOutcome::ShipRepaired {
+            ship_id,
+        }],
+    ))
 }
 
 /// Initialize repair docks for a profile.

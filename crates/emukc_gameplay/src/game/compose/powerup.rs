@@ -14,7 +14,10 @@ use emukc_model::{
     prelude::{ApiMstShip, ApiMstSlotitem, Kc3rdShip},
 };
 
-use crate::{err::GameplayError, game::slot_item::find_slot_items_by_id_impl};
+use crate::{
+    err::GameplayError,
+    game::{quest::observe::GameplayOutcome, slot_item::find_slot_items_by_id_impl},
+};
 
 /// (num of Maruyu, num of Maruyu Kai) -> success rate
 static MARUYU_CHART: LazyLock<BTreeMap<(i64, i64), f64>> = LazyLock::new(|| {
@@ -54,6 +57,9 @@ pub struct PowerUpResult {
     pub unset_slot_item_types: Option<HashSet<i64>>,
 }
 
+/// Feed `material_ships` into `ship_id`.
+///
+/// Returns the powerup result plus what happened, for the caller to observe.
 pub(crate) async fn powerup_impl<C>(
     c: &C,
     codex: &Codex,
@@ -61,7 +67,7 @@ pub(crate) async fn powerup_impl<C>(
     ship_id: i64,
     material_ships: &[i64],
     keep_slot_items: bool,
-) -> Result<PowerUpResult, GameplayError>
+) -> Result<(PowerUpResult, Vec<GameplayOutcome>), GameplayError>
 where
     C: ConnectionTrait,
 {
@@ -390,18 +396,10 @@ where
 
     result.ship = Some(m);
 
-    // Update quest progress
-    let quest_event = emukc_model::thirdparty::QuestActionEvent::ModernizationCompleted {
+    let outcome = GameplayOutcome::ModernizationCompleted {
         target_ship_mst_id: target_ship.mst_id,
         material_ship_mst_ids: material_ships.iter().map(|s| s.mst_id).collect(),
     };
-    crate::game::quest::update::update_quest_progress_for_action(
-        c,
-        codex,
-        profile_id,
-        &quest_event,
-    )
-    .await?;
 
-    Ok(result)
+    Ok((result, vec![outcome]))
 }

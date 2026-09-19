@@ -8,8 +8,15 @@ use emukc_model::{
     prelude::ApiMstShip,
 };
 
-use crate::{err::GameplayError, game::material::deduct_material_impl, game::ship::onslot_max_of};
+use crate::{
+    err::GameplayError, game::material::deduct_material_impl,
+    game::quest::observe::GameplayOutcome, game::ship::onslot_max_of,
+};
 
+/// Resupply the given ships.
+///
+/// Returns the API response plus one [`GameplayOutcome::ShipResupplied`] per
+/// ship, in resupply order, for the caller to observe.
 pub(crate) async fn supply_fleet_impl<C>(
     c: &C,
     codex: &Codex,
@@ -17,10 +24,11 @@ pub(crate) async fn supply_fleet_impl<C>(
     ship_ids: &[i64],
     mode: KcApiChargeKind,
     supply_aircrafts: bool,
-) -> Result<KcApiChargeResp, GameplayError>
+) -> Result<(KcApiChargeResp, Vec<GameplayOutcome>), GameplayError>
 where
     C: ConnectionTrait,
 {
+    let mut outcomes: Vec<GameplayOutcome> = Vec::new();
     let ships = ship::Entity::find()
         .filter(ship::Column::ProfileId.eq(profile_id))
         .filter(ship::Column::Id.is_in(ship_ids.to_owned()))
@@ -108,12 +116,9 @@ where
 
         let m = am.update(c).await?;
 
-        // Update quest progress
-        let event = emukc_model::thirdparty::QuestActionEvent::ShipResupplied {
+        outcomes.push(GameplayOutcome::ShipResupplied {
             ship_id: m.id,
-        };
-        crate::game::quest::update::update_quest_progress_for_action(c, codex, profile_id, &event)
-            .await?;
+        });
 
         resp.api_ship.push(KcApiChargeShip {
             api_id: m.id,
@@ -142,5 +147,5 @@ where
 
     resp.api_use_bou = material_consumes[3];
 
-    Ok(resp)
+    Ok((resp, outcomes))
 }

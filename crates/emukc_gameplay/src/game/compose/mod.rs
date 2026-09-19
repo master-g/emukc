@@ -12,6 +12,8 @@ use emukc_model::{
 };
 use supply::supply_fleet_impl;
 
+use super::quest::observe::observe;
+
 use crate::{
     err::GameplayError, game::slot_item::get_unset_slot_items_by_types_impl, gameplay::Ctx,
 };
@@ -72,8 +74,11 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let resp =
+        let (resp, outcomes) =
             supply_fleet_impl(&tx, codex, profile_id, ship_ids, mode, supply_aircrafts).await?;
+
+        observe(&tx, codex, profile_id, &outcomes).await?;
+
         tx.commit().await?;
 
         Ok(resp)
@@ -119,9 +124,12 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let result =
+        let (result, outcomes) =
             powerup::powerup_impl(&tx, codex, profile_id, ship_id, material_ships, keep_slot_items)
                 .await?;
+
+        observe(&tx, codex, profile_id, &outcomes).await?;
+
         tx.commit().await?;
 
         let fleets = get_fleets_impl(db, profile_id).await?;
