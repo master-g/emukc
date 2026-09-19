@@ -34,7 +34,6 @@ pub struct SortieBattleResultSnapshot {
     pub enemy_ship_ids: Vec<i64>,
     pub friendly_nowhps: Vec<i64>,
     pub enemy_ship_types: Vec<i64>,
-    pub enemy_nowhps: Vec<i64>,
     pub win_rank: String,
     pub get_exp: i64,
     pub member_lv: i64,
@@ -111,9 +110,9 @@ pub(super) struct SortieSettlement {
 /// is the only RNG consumer). Quest progress is not touched here: the outcomes
 /// are handed back for the caller to observe before it commits.
 ///
-/// `final_enemy_nowhps` is the session packet after any night battle and feeds
-/// `api_dests` / `api_destsf`; the snapshot's own `enemy_nowhps` is frozen at
-/// the day battle and keeps feeding the enemy-sunk quest events as before.
+/// `final_enemy_nowhps` is the session packet after any night battle and is the
+/// single source for `api_dests` / `api_destsf` and the enemy-sunk quest events,
+/// so an enemy that only goes down at night is reported by both.
 pub(super) async fn settle_sortie_battle_impl<C>(
     c: &C,
     codex: &Codex,
@@ -168,7 +167,7 @@ where
     let mut outcomes = vec![build_sortie_battle_outcome(definition, active, &snapshot)?];
 
     // Report every sunk enemy ship
-    for (i, &hp) in snapshot.enemy_nowhps.iter().enumerate() {
+    for (i, &hp) in final_enemy_nowhps.iter().enumerate() {
         if hp <= 0
             && let Some(&stype) = snapshot.enemy_ship_types.get(i)
         {
@@ -592,7 +591,6 @@ mod tests {
             enemy_ship_ids: vec![],
             friendly_nowhps: vec![],
             enemy_ship_types: vec![],
-            enemy_nowhps: vec![],
             win_rank: win_rank.to_string(),
             get_exp: 0,
             member_lv: 0,

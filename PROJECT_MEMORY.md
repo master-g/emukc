@@ -47,6 +47,9 @@ Current verification baseline:
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
 - [2026-09-19] `questlist` `api_tab_id` is the client tab bar (0,9,1,2,3,4,5 = all, activated, daily, weekly, monthly, oneshot, other); the client filters nothing itself. `api_label_type` keys the row label (1,2,3,6,7,101..=112). Source: `main.decoded.js` `DutyDataHolder`, `_createTab`.
+- [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
+  (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
+  `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 
 ## Failed Attempts / Pitfalls
@@ -74,24 +77,26 @@ Current verification baseline:
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
 | [2026-09-18] `clippy -- -D warnings` fails on old `result_large_err` at `emukc_network/src/download.rs:236` and (rustc 1.98.1) `src/bin/net/auth.rs:139`, both older than plan 002. Repo gate is `-W warnings`; touched-file checks give `-D` strength for new code. | sessions 2026-09-18, 09-19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
+| [2026-09-19] A refactor comment saying "keeps feeding X as before" was preserving a bug: plan 002 froze the day-battle `enemy_nowhps` copy, so night-only sinks fired no quest event. Treat "as before" as unverified. | git `HEAD` |
 | [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
 
 ## Last Session
 
-- [2026-09-19] `main`. Pushed plan 002 (`e93e1f8..ab04977`) and the `destroy_items` commit fix (`9cb6660`).
-  Then fixed `quest_list_view` tab filtering: it compared `tab_id` to `label_type`, but client tabs are
-  1 daily / 2 weekly / 3 monthly / 4 oneshot / 5 other / 9 activated while `label_type` is 1 oneshot / 2 daily /
-  3 weekly / 6 monthly / 7 quarterly / 101..=112 yearly, so tabs 1-5 were misfiled and tab 9 always empty.
-  `tab_shows` maps them; the pinned test and `client-views.md` updated. Gates green; pushed as `eba18d3`.
+- [2026-09-19] `main`. Fixed night-only enemy sinks reporting no `EnemyShipSunk`: `settle_sortie_battle_impl`
+  now derives the sunk list from `final_enemy_nowhps` instead of the day-frozen snapshot copy, and the
+  `SortieBattleResultSnapshot.enemy_nowhps` field is gone (it had exactly one reader). New test
+  `enemies_sunk_at_night_reach_the_quest_outcomes` in `game/sortie/tests.rs`, confirmed red against the old
+  snapshot-side read. Gates green: `fmt --check`, `clippy --workspace --all-targets` (no warnings in
+  `emukc_gameplay`; the pre-existing `result_large_err` / backtick ones remain elsewhere), root `cargo test`
+  63 + 125, `cargo test -p emukc_gameplay` 143 + 64 (practice_battle passed this run).
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1)
-  `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`.
-  (2) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
-  `enemy_formation_id` param on `run_sp_midnight_battle`; literal-only
-  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline `_impl`s that now
-  have a single caller). Older: deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test;
-  `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation; archiving the battle execution plan;
-  stale `wt-base` worktree in the 2026-09-18 scratchpad. Worker dispatch recipe: `.farm/deepen-u9-brief.md` +
-  gate shape; allowlist `tests/gameplay_tests.rs`, judge structure by grep not per file.
+- [2026-09-19] Candidate next work, in order: (1) KTD7 `api_m_flag = 2` has no assertion. (2) `sp_midnight`
+  lacks `with_profile_lock` and `run_sp_midnight_battle` takes a redundant `enemy_formation_id`. Smaller:
+  literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline
+  `_impl`s that now have a single caller). Older: deterministic `practice_battle` win-rank asserts; 6.3.x KTD4
+  smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation; archiving the battle
+  execution plan; stale `wt-base` worktree in the 2026-09-18 scratchpad. Worker dispatch recipe:
+  `.farm/deepen-u9-brief.md` + gate shape; allowlist `tests/gameplay_tests.rs`, judge structure by grep not
+  per file.

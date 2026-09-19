@@ -182,7 +182,6 @@ impl SortieBattleSetup {
                 .iter()
                 .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                 .collect(),
-            enemy_nowhps: session.packet.enemy_nowhps.clone(),
             get_exp: calculate_admiral_exp(base_exp, &win_rank),
             win_rank,
             member_lv: self.profile.hq_level,

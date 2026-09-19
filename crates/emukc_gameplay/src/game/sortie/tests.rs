@@ -59,6 +59,20 @@ async fn settle_boss_win(
     definition: &MapDefinition,
     stage_id: &str,
 ) -> SortieSettlement {
+    settle_boss_win_with_enemies(context, profile_id, definition, stage_id, vec![], &[]).await
+}
+
+/// `settle_boss_win` against a known enemy line-up: `enemy_ship_types` indexes
+/// in the same order as `final_enemy_nowhps`, the enemy HP packet as it stands
+/// after any night battle.
+async fn settle_boss_win_with_enemies(
+    context: &Ctx,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage_id: &str,
+    enemy_ship_types: Vec<i64>,
+    final_enemy_nowhps: &[i64],
+) -> SortieSettlement {
     let stage = definition.stage(stage_id).unwrap();
     let active = ActiveSortieState {
         deck_id: 1,
@@ -78,8 +92,11 @@ async fn settle_boss_win(
         profile_id,
         definition,
         &active,
-        successful_boss_snapshot(),
-        &[],
+        SortieBattleResultSnapshot {
+            enemy_ship_types,
+            ..successful_boss_snapshot()
+        },
+        final_enemy_nowhps,
     )
     .await
     .unwrap()
@@ -91,7 +108,6 @@ fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
         enemy_ship_ids: vec![],
         friendly_nowhps: vec![],
         enemy_ship_types: vec![],
-        enemy_nowhps: vec![],
         win_rank: "S".to_string(),
         get_exp: 0,
         member_lv: 0,
@@ -155,7 +171,6 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
                 .iter()
                 .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                 .collect(),
-            enemy_nowhps: session.packet.enemy_nowhps.clone(),
             win_rank: session.outcome.win_rank.to_string(),
             get_exp: 0,
             member_lv: 1,
@@ -1356,4 +1371,86 @@ async fn sortie_sp_midnight_battle_rejects_non_battle_cell_like_sortie_battle() 
         "{day:?}"
     );
     assert_eq!(night.to_string(), day.to_string());
+}
+
+#[tokio::test]
+async fn enemies_sunk_at_night_reach_the_quest_outcomes() {
+    use crate::game::quest::observe::GameplayOutcome;
+    use emukc_model::codex::map::MapCellDefinition;
+
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("night-sunk", "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, "night-sunk-admin").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    let definition = MapDefinition {
+        map_id: 99077,
+        maparea_id: 99,
+        mapinfo_no: 77,
+        name: "night sunk".to_string(),
+        level: 1,
+        default_variant: String::new(),
+        variants: BTreeMap::from([(
+            String::new(),
+            MapStageDefinition {
+                variant_key: String::new(),
+                boss_cell_no: 1,
+                cells: vec![MapCellDefinition {
+                    cell_no: 1,
+                    event_kind: 1,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        )]),
+        ..Default::default()
+    };
+
+    map_record::ActiveModel {
+        id: ActiveValue::NotSet,
+        profile_id: ActiveValue::Set(session.profile.id),
+        map_id: ActiveValue::Set(definition.map_id),
+        cleared: ActiveValue::Set(false),
+        last_cleared_at: ActiveValue::Set(None),
+        last_reset_at: ActiveValue::Set(None),
+        defeat_count: ActiveValue::Set(None),
+        current_hp: ActiveValue::Set(None),
+        gauge_index: ActiveValue::Set(1),
+        stage_id: ActiveValue::Set(None),
+        selected_rank: ActiveValue::Set(map_record::SelectedRank::NotSet),
+        event_state: ActiveValue::Set(None),
+        unlocked: ActiveValue::Set(true),
+    }
+    .insert(context.db.as_ref())
+    .await
+    .unwrap();
+
+    // The enemy HP packet as it stands after the night battle: the flagship went
+    // down, the escort survived. Only the packet knows this — the day-battle
+    // snapshot does not.
+    let settlement = settle_boss_win_with_enemies(
+        &context,
+        session.profile.id,
+        &definition,
+        "",
+        vec![7, 13],
+        &[0, 30],
+    )
+    .await;
+
+    let sunk: Vec<i64> = settlement
+        .outcomes
+        .iter()
+        .filter_map(|outcome| match outcome {
+            GameplayOutcome::EnemyShipSunk {
+                ship_stype,
+            } => Some(*ship_stype),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(sunk, vec![7], "night-only sink must still report EnemyShipSunk");
+    assert_eq!(settlement.dests, 1);
 }
