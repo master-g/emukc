@@ -25,6 +25,7 @@ use crate::{
 };
 
 mod consume;
+pub(crate) mod observe;
 mod record;
 pub(crate) mod update;
 
