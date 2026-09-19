@@ -71,29 +71,29 @@ Current verification baseline:
 | [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
-| [2026-09-18] `clippy --workspace --all-targets -- -D warnings` fails on a pre-existing `result_large_err` in `emukc_network/src/download.rs:236`; the repo gate is `-W warnings`, so the U4/U5 gate's touched-file check is the `-D`-strength check for new code. | session 2026-09-18, U5 |
+| [2026-09-18] `clippy -- -D warnings` fails on old `result_large_err` at `emukc_network/src/download.rs:236` and (rustc 1.98.1) `src/bin/net/auth.rs:139`, both older than plan 002. Repo gate is `-W warnings`; touched-file checks give `-D` strength for new code. | sessions 2026-09-18, 09-19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
 | [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
 
 ## Last Session
 
-- [2026-09-19] `main`, committed and unpushed (about 30 commits ahead of origin). Plan 002 (deepen shallow modules)
-  is complete: U5/U6 by me, U7/U8/U9 by the claude worker in herdr pane `w1C:p8E` (briefs/gates/reports under
-  `.farm/deepen-u*`), each unit as code commits plus a docs commit; the DoD acceptance record is in the plan's
-  "验收记录（2026-09-19）". U9: `form_utils::deserialize_form_flag`, seven "0"/"1" fields are `bool`, sortie
-  handlers dropped discarded fields, four new `docs/solutions/architecture-patterns/` notes. Gates passed
-  (my re-runs); assets, golden and `Cargo.lock` byte-identical to `e93e1f8` throughout.
+- [2026-09-19] `main`, plan 002 (deepen shallow modules) done and pushed. Before the push I re-ran the three
+  gates plus the `emukc_cache` / `emukc_gameplay` / `emukc_bootstrap battle_rules` subsets at `9ef33aa`: all exit
+  0, root `cargo test` 63 + 124, no ignored tests. Unit work: U5/U6 by me, U7/U8/U9 by the claude worker in herdr
+  pane `w1C:p8E` (briefs/gates/reports under `.farm/deepen-u*`); DoD acceptance in the plan's
+  "验收记录（2026-09-19）"; assets, golden and `Cargo.lock` byte-identical to `e93e1f8` throughout.
 
 ## Next Session
 
-- [2026-09-19] Plan 002 is done; push is still pending the user's call. Candidate next work, in order: (1) `fix:`
-  `Ctx::destroy_items` (`slot_item.rs`) never commits its tx, so `api_req_kousyou/destroyitem2` scrapping rolls
-  back; add `tx.commit().await?` plus a persistence assertion. (2) questlist tab 9 always empty (`label_type`
-  never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (3) `sortie_midnight_battle` never refreshes
-  `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`. (4) KTD7 `api_m_flag = 2` has no assertion.
-  Smaller: sp_midnight lacks `with_profile_lock`; redundant `enemy_formation_id` param on
-  `run_sp_midnight_battle`; literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's
-  KD6 follow-up (inline `_impl`s that now have a single caller). Older: deterministic `practice_battle` win-rank
-  asserts; 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation;
-  archiving the battle execution plan; stale `wt-base` worktree. Worker dispatch recipe: `.farm/deepen-u9-brief.md`
-  + gate shape; allowlist `tests/gameplay_tests.rs`, judge structure by grep not per file.
+- [2026-09-19] Candidate next work, in order: (1) `fix:` `Ctx::destroy_items` (`slot_item.rs:198`) opens a tx,
+  calls `observe`, then returns without `tx.commit()`, so `api_req_kousyou/destroyitem2` scrapping rolls back
+  (verified by reading the code 2026-09-19); add the commit plus a persistence assertion. (2) questlist tab 9
+  always empty (`label_type` never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (3)
+  `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`.
+  (4) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
+  `enemy_formation_id` param on `run_sp_midnight_battle`; literal-only
+  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline `_impl`s that now
+  have a single caller). Older: deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test;
+  `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation; archiving the battle execution plan;
+  stale `wt-base` worktree in the 2026-09-18 scratchpad. Worker dispatch recipe: `.farm/deepen-u9-brief.md` +
+  gate shape; allowlist `tests/gameplay_tests.rs`, judge structure by grep not per file.
