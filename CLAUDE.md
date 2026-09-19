@@ -162,7 +162,7 @@ Typical workflow for a bad battle payload:
 
 1. **Database**: Add SeaORM entity in `crates/emukc_db/src/entity/profile/`
 2. **Model**: Add API types in `crates/emukc_model/src/kc2/`
-3. **Gameplay**: Add the operation as an inherent `pub async fn` on `Ctx` in `crates/emukc_gameplay/src/game/`, with `_impl` functions for cross-domain and in-transaction reuse
+3. **Gameplay**: Add the operation as an inherent `pub async fn` on `Ctx` in `crates/emukc_gameplay/src/game/`, with `_impl` functions for cross-domain and in-transaction reuse. If the operation can advance a quest, the `Ctx` method calls `quest::observe` once after its writes and before `tx.commit()`; the `_impl` only returns `GameplayOutcome` values
 4. **Handler**: Add axum handler in `src/bin/net/router/kcsapi/`, register route in the module's `router()` function
 
 ### Gameplay `_impl` Pattern

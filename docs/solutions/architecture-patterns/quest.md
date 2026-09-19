@@ -57,9 +57,12 @@ via the quest operations on `Ctx`. Definitions come from the Codex
 
 ### Quest progress tracking (cross-cutting)
 
-Quest progress SHALL be updated by gameplay actions across all domains via
-`update_quest_progress_for_action` (public) and `update_quests_impl`
-(internal).
+Quest progress SHALL be advanced through `game/quest/observe.rs::observe`, the
+single entry point. Domain modules never call quest code: they describe what
+they wrote as `GameplayOutcome` values and the `Ctx` method that owns the
+transaction observes them once, before it commits. `update_quest_progress_for_action`
+is now internal to the quest module and is reached only from `observe`; see
+`quest-observation.md`.
 
 - When a qualifying gameplay action occurs (sortie win, composition change,
   equipment improvement, construction complete, etc.), all activated quests
@@ -87,9 +90,10 @@ Quest progress SHALL be updated by gameplay actions across all domains via
   is fired with each sunk enemy's `stype` (`api_stype`); `Sink` conditions
   check `Kc3rdQuestConditionShip` (ShipType matching) and decrement the count
   on match.
-- Slot item improvement (改修工廠, future feature): on completion, the
-  `SlotItemImproved` event is fired with item `mst_id` and resulting star
-  level; `Factory::SlotItemImprovement` conditions decrement the count.
+- Slot item improvement (改修工廠, future feature): the `SlotItemImproved`
+  outcome and its `Factory::SlotItemImprovement` matching exist, but there is no
+  producer yet because `api_req_kousyou/remodel_slot*` is unimplemented. The
+  variant is kept deliberately (quests 618, 619, 1166, 1167 need it).
 
 ### Quest rewards
 

@@ -78,17 +78,23 @@ matching the real KanColle game data for all maps with available API captures:
 - A battle node (real `api_color_no` = 4) SHALL have `event_kind = 1` (battle)
   and `event_id = 4`, so the client correctly triggers battle UI.
 
-### Unmarried ship level cap enforcement
+### Ship level cap enforcement
 
-The system SHALL prevent unmarried ships from exceeding level 99 through any
-XP-granting mechanism. When a ship is not married and has reached level 99, XP
-gain SHALL be set to 0 and the level SHALL NOT increase.
+Every XP-granting mechanism SHALL settle the gain through
+`game/ship/exp.rs::settle_ship_exp(exp_now, gain, married)` and take all four
+result fields from it. Sortie, practice and expedition share that one
+implementation; a caller MUST NOT clamp the level itself.
 
-- Practice XP and sortie XP SHALL both be blocked at level 99 for unmarried
-  ships.
-- A married ship at level 99 MAY exceed level 99 up to the married cap.
-- An unmarried ship at level 98 gaining enough XP to reach level 100 SHALL be
-  clamped to level 99, with excess XP beyond level 99 discarded.
+- At the cap (99 unmarried, 175 married) the accumulated experience is pinned to
+  the cap requirement and both `exp_next` and the progress bar are zero.
+- A married ship MAY pass 99 up to the married cap.
+- An unmarried ship at Lv.98 gaining enough XP for Lv.100 lands on Lv.99 with
+  the excess discarded.
+- Expedition used to clamp only the level and write the raw experience, so the
+  same ship came back with a next-level threshold for Lv.100; that divergence is
+  gone.
+
+See `ship-exp-settlement.md` for why the function does not persist.
 
 ## Why This Matters
 

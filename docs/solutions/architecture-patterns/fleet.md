@@ -70,6 +70,9 @@ Fleets consume fuel/ammo during sorties and MUST be resupplied via
 - Fuel and ammo are deducted from the profile's materials; each ship's current
   fuel/ammo are restored toward maximum values.
 - Insufficient fuel or ammo for full resupply SHALL fail.
+- `supply_fleet_impl` returns one `GameplayOutcome::ShipResupplied` per ship
+  alongside the response; `charge_supply` observes them inside the same
+  transaction, before the commit, so resupply quests advance exactly once.
 
 ### Presets
 
