@@ -209,6 +209,8 @@ impl Ctx {
 
         observe(&tx, codex, profile_id, &outcomes).await?;
 
+        tx.commit().await?;
+
         Ok(scrapped_materials)
     }
 }

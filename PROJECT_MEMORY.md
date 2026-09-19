@@ -77,20 +77,18 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`, plan 002 (deepen shallow modules) done and pushed. Before the push I re-ran the three
-  gates plus the `emukc_cache` / `emukc_gameplay` / `emukc_bootstrap battle_rules` subsets at `9ef33aa`: all exit
-  0, root `cargo test` 63 + 124, no ignored tests. Unit work: U5/U6 by me, U7/U8/U9 by the claude worker in herdr
-  pane `w1C:p8E` (briefs/gates/reports under `.farm/deepen-u*`); DoD acceptance in the plan's
-  "验收记录（2026-09-19）"; assets, golden and `Cargo.lock` byte-identical to `e93e1f8` throughout.
+- [2026-09-19] `main`. Pushed plan 002 (`e93e1f8..ab04977`) after re-running the three gates plus the
+  `emukc_cache` / `emukc_gameplay` / `emukc_bootstrap battle_rules` subsets: all exit 0. Then fixed
+  `Ctx::destroy_items` (missing `tx.commit()`, predates plan 002) with
+  `tests/gameplay_tests/destroy_items_persist.rs` failing before / passing after; root `cargo test` 63 + 125,
+  `clippy --all-targets` clean on touched files. Fix commit is local, not pushed.
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) `fix:` `Ctx::destroy_items` (`slot_item.rs:198`) opens a tx,
-  calls `observe`, then returns without `tx.commit()`, so `api_req_kousyou/destroyitem2` scrapping rolls back
-  (verified by reading the code 2026-09-19); add the commit plus a persistence assertion. (2) questlist tab 9
-  always empty (`label_type` never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (3)
+- [2026-09-19] Push the `destroy_items` fix when the user says so. Candidate next work, in order: (1) questlist
+  tab 9 always empty (`label_type` never 9; pinned by `tests/gameplay_tests/view/quest_list.rs`). (2)
   `sortie_midnight_battle` never refreshes `snapshot.enemy_nowhps`, so night sinks fire no `EnemyShipSunk`.
-  (4) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
+  (3) KTD7 `api_m_flag = 2` has no assertion. Smaller: sp_midnight lacks `with_profile_lock`; redundant
   `enemy_formation_id` param on `run_sp_midnight_battle`; literal-only
   `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline `_impl`s that now
   have a single caller). Older: deterministic `practice_battle` win-rank asserts; 6.3.x KTD4 smoke test;
