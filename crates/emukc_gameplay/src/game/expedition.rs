@@ -9,7 +9,7 @@ use emukc_model::{
     prelude::ApiMstShip,
     thirdparty::{
         ExpeditionResult, Kc3rdCompositionAlternative, Kc3rdExpeditionCondition,
-        Kc3rdShipTypeRequirement, QuestActionEvent,
+        Kc3rdShipTypeRequirement,
     },
 };
 use emukc_time::{
@@ -23,7 +23,7 @@ use super::{
     basic::find_profile,
     fleet::{find_fleet, get_fleet_ships_impl},
     material::add_material_impl,
-    quest::update::update_quest_progress_for_action,
+    quest::observe::{GameplayOutcome, observe},
     ship::{exp::settle_ship_exp, get_ships_impl, recalculate_ship_status_with_model},
     use_item::add_use_item_impl,
 };
@@ -272,6 +272,8 @@ impl Ctx {
             _ => None,
         };
 
+        let mut outcomes: Vec<GameplayOutcome> = Vec::new();
+
         let (profile, ship_exp, ship_exp_after, resource_reward, item_rewards) =
             if result == ExpeditionResult::Success || result == ExpeditionResult::GreatSuccess {
                 let admiral_exp = calculate_expedition_admiral_exp(expedition_condition, result);
@@ -298,12 +300,11 @@ impl Ctx {
                 .await?;
                 mark_expedition_completed(&tx, profile_id, mission_id, now).await?;
 
-                let event = QuestActionEvent::ExpeditionCompleted {
+                outcomes.push(GameplayOutcome::ExpeditionCompleted {
                     mission_id,
                     result,
                     fleet_id,
-                };
-                update_quest_progress_for_action(&tx, codex, profile_id, &event).await?;
+                });
 
                 (profile, ship_exp, ship_exp_after, Some(resource_reward), item_rewards)
             } else {
@@ -347,6 +348,9 @@ impl Ctx {
             };
 
         reset_fleet_expedition(&tx, fleet_model).await?;
+
+        observe(&tx, codex, profile_id, &outcomes).await?;
+
         tx.commit().await?;
 
         let maparea_name = codex

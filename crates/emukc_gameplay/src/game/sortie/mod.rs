@@ -46,6 +46,7 @@ use super::{
     map_progress::resolve_record_stage_id,
     map_route::{cell_has_routing_outgoing, evaluate_route_destination},
     material::add_material_impl,
+    quest::observe::observe,
     ship::exp::calculate_admiral_exp,
     sortie_result::{calculate_sortie_ship_exp, settle_sortie_battle_impl},
     sortie_store::SortieStore,
@@ -485,6 +486,9 @@ impl Ctx {
             &session.packet.enemy_nowhps,
         )
         .await?;
+
+        observe(&tx, codex, profile_id, &settlement.outcomes).await?;
+
         tx.commit().await?;
 
         // Refresh stage identity from DB before deciding sortie fate.

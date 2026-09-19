@@ -11,7 +11,6 @@ use emukc_model::{
     codex::Codex,
     kc2::{KcSortieResultRank, UserHQRank, level},
     profile::practice::{PracticeConfig, Rival, RivalDetail, RivalFlag, RivalShip, RivalStatus},
-    thirdparty::QuestActionEvent,
 };
 use emukc_time::{
     KcTime,
@@ -30,7 +29,7 @@ use super::{
     battle::response::{DayBattleResponse, NightBattleResponse},
     battle::rng::ProductionRng,
     fleet::get_fleet_ships_impl,
-    quest::update::update_quest_progress_for_action,
+    quest::observe::{GameplayOutcome, observe},
     ship::{
         exp::{calculate_admiral_exp, settle_ship_exp},
         update_ship_impl,
@@ -162,9 +161,8 @@ impl Ctx {
         .await?;
         update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
             .await?;
-        let quest_event = build_practice_quest_event(&snapshot)?;
-        update_quest_progress_for_action(&tx, self.codex.as_ref(), profile_id, &quest_event)
-            .await?;
+        let outcome = build_practice_battle_outcome(&snapshot)?;
+        observe(&tx, self.codex.as_ref(), profile_id, &[outcome]).await?;
         practice_repo.clear_pending_battle(profile_id);
 
         tx.commit().await?;
@@ -216,10 +214,10 @@ impl Ctx {
     }
 }
 
-fn build_practice_quest_event(
+fn build_practice_battle_outcome(
     snapshot: &PracticeBattleResultSnapshot,
-) -> Result<QuestActionEvent, GameplayError> {
-    Ok(QuestActionEvent::ExerciseBattleCompleted {
+) -> Result<GameplayOutcome, GameplayError> {
+    Ok(GameplayOutcome::ExerciseBattleCompleted {
         fleet_id: snapshot.deck_id,
         win_rank: snapshot.win_rank,
         fleet_ships: snapshot.friendly_fleet_snapshot.clone(),

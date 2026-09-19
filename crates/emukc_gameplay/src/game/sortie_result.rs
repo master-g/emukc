@@ -9,7 +9,6 @@ use emukc_model::{
         map::{MapDefinition, MapStageDefinition, MapVariantDefinition},
     },
     kc2::{KcSortieResultRank, level},
-    thirdparty::QuestActionEvent,
 };
 use emukc_time::chrono::Utc;
 use serde::Serialize;
@@ -20,7 +19,7 @@ use super::{
     basic::find_profile,
     map::{check_and_unlock_dependencies_impl, find_map_record_impl},
     map_progress::assign_stage_id,
-    quest::update::update_quest_progress_for_action,
+    quest::observe::GameplayOutcome,
     ship::{
         add_ship_impl,
         exp::{build_exp_lvup_vector, settle_ship_exp},
@@ -103,11 +102,14 @@ pub(super) struct SortieSettlement {
     pub next_map_ids: Option<Vec<i64>>,
     pub dests: i64,
     pub destsf: i64,
+    /// What this battle did, in the order it happened, for the caller to observe.
+    pub outcomes: Vec<GameplayOutcome>,
 }
 
 /// Persist one sortie battle's write set inside `c`: profile and ship stats,
-/// map record, ship drop, quest progress and dependency unlocks, in that order
-/// (the drop roll is the only RNG consumer).
+/// map record, ship drop and dependency unlocks, in that order (the drop roll
+/// is the only RNG consumer). Quest progress is not touched here: the outcomes
+/// are handed back for the caller to observe before it commits.
 ///
 /// `final_enemy_nowhps` is the session packet after any night battle and feeds
 /// `api_dests` / `api_destsf`; the snapshot's own `enemy_nowhps` is frozen at
@@ -163,18 +165,16 @@ where
         &snapshot.win_rank,
     )
     .await?;
-    let quest_event = build_sortie_quest_event(definition, active, &snapshot)?;
-    update_quest_progress_for_action(c, codex, profile_id, &quest_event).await?;
+    let mut outcomes = vec![build_sortie_battle_outcome(definition, active, &snapshot)?];
 
-    // Fire EnemyShipSunk events for each sunk enemy ship
+    // Report every sunk enemy ship
     for (i, &hp) in snapshot.enemy_nowhps.iter().enumerate() {
         if hp <= 0
             && let Some(&stype) = snapshot.enemy_ship_types.get(i)
         {
-            let sink_event = QuestActionEvent::EnemyShipSunk {
+            outcomes.push(GameplayOutcome::EnemyShipSunk {
                 ship_stype: stype,
-            };
-            update_quest_progress_for_action(c, codex, profile_id, &sink_event).await?;
+            });
         }
     }
 
@@ -203,6 +203,7 @@ where
         first_clear,
         ship_drop,
         next_map_ids,
+        outcomes,
     })
 }
 
@@ -216,6 +217,7 @@ impl From<SortieSettlement> for SortieBattleResultResponse {
             next_map_ids,
             dests,
             destsf,
+            outcomes: _,
         } = settlement;
         Self {
             api_ship_id: snapshot.enemy_ship_ids,
@@ -292,18 +294,18 @@ pub(super) fn calculate_sortie_ship_exp(
     (exp, lvup)
 }
 
-pub(super) fn build_sortie_quest_event(
+pub(super) fn build_sortie_battle_outcome(
     definition: &MapDefinition,
     active: &ActiveSortieState,
     snapshot: &SortieBattleResultSnapshot,
-) -> Result<QuestActionEvent, GameplayError> {
+) -> Result<GameplayOutcome, GameplayError> {
     let stage = definition.stage(&active.stage_id).ok_or_else(|| {
         GameplayError::EntryNotFound(format!(
             "stage `{}` not found for map {}",
             active.stage_id, active.map_id
         ))
     })?;
-    Ok(QuestActionEvent::SortieBattleCompleted {
+    Ok(GameplayOutcome::SortieBattleCompleted {
         maparea_id: definition.maparea_id,
         mapinfo_no: definition.mapinfo_no,
         boss_cell: active
@@ -578,9 +580,8 @@ where
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
-    use emukc_model::{
-        codex::map::{MapDefinition, MapStageDefinition, MapVariantDefinition, ShipDropDefinition},
-        thirdparty::QuestActionEvent,
+    use emukc_model::codex::map::{
+        MapDefinition, MapStageDefinition, MapVariantDefinition, ShipDropDefinition,
     };
 
     use super::*;
@@ -609,7 +610,7 @@ mod tests {
     }
 
     #[test]
-    fn build_sortie_quest_event_marks_boss_cells() {
+    fn build_sortie_battle_outcome_marks_boss_cells() {
         use emukc_model::codex::map::{MapCellDefinition, MapVariantDefinition};
 
         let definition = MapDefinition {
@@ -648,10 +649,10 @@ mod tests {
             locked_enemy_composition: None,
         };
 
-        let event = build_sortie_quest_event(&definition, &active, &snapshot("A")).unwrap();
+        let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("A")).unwrap();
 
-        match event {
-            QuestActionEvent::SortieBattleCompleted {
+        match outcome {
+            GameplayOutcome::SortieBattleCompleted {
                 maparea_id,
                 mapinfo_no,
                 boss_cell,
@@ -664,12 +665,12 @@ mod tests {
                 assert_eq!(win_rank, emukc_model::kc2::KcSortieResultRank::A);
                 assert_eq!(fleet_id, 3);
             }
-            other => panic!("unexpected quest event: {other:?}"),
+            other => panic!("unexpected outcome: {other:?}"),
         }
     }
 
     #[test]
-    fn build_sortie_quest_event_marks_boss_cell_via_label_equivalence() {
+    fn build_sortie_battle_outcome_marks_boss_cell_via_label_equivalence() {
         // Mirror of map 1-2 node E: two cells (3, 4) share label "C",
         // boss_cell_no=3. Player reaches cell 4 (non-canonical) — must still be boss.
         use emukc_model::codex::map::{MapCellDefinition, MapVariantDefinition};
@@ -718,15 +719,15 @@ mod tests {
             locked_enemy_composition: None,
         };
 
-        let event = build_sortie_quest_event(&definition, &active, &snapshot("S")).unwrap();
-        match event {
-            QuestActionEvent::SortieBattleCompleted {
+        let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("S")).unwrap();
+        match outcome {
+            GameplayOutcome::SortieBattleCompleted {
                 boss_cell,
                 ..
             } => {
                 assert!(boss_cell, "cell 4 shares boss label and must be recognized as boss");
             }
-            other => panic!("unexpected quest event: {other:?}"),
+            other => panic!("unexpected outcome: {other:?}"),
         }
     }
 
