@@ -19,6 +19,17 @@ use emukc_model::{
 };
 use emukc_time::chrono::Utc;
 
+/// Practice battles draw from the thread-local production RNG, so an unseeded run
+/// lands on a losing rank often enough to make the win-rank tests flaky (observed
+/// ~1 in 5). Seeding determinizes the battle; entropy is restored before the
+/// assertions so a failing assert cannot skip the cleanup and leak the seeded
+/// stream into other tests sharing this OS thread.
+///
+/// If a battle-math change makes a seeded run lose, pick another seed rather than
+/// widening the rank assertion — the point of the assertion is that a win advances
+/// the quest.
+const WIN_RANK_SEED: u64 = 1;
+
 static PROFILE_ID_BUMP: AtomicI64 = AtomicI64::new(0);
 
 async fn mock_context() -> Ctx {
@@ -318,12 +329,18 @@ async fn practice_battle_result_completes_three_win_exercise_quest_after_three_b
         .unwrap();
     ensure_started_quest(&context, pid, quest_id).await;
 
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
+    let mut ranks = Vec::new();
     for _ in 0..3 {
         let rivals = context.get_practice_rivals(pid).await.unwrap();
         let enemy_id = rivals.rivals[0].id;
         context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
-        let result = context.practice_battle_result(pid).await.unwrap();
-        assert!(matches!(result.api_win_rank.as_str(), "S" | "A" | "B"));
+        ranks.push(context.practice_battle_result(pid).await.unwrap().api_win_rank);
+    }
+    emukc_crypto::rng::reseed_from_entropy();
+
+    for rank in &ranks {
+        assert!(matches!(rank.as_str(), "S" | "A" | "B"), "win rank {rank}");
     }
 
     assert_eq!(
@@ -348,8 +365,10 @@ async fn practice_battle_result_decrements_ranked_exercise_quest() {
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
     context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
     let result = context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
 
     assert!(matches!(result.api_win_rank.as_str(), "S" | "A" | "B"));
     assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 4);
@@ -372,8 +391,10 @@ async fn practice_battle_result_decrements_group_exercise_quest_when_composition
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
     context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
     let result = context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
 
     assert!(matches!(result.api_win_rank.as_str(), "S" | "A" | "B"));
     assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 3);
