@@ -1,0 +1,90 @@
+# Bootstrap / Cache 审计实施计划
+
+由 `/improve` 于 2026-09-20 生成，审计基线 commit `82d2203`。
+范围：`emukc_bootstrap`（下载、解析、make-list）、`emukc_cache`、`emukc_network`
+的下载层，以及 bootstrap → decode-main → make-list → populate 的编排。
+
+每个执行者：完整读完计划再动手，遵守其 STOP 条件，完成后更新下表自己那一行。
+
+## 执行顺序与状态
+
+| Plan | 标题 | 优先级 | 工作量 | 依赖 | 状态 |
+|------|------|--------|--------|------|------|
+| 001 | 为 emukc_cache 写入/过期/失败路径建立 mock CDN 测试基线 | P1 | M | — | TODO |
+| 002 | 为第三方数据解析器建立 fixture 测试基线 | P1 | M | — | TODO |
+| 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | TODO |
+| 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | TODO |
+| 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | TODO |
+| 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
+| 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | TODO |
+| 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | TODO |
+| 009 | populate 失败清单落盘，支持只重试失败项 | P1 | S | — | TODO |
+| 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | TODO |
+| 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | TODO |
+| 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | TODO |
+| 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
+
+状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
+
+## 依赖说明
+
+- 003、007、008 都改 `crates/emukc_cache/src/kache.rs` 或其下载层，而这些路径
+  目前**零测试覆盖**。001 先建立 mock CDN 基线，后三者才有回归保护。
+- 004、006、011 都改任务数据解析链，且都会改变 `.data/codex/quest.json` 的产物。
+  002 先提交 fixture，后三者才能在不跑整轮网络 bootstrap 的前提下验证。
+- 013 依赖 012：012 先把「资产里记录客户端版本 + 与实时版本比对」这条最小链路跑通，
+  013 再决定要不要把四份版本记录收敛成一份。
+- 003 与 009 都动 populate 体验，但改动点不重叠，可并行。
+
+## 本次审计确认的关键事实（执行者可直接引用）
+
+- `--greedy` 目前不做任何网络探测，产出与默认策略逐字节相同。`source/mod.rs:92`
+  硬编码 `CacheListMakeStrategy::Rules`，`kcs2/mod.rs:22` 与
+  `kcs2/resources/mod.rs:35` 各有一行 `let strategy = CacheListMakeStrategy::Manifest;`
+  覆写调用方传入的策略。
+- `.data/codex/quest.json` 当前含 8 条 `detail` 为字面量 `"_quest_id_NNN"` 的任务，
+  12 条 `name` 为 `"n/a"` 的任务，以及 1 条（api_no 1033）`requirements` 为
+  `{"And": []}` 的任务。前两者由 004 修复，后者由 006 修复。
+- `crates/emukc_bootstrap/assets/resource_manifest.json` 是 9 个 decoder 资产中
+  唯一不带 `scriptVersion` 字段的。
+- `.sync-fingerprint.json` 记录的是 `6.3.0.0`，而资产已同步到 `6.3.5.0`。
+
+### 2026-09-20 实测：rules 与 manifest 两种策略的清单差异
+
+在 `82d2203` + 计划 003 的两行改动之上实测：
+
+- `cache make-list --overwrite`（Default/Rules 策略）→ **73,050** 条
+- `cache make-list --manifest` → **94,558** 条
+- **rules 是 manifest 的严格子集**（rules 独有 0 条）；manifest 多出的 21,508 条
+  全部落在 `kcs2/resources/ship`（20,327）和 `kcs2/resources/slot`（1,181）
+
+对这两份清单各做随机抽样、跟随 301 重定向后实测 HTTP 状态：
+
+| 抽样来源 | 样本量 | 200 | 404 |
+|---|---|---|---|
+| rules 清单 | 25 | 25 | 0 |
+| manifest 独有部分 | 85 | 6 | 79 |
+
+结论：**默认用 Rules 策略**。manifest 多出的那两万条里约 93% 是不存在的资源，
+下载它们纯属浪费——这正是 `cache-manifest-integration.md` 里
+「让 fallback 在 decoder 已覆盖的家族上展开会浪费下载、请求不存在的资源」
+所描述的情况。
+
+但反过来也有一个**尚未解决的发现**：manifest 独有部分里约 7%（估算 1,500 条
+左右）是**真实存在**的，说明 decoder 规则对 ship/slot 变体家族的覆盖仍有缺口，
+Rules 清单漏掉了这些资源。抽样中命中的类别包括 `banner_dmg`。
+补齐它的正确做法不是复活 Greedy 的暴力枚举，而是把 manifest 差集当作候选集做
+一次性存在性探测，把确实存在的并入规则——候选来自差集而非枚举，量级是两万次
+探测而不是无边界搜索。这件事尚未立计划。
+
+## 已考虑并否决
+
+- 拆分 `make_list/mod.rs`（1383 行）与 `manifest/generate.rs`（1872 行）：在 010
+  决定 Greedy 去留之前拆分是白拆，拆完还要再拆一次。010 落地后可另行评估。
+- 给 `fetch_from_remote` 加 per-CDN 熔断 / 健康度跟踪：观测到的失败是代理侧握手
+  掉线，不是单个 CDN 主机故障；003 的两行改动直接消除成因。
+- 用 `main-decoder` 的解码产物替代 kccp 作为任务名称/描述来源：
+  `grep -c '_quest_id_' main-decoder/out/main.decoded.js` 为 0，解码产物里没有任何
+  任务字符串，此路不通。
+- 更换第三方数据源：数据本身从未缺失（`kccp_quests.json` 里 771 个 id 全在），
+  问题在本仓库的解析器。先做 004，再谈换源。
