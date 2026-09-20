@@ -18,7 +18,12 @@ pub fn new_reqwest_client(
 ) -> Result<reqwest::Client, reqwest::Error> {
     let builder = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
-        .pool_max_idle_per_host(0)
+        // A full `cache populate` fetches ~94k files. With no idle connections retained, every
+        // one of them pays a fresh TCP + TLS handshake — and a fresh CONNECT when a proxy is
+        // configured — which is what dominates the wall clock. Sized to the default populate
+        // concurrency (`CONCURRENT ?= 16` in the Makefile).
+        .pool_max_idle_per_host(16)
+        .pool_idle_timeout(std::time::Duration::from_secs(90))
         .user_agent(ua.unwrap_or(DEFAULT_UA));
 
     let builder = if let Some(proxy) = proxy {

@@ -12,7 +12,7 @@
 |------|------|--------|--------|------|------|
 | 001 | 为 emukc_cache 写入/过期/失败路径建立 mock CDN 测试基线 | P1 | M | — | TODO |
 | 002 | 为第三方数据解析器建立 fixture 测试基线 | P1 | M | — | TODO |
-| 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | TODO |
+| 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | IN PROGRESS |
 | 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | TODO |
 | 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | TODO |
 | 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
@@ -25,6 +25,11 @@
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
+
+- 003 IN PROGRESS：两处配置改动已落地（`client.rs` 连接池、`kache.rs` 的
+  `skip_header_check`），但完成标准中的「`cargo test -p emukc_cache` 404 用例通过」
+  尚无法满足——该用例属于 001，`crates/emukc_cache/tests/remote_fetch.rs` 还不存在。
+  这正是 003 的第一条 STOP 条件。做完 001 后回来确认 404 路径未被改坏，再标 DONE。
 
 ## 依赖说明
 

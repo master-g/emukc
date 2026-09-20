@@ -515,6 +515,10 @@ impl Kache {
             .url(url)
             .save_as(local_path)
             .overwrite(true)
+            // The GET path already handles 404 before reading the body (see
+            // `emukc_network::download`'s non-success branch), so the default HEAD probe is a
+            // pure extra round trip — it doubles the request count for every cached resource.
+            .skip_header_check(true)
             .build()?
             .execute(Some(self.client.clone()))
             .await?;
