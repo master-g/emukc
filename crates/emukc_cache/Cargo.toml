@@ -23,6 +23,7 @@ tracing.workspace = true
 criterion = "0.8.2"
 tempfile = "3.27.0"
 tokio-test = "0.4"
+wiremock = "0.6.5"
 
 [lints]
 workspace = true

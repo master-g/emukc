@@ -40,10 +40,11 @@ pub fn new_reqwest_client(
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_new_reqwest_client() {
-        let client = new_reqwest_client(None, None).unwrap();
-        client.get("http://w00g.kancolle-server.com/kcs2/world.html").send().await.unwrap();
+    /// Builds only. This used to GET a live kancolle-server URL, which made
+    /// `cargo test` fail whenever the machine was offline or the proxy was down.
+    #[test]
+    fn test_new_reqwest_client() {
+        assert!(new_reqwest_client(None, None).is_ok());
     }
 
     #[test]
