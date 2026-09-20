@@ -3,7 +3,7 @@
 use crate::entity::create_table;
 use chrono::{DateTime, Utc};
 use emukc_model::profile::map_record::MapSelectRank;
-use sea_orm::{ConnectionTrait, Statement, entity::prelude::*};
+use sea_orm::entity::prelude::*;
 
 #[expect(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
@@ -80,74 +80,6 @@ crate::entity::profile_relation!("Column::ProfileId");
 /// Bootstrap the map record table.
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
     create_table(db, Entity).await?;
-    migrate_legacy_stage_id_schema(db).await?;
-    migrate_unlocked_column(db).await?;
-    Ok(())
-}
-
-async fn migrate_legacy_stage_id_schema<C>(c: &C) -> Result<(), sea_orm::error::DbErr>
-where
-    C: ConnectionTrait,
-{
-    let backend = c.get_database_backend();
-    let columns = c
-        .query_all(Statement::from_string(
-            backend,
-            r#"PRAGMA table_info("map_record")"#.to_string(),
-        ))
-        .await?
-        .into_iter()
-        .map(|row| row.try_get("", "name"))
-        .collect::<Result<Vec<String>, _>>()?;
-
-    let has_stage_id = columns.iter().any(|column| column == "stage_id");
-    let has_variant_key = columns.iter().any(|column| column == "variant_key");
-
-    if !has_stage_id {
-        c.execute(Statement::from_string(
-            backend,
-            r#"ALTER TABLE "map_record" ADD COLUMN "stage_id" TEXT"#.to_string(),
-        ))
-        .await?;
-    }
-
-    if has_variant_key {
-        c.execute(Statement::from_string(
-			backend,
-			"UPDATE \"map_record\"\nSET \"stage_id\" = COALESCE(\"stage_id\", \"variant_key\")\nWHERE \"variant_key\" IS NOT NULL"
-				.to_string(),
-		))
-		.await?;
-    }
-
-    Ok(())
-}
-
-/// Add `unlocked` column to existing `map_record` tables.
-/// Defaults to `true` for migration safety (existing accounts keep access).
-async fn migrate_unlocked_column(
-    db: &sea_orm::DatabaseConnection,
-) -> Result<(), sea_orm::error::DbErr> {
-    let backend = db.get_database_backend();
-    let columns = db
-        .query_all(Statement::from_string(
-            backend,
-            r#"PRAGMA table_info("map_record")"#.to_string(),
-        ))
-        .await?
-        .into_iter()
-        .map(|row| row.try_get("", "name"))
-        .collect::<Result<Vec<String>, _>>()?;
-
-    if !columns.iter().any(|col| col == "unlocked") {
-        db.execute(Statement::from_string(
-            backend,
-            r#"ALTER TABLE "map_record" ADD COLUMN "unlocked" INTEGER NOT NULL DEFAULT 1"#
-                .to_string(),
-        ))
-        .await?;
-    }
-
     Ok(())
 }
 

@@ -9,8 +9,8 @@ mod test {
         user::account::Account,
     };
     use sea_orm::{
-        ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, Database, DatabaseConnection,
-        EntityTrait, QueryFilter, Statement,
+        ActiveModelTrait, ActiveValue, ColumnTrait, Database, DatabaseConnection, EntityTrait,
+        QueryFilter,
     };
 
     #[allow(unused)]
@@ -43,35 +43,6 @@ mod test {
         db
     }
 
-    async fn legacy_map_record_db() -> DatabaseConnection {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        db.execute(Statement::from_string(
-            db.get_database_backend(),
-            r#"
-CREATE TABLE "map_record" (
-	"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-	"profile_id" integer NOT NULL,
-	"map_id" integer NOT NULL,
-	"cleared" integer NOT NULL,
-	"last_cleared_at" text NULL,
-	"last_reset_at" text NULL,
-	"defeat_count" integer NULL,
-	"current_hp" integer NULL,
-	"gauge_index" integer NOT NULL,
-	"variant_key" text NULL,
-	"selected_rank" integer NOT NULL,
-	"event_state" integer NULL
-)
-"#
-            .to_string(),
-        ))
-        .await
-        .unwrap();
-
-        db
-    }
-
-    #[allow(unused)]
     async fn new_account(db: &DatabaseConnection, name: &str) -> Account {
         let account = entity::user::account::Entity::find()
             .filter(entity::user::account::Column::Name.eq(name))
@@ -194,28 +165,6 @@ CREATE TABLE "map_record" (
         .insert(&db)
         .await
         .unwrap();
-
-        let record = entity::profile::map_record::Entity::find().one(&db).await.unwrap().unwrap();
-        assert_eq!(record.stage_id.as_deref(), Some("pre_p_unlock"));
-    }
-
-    #[tokio::test]
-    async fn map_record_bootstrap_migrates_legacy_variant_key_to_stage_id() {
-        let db = legacy_map_record_db().await;
-        db.execute(Statement::from_string(
-            db.get_database_backend(),
-            r#"
-INSERT INTO "map_record"
-	("profile_id", "map_id", "cleared", "gauge_index", "variant_key", "selected_rank")
-VALUES
-	(1, 73, 0, 1, 'pre_p_unlock', 0)
-"#
-            .to_string(),
-        ))
-        .await
-        .unwrap();
-
-        entity::bootstrap(&db).await.unwrap();
 
         let record = entity::profile::map_record::Entity::find().one(&db).await.unwrap().unwrap();
         assert_eq!(record.stage_id.as_deref(), Some("pre_p_unlock"));
