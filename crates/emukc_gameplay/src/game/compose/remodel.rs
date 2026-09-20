@@ -234,7 +234,7 @@ mod tests {
 
     async fn setup_db() -> emukc_db::sea_orm::DbConn {
         let db = emukc_db::prelude::new_mem_db().await.unwrap();
-        db.execute(Statement::from_string(
+        db.execute_raw(Statement::from_string(
             emukc_db::sea_orm::DbBackend::Sqlite,
             "PRAGMA foreign_keys = OFF",
         ))

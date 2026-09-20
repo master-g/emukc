@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-19 · branch `main`
+Last updated: 2026-09-20 · branch `main`
 
 ## Verified Facts
 
@@ -73,6 +73,14 @@ Current verification baseline:
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
+- [2026-09-20] The DB layer uses SeaORM as a struct<->row mapper with DDL generation, not as an ORM:
+  0 SQL joins, 0 `group_by`, 0 `find_with_related` across 195 `Entity::find()` sites. `Relation` exists
+  only so `create_table_from_entity` emits FOREIGN KEY (`entity/mod.rs:9-13`). Swapping in sqlx or
+  rusqlite would rewrite ~450 call sites to shed 25 crates; sqlx is 133 of the 159-crate subtree.
+- [2026-09-20] Three test failures are baseline, not regressions, each reconfirmed by reverting to HEAD:
+  `test_font` writes to `./target/tmp/` while `CARGO_TARGET_DIR` points at `~/.cache/cargo-build`;
+  `api_alignment_e2e` asserts map ids in `600..700` but the codex stores area-6 maps as 61-65;
+  `real_manifest_parses_with_passthrough_fields_none` is in `emukc_model`, which has no DB dependency.
 
 ## Failed Attempts / Pitfalls
 
@@ -84,6 +92,7 @@ Current verification baseline:
 | Clippy warning triage across the workspace. | `docs/solutions/best-practices/resolve-clippy-warnings-triage-2026-05-28.md` |
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
 | `cargo clippy` default ≠ `-D warnings`: the default run missed a `match`→`let-else` lint. CLAUDE.md gates on `-W warnings`; use `-D warnings` for final verification. | plan 004 U7 (2026-06-22) |
+| Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
 | [2026-07-30] Do not delete a divergent branch merely during cleanup. `codex/fix-cache-list-warnings` contained one valuable commit; it was inspected, rebased onto current `main`, retested, fast-forwarded, then deleted. | git `0395121` |
 | 2026-08-26 stale cache-list incident: `bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed main.js; decode and make-list then consumed stale inputs. Diagnose from `version.json` and main.js mtime, not from make-list. | session 2026-08-26 |
@@ -108,20 +117,27 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-19] `main`, pushed through `edfb027`: night-sink quest fix, assets to 6.3.5.0, `cache make-list`,
-  apilist/TODO realignment, KTD7 port event-object test. Then the sp_midnight cleanup: wrapped
-  `sortie_sp_midnight_battle` in `with_profile_lock` (it has the same write set as `sortie_battle_impl`) and
-  dropped `run_sp_midnight_battle`'s redundant `enemy_formation_id` parameter, which every caller passed
-  equal to `context.enemy_formation_id`. Gates green: `fmt --check`, `clippy --workspace --all-targets`
-  0 errors, root `cargo test` 64 + 125, `-p emukc_gameplay` 143 + 64. `practice_battle` failed once in the
-  batch run and passed 11/11 on three reruns — the known unseeded win-rank flake, not a regression.
+- [2026-09-20] `main`, two commits on top of `82d2203`. (1) `refactor(db)`: deleted the hand-rolled schema
+  migrations (`migrate_legacy_stage_id_schema`, `migrate_unlocked_column`, `migrate_onslot_plus_columns`)
+  and their legacy fixtures/tests -- the project has no released users, every local DB is disposable, and
+  `create_table_from_entity` already emits the current schema. Raw `Statement` sites went 13 -> 1.
+  (2) `chore(deps)`: sea-orm 1.1.20 -> 2.0.3, which cost exactly three lines --
+  `db.execute(backend.build(&stmt))` -> `db.execute(&stmt)` in `entity/mod.rs`, and `execute` ->
+  `execute_raw` for the one remaining raw PRAGMA in `remodel.rs`. Transitively sqlx 0.8.6 -> 0.9.0 and
+  sea-query 0.32.7 -> 1.0.2. Predicted breakages that did not land: `insert_many` (3 sites, compatible),
+  `ExprTrait` (1 site, unaffected), `DatabaseConnection` enum->struct and `DerivePartialModel` (0 uses).
+- Gates: `fmt --check` clean, `clippy --workspace -- -W warnings` shows 6 pre-existing `result_large_err`
+  warnings in files this change never touched, `cargo test --workspace --no-fail-fast` 1025 passed /
+  3 failed, all three baseline (see Verified Facts).
 
 ## Next Session
 
-- [2026-09-19] Candidate next work, in order: (1) The 14 `api_req_combined_battle/*` endpoints are now the
+- [2026-09-20] Candidate next work, in order: (1) The 14 `api_req_combined_battle/*` endpoints are the
   largest gameplay gap, then the Air Corps set; EO74 field specs for all 34 missing endpoints are at
-  sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, a starting point, not a contract). (2) Make
-  `practice_battle`'s win-rank asserts deterministic — it is the only recurring false alarm in the gate.
-  Smaller: literal-only `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up
-  (inline `_impl`s that now have a single caller); 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder
-  unresolved id-sets; VPS plan revalidation; archiving the battle execution plan; stale `wt-base` worktree.
+  sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, a starting point, not a contract). (2) Decide the
+  three baseline failures' fate -- `test_font` needs a `create_dir_all`, `api_alignment_e2e`'s `600..700`
+  range contradicts the codex's 61-65 ids, and the `api_max_slotplus` assert needs rechecking against the
+  current manifest. (3) Make `practice_battle`'s win-rank asserts deterministic. Smaller: literal-only
+  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline `_impl`s
+  with a single caller); 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan
+  revalidation; archiving the battle execution plan; stale `wt-base` worktree.

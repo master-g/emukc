@@ -47,7 +47,7 @@ pub(crate) async fn create_table<E: sea_orm::EntityTrait>(
 
     let schema = sea_orm::Schema::new(db.get_database_backend());
     let stmt = schema.create_table_from_entity(e).if_not_exists().to_owned();
-    db.execute(db.get_database_backend().build(&stmt)).await?;
+    db.execute(&stmt).await?;
 
     Ok(())
 }
