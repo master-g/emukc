@@ -130,16 +130,10 @@ mod test {
         let width = 157;
         let height = 27;
 
-        match gen_version_png(text, width, height) {
-            Some(png_data) => {
-                let size = png_data.len();
-                std::fs::write("./target/tmp/output.png", png_data).expect("cannot write file");
-                println!("png size: {}", size);
-            }
-            None => {
-                println!("failed to generate version png");
-            }
-        }
+        let png = gen_version_png(text, width, height).expect("version png renders");
+
+        assert!(!png.is_empty(), "png payload is not empty");
+        assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n", "payload carries the PNG signature");
     }
 
     #[test]

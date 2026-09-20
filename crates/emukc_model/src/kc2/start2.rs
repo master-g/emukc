@@ -793,17 +793,45 @@ mod tests {
         assert!(encoded.get("api_sp_flag").is_none());
     }
 
+    /// The two passthrough fields are optional upstream: absent before 6.3.x, present
+    /// since. Pin the round trip rather than their presence, so the assertion survives
+    /// either shape and still fails if the parser starts dropping them.
     #[test]
-    fn real_manifest_parses_with_passthrough_fields_none() {
+    fn real_manifest_round_trips_passthrough_fields() {
         let manifest_path =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/codex/start2.json");
         let raw = fs::read_to_string(manifest_path).unwrap();
+        let source: serde_json::Value = serde_json::from_str(&raw).unwrap();
 
         let manifest = ApiManifest::from_str(&raw).unwrap();
         assert!(!manifest.api_mst_stype.is_empty());
         assert!(!manifest.api_mst_shipgraph.is_empty());
-        assert!(manifest.api_mst_stype.iter().all(|s| s.api_max_slotplus.is_none()));
-        assert!(manifest.api_mst_shipgraph.iter().all(|g| g.api_sp_flag.is_none()));
+
+        for stype in &manifest.api_mst_stype {
+            let expected = lookup_field(&source, "api_mst_stype", stype.api_id, "api_max_slotplus");
+            assert_eq!(stype.api_max_slotplus, expected, "stype {}", stype.api_id);
+        }
+
+        for graph in &manifest.api_mst_shipgraph {
+            let expected = lookup_field(&source, "api_mst_shipgraph", graph.api_id, "api_sp_flag");
+            assert_eq!(graph.api_sp_flag, expected, "shipgraph {}", graph.api_id);
+        }
+    }
+
+    /// Read `field` off the `api_id`-keyed entry of `table` in the raw manifest.
+    fn lookup_field(
+        source: &serde_json::Value,
+        table: &str,
+        api_id: i64,
+        field: &str,
+    ) -> Option<i64> {
+        source
+            .get(table)?
+            .as_array()?
+            .iter()
+            .find(|entry| entry.get("api_id").and_then(serde_json::Value::as_i64) == Some(api_id))?
+            .get(field)?
+            .as_i64()
     }
 
     #[test]

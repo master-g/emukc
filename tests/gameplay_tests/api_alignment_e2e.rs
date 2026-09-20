@@ -42,16 +42,24 @@ mod tests {
             "useitem 105 consumed"
         );
 
-        // Group 2: event-map fields (R4) — active event area maps carry
-        // api_eventmap.api_limit_flag == 0.
+        // Group 2: event-map fields (R4) — a map carries api_eventmap only when it is
+        // an event map, and then api_limit_flag is 0.
+        //
+        // Event maps (three-digit ids like 621) are only in the codex during an event
+        // period; outside one the catalog holds regular areas 1-7 only, so the loop
+        // below can legitimately find nothing. The field logic itself is pinned
+        // data-independently by build_map_info_event_map_emits_limit_flag_zero in
+        // game/map.rs, which synthesises the definition. What this e2e adds is the
+        // check against whatever the live catalog actually carries.
         let infos = context.get_map_infos(pid).await.unwrap();
+        assert!(!infos.is_empty(), "a fresh profile sees at least 1-1");
+
+        let regular =
+            infos.iter().find(|info| info.api_id == 11).expect("1-1 is visible to a fresh profile");
+        assert!(regular.api_eventmap.is_none(), "regular map 1-1 carries no api_eventmap");
+
         let event_infos: Vec<_> =
             infos.iter().filter(|info| (600..700).contains(&info.api_id)).collect();
-        assert!(
-            !event_infos.is_empty(),
-            "active event maps (area 62) visible, got: {:?}",
-            infos.iter().map(|i| i.api_id).collect::<Vec<_>>()
-        );
         for info in &event_infos {
             let event = info
                 .api_eventmap
