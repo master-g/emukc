@@ -11,7 +11,10 @@ use crate::targeting::{
 };
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams, SiListId};
 
-/// Maximum ships per fleet (single fleet, not combined). Caps the special-attack skip array.
+/// Maximum ships per fleet. Caps the special-attack skip array.
+///
+/// Six holds for a combined fleet too: `attackers` is always one deck's slice,
+/// never both, so the indices here stay deck-local.
 const MAX_FLEET_SIZE: usize = 6;
 
 /// Simulate one side's shelling attacks in a day battle.
@@ -50,7 +53,7 @@ pub(crate) fn simulate_shelling_side(
         for &i in &result.participant_indices {
             debug_assert!(
                 i < MAX_FLEET_SIZE,
-                "special_attack participant index {i} exceeds MAX_FLEET_SIZE; combined fleets need a wider skip array"
+                "special_attack participant index {i} exceeds MAX_FLEET_SIZE"
             );
             if i < MAX_FLEET_SIZE {
                 special_attack_skip[i] = true;

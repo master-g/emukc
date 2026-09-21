@@ -7,7 +7,7 @@ use super::domain::{AirState, BattleType, EngagementType};
 use super::packet::{
     BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleRaigeki,
 };
-use crate::combined::CombinedType;
+use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::random::BattleRng;
 
 #[derive(Debug, Clone)]
@@ -34,6 +34,12 @@ pub struct BattleRuntimeShip {
     /// Whether this battle is a sortie (true) or practice (false).
     /// Sinking protection only applies during sorties.
     pub(crate) is_sortie: bool,
+    /// This ship's place in a combined fleet, or `None` in an ordinary
+    /// single-fleet battle. Phase functions read the role to decide who
+    /// participates (deck 1 never opens with ASW or torpedoes, and a shelling
+    /// round belongs to exactly one deck); `damage` reads both halves to look up
+    /// the 連合艦隊補正.
+    pub(crate) combined: Option<CombinedMembership>,
     pub married: bool,
 }
 
@@ -49,8 +55,42 @@ impl BattleRuntimeShip {
             effect_list: input.effect_list,
             is_friendly,
             is_sortie,
+            combined: None,
             married: input.married,
         }
+    }
+
+    /// Tag this ship with its place in a combined fleet.
+    ///
+    /// Only [`BattleState::from_context`](crate::state::BattleState::from_context)
+    /// calls this; every other construction path leaves `combined` as `None`,
+    /// which is what makes the single-fleet code paths behave exactly as before.
+    pub(crate) fn in_combined_fleet(
+        mut self,
+        combined_type: CombinedType,
+        role: CombinedFleetRole,
+    ) -> Self {
+        self.combined = Some(CombinedMembership {
+            combined_type,
+            role,
+        });
+        self
+    }
+
+    /// This ship's deck, or `None` in a single-fleet battle.
+    pub(crate) fn combined_role(&self) -> Option<CombinedFleetRole> {
+        self.combined.map(|m| m.role)
+    }
+
+    /// True when this ship is in the escort deck (第2艦隊) of a combined fleet.
+    pub(crate) fn is_escort_deck(&self) -> bool {
+        self.combined_role() == Some(CombinedFleetRole::Escort)
+    }
+
+    /// True when this ship is in the main deck (第1艦隊) of a combined fleet.
+    /// False for a single-fleet ship — it has no deck at all.
+    pub(crate) fn is_main_deck(&self) -> bool {
+        self.combined_role() == Some(CombinedFleetRole::Main)
     }
 
     /// Current HP (read-only).
@@ -142,6 +182,15 @@ impl From<BattleShipInput> for BattleRuntimeShip {
     fn from(input: BattleShipInput) -> Self {
         Self::new(input, false, true)
     }
+}
+
+/// A ship's place in a combined fleet: which flavour of fleet, and which of its
+/// two decks. The two always travel together — a deck without a fleet type
+/// cannot be looked up in the correction table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct CombinedMembership {
+    pub(crate) combined_type: CombinedType,
+    pub(crate) role: CombinedFleetRole,
 }
 
 /// The escort deck of a friendly combined fleet, plus which combined fleet it

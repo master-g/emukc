@@ -144,17 +144,31 @@ pub(crate) fn select_submarine_target(
 /// Interception probability for a defending fleet's formation, as a percentage.
 ///
 /// Rates from the official wiki (`攻撃対象の選択`): 単縦陣 45%, 複縦/梯形/単横 60%,
-/// 輪形/警戒 75%. Combined-fleet formation IDs (11–14) and any unknown ID return
-/// `None` — combined-fleet interception is out of scope until combined sortie
-/// exists, and an unknown formation never intercepts.
+/// 輪形/警戒 75%. An unknown formation never intercepts.
+///
+/// The four 警戒航行序列 (11–14) take [`COMBINED_SHIELD_RATE`], which is a fitted
+/// default rather than a wiki figure — see that constant.
 fn escort_shield_rate(formation_id: i64) -> Option<i64> {
     match formation_id {
-        1 => Some(45),         // 単縦陣
-        2 | 4 | 5 => Some(60), // 複縦陣 / 梯形陣 / 単横陣
-        3 | 6 => Some(75),     // 輪形陣 / 警戒陣
+        1 => Some(45),                         // 単縦陣
+        2 | 4 | 5 => Some(60),                 // 複縦陣 / 梯形陣 / 単横陣
+        3 | 6 => Some(75),                     // 輪形陣 / 警戒陣
+        11..=14 => Some(COMBINED_SHIELD_RATE), // 警戒航行序列
         _ => None,
     }
 }
+
+/// Interception rate for the four 警戒航行序列, as a percentage.
+///
+/// Unlike every other rate in [`escort_shield_rate`], this one is **not
+/// verified**: every かばう cell in the wikiwiki combined-fleet tables is `?`.
+/// It is the fallback `KC3Kai`'s simulator applies — `kcsim.js:2315` indexes a
+/// rate table by formation id, ids 11–14 fall off its end, and the `if (!rate)`
+/// branch substitutes `.6`. Treat it as a fitted default, not observed game
+/// data. It is still closer to the game than never intercepting at all, which
+/// is what this function did for these formations before combined sortie
+/// existed.
+const COMBINED_SHIELD_RATE: i64 = 60;
 
 /// Resolve 旗艦援護 (かばう): when an attack targets the defending fleet's
 /// flagship (`target_idx == 0`), a healthy escort may intercept it and take the
@@ -179,6 +193,11 @@ pub(crate) fn select_escort_shield(
     target_idx: usize,
     defender_formation_id: i64,
 ) -> Option<usize> {
+    // Only a fleet flagship is shielded. In a combined fleet the two decks share
+    // one vector with deck 1 first, so deck 2's flagship sits at `escort_start`,
+    // never at 0 — which is exactly the game's rule that the escort deck's
+    // flagship is not protected (`kcsim.js:2309` returns early on
+    // `target.isescort`). No extra check is needed here; the index does it.
     if target_idx != 0 {
         return None;
     }
@@ -193,7 +212,13 @@ pub(crate) fn select_escort_shield(
         .enumerate()
         .skip(1)
         .filter(|(_, ship)| {
-            ship.is_alive()
+            // Deck 2 does not shield deck 1's flagship: `choiceWProtect` builds
+            // its defender pool with `!targets[i].isescort` unless the caller
+            // opts in, and the day shelling / torpedo paths do not.
+            // `is_escort_deck` is false for every ship in a single-fleet battle,
+            // so this filter is a no-op there.
+            !ship.is_escort_deck()
+                && ship.is_alive()
                 && ship.hp() * 4 > ship.ship.api_maxhp * 3
                 && target_class(codex, ship).is_submarine() == flagship_is_submarine
         })
@@ -1226,10 +1251,14 @@ mod tests {
         assert_eq!(escort_shield_rate(5), Some(60)); // 単横陣
         assert_eq!(escort_shield_rate(3), Some(75)); // 輪形陣
         assert_eq!(escort_shield_rate(6), Some(75)); // 警戒陣
-        // Combined-fleet (11-14) and unknown formations are out of scope.
+        // 警戒航行序列 — no verified rate upstream; 60% is KC3's fallback.
+        for id in 11..=14 {
+            assert_eq!(escort_shield_rate(id), Some(60), "formation {id}");
+        }
+        // Anything else never intercepts.
         assert_eq!(escort_shield_rate(0), None);
-        assert_eq!(escort_shield_rate(11), None);
-        assert_eq!(escort_shield_rate(14), None);
+        assert_eq!(escort_shield_rate(10), None);
+        assert_eq!(escort_shield_rate(15), None);
     }
 
     /// Covers AE2. Interception fires at the formation rate (単縦 45%, 輪形 75%),
@@ -1269,6 +1298,91 @@ mod tests {
         for seed in [1u64, 7, 999] {
             let mut rng = crate::random::SeededRng::new(seed);
             assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 3), None);
+        }
+    }
+
+    /// Deck 2 does not shield deck 1's flagship. Upstream (`kcsim.js:2318`)
+    /// builds the protector pool with `!isescort` unless the caller opts in,
+    /// and neither the day shelling nor the torpedo path does.
+    #[test]
+    fn escort_deck_does_not_shield_the_main_deck_flagship() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // Deck 1 flagship alone, then a healthy deck 2 ship. Were the escort
+        // deck eligible, 警戒航行序列 would intercept at 60%.
+        let escort = rt_ship(&codex, dd, 30, 30)
+            .in_combined_fleet(CombinedType::CarrierTaskForce, CombinedFleetRole::Escort);
+        let flagship = rt_ship(&codex, dd, 30, 30)
+            .in_combined_fleet(CombinedType::CarrierTaskForce, CombinedFleetRole::Main);
+        let defenders = vec![flagship, escort];
+
+        for seed in [1u64, 7, 999] {
+            let mut rng = crate::random::SeededRng::new(seed);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 11), None);
+        }
+    }
+
+    /// Deck 2's own flagship is never shielded either — the two decks share one
+    /// vector with deck 1 first, so it never sits at index 0 and the existing
+    /// flagship guard rejects it.
+    #[test]
+    fn escort_deck_flagship_is_never_shielded() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        // [deck 1 flagship, deck 1 ship, deck 2 flagship, deck 2 ship].
+        let mut defenders = vec![
+            rt_ship(&codex, dd, 30, 30),
+            rt_ship(&codex, dd, 30, 30),
+            rt_ship(&codex, dd, 30, 30),
+            rt_ship(&codex, dd, 30, 30),
+        ];
+        for (idx, ship) in defenders.iter_mut().enumerate() {
+            let role = if idx < 2 {
+                CombinedFleetRole::Main
+            } else {
+                CombinedFleetRole::Escort
+            };
+            *ship = ship.clone().in_combined_fleet(CombinedType::CarrierTaskForce, role);
+        }
+
+        // Index 2 is deck 2's flagship.
+        for seed in [1u64, 7, 999] {
+            let mut rng = crate::random::SeededRng::new(seed);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 2, 11), None);
+        }
+    }
+
+    /// 警戒航行序列 intercept at KC3's 60% fallback, and deck 1 ships do the
+    /// protecting.
+    #[test]
+    fn combined_formations_intercept_at_sixty_percent() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let mut defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 30, 30)];
+        for ship in &mut defenders {
+            *ship = ship
+                .clone()
+                .in_combined_fleet(CombinedType::CarrierTaskForce, CombinedFleetRole::Main);
+        }
+
+        let trials = 4000;
+        for formation in 11..=14 {
+            let mut rng = crate::random::SeededRng::new(7);
+            let fired = (0..trials)
+                .filter(|_| {
+                    select_escort_shield(&codex, &mut rng, &defenders, 0, formation).is_some()
+                })
+                .count();
+            assert!(
+                (2200..=2600).contains(&fired),
+                "formation {formation} ~60%: got {fired}/{trials}"
+            );
         }
     }
 

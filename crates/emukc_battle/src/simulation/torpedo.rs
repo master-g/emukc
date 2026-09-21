@@ -28,6 +28,14 @@ pub(crate) fn simulate_opening_torpedo(
     let mut happened = false;
 
     for (idx, ship) in friendly.iter_mut().enumerate() {
+        // 第1艦隊 never torpedoes in a combined battle, opening or closing.
+        // (Upstream has a narrow exception — a handful of ships can open-torpedo
+        // from the main deck, `canOpTorpMain` in `kcsim.js:1811` — which is not
+        // modelled here.) No-op outside a combined battle, and ahead of every
+        // RNG draw.
+        if ship.is_main_deck() {
+            continue;
+        }
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
@@ -128,6 +136,10 @@ pub(crate) fn simulate_raigeki(
     let mut happened = false;
 
     for (idx, ship) in friendly.iter_mut().enumerate() {
+        // 第1艦隊 does not torpedo — see the opening phase above.
+        if ship.is_main_deck() {
+            continue;
+        }
         if !can_closing_torpedo_ship(codex, ship) {
             continue;
         }

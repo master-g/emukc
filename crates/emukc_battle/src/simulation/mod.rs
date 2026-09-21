@@ -6,13 +6,14 @@
 
 use emukc_model::codex::Codex;
 
+use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::config::{BattleFlow, BattlePhaseKind};
 use crate::random::BattleRng;
-use crate::state::BattleState;
+use crate::state::{BattleState, CombinedLayout};
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
-    AirState, BattleContext, BattlePhase, BattleRuntimeShip, BattleSimulation, NightBattleInput,
-    NightBattleSimulation, ShellingParams,
+    AirState, BattleContext, BattleHougeki, BattlePhase, BattleRuntimeShip, BattleSimulation,
+    NightBattleInput, NightBattleSimulation, ShellingParams,
 };
 
 pub(crate) mod asw;
@@ -57,6 +58,15 @@ pub(crate) fn simulate_day(
         fleet_has_bb_class(codex, &state.friendly) || fleet_has_bb_class(codex, &state.enemy);
     state.set_has_bb_class_at_start(has_bb);
 
+    // A combined fleet reorders the shelling tail and scopes several phases to
+    // one deck, so it gets its own orchestrator. The single-fleet arm below is
+    // untouched, which is what guarantees the frozen golden transcript and every
+    // existing seed still produce the same RNG stream.
+    if let Some(layout) = state.combined() {
+        simulate_day_combined(codex, &mut state, rng, layout, enemy_first);
+        return state.finalize_day();
+    }
+
     for &phase in flow.phases {
         match phase {
             BattlePhaseKind::Kouku => execute_kouku(codex, &mut state, rng),
@@ -69,6 +79,192 @@ pub(crate) fn simulate_day(
     }
 
     state.finalize_day()
+}
+
+/// Simulate a day battle for a friendly combined fleet against a single enemy
+/// fleet.
+///
+/// Phase order comes from `docs/battle/combined-fleet-reference.md` §Phase
+/// order, and which packet field carries which deck comes from its §Protocol
+/// fields (ultimately `docs/apilist.txt`). The two shapes are mirror images:
+///
+/// - 空母機動 / 輸送護衛: deck 2 shelling → deck 2 torpedo → deck 1 shelling ×2,
+///   landing in `hougeki1` → `raigeki` → `hougeki2` → `hougeki3`.
+/// - 水上打撃: deck 1 shelling ×2 → deck 2 shelling → deck 2 torpedo, landing in
+///   `hougeki1` → `hougeki2` → `hougeki3` → `raigeki`.
+///
+/// Deck 1 takes no part in the opening ASW, opening torpedo or closing torpedo
+/// phases; that is enforced per ship inside those phase functions rather than by
+/// slicing here, because the enemy still fires at *both* decks in them.
+fn simulate_day_combined(
+    codex: &Codex,
+    state: &mut BattleState,
+    rng: &mut impl BattleRng,
+    layout: CombinedLayout,
+    enemy_first: bool,
+) {
+    let flow = BattleFlow::for_battle_type(state.battle_type());
+    let runs = |kind: BattlePhaseKind| flow.phases.contains(&kind);
+
+    // Aerial combat draws on both decks' planes, and the opening phases already
+    // filter deck 1 per ship, so all three reuse the single-fleet executors.
+    if runs(BattlePhaseKind::Kouku) {
+        execute_kouku(codex, state, rng);
+    }
+    if runs(BattlePhaseKind::OpeningAsw) {
+        execute_opening_asw(codex, state, rng);
+    }
+    if runs(BattlePhaseKind::OpeningTorpedo) {
+        execute_opening_torpedo(codex, state, rng);
+    }
+
+    if !runs(BattlePhaseKind::Shelling1) {
+        return;
+    }
+
+    // The round order differs only in which deck fires when; the packet slots
+    // are always filled 1, 2, 3 in the order the rounds happen.
+    let rounds: [CombinedFleetRole; 3] = match layout.combined_type {
+        CombinedType::CarrierTaskForce | CombinedType::TransportEscort => {
+            [CombinedFleetRole::Escort, CombinedFleetRole::Main, CombinedFleetRole::Main]
+        }
+        CombinedType::SurfaceTaskForce => {
+            [CombinedFleetRole::Main, CombinedFleetRole::Main, CombinedFleetRole::Escort]
+        }
+    };
+    // 水上打撃 closes with the torpedo phase; the other two slot it between deck
+    // 2's shelling and deck 1's.
+    let torpedo_after_round = match layout.combined_type {
+        CombinedType::CarrierTaskForce | CombinedType::TransportEscort => 0,
+        CombinedType::SurfaceTaskForce => 2,
+    };
+
+    for (round, deck) in rounds.into_iter().enumerate() {
+        // A deck's second consecutive round is the 2巡目, gated on a battleship
+        // being present exactly as the single-fleet path gates `hougeki2`.
+        let is_second_round = round > 0 && deck == rounds[round - 1];
+        if !is_second_round || state.has_bb_class_at_start() {
+            let hougeki = execute_combined_shelling(codex, state, rng, layout, deck, enemy_first);
+            let happened = hougeki.is_some();
+            match round {
+                0 => state.set_hougeki1(hougeki),
+                1 => state.set_hougeki2(hougeki),
+                _ => state.set_hougeki3(hougeki),
+            }
+            if happened {
+                state.set_hourai_flag(round, 1);
+            }
+        }
+
+        // The torpedo phase keeps its slot even when the round before it was
+        // gated away.
+        if round == torpedo_after_round {
+            execute_closing_torpedo(codex, state, rng);
+        }
+    }
+}
+
+/// One combined shelling round: the designated friendly deck and the enemy each
+/// fire once, ordered by fleet speed.
+///
+/// This is where a combined round departs from the single-fleet path. There,
+/// `hougeki1` and `hougeki2` each hold **one** side's attacks and the two sides
+/// alternate across the rounds. A combined battle cannot use that scheme: with
+/// three rounds and a fixed deck per round (see `docs/apilist.txt`), alternating
+/// would cost one of the decks its shelling entirely. So both sides fire inside
+/// every round and are merged into one `BattleHougeki`, told apart by
+/// `api_at_eflag` — which is what the client expects in either case. The
+/// single-fleet path keeps its own scheme untouched.
+fn execute_combined_shelling(
+    codex: &Codex,
+    state: &mut BattleState,
+    rng: &mut impl BattleRng,
+    layout: CombinedLayout,
+    deck: CombinedFleetRole,
+    enemy_first: bool,
+) -> Option<BattleHougeki> {
+    let deck_range = match deck {
+        CombinedFleetRole::Main => 0..layout.escort_start,
+        CombinedFleetRole::Escort => layout.escort_start..state.friendly.len(),
+    };
+    if !any_alive(&state.friendly[deck_range.clone()]) || !any_alive(&state.enemy) {
+        return None;
+    }
+
+    let friendly_form = state.friendly_formation_id();
+    let enemy_form = state.enemy_formation_id();
+    let eng = state.engagement();
+    let air_state =
+        state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
+
+    let friendly_turn = |state: &mut BattleState, rng: &mut _| {
+        shelling::simulate_shelling_side(
+            codex,
+            rng,
+            &mut state.friendly[deck_range.clone()],
+            &mut state.enemy,
+            &ShellingParams {
+                attacker_is_enemy: false,
+                formation_id: friendly_form,
+                defender_formation_id: enemy_form,
+                engagement: eng,
+                phase: BattlePhase::DayShelling,
+                air_state: air_state.as_ref(),
+            },
+        )
+    };
+    let enemy_turn = |state: &mut BattleState, rng: &mut _| {
+        // The enemy fires at the whole friendly force, not just the deck whose
+        // round this is.
+        shelling::simulate_shelling_side(
+            codex,
+            rng,
+            &mut state.enemy,
+            &mut state.friendly,
+            &ShellingParams {
+                attacker_is_enemy: true,
+                formation_id: enemy_form,
+                defender_formation_id: friendly_form,
+                engagement: eng,
+                phase: BattlePhase::DayShelling,
+                air_state: air_state.as_ref(),
+            },
+        )
+    };
+
+    let (first, second) = if enemy_first {
+        let e = enemy_turn(state, rng);
+        let f = friendly_turn(state, rng);
+        (e, f)
+    } else {
+        let f = friendly_turn(state, rng);
+        let e = enemy_turn(state, rng);
+        (f, e)
+    };
+
+    merge_hougeki(first, second)
+}
+
+/// Concatenate two shelling rounds into one `BattleHougeki`, preserving order.
+/// Every field is a parallel per-attack array, so a concatenation is all the
+/// merge needs; `api_at_eflag` already records which side each attack came from.
+fn merge_hougeki(
+    first: Option<BattleHougeki>,
+    second: Option<BattleHougeki>,
+) -> Option<BattleHougeki> {
+    match (first, second) {
+        (Some(mut a), Some(b)) => {
+            a.api_at_eflag.extend(b.api_at_eflag);
+            a.api_at_list.extend(b.api_at_list);
+            a.api_at_type.extend(b.api_at_type);
+            a.api_df_list.extend(b.api_df_list);
+            a.api_si_list.extend(b.api_si_list);
+            a.api_cl_list.extend(b.api_cl_list);
+            a.api_damage.extend(b.api_damage);
+            Some(a)
+        }
+        (only @ Some(_), None) | (None, only) => only,
+    }
 }
 
 fn execute_kouku(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRng) {
@@ -879,5 +1075,144 @@ mod tests {
         assert!(raigeki.is_some(), "closing torpedo should fire");
         let r = raigeki.unwrap();
         assert!(r.api_frai[0] >= 0, "shōha DD should participate in closing torpedo");
+    }
+}
+
+#[cfg(test)]
+mod combined_tests {
+    use emukc_model::codex::Codex;
+    use emukc_model::kc2::types::KcShipType;
+
+    use crate::combined::CombinedType;
+    use crate::random::SeededRng;
+    use crate::test_utils::{first_ship_mst_by_type, sample_ship};
+    use crate::types::{
+        BattleContext, BattleHougeki, BattleSimulation, BattleType, CombinedSetup, EngagementType,
+    };
+
+    /// Deck 1 is submarines and deck 2 destroyers, so "which deck shelled" is
+    /// directly observable: `can_shell_day_ship` rejects submarines, therefore a
+    /// round with friendly attacks in it can only be deck 2's.
+    fn combined_sim(codex: &Codex, combined_type: CombinedType) -> BattleSimulation {
+        let ss = first_ship_mst_by_type(codex, KcShipType::SS);
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+
+        let context = BattleContext {
+            battle_type: BattleType::Normal,
+            is_sortie: true,
+            // 第一警戒航行序列; the enemy keeps a normal formation.
+            friendly_formation_id: 11,
+            enemy_formation_id: 1,
+            engagement: EngagementType::SameCourse,
+            friend_ships: vec![sample_ship(codex, ss, 99), sample_ship(codex, ss, 99)],
+            enemy_ships: vec![sample_ship(codex, dd, 50), sample_ship(codex, dd, 50)],
+            combined: Some(CombinedSetup {
+                combined_type,
+                escort_ships: vec![sample_ship(codex, dd, 99), sample_ship(codex, dd, 99)],
+            }),
+        };
+
+        super::simulate_day(codex, context, &mut SeededRng::new(42))
+    }
+
+    /// Number of attacks the friendly side made in a shelling round.
+    /// `api_at_eflag` is 0 for a friendly attacker, 1 for an enemy one.
+    fn friendly_attacks(round: Option<&BattleHougeki>) -> usize {
+        round.map_or(0, |h| h.api_at_eflag.iter().filter(|&&flag| flag == 0).count())
+    }
+
+    /// Number of friendly ships that launched an opening torpedo. Each entry of
+    /// `api_frai_list_items` is that attacker's target list, `None` when it did
+    /// not fire.
+    fn opening_friendly_shots(sim: &BattleSimulation) -> usize {
+        sim.packet
+            .opening_attack
+            .as_ref()
+            .map_or(0, |o| o.api_frai_list_items.iter().filter(|targets| targets.is_some()).count())
+    }
+
+    /// 空母機動部隊: deck 2 shells first (`hougeki1`), deck 1 follows
+    /// (`hougeki2`). Neither fleet here holds a battleship, so the 2巡目
+    /// (`hougeki3`) is gated away exactly as it is for a single fleet.
+    #[test]
+    fn carrier_task_force_shells_escort_deck_first() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let sim = combined_sim(&codex, CombinedType::CarrierTaskForce);
+
+        assert!(
+            friendly_attacks(sim.packet.hougeki1.as_ref()) > 0,
+            "hougeki1 is deck 2's round; its destroyers must shell"
+        );
+        assert_eq!(
+            friendly_attacks(sim.packet.hougeki2.as_ref()),
+            0,
+            "hougeki2 is deck 1's round, and submarines cannot shell"
+        );
+        assert!(
+            sim.packet.hougeki3.is_none(),
+            "no battleship on either side, so the second round is skipped"
+        );
+    }
+
+    /// 水上打撃部隊 is the mirror image: deck 1 takes `hougeki1`/`hougeki2` and
+    /// deck 2 drops to `hougeki3`. Same fleets, same seed — only the order moves.
+    #[test]
+    fn surface_task_force_shells_main_deck_first() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let sim = combined_sim(&codex, CombinedType::SurfaceTaskForce);
+
+        assert_eq!(
+            friendly_attacks(sim.packet.hougeki1.as_ref()),
+            0,
+            "hougeki1 is deck 1's round, and submarines cannot shell"
+        );
+        assert!(
+            sim.packet.hougeki2.is_none(),
+            "hougeki2 is deck 1's 2巡目; no battleship, so it is skipped"
+        );
+        assert!(
+            friendly_attacks(sim.packet.hougeki3.as_ref()) > 0,
+            "hougeki3 is deck 2's round; its destroyers must shell"
+        );
+    }
+
+    /// R5: deck 1 takes no part in the opening torpedo phase. These submarines
+    /// would all fire if they were a single fleet — `opening_torpedo_fires_for_a_
+    /// single_fleet_of_the_same_ships` below proves they can.
+    #[test]
+    fn main_deck_does_not_open_with_torpedoes() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        for ty in [CombinedType::CarrierTaskForce, CombinedType::SurfaceTaskForce] {
+            let sim = combined_sim(&codex, ty);
+            assert_eq!(
+                opening_friendly_shots(&sim),
+                0,
+                "{ty:?}: deck 1 must not open with torpedoes"
+            );
+        }
+    }
+
+    /// The control for the test above: the very same submarines, sortied as an
+    /// ordinary single fleet, do open with torpedoes. Without this the previous
+    /// test would also pass if opening torpedoes were broken outright.
+    #[test]
+    fn opening_torpedo_fires_for_a_single_fleet_of_the_same_ships() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let context = BattleContext::head_on(
+            BattleType::Normal,
+            true,
+            vec![sample_ship(&codex, ss, 99), sample_ship(&codex, ss, 99)],
+            vec![sample_ship(&codex, dd, 50), sample_ship(&codex, dd, 50)],
+        );
+        let sim = super::simulate_day(&codex, context, &mut SeededRng::new(42));
+
+        assert!(
+            opening_friendly_shots(&sim) > 0,
+            "single-fleet submarines must open with torpedoes"
+        );
     }
 }

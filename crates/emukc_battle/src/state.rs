@@ -1,10 +1,27 @@
+use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::outcome::{calculate_mvp, calculate_win_rank, verify_protected_ships_alive};
 use crate::targeting::any_alive;
+use crate::types::CombinedMembership;
 use crate::types::{
     BattleContext, BattleHougeki, BattleKouku, BattleOpeningAttack, BattleOutcome, BattlePacket,
     BattleRaigeki, BattleRuntimeShip, BattleSimulation, BattleType, NightBattlePacket,
     NightBattleSimulation,
 };
+
+/// Combined-fleet layout of [`BattleState::friendly`].
+///
+/// The two decks live in one contiguous vector — deck 1 at `..escort_start`,
+/// deck 2 at `escort_start..` — so that a phase in which the enemy fires at the
+/// whole friendly force is just the whole slice, and a phase belonging to one
+/// deck is a sub-slice. `escort_start` is deck 1's actual ship count, which is
+/// **not** the packet's escort offset: the client puts deck 2 at index 6 no
+/// matter how few ships deck 1 holds. Translating between the two index spaces
+/// is U3's job; nothing in this module does it.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CombinedLayout {
+    pub(crate) combined_type: CombinedType,
+    pub(crate) escort_start: usize,
+}
 
 /// All mutable state for a single battle simulation.
 ///
@@ -28,7 +45,11 @@ pub(crate) struct BattleState {
     opening_taisen: Option<BattleHougeki>,
     hougeki1: Option<BattleHougeki>,
     hougeki2: Option<BattleHougeki>,
+    hougeki3: Option<BattleHougeki>,
     raigeki: Option<BattleRaigeki>,
+
+    /// `None` for an ordinary single-fleet battle.
+    combined: Option<CombinedLayout>,
 
     stage_flag: [i64; 3],
     hourai_flag: [i64; 4],
@@ -40,11 +61,35 @@ impl BattleState {
     /// Build initial state from a battle context.
     pub fn from_context(context: BattleContext) -> Self {
         let is_sortie = context.is_sortie;
-        let friendly = context
+        let mut friendly = context
             .friend_ships
             .into_iter()
             .map(|s| BattleRuntimeShip::new(s, true, is_sortie))
             .collect::<Vec<_>>();
+
+        // A combined fleet appends deck 2 to the same vector and tags both
+        // decks. With no combined setup this loop does not run, `friendly` is
+        // byte-for-byte what it was before, and every ship keeps
+        // `combined_role: None` — which is what keeps the single-fleet RNG
+        // stream identical.
+        let combined = context.combined.map(|setup| {
+            let combined_type = setup.combined_type;
+            for ship in &mut friendly {
+                ship.combined = Some(CombinedMembership {
+                    combined_type,
+                    role: CombinedFleetRole::Main,
+                });
+            }
+            let escort_start = friendly.len();
+            friendly.extend(setup.escort_ships.into_iter().map(|s| {
+                BattleRuntimeShip::new(s, true, is_sortie)
+                    .in_combined_fleet(combined_type, CombinedFleetRole::Escort)
+            }));
+            CombinedLayout {
+                combined_type,
+                escort_start,
+            }
+        });
         let enemy = context
             .enemy_ships
             .into_iter()
@@ -63,7 +108,9 @@ impl BattleState {
             opening_taisen: None,
             hougeki1: None,
             hougeki2: None,
+            hougeki3: None,
             raigeki: None,
+            combined,
             stage_flag: [0, 0, 0],
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
@@ -93,7 +140,9 @@ impl BattleState {
             opening_taisen: None,
             hougeki1: None,
             hougeki2: None,
+            hougeki3: None,
             raigeki: None,
+            combined: None,
             stage_flag: [0, 0, 0],
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
@@ -117,6 +166,11 @@ impl BattleState {
 
     pub(crate) fn engagement(&self) -> super::types::EngagementType {
         self.engagement
+    }
+
+    /// The combined-fleet layout, or `None` in an ordinary single-fleet battle.
+    pub(crate) fn combined(&self) -> Option<CombinedLayout> {
+        self.combined
     }
 
     // -- Setters (for phase functions to write outputs) --
@@ -143,6 +197,13 @@ impl BattleState {
 
     pub(crate) fn set_hougeki2(&mut self, hougeki: Option<BattleHougeki>) {
         self.hougeki2 = hougeki;
+    }
+
+    /// Only a combined battle fills the third shelling round: `battle` puts
+    /// deck 1's second round here, `battle_water` puts deck 2's single round
+    /// here. A single-fleet battle leaves it `None`.
+    pub(crate) fn set_hougeki3(&mut self, hougeki: Option<BattleHougeki>) {
+        self.hougeki3 = hougeki;
     }
 
     pub(crate) fn set_raigeki(&mut self, raigeki: Option<BattleRaigeki>) {
@@ -202,7 +263,7 @@ impl BattleState {
             hourai_flag: self.hourai_flag,
             hougeki1: self.hougeki1,
             hougeki2: self.hougeki2,
-            hougeki3: None,
+            hougeki3: self.hougeki3,
             raigeki: self.raigeki,
         };
 

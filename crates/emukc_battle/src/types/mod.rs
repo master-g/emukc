@@ -15,6 +15,7 @@ pub use packet::{
     BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2, BattleKoukuStage3,
     BattleNightHougeki, BattleOpeningAttack, BattleRaigeki, DamageCell,
 };
+pub(crate) use runtime::CombinedMembership;
 pub use runtime::{
     BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip, BattleShipInput,
     BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket, NightBattleSimulation,

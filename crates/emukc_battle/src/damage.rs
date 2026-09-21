@@ -12,6 +12,9 @@ use emukc_model::{
     },
 };
 
+use crate::combined::{
+    CombinedAttackClass, combined_correction_vs_single, combined_formation_modifier,
+};
 use crate::random::BattleRng;
 use crate::targeting::{
     has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type,
@@ -150,8 +153,12 @@ pub(crate) fn calculate_shelling_damage(
     let bonus = improvement_bonus_day(codex, attacker) + light_gun_bonus(codex, attacker);
     let dmg_state =
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
-    let pre_cap = (basic_power + bonus)
-        * formation_modifier(formation_id)
+    // The reference spells the correction out only for the non-carrier formula,
+    // but states it sits "inside basic attack power" — so it applies to the
+    // carrier branch above as well, not just the gun branch.
+    let correction = combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64;
+    let pre_cap = (basic_power + bonus + correction)
+        * day_formation_modifier(formation_id, CombinedAttackClass::Shelling)
         * engagement.modifier()
         * dmg_state;
     let mut capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
@@ -173,11 +180,14 @@ pub(crate) fn calculate_torpedo_damage(
     engagement: EngagementType,
     phase: BattlePhase,
 ) -> i64 {
-    let basic_power =
-        attacker.ship.api_raisou[0].max(0) as f64 + improvement_bonus_torpedo(codex, attacker);
+    let basic_power = attacker.ship.api_raisou[0].max(0) as f64
+        + improvement_bonus_torpedo(codex, attacker)
+        + combined_correction(attacker, defender, CombinedAttackClass::Torpedo) as f64;
     let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, phase);
-    let pre_cap =
-        basic_power * formation_modifier(formation_id) * engagement.modifier() * dmg_state;
+    let pre_cap = basic_power
+        * day_formation_modifier(formation_id, CombinedAttackClass::Torpedo)
+        * engagement.modifier()
+        * dmg_state;
     let mut capped_power = apply_cap(pre_cap, TORPEDO_CAP) as f64;
     capped_power *= ammo_modifier(codex, attacker);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
@@ -241,8 +251,12 @@ pub(crate) fn calculate_asw_damage(
     let raw_power = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + type_bonus) * synergy;
     let dmg_state =
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
-    let modified =
-        raw_power * asw_formation_modifier(formation_id) * engagement.modifier() * dmg_state;
+    // Daytime ASW takes the formation multiplier but no 連合艦隊補正 at all
+    // (reference §Combined fleet corrections).
+    let modified = raw_power
+        * day_formation_modifier(formation_id, CombinedAttackClass::Asw)
+        * engagement.modifier()
+        * dmg_state;
     let capped = apply_cap(modified, ASW_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     let armor_reduction = depth_charge_armor_reduction(codex, attacker);
@@ -385,6 +399,56 @@ pub(crate) fn formation_modifier(formation_id: i64) -> f64 {
         5 => 0.6,
         _ => 1.0,
     }
+}
+
+/// Formation multiplier for a daytime attack of `class`, covering both the six
+/// normal formations and the four 警戒航行序列 (11–14).
+///
+/// A combined fleet fights in 警戒航行序列, and those have their own table with a
+/// separate column per attack class — unlike the normal formations, where this
+/// crate reuses one shelling table for torpedoes too. Ids outside 11–14 fall
+/// through to the single-fleet tables unchanged, so nothing about a normal
+/// battle moves.
+///
+/// `formation_id` is always the **attacker's** formation, which is why an enemy
+/// single fleet shooting at a combined fleet keeps its normal multiplier: only
+/// the fleet that is actually in 警戒航行序列 gets that table.
+pub(crate) fn day_formation_modifier(formation_id: i64, class: CombinedAttackClass) -> f64 {
+    if let Some(modifier) = combined_formation_modifier(formation_id, class) {
+        return modifier;
+    }
+    match class {
+        CombinedAttackClass::Asw => asw_formation_modifier(formation_id),
+        _ => formation_modifier(formation_id),
+    }
+}
+
+/// The additive 連合艦隊補正 for one attack, or `0` outside a combined battle.
+///
+/// The correction is indexed by the *friendly* fleet's type and deck even when
+/// the enemy is the attacker — the enemy here is a single fleet and has no deck
+/// of its own, but its correction still varies by which friendly deck it is
+/// trading fire with. So whichever of the two ships is the friendly one carries
+/// the lookup key.
+fn combined_correction(
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+    class: CombinedAttackClass,
+) -> i64 {
+    let friendly = if attacker.is_friendly {
+        attacker
+    } else {
+        defender
+    };
+    let Some(membership) = friendly.combined else {
+        return 0;
+    };
+    combined_correction_vs_single(
+        membership.combined_type,
+        class,
+        membership.role,
+        attacker.is_friendly,
+    )
 }
 
 /// ASW formation modifier: Diamond (3) = 1.2×, Echelon (4) = 1.1×, Line Abreast (5) = 1.3×
@@ -547,6 +611,91 @@ mod tests {
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
+
+    /// R2: 警戒航行序列 reach the damage formula. Before the tables were wired
+    /// up, `formation_modifier(11..=14)` fell through to `1.0` and a combined
+    /// fleet's formation had no effect on damage at all.
+    #[test]
+    fn day_formation_modifier_uses_the_combined_table_for_keisen_formations() {
+        use CombinedAttackClass::{Asw, Shelling, Torpedo};
+
+        // (formation, shelling, torpedo, asw) — reference §Formations.
+        let expected =
+            [(11, 0.8, 0.7, 1.3), (12, 1.0, 0.9, 1.1), (13, 0.7, 0.6, 1.0), (14, 1.1, 1.0, 0.7)];
+        for (id, shelling, torpedo, asw) in expected {
+            assert!((day_formation_modifier(id, Shelling) - shelling).abs() < f64::EPSILON);
+            assert!((day_formation_modifier(id, Torpedo) - torpedo).abs() < f64::EPSILON);
+            assert!((day_formation_modifier(id, Asw) - asw).abs() < f64::EPSILON);
+        }
+    }
+
+    /// The six normal formations must still resolve through the single-fleet
+    /// tables, including the quirk that shelling and torpedo share one table
+    /// there while the combined table separates them.
+    #[test]
+    fn day_formation_modifier_falls_through_for_normal_formations() {
+        use CombinedAttackClass::{Asw, Shelling, Torpedo};
+
+        for id in 1..=6 {
+            let shelling = day_formation_modifier(id, Shelling);
+            assert!((shelling - formation_modifier(id)).abs() < f64::EPSILON, "shelling {id}");
+            assert!(
+                (day_formation_modifier(id, Torpedo) - formation_modifier(id)).abs() < f64::EPSILON,
+                "torpedo {id}"
+            );
+            assert!(
+                (day_formation_modifier(id, Asw) - asw_formation_modifier(id)).abs() < f64::EPSILON,
+                "asw {id}"
+            );
+        }
+    }
+
+    /// R3: the correction is keyed on the friendly fleet's type and deck even
+    /// when the enemy is the attacker, because a single enemy fleet has no deck
+    /// of its own to key on.
+    #[test]
+    fn combined_correction_keys_on_the_friendly_deck_in_both_directions() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let friendly = |role| {
+            BattleRuntimeShip::new(sample_ship(&codex, dd, 1), true, true)
+                .in_combined_fleet(CombinedType::CarrierTaskForce, role)
+        };
+        let enemy = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+
+        // 空母機動, shelling: deck 1 自軍 +2 / 敵軍 +10, deck 2 自軍 +10 / 敵軍 +5.
+        let main = friendly(CombinedFleetRole::Main);
+        let escort = friendly(CombinedFleetRole::Escort);
+        assert_eq!(combined_correction(&main, &enemy, CombinedAttackClass::Shelling), 2);
+        assert_eq!(combined_correction(&enemy, &main, CombinedAttackClass::Shelling), 10);
+        assert_eq!(combined_correction(&escort, &enemy, CombinedAttackClass::Shelling), 10);
+        assert_eq!(combined_correction(&enemy, &escort, CombinedAttackClass::Shelling), 5);
+
+        // Torpedo is a flat -5, and daytime ASW takes no correction at all.
+        assert_eq!(combined_correction(&escort, &enemy, CombinedAttackClass::Torpedo), -5);
+        assert_eq!(combined_correction(&escort, &enemy, CombinedAttackClass::Asw), 0);
+    }
+
+    /// A single-fleet battle must take no correction, in either direction.
+    #[test]
+    fn combined_correction_is_zero_for_a_single_fleet() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let friendly = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), true, true);
+        let enemy = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+
+        for class in [
+            CombinedAttackClass::Shelling,
+            CombinedAttackClass::Torpedo,
+            CombinedAttackClass::Asw,
+            CombinedAttackClass::AntiAir,
+        ] {
+            assert_eq!(combined_correction(&friendly, &enemy, class), 0);
+            assert_eq!(combined_correction(&enemy, &friendly, class), 0);
+        }
+    }
 
     #[test]
     fn day_shelling_cap_matches_reference_example() {

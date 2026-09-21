@@ -27,6 +27,13 @@ pub(crate) fn simulate_opening_taisen(
 
     // Friendly OASW attacks
     for (idx, ship) in friendly.iter_mut().enumerate() {
+        // 第1艦隊 does not open with ASW in a combined battle; only the escort
+        // deck does. `is_main_deck` is false for every single-fleet ship, so
+        // this skips nothing outside a combined battle — and because it sits
+        // ahead of every RNG draw, it cannot shift the single-fleet stream.
+        if ship.is_main_deck() {
+            continue;
+        }
         if !can_opening_asw(codex, ship) {
             continue;
         }
