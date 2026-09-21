@@ -789,7 +789,7 @@ pub(crate) struct ResourceManifest {
     /// Summary statistics.
     #[serde(default)]
     pub summary: ResourceManifestSummary,
-    /// Optional path rules for default/greedy cache list generation.
+    /// Optional path rules for default cache list generation.
     #[serde(default)]
     pub path_rules: Option<PathRules>,
     /// Resource entries.

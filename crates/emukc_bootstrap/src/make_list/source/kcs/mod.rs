@@ -1,4 +1,3 @@
-use emukc_cache::Kache;
 use emukc_model::codex::Codex;
 
 use crate::{
@@ -15,7 +14,6 @@ mod voice;
 
 pub(super) async fn make(
     codex: &Codex,
-    cache: &Kache,
     strategy: CacheListMakeStrategy,
     rules_bundle: Option<&manifest::DecoderRulesBundle>,
     list: &mut CacheList,
@@ -26,7 +24,7 @@ pub(super) async fn make(
         kc9998::make(&codex.cache_source, list, &strategy);
         kc9999::make(&codex.cache_source, list).await?;
         purchase::make(&codex.manifest, list);
-        voice::make(&codex.manifest, cache, &strategy, list).await?;
+        voice::make(&codex.manifest, &strategy, list).await?;
         list.set_authority_stage(previous);
         return Ok(());
     }
@@ -56,7 +54,7 @@ pub(super) async fn make(
     }
     purchase::make(&codex.manifest, list);
     if !has_complete_ship_voice_rule(sound_rules) {
-        voice::make(&codex.manifest, cache, &strategy, list).await?;
+        voice::make(&codex.manifest, &strategy, list).await?;
     }
     list.set_authority_stage(previous);
 
@@ -77,7 +75,6 @@ fn has_complete_ship_voice_rule(rules: Option<&manifest::CacheRuleSoundRules>) -
 mod tests {
     use std::{fs, path::PathBuf};
 
-    use emukc_cache::Kache;
     use emukc_model::{
         codex::Codex,
         thirdparty::{CacheSource, VoiceCacheSource},
@@ -101,17 +98,6 @@ mod tests {
         }
         fs::create_dir_all(&dir).unwrap();
         dir
-    }
-
-    fn make_kache(name: &str) -> Kache {
-        let dir = tmp_dir(name);
-        Kache::builder()
-            .with_cache_root(dir.clone())
-            .with_db_path(dir.join("kache.redb").to_string_lossy().into_owned())
-            .with_gadgets_cdn("http://invalid.local/".to_string())
-            .with_content_cdn("http://invalid.local/".to_string())
-            .build()
-            .unwrap()
     }
 
     fn write_bucket_rules_file(
@@ -169,15 +155,7 @@ mod tests {
         let rules_bundle = manifest::load_cache_rules_bundle_from_path(&rules_path).unwrap();
 
         let mut list = CacheList::new();
-        make(
-            &codex,
-            &make_kache("kcs-rules-complete-sound-bucket"),
-            CacheListMakeStrategy::Rules,
-            Some(&rules_bundle),
-            &mut list,
-        )
-        .await
-        .unwrap();
+        make(&codex, CacheListMakeStrategy::Rules, Some(&rules_bundle), &mut list).await.unwrap();
 
         let path = "kcs/sound/kc9999/11.mp3";
         assert_eq!(list.items.iter().filter(|item| item.path == path).count(), 1);
@@ -206,15 +184,7 @@ mod tests {
         let rules_bundle = manifest::load_cache_rules_bundle_from_path(&rules_path).unwrap();
 
         let mut list = CacheList::new();
-        make(
-            &codex,
-            &make_kache("kcs-rules-partial-sound-bucket"),
-            CacheListMakeStrategy::Rules,
-            Some(&rules_bundle),
-            &mut list,
-        )
-        .await
-        .unwrap();
+        make(&codex, CacheListMakeStrategy::Rules, Some(&rules_bundle), &mut list).await.unwrap();
 
         let output = list.into_path_build_output();
         assert!(
@@ -267,15 +237,7 @@ mod tests {
         let rules_bundle = manifest::load_cache_rules_bundle_from_path(&rules_path).unwrap();
 
         let mut list = CacheList::new();
-        make(
-            &codex,
-            &make_kache("kcs-rules-partial-kc9998-cache-source-template"),
-            CacheListMakeStrategy::Rules,
-            Some(&rules_bundle),
-            &mut list,
-        )
-        .await
-        .unwrap();
+        make(&codex, CacheListMakeStrategy::Rules, Some(&rules_bundle), &mut list).await.unwrap();
 
         let output = list.into_path_build_output();
         assert!(

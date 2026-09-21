@@ -57,7 +57,7 @@ pub mod prelude {
         build_cache_list_items, build_cache_list_items_with_manifest_path,
         build_cache_list_items_with_rules_path, build_cache_list_path_output_with_rules_path,
         build_cache_list_paths, build_cache_list_paths_with_manifest_path,
-        build_cache_list_paths_with_rules_path, compare_cache_list_path_sets, config::GreedyConfig,
+        build_cache_list_paths_with_rules_path, compare_cache_list_path_sets,
         errors::CacheListMakingError, make as make_cache_list,
     };
     pub use crate::map_overlay::{

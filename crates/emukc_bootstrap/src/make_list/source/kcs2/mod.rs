@@ -24,7 +24,7 @@ pub(super) async fn make_manifest_support(
 
     let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
     plain::make(kache, list).await?;
-    versioned::make(mst, kache, &strategy, list).await?;
+    versioned::make(kache, &strategy, list).await?;
     list.set_authority_stage(previous);
 
     resources::make_manifest_support(

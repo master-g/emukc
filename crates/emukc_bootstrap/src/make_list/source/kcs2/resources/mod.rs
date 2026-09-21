@@ -59,7 +59,7 @@ pub(super) async fn make_manifest_support(
     map::make(cache, &strategy, list).await?;
     ship::make_manifest_type_extensions(mst, list);
     unversioned::make(list).await?;
-    use_item::make(mst, cache, &strategy, list).await?;
+    use_item::make(&strategy, list).await?;
     list.set_authority_stage(previous);
 
     Ok(())

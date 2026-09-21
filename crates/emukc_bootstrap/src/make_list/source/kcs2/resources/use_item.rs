@@ -1,16 +1,11 @@
-use std::sync::{Arc, LazyLock};
-
-use emukc_cache::Kache;
-use emukc_model::kc2::start2::ApiManifest;
+use std::sync::LazyLock;
 
 use crate::{
-    make_list::{CacheList, batch_check_exists},
+    make_list::CacheList,
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
 pub(super) async fn make(
-    mst: &ApiManifest,
-    cache: &Kache,
     strategy: &CacheListMakeStrategy,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
@@ -21,41 +16,7 @@ pub(super) async fn make(
         | CacheListMakeStrategy::Rules => {
             make_useitem(list);
         }
-        CacheListMakeStrategy::Greedy(config) => {
-            make_useitem_greedy(mst, cache, config.concurrent, list).await?;
-        }
     };
-
-    Ok(())
-}
-
-async fn make_useitem_greedy(
-    mst: &ApiManifest,
-    cache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_useitem
-        .iter()
-        .flat_map(|item| {
-            vec![
-                (format!("kcs2/resources/useitem/card/{0:03}.png", item.api_id), "".to_string()),
-                (format!("kcs2/resources/useitem/card_/{0:03}.png", item.api_id), "".to_string()),
-            ]
-        })
-        .collect();
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
 
     Ok(())
 }

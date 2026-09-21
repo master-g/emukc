@@ -50,17 +50,13 @@ impl ExampleConfig {
 enum BaselineStrategy {
     Default,
     Manifest,
-    Greedy,
 }
 
 impl BaselineStrategy {
-    fn into_make_strategy(self, concurrent: usize) -> CacheListMakeStrategy {
+    fn into_make_strategy(self) -> CacheListMakeStrategy {
         match self {
             Self::Default => CacheListMakeStrategy::Default,
             Self::Manifest => CacheListMakeStrategy::Manifest,
-            Self::Greedy => CacheListMakeStrategy::Greedy(GreedyConfig {
-                concurrent,
-            }),
         }
     }
 }
@@ -81,9 +77,6 @@ struct CompareArgs {
 
     #[arg(long, value_enum, default_value_t = BaselineStrategy::Manifest)]
     baseline: BaselineStrategy,
-
-    #[arg(long, default_value_t = 16)]
-    concurrent: usize,
 
     #[arg(long)]
     report_json: Option<PathBuf>,
@@ -242,7 +235,7 @@ fn main() -> anyhow::Result<()> {
         let codex = Codex::load(cfg.codex_root(), true)?;
         let kache = build_kache(&cfg)?;
 
-        let baseline_strategy = args.baseline.into_make_strategy(args.concurrent);
+        let baseline_strategy = args.baseline.into_make_strategy();
         let baseline_paths = build_cache_list_paths(&codex, &kache, baseline_strategy).await?;
         let (candidate_paths, candidate_diagnostics) = if let Some(rules_path) = &args.rules {
             let output =

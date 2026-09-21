@@ -14,17 +14,9 @@ pub(super) struct MakeListArguments {
     #[arg(long)]
     pub overwrite: bool,
 
-    #[arg(help = "Greedy mode, which can be extremely slow")]
-    #[arg(long)]
-    pub greedy: bool,
-
     #[arg(help = "Use resource manifest instead of hardcoded lists")]
     #[arg(long)]
     pub manifest: bool,
-
-    #[arg(help = "Concurrency level")]
-    #[arg(long)]
-    pub concurrent: Option<usize>,
 }
 
 /// Make cache resources file list
@@ -37,12 +29,6 @@ pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result
 
     let strategy = if args.manifest {
         CacheListMakeStrategy::Manifest
-    } else if args.greedy {
-        use emukc::bootstrap::prelude::GreedyConfig;
-        let greedy_config = GreedyConfig {
-            concurrent: args.concurrent.unwrap_or(16),
-        };
-        CacheListMakeStrategy::Greedy(greedy_config)
     } else {
         CacheListMakeStrategy::Default
     };

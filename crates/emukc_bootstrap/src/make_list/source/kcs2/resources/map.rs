@@ -1,8 +1,6 @@
-use std::{collections::BTreeSet, sync::LazyLock};
+use std::sync::LazyLock;
 
-use emukc_cache::{GetOption, Kache, KacheError, NoVersion, RemoteExistence};
-use serde::{Deserialize, Serialize};
-use tokio::io::AsyncReadExt;
+use emukc_cache::Kache;
 
 use crate::{
     make_list::CacheList,
@@ -186,7 +184,6 @@ pub(super) async fn make(
     get_event_area_preset(list);
 
     // let start = std::time::Instant::now();
-    // get_event_area_greedy(_cache, list).await?;
     // warn!("Time taken to make map list: {:?}", start.elapsed());
 
     Ok(())
@@ -198,112 +195,7 @@ fn get_default_areas(list: &mut CacheList) {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct MapInfoJson {
-    spots: Vec<serde_json::Value>,
-}
-
-async fn find_in_local_then_remote(
-    cache: &Kache,
-    p: &str,
-) -> Result<Option<tokio::fs::File>, KacheError> {
-    let file = match GetOption::new().disable_mod().disable_remote().get(cache, p, NoVersion).await
-    {
-        Ok(f) => f,
-        Err(_) => {
-            // check if exist
-            match cache.exists_on_remote(p, NoVersion).await {
-                RemoteExistence::Present => {}
-                // not exist
-                RemoteExistence::Absent => return Ok(None),
-                // No CDN answered; do not report that as "not exist".
-                RemoteExistence::Indeterminate => return Err(KacheError::FailedOnAllCdn),
-            }
-            // fetch from CDN
-            GetOption::new().disable_mod().disable_local().get(cache, p, NoVersion).await?
-        }
-    };
-
-    Ok(Some(file))
-}
-
 type EventMapInfo = (i64, i64, Option<Vec<i64>>);
-
-#[expect(unused)]
-async fn get_event_area_greedy(
-    cache: &Kache,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let mut map_info_set: BTreeSet<EventMapInfo> = BTreeSet::new();
-
-    for event_id in 42..=60 {
-        let area_id = format!("{event_id:03}");
-
-        for map in 1..=9 {
-            let map_id = format!("{map:02}");
-            let mut spots = 0;
-            let cover = format!("kcs2/resources/map/{area_id}/{map_id}.png");
-            match cache.exists_on_remote(&cover, NoVersion).await {
-                RemoteExistence::Present => {
-                    list.add_unversioned(cover);
-                }
-                RemoteExistence::Absent => break,
-                RemoteExistence::Indeterminate => {
-                    return Err(KacheError::FailedOnAllCdn.into());
-                }
-            }
-
-            let mut info_set: EventMapInfo = (event_id, map, None);
-            let mut spot_vec: Vec<i64> = Vec::new();
-
-            loop {
-                let suffix = if spots == 0 {
-                    "".to_string()
-                } else {
-                    format!("{spots}")
-                };
-
-                let json_path = format!("kcs2/resources/map/{area_id}/{map_id}_info{suffix}.json");
-
-                let Some(mut file) = find_in_local_then_remote(cache, &json_path).await? else {
-                    break;
-                };
-
-                let image_png_path =
-                    format!("kcs2/resources/map/{area_id}/{map_id}_image{suffix}.png");
-                let image_json_path =
-                    format!("kcs2/resources/map/{area_id}/{map_id}_image{suffix}.json");
-
-                list.add_unversioned(json_path.clone());
-                list.add_unversioned(image_png_path);
-                list.add_unversioned(image_json_path);
-
-                if spots != 0 {
-                    spot_vec.push(spots as i64);
-                }
-
-                // find suffix
-                let mut content = String::new();
-                file.read_to_string(&mut content).await?;
-                let map_info: MapInfoJson = serde_json::from_str(&content)?;
-                spots += map_info.spots.len();
-            }
-
-            if !spot_vec.is_empty() {
-                info_set.2 = Some(spot_vec);
-            }
-
-            map_info_set.insert(info_set);
-
-            if spots == 0 {
-                break;
-            }
-        }
-    }
-
-    println!("{map_info_set:?}");
-    Ok(())
-}
 
 static EVENT_PRESET: LazyLock<Vec<EventMapInfo>> = LazyLock::new(|| {
     vec![

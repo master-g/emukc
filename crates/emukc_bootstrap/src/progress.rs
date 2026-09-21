@@ -10,8 +10,6 @@ fn is_tty() -> bool {
 }
 
 const POPULATE_STYLE: &str = "{msg}  {bar:40.cyan/blue}  {pos}/{len} ({percent}%, ETA: {eta})";
-const MAKE_LIST_STYLE: &str =
-    "{msg}  {bar:40.cyan/blue}  {pos}/{len} ({percent}%, {per_sec}, ETA: {eta})";
 const DOWNLOAD_AGGREGATE_STYLE: &str =
     "{msg}  {bar:40.cyan/blue}  {pos}/{len} ({percent}%, ETA: {eta})";
 const SPINNER_STYLE: &str = "{spinner} {msg}";
@@ -111,10 +109,6 @@ pub fn new_multi_progress() -> Option<MultiProgress> {
 
 pub fn populate_style() -> &'static str {
     POPULATE_STYLE
-}
-
-pub fn make_list_style() -> &'static str {
-    MAKE_LIST_STYLE
 }
 
 pub fn download_aggregate_style() -> &'static str {

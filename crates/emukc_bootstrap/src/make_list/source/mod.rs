@@ -41,7 +41,7 @@ pub(super) async fn make(
         };
         gadget_html5::make(&codex.manifest, kache, list).await?;
         make_manifest(&codex.manifest, manifest_override, decoder_assets_override, list)?;
-        kcs::make(codex, kache, CacheListMakeStrategy::Manifest, None, list).await?;
+        kcs::make(codex, CacheListMakeStrategy::Manifest, None, list).await?;
         let categories = decoder_assets.resource_categories.as_ref();
         kcs2::make_manifest_support(
             &codex.manifest,
@@ -53,12 +53,7 @@ pub(super) async fn make(
             None,
         )
         .await?;
-    } else if matches!(
-        strategy,
-        CacheListMakeStrategy::Default
-            | CacheListMakeStrategy::Greedy(_)
-            | CacheListMakeStrategy::Rules
-    ) {
+    } else if matches!(strategy, CacheListMakeStrategy::Default | CacheListMakeStrategy::Rules) {
         let owned_rules_bundle;
         let rules_bundle = if let Some(rules_bundle) = rules_bundle_override {
             rules_bundle
@@ -90,7 +85,7 @@ pub(super) async fn make(
         make_cache_rules(&codex.manifest, rules_bundle, list)?;
         list.set_authority_stage(previous);
 
-        kcs::make(codex, kache, CacheListMakeStrategy::Rules, Some(rules_bundle), list).await?;
+        kcs::make(codex, CacheListMakeStrategy::Rules, Some(rules_bundle), list).await?;
 
         kcs2::make_manifest_support(
             &codex.manifest,

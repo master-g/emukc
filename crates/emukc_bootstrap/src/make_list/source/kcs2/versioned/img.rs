@@ -1,14 +1,10 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, LazyLock},
-};
+use std::{collections::BTreeMap, sync::LazyLock};
 
 use emukc_cache::{Kache, cmp_version};
-use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
     battle_rules::append_battle_rule_provider_assets,
-    make_list::{CacheList, batch_check_exists},
+    make_list::CacheList,
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
@@ -543,7 +539,6 @@ static FRIENDLY_SHIPS: LazyLock<&[&str]> = LazyLock::new(|| {
 });
 
 pub(super) async fn make(
-    mst: &ApiManifest,
     cache: &Kache,
     versions: &BTreeMap<String, String>,
     strategy: &CacheListMakeStrategy,
@@ -593,43 +588,7 @@ pub(super) async fn make(
                 list.add(format!("kcs2/img/port/friendly_ship/{p}"), v);
             }
         }
-        CacheListMakeStrategy::Greedy(config) => {
-            make_greedy(mst, cache, versions, config.concurrent, list).await?;
-        }
     }
-    // make_greedy(mst, cache, versions, 16, list).await?;
 
-    Ok(())
-}
-
-async fn make_greedy(
-    mst: &ApiManifest,
-    cache: &Kache,
-    versions: &BTreeMap<String, String>,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let v = versions.get("port").map(std::string::ToString::to_string).unwrap_or_default();
-    let checks: Vec<(String, String)> = mst
-        .friend_ships()
-        .iter()
-        .flat_map(|s| {
-            vec![
-                (format!("kcs2/img/port/friendly_ship/ff_chara_{}.png", s.api_id), v.clone()),
-                (format!("kcs2/img/port/friendly_ship/ff_chara_{}_dress.png", s.api_id), v.clone()),
-            ]
-        })
-        .collect();
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, _), exists) in check_result {
-        if exists {
-            println!("{p}");
-            list.add_unversioned(p);
-        }
-    }
     Ok(())
 }

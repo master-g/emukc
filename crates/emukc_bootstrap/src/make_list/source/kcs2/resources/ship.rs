@@ -1,4 +1,4 @@
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 
 use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
@@ -7,16 +7,6 @@ use crate::{
     make_list::CacheList,
     make_list::manifest::{PathRules, ResourceCategoriesAsset, ShipPathHoles},
 };
-
-static HOLES_COLLECTOR: LazyLock<Mutex<Vec<String>>> = LazyLock::new(|| Mutex::new(Vec::new()));
-
-pub fn get_holes_report() -> Vec<String> {
-    HOLES_COLLECTOR.lock().unwrap().clone()
-}
-
-pub fn clear_holes_report() {
-    HOLES_COLLECTOR.lock().unwrap().clear();
-}
 
 fn has_ship_holes(holes: &ShipPathHoles) -> bool {
     !holes.full.is_empty()

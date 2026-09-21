@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeSet,
-    sync::{Arc, LazyLock},
-};
+use std::{collections::BTreeSet, sync::LazyLock};
 
 use emukc_cache::prelude::*;
 use emukc_model::kc2::start2::{ApiManifest, ApiMstFurniture};
@@ -9,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
 use crate::{
-    make_list::{CacheList, batch_check_exists, source::kcs2::gen_path},
+    make_list::{CacheList, source::kcs2::gen_path},
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
@@ -66,11 +63,6 @@ pub(super) async fn make(
         CacheListMakeStrategy::Default | CacheListMakeStrategy::Manifest => {
             make_reward_predefined(mst, list);
             make_card_predefined(mst, list);
-            // make_extra_greedy("card", mst, cache, list, 16).await?;
-        }
-        CacheListMakeStrategy::Greedy(config) => {
-            make_extra_greedy("reward", mst, cache, list, config.concurrent).await?;
-            make_extra_greedy("card", mst, cache, list, config.concurrent).await?;
         }
         _ => {}
     }
@@ -202,33 +194,6 @@ fn make_card_predefined(mst: &ApiManifest, list: &mut CacheList) {
             list.add(gen_furniture_path(*id, "card", "png"), v.api_version);
         }
     }
-}
-
-async fn make_extra_greedy(
-    key: &str,
-    mst: &ApiManifest,
-    cache: &Kache,
-    list: &mut CacheList,
-    concurrent: usize,
-) -> Result<(), KacheError> {
-    let checks: Vec<(String, String)> = mst
-        .api_mst_furniture
-        .iter()
-        .map(|v| (gen_furniture_path(v.api_id, key, "png"), v.api_version.to_string()))
-        .collect();
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-
-    for ((p, v), exists) in check_result {
-        if exists {
-            println!("{p}, {v}");
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
 }
 
 fn gen_furniture_path(id: i64, category: &str, extension: &str) -> String {

@@ -1,20 +1,14 @@
-#![allow(unused)]
-use std::{
-    collections::HashMap,
-    sync::{Arc, LazyLock},
-};
+use std::sync::LazyLock;
 
-use emukc_cache::Kache;
 use emukc_model::kc2::start2::{ApiManifest, ApiMstShipgraph};
 
 use crate::{
-    make_list::{CacheList, batch_check_exists},
+    make_list::CacheList,
     prelude::{CacheListMakeStrategy, CacheListMakingError},
 };
 
 pub(super) async fn make(
     mst: &ApiManifest,
-    cache: &Kache,
     strategy: &CacheListMakeStrategy,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
@@ -28,10 +22,6 @@ pub(super) async fn make(
         | CacheListMakeStrategy::Manifest
         | CacheListMakeStrategy::Rules => {
             make_special_preset(mst, list);
-        }
-
-        CacheListMakeStrategy::Greedy(config) => {
-            make_special_greedy(mst, cache, config.concurrent, list).await?;
         }
         _ => {}
     };
@@ -182,67 +172,6 @@ fn make_preset(mst: &ApiManifest, list: &mut CacheList) {
             list.add(path, ver);
         }
     }
-}
-
-async fn make_special_greedy(
-    mst: &ApiManifest,
-    cache: &Kache,
-    concurrent: usize,
-    list: &mut CacheList,
-) -> Result<(), CacheListMakingError> {
-    let mut checks: Vec<(String, String)> = Vec::new();
-    let mut lookups: HashMap<String, (i64, i64)> = HashMap::new();
-
-    for graph in mst.api_mst_shipgraph.iter() {
-        match graph.api_sortno {
-            Some(id) => {
-                if id == 0 {
-                    continue;
-                }
-            }
-            None => continue,
-        }
-
-        let Some(ship_mst) = mst.find_ship(graph.api_id) else {
-            continue;
-        };
-
-        if graph.api_battle_n.is_none() {
-            continue;
-        }
-        if graph.api_boko_d.is_none() {
-            continue;
-        }
-
-        if SPECIAL_CG.contains(&graph.api_id) {
-            for voice_id in [901, 902, 903, 904, 905] {
-                let path = format!(
-                    "kcs/sound/kc{}/{}.mp3",
-                    graph.api_filename,
-                    calc_voice_id(graph.api_id, voice_id)
-                );
-                let ver = get_voice_version(graph, voice_id);
-
-                lookups.insert(path.clone(), (graph.api_id, voice_id));
-                checks.push((path, format!("{ver}")));
-            }
-        }
-    }
-
-    let c = Arc::new(cache.clone());
-    let tracker = Arc::new(crate::make_list::progress::ProgressTracker::new(checks.len()));
-    let check_result = batch_check_exists(c, checks, concurrent, Some(tracker)).await?;
-    for ((p, v), exists) in check_result {
-        if exists {
-            if let Some((ship_id, voice_id)) = lookups.get(&p) {
-                println!("{ship_id}: {voice_id}");
-            }
-
-            list.add(p, v);
-        }
-    }
-
-    Ok(())
 }
 
 type SpecialVoice = (i64, Vec<i64>);
