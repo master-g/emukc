@@ -27,12 +27,12 @@ CLAUDE.md § Architecture；这里只记从中推不出来的：
 Current verification baseline:
 
 - [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
-- [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions; final linear commit is `0395121`. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
+- [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
 - [2026-09-19] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` →
   decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`.
   Verified on 6.3.2.1 and 6.3.5.0 (the latter with main.js fetched by hand instead of bootstrap).
-- [2026-09-19] 6.3.4.1 → 6.3.5.0 的实测形态：battle 资产零变化，cache list 只多一行显式路径。
-  结论是 `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`。
+- [2026-09-19] `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`
+  （6.3.4.1 → 6.3.5.0 实测：battle 资产零变化，清单只多一行显式路径）。
 - [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb, v1.0.6) does NOT replace `main-decoder`: on 6.3.5.0 it left
   263,127 `_0x455a(0x..)` calls unevaluated and 0/55 battle protocol fields visible, in 304 s and 5.1 GB peak,
   vs our 0 calls / 55 fields in ~20 s. Its ControlFlowRecoverer and AntiTamperRemover never fire — KanColle's
@@ -48,9 +48,11 @@ Current verification baseline:
   `next_sortie`, `sortie_battle_result`, `sortie_sp_midnight_battle` and `sortie_battle_impl`. None nests
   another, and nothing they call takes the lock, so a new sortie entry can take it without reentrancy risk.
   `sortie_midnight_battle` stays unlocked on purpose: it mutates an existing pending session, not `active`.
-- [2026-09-19] `apilist.md` is mechanically aligned with the router: 113 implemented, 34 missing, no overlap.
-  Re-verify by extracting `nest("/prefix", mod::router())` from `kcsapi/mod.rs` plus each submodule's
-  `.route("/leaf"` and diffing against the two fenced blocks; do not hand-audit it.
+- [2026-09-21] `apilist.md` is the single endpoint inventory and is mechanically aligned: 114 implemented,
+  34 missing, and the 34 are exactly `docs/apilist.txt`'s 136 minus the 114. Re-verify by extracting
+  `nest("/prefix", mod::router())` from `kcsapi/mod.rs` plus each submodule's `.route("/leaf"` and diffing
+  against the two fenced blocks; do not hand-audit it. `docs/api_coverage.md` is the roadmap only — it no
+  longer carries a list, because its hand-maintained one had drifted in both directions.
 - [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
@@ -68,10 +70,8 @@ Current verification baseline:
 - [2026-09-20] Nothing in `start2` distinguishes the 5 resupply-form ships (743/744/745/748/749, names
   ending in 補) from normal friendly ships — checked `api_sortno`, `api_backs`, `api_aftershipid` and
   `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
-- [2026-09-21] 在 `919ca9c` 上 `cargo test --workspace` 全绿（0 failed / 0 ignored），
-  前提是先 `mkdir -p target/tmp`（`test_font` 仍需要它）。09-20 记的另外两条 baseline 失败
-  （`api_alignment_e2e`、`real_manifest_parses_with_passthrough_fields_none`）已不再复现，
-  不要再当既有失败引用。
+- [2026-09-21] `cargo test --workspace` 全绿（0 failed / 0 ignored），前提是先 `mkdir -p target/tmp`
+  （`test_font` 需要）。09-20 记的三条 baseline 失败均已不再复现，不要再当既有失败引用。
 
 - [2026-09-21] `emukc_network`'s download layer already reads the whole body before opening the
   destination and errors out on any non-2xx, so a failed transfer never wrote a partial or corrupt
@@ -109,6 +109,10 @@ Current verification baseline:
   全部是深海舰的 `ship/banner_dmg`。但 `cache_rules.json` 的 `shipRules.targetSemantics`
   （observed-complete）写着 banner + default-abyssal + damaged → `banner`，客户端从不请求
   它们。**不要补**。依据见 `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
+- [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤**不是缺陷**：活动图是 621 这样的三位数 id，
+  非活动期 codex 只有 11..75 的常规图，所以那个循环本来就该一条不匹配（测试注释已写明），
+  字段逻辑由 `game/map.rs` 的 `build_map_info_event_map_emits_limit_flag_zero` 数据无关地钉住。
+  此前记的「与 codex 的 61-65 号 id 矛盾」是把常规六海域和活动图 id 方案混为一谈，已删。
 
 ## Failed Attempts / Pitfalls
 
@@ -155,19 +159,16 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 七个提交全部推送（截至 `73dff12`）：bootstrap 裸跑中止、CLI 静默失败、
-  记忆压缩、空 200 重试、drift-check 接通、manifest 差集结案、populate 清单原子落盘。
-- manifest 差集是本次最大的一件：先生成两份清单求差（21,510 条），再对全部做 HEAD 探测
-  （每个 CDN 主机一条 keep-alive 连接，4 分钟）。结论是**不补**——786 条存在的全是
-  深海舰 `banner_dmg`，而客户端受损时用的仍是完好 banner。中途实现过一版「修复」
-  （decoder 加 `banner_dmg` 到 defaultAbyssal + 103 条缺口表），发现是 no-op 后整体回滚，
-  只留结论文档。
-- 009 的三处遗留一次清完：`persist_failure_list` 改为写 pid 标记的临时文件再 rename；
-  并发 populate 仍是 last-writer-wins（有意不加锁，只消除损坏）；删掉自 `185c0b8` 起
-  不可达的 `FailureKind::Rollback` 并改正 BOOTSTRAP.md。
+- [2026-09-21] 十个提交全部推送（截至 `4704212`）：bootstrap 裸跑中止、CLI 静默失败、记忆压缩、
+  空 200 重试、drift-check 接通、manifest 差集结案、populate 原子落盘、端点清单对齐。
+- 端点清单对齐的结论：`apilist.md` 本来就准（114/34，且 34 = 上游 136 − 114），错的是另外两份。
+  `docs/api_coverage.md` 的模块表停在 05-24 且两个方向都偏，还把已实现的 `mxltvkpyuklh` 列为缺失、
+  列了上游根本没有的 `remodel_slot_recover` / `registration_sp`——整张表换成指针，只留路线图部分
+  （代码注释引用的正是这部分）。`TODO.md` 漏勾了两个已实现的端点。
+- manifest 差集是本次最大的一件：21,510 条全量 HEAD 探测，786 条存在但全是深海舰 `banner_dmg`，
+  而客户端受损时用的仍是完好 banner，结论是**不补**。中途实现过一版「修复」，发现是 no-op 后整体回滚。
 - 门禁每次跑满 fmt / clippy（恒 6 条既有 `result_large_err`）/ `cargo test --workspace` 全绿；
-  实跑验证：裸 bootstrap exit 0、populate 单条归 missing 零重试且无 `.part` 残留、
-  `make drift-check` no drift。
+  实跑验证：裸 bootstrap exit 0、populate 单条归 missing 零重试无 `.part` 残留、`make drift-check` no drift。
 
 ## Next Session
 
@@ -180,5 +181,5 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
   两边不一致时 012 的校验会误报；指纹按字节算，`_0x` 重命名会产生噪声漂移。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
 - 更早的积压未变：14 个 `api_req_combined_battle/*` 然后基地航空队（EO74 字段规格见
-  sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时）；`api_alignment_e2e` 的 `600..700`
-  与 codex 的 61-65 号 id 矛盾；`gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。
+  sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时）；`gauge_type_e` 抓取；
+  decoder 未解析的 id 集；VPS 计划需重新验证。
