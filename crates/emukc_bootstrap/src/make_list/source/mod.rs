@@ -50,6 +50,7 @@ pub(super) async fn make(
             Some(decoder_assets),
             categories,
             manifest::path_rules(),
+            None,
         )
         .await?;
     } else if matches!(
@@ -98,6 +99,7 @@ pub(super) async fn make(
             Some(&rules_bundle.decoder_assets),
             Some(&rules_bundle.cache_rules.resource_categories),
             rules_bundle.cache_rules.resource_manifest.path_rules.as_ref(),
+            rules_bundle.cache_rules.slot_rules.item_up.enemy_slot_border,
         )
         .await?;
     } else {

@@ -12,6 +12,7 @@ pub(crate) fn make_manifest_category_extensions(
     mst: &ApiManifest,
     list: &mut CacheList,
     categories: Option<&ResourceCategoriesAsset>,
+    enemy_slot_border: Option<i64>,
 ) {
     let Some(categories) = categories else {
         return;
@@ -23,7 +24,13 @@ pub(crate) fn make_manifest_category_extensions(
         return;
     }
 
-    for slot in mst.api_mst_slotitem.iter().filter(|slot| slot.api_sortno > 0) {
+    // `card_t` has no player-side graphics for abyssal equipment. Apply the same
+    // enemy-slot-border exclusion the standard slot categories already use in
+    // `generate.rs`; absent border -> `i64::MAX` -> no filtering (prior behavior).
+    let border = enemy_slot_border.unwrap_or(i64::MAX);
+    for slot in
+        mst.api_mst_slotitem.iter().filter(|slot| slot.api_sortno > 0 && slot.api_id <= border)
+    {
         let item_id = format!("{:04}", slot.api_id);
         let key = SuffixUtils::create(&item_id, "slot_card_t");
         list.add(format!("kcs2/resources/slot/card_t/{item_id}_{key}.png"), slot.api_version);
@@ -150,7 +157,7 @@ fn make_character_with_rules(mst: &ApiManifest, list: &mut CacheList, rules: Opt
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::make_list::manifest::{ShipPathHoles, load_resource_manifest};
+    use crate::make_list::manifest::{ShipPathHoles, SlotGenerationGroups, load_resource_manifest};
 
     fn make_manifest() -> ApiManifest {
         ApiManifest {
@@ -204,6 +211,58 @@ mod tests {
         }
 
         assert!(!has_btxt_flat_coverage(999_999));
+    }
+
+    fn card_t_categories() -> ResourceCategoriesAsset {
+        ResourceCategoriesAsset {
+            slot_generation_groups: SlotGenerationGroups {
+                default: vec!["card_t".to_string()],
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    fn card_t_manifest() -> ApiManifest {
+        ApiManifest {
+            api_mst_slotitem: vec![
+                ApiMstSlotitem {
+                    api_id: 1,
+                    api_sortno: 1,
+                    api_version: Some(1),
+                    ..Default::default()
+                },
+                // Abyssal equipment past the border, with the anomalous `sortno == id`
+                // that lets it slip through the `sortno > 0` filter alone.
+                ApiMstSlotitem {
+                    api_id: 1660,
+                    api_sortno: 1660,
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_card_t_excludes_abyssal_equipment_past_border() {
+        let mst = card_t_manifest();
+        let categories = card_t_categories();
+
+        let mut list = CacheList::new();
+        make_manifest_category_extensions(&mst, &mut list, Some(&categories), Some(1500));
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|p| p.contains("slot/card_t/0001_")), "friendly card_t kept");
+        assert!(
+            !paths.iter().any(|p| p.contains("slot/card_t/1660_")),
+            "abyssal card_t past border excluded"
+        );
+
+        // Absent border -> no filtering, matching the prior behavior.
+        let mut list = CacheList::new();
+        make_manifest_category_extensions(&mst, &mut list, Some(&categories), None);
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|p| p.contains("slot/card_t/1660_")), "no border -> abyssal kept");
     }
 
     #[test]

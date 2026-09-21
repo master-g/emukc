@@ -21,7 +21,7 @@ pub(crate) use types::{
 #[cfg(test)]
 pub(crate) use types::{
     ResourceTemplateDomain, ResourceTemplateProvenance, ResourceTemplateRange,
-    ResourceTemplateSegment, ResourceTemplatesAsset,
+    ResourceTemplateSegment, ResourceTemplatesAsset, SlotGenerationGroups,
 };
 
 pub(crate) static PATH_RULES: OnceLock<PathRules> = OnceLock::new();

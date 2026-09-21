@@ -55,6 +55,16 @@ const SHIP_STANDARD_CATEGORIES: &[&str] = &[
     "supply_character_dmg",
 ];
 
+/// Friendly ship ids that have no `album_status` artwork on the CDN.
+///
+/// These are the 補給 (resupply) forms — 長波改二補, 朝霜改二補, 涼波改二補,
+/// 扶桑改二補, 山城改二補. They are ordinary `api_mst_ship` entries and appear
+/// in the picture book, so nothing in `start2` distinguishes them from a normal
+/// friendly ship; the game simply never shipped their album art. Confirmed by a
+/// full `cache populate` sweep: across all 865 friendly ships these are the only
+/// `album_status` 404s.
+const ALBUM_STATUS_HOLES: &[i64] = &[743, 744, 745, 748, 749];
+
 /// Ship target types that use `full`/`full_dmg` pattern (with `api_filename`).
 const SHIP_FULL_CATEGORIES: &[&str] = &["full", "full_dmg"];
 
@@ -331,6 +341,10 @@ fn should_skip_ship_category(
     graph: Option<&emukc_model::kc2::start2::ApiMstShipgraph>,
     path_rules: Option<&PathRules>,
 ) -> bool {
+    if category == "album_status" && ALBUM_STATUS_HOLES.contains(&ship_id) {
+        return true;
+    }
+
     let Some(graph) = graph else {
         return false;
     };
@@ -1461,6 +1475,40 @@ mod tests {
         assert_eq!(paths.len(), 1);
         assert!(paths[0].contains("ship/album_status/0001_"));
         assert!(!paths.iter().any(|path| path.contains("ship/album_status/1500_")));
+    }
+
+    #[test]
+    fn test_album_status_skips_resupply_form_ships() {
+        let mut mst = make_minimal_manifest();
+        // Turn the friendly ship into 長波改二補 (743), a resupply form with no album art.
+        mst.api_mst_ship[0].api_id = 743;
+        mst.api_mst_shipgraph[0].api_id = 743;
+
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("album_status", "this._mst_id", Some("false"));
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            default_friendly: vec!["album_status".to_string()],
+            ..Default::default()
+        };
+
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+
+        assert!(
+            list.items.is_empty(),
+            "album_status must be skipped for resupply-form ships, got {:?}",
+            list.items
+        );
+
+        // Other categories for the same ship are unaffected.
+        let mut list = CacheList::new();
+        let entry = make_ship_entry("banner", "this._mst_id", Some("false"));
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            default_friendly: vec!["banner".to_string()],
+            ..Default::default()
+        };
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+        assert!(list.items.iter().any(|item| item.path.contains("ship/banner/0743_")));
     }
 
     #[test]

@@ -18,6 +18,7 @@ pub(super) async fn make_manifest_support(
     decoder_assets: Option<&crate::make_list::manifest::DecoderCoverageAssets>,
     categories: Option<&crate::make_list::manifest::ResourceCategoriesAsset>,
     rules: Option<&crate::make_list::manifest::PathRules>,
+    enemy_slot_border: Option<i64>,
 ) -> Result<(), CacheListMakingError> {
     let strategy = CacheListMakeStrategy::Manifest;
 
@@ -26,7 +27,16 @@ pub(super) async fn make_manifest_support(
     versioned::make(mst, kache, &strategy, list).await?;
     list.set_authority_stage(previous);
 
-    resources::make_manifest_support(mst, kache, list, decoder_assets, categories, rules).await?;
+    resources::make_manifest_support(
+        mst,
+        kache,
+        list,
+        decoder_assets,
+        categories,
+        rules,
+        enemy_slot_border,
+    )
+    .await?;
 
     Ok(())
 }

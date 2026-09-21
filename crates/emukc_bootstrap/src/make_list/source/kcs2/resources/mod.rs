@@ -31,6 +31,7 @@ pub(super) async fn make_manifest_support(
     decoder_assets: Option<&DecoderCoverageAssets>,
     categories: Option<&ResourceCategoriesAsset>,
     rules: Option<&PathRules>,
+    enemy_slot_border: Option<i64>,
 ) -> Result<(), CacheListMakingError> {
     let strategy = CacheListMakeStrategy::Manifest;
 
@@ -47,7 +48,7 @@ pub(super) async fn make_manifest_support(
         }
     }
     ship::make_manifest_category_extensions(mst, list, rules, categories);
-    slot::make_manifest_category_extensions(mst, list, categories);
+    slot::make_manifest_category_extensions(mst, list, categories, enemy_slot_border);
     slot::make_manifest_plane_extensions(mst, list, rules);
     list.set_authority_stage(previous);
 

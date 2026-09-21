@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-19T08:40:09.775Z",
+  "generatedAt": "2026-09-20T15:05:34.138Z",
   "scriptVersion": "6.3.5.0",
   "summary": {
     "shipRuleCount": 2,
@@ -12,7 +12,7 @@
   },
   "resourceManifest": {
     "version": 2,
-    "generatedAt": "2026-09-19T08:40:09.389Z",
+    "generatedAt": "2026-09-20T15:05:33.916Z",
     "pathRules": {
       "shipDamageVariants": {
         "banner": [
@@ -511,7 +511,10 @@
           6259,
           6260,
           6261,
-          6262
+          6262,
+          6299,
+          6301,
+          6303
         ],
         "fullDmg": [
           5026,
@@ -594,7 +597,10 @@
           6259,
           6260,
           6261,
-          6262
+          6262,
+          6299,
+          6301,
+          6303
         ],
         "up": [
           5358,
@@ -640,7 +646,10 @@
           6259,
           6260,
           6261,
-          6262
+          6262,
+          6299,
+          6301,
+          6303
         ],
         "upDmg": [
           5026,
@@ -723,7 +732,10 @@
           6259,
           6260,
           6261,
-          6262
+          6262,
+          6299,
+          6301,
+          6303
         ]
       },
       "enemyShipHoles": {
@@ -11154,7 +11166,7 @@
   },
   "resourceCategories": {
     "version": 1,
-    "generatedAt": "2026-09-19T08:40:08.416Z",
+    "generatedAt": "2026-09-20T15:05:33.011Z",
     "scriptVersion": "6.3.5.0",
     "summary": {
       "shipTargetTypeCount": 36,
