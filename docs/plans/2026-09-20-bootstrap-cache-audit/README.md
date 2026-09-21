@@ -14,7 +14,7 @@
 | 002 | 为第三方数据解析器建立 fixture 测试基线 | P1 | M | — | TODO |
 | 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | IN PROGRESS |
 | 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | TODO |
-| 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | TODO |
+| 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | DONE |
 | 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
 | 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
 | 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | TODO |
@@ -33,6 +33,21 @@
   `failed + missing > 0`——不改这一处的话，404 移出 `failed_count` 后全 404 的一轮
   会退化成 exit 0，正是本计划否决的方案。实测：2 条清单（1 个 404 + 1 个正常）
   → `Missing (404): 1`、无 Retried、exit 1、清单可被 `--src` 读回。
+
+- 005 DONE：`--force-update` 不再先删 `main.js` / `version.json` / `kcs_const.js`
+  （整段删除），flag 保留，语义改为「即使本地已有也重下」，实现是把
+  `overwrite || force_update` 传给 `download_web_assets` 的 `overwrite` 参数——
+  这与改前等价：改前 `--force-update` 靠「删掉再下」达到同样效果，所以
+  「不带 `--force-update` 时是否重下」仍只由 `--overwrite` 决定。
+  `download_web_assets` 改为下载到同目录的 `*.part` 再 `rename`，失败即删临时文件、
+  原文件不动；CDN 全失败或未配置都记入失败列表，结尾返回
+  `BootstrapDownloadError::WebAssetUnavailable`，Phase 4 的 `?` 因此真正生效。
+  实测场景 A（`game_cdn` 指向不可达主机 + `--overwrite --force-update`）：exit 1，
+  `main.js` 的 md5 与 mtime 均不变，无 `.part` 残留，"Bootstrap completed
+  successfully." 不打印；场景 B（配置还原）：exit 0，三个资产 mtime 全部刷新，
+  无 `.part` 残留。两个新单测经变异验证（去掉空 CDN 记失败 / 去掉结尾 return Err
+  均使其失败）。**未覆盖**：`rename` 的成功路径没有单测，计划禁止引入 HTTP mock，
+  只有场景 B 的手工实测作证。
 
 - 007 DONE：`fetch_from_remote` 的 404 分支改返回 `KacheError::FileNotFound`，
   `exists_on_remote` 改为三态 `RemoteExistence{Present,Absent,Indeterminate}`。

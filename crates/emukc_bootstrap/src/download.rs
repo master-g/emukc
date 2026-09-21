@@ -36,6 +36,12 @@ pub enum BootstrapDownloadError {
     #[error(transparent)]
     Download(#[from] emukc_network::download::DownloadError),
 
+    /// All configured CDN sources failed for a required web asset.
+    #[error("all CDN sources failed for web asset {path}")]
+    WebAssetUnavailable {
+        path: String,
+    },
+
     /// Unzip error
     #[error("bootstrap resource {save_as} ({url}) failed while {action}: {source}")]
     Unzip {
@@ -307,8 +313,12 @@ const WEB_ASSETS: &[WebAsset] = &[
 
 /// Download key web assets (`kcs_const.js`, `main.js`, `version.json`) from CDN.
 ///
-/// Skips assets whose CDN is not configured, emitting a warn log.
-/// Skips files that already exist unless `overwrite` is true.
+/// Each asset is fetched into a temporary file next to its destination and only
+/// moved into place once the transfer succeeds, so a failed run never damages the
+/// copy already on disk. Files that already exist are skipped unless `overwrite`
+/// is true. If any asset cannot be fetched — because every CDN failed or because
+/// none is configured — the whole call fails with
+/// [`BootstrapDownloadError::WebAssetUnavailable`].
 pub async fn download_web_assets(
     cache_root: &std::path::Path,
     gadgets_cdn: &[String],
@@ -324,28 +334,22 @@ pub async fn download_web_assets(
     })?);
 
     let mp = new_multi_progress();
+    let mut failures: Vec<&'static str> = Vec::new();
 
     for asset in WEB_ASSETS {
-        let cdns = match asset.cdn_kind {
-            CdnKind::Gadgets => gadgets_cdn,
-            CdnKind::Game => game_cdn,
+        let (cdns, cdn_name) = match asset.cdn_kind {
+            CdnKind::Gadgets => (gadgets_cdn, "gadgets_cdn"),
+            CdnKind::Game => (game_cdn, "game_cdn"),
         };
 
         if cdns.is_empty() {
             log_with_mp(&mp, || {
                 warn!(
-                    "Skipping {} — no {} CDN configured. Set {} in emukc.config.toml to enable.",
+                    "No {cdn_name} configured for {} — set {cdn_name} in emukc.config.toml, or pass --skip-web-assets.",
                     asset.path,
-                    match asset.cdn_kind {
-                        CdnKind::Gadgets => "gadgets_cdn",
-                        CdnKind::Game => "game_cdn",
-                    },
-                    match asset.cdn_kind {
-                        CdnKind::Gadgets => "gadgets_cdn",
-                        CdnKind::Game => "game_cdn",
-                    },
                 );
             });
+            failures.push(asset.path);
             continue;
         }
 
@@ -355,15 +359,18 @@ pub async fn download_web_assets(
             continue;
         }
 
+        // same directory as `dest`, so the rename below is atomic
+        let tmp = dest.with_extension("part");
         let mut downloaded = false;
+
         for cdn in cdns {
             let cdn = cdn.trim_end_matches('/');
             let url = format!("http://{cdn}/{}", asset.path);
 
             let result = emukc_network::download::Request::builder()
                 .url(&url)
-                .save_as(&dest)
-                .overwrite(overwrite)
+                .save_as(&tmp)
+                .overwrite(true)
                 .skip_header_check(true)
                 .build()?
                 .execute(Some((*client).clone()))
@@ -371,18 +378,15 @@ pub async fn download_web_assets(
 
             match result {
                 Ok(()) => {
+                    std::fs::rename(&tmp, &dest)?;
                     log_with_mp(&mp, || {
                         info!("Downloaded {} from {}", asset.path, url);
                     });
                     downloaded = true;
                     break;
                 }
-                Err(DownloadError::FileAlreadyExists(_)) => {
-                    debug!("Skipping {} — already exists", asset.path);
-                    downloaded = true;
-                    break;
-                }
                 Err(e) => {
+                    let _ = std::fs::remove_file(&tmp);
                     log_with_mp(&mp, || {
                         warn!("Failed to download {} from {}: {e}", asset.path, url);
                     });
@@ -394,8 +398,61 @@ pub async fn download_web_assets(
             log_with_mp(&mp, || {
                 warn!("All CDN sources failed for {}", asset.path);
             });
+            failures.push(asset.path);
         }
     }
 
+    if let Some(first) = failures.first() {
+        error!("Web assets could not be refreshed: {}", failures.join(", "));
+        return Err(BootstrapDownloadError::WebAssetUnavailable {
+            path: (*first).to_owned(),
+        });
+    }
+
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn web_assets_fail_when_no_cdn_is_configured() {
+        let root = tempfile::tempdir().unwrap();
+
+        let err = download_web_assets(root.path(), &[], &[], None, true).await.unwrap_err();
+
+        assert!(
+            matches!(err, BootstrapDownloadError::WebAssetUnavailable { .. }),
+            "expected WebAssetUnavailable, got {err:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn failed_download_keeps_the_existing_file_and_leaves_no_temp() {
+        let root = tempfile::tempdir().unwrap();
+        let cdns = vec!["invalid.example.invalid".to_owned()];
+
+        for asset in WEB_ASSETS {
+            let dest = root.path().join(asset.path);
+            std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+            std::fs::write(&dest, b"original").unwrap();
+        }
+
+        let err = download_web_assets(root.path(), &cdns, &cdns, None, true).await.unwrap_err();
+        assert!(
+            matches!(err, BootstrapDownloadError::WebAssetUnavailable { .. }),
+            "expected WebAssetUnavailable, got {err:?}"
+        );
+
+        for asset in WEB_ASSETS {
+            let dest = root.path().join(asset.path);
+            assert_eq!(std::fs::read(&dest).unwrap(), b"original", "{} was modified", asset.path);
+            assert!(
+                !dest.with_extension("part").exists(),
+                "temp file left behind for {}",
+                asset.path
+            );
+        }
+    }
 }

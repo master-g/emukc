@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-20 · branch `main`
+Last updated: 2026-09-21 · branch `fix/atomic-web-asset-refresh`
 
 ## Verified Facts
 
@@ -91,6 +91,11 @@ Current verification baseline:
   `api_alignment_e2e` asserts map ids in `600..700` but the codex stores area-6 maps as 61-65;
   `real_manifest_parses_with_passthrough_fields_none` is in `emukc_model`, which has no DB dependency.
 
+- [2026-09-21] `emukc_network`'s download layer already reads the whole body before opening the
+  destination and errors out on any non-2xx, so a failed transfer never wrote a partial or corrupt
+  file. The `.part` + rename added by plan 005 only closes the truncate-to-copy window; the real
+  data loss came from `bootstrap --force-update` deleting the files before the download ran.
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -130,42 +135,44 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-21] Branch `fix/distinguish-missing-from-failure`, five commits on `9bd9f59`, nothing pushed.
-  Audit plans 007 and 009 both landed, closing the "404 vs transient failure" line end to end.
-  `2497efc` (007) splits the two outcomes in the cache layer: a 404 returns `KacheError::FileNotFound`,
-  and `exists_on_remote` returns `RemoteExistence{Present,Absent,Indeterminate}`. `6630261` deletes
-  populate's per-item spinner (2m13s/220s CPU -> 3s/1.25s on a fully cached list). `f865ea7` removes
-  the 19 CDN-404 paths from the cache list. `a0082fb` revises plan 009. The last commit implements 009:
-  pass 1 splits three ways so 404s skip pass 2, pass 2 re-splits the same way, `*.failed.nedb` and
-  `*.missing.nedb` are written beside the input list in the input's own JSONL shape, the summary gains
-  `Missing (404): N`, and the exit condition widens to `failed + missing > 0`.
-- Adversarial review changed both plans' outcomes. On 007 it found the fix was half done:
-  `make_gauge_by_id` mapped every fetch error to `Ok(false)`, so even after a HEAD probe said `Present`
-  a failed fetch dropped the gauge. On 009 it found that following our own printed retry hint
-  (`--src <failed list>`) deleted the unrelated `*.missing.nedb` — the only readable record of what is
-  absent upstream. Both fixed, both with a mutation-verified regression test.
-- Verified: `cargo test --workspace --no-fail-fast` exit 0, 1055 passed; `fmt --check` clean; clippy
-  13 warnings, identical to the pre-change baseline. Five behaviours were mutation-verified. End to end:
-  a 2-item list with one 404 gives `Missing (404): 1`, no `Retried`, exit 1, and a list `--src` reads back.
+- [2026-09-21] Merged `fix/distinguish-missing-from-failure` into `main` fast-forward and pushed
+  (`main` now at `6225b8d`); the local branch is kept but fully merged. Then executed audit plan 005
+  on a new branch `fix/atomic-web-asset-refresh`.
+- 005: deleted the `--force-update` block in `src/bin/cli/bootstrap.rs` that removed `main.js`,
+  `version.json` and `kcs_const.js` before Phase 4 ran. The flag stays; it now feeds
+  `overwrite || force_update` into `download_web_assets`, which is behaviourally identical to the old
+  delete-then-download. `download_web_assets` fetches into a sibling `*.part` file and renames on
+  success, deletes the temp on failure, counts an unconfigured CDN as a failure, and returns
+  `BootstrapDownloadError::WebAssetUnavailable` if any asset is missing at the end.
+- Verified: `cargo test --workspace --no-fail-fast` exit 0, 0 failed, 0 ignored; `fmt --all --check`
+  clean; clippy warning set byte-identical to the stashed baseline (6 `result_large_err`, line numbers
+  shifted only). Scene A (`game_cdn` = unreachable host, `--overwrite --force-update`): exit 1,
+  `main.js` md5 and mtime unchanged, no `.part` residue, no success line. Scene B (config restored):
+  exit 0, all three assets refreshed, no residue. `emukc.config.toml` restored and unstaged.
+- The two new unit tests are mutation-verified for the hard-failure behaviour only. The rename success
+  path has no test — plan 005 forbids an HTTP mock, so scene B is its only evidence.
 
 ## Next Session
 
-- [2026-09-21] The branch holds five commits and has NOT been merged to `main` or pushed. Merging is the
-  obvious next move now that the 404 line is complete; nothing else depends on it staying separate.
-- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm across
-  mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror has it",
-  so a mirror in its own sync window can write a live resource into a permanent skip list. Warned in
-  BOOTSTRAP.md and in populate's own output, but the file itself carries no marker.
+- [2026-09-21] Branch `fix/atomic-web-asset-refresh` holds one commit, not pushed, not merged. Plan 005
+  said not to push; merging it is the obvious next move.
+- Audit plan set is now 4/13 DONE (001/005/007/009), 003 IN PROGRESS. The remaining P0s are 004 and
+  006, both blocked on 002 (parser fixture baseline) — 002 is the highest-leverage next plan, it also
+  unblocks 011.
+- `bootstrap` without `--overwrite` is broken independently of 005: Phase 3 aborts with
+  "file .data/codex/ship_extra.json already exists". Out of 005's scope, no plan covers it yet.
 - Plan 003 is still IN PROGRESS: its code landed in `96f7689`, but the last item of its Definition of
   Done -- measured before/after throughput -- has no data. The 2m13s -> 3s number is the spinner fix,
   NOT 003's connection reuse; do not cite it as 003's proof.
-- Known, deliberately unfixed in 009 (recorded by its review, all pre-existing or out of scope):
-  `tokio::fs::write` is not atomic, so a list killed mid-write leaves a half line and the next `--src`
-  run rejects the whole file at parse time; two concurrent populates against one list overwrite each
-  other's lists with no locking; `FailureKind::Rollback` is currently unreachable because `get` serves
-  the newer local file since `185c0b8`, yet BOOTSTRAP.md still documents its log line.
+- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm across
+  mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror has it",
+  so a mirror in its own sync window can write a live resource into a permanent skip list.
+- Known, deliberately unfixed in 009: `tokio::fs::write` is not atomic, so a list killed mid-write
+  leaves a half line and the next `--src` run rejects the whole file; two concurrent populates against
+  one list overwrite each other's lists with no locking; `FailureKind::Rollback` is unreachable because
+  `get` serves the newer local file since `185c0b8`, yet BOOTSTRAP.md still documents its log line.
 - Older backlog, unchanged: the 14 `api_req_combined_battle/*` endpoints then the Air Corps set (EO74
   field specs at sinsinpub/kcs2-assets `api_info/apilist.txt`, stale, a starting point not a contract);
   `test_font` needs `create_dir_all`; `api_alignment_e2e`'s `600..700` contradicts the codex's 61-65
-  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 002/004/005/006/
-  008/010/011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.
+  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 002/004/006/008/
+  010/011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.

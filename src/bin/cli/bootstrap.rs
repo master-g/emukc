@@ -11,7 +11,7 @@ pub(super) struct BootstrapArgs {
     #[arg(short, long)]
     pub(super) overwrite: bool,
 
-    #[arg(help = "Remove main.js and version files from cache folder")]
+    #[arg(help = "Re-download main.js and version files even if already cached")]
     #[arg(long)]
     pub(super) force_update: bool,
 
@@ -50,28 +50,6 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
     let codex_root = cfg.codex_root()?;
     codex.save(&codex_root, args.overwrite)?;
 
-    if args.force_update {
-        let p = cfg.cache_root.join("gadget_html5").join("js").join("kcs_const.js");
-        if p.exists() {
-            std::fs::remove_file(&p)?;
-        } else {
-            warn!("{:?} not found.", p);
-        }
-        let p = cfg.cache_root.join("kcs2").join("version.json");
-        if p.exists() {
-            std::fs::remove_file(&p)?;
-        } else {
-            warn!("{:?} not found.", p);
-        }
-        let p = cfg.cache_root.join("kcs2").join("js").join("main.js");
-        if p.exists() {
-            std::fs::remove_file(&p)?;
-        } else {
-            warn!("{:?} not found.", p);
-        }
-        info!("version files in kcs cache removed.");
-    }
-
     // Phase 4: Download web assets
     if !args.skip_web_assets {
         info!("Phase 4/4: Downloading web assets...");
@@ -80,7 +58,7 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
             &cfg.gadgets_cdn,
             &cfg.game_cdn,
             proxy,
-            args.overwrite,
+            args.overwrite || args.force_update,
         )
         .await?;
     }
