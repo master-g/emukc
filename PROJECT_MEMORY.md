@@ -105,6 +105,10 @@ Current verification baseline:
   基线已 `--accept` 到 6.3.5.0，入口是 `make drift-check` / `make drift-accept`，`make update`
   在 decode 后打一份不阻断的报告。指纹按规范化后的字节算，所以 `_0x` 重命名会算作漂移，
   即使解码知识没变——这是「收敛版本记录」要解决的噪声来源。
+- [2026-09-21] manifest 差集（21,510 条）已全量 HEAD 探测结案：786 条存在（3.65%），
+  全部是深海舰的 `ship/banner_dmg`。但 `cache_rules.json` 的 `shipRules.targetSemantics`
+  （observed-complete）写着 banner + default-abyssal + damaged → `banner`，客户端从不请求
+  它们。**不要补**。依据见 `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 
 ## Failed Attempts / Pitfalls
 
@@ -147,22 +151,23 @@ Current verification baseline:
 cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all(".data/tmp")`，
 `mv .data .data.bak` 之后再移回就把备份塞进了新目录，两轮嵌套两层。正确做法：
 `mv .data ../.data-bak` → 跑 → `rm -rf .data`（此时只剩 tmp）→ `mv ../.data-bak .data`。 | session 2026-09-21 |
+| [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 
 ## Last Session
 
-- [2026-09-21] 五件事全部推送：积压 11 个提交推掉；`bootstrap` 裸跑中止修复
-  （`06e57a6` + `919ca9c`）；本文件压到 21.7 KB（`217fe6f`）；空 200 的 40 次重试
-  （`44ca6ba`）；drift-check 接通（`617cfca`）。
-- `Codex::save` 13 个输出里只有 `start2.json` 是 warn+skip，其余 12 个返回 `AlreadyExist`，
-  所以第二次裸跑必死在 Phase 3。全部改成 warn+skip，`CodexError::AlreadyExist` 随之删除。
-  顺带修掉 `needs_quiet_stdout` 让失败的 bootstrap exit 1 且两个流全空。
-- 空 200：`fetch_from_remote` 把每个镜像的 `InvalidFile` 折叠成 `FailedOnAllCdn`，
-  被读作「没有镜像应答」。改成「全部镜像都应答且都不可用 → `InvalidFile`」并归入 missing 类。
-- drift-check：013 选的是「先接通，再谈收敛」。跟踪集 6 → 13，基线 6.3.0.0 → 6.3.5.0，
-  接进 Makefile 三个入口，两份 solutions 文档同步更新。
+- [2026-09-21] 七个提交全部推送（截至 `73dff12`）：bootstrap 裸跑中止、CLI 静默失败、
+  记忆压缩、空 200 重试、drift-check 接通、manifest 差集结案、populate 清单原子落盘。
+- manifest 差集是本次最大的一件：先生成两份清单求差（21,510 条），再对全部做 HEAD 探测
+  （每个 CDN 主机一条 keep-alive 连接，4 分钟）。结论是**不补**——786 条存在的全是
+  深海舰 `banner_dmg`，而客户端受损时用的仍是完好 banner。中途实现过一版「修复」
+  （decoder 加 `banner_dmg` 到 defaultAbyssal + 103 条缺口表），发现是 no-op 后整体回滚，
+  只留结论文档。
+- 009 的三处遗留一次清完：`persist_failure_list` 改为写 pid 标记的临时文件再 rename；
+  并发 populate 仍是 last-writer-wins（有意不加锁，只消除损坏）；删掉自 `185c0b8` 起
+  不可达的 `FailureKind::Rollback` 并改正 BOOTSTRAP.md。
 - 门禁每次跑满 fmt / clippy（恒 6 条既有 `result_large_err`）/ `cargo test --workspace` 全绿；
-  三次真实验证：裸 `bootstrap` exit 0、单条清单 populate 归入 `*.missing.nedb` 零重试、
-  `make drift-check` exit 0 报 no drift。
+  实跑验证：裸 bootstrap exit 0、populate 单条归 missing 零重试且无 `.part` 残留、
+  `make drift-check` no drift。
 
 ## Next Session
 
@@ -173,11 +178,7 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 - 收敛要处理的两条裂缝没变：同一个上游字段 `scriptVesion`（上游拼错）被
   `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
   两边不一致时 012 的校验会误报；指纹按字节算，`_0x` 重命名会产生噪声漂移。
-- manifest 差集里约 7%（估 1,500 条）是真实存在的资源，Rules 清单漏了它们（抽样命中 `banner_dmg`）。
-  正确补法是拿差集做一次性存在性探测并入规则，不是复活 Greedy 枚举。尚未立计划。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
-- 009 里明知而未修：`tokio::fs::write` 非原子；两个并发 populate 对同一清单互相覆盖无锁；
-  `FailureKind::Rollback` 自 `185c0b8` 起不可达，但 BOOTSTRAP.md 仍写着它的日志行。
 - 更早的积压未变：14 个 `api_req_combined_battle/*` 然后基地航空队（EO74 字段规格见
   sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时）；`api_alignment_e2e` 的 `600..700`
   与 codex 的 61-65 号 id 矛盾；`gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。
