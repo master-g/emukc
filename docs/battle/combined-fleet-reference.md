@@ -4,6 +4,15 @@
 > fetched 2026-09-21. Community-verified attack-order and correction tables.
 > This file exists because `docs/battle/research.md` §8.2 deferred the tables
 > ("具体修正表需参考 wikiwiki.jp 的完整数据") and §15.5 carried only their range.
+>
+> Two further sources are cited inline below:
+> `docs/apilist.txt` (in-repo, 4209 lines) for protocol field semantics — the
+> decoded client gives field *names*, this gives their *meaning*; and
+> [KC3Kai/kancolle-replay](https://github.com/KC3Kai/kancolle-replay) `js/kcsim.js`
+> (read 2026-09-21) as an independently maintained simulator. Its
+> `COMBINEDCF1-4` (`kcsim.js:9-12`) and `COMBINEDCONSTS` (`kcsim.js:13-51`)
+> reproduce every cell of §Formations and §Combined fleet corrections below,
+> so those two tables have two independent confirmations.
 
 A combined fleet sorties deck 1 (本隊 / main) and deck 2 (護衛 / escort) as one
 12-ship force. `profile.combined_type` selects the flavour: `1` = 空母機動部隊
@@ -202,6 +211,58 @@ The 14 endpoints the client calls: `battle`, `battle_water`, `airbattle`,
 `ec_midnight_battle`, `ec_night_to_day`, `midnight_battle`, `sp_midnight`,
 `battleresult`, `goback_port`.
 
+### Which shelling round carries which deck
+
+The phase order in §Phase order says *when* each deck fires; this says *which
+packet field* carries it. **The two endpoints are mirror images — do not carry
+one's mapping over to the other.**
+
+`battle` (空母機動 / 輸送護衛, `docs/apilist.txt:3008`):
+
+| Field | Participants |
+|---|---|
+| `api_hougeki1` | 第一次砲撃戦 — 味方随伴 (deck 2) vs 敵 |
+| `api_raigeki` | 雷撃戦 |
+| `api_hougeki2` | 第二次砲撃戦 — 味方本隊 (deck 1) vs 敵 |
+| `api_hougeki3` | 第三次砲撃戦 — 味方本隊 (deck 1) vs 敵 |
+
+`battle_water` (水上打撃, `docs/apilist.txt:3164`):
+
+| Field | Participants | Gate |
+|---|---|---|
+| `api_hougeki1` | 第一次砲撃戦 — 味方本隊 (deck 1) vs 敵 | `api_hourai_flag[0]` |
+| `api_hougeki2` | 第二次砲撃戦 — 味方本隊 (deck 1) vs 敵 | `api_hourai_flag[1]` |
+| `api_hougeki3` | 第三次砲撃戦 — 味方随伴 (deck 2) vs 敵 | `api_hourai_flag[2]` |
+| `api_raigeki` | 雷撃戦 | `api_hourai_flag[3]` |
+
+Two consequences. In `battle`, **deck 1's two rounds are slots 2 and 3, not 1
+and 2**, and the torpedo phase sits *between* deck 2's shelling and deck 1's —
+the single-fleet hougeki1/hougeki2 intuition is wrong here. In `battle_water`
+the assignment reverses and 雷撃 returns to last position.
+
+`api_hourai_flag[n]` gates each field positionally by field name; only
+`battle_water` documents it explicitly, but it is the same mapping the
+single-fleet path already uses.
+
+`api_raigeki`'s `api_frai` / `api_fcl` / `api_fdam` / `api_fydam` are each
+`[12]`, independently confirming the continuous 0–11 friendly index space
+derived from `main.decoded.js` in the plan's U1 section.
+
+### Request parameters
+
+`docs/apilist.txt` carries no `Request.api_req_combined_battle/*` entry except
+`goback_port` (`(情報なし)`). Per the file's own convention
+("記載のないものについては api_req_sortie/battle などと同様") the request body is
+the single-fleet one at `docs/apilist.txt:2031`: `api_formation`,
+`api_recovery_type`, `api_supply_flag`, `api_ration_flag`, `api_smoke_flag`.
+
+### `battleresult` null semantics
+
+`docs/apilist.txt:3864`: `api_mvp_combined`, `api_get_ship_exp_combined` and
+`api_get_exp_lvup_combined` are **`null`** for a single fleet, not absent.
+`api_get_ship_exp` is `[7 or 8]` and starts with a `-1` dummy, which the
+existing single-fleet `calculate_sortie_ship_exp` already emits.
+
 ## Other mechanics
 
 **護衛退避 (escort withdrawal)** removes a heavily damaged ship from deck 2 for
@@ -209,10 +270,24 @@ the rest of the sortie, taking its escort with it; the withdrawn indices are
 reported in `api_escape_idx` / `api_escape_idx_combined`. This shrinks deck 2
 and can disqualify formations 13 and 14.
 
-**Flagship protection (旗艦援護 / かばう)** in a combined battle is unverified
-upstream — every かばう cell in the formation tables is `?`. The existing
-single-fleet implementation in `targeting.rs` explicitly scopes itself out of
-combined fleets.
+**Flagship protection (旗艦援護 / かばう)** has no verified upstream rate —
+every かばう cell in the wikiwiki formation tables is `?`. `kcsim.js:2309-2319`
+supplies a usable fitted default instead:
 
-**Radar-fire cells (レーダー射撃マス)** skip formation selection entirely; both
-sides enter with no formation (unverified).
+```js
+if (!target.isflagship || target.isInstall || target.isescort || ...) return target;
+var rate = [0,.45,.6,.75,.6,.6,.75][target.fleet.formation.id];
+if (!rate) rate = .6;   // formation 11-14 fall through to 60%
+```
+
+Two rules follow. **Deck 2's flagship is never protected** (`target.isescort`
+returns before the rate is consulted) — this is structural, not a fitted number.
+And **formations 11–14 intercept at 60%**, which is KC3's fallback, not observed
+game data; cite it as such wherever it lands. Either is closer to the game than
+`targeting.rs:154`'s current `None` for 11–14, which never intercepts at all.
+
+**Radar-fire cells (レーダー射撃マス)** skip formation *selection*, but the
+friendly side is not formation-less: `docs/apilist.txt:3833`
+(`api_req_combined_battle/ld_shooting`) states 「味方は第四警戒航行序列(14)固定」
+and that `api_search` is absent from the response. This supersedes the earlier
+wikiwiki-derived note here, which said both sides enter with no formation.
