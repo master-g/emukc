@@ -13,7 +13,7 @@
 | 001 | 为 emukc_cache 写入/过期/失败路径建立 mock CDN 测试基线 | P1 | M | — | DONE |
 | 002 | 为第三方数据解析器建立 fixture 测试基线 | P1 | M | — | DONE |
 | 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | IN PROGRESS |
-| 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | TODO |
+| 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | DONE |
 | 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | DONE |
 | 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
 | 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
@@ -25,6 +25,27 @@
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
+
+- 004 DONE：`parse` 从「按行 + 正则 + 三状态机」换成「按条目顺序分组」。没有用计划
+  优先的方案 1——`serde_json/preserve_order` 是 feature unification 下全工作区生效的，
+  会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序（含冻结的 battle golden），为一个
+  解析器付这个代价不划算。也没有手写方案 2 的转义扫描，而是用 `serde` 的 `MapAccess`：
+  `visit_map` 本来就按文档顺序交付条目，既保序又让 serde_json 去处理转义。
+  分组规则：`_quest_id_N` 开新记录，`"dummy": "forNoComma"` 直接丢弃，其余归入当前记录；
+  2 条目按 name/desc，1 条目按启发式（以「！」「。」结尾或超过 30 字符判为 desc）并 `warn!`，
+  0 条目 `warn!` 跳过，超过 2 条取前两个并 `warn!`。缺失的一侧留 `"n/a"`，不拿描述冒充标题。
+  实测（771 条全量，临时 `#[ignore]` 测试跑完已删）：771 个 id 解析出 771 条记录，
+  缺 name 的 11 个 id 与计划逐字一致（256/615/616/622/627/628/630/632/633/648/652），
+  缺 desc 的 2 个也一致（1124/1125），没有任何字段泄漏内部 key。启发式 13/13 正确。
+  重跑 `bootstrap --overwrite` 后：`grep -c '"_quest_id_' .data/codex/quest.json` 由 8 变 0，
+  日志里 `quest info not found` 由 8 条降到 4 条（剩下的正是上游确实没有的），
+  `has a single entry` 的 warn 恰好 13 条。
+  **一处计划措辞需要更正**：步骤 5 说修复后 name 为 `n/a` 的不再包含 257/616/623/628/
+  631/633/649/653 这 8 个。实际 616、628、633 仍是 `n/a`——它们本来就属于 kccp 里缺 name
+  的那 11 条，不是失步受害者。修好的是 257/623/631/649/653 这 5 个被连带毁掉的下一条。
+  同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
+  `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
+  这与计划「维护须知」里说的 11 条一致，是预期结果。
 
 - 002 DONE：新增 `tests/fixtures/kccp/quests_sample.json`（7 个 id，覆盖正常三段式、
   缺 name 的 615/616 连对、缺 desc 的 1124、`dummy` 哨兵的 1169）与

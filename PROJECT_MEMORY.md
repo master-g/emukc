@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-21 · branch `main`
+Last updated: 2026-09-21 · branch `fix/kccp-quest-parser`
 
 ## Verified Facts
 
@@ -95,13 +95,18 @@ Current verification baseline:
   destination and errors out on any non-2xx, so a failed transfer never wrote a partial or corrupt
   file. The `.part` + rename added by plan 005 only closes the truncate-to-copy window; the real
   data loss came from `bootstrap --force-update` deleting the files before the download ran.
-- [2026-09-21] `kccp/quest.rs` 的失步是**吞掉下一条的 id 行**：缺 name 的任务把下一条的
-  `_quest_id_N` 行当成自己的 desc（`reg_desc` 匹配第一对引号），缺 desc 的任务同样。所以每个
-  残缺任务都会连带**吃掉后面那一条**，不是只影响自己。fixture 里 7 个 id 只产出 5 条，
-  证据在 `tests/fixtures/kccp/quests_sample.json` 与同文件的测试模块。
+- [2026-09-21] kccp 源文件里 13 条任务只有一个条目：11 条缺 name
+  （256/615/616/622/627/628/630/632/633/648/652），2 条缺 desc（1124/1125）。判据是「以『！』
+  或『。』结尾，或超过 30 字符即为描述」，在全部 13 条上正确。这 11 条在游戏里标题显示 `n/a`，
+  补标题需要另一个数据源，不是解析器问题。
 - [2026-09-21] `extract_label_type` 有第五种周期字母 `s`（Cs1/2/3/5/6 共 5 个真实 wiki_id），
   `match` 里没有分支，和未命中的年任务一样落到 label_type 1。计划 011 只提了 By/Cy 的 7 个，
   修的时候别漏掉 `s`。
+
+- [2026-09-21] `serde` 的 `visit_map` 按文档顺序交付条目，所以「需要保序地读一个 JSON 对象」
+  不必开 `serde_json/preserve_order`——那个 feature 在 feature unification 下全工作区生效，
+  会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序。自定义 `Visitor` 收集 `Vec<(K, V)>` 即可，
+  范围只在一个函数内。见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
 
 ## Failed Attempts / Pitfalls
 
@@ -147,22 +152,25 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] Merged and pushed three branches to `main` (now `d9428e1`): plans 007+009, plan 005
-  (`32a4daa`) and plan 002 (`f2f0b3a`). Then, on `test/skip-when-bootstrap-data-absent`, made the
-  four remaining data-dependent tests skip instead of fail when the bootstrapped data is absent.
-- The guard copies a pattern the same files already used (`map_1_3_...`, `map_6_4_...`): check the
-  path, `eprintln!("skipping: ...")`, return. `make_list`'s two tests guard on `.data/codex`,
-  `map_pipeline::kcdata`'s two on `.data/temp/kc_data/_map`. Putting the guard first also stops
-  `make_kache()` from recreating `.data/tmp` on a run that is going to skip anyway.
-- Verified with `.data` moved outside the repo: `cargo test -p emukc_bootstrap` 235 passed / 0
-  failed / 0 ignored, exit 0, and `--nocapture` shows all four skip lines. With `.data` restored:
-  same 235, full workspace exit 0, fmt clean, clippy unchanged.
+- [2026-09-21] Merged and pushed plans 007+009, 005, 002 and the skip-guard commit to `main`
+  (`d60ef17`), then deleted all four merged branches. Now on `fix/kccp-quest-parser` with plan 004
+  implemented, committed, **not merged and not pushed**.
+- 004 replaced the line-driven three-state machine in `parser/kccp/quest.rs` with an ordered walk
+  over the JSON object's entries. Root cause was `line.split("\":").next()` always returning
+  `Some`, so any line advanced the state, including the next quest's id line -- each malformed
+  quest destroyed the one after it. Used `serde`'s `MapAccess` rather than the plan's preferred
+  `preserve_order` feature, which would have reordered every `serde_json::Map` in the workspace.
+- Verified: all 771 ids now parse into 771 records (was 762 with 9 descs holding internal keys);
+  the 11 missing-name and 2 missing-desc ids match the plan exactly; `grep -c '"_quest_id_'
+  .data/codex/quest.json` went 8 -> 0 after a real `bootstrap --overwrite`; `quest info not found`
+  in the log went 8 -> 4, the 4 being ids upstream genuinely lacks. Full workspace exit 0, fmt
+  clean, clippy unchanged.
 
 ## Next Session
 
-- [2026-09-21] Audit set is 5/13 DONE (001/002/005/007/009), 003 IN PROGRESS. 002 unblocked the two
-  remaining P0s, 004 and 006, and also 011. 004 is the natural next one -- its first step is to flip
-  the assertions 002 just froze.
+- [2026-09-21] Audit set is 6/13 DONE (001/002/004/005/007/009), 003 IN PROGRESS. `fix/kccp-quest-parser`
+  is waiting to be merged. The last P0 is 006 (empty requirements judged complete); 011 (label_type
+  yearly table) is the other one 002 unblocked, and its fix must also cover the `s` period letter.
 - `test/skip-when-bootstrap-data-absent` holds one commit, not merged, not pushed. With it, the
   crate's tests pass on a clean clone -- the last piece plan 002 could not deliver itself.
 - Plan 003 is still IN PROGRESS: its code landed in `96f7689`, but the last item of its Definition of
