@@ -1,5 +1,9 @@
 # TODO
 
+> Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
+> missing lists, derived mechanically from the router; `docs/api_coverage.md`
+> holds the roadmap. Last cross-checked 2026-09-21: 114 implemented, 34 missing.
+
 ## Completed
 - [x] impl incentive gameplay and api
 - [x] material cap is buggy
@@ -19,7 +23,7 @@
 - [ ] quest `api_invalid_flag` field is missing, e.g. plane convert quests (`questlist.rs`)
 - [ ] quest `api_c_list` (composition quest list) not populated (`questlist.rs`)
 - [ ] implement slotitem consumption for quest reward claim (`game/quest/consume.rs`)
-- [ ] implement combined fleet handler (`api_req_hensei/combined`)
+- [x] implement combined fleet handler (`api_req_hensei/combined`)
 - [ ] update quest progress on port entry (`api_port/port.rs`)
 - [ ] fix naming confusion in `net/assets/mod.rs`
 - [ ] remove all profile data on account deletion (`user/account.rs`)
@@ -81,4 +85,4 @@
 - [ ] `api_req_hensei/preset_lock` - lock fleet preset
 - [ ] `api_req_hensei/preset_order_change` - reorder fleet presets
 - [ ] `api_req_ranking/getlist` - ranking list display
-- [ ] `api_dmm_payment/paycheck` - payment (not needed for emulator)
+- [x] `api_dmm_payment/paycheck` - payment (stub returning check_value 1)
