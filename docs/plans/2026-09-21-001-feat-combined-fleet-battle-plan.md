@@ -18,7 +18,16 @@ execution: code
   空母機動部隊与水上打撃部隊两种编成。
 - **Authority order:** 本计划的 U-ID；`docs/battle/combined-fleet-reference.md`
   （wikiwiki 规则与数值表）；`main-decoder/out/main.decoded.js` 的协议字段；
-  现有 `emukc_battle` 单舰队实现与 `CLAUDE.md` 分层规则。
+  `docs/apilist.txt` 的字段语义；现有 `emukc_battle` 单舰队实现与 `CLAUDE.md`
+  分层规则。
+
+  `main.decoded.js` 与 `docs/apilist.txt` 的分工是明确的，不是冗余：客户端代码是
+  字段**是否存在**的唯一真源（`docs/plans/2026-09-19-2016` 已确立这条，不改），
+  但它给不出字段**含义**——哪一轮砲撃属于哪支舰队、`api_mvp_combined` 在通常舰队
+  时是 null 还是缺省、`ld_shooting` 的阵形是否固定，都只有 apilist 写着。所以
+  apilist 排在客户端之后、实现之前：与客户端冲突时以客户端为准，其余情况下它是
+  语义来源。仓库里这份 4209 行，比 GitHub 上找得到的 `andanteyk/ElectronicObserver`
+  副本（2023 停更）更全。
 - **Execution profile:** 核心数据模型先行（U1），阶段编排与协议输出并行（U2/U3），
   gameplay 舰队拆分随后（U4），端点最后（U5/U6），U7 收质量门。
 - **Stop conditions:** 若实现需要改动单舰队路径的 RNG 消耗顺序（会动摇
@@ -73,6 +82,10 @@ wikiwiki.jp，2026-09-21 取得），此前 `research.md` §8.2 把这张表推�
 | R5 | deck 1 不做开幕对潜与开幕雷击；夜战只有 deck 2 参战 | reference §Phase order |
 | R6 | 响应含客户端读取的 `_combined` 字段，两支舰队的 HP/装备/参数分别输出 | main.decoded.js |
 | R7 | `battleresult` 的 MVP、经验、损伤跨两支舰队正确结算并落库 | 现有单舰队结算 |
+| R8 | 旗艦援護在联合舰队下生效：deck 2 旗舰不受保护，阵形 11–14 按 60% 拦截 | kcsim.js:2309（拟合值，非抓包） |
+
+R2 与 R3 由 **U2b** 落地；计划初稿把两张表的建立（U1）与接线混为一谈，导致中间
+没有单元认领接线，实施 U2 时才发现两个函数零调用点。
 
 ---
 
@@ -148,9 +161,25 @@ api_escape_idx_combined → push(v - 1 + 6)   // deck 2
 **完成标志：** 两张表的单测通过；`cargo test -p emukc_battle` 全绿且单舰队
 测试一条未改。
 
-### U2 — 阶段编排
+### U2 — 阶段编排 ✅ 已实施
 
-**改动点：** `crates/emukc_battle/src/simulation/mod.rs`
+**改动点（实际比计划宽，下面是落地后的真实清单）：**
+`crates/emukc_battle/src/` 的 `simulation/mod.rs`、`targeting.rs`、
+`types/runtime.rs`、`state.rs`、`simulation/asw.rs`、`simulation/torpedo.rs`、
+`simulation/shelling.rs`（仅修正一处已过时的注释）。
+
+计划原本只写了前两个。多出来的三处是实现「谁参战」必需的：`BattleRuntimeShip`
+需要带上自己属于哪支 deck（`combined_role`），`BattleState` 需要把两支 deck 放进
+一条连续 vec 并记下边界（`CombinedLayout`）外加第三轮砲撃的槽位，开幕对潜与
+雷击的「deck 1 不参战」则是在各自的攻击者循环里按船过滤——**不能**靠切片，因为
+敌方在这些阶段仍然打两支 deck。
+
+**与单舰队模型的一处明确分歧（新增，计划原先没有）：** 单舰队路径里
+`hougeki1`/`hougeki2` 各只装一方的攻击，两轮交替。联合舰队用不了这套：三轮砲撃
+且每轮的 deck 由协议固定，交替会让某支 deck 整场不开火。所以联合舰队的每一轮里
+敌我各打一次、合并进同一个 `BattleHougeki`，靠 `api_at_eflag` 区分——这本来就是
+客户端的读法。单舰队路径一行未动，`battle_golden.rs` 与 `golden_transcript.rs`
+均未变。
 
 1. `simulate_day` 在 `friend_escort.is_some()` 时走联合舰队编排，否则走现有路径。
 2. 两种顺序（reference §Phase order）：
@@ -161,9 +190,75 @@ api_escape_idx_combined → push(v - 1 + 6)   // deck 2
 3. deck 1 不参与开幕对潜与开幕雷击（R5）。
 4. 第二巡砲撃的触发条件不变（敌我任一方有战舰系），沿用现有判定。
 5. 航空战由 deck 1 + deck 2 的舰载机共同参与，制空权在此决定。
+6. 旗艦援護（かばう）接通联合舰队（R8），改 `crates/emukc_battle/src/targeting.rs` 的
+   `escort_shield_rate`（现在对 11–14 返回 `None`，即永不拦截）：
+   - **deck 2 的旗舰不受保护**——这是结构规则，不是拟合数值，无条件实现。
+   - 阵形 11–14 的拦截率取 **60%**。这是 `kcsim.js:2309-2319` 的兜底值
+     （`[0,.45,.6,.75,.6,.6,.75][id]` 对 11–14 落空后 `rate = .6`），不是抓包
+     验证过的游戏数据；代码注释必须写明来源与性质，不要写成已验证事实。
+   详见 reference §Other mechanics。
 
 **完成标志：** 两种编成各一个阶段顺序测试，断言各阶段的参与者集合与出现次序；
+かばう 的两条规则各一个测试（deck 2 旗舰被直击不转移；11–14 有拦截）；
 单舰队编排的既有测试一条未改。
+
+**实际交付：** `simulation/mod.rs` 的 `combined_tests` 四个测试 + `targeting.rs`
+三个 かばう 测试。参战集合用「deck 1 放潜艇、deck 2 放驱逐」来观测——
+`can_shell_day_ship` 拒绝潜艇，所以「某一轮里有我方攻击」等价于「这一轮是
+deck 2 的」。`main_deck_does_not_open_with_torpedoes` 配了一个反向对照测试
+（同样的潜艇编成单舰队出击必须开幕雷击），否则开幕雷击整个坏掉也能让它通过。
+
+**留给后续单元的（U2 内确认存在，不在 U2 范围）：**
+
+- **索引翻译**：deck 2 的攻击者/被攻击者下标现在是 deck 切片内的 0..n，不是协议
+  要求的 6..11。U3 负责。
+- **双 MVP**：`finalize_day` 仍对整条 12 槽 vec 取一个 `calculate_mvp`，联合舰队
+  应当每支 deck 各一个。U5 负责。
+- **轟沈ストッパー的旗舰豁免**：`apply_damage` 与 `verify_protected_ships_alive`
+  都只认 `index == 0`，连续 vec 下 deck 2 的旗舰拿不到豁免。两处判据一致所以不会
+  触发断言，但这是个未定结论——第2艦隊旗艦是否享有轟沈保护，wikiwiki 与
+  `kcsim.js` 都没有直接给。需要单独定夺，不要在 U3–U6 里顺手改。
+- **`canOpTorpMain` 例外**：少数舰能从 deck 1 发动开幕雷击（`kcsim.js:1811`），
+  当前实现一律禁止 deck 1 雷击。影响面小，未建模。
+
+**顺带实现的**：`TransportEscort` 的阶段顺序与空母機動完全相同（reference
+§Phase order 把两者并列），所以它跟着一起生效了，尽管 U1 把它列为范围外。
+
+### U2b — 数值接线 ✅ 已实施（计划原先漏了这一单元）
+
+**为什么存在：** U1 造好了 `combined_formation_modifier` 与
+`combined_correction_vs_single` 两张表，U7 是质量门，中间没有任何单元认领「把表接进
+`damage.rs`」。实施 U2 时核查发现这两个函数**全仓零调用点**（只有 `lib.rs` 的
+re-export），`damage.rs` 的 `formation_modifier` 对 11–14 返回 1.0——也就是 R2 与 R3
+当时事实上都没实现。本单元补上。
+
+**改动点：** `crates/emukc_battle/src/damage.rs`、`types/runtime.rs`、
+`types/mod.rs`、`state.rs`、`targeting.rs`（测试）
+
+1. 新增 `day_formation_modifier(formation_id, class)`：11–14 走联合舰队表，其余
+   落回既有的 `formation_modifier` / `asw_formation_modifier`。接在砲撃、雷撃、
+   対潜三个伤害公式上（R2）。传入的恒为**攻击方**阵形，所以敌方通常舰队打我方
+   连合时仍用自己的常规倍率——只有真正处在警戒航行序列的一方吃这张表。
+2. 新增私有 `combined_correction(attacker, defender, class)`，接进砲撃与雷撃的
+   基础攻击力加项（R3）。索引键取**我方**那条船的 `combined`，因为敌方是通常
+   舰队、自己没有 deck，但它的补正仍随「跟哪支 deck 对射」变化。昼戦対潜不取
+   补正，夜戦不经过这条路径——与 reference 一致。
+3. `BattleRuntimeShip.combined_role` 改成 `combined: Option<CombinedMembership>`，
+   同时带上 `combined_type` 与 `role`。这样补正查表不必改动 `damage.rs` 三个函数
+   的签名，单舰队的船 `combined` 为 `None` → 补正恒 0、阵形落回原表，行为逐位不变。
+
+**完成标志（已达成）：** `day_formation_modifier` 的 4 阵形 × 3 攻击分类逐格断言
++ 常规阵形 1–6 的落回断言；`combined_correction` 的双向断言（我方攻击 / 敌方攻击
+各取哪一行）与单舰队恒 0 断言。`golden_transcript` 与 `battle_golden` 未变。
+
+**实施中发现、未处理的既有偏差：** reference 的雷撃基础攻击力公式带 `+5`，但
+`calculate_torpedo_damage` 的 `basic_power` 只有 `api_raisou + 改修补正`，没有那个
+`+5`。这是联合舰队之外的既有偏差，改它会动摇 `battle_golden.rs`，本单元只加补正项、
+不碰它。要修需单独立项并有意重新冻结。
+
+**已知未接线：** 联合舰队表的**対空列**没有落点——`simulation/kouku.rs` 整个不处理
+阵形，常规阵形 1–6 的対空倍率同样没建模。这是既有缺口，不是联合舰队引入的；要补
+应当连同单舰队一起补，别只给联合舰队加一半。
 
 ### U3 — 协议输出
 
@@ -173,7 +268,27 @@ api_escape_idx_combined → push(v - 1 + 6)   // deck 2
 `api_f_maxhps` / `api_f_maxhps_combined` 等。`api_combined_flag` 与
 `api_combined_type` 随响应下发。
 
-**完成标志：** 一个 combined 响应的快照测试，字段齐全且分组正确。
+**砲撃轮次与舰队的对应（见 reference §Protocol fields 的两张对应表）：**
+两个端点是镜像关系，**不能把一边的映射套到另一边**。
+
+- `battle`（空母機動/輸送護衛，`docs/apilist.txt:3008`）：hougeki1 = deck 2，
+  raigeki，hougeki2 = deck 1，hougeki3 = deck 1。deck 1 的两巡落在 2 号和 3 号槽，
+  且雷击夹在中间——单舰队的 hougeki1/hougeki2 直觉在这里是错的。
+- `battle_water`（水上打撃，`docs/apilist.txt:3164`）：hougeki1 = deck 1，
+  hougeki2 = deck 1，hougeki3 = deck 2，raigeki 回到最后；并显式标注
+  hougeki1/2/3/raigeki 分别受 `api_hourai_flag[0]/[1]/[2]/[3]` 约束。
+
+`api_raigeki` 的 `api_frai`/`api_fcl`/`api_fdam`/`api_fydam` 各为 `[12]`，与 U1
+核查出的跨队连续索引一致。
+
+请求体没有 `Request.api_req_combined_battle/*` 条目（`goback_port` 除外，且标注
+`(情報なし)`），按 apilist 自身约定继承单舰队的 `docs/apilist.txt:2031`：
+`api_formation` / `api_recovery_type` / `api_supply_flag` / `api_ration_flag` /
+`api_smoke_flag`。U5 不需要另找来源。
+
+**完成标志：** `battle` 与 `battle_water` 各一个响应快照测试，字段齐全且分组
+正确，并分别断言 hougeki1/2/3 的参与者与各自的对应表一致（两张表不同，一个测试
+覆盖不了）。
 
 ### U4 — gameplay 舰队拆分
 

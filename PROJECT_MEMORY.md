@@ -28,15 +28,13 @@ Current verification baseline:
 
 - [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
 - [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
-- [2026-09-19] Update chain (`make update`) is three steps: `bootstrap --overwrite --force-update` →
-  decode with `--sync-assets --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`.
-  Verified on 6.3.2.1 and 6.3.5.0 (the latter with main.js fetched by hand instead of bootstrap).
+- [2026-09-19] `make update` = `bootstrap --overwrite --force-update` → decode `--sync-assets
+  --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified on 6.3.2.1 and
+  6.3.5.0 (the latter with main.js fetched by hand).
 - [2026-09-19] `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`
   （6.3.4.1 → 6.3.5.0 实测：battle 资产零变化，清单只多一行显式路径）。
-- [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb, v1.0.6) does NOT replace `main-decoder`: on 6.3.5.0 it left
-  263,127 `_0x455a(0x..)` calls unevaluated and 0/55 battle protocol fields visible, in 304 s and 5.1 GB peak,
-  vs our 0 calls / 55 fields in ~20 s. Its ControlFlowRecoverer and AntiTamperRemover never fire — KanColle's
-  obfuscator.io config has no control-flow flattening or self-defending. Re-evaluating it is wasted work.
+- [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb v1.0.6) does NOT replace `main-decoder` — 6.3.5.0: 263,127
+  calls left unevaluated, 0/55 battle fields, 304 s / 5.1 GB, vs our 0 / 55 / ~20 s. Re-evaluating it is waste.
 - [2026-09-19] Two `main.js` version axes: `kcs_const.js` `scriptVesion` (note the upstream typo) is the client
   script version and drives `out/version.txt` plus every synced asset's `scriptVersion`; `kcs2/version.json`
   holds per-subsystem asset versions and moves independently. A main.js-only release bumps the first, not both.
@@ -44,32 +42,33 @@ Current verification baseline:
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
 - [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
 - [2026-09-19] `questlist` `api_tab_id` is the client tab bar (0,9,1,2,3,4,5 = all, activated, daily, weekly, monthly, oneshot, other); the client filters nothing itself. `api_label_type` keys the row label (1,2,3,6,7,101..=112). Source: `main.decoded.js` `DutyDataHolder`, `_createTab`.
-- [2026-09-19] `SortieStore::with_profile_lock` is held by exactly five top-level entries: `start_sortie`,
-  `next_sortie`, `sortie_battle_result`, `sortie_sp_midnight_battle` and `sortie_battle_impl`. None nests
-  another, and nothing they call takes the lock, so a new sortie entry can take it without reentrancy risk.
-  `sortie_midnight_battle` stays unlocked on purpose: it mutates an existing pending session, not `active`.
-- [2026-09-21] `apilist.md` is the single endpoint inventory and is mechanically aligned: 117 implemented,
-  31 missing, and the 31 are exactly `docs/apilist.txt`'s 136 minus the 117. Re-verify by extracting
-  `nest("/prefix", mod::router())` from `kcsapi/mod.rs` plus each submodule's `.route("/leaf"` and diffing
-  against the two fenced blocks; do not hand-audit it. `docs/api_coverage.md` is the roadmap only — it no
-  longer carries a list, because its hand-maintained one had drifted in both directions.
+- [2026-09-19] `SortieStore::with_profile_lock` has exactly five holders (`start_sortie`, `next_sortie`,
+  `sortie_battle_result`, `sortie_sp_midnight_battle`, `sortie_battle_impl`); none nests another, so a new
+  entry can take it safely. `sortie_midnight_battle` stays unlocked on purpose — it mutates a pending
+  session, not `active`.
+- [2026-09-21] 两份 apilist 各司其职。`apilist.md` 是唯一端点清单（117 实现 / 31 缺，31 = `docs/apilist.txt`
+  的 136 减 117）；重推方法是抽 `kcsapi/mod.rs` 的 `nest("/prefix", ..)` 加各子模块 `.route("/leaf"` 再双向
+  diff，不要手工审。`docs/api_coverage.md` 只是路线图。`docs/apilist.txt`（4209 行）则是字段**语义**来源，
+  比 GitHub 上任何副本全（`andanteyk/ElectronicObserver` 那份 2023 停更、140 KB），别再去外面找；解码
+  客户端仍是字段**是否存在**的唯一真源，优先级见联合舰队计划的 Authority order。
 - [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
 - [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
-- [2026-09-20] The DB layer uses SeaORM as a struct<->row mapper with DDL generation, not as an ORM:
-  0 SQL joins, 0 `group_by`, 0 `find_with_related` across 195 `Entity::find()` sites. `Relation` exists
-  only so `create_table_from_entity` emits FOREIGN KEY (`entity/mod.rs:9-13`). Swapping in sqlx or
-  rusqlite would rewrite ~450 call sites to shed 25 crates; sqlx is 133 of the 159-crate subtree.
-- [2026-09-20] A full `cache populate` over the generated list IS the authoritative CDN existence probe: it
-  requests every non-hole path, so its failure list is an exhaustive answer for "what is missing upstream".
-  Use it to maintain the hole tables; `--greedy` is not a substitute (see Pitfalls).
+- [2026-09-20] SeaORM is used as a struct<->row mapper + DDL generator, not an ORM: 0 joins / `group_by` /
+  `find_with_related` across 195 `Entity::find()` sites; `Relation` only feeds `create_table_from_entity`.
+  Swapping to sqlx/rusqlite = ~450 call sites rewritten to shed 25 crates. Not worth it.
+- [2026-09-20] A full `cache populate` over the generated list IS the authoritative CDN existence probe — it
+  requests every non-hole path, so its failure list answers "what is missing upstream". `--greedy` is not a
+  substitute (see Pitfalls).
 - [2026-09-20] Hole tables flow Rust -> asset, not decoder -> Rust: `main-decoder/src/path-rules.ts` parses
   `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` back out of the Rust sources into
   `cache_rules.json`. To change a hole, edit the Rust constant, then `make decode-main` to re-sync.
 - [2026-09-20] Nothing in `start2` distinguishes the 5 resupply-form ships (743/744/745/748/749, names
   ending in 補) from normal friendly ships — checked `api_sortno`, `api_backs`, `api_aftershipid` and
   `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
+- [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js`（活跃维护）是第二条独立数据链：`COMBINEDCF1-4`
+  与 `COMBINEDCONSTS` 逐格复现 wikiwiki 的联合舰队阵形表与補正表。其精度/回避補正对本项目无用（不建模命中率）。
 - [2026-09-21] `cargo test --workspace` 全绿（0 failed / 0 ignored），前提是先 `mkdir -p target/tmp`
   （`test_font` 需要）。09-20 记的三条 baseline 失败均已不再复现，不要再当既有失败引用。
 
@@ -132,6 +131,8 @@ Current verification baseline:
 | Pitfall | Source |
 | --- | --- |
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，把收益掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且 stdout 无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003「实测结果」(2026-09-21) |
+| `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错。 | session 2026-09-21 |
+| 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
 | Seeded test RNG left thread-local entropy set → cross-test pollution. Must restore entropy after seeded runs. | git `66f8317` |
 | Cache downgraded to an older local file on version rollback instead of serving the newer local copy. | git `185c0b8` |
 | `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
@@ -172,27 +173,23 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 三个提交（`485667f`/`7088c3e`/`c9404f1`），未推送。先核查联合舰队、
-  后按用户选择转向改修工厂并做完。
-- 联合舰队的核查推翻了「核心可能已支持、只缺 handler」的判断：战斗核心是单舰队模型，
-  真实工作量是扩 18k 行核心 + 14 端点。已落地的只是 U1（陣形/補正两张表 + `BattleContext`
-  加 `combined: Option<CombinedSetup>`），规则数据与计划都在仓库里，U2 起未动。
-- 改修工厂三端点做完并全绿：codex 配方枚举 + 三个 `Ctx` 方法 + 三个 handler，5 个 handler
-  测试覆盖「非明石旗舰拒绝 / slotlist / 确实化加星并吃备件 / ★10 转 variant / 装备中拒绝」。
-- `apilist.md` 114/34 → 117/31，按 router 机械重推并双向校验零差异。
+- [2026-09-21] 联合舰队 U2（阶段编排 + かばう）与 U2b（数值接线）做完，外加一处
+  `emukc_bootstrap` 测试修复。单舰队路径一行未动，`golden_transcript` 与 `battle_golden`
+  两份冻结流水原样通过，这是 RNG 消耗顺序未变的实证。
+- 先做了一次「能否纯增量分支」的可行性核查（成本远低于直接开工 U2），结论是能，前提是
+  两支 deck 放进一条连续 vec + 边界。细节与留给 U3/U5 的未决项都写进了计划的 U2 节。
+- 实施中发现计划漏了一个单元：U1 造的两张表**零调用点**，R2/R3 事实上没实现。补成 U2b。
 - 门禁：fmt clean、clippy 回基线（恒 6 条既有 `result_large_err`）、
-  `cargo test --workspace` 47 目标 1099 passed / 0 failed / 0 ignored。
+  `cargo test --workspace` 47 目标 1110 passed / 0 failed / 0 ignored。
 
 ## Next Session
 
-- [2026-09-21] 三个提交待推送。联合舰队计划在
-  `docs/plans/2026-09-21-001-feat-combined-fleet-battle-plan.md`，下一步是 U2（阶段编排，
-  改 `simulation/mod.rs`）——这是真正的大手术，开工前先确认要不要投。规则与数值见
-  `docs/battle/combined-fleet-reference.md`，索引空间结论已写进计划 U1 节（跨队连续 0–11，
-  deck 2 偏移恒 6）。
-- 改修工厂的已知未做项：`remodel_slot_recover`（见上方事实条）、失败路径没有确定性测试
-  （rng 是全局函数不可注入，跟随 `createitem` 的既有模式，没为此引入注入层）。
+- [2026-09-21] 联合舰队下一步是 U3（协议输出）。计划
+  `docs/plans/2026-09-21-001-feat-combined-fleet-battle-plan.md` 的 U2/U2b 节已记全实际改动点、
+  与单舰队模型的那处分歧，以及四个未决项（索引翻译 / 双 MVP / 轟沈旗舰豁免 / `canOpTorpMain`）。
+- 联合舰队表的**対空列**没有落点：`kouku.rs` 整个不处理阵形，常规阵形 1–6 同样没建模。
+  要补该连同单舰队一起补，别只给联合舰队加一半。
 - 审计集 013 仍是 DEFERRED，判据没变也没有新输入：drift-check 接通后还没跑过第二次
   `make update`，先攒观察再决定收不收敛。
-- 更早的积压未变：基地航空队（EO74 字段规格见 sinsinpub/kcs2-assets `api_info/apilist.txt`，
-  已过时）；`gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。
+- 更早的积压未变：改修工厂的 `remodel_slot_recover`；基地航空队；`gauge_type_e` 抓取；
+  decoder 未解析的 id 集；VPS 计划需重新验证。
