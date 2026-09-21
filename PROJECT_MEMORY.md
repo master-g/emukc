@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-21 · branch `fix/reject-empty-quest-requirements`
+Last updated: 2026-09-21 · branch `main`
 
 ## Verified Facts
 
@@ -86,10 +86,10 @@ Current verification baseline:
 - [2026-09-20] Nothing in `start2` distinguishes the 5 resupply-form ships (743/744/745/748/749, names
   ending in 補) from normal friendly ships — checked `api_sortno`, `api_backs`, `api_aftershipid` and
   `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
-- [2026-09-20] Three test failures are baseline, not regressions, each reconfirmed by reverting to HEAD:
-  `test_font` writes to `./target/tmp/` while `CARGO_TARGET_DIR` points at `~/.cache/cargo-build`;
-  `api_alignment_e2e` asserts map ids in `600..700` but the codex stores area-6 maps as 61-65;
-  `real_manifest_parses_with_passthrough_fields_none` is in `emukc_model`, which has no DB dependency.
+- [2026-09-21] 在 `919ca9c` 上 `cargo test --workspace` 全绿（0 failed / 0 ignored），
+  前提是先 `mkdir -p target/tmp`（`test_font` 仍需要它）。09-20 记的另外两条 baseline 失败
+  （`api_alignment_e2e`、`real_manifest_parses_with_passthrough_fields_none`）已不再复现，
+  不要再当既有失败引用。
 
 - [2026-09-21] `emukc_network`'s download layer already reads the whole body before opening the
   destination and errors out on any non-2xx, so a failed transfer never wrote a partial or corrupt
@@ -163,21 +163,25 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 连做了审计集的 006、003 收尾、008、010、011、012，10 个提交线性叠在一条链上，
-  已快进合并进 `main`（`dfaa18d`），五个中间分支都已 `-d` 安全删除。**尚未推送**，
-  `main` 领先 `origin/main` 10 个提交。
-- 每项都按其计划的完成标准跑了门禁：`cargo fmt --all --check`、
-  `cargo clippy --workspace -- -W warnings`（始终是 6 条既有的 `result_large_err`，无新增）、
-  `cargo test --workspace` 全绿；012 另跑了 `bun run check` 与 `bun test`（61 pass）。
-- 四份计划的前提与实测不符，已在各自的 README 段落里写明：006 的 `or` 分支连坐、
-  008 的零字节文件实为 1 个而非 0 个、010 的「grep holes 无输出」会误删活代码且漏了 example、
-  011 只统计了 B/C 两类（实际 30 条错而非 7 条）、012 漏了 `auto/mod.rs` 的调用点。
+- [2026-09-21] 推送了上一会话积压的 11 个提交（`main` 与 `origin/main` 已同步），
+  然后修了 `bootstrap` 不带 `--overwrite` 就中止的老问题，两个独立提交：
+  `06e57a6` 统一 `Codex::save` 的语义、`919ca9c` 让静默命令的致命错误也写 stderr。
+- 复现确认：`Codex::save` 13 个输出里只有 `start2.json` 是 warn+skip，另外 12 个在文件已存在
+  且没有 `--overwrite` 时直接返回 `AlreadyExist`，所以第二次裸跑 bootstrap 必死在 Phase 3 的
+  `ship_extra.json`，Phase 4 永远跑不到。改成全部 warn+skip（与 `download_all` 一致），
+  `CodexError::AlreadyExist` 随之无构造点，连同 `net/err.rs` 的映射一起删掉。
+- 顺带发现并修掉：`needs_quiet_stdout` 对 `Bootstrap` 返回 true（让位给进度条），
+  导致 CLI 末尾那个 `error!` 只进日志文件——失败的 bootstrap 曾经是 exit 1 且两个流全空。
+- 门禁：`cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`（仍是 6 条既有
+  `result_large_err`，无新增）、`cargo test --workspace` 全绿；另跑通了一次真实的裸 `bootstrap`
+  （exit 0，四个阶段跑完，`.data/codex` 里的文件 mtime 未变）。
 
 ## Next Session
 
 - [2026-09-21] 审计集 12/13 DONE，只剩 **013**（单一权威的客户端版本记录 spike，P2，依赖 012）。
   013 是设计决策，不是照着做的实施计划，需要先定方向：把四份版本记录收敛成一份权威来源，
-  还是只加一个跨来源的一致性检查。
+  还是只加一个跨来源的一致性检查。`battle drift-check` 今天实测是 DRIFT（`6.3.0.0 -> 6.3.5.0`，
+  4 个 battle 资产全变），正是 013 要回答的问题。
 - 012 留下的已知裂缝，正是 013 要处理的：同一个上游字段 `scriptVesion`（上游拼错）
   目前被 `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
   两边哪天不一致，012 的校验就会开始误报。`.sync-fingerprint.json` 记的是 `6.3.0.0`，
@@ -185,14 +189,11 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 - `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 上游稳定返回 200 + 空 body，008 之后它每轮 populate
   失败一次，且因为「空 200」不是 404 而走 retryable 路径重试 40 次。把稳定的空 200 归入
   missing 类要改 `classify_failure` 的判据，尚未立计划。
-- `bootstrap` 不带 `--overwrite` 仍然坏：Phase 3 以
-  "file .data/codex/ship_extra.json already exists" 中止。无计划覆盖。
 - manifest 差集里约 7%（估 1,500 条）是真实存在的资源，Rules 清单漏了它们（抽样命中 `banner_dmg`）。
   正确补法是拿差集做一次性存在性探测并入规则，不是复活 Greedy 枚举。尚未立计划。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
 - 009 里明知而未修：`tokio::fs::write` 非原子；两个并发 populate 对同一清单互相覆盖无锁；
   `FailureKind::Rollback` 自 `185c0b8` 起不可达，但 BOOTSTRAP.md 仍写着它的日志行。
 - 更早的积压未变：14 个 `api_req_combined_battle/*` 然后基地航空队（EO74 字段规格见
-  sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时）；`test_font` 需要 `create_dir_all`；
-  `api_alignment_e2e` 的 `600..700` 与 codex 的 61-65 号 id 矛盾；`gauge_type_e` 抓取；
-  decoder 未解析的 id 集；VPS 计划需重新验证。
+  sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时）；`api_alignment_e2e` 的 `600..700`
+  与 codex 的 61-65 号 id 矛盾；`gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。
