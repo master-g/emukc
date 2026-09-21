@@ -163,10 +163,9 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 在 `main` 之上连做了审计集的 006、003 收尾、008、010、011、012，每项一个分支、
-  各自提交，**都未合并未推送**：`fix/reject-empty-quest-requirements`、`fix/cache-validity-checks`、
-  `refactor/remove-greedy-deadcode`、`fix/derive-label-type-from-release-date`、
-  `feat/cache-list-version-check`（后者基于前者依次叠加，当前 HEAD 在最后一个上）。
+- [2026-09-21] 连做了审计集的 006、003 收尾、008、010、011、012，10 个提交线性叠在一条链上，
+  已快进合并进 `main`（`dfaa18d`），五个中间分支都已 `-d` 安全删除。**尚未推送**，
+  `main` 领先 `origin/main` 10 个提交。
 - 每项都按其计划的完成标准跑了门禁：`cargo fmt --all --check`、
   `cargo clippy --workspace -- -W warnings`（始终是 6 条既有的 `result_large_err`，无新增）、
   `cargo test --workspace` 全绿；012 另跑了 `bun run check` 与 `bun test`（61 pass）。
@@ -177,7 +176,8 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 ## Next Session
 
 - [2026-09-21] 审计集 12/13 DONE，只剩 **013**（单一权威的客户端版本记录 spike，P2，依赖 012）。
-  013 是设计决策，不是照着做的实施计划。五个分支在等合并，建议先合并再开 013。
+  013 是设计决策，不是照着做的实施计划，需要先定方向：把四份版本记录收敛成一份权威来源，
+  还是只加一个跨来源的一致性检查。
 - 012 留下的已知裂缝，正是 013 要处理的：同一个上游字段 `scriptVesion`（上游拼错）
   目前被 `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
   两边哪天不一致，012 的校验就会开始误报。`.sync-fingerprint.json` 记的是 `6.3.0.0`，
