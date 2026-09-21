@@ -123,8 +123,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     await writeTextFile(resolve(bootstrapAssetsDir, "resource_templates.json"), `${JSON.stringify(result.resourceTemplates, null, 2)}\n`);
   }
   if (options.syncResourceManifest === true) {
-    const manifest = extractResourceManifest(result.moduleGraph);
-    await writeTextFile(resolve(bootstrapAssetsDir, "resource_manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "resource_manifest.json"), `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
   }
   await Promise.all(
     result.moduleGraph.modules.map(module => writeTextFile(resolve(modulesDir, module.fileName), module.source)),
@@ -140,7 +139,7 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
   const moduleGraph = extractModuleGraph(decoded.decodedSource);
   const battleKnowledge = extractBattleKnowledge(moduleGraph);
   const resourceCategories = toResourceCategoriesAsset(loaded.scriptVersion, extractResourceCategories(moduleGraph));
-  const resourceManifest = extractResourceManifest(moduleGraph);
+  const resourceManifest = extractResourceManifest(loaded.scriptVersion, moduleGraph);
   const resourceIdSets = toResourceIdSetsAsset(loaded.scriptVersion, extractResourceIdSets(moduleGraph));
   const audioResources = toAudioResourcesAsset(loaded.scriptVersion, extractAudioResources(moduleGraph));
   const resourceTemplates = toResourceTemplatesAsset(loaded.scriptVersion, extractResourceTemplates(

@@ -667,10 +667,11 @@ function countModes(extracted: ExtractedCacheRules, mode: ResourceCoverageMode):
 	return rules.filter(rule => rule.coverageMode === mode).length;
 }
 
-function defaultResourceManifest(): ResourceManifest {
+function defaultResourceManifest(scriptVersion: string): ResourceManifest {
 	return {
 		version: 2,
 		generatedAt: new Date().toISOString(),
+		scriptVersion,
 		pathRules: {
 			shipDamageVariants: {},
 			shipStandardCategories: [],
@@ -781,7 +782,7 @@ export function toCacheRulesAsset(
 			partialRuleCount: countModes(extracted, "partial"),
 			unresolvedRuleCount: countModes(extracted, "unresolved"),
 		},
-		resourceManifest: options.resourceManifest ?? defaultResourceManifest(),
+		resourceManifest: options.resourceManifest ?? defaultResourceManifest(scriptVersion),
 		resourceCategories: options.resourceCategories ?? defaultResourceCategories(scriptVersion),
 		shipRules: extracted.shipRules,
 		slotRules: extracted.slotRules,

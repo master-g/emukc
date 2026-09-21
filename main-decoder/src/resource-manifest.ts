@@ -50,6 +50,8 @@ export type ResourceManifestEntry =
 export interface ResourceManifest {
 	version: 2;
 	generatedAt: string;
+	/// The client script version this manifest was decoded from.
+	scriptVersion: string;
 	pathRules: ResourceManifestPathRules;
 	summary: {
 		totalEntries: number;
@@ -413,7 +415,7 @@ function aggregateFindings(allFindings: Array<{ module: ModuleArtifact; findings
 
 // --- Main extractor ---
 
-export function extractResourceManifest(moduleGraph: ModuleGraph): ResourceManifest {
+export function extractResourceManifest(scriptVersion: string, moduleGraph: ModuleGraph): ResourceManifest {
 	// Extract from ALL modules
 	const allFindings = moduleGraph.modules
 		.map(module => ({ module, findings: extractModuleResources(module) }))
@@ -453,6 +455,7 @@ export function extractResourceManifest(moduleGraph: ModuleGraph): ResourceManif
 	return {
 		version: 2,
 		generatedAt: new Date().toISOString(),
+		scriptVersion,
 		pathRules: buildPathRules(),
 		summary: {
 			totalEntries: entries.length,

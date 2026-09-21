@@ -3,6 +3,8 @@ import { describe, expect, test } from "bun:test";
 import { extractResourceManifest } from "../src/resource-manifest.ts";
 import type { ModuleArtifact, ModuleGraph, ModuleGraphSummary } from "../src/types.ts";
 
+const SCRIPT_VERSION = "6.3.5.0";
+
 function wrapModule(body: string): string {
 	return `function(module, exports) { ${body} }`;
 }
@@ -38,9 +40,10 @@ describe("extractResourceManifest — ship resources", () => {
 	test("extracts resources.getShip call", () => {
 		const source = wrapModule(`resources.getShip(vo.ship.api_id, false, "full")`);
 		const graph = makeGraph([makeModule({ id: "m1", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		expect(manifest.version).toBe(2);
+		expect(manifest.scriptVersion).toBe(SCRIPT_VERSION);
 		expect(manifest.pathRules.shipStandardCategories).toContain("banner");
 		expect(manifest.entries).toHaveLength(1);
 		expect(manifest.entries[0]!.kind).toBe("ship");
@@ -59,7 +62,7 @@ describe("extractResourceManifest — ship resources", () => {
 	test("extracts ShipLoader.add call", () => {
 		const source = wrapModule(`var loader = new ShipLoader(); loader.add(shipId, true, "banner")`);
 		const graph = makeGraph([makeModule({ id: "m2", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entry = manifest.entries.find(e => e.kind === "ship");
 		expect(entry).toBeDefined();
@@ -74,7 +77,7 @@ describe("extractResourceManifest — ship resources", () => {
 	test("skips getShip with spread arguments", () => {
 		const source = wrapModule(`resources.getShip(...args)`);
 		const graph = makeGraph([makeModule({ id: "m3", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		expect(manifest.entries).toHaveLength(0);
 	});
@@ -84,7 +87,7 @@ describe("extractResourceManifest — slotitem resources", () => {
 	test("extracts resources.getSlotitem call", () => {
 		const source = wrapModule(`resources.getSlotitem(eq.api_id, "card")`);
 		const graph = makeGraph([makeModule({ id: "s1", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entry = manifest.entries.find(e => e.kind === "slotitem");
 		expect(entry).toBeDefined();
@@ -99,7 +102,7 @@ describe("extractResourceManifest — slotitem resources", () => {
 	test("extracts SlotLoader.add call", () => {
 		const source = wrapModule(`var sl = new SlotLoader(); sl.add(itemId, "item_on")`);
 		const graph = makeGraph([makeModule({ id: "s2", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entry = manifest.entries.find(e => e.kind === "slotitem");
 		expect(entry).toBeDefined();
@@ -115,7 +118,7 @@ describe("extractResourceManifest — texture provider", () => {
 	test("extracts getTexture call with numeric IDs", () => {
 		const source = wrapModule(`COMMON_MISC.getTexture(1, 2, 5)`);
 		const graph = makeGraph([makeModule({ id: "t1", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entry = manifest.entries.find(e => e.kind === "texture-provider");
 		expect(entry).toBeDefined();
@@ -132,7 +135,7 @@ describe("extractResourceManifest — texture provider", () => {
 			FOO.getTexture(2, 3);
 		`);
 		const graph = makeGraph([makeModule({ id: "t2", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entries = manifest.entries.filter(e => e.kind === "texture-provider");
 		expect(entries).toHaveLength(1);
@@ -147,7 +150,7 @@ describe("extractResourceManifest — explicit paths", () => {
 	test("extracts resources/ paths from source", () => {
 		const source = wrapModule(`var url = "resources/battle/banner/001_abc.png"`);
 		const graph = makeGraph([makeModule({ id: "p1", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entry = manifest.entries.find(e => e.kind === "explicit-path");
 		expect(entry).toBeDefined();
@@ -164,7 +167,7 @@ describe("extractResourceManifest — explicit paths", () => {
 			makeModule({ id: "p2a", source: source1 }),
 			makeModule({ id: "p2b", source: source2 }),
 		]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const entry = manifest.entries.find(e => e.kind === "explicit-path");
 		expect(entry).toBeDefined();
@@ -183,7 +186,7 @@ describe("extractResourceManifest — deduplication", () => {
 			makeModule({ id: "d1", source: source1 }),
 			makeModule({ id: "d2", source: source2 }),
 		]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		const shipEntries = manifest.entries.filter(e => e.kind === "ship");
 		expect(shipEntries).toHaveLength(1);
@@ -198,7 +201,7 @@ describe("extractResourceManifest — empty modules", () => {
 	test("returns empty manifest for modules with no resources", () => {
 		const source = wrapModule(`var x = 42; console.log("hello")`);
 		const graph = makeGraph([makeModule({ id: "empty", source })]);
-		const manifest = extractResourceManifest(graph);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, graph);
 
 		expect(manifest.entries).toHaveLength(0);
 		expect(manifest.pathRules.btxtFlatSlotIds.length).toBeGreaterThan(300);
