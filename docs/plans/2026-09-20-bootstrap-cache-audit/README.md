@@ -18,13 +18,21 @@
 | 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
 | 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
 | 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | TODO |
-| 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | TODO |
+| 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | DONE |
 | 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | TODO |
 | 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | TODO |
 | 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | TODO |
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
+
+- 009 DONE：pass 1 的失败项改为三分（rollback / missing / retryable），404 不再进
+  pass 2；pass 2 的失败项按同一判据再分一次（一条可能在 pass 1 超时、pass 2 才拿到
+  404）。`*.failed.nedb` 与 `*.missing.nedb` 分开落盘，后缀不叠加（拿 failed 清单
+  重跑仍写回同一文件）。摘要新增 `Missing (404): N`，退出判定改为
+  `failed + missing > 0`——不改这一处的话，404 移出 `failed_count` 后全 404 的一轮
+  会退化成 exit 0，正是本计划否决的方案。实测：2 条清单（1 个 404 + 1 个正常）
+  → `Missing (404): 1`、无 Retried、exit 1、清单可被 `--src` 读回。
 
 - 007 DONE：`fetch_from_remote` 的 404 分支改返回 `KacheError::FileNotFound`，
   `exists_on_remote` 改为三态 `RemoteExistence{Present,Absent,Indeterminate}`。

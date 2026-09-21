@@ -120,7 +120,29 @@ cargo run -- cache populate
 
 - 读取上一步生成的缓存列表
 - 并发下载所有资源文件到缓存目录
-- 默认 16 并发
+- 默认 16 并发（用 `--concurrent <N>` 调整）
+
+有条目没下来时，populate 会在清单旁边写出同样 JSONL 格式的清单，可以直接用
+`--src` 喂回去：
+
+| 文件 | 内容 | 该怎么处理 |
+|------|------|------------|
+| `cache_resources.failed.nedb` | 没问出结果的（超时、CDN 不可达） | 直接重跑：`cargo run -- cache populate --src <该文件>` |
+| `cache_resources.missing.nedb` | CDN 明确回 404 的 | 重试没有意义，见下 |
+
+404 的那份不会进重试队列，摘要里单列为 `Missing (404): N`。要拿它去补
+`EVENT_SHIP_HOLES` 这类缺口表之前，**先跨镜像确认一遍**：CDN 列表是随机打乱的，
+下载在第一个回 404 的镜像上就停了，所以这份清单的含义是「本轮问到的那个镜像说
+没有」，不是「所有镜像都没有」。某个镜像正在同步时回的 404 会让一个真实存在的
+资源被永久写进缺口表。
+
+只要这两类里还有条目，populate 就以非零退出（本仓库没有 CI，这个非零退出就是提醒
+你去看的那个信号）。
+
+清理规则：拿**原始清单**跑一轮且全部成功时，上一轮残留的这两份清单都会被删除；拿
+**某一类清单**重跑时只动它自己那一类——例如 `--src cache_resources.failed.nedb`
+跑通之后会删掉这个 failed 清单，但不会碰 `cache_resources.missing.nedb`，那份 404
+记录要留着比对缺口表。
 
 ### 第 4 步：创建账户并启动
 
@@ -177,6 +199,10 @@ cargo run -- cache populate [选项]
 |------|------|
 | `--src <FILE>` | 缓存列表文件路径（默认 `<cache_root>/cache_resources.nedb`） |
 | `--concurrent <N>` | 并发下载任务数（默认 16） |
+
+失败条目会写到 `--src` 同目录下的 `*.failed.nedb` / `*.missing.nedb`，格式与输入
+清单一致，可直接作为 `--src` 重跑。后缀不会叠加：拿 `*.failed.nedb` 重跑一轮，
+输出仍写回同一个文件。
 
 ### `serve`
 
@@ -254,7 +280,11 @@ cargo run -- bootstrap --proxy "socks5://127.0.0.1:1086"
 
 当 populate 输出 `skipping N items with version rollback` 时，表示这些条目的磁盘版本比清单版本更新（通常是回滚到旧版 manifest 后运行 populate）。这些条目会被正确跳过，不会重试下载——它们不是下载错误。
 
-Populate 最终的 `failed` 计数是真正的下载错误（网络超时、CDN 不可达等），这些条目经过两次重试后仍然失败。
+Populate 最终的 `failed` 计数是真正的下载错误（网络超时、CDN 不可达等），这些条目经过两次重试后仍然失败，并写入 `*.failed.nedb`。
+
+`Missing (404)` 是另一回事：CDN 明确答了「没有」。这些条目不进重试队列，写入
+`*.missing.nedb`。清单里出现 404 通常说明 `cache make-list` 生成了上游并不存在的
+路径，要修的是清单生成规则或缺口表，不是重试。
 
 ### 端口被占用
 

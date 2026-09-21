@@ -10,7 +10,7 @@ pub(super) struct PopulateArguments {
     pub src: Option<String>,
 
     #[arg(help = "Number of concurrent tasks.")]
-    #[arg(long)]
+    #[arg(long, default_value_t = 16)]
     pub concurrent: u8,
 }
 

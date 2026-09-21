@@ -127,6 +127,9 @@ pub struct PopulateStats {
     pub retried: usize,
     pub recovered: usize,
     pub failed: usize,
+    /// Items the CDN answered 404 for. Counted apart from `failed` because they
+    /// are not worth retrying and are not the same kind of problem.
+    pub missing: usize,
     pub elapsed: Duration,
 }
 
@@ -184,6 +187,9 @@ fn build_summary_lines(stats: &PopulateStats, failures: &[FailedItem]) -> Vec<St
     }
     if stats.failed > 0 {
         parts.push(format!("Failed: {}", stats.failed));
+    }
+    if stats.missing > 0 {
+        parts.push(format!("Missing (404): {}", stats.missing));
     }
     parts.push(format!("Time: {}", format_duration(stats.elapsed)));
     lines.push(parts.join(" │ "));
