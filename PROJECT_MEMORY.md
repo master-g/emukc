@@ -140,36 +140,31 @@ Current verification baseline:
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
 | [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
 
-| [2026-09-21] 不要用 `mv .data .data.bak` 来做「无 .data 跑测试」：`make_list` 的测试会
-`create_dir_all(".data/tmp")` 重建目录，移回时 `mv` 把备份塞进新目录里，两轮下来嵌套了两层。
-要么先跑一次确认没有测试重建它，要么把备份放到仓库外。 | session 2026-09-21 |
+| [2026-09-21] 「无 .data 跑测试」时备份必须放到**仓库外**，且移回前先删掉重建出来的空壳。
+cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all(".data/tmp")`，
+`mv .data .data.bak` 之后再移回就把备份塞进了新目录，两轮嵌套两层。正确做法：
+`mv .data ../.data-bak` → 跑 → `rm -rf .data`（此时只剩 tmp）→ `mv ../.data-bak .data`。 | session 2026-09-21 |
 
 ## Last Session
 
-- [2026-09-21] Three branches merged into `main` and pushed: `fix/distinguish-missing-from-failure`
-  (plans 007 + 009, 5 commits), `fix/atomic-web-asset-refresh` (plan 005, `32a4daa`) and
-  `test/parser-fixture-baseline` (plan 002, `f2f0b3a`). The last two both edited the audit set's
-  README and this file; README auto-merged, this file was resolved by hand.
-- 005: dropped the `--force-update` block that deleted `main.js` / `version.json` / `kcs_const.js`
-  before Phase 4 ran; `download_web_assets` now fetches into a sibling `*.part`, renames on success,
-  counts an unconfigured CDN as a failure, and returns `WebAssetUnavailable` if anything is missing.
-  Verified: workspace tests exit 0; CDN-unreachable run exits 1 with `main.js` md5 and mtime intact
-  and no `.part` residue; normal run exits 0 with all three assets refreshed.
-- 002: added `tests/fixtures/kccp/quests_sample.json` and `tests/fixtures/kcwiki/` (5 trimmed
-  sources, 43 KB), 5 kccp tests and 5 label_type tests that lock the current buggy output for plans
-  004 and 011 to flip, and repointed the three kcwiki tests at the fixture while deleting four
-  `.data/temp/*.json` writes. Verified: `cargo test -p emukc_bootstrap` 233 passed / 0 failed /
-  0 ignored; full workspace exit 0; clippy identical to the pre-change baseline.
+- [2026-09-21] Merged and pushed three branches to `main` (now `d9428e1`): plans 007+009, plan 005
+  (`32a4daa`) and plan 002 (`f2f0b3a`). Then, on `test/skip-when-bootstrap-data-absent`, made the
+  four remaining data-dependent tests skip instead of fail when the bootstrapped data is absent.
+- The guard copies a pattern the same files already used (`map_1_3_...`, `map_6_4_...`): check the
+  path, `eprintln!("skipping: ...")`, return. `make_list`'s two tests guard on `.data/codex`,
+  `map_pipeline::kcdata`'s two on `.data/temp/kc_data/_map`. Putting the guard first also stops
+  `make_kache()` from recreating `.data/tmp` on a run that is going to skip anyway.
+- Verified with `.data` moved outside the repo: `cargo test -p emukc_bootstrap` 235 passed / 0
+  failed / 0 ignored, exit 0, and `--nocapture` shows all four skip lines. With `.data` restored:
+  same 235, full workspace exit 0, fmt clean, clippy unchanged.
 
 ## Next Session
 
 - [2026-09-21] Audit set is 5/13 DONE (001/002/005/007/009), 003 IN PROGRESS. 002 unblocked the two
   remaining P0s, 004 and 006, and also 011. 004 is the natural next one -- its first step is to flip
   the assertions 002 just froze.
-- In flight, user-approved, not yet done: make `cargo test -p emukc_bootstrap` pass with `.data/`
-  absent. 002 cut those failures from 7 to 4; the remaining 4 are `make_list::tests` x2 (need a full
-  `.data/codex`) and `map_pipeline::kcdata::tests` x2 (walk every map under `.data/temp/kc_data/_map`).
-  Agreed approach: guard them to skip when the data is absent, rather than `#[ignore]`.
+- `test/skip-when-bootstrap-data-absent` holds one commit, not merged, not pushed. With it, the
+  crate's tests pass on a clean clone -- the last piece plan 002 could not deliver itself.
 - Plan 003 is still IN PROGRESS: its code landed in `96f7689`, but the last item of its Definition of
   Done -- measured before/after throughput -- has no data. The 2m13s -> 3s number is the spinner fix,
   NOT 003's connection reuse; do not cite it as 003's proof.

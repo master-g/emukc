@@ -325,6 +325,10 @@ data:
     fn build_variant_from_all_repo_kcdata_maps_keeps_real_cell_count_and_valid_edges() {
         let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../.data/temp/kc_data/_map");
+        if !map_root.is_dir() {
+            eprintln!("skipping: {} not found", map_root.display());
+            return;
+        }
         let mut entries = std::fs::read_dir(&map_root)
             .unwrap()
             .flatten()
@@ -371,6 +375,10 @@ data:
     fn build_variant_from_all_repo_kcdata_maps_routes_target_numeric_nodes_get_metadata() {
         let map_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../.data/temp/kc_data/_map");
+        if !map_root.is_dir() {
+            eprintln!("skipping: {} not found", map_root.display());
+            return;
+        }
         let mut entries = std::fs::read_dir(&map_root)
             .unwrap()
             .flatten()

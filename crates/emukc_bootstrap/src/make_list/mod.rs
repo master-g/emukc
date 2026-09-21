@@ -1018,7 +1018,12 @@ mod tests {
 
     #[tokio::test]
     async fn build_cache_list_paths_with_manifest_path_matches_repo_manifest_strategy() {
-        let codex = Codex::load(codex_root(), true).unwrap();
+        let codex_root = codex_root();
+        if !codex_root.is_dir() {
+            eprintln!("skipping: {} not found", codex_root.display());
+            return;
+        }
+        let codex = Codex::load(&codex_root, true).unwrap();
         let kache = make_kache();
 
         let baseline =
@@ -1037,7 +1042,12 @@ mod tests {
 
     #[tokio::test]
     async fn build_cache_list_paths_with_rules_path_loads_explicit_rule_bundle() {
-        let codex = Codex::load(codex_root(), true).unwrap();
+        let codex_root = codex_root();
+        if !codex_root.is_dir() {
+            eprintln!("skipping: {} not found", codex_root.display());
+            return;
+        }
+        let codex = Codex::load(&codex_root, true).unwrap();
         let kache = make_kache();
         let temp_dir = repo_root().join(".data/tmp");
         fs::create_dir_all(&temp_dir).unwrap();
