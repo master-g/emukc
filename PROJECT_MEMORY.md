@@ -116,6 +116,8 @@ Current verification baseline:
 
 | Pitfall | Source |
 | --- | --- |
+| populate 基准测量：`head -200 z/cache/cache_resources.nedb` 取到的全是 `kcs/sound/*.mp3`，带宽受限，会把连接复用的收益掩盖成 10%。全量清单实为 49% mp3 + 49% png，必须随机抽样。 | 计划 003「实测结果」(2026-09-21) |
+| `Kache::builder().build()` 要求 `cache_root` 已存在；`rm -rf` 后不 `mkdir -p` 就跑，进程 exit 1 且 stdout 无输出（populate 的进度条模式抑制了 stdout，错误只进日志文件）。配置里的相对路径按**配置文件所在目录**解析，复制 config 到别处当临时配置时 `workspace_root` 必须写绝对路径。 | 计划 003「实测结果」(2026-09-21) |
 | Seeded test RNG left thread-local entropy set → cross-test pollution. Must restore entropy after seeded runs. | git `66f8317` |
 | Cache downgraded to an older local file on version rollback instead of serving the newer local copy. | git `185c0b8` |
 | `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
@@ -169,12 +171,9 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Next Session
 
-- [2026-09-21] 审计集 7/13 DONE（001/002/004/005/006/007/009），003 IN PROGRESS。
-  `fix/reject-empty-quest-requirements` 等待合并。P0 已全部清完，剩下的都是 P1/P2：
-  008（缓存有效性）、010（删 Greedy 死代码）、011（label_type 年任务表）、012（cache-list 版本校验）、
-  013（版本权威 spike，依赖 012）。011 的修复必须同时覆盖 `s` 周期字母。
-- 计划 003 仍缺完成标准最后一项：改后吞吐量实测。其代码在 `96f7689`，改前 ~7 files/s 记在 003 正文。
-  2m13s → 3s 那个数字是 spinner 修复，**不是** 003 的连接复用，不要拿来结案。
+- [2026-09-21] 审计集 8/13 DONE（001-007/009），P0 全部清完。`fix/reject-empty-quest-requirements`
+  等待合并。剩下的都是 P1/P2：008（缓存有效性）、010（删 Greedy 死代码）、011（label_type 年任务表）、
+  012（cache-list 版本校验）、013（版本权威 spike，依赖 012）。011 的修复必须同时覆盖 `s` 周期字母。
 - `bootstrap` 不带 `--overwrite` 仍然坏：Phase 3 以
   "file .data/codex/ship_extra.json already exists" 中止。无计划覆盖。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
