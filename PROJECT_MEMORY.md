@@ -107,23 +107,19 @@ Current verification baseline:
   不必开 `serde_json/preserve_order`——那个 feature 在 feature unification 下全工作区生效，
   会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序。自定义 `Visitor` 收集 `Vec<(K, V)>` 即可，
   范围只在一个函数内。见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
-- [2026-09-21] `make_list` 里的 "holes" 有两套互不相干的含义：已删除的 holes **report**
-  （`HOLES_COLLECTOR` / `holes_report.rs`，从来没有写入方）和活着的 `ShipPathHoles` /
-  `EVENT_SHIP_HOLES` 跳过表（manifest 规则在用，有测试）。按 `holes` 这个词做清理会误删后者。
-- [2026-09-21] `.html` 缓存内容无法用嗅探校验：真实的 `kcs2/hc.html` 只有 54 字节，内容就是
-  `<!DOCTYPE html><html><head></head><body></body></html>`，与 CDN 错误页同形。所以 008 给 HTML
-  只留了非空检查；若将来发现错误页有稳定标记，再替换。
-- [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下的处理必须相反：丢掉一个 `or` 分支只减少
-  完成路径（更严格），丢掉一个 `and` 条件会让任务更容易完成（白送）。照「统一用 `?` 传播」
-  实现会把 api_no 1019 这类「一坏一好分支」的任务整条误杀。见
-  `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006 段。
+- [2026-09-21] `make_list` 的 "holes" 有两义：已删的 holes **report**（`HOLES_COLLECTOR` /
+  `holes_report.rs`，无写入方）与活着的 `ShipPathHoles` 跳过表（manifest 规则在用）。按词清理会误删后者。
+- [2026-09-21] `.html` 缓存无法内容嗅探：真实 `kcs2/hc.html` 仅 54 字节且与错误页同形，
+  所以 008 只给它留非空检查。
+- [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下处理相反：丢一个 `or` 分支只减少完成路径
+  （更严格），丢一个 `and` 条件则白送。统一 `?` 传播会误杀 api_no 1019 这类一坏一好分支的任务。
+  三条的完整依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
 
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
 | --- | --- |
-| populate 基准测量：`head -200 z/cache/cache_resources.nedb` 取到的全是 `kcs/sound/*.mp3`，带宽受限，会把连接复用的收益掩盖成 10%。全量清单实为 49% mp3 + 49% png，必须随机抽样。 | 计划 003「实测结果」(2026-09-21) |
-| `Kache::builder().build()` 要求 `cache_root` 已存在；`rm -rf` 后不 `mkdir -p` 就跑，进程 exit 1 且 stdout 无输出（populate 的进度条模式抑制了 stdout，错误只进日志文件）。配置里的相对路径按**配置文件所在目录**解析，复制 config 到别处当临时配置时 `workspace_root` 必须写绝对路径。 | 计划 003「实测结果」(2026-09-21) |
+| populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，把收益掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且 stdout 无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003「实测结果」(2026-09-21) |
 | Seeded test RNG left thread-local entropy set → cross-test pollution. Must restore entropy after seeded runs. | git `66f8317` |
 | Cache downgraded to an older local file on version rollback instead of serving the newer local copy. | git `185c0b8` |
 | `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
