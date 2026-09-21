@@ -48,8 +48,8 @@ Current verification baseline:
   `next_sortie`, `sortie_battle_result`, `sortie_sp_midnight_battle` and `sortie_battle_impl`. None nests
   another, and nothing they call takes the lock, so a new sortie entry can take it without reentrancy risk.
   `sortie_midnight_battle` stays unlocked on purpose: it mutates an existing pending session, not `active`.
-- [2026-09-21] `apilist.md` is the single endpoint inventory and is mechanically aligned: 114 implemented,
-  34 missing, and the 34 are exactly `docs/apilist.txt`'s 136 minus the 114. Re-verify by extracting
+- [2026-09-21] `apilist.md` is the single endpoint inventory and is mechanically aligned: 117 implemented,
+  31 missing, and the 31 are exactly `docs/apilist.txt`'s 136 minus the 117. Re-verify by extracting
   `nest("/prefix", mod::router())` from `kcsapi/mod.rs` plus each submodule's `.route("/leaf"` and diffing
   against the two fenced blocks; do not hand-audit it. `docs/api_coverage.md` is the roadmap only — it no
   longer carries a list, because its hand-maintained one had drifted in both directions.
@@ -114,6 +114,19 @@ Current verification baseline:
   字段逻辑由 `game/map.rs` 的 `build_map_info_event_map_emits_limit_flag_zero` 数据无关地钉住。
   此前记的「与 codex 的 61-65 号 id 矛盾」是把常规六海域和活动图 id 方案混为一谈，已删。
 
+- [2026-09-21] `emukc_battle` 里 38 处 `escort` 全是「旗艦援護/かばう」（单舰队的旗舰护盾），
+  与联合舰队的护卫舰队同名不同义。战斗核心是彻底的单舰队模型：`BattleContext` 只有一个
+  `friend_ships`，`targeting.rs:148` 写明 combined 超范围。别再用 grep `escort` 判断联合舰队进度。
+- [2026-09-21] 改修配方数据早就在 codex 里，不需要新数据源：`slotitem_extra_info` 的
+  `improvement` 覆盖 174 件装备，含分档材料、消耗装备/道具与秘书舰。`secretary` 字段是
+  **二番舰**（睦月/如月系），不是旗舰；旗舰必须是明石(182)/明石改(187)，这是两件事。
+- [2026-09-21] variant 配方在 ★0–★9 就是普通改修，只在 ★10 才转换成 variant 装备。
+  12cm単装砲(1) 没有 `level_consumption`、只有 variant，所以「有 variant」不等于「只能更新」。
+- [2026-09-21] `api_req_kousyou/remodel_slot_recover` 是真缺口：`docs/apilist.txt` 没有它
+  （那份参考早于该功能），但解码客户端有完整 API 类（`main.decoded.js:105351`，post
+  `api_menu_id`/`api_slot_id`/`api_dev_num`）。`registration_sp` 则 grep 零命中，原结论成立。
+  不要写进 `apilist.md`——它的 missing 定义是「上游参考减 router」，必须保持机械可推导。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -159,27 +172,27 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 十个提交全部推送（截至 `4704212`）：bootstrap 裸跑中止、CLI 静默失败、记忆压缩、
-  空 200 重试、drift-check 接通、manifest 差集结案、populate 原子落盘、端点清单对齐。
-- 端点清单对齐的结论：`apilist.md` 本来就准（114/34，且 34 = 上游 136 − 114），错的是另外两份。
-  `docs/api_coverage.md` 的模块表停在 05-24 且两个方向都偏，还把已实现的 `mxltvkpyuklh` 列为缺失、
-  列了上游根本没有的 `remodel_slot_recover` / `registration_sp`——整张表换成指针，只留路线图部分
-  （代码注释引用的正是这部分）。`TODO.md` 漏勾了两个已实现的端点。
-- manifest 差集是本次最大的一件：21,510 条全量 HEAD 探测，786 条存在但全是深海舰 `banner_dmg`，
-  而客户端受损时用的仍是完好 banner，结论是**不补**。中途实现过一版「修复」，发现是 no-op 后整体回滚。
-- 门禁每次跑满 fmt / clippy（恒 6 条既有 `result_large_err`）/ `cargo test --workspace` 全绿；
-  实跑验证：裸 bootstrap exit 0、populate 单条归 missing 零重试无 `.part` 残留、`make drift-check` no drift。
+- [2026-09-21] 三个提交（`485667f`/`7088c3e`/`c9404f1`），未推送。先核查联合舰队、
+  后按用户选择转向改修工厂并做完。
+- 联合舰队的核查推翻了「核心可能已支持、只缺 handler」的判断：战斗核心是单舰队模型，
+  真实工作量是扩 18k 行核心 + 14 端点。已落地的只是 U1（陣形/補正两张表 + `BattleContext`
+  加 `combined: Option<CombinedSetup>`），规则数据与计划都在仓库里，U2 起未动。
+- 改修工厂三端点做完并全绿：codex 配方枚举 + 三个 `Ctx` 方法 + 三个 handler，5 个 handler
+  测试覆盖「非明石旗舰拒绝 / slotlist / 确实化加星并吃备件 / ★10 转 variant / 装备中拒绝」。
+- `apilist.md` 114/34 → 117/31，按 router 机械重推并双向校验零差异。
+- 门禁：fmt clean、clippy 回基线（恒 6 条既有 `result_large_err`）、
+  `cargo test --workspace` 47 目标 1099 passed / 0 failed / 0 ignored。
 
 ## Next Session
 
-- [2026-09-21] 审计集 013 走的是「先接通，再谈收敛」：drift-check 已接通并刷新基线，
-  但**四份版本记录仍未收敛**，013 的设计问题原样留着。下次要判断的是：接通之后
-  它是否真的被用起来了（`make update` 的报告有没有人看、基线有没有第四次被绕过），
-  再决定收不收敛。原计划文档见 `docs/plans/2026-09-20-bootstrap-cache-audit/013-*.md`。
-- 收敛要处理的两条裂缝没变：同一个上游字段 `scriptVesion`（上游拼错）被
-  `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
-  两边不一致时 012 的校验会误报；指纹按字节算，`_0x` 重命名会产生噪声漂移。
-- 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
-- 更早的积压未变：14 个 `api_req_combined_battle/*` 然后基地航空队（EO74 字段规格见
-  sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时）；`gauge_type_e` 抓取；
-  decoder 未解析的 id 集；VPS 计划需重新验证。
+- [2026-09-21] 三个提交待推送。联合舰队计划在
+  `docs/plans/2026-09-21-001-feat-combined-fleet-battle-plan.md`，下一步是 U2（阶段编排，
+  改 `simulation/mod.rs`）——这是真正的大手术，开工前先确认要不要投。规则与数值见
+  `docs/battle/combined-fleet-reference.md`，索引空间结论已写进计划 U1 节（跨队连续 0–11，
+  deck 2 偏移恒 6）。
+- 改修工厂的已知未做项：`remodel_slot_recover`（见上方事实条）、失败路径没有确定性测试
+  （rng 是全局函数不可注入，跟随 `createitem` 的既有模式，没为此引入注入层）。
+- 审计集 013 仍是 DEFERRED，判据没变也没有新输入：drift-check 接通后还没跑过第二次
+  `make update`，先攒观察再决定收不收敛。
+- 更早的积压未变：基地航空队（EO74 字段规格见 sinsinpub/kcs2-assets `api_info/apilist.txt`，
+  已过时）；`gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。

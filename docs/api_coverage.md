@@ -70,9 +70,19 @@ Dependencies:
 | `api_port/airCorpsCondRecoveryWithTimer` | LBAS condition recovery | P1 | Implement with air_corps module |
 
 `api_req_ranking/mxltvkpyuklh` used to be listed here; it has been implemented
-since. `api_req_kousyou/remodel_slot_recover` and `api_req_member/registration_sp`
-appear in neither the router nor `docs/apilist.txt`, so they are not tracked as
-gaps — add them back only with a source that says the client calls them.
+since. `api_req_member/registration_sp` appears in neither the router nor
+`docs/apilist.txt`, and `grep` over the decoded client finds nothing, so it is
+still not tracked as a gap.
+
+`api_req_kousyou/remodel_slot_recover` **is** a real gap, found 2026-09-21 while
+implementing the arsenal. It is absent from `docs/apilist.txt` — that reference
+predates the feature — but the decoded client declares a full API class for it
+(`main.decoded.js:105351`) posting `api_menu_id`, `api_slot_id` and
+`api_dev_num`, and the official account announced it as 【装備改修度】の状態回復:
+spend 工廠資源 x1 plus 開発資材 x1–3 to restore an equipment's improvement
+state. It is deliberately left out of `apilist.md`, whose missing list is
+defined as `docs/apilist.txt` minus the router and must stay mechanically
+derivable; track it here until that reference is refreshed.
 
 ## Recommended Development Roadmap
 
