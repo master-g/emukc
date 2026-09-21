@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-21 · branch `fix/atomic-web-asset-refresh`
+Last updated: 2026-09-21 · branch `main`
 
 ## Verified Facts
 
@@ -95,6 +95,13 @@ Current verification baseline:
   destination and errors out on any non-2xx, so a failed transfer never wrote a partial or corrupt
   file. The `.part` + rename added by plan 005 only closes the truncate-to-copy window; the real
   data loss came from `bootstrap --force-update` deleting the files before the download ran.
+- [2026-09-21] `kccp/quest.rs` 的失步是**吞掉下一条的 id 行**：缺 name 的任务把下一条的
+  `_quest_id_N` 行当成自己的 desc（`reg_desc` 匹配第一对引号），缺 desc 的任务同样。所以每个
+  残缺任务都会连带**吃掉后面那一条**，不是只影响自己。fixture 里 7 个 id 只产出 5 条，
+  证据在 `tests/fixtures/kccp/quests_sample.json` 与同文件的测试模块。
+- [2026-09-21] `extract_label_type` 有第五种周期字母 `s`（Cs1/2/3/5/6 共 5 个真实 wiki_id），
+  `match` 里没有分支，和未命中的年任务一样落到 label_type 1。计划 011 只提了 By/Cy 的 7 个，
+  修的时候别漏掉 `s`。
 
 ## Failed Attempts / Pitfalls
 
@@ -133,40 +140,44 @@ Current verification baseline:
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
 | [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
 
+| [2026-09-21] 不要用 `mv .data .data.bak` 来做「无 .data 跑测试」：`make_list` 的测试会
+`create_dir_all(".data/tmp")` 重建目录，移回时 `mv` 把备份塞进新目录里，两轮下来嵌套了两层。
+要么先跑一次确认没有测试重建它，要么把备份放到仓库外。 | session 2026-09-21 |
+
 ## Last Session
 
-- [2026-09-21] Merged `fix/distinguish-missing-from-failure` into `main` fast-forward and pushed
-  (`main` now at `6225b8d`); the local branch is kept but fully merged. Then executed audit plan 005
-  on a new branch `fix/atomic-web-asset-refresh`.
-- 005: deleted the `--force-update` block in `src/bin/cli/bootstrap.rs` that removed `main.js`,
-  `version.json` and `kcs_const.js` before Phase 4 ran. The flag stays; it now feeds
-  `overwrite || force_update` into `download_web_assets`, which is behaviourally identical to the old
-  delete-then-download. `download_web_assets` fetches into a sibling `*.part` file and renames on
-  success, deletes the temp on failure, counts an unconfigured CDN as a failure, and returns
-  `BootstrapDownloadError::WebAssetUnavailable` if any asset is missing at the end.
-- Verified: `cargo test --workspace --no-fail-fast` exit 0, 0 failed, 0 ignored; `fmt --all --check`
-  clean; clippy warning set byte-identical to the stashed baseline (6 `result_large_err`, line numbers
-  shifted only). Scene A (`game_cdn` = unreachable host, `--overwrite --force-update`): exit 1,
-  `main.js` md5 and mtime unchanged, no `.part` residue, no success line. Scene B (config restored):
-  exit 0, all three assets refreshed, no residue. `emukc.config.toml` restored and unstaged.
-- The two new unit tests are mutation-verified for the hard-failure behaviour only. The rename success
-  path has no test — plan 005 forbids an HTTP mock, so scene B is its only evidence.
+- [2026-09-21] Three branches merged into `main` and pushed: `fix/distinguish-missing-from-failure`
+  (plans 007 + 009, 5 commits), `fix/atomic-web-asset-refresh` (plan 005, `32a4daa`) and
+  `test/parser-fixture-baseline` (plan 002, `f2f0b3a`). The last two both edited the audit set's
+  README and this file; README auto-merged, this file was resolved by hand.
+- 005: dropped the `--force-update` block that deleted `main.js` / `version.json` / `kcs_const.js`
+  before Phase 4 ran; `download_web_assets` now fetches into a sibling `*.part`, renames on success,
+  counts an unconfigured CDN as a failure, and returns `WebAssetUnavailable` if anything is missing.
+  Verified: workspace tests exit 0; CDN-unreachable run exits 1 with `main.js` md5 and mtime intact
+  and no `.part` residue; normal run exits 0 with all three assets refreshed.
+- 002: added `tests/fixtures/kccp/quests_sample.json` and `tests/fixtures/kcwiki/` (5 trimmed
+  sources, 43 KB), 5 kccp tests and 5 label_type tests that lock the current buggy output for plans
+  004 and 011 to flip, and repointed the three kcwiki tests at the fixture while deleting four
+  `.data/temp/*.json` writes. Verified: `cargo test -p emukc_bootstrap` 233 passed / 0 failed /
+  0 ignored; full workspace exit 0; clippy identical to the pre-change baseline.
 
 ## Next Session
 
-- [2026-09-21] Branch `fix/atomic-web-asset-refresh` holds one commit, not pushed, not merged. Plan 005
-  said not to push; merging it is the obvious next move.
-- Audit plan set is now 4/13 DONE (001/005/007/009), 003 IN PROGRESS. The remaining P0s are 004 and
-  006, both blocked on 002 (parser fixture baseline) — 002 is the highest-leverage next plan, it also
-  unblocks 011.
-- `bootstrap` without `--overwrite` is broken independently of 005: Phase 3 aborts with
-  "file .data/codex/ship_extra.json already exists". Out of 005's scope, no plan covers it yet.
+- [2026-09-21] Audit set is 5/13 DONE (001/002/005/007/009), 003 IN PROGRESS. 002 unblocked the two
+  remaining P0s, 004 and 006, and also 011. 004 is the natural next one -- its first step is to flip
+  the assertions 002 just froze.
+- In flight, user-approved, not yet done: make `cargo test -p emukc_bootstrap` pass with `.data/`
+  absent. 002 cut those failures from 7 to 4; the remaining 4 are `make_list::tests` x2 (need a full
+  `.data/codex`) and `map_pipeline::kcdata::tests` x2 (walk every map under `.data/temp/kc_data/_map`).
+  Agreed approach: guard them to skip when the data is absent, rather than `#[ignore]`.
 - Plan 003 is still IN PROGRESS: its code landed in `96f7689`, but the last item of its Definition of
   Done -- measured before/after throughput -- has no data. The 2m13s -> 3s number is the spinner fix,
   NOT 003's connection reuse; do not cite it as 003's proof.
-- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm across
-  mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror has it",
-  so a mirror in its own sync window can write a live resource into a permanent skip list.
+- `bootstrap` without `--overwrite` is broken independently of 005: Phase 3 aborts with
+  "file .data/codex/ship_extra.json already exists". No plan covers it yet.
+- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm
+  across mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror
+  has it", so a mirror in its own sync window can write a live resource into a permanent skip list.
 - Known, deliberately unfixed in 009: `tokio::fs::write` is not atomic, so a list killed mid-write
   leaves a half line and the next `--src` run rejects the whole file; two concurrent populates against
   one list overwrite each other's lists with no locking; `FailureKind::Rollback` is unreachable because
@@ -174,5 +185,5 @@ Current verification baseline:
 - Older backlog, unchanged: the 14 `api_req_combined_battle/*` endpoints then the Air Corps set (EO74
   field specs at sinsinpub/kcs2-assets `api_info/apilist.txt`, stale, a starting point not a contract);
   `test_font` needs `create_dir_all`; `api_alignment_e2e`'s `600..700` contradicts the codex's 61-65
-  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 002/004/006/008/
-  010/011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.
+  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 004/006/008/010/
+  011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.

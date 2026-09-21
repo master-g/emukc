@@ -11,7 +11,7 @@
 | Plan | 标题 | 优先级 | 工作量 | 依赖 | 状态 |
 |------|------|--------|--------|------|------|
 | 001 | 为 emukc_cache 写入/过期/失败路径建立 mock CDN 测试基线 | P1 | M | — | DONE |
-| 002 | 为第三方数据解析器建立 fixture 测试基线 | P1 | M | — | TODO |
+| 002 | 为第三方数据解析器建立 fixture 测试基线 | P1 | M | — | DONE |
 | 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | IN PROGRESS |
 | 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | TODO |
 | 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | DONE |
@@ -25,6 +25,24 @@
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
+
+- 002 DONE：新增 `tests/fixtures/kccp/quests_sample.json`（7 个 id，覆盖正常三段式、
+  缺 name 的 615/616 连对、缺 desc 的 1124、`dummy` 哨兵的 1169）与
+  `tests/fixtures/kcwiki/` 五个源的小样本（4 舰 / 4 装备 / 60 使用道具 / 4 深海栖舰 /
+  5 深海装备，共 43 KB）。kccp 的 5 个测试锁定当前错误行为：615 的 desc 是字面量
+  `_quest_id_616` 且 616 缺失、1124 的 desc 是字面量 `_quest_id_103` 且 103 缺失、
+  7 个 id 只产出 5 条，每条都带「计划 004 会翻转」注释。label_type 的 5 个测试覆盖
+  d/w/m/q 四个周期、By/Cy 命中各 4 例、未命中的 7 个年任务 id（带「计划 011 会翻转」
+  注释），外加计划未提到的第五种周期 `s`——Cs1/2/3/5/6 共 5 个真实 wiki_id，`match`
+  里没有这个分支，同样落到 1。kcwiki 的三个测试改读仓库内 fixture，并删掉了四处写
+  `.data/temp/*.json` 的调试残留（步骤 4 方案 1，没有用 `#[ignore]`）。fixture 刻意
+  只选「没有改修配方」的装备，避免把整张改修引用图拉进样本。
+  实测：`cargo test -p emukc_bootstrap` 233 passed / 0 failed / 0 ignored；
+  clippy 警告集合与 `main` 基线逐字节相同。
+  **未达成的完成标准**：「`.data/` 移走后 crate 测试 exit 0」。本计划把无 `.data`
+  的失败从 7 个降到 4 个（修掉的正是 kcwiki 那三个），剩下 4 个全在本计划范围外——
+  `make_list::tests` 两个要完整的 `.data/codex`，`map_pipeline::kcdata::tests` 两个
+  遍历 `.data/temp/kc_data/_map` 的全量地图，都不是小 fixture 能替代的。
 
 - 009 DONE：pass 1 的失败项改为三分（rollback / missing / retryable），404 不再进
   pass 2；pass 2 的失败项按同一判据再分一次（一条可能在 pass 1 超时、pass 2 才拿到
