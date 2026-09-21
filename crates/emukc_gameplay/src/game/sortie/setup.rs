@@ -145,6 +145,7 @@ impl SortieBattleSetup {
                 engagement: engagement_for_cell(self.active.map_id, self.active.current_cell_id),
                 friend_ships: self.friend_ships.clone(),
                 enemy_ships: self.enemy_ships.clone(),
+                combined: None,
             },
         }
     }

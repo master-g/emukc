@@ -79,6 +79,8 @@ pub fn run_day_battle(
             engagement: EngagementType::SameCourse,
             friend_ships: input.friend_ships,
             enemy_ships: input.enemy_ships,
+            // Practice battles are never combined.
+            combined: None,
         },
         rng,
     );

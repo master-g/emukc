@@ -17,7 +17,7 @@ pub use packet::{
 };
 pub use runtime::{
     BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip, BattleShipInput,
-    BattleSimulation, NightBattleInput, NightBattlePacket, NightBattleSimulation,
+    BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket, NightBattleSimulation,
 };
 
 #[cfg(test)]

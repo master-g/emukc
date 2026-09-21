@@ -7,6 +7,7 @@ use super::domain::{AirState, BattleType, EngagementType};
 use super::packet::{
     BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleRaigeki,
 };
+use crate::combined::CombinedType;
 use crate::random::BattleRng;
 
 #[derive(Debug, Clone)]
@@ -143,6 +144,17 @@ impl From<BattleShipInput> for BattleRuntimeShip {
     }
 }
 
+/// The escort deck of a friendly combined fleet, plus which combined fleet it
+/// is. The two always travel together — an escort deck with no type, or a type
+/// with no escort deck, is not a state the game can be in.
+#[derive(Debug, Clone)]
+pub struct CombinedSetup {
+    pub combined_type: CombinedType,
+    /// 第2艦隊. Occupies packet indices 6..=11 regardless of how many ships
+    /// `friend_ships` holds.
+    pub escort_ships: Vec<BattleShipInput>,
+}
+
 /// Input parameters for a day battle simulation.
 #[derive(Debug, Clone)]
 pub struct BattleContext {
@@ -153,8 +165,11 @@ pub struct BattleContext {
     pub friendly_formation_id: i64,
     pub enemy_formation_id: i64,
     pub engagement: EngagementType,
+    /// 第1艦隊 when `combined` is set, otherwise the whole fleet.
     pub friend_ships: Vec<BattleShipInput>,
     pub enemy_ships: Vec<BattleShipInput>,
+    /// `None` for an ordinary single-fleet battle.
+    pub combined: Option<CombinedSetup>,
 }
 
 impl BattleContext {
@@ -174,6 +189,7 @@ impl BattleContext {
             engagement: EngagementType::SameCourse,
             friend_ships,
             enemy_ships,
+            combined: None,
         }
     }
 }

@@ -3,6 +3,8 @@
 //! Pure computation crate — takes `Codex` (read-only) and battle inputs,
 //! produces battle simulation results. No database, HTTP, or side effects.
 
+/// Combined fleet (連合艦隊) formation multipliers and attack corrections.
+pub mod combined;
 /// Internal battle configuration.
 mod config;
 mod damage;
@@ -28,8 +30,14 @@ mod test_utils;
 pub use types::{
     AirState, BattleContext, BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
     BattleKoukuStage3, BattleNightHougeki, BattleOpeningAttack, BattleOutcome, BattlePacket,
-    BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleSimulation, BattleType,
+    BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleSimulation, BattleType, CombinedSetup,
     EngagementType, NightBattleInput, NightBattlePacket, NightBattleSimulation, SiListId,
+};
+
+// Public API — combined fleet tables
+pub use combined::{
+    CombinedAttackClass, CombinedFleetRole, CombinedType, ESCORT_INDEX_OFFSET,
+    combined_correction_vs_single, combined_formation_min_escort_size, combined_formation_modifier,
 };
 
 // Public API — RNG
