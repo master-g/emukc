@@ -77,6 +77,15 @@ Current verification baseline:
   0 SQL joins, 0 `group_by`, 0 `find_with_related` across 195 `Entity::find()` sites. `Relation` exists
   only so `create_table_from_entity` emits FOREIGN KEY (`entity/mod.rs:9-13`). Swapping in sqlx or
   rusqlite would rewrite ~450 call sites to shed 25 crates; sqlx is 133 of the 159-crate subtree.
+- [2026-09-20] A full `cache populate` over the generated list IS the authoritative CDN existence probe: it
+  requests every non-hole path, so its failure list is an exhaustive answer for "what is missing upstream".
+  Use it to maintain the hole tables; `--greedy` is not a substitute (see Pitfalls).
+- [2026-09-20] Hole tables flow Rust -> asset, not decoder -> Rust: `main-decoder/src/path-rules.ts` parses
+  `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` back out of the Rust sources into
+  `cache_rules.json`. To change a hole, edit the Rust constant, then `make decode-main` to re-sync.
+- [2026-09-20] Nothing in `start2` distinguishes the 5 resupply-form ships (743/744/745/748/749, names
+  ending in 補) from normal friendly ships — checked `api_sortno`, `api_backs`, `api_aftershipid` and
+  `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
 - [2026-09-20] Three test failures are baseline, not regressions, each reconfirmed by reverting to HEAD:
   `test_font` writes to `./target/tmp/` while `CARGO_TARGET_DIR` points at `~/.cache/cargo-build`;
   `api_alignment_e2e` asserts map ids in `600..700` but the codex stores area-6 maps as 61-65;
@@ -105,7 +114,7 @@ Current verification baseline:
 | [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
 | [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
-| [2026-09-18] `cargo test -p emukc_time` has 2 pre-existing failures (`test_jst_next_28/370_day_of_the_month`, overflow at `lib.rs:355`); crate untouched since `ca50d40`, and the root `cargo test` gate does not run it. Not a regression signal. | session 2026-09-18, U4 |
+| [2026-09-21] `emukc_time`'s `test_jst_next_28/370_day_of_the_month` failures are DATE-dependent: they overflowed at `lib.rs:355` on 09-20 and passed untouched on 09-21. Note the date before calling them baseline. | sessions 2026-09-18, 09-21 |
 | [2026-09-18] `clippy -- -D warnings` fails on old `result_large_err` at `emukc_network/src/download.rs:236` and (rustc 1.98.1) `src/bin/net/auth.rs:139`, both older than plan 002. Repo gate is `-W warnings`; touched-file checks give `-D` strength for new code. | sessions 2026-09-18, 09-19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
 | [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` gives FALSE results: `.bak` keeps the ORIGINAL mtime, so cargo sees no change and reuses the artifact built from the EDITED file. `touch` X after restoring and re-run. | session 2026-09-19 |
@@ -114,30 +123,44 @@ Current verification baseline:
 | [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
 | [2026-09-19] A refactor comment saying "keeps feeding X as before" was preserving a bug: plan 002 froze the day-battle `enemy_nowhps` copy, so night-only sinks fired no quest event. Treat "as before" as unverified. | git `HEAD` |
 | [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
+| [2026-09-20] `--greedy`'s holes report is dead code: `HOLES_COLLECTOR` has a reader and a clear but no writer, so it is always empty and `GreedyConfig.concurrent` is unused. `z/cache/holes_report.txt` is an April artifact, not current data. | session 2026-09-20, `ship.rs` |
+| [2026-09-20] Duplicate progress bars are NOT error line-wraps: any terminal write bypassing `MultiProgress` strands a copy of the bar block in scrollback and is itself overwritten (invisible). Spinner churn, resizes and `mp.suspend` all tested clean. | session 2026-09-20 |
+| [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
+| [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
 
 ## Last Session
 
-- [2026-09-20] `main`, two commits on top of `82d2203`. (1) `refactor(db)`: deleted the hand-rolled schema
-  migrations (`migrate_legacy_stage_id_schema`, `migrate_unlocked_column`, `migrate_onslot_plus_columns`)
-  and their legacy fixtures/tests -- the project has no released users, every local DB is disposable, and
-  `create_table_from_entity` already emits the current schema. Raw `Statement` sites went 13 -> 1.
-  (2) `chore(deps)`: sea-orm 1.1.20 -> 2.0.3, which cost exactly three lines --
-  `db.execute(backend.build(&stmt))` -> `db.execute(&stmt)` in `entity/mod.rs`, and `execute` ->
-  `execute_raw` for the one remaining raw PRAGMA in `remodel.rs`. Transitively sqlx 0.8.6 -> 0.9.0 and
-  sea-query 0.32.7 -> 1.0.2. Predicted breakages that did not land: `insert_many` (3 sites, compatible),
-  `ExprTrait` (1 site, unaffected), `DatabaseConnection` enum->struct and `DerivePartialModel` (0 uses).
-- Gates: `fmt --check` clean, `clippy --workspace -- -W warnings` shows 6 pre-existing `result_large_err`
-  warnings in files this change never touched, `cargo test --workspace --no-fail-fast` 1025 passed /
-  3 failed, all three baseline (see Verified Facts).
+- [2026-09-21] Branch `fix/distinguish-missing-from-failure`, four commits on `9bd9f59`, nothing pushed.
+  `2497efc` implements audit plan 007: `fetch_from_remote`'s 404 branch returns `KacheError::FileNotFound`
+  and `exists_on_remote` returns `RemoteExistence{Present,Absent,Indeterminate}`. Four call sites, not
+  the one the plan named -- the other three already used `?`, so only `gauge.rs` changed behaviour.
+  Adversarial review then found 007 had fixed half the defect: `make_gauge_by_id` mapped every fetch
+  error to `Ok(false)`, so even after a HEAD probe said `Present` a failed fetch dropped the gauge.
+  Fixed in the same commit. `6630261` deletes populate's per-item spinner (2m13s/220s CPU -> 3s/1.25s
+  on a fully cached list). `f865ea7` removes the 19 CDN-404 paths from the cache list: the `card_t`
+  border bug plus two hole-table gaps, with the decoder assets re-synced because `path-rules.ts` reads
+  `EVENT_SHIP_HOLES` back out of the Rust source.
+- Verified: `cargo test --workspace --no-fail-fast` exit 0, 1049 passed; `fmt --check` clean; clippy
+  13 warnings, identical to the pre-change baseline. Three gauge/CDN cases were mutation-verified.
+  The cache list goes 73,050 -> 73,031 and diffs to exactly those 19 paths.
 
 ## Next Session
 
-- [2026-09-20] Candidate next work, in order: (1) The 14 `api_req_combined_battle/*` endpoints are the
-  largest gameplay gap, then the Air Corps set; EO74 field specs for all 34 missing endpoints are at
-  sinsinpub/kcs2-assets `api_info/apilist.txt` (stale, a starting point, not a contract). (2) Decide the
-  three baseline failures' fate -- `test_font` needs a `create_dir_all`, `api_alignment_e2e`'s `600..700`
-  range contradicts the codex's 61-65 ids, and the `api_max_slotplus` assert needs rechecking against the
-  current manifest. (3) Make `practice_battle`'s win-rank asserts deterministic. Smaller: literal-only
-  `exp_lvup_vector_keeps_pre_gain_exp_and_future_thresholds`; plan 002's KD6 follow-up (inline `_impl`s
-  with a single caller); 6.3.x KTD4 smoke test; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan
-  revalidation; archiving the battle execution plan; stale `wt-base` worktree.
+- [2026-09-21] Plan 009 is next and now fully unblocked: 007 supplied the error distinction its step 4
+  needs, and `populate.rs` is committed so 009's edits no longer collide with uncommitted work. 009 was
+  revised this session to cover the gap neither plan held (404 must skip the pass-2 in-memory retry, not
+  just the on-disk list) and to record the exit-code decision: a pure-404 run still exits non-zero,
+  because the exit code has no automated consumer here but `holes_report.txt` proved that "write a file
+  and trust someone to read it" fails in this repo.
+- Carry into 009: `*.missing.nedb` must NOT be fed straight into the hole tables. `FileNotFound` means
+  "the shuffled mirror we asked said 404", not "no mirror has it", so a mirror in its own sync window
+  can write a live resource into a permanent skip list. Confirm across mirrors first; noted in 009 step 4.
+- Plan 003 is still IN PROGRESS and has been for a while: its code landed in `96f7689`, but the last
+  item of its Definition of Done -- measured before/after throughput -- has no data. The 2m13s -> 3s
+  number from this session is the spinner fix, NOT 003's connection reuse; do not cite it as 003's proof.
+- The branch has not been merged back to `main`. Merging after 009 lands keeps the 404 line in one place.
+- Older backlog, unchanged: the 14 `api_req_combined_battle/*` endpoints then the Air Corps set (EO74
+  field specs at sinsinpub/kcs2-assets `api_info/apilist.txt`, stale, a starting point not a contract);
+  `test_font` needs `create_dir_all`; `api_alignment_e2e`'s `600..700` contradicts the codex's 61-65
+  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 002/004/005/006/
+  008/010/011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.

@@ -16,15 +16,23 @@
 | 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | TODO |
 | 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | TODO |
 | 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
-| 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | TODO |
+| 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
 | 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | TODO |
-| 009 | populate 失败清单落盘，支持只重试失败项 | P1 | S | — | TODO |
+| 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | TODO |
 | 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | TODO |
 | 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | TODO |
 | 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | TODO |
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
+
+- 007 DONE：`fetch_from_remote` 的 404 分支改返回 `KacheError::FileNotFound`，
+  `exists_on_remote` 改为三态 `RemoteExistence{Present,Absent,Indeterminate}`。
+  实际调用方是 4 处而非计划正文里的 1 处（`gauge.rs`、`map.rs` ×2、
+  `make_list/mod.rs`）；后 3 处原本就用 `?` 传播，改后 `Indeterminate` 继续传播，
+  行为不变。真正的缺陷只在 `gauge.rs` 的 `unwrap_or(false)`，现按计划的方案 (a)
+  让整个 make-list 失败。回归测试 `variant_crawl_fails_instead_of_truncating_when_no_cdn_answers`
+  经变异验证（把 `Indeterminate` 改回 `break` 即失败）。
 
 - 003 IN PROGRESS：两处配置改动已落地，001 的回归基线也已就位——
   `remote_fetch.rs` 的 404 用例通过，且 `fetch_200_writes_body_and_records_version`
@@ -41,6 +49,9 @@
 - 013 依赖 012：012 先把「资产里记录客户端版本 + 与实时版本比对」这条最小链路跑通，
   013 再决定要不要把四份版本记录收敛成一份。
 - 003 与 009 都动 populate 体验，但改动点不重叠，可并行。
+- 009 的步骤 4 依赖 007：007 只提供「404 与瞬时失败是两个错误值」这个能力，把
+  populate 侧怎么用它留给了 009。两者之间原本有个缺口——**404 不进 pass 2 的内存
+  重试**谁都没写——已在 2026-09-20 补进 009 步骤 4。
 
 ## 本次审计确认的关键事实（执行者可直接引用）
 
@@ -83,6 +94,24 @@ Rules 清单漏掉了这些资源。抽样中命中的类别包括 `banner_dmg`�
 一次性存在性探测，把确实存在的并入规则——候选来自差集而非枚举，量级是两万次
 探测而不是无边界搜索。这件事尚未立计划。
 
+## 2026-09-20 计划外已落地的改动
+
+以下改动不属于本计划集任何一份，但触及了它们的范围，执行者跑漂移检查时会看到：
+
+- `populate.rs` 删除了逐项 spinner（每个文件一个 `mp.add()`）。indicatif 0.18 只回收
+  `ordering` 头部连续的僵尸条，而头部是常驻的聚合条，所以 73k 个 spinner 一个都不会
+  被释放，每次重绘都要遍历全量。全本地命中的一轮从 2m13s / 220s CPU 降到 3s / 1.25s。
+  009 的基线已相应推进到 `9bd9f59` + 该未提交改动。
+- cache 清单从 73,050 收敛到 73,031：`slot.rs` 的 `card_t` 补上了 `generate.rs` 早就
+  在用的 `enemy_slot_border`(1500) 过滤，`EVENT_SHIP_HOLES` 补了 6299/6301/6303，
+  新增 `ALBUM_STATUS_HOLES`（743/744/745/748/749，补给形态舰，`start2` 里无字段可判）。
+  三者去掉的正是 2026-09-20 那轮 populate 全部 19 条 404。
+
+补充一条给计划 010 的事实：`--greedy` 的 holes 报告不只是「产出与默认策略相同」——
+`ship.rs` 的 `HOLES_COLLECTOR` 有读取方和清空方但**没有任何写入方**，所以
+`holes_report.txt` 恒为空，`GreedyConfig.concurrent` 也没有消费者。
+`z/cache/holes_report.txt` 是 2026-04-20 的遗物，不是当前数据。
+
 ## 已考虑并否决
 
 - 拆分 `make_list/mod.rs`（1383 行）与 `manifest/generate.rs`（1872 行）：在 010
@@ -94,3 +123,6 @@ Rules 清单漏掉了这些资源。抽样中命中的类别包括 `banner_dmg`�
   任务字符串，此路不通。
 - 更换第三方数据源：数据本身从未缺失（`kccp_quests.json` 里 771 个 id 全在），
   问题在本仓库的解析器。先做 004，再谈换源。
+- 让 populate 在「失败项全为 404」时 exit 0：退出码在本仓库没有自动化消费者，而
+  「落盘 + 信任人去看」已有反例（空了五个月无人发现的 `holes_report.txt`）。
+  完整理由记在 009 的「维护须知」。
