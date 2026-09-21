@@ -266,12 +266,19 @@
 「让 fallback 在 decoder 已覆盖的家族上展开会浪费下载、请求不存在的资源」
 所描述的情况。
 
-但反过来也有一个**尚未解决的发现**：manifest 独有部分里约 7%（估算 1,500 条
-左右）是**真实存在**的，说明 decoder 规则对 ship/slot 变体家族的覆盖仍有缺口，
-Rules 清单漏掉了这些资源。抽样中命中的类别包括 `banner_dmg`。
-补齐它的正确做法不是复活 Greedy 的暴力枚举，而是把 manifest 差集当作候选集做
-一次性存在性探测，把确实存在的并入规则——候选来自差集而非枚举，量级是两万次
-探测而不是无边界搜索。这件事尚未立计划。
+当时还留了一个**未解决的发现**：manifest 独有部分里约 7%（估算 1,500 条左右）
+是真实存在的，疑似 Rules 清单的覆盖缺口。
+
+**2026-09-21 已用全量探测结案，结论是「不补」。** 对全部 21,510 条做 HEAD 探测
+（每个 CDN 主机一条 https keep-alive 连接，4 分钟，零错误）：786 条存在（3.65%，
+不是 7%），20,724 条 404，无空 200。786 条全部是同一样东西——深海舰
+（id 1501..2397 中的 786 个）的 `ship/banner_dmg`，其余家族一条都不存在。
+
+而 `cache_rules.json` 的 `shipRules.targetSemantics`（`observed-complete`，从
+main.js 解码）明确写着 `banner` + `default-abyssal` + `damaged=true` → `banner`：
+**深海舰受损时用的仍是完好 banner，客户端从不请求 `banner_dmg`**。这 786 个文件
+上游存在但无人索取，收进清单纯属浪费。完整依据与「为什么那个看起来对的一行修改
+是 no-op」见 `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 
 ## 2026-09-20 计划外已落地的改动
 
