@@ -7,7 +7,8 @@
 //! Note which `Err` comes back. `get_with_opt` logs the internal `InvalidFile`
 //! and falls through to the remote branch; with remote disabled the caller ends
 //! up with `FileNotFound`. So a corrupt cache entry and an absent one are
-//! indistinguishable from outside — the distinction plan 007 is about.
+//! indistinguishable from outside. Plan 007 split the *CDN-side* outcomes (a 404
+//! versus no CDN answering at all); this local-side collapse is untouched by it.
 //!
 //! Baseline for plan 008 — two of these pin behaviour that is known to be wrong
 //! and that 008 is expected to flip. Those carry a comment saying so.

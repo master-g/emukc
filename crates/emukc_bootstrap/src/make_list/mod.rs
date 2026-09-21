@@ -7,7 +7,7 @@ use std::{
 use futures::{StreamExt, stream::FuturesUnordered};
 use serde::{Deserialize, Serialize};
 
-use emukc_cache::{IntoVersion, Kache, KacheError};
+use emukc_cache::{IntoVersion, Kache, KacheError, RemoteExistence};
 use emukc_model::codex::Codex;
 
 use errors::CacheListMakingError;
@@ -923,7 +923,15 @@ pub async fn batch_check_exists(
                     let key = url.clone();
                     let t = tracker.clone();
                     tasks.push(async move {
-                        let exists = c.exists_on_remote(&key, &ver).await?;
+                        let exists = match c.exists_on_remote(&key, &ver).await {
+                            RemoteExistence::Present => true,
+                            RemoteExistence::Absent => false,
+                            // No CDN answered. Reporting "absent" here would drop
+                            // the entry from the list without a trace.
+                            RemoteExistence::Indeterminate => {
+                                return Err(KacheError::FailedOnAllCdn);
+                            }
+                        };
                         if let Some(tracker) = t {
                             tracker.increment_checked();
                             if exists {

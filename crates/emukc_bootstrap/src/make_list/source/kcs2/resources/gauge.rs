@@ -119,17 +119,27 @@ async fn make_gauge_with_variants(
         // expected 404 through the full `get` path would log it at ERROR. `exists_on_remote`
         // reports a missing file at trace level, so the crawl stays silent.
         let json_path = format!("kcs2/resources/gauge/{variant_id}.json");
-        if !cache.exists_on_remote(&json_path, NoVersion).await.unwrap_or(false) {
-            break;
+        match cache.exists_on_remote(&json_path, NoVersion).await {
+            RemoteExistence::Present => {}
+            // The CDN says there is no further phase: this is the one case that
+            // legitimately ends the crawl.
+            RemoteExistence::Absent => break,
+            // No CDN answered. Ending the crawl here would silently drop the rest
+            // of this gauge series from a list that drives hours of downloading,
+            // so fail the whole make-list instead.
+            RemoteExistence::Indeterminate => {
+                return Err(CacheListMakingError::Kache(KacheError::FailedOnAllCdn));
+            }
         }
         make_gauge_by_id(cache, &variant_id, list).await?;
     }
     Ok(())
 }
 
-/// Add a gauge json and the images it references to the list. Tolerant by design: a gauge whose
-/// json is absent on the CDN (a map without a gauge resource) is skipped rather than aborting the
-/// whole make-list, and a malformed json adds the json path but skips its (unknown) images.
+/// Add a gauge json and the images it references to the list. Tolerant of *absence*: a gauge whose
+/// json the CDN reports as 404 (a map without a gauge resource) is skipped rather than aborting the
+/// whole make-list, and a malformed json adds the json path but skips its (unknown) images. It is
+/// not tolerant of an unanswered fetch — see the error arm below.
 ///
 /// Returns `true` when the gauge json was found (so the variant crawl keeps probing), `false`
 /// when it is absent (so the crawl stops).
@@ -141,10 +151,17 @@ async fn make_gauge_by_id(
     let p = format!("kcs2/resources/gauge/{id}.json");
     let mut json_file = match GetOption::new_non_mod().get(cache, &p, NoVersion).await {
         Ok(file) => file,
-        Err(e) => {
-            tracing::trace!("gauge {id}: json unavailable ({e:?}), skipping");
+        // The CDN answered 404: this gauge genuinely has no json, which is the
+        // tolerated case above. (`new_non_mod` leaves remote enabled, so this
+        // variant can only come from the CDN here, not from a local-only miss.)
+        Err(KacheError::FileNotFound(_)) => {
+            tracing::trace!("gauge {id}: json absent upstream, skipping");
             return Ok(false);
         }
+        // No answer at all. Returning "absent" here would drop this gauge and its
+        // images from the list silently — and at the variant call site it would
+        // contradict a HEAD probe that just reported `Present`.
+        Err(e) => return Err(e.into()),
     };
     list.add_unversioned(p);
     let mut raw = String::new();
@@ -164,4 +181,83 @@ async fn make_gauge_by_id(
     }
 
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A CDN address nothing listens on, so every probe fails to connect and
+    /// `exists_on_remote` reports `Indeterminate` rather than `Absent`.
+    const UNREACHABLE_CDN: &str = "http://127.0.0.1:1";
+
+    const BASE_ID: &str = "00701";
+
+    fn cache_with_local_base_gauge(root: &std::path::Path) -> Kache {
+        let gauge_dir = root.join("kcs2/resources/gauge");
+        std::fs::create_dir_all(&gauge_dir).unwrap();
+        std::fs::write(
+            gauge_dir.join(format!("{BASE_ID}.json")),
+            br#"{"img":"gauge_a","vertical":{"img":"gauge_a_v"}}"#,
+        )
+        .unwrap();
+
+        Kache::builder()
+            .with_cache_root(root.to_path_buf())
+            .with_content_cdn(UNREACHABLE_CDN.to_string())
+            .with_gadgets_cdn(UNREACHABLE_CDN.to_string())
+            .build()
+            .unwrap()
+    }
+
+    /// The crawl must not read "no CDN answered" as "no further phase exists".
+    /// Doing so silently truncates a gauge series from a list that drives hours
+    /// of downloading, which is the defect this plan exists to remove.
+    #[tokio::test]
+    async fn variant_crawl_fails_instead_of_truncating_when_no_cdn_answers() {
+        let root = tempfile::TempDir::new().unwrap();
+        let cache = cache_with_local_base_gauge(root.path());
+        let mut list = CacheList::new();
+
+        let err = make_gauge_with_variants(&cache, BASE_ID, &mut list)
+            .await
+            .expect_err("an inconclusive probe must not be swallowed");
+
+        assert!(
+            matches!(err, CacheListMakingError::Kache(KacheError::FailedOnAllCdn)),
+            "got {err:?}"
+        );
+
+        // The base json came from the fixture's local file (the fetch never went
+        // out), so this only shows the crawl got past the base before giving up
+        // on the variants — it says nothing about remote behaviour.
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        assert!(paths.iter().any(|p| p.contains(&format!("gauge/{BASE_ID}.json"))));
+    }
+
+    /// The same defect one call deeper: when the base gauge's own fetch gets no
+    /// answer, `make_gauge_by_id` used to report it as "absent" and the caller
+    /// dropped the whole series without an error. Nothing is pre-seeded here, so
+    /// the base lookup really does go out to the unreachable CDN.
+    #[tokio::test]
+    async fn base_gauge_fetch_failure_is_not_reported_as_absence() {
+        let root = tempfile::TempDir::new().unwrap();
+        let cache = Kache::builder()
+            .with_cache_root(root.path().to_path_buf())
+            .with_content_cdn(UNREACHABLE_CDN.to_string())
+            .with_gadgets_cdn(UNREACHABLE_CDN.to_string())
+            .build()
+            .unwrap();
+        let mut list = CacheList::new();
+
+        let err = make_gauge_with_variants(&cache, BASE_ID, &mut list)
+            .await
+            .expect_err("an unanswered base fetch must not be swallowed as absence");
+
+        assert!(
+            matches!(err, CacheListMakingError::Kache(KacheError::FailedOnAllCdn)),
+            "got {err:?}"
+        );
+        assert!(list.items.is_empty(), "nothing should have been collected");
+    }
 }

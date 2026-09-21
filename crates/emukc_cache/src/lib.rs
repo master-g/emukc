@@ -17,7 +17,7 @@ mod version_cache;
 
 pub use error::Error as KacheError;
 pub use kache::Builder as KacheBuilder;
-pub use kache::Kache;
+pub use kache::{Kache, RemoteExistence};
 pub use opt::GetOption;
 pub use ver::{IntoVersion, NoVersion, cmp_version};
 
@@ -41,4 +41,5 @@ pub mod prelude {
     pub use crate::KacheBuilder;
     pub use crate::KacheError;
     pub use crate::NoVersion;
+    pub use crate::RemoteExistence;
 }

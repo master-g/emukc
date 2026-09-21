@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, sync::LazyLock};
 
-use emukc_cache::{GetOption, Kache, KacheError, NoVersion};
+use emukc_cache::{GetOption, Kache, KacheError, NoVersion, RemoteExistence};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
@@ -212,9 +212,12 @@ async fn find_in_local_then_remote(
         Ok(f) => f,
         Err(_) => {
             // check if exist
-            if !cache.exists_on_remote(p, NoVersion).await? {
+            match cache.exists_on_remote(p, NoVersion).await {
+                RemoteExistence::Present => {}
                 // not exist
-                return Ok(None);
+                RemoteExistence::Absent => return Ok(None),
+                // No CDN answered; do not report that as "not exist".
+                RemoteExistence::Indeterminate => return Err(KacheError::FailedOnAllCdn),
             }
             // fetch from CDN
             GetOption::new().disable_mod().disable_local().get(cache, p, NoVersion).await?
@@ -240,10 +243,14 @@ async fn get_event_area_greedy(
             let map_id = format!("{map:02}");
             let mut spots = 0;
             let cover = format!("kcs2/resources/map/{area_id}/{map_id}.png");
-            if cache.exists_on_remote(&cover, NoVersion).await? {
-                list.add_unversioned(cover);
-            } else {
-                break;
+            match cache.exists_on_remote(&cover, NoVersion).await {
+                RemoteExistence::Present => {
+                    list.add_unversioned(cover);
+                }
+                RemoteExistence::Absent => break,
+                RemoteExistence::Indeterminate => {
+                    return Err(KacheError::FailedOnAllCdn.into());
+                }
             }
 
             let mut info_set: EventMapInfo = (event_id, map, None);

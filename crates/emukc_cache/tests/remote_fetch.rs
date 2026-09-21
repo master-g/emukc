@@ -1,8 +1,9 @@
 //! Remote fetch integration tests for `Kache`.
 //!
-//! Baseline for plans 003, 007 and 008: these pin what the fetch path does
-//! *today*, including the parts that are known to be wrong. Assertions that a
-//! later plan is expected to flip carry a comment saying so.
+//! Baseline for plans 003 and 008: these pin what the fetch path does *today*,
+//! including the parts that are known to be wrong. Assertions that a later plan
+//! is expected to flip carry a comment saying so. Plan 007 has landed: a 404 and
+//! a total CDN failure are now distinct outcomes, pinned below.
 
 use emukc_cache::{GetOption, Kache, KacheError};
 use tempfile::TempDir;
@@ -101,9 +102,9 @@ async fn fetch_404_fails_and_leaves_no_file() {
     let cache = cache_for(&server, &root);
 
     let err = cache.get(REL_PATH, VERSION).await.unwrap_err();
-    // Plan 007 will split "missing upstream" from "every CDN failed"; today a 404
-    // short-circuits the CDN loop and surfaces as the same variant as a total failure.
-    assert!(matches!(err, KacheError::FailedOnAllCdn), "got {err:?}");
+    // A 404 is the CDN answering "this does not exist", which is a different
+    // outcome from "no CDN gave an answer" — see `fetch_fails_when_every_cdn_errors`.
+    assert!(matches!(err, KacheError::FileNotFound(_)), "got {err:?}");
     assert!(!root.path().join(REL_PATH).exists(), "404 leaves nothing on disk");
     assert_eq!(cache.get_cached_version(REL_PATH).await.unwrap(), None, "no version recorded");
 
@@ -140,4 +141,76 @@ async fn fetch_fails_when_every_cdn_errors() {
     // A 500 is retried on the next CDN, unlike the 404 above which stops at the first.
     assert_eq!(first.received_requests().await.unwrap().len(), 1);
     assert_eq!(second.received_requests().await.unwrap().len(), 1);
+}
+
+/// The flip side of the recovery case below: a 404 is treated as an answer and
+/// ends the walk, so `FileNotFound` only ever reflects the mirror that answered.
+/// Pinning this keeps the error's meaning honest — if the walk is ever changed to
+/// poll every mirror before concluding absence, this test says so out loud.
+#[tokio::test]
+async fn fetch_404_stops_the_walk_without_asking_the_next_cdn() {
+    let first = MockServer::start().await;
+    let second = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/{REL_PATH}")))
+        .respond_with(ResponseTemplate::new(404))
+        .mount(&first)
+        .await;
+    Mock::given(method("GET"))
+        .and(path(format!("/{REL_PATH}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"png-bytes".to_vec()))
+        .mount(&second)
+        .await;
+
+    let root = TempDir::new().unwrap();
+    let cache = Kache::builder()
+        .with_cache_root(root.path().to_path_buf())
+        .with_content_cdns(vec![first.uri(), second.uri()])
+        .with_gadgets_cdn(first.uri())
+        .build()
+        .unwrap();
+
+    let opt = GetOption::new().diable_shuffle();
+    let err = cache.get_with_opt(REL_PATH, VERSION, &opt).await.unwrap_err();
+
+    assert!(matches!(err, KacheError::FileNotFound(_)), "got {err:?}");
+    assert_eq!(first.received_requests().await.unwrap().len(), 1);
+    assert_eq!(
+        second.received_requests().await.unwrap().len(),
+        0,
+        "the 404 ended the walk, so the mirror that has the file was never asked"
+    );
+}
+
+#[tokio::test]
+async fn fetch_recovers_when_a_failing_cdn_is_followed_by_a_working_one() {
+    let failing = MockServer::start().await;
+    let working = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/{REL_PATH}")))
+        .respond_with(ResponseTemplate::new(500))
+        .mount(&failing)
+        .await;
+    Mock::given(method("GET"))
+        .and(path(format!("/{REL_PATH}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"png-bytes".to_vec()))
+        .mount(&working)
+        .await;
+
+    let root = TempDir::new().unwrap();
+    let cache = Kache::builder()
+        .with_cache_root(root.path().to_path_buf())
+        .with_content_cdns(vec![failing.uri(), working.uri()])
+        .with_gadgets_cdn(failing.uri())
+        .build()
+        .unwrap();
+
+    // Shuffle off so the failing CDN is always tried first; with it on, the
+    // working CDN could be picked first and the recovery path would go untested.
+    let opt = GetOption::new().diable_shuffle();
+    let mut file = cache.get_with_opt(REL_PATH, VERSION, &opt).await.unwrap();
+
+    assert_eq!(read_back(&mut file).await, b"png-bytes");
+    assert_eq!(failing.received_requests().await.unwrap().len(), 1, "the 500 was tried");
+    assert_eq!(working.received_requests().await.unwrap().len(), 1, "and the loop moved on");
 }

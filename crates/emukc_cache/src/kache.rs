@@ -21,6 +21,23 @@ use crate::{
 pub(crate) const KACHE_TABLE: TableDefinition<&str, Option<&str>> =
     TableDefinition::new("kache_entry");
 
+/// Outcome of probing whether a resource exists on the CDN.
+///
+/// The third variant is the point: "no CDN gave an answer" is not the same as
+/// "the CDN says it is not there", and treating the former as absence quietly
+/// drops entries from whatever the caller is assembling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemoteExistence {
+    /// A mirror answered 200.
+    Present,
+    /// A mirror answered 404. Like `Present`, this is the first mirror to answer
+    /// out of a shuffled list, not a verdict from all of them.
+    Absent,
+    /// No CDN gave a conclusive answer: network error, 5xx, timeout, or no CDN
+    /// is configured for this path.
+    Indeterminate,
+}
+
 /// The `Kache` struct is the main struct for the `KanColle` CDN file cache utilities.
 #[derive(Debug, Clone)]
 pub struct Kache {
@@ -276,8 +293,13 @@ impl Kache {
         Err(Error::FileNotFound(path.to_owned()))
     }
 
-    /// Check if the file exists on the remote CDN.
-    pub async fn exists_on_remote<V>(&self, path: &str, ver: V) -> Result<bool, Error>
+    /// Check whether the file exists on the remote CDN.
+    ///
+    /// Returns three outcomes, not two: a 404 is the CDN saying the file is
+    /// absent, while a network error or 5xx means no CDN answered at all.
+    /// Collapsing the latter into "absent" silently truncates whatever the
+    /// caller is building, so it gets its own variant.
+    pub async fn exists_on_remote<V>(&self, path: &str, ver: V) -> RemoteExistence
     where
         V: IntoVersion,
     {
@@ -286,7 +308,7 @@ impl Kache {
 
         if cdn_list.is_empty() {
             error!("🚫 no available cdn");
-            return Err(Error::MissingField("cdn_list".to_owned()));
+            return RemoteExistence::Indeterminate;
         }
 
         for cdn in cdn_list {
@@ -297,11 +319,11 @@ impl Kache {
                 Ok(resp) => match resp.status() {
                     reqwest::StatusCode::OK => {
                         trace!("✅ {}", &url);
-                        return Ok(true);
+                        return RemoteExistence::Present;
                     }
                     reqwest::StatusCode::NOT_FOUND => {
                         trace!("🚫 not found: {}", &url);
-                        return Ok(false);
+                        return RemoteExistence::Absent;
                     }
                     _ => {
                         trace!("💥 url:{}, status:{:?}", url, resp.status());
@@ -313,7 +335,7 @@ impl Kache {
             }
         }
 
-        Err(Error::FailedOnAllCdn)
+        RemoteExistence::Indeterminate
     }
 
     /// Select the appropriate CDN list based on the path.
@@ -578,8 +600,16 @@ impl Kache {
                 Err(Error::Download(ref de))
                     if matches!(de.as_ref(), download::DownloadError::FileNotFound { .. }) =>
                 {
+                    // This mirror answered 404. That is an answer, unlike a probe
+                    // that never landed, so it gets its own variant rather than
+                    // `FailedOnAllCdn`. Mind the scope of the claim: the mirror
+                    // list is shuffled and we return on the first 404, so this
+                    // means "the mirror we happened to ask says no", not "no
+                    // mirror has it". A caller that wants authoritative absence
+                    // (e.g. to seed a permanent skip list) must confirm across
+                    // mirrors itself.
                     warn!("🚫 404 on {}, skipping remaining CDNs", url);
-                    return Err(Error::FailedOnAllCdn);
+                    return Err(Error::FileNotFound(path.to_owned()));
                 }
                 Err(e) => {
                     error!("💥 url:{}, err:{:?}", url, e);
