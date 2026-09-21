@@ -475,6 +475,10 @@ pub(crate) fn simulate_kouku(
             api_f_sp_list: vec![None; friendly.len()],
             api_e_sp_list: vec![None; enemy.len()],
         },
+        // A combined battle splits deck 2 out of `api_stage3` afterwards, in
+        // `combined_packet::split_kouku_stage3`; the airstrike itself treats the
+        // two decks as one fleet.
+        api_stage3_combined: None,
     }
 }
 

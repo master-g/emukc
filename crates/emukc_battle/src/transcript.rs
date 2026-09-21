@@ -418,6 +418,7 @@ mod tests {
                 api_f_sp_list: vec![None],
                 api_e_sp_list: vec![None],
             },
+            api_stage3_combined: None,
         }
     }
 

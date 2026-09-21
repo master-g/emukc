@@ -66,6 +66,21 @@ impl CombinedFleetRole {
     }
 }
 
+/// Translate a friendly ship's index in the simulation's contiguous vector into
+/// the client's packet index space.
+///
+/// The simulation packs deck 2 directly behind deck 1, so deck 2 starts at
+/// `escort_start` — deck 1's actual ship count. The client always reads deck 2
+/// from index 6, so a deck 1 shorter than six ships leaves a gap the packet has
+/// to carry.
+pub(crate) const fn packet_index(index: usize, escort_start: usize) -> usize {
+    if index < escort_start {
+        index
+    } else {
+        ESCORT_INDEX_OFFSET + index - escort_start
+    }
+}
+
 /// Attack class, for picking a formation multiplier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CombinedAttackClass {
@@ -185,6 +200,21 @@ mod tests {
     fn escort_offset_is_fixed_at_six() {
         assert_eq!(CombinedFleetRole::Main.index_offset(), 0);
         assert_eq!(CombinedFleetRole::Escort.index_offset(), 6);
+    }
+
+    /// A short deck 1 does not pull deck 2 down with it: the gap between deck
+    /// 1's last ship and index 6 stays empty on the wire.
+    #[test]
+    fn packet_index_leaves_a_gap_when_deck_one_is_short() {
+        // Full deck 1: the two spaces coincide.
+        for i in 0..12 {
+            assert_eq!(packet_index(i, 6), i);
+        }
+        // Deck 1 of four: deck 2 still starts at 6.
+        assert_eq!(packet_index(0, 4), 0);
+        assert_eq!(packet_index(3, 4), 3);
+        assert_eq!(packet_index(4, 4), 6, "deck 2 flagship jumps the gap");
+        assert_eq!(packet_index(9, 4), 11);
     }
 
     /// Every cell of the formation table, transcribed from the reference.

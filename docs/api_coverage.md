@@ -14,8 +14,8 @@ inventory of its own.
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
 and diff that against the fenced blocks. Verified on 2026-09-21 at client
-6.3.5.0: **117 implemented**, **31 missing**, no overlap, and the 31 are exactly
-the upstream reference's 136 endpoints minus the 117.
+6.3.5.0: **122 implemented**, **26 missing**, no overlap, and the 26 are exactly
+the upstream reference's 136 endpoints minus the 122.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -23,19 +23,20 @@ Do not restate those lists here — a second copy is a second thing to drift.
 
 ### `api_req_combined_battle/` — Combined Fleet Battles (P0)
 
-14 endpoints. Highest reuse value — shares battle core with `api_req_sortie/`.
+9 endpoints left. 味方連合 vs 敵通常艦隊 shipped 2026-09-21: `battle`,
+`battle_water`, `midnight_battle`, `battleresult`, `goback_port`.
 
-- `battle`, `midnight_battle`, `sp_midnight`
-- `battle_water`, `each_battle`, `each_battle_water`
-- `ec_battle`, `ec_midnight_battle`, `ec_night_to_day`
-- `airbattle`, `ld_airbattle`, `ld_shooting`
-- `battleresult`, `goback_port`
+- `each_battle`, `each_battle_water`, `ec_battle`, `ec_midnight_battle`,
+  `ec_night_to_day` — the enemy is combined too, which changes phase order,
+  night opponent selection and the correction table
+- `airbattle`, `ld_airbattle`, `ld_shooting` — combined variants of the aerial
+  and long-range nodes
+- `sp_midnight` — a combined fleet on a night-start cell
 
-Key challenges:
-- Fleet splitting: main fleet + escort fleet composition
-- Escort fleet logic in all battle phases
-- `battleresult` MVP calculation across two fleets
-- `goback_port` retreat mechanics
+Key challenges left:
+- Enemy-side fleet splitting, and the night opponent score
+  (`docs/battle/combined-fleet-reference.md` §Night battle opponent selection)
+- The 連合 vs 連合 correction table, which upstream marks 要検証
 
 ### `api_req_air_corps/` — Land-Based Air Corps (P1)
 
@@ -90,10 +91,10 @@ derivable; track it here until that reference is refreshed.
 
 Reuse existing `api_req_sortie/` battle framework.
 
-1. Add combined fleet composition types to `emukc_model`
-2. Implement fleet splitting logic in `emukc_gameplay`
-3. Adapt battle simulation for escort fleet phases
-4. Implement `api_req_combined_battle/` handlers (14 files)
+1. Add combined fleet composition types to `emukc_model` — done
+2. Implement fleet splitting logic in `emukc_gameplay` — done
+3. Adapt battle simulation for escort fleet phases — done for 敵通常艦隊
+4. Implement `api_req_combined_battle/` handlers — 5 of 14 done
 5. Verify: full event map sortie with combined fleet
 
 ### Phase 2: Equipment Improvement (P1) — done 2026-09-21

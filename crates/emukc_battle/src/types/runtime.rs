@@ -83,7 +83,11 @@ impl BattleRuntimeShip {
     }
 
     /// True when this ship is in the escort deck (第2艦隊) of a combined fleet.
-    pub(crate) fn is_escort_deck(&self) -> bool {
+    ///
+    /// Public because the sortie session stores both decks in one vector and
+    /// needs to find the boundary again — a night battle is fought by 第2艦隊
+    /// alone. The tag travels with the ship, so no caller has to track it.
+    pub fn is_escort_deck(&self) -> bool {
         self.combined_role() == Some(CombinedFleetRole::Escort)
     }
 

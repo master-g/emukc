@@ -104,23 +104,23 @@ Current verification baseline:
   基线已 `--accept` 到 6.3.5.0，入口是 `make drift-check` / `make drift-accept`，`make update`
   在 decode 后打一份不阻断的报告。指纹按规范化后的字节算，所以 `_0x` 重命名会算作漂移，
   即使解码知识没变——这是「收敛版本记录」要解决的噪声来源。
-- [2026-09-21] manifest 差集（21,510 条）已全量 HEAD 探测结案：786 条存在（3.65%），
-  全部是深海舰的 `ship/banner_dmg`。但 `cache_rules.json` 的 `shipRules.targetSemantics`
-  （observed-complete）写着 banner + default-abyssal + damaged → `banner`，客户端从不请求
-  它们。**不要补**。依据见 `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
-- [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤**不是缺陷**：活动图是 621 这样的三位数 id，
-  非活动期 codex 只有 11..75 的常规图，所以那个循环本来就该一条不匹配（测试注释已写明），
-  字段逻辑由 `game/map.rs` 的 `build_map_info_event_map_emits_limit_flag_zero` 数据无关地钉住。
-  此前记的「与 codex 的 61-65 号 id 矛盾」是把常规六海域和活动图 id 方案混为一谈，已删。
+- [2026-09-21] manifest 差集（21,510 条）已全量 HEAD 探测结案，结论是**不要补**：
+  `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
+- [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤不是缺陷：活动图是三位数 id，
+  非活动期 codex 只有 11..75 的常规图，那个循环本来就该一条不匹配（测试注释已写明）。
 
-- [2026-09-21] `emukc_battle` 里 38 处 `escort` 全是「旗艦援護/かばう」（单舰队的旗舰护盾），
-  与联合舰队的护卫舰队同名不同义。战斗核心是彻底的单舰队模型：`BattleContext` 只有一个
-  `friend_ships`，`targeting.rs:148` 写明 combined 超范围。别再用 grep `escort` 判断联合舰队进度。
+- [2026-09-21] `emukc_battle` 里的 `escort` 绝大多数指「旗艦援護/かばう」（旗舰护盾），
+  与联合舰队的护卫舰队同名不同义。判断联合舰队相关代码要看 `combined*`，不要 grep `escort`。
 - [2026-09-21] 改修配方数据早就在 codex 里，不需要新数据源：`slotitem_extra_info` 的
   `improvement` 覆盖 174 件装备，含分档材料、消耗装备/道具与秘书舰。`secretary` 字段是
   **二番舰**（睦月/如月系），不是旗舰；旗舰必须是明石(182)/明石改(187)，这是两件事。
 - [2026-09-21] variant 配方在 ★0–★9 就是普通改修，只在 ★10 才转换成 variant 装备。
   12cm単装砲(1) 没有 `level_consumption`、只有 variant，所以「有 variant」不等于「只能更新」。
+- [2026-09-21] 联合舰队有两套 friendly 索引空间（模拟连续 vs 客户端固定从 6），
+  外加 `simulate_shelling_side` 的切片本地编号，一共三层，缺一层就把命中记到错误的
+  舰上。翻译点、端点与编成的双向契约、夜战测试为什么打不出来：
+  `docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
+
 - [2026-09-21] `api_req_kousyou/remodel_slot_recover` 是真缺口：`docs/apilist.txt` 没有它
   （那份参考早于该功能），但解码客户端有完整 API 类（`main.decoded.js:105351`，post
   `api_menu_id`/`api_slot_id`/`api_dev_num`）。`registration_sp` 则 grep 零命中，原结论成立。
@@ -138,7 +138,6 @@ Current verification baseline:
 | `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
 | Clippy warning triage across the workspace. | `docs/solutions/best-practices/resolve-clippy-warnings-triage-2026-05-28.md` |
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
-| `cargo clippy` default ≠ `-D warnings`: the default run missed a `match`→`let-else` lint. CLAUDE.md gates on `-W warnings`; use `-D warnings` for final verification. | plan 004 U7 (2026-06-22) |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
 | [2026-07-30] Do not delete a divergent branch merely during cleanup. `codex/fix-cache-list-warnings` contained one valuable commit; it was inspected, rebased onto current `main`, retested, fast-forwarded, then deleted. | git `0395121` |
@@ -153,7 +152,7 @@ Current verification baseline:
 | [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | [2026-09-21] `emukc_time`'s `test_jst_next_28/370_day_of_the_month` failures are DATE-dependent: they overflowed at `lib.rs:355` on 09-20 and passed untouched on 09-21. Note the date before calling them baseline. | sessions 2026-09-18, 09-21 |
-| [2026-09-18] `clippy -- -D warnings` fails on old `result_large_err` at `emukc_network/src/download.rs:236` and (rustc 1.98.1) `src/bin/net/auth.rs:139`, both older than plan 002. Repo gate is `-W warnings`; touched-file checks give `-D` strength for new code. | sessions 2026-09-18, 09-19 |
+| `cargo clippy` 默认档比 `-D warnings` 宽（漏过 `match`→`let-else`），但 `-D` 会被既有的 `result_large_err`（`emukc_network/src/download.rs:236`、`src/bin/net/auth.rs:139`）挡住。仓库门是 `-W warnings`；新代码用 touched-file 的 `-D` 检查。 | plan 004 U7、sessions 2026-09-18/19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
 | [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` gives FALSE results: `.bak` keeps the ORIGINAL mtime, so cargo sees no change and reuses the artifact built from the EDITED file. `touch` X after restoring and re-run. | session 2026-09-19 |
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
@@ -169,27 +168,33 @@ Current verification baseline:
 cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all(".data/tmp")`，
 `mv .data .data.bak` 之后再移回就把备份塞进了新目录，两轮嵌套两层。正确做法：
 `mv .data ../.data-bak` → 跑 → `rm -rf .data`（此时只剩 tmp）→ `mv ../.data-bak .data`。 | session 2026-09-21 |
+| [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
+失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
+`battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 
 ## Last Session
 
-- [2026-09-21] 联合舰队 U2（阶段编排 + かばう）与 U2b（数值接线）做完，外加一处
-  `emukc_bootstrap` 测试修复。单舰队路径一行未动，`golden_transcript` 与 `battle_golden`
-  两份冻结流水原样通过，这是 RNG 消耗顺序未变的实证。
-- 先做了一次「能否纯增量分支」的可行性核查（成本远低于直接开工 U2），结论是能，前提是
-  两支 deck 放进一条连续 vec + 边界。细节与留给 U3/U5 的未决项都写进了计划的 U2 节。
-- 实施中发现计划漏了一个单元：U1 造的两张表**零调用点**，R2/R3 事实上没实现。补成 U2b。
-- 门禁：fmt clean、clippy 回基线（恒 6 条既有 `result_large_err`）、
-  `cargo test --workspace` 47 目标 1110 passed / 0 failed / 0 ignored。
+- [2026-09-21] 联合舰队 U3–U7 一次做完：协议输出、gameplay 舰队拆分、5 个
+  `api_req_combined_battle/` 端点、夜战、全套质量门。味方連合 vs 敵通常艦隊 能从
+  出击打到 battleresult 落库，两支 deck 分别上报、分别结算。计划
+  `docs/plans/2026-09-21-001-feat-combined-fleet-battle-plan.md` 的 U3–U7 每节都
+  补了「实际改动点与计划的差异」，其中计划漏掉索引空间翻译、U2 留下切片编号缺陷
+  两条见上面的 solutions 指针。
+- 门禁：fmt clean；clippy 回基线（6 `result_large_err` + 9 missing-backticks +
+  2 borrowed-expression，全不在改动文件里）；`cargo test --workspace` 全绿
+  0 failed / 0 ignored；`battle_golden.rs` 未改动。端点清单机械重推为
+  **122 implemented / 26 missing**，`apilist.md`/`docs/api_coverage.md`/`TODO.md`
+  三处同步。
 
 ## Next Session
 
-- [2026-09-21] 联合舰队下一步是 U3（协议输出）。计划
-  `docs/plans/2026-09-21-001-feat-combined-fleet-battle-plan.md` 的 U2/U2b 节已记全实际改动点、
-  与单舰队模型的那处分歧，以及四个未决项（索引翻译 / 双 MVP / 轟沈旗舰豁免 / `canOpTorpMain`）。
-- 联合舰队表的**対空列**没有落点：`kouku.rs` 整个不处理阵形，常规阵形 1–6 同样没建模。
+- [2026-09-21] 联合舰队还剩 9 个端点，两组：敌方也是联合舰队
+  （`ec_*` / `each_*`，需要 reference 的「联合 vs 联合」阶段顺序与夜战对手打分）、
+  联合舰队的航空与长距离格（`airbattle` / `ld_airbattle` / `ld_shooting`），
+  外加 `sp_midnight`（现在显式报错，不是静默降级）。清单与依据在计划末尾一节。
+- 対空列仍无落点：`kouku.rs` 整个不处理阵形，常规阵形 1–6 同样没建模。
   要补该连同单舰队一起补，别只给联合舰队加一半。
-- 审计集 013 仍是 DEFERRED，判据没变也没有新输入：drift-check 接通后还没跑过第二次
-  `make update`，先攒观察再决定收不收敛。
-- 更早的积压未变：改修工厂的 `remodel_slot_recover`；基地航空队；`gauge_type_e` 抓取；
-  decoder 未解析的 id 集；VPS 计划需重新验证。
+- 审计集 013 仍是 DEFERRED：drift-check 接通后还没跑过第二次 `make update`。
+- 更早的积压未变：改修工厂的 `remodel_slot_recover`；基地航空队；
+  `gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。

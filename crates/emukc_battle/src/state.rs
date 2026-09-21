@@ -15,8 +15,9 @@ use crate::types::{
 /// whole friendly force is just the whole slice, and a phase belonging to one
 /// deck is a sub-slice. `escort_start` is deck 1's actual ship count, which is
 /// **not** the packet's escort offset: the client puts deck 2 at index 6 no
-/// matter how few ships deck 1 holds. Translating between the two index spaces
-/// is U3's job; nothing in this module does it.
+/// matter how few ships deck 1 holds. The phases work entirely in this space;
+/// [`finalize_day`](BattleState::finalize_day) translates the finished packet
+/// into the client's through [`combined_packet`](crate::combined_packet).
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CombinedLayout {
     pub(crate) combined_type: CombinedType,
@@ -241,7 +242,7 @@ impl BattleState {
             && any_alive(&self.friendly)
             && any_alive(&self.enemy);
 
-        let packet = BattlePacket {
+        let mut packet = BattlePacket {
             formation: [
                 self.friendly_formation_id,
                 self.enemy_formation_id,
@@ -266,6 +267,17 @@ impl BattleState {
             hougeki3: self.hougeki3,
             raigeki: self.raigeki,
         };
+
+        // The phases wrote every friendly index in this module's contiguous
+        // space; the client reads 第2艦隊 from index 6. Translating here is the
+        // one chokepoint every caller passes through.
+        if let Some(layout) = self.combined {
+            crate::combined_packet::remap_day_packet(
+                &mut packet,
+                layout.escort_start,
+                self.enemy.len(),
+            );
+        }
 
         let outcome = BattleOutcome {
             win_rank: calculate_win_rank(&self.friendly, &self.enemy),
@@ -298,7 +310,7 @@ impl BattleState {
             can_midnight: false,
         };
 
-        let packet = NightBattlePacket {
+        let mut packet = NightBattlePacket {
             formation: [
                 self.friendly_formation_id,
                 self.enemy_formation_id,
@@ -312,6 +324,14 @@ impl BattleState {
             flare_pos: [-1, -1],
             hougeki,
         };
+
+        // A combined night battle is fought by 第2艦隊 alone, so the friendly
+        // vector holds nothing but the escort deck — and the client still
+        // expects it at indices 6..=11. The ships carry their own deck tag, so
+        // no caller has to declare it.
+        if self.friendly.first().is_some_and(BattleRuntimeShip::is_escort_deck) {
+            crate::combined_packet::remap_night_packet(&mut packet);
+        }
 
         NightBattleSimulation {
             friendly: self.friendly,

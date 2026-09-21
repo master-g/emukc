@@ -8,7 +8,7 @@ use crate::game::sortie_result::{
     SortieBattleResultSnapshot, SortieSettlement, apply_sortie_map_result,
     settle_sortie_battle_impl,
 };
-use emukc_battle::BattleContext;
+use emukc_battle::{BattleContext, BattleShipInput, CombinedSetup, CombinedType};
 use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
 use emukc_db::{
     entity::profile::{map_record, material as profile_material, ship as profile_ship},
@@ -116,12 +116,121 @@ fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
         mvp: 0,
         get_ship_exp: vec![],
         get_exp_lvup: vec![],
+        mvp_combined: None,
+        get_ship_exp_combined: None,
+        get_exp_lvup_combined: None,
         quest_name: String::new(),
         quest_level: 0,
         enemy_level: 0,
         enemy_rank: String::new(),
         enemy_deck_name: String::new(),
     }
+}
+
+/// 連合艦隊 vs 通常艦隊 夜戦: 第2艦隊 fights alone (R5), so the night packet's
+/// friendly arrays are the escort deck's and 第1艦隊 is reported alongside at the
+/// HP it entered the night with. Stats are weakened so both sides survive the
+/// day — the same trick the single-fleet midnight test uses.
+#[tokio::test]
+async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
+    const MAIN: usize = 2;
+    const ESCORT: usize = 3;
+
+    let db = new_mem_db().await.unwrap();
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    codex.game_cfg.god_mode = false;
+    codex.game_cfg.one_hit_kill = false;
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
+    let store = context.sortie_store.as_ref();
+    let profile_id = 43;
+
+    let weak = || weaken_for_midnight(sample_ship(&codex, 79, 1));
+    let main: Vec<_> = (0..MAIN).map(|_| weak()).collect();
+    let escort: Vec<_> = (0..ESCORT).map(|_| weak()).collect();
+    let enemy = vec![weaken_for_midnight(sample_ship(&codex, 412, 99))];
+
+    let mut rng = ProductionRng;
+    let session = run_day_battle(
+        store,
+        &codex,
+        SortieBattleInput {
+            profile_id,
+            deck_id: 1,
+            map_id: 11,
+            cell_id: 1,
+            context: BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 11,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: main.clone(),
+                enemy_ships: enemy.clone(),
+                combined: Some(CombinedSetup {
+                    combined_type: CombinedType::CarrierTaskForce,
+                    escort_ships: escort.clone(),
+                }),
+            },
+        },
+        &mut rng,
+    );
+    assert_eq!(session.packet.midnight_flag, 1, "weakened fleets must both survive the day");
+    assert_eq!(session.friendly.len(), MAIN + ESCORT, "the session holds both decks");
+
+    store.insert_pending_result(
+        profile_id,
+        SortieBattleResultSnapshot {
+            friendly_ship_ids: session.friendly_ship_ids.clone(),
+            enemy_ship_ids: session.enemy_ship_ids.clone(),
+            friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
+            enemy_ship_types: vec![0; session.enemy_ship_ids.len()],
+            win_rank: session.outcome.win_rank.to_string(),
+            get_exp: 0,
+            member_lv: 1,
+            member_exp: 0,
+            get_base_exp: 30,
+            mvp: session.outcome.mvp,
+            get_ship_exp: vec![],
+            get_exp_lvup: vec![],
+            mvp_combined: None,
+            get_ship_exp_combined: None,
+            get_exp_lvup_combined: None,
+            quest_name: "test".to_string(),
+            quest_level: 1,
+            enemy_level: 1,
+            enemy_rank: "Test".to_string(),
+            enemy_deck_name: "Test".to_string(),
+        },
+    );
+
+    let response = context.sortie_midnight_battle(profile_id).await.unwrap();
+
+    assert_eq!(response.api_f_nowhps.len(), MAIN, "第1艦隊 is still reported");
+    assert_eq!(response.api_fParam.len(), MAIN);
+    assert_eq!(response.api_f_nowhps_combined.as_ref().map(Vec::len), Some(ESCORT));
+    assert_eq!(response.api_f_maxhps_combined.as_ref().map(Vec::len), Some(ESCORT));
+    assert_eq!(response.api_fParam_combined.as_ref().map(Vec::len), Some(ESCORT));
+
+    if let Some(hougeki) = response.api_hougeki.as_ref() {
+        for (eflag, attacker) in hougeki.api_at_eflag.iter().zip(hougeki.api_at_list.iter()) {
+            if *eflag == 0 {
+                assert!(
+                    *attacker >= 6,
+                    "only 第2艦隊 fights at night, so every friendly attacker is at packet \
+                     index 6 or above: {attacker}"
+                );
+            }
+        }
+    }
+
+    // The node is rescored over both decks afterwards, not just the deck that
+    // fought: 第1艦隊 is still owed its share and its own MVP.
+    let snapshot = store.take_pending_result(profile_id).unwrap();
+    assert!((1..=MAIN as i64).contains(&snapshot.mvp), "第1艦隊 MVP: {}", snapshot.mvp);
+    let mvp_combined = snapshot.mvp_combined.expect("第2艦隊 must name its own MVP");
+    assert!((1..=ESCORT as i64).contains(&mvp_combined), "第2艦隊 MVP: {mvp_combined}");
+    assert_eq!(snapshot.get_ship_exp.len(), MAIN + 1);
+    assert_eq!(snapshot.get_ship_exp_combined.as_ref().map(Vec::len), Some(ESCORT + 1));
 }
 
 #[tokio::test]
@@ -179,6 +288,9 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
             mvp: session.outcome.mvp,
             get_ship_exp: vec![],
             get_exp_lvup: vec![],
+            mvp_combined: None,
+            get_ship_exp_combined: None,
+            get_exp_lvup_combined: None,
             quest_name: "test".to_string(),
             quest_level: 1,
             enemy_level: 1,
@@ -1337,9 +1449,13 @@ fn active_sortie_on_cell(
     }
 }
 
+/// `combined_type` without ships in fleet 2 is a half-disbanded fleet, not a
+/// sortie: 第2艦隊 fights every opening phase and the whole night battle.
 #[tokio::test]
-async fn sortie_sp_midnight_battle_rejects_combined_fleet_like_sortie_battle() {
+async fn combined_sortie_battle_rejects_an_empty_escort_deck() {
     let (context, pid) = guard_context().await;
+    let main = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[main.api_id, -1, -1, -1, -1, -1]).await.unwrap();
     let mut profile = find_profile(context.db.as_ref(), pid).await.unwrap().into_active_model();
     profile.combined_type = ActiveValue::Set(1);
     profile.update(context.db.as_ref()).await.unwrap();
@@ -1347,13 +1463,31 @@ async fn sortie_sp_midnight_battle_rejects_combined_fleet_like_sortie_battle() {
     let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind == 1));
 
     let day = context.sortie_battle(pid, 1).await.unwrap_err();
+
+    assert!(
+        matches!(day, GameplayError::WrongType(ref msg) if msg.contains("ships in fleet 2")),
+        "{day:?}"
+    );
+}
+
+/// A combined fleet on a night-start cell is `api_req_combined_battle/sp_midnight`,
+/// which this build does not serve. Running the single-fleet path instead would
+/// silently drop 第2艦隊 — the one deck that actually fights at night.
+#[tokio::test]
+async fn sortie_sp_midnight_battle_rejects_a_combined_fleet() {
+    let (context, pid) = guard_context().await;
+    let mut profile = find_profile(context.db.as_ref(), pid).await.unwrap().into_active_model();
+    profile.combined_type = ActiveValue::Set(1);
+    profile.update(context.db.as_ref()).await.unwrap();
+    let store = context.sortie_store.as_ref();
+    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind == 1));
+
     let night = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_err();
 
     assert!(
-        matches!(day, GameplayError::WrongType(ref msg) if msg.contains("combined")),
-        "{day:?}"
+        matches!(night, GameplayError::WrongType(ref msg) if msg.contains("night-start")),
+        "{night:?}"
     );
-    assert_eq!(night.to_string(), day.to_string());
 }
 
 #[tokio::test]

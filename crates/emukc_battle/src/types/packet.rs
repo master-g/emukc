@@ -113,6 +113,10 @@ pub struct BattleKouku {
     pub api_stage1: BattleKoukuStage1,
     pub api_stage2: BattleKoukuStage2,
     pub api_stage3: BattleKoukuStage3,
+    /// 第2艦隊's half of stage 3, present only in a combined battle
+    /// (`docs/apilist.txt:3070`). `api_stage3` then carries 第1艦隊 alone.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_stage3_combined: Option<BattleKoukuStage3Combined>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -149,6 +153,21 @@ pub struct BattleKoukuStage3 {
     pub api_edam: Vec<i64>,
     pub api_f_sp_list: Vec<Option<i64>>,
     pub api_e_sp_list: Vec<Option<i64>>,
+}
+
+/// The 第2艦隊 half of an airstrike's stage 3.
+///
+/// Only the friendly-side arrays split: the enemy is a single fleet, so its
+/// arrays stay whole in [`BattleKoukuStage3`].
+#[derive(Debug, Clone, Serialize)]
+pub struct BattleKoukuStage3Combined {
+    pub api_frai: Vec<i64>,
+    pub api_fbak: Vec<i64>,
+    pub api_frai_flag: Vec<i64>,
+    pub api_fbak_flag: Vec<i64>,
+    pub api_fcl_flag: Vec<i64>,
+    pub api_fdam: Vec<i64>,
+    pub api_f_sp_list: Vec<Option<i64>>,
 }
 
 #[derive(Debug, Clone, Serialize)]

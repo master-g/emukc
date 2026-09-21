@@ -5,6 +5,8 @@
 
 /// Combined fleet (連合艦隊) formation multipliers and attack corrections.
 pub mod combined;
+/// Rewrites a combined-fleet packet into the client's ship index space.
+mod combined_packet;
 /// Internal battle configuration.
 mod config;
 mod damage;
@@ -29,9 +31,10 @@ mod test_utils;
 // Public API — types
 pub use types::{
     AirState, BattleContext, BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
-    BattleKoukuStage3, BattleNightHougeki, BattleOpeningAttack, BattleOutcome, BattlePacket,
-    BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleSimulation, BattleType, CombinedSetup,
-    EngagementType, NightBattleInput, NightBattlePacket, NightBattleSimulation, SiListId,
+    BattleKoukuStage3, BattleKoukuStage3Combined, BattleNightHougeki, BattleOpeningAttack,
+    BattleOutcome, BattlePacket, BattleRaigeki, BattleRuntimeShip, BattleShipInput,
+    BattleSimulation, BattleType, CombinedSetup, EngagementType, NightBattleInput,
+    NightBattlePacket, NightBattleSimulation, SiListId,
 };
 
 // Public API — combined fleet tables

@@ -197,8 +197,13 @@ fn execute_combined_shelling(
     let air_state =
         state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
 
+    // `simulate_shelling_side` numbers its attackers from the start of the slice
+    // it is handed, and deck 2's slice starts at `escort_start` — so its output
+    // has to be lifted back into the whole-fleet space the rest of the packet
+    // speaks. Deck 1's slice starts at 0 and the shift is a no-op.
+    let deck_offset = deck_range.start;
     let friendly_turn = |state: &mut BattleState, rng: &mut _| {
-        shelling::simulate_shelling_side(
+        let mut round = shelling::simulate_shelling_side(
             codex,
             rng,
             &mut state.friendly[deck_range.clone()],
@@ -211,7 +216,11 @@ fn execute_combined_shelling(
                 phase: BattlePhase::DayShelling,
                 air_state: air_state.as_ref(),
             },
-        )
+        );
+        if let Some(round) = round.as_mut() {
+            shift_friendly_attackers(round, deck_offset);
+        }
+        round
     };
     let enemy_turn = |state: &mut BattleState, rng: &mut _| {
         // The enemy fires at the whole friendly force, not just the deck whose
@@ -243,6 +252,29 @@ fn execute_combined_shelling(
     };
 
     merge_hougeki(first, second)
+}
+
+/// Lift every friendly attacker index in a round by `offset`.
+///
+/// Only the attacker end moves: a friendly attack's `api_df_list` holds enemy
+/// indices, and an enemy attack was simulated against the whole friendly force,
+/// so both are already in the right space.
+fn shift_friendly_attackers(round: &mut BattleHougeki, offset: usize) {
+    if offset == 0 {
+        return;
+    }
+    let BattleHougeki {
+        api_at_eflag,
+        api_at_list,
+        ..
+    } = round;
+    for (entry, &eflag) in api_at_eflag.iter().enumerate() {
+        if eflag == 0
+            && let Some(attacker) = api_at_list.get_mut(entry)
+        {
+            *attacker += offset as i64;
+        }
+    }
 }
 
 /// Concatenate two shelling rounds into one `BattleHougeki`, preserving order.
@@ -1129,6 +1161,30 @@ mod combined_tests {
             .opening_attack
             .as_ref()
             .map_or(0, |o| o.api_frai_list_items.iter().filter(|targets| targets.is_some()).count())
+    }
+
+    /// Deck 2 is shelled as a sub-slice, so `simulate_shelling_side` numbers its
+    /// attackers from 0. By the time the packet leaves the simulation they must
+    /// be at 6 or above: the client reads anything below 6 as 第1艦隊 and would
+    /// credit every deck 2 hit to the wrong ship.
+    #[test]
+    fn escort_deck_attacks_reach_the_packet_in_client_index_space() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let sim = combined_sim(&codex, CombinedType::CarrierTaskForce);
+
+        let round = sim.packet.hougeki1.as_ref().expect("deck 2 shells in hougeki1");
+        let attackers = round
+            .api_at_eflag
+            .iter()
+            .zip(round.api_at_list.iter())
+            .filter(|(eflag, _)| **eflag == 0)
+            .map(|(_, attacker)| *attacker)
+            .collect::<Vec<_>>();
+
+        assert!(!attackers.is_empty(), "deck 2's destroyers must shell");
+        for index in attackers {
+            assert!(index >= 6, "deck 2 attacker {index} must sit at packet index 6 or above");
+        }
     }
 
     /// 空母機動部隊: deck 2 shells first (`hougeki1`), deck 1 follows

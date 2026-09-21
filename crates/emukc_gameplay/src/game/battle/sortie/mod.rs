@@ -6,7 +6,7 @@ use emukc_battle::{
 pub(crate) mod orchestrate;
 
 pub use orchestrate::{
-    pending_battle, run_day_battle, run_night_battle, run_sp_midnight_battle,
+    escort_deck_start, pending_battle, run_day_battle, run_night_battle, run_sp_midnight_battle,
     take_day_battle_result,
 };
 

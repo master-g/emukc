@@ -1,3 +1,4 @@
+use emukc_battle::{BattleRuntimeShip, calculate_mvp};
 use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::ship,
@@ -30,8 +31,10 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct SortieBattleResultSnapshot {
+    /// Both decks, 第1艦隊 first, when the sortie fleet was combined.
     pub friendly_ship_ids: Vec<i64>,
     pub enemy_ship_ids: Vec<i64>,
+    /// Indexed like [`friendly_ship_ids`](Self::friendly_ship_ids).
     pub friendly_nowhps: Vec<i64>,
     pub enemy_ship_types: Vec<i64>,
     pub win_rank: String,
@@ -39,9 +42,16 @@ pub struct SortieBattleResultSnapshot {
     pub member_lv: i64,
     pub member_exp: i64,
     pub get_base_exp: i64,
+    /// 第1艦隊's MVP, numbered from 1 within its own deck.
     pub mvp: i64,
+    /// 第2艦隊's MVP; `None` for a single fleet, where the client wants `null`.
+    pub mvp_combined: Option<i64>,
+    /// `[-1]` followed by 第1艦隊's per-ship gains.
     pub get_ship_exp: Vec<i64>,
     pub get_exp_lvup: Vec<Vec<i64>>,
+    /// The same two arrays for 第2艦隊; `None` for a single fleet.
+    pub get_ship_exp_combined: Option<Vec<i64>>,
+    pub get_exp_lvup_combined: Option<Vec<Vec<i64>>>,
     pub quest_name: String,
     pub quest_level: i64,
     pub enemy_level: i64,
@@ -71,11 +81,16 @@ pub struct SortieBattleResultResponse {
     pub api_win_rank: String,
     pub api_get_exp: i64,
     pub api_mvp: i64,
+    /// `docs/apilist.txt:3864`: these three are **`null`** for a single fleet,
+    /// not absent, so they carry no `skip_serializing_if`.
+    pub api_mvp_combined: Option<i64>,
     pub api_member_lv: i64,
     pub api_member_exp: i64,
     pub api_get_base_exp: i64,
     pub api_get_ship_exp: Vec<i64>,
     pub api_get_exp_lvup: Vec<Vec<i64>>,
+    pub api_get_ship_exp_combined: Option<Vec<i64>>,
+    pub api_get_exp_lvup_combined: Option<Vec<Vec<i64>>>,
     pub api_dests: i64,
     pub api_destsf: i64,
     pub api_quest_name: String,
@@ -223,11 +238,14 @@ impl From<SortieSettlement> for SortieBattleResultResponse {
             api_win_rank: snapshot.win_rank,
             api_get_exp: snapshot.get_exp,
             api_mvp: snapshot.mvp,
+            api_mvp_combined: snapshot.mvp_combined,
             api_member_lv: snapshot.member_lv,
             api_member_exp: snapshot.member_exp,
             api_get_base_exp: snapshot.get_base_exp,
             api_get_ship_exp: snapshot.get_ship_exp,
             api_get_exp_lvup: snapshot.get_exp_lvup,
+            api_get_ship_exp_combined: snapshot.get_ship_exp_combined,
+            api_get_exp_lvup_combined: snapshot.get_exp_lvup_combined,
             api_dests: dests,
             api_destsf: destsf,
             api_quest_name: snapshot.quest_name,
@@ -247,6 +265,97 @@ impl From<SortieSettlement> for SortieBattleResultResponse {
 
 pub(super) fn calculate_sortie_base_exp(map_level: i64, cell_id: i64) -> i64 {
     (map_level.max(1) * 25 + cell_id * 10).clamp(30, 1200)
+}
+
+/// Both decks' MVP and experience arrays, in the shape the snapshot stores them.
+pub(super) struct SortieDeckRewards {
+    pub mvp: i64,
+    pub mvp_combined: Option<i64>,
+    pub get_ship_exp: Vec<i64>,
+    pub get_exp_lvup: Vec<Vec<i64>>,
+    pub get_ship_exp_combined: Option<Vec<i64>>,
+    pub get_exp_lvup_combined: Option<Vec<Vec<i64>>>,
+}
+
+/// Score a finished battle node per deck.
+///
+/// `friendly` and `friendly_nowhps` run over both decks, 第1艦隊 first;
+/// `escort_start` is where 第2艦隊 begins, or `None` for a single fleet. Each
+/// deck gets its own MVP numbered from 1 within itself (R7) and its own
+/// experience array, because the client reads them from separate fields.
+///
+/// ponytail: 第2艦隊 is scored with 第1艦隊's rules — its own index 0 takes the
+/// flagship bonus and the CT boost carries over. Neither is verified upstream
+/// for the escort deck.
+pub(super) fn calculate_sortie_deck_rewards(
+    friendly: &[BattleRuntimeShip],
+    friendly_nowhps: &[i64],
+    escort_start: Option<usize>,
+    base_exp: i64,
+    ct_flagship: bool,
+    ct_exp_boost: f64,
+) -> SortieDeckRewards {
+    let to_inputs = |ships: &[BattleRuntimeShip]| {
+        ships
+            .iter()
+            .map(|ship| emukc_battle::BattleShipInput {
+                ship: ship.ship.clone(),
+                slot_items: ship.slot_items.clone(),
+                effect_list: ship.effect_list.clone(),
+                married: ship.married,
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let Some(escort_start) = escort_start else {
+        let mvp = calculate_mvp(friendly);
+        let (get_ship_exp, get_exp_lvup) = calculate_sortie_ship_exp(
+            &to_inputs(friendly),
+            base_exp,
+            mvp,
+            friendly_nowhps,
+            ct_flagship,
+            ct_exp_boost,
+        );
+        return SortieDeckRewards {
+            mvp,
+            mvp_combined: None,
+            get_ship_exp,
+            get_exp_lvup,
+            get_ship_exp_combined: None,
+            get_exp_lvup_combined: None,
+        };
+    };
+
+    let split = escort_start.min(friendly.len());
+    let (main, escort) = friendly.split_at(split);
+    let (main_hps, escort_hps) = friendly_nowhps.split_at(split.min(friendly_nowhps.len()));
+    let mvp = calculate_mvp(main);
+    let mvp_combined = calculate_mvp(escort);
+    let (get_ship_exp, get_exp_lvup) = calculate_sortie_ship_exp(
+        &to_inputs(main),
+        base_exp,
+        mvp,
+        main_hps,
+        ct_flagship,
+        ct_exp_boost,
+    );
+    let (exp_combined, lvup_combined) = calculate_sortie_ship_exp(
+        &to_inputs(escort),
+        base_exp,
+        mvp_combined,
+        escort_hps,
+        ct_flagship,
+        ct_exp_boost,
+    );
+    SortieDeckRewards {
+        mvp,
+        mvp_combined: Some(mvp_combined),
+        get_ship_exp,
+        get_exp_lvup,
+        get_ship_exp_combined: Some(exp_combined),
+        get_exp_lvup_combined: Some(lvup_combined),
+    }
 }
 
 pub(super) fn calculate_sortie_ship_exp(
@@ -421,6 +530,12 @@ where
     am.hq_level = ActiveValue::Set(hq_level);
     let updated_profile = am.update(c).await?;
 
+    // `get_ship_exp` is `[-1]` plus 第1艦隊's gains, so its length is where 第2艦隊
+    // starts in `friendly_ship_ids`. Deriving it here keeps the two from ever
+    // disagreeing; a single fleet gets `main_len == friendly_ship_ids.len()` and
+    // never reaches the escort branch.
+    let main_len = snapshot.get_ship_exp.len().saturating_sub(1);
+
     for (idx, ship_id) in snapshot.friendly_ship_ids.iter().copied().enumerate() {
         let ship_model = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
             GameplayError::EntryNotFound(format!("ship with id {ship_id} not found"))
@@ -446,8 +561,16 @@ where
                 api_ship.api_bull = (api_ship.api_bull - ammo_cost).max(0);
             }
 
-            // Apply EXP gain.
-            let gain = snapshot.get_ship_exp.get(idx + 1).copied().unwrap_or(-1);
+            // Apply EXP gain — each deck is scored against its own array.
+            let gain = if idx < main_len {
+                snapshot.get_ship_exp.get(idx + 1).copied()
+            } else {
+                snapshot
+                    .get_ship_exp_combined
+                    .as_ref()
+                    .and_then(|exp| exp.get(idx - main_len + 1).copied())
+            }
+            .unwrap_or(-1);
             if gain > 0 {
                 let settled = settle_ship_exp(ship_model.exp_now, gain, ship_model.married);
                 api_ship.api_lv = settled.level;
@@ -599,6 +722,9 @@ mod tests {
             mvp: 0,
             get_ship_exp: vec![],
             get_exp_lvup: vec![],
+            mvp_combined: None,
+            get_ship_exp_combined: None,
+            get_exp_lvup_combined: None,
             quest_name: String::new(),
             quest_level: 0,
             enemy_level: 0,

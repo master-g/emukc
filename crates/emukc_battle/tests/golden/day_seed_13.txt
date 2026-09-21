@@ -109,6 +109,7 @@ BattlePacket {
                     None,
                 ],
             },
+            api_stage3_combined: None,
         },
     ),
     opening_taisen_flag: 0,

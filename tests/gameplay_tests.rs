@@ -80,3 +80,6 @@ mod scenario;
 
 #[path = "gameplay_tests/battle_golden.rs"]
 mod battle_golden;
+
+#[path = "gameplay_tests/combined_sortie.rs"]
+mod combined_sortie;

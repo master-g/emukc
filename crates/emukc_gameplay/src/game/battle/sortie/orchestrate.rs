@@ -59,10 +59,13 @@ pub fn run_night_battle(
         .kouku
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
+    // 連合艦隊: only 第2艦隊 fights at night (R5). 第1艦隊 stays in the session
+    // untouched — it still has to be reported, repaired and paid experience.
+    let escort_start = escort_deck_start(&session.friendly);
     let simulation = execute_night(
         codex,
         NightBattleInput {
-            friendly: session.friendly.clone(),
+            friendly: session.friendly[escort_start..].to_vec(),
             enemy: session.enemy.clone(),
             friendly_formation_id,
             enemy_formation_id,
@@ -71,10 +74,12 @@ pub fn run_night_battle(
         },
         rng,
     );
-    session.friendly = simulation.friendly.clone();
+    session.friendly.truncate(escort_start);
+    session.friendly.extend(simulation.friendly.iter().cloned());
     session.enemy = simulation.enemy.clone();
     session.outcome = simulation.outcome.clone();
-    session.packet.friendly_nowhps = simulation.packet.friendly_nowhps.clone();
+    session.packet.friendly_nowhps.truncate(escort_start);
+    session.packet.friendly_nowhps.extend(simulation.packet.friendly_nowhps.iter().copied());
     session.packet.enemy_nowhps = simulation.packet.enemy_nowhps.clone();
     session.packet.midnight_flag = 0;
     store.insert_pending_battle(profile_id, session);
@@ -84,6 +89,14 @@ pub fn run_night_battle(
         packet: simulation.packet,
         outcome: simulation.outcome,
     })
+}
+
+/// Where 第2艦隊 starts in a session's friendly vector, or 0 for a single fleet.
+///
+/// The ships carry their own deck tag, so the boundary is recoverable from the
+/// session alone — nothing has to store it alongside.
+pub fn escort_deck_start(friendly: &[BattleRuntimeShip]) -> usize {
+    friendly.iter().position(BattleRuntimeShip::is_escort_deck).unwrap_or(0)
 }
 
 /// Run a night-start (`sp_midnight`) battle — no preceding day battle.

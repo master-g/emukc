@@ -4,7 +4,10 @@
 //! state (active sortie, profile, stage, both fleets) and enforce the same guards
 //! before they diverge on which simulation to run.
 
-use emukc_battle::{BattleContext, BattleShipInput, BattleType};
+use emukc_battle::{
+    BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType,
+    combined_formation_min_escort_size,
+};
 use emukc_db::entity::profile;
 use emukc_db::sea_orm::ConnectionTrait;
 use emukc_model::{codex::Codex, kc2::start2::ApiMstShip};
@@ -18,7 +21,8 @@ use crate::{
         map::active_map_catalog,
         ship::exp::calculate_admiral_exp,
         sortie_result::{
-            SortieBattleResultSnapshot, calculate_sortie_base_exp, calculate_sortie_ship_exp,
+            SortieBattleResultSnapshot, SortieDeckRewards, calculate_sortie_base_exp,
+            calculate_sortie_deck_rewards,
         },
         sortie_store::SortieStore,
     },
@@ -33,11 +37,37 @@ use super::{
     route_context::{build_sortie_friend_ships, engagement_for_cell},
 };
 
+/// The escort deck of a combined fleet is always fleet 2
+/// (`docs/apilist.txt:3008`: `api_deck_id` is 1 by specification, and the client
+/// has no way to nominate a different escort).
+const ESCORT_DECK_ID: i64 = 2;
+
+/// Which day-battle endpoint the client called.
+///
+/// The client picks the URL from its own `api_combined_flag`, so a mismatch
+/// means the two sides disagree about the fleet: the packet would be ordered for
+/// one shape and rendered as another, silently crediting hits to the wrong
+/// ships. Each entry states what it serves and the setup rejects the rest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SortieBattleEndpoint {
+    /// `api_req_sortie/*` — a single fleet.
+    Single,
+    /// `api_req_combined_battle/battle` — 空母機動部隊 or 輸送護衛部隊.
+    Combined,
+    /// `api_req_combined_battle/battle_water` — 水上打撃部隊.
+    CombinedWater,
+}
+
 /// Everything a sortie battle entry needs before it picks a simulation.
 pub(super) struct SortieBattleSetup {
     pub active: ActiveSortieState,
     pub profile: profile::Model,
+    /// 第1艦隊 when `combined_type` is set, otherwise the whole sortie fleet.
     pub friend_ships: Vec<BattleShipInput>,
+    /// 第2艦隊; empty for a single fleet.
+    pub escort_ships: Vec<BattleShipInput>,
+    /// `None` for a single fleet.
+    pub combined_type: Option<CombinedType>,
     pub enemy_ships: Vec<BattleShipInput>,
     pub enemy_formation_id: i64,
     pub enemy_level: i64,
@@ -65,11 +95,16 @@ where
     }
 
     let profile = find_profile(c, profile_id).await?;
-    if profile.combined_type > 0 {
-        return Err(GameplayError::WrongType(
-            "combined sortie battle is not implemented yet".to_string(),
-        ));
-    }
+    let combined_type = if profile.combined_type == 0 {
+        None
+    } else {
+        Some(CombinedType::from_api_id(profile.combined_type).ok_or_else(|| {
+            GameplayError::WrongType(format!(
+                "unknown combined fleet type {}",
+                profile.combined_type,
+            ))
+        })?)
+    };
 
     let catalog = active_map_catalog(codex);
     let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
@@ -103,6 +138,27 @@ where
     }
 
     let friend_ships = build_sortie_friend_ships(c, &fleet_ships).await?;
+
+    // 第2艦隊 sorties with 第1艦隊 but is a separate fleet row; an empty one means
+    // the player disbanded it without clearing `combined_type`.
+    let escort_ships = if combined_type.is_some() {
+        let escort_models = match get_fleet_ships_impl(c, profile_id, ESCORT_DECK_ID).await {
+            Ok(models) => models,
+            // A profile whose second fleet is not unlocked yet reads as missing
+            // rather than empty; both mean the same thing here.
+            Err(GameplayError::EntryNotFound(_)) => Vec::new(),
+            Err(err) => return Err(err),
+        };
+        if escort_models.is_empty() {
+            return Err(GameplayError::WrongType(
+                "combined sortie battle needs ships in fleet 2".to_string(),
+            ));
+        }
+        build_sortie_friend_ships(c, &escort_models).await?
+    } else {
+        Vec::new()
+    };
+
     let enemy_fleet = resolve_sortie_enemy_fleet(active.map_id, stage, current_cell.cell_no);
     let enemy_composition = active
         .locked_enemy_composition
@@ -116,6 +172,8 @@ where
         active,
         profile,
         friend_ships,
+        escort_ships,
+        combined_type,
         enemy_ships,
         enemy_formation_id: enemy_fleet.formations.first().copied().unwrap_or(1),
         enemy_level,
@@ -145,9 +203,58 @@ impl SortieBattleSetup {
                 engagement: engagement_for_cell(self.active.map_id, self.active.current_cell_id),
                 friend_ships: self.friend_ships.clone(),
                 enemy_ships: self.enemy_ships.clone(),
-                combined: None,
+                combined: self.combined_type.map(|combined_type| CombinedSetup {
+                    combined_type,
+                    escort_ships: self.escort_ships.clone(),
+                }),
             },
         }
+    }
+
+    /// Reject a call whose endpoint does not match the player's fleet shape.
+    pub(super) fn validate_endpoint(
+        &self,
+        endpoint: SortieBattleEndpoint,
+    ) -> Result<(), GameplayError> {
+        let ok = matches!(
+            (endpoint, self.combined_type),
+            (SortieBattleEndpoint::Single, None)
+                | (
+                    SortieBattleEndpoint::Combined,
+                    Some(CombinedType::CarrierTaskForce | CombinedType::TransportEscort),
+                )
+                | (SortieBattleEndpoint::CombinedWater, Some(CombinedType::SurfaceTaskForce))
+        );
+        if ok {
+            return Ok(());
+        }
+        Err(GameplayError::WrongType(format!(
+            "{endpoint:?} does not serve combined fleet type {:?}",
+            self.combined_type,
+        )))
+    }
+
+    /// Reject a 警戒航行序列 the escort deck is too small for (R2).
+    ///
+    /// Eligibility depends on 第2艦隊 only. Formation ids outside 11..=14 are not
+    /// this check's business: a night-start cell enters with one of the six
+    /// normal formations even when the fleet is combined.
+    pub(super) fn validate_formation(&self, formation_id: i64) -> Result<(), GameplayError> {
+        let Some(minimum) = combined_formation_min_escort_size(formation_id) else {
+            return Ok(());
+        };
+        if self.combined_type.is_none() {
+            return Err(GameplayError::WrongType(format!(
+                "formation {formation_id} is a 警戒航行序列 and needs a combined fleet",
+            )));
+        }
+        if self.escort_ships.len() < minimum {
+            return Err(GameplayError::WrongType(format!(
+                "formation {formation_id} needs at least {minimum} ships in fleet 2, found {}",
+                self.escort_ships.len(),
+            )));
+        }
+        Ok(())
     }
 
     /// The pending result snapshot for a finished session, read later by
@@ -166,18 +273,29 @@ impl SortieBattleSetup {
             .first()
             .and_then(|s| codex.manifest.find_ship(s.ship.api_ship_id))
             .is_some_and(|m| m.api_stype == 21);
-        let (get_ship_exp, get_exp_lvup) = calculate_sortie_ship_exp(
-            &self.friend_ships,
-            base_exp,
-            session.outcome.mvp,
+        let rewards = calculate_sortie_deck_rewards(
+            &session.friendly,
             &friendly_nowhps,
+            self.combined_type.map(|_| self.friend_ships.len()),
+            base_exp,
             ct_flagship,
             codex.game_cfg.exp.ct_exp_boost,
         );
+        let SortieDeckRewards {
+            mvp,
+            mvp_combined,
+            get_ship_exp,
+            get_exp_lvup,
+            get_ship_exp_combined,
+            get_exp_lvup_combined,
+        } = rewards;
         SortieBattleResultSnapshot {
             friendly_ship_ids: session.friendly_ship_ids.clone(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps,
+            mvp_combined,
+            get_ship_exp_combined,
+            get_exp_lvup_combined,
             enemy_ship_types: session
                 .enemy_ship_ids
                 .iter()
@@ -188,7 +306,7 @@ impl SortieBattleSetup {
             member_lv: self.profile.hq_level,
             member_exp: self.profile.experience,
             get_base_exp: base_exp,
-            mvp: session.outcome.mvp,
+            mvp,
             get_ship_exp,
             get_exp_lvup,
             quest_name: self.active.map_name.clone(),

@@ -6,7 +6,7 @@ use enemy_ship::{
     fallback_enemy_composition, resolve_sortie_enemy_fleet, select_random_enemy_composition,
 };
 use route_context::build_fleet_route_context;
-use setup::resolve_sortie_battle_setup_impl;
+use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 
 use std::collections::BTreeSet;
 
@@ -24,7 +24,7 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use emukc_battle::{BattleShipInput, BattleType, EngagementType};
+use emukc_battle::{BattleType, EngagementType};
 
 use super::{
     basic::find_profile,
@@ -34,8 +34,8 @@ use super::{
         },
         rng::ProductionRng,
         sortie::{
-            pending_battle, run_day_battle, run_night_battle, run_sp_midnight_battle,
-            take_day_battle_result,
+            escort_deck_start, pending_battle, run_day_battle, run_night_battle,
+            run_sp_midnight_battle, take_day_battle_result,
         },
     },
     fleet::get_fleet_ships_impl,
@@ -48,7 +48,7 @@ use super::{
     material::add_material_impl,
     quest::observe::observe,
     ship::exp::calculate_admiral_exp,
-    sortie_result::{calculate_sortie_ship_exp, settle_sortie_battle_impl},
+    sortie_result::{calculate_sortie_deck_rewards, settle_sortie_battle_impl},
     sortie_store::SortieStore,
 };
 
@@ -395,6 +395,7 @@ impl Ctx {
             profile_id,
             formation_id,
             BattleType::Normal,
+            SortieBattleEndpoint::Single,
         )
         .await
     }
@@ -411,6 +412,7 @@ impl Ctx {
             profile_id,
             formation_id,
             BattleType::AirBattle,
+            SortieBattleEndpoint::Single,
         )
         .await
     }
@@ -427,6 +429,7 @@ impl Ctx {
             profile_id,
             formation_id,
             BattleType::LdAirBattle,
+            SortieBattleEndpoint::Single,
         )
         .await
     }
@@ -443,6 +446,47 @@ impl Ctx {
             profile_id,
             formation_id,
             BattleType::LdShooting,
+            SortieBattleEndpoint::Single,
+        )
+        .await
+    }
+
+    /// `api_req_combined_battle/battle` — 空母機動部隊 or 輸送護衛部隊.
+    pub async fn sortie_combined_battle(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<DayBattleResponse, GameplayError> {
+        sortie_battle_impl(
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
+            profile_id,
+            formation_id,
+            BattleType::Normal,
+            SortieBattleEndpoint::Combined,
+        )
+        .await
+    }
+
+    /// `api_req_combined_battle/battle_water` — 水上打撃部隊.
+    ///
+    /// Same simulation as [`sortie_combined_battle`](Self::sortie_combined_battle);
+    /// the shelling order comes from the player's combined type, and the two
+    /// endpoints exist so the client can render the one it expects.
+    pub async fn sortie_combined_battle_water(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<DayBattleResponse, GameplayError> {
+        sortie_battle_impl(
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
+            profile_id,
+            formation_id,
+            BattleType::Normal,
+            SortieBattleEndpoint::CombinedWater,
         )
         .await
     }
@@ -571,31 +615,27 @@ impl Ctx {
 
         if let Some(mut snapshot) = store.take_pending_result(profile_id) {
             snapshot.win_rank = night.outcome.win_rank.to_string();
-            snapshot.mvp = night.outcome.mvp;
             snapshot.get_exp = calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
             if let Some(updated) = pending_battle(store, profile_id) {
                 snapshot.friendly_nowhps = updated.friendly.iter().map(|f| f.hp().max(0)).collect();
-                let friend_ships = updated
-                    .friendly
-                    .iter()
-                    .cloned()
-                    .map(|ship| BattleShipInput {
-                        ship: ship.ship,
-                        slot_items: ship.slot_items,
-                        effect_list: ship.effect_list,
-                        married: ship.married,
-                    })
-                    .collect::<Vec<_>>();
-                let (ship_exp, ship_lvup) = calculate_sortie_ship_exp(
-                    &friend_ships,
-                    snapshot.get_base_exp,
-                    snapshot.mvp,
+                // Rescored over both decks: a combined night battle only moved
+                // 第2艦隊's HP and damage, but 第1艦隊's share of the node is
+                // still owed and its MVP still has to come from 第1艦隊 alone.
+                let escort_start = escort_deck_start(&updated.friendly);
+                let rewards = calculate_sortie_deck_rewards(
+                    &updated.friendly,
                     &snapshot.friendly_nowhps,
+                    (escort_start > 0).then_some(escort_start),
+                    snapshot.get_base_exp,
                     ct_flagship,
                     codex.game_cfg.exp.ct_exp_boost,
                 );
-                snapshot.get_ship_exp = ship_exp;
-                snapshot.get_exp_lvup = ship_lvup;
+                snapshot.mvp = rewards.mvp;
+                snapshot.mvp_combined = rewards.mvp_combined;
+                snapshot.get_ship_exp = rewards.get_ship_exp;
+                snapshot.get_exp_lvup = rewards.get_exp_lvup;
+                snapshot.get_ship_exp_combined = rewards.get_ship_exp_combined;
+                snapshot.get_exp_lvup_combined = rewards.get_exp_lvup_combined;
             }
             store.insert_pending_result(profile_id, snapshot);
         }
@@ -605,7 +645,19 @@ impl Ctx {
                 "sortie battle session not found for profile {profile_id}",
             ))
         })?;
-        Ok(build_night_response(current.deck_id, &current.friendly, &current.enemy, night.packet))
+        // Only 第2艦隊 fought, so the packet's friendly arrays are its alone.
+        let escort_start = escort_deck_start(&current.friendly);
+        let response = build_night_response(
+            current.deck_id,
+            &current.friendly[escort_start..],
+            &current.enemy,
+            night.packet,
+        );
+        Ok(if escort_start == 0 {
+            response
+        } else {
+            response.with_main_deck(&current.friendly[..escort_start])
+        })
     }
 
     pub async fn sortie_sp_midnight_battle(
@@ -622,6 +674,16 @@ impl Ctx {
             .with_profile_lock(profile_id, async {
                 let tx = db.begin().await?;
 
+                // A combined night-start cell is `api_req_combined_battle/sp_midnight`,
+                // which this build does not serve; running the single-fleet path
+                // would silently drop 第2艦隊 from the battle and the result. The
+                // check reads the profile directly so it does not also depend on
+                // whether fleet 2 is in a sortie-ready state.
+                if find_profile(&tx, profile_id).await?.combined_type > 0 {
+                    return Err(GameplayError::WrongType(
+                        "combined night-start battle is not implemented".to_string(),
+                    ));
+                }
                 let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
                 let mut rng = ProductionRng;
                 let (session, night_session) = run_sp_midnight_battle(
@@ -708,12 +770,15 @@ async fn sortie_battle_impl(
     profile_id: i64,
     formation_id: i64,
     battle_type: BattleType,
+    endpoint: SortieBattleEndpoint,
 ) -> Result<DayBattleResponse, GameplayError> {
     store
         .with_profile_lock(profile_id, async {
             let tx = db.begin().await?;
 
             let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
+            setup.validate_endpoint(endpoint)?;
+            setup.validate_formation(formation_id)?;
             let mut rng = ProductionRng;
             let session = run_day_battle(
                 store,
@@ -721,12 +786,15 @@ async fn sortie_battle_impl(
                 setup.battle_input(battle_type, formation_id),
                 &mut rng,
             );
-            let response = build_day_response(
+            let mut response = build_day_response(
                 setup.active.deck_id,
                 &setup.friend_ships,
                 &setup.enemy_ships,
                 session.packet.clone(),
             );
+            if setup.combined_type.is_some() {
+                response = response.with_escort_deck(&setup.escort_ships);
+            }
             store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
 
             let mut active = setup.active;

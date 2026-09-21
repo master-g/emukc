@@ -260,7 +260,7 @@ re-export），`damage.rs` 的 `formation_modifier` 对 11–14 返回 1.0——
 阵形，常规阵形 1–6 的対空倍率同样没建模。这是既有缺口，不是联合舰队引入的；要补
 应当连同单舰队一起补，别只给联合舰队加一半。
 
-### U3 — 协议输出
+### U3 — 协议输出 ✅ 已实施
 
 **改动点：** `crates/emukc_battle/src/types/packet.rs`、`transcript.rs`
 
@@ -290,7 +290,37 @@ re-export），`damage.rs` 的 `formation_modifier` 对 11–14 返回 1.0——
 正确，并分别断言 hougeki1/2/3 的参与者与各自的对应表一致（两张表不同，一个测试
 覆盖不了）。
 
-### U4 — gameplay 舰队拆分
+**实际改动点与计划的差异：**
+
+1. 落点不是 `packet.rs` + `transcript.rs`，而是新增
+   `crates/emukc_battle/src/combined_packet.rs` +
+   `crates/emukc_gameplay/src/game/battle/response.rs`。原因：wire struct
+   (`DayBattleResponse` / `NightBattleResponse`) 本来就住在 gameplay，而索引翻译
+   必须在 `emukc_battle` 内做（嵌套结构是 crate 私有的）。`transcript.rs` 一行未动。
+2. `api_combined_flag` / `api_combined_type` **不属于战斗响应**：前者是
+   `api_port/port` 的字段（`docs/apilist.txt:777`），后者是
+   `api_req_hensei/combined` 的（:3924），两者都早已实现。apilist 的 battle 段
+   没有列它们，reference §Protocol fields 的字段表只是「客户端会读到的字段」总表。
+3. **计划漏了索引空间翻译这件事本身。** 模拟侧把 deck 2 紧跟 deck 1 存放
+   （`escort_start = deck1.len()`），客户端却固定从 6 读 deck 2。因此
+   `finalize_day` 末尾统一把 packet 从连续空间改写到客户端空间：砲撃轮的
+   friendly attacker / defender 索引平移、`api_raigeki`/`api_opening_atack` 的
+   friendly 数组补齐到 12 槽（apilist `[12]`）、敌方数组裁回敌舰数、
+   `api_kouku.api_stage3` 按 deck 切成 `api_stage3` + 新增的
+   `api_stage3_combined`。`friendly_nowhps` 故意不翻译——它不上 wire，
+   sortie session 按舰位索引它。
+4. **发现并修掉 U2 的一处真实缺陷。** `execute_combined_shelling` 把
+   `&mut state.friendly[deck_range]` 交给 `simulate_shelling_side`，后者按**切片**
+   起点从 0 编号 attacker，于是 deck 2 的攻击全部记成 0,1,2。加
+   `shift_friendly_attackers`（`simulation/mod.rs`）在切片处抬回全队空间；
+   `escort_deck_attacks_reach_the_packet_in_client_index_space` 钉住它。
+5. `BattleKouku` 多了 `api_stage3_combined` 字段，值为 `None` 时 `skip_serializing_if`
+   不上 wire，但 `{:#?}` 会打印它，所以 `crates/emukc_battle/tests/golden/*.txt`
+   20 份全部重新 bless。diff 每份只有 `+ api_stage3_combined: None,` 一行，
+   模拟数值零变化。`tests/gameplay_tests/battle_golden.rs`（渲染的是 transcript，
+   不是 Debug dump）一字未改。
+
+### U4 — gameplay 舰队拆分 ✅ 已实施
 
 **改动点：** `crates/emukc_gameplay/src/game/sortie/setup.rs`、`mod.rs`、
 `crates/emukc_gameplay/src/game/sortie/route_context.rs`
@@ -302,7 +332,22 @@ re-export），`damage.rs` 的 `formation_modifier` 对 11–14 返回 1.0——
 
 **完成标志：** 联合舰队出击到达战斗格不再报错；阵形校验的边界测试通过。
 
-### U5 — 昼战端点与结算
+**实际改动点与计划的差异：**
+
+1. `route_context.rs` 一行未动——`build_sortie_friend_ships` 对两支 deck 通用，
+   setup 调它两次即可。deck 2 固定是 fleet 2（`ESCORT_DECK_ID`）。
+2. 损伤/燃弹/经验回写**自动覆盖两队**，因为 `friendly_ship_ids` 与
+   `friendly_nowhps` 本来就是整条连续队列，`update_sortie_result_stats` 按它循环。
+   唯一要拆的是经验数组：`get_ship_exp` 只含 deck 1，deck 2 走
+   `get_ship_exp_combined`，分界点由 `get_ship_exp.len() - 1` 推出，不另存字段。
+3. 计划没提的一条必要校验：**端点与编成必须匹配**。U4 解除拒绝后，
+   `api_req_sortie/battle` 对联合舰队也会跑起来，返回单舰队客户端读不懂的包。
+   新增 `SortieBattleEndpoint`（Single / Combined / CombinedWater）+
+   `validate_endpoint`，把这条恢复成显式契约。
+4. fleet 2 未解锁时 `get_fleet_ships_impl` 返回 `EntryNotFound` 而非空列表，
+   统一归到「需要 fleet 2 有舰」这一条错误。
+
+### U5 — 昼战端点与结算 ✅ 已实施
 
 **改动点：** 新增 `src/bin/net/router/kcsapi/api_req_combined_battle/`
 （`mod.rs`、`battle.rs`、`battle_water.rs`、`battleresult.rs`、`goback_port.rs`），
@@ -316,7 +361,13 @@ re-export），`damage.rs` 的 `formation_modifier` 对 11–14 返回 1.0——
 **完成标志：** 集成测试跑完一次联合舰队出击 → battle → battleresult →
 goback_port，两队的 HP 与经验都已落库。
 
-### U6 — 夜战端点
+**实际改动点与计划的差异：** handler 是 5 个不是 4 个（`midnight_battle` 一并放在
+本目录，U6 只出 gameplay 侧）。`battleresult` / `goback_port` / `midnight_battle`
+直接转发已有的 `Ctx` 方法——联合与否由 session 里的 deck 标签决定，不需要第二条
+gameplay 路径。MVP 与两份经验数组统一由 `calculate_sortie_deck_rewards`
+（`sortie_result.rs`）产出，昼战结算与夜战后重算共用它，避免两处各写一遍索引算术。
+
+### U6 — 夜战端点 ✅ 已实施
 
 **改动点：** `api_req_combined_battle/midnight_battle.rs`、
 `crates/emukc_battle/src/simulation/night.rs`
@@ -327,18 +378,41 @@ goback_port，两队的 HP 与经验都已落库。
 
 **完成标志：** 昼战 → 夜战 → battleresult 链路的集成测试通过。
 
-### U7 — 质量门
+**实际改动点与计划的差异：**
+
+1. `simulation/night.rs` 一行未动。`NightBattleInput` 也没加字段：deck 2 的
+   `BattleRuntimeShip` 自带 `is_escort_deck()` 标签，`run_night_battle` 用
+   `escort_deck_start()` 从 session 里找回边界，切出 deck 2 交给夜战，回写时再
+   拼回去。因此没有一个调用点需要声明「这是联合舰队」。
+2. 夜战包的 friendly 索引同样要平移：deck 2 单独参战时它在模拟里是 0..n，
+   客户端仍从 6 读，所以 `finalize_night` 也走一次 remap。
+3. 响应侧是反向拼装：`NightBattleResponse::with_main_deck` 把模拟出的 deck 2
+   数组挪到 `_combined`，再用没参战的 deck 1 填 `api_f_*`。
+4. **链路测试落在 `crates/emukc_gameplay` 的单测而非集成测试**：1-1 首格在
+   1..=40 号种子里从未留下双方存活的局面（舰队太强），夜战根本不会触发。
+   单测沿用既有 `weaken_for_midnight` 直接注入弱化舰队，稳定跑到
+   `midnight_flag == 1`。集成测试覆盖昼战 → battleresult 这一半。
+5. **`sp_midnight` 明确不在范围内**：`sortie_sp_midnight_battle` 现在对
+   `combined_type > 0` 直接报错，否则会悄悄把 deck 2 从战斗和结算里丢掉。
+
+### U7 — 质量门 ✅ 已执行
 
 1. `cargo fmt --all --check`
 2. `cargo clippy --workspace -- -W warnings`（既有 6 条 `result_large_err`
    不算新增）
 3. `cargo test --workspace`（先 `mkdir -p target/tmp`，`test_font` 需要）
 4. `cargo test --test gameplay_tests`
-5. `apilist.md` 按机械方式重新对齐：新增 5 个端点从 missing 移到 implemented，
-   数字由 114/34 变 119/29。不要手工审计，按
-   `PROJECT_MEMORY.md` 记的提取方式重新 diff。
+5. `apilist.md` 按机械方式重新对齐：新增 5 个端点从 missing 移到 implemented。
+   不要手工审计，按 `PROJECT_MEMORY.md` 记的提取方式重新 diff。
 6. `battle_golden.rs` 必须一字未改——若它变了，说明单舰队路径的 RNG 流水被动了，
    触发 Stop condition。
+
+**执行结果：** fmt clean；clippy 回到基线（6 条 `result_large_err` + 9 条
+missing-backticks + 2 条 borrowed-expression，全部不在本次改动的文件里）；
+`cargo test --workspace` 全绿 0 failed / 0 ignored；`battle_golden.rs` 未出现在
+`git status` 里。端点数字是 **122 implemented / 26 missing**，不是计划写的
+119/29——计划成稿时用的是 114/34 这个更早的基数，而重推当天的基数是 117/31。
+`docs/api_coverage.md` 与 `TODO.md` 的计数同步更新。
 
 ---
 
@@ -350,7 +424,7 @@ goback_port，两队的 HP 与经验都已落库。
 | 两种编成的阶段顺序正确 | U2 的顺序断言测试 |
 | 联合舰队能打完一仗并落库 | `cargo test --test gameplay_tests` 的新集成测试 |
 | 单舰队路径零回归 | `battle_golden.rs` 未改且通过 |
-| 端点清单一致 | `apilist.md` 重新机械对齐，119/29 |
+| 端点清单一致 | `apilist.md` 重新机械对齐，122/26 |
 | 全套门禁 | U7 的 1–4 全绿 |
 
 ---
@@ -365,5 +439,17 @@ goback_port，两队的 HP 与经验都已落库。
 - 夜战对手判定里旗舰中破/大破的具体分值
 - レーダー射撃マス 的无阵形状态
 
+实施中新增一条同类的：**第2艦隊 的经验分配规则**。本仓库让 deck 2 复用 deck 1 的
+算法——它自己的 index 0 拿旗舰 1.5 倍、CT 旗舰加成一并沿用。上游没有关于护卫舰队
+经验的验证资料。标记在 `sortie_result.rs::calculate_sortie_deck_rewards`。
+
 每一条在代码里留 `// ponytail:` 或等价注释说明为何取当前值，不要写成
 「已按规则实现」。
+
+## 本计划完成后仍缺的 9 个端点
+
+`airbattle` / `ld_airbattle` / `ld_shooting`（联合舰队的航空与长距离格）、
+`each_battle` / `each_battle_water` / `ec_battle` / `ec_midnight_battle` /
+`ec_night_to_day`（敌方也是联合舰队）、`sp_midnight`（联合舰队夜战开始格）。
+前两组需要 reference §Phase order 的「联合 vs 联合」两套顺序与
+§Night battle opponent selection 的打分规则，后者的数值上游标为要検証。

@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-21: 117 implemented, 31 missing.
+> holds the roadmap. Last cross-checked 2026-09-21: 122 implemented, 26 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -54,7 +54,7 @@
   - [x] `api_req_sortie/goback_port` - retreat
   - [x] `api_req_battle_midnight/battle` - night battle
   - [x] `api_req_battle_midnight/sp_midnight` - night-start battle (partial: core sim, no combined)
-  - [ ] Combined battle variants (14 endpoints)
+  - [ ] Combined battle variants (9 remaining; 味方連合 vs 敵通常 is done)
 - [ ] **Mission / Expedition System** (`api_req_mission/*`)
   - [x] `api_req_mission/start` - start expedition
   - [x] `api_req_mission/result` - expedition result

@@ -13,7 +13,7 @@ pub(crate) use domain::{
 pub use packet::SiListId;
 pub use packet::{
     BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2, BattleKoukuStage3,
-    BattleNightHougeki, BattleOpeningAttack, BattleRaigeki, DamageCell,
+    BattleKoukuStage3Combined, BattleNightHougeki, BattleOpeningAttack, BattleRaigeki, DamageCell,
 };
 pub(crate) use runtime::CombinedMembership;
 pub use runtime::{
