@@ -37,8 +37,8 @@ covered separately (see Related); this doc is the mechanism overview.
    The file is gitignored and only exists after `bun run decode`; **absent is
    not a panic and not drift** — it yields `VERSION_ABSENT` + `missing=true`,
    reported as a prerequisite.
-3. `fingerprint()` hashes the 6 tracked assets (`synced_asset_paths()`,
-   drift_check.rs:190) into a `SyncFingerprint { version, assets: name→hash }`.
+3. `fingerprint()` hashes the 13 tracked assets (`synced_asset_paths()`)
+   into a `SyncFingerprint { version, assets: name→hash }`.
 4. `load_manifest()` reads the tracked baseline
    `crates/emukc_bootstrap/assets/.sync-fingerprint.json` (absent → `None`).
 5. `diff(previous, current, version_missing)` → `DriftReport`.
@@ -80,12 +80,17 @@ already exists it **bails rather than overwrites**. No drift → writes nothing.
 
 ### Adding or removing a tracked asset
 
-Edit `synced_asset_paths()` (drift_check.rs:190) — add the `(name, path)` pair
-and its `repo_*_path()` helper — then refresh the baseline with
-`battle drift-check --accept` in the same commit, so the committed
-`.sync-fingerprint.json` matches the committed asset set. The 6 assets are 4
-battle assets + 2 map-catalog assets; the latter are not decoder-produced (see
-Related).
+Edit `synced_asset_paths()` — add the `(name, path)` pair, with its
+`repo_*_path()` helper if it has one, or to `CACHE_LIST_ASSETS` if it is just a
+file in the assets dir — then refresh the baseline with `make drift-accept` in
+the same commit, so the committed `.sync-fingerprint.json` matches the committed
+asset set. The 13 assets are 4 battle + 2 map-catalog + 7 cache-list inputs; the
+map-catalog two are not decoder-produced (see Related).
+
+`make update` runs `drift-check` as a **non-blocking report** after the decode
+step, so a sync always shows what moved; `make drift-check` is the gating form
+and `make drift-accept` is the deliberate refresh. Nothing auto-accepts — see
+the boundary doc in Related.
 
 ## Why This Matters
 

@@ -184,18 +184,41 @@ fn diff(
     }
 }
 
-/// The synced battle/route assets fingerprinted by `drift-check` (KTD3), keyed
-/// by logical name. Resolved via `emukc_bootstrap`'s `CARGO_MANIFEST_DIR`-based
-/// helpers so the same files resolve identically from any cwd.
-fn synced_asset_paths() -> Vec<(String, PathBuf)> {
-    vec![
+/// The cache-list inputs the decoder syncs alongside the battle assets. They
+/// have no `repo_*_path()` helper of their own, so they are resolved from the
+/// repo root instead. Without them a stale decoder run could feed `make-list`
+/// while `drift-check` still reported no drift.
+const CACHE_LIST_ASSETS: [&str; 7] = [
+    "resource_manifest",
+    "cache_rules",
+    "resource_categories",
+    "resource_id_sets",
+    "audio_resources",
+    "ui_resources",
+    "resource_templates",
+];
+
+/// The synced assets fingerprinted by `drift-check` (KTD3), keyed by logical
+/// name. The battle/route six resolve via `emukc_bootstrap`'s
+/// `CARGO_MANIFEST_DIR`-based helpers, the cache-list seven from `root`, which
+/// is itself derived from one of those helpers — so all of them resolve
+/// identically from any cwd.
+fn synced_asset_paths(root: &Path) -> Vec<(String, PathBuf)> {
+    let assets_dir = root.join("crates/emukc_bootstrap/assets");
+    let mut paths = vec![
         ("battle_protocol_fields".to_string(), repo_battle_protocol_fields_path()),
         ("battle_resource_rules".to_string(), repo_battle_resource_rules_path()),
         ("battle_module_index".to_string(), repo_battle_module_index_path()),
         ("battle_slot_resource_triggers".to_string(), repo_battle_slot_resource_triggers_path()),
         ("wikiwiki_map_catalog".to_string(), repo_wikiwiki_map_catalog_path()),
         ("public_map_catalog_overlays".to_string(), repo_public_map_catalog_overlay_path()),
-    ]
+    ];
+    paths.extend(
+        CACHE_LIST_ASSETS
+            .iter()
+            .map(|name| (name.to_string(), assets_dir.join(format!("{name}.json")))),
+    );
+    paths
 }
 
 /// Repo root, derived from a synced asset path
@@ -253,7 +276,7 @@ fn write_manifest(path: &Path, manifest: &SyncFingerprint) -> Result<()> {
 pub(super) fn exec(args: &DriftCheckArgs) -> Result<()> {
     let root = repo_root()?;
     let (version, version_missing) = read_version(&version_txt_path(&root))?;
-    let current = fingerprint(&version, &synced_asset_paths())?;
+    let current = fingerprint(&version, &synced_asset_paths(&root))?;
     let manifest_path = manifest_path(&root);
     let previous = load_manifest(&manifest_path)?;
     let report = diff(previous.as_ref(), &current, version_missing);
@@ -511,6 +534,25 @@ mod tests {
 
     fn assets(dir: &Path, specs: &[(&str, &str)]) -> Vec<(String, PathBuf)> {
         specs.iter().map(|(name, json)| (name.to_string(), write_asset(dir, name, json))).collect()
+    }
+
+    #[test]
+    fn every_tracked_asset_exists_and_includes_the_cache_list_inputs() {
+        let root = repo_root().unwrap();
+        let paths = synced_asset_paths(&root);
+
+        for (name, path) in &paths {
+            assert!(path.is_file(), "{name} is tracked but {} is not a file", path.display());
+        }
+        // Guards the half of the list that has no `repo_*_path()` helper behind
+        // it: dropping the `extend` would let a stale decoder run feed
+        // `make-list` while `drift-check` still reported no drift.
+        for name in CACHE_LIST_ASSETS {
+            assert!(
+                paths.iter().any(|(key, _)| key == name),
+                "{name} feeds cache make-list but is not fingerprinted"
+            );
+        }
     }
 
     #[test]

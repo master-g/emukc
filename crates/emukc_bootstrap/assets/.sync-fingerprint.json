@@ -1,11 +1,18 @@
 {
-  "version": "6.3.0.0",
+  "version": "6.3.5.0",
   "assets": {
-    "battle_module_index": "EKyKuciE7ZQ8rUYXhj1tn3eSa4N8RP4kAivvvgRF4hbQ",
-    "battle_protocol_fields": "GhmCYRZw3UMheC5TVj8Vq1NbPkuKcTCh29BkpjAmuTbG",
-    "battle_resource_rules": "Bc4d5HraFJgUhAEfjUdKH2aKd4aK9bAYroE57kR5Sd1s",
-    "battle_slot_resource_triggers": "7NeSZAKznLa1QphuMhWqrXgaFWMVr3pb57cHGnB54Pt1",
+    "audio_resources": "ErNSgffg5NE6sKTLpWegYnKuPXy8Ax72W5HVg36Yj8DD",
+    "battle_module_index": "Ae6VUFCZx8dtajzB5yyPZ68odViu9Bs118FCiK31dAbP",
+    "battle_protocol_fields": "3UUcxEhzDUFDc7XbQMWZ5rRQUAR4PXyW9QiiMYX3bikn",
+    "battle_resource_rules": "CbTJYCqNsYWV1Far79mL57yDdVYMau63g9zysksCRNEE",
+    "battle_slot_resource_triggers": "DE8FGF3XUCJnxyvUTRuM1vSKFea4eA9NPLFvnhrh7FVs",
+    "cache_rules": "Fwq93xHZyig8c2pJSBJ5eZdX2vXNTtT6HCAu1kKHNnkj",
     "public_map_catalog_overlays": "3rUruKjvXavhZrHUpfdS2QMiZ5Aky7MGHEfVMTCVbTVD",
+    "resource_categories": "HrinjHagmeW2MWz8mb9cc6JLWDRg469Lw4ohodTmsgL6",
+    "resource_id_sets": "929op9kvakZBaVk2mii85CCC3qGCCftFdU7zmr7znzAQ",
+    "resource_manifest": "2WjsjWqw9iSbdaEGVLCMVgekD4w76YurAkhX2w5X5Qv8",
+    "resource_templates": "3XGG4Xe2k8aRnzxrCEgTnSa6pQ6STRfzLrqVsz4oKZDc",
+    "ui_resources": "2ixuftw8BniX7LsKk41eaQXM8Acd4KThxXdEnf6tM3ro",
     "wikiwiki_map_catalog": "8M4spBunEAnxDYpLXhWpNhcR45A955nfc7F6p2hGSiDs"
   }
 }

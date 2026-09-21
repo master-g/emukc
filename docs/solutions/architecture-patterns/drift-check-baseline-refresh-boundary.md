@@ -39,6 +39,11 @@ Keep baseline refresh as an explicit, separate Rust-side command. Do NOT wire
 asset, update the asset list in `src/bin/cli/drift_check.rs` and refresh the
 baseline with `--accept` in the same commit that lands the asset.
 
+Running the **report** is not the same as accepting it: since 2026-09-21
+`make update` calls `battle drift-check` (no `--accept`, non-blocking) right
+after the decode step, so every sync prints what moved. `make drift-check`
+gates, `make drift-accept` refreshes. The review step stays where it was.
+
 ## Why This Matters
 
 Three concrete reasons the auto-wire is wrong, not just unnecessary:
@@ -50,13 +55,14 @@ Three concrete reasons the auto-wire is wrong, not just unnecessary:
    — reimplementing the canonicalize+hash fingerprint algorithm in TypeScript —
    creates two sources of truth for the fingerprint and is worse.
 
-2. **Scope mismatch.** The baseline tracks 6 assets, but `--sync-battle-assets`
-   writes only the 4 battle ones. The other two — `wikiwiki_map_catalog` and
-   `public_map_catalog_overlays` — are not produced by `main-decoder` at all
-   (`rg` for them in `main-decoder/src/` is empty); they come from the Rust-side
-   wikiwiki/overlay capture. Auto-accepting after a battle sync would re-bless
-   all 6 — including any uncommitted hand-edits to the two map-catalog assets —
-   off a partial 4-asset sync.
+2. **Scope mismatch.** The baseline tracks 13 assets (2026-09-21: 4 battle,
+   2 map-catalog, 7 cache-list inputs), but `--sync-battle-assets` writes only
+   the 4 battle ones. `wikiwiki_map_catalog` and `public_map_catalog_overlays`
+   are not produced by `main-decoder` at all (`rg` for them in
+   `main-decoder/src/` is empty); they come from the Rust-side wikiwiki/overlay
+   capture. Auto-accepting after a battle sync would re-bless all 13 —
+   including any uncommitted hand-edits — off a partial 4-asset sync. Widening
+   the tracked set made this reason stronger, not weaker.
 
 3. **`--accept` is the review gate.** Drift-check exists precisely to force a
    human to look at `git diff` after a sync and confirm the decoded change is

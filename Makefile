@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -69,10 +69,18 @@ bootstrap: ## 下载/刷新游戏数据 (--overwrite --force-update)
 decode-main: ## decode main.js 并同步全部资源资产到 rust 项目
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
 
-update: ## 全链更新游戏资源: bootstrap 刷新 main.js/codex → 解码同步资产 → 生成缓存清单
+update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 漂移报告 → 生成缓存清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --overwrite --force-update
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
+	@echo "--- 资产漂移报告 (不阻断; review 过 diff 后跑 make drift-accept) ---"
+	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
+
+drift-check: ## 比对已同步资产与基线, 有漂移则退出非零
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+
+drift-accept: ## review 过 diff 之后, 把当前资产记为新基线
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check --accept
 
 cache-make-list: ## 生成缓存资源清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
