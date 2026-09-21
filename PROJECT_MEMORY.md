@@ -97,6 +97,10 @@ Current verification baseline:
 - [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下处理相反：丢一个 `or` 分支只减少完成路径
   （更严格），丢一个 `and` 条件则白送。统一 `?` 传播会误杀 api_no 1019 这类一坏一好分支的任务。
   三条的完整依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
+- [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body
+  （curl 实测 4 个 w0* 主机，`content-type: audio/mpeg`，`size=0`）。`Kache` 现在把
+  「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
+  missing 类，不再重试。注意 `exists_on_remote` 走 HEAD，仍会把它判成 `Present`。
 
 ## Failed Attempts / Pitfalls
 
@@ -142,18 +146,17 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 推送了上一会话积压的 11 个提交（`main` 与 `origin/main` 已同步），
-  然后修了 `bootstrap` 不带 `--overwrite` 就中止的老问题，两个独立提交：
-  `06e57a6` 统一 `Codex::save` 的语义、`919ca9c` 让静默命令的致命错误也写 stderr。
-- 复现确认：`Codex::save` 13 个输出里只有 `start2.json` 是 warn+skip，另外 12 个在文件已存在
-  且没有 `--overwrite` 时直接返回 `AlreadyExist`，所以第二次裸跑 bootstrap 必死在 Phase 3 的
-  `ship_extra.json`，Phase 4 永远跑不到。改成全部 warn+skip（与 `download_all` 一致），
-  `CodexError::AlreadyExist` 随之无构造点，连同 `net/err.rs` 的映射一起删掉。
-- 顺带发现并修掉：`needs_quiet_stdout` 对 `Bootstrap` 返回 true（让位给进度条），
-  导致 CLI 末尾那个 `error!` 只进日志文件——失败的 bootstrap 曾经是 exit 1 且两个流全空。
-- 门禁：`cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`（仍是 6 条既有
-  `result_large_err`，无新增）、`cargo test --workspace` 全绿；另跑通了一次真实的裸 `bootstrap`
-  （exit 0，四个阶段跑完，`.data/codex` 里的文件 mtime 未变）。
+- [2026-09-21] 三件事，四个提交，均已推送：推掉积压的 11 个提交（`main` 与 `origin/main` 同步）；
+  修 `bootstrap` 裸跑中止（`06e57a6` + `919ca9c`）；压缩本文件到 21744 B（`217fe6f`）；
+  修空 200 的重试（`44ca6ba`）。
+- `Codex::save` 13 个输出里只有 `start2.json` 是 warn+skip，其余 12 个在文件已存在且无
+  `--overwrite` 时返回 `AlreadyExist`，所以第二次裸跑必死在 Phase 3，Phase 4 永远跑不到。
+  全部改成 warn+skip（与 `download_all` 一致），`CodexError::AlreadyExist` 随之删除。
+- 顺带修掉：`needs_quiet_stdout` 对 `Bootstrap` 返回 true，CLI 末尾的 `error!` 只进日志文件，
+  失败的 bootstrap 曾经是 exit 1 且两个流全空；现在这类命令额外 `eprintln!`。
+- 门禁每次都跑满：fmt、`clippy --workspace -- -W warnings`（恒为 6 条既有 `result_large_err`）、
+  `cargo test --workspace` 全绿；另有两次真实验证——裸 `bootstrap` exit 0 四阶段跑完，
+  单条清单的 `cache populate` 把那个 mp3 归入 `*.missing.nedb` 且零重试。
 
 ## Next Session
 
@@ -165,9 +168,6 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
   目前被 `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
   两边哪天不一致，012 的校验就会开始误报。`.sync-fingerprint.json` 记的是 `6.3.0.0`，
   而资产已到 `6.3.5.0`。
-- `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 上游稳定返回 200 + 空 body，008 之后它每轮 populate
-  失败一次，且因为「空 200」不是 404 而走 retryable 路径重试 40 次。把稳定的空 200 归入
-  missing 类要改 `classify_failure` 的判据，尚未立计划。
 - manifest 差集里约 7%（估 1,500 条）是真实存在的资源，Rules 清单漏了它们（抽样命中 `banner_dmg`）。
   正确补法是拿差集做一次性存在性探测并入规则，不是复活 Greedy 枚举。尚未立计划。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
