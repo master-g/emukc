@@ -592,6 +592,11 @@ impl Kache {
             rng::shuffle(&mut indices);
         }
 
+        // Stays true while every mirror answers with a body the game cannot use
+        // (an empty 200, an error page). That is an answer, so it is reported as
+        // an invalid file rather than as "no CDN answered" — see the tail below.
+        let mut every_answer_invalid = true;
+
         for idx in indices {
             let cdn = &cdn_list[idx];
             let url = self.build_cdn_url(cdn, path, version);
@@ -617,9 +622,19 @@ impl Kache {
                     return Err(Error::FileNotFound(path.to_owned()));
                 }
                 Err(e) => {
+                    every_answer_invalid &= matches!(e, Error::InvalidFile(_));
                     error!("💥 url:{}, err:{:?}", url, e);
                 }
             }
+        }
+
+        if every_answer_invalid {
+            // Every mirror served something, and none of it was usable. Retrying
+            // asks the same question again, so callers that queue retries (e.g.
+            // `cache populate`) must be able to tell this apart from a probe that
+            // never landed.
+            error!("🚫 every cdn returned an unusable body for {}", path);
+            return Err(Error::InvalidFile(path.to_owned()));
         }
 
         error!("🚫 all cdn failed for {}", path);

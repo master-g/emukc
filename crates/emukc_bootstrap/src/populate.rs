@@ -24,8 +24,10 @@ enum FailureKind {
     /// The local copy is newer than the list asks for. Not a download failure;
     /// `get` already served the newer file, so there is nothing to retry.
     Rollback,
-    /// A CDN answered 404. Retrying asks the same question again, so these are
-    /// kept out of the retry queue and reported separately.
+    /// Every CDN answered, and the answer was 404 or a body the game cannot use
+    /// (`kcs/sound/kcwjcrloeyiyxw/158288.mp3` is a stable empty 200 on all four
+    /// mirrors). Retrying asks the same question again, so these are kept out of
+    /// the retry queue and reported separately.
     Missing,
     /// Anything else: no CDN gave an answer, so the question is still open.
     Retryable,
@@ -34,7 +36,7 @@ enum FailureKind {
 fn classify_failure(error: &KacheError) -> FailureKind {
     match error {
         KacheError::InvalidFileVersion(_) => FailureKind::Rollback,
-        KacheError::FileNotFound(_) => FailureKind::Missing,
+        KacheError::FileNotFound(_) | KacheError::InvalidFile(_) => FailureKind::Missing,
         _ => FailureKind::Retryable,
     }
 }
@@ -363,7 +365,7 @@ pub async fn populate(
                 eprintln!("retry with: cache populate --src {}", path.display());
             }
             if let Some(path) = &missing_list {
-                eprintln!("missing upstream (404), listed in: {}", path.display());
+                eprintln!("missing upstream, listed in: {}", path.display());
                 eprintln!(
                     "  confirm across mirrors before using it to seed a hole table \
                      — a 404 here is one mirror's answer, not every mirror's"
@@ -381,7 +383,7 @@ pub async fn populate(
             pb.finish_and_clear();
         }
         return Err(KacheError::InvalidFile(format!(
-            "{failed_count} items failed after retry, {missing_count} missing (404)"
+            "{failed_count} items failed after retry, {missing_count} missing upstream"
         )));
     }
 
@@ -431,9 +433,11 @@ mod tests {
             FailureKind::Missing
         );
         assert_eq!(classify_failure(&KacheError::FailedOnAllCdn), FailureKind::Retryable);
+        // `Kache` only raises this once every mirror has answered with an unusable
+        // body, so it is as final as a 404 — see `fetch_from_remote`.
         assert_eq!(
-            classify_failure(&KacheError::InvalidFile("corrupt".into())),
-            FailureKind::Retryable
+            classify_failure(&KacheError::InvalidFile("kcs/sound/x.mp3".into())),
+            FailureKind::Missing
         );
     }
 

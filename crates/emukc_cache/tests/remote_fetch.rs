@@ -80,11 +80,44 @@ async fn fetch_200_with_empty_body_fails_and_leaves_no_file() {
     let cache = cache_for(&server, &root);
 
     let err = cache.get(REL_PATH, VERSION).await.unwrap_err();
-    assert!(matches!(err, KacheError::FailedOnAllCdn), "got {err:?}");
+    // Every mirror answered, and every answer was unusable, so this is as final
+    // as a 404 — `cache populate` classifies it as missing instead of retrying it
+    // 40 times. `fetch_fails_when_every_cdn_errors` keeps the other outcome.
+    assert!(matches!(err, KacheError::InvalidFile(_)), "got {err:?}");
     // The empty file must not survive the rejection: for a path with no version
     // `find_in_local` would otherwise serve it back on the next run.
     assert!(!root.path().join(REL_PATH).exists(), "an empty body leaves nothing on disk");
     assert_eq!(cache.get_cached_version(REL_PATH).await.unwrap(), None, "no version recorded");
+}
+
+#[tokio::test]
+async fn fetch_is_retryable_when_one_cdn_never_answers() {
+    let empty = MockServer::start().await;
+    let down = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/{REL_PATH}")))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(Vec::new()))
+        .mount(&empty)
+        .await;
+    Mock::given(method("GET"))
+        .and(path(format!("/{REL_PATH}")))
+        .respond_with(ResponseTemplate::new(500))
+        .mount(&down)
+        .await;
+
+    let root = TempDir::new().unwrap();
+    let cache = Kache::builder()
+        .with_cache_root(root.path().to_path_buf())
+        .with_content_cdns(vec![empty.uri(), down.uri()])
+        .with_gadgets_cdn(empty.uri())
+        .build()
+        .unwrap();
+
+    // One mirror answered with an unusable body, the other never answered at all,
+    // so the question is still open and the item stays in the retry queue.
+    let opt = GetOption::new();
+    let err = cache.get_with_opt(REL_PATH, VERSION, &opt).await.unwrap_err();
+    assert!(matches!(err, KacheError::FailedOnAllCdn), "got {err:?}");
 }
 
 #[tokio::test]
