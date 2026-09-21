@@ -17,7 +17,7 @@
 | 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | DONE |
 | 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | DONE |
 | 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
-| 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | TODO |
+| 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | DONE |
 | 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | DONE |
 | 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | TODO |
 | 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | TODO |
@@ -46,6 +46,30 @@
   同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
   `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
   这与计划「维护须知」里说的 11 条一致，是预期结果。
+
+- 008 DONE：`is_valid` 的两条捷径都去掉了。空文件改判无效，并且这个检查现在排在
+  扩展名分流**之前**，所以 `.html` 也受它约束。`fetch_from_url` 在 `is_valid` 失败时
+  先删文件再返回错误——不删的话，对那 ~39k 条不带版本的路径，`find_in_local` 下一轮
+  会把同一份坏内容再服务一次。
+  **HTML 只做非空检查**，这是计划步骤 3 的保守方案，依据是真实缓存里的
+  `kcs2/hc.html` 只有 54 字节、内容就是 `<!DOCTYPE html><html><head></head><body></body></html>`——
+  长度下限和 doctype 嗅探都无法把它与错误页分开。非 HTML 路径的错误页嗅探原样保留。
+  计划 001 埋的两条「008 会翻转」断言：`zero_length_file_is_currently_valid` 翻转为
+  `zero_length_file_is_invalid`，`fetch_200_with_empty_body_is_currently_accepted` 翻转为
+  `fetch_200_with_empty_body_fails_and_leaves_no_file`；`html_extension_skips_the_content_check`
+  在保守方案下结论不变，改名为 `html_error_page_still_passes_because_html_cannot_be_sniffed`
+  并写明这是有意的。新增 `zero_length_html_is_invalid_too`。三条新断言都经变异验证。
+  **步骤 1 的实测与计划预期不符，但不构成 STOP**：`find z/cache -type f -size 0` 返回的不是
+  0 而是 1——`kcs/sound/kcwjcrloeyiyxw/158288.mp3`。curl 经代理跟随 301 后确认，上游对它
+  稳定返回 `200` + `content-length: 0`，两个镜像一致。0 字节的 mp3 不是「合法的零字节游戏
+  资源」，是这个 bug 的产物，所以按计划改判。
+  **已知副作用**：该条目现在每轮 populate 会失败一次（文件被删、重下仍是空、再删）。
+  它进的是 `*.failed.nedb` 而不是 `*.missing.nedb`，因为「200 + 空 body」不是 404，
+  009 的分流判据接不住它——于是 20 个 CDN × 2 pass 一共重试 40 次，白白花掉约 20 秒。
+  把「稳定的空 200」也归入 missing 类是合理的后续改动，但那要动 `classify_failure` 的判据，
+  不属于 008。
+  步骤 6 实测（真实 `z/cache`，随机 199 个已缓存文件 + 上述空文件）：`invalid file` 只出现在
+  那一个路径上，199 个正常文件全部本地命中、无一重新下载。
 
 - 006 DONE：`ParseError::EmptyRequirement { reason }` 接到既有的「跳过这条任务」路径
   （与 `UnknownCategory` 同粒度，不向上传播炸掉整轮 bootstrap）。14 个降级点里 13 个判为

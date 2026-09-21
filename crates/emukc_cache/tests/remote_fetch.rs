@@ -1,6 +1,6 @@
 //! Remote fetch integration tests for `Kache`.
 //!
-//! Baseline for plans 003 and 008: these pin what the fetch path does *today*,
+//! Baseline for plan 003, and the corrected form of what plan 008 flipped:
 //! including the parts that are known to be wrong. Assertions that a later plan
 //! is expected to flip carry a comment saying so. Plan 007 has landed: a 404 and
 //! a total CDN failure are now distinct outcomes, pinned below.
@@ -68,7 +68,7 @@ async fn fetch_200_writes_body_and_records_version() {
 }
 
 #[tokio::test]
-async fn fetch_200_with_empty_body_is_currently_accepted() {
+async fn fetch_200_with_empty_body_fails_and_leaves_no_file() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path(format!("/{REL_PATH}")))
@@ -79,14 +79,12 @@ async fn fetch_200_with_empty_body_is_currently_accepted() {
     let root = TempDir::new().unwrap();
     let cache = cache_for(&server, &root);
 
-    // Plan 008 will reject zero-length files; this assertion flips then.
-    let mut file = cache.get(REL_PATH, VERSION).await.unwrap();
-    assert!(read_back(&mut file).await.is_empty());
-    assert_eq!(std::fs::metadata(root.path().join(REL_PATH)).unwrap().len(), 0);
-
-    // And the empty file is treated as a valid cache entry on the next get.
-    cache.get(REL_PATH, VERSION).await.unwrap();
-    assert_eq!(server.received_requests().await.unwrap().len(), 1);
+    let err = cache.get(REL_PATH, VERSION).await.unwrap_err();
+    assert!(matches!(err, KacheError::FailedOnAllCdn), "got {err:?}");
+    // The empty file must not survive the rejection: for a path with no version
+    // `find_in_local` would otherwise serve it back on the next run.
+    assert!(!root.path().join(REL_PATH).exists(), "an empty body leaves nothing on disk");
+    assert_eq!(cache.get_cached_version(REL_PATH).await.unwrap(), None, "no version recorded");
 }
 
 #[tokio::test]

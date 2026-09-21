@@ -547,6 +547,11 @@ impl Kache {
 
         if !Self::is_valid(local_path).await {
             error!("invalid file: {:?}", local_path);
+            // Leaving it on disk would let the next `find_in_local` serve it again:
+            // for a path with no version there is no second gate behind `is_valid`.
+            if let Err(e) = tokio::fs::remove_file(local_path).await {
+                warn!("could not remove invalid file {:?}: {e}", local_path);
+            }
             return Err(Error::InvalidFile(local_path.display().to_string()));
         }
 
@@ -633,14 +638,6 @@ impl Kache {
             return false;
         }
 
-        // HTML files are always valid
-        if path.extension().is_some_and(|ext| ext == "html") {
-            trace!("File is a HTML file: {:?}", path);
-            return true;
-        }
-
-        trace!("File is not a HTML file: {:?}", path);
-
         let Ok(mut file) = tokio::fs::File::open(path).await else {
             trace!("Failed to open file: {:?}", path);
             return false;
@@ -650,10 +647,27 @@ impl Kache {
             return false;
         };
 
-        // Empty files are valid
+        // A zero-length body is a CDN anomaly, never a resource the game can use.
+        // Roughly 39k of the paths in a full cache list carry no version, so for
+        // those this check is the only thing standing between an empty 200 and a
+        // permanently cached empty file.
         if metadata.len() == 0 {
+            trace!("File is empty: {:?}", path);
+            return false;
+        }
+
+        // The error-page sniff below cannot be applied to HTML: a legitimate page
+        // is HTML too. `kcs2/hc.html` in a real cache is 54 bytes and consists of
+        // nothing but `<!DOCTYPE html><html><head></head><body></body></html>`, so
+        // neither a length floor nor a doctype match separates it from an error
+        // page. HTML therefore gets the non-empty check above and nothing more —
+        // still stricter than the blanket exemption this replaced.
+        if path.extension().is_some_and(|ext| ext == "html") {
+            trace!("File is a HTML file: {:?}", path);
             return true;
         }
+
+        trace!("File is not a HTML file: {:?}", path);
 
         // Read first 512 bytes to detect HTML error pages
         let read_size = 512.min(metadata.len() as usize);

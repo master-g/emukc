@@ -10,8 +10,10 @@
 //! indistinguishable from outside. Plan 007 split the *CDN-side* outcomes (a 404
 //! versus no CDN answering at all); this local-side collapse is untouched by it.
 //!
-//! Baseline for plan 008 — two of these pin behaviour that is known to be wrong
-//! and that 008 is expected to flip. Those carry a comment saying so.
+//! Plan 008 turned the two known-wrong cases here into their corrected form:
+//! a zero-length file is no longer valid, and `.html` no longer skips every
+//! check. What `.html` still cannot have is a *content* check — see
+//! `html_error_page_still_passes_because_html_cannot_be_sniffed`.
 
 use emukc_cache::{GetOption, Kache, KacheError};
 use tempfile::TempDir;
@@ -48,17 +50,32 @@ async fn ordinary_non_empty_file_is_valid() {
 }
 
 #[tokio::test]
-async fn zero_length_file_is_currently_valid() {
-    // Plan 008 will reject zero-length files; this assertion flips then.
+async fn zero_length_file_is_invalid() {
     let (_root, result) = get_local("kcs2/resources/empty.png", b"").await;
-    assert!(result.is_ok(), "an empty file is accepted today");
+    assert!(
+        matches!(result, Err(KacheError::FileNotFound(_))),
+        "an empty file is not a resource, got {result:?}"
+    );
 }
 
 #[tokio::test]
-async fn html_extension_skips_the_content_check() {
-    // Plan 008 will stop exempting .html from the error-page check; this flips then.
+async fn zero_length_html_is_invalid_too() {
+    // The non-empty check is the one gate `.html` does get.
+    let (_root, result) = get_local("gadget_html5/page.html", b"").await;
+    assert!(
+        matches!(result, Err(KacheError::FileNotFound(_))),
+        "an empty .html is not a page, got {result:?}"
+    );
+}
+
+#[tokio::test]
+async fn html_error_page_still_passes_because_html_cannot_be_sniffed() {
+    // Deliberate: a real `kcs2/hc.html` is 54 bytes of empty scaffolding and
+    // carries the same doctype an error page does, so no content-based rule
+    // separates them. Documented in `is_valid`; revisit if CDN error pages ever
+    // gain a stable marker.
     let (_root, result) = get_local("gadget_html5/page.html", HTML_ERROR_PAGE).await;
-    assert!(result.is_ok(), ".html is exempt from the HTML error-page check today");
+    assert!(result.is_ok(), "a non-empty .html is served, got {result:?}");
 }
 
 #[tokio::test]

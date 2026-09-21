@@ -107,6 +107,9 @@ Current verification baseline:
   不必开 `serde_json/preserve_order`——那个 feature 在 feature unification 下全工作区生效，
   会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序。自定义 `Visitor` 收集 `Vec<(K, V)>` 即可，
   范围只在一个函数内。见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
+- [2026-09-21] `.html` 缓存内容无法用嗅探校验：真实的 `kcs2/hc.html` 只有 54 字节，内容就是
+  `<!DOCTYPE html><html><head></head><body></body></html>`，与 CDN 错误页同形。所以 008 给 HTML
+  只留了非空检查；若将来发现错误页有稳定标记，再替换。
 - [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下的处理必须相反：丢掉一个 `or` 分支只减少
   完成路径（更严格），丢掉一个 `and` 条件会让任务更容易完成（白送）。照「统一用 `?` 传播」
   实现会把 api_no 1019 这类「一坏一好分支」的任务整条误杀。见
@@ -171,9 +174,12 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Next Session
 
-- [2026-09-21] 审计集 8/13 DONE（001-007/009），P0 全部清完。`fix/reject-empty-quest-requirements`
-  等待合并。剩下的都是 P1/P2：008（缓存有效性）、010（删 Greedy 死代码）、011（label_type 年任务表）、
+- [2026-09-21] 审计集 9/13 DONE（001-009），P0 全部清完。`fix/reject-empty-quest-requirements`
+  与 `fix/cache-validity-checks` 等待合并。剩下 010（删 Greedy 死代码）、011（label_type 年任务表）、
   012（cache-list 版本校验）、013（版本权威 spike，依赖 012）。011 的修复必须同时覆盖 `s` 周期字母。
+- `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 上游稳定返回 200 + 空 body（两个镜像验证）。008 之后它
+  每轮 populate 失败一次，且因为「空 200」不是 404 而走 retryable 路径被重试 40 次（20 CDN × 2 pass）。
+  把稳定的空 200 归入 missing 类需要改 `classify_failure` 的判据，尚未立计划。
 - `bootstrap` 不带 `--overwrite` 仍然坏：Phase 3 以
   "file .data/codex/ship_extra.json already exists" 中止。无计划覆盖。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
