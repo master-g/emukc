@@ -159,12 +159,13 @@ pub async fn init() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let quiet_stdout = needs_quiet_stdout(&args.command);
     let Some(_guard) = new_log_builder()
         .with_log_level(&args.log)
         .with_source_file()
         .with_line_number()
         .with_file_appender(log_dir)
-        .with_quiet_stdout(needs_quiet_stdout(&args.command))
+        .with_quiet_stdout(quiet_stdout)
         .build()
     else {
         eprintln!("Failed to initialize logging");
@@ -222,6 +223,10 @@ pub async fn init() -> ExitCode {
 
     if let Err(e) = output {
         error!("{}", e);
+        if quiet_stdout {
+            // the fmt layer is off for these commands, so the log file is the only sink
+            eprintln!("{e}");
+        }
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
