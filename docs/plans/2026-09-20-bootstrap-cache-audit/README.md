@@ -22,7 +22,7 @@
 | 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | DONE |
 | 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | DONE |
 | 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | DONE |
-| 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
+| 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | DEFERRED |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
 
@@ -46,6 +46,13 @@
   同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
   `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
   这与计划「维护须知」里说的 11 条一致，是预期结果。
+
+- 013 DEFERRED（2026-09-21）：维护者选了「先接通，再谈收敛」，spike 不写。理由是 013 的核心
+  证据——drift-check 三次被绕过——的原因是它没接进任何流程，再补一份设计文档是同一个失败模式。
+  已落地的替代动作见 `617cfca`：跟踪集 6 → 13（补上 7 个 cache-list 输入）、基线
+  `6.3.0.0 → 6.3.5.0`、`make update` 打不阻断的漂移报告、`make drift-check` 为门禁形式、
+  `make drift-accept` 为刻意刷新。四份版本记录**仍未收敛**，本计划的三个设计问题原样留着；
+  重新评估的判据是接通之后它是否真的被用起来（报告有没有人看、基线有没有第四次被绕过）。
 
 - 012 DONE：decoder 侧 `extractResourceManifest` 加了 `scriptVersion` 参数并写进产物，
   `resource_manifest.json` 经 `bun run decode -- --sync-resource-manifest` 重新生成（未手改），

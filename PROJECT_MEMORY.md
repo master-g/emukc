@@ -101,6 +101,10 @@ Current verification baseline:
   （curl 实测 4 个 w0* 主机，`content-type: audio/mpeg`，`size=0`）。`Kache` 现在把
   「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
   missing 类，不再重试。注意 `exists_on_remote` 走 HEAD，仍会把它判成 `Present`。
+- [2026-09-21] drift-check 现在跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），
+  基线已 `--accept` 到 6.3.5.0，入口是 `make drift-check` / `make drift-accept`，`make update`
+  在 decode 后打一份不阻断的报告。指纹按规范化后的字节算，所以 `_0x` 重命名会算作漂移，
+  即使解码知识没变——这是「收敛版本记录」要解决的噪声来源。
 
 ## Failed Attempts / Pitfalls
 
@@ -146,28 +150,29 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 三件事，四个提交，均已推送：推掉积压的 11 个提交（`main` 与 `origin/main` 同步）；
-  修 `bootstrap` 裸跑中止（`06e57a6` + `919ca9c`）；压缩本文件到 21744 B（`217fe6f`）；
-  修空 200 的重试（`44ca6ba`）。
-- `Codex::save` 13 个输出里只有 `start2.json` 是 warn+skip，其余 12 个在文件已存在且无
-  `--overwrite` 时返回 `AlreadyExist`，所以第二次裸跑必死在 Phase 3，Phase 4 永远跑不到。
-  全部改成 warn+skip（与 `download_all` 一致），`CodexError::AlreadyExist` 随之删除。
-- 顺带修掉：`needs_quiet_stdout` 对 `Bootstrap` 返回 true，CLI 末尾的 `error!` 只进日志文件，
-  失败的 bootstrap 曾经是 exit 1 且两个流全空；现在这类命令额外 `eprintln!`。
-- 门禁每次都跑满：fmt、`clippy --workspace -- -W warnings`（恒为 6 条既有 `result_large_err`）、
-  `cargo test --workspace` 全绿；另有两次真实验证——裸 `bootstrap` exit 0 四阶段跑完，
-  单条清单的 `cache populate` 把那个 mp3 归入 `*.missing.nedb` 且零重试。
+- [2026-09-21] 五件事全部推送：积压 11 个提交推掉；`bootstrap` 裸跑中止修复
+  （`06e57a6` + `919ca9c`）；本文件压到 21.7 KB（`217fe6f`）；空 200 的 40 次重试
+  （`44ca6ba`）；drift-check 接通（`617cfca`）。
+- `Codex::save` 13 个输出里只有 `start2.json` 是 warn+skip，其余 12 个返回 `AlreadyExist`，
+  所以第二次裸跑必死在 Phase 3。全部改成 warn+skip，`CodexError::AlreadyExist` 随之删除。
+  顺带修掉 `needs_quiet_stdout` 让失败的 bootstrap exit 1 且两个流全空。
+- 空 200：`fetch_from_remote` 把每个镜像的 `InvalidFile` 折叠成 `FailedOnAllCdn`，
+  被读作「没有镜像应答」。改成「全部镜像都应答且都不可用 → `InvalidFile`」并归入 missing 类。
+- drift-check：013 选的是「先接通，再谈收敛」。跟踪集 6 → 13，基线 6.3.0.0 → 6.3.5.0，
+  接进 Makefile 三个入口，两份 solutions 文档同步更新。
+- 门禁每次跑满 fmt / clippy（恒 6 条既有 `result_large_err`）/ `cargo test --workspace` 全绿；
+  三次真实验证：裸 `bootstrap` exit 0、单条清单 populate 归入 `*.missing.nedb` 零重试、
+  `make drift-check` exit 0 报 no drift。
 
 ## Next Session
 
-- [2026-09-21] 审计集 12/13 DONE，只剩 **013**（单一权威的客户端版本记录 spike，P2，依赖 012）。
-  013 是设计决策，不是照着做的实施计划，需要先定方向：把四份版本记录收敛成一份权威来源，
-  还是只加一个跨来源的一致性检查。`battle drift-check` 今天实测是 DRIFT（`6.3.0.0 -> 6.3.5.0`，
-  4 个 battle 资产全变），正是 013 要回答的问题。
-- 012 留下的已知裂缝，正是 013 要处理的：同一个上游字段 `scriptVesion`（上游拼错）
-  目前被 `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
-  两边哪天不一致，012 的校验就会开始误报。`.sync-fingerprint.json` 记的是 `6.3.0.0`，
-  而资产已到 `6.3.5.0`。
+- [2026-09-21] 审计集 013 走的是「先接通，再谈收敛」：drift-check 已接通并刷新基线，
+  但**四份版本记录仍未收敛**，013 的设计问题原样留着。下次要判断的是：接通之后
+  它是否真的被用起来了（`make update` 的报告有没有人看、基线有没有第四次被绕过），
+  再决定收不收敛。原计划文档见 `docs/plans/2026-09-20-bootstrap-cache-audit/013-*.md`。
+- 收敛要处理的两条裂缝没变：同一个上游字段 `scriptVesion`（上游拼错）被
+  `main-decoder/src/io.ts` 和 `make_list/source/kcs2/plain.rs` 各用一个正则解析，
+  两边不一致时 012 的校验会误报；指纹按字节算，`_0x` 重命名会产生噪声漂移。
 - manifest 差集里约 7%（估 1,500 条）是真实存在的资源，Rules 清单漏了它们（抽样命中 `banner_dmg`）。
   正确补法是拿差集做一次性存在性探测并入规则，不是复活 Greedy 枚举。尚未立计划。
 - 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
