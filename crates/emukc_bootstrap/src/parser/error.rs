@@ -27,6 +27,11 @@ pub enum ParseError {
     #[error("unknown requirement category")]
     UnknownCategory,
 
+    #[error("requirement could not be resolved: {reason}")]
+    EmptyRequirement {
+        reason: String,
+    },
+
     #[error("I/O error at {}: {source}", path.display())]
     IoAt {
         path: PathBuf,

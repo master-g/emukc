@@ -441,6 +441,17 @@ impl TsunkitQuestValue {
                 );
                 return Ok(None);
             }
+            Err(ParseError::EmptyRequirement {
+                reason,
+            }) => {
+                warn!(
+                    wiki_id = %self.wiki_id,
+                    game_id = self.game_id,
+                    reason = %reason,
+                    "skipping quest with unresolvable requirements"
+                );
+                return Ok(None);
+            }
             Err(e) => return Err(e),
         };
 

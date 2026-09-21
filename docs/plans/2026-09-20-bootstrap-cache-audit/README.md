@@ -15,7 +15,7 @@
 | 003 | 恢复 HTTP 连接池复用并去掉每文件多余的 HEAD | P0 | S | 001 | IN PROGRESS |
 | 004 | 重写 kccp 任务解析器，消除状态机失步 | P0 | S | 002 | DONE |
 | 005 | bootstrap web 资产改为先下后替，失败时硬报错 | P0 | S | — | DONE |
-| 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | TODO |
+| 006 | 禁止空需求被判定为「任务已完成」 | P0 | M | 002 | DONE |
 | 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
 | 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | TODO |
 | 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | DONE |
@@ -46,6 +46,29 @@
   同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
   `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
   这与计划「维护须知」里说的 11 条一致，是预期结果。
+
+- 006 DONE：`ParseError::EmptyRequirement { reason }` 接到既有的「跳过这条任务」路径
+  （与 `UnknownCategory` 同粒度，不向上传播炸掉整轮 bootstrap）。14 个降级点里 13 个判为
+  A 类改成返回该错误，只有 `extract_list` 在 `list: None` 时的 `Ok(vec![])` 是 B 类保留——
+  它是「这条需求没有嵌套列表」，不是失败。
+  **一处计划未预见的连坐**：照计划直接把错误用 `?` 传播，api_no 1019（B205）会被误杀。
+  它是 `or` 下两个分支，第一个缺 `sortie` 块，第二个完全合法（4-5/5-5/6-5 boss S 胜 2 次），
+  改前靠第二个分支可完成。因此 `extract_list` 按类别区分：`or` 的分支解析失败只丢该分支并
+  `warn!`，`and`/`then` 仍然整条传播——前者只减少完成路径（更严格，无白送风险），后者会
+  漏掉一个必须满足的条件（更宽松，正是本计划要防的）。所有分支都失败时仍返回错误，
+  避免退化成 `OneOf([])`。
+  实测（`bootstrap --overwrite` 两轮）：空需求任务由 `[1033]` 变为 `[]`；任务总数 649 → 648，
+  只少 1033 一条；1019 保留且 `requirements` 与改前逐字一致；日志有 1 条
+  `dropping unresolvable branch of an 'or' requirement`、1 条
+  `skipping quest with unresolvable requirements`，reason 均为
+  `sortie requirement must have a 'sortie' field`。
+  **一条现存测试语义翻转**：`simple_category_succeeds` 断言的正是本计划要改成错误的 A 类
+  路径（`Simple` 无 `subcategory` 降级为 `And([])`），按计划步骤 4 改为
+  `simple_category_without_subcategory_is_rejected`。`and_category_with_empty_list_succeeds`
+  测的是 B 类（`list: None`），不受影响，原样保留。
+  `progress.rs` 未改动。`cargo test --workspace` 全绿 0 ignored，fmt clean，
+  clippy 的 6 条 `result_large_err` 全在未触及的文件（`BootstrapDownloadError` / `Response`，
+  都不含 `ParseError`），与本计划无关。
 
 - 002 DONE：新增 `tests/fixtures/kccp/quests_sample.json`（7 个 id，覆盖正常三段式、
   缺 name 的 615/616 连对、缺 desc 的 1124、`dummy` 哨兵的 1169）与

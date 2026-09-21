@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-21 · branch `fix/kccp-quest-parser`
+Last updated: 2026-09-21 · branch `fix/reject-empty-quest-requirements`
 
 ## Verified Facts
 
@@ -107,6 +107,10 @@ Current verification baseline:
   不必开 `serde_json/preserve_order`——那个 feature 在 feature unification 下全工作区生效，
   会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序。自定义 `Visitor` 收集 `Vec<(K, V)>` 即可，
   范围只在一个函数内。见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
+- [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下的处理必须相反：丢掉一个 `or` 分支只减少
+  完成路径（更严格），丢掉一个 `and` 条件会让任务更容易完成（白送）。照「统一用 `?` 传播」
+  实现会把 api_no 1019 这类「一坏一好分支」的任务整条误杀。见
+  `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006 段。
 
 ## Failed Attempts / Pitfalls
 
@@ -152,41 +156,35 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] Merged and pushed plans 007+009, 005, 002 and the skip-guard commit to `main`
-  (`d60ef17`), then deleted all four merged branches. Now on `fix/kccp-quest-parser` with plan 004
-  implemented, committed, **not merged and not pushed**.
-- 004 replaced the line-driven three-state machine in `parser/kccp/quest.rs` with an ordered walk
-  over the JSON object's entries. Root cause was `line.split("\":").next()` always returning
-  `Some`, so any line advanced the state, including the next quest's id line -- each malformed
-  quest destroyed the one after it. Used `serde`'s `MapAccess` rather than the plan's preferred
-  `preserve_order` feature, which would have reordered every `serde_json::Map` in the workspace.
-- Verified: all 771 ids now parse into 771 records (was 762 with 9 descs holding internal keys);
-  the 11 missing-name and 2 missing-desc ids match the plan exactly; `grep -c '"_quest_id_'
-  .data/codex/quest.json` went 8 -> 0 after a real `bootstrap --overwrite`; `quest info not found`
-  in the log went 8 -> 4, the 4 being ids upstream genuinely lacks. Full workspace exit 0, fmt
-  clean, clippy unchanged.
+- [2026-09-21] 上午把 004 与 skip-guard 合并推送到 `main`（`8a6a7d4`、`d60ef17`），分支已删，
+  工作树干净。随后在 `fix/reject-empty-quest-requirements` 上实施计划 006，**已提交，未合并未推送**。
+- 006 把 14 个「记一条 error 再返回空 vec」的降级点中的 13 个改成
+  `ParseError::EmptyRequirement { reason }`，接到既有的「跳过这条任务」路径；
+  唯一保留空 vec 的是 `extract_list` 在 `list: None` 时的 B 类分支。
+- 计划未预见的一点：直接用 `?` 传播会把 api_no 1019 连坐掉（`or` 的一个分支坏、另一个合法）。
+  因此 `extract_list` 按类别区分——`or` 丢坏分支并 `warn!`，`and`/`then` 整条传播。
+- 实测：`bootstrap --overwrite` 后空需求任务由 `[1033]` 变 `[]`，总数 649 → 648（只少 1033），
+  1019 保留且 requirements 与改前逐字一致。`cargo test --workspace` 全绿 0 ignored，
+  fmt clean，clippy 的 6 条 `result_large_err` 是既有的、与本次无关。
 
 ## Next Session
 
-- [2026-09-21] Audit set is 6/13 DONE (001/002/004/005/007/009), 003 IN PROGRESS. `fix/kccp-quest-parser`
-  is waiting to be merged. The last P0 is 006 (empty requirements judged complete); 011 (label_type
-  yearly table) is the other one 002 unblocked, and its fix must also cover the `s` period letter.
-- `test/skip-when-bootstrap-data-absent` holds one commit, not merged, not pushed. With it, the
-  crate's tests pass on a clean clone -- the last piece plan 002 could not deliver itself.
-- Plan 003 is still IN PROGRESS: its code landed in `96f7689`, but the last item of its Definition of
-  Done -- measured before/after throughput -- has no data. The 2m13s -> 3s number is the spinner fix,
-  NOT 003's connection reuse; do not cite it as 003's proof.
-- `bootstrap` without `--overwrite` is broken independently of 005: Phase 3 aborts with
-  "file .data/codex/ship_extra.json already exists". No plan covers it yet.
-- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm
-  across mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror
-  has it", so a mirror in its own sync window can write a live resource into a permanent skip list.
-- Known, deliberately unfixed in 009: `tokio::fs::write` is not atomic, so a list killed mid-write
-  leaves a half line and the next `--src` run rejects the whole file; two concurrent populates against
-  one list overwrite each other's lists with no locking; `FailureKind::Rollback` is unreachable because
-  `get` serves the newer local file since `185c0b8`, yet BOOTSTRAP.md still documents its log line.
-- Older backlog, unchanged: the 14 `api_req_combined_battle/*` endpoints then the Air Corps set (EO74
-  field specs at sinsinpub/kcs2-assets `api_info/apilist.txt`, stale, a starting point not a contract);
-  `test_font` needs `create_dir_all`; `api_alignment_e2e`'s `600..700` contradicts the codex's 61-65
-  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 004/006/008/010/
-  011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.
+- [2026-09-21] 审计集 7/13 DONE（001/002/004/005/006/007/009），003 IN PROGRESS。
+  `fix/reject-empty-quest-requirements` 等待合并。P0 已全部清完，剩下的都是 P1/P2：
+  008（缓存有效性）、010（删 Greedy 死代码）、011（label_type 年任务表）、012（cache-list 版本校验）、
+  013（版本权威 spike，依赖 012）。011 的修复必须同时覆盖 `s` 周期字母。
+- 计划 003 仍缺完成标准最后一项：改后吞吐量实测。其代码在 `96f7689`，改前 ~7 files/s 记在 003 正文。
+  2m13s → 3s 那个数字是 spinner 修复，**不是** 003 的连接复用，不要拿来结案。
+- `bootstrap` 不带 `--overwrite` 仍然坏：Phase 3 以
+  "file .data/codex/ship_extra.json already exists" 中止。无计划覆盖。
+- 在 `*.missing.nedb` 被用来喂 `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES` 之前，先跨镜像确认。
+  `FileNotFound` 只表示「随机挑中的那个镜像答了 404」，同步窗口内的镜像会把活资源写进永久跳过表。
+- 009 里明知而未修：`tokio::fs::write` 非原子，清单写到一半被杀会留半行，下轮 `--src` 整份拒收；
+  两个并发 populate 对同一清单互相覆盖，无锁；`FailureKind::Rollback` 自 `185c0b8` 起不可达，
+  但 BOOTSTRAP.md 仍写着它的日志行。
+- manifest 差集里约 7%（估 1,500 条）是真实存在的资源，Rules 清单漏了它们（抽样命中 `banner_dmg`）。
+  正确补法是拿差集做一次性存在性探测并入规则，不是复活 Greedy 枚举。尚未立计划。
+- 更早的积压未变：14 个 `api_req_combined_battle/*` 然后基地航空队（EO74 字段规格见
+  sinsinpub/kcs2-assets `api_info/apilist.txt`，已过时，只能当起点）；`test_font` 需要 `create_dir_all`；
+  `api_alignment_e2e` 的 `600..700` 与 codex 的 61-65 号 id 矛盾；audit 计划 008/010/011/012；
+  `gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。

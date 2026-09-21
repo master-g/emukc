@@ -1,17 +1,23 @@
 use emukc_model::prelude::*;
 
-use crate::parser::tsunkit_quest::{Requirements, RequirementsSubCategory};
+use crate::parser::{
+    error::ParseError,
+    tsunkit_quest::{Requirements, RequirementsSubCategory},
+};
 
 impl Requirements {
-    pub(super) fn extract_requirements_simple(&self) -> Vec<Kc3rdQuestCondition> {
+    pub(super) fn extract_requirements_simple(
+        &self,
+    ) -> Result<Vec<Kc3rdQuestCondition>, ParseError> {
         let Some(subcategory) = &self.subcategory else {
-            error!("simple requirement must have a subcategory");
-            return vec![];
+            return Err(ParseError::EmptyRequirement {
+                reason: "simple requirement must have a subcategory".to_string(),
+            });
         };
 
         let times = self.times.unwrap_or(0);
 
-        match subcategory {
+        Ok(match subcategory {
             RequirementsSubCategory::Battle => {
                 vec![Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
                     times,
@@ -53,6 +59,6 @@ impl Requirements {
                     times,
                 ))]
             }
-        }
+        })
     }
 }

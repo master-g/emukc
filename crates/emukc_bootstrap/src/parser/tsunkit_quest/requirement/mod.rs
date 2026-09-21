@@ -9,12 +9,13 @@ mod sortie;
 use emukc_model::prelude::*;
 
 use super::{ClassId, ConsumeCategory, Requirements, RequirementsCategory};
+use crate::parser::error::ParseError;
 
 impl Requirements {
     pub(super) fn to_requirements(
         &self,
         mst: &ApiManifest,
-    ) -> Result<Kc3rdQuestRequirement, crate::parser::error::ParseError> {
+    ) -> Result<Kc3rdQuestRequirement, ParseError> {
         let conditions = self.extract_conditions(mst)?;
         Ok(match self.category {
             RequirementsCategory::Or => Kc3rdQuestRequirement::OneOf(conditions),
@@ -26,7 +27,7 @@ impl Requirements {
     fn extract_conditions(
         &self,
         mst: &ApiManifest,
-    ) -> Result<Vec<Kc3rdQuestCondition>, crate::parser::error::ParseError> {
+    ) -> Result<Vec<Kc3rdQuestCondition>, ParseError> {
         match self.category {
             RequirementsCategory::And | RequirementsCategory::Or | RequirementsCategory::Then => {
                 self.extract_list(mst)
@@ -37,28 +38,43 @@ impl Requirements {
             }
             RequirementsCategory::Exercise => Ok(self.extract_requirements_exercise(mst)),
             RequirementsCategory::Expedition => Ok(self.extract_requirements_expedition()),
-            RequirementsCategory::Fleet => Ok(self.extract_requirements_fleet(mst)),
-            RequirementsCategory::Modernization => Ok(self.extract_requirements_modernization(mst)),
-            RequirementsCategory::Scrapequipment => {
-                Ok(self.extract_requirements_scrap_equipment(mst))
-            }
-            RequirementsCategory::Simple => Ok(self.extract_requirements_simple()),
-            RequirementsCategory::Sink => Ok(self.extract_requirements_sink()),
-            RequirementsCategory::Sortie => Ok(self.extract_requirements_sortie(mst)),
-            RequirementsCategory::Unknown => Err(crate::parser::error::ParseError::UnknownCategory),
+            RequirementsCategory::Fleet => self.extract_requirements_fleet(mst),
+            RequirementsCategory::Modernization => self.extract_requirements_modernization(mst),
+            RequirementsCategory::Scrapequipment => self.extract_requirements_scrap_equipment(mst),
+            RequirementsCategory::Simple => self.extract_requirements_simple(),
+            RequirementsCategory::Sink => self.extract_requirements_sink(),
+            RequirementsCategory::Sortie => self.extract_requirements_sortie(mst),
+            RequirementsCategory::Unknown => Err(ParseError::UnknownCategory),
         }
     }
 
-    fn extract_list(
-        &self,
-        mst: &ApiManifest,
-    ) -> Result<Vec<Kc3rdQuestCondition>, crate::parser::error::ParseError> {
+    fn extract_list(&self, mst: &ApiManifest) -> Result<Vec<Kc3rdQuestCondition>, ParseError> {
         let Some(list) = &self.list else {
             return Ok(vec![]);
         };
+        // An `or` branch that cannot be resolved only removes a way to complete
+        // the quest, so the remaining branches stay usable. In `and` / `then` a
+        // dropped item would silently relax the requirement, so it propagates.
+        let tolerate_failed_branch = matches!(self.category, RequirementsCategory::Or);
         let mut result = Vec::new();
         for item in list {
-            result.extend(Requirements::from(item.clone()).extract_conditions(mst)?);
+            match Requirements::from(item.clone()).extract_conditions(mst) {
+                Ok(conditions) => result.extend(conditions),
+                Err(ParseError::EmptyRequirement {
+                    reason,
+                }) if tolerate_failed_branch => {
+                    warn!(reason = %reason, "dropping unresolvable branch of an 'or' requirement");
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        if result.is_empty() {
+            return Err(ParseError::EmptyRequirement {
+                reason: format!(
+                    "no branch of the {} requirement resolved to a condition",
+                    list.len()
+                ),
+            });
         }
         Ok(result)
     }
@@ -76,10 +92,14 @@ impl Requirements {
         })
     }
 
-    fn extract_requirements_scrap_equipment(&self, mst: &ApiManifest) -> Vec<Kc3rdQuestCondition> {
+    fn extract_requirements_scrap_equipment(
+        &self,
+        mst: &ApiManifest,
+    ) -> Result<Vec<Kc3rdQuestCondition>, ParseError> {
         let Some(list) = &self.list else {
-            error!("scrap equipment requirement must have a list");
-            return vec![];
+            return Err(ParseError::EmptyRequirement {
+                reason: "scrap equipment requirement must have a list".to_string(),
+            });
         };
 
         let slotitems: Vec<Kc3rdQuestConditionSlotItem> = list
@@ -118,8 +138,9 @@ impl Requirements {
             .collect();
 
         if slotitems.is_empty() {
-            error!("scrap equipment requirement, no conditions found");
-            return vec![];
+            return Err(ParseError::EmptyRequirement {
+                reason: "scrap equipment requirement resolved to no known items".to_string(),
+            });
         }
 
         let mut all: Vec<Kc3rdQuestCondition> = Vec::new();
@@ -128,7 +149,7 @@ impl Requirements {
         }
         all.push(Kc3rdQuestCondition::Scrap(Kc3rdQuestConditionScrap::SpecificItems(slotitems)));
 
-        all
+        Ok(all)
     }
 
     pub(super) fn extract_useitem_consume(
@@ -252,29 +273,35 @@ impl Requirements {
         }
     }
 
-    fn extract_requirements_sink(&self) -> Vec<Kc3rdQuestCondition> {
+    fn extract_requirements_sink(&self) -> Result<Vec<Kc3rdQuestCondition>, ParseError> {
         let Some(group_id) = self.group_id else {
-            error!("sink requirement must have a group_id");
-            return vec![];
+            return Err(ParseError::EmptyRequirement {
+                reason: "sink requirement must have a group_id".to_string(),
+            });
         };
 
         let Some(ship) = ClassId::find_ship_group(group_id) else {
-            error!("ship group not found: {}", group_id);
-            return vec![];
+            return Err(ParseError::EmptyRequirement {
+                reason: format!("sink requirement ship group not found: {group_id}"),
+            });
         };
 
         let amount = self.amount.unwrap_or(1);
 
-        vec![Kc3rdQuestCondition::Sink(ship, amount)]
+        Ok(vec![Kc3rdQuestCondition::Sink(ship, amount)])
     }
 
-    fn extract_requirements_fleet(&self, mst: &ApiManifest) -> Vec<Kc3rdQuestCondition> {
+    fn extract_requirements_fleet(
+        &self,
+        mst: &ApiManifest,
+    ) -> Result<Vec<Kc3rdQuestCondition>, ParseError> {
         let Some(comp) = self.extract_fleet(mst) else {
-            error!("fleet requirement must have a comp");
-            return vec![];
+            return Err(ParseError::EmptyRequirement {
+                reason: "fleet requirement must have a comp".to_string(),
+            });
         };
 
-        vec![Kc3rdQuestCondition::Composition(comp)]
+        Ok(vec![Kc3rdQuestCondition::Composition(comp)])
     }
 
     fn extract_fleet(&self, mst: &ApiManifest) -> Option<Kc3rdQuestConditionComposition> {
@@ -328,8 +355,8 @@ impl Requirements {
 mod tests {
     use emukc_model::prelude::*;
 
-    use super::super::{List, Requirements, RequirementsCategory};
-    use crate::parser::error::ParseError;
+    use super::super::{Id, List, Requirements, RequirementsCategory, Sortie};
+    use super::ParseError;
 
     fn empty_manifest() -> ApiManifest {
         ApiManifest::default()
@@ -363,6 +390,24 @@ mod tests {
         }
     }
 
+    fn empty_list() -> List {
+        List {
+            category: String::new(),
+            sortie: None,
+            comp: None,
+            disallowed: None,
+            result: None,
+            daily: None,
+            times: None,
+            slots: None,
+            id: None,
+            amount: None,
+            scrap: None,
+            resources: None,
+            consume: None,
+        }
+    }
+
     #[test]
     fn unknown_category_returns_error() {
         let req = Requirements {
@@ -390,18 +435,7 @@ mod tests {
     fn nested_unknown_category_propagates_error() {
         let list_item = List {
             category: "unknown_xyz".to_string(),
-            sortie: None,
-            comp: None,
-            disallowed: None,
-            result: None,
-            daily: None,
-            times: None,
-            slots: None,
-            id: None,
-            amount: None,
-            scrap: None,
-            resources: None,
-            consume: None,
+            ..empty_list()
         };
 
         let req = Requirements {
@@ -413,14 +447,107 @@ mod tests {
         assert!(matches!(result, Err(ParseError::UnknownCategory)));
     }
 
+    /// The shape of api_no 1033: `category: sortie` with no `sortie` block.
+    /// Before plan 006 this degraded to `And([])`, which the progress
+    /// calculator reads as already completed.
     #[test]
-    fn simple_category_succeeds() {
+    fn sortie_category_without_sortie_field_is_rejected() {
+        let req = Requirements {
+            category: RequirementsCategory::Sortie,
+            ..empty_requirements()
+        };
+
+        let result = req.to_requirements(&empty_manifest());
+        assert!(matches!(result, Err(ParseError::EmptyRequirement { .. })));
+    }
+
+    #[test]
+    fn sortie_category_with_sortie_field_succeeds() {
+        let req = Requirements {
+            category: RequirementsCategory::Sortie,
+            sortie: Some(vec![Sortie {
+                map: Some(Id::String("1-1".to_string())),
+                boss: Some(true),
+                result: None,
+                times: Some(2),
+                node: None,
+                any: None,
+            }]),
+            ..empty_requirements()
+        };
+
+        let result = req.to_requirements(&empty_manifest());
+        let Ok(Kc3rdQuestRequirement::And(conditions)) = result else {
+            panic!("expected And conditions, got {result:?}");
+        };
+        assert!(matches!(
+            conditions.as_slice(),
+            [Kc3rdQuestCondition::Sortie(sortie)] if sortie.times == 2 && sortie.defeat_boss
+        ));
+    }
+
+    /// The shape of api_no 1019: an `or` whose first branch has no `sortie`
+    /// block and whose second one is complete. Dropping a branch only removes
+    /// a way to finish the quest, so the quest itself must survive.
+    #[test]
+    fn or_keeps_the_branches_that_resolve() {
+        let broken = List {
+            category: "sortie".to_string(),
+            ..empty_list()
+        };
+        let usable = List {
+            category: "sortie".to_string(),
+            sortie: Some(vec![Sortie {
+                map: Some(Id::String("4-5".to_string())),
+                boss: Some(true),
+                result: None,
+                times: Some(2),
+                node: None,
+                any: None,
+            }]),
+            ..empty_list()
+        };
+
+        let req = Requirements {
+            category: RequirementsCategory::Or,
+            list: Some(vec![broken, usable]),
+            ..empty_requirements()
+        };
+
+        let result = req.to_requirements(&empty_manifest());
+        let Ok(Kc3rdQuestRequirement::OneOf(conditions)) = result else {
+            panic!("expected OneOf conditions, got {result:?}");
+        };
+        assert!(matches!(conditions.as_slice(), [Kc3rdQuestCondition::Sortie(_)]));
+    }
+
+    #[test]
+    fn or_with_every_branch_unresolvable_is_rejected() {
+        let broken = List {
+            category: "sortie".to_string(),
+            ..empty_list()
+        };
+
+        let req = Requirements {
+            category: RequirementsCategory::Or,
+            list: Some(vec![broken]),
+            ..empty_requirements()
+        };
+
+        let result = req.to_requirements(&empty_manifest());
+        assert!(matches!(result, Err(ParseError::EmptyRequirement { .. })));
+    }
+
+    /// Semantics flipped by plan 006: a `simple` requirement with no
+    /// subcategory used to degrade to `And([])`; it is now rejected.
+    #[test]
+    fn simple_category_without_subcategory_is_rejected() {
         let req = Requirements {
             category: RequirementsCategory::Simple,
             ..empty_requirements()
         };
 
         let result = req.to_requirements(&empty_manifest());
-        assert!(result.is_ok());
+        assert!(matches!(result, Err(ParseError::EmptyRequirement { .. })));
     }
 }
