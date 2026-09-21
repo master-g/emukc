@@ -70,3 +70,45 @@ pub(super) fn extract_label_type(wiki_id: &str) -> i64 {
 
     1
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn period_letter_decides_the_label_type() {
+        for (wiki_id, expected) in [("Bd1", 2), ("Bw1", 3), ("Bm1", 6), ("Bq11", 7)] {
+            assert_eq!(extract_label_type(wiki_id), expected, "{wiki_id}");
+        }
+    }
+
+    #[test]
+    fn yearly_b_quests_map_to_their_month() {
+        for (wiki_id, expected) in [("By13", 101), ("By1", 102), ("By3", 103), ("By5", 107)] {
+            assert_eq!(extract_label_type(wiki_id), expected, "{wiki_id}");
+        }
+    }
+
+    #[test]
+    fn yearly_c_quests_map_to_their_month() {
+        for (wiki_id, expected) in [("Cy3", 102), ("Cy4", 103), ("Cy10", 104), ("Cy1", 110)] {
+            assert_eq!(extract_label_type(wiki_id), expected, "{wiki_id}");
+        }
+    }
+
+    #[test]
+    fn yearly_quests_missing_from_the_tables_fall_back_to_one() {
+        // 当前行为，计划 011 会翻转：这些是年任务，不应落到 label_type 1
+        for wiki_id in ["By14", "By15", "By16", "Cy13", "Cy14", "Cy15", "Cy16"] {
+            assert_eq!(extract_label_type(wiki_id), 1, "{wiki_id}");
+        }
+    }
+
+    #[test]
+    fn unknown_period_letters_and_short_ids_fall_back_to_one() {
+        // `s` 有 5 个真实 wiki_id（Cs1/2/3/5/6），但 match 里没有这个分支
+        for wiki_id in ["Cs1", "Cs5", "A1", "X"] {
+            assert_eq!(extract_label_type(wiki_id), 1, "{wiki_id}");
+        }
+    }
+}

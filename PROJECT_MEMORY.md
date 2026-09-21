@@ -10,7 +10,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 - `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
 - Do not duplicate `docs/solutions/` content — link to it.
 
-Last updated: 2026-09-20 · branch `main`
+Last updated: 2026-09-21 · branch `test/parser-fixture-baseline`
 
 ## Verified Facts
 
@@ -91,6 +91,14 @@ Current verification baseline:
   `api_alignment_e2e` asserts map ids in `600..700` but the codex stores area-6 maps as 61-65;
   `real_manifest_parses_with_passthrough_fields_none` is in `emukc_model`, which has no DB dependency.
 
+- [2026-09-21] `kccp/quest.rs` 的失步是**吞掉下一条的 id 行**：缺 name 的任务把下一条的
+  `_quest_id_N` 行当成自己的 desc（`reg_desc` 匹配第一对引号），缺 desc 的任务同样。所以每个
+  残缺任务都会连带**吃掉后面那一条**，不是只影响自己。fixture 里 7 个 id 只产出 5 条，
+  证据在 `tests/fixtures/kccp/quests_sample.json` 与同文件的测试模块。
+- [2026-09-21] `extract_label_type` 有第五种周期字母 `s`（Cs1/2/3/5/6 共 5 个真实 wiki_id），
+  `match` 里没有分支，和未命中的年任务一样落到 label_type 1。计划 011 只提了 By/Cy 的 7 个，
+  修的时候别漏掉 `s`。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -128,44 +136,54 @@ Current verification baseline:
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
 | [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
 
+| [2026-09-21] 不要用 `mv .data .data.bak` 来做「无 .data 跑测试」：`make_list` 的测试会
+`create_dir_all(".data/tmp")` 重建目录，移回时 `mv` 把备份塞进新目录里，两轮下来嵌套了两层。
+要么先跑一次确认没有测试重建它，要么把备份放到仓库外。 | session 2026-09-21 |
+
 ## Last Session
 
-- [2026-09-21] Branch `fix/distinguish-missing-from-failure`, five commits on `9bd9f59`, nothing pushed.
-  Audit plans 007 and 009 both landed, closing the "404 vs transient failure" line end to end.
-  `2497efc` (007) splits the two outcomes in the cache layer: a 404 returns `KacheError::FileNotFound`,
-  and `exists_on_remote` returns `RemoteExistence{Present,Absent,Indeterminate}`. `6630261` deletes
-  populate's per-item spinner (2m13s/220s CPU -> 3s/1.25s on a fully cached list). `f865ea7` removes
-  the 19 CDN-404 paths from the cache list. `a0082fb` revises plan 009. The last commit implements 009:
-  pass 1 splits three ways so 404s skip pass 2, pass 2 re-splits the same way, `*.failed.nedb` and
-  `*.missing.nedb` are written beside the input list in the input's own JSONL shape, the summary gains
-  `Missing (404): N`, and the exit condition widens to `failed + missing > 0`.
-- Adversarial review changed both plans' outcomes. On 007 it found the fix was half done:
-  `make_gauge_by_id` mapped every fetch error to `Ok(false)`, so even after a HEAD probe said `Present`
-  a failed fetch dropped the gauge. On 009 it found that following our own printed retry hint
-  (`--src <failed list>`) deleted the unrelated `*.missing.nedb` — the only readable record of what is
-  absent upstream. Both fixed, both with a mutation-verified regression test.
-- Verified: `cargo test --workspace --no-fail-fast` exit 0, 1055 passed; `fmt --check` clean; clippy
-  13 warnings, identical to the pre-change baseline. Five behaviours were mutation-verified. End to end:
-  a 2-item list with one 404 gives `Missing (404): 1`, no `Retried`, exit 1, and a list `--src` reads back.
+- [2026-09-21] Merged `fix/distinguish-missing-from-failure` into `main` fast-forward and pushed
+  (`main` is at `6225b8d`). Then ran two audit plans on two separate branches, **neither merged,
+  neither pushed**: `fix/atomic-web-asset-refresh` (plan 005, commit `32a4daa`, branched off `main`)
+  and `test/parser-fixture-baseline` (plan 002, branched off `main`). Both touch the audit set's
+  README, so whichever merges second will conflict there -- take both notes.
+- 005: dropped the `--force-update` block that deleted `main.js` / `version.json` / `kcs_const.js`
+  before Phase 4 ran; `download_web_assets` now fetches into a sibling `*.part`, renames on success,
+  counts an unconfigured CDN as a failure, and returns `WebAssetUnavailable` if anything is missing.
+  Verified: workspace tests exit 0; CDN-unreachable run exits 1 with `main.js` md5 and mtime intact
+  and no `.part` residue; normal run exits 0 with all three assets refreshed.
+- 002: added `tests/fixtures/kccp/quests_sample.json` and `tests/fixtures/kcwiki/` (5 trimmed
+  sources, 43 KB), 5 kccp tests and 5 label_type tests that lock the current buggy output for plans
+  004 and 011 to flip, and repointed the three kcwiki tests at the fixture while deleting four
+  `.data/temp/*.json` writes. Verified: `cargo test -p emukc_bootstrap` 233 passed / 0 failed /
+  0 ignored; full workspace exit 0; clippy identical to the `main` baseline.
 
 ## Next Session
 
-- [2026-09-21] The branch holds five commits and has NOT been merged to `main` or pushed. Merging is the
-  obvious next move now that the 404 line is complete; nothing else depends on it staying separate.
-- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm across
-  mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror has it",
-  so a mirror in its own sync window can write a live resource into a permanent skip list. Warned in
-  BOOTSTRAP.md and in populate's own output, but the file itself carries no marker.
+- [2026-09-21] Two unmerged branches are waiting: `fix/atomic-web-asset-refresh` (005) and
+  `test/parser-fixture-baseline` (002). Both plans said not to push. Merging both is the obvious
+  next move; expect a README conflict in the audit set and keep both status notes.
+- `.data.testjunk/` sits in the repo root -- leftover test scaffolding from the aborted
+  move-.data-away experiment, kept rather than deleted. It is untracked and safe to remove once
+  someone has looked at it.
+- Audit set after both branches: 5/13 DONE (001/002/005/007/009), 003 IN PROGRESS. 002 unblocks the
+  two remaining P0s, 004 and 006, and also 011. 004 is the natural next one -- its first step is to
+  flip the assertions 002 just froze.
+- 002 did NOT reach its "`cargo test -p emukc_bootstrap` exit 0 with `.data/` moved away" criterion.
+  It cut the failures from 7 to 4; the remaining 4 are out of its scope -- `make_list::tests` x2 need
+  a full `.data/codex`, `map_pipeline::kcdata::tests` x2 walk every map under
+  `.data/temp/kc_data/_map`. Neither is replaceable by a small fixture; they need a skip-when-absent
+  guard or an `#[ignore]`, and that decision has no plan yet.
 - Plan 003 is still IN PROGRESS: its code landed in `96f7689`, but the last item of its Definition of
   Done -- measured before/after throughput -- has no data. The 2m13s -> 3s number is the spinner fix,
   NOT 003's connection reuse; do not cite it as 003's proof.
-- Known, deliberately unfixed in 009 (recorded by its review, all pre-existing or out of scope):
-  `tokio::fs::write` is not atomic, so a list killed mid-write leaves a half line and the next `--src`
-  run rejects the whole file at parse time; two concurrent populates against one list overwrite each
-  other's lists with no locking; `FailureKind::Rollback` is currently unreachable because `get` serves
-  the newer local file since `185c0b8`, yet BOOTSTRAP.md still documents its log line.
+- `bootstrap` without `--overwrite` is broken independently of 005: Phase 3 aborts with
+  "file .data/codex/ship_extra.json already exists". No plan covers it yet.
+- Before `*.missing.nedb` is ever used to seed `EVENT_SHIP_HOLES` / `ALBUM_STATUS_HOLES`: confirm
+  across mirrors first. `FileNotFound` means "the shuffled mirror we asked said 404", not "no mirror
+  has it", so a mirror in its own sync window can write a live resource into a permanent skip list.
 - Older backlog, unchanged: the 14 `api_req_combined_battle/*` endpoints then the Air Corps set (EO74
   field specs at sinsinpub/kcs2-assets `api_info/apilist.txt`, stale, a starting point not a contract);
   `test_font` needs `create_dir_all`; `api_alignment_e2e`'s `600..700` contradicts the codex's 61-65
-  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 002/004/005/006/
-  008/010/011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.
+  ids; make `practice_battle`'s win-rank asserts deterministic. Smaller: audit plans 004/006/008/010/
+  011/012; `gauge_type_e` scrape; decoder unresolved id-sets; VPS plan revalidation.

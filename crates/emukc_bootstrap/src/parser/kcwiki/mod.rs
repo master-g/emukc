@@ -156,12 +156,13 @@ mod tests {
     use emukc_model::prelude::ApiManifest;
     use test_log::test;
 
-    fn get_parse_context() -> super::ParseContext {
-        let pwd = std::env::current_dir().unwrap();
-        println!("current dir: {:?}", pwd);
+    /// A trimmed, self-contained sample of the five kcwiki sources. The ships in it
+    /// only reference equipment without improvement recipes, which keeps the sample
+    /// from having to drag in the whole improvement graph.
+    const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/kcwiki");
 
-        let src = std::path::Path::new("../../.data/temp");
-        super::prepare_context(src).unwrap()
+    fn get_parse_context() -> super::ParseContext {
+        super::prepare_context(FIXTURES).unwrap()
     }
 
     #[test]
@@ -169,35 +170,27 @@ mod tests {
         let context = get_parse_context();
         let map = slot_item::parse(
             &context,
-            std::path::Path::new("../../.data/temp/kcwiki_slotitem.json"),
+            &std::path::Path::new(FIXTURES).join("kcwiki_slotitem.json"),
         )
         .unwrap();
 
-        let raw = serde_json::to_string_pretty(&map.map).unwrap();
-        // save to file
-        std::fs::write("../../.data/temp/kcwiki_slotitem_parsed.json", raw).unwrap();
-        println!("slotitem: {}", map.map.len());
+        assert!(!map.map.is_empty());
     }
 
     #[test]
     fn test_parse_ship() {
         let context = get_parse_context();
+        assert!(!context.ship_name_map.is_empty());
 
-        let raw = serde_json::to_string_pretty(&context.ship_name_map).unwrap();
-        std::fs::write("../../.data/temp/kcwiki_ship_name_map.json", raw).unwrap();
-
-        let map = ship::parse(&context, std::path::Path::new("../../.data/temp/kcwiki_ship.json"))
+        let map = ship::parse(&context, &std::path::Path::new(FIXTURES).join("kcwiki_ship.json"))
             .unwrap();
 
-        let raw = serde_json::to_string_pretty(&map).unwrap();
-        // save to file
-        std::fs::write("../../.data/temp/kcwiki_ship_parsed.json", raw).unwrap();
-        println!("ship: {}", map.len());
+        assert!(!map.is_empty());
     }
 
     #[test]
     fn test_parse_kcwiki_combined() {
-        let parsed = super::parse("../../.data/temp", &ApiManifest::default()).unwrap();
+        let parsed = super::parse(FIXTURES, &ApiManifest::default()).unwrap();
         assert!(!parsed.ship_map.is_empty());
         assert!(!parsed.slotitem_map.is_empty());
     }

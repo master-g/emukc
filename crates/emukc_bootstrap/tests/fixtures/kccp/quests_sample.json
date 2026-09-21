@@ -1,0 +1,21 @@
+{
+	"_quest_id_101": "_quest_code_A1",
+	"はじめての「編成」！": "The First Attempt at Fleet Organization!",
+	"２隻以上の艦で構成される「艦隊」を編成せよ！": "Have 2 ships in your main fleet.",
+	"_quest_id_102": "_quest_code_A2",
+	"「駆逐隊」を編成せよ！": "Form a Destroyer Division!",
+	"駆逐艦４隻以上で構成される「駆逐隊」を編成せよ！": "Have 4 DD in your main fleet.",
+	"_quest_id_615": "_quest_code_F14",
+	"「九九式艦爆(江草隊)」搭載空母を秘書艦にした状態で新たに「彗星」を2つ廃棄！": "Set a CV(B/L) as secretary. Equip her with a Type 99 Dive Bomber (Egusa Squadron).\nScrap two Suisei.",
+	"_quest_id_616": "_quest_code_F15",
+	"「零戦52型丙(六〇一空)」搭載空母を秘書艦にした状態で新たに「試製烈風 後期型」を2つ廃棄！": "Set a CV(B/L) as secretary. Equip her with a Zero Fighter Type 52 Type C (601 Air Group).\nScrap two Prototype Reppuu Late Models.",
+	"_quest_id_1124": "_quest_code_2302F1",
+	"【早春限定任務】夜間航空作戦能力の増強": "[Early Spring Limited] Enhancement of Night Air Operations Capability",
+	"_quest_id_103": "_quest_code_A3",
+	"「水雷戦隊」を編成せよ！": "Form a Torpedo Squadron!",
+	"軽巡洋艦を旗艦とし、数隻の駆逐艦で構成される「水雷戦隊」を編成せよ！": "Have a CL as a flagship and 5 DD in your main fleet.",
+	"_quest_id_1169": "_quest_code_2605F2",
+	"【期間限定任務・拡張任務】端午の節句工廠【II】": "[Time-limited] Iris Festival Arsenal II",
+	"第一艦隊の旗艦及び二番艦に「山汐丸改」または「第四号海防艦」「第三〇号海防艦」を配備。\n練度maxの「九七式艦攻」x5廃棄。工廠資源x2、開発資材x155、燃料と弾薬x各550を準備せよ！": "<n740><l-4>Have 2 Arsenal Resources, 155 Development Materials, 550 Fuel and 550 Ammo. Set any 2 of Yamashio Maru Kai, Kaiboukan No.4 and Kaiboukan No.30 as secretary and second ship. Scrap 5 >> Type 97 Torpedo Bombers.",
+	"dummy": "forNoComma"
+}
