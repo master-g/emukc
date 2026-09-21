@@ -274,15 +274,17 @@ cargo run -- bootstrap --proxy "socks5://127.0.0.1:1086"
 1. 重新运行 populate 命令，已下载的文件会自动跳过
 2. 调整并发数以避免连接超时：`cargo run -- cache populate --concurrent 8`
 
-### Populate 报告 "skipping N items with version rollback"
-
-当 populate 输出 `skipping N items with version rollback` 时，表示这些条目的磁盘版本比清单版本更新（通常是回滚到旧版 manifest 后运行 populate）。这些条目会被正确跳过，不会重试下载——它们不是下载错误。
+### Populate 摘要里的 failed 与 missing
 
 Populate 最终的 `failed` 计数是真正的下载错误（网络超时、CDN 不可达等），这些条目经过两次重试后仍然失败，并写入 `*.failed.nedb`。
 
-`Missing (404)` 是另一回事：CDN 明确答了「没有」。这些条目不进重试队列，写入
-`*.missing.nedb`。清单里出现 404 通常说明 `cache make-list` 生成了上游并不存在的
-路径，要修的是清单生成规则或缺口表，不是重试。
+`Missing upstream` 是另一回事：每个 CDN 都答了，而答案要么是 404，要么是游戏用不了的
+内容（例如稳定返回 200 但 body 为空）。这些条目不进重试队列，写入 `*.missing.nedb`。
+清单里出现 missing 通常说明 `cache make-list` 生成了上游并不存在的路径，要修的是清单
+生成规则或缺口表，不是重试。
+
+磁盘版本比清单版本更新（回滚到旧版 manifest 后 populate）不会出现在任何一类里：
+`Kache::get` 直接把更新的本地文件交出去，这不是失败。
 
 ### 端口被占用
 

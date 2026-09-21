@@ -19,11 +19,12 @@ use emukc_cache::{GetOption, Kache, KacheError};
 const MAX_CONCURRENT: usize = 32;
 
 /// How a failed item should be treated after a pass.
+///
+/// There is no rollback outcome: since `185c0b8` a local copy newer than the
+/// list asks for is served by `Kache::get` instead of being raised, so a
+/// rollback never reaches this classification at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FailureKind {
-    /// The local copy is newer than the list asks for. Not a download failure;
-    /// `get` already served the newer file, so there is nothing to retry.
-    Rollback,
     /// Every CDN answered, and the answer was 404 or a body the game cannot use
     /// (`kcs/sound/kcwjcrloeyiyxw/158288.mp3` is a stable empty 200 on all four
     /// mirrors). Retrying asks the same question again, so these are kept out of
@@ -35,7 +36,6 @@ enum FailureKind {
 
 fn classify_failure(error: &KacheError) -> FailureKind {
     match error {
-        KacheError::InvalidFileVersion(_) => FailureKind::Rollback,
         KacheError::FileNotFound(_) | KacheError::InvalidFile(_) => FailureKind::Missing,
         _ => FailureKind::Retryable,
     }
@@ -77,6 +77,24 @@ fn failures_to_jsonl(failures: &[FailedItem]) -> Result<String, serde_json::Erro
     Ok(out)
 }
 
+/// Write `body` to `path` through a sibling temp file, so an interrupted run
+/// leaves the previous list intact instead of a half-written one. The temp name
+/// carries the pid, so two populate runs against the same list do not write the
+/// same temp: each publishes a complete file and the later rename wins.
+async fn write_replacing(path: &Path, body: &str) -> std::io::Result<()> {
+    let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+    let tmp = path.with_file_name(format!("{name}.{}.part", std::process::id()));
+    if let Err(e) = tokio::fs::write(&tmp, body).await {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(e);
+    }
+    if let Err(e) = tokio::fs::rename(&tmp, path).await {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(e);
+    }
+    Ok(())
+}
+
 /// Write `failures` to the class list beside `src`, or remove a stale one when
 /// this run produced none. Neither failure here masks the run's own outcome.
 async fn persist_failure_list(src: &Path, kind: &str, failures: &[FailedItem]) -> Option<PathBuf> {
@@ -98,7 +116,7 @@ async fn persist_failure_list(src: &Path, kind: &str, failures: &[FailedItem]) -
         return None;
     }
     match failures_to_jsonl(failures) {
-        Ok(body) => match tokio::fs::write(&path, body).await {
+        Ok(body) => match write_replacing(&path, &body).await {
             Ok(()) => Some(path),
             Err(e) => {
                 error!("could not write {kind} list {}: {e}", path.display());
@@ -278,21 +296,16 @@ pub async fn populate(
         return Ok(());
     }
 
-    // Pass 2 retries only what is still an open question. A rollback was already
-    // served from the newer local file, and a 404 has been answered — asking the
-    // same CDN again just spends a request to get the same 404.
-    let mut rollback_count = 0usize;
+    // Pass 2 retries only what is still an open question. A 404 has been
+    // answered — asking the same CDN again just spends a request to get the
+    // same 404.
     let mut missing: Vec<FailedItem> = Vec::new();
     let mut retryable: Vec<FailedItem> = Vec::new();
     for f in pass1_failures {
         match classify_failure(f.error.as_ref()) {
-            FailureKind::Rollback => rollback_count += 1,
             FailureKind::Missing => missing.push(f),
             FailureKind::Retryable => retryable.push(f),
         }
-    }
-    if rollback_count > 0 {
-        warn!("skipping {rollback_count} items with version rollback");
     }
     let retry_items: Vec<(String, Option<String>)> =
         retryable.into_iter().map(|f| (f.path, f.version)).collect();
@@ -318,7 +331,7 @@ pub async fn populate(
 
     // An item can be answered 404 on the retry after a first-pass timeout, so
     // split pass 2's failures the same way rather than assuming they are all
-    // retryable. Rollbacks cannot appear here (a rollback is served, not failed).
+    // retryable.
     let mut failed: Vec<FailedItem> = Vec::new();
     for f in pass2_failures {
         match classify_failure(f.error.as_ref()) {
@@ -405,6 +418,7 @@ mod tests {
 
     use super::{
         FailureKind, classify_failure, failure_list_path, failures_to_jsonl, persist_failure_list,
+        write_replacing,
     };
     use crate::make_list::CacheListItem;
     use crate::progress::FailedItem;
@@ -422,12 +436,25 @@ mod tests {
     /// spend a second request to be told the same thing, and a transient failure
     /// landing in `Missing` would never be retried at all.
 
+    #[tokio::test]
+    async fn write_replacing_leaves_no_temp_and_keeps_the_file_complete() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("cache_resources.failed.nedb");
+        std::fs::write(&path, "stale\n").unwrap();
+
+        write_replacing(&path, "fresh\n").await.unwrap();
+
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "fresh\n");
+        let leftovers: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))
+            .filter(|name| name.ends_with(".part"))
+            .collect();
+        assert!(leftovers.is_empty(), "temp file survived: {leftovers:?}");
+    }
+
     #[test]
-    fn classify_failure_keeps_the_three_outcomes_apart() {
-        assert_eq!(
-            classify_failure(&KacheError::InvalidFileVersion("v1".into())),
-            FailureKind::Rollback
-        );
+    fn classify_failure_keeps_the_two_outcomes_apart() {
         assert_eq!(
             classify_failure(&KacheError::FileNotFound("kcs2/x.png".into())),
             FailureKind::Missing
