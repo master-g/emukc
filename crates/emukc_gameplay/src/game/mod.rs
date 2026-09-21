@@ -6,6 +6,7 @@ pub use compose::{PowerupResp, SlotDepriveParams};
 pub use expedition::{ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo};
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
+pub use remodel_slot::{RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResult};
 pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
     SortieNextResponse, SortieStartResponse,
@@ -36,6 +37,7 @@ mod picturebook;
 mod practice;
 mod presets;
 mod quest;
+mod remodel_slot;
 mod settings;
 mod ship;
 mod slot_item;
@@ -51,8 +53,9 @@ pub mod types {
     #[doc(hidden)]
     pub use crate::game::{
         ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PortView, PowerupResp,
-        QuestListItem, QuestListView, RequireInfoView, SlotDepriveParams, SortieAirSearch,
-        SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
+        QuestListItem, QuestListView, RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResult,
+        RequireInfoView, SlotDepriveParams, SortieAirSearch, SortieCellData,
+        SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
         SortieStartResponse,
     };
 }

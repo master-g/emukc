@@ -14,8 +14,8 @@ inventory of its own.
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
 and diff that against the fenced blocks. Verified on 2026-09-21 at client
-6.3.5.0: **114 implemented**, **34 missing**, no overlap, and the 34 are exactly
-the upstream reference's 136 endpoints minus the 114.
+6.3.5.0: **117 implemented**, **31 missing**, no overlap, and the 31 are exactly
+the upstream reference's 136 endpoints minus the 117.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -36,18 +36,6 @@ Key challenges:
 - Escort fleet logic in all battle phases
 - `battleresult` MVP calculation across two fleets
 - `goback_port` retreat mechanics
-
-### `api_req_kousyou/remodel_slot*` — Equipment Improvement (P1)
-
-3 endpoints in the upstream reference. Independent module, self-contained logic.
-
-- `remodel_slotlist` — list improvable equipment
-- `remodel_slotlist_detail` — improvement details for selected item
-- `remodel_slot` — execute improvement
-
-Dependencies:
-- `remodel_slot` gameplay trait
-- Possible codex extension for improvement recipe data
 
 ### `api_req_air_corps/` — Land-Based Air Corps (P1)
 
@@ -98,14 +86,12 @@ Reuse existing `api_req_sortie/` battle framework.
 4. Implement `api_req_combined_battle/` handlers (14 files)
 5. Verify: full event map sortie with combined fleet
 
-### Phase 2: Equipment Improvement (P1)
+### Phase 2: Equipment Improvement (P1) — done 2026-09-21
 
-Independent module, can parallelize with Phase 3.
-
-1. Add `remodel_slot` gameplay trait
-2. Add improvement recipe data to codex (if needed)
-3. Implement 3 handlers under `api_req_kousyou/`
-4. Verify: improve equipment → verify stat changes persist
+Shipped: `Codex::remodel_recipes` over the existing `slotitem_extra_info`
+improvement data, `Ctx::remodel_slot{,_list,_detail}`, and the three handlers.
+Rules and the success-rate table are in
+`crates/emukc_model/src/codex/remodel_slot.rs`.
 
 ### Phase 3: Land-Based Air Corps (P1)
 

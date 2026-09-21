@@ -18,6 +18,8 @@ pub mod incentive;
 /// Map catalog and cache parsing support.
 pub mod map;
 pub mod query;
+/// Improvement arsenal (改修工廠) recipe lookup.
+pub mod remodel_slot;
 pub mod repair;
 pub mod ship;
 pub mod slot_item;

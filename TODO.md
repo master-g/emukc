@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-21: 114 implemented, 34 missing.
+> holds the roadmap. Last cross-checked 2026-09-21: 117 implemented, 31 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -76,10 +76,10 @@
   - [ ] `api_req_air_corps/supply` - resupply planes
   - [ ] `api_req_air_corps/change_name` - rename squadron
   - [ ] Other air corps management (4 endpoints)
-- [ ] **Equipment Improvement / Akashi Arsenal** (`api_req_kousyou/remodel_*`)
-  - [ ] `api_req_kousyou/remodel_slotlist` - improvement candidate list
-  - [ ] `api_req_kousyou/remodel_slotlist_detail` - improvement detail
-  - [ ] `api_req_kousyou/remodel_slot` - perform improvement
+- [x] **Equipment Improvement / Akashi Arsenal** (`api_req_kousyou/remodel_*`)
+  - [x] `api_req_kousyou/remodel_slotlist` - improvement candidate list
+  - [x] `api_req_kousyou/remodel_slotlist_detail` - improvement detail
+  - [x] `api_req_kousyou/remodel_slot` - perform improvement
 
 ## Low Priority - Optional
 - [ ] `api_req_hensei/preset_lock` - lock fleet preset

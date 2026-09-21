@@ -91,6 +91,9 @@ api_req_kousyou/preset_dev_items_delete
 api_req_kousyou/preset_dev_items_expand
 api_req_kousyou/preset_dev_items_register
 api_req_kousyou/preset_dev_items_update_name
+api_req_kousyou/remodel_slot
+api_req_kousyou/remodel_slotlist
+api_req_kousyou/remodel_slotlist_detail
 
 api_req_map/next
 api_req_map/select_eventmap_rank
@@ -194,14 +197,6 @@ api_req_air_corps/expand_maintenance_level
 api_req_air_corps/cond_recovery
 ```
 
-### Equipment Improvement
-
-```plain
-api_req_kousyou/remodel_slot
-api_req_kousyou/remodel_slotlist
-api_req_kousyou/remodel_slotlist_detail
-```
-
 ### Fleet Preset
 
 ```plain
@@ -225,7 +220,6 @@ api_req_ranking/getlist
 ### Medium Priority (Enhanced Features)
 
 1. **Map & Sortie remainder** - air_raid, anchorage_repair, start_air_base
-2. **Equipment Improvement** - Arsenal functionality
 
 ### Low Priority (Optional Features)
 
