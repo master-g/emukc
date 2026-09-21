@@ -10,7 +10,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use crate::make_list::CacheListItem;
 use crate::progress::{
     FailedItem, PopulateStats, new_multi_progress, new_progress_bar, new_progress_bar_on_mp,
-    new_spinner_on_mp, new_stats_bar, new_stats_bar_on_mp, populate_style, print_populate_summary,
+    new_stats_bar, new_stats_bar_on_mp, populate_style, print_populate_summary,
     update_stats_message,
 };
 use emukc_cache::{GetOption, Kache, KacheError};
@@ -23,7 +23,6 @@ async fn run_pass(
     concurrent: usize,
     aggregate_pb: &Option<Arc<indicatif::ProgressBar>>,
     stats_pb: &Option<Arc<indicatif::ProgressBar>>,
-    mp: &Arc<Option<indicatif::MultiProgress>>,
     active_count: &Arc<AtomicUsize>,
 ) -> Vec<FailedItem> {
     let q = concurrent.clamp(1, MAX_CONCURRENT);
@@ -49,8 +48,6 @@ async fn run_pass(
             let stats_pb = stats_pb.clone();
             let failures = failures.clone();
 
-            let spinner = mp.as_ref().as_ref().map(|mp| new_spinner_on_mp(&item_path, mp));
-
             active_count.fetch_add(1, Ordering::Relaxed);
 
             let task = async move {
@@ -62,23 +59,13 @@ async fn run_pass(
 
                 let active = active_count.fetch_sub(1, Ordering::Relaxed) - 1;
 
-                match result {
-                    Ok(_) => {
-                        if let Some(sp) = spinner {
-                            sp.finish_and_clear();
-                        }
-                    }
-                    Err(e) => {
-                        error_count.fetch_add(1, Ordering::Relaxed);
-                        if let Some(sp) = spinner {
-                            sp.finish_and_clear();
-                        }
-                        failures.lock().await.push(FailedItem {
-                            path: item_path,
-                            version,
-                            error: Arc::new(e),
-                        });
-                    }
+                if let Err(e) = result {
+                    error_count.fetch_add(1, Ordering::Relaxed);
+                    failures.lock().await.push(FailedItem {
+                        path: item_path,
+                        version,
+                        error: Arc::new(e),
+                    });
                 }
 
                 if let Some(ref pb) = stats_pb {
@@ -160,7 +147,7 @@ pub async fn populate(
 
     // Pass 1
     let pass1_failures =
-        run_pass(&kache, all_items, q, &aggregate_pb, &stats_pb, &mp, &active_count).await;
+        run_pass(&kache, all_items, q, &aggregate_pb, &stats_pb, &active_count).await;
     debug_assert_eq!(
         active_count.load(Ordering::Relaxed),
         0,
@@ -210,7 +197,7 @@ pub async fn populate(
     }
 
     let pass2_failures =
-        run_pass(&kache, retry_items, q, &aggregate_pb, &stats_pb, &mp, &active_count).await;
+        run_pass(&kache, retry_items, q, &aggregate_pb, &stats_pb, &active_count).await;
     debug_assert_eq!(
         active_count.load(Ordering::Relaxed),
         0,
