@@ -63,7 +63,6 @@ impl From<GameplayError> for ApiError {
 impl From<CodexError> for ApiError {
     fn from(value: CodexError) -> Self {
         match value {
-            CodexError::AlreadyExist(e) => Self::Internal(e),
             CodexError::Io(e) => Self::Internal(e.to_string()),
             CodexError::Parse(e) => Self::Internal(e.to_string()),
             CodexError::Serde(e) => Self::Internal(e.to_string()),

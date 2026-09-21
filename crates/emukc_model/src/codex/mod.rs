@@ -25,10 +25,6 @@ pub mod slot_item;
 /// Error type for `Codex`
 #[derive(Error, Debug)]
 pub enum CodexError {
-    /// Entry already exists
-    #[error("file {0} already exists")]
-    AlreadyExist(String),
-
     /// IO error
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
@@ -309,129 +305,64 @@ impl Codex {
             create_dir_all(dst)?;
         }
 
-        // manifest
-        {
-            let path = dst.join(PATH_START2);
-            if path.exists() && !overwrite {
-                warn!("file {} already exists, skipping", path.display());
-            } else {
-                std::fs::write(path, serde_json::to_string_pretty(&self.manifest)?)?;
-            }
-        }
-        // ship extra
-        {
-            let path = dst.join(PATH_SHIP_EXTRA);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data = self.ship_extra.values().collect::<Vec<_>>();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // ship class name
-        {
-            let path = dst.join(PATH_SHIP_CLASS_NAME);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data = self.ship_class_name.values().collect::<Vec<_>>();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // ship picturebook
-        {
-            let path = dst.join(PATH_SHIP_PICTUREBOOK);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data = self.ship_picturebook.values().collect::<Vec<_>>();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // slotitem extra info
-        {
-            let path = dst.join(PATH_SLOTITEM_EXTRA_INFO);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data = self.slotitem_extra_info.values().collect::<Vec<_>>();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // enemy ship extra info
-        {
-            let path = dst.join(PATH_ENEMY_SHIP_EXTRA);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data = self.enemy_ship_extra.values().collect::<Vec<_>>();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // picturebook extra info
-        {
-            let path = dst.join(PATH_PICTUREBOOK_EXTRA_INFO);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data: Kc3rdPicturebookRW = self.picturebook_extra.clone().into();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // navy
-        {
-            let path = dst.join(PATH_NAVY);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            std::fs::write(path, serde_json::to_string_pretty(&self.navy)?)?;
-        }
-        // quest
-        {
-            let path = dst.join(PATH_QUEST);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            let data = self.quest.values().collect::<Vec<_>>();
-            std::fs::write(path, serde_json::to_string_pretty(&data)?)?;
-        }
-        // expedition conditions
-        {
-            let path = dst.join(PATH_EXPEDITION_CONDITION);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            std::fs::write(path, serde_json::to_string_pretty(&self.expedition_conditions)?)?;
-        }
-        // game cfg
-        {
-            let path = dst.join(PATH_GAME_CFG);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            std::fs::write(path, serde_json::to_string_pretty(&self.game_cfg)?)?;
-        }
-
-        // music list
-        {
-            let path = dst.join(PATH_MUSIC_LIST);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            std::fs::write(path, serde_json::to_string_pretty(&self.music_list)?)?;
-        }
-
-        // map catalog
-        {
-            let path = dst.join(PATH_MAP_CATALOG);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            std::fs::write(path, serde_json::to_string_pretty(&self.maps)?)?;
-        }
-
-        // cache source
+        Self::save_item(dst.join(PATH_START2), overwrite, &self.manifest)?;
+        Self::save_item(
+            dst.join(PATH_SHIP_EXTRA),
+            overwrite,
+            &self.ship_extra.values().collect::<Vec<_>>(),
+        )?;
+        Self::save_item(
+            dst.join(PATH_SHIP_CLASS_NAME),
+            overwrite,
+            &self.ship_class_name.values().collect::<Vec<_>>(),
+        )?;
+        Self::save_item(
+            dst.join(PATH_SHIP_PICTUREBOOK),
+            overwrite,
+            &self.ship_picturebook.values().collect::<Vec<_>>(),
+        )?;
+        Self::save_item(
+            dst.join(PATH_SLOTITEM_EXTRA_INFO),
+            overwrite,
+            &self.slotitem_extra_info.values().collect::<Vec<_>>(),
+        )?;
+        Self::save_item(
+            dst.join(PATH_ENEMY_SHIP_EXTRA),
+            overwrite,
+            &self.enemy_ship_extra.values().collect::<Vec<_>>(),
+        )?;
+        Self::save_item(
+            dst.join(PATH_PICTUREBOOK_EXTRA_INFO),
+            overwrite,
+            &Kc3rdPicturebookRW::from(self.picturebook_extra.clone()),
+        )?;
+        Self::save_item(dst.join(PATH_NAVY), overwrite, &self.navy)?;
+        Self::save_item(dst.join(PATH_QUEST), overwrite, &self.quest.values().collect::<Vec<_>>())?;
+        Self::save_item(
+            dst.join(PATH_EXPEDITION_CONDITION),
+            overwrite,
+            &self.expedition_conditions,
+        )?;
+        Self::save_item(dst.join(PATH_GAME_CFG), overwrite, &self.game_cfg)?;
+        Self::save_item(dst.join(PATH_MUSIC_LIST), overwrite, &self.music_list)?;
+        Self::save_item(dst.join(PATH_MAP_CATALOG), overwrite, &self.maps)?;
         if let Some(source) = &self.cache_source {
-            let path = dst.join(PATH_CACHE_SOURCE);
-            if path.exists() && !overwrite {
-                return Err(CodexError::AlreadyExist(path.display().to_string()));
-            }
-            std::fs::write(path, serde_json::to_string_pretty(source)?)?;
+            Self::save_item(dst.join(PATH_CACHE_SOURCE), overwrite, source)?;
         }
+
+        Ok(())
+    }
+
+    /// Write one codex file, keeping an existing file untouched unless `overwrite` is set.
+    fn save_item<T>(path: std::path::PathBuf, overwrite: bool, data: &T) -> Result<(), CodexError>
+    where
+        T: serde::Serialize,
+    {
+        if path.exists() && !overwrite {
+            warn!("file {} already exists, skipping", path.display());
+            return Ok(());
+        }
+        std::fs::write(&path, serde_json::to_string_pretty(data)?)?;
 
         Ok(())
     }
@@ -488,6 +419,19 @@ fn normalize_requirement_groups(requirement: &mut Kc3rdQuestRequirement) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn save_item_keeps_existing_file_without_overwrite() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sample.json");
+        std::fs::write(&path, "original").unwrap();
+
+        Codex::save_item(path.clone(), false, &"replacement").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "original");
+
+        Codex::save_item(path.clone(), true, &"replacement").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "\"replacement\"");
+    }
 
     #[test]
     fn load_requires_generated_map_catalog() {
