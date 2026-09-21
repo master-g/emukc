@@ -17,6 +17,10 @@ pub(super) struct MakeListArguments {
     #[arg(help = "Use resource manifest instead of hardcoded lists")]
     #[arg(long)]
     pub manifest: bool,
+
+    #[arg(help = "Build the list even when decoder assets are stale")]
+    #[arg(long)]
+    pub allow_stale_assets: bool,
 }
 
 /// Make cache resources file list
@@ -39,6 +43,7 @@ pub(super) async fn exec(args: &MakeListArguments, config: &AppConfig) -> Result
         &output,
         strategy,
         args.overwrite,
+        args.allow_stale_assets,
     )
     .await?;
 

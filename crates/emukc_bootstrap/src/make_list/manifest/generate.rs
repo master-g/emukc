@@ -1203,6 +1203,7 @@ mod tests {
             summary: Default::default(),
             resource_manifest: ResourceManifest {
                 version: 2,
+                script_version: None,
                 generated_at: "2026-04-23T00:00:00Z".to_string(),
                 summary: Default::default(),
                 path_rules: None,

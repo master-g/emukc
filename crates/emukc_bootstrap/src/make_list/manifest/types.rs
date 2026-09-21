@@ -786,6 +786,11 @@ pub(crate) struct ResourceManifest {
     pub version: i64,
     /// ISO 8601 generation timestamp.
     pub generated_at: String,
+    /// Client script version this manifest was decoded from.
+    ///
+    /// `None` for manifests generated before the decoder started stamping it.
+    #[serde(default)]
+    pub script_version: Option<String>,
     /// Summary statistics.
     #[serde(default)]
     pub summary: ResourceManifestSummary,

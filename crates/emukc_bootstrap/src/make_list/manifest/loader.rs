@@ -336,6 +336,31 @@ mod tests {
         let manifest = result.unwrap();
         assert!(matches!(manifest.version, 1 | 2));
         assert!(!manifest.entries.is_empty());
+        assert!(
+            manifest.script_version.is_some(),
+            "the synced manifest carries the client version it was decoded from"
+        );
+    }
+
+    #[test]
+    fn test_manifest_without_script_version_still_loads() {
+        // Manifests generated before the decoder stamped the field must stay
+        // loadable; the version check treats a missing stamp as unknown, not stale.
+        let dir = tmp_dir("loader-manifest-unstamped");
+        let path = dir.join(MANIFEST_FILE);
+        fs::write(
+            &path,
+            serde_json::to_string_pretty(&json!({
+                "version": 2,
+                "generatedAt": "2026-01-01T00:00:00.000Z",
+                "entries": [],
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let manifest = load_resource_manifest_from_path(&path).unwrap();
+        assert_eq!(manifest.script_version, None);
     }
 
     #[test]

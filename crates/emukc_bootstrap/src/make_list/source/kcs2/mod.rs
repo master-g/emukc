@@ -7,7 +7,7 @@ use crate::{
     prelude::CacheListMakingError,
 };
 
-mod plain;
+pub(in crate::make_list) mod plain;
 pub(crate) mod resources;
 mod versioned;
 

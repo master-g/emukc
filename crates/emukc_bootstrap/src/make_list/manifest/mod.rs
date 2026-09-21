@@ -73,6 +73,7 @@ mod tests {
     fn test_populate_path_rules_locks_with_v2_manifest() {
         let manifest = ResourceManifest {
             version: 2,
+            script_version: None,
             generated_at: "2026-01-01T00:00:00Z".to_string(),
             summary: Default::default(),
             path_rules: Some(make_rules()),
@@ -93,6 +94,7 @@ mod tests {
     fn test_populate_path_rules_locks_with_v1_manifest_keeps_locks_empty() {
         let manifest = ResourceManifest {
             version: 1,
+            script_version: None,
             generated_at: "2026-01-01T00:00:00Z".to_string(),
             summary: Default::default(),
             path_rules: None,
@@ -111,6 +113,7 @@ mod tests {
     fn test_populate_path_rules_locks_skips_empty_btxt_flat_ids() {
         let manifest = ResourceManifest {
             version: 2,
+            script_version: None,
             generated_at: "2026-01-01T00:00:00Z".to_string(),
             summary: Default::default(),
             path_rules: Some(PathRules::default()),

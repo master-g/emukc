@@ -713,6 +713,82 @@ fn collect_migration_blockers(report: &CacheListComparisonReport) -> Vec<String>
     blockers
 }
 
+/// What a decoder asset's stamped version says about its freshness.
+#[derive(Debug, PartialEq, Eq)]
+enum AssetFreshness {
+    /// The asset was decoded from the client version that is live now.
+    Current,
+    /// It was decoded from a different one; the list would be built from it.
+    Stale {
+        asset: String,
+    },
+    /// The asset predates version stamping, so nothing can be concluded.
+    Unstamped,
+}
+
+/// Compare a decoder asset's stamped client version against the live one.
+///
+/// An asset with no stamp is not treated as stale: manifests generated before
+/// the decoder started stamping them are still loadable, and refusing them
+/// would break a working setup over a missing field.
+fn asset_freshness(live: &str, asset: Option<&str>) -> AssetFreshness {
+    match asset {
+        None => AssetFreshness::Unstamped,
+        Some(asset) if asset == live => AssetFreshness::Current,
+        Some(asset) => AssetFreshness::Stale {
+            asset: asset.to_string(),
+        },
+    }
+}
+
+/// Refuse to build a cache list from decoder assets that were decoded from a
+/// different client version than the one the CDN is serving now.
+///
+/// The list decides what the next few hours of downloading will fetch. Assets
+/// from an older client do not know about ships or equipment added since, so
+/// their art never enters the list, populate never downloads it, and the first
+/// player to meet that ship gets a 404 — with nothing anywhere saying why.
+async fn check_decoder_assets_are_current(
+    kache: &Kache,
+    strategy: &CacheListMakeStrategy,
+    allow_stale_assets: bool,
+) -> Result<(), CacheListMakingError> {
+    let live = source::kcs2::plain::parse_main_js_version(kache).await?;
+
+    // Only the asset the chosen strategy actually reads is worth checking.
+    let (asset_name, stamped) = if *strategy == CacheListMakeStrategy::Manifest {
+        ("resource_manifest.json", manifest::load_resource_manifest()?.script_version)
+    } else {
+        ("cache_rules.json", Some(manifest::load_cache_rules_bundle()?.cache_rules.script_version))
+    };
+
+    match asset_freshness(&live, stamped.as_deref()) {
+        AssetFreshness::Current => Ok(()),
+        AssetFreshness::Unstamped => {
+            warn!(
+                "{asset_name} carries no scriptVersion, so it cannot be checked against the live \
+                 client version {live}; re-run `make decode-main` to stamp it"
+            );
+            Ok(())
+        }
+        AssetFreshness::Stale {
+            asset,
+        } => {
+            let detail = format!(
+                "{asset_name} was decoded from client {asset}, but the CDN is serving {live}. \
+                 Refresh it with `make decode-main` (or `cd main-decoder && bun run decode -- \
+                 --sync-assets`), or pass --allow-stale-assets to build the list anyway."
+            );
+            if allow_stale_assets {
+                warn!("{detail}");
+                Ok(())
+            } else {
+                Err(CacheListMakingError::Other(detail))
+            }
+        }
+    }
+}
+
 async fn build_list(
     codex: &Codex,
     kache: &Kache,
@@ -832,11 +908,14 @@ pub async fn make(
     outpath: impl AsRef<std::path::Path>,
     strategy: CacheListMakeStrategy,
     overwrite: bool,
+    allow_stale_assets: bool,
 ) -> Result<(), CacheListMakingError> {
     let out = outpath.as_ref().to_owned();
     if !overwrite && out.exists() {
         return Err(CacheListMakingError::FileExists(out));
     }
+
+    check_decoder_assets_are_current(kache, &strategy, allow_stale_assets).await?;
 
     info!("making cache list to {:?}", out);
 
@@ -869,6 +948,19 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn asset_freshness_compares_the_stamped_version_against_the_live_one() {
+        assert_eq!(asset_freshness("6.3.5.0", Some("6.3.5.0")), AssetFreshness::Current);
+        assert_eq!(
+            asset_freshness("6.3.5.0", Some("6.3.0.0")),
+            AssetFreshness::Stale {
+                asset: "6.3.0.0".to_string(),
+            }
+        );
+        // An unstamped asset predates the field; it is reported, not refused.
+        assert_eq!(asset_freshness("6.3.5.0", None), AssetFreshness::Unstamped);
+    }
 
     fn repo_root() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")

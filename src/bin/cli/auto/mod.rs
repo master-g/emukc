@@ -86,6 +86,9 @@ async fn prepare_resources(cfg: &AppConfig, state: &State) -> Result<()> {
         &cache_list_path,
         strategy.clone(),
         true,
+        // The auto flow is a first-run convenience; a stale-asset refusal here
+        // would strand a user who just wants the game running.
+        true,
     )
     .await
     .map_err(|e| anyhow::anyhow!("Failed to create cache resources list: {}", e))?;

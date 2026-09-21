@@ -31,7 +31,9 @@ pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), Cach
     Ok(())
 }
 
-async fn parse_main_js_version(cache: &Kache) -> Result<String, KacheError> {
+pub(in crate::make_list) async fn parse_main_js_version(
+    cache: &Kache,
+) -> Result<String, KacheError> {
     let version_const_file = cache
         .get_with_opt("gadget_html5/js/kcs_const.js", NoVersion, &GetOption::new_remote_only())
         .await?;

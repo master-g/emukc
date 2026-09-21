@@ -21,7 +21,7 @@
 | 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | DONE |
 | 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | DONE |
 | 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | DONE |
-| 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | TODO |
+| 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | DONE |
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一行原因）| REJECTED（附一行理由）
@@ -46,6 +46,25 @@
   同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
   `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
   这与计划「维护须知」里说的 11 条一致，是预期结果。
+
+- 012 DONE：decoder 侧 `extractResourceManifest` 加了 `scriptVersion` 参数并写进产物，
+  `resource_manifest.json` 经 `bun run decode -- --sync-resource-manifest` 重新生成（未手改），
+  现在 9 个资产全部带这个字段。Rust 侧 `ResourceManifest` 用
+  `#[serde(default)] script_version: Option<String>` 接收，旧格式仍可加载。
+  校验放在 `make_list::make` 里、`build_list` **之前**：拉实时 `scriptVesion`，按策略取对应
+  资产的 `scriptVersion`（Manifest 取 `resource_manifest.json`，Default/Rules 取
+  `cache_rules.json`），不一致就返回错误。判据抽成纯函数 `asset_freshness`，有表驱动测试。
+  没有为此重构生成流程——校验多加载一次本地 JSON，换取生成路径一行不动。
+  写文件确实在 `build_list` 之后，所以中途报错不会留下半份清单。
+  **计划遗漏的调用点**：`src/bin/cli/auto/mod.rs` 也调 `make_cache_list`（`cargo build --workspace`
+  不编译 bin，所以只有 `--release` 才暴露）。auto 是首次运行的便利流程，传 `true` 放行——
+  在那里因资产过期卡住等于让人装不上游戏。
+  `pipeline.ts` 的 sync 分支原本重复调用了一次 `extractResourceManifest`，改为复用
+  `result.resourceManifest`，控制流不变。
+  实测：情况 A（版本一致）exit 0 生成 73,031 条；情况 B（把 `cache_rules.json` 的
+  `scriptVersion` 临时改成 `0.0.0.0`）非零退出、**没有**产出清单文件，错误信息同时给出
+  `0.0.0.0` 与 `6.3.5.0` 和修复命令；加 `--allow-stale-assets` 后 exit 0 并打 WARN。
+  测完已 `git checkout` 还原该资产。TypeScript 侧 `bun run check` + `bun test` 61 pass。
 
 - 011 DONE：两张「任务编号 → 月份」表换成 `label_type = 100 + release_date 的月份`，
   `By5` 作为唯一特例保留（发布 2020-09-17 却标 7 月）。`wiki_id` 的解析也跟着简化——
