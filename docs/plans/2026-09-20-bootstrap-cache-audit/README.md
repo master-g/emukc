@@ -19,7 +19,7 @@
 | 007 | 区分「资源不存在」与「瞬时网络失败」 | P1 | M | 001 | DONE |
 | 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | DONE |
 | 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | DONE |
-| 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | TODO |
+| 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | DONE |
 | 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | TODO |
 | 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | TODO |
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
@@ -46,6 +46,30 @@
   同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
   `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
   这与计划「维护须知」里说的 11 条一致，是预期结果。
+
+- 010 DONE：`CacheListMakeStrategy::Greedy`、`GreedyConfig`、五个死探测函数、
+  `batch_check_exists` / `MAX_CHECK_SIZE`、`make_list/progress.rs`、两套 holes-report
+  机制（`HOLES_COLLECTOR` 三件套与整个 `holes_report.rs`）、`--greedy` / `--concurrent`
+  两个 flag 全部删除。`voice.rs` 的 `#![allow(unused)]` 也删了——它当初就是用来压住这些的。
+  **计划遗漏的一处**：`examples/decoder_cachelist_compare.rs` 自己构造 `Greedy`
+  （`BaselineStrategy::Greedy` + `--concurrent`），计划的范围清单没列它。一并删除，
+  该 example 的另外两个 baseline 不受影响。
+  **计划的一条完成标准是错的，没有照做**：「`grep -rn 'holes'` 无输出」会误删活代码——
+  `ShipPathHoles` / `EVENT_SHIP_HOLES` / `event_ship_holes` 是 manifest 规则里的跳过表，
+  `generate.rs` 与 `types.rs` 的测试正在用。实际删的判据是「holes **report**」：
+  `holes_report` 与 `HOLES_COLLECTOR` 两个标识符，grep 它们才是空的。
+  删除连带暴露出一批死代码，按计划步骤 1「一并清理」处理：`map.rs` 的 `MapInfoJson` 与
+  `find_in_local_then_remote`（原是 `get_event_area_greedy` 的支撑）、
+  `progress.rs` 的 `MAKE_LIST_STYLE` / `make_list_style`（只服务于已删的 `ProgressTracker`）、
+  以及 `kcs::make` / `kcs/voice::make` / `kcs2/versioned::make` / `img::make` / `use_item::make`
+  五处签名里不再被使用的 `mst` / `cache` 参数及其调用点。`img::make` 仍需要 `cache`
+  （`get_cached_version`），只去掉了 `mst`。
+  实测：`cargo build --workspace --examples` 零警告；`cache make-list --help` 不再有
+  `--greedy` / `--concurrent`；删除前后各生成一次清单，73,031 条 **逐行相同**
+  （签名简化之后又验证了一次，仍然 IDENTICAL）。
+  `docs/solutions/conventions/rules-default-strategy.md` 按计划改写而非删除：保留
+  `Default == Rules` 那节，把 Greedy 那节改成一条带日期的历史记录，说明它为何做不到
+  自己声称的行为、以及为什么不要从 git 历史里捡回来。
 
 - 008 DONE：`is_valid` 的两条捷径都去掉了。空文件改判无效，并且这个检查现在排在
   扩展名分流**之前**，所以 `.html` 也受它约束。`fetch_from_url` 在 `is_valid` 失败时

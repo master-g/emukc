@@ -185,9 +185,7 @@ cargo run -- cache make-list [选项]
 |------|------|
 | `--output <FILE>` | 输出文件路径（默认 `<cache_root>/cache_resources.nedb`） |
 | `--overwrite` | 覆盖已有列表文件 |
-| `--greedy` | 贪婪模式：扫描所有可能资源（极慢，但最完整） |
 | `--manifest` | 使用资源清单模式（基于 manifest 生成列表） |
-| `--concurrent <N>` | 贪婪模式并发数（默认 16） |
 
 ### `cache populate`
 
