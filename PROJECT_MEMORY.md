@@ -107,6 +107,9 @@ Current verification baseline:
   不必开 `serde_json/preserve_order`——那个 feature 在 feature unification 下全工作区生效，
   会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序。自定义 `Visitor` 收集 `Vec<(K, V)>` 即可，
   范围只在一个函数内。见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
+- [2026-09-21] `Cs*`（seasonal）的 `label_type = 1` 是对的，不是缺陷：本仓库把
+  `Frequency::Seasonal` 映射成 `Kc3rdQuestPeriod::Oneshot`，而 1 正是客户端的一次性标签页。
+  计划 002 的注记说它「同样落到 1」有误导，011 已澄清并写进测试。
 - [2026-09-21] `make_list` 的 "holes" 有两义：已删的 holes **report**（`HOLES_COLLECTOR` /
   `holes_report.rs`，无写入方）与活着的 `ShipPathHoles` 跳过表（manifest 规则在用）。按词清理会误删后者。
 - [2026-09-21] `.html` 缓存无法内容嗅探：真实 `kcs2/hc.html` 仅 54 字节且与错误页同形，
@@ -173,10 +176,9 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Next Session
 
-- [2026-09-21] 审计集 10/13 DONE（001-010），P0 全部清完。三个分支等待合并：
-  `fix/reject-empty-quest-requirements`、`fix/cache-validity-checks`、`refactor/remove-greedy-deadcode`。
-  剩下 011（label_type 年任务表）、012（cache-list 版本校验）、013（版本权威 spike，依赖 012）。
-  011 的修复必须同时覆盖 `s` 周期字母。
+- [2026-09-21] 审计集 11/13 DONE（001-011），P0 全部清完。四个分支等待合并：
+  `fix/reject-empty-quest-requirements`、`fix/cache-validity-checks`、`refactor/remove-greedy-deadcode`、
+  `fix/derive-label-type-from-release-date`。剩下 012（cache-list 版本校验）、013（版本权威 spike，依赖 012）。
 - `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 上游稳定返回 200 + 空 body（两个镜像验证）。008 之后它
   每轮 populate 失败一次，且因为「空 200」不是 404 而走 retryable 路径被重试 40 次（20 CDN × 2 pass）。
   把稳定的空 200 归入 missing 类需要改 `classify_failure` 的判据，尚未立计划。

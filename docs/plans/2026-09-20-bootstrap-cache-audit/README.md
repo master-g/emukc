@@ -20,7 +20,7 @@
 | 008 | 修正缓存有效性判定：空文件与 .html 不再无条件有效 | P1 | S | 001 | DONE |
 | 009 | populate 失败清单落盘，并把 404 从重试路径里分流出去 | P1 | S | 007（仅步骤 4） | DONE |
 | 010 | 删除 Greedy / holes-report 死代码并修正文档 | P1 | S | — | DONE |
-| 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | TODO |
+| 011 | 修复 label_type 年任务表，未命中改为硬错误 | P1 | S | 002 | DONE |
 | 012 | 为 cache-list 增加客户端版本校验 | P1 | S | — | TODO |
 | 013 | 设计单一权威的客户端版本记录（spike） | P2 | M | 012 | TODO |
 
@@ -46,6 +46,22 @@
   同时 256/615/622/627/630/632/648 由「拿描述冒充标题」改为如实的 `n/a`，所以 codex 里
   `name == "n/a"` 的条数从 12 变成 15（= 11 条 kccp 缺 name + 4 条上游完全没有）。
   这与计划「维护须知」里说的 11 条一致，是预期结果。
+
+- 011 DONE：两张「任务编号 → 月份」表换成 `label_type = 100 + release_date 的月份`，
+  `By5` 作为唯一特例保留（发布 2020-09-17 却标 7 月）。`wiki_id` 的解析也跟着简化——
+  现在只有周期字母有用，类别字母和编号都不再参与判断。
+  **计划低估了影响面**：正文只统计了 `By*` / `Cy*`，说 7 个年任务受影响。实际年任务有
+  **55** 条，还有 `Dy*`(8) / `Fy*`(11) / `Gy*`(4) 三类，而 `match category` 只有 `"B"` 和
+  `"C"` 分支，这 23 条**全部**落到 `label_type = 1`。所以修复前错的是 30 条而不是 7 条。
+  交叉验证按类别重做：B/C 已映射的 25 条里只有 By5 与发布月份不符，与计划结论一致；
+  只有 By16 缺 `release_date`，按计划方案 (c) 返回 101 并 `warn!`。
+  **`s` 周期不改，计划 002 的注记和项目记忆里「011 必须覆盖 s」的判断不成立**：
+  `Cs*` 的 `frequency` 是 `seasonal`，而本仓库的 `From<Frequency> for Kc3rdQuestPeriod`
+  把 `Seasonal` 映射为 `Oneshot`，`label_type = 1` 正是客户端的一次性标签页——两者一致。
+  测试里把这条写成了有意为之，不再标「011 会翻转」。
+  实测：临时脚本对全部 55 条年任务跑新逻辑，全部落在 101..=112，无一返回 1，
+  除 By5 外无规则违例；重跑 bootstrap 后 codex 里年任务的 label_type 无一越界。
+  新增的越界防护测试覆盖畸形 `release_date`（`2024`、`2024-13-01`、`2024-00-01`、空串）。
 
 - 010 DONE：`CacheListMakeStrategy::Greedy`、`GreedyConfig`、五个死探测函数、
   `batch_check_exists` / `MAX_CHECK_SIZE`、`make_list/progress.rs`、两套 holes-report

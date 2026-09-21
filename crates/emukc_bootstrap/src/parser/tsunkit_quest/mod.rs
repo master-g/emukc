@@ -476,7 +476,7 @@ impl TsunkitQuestValue {
             period,
             name: info.name.to_string(),
             detail: info.desc.to_string(),
-            label_type: extract_label_type(&self.wiki_id),
+            label_type: extract_label_type(&self.wiki_id, self.release_date.as_deref()),
             reward_fuel: self.rewards.resources[0],
             reward_ammo: self.rewards.resources[1],
             reward_steel: self.rewards.resources[2],
