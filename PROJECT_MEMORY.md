@@ -180,21 +180,21 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 提交 `75ecde9`（联合舰队 U8 的四个端点，门禁重跑确认），然后实现
-  `api_req_kousyou/remodel_slot_recover`：`Ctx::remodel_slot_recover` + 端点 + 两个端到端
-  测试，`KcUseItemType::ArsenalResource = 104`（工廠資源）与
-  `codex::remodel_slot::recover_success_rate` 为新增。语义全部从解码客户端的
-  `RevampSlotLevelResetAPI` 与 `TaskSelectResetSlotitem` 追出来，依据见上面那条事实与
-  `docs/api_coverage.md`。无条件扣 1 个工廠資源、成功才扣 `api_dev_num` 个開発資材。
-- 门禁：`cargo test --workspace` exit 0（47 个 suite 全 ok）；fmt clean；clippy
-  `--all-targets -W warnings` 17 条真实 lint，逐条定位全在未改动文件。清单机械重推为
-  **127 implemented / 22 missing**。
+- [2026-09-22] 推送了积压的 3 个提交（`c8e3ced..78415d0`：联合舰队 U3–U7、U8、
+  `remodel_slot_recover`），本地与远端一致。然后写了基地航空隊母港侧的计划
+  `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md`：10 个端点、U1–U6，
+  出击与战斗单列在末节。纯文档，无代码改动，无需门禁。
+- 盘点时核实的关键前提：基地航空隊**不卡活动图数据**（6-4/6-5 在本地 map_catalog 里
+  各有 1/2 个基地），DB 两张表已就绪，读取路径已接通。计划的「已核实的前提」表是
+  这次调查的全部产出，不要重查。
 
 ## Next Session
 
-- [2026-09-22] 対空/阵形建模的前提未验证：阵形対空補正表能否从 main.js 解码出来没人查过，
-  要做先做 spike；它还会让 `emukc_battle/tests/golden/*.txt` 全量重冻结。
-- 审计集 013 的判据是「drift-check 接通后有没有被真的用起来」（该计划 README 第 50–55 行），
-  要等一次真实的上游版本变动，不是现在动手。
-- 联合舰队剩敌方也是联合的 5 个端点，卡在数据不存在。基地航空队、`gauge_type_e` 抓取、
-  decoder 未解析的 id 集、VPS 计划重新验证仍是积压。
+- [2026-09-22] 从基地航空隊计划的 U1 开始：`Airbase` 带上 `planes`、钉死 `Airbase.id`
+  为实例 id、实现空壳 `game/airbase/plane.rs`、半径取已配属中隊的最小 `api_distance`。
+  三个已发现的缺陷与各自归属的 U 写在计划的「已发现的三个缺陷」一节。
+- 计划里唯一不齐的点是 U4 的补给消耗系数（上游不公开，客户端无预览）：
+  按 wikiwiki 基地航空隊页 → `KC3Kai` 的 `kcsim.js` 顺序取数，两条都取不到就停在 U4，
+  不要编没有出处的公式。
+- 対空/阵形建模仍需先做「補正表能否解码」的 spike；审计集 013 等上游版本变动；
+  联合舰队剩 5 个敌联合端点卡在数据不存在。
