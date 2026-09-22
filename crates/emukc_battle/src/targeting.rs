@@ -29,19 +29,6 @@ const DAY_SURFACE_DISPLAY_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::JetAttacker,
 ];
 
-/// Gunnery display types: what 連撃 and the artillery-spotting cut-ins are
-/// formed from. Deliberately narrower than `DAY_SURFACE_DISPLAY_TYPES`, which
-/// also admits 水上爆撃機 and 艦上攻撃機 -- equipment that can take part in a
-/// plain attack but can never form a 連撃 or a gunnery cut-in.
-const DAY_GUNNERY_DISPLAY_TYPES: &[KcSlotItemType3] = &[
-    KcSlotItemType3::SmallCaliberMainGun,
-    KcSlotItemType3::MediumCaliberMainGun,
-    KcSlotItemType3::LargeCaliberMainGun,
-    KcSlotItemType3::LargeCaliberMainGun2,
-    KcSlotItemType3::SecondaryGun,
-    KcSlotItemType3::SecondaryGun2,
-];
-
 const ASW_DISPLAY_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::Sonar,
     KcSlotItemType3::LargeSonar,
@@ -749,14 +736,14 @@ pub(crate) fn extend_limit(target: &mut Vec<i64>, source: &[i64], limit: usize) 
     }
 }
 
-/// Whether the slot type can take part in a 連撃 or a gunnery cut-in.
-pub(crate) fn is_day_gunnery_display_type(slot_type: KcSlotItemType3) -> bool {
-    DAY_GUNNERY_DISPLAY_TYPES.contains(&slot_type)
-}
-
 /// Display slot-item IDs for a gun-formed attack: main guns first, then
-/// secondaries, up to `limit`. The list converges on what the ship actually
-/// carries -- it is never padded out to the attack's nominal slot count.
+/// secondaries, up to `limit`.
+///
+/// Deliberately narrower than [`is_day_surface_display_type`], which also
+/// admits 水上爆撃機 and 艦上攻撃機 -- equipment that can take part in a plain
+/// attack but can never form a 連撃 or a gunnery cut-in. The list converges on
+/// what the ship actually carries; it is never padded out to the attack's
+/// nominal slot count.
 pub(crate) fn day_gunnery_display_ids(
     codex: &Codex,
     ship: &BattleRuntimeShip,

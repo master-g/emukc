@@ -2314,7 +2314,7 @@ mod tests {
 #[cfg(test)]
 mod display_narrowing_tests {
     use super::*;
-    use crate::targeting::{day_gunnery_display_ids, is_day_gunnery_display_type};
+    use crate::targeting::day_gunnery_display_ids;
     use crate::test_utils::*;
     use crate::types::BattleRuntimeShip;
     use emukc_model::codex::Codex;
@@ -2411,18 +2411,34 @@ mod display_narrowing_tests {
     }
 
     /// R6 for R3: proof the narrowing is not vacuous. The broad day-surface set
-    /// -- what 連撃 used to fall back to -- still admits 水上爆撃機. If either
-    /// display path is widened back to it, the seaplane bomber returns to the
-    /// `si_list`, and with it every equipment type that has no `btxt_flat`.
+    /// -- what 連撃 used to fall back to -- still admits 水上爆撃機 and
+    /// 艦上攻撃機. Widen either display path back to it and the seaplane bomber
+    /// returns to the `si_list`, taking every equipment type with no
+    /// `btxt_flat` file with it.
     #[test]
     fn surface_display_set_would_readmit_seaplane_bombers() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
+
+        let mut input = sample_ship(&codex, bbv_mst, 99);
+        input.slot_items = vec![slotitem_with_mst_id(zuiun_id)];
+        input.ship.api_onslot = [1, 0, 0, 0, 0];
+        let ship = BattleRuntimeShip::from(input);
+
         assert!(
             crate::targeting::is_day_surface_display_type(KcSlotItemType3::SeaBasedBomber),
             "the broad set admits it, which is why 連撃 must not use that set"
         );
-        assert!(!is_day_gunnery_display_type(KcSlotItemType3::SeaBasedBomber));
-        assert!(!is_day_gunnery_display_type(KcSlotItemType3::CarrierBasedTorpedoBomber));
-        assert!(is_day_gunnery_display_type(KcSlotItemType3::LargeCaliberMainGun));
-        assert!(is_day_gunnery_display_type(KcSlotItemType3::SecondaryGun));
+        assert_eq!(
+            crate::targeting::day_attack_display_ids(&codex, &ship, false),
+            vec![zuiun_id],
+            "the broad path still returns it"
+        );
+        assert_eq!(
+            day_gunnery_display_ids(&codex, &ship, 2),
+            vec![-1],
+            "the gunnery path reports no equipment rather than the wrong equipment"
+        );
     }
 }

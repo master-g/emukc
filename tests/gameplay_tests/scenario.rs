@@ -108,6 +108,89 @@ mod tests {
             .expect("2-1 should be sortie-able after clearing its prerequisite 1-4");
     }
 
+    // -----------------------------------------------------------------------
+    // Equipment-bearing presets (U6 / R5)
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn declared_equipment_lands_on_the_ship() {
+        let ctx = crate::TestContext::new().await;
+        let pid = new_profile(&ctx).await;
+
+        // 長門 has four slots; the fifth declaration has nowhere to go.
+        let scenario = Scenario {
+            fleet: vec![ShipSpec::new(80, 99).with_slots([7, 7, 12, 25, 25])],
+            ..Default::default()
+        };
+        let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
+
+        let ship = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        assert_eq!(ship.api_slotnum, 4);
+        let equipped: Vec<i64> = ship.api_slot.iter().copied().filter(|id| *id > 0).collect();
+        assert_eq!(equipped.len(), 4, "the fifth declaration is ignored: {:?}", ship.api_slot);
+        assert_eq!(ship.api_slot[4], -1, "an undeclared slot stays at the -1 sentinel");
+
+        let mut mst_ids = Vec::new();
+        for item_id in equipped {
+            mst_ids.push(ctx.find_slot_item(item_id).await.unwrap().api_slotitem_id);
+        }
+        assert_eq!(mst_ids, vec![7, 7, 12, 25]);
+    }
+
+    #[tokio::test]
+    async fn opening_asw_preset_crosses_the_destroyer_threshold() {
+        let ctx = crate::TestContext::new().await;
+        let pid = new_profile(&ctx).await;
+        let ids = apply_scenario(&ctx, pid, &Scenario::opening_asw()).await.unwrap();
+
+        // Slot 0 is the routing carrier; the destroyers behind it are the ones
+        // that have to clear the requirement of 100. Level and the sonar are
+        // the only two levers a preset has, and both are needed.
+        let ship = ctx.find_ship(ids[1]).await.unwrap().unwrap();
+        assert!(
+            ship.api_taisen[0] >= 100,
+            "opening ASW needs ASW >= 100, got {}",
+            ship.api_taisen[0]
+        );
+    }
+
+    #[tokio::test]
+    async fn hp_override_survives_the_equipment_recalculation() {
+        let ctx = crate::TestContext::new().await;
+        let pid = new_profile(&ctx).await;
+
+        let scenario = Scenario {
+            fleet: vec![ShipSpec::new(80, 99).with_slots([7, 7]).with_hp(9)],
+            ..Default::default()
+        };
+        let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
+
+        let ship = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        assert_eq!(ship.api_nowhp, 9, "equipping must not restore the declared damage");
+    }
+
+    #[tokio::test]
+    async fn opening_asw_preset_fires_opening_anti_submarine() {
+        let ctx = crate::TestContext::new().await;
+        let pid = new_profile(&ctx).await;
+        apply_scenario(&ctx, pid, &Scenario::opening_asw()).await.unwrap();
+
+        // 4-3 routes any fleet containing a 正規空母 to the one cell off its
+        // start point whose every composition is submarines, so the single
+        // battle the gate simulates actually reaches the phase.
+        ctx.start_sortie(pid, 1, 4, 3).await.expect("opening_asw should sortie 4-3");
+        ctx.sortie_battle(pid, 1).await.expect("battle should resolve");
+
+        let session = ctx.sortie_store().get_pending_battle(pid).expect("pending battle");
+        assert_eq!(session.packet.opening_taisen_flag, 1, "opening ASW must fire");
+        let taisen = session.packet.opening_taisen.as_ref().expect("opening ASW payload");
+        assert!(
+            taisen.api_at_type.iter().all(|t| *t == 0),
+            "opening ASW reports attack type 0: {:?}",
+            taisen.api_at_type
+        );
+    }
+
     #[tokio::test]
     async fn leveled_for_mid_boss_preset_reaches_2_1_end_to_end() {
         let ctx = crate::TestContext::new().await;

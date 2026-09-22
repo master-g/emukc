@@ -256,6 +256,8 @@ struct RunOutcome {
     midnight_available: bool,
     /// A day-shelling cut-in / special attack occurred.
     saw_cutin: bool,
+    /// The opening anti-submarine phase fired.
+    saw_opening_asw: bool,
 }
 
 /// A branch predicate for the `--find` seed search.
@@ -263,6 +265,7 @@ struct RunOutcome {
 enum FindPredicate {
     Night,
     Cutin,
+    OpeningAsw,
 }
 
 impl FindPredicate {
@@ -270,7 +273,8 @@ impl FindPredicate {
         match name {
             "night" => Ok(Self::Night),
             "cutin" => Ok(Self::Cutin),
-            other => bail!("unknown --find predicate '{other}' (known: night, cutin)"),
+            "asw" => Ok(Self::OpeningAsw),
+            other => bail!("unknown --find predicate '{other}' (known: night, cutin, asw)"),
         }
     }
 
@@ -278,6 +282,7 @@ impl FindPredicate {
         match self {
             Self::Night => outcome.midnight_available,
             Self::Cutin => outcome.saw_cutin,
+            Self::OpeningAsw => outcome.saw_opening_asw,
         }
     }
 }
@@ -384,6 +389,7 @@ async fn run_first_battle_outcome(
     .into_iter()
     .flatten()
     .any(|h| h.api_at_type.iter().any(|&t| t != 0));
+    let saw_opening_asw = session.packet.opening_taisen.is_some();
 
     let simulation = BattleSimulation {
         friendly: session.friendly,
@@ -398,6 +404,7 @@ async fn run_first_battle_outcome(
         transcript,
         midnight_available,
         saw_cutin,
+        saw_opening_asw,
     })
 }
 
