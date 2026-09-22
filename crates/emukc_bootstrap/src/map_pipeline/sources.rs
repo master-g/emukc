@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use emukc_model::{
-    codex::map::{MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition},
+    codex::map::{
+        MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, ShipDropDefinition,
+    },
     kc2::start2::ApiManifest,
 };
 
@@ -41,6 +43,12 @@ pub(super) fn load_explicit_source_set(
     wikiwiki_catalog: Option<MapCatalog>,
     wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
 ) -> Result<ResolvedMapSources, ParseError> {
+    // A caller-supplied catalog comes straight from the agent skill, which does
+    // not produce drops, so it needs the same fold-in the repo asset gets.
+    let mut wikiwiki_catalog = wikiwiki_catalog;
+    if let Some(catalog) = wikiwiki_catalog.as_mut() {
+        apply_ship_drops(catalog)?;
+    }
     let wikiwiki_map_count =
         wikiwiki_catalog.as_ref().map(|catalog| catalog.maps.len()).unwrap_or(0);
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
@@ -128,7 +136,10 @@ fn load_repo_wikiwiki_map_catalog()
     };
 
     match serde_json::from_str::<MapCatalog>(asset.raw_json()) {
-        Ok(catalog) => Ok((source_kind, Some(catalog))),
+        Ok(mut catalog) => {
+            apply_ship_drops(&mut catalog)?;
+            Ok((source_kind, Some(catalog)))
+        }
         Err(e) => Ok((
             MapCatalogWikiwikiSource::ParseFailed {
                 path: failure_path,
@@ -137,6 +148,46 @@ fn load_repo_wikiwiki_map_catalog()
             None,
         )),
     }
+}
+
+/// Ship drops, split out of the wikiwiki catalog so regenerating that asset
+/// cannot wipe them.
+///
+/// They are keyed the same way the wikiwiki catalog keys them — map id, variant
+/// key, then the wikiwiki cell number — so folding them back in right after the
+/// catalog is parsed leaves every later stage, including the label-space remap
+/// that fans a drop out to duplicate labels, working on exactly what it saw
+/// before the split.
+#[derive(serde::Deserialize)]
+struct MapShipDropsAsset {
+    /// Why the file exists; see the asset itself.
+    #[allow(dead_code)]
+    note: String,
+    maps: BTreeMap<i64, BTreeMap<String, BTreeMap<i64, Vec<ShipDropDefinition>>>>,
+}
+
+/// Fold the split-out ship drops back into the freshly parsed wikiwiki catalog.
+fn apply_ship_drops(catalog: &mut MapCatalog) -> Result<(), ParseError> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/map_ship_drops.json");
+    let asset: MapShipDropsAsset =
+        serde_json::from_str(include_str!("../../assets/map_ship_drops.json"))
+            .map_err(|source| ParseError::json_at(&path, source))?;
+
+    for (map_id, variants) in asset.maps {
+        let Some(definition) = catalog.maps.get_mut(&map_id) else {
+            warn!("ship drops name map {map_id}, which the wikiwiki catalog does not have");
+            continue;
+        };
+        for (variant_key, drops) in variants {
+            let Some(variant) = definition.variants.get_mut(&variant_key) else {
+                warn!("ship drops name {map_id} variant {variant_key}, which does not exist");
+                continue;
+            };
+            variant.ship_drops = drops;
+        }
+    }
+
+    Ok(())
 }
 
 fn load_kcdata_map_catalog(
