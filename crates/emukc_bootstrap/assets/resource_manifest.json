@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-09-21T07:45:10.203Z",
+  "generatedAt": "2026-09-22T08:18:10.216Z",
   "scriptVersion": "6.3.5.0",
   "pathRules": {
     "shipDamageVariants": {
@@ -368,6 +368,11 @@
       565,
       566,
       571,
+      572,
+      579,
+      582,
+      583,
+      584,
       1501,
       1502,
       1503,

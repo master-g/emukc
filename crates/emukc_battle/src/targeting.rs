@@ -15,6 +15,19 @@ use crate::types::{AttackCapability, BattlePhase, BattleRuntimeShip, TargetClass
 // Constants — type-category lists used by display / eligibility helpers
 // ---------------------------------------------------------------------------
 
+/// Equipment a day surface attack names in `api_si_list`.
+///
+/// Guns only, on purpose. Whatever lands in `api_si_list[0]` is loaded by
+/// `CutinAttack` as a `btxt_flat` name plate whenever the client resolves the
+/// attack to `PhaseAttackNormal`, and aircraft have no name plate upstream --
+/// probed 2026-09-22: of the whole carrier air group only the night-capable
+/// machines (F6F-3N, Swordfish, TBM-3D, 試製 夜間瑞雲 …) return 200, and those
+/// are reached through the night carrier cut-in, not through this list. The
+/// archived `102 -> btxt_flat` incident is exactly a 水上爆撃機 arriving here.
+///
+/// Nothing is lost by leaving them out: a carrier resolves to
+/// `PhaseAttackKansaiki`, which is constructed with `showTelop = false` and
+/// never reads `api_si_list` at all.
 const DAY_SURFACE_DISPLAY_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::SmallCaliberMainGun,
     KcSlotItemType3::MediumCaliberMainGun,
@@ -22,21 +35,6 @@ const DAY_SURFACE_DISPLAY_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::SecondaryGun,
     KcSlotItemType3::LargeCaliberMainGun2,
     KcSlotItemType3::SecondaryGun2,
-    KcSlotItemType3::CarrierBasedDiveBomber,
-    KcSlotItemType3::CarrierBasedTorpedoBomber,
-    KcSlotItemType3::SeaBasedBomber,
-    KcSlotItemType3::JetFighterBomber,
-    KcSlotItemType3::JetAttacker,
-];
-
-const ASW_DISPLAY_TYPES: &[KcSlotItemType3] = &[
-    KcSlotItemType3::Sonar,
-    KcSlotItemType3::LargeSonar,
-    KcSlotItemType3::DepthCharge,
-    KcSlotItemType3::AutoGyro,
-    KcSlotItemType3::AntiSubmarinePatrol,
-    KcSlotItemType3::SeaBasedBomber,
-    KcSlotItemType3::LargeFlyingBoat,
 ];
 
 // TODO(#0): used by night battle display helpers
@@ -651,28 +649,6 @@ pub(crate) fn is_day_surface_display_type(slot_type: KcSlotItemType3) -> bool {
     DAY_SURFACE_DISPLAY_TYPES.contains(&slot_type)
 }
 
-/// Whether a slot item qualifies for ASW display.
-pub(crate) fn is_asw_display_slotitem(codex: &Codex, slot_item: &KcApiSlotItem) -> bool {
-    let Some(mst) = slotitem_mst(codex, slot_item) else {
-        return false;
-    };
-    let Some(slot_type) = KcSlotItemType3::n(mst.api_type[2]) else {
-        return false;
-    };
-
-    ASW_DISPLAY_TYPES.contains(&slot_type)
-        || (slot_type == KcSlotItemType3::CarrierBasedTorpedoBomber && mst.api_tais > 0)
-}
-
-/// Collect ASW-eligible slot-item master IDs from a ship.
-pub(crate) fn collect_asw_display_ids(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<i64> {
-    ship.slot_items
-        .iter()
-        .filter(|slot_item| is_asw_display_slotitem(codex, slot_item))
-        .map(|slot_item| slot_item.api_slotitem_id)
-        .collect()
-}
-
 /// Whether the slot type counts as a main gun for night battle formulas.
 // TODO(#0): used by night battle display helpers
 #[expect(dead_code)]
@@ -778,11 +754,15 @@ pub(crate) fn day_attack_display_ids(
     ship: &BattleRuntimeShip,
     is_submarine_target: bool,
 ) -> Vec<i64> {
+    // An anti-submarine attack names no equipment. The client resolves it to
+    // `PhaseAttackBakurai` or `PhaseAttackKansaiki`, both constructed with
+    // `showTelop = false`, so `api_si_list` is never read -- and nothing that
+    // forms one has a name plate anyway: probed 2026-09-22, sonars (46/47/132),
+    // depth charges and seaplanes (25) all 404 while gun ids return 200. The
+    // depth-charge / ASW-plane animation comes from the attacker's own slots
+    // and the defender being a submarine, never from `api_si_list`.
     if is_submarine_target {
-        let asw_ids = collect_asw_display_ids(codex, ship);
-        if !asw_ids.is_empty() {
-            return first_or_default(asw_ids);
-        }
+        return vec![-1];
     }
 
     let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _mst| {
@@ -951,19 +931,31 @@ mod tests {
         assert_eq!(day_attack_display_ids(&codex, &runtime_ship, false), vec![main_gun_mst_id]);
     }
 
+    /// R3/R4: an anti-submarine attack names no display equipment. Whatever the
+    /// server puts in `api_si_list[0]` is loaded by `CutinAttack` as a
+    /// `btxt_flat` name plate, and nothing that forms an anti-submarine attack
+    /// has one upstream -- sonars, depth charges and seaplanes all 404.
     #[test]
-    fn day_asw_display_ids_ignore_night_recon_when_valid_asw_equipment_exists() {
+    fn day_asw_display_ids_report_no_equipment() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
         let night_recon_mst_id = slotitem_mst_id_by_name(&codex, "九八式水上偵察機(夜偵)");
         let sonar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar);
 
+        let main_gun_mst_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+
         let mut ship = sample_ship(&codex, bbv_mst, 50);
-        ship.slot_items =
-            vec![slotitem_with_mst_id(night_recon_mst_id), slotitem_with_mst_id(sonar_mst_id)];
+        ship.slot_items = vec![
+            slotitem_with_mst_id(night_recon_mst_id),
+            slotitem_with_mst_id(sonar_mst_id),
+            slotitem_with_mst_id(main_gun_mst_id),
+        ];
         let runtime_ship = BattleRuntimeShip::from(ship);
 
-        assert_eq!(day_attack_display_ids(&codex, &runtime_ship, true), vec![sonar_mst_id]);
+        assert_eq!(day_attack_display_ids(&codex, &runtime_ship, true), vec![-1]);
+        // The surface path is unaffected: guns do have name plates.
+        assert_eq!(day_attack_display_ids(&codex, &runtime_ship, false), vec![main_gun_mst_id]);
     }
 
     #[test]

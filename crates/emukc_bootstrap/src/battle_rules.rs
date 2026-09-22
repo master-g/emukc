@@ -944,8 +944,12 @@ fn push_uncovered_resource_findings(report: &mut BattleValidationReport) {
             BattleValidationFindingKind::ProtocolSuspicion,
             None,
             format!(
-                "battle response makes the client request `{}` for {} `{}` (`{}`), which make-list generation does not cover",
-                resource.path, resource.kind, resource.entity_id, resource.target_type
+                "battle response makes the client request `{}` for {} `{}` (`{}`, from {}), which make-list generation does not cover",
+                resource.path,
+                resource.kind,
+                resource.entity_id,
+                resource.target_type,
+                resource.protocol_source.as_deref().unwrap_or("api_eSlot"),
             ),
             Some(resource.path),
         );
@@ -953,6 +957,11 @@ fn push_uncovered_resource_findings(report: &mut BattleValidationReport) {
 }
 
 /// Derive the slot resources one equipment id makes the client request.
+///
+/// `name_plate` says whether the client will also ask for this id's
+/// `btxt_flat` name plate. Only display equipment triggers that, and the
+/// carrier cut-in triggers it only at night, so it cannot be decided from the
+/// target-type table alone.
 fn push_slotitem_resources(
     report: &mut BattleValidationReport,
     manifest: &ApiManifest,
@@ -960,6 +969,7 @@ fn push_slotitem_resources(
     slot_id: i64,
     field: &str,
     protocol_source: Option<&str>,
+    name_plate: bool,
 ) {
     if manifest.find_slotitem(slot_id).is_none() {
         push_error(
@@ -973,6 +983,9 @@ fn push_slotitem_resources(
     }
 
     for target_type in targets.expected.iter() {
+        if target_type == "btxt_flat" && !name_plate {
+            continue;
+        }
         report.expected_resources.push(ExpectedBattleResource {
             kind: "slotitem".to_string(),
             entity_id: slot_id,
@@ -996,19 +1009,79 @@ fn push_slotitem_resources(
     }
 }
 
-/// Display equipment the response puts on screen. `CutinAttack` asks for
-/// `si_list[0]`'s `btxt_flat` on every shelling attack, so these ids reach the
-/// CDN exactly like the enemy loadout does.
+/// Day-battle attack type whose display equipment reaches `PreloadCutinKubo`,
+/// which loads a name plate only at night.
+const CARRIER_CUTIN_ATTACK_TYPE: i64 = 7;
+
+/// Display equipment ids per phase, split by whether the client will also ask
+/// for each id's name plate.
+///
+/// `CutinAttack`, `CutinDouble` and the destroyer cut-in preloads all request
+/// `btxt_flat` for the equipment they draw, with no guard. `PreloadCutinKubo`
+/// -- the carrier cut-in -- requests it only when `night == 1`, so the same id
+/// is a name-plate request at night and not one by day.
+fn collect_display_slot_ids(
+    object: &serde_json::Map<String, serde_json::Value>,
+    fields: &[&str],
+    night: bool,
+) -> BTreeMap<String, BTreeMap<i64, bool>> {
+    let mut by_source: BTreeMap<String, BTreeMap<i64, bool>> = BTreeMap::new();
+
+    for field in fields.iter().copied() {
+        let Some(phase) = object.get(field).and_then(serde_json::Value::as_object) else {
+            continue;
+        };
+        let Some(si_list_rows) = phase.get("api_si_list").and_then(serde_json::Value::as_array)
+        else {
+            continue;
+        };
+        let attack_types = phase
+            .get("api_at_type")
+            .and_then(serde_json::Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let entry = by_source.entry(format!("{field}.api_si_list[*][*]")).or_default();
+
+        for (row_index, row) in si_list_rows.iter().enumerate() {
+            let Some(slot_ids) = row.as_array() else {
+                continue;
+            };
+            let carrier_cutin = attack_types
+                .get(row_index)
+                .and_then(serde_json::Value::as_i64)
+                .is_some_and(|at_type| at_type == CARRIER_CUTIN_ATTACK_TYPE);
+            let name_plate = night || !carrier_cutin;
+
+            // CI / special-attack entries serialize as JSON strings (e.g. "22");
+            // normal-attack entries are integers. Accept both.
+            for slot_id in slot_ids.iter().filter_map(|value| {
+                value.as_i64().or_else(|| value.as_str().and_then(|s| s.parse::<i64>().ok()))
+            }) {
+                if slot_id > 0 {
+                    let seen = entry.entry(slot_id).or_insert(name_plate);
+                    *seen = *seen || name_plate;
+                }
+            }
+        }
+    }
+
+    by_source
+}
+
+/// Display equipment the response puts on screen. This is the only place a name
+/// plate comes from: `api_eSlot` is the enemy loadout, which drives stats and
+/// never a text image.
 fn push_display_slotitem_resources(
     object: &serde_json::Map<String, serde_json::Value>,
     report: &mut BattleValidationReport,
     manifest: &ApiManifest,
     targets: &SlotitemResourceTargets,
     hougeki_fields: &[&str],
+    night: bool,
 ) {
-    for (protocol_source, slot_ids) in collect_hougeki_slot_ids(object, hougeki_fields) {
+    for (protocol_source, slot_ids) in collect_display_slot_ids(object, hougeki_fields, night) {
         let field = protocol_source.split('.').next().unwrap_or_default().to_string();
-        for slot_id in slot_ids {
+        for (slot_id, name_plate) in slot_ids {
             push_slotitem_resources(
                 report,
                 manifest,
@@ -1016,6 +1089,7 @@ fn push_display_slotitem_resources(
                 slot_id,
                 &field,
                 Some(&protocol_source),
+                name_plate,
             );
         }
     }
@@ -1223,6 +1297,7 @@ pub fn validate_day_battle_response<T: Serialize>(
                 slot_id,
                 "api_eSlot",
                 None,
+                false,
             );
         }
     }
@@ -1233,6 +1308,7 @@ pub fn validate_day_battle_response<T: Serialize>(
         manifest,
         &slot_target_types,
         DAY_BATTLE_SI_LIST_FIELDS,
+        false,
     );
 
     report.expected_resources = dedupe_resources(report.expected_resources);
@@ -1514,6 +1590,7 @@ pub fn validate_night_battle_response<T: Serialize>(
                 slot_id,
                 "api_eSlot",
                 None,
+                false,
             );
         }
     }
@@ -1524,6 +1601,7 @@ pub fn validate_night_battle_response<T: Serialize>(
         manifest,
         &slot_target_types,
         NIGHT_BATTLE_HOUGEKI_FIELDS,
+        true,
     );
 
     report.expected_resources = dedupe_resources(report.expected_resources);
@@ -2246,6 +2324,7 @@ mod tests {
         let manifest = build_manifest_with_enemy();
         let mut response = build_valid_day_battle_response();
         response["api_eSlot"] = serde_json::json!([[42, -1, -1, -1, -1]]);
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([42, -1]));
         let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
 
         assert!(report.expected_resources.iter().any(|resource| {
@@ -2254,18 +2333,72 @@ mod tests {
                 && resource.target_type == "item_up"
         }));
         // `btxt_flat` is expected, not a candidate: `CutinAttack` requests it
-        // for `si_list[0]` on plain shelling, not only on cut-ins, so a warning
-        // would leave the motivating incident path permanently green.
+        // for the equipment it draws on plain shelling, not only on cut-ins, so
+        // a warning would leave the motivating incident path permanently green.
         assert!(report.expected_resources.iter().any(|resource| {
             resource.kind == "slotitem"
                 && resource.entity_id == 42
                 && resource.target_type == "btxt_flat"
+                && resource.protocol_source.is_some()
         }));
         assert!(report.candidate_resources.iter().any(|resource| {
             resource.kind == "slotitem"
                 && resource.entity_id == 42
                 && resource.target_type == "item_on"
         }));
+    }
+
+    /// The enemy loadout drives stats; nothing in the client turns it into a
+    /// name plate. Deriving one there reports gaps for equipment no request
+    /// will ever be made for.
+    #[test]
+    fn validate_day_battle_response_derives_no_name_plate_from_the_enemy_loadout() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_eSlot"] = serde_json::json!([[102, -1, -1, -1, -1]]);
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([-1, -1]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(
+            !report.expected_resources.iter().any(|resource| resource.target_type == "btxt_flat"),
+            "{:?}",
+            report.expected_resources
+        );
+        assert!(report.findings.is_empty(), "{:?}", report.findings);
+    }
+
+    /// `PreloadCutinKubo` loads the name plate only when `night == 1`, so the
+    /// same carrier cut-in derives one at night and none by day.
+    #[test]
+    fn carrier_cutin_derives_a_name_plate_only_at_night() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+
+        let mut day = build_valid_day_battle_response();
+        day["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        let mut hougeki = si_list_hougeki(serde_json::json!(["102", "42", "-1"]));
+        hougeki["api_at_type"] = serde_json::json!([7]);
+        day["api_hougeki1"] = hougeki;
+        let report = validate_day_battle_response(&manifest, &day, &assets).unwrap();
+        assert!(
+            !report.expected_resources.iter().any(|resource| resource.target_type == "btxt_flat"),
+            "{:?}",
+            report.expected_resources
+        );
+
+        let mut night = build_valid_night_battle_response();
+        night["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        night["api_hougeki"]["api_si_list"] = serde_json::json!([["42", "-1"], [-1, -1]]);
+        let report = validate_night_battle_response(&manifest, &night, &assets).unwrap();
+        assert!(
+            report.expected_resources.iter().any(|resource| {
+                resource.entity_id == 42 && resource.target_type == "btxt_flat"
+            }),
+            "{:?}",
+            report.expected_resources
+        );
     }
 
     // -----------------------------------------------------------------------

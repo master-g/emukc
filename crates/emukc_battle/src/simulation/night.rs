@@ -2361,20 +2361,25 @@ mod display_narrowing_tests {
         assert!(!ids.contains(&zuiun_id), "連撃 must not display a seaplane bomber: {ids:?}");
     }
 
-    /// A plain attack is the one case where the seaplane bomber is right: the
-    /// client's `_getNormalAttackType` reads the equipment and plays the
-    /// 水上爆撃機 animation from it.
+    /// A plain attack names the gun, not the seaplane bomber. `_getNormalAttackType`
+    /// does not read `api_si_list` to pick a 水上爆撃機 animation -- for an
+    /// ordinary 航空戦艦 it returns 0 and the client goes to
+    /// `PhaseAttackNormal`, which loads `api_si_list[0]`'s name plate. The
+    /// seaplane bomber has none, which is the archived `102 -> btxt_flat`
+    /// incident.
     #[test]
-    fn normal_attack_still_shows_the_seaplane_bomber() {
+    fn normal_attack_names_the_gun_not_the_seaplane_bomber() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
         let ship = seaplane_bomber_battleship(&codex);
 
         let day = crate::targeting::day_attack_display_ids(&codex, &ship, false);
         let night = night_attack_display_ids(&codex, &ship, NightAttackType::Normal);
 
-        assert_eq!(day, vec![zuiun_id]);
-        assert_eq!(night, vec![zuiun_id]);
+        assert_eq!(day, vec![main_gun_id]);
+        assert_eq!(night, vec![main_gun_id]);
+        assert!(!day.contains(&zuiun_id) && !night.contains(&zuiun_id));
     }
 
     #[test]
@@ -2410,13 +2415,12 @@ mod display_narrowing_tests {
         assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![main_gun_id]);
     }
 
-    /// R6 for R3: proof the narrowing is not vacuous. The broad day-surface set
-    /// -- what 連撃 used to fall back to -- still admits 水上爆撃機 and
-    /// 艦上攻撃機. Widen either display path back to it and the seaplane bomber
-    /// returns to the `si_list`, taking every equipment type with no
-    /// `btxt_flat` file with it.
+    /// R6 for R3: proof the narrowing is not vacuous. A ship whose only
+    /// equipment has no name plate names nothing, on every day display path.
+    /// Widen any of them back to a set that admits 水上爆撃機 or 艦上攻撃機 and
+    /// this returns an id the client would 404 on.
     #[test]
-    fn surface_display_set_would_readmit_seaplane_bombers() {
+    fn a_ship_with_only_plate_less_equipment_names_nothing() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
         let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
@@ -2426,19 +2430,13 @@ mod display_narrowing_tests {
         input.ship.api_onslot = [1, 0, 0, 0, 0];
         let ship = BattleRuntimeShip::from(input);
 
-        assert!(
-            crate::targeting::is_day_surface_display_type(KcSlotItemType3::SeaBasedBomber),
-            "the broad set admits it, which is why 連撃 must not use that set"
-        );
+        assert!(!crate::targeting::is_day_surface_display_type(KcSlotItemType3::SeaBasedBomber));
+        assert_eq!(crate::targeting::day_attack_display_ids(&codex, &ship, false), vec![-1]);
+        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![-1]);
         assert_eq!(
-            crate::targeting::day_attack_display_ids(&codex, &ship, false),
-            vec![zuiun_id],
-            "the broad path still returns it"
+            night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack),
+            vec![-1]
         );
-        assert_eq!(
-            day_gunnery_display_ids(&codex, &ship, 2),
-            vec![-1],
-            "the gunnery path reports no equipment rather than the wrong equipment"
-        );
+        assert!(zuiun_id > 0, "the ship really does carry something");
     }
 }

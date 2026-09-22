@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-20T15:05:34.138Z",
+  "generatedAt": "2026-09-22T08:18:10.561Z",
   "scriptVersion": "6.3.5.0",
   "summary": {
     "shipRuleCount": 2,
@@ -12,7 +12,8 @@
   },
   "resourceManifest": {
     "version": 2,
-    "generatedAt": "2026-09-20T15:05:33.916Z",
+    "generatedAt": "2026-09-22T08:18:10.216Z",
+    "scriptVersion": "6.3.5.0",
     "pathRules": {
       "shipDamageVariants": {
         "banner": [
@@ -379,6 +380,11 @@
         565,
         566,
         571,
+        572,
+        579,
+        582,
+        583,
+        584,
         1501,
         1502,
         1503,
@@ -11166,7 +11172,7 @@
   },
   "resourceCategories": {
     "version": 1,
-    "generatedAt": "2026-09-20T15:05:33.011Z",
+    "generatedAt": "2026-09-22T08:18:08.445Z",
     "scriptVersion": "6.3.5.0",
     "summary": {
       "shipTargetTypeCount": 36,

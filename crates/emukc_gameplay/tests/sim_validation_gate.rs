@@ -18,7 +18,8 @@
 use std::sync::Arc;
 
 use emukc_bootstrap::prelude::{
-    load_repo_battle_knowledge_assets, validate_day_battle_response, validate_night_battle_response,
+    BattleValidationFindingKind, load_repo_battle_knowledge_assets, validate_day_battle_response,
+    validate_night_battle_response,
 };
 use emukc_crypto::rng;
 use emukc_db::prelude::new_mem_db;
@@ -119,6 +120,82 @@ async fn gate_bites_on_corrupted_payload() {
 
     let report = validate_day_battle_response(&context.codex.manifest, &raw, &assets).unwrap();
     assert!(report.has_errors(), "corrupted payload must fail the gate");
+}
+
+/// Drive one preset to a day battle and hand back the serialized response, for
+/// the inverse tests to corrupt.
+async fn day_battle_payload(preset: &Preset) -> (Ctx, serde_json::Value) {
+    let context = mock_context().await;
+    let pid = new_profile(&context).await;
+    apply_scenario(&context, pid, &(preset.build)()).await.unwrap();
+
+    rng::seed(SEEDS[0]);
+    context.start_sortie(pid, 1, preset.maparea, preset.mapinfo).await.unwrap();
+    let battle = context.sortie_battle(pid, 1).await.unwrap();
+    rng::reseed_from_entropy();
+
+    let raw = serde_json::to_value(&battle).unwrap();
+    (context, raw)
+}
+
+/// The attack-type assertion has teeth: 7 is 空母カットイン, legal in day
+/// shelling and a `throw new Error()` in `PhaseAttackDanchaku`, which is where
+/// opening ASW sends everything it does not dispatch itself.
+#[tokio::test]
+async fn gate_bites_on_an_attack_type_the_client_rejects() {
+    let assets = load_repo_battle_knowledge_assets().unwrap();
+    let preset = Preset::lookup("opening_asw").expect("opening_asw preset");
+
+    let (context, mut raw) = day_battle_payload(preset).await;
+    assert!(
+        !raw["api_opening_taisen"].is_null(),
+        "the opening_asw preset must produce an opening ASW phase to corrupt"
+    );
+    raw["api_opening_taisen"]["api_at_type"][0] = serde_json::json!(7);
+
+    let report = validate_day_battle_response(&context.codex.manifest, &raw, &assets).unwrap();
+    assert!(
+        report.findings.iter().any(|finding| {
+            finding.kind == BattleValidationFindingKind::UnacceptedAttackType
+                && finding.field.as_deref() == Some("api_opening_taisen.api_at_type")
+        }),
+        "expected an UnacceptedAttackType finding, got: {:#?}",
+        report.findings,
+    );
+}
+
+/// The coverage assertion has teeth: a display equipment id that exists in the
+/// manifest but has no `btxt_flat` file is exactly the archived
+/// `102 -> btxt_flat` incident, and it must be an error rather than a
+/// warning.
+#[tokio::test]
+async fn gate_bites_on_display_equipment_with_no_name_plate() {
+    const UNCOVERED_SLOTITEM_ID: i64 = 102; // 九八式水上偵察機(夜偵)
+    let assets = load_repo_battle_knowledge_assets().unwrap();
+    let preset = Preset::lookup("gunnery_cutin").expect("gunnery_cutin preset");
+
+    let (context, mut raw) = day_battle_payload(preset).await;
+    assert!(
+        context.codex.manifest.find_slotitem(UNCOVERED_SLOTITEM_ID).is_some(),
+        "the injected id must be a real equipment, so only coverage can reject it"
+    );
+    let si_list = raw["api_hougeki1"]["api_si_list"]
+        .as_array_mut()
+        .expect("day shelling must carry an si_list to corrupt");
+    si_list[0] = serde_json::json!([UNCOVERED_SLOTITEM_ID]);
+
+    let report = validate_day_battle_response(&context.codex.manifest, &raw, &assets).unwrap();
+    assert!(
+        report.findings.iter().any(|finding| {
+            finding.kind == BattleValidationFindingKind::ProtocolSuspicion
+                && finding
+                    .resource_path
+                    .as_deref()
+                    .is_some_and(|path| path.contains("btxt_flat/0102_"))
+        }),
+        "expected an uncovered-resource finding, got: {:#?}",
+        report.findings,
+    );
 }
 
 /// Night-path gate (plan 2026-06-15-002 U2): drive a real night battle for every
