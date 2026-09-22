@@ -49,12 +49,13 @@ Current verification baseline:
   按 tab 过滤且空 tab 发 `null`、官方发 min 值、`base_air_corps` 已 404——方法与全部陷阱见
   `docs/solutions/best-practices/live-api-investigation.md`，脚本 `scripts/fetch_live_api.py`，
   快照 `z/snapshot/2026-09-22/`。签名实现 `emukc_crypto::PortApiKey`（5 组向量 + 真机验证）。
-- [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记：客户端方法就叫 `isShield`，实现是
-  `damage % 1 != 0`，且**两条路径都读**——逐次的 `api_damage`/`api_fydam*` 与按舰累计的
-  `api_fdam`/`api_edam`（`hasShield_f/e` 扫后者）。官方实测把标记放在累计侧，我们曾把那七处声明成
-  `Vec<i64>`（已修）。かばう 是转移伤害不是减伤，护卫替旗舰挨打被击沉是正常结果。
-- [2026-09-22] 基地航空隊配属消耗实测：一式陸攻(169) 空槽配满 18 機扣 216 ボーキ = **每機 12**，
-  是否随机种变化未测。我们实现的「撤下即 0/0 清空」是错的。
+- [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
+  逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
+  结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
+- [2026-09-22] 基地航空隊的两处消耗都有出处，不必本项目定值：配属 = `api_mst_slotitem.api_cost`
+  × 配属機数（一式陸攻 `api_cost`=12，与实测 18 機扣 216 ボーキ 吻合）；补给 = `燃料 喪失機数×3`、
+  `ボーキ 喪失機数×5`，不随机种变化（wikiwiki 基地航空隊页 + note.com 同系数算例）。
+  未决：wikiwiki 说乘数 = 槽容量（偵察 4 / 大型陸上機 9 / 其他 18），但我们给大型飛行艇的容量是 1。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（抽 `kcsapi/mod.rs` 的
   `nest("/prefix", ..)` 加子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），missing 是
   「`docs/apilist.txt` 的 136 减 router」；两者不互补——`remodel_slot_recover` 这类不在上游参考里的
@@ -187,9 +188,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 按真实响应修好 `set_plane` 撤下的两阶段状态机：撤下把行改成 `Reassigning`（保留
-  `api_slotid`，不再即时删行），只有 `Assigned` 才带 `api_count`/`api_cond`，半径也只数 `Assigned`；
-  `get_airbases` 读取时清算 relocation。配置転換中的中隊可以再配属到任意基地。
+- [2026-09-22] 按真实响应修好 `set_plane` 撤下的两阶段状态机（`Reassigning` 保留 `api_slotid`，
+  只有 `Assigned` 带 count/cond 并计入半径，读基地时清算），并取到 U4 的两处消耗系数。
 - 更早：战斗协议语义闸门收口 13 个提交已进 `main`；`battle_rules.rs` 拆成 `{attack_types,resources}`；
   jukebox 按官方 78 条重写；真实演习响应喂 `battle validate` 零假阳性并抓出 `api_fdam`/`api_edam`
   错用 `Vec<i64>` 的真 bug（`a4285ba5`）。实况调查方法见
@@ -198,9 +198,9 @@ Current verification baseline:
 
 ## Next Session
 
-- [2026-09-22] 基地航空隊计划 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
-  按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；取到后**同时**接上
-  `set_plane` 的配属消耗（实测每機 12 ボーキ）。再往后 U5、U6 收尾。
+- [2026-09-22] 基地航空隊计划 U4（`set_action`、`change_name`、`supply`）**已不再阻塞**：两处消耗系数
+  都取到了（见「已验证的事实」与计划的「前置取数」节），直接实现三个端点并**同时**接上 `set_plane`
+  的配属消耗。再往后 U5、U6 收尾。
 - 配置転換的两处未决（都缺证据，别凭空补）：settle 触发条件只测出上界（18:03 state 2 → 18:16 归零），
   现在按「下次读基地」清算，拿到时长来源再换成计时器（要给 `plane_info` 加时间戳列）；
   被顶掉的中隊官方是否也进 relocation 未知——客户端侧 `addAirUnitRelocation` 会自己标。

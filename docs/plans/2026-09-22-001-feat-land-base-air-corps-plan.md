@@ -166,15 +166,20 @@ execution: code
 - `supply`（`:2907-2915`）：按 `api_squadron_id` 列表补齐不足機数，扣燃料与ボーキサイト，
   响应 `api_after_fuel` / `api_after_bauxite` / 更新后的 `api_plane_info`。
 
-**前置取数（U4 唯一不齐的点）** 补给消耗系数上游不公开：apilist 只写响应字段，
-客户端也没有消耗预览（`grep` 过 `getSupplyCost` / `calcSupply` 等，零命中——
-它只读响应里的 after 值）。两条候选来源，按序试：
-①  wikiwiki 基地航空隊页的補給消費表；②  `KC3Kai/kancolle-replay` 的 `js/kcsim.js`
-（`PROJECT_MEMORY` 已确认它是独立数据链）。
-两条都取不到就停在 U4 并单列，**不要编一个没有出处的公式**。若最终由本项目定值，
-按 `recover_success_rate` 的先例处理：常量放 `emukc_model` 的 codex 模块、
-注释写明是本项目选值、加回归测试；若落到 `Default` impl 上则触发
-Balance Defaults Policy（独立提交、`feat(balance):`、正文列旧值）。
+**前置取数（已解决，2026-09-22）** 补给消耗系数取到了，不必再由本项目定值：
+
+- **补给**：`燃料 = 喪失機数 × 3`、`ボーキ = 喪失機数 × 5`，**不随机种变化**。
+  来源一 wikiwiki 基地航空隊页「補充の際に消費される燃料とボーキサイトの量は
+  それぞれ以下の式で表され、機種には依存しない模様」；来源二
+  <https://note.com/sukumo_inaudu/n/n3b6ad98713c2> 给出同一组系数与算例
+  （15/18 的槽补满 → 燃料 9、ボーキ 15）。
+- **配属**：每機消耗就是 manifest 的 `api_mst_slotitem.api_cost`。一式陸攻(169)
+  的 `api_cost` = 12，与真机实测的「18 機扣 216 ボーキ = 每機 12」完全吻合，
+  所以配属消耗 = `api_cost × 配属機数`，没有待定常量。
+
+**一处未决**：wikiwiki 把配属总额写成「偵察機系 ×4 / 大型陸上機 ×9 / その他 ×18」，
+即乘数等于槽位容量；但我们的 `squadron_capacity` 给 大型飛行艇(type 41) 的是 1 而非 4。
+只实测过一式陸攻这一种，接消耗时先按 `squadron_capacity` 走，另找证据校正大型飛行艇。
 
 **完成标志** 三个端点各有端到端测试；`supply` 的消耗有出处或明确标注为项目定值
 并带回归测试。
