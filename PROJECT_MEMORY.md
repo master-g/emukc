@@ -188,23 +188,21 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 按真实响应修好 `set_plane` 撤下的两阶段状态机（`Reassigning` 保留 `api_slotid`，
-  只有 `Assigned` 带 count/cond 并计入半径，读基地时清算），并取到 U4 的两处消耗系数。
-- 更早：战斗协议语义闸门收口 13 个提交已进 `main`；`battle_rules.rs` 拆成 `{attack_types,resources}`；
-  jukebox 按官方 78 条重写；真实演习响应喂 `battle validate` 零假阳性并抓出 `api_fdam`/`api_edam`
-  错用 `Vec<i64>` 的真 bug（`a4285ba5`）。实况调查方法见
-  `docs/solutions/best-practices/live-api-investigation.md`，快照 `z/snapshot/2026-09-22/`。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警（基线 17 条未动）。
+- [2026-09-22] 地图路由调研 + 三处修复：①`assemble.rs` 的 label overlay 查不到变体时**静默跳过**，
+  7-3 因此零路由（kcdata 只给空键变体，wikiwiki 键是 `pre/post_p_unlock`，要等 normalize 后才存在）；
+  改为挂起后补，7-3 恢复 47+139 条，全局 1905→2091。②路由的 ドラム缶 按件数算，原文是「搭載艦の隻数」，
+  改为按舰计（远征那侧按件数是对的，未动）。③`build_regular_prerequisites` 标注为本项目近似。
+- 更早：`set_plane` 撤下两阶段状态机、U4 消耗系数、`DamageCell` 修复、jukebox 78 条。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；改动文件 clippy 零告警。
 
 ## Next Session
 
-- [2026-09-22] 基地航空隊计划 U4（`set_action`、`change_name`、`supply`）**已不再阻塞**：两处消耗系数
-  都取到了（见「已验证的事实」与计划的「前置取数」节），直接实现三个端点并**同时**接上 `set_plane`
-  的配属消耗。再往后 U5、U6 收尾。
-- 配置転換的两处未决（都缺证据，别凭空补）：settle 触发条件只测出上界（18:03 state 2 → 18:16 归零），
-  现在按「下次读基地」清算，拿到时长来源再换成计时器（要给 `plane_info` 加时间戳列）；
-  被顶掉的中隊官方是否也进 relocation 未知——客户端侧 `addAirUnitRelocation` 会自己标。
-  `api_port/port` 的 `api_base_convert_slot` 仍未实现。
-- 战斗侧积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，官方是一条记录带三个目标。
-  取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
-- 更早积压未变：対空/阵形建模先做「補正表能否解码」spike；审计集 013 等上游版本；敌联合 5 端点卡在数据不存在。
+- [2026-09-22] **补 ドラム缶 / 大発動艇系 分歧数据卡在结构问题上**：涉及 2-5、5-3、5-4、5-5 共约 7 条
+  （原文见 `.data/temp/wikiwiki_map/extracted/*.txt` 的 ROUTE TABLE 段）。但
+  `wikiwiki_map_catalog.json` 的生成器（曾经的 `parser/wikiwiki_map/html.rs`）已被移除，本地没有
+  任何 agent JSON 能再生它（md5 全不匹配），管线也没有人工修正入口（`wikiwiki_overlay: None`）。
+  需要先定：手改大资产，还是新增一个受跟踪的 curated overlay 输入。
+- 基地航空隊 U4（`set_action`、`change_name`、`supply`）已不阻塞，两处消耗系数都有出处。
+- 5-6 ラバウル方面海域 有 kcdata 拓扑但零路由（wikiwiki 无此页），属数据缺口。
+- 战斗侧积压：特殊攻击 `api_at_type = 100` 按每参战舰发一条，官方是一条带三个目标，见
+  `docs/battle/rules.md` Follow-up。更早积压未变：対空/阵形 spike；审计集 013 等上游版本。

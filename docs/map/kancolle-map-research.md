@@ -8,7 +8,7 @@
 - `kc_data` 现在主要承担两类职责：
 	- 补 wikiwiki 没覆盖到的结构化地图元数据
 	- 在 wikiwiki 起点规则缺失时，为 `cell_0` 提供结构化 start fallback
-- 当前 asset 状态是 **130 maps / 131 variants**；其中 **7** 个 variant 仍带 warning，`Unknown = 4`、`SourceUnknown = 0`。
+- 成品 catalog 状态（2026-09-22 实测）：**37 maps / 38 variants / 2091 条路由规则**，`Unknown` 与 `SourceUnknown` 均为 **0**。
 - map 侧最明显的 “起点后直接飞到 A” 问题已经修复；battle 侧的主要 fidelity 风险已转向**敌方属性/装备数据源不足**。
 
 ## Current Data Path
@@ -55,17 +55,48 @@ sortie runtime 现在直接消费：
 
 ### Coverage snapshot
 
-- maps: **130**
-- variants: **131**
-- variants with warnings: **7**
-- `Unknown` predicates: **4**
-- `SourceUnknown` predicates: **0**
-- `structural_start_fallback`: **3**
+以 `build_final_map_catalog_from_repo_assets(".data/temp", &manifest)` 实测，2026-09-22：
 
-结论：
+- maps: **37**（1-1…7-5 共 36 张，加上只有 kcdata 拓扑的 5-6）
+- 路由规则: **2091**
+- `Unknown` / `SourceUnknown` predicates: **0**
+- topology warnings: **2**
 
-- 常规图的**起点 fidelity 问题已经从系统性缺陷降到少量 warning / prose 覆盖问题**
-- 剩余 map fidelity 的主要工作已经不是“补 start routing”，而是“继续减少 unsupported route prose / predicate”
+数字要这样读：
+
+- **规则条数不等于覆盖率。** wikiwiki 的路由是 label 键的 overlay，套到 kcdata 拓扑上时一个 label
+  可能对应多个 cell，规则会扇出。资产里 7-3 是 116 条，成品里是 186 条，差额全来自扇出。
+- **5-6 ラバウル方面海域 有拓扑但零路由规则**，因为 wikiwiki 没有这张图的页面。这是数据缺口，
+  不是管线缺陷——它和下面那条 7-3 的性质完全不同。
+
+### 分歧条件的真实覆盖
+
+按 `.data/temp/wikiwiki_map/extracted/*.txt` 的 `ROUTE TABLE` 段统计（36 张图），再与成品 catalog 对照：
+
+| 条件族 | 原文出现 | 涉及图 | catalog 状态 |
+| --- | --- | --- | --- |
+| 索敵 (LoS) | 73 | 14 | 已覆盖 |
+| 高速/低速 (Speed) | 73 | 19 | 已覆盖 |
+| 経由/通過 (VisitedNode) | 6 | 4-5, 5-5, 7-4 | 已覆盖（11 条，逐图对得上） |
+| 電探 (EquipmentCount) | 3 | 3-2 | 已覆盖（3 条） |
+| **ドラム缶** | **5** | **2-5, 5-3, 5-4, 5-5** | **缺，全局 0 条** |
+| **大発動艇系** | **4** | **5-3, 5-4, 5-5** | **缺** |
+
+注意：直接 grep 整份文本会把 ドラム缶 的命中放大到 25 张图——那些几乎全在 ENEMY TABLE 的
+搬运加成里（如 2-4 的「燃料+25～60:ドラム缶(+2)」），不是分歧条件。只能在 `ROUTE TABLE` 段内统计。
+
+补这批数据卡在一个结构问题上：`wikiwiki_map_catalog.json` 的生成器（曾经的
+`parser/wikiwiki_map/html.rs`）已经从仓库里移除，`.data/temp/wikiwiki_map/` 下没有任何一份
+agent JSON 能再生出当前资产（md5 全不匹配），而管线也没有「人工修正」这种输入位
+（`load_repo_source_set` 里 `wikiwiki_overlay: None`，overlay 全靠从大资产自动推导）。
+
+### 地图开放条件是公式，不是数据
+
+`build_regular_prerequisites()` 按两条结构规则生成 62 条前置关系。**没有任何上游来源**：
+`api_mst_mapinfo` 只有 `api_level` / `api_required_defeat_count` / `api_sally_flag`，
+wikiwiki 抽取文本 36 份里 0 份含开放条件。它对每个海域生成 `2..=9` 号图，所以约一半条目指向
+不存在的地图——无害（级联按 profile 已有的 `map_record` 行查），但**条目数不能当覆盖率读**。
+详见 `codex/map.rs::build_regular_prerequisites` 的文档注释。
 
 ## Enemy Data and Battle Integration
 

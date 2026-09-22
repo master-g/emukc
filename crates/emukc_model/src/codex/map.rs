@@ -516,11 +516,26 @@ fn compose_map_id(maparea_id: i64, mapinfo_no: i64) -> i64 {
 
 /// Build the regular (non-event) map prerequisite table.
 ///
-/// Rules:
+/// **This is a project-chosen approximation, not game data.** Nothing upstream
+/// publishes what unlocks a map: `api_mst_mapinfo` carries only `api_level`,
+/// `api_required_defeat_count` and `api_sally_flag`, and the wikiwiki captures
+/// under `.data/temp/wikiwiki_map/extracted` hold route, enemy and drop tables
+/// with no unlock section at all. The two structural rules below were inferred
+/// from the shape of the map list, so treat the result as a plausible default
+/// rather than evidence:
+///
 /// - 1-1 has no prerequisite (always unlocked)
 /// - Same area sequential: N-M requires N-(M-1) cleared
 /// - Cross-area: clearing area boss (N-4) unlocks (N+1)-1
 /// - EO maps (N-5, N-6, ...) require the preceding map in the same area
+///
+/// Two consequences worth knowing before relying on it. The table is generated
+/// for map numbers `2..=9` in every area, so roughly half of its entries name
+/// maps that do not exist — harmless, because
+/// `check_and_unlock_dependencies_impl` joins against the profile's own map
+/// records, but it does mean the entry count says nothing about coverage. And
+/// anything the real game gates on something other than the previous map in the
+/// same area is simply not represented here.
 pub(crate) fn build_regular_prerequisites() -> HashMap<i64, i64> {
     let mut prereqs = HashMap::new();
 
