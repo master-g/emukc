@@ -491,6 +491,71 @@ impl Ctx {
         .await
     }
 
+    /// `api_req_combined_battle/airbattle` — 連合艦隊 航空戦.
+    ///
+    /// One URL for all three combined types (`docs/apilist.txt:2946`); an
+    /// aerial node has no shelling rounds to order, so there is nothing for a
+    /// `_water` twin to differ on.
+    pub async fn sortie_combined_airbattle(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<DayBattleResponse, GameplayError> {
+        sortie_battle_impl(
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
+            profile_id,
+            formation_id,
+            BattleType::AirBattle,
+            SortieBattleEndpoint::CombinedAnyType,
+        )
+        .await
+    }
+
+    /// `api_req_combined_battle/ld_airbattle` — 連合艦隊 長距離空襲戦
+    /// (`docs/apilist.txt:3287`).
+    pub async fn sortie_combined_ld_airbattle(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<DayBattleResponse, GameplayError> {
+        sortie_battle_impl(
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
+            profile_id,
+            formation_id,
+            BattleType::LdAirBattle,
+            SortieBattleEndpoint::CombinedAnyType,
+        )
+        .await
+    }
+
+    /// `api_req_combined_battle/ld_shooting` — 連合艦隊 敵レーダー射撃
+    /// (`docs/apilist.txt:3833`).
+    ///
+    /// Upstream notes the friendly formation is fixed to 第四警戒航行序列 (14)
+    /// on these cells. That is the client's choice of what to send, not a
+    /// server-side rule, so the formation is taken as given — exactly as the
+    /// single-fleet entry does.
+    pub async fn sortie_combined_ld_shooting(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<DayBattleResponse, GameplayError> {
+        sortie_battle_impl(
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
+            profile_id,
+            formation_id,
+            BattleType::LdShooting,
+            SortieBattleEndpoint::CombinedAnyType,
+        )
+        .await
+    }
+
     pub async fn sortie_battle_result(
         &self,
         profile_id: i64,
@@ -660,10 +725,39 @@ impl Ctx {
         })
     }
 
+    /// `api_req_battle_midnight/sp_midnight` — a single fleet's night-start cell.
     pub async fn sortie_sp_midnight_battle(
         &self,
         profile_id: i64,
         formation_id: i64,
+    ) -> Result<NightBattleResponse, GameplayError> {
+        self.sp_midnight_battle_impl(profile_id, formation_id, SortieBattleEndpoint::Single).await
+    }
+
+    /// `api_req_combined_battle/sp_midnight` — a combined fleet's night-start cell.
+    ///
+    /// Per `docs/apilist.txt:3159` the response inherits every member of
+    /// `api_req_combined_battle/midnight_battle`, so it is the same wire shape as
+    /// [`sortie_midnight_battle`](Self::sortie_midnight_battle): 第2艦隊 in the
+    /// `_combined` arrays, 第1艦隊 in the plain ones.
+    pub async fn sortie_combined_sp_midnight_battle(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<NightBattleResponse, GameplayError> {
+        self.sp_midnight_battle_impl(
+            profile_id,
+            formation_id,
+            SortieBattleEndpoint::CombinedAnyType,
+        )
+        .await
+    }
+
+    async fn sp_midnight_battle_impl(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+        endpoint: SortieBattleEndpoint,
     ) -> Result<NightBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
@@ -674,17 +768,9 @@ impl Ctx {
             .with_profile_lock(profile_id, async {
                 let tx = db.begin().await?;
 
-                // A combined night-start cell is `api_req_combined_battle/sp_midnight`,
-                // which this build does not serve; running the single-fleet path
-                // would silently drop 第2艦隊 from the battle and the result. The
-                // check reads the profile directly so it does not also depend on
-                // whether fleet 2 is in a sortie-ready state.
-                if find_profile(&tx, profile_id).await?.combined_type > 0 {
-                    return Err(GameplayError::WrongType(
-                        "combined night-start battle is not implemented".to_string(),
-                    ));
-                }
                 let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
+                setup.validate_endpoint(endpoint)?;
+                setup.validate_formation(formation_id)?;
                 let mut rng = ProductionRng;
                 let (session, night_session) = run_sp_midnight_battle(
                     store,
@@ -699,12 +785,22 @@ impl Ctx {
 
                 tx.commit().await?;
                 let _ = store.insert_active(profile_id, active);
-                Ok(build_night_response(
+
+                // Only 第2艦隊 fought, so the packet's friendly arrays are its
+                // alone — the same split `sortie_midnight_battle` reports after a
+                // day battle.
+                let escort_start = escort_deck_start(&session.friendly);
+                let response = build_night_response(
                     session.deck_id,
-                    &session.friendly,
+                    &session.friendly[escort_start..],
                     &session.enemy,
                     night_session.packet,
-                ))
+                );
+                Ok(if escort_start == 0 {
+                    response
+                } else {
+                    response.with_main_deck(&session.friendly[..escort_start])
+                })
             })
             .await
     }

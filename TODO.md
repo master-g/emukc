@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-21: 122 implemented, 26 missing.
+> holds the roadmap. Last cross-checked 2026-09-21: 126 implemented, 22 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -48,13 +48,14 @@
 - [ ] **Battle System** (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_combined_battle/*`)
   - [x] `api_req_sortie/battle` - normal day battle
   - [x] `api_req_sortie/battleresult` - battle result
-  - [x] `api_req_sortie/airbattle` - aerial battle (partial: core sim, no combined)
-  - [x] `api_req_sortie/ld_airbattle` - long-distance aerial battle (partial: core sim, no combined)
-  - [x] `api_req_sortie/ld_shooting` - long-distance shelling (partial: core sim, no combined)
+  - [x] `api_req_sortie/airbattle` - aerial battle
+  - [x] `api_req_sortie/ld_airbattle` - long-distance aerial battle
+  - [x] `api_req_sortie/ld_shooting` - long-distance shelling
   - [x] `api_req_sortie/goback_port` - retreat
   - [x] `api_req_battle_midnight/battle` - night battle
-  - [x] `api_req_battle_midnight/sp_midnight` - night-start battle (partial: core sim, no combined)
-  - [ ] Combined battle variants (9 remaining; 味方連合 vs 敵通常 is done)
+  - [x] `api_req_battle_midnight/sp_midnight` - night-start battle
+  - [x] `api_req_combined_battle/{battle,battle_water,airbattle,ld_airbattle,ld_shooting,sp_midnight,midnight_battle}` - 味方連合 vs 敵通常
+  - [ ] 敵連合 variants (5 remaining: `ec_*`, `each_*`) - blocked on event map data
 - [ ] **Mission / Expedition System** (`api_req_mission/*`)
   - [x] `api_req_mission/start` - start expedition
   - [x] `api_req_mission/result` - expedition result

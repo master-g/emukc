@@ -157,8 +157,9 @@ fn simulate_day_combined(
         }
 
         // The torpedo phase keeps its slot even when the round before it was
-        // gated away.
-        if round == torpedo_after_round {
+        // gated away — but only for a battle type that has one at all. A
+        // レーダー射撃マス is shelling and nothing else.
+        if round == torpedo_after_round && runs(BattlePhaseKind::ClosingTorpedo) {
             execute_closing_torpedo(codex, state, rng);
         }
     }

@@ -2,7 +2,7 @@
 
 use emukc_battle::{
     BattlePacket, BattleRng, BattleRuntimeShip, EngagementType, NightBattleInput,
-    NightBattlePacket, execute_day, execute_night,
+    NightBattlePacket, execute_day, execute_night, execute_sp_midnight,
 };
 use emukc_model::codex::Codex;
 
@@ -104,6 +104,11 @@ pub fn escort_deck_start(friendly: &[BattleRuntimeShip]) -> usize {
 /// Runs the night simulation on the setup fleets and stores the outcome as the
 /// pending session, so `sortie_battle_result` (`enemy_nowhps`) and
 /// `sortie_midnight_battle` (`formation`) read it the same way as after a day battle.
+///
+/// A combined fleet fights it with 第2艦隊 alone, exactly as it would a night
+/// battle following a day one. 第1艦隊 still enters the stored session ahead of
+/// it, because everything downstream — the result snapshot, the settlement, the
+/// response — reads both decks out of that one vector.
 pub fn run_sp_midnight_battle(
     store: &SortieStore,
     codex: &Codex,
@@ -117,47 +122,30 @@ pub fn run_sp_midnight_battle(
         cell_id,
         context,
     } = input;
-    let enemy_formation_id = context.enemy_formation_id;
 
-    let night = execute_night(
-        codex,
-        NightBattleInput {
-            friendly: context
-                .friend_ships
-                .into_iter()
-                .map(|s| BattleRuntimeShip::new(s, true, true))
-                .collect(),
-            enemy: context
-                .enemy_ships
-                .into_iter()
-                .map(|s| BattleRuntimeShip::new(s, false, true))
-                .collect(),
-            friendly_formation_id: context.friendly_formation_id,
-            enemy_formation_id,
-            engagement: context.engagement,
-            air_state: None,
-        },
-        rng,
-    );
+    let sp = execute_sp_midnight(codex, context, rng);
+    let escort_start = sp.main_deck.len();
+    let mut friendly = sp.main_deck;
+    friendly.extend(sp.night.friendly.iter().cloned());
 
     let session = SortieBattleSession {
         profile_id,
         deck_id,
         map_id,
         cell_id,
-        friendly_ship_ids: night.friendly.iter().map(|s| s.ship.api_id).collect(),
-        enemy_ship_ids: night.enemy.iter().map(|s| s.ship.api_ship_id).collect(),
-        friendly: night.friendly,
-        enemy: night.enemy,
-        packet: night_start_packet(&night.packet),
-        outcome: night.outcome.clone(),
+        friendly_ship_ids: friendly.iter().map(|s| s.ship.api_id).collect(),
+        enemy_ship_ids: sp.night.enemy.iter().map(|s| s.ship.api_ship_id).collect(),
+        packet: night_start_packet(&sp.night.packet, &friendly[..escort_start]),
+        friendly,
+        enemy: sp.night.enemy,
+        outcome: sp.night.outcome.clone(),
     };
     store.insert_pending_battle(profile_id, session.clone());
 
     let night_session = SortieNightBattleSession {
         profile_id,
-        packet: night.packet,
-        outcome: night.outcome,
+        packet: sp.night.packet,
+        outcome: sp.night.outcome,
     };
 
     (session, night_session)
@@ -165,10 +153,18 @@ pub fn run_sp_midnight_battle(
 
 /// The day-packet view of a night-start battle: no day phase ran, so only the
 /// fields later readers consume (`formation` and both `nowhps`) carry values.
-fn night_start_packet(night: &NightBattlePacket) -> BattlePacket {
+///
+/// `main_deck` is 第1艦隊 when the fleet is combined and empty otherwise; its
+/// ships never fought, so they report the HP they entered the node with. The
+/// `nowhps` vector stays contiguous across both decks, which is the shape
+/// `run_night_battle` and the settlement already expect.
+fn night_start_packet(night: &NightBattlePacket, main_deck: &[BattleRuntimeShip]) -> BattlePacket {
+    let mut friendly_nowhps: Vec<i64> = main_deck.iter().map(|s| s.hp().max(0)).collect();
+    friendly_nowhps.extend(night.friendly_nowhps.iter().copied());
+
     BattlePacket {
         formation: night.formation,
-        friendly_nowhps: night.friendly_nowhps.clone(),
+        friendly_nowhps,
         enemy_nowhps: night.enemy_nowhps.clone(),
         smoke_type: 0,
         balloon_cell: 0,

@@ -80,6 +80,53 @@ mod tests {
         assert!(single.to_string().contains("Single"), "{single}");
     }
 
+    /// A night-start cell is the same split as a night battle after a day one:
+    /// 第2艦隊 fights alone and lands in the `_combined` arrays, 第1艦隊 is
+    /// reported in the plain ones at the HP it entered with.
+    #[tokio::test]
+    async fn combined_sp_midnight_is_fought_by_the_escort_deck_alone() {
+        let context = crate::TestContext::new().await;
+        let (pid, _) = combined_profile(&context, "combined-sp-midnight").await;
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+
+        let night = context.sortie_combined_sp_midnight_battle(pid, 1).await.unwrap();
+
+        assert_eq!(night.api_f_nowhps.len(), MAIN_DECK, "api_f_nowhps is 第1艦隊 alone");
+        assert_eq!(night.api_fParam.len(), MAIN_DECK);
+        assert_eq!(night.api_f_nowhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+        assert_eq!(night.api_f_maxhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+        assert_eq!(night.api_fParam_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+
+        if let Some(hougeki) = night.api_hougeki.as_ref() {
+            for (eflag, attacker) in hougeki.api_at_eflag.iter().zip(hougeki.api_at_list.iter()) {
+                if *eflag == 0 {
+                    assert!(
+                        *attacker >= 6,
+                        "only 第2艦隊 fights, so every friendly attacker sits at packet \
+                         index 6 or above: {attacker}"
+                    );
+                }
+            }
+        }
+
+        // The node still settles over both decks.
+        let result = context.sortie_battle_result(pid).await.unwrap();
+        assert_eq!(result.api_get_ship_exp.len(), MAIN_DECK + 1);
+        assert_eq!(result.api_get_ship_exp_combined.as_ref().map(Vec::len), Some(ESCORT_DECK + 1));
+    }
+
+    /// The single-fleet night-start endpoint must turn a combined fleet away:
+    /// it would drop 第2艦隊 — the only deck that fights at night.
+    #[tokio::test]
+    async fn single_fleet_sp_midnight_rejects_a_combined_fleet() {
+        let context = crate::TestContext::new().await;
+        let (pid, _) = combined_profile(&context, "combined-sp-guard").await;
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+
+        let err = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_err();
+        assert!(err.to_string().contains("Single"), "{err}");
+    }
+
     #[tokio::test]
     async fn combined_day_battle_reports_each_deck_in_its_own_arrays() {
         let context = crate::TestContext::new().await;
@@ -94,6 +141,37 @@ mod tests {
         assert_eq!(day.api_f_nowhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
         assert_eq!(day.api_f_maxhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
         assert_eq!(day.api_fParam_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+    }
+
+    /// The aerial and long-distance cells report both decks the same way the
+    /// shelling one does, and each runs only the phases its battle type has.
+    #[tokio::test]
+    async fn combined_air_and_long_distance_cells_report_both_decks() {
+        let context = crate::TestContext::new().await;
+        let (pid, _) = combined_profile(&context, "combined-air").await;
+
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+        let air = context.sortie_combined_airbattle(pid, 11).await.unwrap();
+        assert_eq!(air.api_f_nowhps.len(), MAIN_DECK);
+        assert_eq!(air.api_f_nowhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+        assert_eq!(air.api_hourai_flag[0], 0, "航空戦 runs no shelling round");
+        assert_eq!(air.api_hourai_flag[3], 0, "航空戦 runs no torpedo phase");
+        context.sortie_goback_port(pid).await.unwrap();
+
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+        let ld_air = context.sortie_combined_ld_airbattle(pid, 11).await.unwrap();
+        assert_eq!(ld_air.api_f_nowhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+        assert_eq!(ld_air.api_midnight_flag, 0, "長距離空襲戦 never goes to night battle");
+        assert!(ld_air.api_opening_taisen.is_none(), "長距離空襲戦 runs no opening ASW");
+        context.sortie_goback_port(pid).await.unwrap();
+
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+        // 第四警戒航行序列 (14) is what the client sends on a レーダー射撃マス.
+        let ld_shooting = context.sortie_combined_ld_shooting(pid, 14).await.unwrap();
+        assert_eq!(ld_shooting.api_f_nowhps_combined.as_ref().map(Vec::len), Some(ESCORT_DECK));
+        assert!(ld_shooting.api_kouku.is_none(), "レーダー射撃 runs no aerial phase");
+        assert!(ld_shooting.api_raigeki.is_none(), "レーダー射撃 runs no torpedo phase");
+        assert_eq!(ld_shooting.api_hourai_flag[3], 0);
     }
 
     /// Both decks reach the settlement: 第2艦隊 spends fuel and earns experience

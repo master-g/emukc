@@ -46,11 +46,11 @@ Current verification baseline:
   `sortie_battle_result`, `sortie_sp_midnight_battle`, `sortie_battle_impl`); none nests another, so a new
   entry can take it safely. `sortie_midnight_battle` stays unlocked on purpose — it mutates a pending
   session, not `active`.
-- [2026-09-21] 两份 apilist 各司其职。`apilist.md` 是唯一端点清单（117 实现 / 31 缺，31 = `docs/apilist.txt`
-  的 136 减 117）；重推方法是抽 `kcsapi/mod.rs` 的 `nest("/prefix", ..)` 加各子模块 `.route("/leaf"` 再双向
-  diff，不要手工审。`docs/api_coverage.md` 只是路线图。`docs/apilist.txt`（4209 行）则是字段**语义**来源，
-  比 GitHub 上任何副本全（`andanteyk/ElectronicObserver` 那份 2023 停更、140 KB），别再去外面找；解码
-  客户端仍是字段**是否存在**的唯一真源，优先级见联合舰队计划的 Authority order。
+- [2026-09-21] 两份 apilist 各司其职。`apilist.md` 是唯一端点清单（当前计数以该文件为准，missing =
+  `docs/apilist.txt` 的 136 减 implemented）；重推方法是抽 `kcsapi/mod.rs` 的 `nest("/prefix", ..)` 加各
+  子模块 `.route("/leaf"` 再双向 diff，不要手工审。`docs/api_coverage.md` 只是路线图。
+  `docs/apilist.txt`（4209 行）是字段**语义**来源，比 GitHub 上任何副本全，别再去外面找；解码客户端
+  仍是字段**是否存在**的唯一真源。
 - [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
@@ -69,13 +69,12 @@ Current verification baseline:
   `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
 - [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js`（活跃维护）是第二条独立数据链：`COMBINEDCF1-4`
   与 `COMBINEDCONSTS` 逐格复现 wikiwiki 的联合舰队阵形表与補正表。其精度/回避補正对本项目无用（不建模命中率）。
-- [2026-09-21] `cargo test --workspace` 全绿（0 failed / 0 ignored），前提是先 `mkdir -p target/tmp`
-  （`test_font` 需要）。09-20 记的三条 baseline 失败均已不再复现，不要再当既有失败引用。
+- [2026-09-21] `cargo test --workspace` 全绿；09-20 记的三条 baseline 失败均已不再复现，
+  不要再当既有失败引用。（`mkdir -p target/tmp` 的前提见下面 Pitfalls 的 `test_font` 条。）
 
-- [2026-09-21] `emukc_network`'s download layer already reads the whole body before opening the
-  destination and errors out on any non-2xx, so a failed transfer never wrote a partial or corrupt
-  file. The `.part` + rename added by plan 005 only closes the truncate-to-copy window; the real
-  data loss came from `bootstrap --force-update` deleting the files before the download ran.
+- [2026-09-21] `emukc_network` 的下载层先读完整个 body 再开目标文件，非 2xx 直接报错，所以失败的传输
+  从不写出半截文件。计划 005 的 `.part` + rename 只堵了 truncate-to-copy 的窗口；真正的数据丢失来自
+  `bootstrap --force-update` 在下载前就删掉了文件。
 - [2026-09-21] kccp 源里 11 条任务缺 name（256/615/616/622/627/628/630/632/633/648/652），
   游戏里标题显示 `n/a`。这是上游数据缺失，不是解析器问题，补标题需要另一个数据源。
 - [2026-09-21] `extract_label_type` 有第五种周期字母 `s`（Cs1/2/3/5/6 共 5 个真实 wiki_id），
@@ -100,10 +99,9 @@ Current verification baseline:
   （curl 实测 4 个 w0* 主机，`content-type: audio/mpeg`，`size=0`）。`Kache` 现在把
   「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
   missing 类，不再重试。注意 `exists_on_remote` 走 HEAD，仍会把它判成 `Present`。
-- [2026-09-21] drift-check 现在跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），
-  基线已 `--accept` 到 6.3.5.0，入口是 `make drift-check` / `make drift-accept`，`make update`
-  在 decode 后打一份不阻断的报告。指纹按规范化后的字节算，所以 `_0x` 重命名会算作漂移，
-  即使解码知识没变——这是「收敛版本记录」要解决的噪声来源。
+- [2026-09-21] drift-check 跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），基线已
+  `--accept` 到 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的字节算，
+  `_0x` 重命名即使解码知识没变也算漂移——这是「收敛版本记录」要解决的噪声来源。
 - [2026-09-21] manifest 差集（21,510 条）已全量 HEAD 探测结案，结论是**不要补**：
   `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 - [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤不是缺陷：活动图是三位数 id，
@@ -126,6 +124,10 @@ Current verification baseline:
   `api_menu_id`/`api_slot_id`/`api_dev_num`）。`registration_sp` 则 grep 零命中，原结论成立。
   不要写进 `apilist.md`——它的 missing 定义是「上游参考减 router」，必须保持机械可推导。
 
+- [2026-09-21] 敌方联合舰队在本地 codex 里**没有数据**：`map_catalog.json` 是 37 张常规图
+  （1-1~7-5），编成船数分布 1/2/3/4/5/6 = 13/7/75/95/165/1222，**>6 船 0 个**，`battle_kind`
+  只有 1 这一个取值。敌联合只在活动海域出现，所以 `ec_*`/`each_*` 五个端点本地无格可触发、
+  做不出端到端测试。不要再去 codex 里找敌联合编成。
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -164,10 +166,9 @@ Current verification baseline:
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
 | [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
 
-| [2026-09-21] 「无 .data 跑测试」时备份必须放到**仓库外**，且移回前先删掉重建出来的空壳。
-cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all(".data/tmp")`，
-`mv .data .data.bak` 之后再移回就把备份塞进了新目录，两轮嵌套两层。正确做法：
-`mv .data ../.data-bak` → 跑 → `rm -rf .data`（此时只剩 tmp）→ `mv ../.data-bak .data`。 | session 2026-09-21 |
+| [2026-09-21] 「无 .data 跑测试」时备份必须放到**仓库外**：cache rules 的测试会
+`create_dir_all(".data/tmp")`，`mv .data .data.bak` 再移回会把备份塞进新目录。正确做法
+`mv .data ../.data-bak` → 跑 → `rm -rf .data` → `mv ../.data-bak .data`。 | session 2026-09-21 |
 | [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
@@ -175,24 +176,24 @@ cache rules 的测试（`loader-rules-*`、`kcs-rules-*`）会 `create_dir_all("
 
 ## Last Session
 
-- [2026-09-21] 联合舰队 U3–U7 一次做完：协议输出、gameplay 舰队拆分、5 个
-  `api_req_combined_battle/` 端点、夜战、全套质量门。味方連合 vs 敵通常艦隊 能从
-  出击打到 battleresult 落库，两支 deck 分别上报、分别结算。计划
-  `docs/plans/2026-09-21-001-feat-combined-fleet-battle-plan.md` 的 U3–U7 每节都
-  补了「实际改动点与计划的差异」，其中计划漏掉索引空间翻译、U2 留下切片编号缺陷
-  两条见上面的 solutions 指针。
-- 门禁：fmt clean；clippy 回基线（6 `result_large_err` + 9 missing-backticks +
-  2 borrowed-expression，全不在改动文件里）；`cargo test --workspace` 全绿
-  0 failed / 0 ignored；`battle_golden.rs` 未改动。端点清单机械重推为
-  **122 implemented / 26 missing**，`apilist.md`/`docs/api_coverage.md`/`TODO.md`
-  三处同步。
+- [2026-09-21] 联合舰队 U8：补完 `api_req_combined_battle/` 的 `airbattle`、
+  `ld_airbattle`、`ld_shooting`、`sp_midnight` 四个端点。新增
+  `emukc_battle::execute_sp_midnight`（走 `BattleState::from_context` 打 deck
+  标签后再切 escort，夜战包的索引 remap 靠这个标签），endpoint 枚举加
+  `CombinedAnyType` 服务这四个无 `_water` 双生子的 URL，单舰队 `sp_midnight`
+  用回 `Single`。顺带修掉 `simulate_day_combined` 无条件插闭幕雷击的缺陷。
+  细节见计划文档的 U8 节。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 回基线 17 条
+  （9 missing-backticks + 6 `result_large_err` + 2 borrowed-expression，
+  全不在改动文件里）；`battle_golden.rs` 与 `emukc_battle/tests/golden/*.txt`
+  均未改动。端点清单机械重推为 **126 implemented / 22 missing**，
+  `apilist.md`/`docs/api_coverage.md`/`TODO.md` 三处同步。门禁在提交前又跑了一遍确认。
 
 ## Next Session
 
-- [2026-09-21] 联合舰队还剩 9 个端点，两组：敌方也是联合舰队
-  （`ec_*` / `each_*`，需要 reference 的「联合 vs 联合」阶段顺序与夜战对手打分）、
-  联合舰队的航空与长距离格（`airbattle` / `ld_airbattle` / `ld_shooting`），
-  外加 `sp_midnight`（现在显式报错，不是静默降级）。清单与依据在计划末尾一节。
+- [2026-09-21] 联合舰队只剩敌方也是联合的 5 个端点（`ec_*` / `each_*`），
+  **卡在数据不存在**，不是数值不足：见「已验证的事实」里那条和计划文档末节。
+  要做就得先有活动海域地图数据或等价 fixture。
 - 対空列仍无落点：`kouku.rs` 整个不处理阵形，常规阵形 1–6 同样没建模。
   要补该连同单舰队一起补，别只给联合舰队加一半。
 - 审计集 013 仍是 DEFERRED：drift-check 接通后还没跑过第二次 `make update`。

@@ -49,7 +49,7 @@ pub use random::BattleRng;
 // Public API — utilities
 pub use damage::apply_cap;
 // Public API — complete battle execution
-pub use execution::{execute_day, execute_night};
+pub use execution::{SpMidnightSimulation, execute_day, execute_night, execute_sp_midnight};
 pub use outcome::{calculate_mvp, calculate_win_rank};
 pub use targeting::any_alive;
 

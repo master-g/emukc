@@ -8,7 +8,10 @@ use emukc_model::codex::Codex;
 use crate::debug_overlay::{apply_day_debug, apply_night_debug};
 use crate::random::BattleRng;
 use crate::simulation::{simulate_day, simulate_night};
-use crate::types::{BattleContext, BattleSimulation, NightBattleInput, NightBattleSimulation};
+use crate::state::BattleState;
+use crate::types::{
+    BattleContext, BattleRuntimeShip, BattleSimulation, NightBattleInput, NightBattleSimulation,
+};
 
 /// Execute a day battle and apply the debug policy from `Codex`.
 ///
@@ -40,6 +43,56 @@ pub fn execute_night(
         codex.game_cfg.god_mode,
         codex.game_cfg.one_hit_kill,
     )
+}
+
+/// A night-start (開幕夜戦) battle: whoever fought, plus 第1艦隊 when it did not.
+pub struct SpMidnightSimulation {
+    /// 第1艦隊, which sits a combined night battle out; empty for a single fleet.
+    pub main_deck: Vec<BattleRuntimeShip>,
+    /// The night simulation, fought by 第2艦隊 alone when the fleet is combined.
+    pub night: NightBattleSimulation,
+}
+
+/// Execute a night-start battle from a day [`BattleContext`].
+///
+/// A night-start cell has no day phase, but the fleets still have to be built
+/// the same way — a combined fleet only behaves like one because
+/// [`BattleState::from_context`] tags both decks, and the night packet's index
+/// remap keys off those tags. So the context goes through the same builder and
+/// only then splits: 第2艦隊 fights, 第1艦隊 is handed back untouched for the
+/// caller to report.
+pub fn execute_sp_midnight(
+    codex: &Codex,
+    context: BattleContext,
+    rng: &mut impl BattleRng,
+) -> SpMidnightSimulation {
+    let friendly_formation_id = context.friendly_formation_id;
+    let enemy_formation_id = context.enemy_formation_id;
+    let engagement = context.engagement;
+
+    let state = BattleState::from_context(context);
+    let escort_start = state.combined().map_or(0, |layout| layout.escort_start);
+    let mut friendly = state.friendly;
+    let enemy = state.enemy;
+    let main_deck: Vec<BattleRuntimeShip> = friendly.drain(..escort_start).collect();
+
+    let night = execute_night(
+        codex,
+        NightBattleInput {
+            friendly,
+            enemy,
+            friendly_formation_id,
+            enemy_formation_id,
+            engagement,
+            air_state: None,
+        },
+        rng,
+    );
+
+    SpMidnightSimulation {
+        main_deck,
+        night,
+    }
 }
 
 #[cfg(test)]

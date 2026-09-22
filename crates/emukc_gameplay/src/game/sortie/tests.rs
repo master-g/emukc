@@ -1470,26 +1470,6 @@ async fn combined_sortie_battle_rejects_an_empty_escort_deck() {
     );
 }
 
-/// A combined fleet on a night-start cell is `api_req_combined_battle/sp_midnight`,
-/// which this build does not serve. Running the single-fleet path instead would
-/// silently drop 第2艦隊 — the one deck that actually fights at night.
-#[tokio::test]
-async fn sortie_sp_midnight_battle_rejects_a_combined_fleet() {
-    let (context, pid) = guard_context().await;
-    let mut profile = find_profile(context.db.as_ref(), pid).await.unwrap().into_active_model();
-    profile.combined_type = ActiveValue::Set(1);
-    profile.update(context.db.as_ref()).await.unwrap();
-    let store = context.sortie_store.as_ref();
-    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind == 1));
-
-    let night = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_err();
-
-    assert!(
-        matches!(night, GameplayError::WrongType(ref msg) if msg.contains("night-start")),
-        "{night:?}"
-    );
-}
-
 #[tokio::test]
 async fn sortie_sp_midnight_battle_rejects_non_battle_cell_like_sortie_battle() {
     let (context, pid) = guard_context().await;

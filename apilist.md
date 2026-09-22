@@ -2,10 +2,10 @@
 
 ## Implemented APIs
 
-`api_req_combined_battle/` serves 味方連合 vs 敵通常艦隊: the day battle in both
-編成, its night battle, the result and the return to port. `api_req_sortie/airbattle`,
-`ld_airbattle`, `ld_shooting` and `api_req_battle_midnight/sp_midnight` still
-cover the single-fleet simulation only.
+`api_req_combined_battle/` serves 味方連合 vs 敵通常艦隊 in full: the day battle in
+both 編成, the aerial and long-distance cells, the night-start cell, the night
+battle, the result and the return to port. The `api_req_sortie/` and
+`api_req_battle_midnight/` twins cover the single-fleet simulation.
 
 ```plain
 api_dmm_payment/paycheck
@@ -41,11 +41,15 @@ api_port/port
 api_req_battle_midnight/battle
 api_req_battle_midnight/sp_midnight
 
+api_req_combined_battle/airbattle
 api_req_combined_battle/battle
 api_req_combined_battle/battle_water
 api_req_combined_battle/battleresult
 api_req_combined_battle/goback_port
+api_req_combined_battle/ld_airbattle
+api_req_combined_battle/ld_shooting
 api_req_combined_battle/midnight_battle
+api_req_combined_battle/sp_midnight
 
 api_req_furniture/buy
 api_req_furniture/change
@@ -156,20 +160,15 @@ api_world/register
 
 ### Core Battle System
 
-The remaining combined-fleet variants: 敵連合艦隊 (`ec_*`, `each_*`), the aerial
-and long-range nodes, and the night-start cell. 味方連合 vs 敵通常艦隊 is
-implemented.
+The remaining combined-fleet variants are the ones where the **enemy** is also
+combined (`ec_*`, `each_*`). Every 味方連合 vs 敵通常艦隊 cell is implemented.
 
 ```plain
-api_req_combined_battle/airbattle
 api_req_combined_battle/each_battle
 api_req_combined_battle/each_battle_water
 api_req_combined_battle/ec_battle
 api_req_combined_battle/ec_midnight_battle
 api_req_combined_battle/ec_night_to_day
-api_req_combined_battle/ld_airbattle
-api_req_combined_battle/ld_shooting
-api_req_combined_battle/sp_midnight
 ```
 
 ### Map & Sortie System
@@ -218,7 +217,7 @@ api_req_ranking/getlist
 
 ### High Priority (Core Gameplay)
 
-1. **Combined Fleet Battles** - the 9 remaining `api_req_combined_battle/*` endpoints
+1. **Combined Fleet Battles** - the 5 remaining 敵連合 `api_req_combined_battle/*` endpoints
 2. **Air Corps System** - event map support, and the only remaining `api_get_member` gap
 
 ### Medium Priority (Enhanced Features)

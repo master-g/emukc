@@ -446,10 +446,59 @@ missing-backticks + 2 条 borrowed-expression，全部不在本次改动的文�
 每一条在代码里留 `// ponytail:` 或等价注释说明为何取当前值，不要写成
 「已按规则实现」。
 
-## 本计划完成后仍缺的 9 个端点
+## 本计划完成后仍缺的端点
 
-`airbattle` / `ld_airbattle` / `ld_shooting`（联合舰队的航空与长距离格）、
-`each_battle` / `each_battle_water` / `ec_battle` / `ec_midnight_battle` /
-`ec_night_to_day`（敌方也是联合舰队）、`sp_midnight`（联合舰队夜战开始格）。
-前两组需要 reference §Phase order 的「联合 vs 联合」两套顺序与
-§Night battle opponent selection 的打分规则，后者的数值上游标为要検証。
+原计划列了 9 个。其中 4 个已在同日的后续会话补完（见下节），余 5 个是敌方也
+是联合舰队的 `each_battle` / `each_battle_water` / `ec_battle` /
+`ec_midnight_battle` / `ec_night_to_day`。
+
+### U8 — 联合舰队的航空/长距离格与夜战开始格 ✅ 已执行
+
+`api_req_combined_battle/` 的 `airbattle`、`ld_airbattle`、`ld_shooting`、
+`sp_midnight` 四个端点。它们不需要任何新的 reference 数值：
+
+1. **阶段顺序早已就绪。** `simulate_day_combined` 一开始就按
+   `BattleFlow::for_battle_type` 过滤阶段，所以 `AirBattle` / `LdAirBattle` /
+   `LdShooting` 三种 battle type 在联合舰队下本来就跑对的阶段子集。三个端点只是
+   把既有的 `sortie_battle_impl` 用对应的 `BattleType` 和 endpoint 调一次。
+2. **修掉一个顺带发现的缺陷。** `simulate_day_combined` 的閉幕雷撃是无条件插在
+   `torpedo_after_round` 之后的，没有检查 battle type 是否有這個阶段。
+   `LD_SHOOTING` 的 flow 不含 `ClosingTorpedo`，所以联合舰队的レーダー射撃マス
+   会多打一轮雷击。已改成 `round == torpedo_after_round &&
+   runs(ClosingTorpedo)`。单舰队路径走的是另一个分支，不受影响。
+3. **`sp_midnight` 复用夜战的 deck 拆分。** 新增
+   `emukc_battle::execute_sp_midnight`：把 day 用的 `BattleContext` 送进
+   `BattleState::from_context`（这是唯一给两支 deck 打 `CombinedMembership`
+   标签的地方，夜战包的索引 remap 正是靠这个标签触发），然后按
+   `escort_start` 切开——第2艦隊 参战，第1艦隊 原样交回给调用方上报。
+   `run_sp_midnight_battle` 把两者重新拼成一条连续的 `session.friendly`，
+   下游的 result snapshot、结算和响应都按既有方式读它。
+4. **endpoint 枚举收敛成 4 个变体。** 这四个 URL 没有 `_water` 双生子——它们的
+   包里没有砲撃轮次顺序可供两侧分歧——所以客户端把三种 combined type 都送到同一
+   个 URL。新增 `CombinedAnyType` 服务这四个；单舰队的 `sp_midnight` 用回
+   `Single`，与 `api_req_sortie/*` 同一条判定。
+
+**执行结果：** `cargo test --workspace` 全绿（exit 0）；fmt clean；clippy 回到
+基线的 17 条（9 missing-backticks + 6 `result_large_err` + 2
+borrowed-expression，全部不在改动文件里）；`battle_golden.rs` 与
+`crates/emukc_battle/tests/golden/*.txt` 均未出现在 `git status` 里。端点清单
+机械重推为 **126 implemented / 22 missing**，`apilist.md`、
+`docs/api_coverage.md`、`TODO.md` 三处同步。
+
+### 敌方联合（`ec_*` / `each_*`）为何没接着做
+
+不是数值不足，是**数据不存在**。`.data/codex/map_catalog.json` 里是 37 张常规图
+（1-1 ~ 7-5），全部编成中**没有一个超过 6 条船**（分布：1 船 13 个、2 船 7 个、
+3 船 75 个、4 船 95 个、5 船 165 个、6 船 1222 个，>6 船 0 个），`battle_kind`
+也只有 1 这一个取值。敌方联合舰队只出现在活动海域，而活动图数据不在本地 codex
+里。因此这五个端点即使实现，本地也没有任何一格能触发它们，端到端测试做不出来，
+只能靠手工 fixture 的单测。
+
+实现本身的规模也和前八个单元不是一个量级：`CombinedLayout` 只描述了我方的
+`escort_start`，敌方要再来一套；包里要新增 `api_e_nowhps_combined` /
+`api_ship_ke_combined` / `api_eParam_combined` / `api_eSlot_combined` 并给敌方
+索引做 remap；阶段顺序有「単 vs 連合」「連合 vs 連合 ×2」三套新的；夜战对手打分
+规则里有三条上游标为未验证（旗舰在中破/大破的分值、≥5 存活是否强制护卫夜战、
+PT/潜艇是否另算）；`ec_night_to_day` 还是一条全新的夜战转昼战流程。
+
+先决条件：活动海域的地图数据可用（或者一份能产生 >6 船编成的 fixture 数据源）。

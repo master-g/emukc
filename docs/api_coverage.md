@@ -14,8 +14,8 @@ inventory of its own.
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
 and diff that against the fenced blocks. Verified on 2026-09-21 at client
-6.3.5.0: **122 implemented**, **26 missing**, no overlap, and the 26 are exactly
-the upstream reference's 136 endpoints minus the 122.
+6.3.5.0: **126 implemented**, **22 missing**, no overlap, and the 22 are exactly
+the upstream reference's 136 endpoints minus the 126.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -23,20 +23,24 @@ Do not restate those lists here — a second copy is a second thing to drift.
 
 ### `api_req_combined_battle/` — Combined Fleet Battles (P0)
 
-9 endpoints left. 味方連合 vs 敵通常艦隊 shipped 2026-09-21: `battle`,
-`battle_water`, `midnight_battle`, `battleresult`, `goback_port`.
+5 endpoints left, all of them 敵連合艦隊. Every 味方連合 vs 敵通常艦隊 cell
+shipped 2026-09-21: `battle`, `battle_water`, `airbattle`, `ld_airbattle`,
+`ld_shooting`, `sp_midnight`, `midnight_battle`, `battleresult`, `goback_port`.
 
 - `each_battle`, `each_battle_water`, `ec_battle`, `ec_midnight_battle`,
   `ec_night_to_day` — the enemy is combined too, which changes phase order,
   night opponent selection and the correction table
-- `airbattle`, `ld_airbattle`, `ld_shooting` — combined variants of the aerial
-  and long-range nodes
-- `sp_midnight` — a combined fleet on a night-start cell
 
 Key challenges left:
 - Enemy-side fleet splitting, and the night opponent score
   (`docs/battle/combined-fleet-reference.md` §Night battle opponent selection)
 - The 連合 vs 連合 correction table, which upstream marks 要検証
+- **No data to drive it.** The bootstrapped `map_catalog.json` holds 37 regular
+  maps (1-1..7-5) and not one enemy composition longer than six ships, so no
+  cell in the local codex can produce an enemy combined fleet. Enemy combined
+  fleets exist only on event maps. Until event map data is available these five
+  endpoints cannot be exercised end to end, only unit-tested against hand-built
+  fixtures.
 
 ### `api_req_air_corps/` — Land-Based Air Corps (P1)
 

@@ -42,7 +42,7 @@ use super::{
 /// has no way to nominate a different escort).
 const ESCORT_DECK_ID: i64 = 2;
 
-/// Which day-battle endpoint the client called.
+/// Which battle endpoint the client called.
 ///
 /// The client picks the URL from its own `api_combined_flag`, so a mismatch
 /// means the two sides disagree about the fleet: the packet would be ordered for
@@ -50,12 +50,20 @@ const ESCORT_DECK_ID: i64 = 2;
 /// ships. Each entry states what it serves and the setup rejects the rest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum SortieBattleEndpoint {
-    /// `api_req_sortie/*` — a single fleet.
+    /// `api_req_sortie/*` and `api_req_battle_midnight/sp_midnight` — a single
+    /// fleet.
     Single,
     /// `api_req_combined_battle/battle` — 空母機動部隊 or 輸送護衛部隊.
     Combined,
     /// `api_req_combined_battle/battle_water` — 水上打撃部隊.
     CombinedWater,
+    /// `api_req_combined_battle/{airbattle,ld_airbattle,ld_shooting,sp_midnight}`
+    /// — any of the three combined types.
+    ///
+    /// These four have no `_water` twin, unlike the two shelling entries above:
+    /// their packets carry no shelling round order for the two sides to disagree
+    /// about, so the client sends every combined fleet to the same URL.
+    CombinedAnyType,
 }
 
 /// Everything a sortie battle entry needs before it picks a simulation.
@@ -224,6 +232,7 @@ impl SortieBattleSetup {
                     Some(CombinedType::CarrierTaskForce | CombinedType::TransportEscort),
                 )
                 | (SortieBattleEndpoint::CombinedWater, Some(CombinedType::SurfaceTaskForce))
+                | (SortieBattleEndpoint::CombinedAnyType, Some(_))
         );
         if ok {
             return Ok(());
