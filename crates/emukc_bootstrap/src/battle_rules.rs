@@ -498,6 +498,22 @@ fn parse_slot_resource_path(path: &str) -> Option<(String, i64)> {
     Some((target_type, slot_id))
 }
 
+/// The equipment ids named by one `api_si_list` row.
+///
+/// CI / special-attack entries serialize as JSON strings (e.g. `"22"`) while
+/// normal-attack entries are integers, so both are accepted — the CI entries
+/// are exactly the ones most likely to drive a missing-resource incident. The
+/// `-1` sentinel, and any other non-positive id, names no equipment.
+fn si_list_row_ids(row: &serde_json::Value) -> impl Iterator<Item = i64> + '_ {
+    row.as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|value| {
+            value.as_i64().or_else(|| value.as_str().and_then(|s| s.parse::<i64>().ok()))
+        })
+        .filter(|slot_id| *slot_id > 0)
+}
+
 fn collect_hougeki_slot_ids(
     object: &serde_json::Map<String, serde_json::Value>,
     fields: &[&str],
@@ -508,28 +524,13 @@ fn collect_hougeki_slot_ids(
         let Some(hougeki) = object.get(field).and_then(serde_json::Value::as_object) else {
             continue;
         };
-        let Some(si_list_rows) = hougeki.get("api_si_list").and_then(serde_json::Value::as_array)
-        else {
+        let Some(rows) = hougeki.get("api_si_list").and_then(serde_json::Value::as_array) else {
             continue;
         };
-        let entry = slot_ids_by_source.entry(format!("{field}.api_si_list[*][*]")).or_default();
-
-        for row in si_list_rows {
-            let Some(slot_ids) = row.as_array() else {
-                continue;
-            };
-            // CI / special-attack si_list entries serialize as JSON strings
-            // (e.g. "22"); normal-attack entries are integers. Accept both so
-            // the incident analyzer still resolves CI slot IDs — exactly the
-            // entries most likely to drive a missing-resource incident.
-            for slot_id in slot_ids.iter().filter_map(|value| {
-                value.as_i64().or_else(|| value.as_str().and_then(|s| s.parse::<i64>().ok()))
-            }) {
-                if slot_id > 0 {
-                    entry.insert(slot_id);
-                }
-            }
-        }
+        slot_ids_by_source
+            .entry(format!("{field}.api_si_list[*][*]"))
+            .or_default()
+            .extend(rows.iter().flat_map(si_list_row_ids));
     }
 
     slot_ids_by_source
@@ -1031,36 +1032,22 @@ fn collect_display_slot_ids(
         let Some(phase) = object.get(field).and_then(serde_json::Value::as_object) else {
             continue;
         };
-        let Some(si_list_rows) = phase.get("api_si_list").and_then(serde_json::Value::as_array)
-        else {
+        let Some(rows) = phase.get("api_si_list").and_then(serde_json::Value::as_array) else {
             continue;
         };
-        let attack_types = phase
-            .get("api_at_type")
-            .and_then(serde_json::Value::as_array)
-            .cloned()
-            .unwrap_or_default();
+        let attack_types = phase.get("api_at_type").and_then(serde_json::Value::as_array);
         let entry = by_source.entry(format!("{field}.api_si_list[*][*]")).or_default();
 
-        for (row_index, row) in si_list_rows.iter().enumerate() {
-            let Some(slot_ids) = row.as_array() else {
-                continue;
-            };
+        for (row_index, row) in rows.iter().enumerate() {
             let carrier_cutin = attack_types
-                .get(row_index)
+                .and_then(|types| types.get(row_index))
                 .and_then(serde_json::Value::as_i64)
                 .is_some_and(|at_type| at_type == CARRIER_CUTIN_ATTACK_TYPE);
             let name_plate = night || !carrier_cutin;
 
-            // CI / special-attack entries serialize as JSON strings (e.g. "22");
-            // normal-attack entries are integers. Accept both.
-            for slot_id in slot_ids.iter().filter_map(|value| {
-                value.as_i64().or_else(|| value.as_str().and_then(|s| s.parse::<i64>().ok()))
-            }) {
-                if slot_id > 0 {
-                    let seen = entry.entry(slot_id).or_insert(name_plate);
-                    *seen = *seen || name_plate;
-                }
+            for slot_id in si_list_row_ids(row) {
+                let seen = entry.entry(slot_id).or_insert(name_plate);
+                *seen = *seen || name_plate;
             }
         }
     }

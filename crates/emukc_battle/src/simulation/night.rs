@@ -12,7 +12,8 @@ use crate::damage::{calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::targeting::{
     can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
-    is_day_surface_display_type, select_random_target_index, ship_type, target_class,
+    is_day_surface_display_type, is_main_gun_type, is_radar_type, is_secondary_gun_type,
+    is_torpedo_type, select_random_target_index, ship_type, target_class,
 };
 use crate::types::{
     BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams, SiListId,
@@ -130,16 +131,6 @@ fn count_equipment_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotI
                 == Some(wanted)
         })
         .count()
-}
-
-fn is_main_gun_type(t: KcSlotItemType3) -> bool {
-    matches!(
-        t,
-        KcSlotItemType3::SmallCaliberMainGun
-            | KcSlotItemType3::MediumCaliberMainGun
-            | KcSlotItemType3::LargeCaliberMainGun
-            | KcSlotItemType3::LargeCaliberMainGun2
-    )
 }
 
 fn count_main_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
@@ -663,20 +654,11 @@ fn night_attack_display_ids(
 ) -> Vec<i64> {
     let main_guns =
         collect_matching_slot_ids(codex, ship, |slot_type, _| is_main_gun_type(slot_type));
-    let torpedoes = collect_matching_slot_ids(codex, ship, |slot_type, _| {
-        matches!(slot_type, KcSlotItemType3::Torpedo | KcSlotItemType3::SubmarineTorpedo)
-    });
-    let secondary_guns = collect_matching_slot_ids(codex, ship, |slot_type, _| {
-        matches!(slot_type, KcSlotItemType3::SecondaryGun | KcSlotItemType3::SecondaryGun2)
-    });
-    let radars = collect_matching_slot_ids(codex, ship, |slot_type, _| {
-        matches!(
-            slot_type,
-            KcSlotItemType3::SmallRadar
-                | KcSlotItemType3::LargeRadar
-                | KcSlotItemType3::LargeRadar2
-        )
-    });
+    let torpedoes =
+        collect_matching_slot_ids(codex, ship, |slot_type, _| is_torpedo_type(slot_type));
+    let secondary_guns =
+        collect_matching_slot_ids(codex, ship, |slot_type, _| is_secondary_gun_type(slot_type));
+    let radars = collect_matching_slot_ids(codex, ship, |slot_type, _| is_radar_type(slot_type));
     let lookouts = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         slot_type == KcSlotItemType3::SeaplanePersonnel
     });

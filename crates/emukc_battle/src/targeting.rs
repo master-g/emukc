@@ -37,23 +37,19 @@ const DAY_SURFACE_DISPLAY_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::SecondaryGun2,
 ];
 
-// TODO(#0): used by night battle display helpers
-const NIGHT_MAIN_GUN_TYPES: &[KcSlotItemType3] = &[
+const MAIN_GUN_TYPES: &[KcSlotItemType3] = &[
     KcSlotItemType3::SmallCaliberMainGun,
     KcSlotItemType3::MediumCaliberMainGun,
     KcSlotItemType3::LargeCaliberMainGun,
     KcSlotItemType3::LargeCaliberMainGun2,
 ];
 
-// TODO(#0): used by night battle display helpers
-const NIGHT_SECONDARY_GUN_TYPES: &[KcSlotItemType3] =
+const SECONDARY_GUN_TYPES: &[KcSlotItemType3] =
     &[KcSlotItemType3::SecondaryGun, KcSlotItemType3::SecondaryGun2];
 
-// TODO(#0): used by night battle display helpers
-const NIGHT_TORPEDO_TYPES: &[KcSlotItemType3] =
+const TORPEDO_TYPES: &[KcSlotItemType3] =
     &[KcSlotItemType3::Torpedo, KcSlotItemType3::SubmarineTorpedo];
 
-// TODO(#0): used by night battle display helpers
 const RADAR_DISPLAY_TYPES: &[KcSlotItemType3] =
     &[KcSlotItemType3::SmallRadar, KcSlotItemType3::LargeRadar, KcSlotItemType3::LargeRadar2];
 
@@ -649,30 +645,22 @@ pub(crate) fn is_day_surface_display_type(slot_type: KcSlotItemType3) -> bool {
     DAY_SURFACE_DISPLAY_TYPES.contains(&slot_type)
 }
 
-/// Whether the slot type counts as a main gun for night battle formulas.
-// TODO(#0): used by night battle display helpers
-#[expect(dead_code)]
-pub(crate) fn is_night_main_gun_type(slot_type: KcSlotItemType3) -> bool {
-    NIGHT_MAIN_GUN_TYPES.contains(&slot_type)
+/// Whether the slot type counts as a main gun.
+pub(crate) fn is_main_gun_type(slot_type: KcSlotItemType3) -> bool {
+    MAIN_GUN_TYPES.contains(&slot_type)
 }
 
-/// Whether the slot type counts as a secondary gun for night battle formulas.
-// TODO(#0): used by night battle display helpers
-#[expect(dead_code)]
-pub(crate) fn is_night_secondary_gun_type(slot_type: KcSlotItemType3) -> bool {
-    NIGHT_SECONDARY_GUN_TYPES.contains(&slot_type)
+/// Whether the slot type counts as a secondary gun.
+pub(crate) fn is_secondary_gun_type(slot_type: KcSlotItemType3) -> bool {
+    SECONDARY_GUN_TYPES.contains(&slot_type)
 }
 
-/// Whether the slot type counts as a torpedo for night battle formulas.
-// TODO(#0): used by night battle display helpers
-#[expect(dead_code)]
-pub(crate) fn is_night_torpedo_type(slot_type: KcSlotItemType3) -> bool {
-    NIGHT_TORPEDO_TYPES.contains(&slot_type)
+/// Whether the slot type counts as a torpedo.
+pub(crate) fn is_torpedo_type(slot_type: KcSlotItemType3) -> bool {
+    TORPEDO_TYPES.contains(&slot_type)
 }
 
 /// Whether the slot type is a radar.
-// TODO(#0): used by night battle display helpers
-#[expect(dead_code)]
 pub(crate) fn is_radar_type(slot_type: KcSlotItemType3) -> bool {
     RADAR_DISPLAY_TYPES.contains(&slot_type)
 }
@@ -725,18 +713,10 @@ pub(crate) fn day_gunnery_display_ids(
     ship: &BattleRuntimeShip,
     limit: usize,
 ) -> Vec<i64> {
-    let main_guns = collect_matching_slot_ids(codex, ship, |slot_type, _mst| {
-        matches!(
-            slot_type,
-            KcSlotItemType3::SmallCaliberMainGun
-                | KcSlotItemType3::MediumCaliberMainGun
-                | KcSlotItemType3::LargeCaliberMainGun
-                | KcSlotItemType3::LargeCaliberMainGun2
-        )
-    });
-    let secondary_guns = collect_matching_slot_ids(codex, ship, |slot_type, _mst| {
-        matches!(slot_type, KcSlotItemType3::SecondaryGun | KcSlotItemType3::SecondaryGun2)
-    });
+    let main_guns =
+        collect_matching_slot_ids(codex, ship, |slot_type, _mst| is_main_gun_type(slot_type));
+    let secondary_guns =
+        collect_matching_slot_ids(codex, ship, |slot_type, _mst| is_secondary_gun_type(slot_type));
 
     let mut ids = Vec::new();
     extend_limit(&mut ids, &main_guns, limit);

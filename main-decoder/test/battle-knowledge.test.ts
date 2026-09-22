@@ -187,9 +187,11 @@ test("collects slot resource triggers for cutin slot text consumers", () => {
 // Attack-type acceptance (R2)
 // ---------------------------------------------------------------------------
 
-/// The shape the real bundle uses: a nested ternary on `record.type`, ending in
-/// a fallback method. `d_indexes[0]` and `getSlotitem(1)` put numbers in the
-/// body that must never reach the acceptance set.
+/**
+ * The shape the real bundle uses: a nested ternary on `record.type`, ending in
+ * a fallback method. `d_indexes[0]` and `getSlotitem(1)` put numbers in the
+ * body that must never reach the acceptance set.
+ */
 function phaseHougekiSource(name: string, chain: string, fallbackBody: string): string {
   return `function(module, exports, require) {
     var danchakuModule = require(90992);
@@ -265,7 +267,12 @@ function attackTypeGraph(overrides: { nightDispatcherName?: string; dayAlsoRequi
         "0 == type ? this._normal(record) : 2 == type ? this._double(record) : 7 == type ? this._kuboCI(record) : this._special(record);",
         DELEGATING_FALLBACK,
       ),
-      dependencies: [{ moduleId: "90992", readableName: "PhaseAttackDanchaku", importStyle: "require" }],
+      dependencies: [{
+        moduleId: "90992",
+        readableName: "PhaseAttackDanchaku",
+        localName: "danchakuModule",
+        importStyle: "require",
+      }],
     }),
     createModule({
       id: "74885",
@@ -296,7 +303,12 @@ function attackTypeGraph(overrides: { nightDispatcherName?: string; dayAlsoRequi
         "0 == type ? this._normal(record) : 2 == type ? this._double(record) : this._special(record);",
         DELEGATING_FALLBACK,
       ),
-      dependencies: [{ moduleId: "90992", readableName: "PhaseAttackDanchaku", importStyle: "require" }],
+      dependencies: [{
+        moduleId: "90992",
+        readableName: "PhaseAttackDanchaku",
+        localName: "danchakuModule",
+        importStyle: "require",
+      }],
     }),
     createModule({
       id: "16718",

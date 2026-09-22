@@ -564,11 +564,13 @@ function collectSlotResourceTriggers(
 // Attack-type acceptance (R2)
 // ---------------------------------------------------------------------------
 
-/// The stages whose attack-type field the server fills. `side` disambiguates
-/// the two same-named `PhaseHougeki` modules: the day copy accepts 2 for 連撃
-/// and 7 for 空母カットイン, the night copy accepts 1 and 6 for the same two —
-/// picking the wrong one makes the acceptance set silently wrong. Matching on
-/// the consumer (which dispatcher requires it), never on a webpack module id.
+/**
+ * The stages whose attack-type field the server fills. `side` disambiguates
+ * the two same-named `PhaseHougeki` modules: the day copy accepts 2 for 連撃
+ * and 7 for 空母カットイン, the night copy accepts 1 and 6 for the same two —
+ * picking the wrong one makes the acceptance set silently wrong. Matching on
+ * the consumer (which dispatcher requires it), never on a webpack module id.
+ */
 const ATTACK_TYPE_STAGE_SPECS = [
   {
     id: "day-shelling",
@@ -631,8 +633,10 @@ function buildDependentIndex(moduleGraph: ModuleGraph): Map<string, ModuleArtifa
   return index;
 }
 
-/// Which battle side a consumer module serves, decided by the dispatchers that
-/// require it. Ambiguity is drift, not something to resolve by guessing.
+/**
+ * Which battle side a consumer module serves, decided by the dispatchers that
+ * require it. Ambiguity is drift, not something to resolve by guessing.
+ */
 function classifyConsumerSide(module: ModuleArtifact, dependents: readonly ModuleArtifact[]): "day" | "night" {
   const names = dependents.map(dependent => dependent.readableName).filter((name): name is string => name !== undefined);
   const dayNames = names.filter(name => DAY_DISPATCHER_RE.test(name));
@@ -648,27 +652,6 @@ function classifyConsumerSide(module: ModuleArtifact, dependents: readonly Modul
     `cannot disambiguate battle side for module ${module.id} (${module.readableName ?? module.fileName}): `
     + `day dispatchers [${dayNames.join(", ")}], night dispatchers [${nightNames.join(", ")}]`,
   );
-}
-
-function collectRequireBindings(ast: t.File): Map<string, string> {
-  const bindings = new Map<string, string>();
-  traverse(ast, {
-    VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
-      if (!t.isIdentifier(path.node.id) || path.node.init == null) {
-        return;
-      }
-      const call = t.isCallExpression(path.node.init) ? path.node.init : undefined;
-      if (call === undefined || !t.isIdentifier(call.callee, { name: "require" })) {
-        return;
-      }
-      const [idArgument] = call.arguments;
-      if (idArgument === undefined || !t.isNumericLiteral(idArgument)) {
-        return;
-      }
-      bindings.set(path.node.id.name, String(idArgument.value));
-    },
-  });
-  return bindings;
 }
 
 function findPrototypeMethod(ast: t.File, methodName: string): t.Function | undefined {
@@ -705,9 +688,11 @@ function findConditionalChain(fn: t.Function): t.ConditionalExpression | undefin
   return undefined;
 }
 
-/// The identifier every branch of a dispatch chain compares against. Taken from
-/// the chain itself so the extractor does not depend on the local variable name
-/// surviving minification.
+/**
+ * The identifier every branch of a dispatch chain compares against. Taken from
+ * the chain itself so the extractor does not depend on the local variable name
+ * surviving minification.
+ */
 function dispatchSubjectName(test: t.Expression): string | undefined {
   if (t.isLogicalExpression(test)) {
     return dispatchSubjectName(test.left as t.Expression) ?? dispatchSubjectName(test.right);
@@ -724,9 +709,11 @@ function dispatchSubjectName(test: t.Expression): string | undefined {
   return undefined;
 }
 
-/// Numeric literals the expression compares against `subject`. Numbers that
-/// appear anywhere else in the test are ignored, so an unrelated index or
-/// bitmask never enters the acceptance set.
+/**
+ * Numeric literals the expression compares against `subject`. Numbers that
+ * appear anywhere else in the test are ignored, so an unrelated index or
+ * bitmask never enters the acceptance set.
+ */
 function collectComparedValues(test: t.Node, subject: string, operators: readonly string[], out: Set<number>): void {
   if (t.isLogicalExpression(test)) {
     collectComparedValues(test.left, subject, operators, out);
@@ -751,8 +738,10 @@ function collectComparedValues(test: t.Node, subject: string, operators: readonl
   }
 }
 
-/// Numeric literals a function body compares against the local it binds from
-/// `<record>.type`, plus whether it throws when nothing matched.
+/**
+ * Numeric literals a function body compares against the local it binds from
+ * `<record>.type`, plus whether it throws when nothing matched.
+ */
 function extractGuardedAcceptance(fn: t.Function, ast: t.File): { values: number[]; closed: boolean } | undefined {
   let subject: string | undefined;
   let closed = false;
@@ -792,8 +781,10 @@ function extractGuardedAcceptance(fn: t.Function, ast: t.File): { values: number
   return values.size === 0 ? undefined : { values: [...values].sort((left, right) => left - right), closed };
 }
 
-/// A fallback phase in another module whose constructor names its accepted
-/// values outright and throws on everything else.
+/**
+ * A fallback phase in another module whose constructor names its accepted
+ * values outright and throws on everything else.
+ */
 function extractDelegatedAcceptance(
   fallbackMethod: t.Function,
   ast: t.File,
@@ -931,17 +922,26 @@ function extractDispatch(module: ModuleArtifact, moduleById: ReadonlyMap<string,
     };
   }
 
-  const requireBindings = collectRequireBindings(ast);
+  // `module.dependencies` already carries every `require(N)` binding the module
+  // graph resolved, so the namespace a `new <ns>.<Name>()` names can be mapped
+  // to a module id without walking the AST again.
+  const requireBindings = new Map(
+    module.dependencies
+      .filter(dependency => dependency.importStyle === "require" && dependency.localName !== undefined)
+      .map(dependency => [dependency.localName as string, dependency.moduleId]),
+  );
   return {
     acceptedValues,
     fallback: extractDelegatedAcceptance(fallbackMethod, ast, requireBindings, moduleById) ?? null,
   };
 }
 
-/// Night consumers still have no protocol-source mapping in
-/// `battle_slot_resource_triggers.json`, whose `protocolSources` only lists the
-/// day `api_hougeki1/2/3`. This asset keys acceptance off the consumer module
-/// instead, so that gap does not block it -- but the gap is still open.
+/**
+ * Night consumers still have no protocol-source mapping in
+ * `battle_slot_resource_triggers.json`, whose `protocolSources` only lists the
+ * day `api_hougeki1/2/3`. This asset keys acceptance off the consumer module
+ * instead, so that gap does not block it -- but the gap is still open.
+ */
 const NIGHT_TRIGGER_GAP_NOTE =
   "battle_slot_resource_triggers.json still maps no protocol source to night consumers; the sources here are this asset's own.";
 

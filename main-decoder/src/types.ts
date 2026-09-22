@@ -75,8 +75,10 @@ export interface BattleSlotResourceTrigger {
   notes: string;
 }
 
-/// One attack-type dispatch stage: the client module that consumes a protocol
-/// field's value, and every value it is willing to dispatch.
+/**
+ * One attack-type dispatch stage: the client module that consumes a protocol
+ * field's value, and every value it is willing to dispatch.
+ */
 export interface BattleAttackTypeStage {
   id: "day-shelling" | "night-shelling" | "opening-anti-submarine";
   protocolField: string;
@@ -89,13 +91,15 @@ export interface BattleAttackTypeStage {
   notes: string;
 }
 
-/// Where a stage sends a value its own dispatch does not name.
+/** Where a stage sends a value its own dispatch does not name. */
 export interface BattleAttackTypeFallback {
   readableName: string;
   moduleIds: string[];
   acceptedValues: number[];
-  /// `true` when the fallback throws on anything outside `acceptedValues`, so
-  /// the stage's effective acceptance is a closed set.
+  /**
+   * `true` when the fallback throws on anything outside `acceptedValues`, so
+   * the stage's effective acceptance is a closed set.
+   */
   closed: boolean;
 }
 
