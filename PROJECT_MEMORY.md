@@ -177,22 +177,22 @@ Current verification baseline:
 ## Last Session
 
 - [2026-09-22] 战斗协议语义闸门（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，U1–U9 全部落地）。
-  10 个提交，连同 3 个基地航空隊提交一起 fast-forward 合进 `main` 并推送，未开 PR。
+  10 个提交连同 3 个基地航空隊提交一起 fast-forward 合进 `main` 并推送，未开 PR，分支已删。
   修掉开幕对潜写死 `api_at_type = 7`（客户端 `PhaseAttackDanchaku` 直接 throw）；
   新增 `battle_attack_type_acceptance.json` 资产让校验器按消费模块判攻击种别；
   校验器改为逐条检查推导资源是否在 `make_list` 覆盖内；
   `ShipSpec` 支持按槽位装备，新增 `opening_asw` / `gunnery_cutin` / `carrier_cutin` 三个 preset。
 - 代码审查已跑并给出 verdict：发现项全部落地，修复即 `28328e62`（复用炮类谓词与 si_list 行解析）
   与 `c888a92f`（夜战空母切入展示回归 + 闸门加固），无遗留红灯。
-- 门禁：`cargo test --workspace` 全绿；fmt clean；clippy 改动文件零告警；
+- 收尾把 `battle_rules.rs` 按关注点拆成 `battle_rules/{attack_types,resources}.rs`：
+  实现部分 1720 → 830 行（测试 1100 行未动）。纯移动，行 multiset 比对只剩 rustfmt 的折行差异。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警
+  （`parser/` 的 4 条 `result_large_err` 与 2 条 backticks 是既有）；
   `make drift-check` no drift（`cache_rules` / `resource_manifest` 已 accept）。
 
 ## Next Session
 
-- [2026-09-22] 推迟项：拆 `crates/emukc_bootstrap/src/battle_rules.rs`（2819 行）。
-  攻击种别接受与展示装备资源覆盖是本次新加的两个独立关注点，各自可成模块。
-  纯结构改动、零行为变化，所以没挡交付；做的时候以 `cargo test --workspace` 零 diff 行为为完成标志。
-- 回到基地航空隊计划的 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
+- [2026-09-22] 回到基地航空隊计划的 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
   按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；
   取到之后**同时**接上 `set_plane` 的配属消耗。之后 U5、U6 收尾。
 - 战斗侧新积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，
