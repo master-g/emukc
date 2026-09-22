@@ -132,14 +132,17 @@ mod tests {
         // remains sufficient or if we need a first-class direct arrival-edge predicate.
         //
         // These values are in wikiwiki BFS cell-number space — the asset stores the
-        // wikiwiki catalog pre-overlay. Assembly-time auto_derive_label_overlay converts
-        // to kcdata cell-number space at runtime.
+        // wikiwiki catalog pre-overlay. `auto_derive_label_overlay` lifts them to labels
+        // and `resolve_predicate_labels` puts them back in kcdata space; the pair is what
+        // keeps them pointing at the node the wikiwiki table named.
         assert_eq!(
             visited_rules,
             vec![
                 (45, String::new(), 8, 15, true, vec![3]),
                 (55, String::new(), 7, 17, true, vec![8]),
                 (55, String::new(), 8, 17, true, vec![7]),
+                (56, String::new(), 6, 7, true, vec![1]),
+                (56, String::new(), 26, 28, true, vec![23]),
                 (74, String::new(), 7, 8, true, vec![3]),
             ]
         );

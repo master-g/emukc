@@ -69,7 +69,7 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 
 **这两类共用一个文件，是整条链上最脆的一环。**
 
-`assets/wikiwiki_map_catalog.json` 同时提供路由规则（2091 条，扇出后）和敌方编成
+`assets/wikiwiki_map_catalog.json` 同时提供路由规则（2144 条，扇出后）和敌方编成
 （258 个格子 → 扇出 398）。工作流是：
 
 ```
@@ -90,8 +90,21 @@ Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB
 **值得按图人工对照，不值得替换数据链。**
 
 **当前资产的状态**：它是 2026-09-22 修分层之前的混合产物，含 kcdata/stat 的格子元数据和某次活动的
-maparea 42 地图。要干净必须重跑一次 agent pass，且产出不得劣于已提交版本——本地历史 agent JSON
-全是 `Unknown` 谓词，直接拿来重生会大幅倒退。
+maparea 42 地图（5 张，0 条规则，最终 catalog 会按 manifest 过滤掉）。要干净必须重跑一次 agent
+pass，且产出不得劣于已提交版本——本地历史 agent JSON 全是 `Unknown` 谓词，直接拿来重生会大幅倒退。
+
+**5-6 之前完全没被抓过**：49 格、23 个分歧点、0 条规则、0 组敌方编成，每个分岐都退化成随机。
+2026-09-22 补了它的分歧表（38 条 label 规则 → 扇出 53 条），其中 6 条是 `Unknown`：三处
+「索敵」wikiwiki 只写了两个字没给阈值（页面自称「新規実装のため情報不足」），一处是
+「第二ゲージ破壊前はQ2」这种阶段门，我们没有对应的谓词。**5-6 的敌方编成仍然是空的**，
+那是一张 20 个节点的表，得单独做一次。
+
+`5-6.html` 之前不在页面缓存里——`sync` 的图单来自 manifest，所以它一直会被拉，只是没人跑过。
+
+**「经由某格」的编号空间踩过一次**：资产里的 `VisitedNode` 存的是 wikiwiki 自己的 BFS 编号，而
+`auto_derive_label_overlay` 曾把谓词原样透传，于是这些编号进了 kcdata 空间、指向了别的格子——
+4-5 的「Dマスを経由」在查 B，5-5 的「Nマス」在查 H，7-4 的「Dマス」在查 C，5 条全错。
+现在 `lift_predicate_to_labels` 先把它抬回 label，再由 `resolve_predicate_labels` 落到目标空间。
 
 ## 3. 敌舰属性
 

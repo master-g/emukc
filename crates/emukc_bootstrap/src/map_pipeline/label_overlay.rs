@@ -180,7 +180,7 @@ pub fn auto_derive_label_overlay(variant: &MapVariantDefinition) -> WikiwikiLabe
                 from_label: from_label.to_string(),
                 to_label: to_label.to_string(),
                 probability_pct: rule.probability_pct,
-                predicate: rule.predicate.clone(),
+                predicate: lift_predicate_to_labels(&rule.predicate, &cell_no_to_label),
                 raw_text: rule.raw_text.clone(),
                 random_placeholder: false,
             });
@@ -220,6 +220,57 @@ pub fn auto_derive_label_overlay(variant: &MapVariantDefinition) -> WikiwikiLabe
         ship_drops,
         required_defeat_count: variant.required_defeat_count,
         parse_warnings: Vec::new(),
+    }
+}
+
+/// Convert a `cell_no`-based route-history predicate to a label-based one.
+///
+/// Every other field of the overlay travels through label space, because the
+/// wikiwiki catalog numbers its cells by its own BFS while kcdata numbers them by
+/// route ID. [`RoutePredicate::VisitedNode`] carries cell numbers inside the
+/// predicate, so copying it verbatim smuggled wikiwiki numbers into the kcdata
+/// catalog, where they name different nodes: 4-5's 「Dマスを経由」 was checking B,
+/// 5-5's 「Nマス」 was checking H, 7-4's 「Dマス」 was checking C. Lift it here so
+/// [`resolve_predicate_labels`] can put it back in the target's space.
+fn lift_predicate_to_labels(
+    predicate: &RoutePredicate,
+    cell_no_to_label: &BTreeMap<i64, &str>,
+) -> RoutePredicate {
+    match predicate {
+        RoutePredicate::VisitedNode {
+            cell_nos,
+            visited,
+        } => {
+            let mut node_labels = Vec::new();
+            for cell_no in cell_nos {
+                match cell_no_to_label.get(cell_no) {
+                    Some(label) => {
+                        let label = (*label).to_string();
+                        if !node_labels.contains(&label) {
+                            node_labels.push(label);
+                        }
+                    }
+                    None => tracing::warn!(
+                        cell_no,
+                        "VisitedNode predicate: cell has no label in the wikiwiki catalog, dropped"
+                    ),
+                }
+            }
+            RoutePredicate::VisitedNodeLabel {
+                node_labels,
+                visited: *visited,
+            }
+        }
+        RoutePredicate::And(children) => RoutePredicate::And(
+            children.iter().map(|p| lift_predicate_to_labels(p, cell_no_to_label)).collect(),
+        ),
+        RoutePredicate::Or(children) => RoutePredicate::Or(
+            children.iter().map(|p| lift_predicate_to_labels(p, cell_no_to_label)).collect(),
+        ),
+        RoutePredicate::Not(inner) => {
+            RoutePredicate::Not(Box::new(lift_predicate_to_labels(inner, cell_no_to_label)))
+        }
+        other => other.clone(),
     }
 }
 
@@ -800,6 +851,63 @@ mod tests {
 
         // RoutePredicate doesn't derive PartialEq, so compare via Debug format.
         assert_eq!(format!("{:?}", overlay.routing_rules[0].predicate), format!("{:?}", pred));
+    }
+
+    /// A route-history predicate must survive both numbering spaces.
+    ///
+    /// The wikiwiki catalog calls this node cell 7 and kcdata calls it cell 42;
+    /// copying the predicate verbatim left 7 in it, which is a different node in
+    /// the target. Lifting to the label and resolving back is what keeps
+    /// 「Cマスを経由」 about C.
+    #[test]
+    fn auto_derive_lifts_visited_node_through_the_label() {
+        let wikiwiki = MapVariantDefinition {
+            variant_key: String::new(),
+            cells: vec![
+                make_cell_with_next(0, "Start", vec![1]),
+                make_cell(1, "A"),
+                make_cell(7, "C"),
+            ],
+            routing_rules: BTreeMap::from([(
+                0,
+                vec![make_rule(
+                    0,
+                    1,
+                    RoutePredicate::VisitedNode {
+                        cell_nos: vec![7],
+                        visited: true,
+                    },
+                )],
+            )]),
+            ..Default::default()
+        };
+
+        let overlay = auto_derive_label_overlay(&wikiwiki);
+        match &overlay.routing_rules[0].predicate {
+            RoutePredicate::VisitedNodeLabel {
+                node_labels,
+                visited,
+            } => {
+                assert_eq!(node_labels, &vec!["C".to_string()]);
+                assert!(visited);
+            }
+            other => panic!("expected VisitedNodeLabel, got {other:?}"),
+        }
+
+        // Same map in kcdata's numbering: C is cell 42, not cell 7.
+        let mut kcdata = make_variant(vec![
+            make_cell_with_next(0, "Start", vec![9]),
+            make_cell(9, "A"),
+            make_cell(42, "C"),
+        ]);
+        assert_eq!(merge_label_overlay(&mut kcdata, &overlay), 0);
+        match &kcdata.routing_rules.get(&0).unwrap()[0].predicate {
+            RoutePredicate::VisitedNode {
+                cell_nos,
+                ..
+            } => assert_eq!(cell_nos, &vec![42]),
+            other => panic!("expected VisitedNode, got {other:?}"),
+        }
     }
 
     #[test]

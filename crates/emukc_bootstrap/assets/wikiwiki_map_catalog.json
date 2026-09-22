@@ -40998,6 +40998,1238 @@
         }
       }
     },
+    "56": {
+      "map_id": 56,
+      "maparea_id": 5,
+      "mapinfo_no": 6,
+      "name": "ラバウル方面海域",
+      "level": 13,
+      "sally_flag": [
+        1,
+        0,
+        0
+      ],
+      "is_event": false,
+      "reset_policy": "Never",
+      "airbase_count": null,
+      "gauge_type": null,
+      "gauge_count": null,
+      "required_defeat_count": null,
+      "max_hp": null,
+      "gauge_type_e": null,
+      "default_variant": "",
+      "variants": {
+        "": {
+          "variant_key": "",
+          "boss_cell_no": 34,
+          "cells": [
+            {
+              "cell_no": 0,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "Start"
+            },
+            {
+              "cell_no": 1,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "A"
+            },
+            {
+              "cell_no": 2,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "A1"
+            },
+            {
+              "cell_no": 3,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "A2"
+            },
+            {
+              "cell_no": 4,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "B"
+            },
+            {
+              "cell_no": 5,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "C"
+            },
+            {
+              "cell_no": 6,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "C1"
+            },
+            {
+              "cell_no": 7,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "C2"
+            },
+            {
+              "cell_no": 8,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "D"
+            },
+            {
+              "cell_no": 9,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "E"
+            },
+            {
+              "cell_no": 10,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "F"
+            },
+            {
+              "cell_no": 11,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "G"
+            },
+            {
+              "cell_no": 12,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "H"
+            },
+            {
+              "cell_no": 13,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "R"
+            },
+            {
+              "cell_no": 14,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "I"
+            },
+            {
+              "cell_no": 15,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "J"
+            },
+            {
+              "cell_no": 16,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "K"
+            },
+            {
+              "cell_no": 17,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "K1"
+            },
+            {
+              "cell_no": 18,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "K2"
+            },
+            {
+              "cell_no": 19,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "L"
+            },
+            {
+              "cell_no": 20,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "M"
+            },
+            {
+              "cell_no": 21,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "N"
+            },
+            {
+              "cell_no": 22,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "O"
+            },
+            {
+              "cell_no": 23,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "P"
+            },
+            {
+              "cell_no": 24,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "Q"
+            },
+            {
+              "cell_no": 25,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "Q1"
+            },
+            {
+              "cell_no": 26,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "Q2"
+            },
+            {
+              "cell_no": 27,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "S"
+            },
+            {
+              "cell_no": 28,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "T"
+            },
+            {
+              "cell_no": 29,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "U"
+            },
+            {
+              "cell_no": 30,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "V"
+            },
+            {
+              "cell_no": 31,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "W"
+            },
+            {
+              "cell_no": 32,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "X"
+            },
+            {
+              "cell_no": 33,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "Y"
+            },
+            {
+              "cell_no": 34,
+              "color_no": 0,
+              "event_id": 0,
+              "event_kind": 0,
+              "next_cells": [],
+              "node_label": "Z"
+            }
+          ],
+          "routing_rules": {
+            "0": [
+              {
+                "from_cell_no": 0,
+                "to_cell_no": 1,
+                "priority": 0,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          11
+                        ],
+                        "op": "Eq",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 4
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "正規空母0隻 かつ 駆逐4隻以上でA"
+              },
+              {
+                "from_cell_no": 0,
+                "to_cell_no": 1,
+                "priority": 1,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          17
+                        ],
+                        "op": "Gte",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "揚陸艦1隻以上 かつ 駆逐2隻以上でA"
+              },
+              {
+                "from_cell_no": 0,
+                "to_cell_no": 2,
+                "priority": 2,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Lte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "戦艦級2隻以上 かつ 駆逐2隻以下でA1"
+              },
+              {
+                "from_cell_no": 0,
+                "to_cell_no": 3,
+                "priority": 3,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          11
+                        ],
+                        "op": "Eq",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "正規空母0隻 かつ 駆逐2隻以上でA2"
+              },
+              {
+                "from_cell_no": 0,
+                "to_cell_no": 2,
+                "priority": 4,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はA1"
+              }
+            ],
+            "1": [
+              {
+                "from_cell_no": 1,
+                "to_cell_no": 4,
+                "priority": 5,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ContainsShipType": {
+                        "ship_types": [
+                          5,
+                          6
+                        ]
+                      }
+                    },
+                    {
+                      "Not": {
+                        "Speed": {
+                          "class": "Fast"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "重巡級を含むとき 速力:低速が含まれているとB"
+              },
+              {
+                "from_cell_no": 1,
+                "to_cell_no": 7,
+                "priority": 6,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "ShipSetCount": {
+                    "ship_types": [
+                      9,
+                      10,
+                      7,
+                      11,
+                      18
+                    ],
+                    "ship_ids": [
+                      161
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                "raw_text": "(戦艦級＋空母系＋あきつ丸)0隻でC2"
+              },
+              {
+                "from_cell_no": 1,
+                "to_cell_no": 4,
+                "priority": 7,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はB"
+              }
+            ],
+            "3": [
+              {
+                "from_cell_no": 3,
+                "to_cell_no": 5,
+                "priority": 8,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "Speed": {
+                        "class": "Fast"
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          11
+                        ],
+                        "op": "Eq",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10,
+                          7,
+                          5,
+                          6
+                        ],
+                        "op": "Lte",
+                        "value": 2
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          5,
+                          6
+                        ],
+                        "op": "Lte",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "Or": [
+                        {
+                          "And": [
+                            {
+                              "ShipTypeCount": {
+                                "ship_types": [
+                                  3
+                                ],
+                                "op": "Gte",
+                                "value": 1
+                              }
+                            },
+                            {
+                              "ShipTypeCount": {
+                                "ship_types": [
+                                  2
+                                ],
+                                "op": "Gte",
+                                "value": 2
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "ShipTypeCount": {
+                            "ship_types": [
+                              2
+                            ],
+                            "op": "Gte",
+                            "value": 3
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "raw_text": "高速以上統一/正規空母0隻/(戦艦級＋軽空母＋重巡級)2隻以下/重巡級1隻以下/(軽巡1隻以上 かつ 駆逐2隻以上) または 駆逐3隻以上でC"
+              },
+              {
+                "from_cell_no": 3,
+                "to_cell_no": 4,
+                "priority": 9,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はB"
+              }
+            ],
+            "4": [
+              {
+                "from_cell_no": 4,
+                "to_cell_no": 7,
+                "priority": 10,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          10
+                        ],
+                        "op": "Eq",
+                        "value": 2
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Eq",
+                        "value": 4
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "航空戦艦2隻 かつ 駆逐4隻でC2"
+              },
+              {
+                "from_cell_no": 4,
+                "to_cell_no": 5,
+                "priority": 11,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10,
+                          7
+                        ],
+                        "op": "Lte",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "Or": [
+                        {
+                          "Not": {
+                            "And": [
+                              {
+                                "Not": {
+                                  "Speed": {
+                                    "class": "Fast"
+                                  }
+                                }
+                              },
+                              {
+                                "ShipTypeCount": {
+                                  "ship_types": [
+                                    9,
+                                    10,
+                                    7
+                                  ],
+                                  "op": "Eq",
+                                  "value": 1
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "ShipTypeCount": {
+                            "ship_types": [
+                              2
+                            ],
+                            "op": "Lte",
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          11
+                        ],
+                        "op": "Eq",
+                        "value": 0
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "(戦艦級＋軽空母)1隻以下/速力:低速を含み(戦艦級＋軽空母)1隻なら駆逐3隻以下/正規空母0隻でC"
+              },
+              {
+                "from_cell_no": 4,
+                "to_cell_no": 6,
+                "priority": 12,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はC1"
+              }
+            ],
+            "6": [
+              {
+                "from_cell_no": 6,
+                "to_cell_no": 7,
+                "priority": 13,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "VisitedNode": {
+                    "cell_nos": [
+                      1
+                    ],
+                    "visited": true
+                  }
+                },
+                "raw_text": "Aマスを経由するとC2"
+              },
+              {
+                "from_cell_no": 6,
+                "to_cell_no": 5,
+                "priority": 14,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はC"
+              }
+            ],
+            "9": [
+              {
+                "from_cell_no": 9,
+                "to_cell_no": 10,
+                "priority": 15,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵"
+                  }
+                },
+                "raw_text": "索敵"
+              },
+              {
+                "from_cell_no": 9,
+                "to_cell_no": 11,
+                "priority": 16,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵"
+                  }
+                },
+                "raw_text": "索敵"
+              }
+            ],
+            "15": [
+              {
+                "from_cell_no": 15,
+                "to_cell_no": 17,
+                "priority": 17,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "Not": {
+                        "Speed": {
+                          "class": "Fast"
+                        }
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10,
+                          11
+                        ],
+                        "op": "Gte",
+                        "value": 3
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "速力:低速を含み(戦艦級＋正規空母)3隻以上でK1"
+              },
+              {
+                "from_cell_no": 15,
+                "to_cell_no": 16,
+                "priority": 18,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Or": [
+                    {
+                      "And": [
+                        {
+                          "ShipTypeCount": {
+                            "ship_types": [
+                              3
+                            ],
+                            "op": "Gte",
+                            "value": 1
+                          }
+                        },
+                        {
+                          "ShipTypeCount": {
+                            "ship_types": [
+                              2
+                            ],
+                            "op": "Gte",
+                            "value": 2
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 3
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "(軽巡1隻以上 かつ 駆逐2隻以上) または 駆逐3隻以上でK"
+              },
+              {
+                "from_cell_no": 15,
+                "to_cell_no": 17,
+                "priority": 19,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はK1"
+              }
+            ],
+            "16": [
+              {
+                "from_cell_no": 16,
+                "to_cell_no": 19,
+                "priority": 20,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "Speed": {
+                        "class": "Fast"
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10,
+                          7,
+                          11,
+                          18
+                        ],
+                        "op": "Lte",
+                        "value": 2
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          3
+                        ],
+                        "op": "Gte",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "高速以上統一/(戦艦級＋空母系)2隻以下/軽巡1隻以上/駆逐2隻以上でL"
+              },
+              {
+                "from_cell_no": 16,
+                "to_cell_no": 18,
+                "priority": 21,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はK2"
+              }
+            ],
+            "19": [
+              {
+                "from_cell_no": 19,
+                "to_cell_no": 20,
+                "priority": 22,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵"
+                  }
+                },
+                "raw_text": "索敵"
+              },
+              {
+                "from_cell_no": 19,
+                "to_cell_no": 21,
+                "priority": 23,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵"
+                  }
+                },
+                "raw_text": "索敵"
+              }
+            ],
+            "24": [
+              {
+                "from_cell_no": 24,
+                "to_cell_no": 26,
+                "priority": 24,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "第二ゲージ破壊前はQ2"
+                  }
+                },
+                "raw_text": "第二ゲージ破壊前はQ2"
+              },
+              {
+                "from_cell_no": 24,
+                "to_cell_no": 31,
+                "priority": 25,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Speed": {
+                    "class": "FastPlus"
+                  }
+                },
+                "raw_text": "高速+以上統一でW"
+              },
+              {
+                "from_cell_no": 24,
+                "to_cell_no": 31,
+                "priority": 26,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          3
+                        ],
+                        "op": "Gte",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 3
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "軽巡1隻以上 かつ 駆逐3隻以上でW"
+              },
+              {
+                "from_cell_no": 24,
+                "to_cell_no": 29,
+                "priority": 27,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10,
+                          11
+                        ],
+                        "op": "Lte",
+                        "value": 3
+                      }
+                    },
+                    {
+                      "Or": [
+                        {
+                          "Not": {
+                            "ShipTypeCount": {
+                              "ship_types": [
+                                9,
+                                10,
+                                11
+                              ],
+                              "op": "Eq",
+                              "value": 3
+                            }
+                          }
+                        },
+                        {
+                          "ShipTypeCount": {
+                            "ship_types": [
+                              3
+                            ],
+                            "op": "Gte",
+                            "value": 1
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "(戦艦級＋正規空母)3隻以下/(戦艦級＋正規空母)3隻のとき 軽巡1隻以上/駆逐2隻以上でU"
+              },
+              {
+                "from_cell_no": 24,
+                "to_cell_no": 26,
+                "priority": 28,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はQ2"
+              }
+            ],
+            "25": [
+              {
+                "from_cell_no": 25,
+                "to_cell_no": 27,
+                "priority": 29,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵不足でS"
+                  }
+                },
+                "raw_text": "索敵不足でS"
+              },
+              {
+                "from_cell_no": 25,
+                "to_cell_no": 28,
+                "priority": 30,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          11
+                        ],
+                        "op": "Lte",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "正規空母1隻以下/駆逐2隻以上でT"
+              },
+              {
+                "from_cell_no": 25,
+                "to_cell_no": 26,
+                "priority": 31,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はQ2"
+              }
+            ],
+            "26": [
+              {
+                "from_cell_no": 26,
+                "to_cell_no": 28,
+                "priority": 32,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "VisitedNode": {
+                    "cell_nos": [
+                      23
+                    ],
+                    "visited": true
+                  }
+                },
+                "raw_text": "Pマスを経由するとT"
+              },
+              {
+                "from_cell_no": 26,
+                "to_cell_no": 30,
+                "priority": 33,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はV"
+              }
+            ],
+            "30": [
+              {
+                "from_cell_no": 30,
+                "to_cell_no": 32,
+                "priority": 34,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "And": [
+                    {
+                      "Speed": {
+                        "class": "Fast"
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          9,
+                          10,
+                          7,
+                          11,
+                          18
+                        ],
+                        "op": "Lte",
+                        "value": 3
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          7,
+                          11,
+                          18
+                        ],
+                        "op": "Lte",
+                        "value": 2
+                      }
+                    },
+                    {
+                      "ShipTypeCount": {
+                        "ship_types": [
+                          2
+                        ],
+                        "op": "Gte",
+                        "value": 2
+                      }
+                    }
+                  ]
+                },
+                "raw_text": "高速以上統一/(戦艦級＋空母系)3隻以下/空母系2隻以下/駆逐2隻以上でX"
+              },
+              {
+                "from_cell_no": 30,
+                "to_cell_no": 31,
+                "priority": 35,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": "Always",
+                "raw_text": "それ以外はW"
+              }
+            ],
+            "32": [
+              {
+                "from_cell_no": 32,
+                "to_cell_no": 33,
+                "priority": 36,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵"
+                  }
+                },
+                "raw_text": "索敵"
+              },
+              {
+                "from_cell_no": 32,
+                "to_cell_no": 34,
+                "priority": 37,
+                "weight": null,
+                "probability_pct": null,
+                "predicate": {
+                  "Unknown": {
+                    "raw_text": "索敵"
+                  }
+                },
+                "raw_text": "索敵"
+              }
+            ]
+          },
+          "enemy_fleets": {}
+        }
+      }
+    },
     "61": {
       "map_id": 61,
       "maparea_id": 6,

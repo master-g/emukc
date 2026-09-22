@@ -52,15 +52,12 @@ Current verification baseline:
 - [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
-- [2026-09-22] 基地航空隊的两处消耗都有出处，不必本项目定值：配属 = `api_mst_slotitem.api_cost`
-  × 配属機数（一式陸攻 `api_cost`=12，与实测 18 機扣 216 ボーキ 吻合）；补给 = `燃料 喪失機数×3`、
-  `ボーキ 喪失機数×5`，不随机种变化（wikiwiki 基地航空隊页 + note.com 同系数算例）。
-  未决：wikiwiki 说乘数 = 槽容量（偵察 4 / 大型陸上機 9 / 其他 18），但我们给大型飛行艇的容量是 1。
-- [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（抽 `kcsapi/mod.rs` 的
-  `nest("/prefix", ..)` 加子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），missing 是
-  「`docs/apilist.txt` 的 136 减 router」；两者不互补——`remodel_slot_recover` 这类不在上游参考里的
-  端点只进前者。`docs/apilist.txt`（4209 行）是字段**语义**的最全来源，解码客户端才是字段**是否存在**
-  的真源；`docs/api_coverage.md` 只是路线图。
+- [2026-09-22] 基地航空隊两处消耗都有出处：配属 = `api_mst_slotitem.api_cost` × 機数（一式陸攻 12，
+  实测 18 機扣 216 ボーキ 吻合）；补给 = 燃料 喪失機数×3 / ボーキ ×5。未决：wikiwiki 说乘数 = 槽容量
+  （偵察 4 / 大型陸上機 9 / 其他 18），但我们给大型飛行艇的容量是 1。见计划 2026-09-22-001。
+- [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
+  `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
+  两者不互补。`docs/apilist.txt` 是字段**语义**最全来源，解码客户端才是字段**是否存在**的真源。
 - [2026-09-19] 击沉敌舰的任务事件只来自 `settle_sortie_battle_impl` 的 `final_enemy_nowhps`（夜战后的
   session 包，与 `api_dests` 同一份切片）。快照里那份昼战冻结的 `enemy_nowhps` 会吞掉夜战击沉，已删除。
   见 `game/sortie_result.rs`。
@@ -80,6 +77,11 @@ Current verification baseline:
   与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
 - [2026-09-22] `cargo test --workspace` exit 0；09-20 记的三条 baseline 失败不再复现，别当既有失败引用
   （`mkdir -p target/tmp` 的前提见 Pitfalls 的 `test_font` 条）。
+
+- [2026-09-22] 地图数据源的三条结论，证据与数字都在 `docs/map/data-dependencies.md`：自编的地图开放
+  前置表用真实 `mapinfo` 的 33 条逐个 id 复现（测试 `prerequisites_reproduce_the_live_mapinfo_sample`）；
+  `KC3Kai/edges.json`（kcwiki `map/edge.json` 是其纯键名镜像）**不接**——675 条边 674 条只是确认我们，
+  唯一分歧 7-4 edge 3 是上游错；`real_map_start_data/` 36 份只有 34 份有效，7-4/7-5 是错误页（已跳过）。
 
 - [2026-09-21] `emukc_network` 的下载层先读完 body 再开目标文件，非 2xx 直接报错，失败的传输从不写出
   半截文件。计划 005 的 `.part` + rename 只堵了 truncate-to-copy 窗口；真正的数据丢失来自
@@ -128,10 +130,9 @@ Current verification baseline:
   `airbase_count` 是出撃可能数而非拥有数、`expand_base` 是増开一隊而非扩槽、
   空槽为何不落库：四条都在
   `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md` 的前提表与各 U 修正段。
-- [2026-09-22] `remodel_slot_recover` 有两条推不出来的约束：客户端是
-  `model.slot.get(slot_id).__updateObject__(api_after_slot)`，所以 `api_after_slot` 必须是
-  **同一实例 id**——重置不能删建装备，★10 variant 也不退回原装备；`api_dev_num` 只有 1/2/3
-  （`ResetDialog` 的 radio），而成功率上游从不告诉客户端，50/75/100 是本项目定的值
+- [2026-09-22] `remodel_slot_recover`：客户端走 `slot.get(id).__updateObject__(api_after_slot)`，
+  所以 `api_after_slot` 必须是**同一实例 id**（重置不能删建装备，★10 variant 也不退回原装备）；
+  `api_dev_num` 只有 1/2/3，成功率上游不告诉客户端，50/75/100 是本项目定值
   （`codex/remodel_slot.rs::recover_success_rate`）。
 
 - [2026-09-21] 敌方联合舰队在本地 codex 里**没有数据**：`map_catalog.json` 只有 37 张常规图
@@ -184,26 +185,24 @@ Current verification baseline:
 | [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
+| [2026-09-22] 谓词里带格子编号的必须和其它字段一样走 label 中转：`auto_derive_label_overlay` 曾把 `VisitedNode` 原样透传，wikiwiki 的 BFS 编号进了 kcdata 空间，4-5/5-5/7-4 共 5 条「经由某格」全在查别的格子。 | `lift_predicate_to_labels` |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 
 ## Last Session
 
-- [2026-09-22] 地图数据源调研 + SSOT 收敛三步：①掉落抽成 `assets/map_ship_drops.json`（原资产里 242 格
-  无可复现来源，`ca027294` 曾因重生丢掉落而冻结资产），解除资产锁死；②`wikiwiki-map normalize` 不再把
-  合并成品写回 wikiwiki 源槽位（37→36 图、`master_cell_id` 与活动图不再混入）；③删掉不可达的 legacy
-  合并路径与描述已删解析器的文档。管线产出逐项不变：37 图 / 2091 规则 / 367 掉落格 / 16499 条。
-- 更早：7-3 路由恢复、ドラム缶 按舰计数、前置表标注为近似。
-- 门禁：`cargo test --workspace` exit 0（47 组）；fmt clean；改动文件 clippy 零告警。
+- [2026-09-22] 地图数据三件事：①用真实 `mapinfo` 验证了地图开放前置表（33/33 全对），把它从「未验证的
+  推断」升级成有一份证据；②对 `edges.json` 做了全量拓扑交叉校验，结论是不接（见「已验证的事实」）；
+  ③补上 5-6 的分歧表——它此前 49 格 23 个分歧点 0 条规则，现在 38 条 label 规则扇出 53 条。
+- 顺带修掉一个真 bug：`VisitedNode` 谓词的编号空间没做 label 中转，4-5 / 5-5 / 7-4 共 5 条「经由某格」
+  规则全在查错误的格子（见「失败尝试」）。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；改动文件 clippy 零告警。管线 37 图 / 2144 规则 /
+  fanout_rules_dropped 80（与改动前同值）。
 
 ## Next Session
 
-- [2026-09-22] **分歧规则没有更好的信源**，结论与证据见 `docs/map/kancolle-map-research.md`
-  「数据源与 Single Source of Truth」。拓扑有更好的：`kcwiki/kancolle-data` 的 `map/edge.json`
-  （193 图、键是 edge id 对应 `api_no`），**尚未接入，是下一步**。
-- 现有 `wikiwiki_map_catalog.json` 仍是修复前的混合产物（含 kcdata/stat 格子元数据 + maparea 42
-  活动图）。重生需要一次 agent pass（skill `emukc-scrape-wikiwiki-mapdata`，先跑 `wikiwiki-map sync`），
-  且产出不得劣于已提交版本——本地历史 agent JSON 全是 `Unknown` 谓词，不能直接用。
-- 缺 ドラム缶 / 大発動艇系 分歧数据（2-5、5-3、5-4、5-5 约 7 条），原文在
-  `.data/temp/wikiwiki_map/extracted/*.txt` 的 ROUTE TABLE 段；补它要走上面那条 agent pass。
+- [2026-09-22] 地图侧剩下的缺口：5-6 的敌方编成仍是 0 组（20 节点的表还没抓，是它唯一剩下的洞）；
+  5-6 有 6 条 `Unknown`（三处「索敵」wikiwiki 没给阈值，一处「第二ゲージ破壊前」是阶段门、无对应谓词）；
+  ドラム缶 / 大発動艇系 分歧还缺约 7 条（2-5、5-3、5-4、5-5，原文在 `extracted/*.txt` 的 ROUTE TABLE 段）；
+  掉落仍是唯一完全不可再生的一类。都要走 agent pass。
 - 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。
 - 战斗侧积压：`api_at_type = 100` 按每参战舰发一条，官方是一条带三目标，见 `docs/battle/rules.md`。
