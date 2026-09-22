@@ -2,6 +2,13 @@ use emukc_model::kc2::KcApiMusicListElement;
 
 use super::error::ParseError;
 
+/// The jukebox menu, copied from a live `api_req_furniture/music_list`
+/// response on 2026-09-22 (client 6.3.5.0).
+///
+/// `api_id` is display order, not identity: upstream reshuffles it whenever a
+/// track is added, so diff a newer response by `api_bgm_id`. Several
+/// `api_use_coin` values are the current year (祈り sells for 2025), so this
+/// list goes stale every new year even when no track is added.
 const DEFAULT_MUSIC_LIST: &str = r#"
 [
   {
@@ -15,30 +22,30 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 217,
+    "api_bgm_id": 214,
     "api_description": "母港BGM設定可能",
     "api_id": 6,
     "api_loops": 2,
-    "api_name": "武蔵の帰投",
+    "api_name": "特型駆逐艦",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 216,
+    "api_bgm_id": 246,
     "api_description": "母港BGM設定可能",
     "api_id": 7,
     "api_loops": 2,
-    "api_name": "桃の節句と艦娘",
+    "api_name": "二水戦の航跡",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 263,
+    "api_bgm_id": 217,
     "api_description": "母港BGM設定可能",
     "api_id": 8,
     "api_loops": 2,
-    "api_name": "北大西洋の風",
-    "api_use_coin": 1500
+    "api_name": "武蔵の帰投",
+    "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
@@ -51,11 +58,11 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 210,
-    "api_description": "母港BGM設定可能",
+    "api_bgm_id": 247,
+    "api_description": "BGMバージョン",
     "api_id": 10,
     "api_loops": 2,
-    "api_name": "連合艦隊の出撃",
+    "api_name": "佐世保の時雨",
     "api_use_coin": 1000
   },
   {
@@ -77,31 +84,31 @@ const DEFAULT_MUSIC_LIST: &str = r#"
     "api_use_coin": 1000
   },
   {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 255,
-    "api_description": "母港BGM設定可能",
+    "api_bgm_flag": 0,
+    "api_bgm_id": 222,
+    "api_description": "視聴ロングバージョン",
     "api_id": 13,
-    "api_loops": 2,
-    "api_name": "Valentine’s Sea",
-    "api_use_coin": 1000
+    "api_loops": 1,
+    "api_name": "華の二水戦",
+    "api_use_coin": 700
   },
   {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 215,
-    "api_description": "母港BGM設定可能",
+    "api_bgm_flag": 0,
+    "api_bgm_id": 220,
+    "api_description": "視聴ロングバージョン",
     "api_id": 14,
-    "api_loops": 2,
-    "api_name": "艦娘のお菓子作り",
-    "api_use_coin": 1000
+    "api_loops": 1,
+    "api_name": "暁の水平線に",
+    "api_use_coin": 700
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 265,
+    "api_bgm_id": 272,
     "api_description": "母港BGM設定可能",
     "api_id": 15,
     "api_loops": 2,
-    "api_name": "村雨と峯雲の出撃",
-    "api_use_coin": 1500
+    "api_name": "ももちと新しき朝",
+    "api_use_coin": 2000
   },
   {
     "api_bgm_flag": 1,
@@ -114,92 +121,92 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
+    "api_bgm_id": 235,
+    "api_description": "母港BGM設定可能",
+    "api_id": 17,
+    "api_loops": 2,
+    "api_name": "師走の鎮守府",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 260,
+    "api_description": "母港BGM設定可能",
+    "api_id": 18,
+    "api_loops": 2,
+    "api_name": "Fleet for the end of the year",
+    "api_use_coin": 2025
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 238,
+    "api_description": "母港BGM設定可能",
+    "api_id": 19,
+    "api_loops": 2,
+    "api_name": "祈り",
+    "api_use_coin": 2025
+  },
+  {
+    "api_bgm_flag": 0,
+    "api_bgm_id": 221,
+    "api_description": "視聴ロングバージョン",
+    "api_id": 20,
+    "api_loops": 1,
+    "api_name": "鎮守府の朝",
+    "api_use_coin": 700
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 206,
+    "api_description": "母港BGM設定可能",
+    "api_id": 21,
+    "api_loops": 2,
+    "api_name": "明石の工廠",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
     "api_bgm_id": 223,
     "api_description": "視聴ロングバージョン",
-    "api_id": 17,
+    "api_id": 22,
     "api_loops": 1,
     "api_name": "提督との絆",
     "api_use_coin": 700
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 218,
-    "api_description": "母港BGM設定可能",
-    "api_id": 18,
-    "api_loops": 2,
-    "api_name": "雨音の鎮守府",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 219,
-    "api_description": "母港BGM設定可能",
-    "api_id": 19,
-    "api_loops": 2,
-    "api_name": "雨とお酒と艦娘",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 240,
-    "api_description": "母港BGM設定可能",
-    "api_id": 20,
-    "api_loops": 2,
-    "api_name": "雨とお酒と艦娘(第二夜)",
-    "api_use_coin": 1500
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 213,
-    "api_description": "母港BGM設定可能",
-    "api_id": 21,
-    "api_loops": 2,
-    "api_name": "士魂の護り",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 274,
-    "api_description": "母港BGM設定可能",
-    "api_id": 22,
-    "api_loops": 2,
-    "api_name": "海に吹く碧の風",
-    "api_use_coin": 2000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 246,
-    "api_description": "母港BGM設定可能",
-    "api_id": 23,
-    "api_loops": 2,
-    "api_name": "二水戦の航跡",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
     "api_bgm_id": 237,
-    "api_description": "試製先行ショートmode",
-    "api_id": 24,
+    "api_description": "試製ショートバージョン",
+    "api_id": 23,
     "api_loops": 1,
     "api_name": "月夜海(つきよみ)",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 254,
+    "api_bgm_id": 232,
     "api_description": "母港BGM設定可能",
-    "api_id": 25,
+    "api_id": 24,
     "api_loops": 2,
-    "api_name": "頌春令和の海",
-    "api_use_coin": 1500
+    "api_name": "艦娘音頭",
+    "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 229,
+    "api_bgm_id": 248,
+    "api_description": "母港BGM設定可能",
+    "api_id": 25,
+    "api_loops": 2,
+    "api_name": "遥かなるウルシー泊地",
+    "api_use_coin": 2000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 208,
     "api_description": "母港BGM設定可能",
     "api_id": 26,
     "api_loops": 2,
-    "api_name": "提督と艦娘の食卓",
+    "api_name": "海上護衛戦",
     "api_use_coin": 1000
   },
   {
@@ -240,11 +247,11 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 273,
+    "api_bgm_id": 263,
     "api_description": "母港BGM設定可能",
     "api_id": 31,
     "api_loops": 2,
-    "api_name": "海原へ",
+    "api_name": "北大西洋の風",
     "api_use_coin": 1500
   },
   {
@@ -276,11 +283,11 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 241,
+    "api_bgm_id": 277,
     "api_description": "母港BGM設定可能",
     "api_id": 35,
     "api_loops": 2,
-    "api_name": "梅雨明けの白露",
+    "api_name": "第五艦隊の奮戦",
     "api_use_coin": 1000
   },
   {
@@ -357,90 +364,27 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 235,
+    "api_bgm_id": 242,
     "api_description": "母港BGM設定可能",
     "api_id": 44,
     "api_loops": 2,
-    "api_name": "師走の鎮守府",
-    "api_use_coin": 1000
+    "api_name": "鎮守府秋刀魚祭り改三",
+    "api_use_coin": 1500
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 260,
+    "api_bgm_id": 241,
     "api_description": "母港BGM設定可能",
     "api_id": 45,
-    "api_loops": 1,
-    "api_name": "Fleet for the end of the year",
-    "api_use_coin": 2021
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 238,
-    "api_description": "母港BGM設定可能",
-    "api_id": 46,
     "api_loops": 2,
-    "api_name": "祈り",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 262,
-    "api_description": "母港BGM設定可能",
-    "api_id": 47,
-    "api_loops": 2,
-    "api_name": "令和桃の節句",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 208,
-    "api_description": "母港BGM設定可能",
-    "api_id": 48,
-    "api_loops": 2,
-    "api_name": "海上護衛戦",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 214,
-    "api_description": "母港BGM設定可能",
-    "api_id": 49,
-    "api_loops": 2,
-    "api_name": "特型駆逐艦",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 261,
-    "api_description": "母港BGM設定可能",
-    "api_id": 50,
-    "api_loops": 2,
-    "api_name": "新しい年の護り",
-    "api_use_coin": 2024
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 212,
-    "api_description": "母港BGM設定可能",
-    "api_id": 51,
-    "api_loops": 2,
-    "api_name": "迎春の鎮守府",
-    "api_use_coin": 1000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 243,
-    "api_description": "母港BGM設定可能",
-    "api_id": 52,
-    "api_loops": 2,
-    "api_name": "節分の鎮守府",
+    "api_name": "梅雨明けの白露",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
     "api_bgm_id": 224,
     "api_description": "母港BGM設定可能",
-    "api_id": 53,
+    "api_id": 46,
     "api_loops": 2,
     "api_name": "浜辺の艦娘",
     "api_use_coin": 1000
@@ -449,7 +393,7 @@ const DEFAULT_MUSIC_LIST: &str = r#"
     "api_bgm_flag": 1,
     "api_bgm_id": 230,
     "api_description": "母港BGM設定可能",
-    "api_id": 54,
+    "api_id": 47,
     "api_loops": 2,
     "api_name": "水着の出撃",
     "api_use_coin": 1000
@@ -458,37 +402,100 @@ const DEFAULT_MUSIC_LIST: &str = r#"
     "api_bgm_flag": 1,
     "api_bgm_id": 231,
     "api_description": "母港BGM設定可能",
-    "api_id": 55,
+    "api_id": 48,
     "api_loops": 2,
     "api_name": "鎮守府秋刀魚祭り改",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 242,
+    "api_bgm_id": 258,
     "api_description": "母港BGM設定可能",
-    "api_id": 56,
+    "api_id": 49,
     "api_loops": 2,
-    "api_name": "鎮守府秋刀魚祭り改三",
+    "api_name": "Trick or Fleet!",
     "api_use_coin": 1500
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 205,
+    "api_bgm_id": 270,
     "api_description": "母港BGM設定可能",
-    "api_id": 57,
+    "api_id": 50,
     "api_loops": 2,
-    "api_name": "秋月の空",
+    "api_name": "Fleet Halloween Pumpkin",
+    "api_use_coin": 1500
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 251,
+    "api_description": "母港BGM設定可能",
+    "api_id": 51,
+    "api_loops": 2,
+    "api_name": "加賀の征く海",
+    "api_use_coin": 2000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 273,
+    "api_description": "母港BGM設定可能",
+    "api_id": 52,
+    "api_loops": 2,
+    "api_name": "海原へ",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 206,
+    "api_bgm_id": 210,
+    "api_description": "母港BGM設定可能",
+    "api_id": 53,
+    "api_loops": 2,
+    "api_name": "連合艦隊の出撃",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 229,
+    "api_description": "母港BGM設定可能",
+    "api_id": 54,
+    "api_loops": 2,
+    "api_name": "提督と艦娘の食卓",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 218,
+    "api_description": "母港BGM設定可能",
+    "api_id": 55,
+    "api_loops": 2,
+    "api_name": "雨音の鎮守府",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 219,
+    "api_description": "母港BGM設定可能",
+    "api_id": 56,
+    "api_loops": 2,
+    "api_name": "雨とお酒と艦娘",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 240,
+    "api_description": "母港BGM設定可能",
+    "api_id": 57,
+    "api_loops": 2,
+    "api_name": "雨とお酒と艦娘(第二夜)",
+    "api_use_coin": 1500
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 282,
     "api_description": "母港BGM設定可能",
     "api_id": 58,
     "api_loops": 2,
-    "api_name": "明石の工廠",
-    "api_use_coin": 1000
+    "api_name": "玉のような美しき波と共に",
+    "api_use_coin": 1500
   },
   {
     "api_bgm_flag": 1,
@@ -501,45 +508,36 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 247,
-    "api_description": "BGMバージョン",
+    "api_bgm_id": 265,
+    "api_description": "母港BGM設定可能",
     "api_id": 60,
     "api_loops": 2,
-    "api_name": "佐世保の時雨",
+    "api_name": "村雨と峯雲の出撃",
+    "api_use_coin": 1500
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 274,
+    "api_description": "母港BGM設定可能",
+    "api_id": 61,
+    "api_loops": 2,
+    "api_name": "海に吹く碧の風",
+    "api_use_coin": 2000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 278,
+    "api_description": "母港BGM設定可能",
+    "api_id": 62,
+    "api_loops": 2,
+    "api_name": "水雷戦隊の反撃",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 248,
-    "api_description": "母港BGM設定可能",
-    "api_id": 61,
-    "api_loops": 2,
-    "api_name": "遥かなるウルシー泊地",
-    "api_use_coin": 2000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 256,
-    "api_description": "母港BGM設定可能",
-    "api_id": 62,
-    "api_loops": 2,
-    "api_name": "西村艦隊の戦い",
-    "api_use_coin": 2000
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 251,
-    "api_description": "母港BGM設定可能",
-    "api_id": 63,
-    "api_loops": 2,
-    "api_name": "加賀の征く海",
-    "api_use_coin": 2000
-  },
-  {
-    "api_bgm_flag": 1,
     "api_bgm_id": 228,
-    "api_description": "母港BGM設定可能",
-    "api_id": 64,
+    "api_description": "Merry Xmas!",
+    "api_id": 63,
     "api_loops": 2,
     "api_name": "聖夜の母港",
     "api_use_coin": 1000
@@ -547,8 +545,8 @@ const DEFAULT_MUSIC_LIST: &str = r#"
   {
     "api_bgm_flag": 1,
     "api_bgm_id": 234,
-    "api_description": "母港BGM設定可能",
-    "api_id": 65,
+    "api_description": "Merry Xmas!",
+    "api_id": 64,
     "api_loops": 2,
     "api_name": "粉雪の降る夜",
     "api_use_coin": 1000
@@ -557,100 +555,163 @@ const DEFAULT_MUSIC_LIST: &str = r#"
     "api_bgm_flag": 1,
     "api_bgm_id": 211,
     "api_description": "母港BGM設定可能",
-    "api_id": 66,
+    "api_id": 65,
     "api_loops": 2,
     "api_name": "冬の艦隊",
     "api_use_coin": 1000
   },
   {
-    "api_bgm_flag": 0,
-    "api_bgm_id": 222,
-    "api_description": "視聴ロングバージョン",
-    "api_id": 67,
-    "api_loops": 1,
-    "api_name": "華の二水戦",
-    "api_use_coin": 700
-  },
-  {
-    "api_bgm_flag": 0,
-    "api_bgm_id": 220,
-    "api_description": "視聴ロングバージョン",
-    "api_id": 68,
-    "api_loops": 1,
-    "api_name": "暁の水平線に",
-    "api_use_coin": 700
-  },
-  {
-    "api_bgm_flag": 0,
-    "api_bgm_id": 221,
-    "api_description": "視聴ロングバージョン",
-    "api_id": 69,
-    "api_loops": 1,
-    "api_name": "鎮守府の朝",
-    "api_use_coin": 700
+    "api_bgm_flag": 1,
+    "api_bgm_id": 261,
+    "api_description": "母港BGM設定可能",
+    "api_id": 66,
+    "api_loops": 2,
+    "api_name": "新しい年の護り",
+    "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 272,
+    "api_bgm_id": 212,
+    "api_description": "母港BGM設定可能",
+    "api_id": 67,
+    "api_loops": 2,
+    "api_name": "迎春の鎮守府",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 254,
+    "api_description": "母港BGM設定可能",
+    "api_id": 68,
+    "api_loops": 2,
+    "api_name": "頌春令和の海",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 243,
+    "api_description": "母港BGM設定可能",
+    "api_id": 69,
+    "api_loops": 2,
+    "api_name": "節分の鎮守府",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 215,
     "api_description": "母港BGM設定可能",
     "api_id": 70,
     "api_loops": 2,
-    "api_name": "ももちと新しき朝",
+    "api_name": "艦娘のお菓子作り",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 255,
+    "api_description": "母港BGM設定可能",
+    "api_id": 71,
+    "api_loops": 2,
+    "api_name": "Valentine’s Sea",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 213,
+    "api_description": "母港BGM設定可能",
+    "api_id": 72,
+    "api_loops": 2,
+    "api_name": "士魂の護り",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 281,
+    "api_description": "母港BGM設定可能",
+    "api_id": 73,
+    "api_loops": 2,
+    "api_name": "北鎮",
     "api_use_coin": 2000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 280,
+    "api_description": "母港BGM設定可能",
+    "api_id": 74,
+    "api_loops": 2,
+    "api_name": "音威子府防衛線",
+    "api_use_coin": 1500
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 216,
+    "api_description": "母港BGM設定可能",
+    "api_id": 75,
+    "api_loops": 2,
+    "api_name": "桃の節句と艦娘",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 262,
+    "api_description": "母港BGM設定可能",
+    "api_id": 76,
+    "api_loops": 2,
+    "api_name": "令和桃の節句",
+    "api_use_coin": 1000
+  },
+  {
+    "api_bgm_flag": 1,
+    "api_bgm_id": 279,
+    "api_description": "母港BGM設定可能",
+    "api_id": 77,
+    "api_loops": 2,
+    "api_name": "トンブリの護る海",
+    "api_use_coin": 1500
   },
   {
     "api_bgm_flag": 1,
     "api_bgm_id": 227,
     "api_description": "母港BGM設定可能",
-    "api_id": 71,
+    "api_id": 78,
     "api_loops": 2,
     "api_name": "鎮守府の秋祭り",
     "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 270,
+    "api_bgm_id": 205,
     "api_description": "母港BGM設定可能",
-    "api_id": 72,
+    "api_id": 79,
     "api_loops": 2,
-    "api_name": "Fleet Halloween Pumpkin",
-    "api_use_coin": 1500
-  },
-  {
-    "api_bgm_flag": 1,
-    "api_bgm_id": 258,
-    "api_description": "母港BGM設定可能",
-    "api_id": 73,
-    "api_loops": 2,
-    "api_name": "Trick or Fleet!",
-    "api_use_coin": 1500
+    "api_name": "秋月の空",
+    "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
     "api_bgm_id": 252,
     "api_description": "母港BGM設定可能",
-    "api_id": 74,
+    "api_id": 80,
     "api_loops": 2,
     "api_name": "秋雲の描くスケッチ",
-    "api_use_coin": 2000
+    "api_use_coin": 1000
   },
   {
     "api_bgm_flag": 1,
-    "api_bgm_id": 232,
+    "api_bgm_id": 256,
     "api_description": "母港BGM設定可能",
-    "api_id": 75,
+    "api_id": 81,
     "api_loops": 2,
-    "api_name": "艦娘音頭",
-    "api_use_coin": 1000
+    "api_name": "西村艦隊の戦い",
+    "api_use_coin": 2000
   },
   {
     "api_bgm_flag": 1,
     "api_bgm_id": 267,
     "api_description": "母港BGM設定可能",
-    "api_id": 76,
+    "api_id": 82,
     "api_loops": 1,
     "api_name": "未来(いま)",
-    "api_use_coin": 2000
+    "api_use_coin": 1000
   }
 ]
 "#;
@@ -659,4 +720,25 @@ pub fn get() -> Result<Vec<KcApiMusicListElement>, ParseError> {
     let result: Vec<KcApiMusicListElement> = serde_json::from_str(DEFAULT_MUSIC_LIST)?;
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_jukebox_menu_parses_and_matches_the_live_snapshot() {
+        let list = get().unwrap();
+        assert_eq!(list.len(), 78, "78 tracks as of client 6.3.5.0");
+
+        // api_bgm_id is the identity; a duplicate means the list was edited by
+        // api_id (display order) instead of diffed properly.
+        let mut ids: Vec<i64> = list.iter().map(|m| m.api_bgm_id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), 78, "api_bgm_id is unique");
+
+        let newest = list.iter().find(|m| m.api_bgm_id == 282).expect("玉のような美しき波と共に");
+        assert_eq!(newest.api_name, "玉のような美しき波と共に");
+    }
 }
