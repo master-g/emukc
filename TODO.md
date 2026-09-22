@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-21: 126 implemented, 22 missing.
+> holds the roadmap. Last cross-checked 2026-09-22: 127 implemented, 22 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -81,6 +81,7 @@
   - [x] `api_req_kousyou/remodel_slotlist` - improvement candidate list
   - [x] `api_req_kousyou/remodel_slotlist_detail` - improvement detail
   - [x] `api_req_kousyou/remodel_slot` - perform improvement
+  - [x] `api_req_kousyou/remodel_slot_recover` - reset improvement level
 
 ## Low Priority - Optional
 - [ ] `api_req_hensei/preset_lock` - lock fleet preset

@@ -103,6 +103,7 @@ api_req_kousyou/preset_dev_items_expand
 api_req_kousyou/preset_dev_items_register
 api_req_kousyou/preset_dev_items_update_name
 api_req_kousyou/remodel_slot
+api_req_kousyou/remodel_slot_recover
 api_req_kousyou/remodel_slotlist
 api_req_kousyou/remodel_slotlist_detail
 

@@ -128,4 +128,6 @@ pub enum KcUseItemType {
     NightSkilledCrew = 101,
     /// 航空特別増加食
     AirSpecialIncreasedRation = 102,
+    /// 工廠資源
+    ArsenalResource = 104,
 }

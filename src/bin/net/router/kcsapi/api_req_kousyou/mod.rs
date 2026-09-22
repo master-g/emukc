@@ -12,6 +12,7 @@ mod preset_dev_items_expand;
 mod preset_dev_items_register;
 mod preset_dev_items_update_name;
 mod remodel_slot;
+mod remodel_slot_recover;
 mod remodel_slotlist;
 mod remodel_slotlist_detail;
 
@@ -31,6 +32,7 @@ pub(super) fn router() -> Router {
         .route("/remodel_slotlist", post(remodel_slotlist::handler))
         .route("/remodel_slotlist_detail", post(remodel_slotlist_detail::handler))
         .route("/remodel_slot", post(remodel_slot::handler))
+        .route("/remodel_slot_recover", post(remodel_slot_recover::handler))
 }
 
 #[cfg(test)]
@@ -184,6 +186,99 @@ mod tests {
             context.state.find_slot_item(spare.api_id).await.is_err(),
             "the consumed copy must be deleted"
         );
+    }
+
+    /// Resolve the 12cm単装砲 recipe id out of the arsenal list.
+    async fn gun_recipe_id(state: &std::sync::Arc<State>, pid: i64) -> i64 {
+        let list = remodel_slotlist::handler(app_state(state), Pid(pid)).await.unwrap();
+        let rows = list.api_data.unwrap();
+        rows.as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["api_slot_id"] == GUN_12CM)
+            .expect("12cm単装砲 recipe")["api_id"]
+            .as_i64()
+            .unwrap()
+    }
+
+    /// Three 開発資材 is the top choice the client offers, so it cannot fail.
+    /// The reset keeps the instance id — the client updates the slot it holds.
+    #[tokio::test]
+    async fn level_reset_returns_the_same_instance_at_zero_stars() {
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_arsenal(&context.state, pid, MUTSUKI).await;
+        context.state.add_use_item(pid, KcUseItemType::ArsenalResource as i64, 2).await.unwrap();
+
+        let target = context.state.add_slot_item(pid, GUN_12CM, 6, 0).await.unwrap();
+        let recipe_id = gun_recipe_id(&context.state, pid).await;
+        let dev_mat_before = context.state.get_materials(pid).await.unwrap().devmat;
+
+        let resp = remodel_slot_recover::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(remodel_slot_recover::Params {
+                api_menu_id: recipe_id,
+                api_slot_id: target.api_id,
+                api_dev_num: 3,
+            }),
+        )
+        .await
+        .unwrap();
+        let data = resp.api_data.unwrap();
+
+        assert_eq!(data["api_recover_flag"], 1, "three 開発資材 cannot fail");
+        assert_eq!(data["api_after_slot"]["api_level"], 0, "★6 is reset to ★0");
+        assert_eq!(
+            data["api_after_slot"]["api_id"], target.api_id,
+            "the client updates the slot it already holds, so the id must not change"
+        );
+
+        let reset = context.state.find_slot_item(target.api_id).await.unwrap();
+        assert_eq!(reset.api_level, 0);
+
+        let items = context.state.get_use_items(pid).await.unwrap();
+        let arsenal = items
+            .iter()
+            .find(|i| i.api_id == KcUseItemType::ArsenalResource as i64)
+            .expect("工廠資源");
+        assert_eq!(arsenal.api_count, 1, "one 工廠資源 is spent per attempt");
+
+        let dev_mat_after = context.state.get_materials(pid).await.unwrap().devmat;
+        assert_eq!(dev_mat_after, dev_mat_before - 3, "the 開発資材 put in are spent on success");
+    }
+
+    /// The client hides ★0 equipment from the reset list, so a request naming
+    /// one is either a stale view or a forged post.
+    #[tokio::test]
+    async fn level_reset_rejects_unimproved_equipment() {
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_arsenal(&context.state, pid, MUTSUKI).await;
+        context.state.add_use_item(pid, KcUseItemType::ArsenalResource as i64, 1).await.unwrap();
+
+        let target = context.state.add_slot_item(pid, GUN_12CM, 0, 0).await.unwrap();
+        let recipe_id = gun_recipe_id(&context.state, pid).await;
+
+        let err = remodel_slot_recover::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(remodel_slot_recover::Params {
+                api_menu_id: recipe_id,
+                api_slot_id: target.api_id,
+                api_dev_num: 1,
+            }),
+        )
+        .await;
+        assert!(err.is_err(), "★0 equipment has nothing to reset");
+
+        // The rejected attempt must not have eaten the 工廠資源.
+        let items = context.state.get_use_items(pid).await.unwrap();
+        let arsenal = items
+            .iter()
+            .find(|i| i.api_id == KcUseItemType::ArsenalResource as i64)
+            .expect("工廠資源");
+        assert_eq!(arsenal.api_count, 1);
     }
 
     /// At ★10 a variant recipe swaps the equipment for a different one. The

@@ -33,8 +33,8 @@ Current verification baseline:
   6.3.5.0 (the latter with main.js fetched by hand).
 - [2026-09-19] `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`
   （6.3.4.1 → 6.3.5.0 实测：battle 资产零变化，清单只多一行显式路径）。
-- [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb v1.0.6) does NOT replace `main-decoder` — 6.3.5.0: 263,127
-  calls left unevaluated, 0/55 battle fields, 304 s / 5.1 GB, vs our 0 / 55 / ~20 s. Re-evaluating it is waste.
+- [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb v1.0.6) does NOT replace `main-decoder`: 0/55 battle
+  fields and 304 s / 5.1 GB on 6.3.5.0, vs our 55/55 in ~20 s. Re-evaluating it is waste.
 - [2026-09-19] Two `main.js` version axes: `kcs_const.js` `scriptVesion` (note the upstream typo) is the client
   script version and drives `out/version.txt` plus every synced asset's `scriptVersion`; `kcs2/version.json`
   holds per-subsystem asset versions and moves independently. A main.js-only release bumps the first, not both.
@@ -119,10 +119,14 @@ Current verification baseline:
   舰上。翻译点、端点与编成的双向契约、夜战测试为什么打不出来：
   `docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
 
-- [2026-09-21] `api_req_kousyou/remodel_slot_recover` 是真缺口：`docs/apilist.txt` 没有它
-  （那份参考早于该功能），但解码客户端有完整 API 类（`main.decoded.js:105351`，post
-  `api_menu_id`/`api_slot_id`/`api_dev_num`）。`registration_sp` 则 grep 零命中，原结论成立。
-  不要写进 `apilist.md`——它的 missing 定义是「上游参考减 router」，必须保持机械可推导。
+- [2026-09-22] `apilist.md` 的 implemented 是 router 的机械投影，missing 是「`docs/apilist.txt`
+  减 router」，两者不互补：不在上游参考里的端点（`remodel_slot_recover`）只进前者，missing
+  计数不动。`registration_sp` grep 仍零命中，不是缺口。
+- [2026-09-22] `remodel_slot_recover` 有两条推不出来的约束：客户端是
+  `model.slot.get(slot_id).__updateObject__(api_after_slot)`，所以 `api_after_slot` 必须是
+  **同一实例 id**——重置不能删建装备，★10 variant 也不退回原装备；`api_dev_num` 只有 1/2/3
+  （`ResetDialog` 的 radio），而成功率上游从不告诉客户端，50/75/100 是本项目定的值
+  （`codex/remodel_slot.rs::recover_success_rate`）。
 
 - [2026-09-21] 敌方联合舰队在本地 codex 里**没有数据**：`map_catalog.json` 是 37 张常规图
   （1-1~7-5），编成船数分布 1/2/3/4/5/6 = 13/7/75/95/165/1222，**>6 船 0 个**，`battle_kind`
@@ -176,26 +180,21 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-21] 联合舰队 U8：补完 `api_req_combined_battle/` 的 `airbattle`、
-  `ld_airbattle`、`ld_shooting`、`sp_midnight` 四个端点。新增
-  `emukc_battle::execute_sp_midnight`（走 `BattleState::from_context` 打 deck
-  标签后再切 escort，夜战包的索引 remap 靠这个标签），endpoint 枚举加
-  `CombinedAnyType` 服务这四个无 `_water` 双生子的 URL，单舰队 `sp_midnight`
-  用回 `Single`。顺带修掉 `simulate_day_combined` 无条件插闭幕雷击的缺陷。
-  细节见计划文档的 U8 节。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 回基线 17 条
-  （9 missing-backticks + 6 `result_large_err` + 2 borrowed-expression，
-  全不在改动文件里）；`battle_golden.rs` 与 `emukc_battle/tests/golden/*.txt`
-  均未改动。端点清单机械重推为 **126 implemented / 22 missing**，
-  `apilist.md`/`docs/api_coverage.md`/`TODO.md` 三处同步。门禁在提交前又跑了一遍确认。
+- [2026-09-22] 提交 `75ecde9`（联合舰队 U8 的四个端点，门禁重跑确认），然后实现
+  `api_req_kousyou/remodel_slot_recover`：`Ctx::remodel_slot_recover` + 端点 + 两个端到端
+  测试，`KcUseItemType::ArsenalResource = 104`（工廠資源）与
+  `codex::remodel_slot::recover_success_rate` 为新增。语义全部从解码客户端的
+  `RevampSlotLevelResetAPI` 与 `TaskSelectResetSlotitem` 追出来，依据见上面那条事实与
+  `docs/api_coverage.md`。无条件扣 1 个工廠資源、成功才扣 `api_dev_num` 个開発資材。
+- 门禁：`cargo test --workspace` exit 0（47 个 suite 全 ok）；fmt clean；clippy
+  `--all-targets -W warnings` 17 条真实 lint，逐条定位全在未改动文件。清单机械重推为
+  **127 implemented / 22 missing**。
 
 ## Next Session
 
-- [2026-09-21] 联合舰队只剩敌方也是联合的 5 个端点（`ec_*` / `each_*`），
-  **卡在数据不存在**，不是数值不足：见「已验证的事实」里那条和计划文档末节。
-  要做就得先有活动海域地图数据或等价 fixture。
-- 対空列仍无落点：`kouku.rs` 整个不处理阵形，常规阵形 1–6 同样没建模。
-  要补该连同单舰队一起补，别只给联合舰队加一半。
-- 审计集 013 仍是 DEFERRED：drift-check 接通后还没跑过第二次 `make update`。
-- 更早的积压未变：改修工厂的 `remodel_slot_recover`；基地航空队；
-  `gauge_type_e` 抓取；decoder 未解析的 id 集；VPS 计划需重新验证。
+- [2026-09-22] 対空/阵形建模的前提未验证：阵形対空補正表能否从 main.js 解码出来没人查过，
+  要做先做 spike；它还会让 `emukc_battle/tests/golden/*.txt` 全量重冻结。
+- 审计集 013 的判据是「drift-check 接通后有没有被真的用起来」（该计划 README 第 50–55 行），
+  要等一次真实的上游版本变动，不是现在动手。
+- 联合舰队剩敌方也是联合的 5 个端点，卡在数据不存在。基地航空队、`gauge_type_e` 抓取、
+  decoder 未解析的 id 集、VPS 计划重新验证仍是积压。

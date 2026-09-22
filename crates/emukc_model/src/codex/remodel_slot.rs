@@ -118,6 +118,27 @@ pub const fn decode_recipe_id(recipe_id: i64) -> (i64, i64) {
     (recipe_id / (MAX_VARIANTS + 1), recipe_id % (MAX_VARIANTS + 1))
 }
 
+/// 開発資材 the client lets the player put into a level reset.
+///
+/// The radio in `ResetDialog` offers exactly these three and nothing else.
+pub const RECOVER_DEV_MAT_CHOICES: [i64; 3] = [1, 2, 3];
+
+/// Success rate, in percent, of resetting an improved equipment to ★0.
+///
+/// Upstream never tells the client the odds — it posts `api_dev_num` and reads
+/// back `api_recover_flag` — so unlike `remodel_success_rate` these figures are
+/// this project's own. Three 開発資材, the most the client can ask for, is a
+/// guarantee, mirroring how `api_certain_flag` buys certainty in a plain
+/// improvement.
+pub const fn recover_success_rate(dev_mat: i64) -> i64 {
+    match dev_mat {
+        1 => 50,
+        2 => 75,
+        3.. => 100,
+        _ => 0,
+    }
+}
+
 /// Success rate, in percent, of improving from `stars` to `stars + 1`.
 ///
 /// 明石改 as flagship beats plain 明石 from ★4 upward; below that both are
@@ -276,6 +297,20 @@ mod tests {
     }
 
     /// Both columns of the wikiwiki success table, cell by cell.
+    #[test]
+    fn recover_rate_is_a_guarantee_at_the_top_choice() {
+        assert_eq!(recover_success_rate(0), 0, "no 開発資材 is not an attempt");
+        assert_eq!(recover_success_rate(1), 50);
+        assert_eq!(recover_success_rate(2), 75);
+        assert_eq!(recover_success_rate(3), 100, "the top choice must never fail");
+        assert_eq!(
+            recover_success_rate(4),
+            100,
+            "the client cannot ask for more than 3, but more is not worse"
+        );
+        assert_eq!(RECOVER_DEV_MAT_CHOICES, [1, 2, 3]);
+    }
+
     #[test]
     fn success_rate_table_matches_reference() {
         let akashi = [

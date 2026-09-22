@@ -9,7 +9,8 @@ use emukc_db::{
     sea_orm::{TransactionTrait, entity::prelude::*},
 };
 use emukc_model::codex::remodel_slot::{
-    AKASHI_KAI_MST_ID, AKASHI_MST_ID, MAX_STARS, RemodelRecipe, remodel_success_rate,
+    AKASHI_KAI_MST_ID, AKASHI_MST_ID, MAX_STARS, RemodelRecipe, recover_success_rate,
+    remodel_success_rate,
 };
 use emukc_model::{prelude::*, profile::material::Material};
 use emukc_time::chrono::{Datelike, Utc};
@@ -72,6 +73,14 @@ pub struct RemodelSlotResult {
     pub used_slot_ids: Vec<i64>,
     pub voice_ship_id: i64,
     pub voice_id: i64,
+}
+
+/// Outcome of a level reset attempt.
+#[derive(Debug, Clone)]
+pub struct RemodelSlotRecoverResult {
+    pub success: bool,
+    /// The equipment, back at ★0. Absent on failure.
+    pub after_slot: Option<KcApiSlotItem>,
 }
 
 /// Flagship and second ship of fleet 1, as the arsenal sees them.
@@ -138,7 +147,7 @@ impl Ctx {
         let codex = self.codex.as_ref();
 
         let recipe = codex.find_remodel_recipe(recipe_id)?;
-        let item = find_owned_item(db, profile_id, slot_id, &recipe).await?;
+        let item = find_owned_item(db, profile_id, slot_id, &recipe, false).await?;
 
         let consumption = recipe.consumption_at(item.level).ok_or_else(|| {
             GameplayError::WrongType(format!(
@@ -189,7 +198,7 @@ impl Ctx {
 
         let tx = db.begin().await?;
 
-        let item = find_owned_item(&tx, profile_id, slot_id, &recipe).await?;
+        let item = find_owned_item(&tx, profile_id, slot_id, &recipe, false).await?;
         let stars_before = item.level;
         let consumption = recipe.consumption_at(stars_before).ok_or_else(|| {
             GameplayError::WrongType(format!(
@@ -257,6 +266,72 @@ impl Ctx {
             voice_id: 0,
         })
     }
+
+    /// Reset an improved equipment back to ★0.
+    ///
+    /// One 工廠資源 is spent whether or not the attempt lands; the 開発資材 the
+    /// player put in are only spent on success, which is the order the client
+    /// applies them in. The equipment keeps its instance id — the client feeds
+    /// `api_after_slot` into the slot it already holds — so a ★10 variant stays
+    /// the variant and is not turned back into what it was improved from.
+    pub async fn remodel_slot_recover(
+        &self,
+        profile_id: i64,
+        recipe_id: i64,
+        slot_id: i64,
+        dev_mat: i64,
+    ) -> Result<RemodelSlotRecoverResult, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+
+        if dev_mat < 1 {
+            return Err(GameplayError::WrongType(format!(
+                "a level reset needs at least one 開発資材, got {dev_mat}"
+            )));
+        }
+
+        let recipe = codex.find_remodel_recipe(recipe_id)?;
+        // Entering the reset menu goes through the arsenal, so the same
+        // flagship rule applies; the weekday secretary rules do not.
+        resolve_secretaries(db, profile_id).await?;
+
+        let tx = db.begin().await?;
+
+        // ponytail: the client's list also hides equipment held by a fleet that
+        // is out on an expedition. That is a UI courtesy, not an invariant —
+        // resetting stars cannot break an expedition already under way.
+        let item = find_owned_item(&tx, profile_id, slot_id, &recipe, true).await?;
+
+        if item.level < 1 {
+            return Err(GameplayError::WrongType(format!("slot item {slot_id} is already at ★0")));
+        }
+
+        deduct_use_item_impl(&tx, profile_id, KcUseItemType::ArsenalResource as i64, 1).await?;
+
+        let success = roll_success(recover_success_rate(dev_mat));
+
+        let after_slot = if success {
+            deduct_material_impl(&tx, profile_id, &[(MaterialCategory::DevMat, dev_mat)]).await?;
+
+            let updated = update_slot_item_impl(&tx, item.id, Some(0), None, None).await?;
+            Some(KcApiSlotItem {
+                api_id: updated.id,
+                api_slotitem_id: updated.mst_id,
+                api_locked: updated.locked as i64,
+                api_level: updated.level,
+                api_alv: (updated.aircraft_lv > 0).then_some(updated.aircraft_lv),
+            })
+        } else {
+            None
+        };
+
+        tx.commit().await?;
+
+        Ok(RemodelSlotRecoverResult {
+            success,
+            after_slot,
+        })
+    }
 }
 
 /// Read fleet 1 and check the arsenal is open at all.
@@ -296,6 +371,7 @@ async fn find_owned_item<C>(
     profile_id: i64,
     slot_id: i64,
     recipe: &RemodelRecipe,
+    allow_equipped: bool,
 ) -> Result<slot_item::Model, GameplayError>
 where
     C: ConnectionTrait,
@@ -313,7 +389,7 @@ where
             recipe.recipe_id, recipe.slot_item_id, item.mst_id
         )));
     }
-    if item.equip_on != 0 {
+    if !allow_equipped && item.equip_on != 0 {
         return Err(GameplayError::WrongType(format!(
             "slot item {slot_id} is equipped on ship {}",
             item.equip_on
