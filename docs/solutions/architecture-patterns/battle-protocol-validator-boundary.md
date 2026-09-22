@@ -45,8 +45,35 @@ tables:
   `api_opening_flag`↔`api_opening_atack`, `api_opening_taisen_flag`↔
   `api_opening_taisen`, etc.).
 
-It does **not** check that damage numbers, hit/miss, or target selection are
-*correct* — only that the packet has the right shape the client will parse.
+Since 2026-09-22 it also asserts two things that are still client-parse
+contracts rather than game logic:
+
+- **Attack-type acceptance.** Every `api_at_type` / `api_sp_list` value must be
+  one the consuming client module will dispatch, per
+  `crates/emukc_bootstrap/assets/battle_attack_type_acceptance.json`. The three
+  stages have three different sets — day shelling takes 7 (空母カットイン),
+  opening ASW throws on it, and night shelling reads `api_sp_list` through a
+  second `PhaseHougeki` copy whose numbering contradicts the day one. Out of
+  set is an error-level `UnacceptedAttackType`.
+- **Resource coverage.** Every resource path the response makes the client
+  request is checked against `make_list`'s generation rules; an uncovered one
+  is an error-level `ProtocolSuspicion`. Name plates (`btxt_flat`) derive from
+  display equipment only, never from the enemy loadout in `api_eSlot`, and a
+  day carrier cut-in derives none because `PreloadCutinKubo` loads it only when
+  `night == 1`. `item_up` ids are normalized the way generation normalizes
+  them, or every abyssal equipment would read as a gap.
+
+Both remain protocol questions: "will the client parse this" and "will the
+client 404 on this". It does **not** check that damage numbers, hit/miss, or
+target selection are *correct* — only that the packet has the right shape the
+client will parse.
+
+What the validator deliberately does **not** own is which equipment may appear
+in which attack's display. That is a game rule, it needs an equipment-type
+table, and a copy of such a table drifting is exactly what produced the
+archived `102 -> btxt_flat` incident. It lives in `emukc_battle`, guaranteed by
+construction and tested there; the client-visible consequence — display
+equipment with no name plate — is what the coverage check above catches.
 
 ### Night reuses day; it is a mirror, not a fork
 
@@ -68,6 +95,12 @@ wire them into request handling and do not assume a passing sortie was
 validated.
 
 ## Why This Matters
+
+A packet whose values are all legal but semantically wrong — the day
+anti-submarine `api_at_type = 7` this plan fixed, which is a valid
+`PhaseHougeki` branch and plays a carrier cut-in for a depth charge — passes
+the acceptance check by design. Only the crate that produces it can catch that,
+and only with its own unit tests.
 
 A protocol-conformant packet that carries wrong numbers passes these
 validators by design — they guard the client-parse contract, not game logic.

@@ -17,24 +17,23 @@ Last updated: 2026-09-21 · branch `main`
 Architecture — 分层、`Codex`、`entity::user`/`entity::profile` 分域、`svdata=` 前缀等基础见
 CLAUDE.md § Architecture；这里只记从中推不出来的：
 
-- [2026-09-18] Gameplay ops are inherent `async fn`s on the concrete `gameplay::Ctx`; owners (`State`, `TestContext`, `SimContext`) embed it and `Deref`, which keeps `state.foo(..)` call sites unchanged.
-- [2026-09-18] No `XxxOps`/`GameOps`/`Gameplay`/`HasContext` trait and no `async-trait` in `emukc_gameplay`. Source: `docs/solutions/architecture-patterns/gameplay-context.md`.
-- Internal helpers are suffixed `_impl` and take `C: ConnectionTrait`, so they can join transactions started by public `Ctx` methods and be reused across modules. Cross-domain writes go through `_impl`, not through a second inherent method (that would open a nested transaction).
+- [2026-09-18] Gameplay ops are inherent `async fn`s on the concrete `gameplay::Ctx`; owners (`State`,
+  `TestContext`, `SimContext`) embed it and `Deref`, so `state.foo(..)` resolves unchanged. No
+  `XxxOps`/`GameOps`/`HasContext` trait and no `async-trait`. Cross-domain writes go through `_impl`,
+  never a second inherent method (that opens a nested transaction).
+  Source: `docs/solutions/architecture-patterns/gameplay-context.md`.
 - [2026-07-30] Cross-crate battle callers use `emukc_battle::execute_day` / `execute_night`; raw simulation and debug-overlay composition remain crate-internal. Source: `crates/emukc_battle/src/execution.rs`, `docs/solutions/architecture-patterns/battle-crate-docs.md`.
-
-代码风格与禁改文件：完全按 CLAUDE.md § Code Style / § Do-Not-Modify Files，无额外约定。
 
 Current verification baseline:
 
 - [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
-- [2026-07-30] Cache-list validation accepts nonzero map start-source cells and readable slot-item expressions. Source: `crates/emukc_model/src/codex/map.rs`, `crates/emukc_bootstrap/src/make_list/manifest/resolve.rs`.
 - [2026-09-19] `make update` = `bootstrap --overwrite --force-update` → decode `--sync-assets
   --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified on 6.3.2.1 and
   6.3.5.0 (the latter with main.js fetched by hand).
 - [2026-09-19] `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`
   （6.3.4.1 → 6.3.5.0 实测：battle 资产零变化，清单只多一行显式路径）。
 - [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb v1.0.6) does NOT replace `main-decoder`: 0/55 battle
-  fields and 304 s / 5.1 GB on 6.3.5.0, vs our 55/55 in ~20 s. Re-evaluating it is waste.
+  fields, 304 s / 5.1 GB vs our 55/55 in ~20 s. Do not re-evaluate.
 - [2026-09-19] Two `main.js` version axes: `kcs_const.js` `scriptVesion` (note the upstream typo) is the client
   script version and drives `out/version.txt` plus every synced asset's `scriptVersion`; `kcs2/version.json`
   holds per-subsystem asset versions and moves independently. A main.js-only release bumps the first, not both.
@@ -54,13 +53,13 @@ Current verification baseline:
 - [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
-- [2026-08-26] `GetOption::new_remote_only()` now really bypasses local cache: `fetch_from_remote` skips its local dedup check when `enable_local` is false.
 - [2026-09-20] SeaORM is used as a struct<->row mapper + DDL generator, not an ORM: 0 joins / `group_by` /
   `find_with_related` across 195 `Entity::find()` sites; `Relation` only feeds `create_table_from_entity`.
   Swapping to sqlx/rusqlite = ~450 call sites rewritten to shed 25 crates. Not worth it.
 - [2026-09-20] A full `cache populate` over the generated list IS the authoritative CDN existence probe — it
   requests every non-hole path, so its failure list answers "what is missing upstream". `--greedy` is not a
-  substitute (see Pitfalls).
+  substitute (see Pitfalls). [2026-09-22] 但它只请求表内路径：`z/cache` 的 336 个 `btxt_flat` 文件与
+  `BTXT_FLAT_IDS` 条数完全相同，所以它证明「表内存在」，不证明「表外不存在」；表外 id 必须单独探测。
 - [2026-09-20] Hole tables flow Rust -> asset, not decoder -> Rust: `main-decoder/src/path-rules.ts` parses
   `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` back out of the Rust sources into
   `cache_rules.json`. To change a hole, edit the Rust constant, then `make decode-main` to re-sync.
@@ -136,6 +135,11 @@ Current verification baseline:
   （1-1~7-5），编成船数分布 1/2/3/4/5/6 = 13/7/75/95/165/1222，**>6 船 0 个**，`battle_kind`
   只有 1 这一个取值。敌联合只在活动海域出现，所以 `ec_*`/`each_*` 五个端点本地无格可触发、
   做不出端到端测试。不要再去 codex 里找敌联合编成。
+- [2026-09-22] `api_si_list` 只放对应阶段画得出名牌的装备；`btxt_flat` 的存在范围与探测方法见
+  `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
+- [2026-09-22] 同名 `PhaseHougeki` 昼夜两份编号互斥（昼 2=連撃/7=空母切入，夜 1=連撃/6=空母切入）；
+  消歧只能按依赖它的 dispatcher（`PhaseDay*` vs `PhaseNight`/`PhaseAllyAttack`），按 hotspot 深浅挑会静默出错。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -150,7 +154,6 @@ Current verification baseline:
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
-| [2026-07-30] Do not delete a divergent branch merely during cleanup. `codex/fix-cache-list-warnings` contained one valuable commit; it was inspected, rebased onto current `main`, retested, fast-forwarded, then deleted. | git `0395121` |
 | 2026-08-26 stale cache-list incident: `bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed main.js; decode and make-list then consumed stale inputs. Diagnose from `version.json` and main.js mtime, not from make-list. | session 2026-08-26 |
 | `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
 | pi-lens edit-time dispatch re-runs shellcheck on every Makefile edit and ignores `.pi-lens.json`'s ignore glob; shellcheck cannot parse Make syntax. Fixed in both `.shellcheckrc` and `.pi-lens.json` rules.disable. Session cache replays persist until the session ends. | git `b0284d1`, `83ecebb` |
@@ -159,7 +162,6 @@ Current verification baseline:
 | [2026-09-18] `crates/emukc_gameplay/tests/practice_battle.rs` asserts an unseeded battle's `api_win_rank`, so 2 of its 11 tests fail at roughly a 1-in-3 rate on any commit — it is not a regression signal. Re-run the single target before blaming a change. | session 2026-09-18 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
 | [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
-| [2026-09-18] A grep gate (`api_f_nowhps`) matched a test *read* and the worker rewrote the assertion to pass it. Gate greps must match assignments (`name:`); briefs must forbid changing assertions to satisfy a gate. | session 2026-09-18, U3 |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | [2026-09-21] `emukc_time`'s `test_jst_next_28/370_day_of_the_month` failures are DATE-dependent: they overflowed at `lib.rs:355` on 09-20 and passed untouched on 09-21. Note the date before calling them baseline. | sessions 2026-09-18, 09-21 |
 | `cargo clippy` 默认档比 `-D warnings` 宽（漏过 `match`→`let-else`），但 `-D` 会被既有的 `result_large_err`（`emukc_network/src/download.rs:236`、`src/bin/net/auth.rs:139`）挡住。仓库门是 `-W warnings`；新代码用 touched-file 的 `-D` 检查。 | plan 004 U7、sessions 2026-09-18/19 |
@@ -184,19 +186,22 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 基地航空隊 U3：`api_req_air_corps/set_plane` 与
-  `change_deployment_base`。新增 `squadron_capacity(equip_type)` 一张表同时回答
-  「能否配属」与「几機」（上游无出处，见计划 U3 节，带回归测试）。配属暂不扣ボーキ
-  （`api_after_bauxite` 缺省即没花费），每機消耗留给 U4 一起定。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 17 条基线，改动文件零告警。
-  清单 **130 implemented / 19 missing**。
+- [2026-09-22] 战斗协议语义闸门（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，U1–U9 全部落地）。
+  分支 `fix/battle-protocol-semantics-gate`，9 个单元 8 个提交。
+  修掉开幕对潜写死 `api_at_type = 7`（客户端 `PhaseAttackDanchaku` 直接 throw）；
+  新增 `battle_attack_type_acceptance.json` 资产让校验器按消费模块判攻击种别；
+  校验器改为逐条检查推导资源是否在 `make_list` 覆盖内；
+  `ShipSpec` 支持按槽位装备，新增 `opening_asw` / `gunnery_cutin` / `carrier_cutin` 三个 preset。
+- 门禁：`cargo test --workspace` 全绿；fmt clean；clippy 改动文件零告警；
+  `make drift-check` no drift（`cache_rules` / `resource_manifest` 已 accept）。
 
 ## Next Session
 
-- [2026-09-22] 接着做计划的 U4（`set_action`、`change_name`、`supply`）。
-  U4 的补给消耗系数仍是计划唯一不齐的点，按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，
-  两条都取不到就停下不要编公式；取到之后**同时**接上 `set_plane` 的配属消耗。
-- 之后是 U5（`expand_base` 用設営隊増开一隊、`expand_maintenance_level`、
-  `cond_recovery` + `airCorpsCondRecoveryWithTimer`），再 U6 收尾。
+- [2026-09-22] 该计划已收口，无遗留红灯。回到基地航空隊计划的 U4
+  （`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
+  按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；
+  取到之后**同时**接上 `set_plane` 的配属消耗。之后 U5、U6 收尾。
+- 战斗侧新积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，
+  官方是一条记录带三个目标。取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
 - 更早的积压未变：対空/阵形建模要先做「補正表能否解码」的 spike；审计集 013 等
   上游版本变动；联合舰队剩 5 个敌联合端点卡在数据不存在。

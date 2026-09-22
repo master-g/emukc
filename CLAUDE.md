@@ -145,6 +145,7 @@ Key battle assets:
 - `crates/emukc_bootstrap/assets/battle_resource_rules.json`
 - `crates/emukc_bootstrap/assets/battle_module_index.json`
 - `crates/emukc_bootstrap/assets/battle_slot_resource_triggers.json`
+- `crates/emukc_bootstrap/assets/battle_attack_type_acceptance.json`
 
 Important boundary:
 
@@ -206,7 +207,7 @@ Battle diagnostics also have two dedicated test layers:
 
 These files are checked in but are generated outputs, frozen baselines, or governing contracts. Hand-edits are silently lost on the next sync or break a baseline. Regenerate or amend them through their designated workflow instead.
 
-- `crates/emukc_bootstrap/assets/*.json` — battle knowledge decoded from `main.js` by the `main-decoder` subproject and synced in via `cd main-decoder && bun run decode -- --sync-battle-assets` (see *Client-Derived Battle Validation*). Includes `battle_protocol_fields.json`, `battle_resource_rules.json`, `battle_module_index.json`, `battle_slot_resource_triggers.json`, etc.
+- `crates/emukc_bootstrap/assets/*.json` — battle knowledge decoded from `main.js` by the `main-decoder` subproject and synced in via `cd main-decoder && bun run decode -- --sync-battle-assets` (see *Client-Derived Battle Validation*). Includes `battle_protocol_fields.json`, `battle_resource_rules.json`, `battle_module_index.json`, `battle_slot_resource_triggers.json`, `battle_attack_type_acceptance.json`, etc.
 - `main-decoder/out/battle/*.json` — the upstream decoder output that feeds the sync above. Regenerate with `bun run decode`, never edit.
 - `tests/gameplay_tests/battle_golden.rs` — the frozen deterministic full-sortie transcript. If a legitimate logic change alters the outcome, re-freeze it deliberately and explain the diff in the PR; never hand-patch individual assertions.
 - `Cargo.lock` — pinned dependency versions for a binary crate. Bump a specific dependency with `cargo update -p <crate>`, not by hand.
