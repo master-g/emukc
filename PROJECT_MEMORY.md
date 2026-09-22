@@ -49,6 +49,10 @@ Current verification baseline:
   按 tab 过滤且空 tab 发 `null`、官方发 min 值、`base_air_corps` 已 404——方法与全部陷阱见
   `docs/solutions/best-practices/live-api-investigation.md`，脚本 `scripts/fetch_live_api.py`，
   快照 `z/snapshot/2026-09-22/`。签名实现 `emukc_crypto::PortApiKey`（5 组向量 + 真机验证）。
+- [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记：客户端方法就叫 `isShield`，实现是
+  `damage % 1 != 0`，且**两条路径都读**——逐次的 `api_damage`/`api_fydam*` 与按舰累计的
+  `api_fdam`/`api_edam`（`hasShield_f/e` 扫后者）。官方实测把标记放在累计侧，我们曾把那七处声明成
+  `Vec<i64>`（已修）。かばう 是转移伤害不是减伤，护卫替旗舰挨打被击沉是正常结果。
 - [2026-09-22] 基地航空隊配属消耗实测：一式陸攻(169) 空槽配满 18 機扣 216 ボーキ = **每機 12**，
   是否随机种变化未测。我们实现的「撤下即 0/0 清空」是错的。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（抽 `kcsapi/mod.rs` 的

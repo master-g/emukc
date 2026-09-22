@@ -100,14 +100,35 @@ a session error before checking the client's `_connect` for that endpoint.
 - **Empty fleet slots are `{api_id: -1}`** with no other fields, the same shape
   as an empty air corps slot.
 
+## What a real battle payload settled
+
+A practice battle on 2026-09-22 (`z/snapshot/2026-09-22/practice_battle.json`)
+was the first external sample our battle rules ever faced. Two results:
+
+- **`battle validate` reported 0 errors and 0 warnings on it.** The validator
+  accepts what the official server sends, including the derived-resource
+  coverage check — no false positives.
+- **It caught a real type bug.** The response carried `api_edam: [0, 0, 109.1,
+  ..]` while the per-attack `api_fydam_list_items` for that same hit was a plain
+  `109`. The official server puts the かばう flag on the *per-ship summary*, and
+  we had typed that summary as `Vec<i64>`. Fixed by typing all seven
+  `api_fdam`/`api_edam` declarations as `DamageCell`.
+
+The `.1` is the shield flag, not a sinking marker: the client method is literally
+called `isShield` and reads `damage % 1 != 0`, from both `api_damage` /
+`api_fydam*` and `api_fdam` / `api_edam` (`hasShield_f`/`hasShield_e` scan the
+latter). かばう transfers damage rather than reducing it, so the escort taking a
+lethal hit in its flagship's place is the normal outcome, not a contradiction.
+
+Worth knowing for the next sample: `isShield_e` and `isMultiShield_e` read
+`api_fydam_list_items`, not `api_eydam_list_items` — putting a flag in the enemy
+array alone does nothing. And `getDamage_f` floors its value while
+`getDamage_e` does not.
+
 ## What is still unverified
 
-Battle responses. Every rule in `docs/battle/rules.md`, the golden transcript
-and the validation gate rest on self-generated payloads. A practice battle
-(`api_req_practice/*`) would produce a genuine one at no risk of sinking, which
-is the cheapest way to close that gap. A sortie adds nothing a practice battle
-does not, except the sinking.
-
-Also open: whether the 12 bauxite per plane is a constant or varies by aircraft
-type (only the land-based bomber was measured), and what makes `api_c_list`
-appear on a quest row — it was absent from all 105 rows sampled.
+Damage formulas. One sample only point-checks; confirming a formula needs tens
+of battles, more than a day's practice allowance. Also open: whether the 12
+bauxite per plane is constant across aircraft types (only the land-based bomber
+was measured), and what makes `api_c_list` appear on a quest row — absent from
+all 105 rows sampled.
