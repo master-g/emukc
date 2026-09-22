@@ -246,6 +246,7 @@ pub enum BattleValidationFindingKind {
     ProtocolSuspicion,
     BootstrapGap,
     UnexpectedBattleSlotResource,
+    UnacceptedAttackType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -350,6 +351,8 @@ const NIGHT_BATTLE_SCALAR_FLAG_FIELDS: &[&str] = &["api_deck_id"];
 // All are `object` access on RawNightBattleData and the night analogue of the
 // day validator's `api_hougeki1/2/3`.
 const NIGHT_BATTLE_HOUGEKI_FIELDS: &[&str] = &["api_hougeki", "api_n_hougeki1", "api_n_hougeki2"];
+
+const DAY_BATTLE_HOUGEKI_FIELDS: &[&str] = &["api_hougeki1", "api_hougeki2", "api_hougeki3"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DamageState {
@@ -969,6 +972,28 @@ pub fn validate_day_battle_response<T: Serialize>(
         check_array_flag_payload(object, &mut report, "api_hourai_flag", 3, "api_raigeki");
     }
 
+    // Day shelling and opening ASW read `api_at_type` through different client
+    // modules with different acceptance sets -- 7 is 空母カットイン in the one
+    // and a crash in the other.
+    for hougeki_field in DAY_BATTLE_HOUGEKI_FIELDS {
+        check_attack_type_acceptance(
+            object,
+            &mut report,
+            assets,
+            hougeki_field,
+            "day-shelling",
+            "api_at_type",
+        );
+    }
+    check_attack_type_acceptance(
+        object,
+        &mut report,
+        assets,
+        "api_opening_taisen",
+        "opening-anti-submarine",
+        "api_at_type",
+    );
+
     let enemy_ship_ids = read_i64_array(object, "api_ship_ke", &mut report).unwrap_or_default();
     let enemy_nowhps = read_i64_array(object, "api_e_nowhps", &mut report).unwrap_or_default();
     let enemy_maxhps = read_i64_array(object, "api_e_maxhps", &mut report).unwrap_or_default();
@@ -1106,6 +1131,62 @@ pub fn validate_day_battle_response<T: Serialize>(
 /// (e.g. an extra `api_damage` row with no matching `api_df_list`) is a protocol
 /// shape error the client cannot render. Reuses [`check_equal_lengths`] over the
 /// hougeki sub-object, scoping the error messages to the hougeki field.
+/// The attack-type values carried by one shelling phase. The phase is an
+/// object in every response the server emits; the array form is tolerated so a
+/// malformed payload produces a shape finding rather than a panic here.
+fn collect_attack_type_values(
+    phase: &serde_json::Value,
+    value_field: &str,
+) -> Vec<serde_json::Value> {
+    let read = |object: &serde_json::Value| -> Vec<serde_json::Value> {
+        object.get(value_field).and_then(serde_json::Value::as_array).cloned().unwrap_or_default()
+    };
+    match phase {
+        serde_json::Value::Array(entries) => entries.iter().flat_map(read).collect(),
+        serde_json::Value::Object(_) => read(phase),
+        _ => Vec::new(),
+    }
+}
+
+/// R2: every attack-type value must be one the stage's consumer module will
+/// dispatch. The acceptance sets come from `main.js` (see
+/// `battle_attack_type_acceptance.json`); a value outside them either throws in
+/// the client or plays the wrong animation, so it is an error.
+fn check_attack_type_acceptance(
+    object: &serde_json::Map<String, serde_json::Value>,
+    report: &mut BattleValidationReport,
+    assets: &BattleKnowledgeAssets,
+    phase_field: &str,
+    stage_id: &str,
+    value_field: &str,
+) {
+    let Some(stage) = assets.attack_type_acceptance.stage(stage_id) else {
+        return;
+    };
+    let Some(phase) = object.get(phase_field).filter(|phase| !phase.is_null()) else {
+        return;
+    };
+
+    for value in collect_attack_type_values(phase, value_field) {
+        let Some(attack_type) = value.as_i64() else {
+            continue;
+        };
+        if stage.effective_accepted_values.contains(&attack_type) {
+            continue;
+        }
+        push_error(
+            report,
+            BattleValidationFindingKind::UnacceptedAttackType,
+            Some(&format!("{phase_field}.{value_field}")),
+            format!(
+                "`{value_field}` value `{attack_type}` is not dispatched by `{}` ({stage_id}); it accepts {:?}",
+                stage.consumer_readable_name, stage.effective_accepted_values
+            ),
+            None,
+        );
+    }
+}
+
 fn check_night_hougeki_shape(
     object: &serde_json::Map<String, serde_json::Value>,
     report: &mut BattleValidationReport,
@@ -1207,6 +1288,17 @@ pub fn validate_night_battle_response<T: Serialize>(
                 format!("`{pair_field}` must be a 2-element [primary, partner] pair"),
             );
         }
+    }
+
+    for hougeki_field in NIGHT_BATTLE_HOUGEKI_FIELDS {
+        check_attack_type_acceptance(
+            object,
+            &mut report,
+            assets,
+            hougeki_field,
+            "night-shelling",
+            "api_sp_list",
+        );
     }
 
     let enemy_ship_ids = read_i64_array(object, "api_ship_ke", &mut report).unwrap_or_default();
@@ -1649,6 +1741,132 @@ mod tests {
             "api_hourai_flag": [1, 0, 0, 0],
             "api_hougeki1": [{"ok": true}]
         })
+    }
+
+    fn hougeki_with_attack_types(field: &str, values: serde_json::Value) -> serde_json::Value {
+        serde_json::json!({
+            "api_at_eflag": [0],
+            "api_at_list": [0],
+            "api_df_list": [[0]],
+            "api_si_list": [[42]],
+            "api_cl_list": [[1]],
+            "api_damage": [[10]],
+            field: values,
+        })
+    }
+
+    /// R2: 7 is 空母カットイン, which day shelling dispatches. The same value in
+    /// opening ASW reaches `PhaseAttackDanchaku` and throws.
+    #[test]
+    fn validate_day_battle_response_accepts_carrier_cutin_in_day_shelling() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_hougeki1"] = hougeki_with_attack_types("api_at_type", serde_json::json!([7]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(
+            !report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::UnacceptedAttackType
+            }),
+            "day shelling accepts 7: {:?}",
+            report.findings
+        );
+    }
+
+    #[test]
+    fn validate_day_battle_response_rejects_carrier_cutin_in_opening_asw() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_opening_taisen_flag"] = serde_json::json!(1);
+        response["api_opening_taisen"] =
+            hougeki_with_attack_types("api_at_type", serde_json::json!([7]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        let finding = report
+            .findings
+            .iter()
+            .find(|finding| finding.kind == BattleValidationFindingKind::UnacceptedAttackType)
+            .expect("opening ASW must reject 7");
+        assert_eq!(finding.severity, BattleValidationSeverity::Error);
+        assert_eq!(finding.field.as_deref(), Some("api_opening_taisen.api_at_type"));
+        assert!(finding.message.contains("PhasePreAntiSubmarine"), "{}", finding.message);
+        assert!(finding.message.contains('7'), "{}", finding.message);
+    }
+
+    #[test]
+    fn validate_day_battle_response_accepts_normal_and_double_in_opening_asw() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_opening_taisen_flag"] = serde_json::json!(1);
+        response["api_opening_taisen"] =
+            hougeki_with_attack_types("api_at_type", serde_json::json!([0, 2]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(
+            !report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::UnacceptedAttackType
+            }),
+            "{:?}",
+            report.findings
+        );
+    }
+
+    /// A short `api_at_type` is an array-length problem, already reported by the
+    /// shape checks. The acceptance check must not also invent a finding for the
+    /// positions that are simply absent.
+    #[test]
+    fn validate_day_battle_response_ignores_missing_attack_type_entries() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        let mut hougeki = hougeki_with_attack_types("api_at_type", serde_json::json!([0]));
+        hougeki["api_df_list"] = serde_json::json!([[0], [0], [0]]);
+        response["api_hougeki1"] = hougeki;
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(
+            !report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::UnacceptedAttackType
+            }),
+            "{:?}",
+            report.findings
+        );
+    }
+
+    #[test]
+    fn validate_night_battle_response_judges_sp_list_against_night_acceptance() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+
+        // 2 = 主魚カットイン, reached through the consumer's own `_special` guard.
+        let mut accepted = build_valid_night_battle_response();
+        accepted["api_hougeki"]["api_sp_list"] = serde_json::json!([2, 0]);
+        let report = validate_night_battle_response(&manifest, &accepted, &assets).unwrap();
+        assert!(
+            !report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::UnacceptedAttackType
+            }),
+            "{:?}",
+            report.findings
+        );
+
+        let mut rejected = build_valid_night_battle_response();
+        rejected["api_hougeki"]["api_sp_list"] = serde_json::json!([99, 0]);
+        let report = validate_night_battle_response(&manifest, &rejected, &assets).unwrap();
+        let finding = report
+            .findings
+            .iter()
+            .find(|finding| finding.kind == BattleValidationFindingKind::UnacceptedAttackType)
+            .expect("night shelling must reject 99");
+        assert_eq!(finding.field.as_deref(), Some("api_hougeki.api_sp_list"));
+        assert!(finding.message.contains("PhaseHougeki"), "{}", finding.message);
     }
 
     #[test]
