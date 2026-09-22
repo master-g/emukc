@@ -44,6 +44,16 @@ Current verification baseline:
 - [2026-09-19] `SortieStore::with_profile_lock` 只有五个持有者（`start_sortie`、`next_sortie`、
   `sortie_battle_result`、`sortie_sp_midnight_battle`、`sortie_battle_impl`），互不嵌套，新入口可安全取用。
   `sortie_midnight_battle` 故意不加锁——它改的是 pending session 不是 `active`。
+- [2026-09-22] `api_port/port` 只带 `api_token` 会回 `api_result:100`（伪装成「请重新登录」）：客户端还发
+  `api_sort_key=5`、`spi_sort_order=2`（上游 typo）与 `api_port=_createKey(member_id)`。算法与
+  `PORT_API_SEED` 已移植到 `emukc_crypto::PortApiKey`，对拍客户端 5 组向量并**已用真实服务器验证通过**。
+  会话本身是游戏页面一关就失效。
+- [2026-09-22] 基地航空隊配属消耗实测：一式陸攻(169) 空槽配满 18 機扣 216 ボーキ = **每機 12**
+  （`set_plane` 前后 material 差值）。是否随机种变化未测。撤下→`api_state:2`→等待→回到 0/0，两阶段。
+  `api_plane_info` 是 optional：没有配置転換中的装备时 port 整个字段缺省。
+- [2026-09-22] 撤下中隊回 `api_state:2` 并**保留** `api_slotid`、半径不变；port 的
+  `api_plane_info.api_base_convert_slot` 列出这些装备，客户端把它们额外塞回装备选择列表所以能直接再
+  配属。我们实现的 0/0 即时清空是错的。`api_get_member/base_air_corps` 官方已 404。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（抽 `kcsapi/mod.rs` 的
   `nest("/prefix", ..)` 加子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），missing 是
   「`docs/apilist.txt` 的 136 减 router」；两者不互补——`remodel_slot_recover` 这类不在上游参考里的
@@ -174,25 +184,23 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 战斗协议语义闸门（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，U1–U9 全部落地）。
-  10 个提交连同 3 个基地航空隊提交一起 fast-forward 合进 `main` 并推送，未开 PR，分支已删。
-  修掉开幕对潜写死 `api_at_type = 7`（客户端 `PhaseAttackDanchaku` 直接 throw）；
-  新增 `battle_attack_type_acceptance.json` 资产让校验器按消费模块判攻击种别；
-  校验器改为逐条检查推导资源是否在 `make_list` 覆盖内；
-  `ShipSpec` 支持按槽位装备，新增 `opening_asw` / `gunnery_cutin` / `carrier_cutin` 三个 preset。
-- 代码审查已跑并给出 verdict：发现项全部落地，修复即 `28328e62`（复用炮类谓词与 si_list 行解析）
-  与 `c888a92f`（夜战空母切入展示回归 + 闸门加固），无遗留红灯。
-- 收尾把 `battle_rules.rs` 按关注点拆成 `battle_rules/{attack_types,resources}.rs`：
-  实现部分 1720 → 830 行（测试 1100 行未动）。纯移动，行 multiset 比对只剩 rustfmt 的折行差异。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警
-  （`parser/` 的 4 条 `result_large_err` 与 2 条 backticks 是既有）；
-  `make drift-check` no drift（`cache_rules` / `resource_manifest` 已 accept）。
+- [2026-09-22] 战斗协议语义闸门收口（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，
+  U1–U9）：13 个提交已 fast-forward 进 `main`，分支已删；审查 verdict 的发现全部落地
+  （`28328e62`、`c888a92f`）；收尾把 `battle_rules.rs` 拆成 `battle_rules/{attack_types,resources}.rs`
+  （实现部分 1720 → 830 行，纯移动，测试 1100 行未动）。
+- 用真实账号 token 打了一轮官方 API（只读 + 两次 `set_plane`）：12 份存档快照在 `z/snapshot/2026-09-22/`，
+  量出配属消耗、钉死基地航空隊状态机、移植并真机验证了 `PortApiKey`。结论都在「已验证的事实」。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警；`make drift-check` no drift。
 
 ## Next Session
 
 - [2026-09-22] 回到基地航空隊计划的 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
   按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；
   取到之后**同时**接上 `set_plane` 的配属消耗。之后 U5、U6 收尾。
+- 基地航空隊新积压：按真实响应修 `set_plane` 撤下的状态机（`api_state:2` + 保留 slotid + 半径不变），
+  给 `api_port/port` 补 `api_plane_info`（`api_base_convert_slot` / `api_unset_slot`）、`api_event_object`、
+  `api_c_flags`、`api_c_flag2`、`api_friendly_setting`、`api_combined_flag`，并改 U3 断言 0/0 的那个测试。
+  真实存档快照在 `z/snapshot/2026-09-22/`（13 份，含 port）。
 - 战斗侧新积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，
   官方是一条记录带三个目标。取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
 - 更早的积压未变：対空/阵形建模要先做「補正表能否解码」的 spike；审计集 013 等

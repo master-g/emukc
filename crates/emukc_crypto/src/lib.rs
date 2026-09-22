@@ -10,6 +10,7 @@
 pub mod hash;
 #[doc(hidden)]
 pub mod password;
+pub mod port_api_key;
 pub mod rng;
 #[doc(hidden)]
 pub mod suffix_utils;
@@ -29,6 +30,9 @@ pub use hash::SimpleHash;
 pub use password::PasswordCrypto;
 
 #[doc(inline)]
+pub use port_api_key::PortApiKey;
+
+#[doc(inline)]
 pub use suffix_utils::SuffixUtils;
 
 pub mod prelude {
@@ -42,4 +46,7 @@ pub mod prelude {
 
     #[doc(hidden)]
     pub use crate::SuffixUtils;
+
+    #[doc(hidden)]
+    pub use crate::PortApiKey;
 }
