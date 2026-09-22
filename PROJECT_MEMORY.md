@@ -44,16 +44,13 @@ Current verification baseline:
 - [2026-09-19] `SortieStore::with_profile_lock` 只有五个持有者（`start_sortie`、`next_sortie`、
   `sortie_battle_result`、`sortie_sp_midnight_battle`、`sortie_battle_impl`），互不嵌套，新入口可安全取用。
   `sortie_midnight_battle` 故意不加锁——它改的是 pending session 不是 `active`。
-- [2026-09-22] `api_port/port` 只带 `api_token` 会回 `api_result:100`（伪装成「请重新登录」）：客户端还发
-  `api_sort_key=5`、`spi_sort_order=2`（上游 typo）与 `api_port=_createKey(member_id)`。算法与
-  `PORT_API_SEED` 已移植到 `emukc_crypto::PortApiKey`，对拍客户端 5 组向量并**已用真实服务器验证通过**。
-  会话本身是游戏页面一关就失效。
-- [2026-09-22] 基地航空隊配属消耗实测：一式陸攻(169) 空槽配满 18 機扣 216 ボーキ = **每機 12**
-  （`set_plane` 前后 material 差值）。是否随机种变化未测。撤下→`api_state:2`→等待→回到 0/0，两阶段。
-  `api_plane_info` 是 optional：没有配置転換中的装备时 port 整个字段缺省。
-- [2026-09-22] 撤下中隊回 `api_state:2` 并**保留** `api_slotid`、半径不变；port 的
-  `api_plane_info.api_base_convert_slot` 列出这些装备，客户端把它们额外塞回装备选择列表所以能直接再
-  配属。我们实现的 0/0 即时清空是错的。`api_get_member/base_air_corps` 官方已 404。
+- [2026-09-22] 真实账号调查一轮（只读 + 两次 `set_plane`）：会话随游戏页面存亡；`api_result:100` 有两种
+  成因（会话死 / 缺端点必需参数）；`api_port` 签名、中隊撤下两阶段、`api_plane_info` 缺省、questlist 服务端
+  按 tab 过滤且空 tab 发 `null`、官方发 min 值、`base_air_corps` 已 404——方法与全部陷阱见
+  `docs/solutions/best-practices/live-api-investigation.md`，脚本 `scripts/fetch_live_api.py`，
+  快照 `z/snapshot/2026-09-22/`。签名实现 `emukc_crypto::PortApiKey`（5 组向量 + 真机验证）。
+- [2026-09-22] 基地航空隊配属消耗实测：一式陸攻(169) 空槽配满 18 機扣 216 ボーキ = **每機 12**，
+  是否随机种变化未测。我们实现的「撤下即 0/0 清空」是错的。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（抽 `kcsapi/mod.rs` 的
   `nest("/prefix", ..)` 加子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），missing 是
   「`docs/apilist.txt` 的 136 减 router」；两者不互补——`remodel_slot_recover` 这类不在上游参考里的
@@ -117,9 +114,6 @@ Current verification baseline:
   `base_consumption` 与官方 `remodel_slotlist` 逐字段相同，官方 `api_req_buildkit`/`api_req_remodelkit`
   就是 codex 的 `dev_mat_min`/`screw_min`（发 min，不发范围）。`secretary` 是**二番舰**不是旗舰，旗舰
   必须明石(182)/明石改(187)；variant 在 ★0–★9 仍是普通改修，只在 ★10 转换。
-- [2026-09-22] 真实 questlist：服务端**按 `api_tab_id` 过滤**，tab↔`api_type` 1:1（0 全部/9 进行中/
-  1 日/2 周/3 月/4 单发/5 其他），`api_label_type` 固定 type1→2、2→3、3→6、4→1、5→7+101..111；
-  进行中为空时 `api_list` 是 **null** 不是 `[]`。样本 `z/snapshot/2026-09-22/quest_tab*.json`。
 - [2026-09-22] 官方 `api_start2` 的 `api_mst_mission`（63 条）**没有解锁条件字段**，消耗是比例
   （`api_use_fuel:0.3`）：TODO 的「远征解锁表可靠数据源」不要再去 start2 找。
 - [2026-09-21] 联合舰队 friendly 索引有三层空间（模拟连续 / 客户端固定从 6 / 切片本地编号），
