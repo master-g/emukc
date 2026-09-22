@@ -187,24 +187,24 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 战斗协议语义闸门收口（13 个提交已进 `main`，分支已删），收尾把 `battle_rules.rs`
-  拆成 `battle_rules/{attack_types,resources}.rs`；jukebox 菜单按官方 78 条重写。
-- 用真实账号 token 打了一轮官方 API（只读 + 两次 `set_plane`），快照在 `z/snapshot/2026-09-22/`；
-  移植并真机验证 `PortApiKey`。
-- 拿真实演习响应喂 `battle validate`：0 error / 0 warning，**没有假阳性**；但它抓出一个真 bug——
-  かばう 标记在按舰累计侧，那七处 `Vec<i64>` 已改 `DamageCell` 并加累加回归测试（`a4285ba5`），
-  golden 两份零 diff。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警
-  （`debug_overlay.rs:860/862` 两条 backtick 告警是既有的）。
+- [2026-09-22] 按真实响应修好 `set_plane` 撤下的两阶段状态机：撤下把行改成 `Reassigning`（保留
+  `api_slotid`，不再即时删行），只有 `Assigned` 才带 `api_count`/`api_cond`，半径也只数 `Assigned`；
+  `get_airbases` 读取时清算 relocation。配置転換中的中隊可以再配属到任意基地。
+- 更早：战斗协议语义闸门收口 13 个提交已进 `main`；`battle_rules.rs` 拆成 `{attack_types,resources}`；
+  jukebox 按官方 78 条重写；真实演习响应喂 `battle validate` 零假阳性并抓出 `api_fdam`/`api_edam`
+  错用 `Vec<i64>` 的真 bug（`a4285ba5`）。实况调查方法见
+  `docs/solutions/best-practices/live-api-investigation.md`，快照 `z/snapshot/2026-09-22/`。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警（基线 17 条未动）。
 
 ## Next Session
 
-- [2026-09-22] 按真实响应修 `set_plane` 撤下的状态机：撤下应答 `api_state:2` 且保留 `api_slotid`、
-  半径不变，稍后才归零并退还装备。我们是即时清空（`airbase/plane.rs` 的 `squadrons_of` 合成 `0/0`、
-  `airbase/mod.rs` 的 `clear_squadron` 立即删行），U3 断言 `0/0` 的测试要跟着改。规格在 `unset.json`。
-- 之后回基地航空隊计划 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
+- [2026-09-22] 基地航空隊计划 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
   按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；取到后**同时**接上
   `set_plane` 的配属消耗（实测每機 12 ボーキ）。再往后 U5、U6 收尾。
+- 配置転換的两处未决（都缺证据，别凭空补）：settle 触发条件只测出上界（18:03 state 2 → 18:16 归零），
+  现在按「下次读基地」清算，拿到时长来源再换成计时器（要给 `plane_info` 加时间戳列）；
+  被顶掉的中隊官方是否也进 relocation 未知——客户端侧 `addAirUnitRelocation` 会自己标。
+  `api_port/port` 的 `api_base_convert_slot` 仍未实现。
 - 战斗侧积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，官方是一条记录带三个目标。
   取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
 - 更早积压未变：対空/阵形建模先做「補正表能否解码」spike；审计集 013 等上游版本；敌联合 5 端点卡在数据不存在。

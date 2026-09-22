@@ -93,15 +93,18 @@ mod tests {
         );
     }
 
+    /// Removal is two-phase, the way the live server answers it: the slot keeps
+    /// its `api_slotid` under `api_state: 2` until the relocation settles.
     #[tokio::test]
-    async fn clearing_a_slot_strips_it_back_to_empty() {
+    async fn clearing_a_slot_relocates_before_it_empties() {
         let context = new_test_context().await;
         let pid = context.session.profile.id;
         seed_airbase(&context.state, pid, 1).await;
 
         let bomber = context.state.add_slot_item(pid, BOMBER, 0, 0).await.unwrap();
+        let mut last = None;
         for item_id in [bomber.api_id, -1] {
-            set_plane::handler(
+            last = set_plane::handler(
                 app_state(&context.state),
                 Pid(pid),
                 Form(set_plane::Params {
@@ -112,9 +115,22 @@ mod tests {
                 }),
             )
             .await
-            .unwrap();
+            .unwrap()
+            .api_data;
         }
 
+        let removal = last.unwrap();
+        let slot = &removal["api_plane_info"].as_array().unwrap()[0];
+        assert_eq!(slot["api_state"], 2, "removal reports the slot as relocating");
+        assert_eq!(slot["api_slotid"], bomber.api_id, "and keeps the equipment on it");
+        assert!(slot.get("api_count").is_none(), "a relocating slot carries no count");
+        assert!(slot.get("api_cond").is_none());
+        assert_eq!(
+            removal["api_distance"]["api_base"], 0,
+            "the airbase reaches nowhere once its only squadron left"
+        );
+
+        // Reading the airbases settles the relocation and empties the slot.
         let planes = squadrons(&context.state, pid, 1).await;
         assert_eq!(planes[0].api_state, 0);
         assert_eq!(planes[0].api_slotid, 0);
@@ -123,6 +139,39 @@ mod tests {
 
         // The equipment went back to the inventory rather than being eaten.
         assert!(context.state.find_slot_item(bomber.api_id).await.is_ok());
+    }
+
+    /// A squadron still in relocation may be assigned again, including to
+    /// another airbase — it flies for nobody until it settles.
+    #[tokio::test]
+    async fn a_relocating_squadron_can_be_reassigned() {
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_airbase(&context.state, pid, 1).await;
+        seed_airbase(&context.state, pid, 2).await;
+
+        let bomber = context.state.add_slot_item(pid, BOMBER, 0, 0).await.unwrap();
+        let assign = |base_id, item_id| {
+            set_plane::handler(
+                app_state(&context.state),
+                Pid(pid),
+                Form(set_plane::Params {
+                    api_area_id: 6,
+                    api_base_id: base_id,
+                    api_squadron_id: 1,
+                    api_item_id: item_id,
+                }),
+            )
+        };
+
+        assign(1, bomber.api_id).await.unwrap();
+        assign(1, -1).await.unwrap();
+        let resp = assign(2, bomber.api_id).await.unwrap();
+
+        let data = resp.api_data.unwrap();
+        let slot = &data["api_plane_info"].as_array().unwrap()[0];
+        assert_eq!(slot["api_state"], 1, "the second airbase took it");
+        assert_eq!(slot["api_slotid"], bomber.api_id);
     }
 
     #[tokio::test]

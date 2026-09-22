@@ -7,7 +7,7 @@ use emukc_db::{
 };
 use emukc_model::{
     codex::Codex,
-    profile::airbase::{Airbase, PlaneInfo, SQUADRON_MAX, squadron_capacity},
+    profile::airbase::{Airbase, PlaneInfo, PlaneState, SQUADRON_MAX, squadron_capacity},
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -64,6 +64,7 @@ impl Ctx {
         let tx = db.begin().await?;
 
         ensure_airbases_impl(&tx, codex, profile_id).await?;
+        settle_relocations_impl(&tx, profile_id).await?;
 
         let models = get_airbases_impl(&tx, profile_id).await?;
 
@@ -129,7 +130,7 @@ impl Ctx {
         let mut touched = vec![squadron_id];
 
         if item_id < 0 {
-            clear_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
+            relocate_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
         } else {
             let item = find_slot_item_impl(&tx, item_id).await?;
             if item.profile_id != profile_id {
@@ -158,13 +159,16 @@ impl Ctx {
             // both slots are reported; anywhere else the client should have
             // called change_deployment_base instead.
             if let Some(current) = find_squadron_by_slot(&tx, profile_id, item_id).await? {
-                if current.area_id != area_id || current.rid != base_id {
+                let here = current.area_id == area_id && current.rid == base_id;
+                // A relocating squadron flies for nobody, so it may land
+                // anywhere; one still assigned belongs to its airbase.
+                if !here && current.state != plane_db::Status::Reassigning {
                     return Err(GameplayError::WrongType(format!(
                         "slot item {item_id} is deployed to airbase {}/{}",
                         current.area_id, current.rid
                     )));
                 }
-                if current.squadron_id != squadron_id {
+                if here && current.squadron_id != squadron_id {
                     touched.push(current.squadron_id);
                 }
                 current.delete(&tx).await?;
@@ -337,6 +341,56 @@ where
     Ok(())
 }
 
+/// Send one slot's squadron into relocation, if anything is in it.
+///
+/// Removing a squadron does not empty the slot at once. The live server answers
+/// `api_state: 2` with `api_slotid` still set and the radius unchanged, and only
+/// later reports `0 / 0` — the 配置転換 the client tracks through
+/// `api_port/port`'s `api_base_convert_slot`.
+async fn relocate_squadron<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    rid: i64,
+    squadron_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    plane_db::Entity::update_many()
+        .col_expr(plane_db::Column::State, Expr::value(plane_db::Status::Reassigning))
+        .filter(plane_db::Column::ProfileId.eq(profile_id))
+        .filter(plane_db::Column::AreaId.eq(area_id))
+        .filter(plane_db::Column::Rid.eq(rid))
+        .filter(plane_db::Column::SquadronId.eq(squadron_id))
+        .exec(c)
+        .await?;
+
+    Ok(())
+}
+
+/// Let every finished relocation empty its slot.
+///
+/// ponytail: settles on the next airbase read rather than on a clock. The one
+/// live measurement only bounds the real delay — the slot answered `api_state: 2`
+/// at 18:03 and `0 / 0` at 18:16 — and nothing upstream publishes the duration,
+/// so a timer would be an invented number. Reading the airbases is what the
+/// client does when it opens the 出撃 menu, which is exactly where the sample
+/// saw the slot already empty. Swap in a real cooldown once the duration has a
+/// source; that needs a timestamp column on `plane_info`.
+async fn settle_relocations_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    plane_db::Entity::delete_many()
+        .filter(plane_db::Column::ProfileId.eq(profile_id))
+        .filter(plane_db::Column::State.eq(plane_db::Status::Reassigning))
+        .exec(c)
+        .await?;
+
+    Ok(())
+}
+
 /// Re-home a squadron without disturbing its strength or condition.
 async fn move_squadron<C>(
     c: &C,
@@ -400,7 +454,11 @@ async fn distance_of<C>(
 where
     C: ConnectionTrait,
 {
-    let slot_ids: Vec<i64> = planes.iter().map(|p| p.slot_id).filter(|id| *id != 0).collect();
+    let slot_ids: Vec<i64> = planes
+        .iter()
+        .filter(|p| matches!(p.state, PlaneState::Assigned))
+        .map(|p| p.slot_id)
+        .collect();
     if slot_ids.is_empty() {
         return Ok((0, 0));
     }

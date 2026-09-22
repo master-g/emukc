@@ -145,9 +145,10 @@ impl From<Airbase> for KcApiAirBase {
 
 impl From<PlaneInfo> for KcApiPlaneInfo {
     fn from(value: PlaneInfo) -> Self {
-        // An unassigned slot carries neither a count nor a condition —
-        // `docs/apilist.txt` marks all three as 未配属なら存在しない.
-        let assigned = !matches!(value.state, PlaneState::Unassigned);
+        // Only a squadron actually flying carries a count and a condition.
+        // `docs/apilist.txt` marks all three as 未配属なら存在しない, and a live
+        // removal answers `{squadron_id, state: 2, slotid}` with nothing else.
+        let assigned = matches!(value.state, PlaneState::Assigned);
 
         Self {
             api_cond: assigned.then_some(value.condition),
