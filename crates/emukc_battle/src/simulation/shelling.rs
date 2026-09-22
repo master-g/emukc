@@ -114,7 +114,9 @@ pub(crate) fn simulate_shelling_side(
                 &mut damage,
                 params.attacker_is_enemy,
                 idx,
-                7,
+                // Normal: `_getNormalAttackType` picks the depth-charge or
+                // ASW-plane animation from the defender. 7 is carrier cut-in.
+                0,
                 vec![target_idx as i64],
                 SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)),
                 vec![display],
@@ -599,6 +601,70 @@ mod tests {
         }
         assert!(saw_ci_text, "no CI/double fired across 200 seeds; Text path unverified");
         assert!(saw_normal_num, "no normal attack across 200 seeds; Num path unverified");
+    }
+
+    /// R1: a day-shelling attack against a submarine reports `api_at_type = 0`,
+    /// not the client's carrier cut-in type 7. The client's
+    /// `_getNormalAttackType` picks the depth-charge or ASW-plane animation
+    /// from the defender being a submarine; the server only says "normal".
+    /// The `si_list` stays integer-typed because this is not a cut-in.
+    #[test]
+    fn day_shelling_against_submarine_reports_attack_type_zero() {
+        use crate::types::{AirState, SiListId};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let sonar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar);
+
+        let make_attacker = || {
+            let mut dd = sample_ship(&codex, dd_mst, 99);
+            dd.slot_items = vec![slotitem_with_mst_id(sonar_mst_id)];
+            BattleRuntimeShip::from(dd)
+        };
+        let make_defender = || {
+            let mut ss = sample_ship(&codex, ss_mst, 50);
+            ss.ship.api_soukou[0] = 1;
+            ss.ship.api_nowhp = 800;
+            ss.ship.api_maxhp = 800;
+            BattleRuntimeShip::from(ss)
+        };
+
+        let air_state = AirState::Supremacy;
+        let mut saw_attack = false;
+        for seed in 0..50u64 {
+            let mut attackers = vec![make_attacker()];
+            let mut defenders = vec![make_defender()];
+            let Some(hougeki) = simulate_shelling_side(
+                &codex,
+                &mut SeededRng::new(seed),
+                &mut attackers,
+                &mut defenders,
+                &ShellingParams {
+                    attacker_is_enemy: false,
+                    formation_id: 1,
+                    defender_formation_id: 0,
+                    engagement: EngagementType::SameCourse,
+                    phase: BattlePhase::DayShelling,
+                    air_state: Some(&air_state),
+                },
+            ) else {
+                continue;
+            };
+            for (idx, at_type) in hougeki.api_at_type.iter().enumerate() {
+                assert_eq!(
+                    *at_type, 0,
+                    "ASW shelling must report api_at_type 0, got {at_type} (seed {seed})"
+                );
+                assert!(
+                    hougeki.api_si_list[idx].iter().all(|id| matches!(id, SiListId::Num(_))),
+                    "ASW shelling si_list must stay integer-typed: {:?}",
+                    hougeki.api_si_list[idx]
+                );
+                saw_attack = true;
+            }
+        }
+        assert!(saw_attack, "no ASW shelling fired across 50 seeds; assertion unverified");
     }
 
     #[test]

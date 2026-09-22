@@ -54,7 +54,10 @@ pub(crate) fn simulate_opening_taisen(
 
         at_eflag.push(0);
         at_list.push(idx as i64);
-        at_type.push(7); // ASW attack type
+        // `PhasePreAntiSubmarine` only dispatches 0 (normal) and 2 (double);
+        // anything else falls through to `PhaseAttackDanchaku`, which throws
+        // outside {3,4,5,6,200,201}. 7 is the client's carrier cut-in type.
+        at_type.push(0);
         df_list.push(vec![target_idx as i64]);
         si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
         cl_list.push(vec![1]);
@@ -82,7 +85,7 @@ pub(crate) fn simulate_opening_taisen(
 
         at_eflag.push(1);
         at_list.push(idx as i64);
-        at_type.push(7);
+        at_type.push(0);
         df_list.push(vec![target_idx as i64]);
         si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
         cl_list.push(vec![1]);
@@ -136,7 +139,54 @@ mod tests {
 
         let taisen = result.packet.opening_taisen.unwrap();
         assert_eq!(taisen.api_at_eflag, vec![0]);
-        assert_eq!(taisen.api_at_type, vec![7]);
+        // R1: the client hands `api_opening_taisen` to `PhasePreAntiSubmarine`,
+        // whose dispatch only knows 0 (normal) and 2 (double); everything else
+        // reaches `PhaseAttackDanchaku`, which throws on anything outside
+        // {3,4,5,6,200,201}. 7 is the client's carrier cut-in type, not an ASW
+        // type. Depth charge vs. ASW-plane animation is the client's own call.
+        assert_eq!(taisen.api_at_type, vec![0]);
         assert!(taisen.api_damage[0][0].amount() >= 1);
+    }
+
+    /// R1: the enemy side of the OASW loop reports the same attack type. An
+    /// enemy escort with a sonar opening on a friendly submarine must produce
+    /// `api_at_eflag = 1` entries whose `api_at_type` is 0.
+    #[test]
+    fn enemy_oasw_reports_attack_type_zero() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let sonar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar);
+
+        let mut friend = sample_ship(&codex, ss_mst, 50);
+        friend.ship.api_soukou[0] = 5;
+        friend.ship.api_nowhp = 30;
+        friend.ship.api_maxhp = 30;
+
+        let mut enemy = sample_ship(&codex, dd_mst, 99);
+        enemy.ship.api_taisen[0] = 100;
+        enemy.ship.api_soukou[0] = 200;
+        enemy.ship.api_nowhp = 200;
+        enemy.ship.api_maxhp = 200;
+        enemy.slot_items = vec![slotitem_with_mst_id(sonar_mst_id)];
+
+        let context = BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]);
+
+        let result =
+            crate::simulation::simulate_day(&codex, context, &mut crate::random::SeededRng::new(1));
+        let taisen = result.packet.opening_taisen.expect("enemy OASW must fire");
+
+        let enemy_types: Vec<i64> = taisen
+            .api_at_eflag
+            .iter()
+            .zip(taisen.api_at_type.iter())
+            .filter(|(eflag, _)| **eflag == 1)
+            .map(|(_, at_type)| *at_type)
+            .collect();
+        assert!(!enemy_types.is_empty(), "expected at least one enemy OASW entry");
+        assert!(
+            enemy_types.iter().all(|t| *t == 0),
+            "enemy OASW must report api_at_type 0: {enemy_types:?}"
+        );
     }
 }
