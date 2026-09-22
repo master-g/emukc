@@ -89,3 +89,20 @@
 - [ ] `api_req_hensei/preset_order_change` - reorder fleet presets
 - [ ] `api_req_ranking/getlist` - ranking list display
 - [x] `api_dmm_payment/paycheck` - payment (stub returning check_value 1)
+
+## Ideas / Not Scheduled
+- [ ] **Live-account snapshot** — mirror the owner's own KanColle account into a local profile by
+  calling the official API with their own session token.
+  - [x] Read-only capture — `scripts/fetch_live_api.py` pulls the verified read-only set, including
+    the signed `api_port/port`, into a gitignored snapshot. Order of operations and the shape traps
+    it cost to learn: `docs/solutions/best-practices/live-api-investigation.md`.
+  - [ ] Read a snapshot back as an emukc profile. The capture already reproduces the whole save
+    (340 ships, 1855 items, air corps, quests); nothing imports it yet.
+  - [ ] Turn successive captures into a timeline rather than separate dumps — the 电子骨灰盒 part,
+    so the account stays readable after the service is gone.
+  - [ ] Sortieing on the live account stays a separate decision: it is the only irreversible part
+    and buys exactly one thing the read path cannot — genuine battle responses to check the
+    simulator against. Practice battles give the same shape with no sinking risk; do those first.
+  - Answered by the 2026-09-22 round: the token lives exactly as long as the game page, so a
+    capture is one page-open round rather than a background sync; it never touches the repo (env
+    var in, `z/snapshot/` out, both gitignored).
