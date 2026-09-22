@@ -145,13 +145,21 @@ fn read_manifest(data_root: &Path) -> Result<emukc::model::kc2::start2::ApiManif
     Ok(emukc::model::kc2::start2::ApiManifest::from_str(&manifest_raw)?)
 }
 
+/// Turn the agent skill's JSON into the repo-tracked wikiwiki asset.
+///
+/// This stops at `into_map_catalog`, the deterministic label→`cell_no` step. It
+/// deliberately does **not** merge kcdata, the public overlay or `stat.json`:
+/// that is the build's job, and writing a merged catalog back into the slot the
+/// build reads as the pure wikiwiki source baked those other sources into it
+/// permanently — cell metadata, `master_cell_id`, even whichever event maps
+/// happened to be live that day — and destroyed any way to tell which rule came
+/// from where.
 fn normalize_catalog(args: &NormalizeArgs) -> Result<emukc::model::codex::map::MapCatalog> {
     let manifest = read_manifest(&args.data_root)?;
     let raw = fs::read_to_string(&args.from_agent_json)?;
     let wikiwiki_source = WikiwikiMapCatalog::from_json(&raw).map_err(anyhow::Error::from)?;
-    let wikiwiki_catalog = wikiwiki_source.into_map_catalog(&manifest);
-    build_final_map_catalog(&args.data_root, &manifest, Some(wikiwiki_catalog))
-        .map_err(anyhow::Error::from)
+
+    Ok(wikiwiki_source.into_map_catalog(&manifest))
 }
 
 fn build_public_overlays(args: &BuildOverlaysArgs) -> Result<MapOverlayBuildOutput> {
