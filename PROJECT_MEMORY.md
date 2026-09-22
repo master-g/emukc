@@ -4,13 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-**Maintenance:**
-
-- Update `Last Session` and `Next Session` at the end of every working session.
-- `Verified Facts` and `Failed Attempts` are cumulative; append with a date and a source link.
-- Do not duplicate `docs/solutions/` content — link to it.
-
-Last updated: 2026-09-21 · branch `main`
+Last updated: 2026-09-22 · branch `fix/battle-protocol-semantics-gate`
 
 ## Verified Facts
 
@@ -45,11 +39,12 @@ Current verification baseline:
   `sortie_battle_result`, `sortie_sp_midnight_battle`, `sortie_battle_impl`); none nests another, so a new
   entry can take it safely. `sortie_midnight_battle` stays unlocked on purpose — it mutates a pending
   session, not `active`.
-- [2026-09-21] 两份 apilist 各司其职。`apilist.md` 是唯一端点清单（当前计数以该文件为准，missing =
-  `docs/apilist.txt` 的 136 减 implemented）；重推方法是抽 `kcsapi/mod.rs` 的 `nest("/prefix", ..)` 加各
-  子模块 `.route("/leaf"` 再双向 diff，不要手工审。`docs/api_coverage.md` 只是路线图。
-  `docs/apilist.txt`（4209 行）是字段**语义**来源，比 GitHub 上任何副本全，别再去外面找；解码客户端
-  仍是字段**是否存在**的唯一真源。
+- [2026-09-22] 两份 apilist 各司其职。`apilist.md` 是唯一端点清单：implemented 是 router 的机械投影
+  （抽 `kcsapi/mod.rs` 的 `nest("/prefix", ..)` 加各子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），
+  missing 是「`docs/apilist.txt` 的 136 减 router」，两者不互补——不在上游参考里的端点
+  （`remodel_slot_recover`）只进前者，missing 计数不动；`registration_sp` grep 仍零命中，不是缺口。
+  `docs/api_coverage.md` 只是路线图。`docs/apilist.txt`（4209 行）是字段**语义**来源，比 GitHub 上任何
+  副本全，别再去外面找；解码客户端仍是字段**是否存在**的唯一真源。
 - [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
   (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
   `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
@@ -113,14 +108,9 @@ Current verification baseline:
   **二番舰**（睦月/如月系），不是旗舰；旗舰必须是明石(182)/明石改(187)，这是两件事。
 - [2026-09-21] variant 配方在 ★0–★9 就是普通改修，只在 ★10 才转换成 variant 装备。
   12cm単装砲(1) 没有 `level_consumption`、只有 variant，所以「有 variant」不等于「只能更新」。
-- [2026-09-21] 联合舰队有两套 friendly 索引空间（模拟连续 vs 客户端固定从 6），
-  外加 `simulate_shelling_side` 的切片本地编号，一共三层，缺一层就把命中记到错误的
-  舰上。翻译点、端点与编成的双向契约、夜战测试为什么打不出来：
-  `docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
+- [2026-09-21] 联合舰队 friendly 索引有三层空间（模拟连续 / 客户端固定从 6 / 切片本地编号），
+  缺一层就把命中记到错误的舰上：`docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
 
-- [2026-09-22] `apilist.md` 的 implemented 是 router 的机械投影，missing 是「`docs/apilist.txt`
-  减 router」，两者不互补：不在上游参考里的端点（`remodel_slot_recover`）只进前者，missing
-  计数不动。`registration_sp` grep 仍零命中，不是缺口。
 - [2026-09-22] 基地航空隊的客户端硬限制（`AIRUNIT_MAX`/`SQUADRON_MAX`）、
   `airbase_count` 是出撃可能数而非拥有数、`expand_base` 是増开一隊而非扩槽、
   空槽为何不落库：四条都在
@@ -187,18 +177,23 @@ Current verification baseline:
 ## Last Session
 
 - [2026-09-22] 战斗协议语义闸门（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，U1–U9 全部落地）。
-  分支 `fix/battle-protocol-semantics-gate`，9 个单元 8 个提交。
+  分支 `fix/battle-protocol-semantics-gate`，10 个提交，已推 origin（PR 未开）。
   修掉开幕对潜写死 `api_at_type = 7`（客户端 `PhaseAttackDanchaku` 直接 throw）；
   新增 `battle_attack_type_acceptance.json` 资产让校验器按消费模块判攻击种别；
   校验器改为逐条检查推导资源是否在 `make_list` 覆盖内；
   `ShipSpec` 支持按槽位装备，新增 `opening_asw` / `gunnery_cutin` / `carrier_cutin` 三个 preset。
+- 代码审查已跑并给出 verdict：发现项全部落地，修复即 `28328e62`（复用炮类谓词与 si_list 行解析）
+  与 `c888a92f`（夜战空母切入展示回归 + 闸门加固），无遗留红灯。
 - 门禁：`cargo test --workspace` 全绿；fmt clean；clippy 改动文件零告警；
   `make drift-check` no drift（`cache_rules` / `resource_manifest` 已 accept）。
+- 主线 `main` 的 3 个基地航空隊提交（`28760f6a`..`61725bcb`）同时推到 origin，所以 PR diff 只含本次 10 个提交。
 
 ## Next Session
 
-- [2026-09-22] 该计划已收口，无遗留红灯。回到基地航空隊计划的 U4
-  （`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
+- [2026-09-22] 推迟项：拆 `crates/emukc_bootstrap/src/battle_rules.rs`（2819 行）。
+  攻击种别接受与展示装备资源覆盖是本次新加的两个独立关注点，各自可成模块。
+  纯结构改动、零行为变化，所以没挡交付；做的时候以 `cargo test --workspace` 零 diff 行为为完成标志。
+- 回到基地航空隊计划的 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
   按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；
   取到之后**同时**接上 `set_plane` 的配属消耗。之后 U5、U6 收尾。
 - 战斗侧新积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，
