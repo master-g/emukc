@@ -97,6 +97,15 @@ a session error before checking the client's `_connect` for that endpoint.
 - **Official responses send minimums, not ranges.** `remodel_slotlist`'s
   `api_req_buildkit`/`api_req_remodelkit` are the codex's `dev_mat_min` /
   `screw_min`.
+- **`api_port/port` sends fewer fields than we do, and two of ours are mistyped.**
+  The live response carries only `api_basic`, `api_deck_port`, `api_dest_ship_slot`,
+  `api_furniture_affect_items`, `api_log`, `api_material`, `api_ndock`,
+  `api_p_bgm_id`, `api_parallel_quest_count`, `api_plane_info`, `api_ship` —
+  no `api_combined_flag`, `api_event_object`, `api_c_flags` or `api_c_flag2`
+  (all four are conditional, and we emit them unconditionally). The two we have
+  commented out in `port.rs` are declared wrong: `api_plane_info` is an object
+  (`{"api_base_convert_slot": [..]}`), not `Vec<KcApiPlaneInfo>`, and
+  `api_furniture_affect_items` is `{"api_payitem_dict": {..}}`, not `Vec<i64>`.
 - **Empty fleet slots are `{api_id: -1}`** with no other fields, the same shape
   as an empty air corps slot.
 

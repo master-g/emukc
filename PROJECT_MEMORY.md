@@ -187,23 +187,24 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 战斗协议语义闸门收口（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，
-  U1–U9）：13 个提交已 fast-forward 进 `main`，分支已删；审查 verdict 的发现全部落地
-  （`28328e62`、`c888a92f`）；收尾把 `battle_rules.rs` 拆成 `battle_rules/{attack_types,resources}.rs`
-  （实现部分 1720 → 830 行，纯移动，测试 1100 行未动）。
-- 用真实账号 token 打了一轮官方 API（只读 + 两次 `set_plane`）：12 份存档快照在 `z/snapshot/2026-09-22/`，
-  量出配属消耗、钉死基地航空隊状态机、移植并真机验证了 `PortApiKey`。结论都在「已验证的事实」。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警；`make drift-check` no drift。
+- [2026-09-22] 战斗协议语义闸门收口（13 个提交已进 `main`，分支已删），收尾把 `battle_rules.rs`
+  拆成 `battle_rules/{attack_types,resources}.rs`；jukebox 菜单按官方 78 条重写。
+- 用真实账号 token 打了一轮官方 API（只读 + 两次 `set_plane`），快照在 `z/snapshot/2026-09-22/`；
+  移植并真机验证 `PortApiKey`。
+- 拿真实演习响应喂 `battle validate`：0 error / 0 warning，**没有假阳性**；但它抓出一个真 bug——
+  かばう 标记在按舰累计侧，那七处 `Vec<i64>` 已改 `DamageCell` 并加累加回归测试（`a4285ba5`），
+  golden 两份零 diff。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 改动文件零告警
+  （`debug_overlay.rs:860/862` 两条 backtick 告警是既有的）。
 
 ## Next Session
 
-- [2026-09-22] 回到基地航空隊计划的 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
-  按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；
-  取到之后**同时**接上 `set_plane` 的配属消耗。之后 U5、U6 收尾。
-- 基地航空隊新积压：按真实响应修 `set_plane` 撤下的状态机（`api_state:2` + 保留 slotid + 半径不变），
-  给 `api_port/port` 补 `api_plane_info`（`api_base_convert_slot` / `api_unset_slot`）、`api_event_object`、
-  `api_c_flags`、`api_c_flag2`、`api_friendly_setting`、`api_combined_flag`，并改 U3 断言 0/0 的那个测试。
-  真实存档快照在 `z/snapshot/2026-09-22/`（13 份，含 port）。
-- 战斗侧新积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，
-  官方是一条记录带三个目标。取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
+- [2026-09-22] 按真实响应修 `set_plane` 撤下的状态机：撤下应答 `api_state:2` 且保留 `api_slotid`、
+  半径不变，稍后才归零并退还装备。我们是即时清空（`airbase/plane.rs` 的 `squadrons_of` 合成 `0/0`、
+  `airbase/mod.rs` 的 `clear_squadron` 立即删行），U3 断言 `0/0` 的测试要跟着改。规格在 `unset.json`。
+- 之后回基地航空隊计划 U4（`set_action`、`change_name`、`supply`）：补给消耗系数仍是唯一不齐的点，
+  按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下不要编公式；取到后**同时**接上
+  `set_plane` 的配属消耗（实测每機 12 ボーキ）。再往后 U5、U6 收尾。
+- 战斗侧积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，官方是一条记录带三个目标。
+  取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
 - 更早积压未变：対空/阵形建模先做「補正表能否解码」spike；审计集 013 等上游版本；敌联合 5 端点卡在数据不存在。
