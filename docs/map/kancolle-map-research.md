@@ -92,33 +92,12 @@ agent JSON 能再生出当前资产（md5 全不匹配），而管线也没有�
 
 ### 数据源与 Single Source of Truth
 
-2026-09-22 复查了全部五个输入，以及「有没有更好的信源」：
+按数据种类（拓扑 / 路由规则 / 敌方编成 / 敌舰属性 / 掉落 / 开放条件）的完整依赖梳理，
+包括每一类的唯一来源、生成器是否还在、断链后果，见
+[data-dependencies.md](./data-dependencies.md)。
 
-| 输入 | 内容 | 生成方式 |
-| --- | --- | --- |
-| `assets/wikiwiki_map_catalog.json` | 分歧规则、敌编成 | `wikiwiki-map sync` → agent skill `emukc-scrape-wikiwiki-mapdata` → `wikiwiki-map normalize` |
-| `assets/map_ship_drops.json` | 掉落 | **无可复现来源**，见文件里的 `note` |
-| `assets/public_map_catalog_overlays.json` | 真实 start 抓包 | `wikiwiki-map build-overlays` |
-| `kc_data`（kcwikizh/kcdata） | 拓扑、格子元数据 | 下载 |
-| `stat.json`（KagamiChan/kcs2-mapdata） | 格子 event 类型 | 下载 |
-
-**分歧规则没有更好的信源。** TsunDB / KCNav 是权威的众包库但探测不到公开 API；
-en.kancollewiki.net 被 Cloudflare 挡住；kcdata 与 stat.json 都只有拓扑。
-Fandom 的 `{{MapBranchingTable}}` 一度看着可用——它按边分键、由 TsunDB 推导、API 开放——
-但 33 张图 381 条条件句里只有 59% 能归入有限句式，其余是 `Otherwise, D`、`Routing unknown`、
-跨边引用 `Do not meet the requirements to go to C` 之类，**只在边这一层结构化，条件仍是散文**，
-和 wikiwiki 同一个难度。覆盖也互有长短：它缺 1-1 / 5-6 / 7-4 / 7-5、7-3 只有 3 条边，
-但在 6-x、1-5、1-6、2-5、3-5 比我们厚。要提升这几张图的保真度时值得人工对照，不值得替换数据链。
-
-**拓扑有更好的**：`kcwiki/kancolle-data` 的 `map/edge.json` 覆盖 193 张图（含活动图），
-键就是 edge id，正对应 API 的 `api_no`。尚未接入。
-
-已修掉的两处 SSOT 破坏：`normalize` 曾把合并后的成品写回 wikiwiki 源槽位（`8d0376a8`），
-掉落曾只存在于那份资产因而锁死了它的再生（`ea40629b`）。
-
-**仍未解决**：现有 `wikiwiki_map_catalog.json` 是修复前的混合产物，含 kcdata/stat 的格子元数据
-与 2026-06 某次活动的 maparea 42 地图。重生需要一次 agent pass，且产出不得劣于已提交版本
-（本地 `.data/temp/wikiwiki_map/` 下的历史 agent JSON 全是 `Unknown` 谓词，不能直接拿来重生）。
+已修掉的两处 SSOT 破坏：`wikiwiki-map normalize` 曾把合并后的成品写回 wikiwiki 源槽位
+（`8d0376a8`），掉落曾只存在于那份资产因而锁死了它的再生（`ea40629b`）。
 
 ### 地图开放条件是公式，不是数据
 
