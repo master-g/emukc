@@ -18,7 +18,7 @@ tags: [map, data-source, provenance, ssot]
 
 | 数据种类 | 唯一来源 | 生成器 | 可再生 |
 | --- | --- | --- | --- |
-| 拓扑（格子、连线、格子类型） | `kc_data` + `stat.json` | 下载 | ✅ |
+| 拓扑（格子、连线、格子类型） | `kc_data` + `stat.json` | 下载 | ✅ 已被 `edges.json` 独立确认 |
 | 真实起点抓包 | `assets/real_map_start_data/*.json` | 人工抓包 | ⚠️ 需真实账号 |
 | 路由规则 | `assets/wikiwiki_map_catalog.json` | agent skill | ⚠️ 见下 |
 | 敌方编成（哪些格子出什么舰队） | 同上，一个文件 | 同上 | ⚠️ 同上 |
@@ -38,10 +38,32 @@ tags: [map, data-source, provenance, ssot]
 `wikiwiki-map build-overlays` 生成 `assets/public_map_catalog_overlays.json`。它是唯一能证明
 「官方实际发了什么」的源，7-3 的两阶段变体就靠它。
 
-**有更好的没接**：`KC3Kai/KC3Kai` 的 `src/data/edges.json` 覆盖 193 张图（含活动图），
-键是 edge id、值是 `[起点 label, 终点 label]`——正对应 API 里 `api_no` 的语义。
-`kcwiki/kancolle-data` 的 `map/edge.json` 是它的镜像，生成脚本 `build/edge.sh` 只有一行 curl + sed
-把 `World 1-1` 改写成 `11`，内容逐字节一致。镜像更新靠人工触发，比上游晚一天。
+其中**只有 34 份是有效响应**：`map_7-4.json` 和 `map_7-5.json` 是 `api_result: 100` 的错误页
+（抓包用的账号没解锁这两张图，和 `api_get_member/mapinfo` 的 33 条互相印证）。
+`source_crosscheck.rs` 已有 `CaptureUnparseable` 分支跳过它们，不是缺陷，但这两张图的起点没有真实凭据。
+
+**`edges.json` 查过了，不接**。`KC3Kai/KC3Kai` 的 `src/data/edges.json` 覆盖 193 张图（含活动图），
+键是 edge id、值是 `[起点 label, 终点 label]`；`kcwiki/kancolle-data` 的 `map/edge.json` 是它的镜像，
+`build/edge.sh` 只有一行 curl + sed 把 `World 1-1` 改写成 `11`——两边 193 键、0 处取值差异，已实测。
+
+2026-09-22 拿它对我们的常规图做了一次全量交叉校验。它的 edge id 正好等于我们的 `cell_no`，所以
+「edge k 的终点 label」必须等于我们 `cell_no == k` 那格的 `node_label`，「起点 label」必须在该格的
+前驱里。落到我们 37 张图上共 675 条边：
+
+| 结果 | 条数 | 说明 |
+| --- | --- | --- |
+| 与我们的拓扑一致 | 674 | |
+| 上游有误 | 1 | 7-4 的 edge 3，见下 |
+
+其中 7-3 的 17 条属于 `post_p_unlock` 变体（默认变体是 `pre_p_unlock`，只到 cell 8），5-6 有一条
+`["Start 2","Start 2"]` 自指边是它自己的命名产物，两者都在对应变体里对上了。
+
+**唯一的实质分歧是上游错的**：`edges.json` 说 7-4 的 edge 3 是 `A → C`，kcdata 说 `Start → C`。
+wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧条件（駆逐+海防 ≥3 或 駆逐 ≥2 去 A，
+否则去 C），只有 Start 直接分叉到 A/C 才讲得通。所以是 `edges.json` 错，我们是对的。
+
+结论：它不是更好的信源，是一份**独立的校验样本**。接进管线只会把那条错边带进来；它已经完成的工作是
+给我们的拓扑背书——674/675 由一条独立数据链确认。
 
 ## 2. 路由规则与敌方编成
 
