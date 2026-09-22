@@ -359,6 +359,9 @@ pub enum RoutePredicate {
         op: RouteOperator,
         value: i64,
     },
+    /// Number of ships carrying at least one drum canister. Like
+    /// [`RoutePredicate::EquipmentCount`] this counts ships, not equipment: the
+    /// wikiwiki conditions all read 「ドラム缶搭載艦の隻数」.
     DrumCanisterCount {
         op: RouteOperator,
         value: i64,

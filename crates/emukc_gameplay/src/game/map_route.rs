@@ -28,7 +28,8 @@ pub(crate) struct FleetRouteContext {
     /// Raw sum of each ship's current `LoS` (base + equipment).  Used as the
     /// fallback when no formula is specified.
     pub(crate) los_total: i64,
-    pub(crate) total_drums: i64,
+    /// Ships carrying at least one drum canister — not the canister count.
+    pub(crate) drum_ships: i64,
     /// Precomputed `LoS` under Formula 1: `Σ sqrt(ship.los_now)`.
     /// Formula 1 uses per-equipment sqrt-weighted values; this is an approximation
     /// using the combined ship `LoS` when per-equipment breakdown is unavailable.
@@ -455,7 +456,7 @@ pub(crate) fn route_predicate_matches(
         RoutePredicate::DrumCanisterCount {
             op,
             value,
-        } => RoutePredicateEval::from_bool(compare_route_value(context.total_drums, *op, *value)),
+        } => RoutePredicateEval::from_bool(compare_route_value(context.drum_ships, *op, *value)),
         RoutePredicate::And(predicates) => {
             for predicate in predicates {
                 match route_predicate_matches(predicate, context, stage) {
@@ -2029,7 +2030,7 @@ mod tests {
                 los_total: 120,
                 los_formula1: 120.0,
                 los_formula3: 120.0,
-                total_drums: 4,
+                drum_ships: 4,
                 ..Default::default()
             },
             FleetRouteContext {
@@ -2038,7 +2039,7 @@ mod tests {
                 los_total: 40,
                 los_formula1: 40.0,
                 los_formula3: 40.0,
-                total_drums: 0,
+                drum_ships: 0,
                 ..Default::default()
             },
             FleetRouteContext {
@@ -2160,7 +2161,7 @@ mod tests {
             ],
             min_speed: 10,
             los_total: 20,
-            total_drums: 0,
+            drum_ships: 0,
             ..Default::default()
         };
 
@@ -2248,7 +2249,7 @@ mod tests {
             ],
             min_speed: 5,
             los_total: 20,
-            total_drums: 0,
+            drum_ships: 0,
             ..Default::default()
         };
 
@@ -2375,7 +2376,7 @@ mod tests {
             ],
             min_speed: 10,
             los_total: 20,
-            total_drums: 0,
+            drum_ships: 0,
             ..Default::default()
         };
 
@@ -2450,7 +2451,7 @@ mod tests {
             ],
             min_speed: 10,
             los_total: 20,
-            total_drums: 0,
+            drum_ships: 0,
             ..Default::default()
         };
 

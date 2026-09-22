@@ -636,6 +636,92 @@ async fn equip_radar_on_ship(
     profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap()
 }
 
+/// Equip `count` drum canisters on one ship, filling its slots in order.
+async fn equip_drums_on_ship(
+    db: &emukc_db::sea_orm::DatabaseConnection,
+    codex: &Codex,
+    profile_id: i64,
+    ship_api_id: i64,
+    count: usize,
+) -> profile_ship::Model {
+    use crate::game::slot_item::add_slot_item_impl;
+    use emukc_db::entity::profile::item::slot_item;
+
+    let ship_model = profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap();
+    let mut am = ship_model.into_active_model();
+    for index in 0..count {
+        let drum = add_slot_item_impl(
+            db,
+            codex,
+            profile_id,
+            super::route_context::DRUM_CANISTER_MST_ID,
+            0,
+            0,
+        )
+        .await
+        .unwrap();
+        match index {
+            0 => am.slot_1 = ActiveValue::Set(drum.id),
+            1 => am.slot_2 = ActiveValue::Set(drum.id),
+            _ => am.slot_3 = ActiveValue::Set(drum.id),
+        }
+        let drum_am = slot_item::ActiveModel {
+            id: ActiveValue::Set(drum.id),
+            equip_on: ActiveValue::Set(ship_api_id),
+            ..drum.into_active_model()
+        };
+        drum_am.update(db).await.unwrap();
+    }
+    am.update(db).await.unwrap();
+
+    profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap()
+}
+
+/// `DrumCanisterCount` counts ships, not canisters. Every wikiwiki routing
+/// condition reads 「ドラム缶搭載艦の隻数」, and 5-4 states the rule outright: a
+/// ship carrying both a canister and a landing craft counts once for each, never
+/// twice for two canisters. Counting items made a single well-loaded ship satisfy
+/// a two-ship branch.
+#[tokio::test]
+async fn drum_canister_routing_counts_ships_not_canisters() {
+    use super::route_context::build_fleet_route_context;
+
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
+    let account = context.sign_up("drum-route", "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, "drum-route-admin").await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    let profile_id = session.profile.id;
+
+    // One ship with three canisters, one with none.
+    let loaded = context.add_ship(profile_id, 951).await.unwrap();
+    let empty = context.add_ship(profile_id, 951).await.unwrap();
+    let loaded =
+        equip_drums_on_ship(context.db.as_ref(), &codex, profile_id, loaded.api_id, 3).await;
+    let empty = profile_ship::Entity::find_by_id(empty.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap();
+
+    let ctx = build_fleet_route_context(context.db.as_ref(), &codex, &[loaded, empty], 120)
+        .await
+        .unwrap();
+    assert_eq!(ctx.drum_ships, 1, "three canisters on one ship is still one ship");
+
+    // Spreading the same canisters over two ships is what a two-ship branch wants.
+    let second = context.add_ship(profile_id, 951).await.unwrap();
+    let second =
+        equip_drums_on_ship(context.db.as_ref(), &codex, profile_id, second.api_id, 1).await;
+    let ctx = build_fleet_route_context(context.db.as_ref(), &codex, &[loaded, second], 120)
+        .await
+        .unwrap();
+    assert_eq!(ctx.drum_ships, 2);
+}
+
 #[tokio::test]
 async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
     // Exercises every arm of the `radar_ship_count` match in

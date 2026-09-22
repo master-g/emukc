@@ -47,7 +47,7 @@ where
     let mut ship_entries = Vec::with_capacity(fleet_ships.len());
     let mut min_speed = i64::MAX;
     let mut los_total = 0;
-    let mut total_drums = 0;
+    let mut drum_ships = 0;
     let mut flagship_ship_id = None;
     let mut flagship_ship_type = None;
     // Accumulators for LoS formulas.
@@ -70,6 +70,12 @@ where
             };
             // Sum equipment LoS for this ship (used in formula 3).
             let mut ship_equip_saku: i64 = 0;
+            // Routing counts the *ship*, not the canisters on it: every wikiwiki
+            // condition reads 「ドラム缶搭載艦の隻数」, and 5-4 spells the rule out —
+            // a ship carrying both a canister and a landing craft counts once for
+            // each, never twice for two canisters. Expeditions count the items
+            // themselves, which is why `expedition.rs` keeps its own tally.
+            let mut carries_drum = false;
             for slot_id in
                 [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
             {
@@ -78,9 +84,12 @@ where
                 };
                 entry.slotitem_types.insert(type3);
                 if mst_id == DRUM_CANISTER_MST_ID {
-                    total_drums += 1;
+                    carries_drum = true;
                 }
                 ship_equip_saku += api_saku;
+            }
+            if carries_drum {
+                drum_ships += 1;
             }
             ship_entries.push(entry);
 
@@ -123,7 +132,7 @@ where
             min_speed
         },
         los_total,
-        total_drums,
+        drum_ships,
         los_formula1: los_f1_acc,
         los_formula3,
     })
