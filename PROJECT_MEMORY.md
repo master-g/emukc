@@ -11,77 +11,78 @@ Last updated: 2026-09-22 · branch `main`
 Architecture — 分层、`Codex`、`entity::user`/`entity::profile` 分域、`svdata=` 前缀等基础见
 CLAUDE.md § Architecture；这里只记从中推不出来的：
 
-- [2026-09-18] Gameplay ops are inherent `async fn`s on the concrete `gameplay::Ctx`; owners (`State`,
-  `TestContext`, `SimContext`) embed it and `Deref`, so `state.foo(..)` resolves unchanged. No
-  `XxxOps`/`GameOps`/`HasContext` trait and no `async-trait`. Cross-domain writes go through `_impl`,
-  never a second inherent method (that opens a nested transaction).
-  Source: `docs/solutions/architecture-patterns/gameplay-context.md`.
-- [2026-07-30] Cross-crate battle callers use `emukc_battle::execute_day` / `execute_night`; raw simulation and debug-overlay composition remain crate-internal. Source: `crates/emukc_battle/src/execution.rs`, `docs/solutions/architecture-patterns/battle-crate-docs.md`.
+- [2026-09-18] Gameplay op 是具体类型 `gameplay::Ctx` 上的固有 `async fn`，没有 `XxxOps`/`HasContext`
+  trait、没有 `async-trait`；跨领域写走 `_impl`，绝不调第二个固有方法（会开嵌套事务）。
+  见 `docs/solutions/architecture-patterns/gameplay-context.md`。
+- [2026-07-30] 跨 crate 的战斗入口只有 `emukc_battle::execute_day` / `execute_night`；原始模拟与
+  debug overlay 组装是 crate 内部的。见 `docs/solutions/architecture-patterns/battle-crate-docs.md`。
 
 Current verification baseline:
 
-- [2026-07-30] CLI battle simulation tests load the real Codex but force `god_mode=false` and `one_hit_kill=false`, so local `.data/codex/game_config.json` cannot make seed-search tests non-hermetic. Source: `src/bin/cli/battle.rs::load_codex_without_debug_policy`.
+- [2026-07-30] CLI 战斗模拟测试加载真实 Codex 但强制 `god_mode=false`、`one_hit_kill=false`，所以本地
+  `.data/codex/game_config.json` 影响不到种子搜索的可重现性。见
+  `src/bin/cli/battle.rs::load_codex_without_debug_policy`。
 - [2026-09-19] `make update` = `bootstrap --overwrite --force-update` → decode `--sync-assets
-  --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`. Verified on 6.3.2.1 and
-  6.3.5.0 (the latter with main.js fetched by hand).
-- [2026-09-19] `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`
-  （6.3.4.1 → 6.3.5.0 实测：battle 资产零变化，清单只多一行显式路径）。
-- [2026-09-19] `obfuscator-io-deobfuscator` (ben-sb v1.0.6) does NOT replace `main-decoder`: 0/55 battle
-  fields, 304 s / 5.1 GB vs our 55/55 in ~20 s. Do not re-evaluate.
-- [2026-09-19] Two `main.js` version axes: `kcs_const.js` `scriptVesion` (note the upstream typo) is the client
-  script version and drives `out/version.txt` plus every synced asset's `scriptVersion`; `kcs2/version.json`
-  holds per-subsystem asset versions and moves independently. A main.js-only release bumps the first, not both.
-- [2026-08-26] Upstream drift: kcwiki empty equipment slots are `null`, not `false`; `version.json` nests a `resources` object (flattened in `parse_version_info`); webpack emits shorthand `ObjectMethod` factories (normalized in `module-graph.ts`); event area 62 is unlocked by default by design.
-- [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` by design (marriage unlocks Lv.100 at the same exp), so `exp_to_ship_level(1_000_000)` is 100 and unmarried callers rely on `min(cap)`. Not a bug. Source: `kc2/level.rs`, `game/ship/exp.rs` tests.
-- [2026-09-19] `update_quest_progress_for_action` reads only quest progress rows and the codex (`quest/update.rs:174-244`), so it can run at any point inside a domain transaction; U8 moved it to just before `commit` with zero behavior change. Source: `.farm/deepen-u8-report.md`.
-- [2026-09-19] `questlist` `api_tab_id` is the client tab bar (0,9,1,2,3,4,5 = all, activated, daily, weekly, monthly, oneshot, other); the client filters nothing itself. `api_label_type` keys the row label (1,2,3,6,7,101..=112). Source: `main.decoded.js` `DutyDataHolder`, `_createTab`.
-- [2026-09-19] `SortieStore::with_profile_lock` has exactly five holders (`start_sortie`, `next_sortie`,
-  `sortie_battle_result`, `sortie_sp_midnight_battle`, `sortie_battle_impl`); none nests another, so a new
-  entry can take it safely. `sortie_midnight_battle` stays unlocked on purpose — it mutates a pending
-  session, not `active`.
-- [2026-09-22] 两份 apilist 各司其职。`apilist.md` 是唯一端点清单：implemented 是 router 的机械投影
-  （抽 `kcsapi/mod.rs` 的 `nest("/prefix", ..)` 加各子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），
-  missing 是「`docs/apilist.txt` 的 136 减 router」，两者不互补——不在上游参考里的端点
-  （`remodel_slot_recover`）只进前者，missing 计数不动；`registration_sp` grep 仍零命中，不是缺口。
-  `docs/api_coverage.md` 只是路线图。`docs/apilist.txt`（4209 行）是字段**语义**来源，比 GitHub 上任何
-  副本全，别再去外面找；解码客户端仍是字段**是否存在**的唯一真源。
-- [2026-09-19] Sunk-enemy quest events come only from `settle_sortie_battle_impl`'s `final_enemy_nowhps`
-  (the post-night session packet), the same slice as `api_dests`. The snapshot's own day-frozen
-  `enemy_nowhps` copy swallowed night-only sinks and is deleted. Source: `game/sortie_result.rs`.
-- [2026-09-20] SeaORM is used as a struct<->row mapper + DDL generator, not an ORM: 0 joins / `group_by` /
-  `find_with_related` across 195 `Entity::find()` sites; `Relation` only feeds `create_table_from_entity`.
-  Swapping to sqlx/rusqlite = ~450 call sites rewritten to shed 25 crates. Not worth it.
-- [2026-09-20] A full `cache populate` over the generated list IS the authoritative CDN existence probe — it
-  requests every non-hole path, so its failure list answers "what is missing upstream". `--greedy` is not a
-  substitute (see Pitfalls). [2026-09-22] 但它只请求表内路径：`z/cache` 的 336 个 `btxt_flat` 文件与
-  `BTXT_FLAT_IDS` 条数完全相同，所以它证明「表内存在」，不证明「表外不存在」；表外 id 必须单独探测。
-- [2026-09-20] Hole tables flow Rust -> asset, not decoder -> Rust: `main-decoder/src/path-rules.ts` parses
-  `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` back out of the Rust sources into
-  `cache_rules.json`. To change a hole, edit the Rust constant, then `make decode-main` to re-sync.
-- [2026-09-20] Nothing in `start2` distinguishes the 5 resupply-form ships (743/744/745/748/749, names
-  ending in 補) from normal friendly ships — checked `api_sortno`, `api_backs`, `api_aftershipid` and
-  `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
+  --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`；实测 6.3.2.1、6.3.5.0。
+  `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`。
+- [2026-09-19] `obfuscator-io-deobfuscator`(ben-sb 1.0.6) 不能替代 `main-decoder`：0/55 battle 字段、
+  304 s / 5.1 GB，对比本项目 55/55 / ~20 s。不要再评估。
+- [2026-09-19] 两条版本轴：`kcs_const.js` 的 `scriptVesion`（上游拼写错误）是客户端脚本版本，驱动
+  `out/version.txt` 与所有同步资产的 `scriptVersion`；`kcs2/version.json` 是各子系统资产版本，独立变动。
+  main.js-only 发布只动前者。
+- [2026-08-26] 上游怪癖（均已在代码里处理）：kcwiki 空装备槽是 `null` 不是 `false`；`version.json` 把版本
+  套在 `resources` 对象里（`parse_version_info` 展平）；webpack 会发 shorthand `ObjectMethod` 工厂
+  （`module-graph.ts` 归一）；活动海域 62 默认解锁是设计如此。
+- [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` 是设计（结婚在同一经验值解锁 Lv.100），
+  所以 `exp_to_ship_level(1_000_000)` 得 100，未结婚的调用方靠 `min(cap)` 兜底。不是 bug。
+  见 `kc2/level.rs`、`game/ship/exp.rs` 的测试。
+- [2026-09-19] `update_quest_progress_for_action` 只读任务进度行与 codex（`quest/update.rs:174-244`），
+  所以在领域事务里的任何位置都能跑；U8 把它移到 `commit` 前，行为零变化。
+- [2026-09-19] `questlist` 的 `api_tab_id` 是客户端标签栏（0,9,1,2,3,4,5 = 全部/进行中/日/周/月/一次性/
+  其他），客户端自己不做过滤；`api_label_type` 决定行标签（1,2,3,6,7,101..=112）。
+  见 `main.decoded.js` 的 `DutyDataHolder`、`_createTab`。
+- [2026-09-19] `SortieStore::with_profile_lock` 只有五个持有者（`start_sortie`、`next_sortie`、
+  `sortie_battle_result`、`sortie_sp_midnight_battle`、`sortie_battle_impl`），互不嵌套，新入口可安全取用。
+  `sortie_midnight_battle` 故意不加锁——它改的是 pending session 不是 `active`。
+- [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（抽 `kcsapi/mod.rs` 的
+  `nest("/prefix", ..)` 加子模块 `.route("/leaf"` 双向 diff 重推，不要手工审），missing 是
+  「`docs/apilist.txt` 的 136 减 router」；两者不互补——`remodel_slot_recover` 这类不在上游参考里的
+  端点只进前者。`docs/apilist.txt`（4209 行）是字段**语义**的最全来源，解码客户端才是字段**是否存在**
+  的真源；`docs/api_coverage.md` 只是路线图。
+- [2026-09-19] 击沉敌舰的任务事件只来自 `settle_sortie_battle_impl` 的 `final_enemy_nowhps`（夜战后的
+  session 包，与 `api_dests` 同一份切片）。快照里那份昼战冻结的 `enemy_nowhps` 会吞掉夜战击沉，已删除。
+  见 `game/sortie_result.rs`。
+- [2026-09-20] SeaORM 只当 struct↔row 映射器 + DDL 生成器用：195 处 `Entity::find()` 里 0 个 join /
+  `group_by` / `find_with_related`，`Relation` 只喂 `create_table_from_entity`。换 sqlx/rusqlite 要重写
+  ~450 处调用来省 25 个依赖，不值。
+- [2026-09-20] 跑完整的 `cache populate` 就是权威的 CDN 存在性探针：它请求每条非 hole 路径，失败清单即
+  「上游缺什么」，`--greedy` 不是替代（见 Pitfalls）。[2026-09-22] 但它只请求表内路径——`z/cache` 的 336 个
+  `btxt_flat` 与 `BTXT_FLAT_IDS` 条数相同，只证明「表内存在」，表外 id 必须单独探测。
+- [2026-09-20] hole 表的流向是 Rust → 资产而非 decoder → Rust：`main-decoder/src/path-rules.ts` 从 Rust 源码
+  反解 `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` 写进 `cache_rules.json`。改 hole 要改 Rust
+  常量再 `make decode-main`。
+- [2026-09-20] `start2` 里没有任何字段能把 5 条补给形态舰（743/744/745/748/749，名字以 補 结尾）与普通
+  友军舰区分开——`api_sortno`/`api_backs`/`api_aftershipid`/`ship_picturebook.json` 都查过；友军舰队
+  graph id 6299/6301/6303 同理。不要再找规则。
 - [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js` 是第二条独立数据链（`COMBINEDCF1-4`
   与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
-- [2026-09-21] `cargo test --workspace` 全绿；09-20 记的三条 baseline 失败均已不再复现，
-  不要再当既有失败引用。（`mkdir -p target/tmp` 的前提见下面 Pitfalls 的 `test_font` 条。）
+- [2026-09-22] `cargo test --workspace` exit 0；09-20 记的三条 baseline 失败不再复现，别当既有失败引用
+  （`mkdir -p target/tmp` 的前提见 Pitfalls 的 `test_font` 条）。
 
-- [2026-09-21] `emukc_network` 的下载层先读完整个 body 再开目标文件，非 2xx 直接报错，所以失败的传输
-  从不写出半截文件。计划 005 的 `.part` + rename 只堵了 truncate-to-copy 的窗口；真正的数据丢失来自
-  `bootstrap --force-update` 在下载前就删掉了文件。
-- [2026-09-21] kccp 源里 11 条任务缺 name（256/615/616/622/627/628/630/632/633/648/652），
-  游戏里标题显示 `n/a`。这是上游数据缺失，不是解析器问题，补标题需要另一个数据源。
-- [2026-09-21] `extract_label_type` 有第五种周期字母 `s`（Cs1/2/3/5/6 共 5 个真实 wiki_id），
-  `match` 里没有分支，和未命中的年任务一样落到 label_type 1。计划 011 只提了 By/Cy 的 7 个，
-  修的时候别漏掉 `s`。
+- [2026-09-21] `emukc_network` 的下载层先读完 body 再开目标文件，非 2xx 直接报错，失败的传输从不写出
+  半截文件。计划 005 的 `.part` + rename 只堵了 truncate-to-copy 窗口；真正的数据丢失来自
+  `bootstrap --force-update` 在下载前就删文件。
+- [2026-09-21] kccp 源里 11 条任务缺 name（256/615/616/622/627/628/630/632/633/648/652），游戏内显示
+  `n/a`。上游数据缺失，不是解析器问题，补标题需要另一个数据源。
+- [2026-09-21] `extract_label_type` 的第五种周期字母 `s`（Cs1/2/3/5/6，5 个真实 wiki_id）在 `match` 里
+  没有分支，落到 label_type 1——而这个结果是对的：本仓库把 `Frequency::Seasonal` 映射成
+  `Kc3rdQuestPeriod::Oneshot`，1 正是客户端的一次性标签页（011 已写进测试）。计划 002 说它「和未命中的
+  年任务一样落到 1」有误导；计划 011 的修复只提了 By/Cy 的 7 个，别漏掉 `s`。
 
-- [2026-09-21] `serde` 的 `visit_map` 按文档顺序交付条目，所以「需要保序地读一个 JSON 对象」
-  不必开 `serde_json/preserve_order`——那个 feature 在 feature unification 下全工作区生效，
-  会改掉 27 处 `serde_json::Map` 的迭代与序列化顺序。自定义 `Visitor` 收集 `Vec<(K, V)>` 即可，
-  范围只在一个函数内。见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
-- [2026-09-21] `Cs*`（seasonal）的 `label_type = 1` 是对的，不是缺陷：本仓库把
-  `Frequency::Seasonal` 映射成 `Kc3rdQuestPeriod::Oneshot`，而 1 正是客户端的一次性标签页。
-  计划 002 的注记说它「同样落到 1」有误导，011 已澄清并写进测试。
+- [2026-09-21] `serde` 的 `visit_map` 按文档顺序交付条目，所以「保序地读一个 JSON 对象」不必开
+  `serde_json/preserve_order`——该 feature 在 feature unification 下全工作区生效，会改掉 27 处
+  `serde_json::Map` 的顺序。自定义 `Visitor` 收 `Vec<(K, V)>` 即可，见 `parser/kccp/quest.rs`
+  的 `OrderedEntries`。
 - [2026-09-21] `make_list` 的 "holes" 有两义：已删的 holes **report**（`HOLES_COLLECTOR` /
   `holes_report.rs`，无写入方）与活着的 `ShipPathHoles` 跳过表（manifest 规则在用）。按词清理会误删后者。
 - [2026-09-21] `.html` 缓存无法内容嗅探：真实 `kcs2/hc.html` 仅 54 字节且与错误页同形，
@@ -89,13 +90,12 @@ Current verification baseline:
 - [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下处理相反：丢一个 `or` 分支只减少完成路径
   （更严格），丢一个 `and` 条件则白送。统一 `?` 传播会误杀 api_no 1019 这类一坏一好分支的任务。
   三条的完整依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
-- [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body
-  （curl 实测 4 个 w0* 主机，`content-type: audio/mpeg`，`size=0`）。`Kache` 现在把
-  「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
-  missing 类，不再重试。注意 `exists_on_remote` 走 HEAD，仍会把它判成 `Present`。
-- [2026-09-21] drift-check 跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），基线已
-  `--accept` 到 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的字节算，
-  `_0x` 重命名即使解码知识没变也算漂移——这是「收敛版本记录」要解决的噪声来源。
+- [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body（4 个 w0* 主机实测）。
+  `Kache` 现在把「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
+  missing 不再重试；注意 `exists_on_remote` 走 HEAD，仍判 `Present`。
+- [2026-09-21] drift-check 跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），基线 `--accept`
+  到 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的字节算，`_0x` 重命名即使
+  解码知识没变也算漂移。
 - [2026-09-21] manifest 差集结案，**不要补**：
   `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 - [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤不是缺陷：活动图是三位数 id，
@@ -103,11 +103,10 @@ Current verification baseline:
 
 - [2026-09-21] `emukc_battle` 里的 `escort` 绝大多数指「旗艦援護/かばう」（旗舰护盾），
   与联合舰队的护卫舰队同名不同义。判断联合舰队相关代码要看 `combined*`，不要 grep `escort`。
-- [2026-09-21] 改修配方数据早就在 codex 里，不需要新数据源：`slotitem_extra_info` 的
-  `improvement` 覆盖 174 件装备，含分档材料、消耗装备/道具与秘书舰。`secretary` 字段是
-  **二番舰**（睦月/如月系），不是旗舰；旗舰必须是明石(182)/明石改(187)，这是两件事。
-- [2026-09-21] variant 配方在 ★0–★9 就是普通改修，只在 ★10 才转换成 variant 装备。
-  12cm単装砲(1) 没有 `level_consumption`、只有 variant，所以「有 variant」不等于「只能更新」。
+- [2026-09-21] 改修配方不需要新数据源：codex 的 `slotitem_extra_info.improvement` 覆盖 174 件装备
+  （分档材料、消耗装备/道具、秘书舰）。`secretary` 是**二番舰**（睦月/如月系）不是旗舰，旗舰必须是
+  明石(182)/明石改(187)；variant 配方在 ★0–★9 仍是普通改修，只在 ★10 转换，所以「有 variant」不等于
+  「只能更新」（12cm単装砲(1) 无 `level_consumption`）。
 - [2026-09-21] 联合舰队 friendly 索引有三层空间（模拟连续 / 客户端固定从 6 / 切片本地编号），
   缺一层就把命中记到错误的舰上：`docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
 
@@ -121,10 +120,9 @@ Current verification baseline:
   （`ResetDialog` 的 radio），而成功率上游从不告诉客户端，50/75/100 是本项目定的值
   （`codex/remodel_slot.rs::recover_success_rate`）。
 
-- [2026-09-21] 敌方联合舰队在本地 codex 里**没有数据**：`map_catalog.json` 是 37 张常规图
-  （1-1~7-5），编成船数分布 1/2/3/4/5/6 = 13/7/75/95/165/1222，**>6 船 0 个**，`battle_kind`
-  只有 1 这一个取值。敌联合只在活动海域出现，所以 `ec_*`/`each_*` 五个端点本地无格可触发、
-  做不出端到端测试。不要再去 codex 里找敌联合编成。
+- [2026-09-21] 敌方联合舰队在本地 codex 里**没有数据**：`map_catalog.json` 只有 37 张常规图
+  （1-1~7-5），编成 >6 船 0 个、`battle_kind` 只有 1。敌联合只在活动海域出现，所以 `ec_*`/`each_*`
+  五个端点本地无格可触发、做不出端到端测试。不要再去 codex 里找。
 - [2026-09-22] `api_si_list` 只放对应阶段画得出名牌的装备；`btxt_flat` 的存在范围与探测方法见
   `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
 - [2026-09-22] 同名 `PhaseHougeki` 昼夜两份编号互斥（昼 2=連撃/7=空母切入，夜 1=連撃/6=空母切入）；
