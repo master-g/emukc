@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-09-22 · branch `fix/battle-protocol-semantics-gate`
+Last updated: 2026-09-22 · branch `main`
 
 ## Verified Facts
 
@@ -177,7 +177,7 @@ Current verification baseline:
 ## Last Session
 
 - [2026-09-22] 战斗协议语义闸门（计划 `2026-09-22-1435-fix-battle-protocol-semantics-gate-plan.md`，U1–U9 全部落地）。
-  分支 `fix/battle-protocol-semantics-gate`，10 个提交，已推 origin（PR 未开）。
+  10 个提交，连同 3 个基地航空隊提交一起 fast-forward 合进 `main` 并推送，未开 PR。
   修掉开幕对潜写死 `api_at_type = 7`（客户端 `PhaseAttackDanchaku` 直接 throw）；
   新增 `battle_attack_type_acceptance.json` 资产让校验器按消费模块判攻击种别；
   校验器改为逐条检查推导资源是否在 `make_list` 覆盖内；
@@ -186,7 +186,6 @@ Current verification baseline:
   与 `c888a92f`（夜战空母切入展示回归 + 闸门加固），无遗留红灯。
 - 门禁：`cargo test --workspace` 全绿；fmt clean；clippy 改动文件零告警；
   `make drift-check` no drift（`cache_rules` / `resource_manifest` 已 accept）。
-- 主线 `main` 的 3 个基地航空隊提交（`28760f6a`..`61725bcb`）同时推到 origin，所以 PR diff 只含本次 10 个提交。
 
 ## Next Session
 
