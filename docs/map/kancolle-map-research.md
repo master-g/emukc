@@ -145,7 +145,10 @@ map catalog 并不会自动补齐 battle 所需的完整敌舰属性。当前 `b
 ### Still open
 
 - `Unknown = 4`：仍有少量 wikiwiki 路由文本没有结构化
-- strict immediate-arrival-sensitive routing 尚未进入 IR；当前 repo asset 里只有 4 条 `VisitedNode` route-history 规则（4-5 / 5-5 / 7-4），现有 `visited_cell_ids` 已可表达
+- strict immediate-arrival-sensitive routing 尚未进入 IR。成品 catalog 里有 11 条 `VisitedNode`
+  规则（4-5 / 5-5 / 7-4），现有 `visited_cell_ids` 已可表达；缺的是「只看这一次从哪条边进来」——
+  需要 `FleetRouteContext` 带 `arrival_from_cell_id`、一个 `ArrivedFrom` predicate，以及只在原文
+  明写「Xマスから来た場合」时才 lowering 的规则。原文只写「経由」时不要用它
 - 通用 cross-source merge 仍主要依赖 `cell_no`，`node_label` 只是保留下来，还不是权威 join key
 - battle 侧仍缺少稳定、完整的 enemy master-data source
 
