@@ -55,11 +55,18 @@ Key challenges left:
 - `expand_maintenance_level` — upgrade base level
 - `cond_recovery` — recover plane condition
 
+Planned in `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md`, which
+splits the port side (these eight plus `base_air_corps` and
+`airCorpsCondRecoveryWithTimer`) from sortie and battle. U1 and U2 are done:
+`api_get_member/base_air_corps` is served, and an area gets its first air corps
+once any of its unlocked maps declares an airbase — 6-4 and 6-5 are the only
+regular ones that do, both in area 6.
+
 Dependencies:
-- `air_corps` gameplay trait + DB entity
+- DB entities exist (`entity/profile/airbase/{base,plane}`)
 - Map integration: `api_req_map/start_air_base` (sortie with LBAS)
-- `api_port/airCorpsCondRecoveryWithTimer` (condition recovery on port)
-- Sortie integration: LBAS strike phase in battle
+- Sortie integration: LBAS strike phase in battle — the plan's closing section
+  explains why it is deliberately deferred (it re-freezes every battle golden)
 
 ## Scattered Missing Endpoints
 
@@ -113,10 +120,11 @@ Rules and the success-rate table are in
 
 Coupled with map/sortie, implement after combined fleet.
 
-1. Add `air_corps` gameplay trait + DB entity
-2. Implement `api_req_air_corps/` handlers (8 files)
-3. Add `api_req_map/start_air_base` and `api_port/airCorpsCondRecoveryWithTimer`
-4. Integrate LBAS strike phase into battle simulation
+1. Data model and ownership — done 2026-09-22 (plan U1/U2)
+2. Implement `api_req_air_corps/` handlers (8 files) — plan U3/U4/U5
+3. Add `api_port/airCorpsCondRecoveryWithTimer` — plan U5
+4. Add `api_req_map/start_air_base` and the LBAS strike phase — out of the
+   current plan's scope, it is the follow-up
 5. Verify: deploy LBAS → sortie → verify air strike phase
 
 ### Phase 4: Scattered Endpoints (P2–P3)

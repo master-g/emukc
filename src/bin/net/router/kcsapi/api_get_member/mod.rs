@@ -1,5 +1,6 @@
 use axum::{Router, routing::post};
 
+mod base_air_corps;
 mod basic;
 mod chart_additional_info;
 mod deck;
@@ -33,6 +34,7 @@ pub(super) fn router() -> Router {
         .route("/deck", post(deck::handler))
         .route("/furniture", post(furniture::handler))
         .route("/kdock", post(kdock::handler))
+        .route("/base_air_corps", post(base_air_corps::handler))
         .route("/mapinfo", post(mapinfo::handler))
         .route("/material", post(material::handler))
         .route("/mission", post(mission::handler))

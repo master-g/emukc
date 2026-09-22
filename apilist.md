@@ -10,6 +10,7 @@ battle, the result and the return to port. The `api_req_sortie/` and
 ```plain
 api_dmm_payment/paycheck
 
+api_get_member/base_air_corps
 api_get_member/basic
 api_get_member/chart_additional_info
 api_get_member/deck
@@ -189,7 +190,6 @@ api_req_practice/change_matching_kind
 ### Air Corps System
 
 ```plain
-api_get_member/base_air_corps
 api_port/airCorpsCondRecoveryWithTimer
 api_req_air_corps/set_plane
 api_req_air_corps/set_action

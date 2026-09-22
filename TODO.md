@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-22: 127 implemented, 22 missing.
+> holds the roadmap. Last cross-checked 2026-09-22: 128 implemented, 21 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -70,7 +70,7 @@
   - [x] `api_req_practice/midnight_battle` - practice night battle
   - [ ] `api_req_practice/change_matching_kind` - change matching type
 - [ ] **Air Corps System** (`api_req_air_corps/*`)
-  - [ ] `api_get_member/base_air_corps` - air corps data
+  - [x] `api_get_member/base_air_corps` - air corps data
   - [ ] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery
   - [ ] `api_req_air_corps/set_plane` - assign planes
   - [ ] `api_req_air_corps/set_action` - set action (standby/sortie/defense)

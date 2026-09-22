@@ -67,8 +67,8 @@ Current verification baseline:
 - [2026-09-20] Nothing in `start2` distinguishes the 5 resupply-form ships (743/744/745/748/749, names
   ending in 補) from normal friendly ships — checked `api_sortno`, `api_backs`, `api_aftershipid` and
   `ship_picturebook.json`. Same for friend-fleet graph ids 6299/6301/6303. Do not re-hunt for a rule.
-- [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js`（活跃维护）是第二条独立数据链：`COMBINEDCF1-4`
-  与 `COMBINEDCONSTS` 逐格复现 wikiwiki 的联合舰队阵形表与補正表。其精度/回避補正对本项目无用（不建模命中率）。
+- [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js` 是第二条独立数据链（`COMBINEDCF1-4`
+  与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
 - [2026-09-21] `cargo test --workspace` 全绿；09-20 记的三条 baseline 失败均已不再复现，
   不要再当既有失败引用。（`mkdir -p target/tmp` 的前提见下面 Pitfalls 的 `test_font` 条。）
 
@@ -102,7 +102,7 @@ Current verification baseline:
 - [2026-09-21] drift-check 跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），基线已
   `--accept` 到 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的字节算，
   `_0x` 重命名即使解码知识没变也算漂移——这是「收敛版本记录」要解决的噪声来源。
-- [2026-09-21] manifest 差集（21,510 条）已全量 HEAD 探测结案，结论是**不要补**：
+- [2026-09-21] manifest 差集结案，**不要补**：
   `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 - [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤不是缺陷：活动图是三位数 id，
   非活动期 codex 只有 11..75 的常规图，那个循环本来就该一条不匹配（测试注释已写明）。
@@ -122,6 +122,10 @@ Current verification baseline:
 - [2026-09-22] `apilist.md` 的 implemented 是 router 的机械投影，missing 是「`docs/apilist.txt`
   减 router」，两者不互补：不在上游参考里的端点（`remodel_slot_recover`）只进前者，missing
   计数不动。`registration_sp` grep 仍零命中，不是缺口。
+- [2026-09-22] 基地航空隊的客户端硬限制（`AIRUNIT_MAX`/`SQUADRON_MAX`）、
+  `airbase_count` 是出撃可能数而非拥有数、`expand_base` 是増开一隊而非扩槽、
+  空槽为何不落库：四条都在
+  `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md` 的前提表与各 U 修正段。
 - [2026-09-22] `remodel_slot_recover` 有两条推不出来的约束：客户端是
   `model.slot.get(slot_id).__updateObject__(api_after_slot)`，所以 `api_after_slot` 必须是
   **同一实例 id**——重置不能删建装备，★10 variant 也不退回原装备；`api_dev_num` 只有 1/2/3
@@ -180,21 +184,19 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 推送了积压的 3 个提交（`c8e3ced..78415d0`：联合舰队 U3–U7、U8、
-  `remodel_slot_recover`），本地与远端一致。然后写了基地航空隊母港侧的计划
-  `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md`：10 个端点、U1–U6，
-  出击与战斗单列在末节。纯文档，无代码改动，无需门禁。
-- 盘点时核实的关键前提：基地航空隊**不卡活动图数据**（6-4/6-5 在本地 map_catalog 里
-  各有 1/2 个基地），DB 两张表已就绪，读取路径已接通。计划的「已核实的前提」表是
-  这次调查的全部产出，不要重查。
+- [2026-09-22] 基地航空隊 U1+U2 合并交付（光做 U2，客户端会收到零槽基地）：
+  `Airbase` 带 `planes`、`id` 钉死为实例 id、`plane.rs` 从空壳改为读取+合成空槽、
+  半径取已配属中隊的最小 `api_distance`、`get_airbases` 惰性补齐航空隊、新增
+  `api_get_member/base_air_corps`。实施中修正了计划草案的两处错误、多修一个缺陷，
+  四条都写进计划对应节。
+- 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 17 条基线，改动文件零告警。
+  清单 **128 implemented / 21 missing**。
 
 ## Next Session
 
-- [2026-09-22] 从基地航空隊计划的 U1 开始：`Airbase` 带上 `planes`、钉死 `Airbase.id`
-  为实例 id、实现空壳 `game/airbase/plane.rs`、半径取已配属中隊的最小 `api_distance`。
-  三个已发现的缺陷与各自归属的 U 写在计划的「已发现的三个缺陷」一节。
-- 计划里唯一不齐的点是 U4 的补给消耗系数（上游不公开，客户端无预览）：
-  按 wikiwiki 基地航空隊页 → `KC3Kai` 的 `kcsim.js` 顺序取数，两条都取不到就停在 U4，
-  不要编没有出处的公式。
-- 対空/阵形建模仍需先做「補正表能否解码」的 spike；审计集 013 等上游版本变动；
-  联合舰队剩 5 个敌联合端点卡在数据不存在。
+- [2026-09-22] 接着做计划的 U3（`set_plane` + `change_deployment_base`）：
+  第一组写操作，依赖已就位的 `SQUADRON_MAX` 与空槽合成。U3 与 U4 无依赖。
+- U4 的补给消耗系数仍是整个计划唯一不齐的点：上游不公开、客户端无预览，
+  按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下，不要编公式。
+- 更早的积压未变：対空/阵形建模要先做「補正表能否解码」的 spike；审计集 013 等
+  上游版本变动；联合舰队剩 5 个敌联合端点卡在数据不存在。

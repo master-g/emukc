@@ -3,7 +3,7 @@ title: "Land Base Air Corps - Port Side - Plan"
 type: feat
 date: 2026-09-22
 artifact_contract: ce-unified-plan/v1
-artifact_readiness: drafted
+artifact_readiness: in-progress
 status: draft
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -48,7 +48,7 @@ execution: code
 | 装备半径与搭載コスト在本地 | `start2.json` 的 `api_mst_slotitem`：263 件装备有 `api_distance`，全部有 `api_cost` |
 | 全部端点的字段语义有权威出处 | `docs/apilist.txt:2845-2925`，含 `set_plane` 的 `api_item_id = -1` 表示撤下、`set_action` 的 `api_base_id` 是逗号分隔数组等细节 |
 
-### 已发现的三个缺陷（各由对应 U 修）
+### 已发现的四个缺陷（各由对应 U 修）
 
 1. **`api_plane_info` 恒为空。** `impl From<Airbase> for KcApiAirBase`
    （`crates/emukc_model/src/profile/airbase.rs:102`）硬编码 `api_plane_info: vec![]`，
@@ -57,30 +57,35 @@ execution: code
 2. **`Airbase.id` 语义冲突。** 字段注释写 "Profile id"，`impl From<Model> for Airbase`
    填 `value.profile_id`，但 `get_airbases` 手写构造时填 `v.id`（实例 id）。
    两条路径产出不同的值。该字段目前不进任何 API 响应，所以是潜伏的而非已发作的。→ U1
-3. **没有任何人调用 `unlock_airbase`。** `airbase::init` 是空函数，
+3. **未配属の中隊带了不该有的字段。** `From<PlaneInfo> for KcApiPlaneInfo` 无条件填
+   `Some(...)`，但 apilist 对 `api_count` / `api_max_count` / `api_cond` 三个字段都
+   标注「未配属なら存在しない」。实施 U1 时发现并一并修掉。
+4. **没有任何人调用 `unlock_airbase`。** `airbase::init` 是空函数，
    `unlock_airbase` 在整个仓库零调用方。玩家永远没有基地，上面两条因此从未发作。→ U2
 
 ---
 
 ## Implementation Units
 
-### U1 — 让 `Airbase` 带上中隊，并钉死 `id` 语义
+### U1 — 让 `Airbase` 带上中隊，并钉死 `id` 语义 ✅ 已执行
 
 **做什么**
 
 - `Airbase` 增加 `planes: Vec<PlaneInfo>`，`From<Airbase> for KcApiAirBase` 改为
   由它填 `api_plane_info`，删掉硬编码的 `vec![]`。
 - 钉死 `Airbase.id` 为**实例 id**（`airbase` 表主键），改正
-  `impl From<Model> for Airbase` 与 `impl From<Airbase> for ActiveModel`，
-  并把注释从 "Profile id" 改对。理由：`get_airbases` 已经这样用，而 `profile_id`
-  在 `Airbase` 里没有任何消费者。
+  `impl From<Model> for Airbase` 并把注释从 "Profile id" 改对。
+  `impl From<Airbase> for ActiveModel` 删掉：`Airbase` 不再能提供 `profile_id`，
+  它原本就是把 `t.id` 当 profile_id 写进去的，且全仓库零调用方。
 - 实现 `crates/emukc_gameplay/src/game/airbase/plane.rs`（当前是 1 行空壳）：
-  `get_planes_impl` / `upsert_plane_impl` / `clear_plane_impl`，全部 `C: ConnectionTrait`。
+  `get_planes_impl` 读已配属的槽，`squadrons_of` 合成缺口。
+  **不预建空槽行**：`plane_info` 以装备实例 id 为主键，空槽没有 id 可用，
+  4 个空槽会全部撞在 `slot_id = 0` 上。空槽因此不落库，读的时候补出来。
 - 半径计算 `distance_of(planes, codex) -> (base, bonus)`：`api_base` 取已配属中隊里
   `api_distance` 的最小值（未配属中隊不参与，空基地为 0），`api_bonus` 先恒为 0 并留
   `// ponytail:` 注明偵察機 bonus 属于 U3 之后的独立取数。依据 `apilist.txt:2849-2851`。
 
-**为什么先做它** 三个缺陷里两个在这一层，且后面每个写端点都要返回
+**为什么先做它** 四个缺陷里三个在这一层，且后面每个写端点都要返回
 `api_plane_info`——不先修，每个 U 都得绕一次。
 
 **完成标志** `get_airbases` 返回的基地带中隊；`mapinfo` 与 `record` 的响应形状
@@ -88,24 +93,31 @@ execution: code
 
 ---
 
-### U2 — 让玩家真的拥有基地，并补 `base_air_corps`
+### U2 — 让玩家真的拥有基地，并补 `base_air_corps` ✅ 已执行
 
 **做什么**
 
-- 按 `map_catalog` 的 `airbase_count` 解锁：玩家读 `api_get_member/mapinfo` 时，
-  对每张**已解锁且 `airbase_count` 非空**的图，惰性补齐该 area 的 `rid = 1..=count`
-  基地。选惰性补齐而不是攻略时触发，理由是 `mapinfo` 是客户端进入海域必经的读接口，
-  幂等（`unlock_airbase_impl` 已经是 find-or-insert），且不需要在 map 攻略流程里
-  插入跨域写。
+- 惰性补齐：`get_airbases` 先调 `ensure_airbases_impl`，对每个**有已解锁的图声明了
+  `airbase_count` 的 area** 补齐第一个航空隊。惰性而非攻略时触发，理由是
+  `get_airbases` 是 `mapinfo` / `record` / `base_air_corps` 三个读接口的共同入口，
+  幂等（`unlock_airbase_impl` 是 find-or-insert），且不需要在 map 攻略流程里插跨域写。
+
+  **草案写错了一处**：原文说「补齐 `rid = 1..=airbase_count`」。`airbase_count`
+  （`api_air_base_decks`）是 apilist `:2822` 的「基地航空隊**出撃可能数**」——
+  一张图能派出几个航空隊，不是玩家拥有几个。6-4 与 6-5 都在 area 6，按原文会给
+  area 6 发 3 个基地。实际是：area 拿到第 1 个航空隊，其余靠 `expand_base` 用設営隊
+  买，上限 `AIRUNIT_MAX`。已按后者实现，`areas_entitled_to_air_corps` 是那条判定。
 - 新增 `api_get_member/base_air_corps` 端点，返回 `Vec<KcApiAirBase>`。
   apilist 注明它「现在は直接使用されていない」，但数据结构是其余端点的公共形状，
   实现它等于把 U1 的输出接上一条可直接验证的读路径。
 
 **为什么先做它** 没有基地，U3–U5 的每个写操作都无从测试。
 
-**完成标志** 新档攻略到 6-4 后 `mapinfo` 报出 1 个基地、6-5 报出 2 个；
-`base_air_corps` 与 `mapinfo` 的 `api_air_base` 内容一致；一个端到端测试覆盖
-「未解锁的图不产生基地」。
+**完成标志** 新档没有航空隊；解锁 6-4 后 area 6 拿到第 1 个，且 6-5 一起解锁
+时仍只有 1 个。实际覆盖：`areas_entitled_to_air_corps` 的单测（跑真实 codex，
+断言 6-4 locked → 无、6-4 → [6]、6-4+6-5 → [6]），加
+`base_air_corps` 的两个端点测试（新档为空；一个空航空隊报出 4 个裸槽，
+且三个 optional 字段确实缺省）。
 
 ---
 
@@ -119,7 +131,10 @@ execution: code
 - `change_deployment_base`（`:2882-2888`）：同海域内两个航空隊整组交换，
   响应 `api_base_items` 是两个基地的完整数据。
 - 校验：装备必须是玩家所有、未装备在舰上、属于陸上機可配属的类型；
-  `squadron_id` 在该基地的容量内（容量由 `expand_base` 决定，U5 之前恒为 4）。
+  `squadron_id` 在 `1..=SQUADRON_MAX` 内。草案把 4 写成「U5 之前的暂定值」，
+  实际它有出处：客户端 `main.decoded.js:85380` 的 `SQUADRON_MAX = 0x4`，
+  同行还有 `AIRUNIT_MAX = 0x3`。客户端画固定行数，从不按响应长度推断，
+  所以服务端必须每个槽都发一条 `api_plane_info`。
 
 **完成标志** 配备后 `mapinfo` 的 `api_plane_info` 与 `api_distance` 同步变化；
 撤下后该槽 `api_state = 0` 且不再带 `api_count`/`api_cond`（apilist 明确「未配属なら存在しない」）；
@@ -156,14 +171,17 @@ Balance Defaults Policy（独立提交、`feat(balance):`、正文列旧值）�
 
 **做什么**
 
-- `expand_base`（`:2917-2918`）：飞行场扩张，中隊容量 4 → 更多，响应是扩张后的基地数据。
+- `expand_base`（`:2917-2918`）：**不是扩中隊容量**（草案写错了）。客户端类
+  `AirUnitExtendAPI` 的 `_completedEnd` 走 `model.airunit.addData(raw_data[0])`——
+  是 add 不是 update——并扣 1 个 useItem **73（設営隊）**。所以它在该 area
+  **新增一个航空隊**，上限 `AIRUNIT_MAX = 3`。
 - `expand_maintenance_level`（`:2920-2925`）：整備Lv 强化，按 area 生效，
   写入 `airbase.maintenance_level`，`mapinfo` 的 `api_air_base_expanded_info` 已在读它。
 - `cond_recovery` 与 `api_port/airCorpsCondRecoveryWithTimer`：疲劳恢复。
   前者是立即恢复，后者是带计时器的查询，`api_port/port` 侧已有类似的 timer 形状可循。
 
-**完成标志** 三处写操作落库且被 `mapinfo` 读出；容量扩张后 U3 的 `squadron_id`
-上限随之提高。
+**完成标志** 三处写操作落库且被 `mapinfo` 读出；`expand_base` 后该 area 多出
+一个航空隊（各带 `SQUADRON_MAX` 个空槽），到 `AIRUNIT_MAX` 为止拒绝继续。
 
 ---
 
