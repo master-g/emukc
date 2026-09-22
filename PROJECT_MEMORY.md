@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-09-22 · branch `main`
+Last updated: 2026-09-23 · branch `main`
 
 ## Verified Facts
 
@@ -41,14 +41,14 @@ Current verification baseline:
 - [2026-09-19] `questlist` 的 `api_tab_id` 是客户端标签栏（0,9,1,2,3,4,5 = 全部/进行中/日/周/月/一次性/
   其他），客户端自己不做过滤；`api_label_type` 决定行标签（1,2,3,6,7,101..=112）。
   见 `main.decoded.js` 的 `DutyDataHolder`、`_createTab`。
-- [2026-09-19] `SortieStore::with_profile_lock` 只有五个持有者（`start_sortie`、`next_sortie`、
-  `sortie_battle_result`、`sortie_sp_midnight_battle`、`sortie_battle_impl`），互不嵌套，新入口可安全取用。
-  `sortie_midnight_battle` 故意不加锁——它改的是 pending session 不是 `active`。
-- [2026-09-22] 真实账号调查一轮（只读 + 两次 `set_plane`）：会话随游戏页面存亡；`api_result:100` 有两种
-  成因（会话死 / 缺端点必需参数）；`api_port` 签名、中隊撤下两阶段、`api_plane_info` 缺省、questlist 服务端
-  按 tab 过滤且空 tab 发 `null`、官方发 min 值、`base_air_corps` 已 404——方法与全部陷阱见
-  `docs/solutions/best-practices/live-api-investigation.md`，脚本 `scripts/fetch_live_api.py`，
-  快照 `z/snapshot/2026-09-22/`。签名实现 `emukc_crypto::PortApiKey`（5 组向量 + 真机验证）。
+- [2026-09-19] `SortieStore::with_profile_lock` 的五个持有者（`start_sortie`、`next_sortie`、
+  `sortie_battle_result`、`sortie_sp_midnight_battle`、`sortie_battle_impl`）互不嵌套，新入口可安全取用；
+  `sortie_midnight_battle` 故意不加锁（改的是 pending session 不是 `active`）。
+- [2026-09-22] 真实账号调查一轮（只读 + 两次 `set_plane`）：会话随游戏页面存亡；`api_result:100` 两种成因
+  （会话死 / 缺端点必需参数）；另有 `api_port` 签名、中隊撤下两阶段、`api_plane_info` 缺省、questlist 按 tab
+  过滤且空 tab 发 `null`、官方发 min 值、`base_air_corps` 已 404。方法与全部陷阱见
+  `docs/solutions/best-practices/live-api-investigation.md`；脚本 `scripts/fetch_live_api.py`，快照
+  `z/snapshot/2026-09-22/`，签名 `emukc_crypto::PortApiKey`。
 - [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
@@ -147,7 +147,7 @@ Current verification baseline:
 
 | Pitfall | Source |
 | --- | --- |
-| populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，把收益掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且 stdout 无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003「实测结果」(2026-09-21) |
+| populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
 | `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错。 | session 2026-09-21 |
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
 | Seeded test RNG left thread-local entropy set → cross-test pollution. Must restore entropy after seeded runs. | git `66f8317` |
@@ -179,9 +179,7 @@ Current verification baseline:
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
 | [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
 
-| [2026-09-21] 「无 .data 跑测试」时备份必须放到**仓库外**：cache rules 的测试会
-`create_dir_all(".data/tmp")`，`mv .data .data.bak` 再移回会把备份塞进新目录。正确做法
-`mv .data ../.data-bak` → 跑 → `rm -rf .data` → `mv ../.data-bak .data`。 | session 2026-09-21 |
+| [2026-09-21] 「无 .data 跑测试」时备份必须放到**仓库外**：cache rules 的测试会 `create_dir_all(".data/tmp")`，`mv .data .data.bak` 再移回会把备份塞进新目录。 | session 2026-09-21 |
 | [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
@@ -190,19 +188,20 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 地图数据三件事：①用真实 `mapinfo` 验证了地图开放前置表（33/33 全对），把它从「未验证的
-  推断」升级成有一份证据；②对 `edges.json` 做了全量拓扑交叉校验，结论是不接（见「已验证的事实」）；
-  ③补上 5-6 的分歧表——它此前 49 格 23 个分歧点 0 条规则，现在 38 条 label 规则扇出 53 条。
-- 顺带修掉一个真 bug：`VisitedNode` 谓词的编号空间没做 label 中转，4-5 / 5-5 / 7-4 共 5 条「经由某格」
-  规则全在查错误的格子（见「失败尝试」）。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；改动文件 clippy 零告警。管线 37 图 / 2144 规则 /
-  fanout_rules_dropped 80（与改动前同值）。
+- [2026-09-23] 5-6 补完：它此前是全 catalog 唯一 0 条规则 + 0 组敌方编成的变体，现在 38 条 label 规则
+  （扇出 53）+ 26 个战斗节点 110 组编成（扇出 39 格）。boss 格 Z 有编成，`sortie_bosscomp` 不再恒 false。
+  数字与两点取舍（图形变体后缀取最小 id、陣形按 pattern 轮转）见 `docs/map/data-dependencies.md`。
+- 更早（09-22）：前置表对真实 `mapinfo` 33/33；`edges.json` 674/675 确认我们的拓扑、不接；
+  `VisitedNode` 编号空间修复。
+- 门禁：`cargo test --workspace --no-fail-fast` 全绿，只有 `emukc_time` 那两条日期依赖失败（JST 已跨 09-23，
+  见「失败尝试」）；改动文件 clippy 零告警。catalog：37 图 / 2144 规则 / 437 敌方格 / 1814 组编成。
 
 ## Next Session
 
-- [2026-09-22] 地图侧剩下的缺口：5-6 的敌方编成仍是 0 组（20 节点的表还没抓，是它唯一剩下的洞）；
-  5-6 有 6 条 `Unknown`（三处「索敵」wikiwiki 没给阈值，一处「第二ゲージ破壊前」是阶段门、无对应谓词）；
-  ドラム缶 / 大発動艇系 分歧还缺约 7 条（2-5、5-3、5-4、5-5，原文在 `extracted/*.txt` 的 ROUTE TABLE 段）；
-  掉落仍是唯一完全不可再生的一类。都要走 agent pass。
+- [2026-09-23] 地图侧剩下的：**1-6 与 3-2 的 boss 格没有编成**（`boss_cell_no` 分别是 0=Start、12=L），
+  修 5-6 之前就存在，`sortie_bosscomp` 对这两张图恒 false，尚未排查；5-6 还有 6 条 `Unknown`；
+  ドラム缶 / 大発動艇系 还缺约 7 条（2-5、5-3、5-4、5-5，原文在 `extracted/*.txt`）；掉落仍不可再生。
+- 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），
+  否则集成测试跑的是旧数据——09-22 撞上过，连 `music_list` 都还停在 `7ed789ec` 之前的 72 条。
 - 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。
 - 战斗侧积压：`api_at_type = 100` 按每参战舰发一条，官方是一条带三目标，见 `docs/battle/rules.md`。
