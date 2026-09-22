@@ -7,7 +7,8 @@ use crate::random::BattleRng;
 use crate::simulation::day_cutin::{DayAttackType, carrier_ci_display_ids, resolve_day_attack};
 use crate::simulation::special_attack;
 use crate::targeting::{
-    can_shell_day_ship, day_attack_display_ids, select_random_target_index, target_class,
+    can_shell_day_ship, day_attack_display_ids, day_gunnery_display_ids,
+    select_random_target_index, target_class,
 };
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams, SiListId};
 
@@ -166,7 +167,7 @@ pub(crate) fn simulate_shelling_side(
                     idx,
                     resolved.at_type as i64,
                     vec![target_idx as i64; 2],
-                    SiListId::text_from_i64(&day_attack_display_ids(codex, ship, false)),
+                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 2)),
                     damages,
                     shield,
                 );
@@ -193,8 +194,9 @@ pub(crate) fn simulate_shelling_side(
                         resolved.carrier_sub.expect("CarrierCI must have sub-type"),
                     ))
                 } else if resolved.at_type != DayAttackType::Normal {
-                    // Artillery spotting CI (at_type 3-6)
-                    SiListId::text_from_i64(&day_attack_display_ids(codex, ship, false))
+                    // Artillery spotting CI (at_type 3-6): every one of them is
+                    // formed from guns, so only guns belong in the display.
+                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 3))
                 } else {
                     SiListId::num_from_i64(&day_attack_display_ids(codex, ship, false))
                 };
@@ -517,6 +519,80 @@ mod tests {
             }
         }
         assert_eq!(DayAttackType::Normal as i64, 0, "Normal must serialize as api_at_type 0");
+    }
+
+    /// R3 end to end: 航空戦艦 with 瑞雲 plus guns. Day cut-ins and 連撃 are gun
+    /// attacks, so the seaplane bomber must never appear in their `si_list` --
+    /// it used to, through the broad day-surface display set.
+    #[test]
+    fn day_cutin_si_list_excludes_seaplane_bombers() {
+        use crate::types::{AirState, SiListId};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let secondary_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SecondaryGun);
+
+        let make_attacker = || {
+            let mut bbv = sample_ship(&codex, bbv_mst, 99);
+            bbv.slot_items = vec![
+                slotitem_with_mst_id(zuiun_id),
+                slotitem_with_mst_id(main_gun_id),
+                slotitem_with_mst_id(main_gun_id),
+                slotitem_with_mst_id(secondary_id),
+            ];
+            bbv.ship.api_onslot = [1, 0, 0, 0, 0];
+            BattleRuntimeShip::from(bbv)
+        };
+        let make_defender = || {
+            let mut dd = sample_ship(&codex, dd_mst, 30);
+            dd.ship.api_soukou[0] = 1;
+            dd.ship.api_nowhp = 4000;
+            dd.ship.api_maxhp = 4000;
+            BattleRuntimeShip::from(dd)
+        };
+
+        let air_state = AirState::Supremacy;
+        let mut saw_non_normal = false;
+        for seed in 0..300u64 {
+            let mut attackers = vec![make_attacker()];
+            let mut defenders = vec![make_defender()];
+            let Some(hougeki) = simulate_shelling_side(
+                &codex,
+                &mut SeededRng::new(seed),
+                &mut attackers,
+                &mut defenders,
+                &ShellingParams {
+                    attacker_is_enemy: false,
+                    formation_id: 1,
+                    defender_formation_id: 0,
+                    engagement: EngagementType::SameCourse,
+                    phase: BattlePhase::DayShelling,
+                    air_state: Some(&air_state),
+                },
+            ) else {
+                continue;
+            };
+            for (idx, at_type) in hougeki.api_at_type.iter().enumerate() {
+                if *at_type == 0 {
+                    continue;
+                }
+                saw_non_normal = true;
+                let shown = &hougeki.api_si_list[idx];
+                assert!(
+                    !shown.iter().any(
+                        |id| matches!(id, SiListId::Text(text) if *text == zuiun_id.to_string())
+                    ),
+                    "at_type {at_type} displayed the seaplane bomber: {shown:?}"
+                );
+            }
+            if saw_non_normal {
+                break;
+            }
+        }
+        assert!(saw_non_normal, "no cut-in or 連撃 fired across 300 seeds; assertion unverified");
     }
 
     #[test]

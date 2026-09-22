@@ -724,7 +724,13 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &skilled_lookouts, 2);
             extend_limit(&mut ids, &drums, 3);
         }
-        NightAttackType::DoubleAttack => extend_limit(&mut ids, &surface_ids, 2),
+        // 連撃 is main gun x2 or main + secondary; the broad day-surface set
+        // would put 水上爆撃機 / 艦上攻撃機 on screen for an attack they cannot
+        // form.
+        NightAttackType::DoubleAttack => {
+            extend_limit(&mut ids, &main_guns, 2);
+            extend_limit(&mut ids, &secondary_guns, 2);
+        }
         NightAttackType::CarrierNightCI(_) | NightAttackType::Normal => {
             extend_limit(&mut ids, &surface_ids, 1);
         }
@@ -2302,5 +2308,121 @@ mod tests {
             })
         });
         assert!(found, "enemy flagship must also be protected at night by an enemy escort (R9)");
+    }
+}
+
+#[cfg(test)]
+mod display_narrowing_tests {
+    use super::*;
+    use crate::targeting::{day_gunnery_display_ids, is_day_gunnery_display_type};
+    use crate::test_utils::*;
+    use crate::types::BattleRuntimeShip;
+    use emukc_model::codex::Codex;
+    use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
+
+    /// 航空戦艦 with a 水上爆撃機 in slot 0 and guns behind it. 連撃 is formed by
+    /// guns, so the seaplane bomber must not be what the client is told to draw.
+    fn seaplane_bomber_battleship(codex: &Codex) -> BattleRuntimeShip {
+        let bbv_mst = first_ship_mst_by_type(codex, KcShipType::BBV);
+        let zuiun_id = first_slotitem_mst_by_type(codex, KcSlotItemType3::SeaBasedBomber);
+        let main_gun_id = first_slotitem_mst_by_type(codex, KcSlotItemType3::LargeCaliberMainGun);
+        let secondary_id = first_slotitem_mst_by_type(codex, KcSlotItemType3::SecondaryGun);
+
+        let mut input = sample_ship(codex, bbv_mst, 99);
+        input.slot_items = vec![
+            slotitem_with_mst_id(zuiun_id),
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(secondary_id),
+        ];
+        input.ship.api_onslot = [1, 0, 0, 0, 0];
+        BattleRuntimeShip::from(input)
+    }
+
+    #[test]
+    fn night_double_attack_shows_guns_not_seaplane_bombers() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let ship = seaplane_bomber_battleship(&codex);
+
+        let ids = night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack);
+
+        assert!(!ids.contains(&zuiun_id), "連撃 must not display a seaplane bomber: {ids:?}");
+        assert!(!ids.is_empty() && ids != vec![-1]);
+    }
+
+    #[test]
+    fn day_double_attack_shows_guns_not_seaplane_bombers() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let ship = seaplane_bomber_battleship(&codex);
+
+        let ids = day_gunnery_display_ids(&codex, &ship, 2);
+
+        assert!(!ids.contains(&zuiun_id), "連撃 must not display a seaplane bomber: {ids:?}");
+    }
+
+    /// A plain attack is the one case where the seaplane bomber is right: the
+    /// client's `_getNormalAttackType` reads the equipment and plays the
+    /// 水上爆撃機 animation from it.
+    #[test]
+    fn normal_attack_still_shows_the_seaplane_bomber() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let ship = seaplane_bomber_battleship(&codex);
+
+        let day = crate::targeting::day_attack_display_ids(&codex, &ship, false);
+        let night = night_attack_display_ids(&codex, &ship, NightAttackType::Normal);
+
+        assert_eq!(day, vec![zuiun_id]);
+        assert_eq!(night, vec![zuiun_id]);
+    }
+
+    #[test]
+    fn double_attack_orders_main_gun_before_secondary() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let secondary_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SecondaryGun);
+        let ship = seaplane_bomber_battleship(&codex);
+
+        assert_eq!(
+            night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack),
+            vec![main_gun_id, secondary_id]
+        );
+        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![main_gun_id, secondary_id]);
+    }
+
+    /// One gun means one entry. The list converges on what the ship carries; it
+    /// is never padded out to the attack's nominal slot count.
+    #[test]
+    fn double_attack_with_one_gun_reports_one_entry() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
+
+        let mut input = sample_ship(&codex, dd_mst, 99);
+        input.slot_items = vec![slotitem_with_mst_id(main_gun_id)];
+        let ship = BattleRuntimeShip::from(input);
+
+        assert_eq!(
+            night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack),
+            vec![main_gun_id]
+        );
+        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![main_gun_id]);
+    }
+
+    /// R6 for R3: proof the narrowing is not vacuous. The broad day-surface set
+    /// -- what 連撃 used to fall back to -- still admits 水上爆撃機. If either
+    /// display path is widened back to it, the seaplane bomber returns to the
+    /// `si_list`, and with it every equipment type that has no `btxt_flat`.
+    #[test]
+    fn surface_display_set_would_readmit_seaplane_bombers() {
+        assert!(
+            crate::targeting::is_day_surface_display_type(KcSlotItemType3::SeaBasedBomber),
+            "the broad set admits it, which is why 連撃 must not use that set"
+        );
+        assert!(!is_day_gunnery_display_type(KcSlotItemType3::SeaBasedBomber));
+        assert!(!is_day_gunnery_display_type(KcSlotItemType3::CarrierBasedTorpedoBomber));
+        assert!(is_day_gunnery_display_type(KcSlotItemType3::LargeCaliberMainGun));
+        assert!(is_day_gunnery_display_type(KcSlotItemType3::SecondaryGun));
     }
 }
