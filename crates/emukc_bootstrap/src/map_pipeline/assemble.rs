@@ -41,10 +41,12 @@ pub(super) fn assemble_final_map_catalog(
         }
     });
 
+    let mut deferred_overlays = Vec::new();
     let mut catalog = match (sources.kcdata_catalog, wikiwiki_overlay) {
         // New path: kcdata topology + label-keyed wikiwiki overlay.
         (Some(mut kcdata), Some(overlay)) => {
-            overlay_items_dropped = merge_label_overlay_catalog(&mut kcdata, &overlay);
+            overlay_items_dropped =
+                merge_label_overlay_catalog(&mut kcdata, &overlay, &mut deferred_overlays);
             kcdata
         }
         // Legacy path: kcdata + pre-built wikiwiki MapCatalog (no overlay derivable).
@@ -70,6 +72,7 @@ pub(super) fn assemble_final_map_catalog(
     for definition in catalog.maps.values_mut() {
         definition.normalize_p_unlock_variants();
     }
+    overlay_items_dropped += apply_deferred_label_overlays(&mut catalog, deferred_overlays);
 
     let output_map_count = catalog.maps.len();
 
@@ -120,6 +123,7 @@ pub(super) fn assemble_final_map_catalog(
 fn merge_label_overlay_catalog(
     kcdata: &mut MapCatalog,
     overlay_catalog: &crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog,
+    deferred: &mut Vec<DeferredLabelOverlay>,
 ) -> usize {
     let mut total_dropped = 0usize;
 
@@ -141,7 +145,46 @@ fn merge_label_overlay_catalog(
                 }
             } else if let Some(kcdata_variant) = kcdata_map.variants.get_mut(variant_key) {
                 total_dropped += merge_label_overlay(kcdata_variant, overlay);
+            } else {
+                // The variant does not exist in kcdata *yet*. A p_unlock map such as
+                // 7-3 arrives here as a single unnamed kcdata variant, while the
+                // wikiwiki routing is keyed `pre_p_unlock` / `post_p_unlock`; those
+                // variants only appear once the public overlay is merged and
+                // `normalize_p_unlock_variants` has run. Dropping the overlay here
+                // silently cost 7-3 all of its routing, so hold it back instead.
+                deferred.push(DeferredLabelOverlay {
+                    map_id: *map_id,
+                    variant_key: variant_key.clone(),
+                    overlay: overlay.clone(),
+                });
             }
+        }
+    }
+
+    total_dropped
+}
+
+/// A label overlay whose target variant did not exist when the overlay was first
+/// merged. Applied again once the variant set is final.
+struct DeferredLabelOverlay {
+    map_id: i64,
+    variant_key: String,
+    overlay: crate::parser::wikiwiki_map::WikiwikiLabelOverlay,
+}
+
+/// Apply the overlays held back by [`merge_label_overlay_catalog`], skipping any
+/// whose variant still does not exist.
+fn apply_deferred_label_overlays(
+    catalog: &mut MapCatalog,
+    deferred: Vec<DeferredLabelOverlay>,
+) -> usize {
+    let mut total_dropped = 0usize;
+
+    for entry in deferred {
+        if let Some(map) = catalog.maps.get_mut(&entry.map_id)
+            && let Some(variant) = map.variants.get_mut(&entry.variant_key)
+        {
+            total_dropped += merge_label_overlay(variant, &entry.overlay);
         }
     }
 
@@ -674,6 +717,57 @@ mod tests {
             cell_no,
             master_cell_id: Some(1000 + cell_no),
             ..Default::default()
+        }
+    }
+
+    /// A `p_unlock` map arrives as one unnamed kcdata variant while its wikiwiki
+    /// routing is keyed `pre_p_unlock` / `post_p_unlock`; those variants only exist
+    /// after the public overlay is merged. The routing must survive that gap — 7-3
+    /// silently lost all of it, and nothing counted the loss.
+    #[test]
+    fn p_unlock_routing_survives_the_variant_it_needs_appearing_late() {
+        // The kcdata base carries the topology, so cell 0 has to lead somewhere:
+        // normalization refuses to split a map whose default would be unroutable.
+        let mut kcdata = make_catalog(73, vec![make_variant("", &[0, 1, 2, 3], vec![])]);
+        {
+            // 0 → 1 → 2 → 3: the overlay resolves its label pairs against this graph,
+            // and normalization refuses to split a map whose default is unroutable.
+            let base = kcdata.maps.get_mut(&73).unwrap().variants.get_mut("").unwrap();
+            for (index, next) in [1, 2, 3].into_iter().enumerate() {
+                base.cells[index].next_cells = vec![next];
+            }
+        }
+        let wikiwiki = make_catalog(
+            73,
+            vec![
+                make_variant("pre_p_unlock", &[0, 1, 2, 3], vec![rule(1, 2)]),
+                make_variant("post_p_unlock", &[0, 1, 2, 3], vec![rule(2, 3)]),
+            ],
+        );
+        // The public overlay is what introduces the two p_unlock variants.
+        let public_overlay = make_catalog(
+            73,
+            vec![
+                make_variant("pre_p_unlock", &[0, 1, 2, 3], vec![]),
+                make_variant("post_p_unlock", &[0, 1, 2, 3], vec![]),
+            ],
+        );
+
+        let sources = ResolvedMapSources {
+            wikiwiki_catalog: Some(wikiwiki),
+            public_overlay_catalog: public_overlay,
+            ..sources_from_kcdata(kcdata)
+        };
+        let (catalog, _report) = assemble_final_map_catalog(sources);
+
+        let variants = &catalog.maps[&73].variants;
+        assert!(!variants.contains_key(""), "normalization drops the unnamed base");
+        for (key, from, to) in [("pre_p_unlock", 1, 2), ("post_p_unlock", 2, 3)] {
+            let rules = &variants[key].routing_rules;
+            assert!(
+                rules.get(&from).is_some_and(|rs| rs.iter().any(|r| r.to_cell_no == to)),
+                "expected rule {from}\u{2192}{to} in {key}, got {rules:?}"
+            );
         }
     }
 
