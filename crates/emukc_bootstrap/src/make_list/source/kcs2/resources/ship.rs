@@ -5,7 +5,7 @@ use emukc_model::kc2::start2::ApiManifest;
 
 use crate::{
     make_list::CacheList,
-    make_list::manifest::{PathRules, ResourceCategoriesAsset, ShipPathHoles},
+    make_list::manifest::{PathRules, ResourceCategoriesAsset, ShipPathHoles, path_rules},
 };
 
 fn has_ship_holes(holes: &ShipPathHoles) -> bool {
@@ -125,6 +125,19 @@ pub(crate) fn make_manifest_type_extensions(mst: &ApiManifest, list: &mut CacheL
     make_ship_type(mst, list);
 }
 
+/// Whether `make_list` generates `category` for this enemy graph id. A category
+/// with no hole table (`banner`, `banner_dmg`) is generated for every ship, so
+/// it is always covered. Mirrors `has_btxt_flat_coverage`: decoder rules win,
+/// the Rust constant is the fallback.
+pub(crate) fn has_enemy_ship_coverage(ship_id: i64, category: &str) -> bool {
+    let holes = select_holes(path_rules().map(|rules| &rules.enemy_ship_holes), &ENEMY_SHIP_HOLES);
+    match category {
+        "full" => !holes.full.contains(&ship_id),
+        "full_dmg" => !holes.full_dmg.contains(&ship_id),
+        _ => true,
+    }
+}
+
 fn make_friend_event_graph_with_rules(
     mst: &ApiManifest,
     list: &mut CacheList,
@@ -168,7 +181,8 @@ fn make_friend_event_graph_with_rules(
     }
 }
 
-#[cfg(test)]
+/// Enemy graph ids whose `full` / `full_dmg` artwork is absent upstream, so
+/// `make_list` deliberately does not generate a path for them.
 static ENEMY_SHIP_HOLES: LazyLock<ShipPathHoles> = LazyLock::new(|| ShipPathHoles {
     full: vec![1563, 1568, 1569, 1580, 1593, 1596],
     full_dmg: vec![

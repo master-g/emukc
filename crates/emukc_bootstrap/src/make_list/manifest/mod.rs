@@ -1,4 +1,7 @@
-use std::{collections::HashSet, sync::OnceLock};
+use std::{
+    collections::HashSet,
+    sync::{LazyLock, OnceLock},
+};
 
 pub(crate) mod generate;
 mod loader;
@@ -11,11 +14,11 @@ pub(crate) use loader::{
     load_resource_manifest_from_path,
 };
 pub(crate) use types::{
-    CacheRuleShipVoiceFormula, CacheRuleShipVoiceRule, CacheRuleSoundBucketRule,
-    CacheRuleSoundRules, DecoderCoverageAssets, DecoderRulesBundle, PathRules,
-    ResourceCategoriesAsset, ResourceCoverageMode, ResourceManifest, ResourceTemplateFamily,
-    ResourceTemplateInput, ResourceTemplatePlaceholderFormat, ResourceTemplateSegmentKind,
-    ShipPathHoles,
+    CacheRuleItemUpRule, CacheRuleShipVoiceFormula, CacheRuleShipVoiceRule,
+    CacheRuleSoundBucketRule, CacheRuleSoundRules, DecoderCoverageAssets, DecoderRulesBundle,
+    PathRules, ResourceCategoriesAsset, ResourceCoverageMode, ResourceManifest,
+    ResourceTemplateFamily, ResourceTemplateInput, ResourceTemplatePlaceholderFormat,
+    ResourceTemplateSegmentKind, ShipPathHoles,
 };
 
 #[cfg(test)]
@@ -33,6 +36,39 @@ pub(crate) fn path_rules() -> Option<&'static PathRules> {
 
 pub(crate) fn btxt_flat_coverage() -> Option<&'static HashSet<i64>> {
     BTXT_FLAT_COVERAGE.get()
+}
+
+/// The slot id `item_up` generation actually emits a path for. Abyssal ids are
+/// either remapped outright (`replaceMap`) or folded below the enemy-slot
+/// border, so a raw `api_eSlot` id and the generated path disagree without this.
+pub(crate) fn normalize_item_up_slot_id(rule: &CacheRuleItemUpRule, slot_id: i64) -> i64 {
+    if let Some(replaced) = rule.replace_map.get(&slot_id.to_string()) {
+        *replaced
+    } else if let Some(border) = rule.enemy_slot_border.filter(|border| slot_id > *border) {
+        slot_id - border
+    } else {
+        slot_id
+    }
+}
+
+/// The repo's `item_up` rule, for callers that have no loaded rules bundle of
+/// their own. Reads the synced asset off disk once; `None` when it is missing
+/// or still unresolved, in which case ids pass through unchanged.
+static REPO_ITEM_UP_RULE: LazyLock<Option<CacheRuleItemUpRule>> = LazyLock::new(|| {
+    let bundle = load_cache_rules_bundle().ok()?;
+    let rule = bundle.cache_rules.slot_rules.item_up;
+    (rule.coverage_mode != ResourceCoverageMode::Unresolved).then_some(rule)
+});
+
+pub(crate) fn repo_item_up_slot_id(slot_id: i64) -> i64 {
+    REPO_ITEM_UP_RULE.as_ref().map_or(slot_id, |rule| normalize_item_up_slot_id(rule, slot_id))
+}
+
+/// Whether `item_up` generation emits a path for this (already normalized) id.
+pub(crate) fn has_repo_item_up_coverage(slot_id: i64) -> bool {
+    REPO_ITEM_UP_RULE.as_ref().is_none_or(|rule| {
+        !rule.exclude.iter().any(|entry| entry.type_ == "item_up" && entry.mst_id == slot_id)
+    })
 }
 
 pub(crate) fn populate_path_rules_locks(manifest: &ResourceManifest) {

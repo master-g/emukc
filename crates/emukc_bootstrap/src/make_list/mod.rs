@@ -18,6 +18,8 @@ pub mod manifest;
 
 mod source;
 
+pub(crate) use manifest::{has_repo_item_up_coverage, repo_item_up_slot_id};
+pub(crate) use source::kcs2::resources::ship::has_enemy_ship_coverage;
 pub(crate) use source::kcs2::resources::slot::has_btxt_flat_coverage;
 
 /// Strategy for making a cache list.

@@ -437,19 +437,7 @@ fn resolve_slot_ids_for_target(
         let mut ids = resolve::resolve_slotitem_ids(sources, mst)
             .into_iter()
             .filter(|slot_id| !exclude.contains(slot_id))
-            .map(|slot_id| {
-                if let Some(replaced) = rule.replace_map.get(&slot_id.to_string()) {
-                    *replaced
-                } else if let Some(border) = rule.enemy_slot_border {
-                    if slot_id > border {
-                        slot_id - border
-                    } else {
-                        slot_id
-                    }
-                } else {
-                    slot_id
-                }
-            })
+            .map(|slot_id| super::normalize_item_up_slot_id(rule, slot_id))
             .filter(|slot_id| *slot_id > 0)
             .collect::<Vec<_>>();
         ids.sort_unstable();

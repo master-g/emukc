@@ -12,7 +12,10 @@ use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
 use serde::{Deserialize, Serialize};
 
-use crate::make_list::{CacheList, errors::CacheListMakingError, has_btxt_flat_coverage};
+use crate::make_list::{
+    CacheList, errors::CacheListMakingError, has_btxt_flat_coverage, has_enemy_ship_coverage,
+    has_repo_item_up_coverage, repo_item_up_slot_id,
+};
 
 const EMBEDDED_BATTLE_PROTOCOL_FIELDS_JSON: &str =
     include_str!("../assets/battle_protocol_fields.json");
@@ -354,6 +357,11 @@ const NIGHT_BATTLE_HOUGEKI_FIELDS: &[&str] = &["api_hougeki", "api_n_hougeki1", 
 
 const DAY_BATTLE_HOUGEKI_FIELDS: &[&str] = &["api_hougeki1", "api_hougeki2", "api_hougeki3"];
 
+/// Every day phase that carries an `api_si_list`. Opening torpedo and the
+/// aerial phases have no display equipment of their own.
+const DAY_BATTLE_SI_LIST_FIELDS: &[&str] =
+    &["api_opening_taisen", "api_hougeki1", "api_hougeki2", "api_hougeki3"];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DamageState {
     Healthy,
@@ -492,10 +500,11 @@ fn parse_slot_resource_path(path: &str) -> Option<(String, i64)> {
 
 fn collect_hougeki_slot_ids(
     object: &serde_json::Map<String, serde_json::Value>,
+    fields: &[&str],
 ) -> BTreeMap<String, BTreeSet<i64>> {
     let mut slot_ids_by_source: BTreeMap<String, BTreeSet<i64>> = BTreeMap::new();
 
-    for field in ["api_hougeki1", "api_hougeki2", "api_hougeki3"] {
+    for field in fields.iter().copied() {
         let Some(hougeki) = object.get(field).and_then(serde_json::Value::as_object) else {
             continue;
         };
@@ -834,10 +843,13 @@ fn collect_slotitem_target_types(assets: &BattleKnowledgeAssets) -> SlotitemReso
         .filter(|target_type| matches!(*target_type, "item_on" | "item_up" | "btxt_flat"))
     {
         match target_type {
-            "item_up" => {
+            // `btxt_flat` is not cut-in-only: `CutinAttack` requests it for
+            // `si_list[0]` on plain shelling too, so a miss is a real 404 and
+            // belongs in `expected`, where it is reported as an error.
+            "item_up" | "btxt_flat" => {
                 targets.expected.insert(target_type.to_string());
             }
-            "item_on" | "btxt_flat" => {
+            "item_on" => {
                 targets.candidate.insert(target_type.to_string());
             }
             _ => {}
@@ -890,11 +902,133 @@ fn build_ship_resource_path(
         "banner"
     };
 
+    // A graph id in the hole table has no artwork upstream, so `make_list`
+    // skips it on purpose. Deriving the path anyway would turn a deliberate
+    // skip into a permanent finding.
+    if !has_enemy_ship_coverage(ship_id, category) {
+        return None;
+    }
+
     let filename = (target_type == "full").then_some(graph.api_filename.as_str());
     Some(SuffixUtils::format_kc2_resource(ship_id as u64, "ship", category, "png", filename))
 }
 
+/// Whether `make_list`'s generation rules emit this derived resource. A target
+/// type with no coverage table answers `true`: an unmodelled category is not
+/// evidence of a hole.
+fn has_battle_resource_coverage(kind: &str, entity_id: i64, target_type: &str) -> bool {
+    match (kind, target_type) {
+        ("slotitem", "btxt_flat") => has_btxt_flat_coverage(entity_id),
+        ("slotitem", "item_up") => has_repo_item_up_coverage(repo_item_up_slot_id(entity_id)),
+        ("ship", category) => has_enemy_ship_coverage(entity_id, category),
+        _ => true,
+    }
+}
+
+/// R4: the client will request each derived path, so a path `make_list` never
+/// generates is a 404 waiting to happen. Deriving these paths and then only
+/// counting them is what let the `102 -> btxt_flat` incident through.
+fn push_uncovered_resource_findings(report: &mut BattleValidationReport) {
+    let uncovered: Vec<ExpectedBattleResource> = report
+        .expected_resources
+        .iter()
+        .filter(|resource| {
+            !has_battle_resource_coverage(&resource.kind, resource.entity_id, &resource.target_type)
+        })
+        .cloned()
+        .collect();
+
+    for resource in uncovered {
+        push_error(
+            report,
+            BattleValidationFindingKind::ProtocolSuspicion,
+            None,
+            format!(
+                "battle response makes the client request `{}` for {} `{}` (`{}`), which make-list generation does not cover",
+                resource.path, resource.kind, resource.entity_id, resource.target_type
+            ),
+            Some(resource.path),
+        );
+    }
+}
+
+/// Derive the slot resources one equipment id makes the client request.
+fn push_slotitem_resources(
+    report: &mut BattleValidationReport,
+    manifest: &ApiManifest,
+    targets: &SlotitemResourceTargets,
+    slot_id: i64,
+    field: &str,
+    protocol_source: Option<&str>,
+) {
+    if manifest.find_slotitem(slot_id).is_none() {
+        push_error(
+            report,
+            BattleValidationFindingKind::UnknownSlotitemMstId,
+            Some(field),
+            format!("slotitem mst id `{slot_id}` is not present in the manifest"),
+            None,
+        );
+        return;
+    }
+
+    for target_type in targets.expected.iter() {
+        report.expected_resources.push(ExpectedBattleResource {
+            kind: "slotitem".to_string(),
+            entity_id: slot_id,
+            target_type: target_type.to_string(),
+            path: build_slotitem_resource_path(slot_id, target_type),
+            note: "potential battle preload slotitem resource".to_string(),
+            protocol_source: protocol_source.map(str::to_string),
+            consumer_module: None,
+        });
+    }
+    for target_type in targets.candidate.iter() {
+        report.candidate_resources.push(ExpectedBattleResource {
+            kind: "slotitem".to_string(),
+            entity_id: slot_id,
+            target_type: target_type.to_string(),
+            path: build_slotitem_resource_path(slot_id, target_type),
+            note: "lower-confidence battle preload slotitem resource".to_string(),
+            protocol_source: protocol_source.map(str::to_string),
+            consumer_module: None,
+        });
+    }
+}
+
+/// Display equipment the response puts on screen. `CutinAttack` asks for
+/// `si_list[0]`'s `btxt_flat` on every shelling attack, so these ids reach the
+/// CDN exactly like the enemy loadout does.
+fn push_display_slotitem_resources(
+    object: &serde_json::Map<String, serde_json::Value>,
+    report: &mut BattleValidationReport,
+    manifest: &ApiManifest,
+    targets: &SlotitemResourceTargets,
+    hougeki_fields: &[&str],
+) {
+    for (protocol_source, slot_ids) in collect_hougeki_slot_ids(object, hougeki_fields) {
+        let field = protocol_source.split('.').next().unwrap_or_default().to_string();
+        for slot_id in slot_ids {
+            push_slotitem_resources(
+                report,
+                manifest,
+                targets,
+                slot_id,
+                &field,
+                Some(&protocol_source),
+            );
+        }
+    }
+}
+
 fn build_slotitem_resource_path(slot_id: i64, target_type: &str) -> String {
+    // `item_up` generation remaps abyssal ids before it emits a path, so the
+    // raw protocol id would point at a file `make_list` never produces.
+    let slot_id = if target_type == "item_up" {
+        repo_item_up_slot_id(slot_id)
+    } else {
+        slot_id
+    };
     let item_id = format!("{slot_id:04}");
     let key = SuffixUtils::create(&item_id, format!("slot_{target_type}").as_str());
     format!("kcs2/resources/slot/{target_type}/{item_id}_{key}.png")
@@ -1082,44 +1216,28 @@ pub fn validate_day_battle_response<T: Serialize>(
             if slot_id <= 0 {
                 continue;
             }
-            if manifest.find_slotitem(slot_id).is_none() {
-                push_error(
-                    &mut report,
-                    BattleValidationFindingKind::UnknownSlotitemMstId,
-                    Some("api_eSlot"),
-                    format!("enemy slotitem mst id `{slot_id}` is not present in the manifest"),
-                    None,
-                );
-                continue;
-            }
-
-            for target_type in slot_target_types.expected.iter() {
-                report.expected_resources.push(ExpectedBattleResource {
-                    kind: "slotitem".to_string(),
-                    entity_id: slot_id,
-                    target_type: target_type.to_string(),
-                    path: build_slotitem_resource_path(slot_id, target_type),
-                    note: "potential battle preload slotitem resource".to_string(),
-                    protocol_source: None,
-                    consumer_module: None,
-                });
-            }
-            for target_type in slot_target_types.candidate.iter() {
-                report.candidate_resources.push(ExpectedBattleResource {
-                    kind: "slotitem".to_string(),
-                    entity_id: slot_id,
-                    target_type: target_type.to_string(),
-                    path: build_slotitem_resource_path(slot_id, target_type),
-                    note: "lower-confidence battle preload slotitem resource".to_string(),
-                    protocol_source: None,
-                    consumer_module: None,
-                });
-            }
+            push_slotitem_resources(
+                &mut report,
+                manifest,
+                &slot_target_types,
+                slot_id,
+                "api_eSlot",
+                None,
+            );
         }
     }
 
+    push_display_slotitem_resources(
+        object,
+        &mut report,
+        manifest,
+        &slot_target_types,
+        DAY_BATTLE_SI_LIST_FIELDS,
+    );
+
     report.expected_resources = dedupe_resources(report.expected_resources);
     report.candidate_resources = dedupe_resources(report.candidate_resources);
+    push_uncovered_resource_findings(&mut report);
 
     Ok(report)
 }
@@ -1389,44 +1507,28 @@ pub fn validate_night_battle_response<T: Serialize>(
             if slot_id <= 0 {
                 continue;
             }
-            if manifest.find_slotitem(slot_id).is_none() {
-                push_error(
-                    &mut report,
-                    BattleValidationFindingKind::UnknownSlotitemMstId,
-                    Some("api_eSlot"),
-                    format!("enemy slotitem mst id `{slot_id}` is not present in the manifest"),
-                    None,
-                );
-                continue;
-            }
-
-            for target_type in slot_target_types.expected.iter() {
-                report.expected_resources.push(ExpectedBattleResource {
-                    kind: "slotitem".to_string(),
-                    entity_id: slot_id,
-                    target_type: target_type.to_string(),
-                    path: build_slotitem_resource_path(slot_id, target_type),
-                    note: "potential battle preload slotitem resource".to_string(),
-                    protocol_source: None,
-                    consumer_module: None,
-                });
-            }
-            for target_type in slot_target_types.candidate.iter() {
-                report.candidate_resources.push(ExpectedBattleResource {
-                    kind: "slotitem".to_string(),
-                    entity_id: slot_id,
-                    target_type: target_type.to_string(),
-                    path: build_slotitem_resource_path(slot_id, target_type),
-                    note: "lower-confidence battle preload slotitem resource".to_string(),
-                    protocol_source: None,
-                    consumer_module: None,
-                });
-            }
+            push_slotitem_resources(
+                &mut report,
+                manifest,
+                &slot_target_types,
+                slot_id,
+                "api_eSlot",
+                None,
+            );
         }
     }
 
+    push_display_slotitem_resources(
+        object,
+        &mut report,
+        manifest,
+        &slot_target_types,
+        NIGHT_BATTLE_HOUGEKI_FIELDS,
+    );
+
     report.expected_resources = dedupe_resources(report.expected_resources);
     report.candidate_resources = dedupe_resources(report.candidate_resources);
+    push_uncovered_resource_findings(&mut report);
 
     Ok(report)
 }
@@ -1448,7 +1550,7 @@ pub fn analyze_day_battle_incident<T: Serialize>(
     };
 
     let missing_resource_path = missing_resource_url.map(normalize_missing_resource_path);
-    let slot_ids_by_source = collect_hougeki_slot_ids(object);
+    let slot_ids_by_source = collect_hougeki_slot_ids(object, DAY_BATTLE_HOUGEKI_FIELDS);
     let mut report = BattleIncidentReport {
         validation,
         missing_resource_path: missing_resource_path.clone(),
@@ -1503,7 +1605,7 @@ pub fn analyze_day_battle_incident<T: Serialize>(
         .map(|slotitem| slotitem.api_name.as_str())
         .unwrap_or("<unknown-slotitem>");
 
-    let finding = if target_type == "btxt_flat" && !has_btxt_flat_coverage(slot_id) {
+    let finding = if !has_battle_resource_coverage("slotitem", slot_id, &target_type) {
         BattleValidationFinding {
             severity: BattleValidationSeverity::Error,
             kind: BattleValidationFindingKind::ProtocolSuspicion,
@@ -1638,6 +1740,21 @@ mod tests {
                         explicit_paths: vec![],
                         trigger_hints: vec!["battle".to_string(), "cutin".to_string()],
                     },
+                    BattleResourceRule {
+                        id: "slot-btxt".to_string(),
+                        module_id: "1".to_string(),
+                        readable_name: "CutinResourcesPreloadTask".to_string(),
+                        resource_kind: "slotitem".to_string(),
+                        action: "getSlotitem".to_string(),
+                        target_type: Some("item_on".to_string()),
+                        provider: None,
+                        texture_ids: vec![],
+                        ship_mst_id_source: None,
+                        damaged_source: None,
+                        slot_mst_id_sources: vec!["slot".to_string()],
+                        explicit_paths: vec![],
+                        trigger_hints: vec!["battle".to_string(), "cutin".to_string()],
+                    },
                 ],
             },
             module_index: BattleModuleIndexAsset {
@@ -1680,6 +1797,11 @@ mod tests {
             api_filename: "enemy_test".to_string(),
             ..ApiMstShipgraph::default()
         });
+        // 41 is in `BTXT_FLAT_IDS`; 42 and 102 are not.
+        manifest.api_mst_slotitem.push(ApiMstSlotitem {
+            api_id: 41,
+            ..ApiMstSlotitem::default()
+        });
         manifest.api_mst_slotitem.push(ApiMstSlotitem {
             api_id: 42,
             ..ApiMstSlotitem::default()
@@ -1700,7 +1822,7 @@ mod tests {
             "api_ship_lv": [1],
             "api_e_nowhps": [75],
             "api_e_maxhps": [100],
-            "api_eSlot": [[42, -1, -1, -1, -1]],
+            "api_eSlot": [[41, -1, -1, -1, -1]],
             "api_eParam": [[1, 1, 1, 1]],
             "api_f_nowhps": [20],
             "api_f_maxhps": [20],
@@ -1715,7 +1837,7 @@ mod tests {
                 "api_at_list": [0, 1],
                 "api_n_mother_list": [-1, -1],
                 "api_df_list": [[0], [0]],
-                "api_si_list": [[42, -1], [-1, -1]],
+                "api_si_list": [[41, -1], [-1, -1]],
                 "api_cl_list": [[1], [1]],
                 "api_sp_list": [0, 0],
                 "api_damage": [[60], [13]]
@@ -1729,7 +1851,7 @@ mod tests {
             "api_ship_lv": [1],
             "api_e_nowhps": [75],
             "api_e_maxhps": [100],
-            "api_eSlot": [[42, -1, -1, -1, -1]],
+            "api_eSlot": [[41, -1, -1, -1, -1]],
             "api_eParam": [[1, 1, 1, 1]],
             "api_f_nowhps": [20],
             "api_f_maxhps": [20],
@@ -2122,20 +2244,191 @@ mod tests {
     fn validate_day_battle_response_separates_expected_and_candidate_slot_resources() {
         let assets = build_day_battle_assets();
         let manifest = build_manifest_with_enemy();
-        let report =
-            validate_day_battle_response(&manifest, &build_valid_day_battle_response(), &assets)
-                .unwrap();
+        let mut response = build_valid_day_battle_response();
+        response["api_eSlot"] = serde_json::json!([[42, -1, -1, -1, -1]]);
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
 
         assert!(report.expected_resources.iter().any(|resource| {
             resource.kind == "slotitem"
                 && resource.entity_id == 42
                 && resource.target_type == "item_up"
         }));
-        assert!(report.candidate_resources.iter().any(|resource| {
+        // `btxt_flat` is expected, not a candidate: `CutinAttack` requests it
+        // for `si_list[0]` on plain shelling, not only on cut-ins, so a warning
+        // would leave the motivating incident path permanently green.
+        assert!(report.expected_resources.iter().any(|resource| {
             resource.kind == "slotitem"
                 && resource.entity_id == 42
                 && resource.target_type == "btxt_flat"
         }));
+        assert!(report.candidate_resources.iter().any(|resource| {
+            resource.kind == "slotitem"
+                && resource.entity_id == 42
+                && resource.target_type == "item_on"
+        }));
+    }
+
+    // -----------------------------------------------------------------------
+    // Resource coverage (R4)
+    // -----------------------------------------------------------------------
+
+    fn si_list_hougeki(si_list: serde_json::Value) -> serde_json::Value {
+        serde_json::json!({
+            "api_at_eflag": [0],
+            "api_at_list": [0],
+            "api_at_type": [0],
+            "api_df_list": [[0]],
+            "api_si_list": [si_list],
+            "api_cl_list": [[1]],
+            "api_damage": [[10]],
+        })
+    }
+
+    #[test]
+    fn validate_day_battle_response_reports_no_gap_when_every_resource_is_covered() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([41, -1]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(report.findings.is_empty(), "{:?}", report.findings);
+        assert!(!report.expected_resources.is_empty());
+    }
+
+    #[test]
+    fn validate_day_battle_response_reports_uncovered_display_slotitem_as_error() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        // 102 is in the manifest but has no `btxt_flat` file upstream -- the
+        // archived 九八式水上偵察機(夜偵) incident.
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([102, -1]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        let finding = report
+            .findings
+            .iter()
+            .find(|finding| finding.kind == BattleValidationFindingKind::ProtocolSuspicion)
+            .expect("uncovered btxt_flat must be reported");
+        assert_eq!(finding.severity, BattleValidationSeverity::Error);
+        assert!(finding.resource_path.as_deref().is_some_and(|path| path.contains("btxt_flat")));
+        assert!(finding.message.contains("102"), "{}", finding.message);
+    }
+
+    #[test]
+    fn validate_day_battle_response_ignores_si_list_sentinels() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([-1, -1, -1]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(report.findings.is_empty(), "{:?}", report.findings);
+        assert!(
+            !report.expected_resources.iter().any(|resource| resource.entity_id < 0),
+            "a -1 sentinel must derive no resource"
+        );
+    }
+
+    /// The generation side folds abyssal ids below the enemy-slot border, so a
+    /// raw `api_eSlot` id must be normalized before the path is compared --
+    /// otherwise every enemy equipment reads as an uncovered gap.
+    #[test]
+    fn validate_day_battle_response_normalizes_enemy_item_up_ids() {
+        let assets = build_day_battle_assets();
+        let mut manifest = build_manifest_with_enemy();
+        for id in [1501, 1570] {
+            manifest.api_mst_slotitem.push(ApiMstSlotitem {
+                api_id: id,
+                ..ApiMstSlotitem::default()
+            });
+        }
+        let mut response = build_valid_day_battle_response();
+        response["api_eSlot"] = serde_json::json!([[1501, 1570, -1, -1, -1]]);
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([-1, -1]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        // 1501 has no `replaceMap` entry, so it folds to 1501 - 1500; 1570 maps
+        // straight to 15.
+        let item_up_path = |entity_id: i64| {
+            report
+                .expected_resources
+                .iter()
+                .find(|resource| {
+                    resource.entity_id == entity_id && resource.target_type == "item_up"
+                })
+                .map(|resource| resource.path.clone())
+                .unwrap_or_default()
+        };
+        assert!(item_up_path(1501).contains("/item_up/0001_"), "{}", item_up_path(1501));
+        assert!(item_up_path(1570).contains("/item_up/0015_"), "{}", item_up_path(1570));
+        assert!(
+            !report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::ProtocolSuspicion
+                    && finding.resource_path.as_deref().is_some_and(|p| p.contains("item_up"))
+            }),
+            "{:?}",
+            report.findings
+        );
+    }
+
+    /// A graph id in the hole table is skipped on purpose; the validator must
+    /// not read a deliberate skip as a protocol defect.
+    #[test]
+    fn validate_day_battle_response_respects_enemy_ship_hole_table() {
+        let assets = build_day_battle_assets();
+        let mut manifest = build_manifest_with_enemy();
+        manifest.api_mst_ship.push(ApiMstShip {
+            api_id: 1563,
+            ..ApiMstShip::default()
+        });
+        manifest.api_mst_shipgraph.push(ApiMstShipgraph {
+            api_id: 1563,
+            api_filename: "enemy_hole".to_string(),
+            ..ApiMstShipgraph::default()
+        });
+        let mut response = build_valid_day_battle_response();
+        response["api_ship_ke"] = serde_json::json!([1563]);
+        response["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        response["api_hougeki1"] = si_list_hougeki(serde_json::json!([-1, -1]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(report.findings.is_empty(), "{:?}", report.findings);
+        assert!(
+            !report.expected_resources.iter().any(|resource| {
+                resource.kind == "ship" && resource.target_type.starts_with("full")
+            }),
+            "a holed graph id must not derive a `full` resource at all"
+        );
+    }
+
+    #[test]
+    fn validate_night_battle_response_checks_display_slotitem_coverage() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_night_battle_response();
+        response["api_eSlot"] = serde_json::json!([[41, -1, -1, -1, -1]]);
+        response["api_hougeki"]["api_si_list"] = serde_json::json!([[102, -1], [-1, -1]]);
+
+        let report = validate_night_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(
+            report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::ProtocolSuspicion
+                    && finding.resource_path.as_deref().is_some_and(|p| p.contains("btxt_flat"))
+            }),
+            "{:?}",
+            report.findings
+        );
     }
 
     #[test]
@@ -2199,6 +2492,26 @@ mod tests {
         assert!(report.trigger_matches.iter().any(|trigger| {
             trigger.protocol_source == "api_hougeki1.api_si_list[*][*]"
                 && trigger.resource_target == "slot/btxt_flat"
+        }));
+
+        // The other branch of the analyzer's dichotomy is unchanged: a resource
+        // the coverage table says we DO generate, that the client still could
+        // not fetch, is a bootstrap gap rather than a protocol suspicion. Only
+        // the predicate moved; the classification did not.
+        let covered = analyze_day_battle_incident(
+			&manifest,
+			&payload,
+			&assets,
+			Some(
+				"http://w18i.kancolle-server.com/kcs2/resources/slot/btxt_flat/0008_8293.png?version=3",
+			),
+		)
+		.unwrap();
+        assert!(covered.protocol_suspicions.is_empty(), "{:?}", covered.protocol_suspicions);
+        assert!(covered.bootstrap_gaps.iter().any(|finding| {
+            finding.kind == BattleValidationFindingKind::BootstrapGap
+                && finding.resource_path.as_deref()
+                    == Some("kcs2/resources/slot/btxt_flat/0008_8293.png")
         }));
     }
 
