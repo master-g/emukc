@@ -20,9 +20,10 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::Args;
 use emukc::bootstrap::prelude::{
-    repo_battle_module_index_path, repo_battle_protocol_fields_path,
-    repo_battle_resource_rules_path, repo_battle_slot_resource_triggers_path,
-    repo_public_map_catalog_overlay_path, repo_wikiwiki_map_catalog_path,
+    repo_battle_attack_type_acceptance_path, repo_battle_module_index_path,
+    repo_battle_protocol_fields_path, repo_battle_resource_rules_path,
+    repo_battle_slot_resource_triggers_path, repo_public_map_catalog_overlay_path,
+    repo_wikiwiki_map_catalog_path,
 };
 use emukc::crypto::SimpleHash;
 use serde::{Deserialize, Serialize};
@@ -199,7 +200,7 @@ const CACHE_LIST_ASSETS: [&str; 7] = [
 ];
 
 /// The synced assets fingerprinted by `drift-check` (KTD3), keyed by logical
-/// name. The battle/route six resolve via `emukc_bootstrap`'s
+/// name. The battle/route seven resolve via `emukc_bootstrap`'s
 /// `CARGO_MANIFEST_DIR`-based helpers, the cache-list seven from `root`, which
 /// is itself derived from one of those helpers — so all of them resolve
 /// identically from any cwd.
@@ -210,6 +211,7 @@ fn synced_asset_paths(root: &Path) -> Vec<(String, PathBuf)> {
         ("battle_resource_rules".to_string(), repo_battle_resource_rules_path()),
         ("battle_module_index".to_string(), repo_battle_module_index_path()),
         ("battle_slot_resource_triggers".to_string(), repo_battle_slot_resource_triggers_path()),
+        ("battle_attack_type_acceptance".to_string(), repo_battle_attack_type_acceptance_path()),
         ("wikiwiki_map_catalog".to_string(), repo_wikiwiki_map_catalog_path()),
         ("public_map_catalog_overlays".to_string(), repo_public_map_catalog_overlay_path()),
     ];

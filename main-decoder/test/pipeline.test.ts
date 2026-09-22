@@ -63,6 +63,25 @@ test("decodes the current cached main.js", async () => {
   expect(result.battleKnowledge.resourceRules.some(rule => rule.action === "getShip" && rule.targetType === "banner")).toBe(true);
   expect(result.battleKnowledge.resourceRules.some(rule => rule.action === "getShip" && rule.targetType === "full")).toBe(true);
   expect(result.battleKnowledge.resourceRules.some(rule => rule.action === "getSlotitem" && rule.targetType === "item_up")).toBe(true);
+
+  // R2: the acceptance sets the validator asserts against. Day 連撃 is 2 and
+  // 空母カットイン is 7; opening ASW knows neither -- 7 there reaches
+  // PhaseAttackDanchaku, which throws.
+  const dayShelling = result.battleKnowledge.attackTypeStages.find(stage => stage.id === "day-shelling");
+  const nightShelling = result.battleKnowledge.attackTypeStages.find(stage => stage.id === "night-shelling");
+  const openingAsw = result.battleKnowledge.attackTypeStages.find(stage => stage.id === "opening-anti-submarine");
+  expect(result.summary.battleKnowledge.attackTypeStageCount).toBe(3);
+  expect(dayShelling?.acceptedValues).toEqual([0, 2, 7, 100, 101, 102, 103, 105, 106, 200, 300, 301, 302, 400, 401]);
+  expect(dayShelling?.fallback?.readableName).toBe("PhaseAttackDanchaku");
+  expect(dayShelling?.fallback?.closed).toBe(true);
+  expect(nightShelling?.protocolField).toBe("api_sp_list");
+  expect(nightShelling?.acceptedValues).toContain(1);
+  expect(nightShelling?.acceptedValues).not.toContain(2);
+  expect(nightShelling?.effectiveAcceptedValues).toContain(2);
+  expect(openingAsw?.acceptedValues).toEqual([0, 2]);
+  expect(openingAsw?.effectiveAcceptedValues).toEqual([0, 2, 3, 4, 5, 6, 200, 201]);
+  expect(openingAsw?.effectiveAcceptedValues).not.toContain(7);
+  expect(openingAsw?.fallback?.closed).toBe(true);
   expect(suffixUtil?.moduleKind).toBe("helper");
   expect(suffixUtil?.shellMetrics.namespaceShellCount).toBeGreaterThan(0);
   expect(suffixUtil?.shellMetrics.normalizedNamespaceShellCount).toBeGreaterThan(0);

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { extractBattleKnowledge } from "../src/battle-knowledge.ts";
+import { extractBattleAttackTypeStages, extractBattleKnowledge } from "../src/battle-knowledge.ts";
 import type { ModuleArtifact, ModuleGraph } from "../src/types.ts";
 
 function createModule(overrides: Partial<ModuleArtifact> & Pick<ModuleArtifact, "id" | "fileName" | "moduleKind" | "cleanupTier" | "source">): ModuleArtifact {
@@ -181,4 +181,211 @@ test("collects slot resource triggers for cutin slot text consumers", () => {
       && trigger.resourceTarget === "slot/btxt_flat"
       && trigger.protocolSources.includes("api_hougeki1.api_si_list[*][*]");
   })).toBe(true);
+});
+
+// ---------------------------------------------------------------------------
+// Attack-type acceptance (R2)
+// ---------------------------------------------------------------------------
+
+/// The shape the real bundle uses: a nested ternary on `record.type`, ending in
+/// a fallback method. `d_indexes[0]` and `getSlotitem(1)` put numbers in the
+/// body that must never reach the acceptance set.
+function phaseHougekiSource(name: string, chain: string, fallbackBody: string): string {
+  return `function(module, exports, require) {
+    var danchakuModule = require(90992);
+    var ${name} = function() {
+      function ${name}() {}
+      ${name}.prototype._hougeki = function(record) {
+        var type = record.type;
+        ${chain}
+      };
+      ${name}.prototype._normal = function(record) {
+        var dShip = this._getDShip(record.d_indexes[0], record.flag);
+        var slot = record.getSlotitem(1);
+      };
+      ${name}.prototype._double = function(record) {};
+      ${name}.prototype._kuboCI = function(record) {};
+      ${name}.prototype._special = function(record) {
+        ${fallbackBody}
+      };
+      return ${name};
+    }();
+    exports.${name} = ${name};
+  }`;
+}
+
+const DELEGATING_FALLBACK = `
+  var aShip = this._getAShip(record.a_index, record.flag);
+  new danchakuModule.PhaseAttackDanchaku(this._scene, record.type, aShip, record.getSlotitem(0)).start();
+`;
+
+const DANCHAKU_SOURCE = `function(module, exports, require) {
+  var PhaseAttackDanchaku = function() {
+    function PhaseAttackDanchaku(scene, type, attacker, slot) {
+      var self = this;
+      if (self._slot = slot, 3 == type) self._cutin = new CutinDanchaku1();
+      else if (4 == type) self._cutin = new CutinDanchaku2();
+      else if (200 == type) self._cutin = new CutinDanchaku1(1);
+      else {
+        if (201 != type) throw new Error();
+        self._cutin = new CutinDanchaku1(2);
+      }
+      return self;
+    }
+    return PhaseAttackDanchaku;
+  }();
+  exports.PhaseAttackDanchaku = PhaseAttackDanchaku;
+}`;
+
+function dispatcherSource(name: string, hougekiModuleId: number): string {
+  return `function(module, exports, require) {
+    var hougekiModule = require(${hougekiModuleId});
+    exports.${name} = function() {};
+  }`;
+}
+
+function attackTypeGraph(overrides: { nightDispatcherName?: string; dayAlsoRequiresNightHougeki?: boolean } = {}): ModuleGraph {
+  return createGraph([
+    createModule({
+      id: "90992",
+      fileName: "module-90992-phase-attack-danchaku.js",
+      moduleKind: "game",
+      cleanupTier: "priority-body",
+      readableName: "PhaseAttackDanchaku",
+      source: DANCHAKU_SOURCE,
+    }),
+    createModule({
+      id: "1830",
+      fileName: "module-1830-phase-hougeki.js",
+      moduleKind: "game",
+      cleanupTier: "priority-body",
+      readableName: "PhaseHougeki",
+      source: phaseHougekiSource(
+        "PhaseHougeki",
+        "0 == type ? this._normal(record) : 2 == type ? this._double(record) : 7 == type ? this._kuboCI(record) : this._special(record);",
+        DELEGATING_FALLBACK,
+      ),
+      dependencies: [{ moduleId: "90992", readableName: "PhaseAttackDanchaku", importStyle: "require" }],
+    }),
+    createModule({
+      id: "74885",
+      fileName: "module-74885-phase-hougeki.js",
+      moduleKind: "game",
+      cleanupTier: "priority-body",
+      readableName: "PhaseHougeki",
+      source: phaseHougekiSource(
+        "PhaseHougeki",
+        "0 == type ? this._normal(record) : 1 == type ? this._double(record) : 6 == type ? this._kuboCI(record) : this._special(record);",
+        `
+          var type = record.type;
+          var phase;
+          if (2 == type) phase = new SpSR();
+          else if (3 == type) phase = new SpRR();
+          if (null == phase) throw new Error();
+        `,
+      ),
+    }),
+    createModule({
+      id: "16599",
+      fileName: "module-16599-phase-pre-anti-submarine.js",
+      moduleKind: "game",
+      cleanupTier: "priority-body",
+      readableName: "PhasePreAntiSubmarine",
+      source: phaseHougekiSource(
+        "PhasePreAntiSubmarine",
+        "0 == type ? this._normal(record) : 2 == type ? this._double(record) : this._special(record);",
+        DELEGATING_FALLBACK,
+      ),
+      dependencies: [{ moduleId: "90992", readableName: "PhaseAttackDanchaku", importStyle: "require" }],
+    }),
+    createModule({
+      id: "16718",
+      fileName: "module-16718-phase-day.js",
+      moduleKind: "game",
+      cleanupTier: "named-game",
+      readableName: "PhaseDay",
+      source: dispatcherSource("PhaseDay", 1830),
+      dependencies: [
+        { moduleId: "1830", readableName: "PhaseHougeki", importStyle: "require" },
+        { moduleId: "16599", readableName: "PhasePreAntiSubmarine", importStyle: "require" },
+        ...(overrides.dayAlsoRequiresNightHougeki === true
+          ? [{ moduleId: "74885", readableName: "PhaseHougeki", importStyle: "require" as const }]
+          : []),
+      ],
+    }),
+    createModule({
+      id: "27665",
+      fileName: "module-27665-phase-night.js",
+      moduleKind: "game",
+      cleanupTier: "named-game",
+      readableName: overrides.nightDispatcherName ?? "PhaseNight",
+      source: dispatcherSource("PhaseNight", 74885),
+      dependencies: [{ moduleId: "74885", readableName: "PhaseHougeki", importStyle: "require" }],
+    }),
+  ]);
+}
+
+test("extracts the attack types each battle stage dispatches", () => {
+  const stages = extractBattleAttackTypeStages(attackTypeGraph());
+  const day = stages.find(stage => stage.id === "day-shelling");
+
+  expect(day?.acceptedValues).toEqual([0, 2, 7]);
+  // `d_indexes[0]` and `getSlotitem(1)` sit in the module body; neither index
+  // is an attack type.
+  expect(day?.acceptedValues).not.toContain(1);
+  expect(day?.consumerModuleIds).toEqual(["1830"]);
+  expect(day?.protocolField).toBe("api_at_type");
+});
+
+test("merges a delegating fallback's closed set into the stage's effective set", () => {
+  const stages = extractBattleAttackTypeStages(attackTypeGraph());
+  const opening = stages.find(stage => stage.id === "opening-anti-submarine");
+
+  expect(opening?.acceptedValues).toEqual([0, 2]);
+  expect(opening?.fallback?.readableName).toBe("PhaseAttackDanchaku");
+  // The `201 != type` guard in front of the throw accepts 201, and the throw
+  // itself is what makes the set closed.
+  expect(opening?.fallback?.acceptedValues).toEqual([3, 4, 200, 201]);
+  expect(opening?.fallback?.closed).toBe(true);
+  expect(opening?.effectiveAcceptedValues).toEqual([0, 2, 3, 4, 200, 201]);
+  expect(opening?.effectiveAcceptedValues).not.toContain(7);
+});
+
+test("merges a fallback the consumer guards itself", () => {
+  const stages = extractBattleAttackTypeStages(attackTypeGraph());
+  const night = stages.find(stage => stage.id === "night-shelling");
+
+  expect(night?.fallback?.readableName).toBe("PhaseHougeki._special");
+  expect(night?.fallback?.acceptedValues).toEqual([2, 3]);
+  expect(night?.fallback?.closed).toBe(true);
+  expect(night?.notes).toContain("battle_slot_resource_triggers.json");
+});
+
+test("tells the day and night PhaseHougeki apart by their consumers", () => {
+  const stages = extractBattleAttackTypeStages(attackTypeGraph());
+  const day = stages.find(stage => stage.id === "day-shelling");
+  const night = stages.find(stage => stage.id === "night-shelling");
+
+  // Same readableName, mutually exclusive meanings: 2 is 連撃 by day and
+  // 主砲魚雷 by night, 7 is 空母カットイン by day and 潜水艦系 by night.
+  expect(day?.acceptedValues).toContain(2);
+  expect(night?.acceptedValues).not.toContain(2);
+  expect(night?.acceptedValues).toContain(1);
+  expect(night?.protocolField).toBe("api_sp_list");
+  expect(day?.consumerModuleIds).not.toEqual(night?.consumerModuleIds);
+});
+
+test("refuses to guess when the consumers do not disambiguate a stage", () => {
+  // Day and night dispatchers both requiring the same PhaseHougeki: the
+  // consumer rule no longer decides, and picking either copy would silently
+  // produce the wrong acceptance set.
+  const graph = attackTypeGraph({ dayAlsoRequiresNightHougeki: true });
+
+  expect(() => extractBattleAttackTypeStages(graph)).toThrow(/cannot disambiguate battle side/);
+});
+
+test("refuses to merge same-named consumers that disagree on a stage", () => {
+  const graph = attackTypeGraph({ nightDispatcherName: "PhaseDayFromNight" });
+
+  expect(() => extractBattleAttackTypeStages(graph)).toThrow(/disagree on api_at_type/);
 });

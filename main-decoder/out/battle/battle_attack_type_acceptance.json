@@ -1,0 +1,202 @@
+{
+  "scriptVersion": "6.3.5.0",
+  "summary": {
+    "attackTypeStageCount": 3
+  },
+  "stages": [
+    {
+      "id": "day-shelling",
+      "protocolField": "api_at_type",
+      "protocolSources": [
+        "api_hougeki1.api_at_type[*]",
+        "api_hougeki2.api_at_type[*]",
+        "api_hougeki3.api_at_type[*]"
+      ],
+      "consumerReadableName": "PhaseHougeki",
+      "consumerModuleIds": [
+        "1830"
+      ],
+      "acceptedValues": [
+        0,
+        2,
+        7,
+        100,
+        101,
+        102,
+        103,
+        105,
+        106,
+        200,
+        300,
+        301,
+        302,
+        400,
+        401
+      ],
+      "fallback": {
+        "readableName": "PhaseAttackDanchaku",
+        "moduleIds": [
+          "90992"
+        ],
+        "acceptedValues": [
+          3,
+          4,
+          5,
+          6,
+          200,
+          201
+        ],
+        "closed": true
+      },
+      "effectiveAcceptedValues": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        100,
+        101,
+        102,
+        103,
+        105,
+        106,
+        200,
+        201,
+        300,
+        301,
+        302,
+        400,
+        401
+      ],
+      "notes": "PhaseHougeki (day) dispatches api_at_type directly for the values it names. Everything else goes to PhaseAttackDanchaku. PhaseAttackDanchaku throws on anything outside its own set, so the effective set is closed."
+    },
+    {
+      "id": "night-shelling",
+      "protocolField": "api_sp_list",
+      "protocolSources": [
+        "api_hougeki.api_sp_list[*]",
+        "api_n_hougeki1.api_sp_list[*]",
+        "api_n_hougeki2.api_sp_list[*]"
+      ],
+      "consumerReadableName": "PhaseHougeki",
+      "consumerModuleIds": [
+        "74885"
+      ],
+      "acceptedValues": [
+        0,
+        1,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        200,
+        300,
+        301,
+        302,
+        400,
+        401,
+        1000
+      ],
+      "fallback": {
+        "readableName": "PhaseHougeki._special",
+        "moduleIds": [
+          "74885"
+        ],
+        "acceptedValues": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "closed": true
+      },
+      "effectiveAcceptedValues": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        200,
+        300,
+        301,
+        302,
+        400,
+        401,
+        1000
+      ],
+      "notes": "PhaseHougeki (night) dispatches api_sp_list directly for the values it names. Everything else goes to PhaseHougeki._special. PhaseHougeki._special throws on anything outside its own set, so the effective set is closed. battle_slot_resource_triggers.json still maps no protocol source to night consumers; the sources here are this asset's own."
+    },
+    {
+      "id": "opening-anti-submarine",
+      "protocolField": "api_at_type",
+      "protocolSources": [
+        "api_opening_taisen.api_at_type[*]"
+      ],
+      "consumerReadableName": "PhasePreAntiSubmarine",
+      "consumerModuleIds": [
+        "16599"
+      ],
+      "acceptedValues": [
+        0,
+        2
+      ],
+      "fallback": {
+        "readableName": "PhaseAttackDanchaku",
+        "moduleIds": [
+          "90992"
+        ],
+        "acceptedValues": [
+          3,
+          4,
+          5,
+          6,
+          200,
+          201
+        ],
+        "closed": true
+      },
+      "effectiveAcceptedValues": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        200,
+        201
+      ],
+      "notes": "PhasePreAntiSubmarine (day) dispatches api_at_type directly for the values it names. Everything else goes to PhaseAttackDanchaku. PhaseAttackDanchaku throws on anything outside its own set, so the effective set is closed."
+    }
+  ]
+}

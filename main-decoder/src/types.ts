@@ -75,6 +75,30 @@ export interface BattleSlotResourceTrigger {
   notes: string;
 }
 
+/// One attack-type dispatch stage: the client module that consumes a protocol
+/// field's value, and every value it is willing to dispatch.
+export interface BattleAttackTypeStage {
+  id: "day-shelling" | "night-shelling" | "opening-anti-submarine";
+  protocolField: string;
+  protocolSources: string[];
+  consumerReadableName: string;
+  consumerModuleIds: string[];
+  acceptedValues: number[];
+  fallback: BattleAttackTypeFallback | null;
+  effectiveAcceptedValues: number[];
+  notes: string;
+}
+
+/// Where a stage sends a value its own dispatch does not name.
+export interface BattleAttackTypeFallback {
+  readableName: string;
+  moduleIds: string[];
+  acceptedValues: number[];
+  /// `true` when the fallback throws on anything outside `acceptedValues`, so
+  /// the stage's effective acceptance is a closed set.
+  closed: boolean;
+}
+
 export interface BattleModuleKnowledge {
   id: string;
   readableName: string;
@@ -93,6 +117,7 @@ export interface BattleKnowledgeSummary {
   protocolFieldCount: number;
   resourceRuleCount: number;
   slotResourceTriggerCount: number;
+  attackTypeStageCount: number;
   explicitResourcePathCount: number;
   shipResourceRuleCount: number;
   slotitemResourceRuleCount: number;
@@ -126,11 +151,18 @@ export interface BattleSlotResourceTriggersAsset {
   triggers: BattleSlotResourceTrigger[];
 }
 
+export interface BattleAttackTypeAcceptanceAsset {
+  scriptVersion: string;
+  summary: Pick<BattleKnowledgeSummary, "attackTypeStageCount">;
+  stages: BattleAttackTypeStage[];
+}
+
 export interface BattleKnowledge {
   summary: BattleKnowledgeSummary;
   protocolFields: BattleProtocolFieldRule[];
   resourceRules: BattleResourceRule[];
   slotResourceTriggers: BattleSlotResourceTrigger[];
+  attackTypeStages: BattleAttackTypeStage[];
   modules: BattleModuleKnowledge[];
 }
 
@@ -304,6 +336,7 @@ export interface PipelineArtifacts {
   battleResourceRulesFile: string;
   battleModuleIndexFile: string;
   battleSlotResourceTriggersFile: string;
+  battleAttackTypeAcceptanceFile: string;
   resourcesDir: string;
   resourceCategoriesFile: string;
   resourceIdSetsFile: string;

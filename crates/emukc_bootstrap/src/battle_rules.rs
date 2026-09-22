@@ -21,6 +21,8 @@ const EMBEDDED_BATTLE_RESOURCE_RULES_JSON: &str =
 const EMBEDDED_BATTLE_MODULE_INDEX_JSON: &str = include_str!("../assets/battle_module_index.json");
 const EMBEDDED_BATTLE_SLOT_RESOURCE_TRIGGERS_JSON: &str =
     include_str!("../assets/battle_slot_resource_triggers.json");
+const EMBEDDED_BATTLE_ATTACK_TYPE_ACCEPTANCE_JSON: &str =
+    include_str!("../assets/battle_attack_type_acceptance.json");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RepoBattleKnowledgeSource {
@@ -34,6 +36,7 @@ pub struct BattleKnowledgeAssetSources {
     pub resource_rules: RepoBattleKnowledgeSource,
     pub module_index: RepoBattleKnowledgeSource,
     pub slot_resource_triggers: RepoBattleKnowledgeSource,
+    pub attack_type_acceptance: RepoBattleKnowledgeSource,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -166,6 +169,55 @@ pub struct BattleSlotResourceTriggersAsset {
     pub triggers: Vec<BattleSlotResourceTrigger>,
 }
 
+/// Where a consumer sends attack-type values its own dispatch does not name.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BattleAttackTypeFallback {
+    pub readable_name: String,
+    pub module_ids: Vec<String>,
+    pub accepted_values: Vec<i64>,
+    pub closed: bool,
+}
+
+/// One dispatch stage: the client module that consumes an attack-type field,
+/// and every value it is willing to dispatch. Decoded from `main.js`; the
+/// client is the only source for what it accepts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BattleAttackTypeStage {
+    pub id: String,
+    pub protocol_field: String,
+    pub protocol_sources: Vec<String>,
+    pub consumer_readable_name: String,
+    pub consumer_module_ids: Vec<String>,
+    pub accepted_values: Vec<i64>,
+    pub fallback: Option<BattleAttackTypeFallback>,
+    pub effective_accepted_values: Vec<i64>,
+    pub notes: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BattleAttackTypeAcceptanceSummary {
+    pub attack_type_stage_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BattleAttackTypeAcceptanceAsset {
+    pub script_version: String,
+    pub summary: BattleAttackTypeAcceptanceSummary,
+    pub stages: Vec<BattleAttackTypeStage>,
+}
+
+impl BattleAttackTypeAcceptanceAsset {
+    /// The stage whose id matches, or `None` when this bundle has no such
+    /// consumer.
+    pub fn stage(&self, id: &str) -> Option<&BattleAttackTypeStage> {
+        self.stages.iter().find(|stage| stage.id == id)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BattleKnowledgeAssets {
     pub sources: BattleKnowledgeAssetSources,
@@ -173,6 +225,7 @@ pub struct BattleKnowledgeAssets {
     pub resource_rules: BattleResourceRulesAsset,
     pub module_index: BattleModuleIndexAsset,
     pub slot_resource_triggers: BattleSlotResourceTriggersAsset,
+    pub attack_type_acceptance: BattleAttackTypeAcceptanceAsset,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -329,6 +382,10 @@ pub fn repo_battle_slot_resource_triggers_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_slot_resource_triggers.json")
 }
 
+pub fn repo_battle_attack_type_acceptance_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_attack_type_acceptance.json")
+}
+
 fn load_text_asset_from(
     path: &Path,
     embedded: &'static str,
@@ -359,6 +416,11 @@ pub fn load_repo_battle_knowledge_assets() -> io::Result<BattleKnowledgeAssets> 
         &slot_resource_triggers_path,
         EMBEDDED_BATTLE_SLOT_RESOURCE_TRIGGERS_JSON,
     )?;
+    let attack_type_acceptance_path = repo_battle_attack_type_acceptance_path();
+    let (attack_type_acceptance_source, attack_type_acceptance_json) = load_text_asset_from(
+        &attack_type_acceptance_path,
+        EMBEDDED_BATTLE_ATTACK_TYPE_ACCEPTANCE_JSON,
+    )?;
 
     Ok(BattleKnowledgeAssets {
         sources: BattleKnowledgeAssetSources {
@@ -366,11 +428,13 @@ pub fn load_repo_battle_knowledge_assets() -> io::Result<BattleKnowledgeAssets> 
             resource_rules: resource_source,
             module_index: module_index_source,
             slot_resource_triggers: slot_resource_triggers_source,
+            attack_type_acceptance: attack_type_acceptance_source,
         },
         protocol_fields: serde_json::from_str(&protocol_json)?,
         resource_rules: serde_json::from_str(&resource_json)?,
         module_index: serde_json::from_str(&module_index_json)?,
         slot_resource_triggers: serde_json::from_str(&slot_resource_triggers_json)?,
+        attack_type_acceptance: serde_json::from_str(&attack_type_acceptance_json)?,
     })
 }
 
@@ -1383,6 +1447,12 @@ mod tests {
     use super::*;
     use emukc_model::kc2::start2::{ApiMstShip, ApiMstShipgraph, ApiMstSlotitem};
 
+    /// The real decoded acceptance sets. Validator tests assert against what
+    /// the client actually dispatches, not a hand-written stand-in.
+    fn test_attack_type_acceptance() -> BattleAttackTypeAcceptanceAsset {
+        serde_json::from_str(EMBEDDED_BATTLE_ATTACK_TYPE_ACCEPTANCE_JSON).unwrap()
+    }
+
     fn build_day_battle_assets() -> BattleKnowledgeAssets {
         BattleKnowledgeAssets {
             sources: BattleKnowledgeAssetSources {
@@ -1390,6 +1460,7 @@ mod tests {
                 resource_rules: RepoBattleKnowledgeSource::Embedded,
                 module_index: RepoBattleKnowledgeSource::Embedded,
                 slot_resource_triggers: RepoBattleKnowledgeSource::Embedded,
+                attack_type_acceptance: RepoBattleKnowledgeSource::Embedded,
             },
             protocol_fields: BattleProtocolFieldsAsset {
                 script_version: "test".to_string(),
@@ -1502,6 +1573,7 @@ mod tests {
                     notes: "Cutin text consumer".to_string(),
                 }],
             },
+            attack_type_acceptance: test_attack_type_acceptance(),
         }
     }
 
@@ -1597,6 +1669,37 @@ mod tests {
         );
     }
 
+    /// R2/R7: the synced acceptance asset is the validator's ground truth, so a
+    /// decoder run that loses a stage or drops the Danchaku guard must be
+    /// visible here and not only in `drift-check`.
+    #[test]
+    fn embedded_attack_type_acceptance_covers_every_dispatch_stage() {
+        let asset = test_attack_type_acceptance();
+
+        let day = asset.stage("day-shelling").expect("day-shelling stage");
+        assert_eq!(day.protocol_field, "api_at_type");
+        // 2 = 連撃, 7 = 空母カットイン: both legal in day shelling.
+        assert!(day.accepted_values.contains(&2));
+        assert!(day.accepted_values.contains(&7));
+
+        let night = asset.stage("night-shelling").expect("night-shelling stage");
+        assert_eq!(night.protocol_field, "api_sp_list");
+        // The night module is a different copy under the same readableName:
+        // 1 is 連撃 there, and 2 means 主砲魚雷 rather than 連撃.
+        assert!(night.accepted_values.contains(&1));
+        assert!(!night.accepted_values.contains(&2));
+        assert!(night.effective_accepted_values.contains(&2));
+
+        let opening = asset.stage("opening-anti-submarine").expect("opening-anti-submarine stage");
+        assert_eq!(opening.accepted_values, vec![0, 2]);
+        let fallback = opening.fallback.as_ref().expect("PhaseAttackDanchaku fallback");
+        assert_eq!(fallback.readable_name, "PhaseAttackDanchaku");
+        assert!(fallback.closed, "Danchaku throws outside its own set, so the set is closed");
+        assert_eq!(opening.effective_accepted_values, vec![0, 2, 3, 4, 5, 6, 200, 201]);
+        // The whole point of R1: 7 reaches the Danchaku constructor and throws.
+        assert!(!opening.effective_accepted_values.contains(&7));
+    }
+
     #[test]
     fn load_text_asset_from_falls_back_to_embedded() {
         let (source, raw) =
@@ -1613,6 +1716,7 @@ mod tests {
                 resource_rules: RepoBattleKnowledgeSource::Embedded,
                 module_index: RepoBattleKnowledgeSource::Embedded,
                 slot_resource_triggers: RepoBattleKnowledgeSource::Embedded,
+                attack_type_acceptance: RepoBattleKnowledgeSource::Embedded,
             },
             protocol_fields: BattleProtocolFieldsAsset {
                 script_version: "test".to_string(),
@@ -1665,6 +1769,7 @@ mod tests {
                 },
                 triggers: vec![],
             },
+            attack_type_acceptance: test_attack_type_acceptance(),
         };
 
         let response = serde_json::json!({

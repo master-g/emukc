@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import {
   extractBattleKnowledge,
+  toBattleAttackTypeAcceptanceAsset,
   toBattleModuleIndexAsset,
   toBattleProtocolFieldsAsset,
   toBattleResourceRulesAsset,
@@ -39,6 +40,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     battleResourceRulesFile: resolve(battleDir, "battle_resource_rules.json"),
     battleModuleIndexFile: resolve(battleDir, "battle_module_index.json"),
     battleSlotResourceTriggersFile: resolve(battleDir, "battle_slot_resource_triggers.json"),
+    battleAttackTypeAcceptanceFile: resolve(battleDir, "battle_attack_type_acceptance.json"),
     resourcesDir,
     resourceCategoriesFile: resolve(resourcesDir, "resource_categories.json"),
     resourceIdSetsFile: resolve(resourcesDir, "resource_id_sets.json"),
@@ -54,6 +56,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   const battleResourceRulesAsset = toBattleResourceRulesAsset(result.loaded.scriptVersion, result.battleKnowledge);
   const battleModuleIndexAsset = toBattleModuleIndexAsset(result.loaded.scriptVersion, result.battleKnowledge);
   const battleSlotResourceTriggersAsset = toBattleSlotResourceTriggersAsset(result.loaded.scriptVersion, result.battleKnowledge);
+  const battleAttackTypeAcceptanceAsset = toBattleAttackTypeAcceptanceAsset(result.loaded.scriptVersion, result.battleKnowledge);
 
   await writeTextFile(artifacts.versionFile, `${result.loaded.scriptVersion}\n`);
   await writeTextFile(artifacts.decoderRuntimeFile, formatJavaScript(result.sections.decoderRuntimeSource));
@@ -98,6 +101,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   await writeTextFile(artifacts.battleResourceRulesFile, `${JSON.stringify(battleResourceRulesAsset, null, 2)}\n`);
   await writeTextFile(artifacts.battleModuleIndexFile, `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
   await writeTextFile(artifacts.battleSlotResourceTriggersFile, `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
+  await writeTextFile(artifacts.battleAttackTypeAcceptanceFile, `${JSON.stringify(battleAttackTypeAcceptanceAsset, null, 2)}\n`);
   await writeTextFile(artifacts.resourceCategoriesFile, `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
   await writeTextFile(artifacts.resourceIdSetsFile, `${JSON.stringify(result.resourceIdSets, null, 2)}\n`);
   await writeTextFile(artifacts.audioResourcesFile, `${JSON.stringify(result.audioResources, null, 2)}\n`);
@@ -113,6 +117,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_resource_rules.json"), `${JSON.stringify(battleResourceRulesAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_module_index.json"), `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "battle_slot_resource_triggers.json"), `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "battle_attack_type_acceptance.json"), `${JSON.stringify(battleAttackTypeAcceptanceAsset, null, 2)}\n`);
   }
   if (options.syncAssets === true) {
     await writeTextFile(resolve(bootstrapAssetsDir, "resource_categories.json"), `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
