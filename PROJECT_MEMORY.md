@@ -113,10 +113,15 @@ Current verification baseline:
 
 - [2026-09-21] `emukc_battle` 里的 `escort` 绝大多数指「旗艦援護/かばう」（旗舰护盾），
   与联合舰队的护卫舰队同名不同义。判断联合舰队相关代码要看 `combined*`，不要 grep `escort`。
-- [2026-09-21] 改修配方不需要新数据源：codex 的 `slotitem_extra_info.improvement` 覆盖 174 件装备
-  （分档材料、消耗装备/道具、秘书舰）。`secretary` 是**二番舰**（睦月/如月系）不是旗舰，旗舰必须是
-  明石(182)/明石改(187)；variant 配方在 ★0–★9 仍是普通改修，只在 ★10 转换，所以「有 variant」不等于
-  「只能更新」（12cm単装砲(1) 无 `level_consumption`）。
+- [2026-09-22] 改修配方不需要新数据源，且已对官方验证：codex `slotitem_extra_info.improvement` 的
+  `base_consumption` 与官方 `remodel_slotlist` 逐字段相同，官方 `api_req_buildkit`/`api_req_remodelkit`
+  就是 codex 的 `dev_mat_min`/`screw_min`（发 min，不发范围）。`secretary` 是**二番舰**不是旗舰，旗舰
+  必须明石(182)/明石改(187)；variant 在 ★0–★9 仍是普通改修，只在 ★10 转换。
+- [2026-09-22] 真实 questlist：服务端**按 `api_tab_id` 过滤**，tab↔`api_type` 1:1（0 全部/9 进行中/
+  1 日/2 周/3 月/4 单发/5 其他），`api_label_type` 固定 type1→2、2→3、3→6、4→1、5→7+101..111；
+  进行中为空时 `api_list` 是 **null** 不是 `[]`。样本 `z/snapshot/2026-09-22/quest_tab*.json`。
+- [2026-09-22] 官方 `api_start2` 的 `api_mst_mission`（63 条）**没有解锁条件字段**，消耗是比例
+  （`api_use_fuel:0.3`）：TODO 的「远征解锁表可靠数据源」不要再去 start2 找。
 - [2026-09-21] 联合舰队 friendly 索引有三层空间（模拟连续 / 客户端固定从 6 / 切片本地编号），
   缺一层就把命中记到错误的舰上：`docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
 
@@ -154,7 +159,7 @@ Current verification baseline:
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
 | 2026-08-26 stale cache-list incident: `bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed main.js; decode and make-list then consumed stale inputs. Diagnose from `version.json` and main.js mtime, not from make-list. | session 2026-08-26 |
 | `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
-| pi-lens edit-time dispatch re-runs shellcheck on every Makefile edit and ignores `.pi-lens.json`'s ignore glob; shellcheck cannot parse Make syntax. Fixed in both `.shellcheckrc` and `.pi-lens.json` rules.disable. Session cache replays persist until the session ends. | git `b0284d1`, `83ecebb` |
+| pi-lens 每次编辑 Makefile 都重跑 shellcheck（解析不了 Make 语法）且无视 ignore glob；已在 `.shellcheckrc` 与 `.pi-lens.json` 修好，但会话缓存会重放到会话结束。 | git `b0284d1`, `83ecebb` |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `crates/emukc_gameplay/tests/practice_battle.rs` asserts an unseeded battle's `api_win_rank`, so 2 of its 11 tests fail at roughly a 1-in-3 rate on any commit — it is not a regression signal. Re-run the single target before blaming a change. | session 2026-09-18 |
@@ -164,7 +169,7 @@ Current verification baseline:
 | [2026-09-21] `emukc_time`'s `test_jst_next_28/370_day_of_the_month` failures are DATE-dependent: they overflowed at `lib.rs:355` on 09-20 and passed untouched on 09-21. Note the date before calling them baseline. | sessions 2026-09-18, 09-21 |
 | `cargo clippy` 默认档比 `-D warnings` 宽（漏过 `match`→`let-else`），但 `-D` 会被既有的 `result_large_err`（`emukc_network/src/download.rs:236`、`src/bin/net/auth.rs:139`）挡住。仓库门是 `-W warnings`；新代码用 touched-file 的 `-D` 检查。 | plan 004 U7、sessions 2026-09-18/19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
-| [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` gives FALSE results: `.bak` keeps the ORIGINAL mtime, so cargo sees no change and reuses the artifact built from the EDITED file. `touch` X after restoring and re-run. | session 2026-09-19 |
+| [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` 给假结果：`.bak` 保留原 mtime，cargo 认为没变，复用按**改动后**源码编出的产物。还原后必须 `touch` 再跑。 | session 2026-09-19 |
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
 | [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
 | [2026-09-19] A refactor comment saying "keeps feeding X as before" was preserving a bug: plan 002 froze the day-battle `enemy_nowhps` copy, so night-only sinks fired no quest event. Treat "as before" as unverified. | git `HEAD` |
@@ -203,5 +208,4 @@ Current verification baseline:
   真实存档快照在 `z/snapshot/2026-09-22/`（13 份，含 port）。
 - 战斗侧新积压一条：特殊攻击（`api_at_type = 100`）按每参战舰发一条记录，
   官方是一条记录带三个目标。取值合法所以新闸门抓不到，见 `docs/battle/rules.md` Follow-up。
-- 更早的积压未变：対空/阵形建模要先做「補正表能否解码」的 spike；审计集 013 等
-  上游版本变动；联合舰队剩 5 个敌联合端点卡在数据不存在。
+- 更早积压未变：対空/阵形建模先做「補正表能否解码」spike；审计集 013 等上游版本；敌联合 5 端点卡在数据不存在。
