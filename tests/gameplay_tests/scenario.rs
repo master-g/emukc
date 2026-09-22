@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests {
+    use emukc_internal::crypto::rng;
     use emukc_internal::prelude::*;
 
     async fn new_profile(context: &crate::TestContext) -> i64 {
@@ -137,6 +138,35 @@ mod tests {
         assert_eq!(mst_ids, vec![7, 7, 12, 25]);
     }
 
+    /// `ShipSpec::asw_mod` is the one modernisation lever a preset has: it is an
+    /// input to `cal_ship_status` rather than a derived stat, so unlike
+    /// `api_taisen[0]` it survives the recalculation every write path ends in.
+    #[tokio::test]
+    async fn declared_asw_modernisation_reaches_the_recalculated_stat() {
+        let ctx = crate::TestContext::new().await;
+        let pid = new_profile(&ctx).await;
+
+        let plain = Scenario {
+            fleet: vec![ShipSpec::new(629, 99)],
+            ..Default::default()
+        };
+        let modernised = Scenario {
+            fleet: vec![ShipSpec::new(629, 99).with_asw_mod(9)],
+            ..Default::default()
+        };
+        let plain_ids = apply_scenario(&ctx, pid, &plain).await.unwrap();
+        let modernised_ids = apply_scenario(&ctx, pid, &modernised).await.unwrap();
+
+        let plain_asw = ctx.find_ship(plain_ids[0]).await.unwrap().unwrap().api_taisen[0];
+        let modernised_ship = ctx.find_ship(modernised_ids[0]).await.unwrap().unwrap();
+        assert_eq!(modernised_ship.api_kyouka[6], 9);
+        assert_eq!(
+            modernised_ship.api_taisen[0],
+            plain_asw + 9,
+            "modernisation is an input to the recalculation, not a value it overwrites"
+        );
+    }
+
     #[tokio::test]
     async fn opening_asw_preset_crosses_the_destroyer_threshold() {
         let ctx = crate::TestContext::new().await;
@@ -177,18 +207,31 @@ mod tests {
 
         // 4-3 routes any fleet containing a 正規空母 to the one cell off its
         // start point whose every composition is submarines, so the single
-        // battle the gate simulates actually reaches the phase.
-        ctx.start_sortie(pid, 1, 4, 3).await.expect("opening_asw should sortie 4-3");
-        ctx.sortie_battle(pid, 1).await.expect("battle should resolve");
+        // battle the gate simulates actually reaches the phase. Driven across
+        // several seeds because that routing claim is the point of the preset:
+        // a seed-dependent result would mean the routing is not what the
+        // comment says it is.
+        let baseline = ctx.get_ships(pid).await.unwrap();
+        for seed in [1_u64, 2, 3] {
+            ctx.clear_sortie_state_if_any(pid).await;
+            for ship in &baseline {
+                ctx.update_ship(ship).await.unwrap();
+            }
+            rng::seed(seed);
 
-        let session = ctx.sortie_store().get_pending_battle(pid).expect("pending battle");
-        assert_eq!(session.packet.opening_taisen_flag, 1, "opening ASW must fire");
-        let taisen = session.packet.opening_taisen.as_ref().expect("opening ASW payload");
-        assert!(
-            taisen.api_at_type.iter().all(|t| *t == 0),
-            "opening ASW reports attack type 0: {:?}",
-            taisen.api_at_type
-        );
+            ctx.start_sortie(pid, 1, 4, 3).await.expect("opening_asw should sortie 4-3");
+            ctx.sortie_battle(pid, 1).await.expect("battle should resolve");
+
+            let session = ctx.sortie_store().get_pending_battle(pid).expect("pending battle");
+            assert_eq!(session.packet.opening_taisen_flag, 1, "seed {seed}: opening ASW must fire");
+            let taisen = session.packet.opening_taisen.as_ref().expect("opening ASW payload");
+            assert!(
+                taisen.api_at_type.iter().all(|t| *t == 0),
+                "seed {seed}: opening ASW reports attack type 0: {:?}",
+                taisen.api_at_type
+            );
+        }
+        rng::reseed_from_entropy();
     }
 
     #[tokio::test]

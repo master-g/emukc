@@ -32,7 +32,7 @@ pub mod prelude {
         game::SortieStore,
         game::types::*,
         gameplay::Ctx,
-        scenario::{PRESETS, Preset, Scenario, ShipSpec, apply_scenario},
+        scenario::{PRESETS, PhaseExpectation, Preset, Scenario, ShipSpec, apply_scenario},
         user::{AccountInfo, AuthInfo, StartGameInfo, UserError},
     };
 }

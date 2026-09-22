@@ -70,7 +70,7 @@ struct AnalyzeIncidentArgs {
 
 #[derive(Debug, Args)]
 struct SimArgs {
-    #[arg(help = "Named preset scenario: fresh_1_1 or leveled_for_mid_boss")]
+    #[arg(help = "Named preset scenario; an unknown name lists the registry")]
     #[arg(long, value_name = "NAME")]
     scenario: String,
 
@@ -90,7 +90,7 @@ struct SimArgs {
     #[arg(long, default_value_t = 1)]
     formation: i64,
 
-    #[arg(help = "Search seeds for a branch instead of running one: night or cutin")]
+    #[arg(help = "Search seeds for a branch instead of running one: night, cutin or asw")]
     #[arg(long, value_name = "PREDICATE")]
     find: Option<String>,
 

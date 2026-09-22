@@ -1,14 +1,15 @@
 //! Day shelling phase simulation.
 
 use emukc_model::codex::Codex;
+use emukc_model::kc2::types::KcSlotItemType3;
 
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
 use crate::simulation::day_cutin::{DayAttackType, carrier_ci_display_ids, resolve_day_attack};
 use crate::simulation::special_attack;
 use crate::targeting::{
-    can_shell_day_ship, day_attack_display_ids, day_gunnery_display_ids,
-    select_random_target_index, target_class,
+    can_shell_day_ship, day_attack_display_ids, day_gunnery_display_ids, is_ap_shell_type,
+    is_radar_type, select_random_target_index, target_class,
 };
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams, SiListId};
 
@@ -167,7 +168,7 @@ pub(crate) fn simulate_shelling_side(
                     idx,
                     resolved.at_type as i64,
                     vec![target_idx as i64; 2],
-                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 2)),
+                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 2, None)),
                     damages,
                     shield,
                 );
@@ -194,9 +195,18 @@ pub(crate) fn simulate_shelling_side(
                         resolved.carrier_sub.expect("CarrierCI must have sub-type"),
                     ))
                 } else if resolved.at_type != DayAttackType::Normal {
-                    // Artillery spotting CI (at_type 3-6): every one of them is
-                    // formed from guns, so only guns belong in the display.
-                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 3))
+                    // Artillery spotting CI (at_type 3-6). Each is formed from
+                    // guns plus, for two of them, the piece that qualified it:
+                    // 主砲/電探 needs the radar and the 徹甲弾 cut-ins need the
+                    // shell, and the client draws all three slots.
+                    let extra: Option<fn(KcSlotItemType3) -> bool> = match resolved.at_type {
+                        DayAttackType::MainRadarCI => Some(is_radar_type),
+                        DayAttackType::MainApSecCI | DayAttackType::MainApMainCI => {
+                            Some(is_ap_shell_type)
+                        }
+                        _ => None,
+                    };
+                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 3, extra))
                 } else {
                     SiListId::num_from_i64(&day_attack_display_ids(codex, ship, false))
                 };
@@ -519,6 +529,80 @@ mod tests {
             }
         }
         assert_eq!(DayAttackType::Normal as i64, 0, "Normal must serialize as api_at_type 0");
+    }
+
+    /// The wire values these variants serialize to are read by the client and,
+    /// separately, hardcoded in `emukc_bootstrap` (which cannot depend on this
+    /// crate) to decide whether a day carrier cut-in suppresses its name plate.
+    /// Pin them here so the two copies cannot drift apart silently.
+    #[test]
+    fn day_attack_type_discriminants_match_the_protocol() {
+        use crate::simulation::day_cutin::DayAttackType;
+
+        assert_eq!(DayAttackType::Normal as i64, 0);
+        assert_eq!(DayAttackType::DoubleAttack as i64, 2);
+        assert_eq!(DayAttackType::MainSecCI as i64, 3);
+        assert_eq!(DayAttackType::MainRadarCI as i64, 4);
+        assert_eq!(DayAttackType::MainApSecCI as i64, 5);
+        assert_eq!(DayAttackType::MainApMainCI as i64, 6);
+        // `CARRIER_CUTIN_ATTACK_TYPE` in emukc_bootstrap/src/battle_rules.rs.
+        assert_eq!(DayAttackType::CarrierCI as i64, 7);
+    }
+
+    /// The artillery cut-ins that need a radar or an armour piercing shell name
+    /// it: the client draws three slots and those pieces are what qualified the
+    /// attack. Both have a name plate upstream, so naming them stays covered.
+    #[test]
+    fn artillery_cutin_names_the_piece_that_qualified_it() {
+        use crate::simulation::day_cutin::{DayAttackType, detect_day_attack_type};
+        use crate::targeting::{day_gunnery_display_ids, is_ap_shell_type, is_radar_type};
+        use crate::types::AirState;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let secondary_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SecondaryGun);
+        let radar_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
+        let ap_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::ArmorPiercingShell);
+        let seaplane_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedRecon);
+
+        // 主砲 + 副砲 + 電探 + 水偵 resolves to MainRadarCI.
+        let mut radar_ship = sample_ship(&codex, bb_mst, 99);
+        radar_ship.slot_items = vec![
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(secondary_id),
+            slotitem_with_mst_id(radar_id),
+            slotitem_with_mst_id(seaplane_id),
+        ];
+        radar_ship.ship.api_onslot = [0, 0, 0, 1, 0];
+        let radar_ship = BattleRuntimeShip::from(radar_ship);
+        assert_eq!(
+            detect_day_attack_type(&codex, &radar_ship, Some(&AirState::Supremacy)),
+            Some(DayAttackType::MainRadarCI)
+        );
+        assert_eq!(
+            day_gunnery_display_ids(&codex, &radar_ship, 3, Some(is_radar_type)),
+            vec![main_gun_id, secondary_id, radar_id]
+        );
+
+        // 主砲 x2 + 徹甲弾 + 水偵 resolves to MainApMainCI.
+        let mut ap_ship = sample_ship(&codex, bb_mst, 99);
+        ap_ship.slot_items = vec![
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(main_gun_id),
+            slotitem_with_mst_id(ap_id),
+            slotitem_with_mst_id(seaplane_id),
+        ];
+        ap_ship.ship.api_onslot = [0, 0, 0, 1, 0];
+        let ap_ship = BattleRuntimeShip::from(ap_ship);
+        assert_eq!(
+            detect_day_attack_type(&codex, &ap_ship, Some(&AirState::Supremacy)),
+            Some(DayAttackType::MainApMainCI)
+        );
+        assert_eq!(
+            day_gunnery_display_ids(&codex, &ap_ship, 3, Some(is_ap_shell_type)),
+            vec![main_gun_id, main_gun_id, ap_id]
+        );
     }
 
     /// R3 end to end: 航空戦艦 with 瑞雲 plus guns. Day cut-ins and 連撃 are gun

@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { extractBattleAttackTypeStages, extractBattleKnowledge } from "../src/battle-knowledge.ts";
+import { extractBattleAttackTypeStages } from "../src/battle-attack-types.ts";
+import { extractBattleKnowledge } from "../src/battle-knowledge.ts";
 import type { ModuleArtifact, ModuleGraph } from "../src/types.ts";
 
 function createModule(overrides: Partial<ModuleArtifact> & Pick<ModuleArtifact, "id" | "fileName" | "moduleKind" | "cleanupTier" | "source">): ModuleArtifact {
@@ -394,6 +395,15 @@ test("refuses to guess when the consumers do not disambiguate a stage", () => {
   const graph = attackTypeGraph({ dayAlsoRequiresNightHougeki: true });
 
   expect(() => extractBattleAttackTypeStages(graph)).toThrow(/cannot disambiguate battle side/);
+});
+
+test("refuses to ship an acceptance asset that lost a stage", () => {
+  // A battle graph that resolves some stages but not all is drift: the dropped
+  // stage's assertion would be permanently true on the Rust side.
+  const graph = attackTypeGraph();
+  graph.modules = graph.modules.filter(module => module.readableName !== "PhasePreAntiSubmarine");
+
+  expect(() => extractBattleAttackTypeStages(graph)).toThrow(/opening-anti-submarine/);
 });
 
 test("refuses to merge same-named consumers that disagree on a stage", () => {

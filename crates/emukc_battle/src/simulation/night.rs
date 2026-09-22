@@ -673,6 +673,15 @@ fn night_attack_display_ids(
     let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         is_day_surface_display_type(slot_type)
     });
+    let night_fighters = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::CarrierBasedFighter
+    });
+    let night_dive_bombers = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::CarrierBasedDiveBomber
+    });
+    let night_torpedo_bombers = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::CarrierBasedTorpedoBomber
+    });
 
     let mut ids = Vec::new();
     match attack_type {
@@ -713,7 +722,17 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &main_guns, 2);
             extend_limit(&mut ids, &secondary_guns, 2);
         }
-        NightAttackType::CarrierNightCI(_) | NightAttackType::Normal => {
+        // 空母カットイン draws the night air group that formed it. This is the
+        // one night path that loads a name plate -- `PreloadCutinKubo` asks for
+        // `btxt_flat` when `night == 1` -- and the night-capable aircraft are
+        // exactly the ones that have one upstream, so naming them is both
+        // correct and covered.
+        NightAttackType::CarrierNightCI(_) => {
+            extend_limit(&mut ids, &night_fighters, 1);
+            extend_limit(&mut ids, &night_dive_bombers, 2);
+            extend_limit(&mut ids, &night_torpedo_bombers, 3);
+        }
+        NightAttackType::Normal => {
             extend_limit(&mut ids, &surface_ids, 1);
         }
     }
@@ -2338,7 +2357,7 @@ mod display_narrowing_tests {
         let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
         let ship = seaplane_bomber_battleship(&codex);
 
-        let ids = day_gunnery_display_ids(&codex, &ship, 2);
+        let ids = day_gunnery_display_ids(&codex, &ship, 2, None);
 
         assert!(!ids.contains(&zuiun_id), "連撃 must not display a seaplane bomber: {ids:?}");
     }
@@ -2375,7 +2394,10 @@ mod display_narrowing_tests {
             night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack),
             vec![main_gun_id, secondary_id]
         );
-        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![main_gun_id, secondary_id]);
+        assert_eq!(
+            day_gunnery_display_ids(&codex, &ship, 2, None),
+            vec![main_gun_id, secondary_id]
+        );
     }
 
     /// One gun means one entry. The list converges on what the ship carries; it
@@ -2394,7 +2416,41 @@ mod display_narrowing_tests {
             night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack),
             vec![main_gun_id]
         );
-        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![main_gun_id]);
+        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2, None), vec![main_gun_id]);
+    }
+
+    /// The night carrier cut-in is the one night path that loads a name plate,
+    /// so it must name the air group rather than fall through to the gun set a
+    /// carrier does not carry.
+    #[test]
+    fn night_carrier_cutin_names_its_air_group() {
+        use super::CarrierNightCiSubType;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cv_mst = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let fighter_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
+        let dive_bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let torpedo_bomber_id =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+
+        let mut input = sample_ship(&codex, cv_mst, 99);
+        input.slot_items = vec![
+            slotitem_with_mst_id(fighter_id),
+            slotitem_with_mst_id(dive_bomber_id),
+            slotitem_with_mst_id(torpedo_bomber_id),
+        ];
+        input.ship.api_onslot = [18, 18, 18, 0, 0];
+        let ship = BattleRuntimeShip::from(input);
+
+        let ids = night_attack_display_ids(
+            &codex,
+            &ship,
+            NightAttackType::CarrierNightCI(CarrierNightCiSubType::Nf2Na),
+        );
+
+        assert_eq!(ids, vec![fighter_id, dive_bomber_id, torpedo_bomber_id]);
+        assert_ne!(ids, vec![-1], "a carrier carries no guns; the gun set would name nothing");
     }
 
     /// R6 for R3: proof the narrowing is not vacuous. A ship whose only
@@ -2414,7 +2470,7 @@ mod display_narrowing_tests {
 
         assert!(!crate::targeting::is_day_surface_display_type(KcSlotItemType3::SeaBasedBomber));
         assert_eq!(crate::targeting::day_attack_display_ids(&codex, &ship, false), vec![-1]);
-        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2), vec![-1]);
+        assert_eq!(day_gunnery_display_ids(&codex, &ship, 2, None), vec![-1]);
         assert_eq!(
             night_attack_display_ids(&codex, &ship, NightAttackType::DoubleAttack),
             vec![-1]

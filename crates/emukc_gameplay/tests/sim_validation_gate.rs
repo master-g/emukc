@@ -18,8 +18,8 @@
 use std::sync::Arc;
 
 use emukc_bootstrap::prelude::{
-    BattleValidationFindingKind, load_repo_battle_knowledge_assets, validate_day_battle_response,
-    validate_night_battle_response,
+    BattleValidationFindingKind, BattleValidationReport, load_repo_battle_knowledge_assets,
+    validate_day_battle_response, validate_night_battle_response,
 };
 use emukc_crypto::rng;
 use emukc_db::prelude::new_mem_db;
@@ -37,6 +37,48 @@ async fn mock_context() -> Ctx {
     let codex = Codex::load_without_cache_source("../../.data/codex")
         .expect("load codex from ../../.data/codex (run `cargo run -- bootstrap` first)");
     Ctx::new(Arc::new(db), Arc::new(codex))
+}
+
+/// Whether this seed's day battle reached what the preset was registered for.
+///
+/// A preset that stops producing its phase degrades into an ordinary plain
+/// battle, where every protocol assertion is trivially true -- the gate would
+/// stay green while its coverage quietly disappeared. The expectation is
+/// checked across the seed set rather than per seed, because a cut-in is a
+/// probabilistic roll while the phase's reachability is not.
+fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) -> bool {
+    let day_attack_types = || {
+        ["api_hougeki1", "api_hougeki2", "api_hougeki3"]
+            .into_iter()
+            .filter_map(|field| battle.get(field)?.get("api_at_type")?.as_array())
+            .flatten()
+            .filter_map(serde_json::Value::as_i64)
+    };
+
+    match expects {
+        PhaseExpectation::OpeningAntiSubmarine => {
+            battle.get("api_opening_taisen").is_some_and(|phase| !phase.is_null())
+        }
+        PhaseExpectation::DayCutIn => day_attack_types().any(|at_type| at_type != 0),
+        PhaseExpectation::CarrierCutIn => day_attack_types().any(|at_type| at_type == 7),
+        PhaseExpectation::PlainBattle => true,
+    }
+}
+
+/// Whether the validator derived a name plate from display equipment.
+///
+/// `expected_resources` is non-empty for any enemy fleet, because the enemy
+/// loadout and ship graphics are derived before the display pass runs. Only a
+/// `btxt_flat` entry sourced from an `api_si_list` proves the display
+/// derivation -- the part these assertions are about -- actually ran.
+fn derived_a_name_plate(report: &BattleValidationReport) -> bool {
+    report.expected_resources.iter().any(|resource| {
+        resource.target_type == "btxt_flat"
+            && resource
+                .protocol_source
+                .as_deref()
+                .is_some_and(|source| source.contains("api_si_list"))
+    })
 }
 
 async fn new_profile(context: &Ctx) -> i64 {
@@ -62,6 +104,8 @@ async fn every_preset_day_battle_passes_protocol_validation() {
         // state — accumulated sortie damage would otherwise make a run depend on
         // seed history rather than on (preset, seed) alone.
         let baseline = context.get_ships(pid).await.unwrap();
+        let mut reached = false;
+        let mut named_a_plate = false;
 
         for &seed in SEEDS {
             for ship in &baseline {
@@ -91,7 +135,29 @@ async fn every_preset_day_battle_passes_protocol_validation() {
                 "preset {} seed {seed}: validator inferred no expected resources",
                 preset.name,
             );
+            reached |= reached_expectation(&serde_json::to_value(&battle).unwrap(), preset.expects);
+            named_a_plate |= derived_a_name_plate(&report);
         }
+        assert!(
+            reached,
+            "preset {} never reached {:?} across {} seeds: its coverage is gone and every \
+             assertion above is trivially true",
+            preset.name,
+            preset.expects,
+            SEEDS.len(),
+        );
+        // Only the gunnery preset displays equipment by day. An anti-submarine
+        // attack names nothing by design, a day carrier cut-in's name plate is
+        // suppressed because `PreloadCutinKubo` only loads one at night, and the
+        // plain-battle presets carry no equipment at all -- so for those, "no
+        // name plate" is the correct answer rather than lost coverage.
+        assert!(
+            named_a_plate || preset.expects != PhaseExpectation::DayCutIn,
+            "preset {} derived no name plate from any api_si_list across {} seeds, so the \
+             resource-coverage assertion checked nothing it was added for",
+            preset.name,
+            SEEDS.len(),
+        );
         rng::reseed_from_entropy();
     }
 }
@@ -179,6 +245,19 @@ async fn gate_bites_on_display_equipment_with_no_name_plate() {
         context.codex.manifest.find_slotitem(UNCOVERED_SLOTITEM_ID).is_some(),
         "the injected id must be a real equipment, so only coverage can reject it"
     );
+    // Prove the finding comes from the corruption: without it the same payload
+    // reports no uncovered resource, so a preset that happened to carry an
+    // uncovered id could not make this test pass for the wrong reason.
+    let clean = validate_day_battle_response(&context.codex.manifest, &raw, &assets).unwrap();
+    assert!(
+        !clean
+            .findings
+            .iter()
+            .any(|finding| { finding.kind == BattleValidationFindingKind::ProtocolSuspicion }),
+        "the uncorrupted payload must be clean, otherwise this test proves nothing: {:#?}",
+        clean.findings,
+    );
+
     let si_list = raw["api_hougeki1"]["api_si_list"]
         .as_array_mut()
         .expect("day shelling must carry an si_list to corrupt");
@@ -224,6 +303,7 @@ async fn every_preset_night_battle_passes_protocol_validation() {
             .unwrap_or_else(|e| panic!("preset {}: apply_scenario: {e:?}", preset.name));
 
         let baseline = context.get_ships(pid).await.unwrap();
+        let mut named_a_plate = false;
 
         for &seed in SEEDS {
             // Discard any stale sortie state from the previous seed; restore the
@@ -254,7 +334,17 @@ async fn every_preset_night_battle_passes_protocol_validation() {
                 "preset {} seed {seed}: night battle emitted no night shelling",
                 preset.name,
             );
+            named_a_plate |= derived_a_name_plate(&report);
         }
+        // 連撃 draws guns, and guns have name plates, so the gunnery preset is
+        // the one that proves the night display derivation ran at all.
+        assert!(
+            named_a_plate || preset.expects != PhaseExpectation::DayCutIn,
+            "preset {} derived no night name plate across {} seeds, so the resource-coverage \
+             assertion checked nothing on the night path",
+            preset.name,
+            SEEDS.len(),
+        );
         rng::reseed_from_entropy();
     }
 }

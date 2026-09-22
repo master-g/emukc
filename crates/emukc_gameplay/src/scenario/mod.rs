@@ -216,6 +216,24 @@ const DIVE_BOMBER_MST_ID: i64 = 23;
 /// 九七式艦攻.
 const TORPEDO_BOMBER_MST_ID: i64 = 16;
 
+/// The battle phase a preset was registered to reach.
+///
+/// The sim->validate gate asserts this on every seed: a preset whose fleet,
+/// routing, or air state drifts stops producing its phase and degrades to an
+/// ordinary plain-attack run, where every protocol assertion is trivially true.
+/// Without this the gate would stay green while its coverage quietly vanished.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhaseExpectation {
+    /// The response must carry an `api_opening_taisen` phase.
+    OpeningAntiSubmarine,
+    /// Some day shelling attack must report a non-zero `api_at_type`.
+    DayCutIn,
+    /// Some day shelling attack must report the carrier cut-in, `api_at_type` 7.
+    CarrierCutIn,
+    /// Nothing beyond a plain battle is required.
+    PlainBattle,
+}
+
 /// A named scenario preset plus its default sortie target.
 ///
 /// Enumerable so the `battle sim` CLI and the sim→validate gate iterate one
@@ -230,6 +248,8 @@ pub struct Preset {
     pub maparea: i64,
     /// Default sortie target map info no.
     pub mapinfo: i64,
+    /// What this preset exists to reach; asserted by the sim->validate gate.
+    pub expects: PhaseExpectation,
 }
 
 impl Preset {
@@ -247,30 +267,35 @@ pub const PRESETS: &[Preset] = &[
         build: Scenario::fresh_1_1,
         maparea: 1,
         mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
     },
     Preset {
         name: "leveled_for_mid_boss",
         build: Scenario::leveled_for_mid_boss,
         maparea: 2,
         mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
     },
     Preset {
         name: "opening_asw",
         build: Scenario::opening_asw,
         maparea: 4,
         mapinfo: 3,
+        expects: PhaseExpectation::OpeningAntiSubmarine,
     },
     Preset {
         name: "gunnery_cutin",
         build: Scenario::gunnery_cutin,
         maparea: 2,
         mapinfo: 1,
+        expects: PhaseExpectation::DayCutIn,
     },
     Preset {
         name: "carrier_cutin",
         build: Scenario::carrier_cutin,
         maparea: 2,
         mapinfo: 1,
+        expects: PhaseExpectation::CarrierCutIn,
     },
 ];
 
@@ -309,16 +334,19 @@ pub async fn apply_scenario(
         // `cal_ship_status`, and only the last one sees the final level and
         // loadout together, so only its derived stats are the real ones.
         let slot_count = (ship.api_slotnum.max(0) as usize).min(MAX_DECLARED_SLOTS);
+        let mut equipped_any = false;
         for (slot_idx, mst_id) in
             spec.slots.iter().copied().take(slot_count).enumerate().filter(|(_, id)| *id > 0)
         {
             let item = ctx.add_slot_item(profile_id, mst_id, 0, 0).await?;
             ctx.set_slot_item(ship.api_id, slot_idx as i64, item.api_id).await?;
+            equipped_any = true;
         }
 
         // A current-HP override has to land after the last recalculation: that
-        // pass rewrites `api_maxhp` and `api_nowhp` from the final loadout.
-        if let Some(hp) = spec.hp {
+        // pass rewrites `api_maxhp` and `api_nowhp` from the final loadout. With
+        // nothing equipped the `update_ship` above already was that pass.
+        if let Some(hp) = spec.hp.filter(|_| equipped_any) {
             let mut equipped = ctx
                 .find_ship(ship.api_id)
                 .await?

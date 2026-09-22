@@ -1012,6 +1012,13 @@ fn push_slotitem_resources(
 
 /// Day-battle attack type whose display equipment reaches `PreloadCutinKubo`,
 /// which loads a name plate only at night.
+///
+/// The same number is `DayAttackType::CarrierCI` in `emukc_battle`, which this
+/// crate cannot depend on. Two copies of a display-type fact drifting apart is
+/// what produced the archived `102 -> btxt_flat` incident, so each side pins it:
+/// here against the decoded acceptance asset in
+/// `embedded_attack_type_acceptance_covers_every_dispatch_stage`, and there
+/// against the enum in `day_attack_type_discriminants_match_the_protocol`.
 const CARRIER_CUTIN_ATTACK_TYPE: i64 = 7;
 
 /// Display equipment ids per phase, split by whether the client will also ask
@@ -1342,6 +1349,17 @@ fn check_attack_type_acceptance(
     value_field: &str,
 ) {
     let Some(stage) = assets.attack_type_acceptance.stage(stage_id) else {
+        // An asset that cannot answer the question must not read as "nothing to
+        // check": that is the silent pass this whole check exists to remove.
+        push_error(
+            report,
+            BattleValidationFindingKind::BootstrapGap,
+            Some(phase_field),
+            format!(
+                "battle knowledge carries no `{stage_id}` dispatch stage, so `{value_field}` cannot be checked"
+            ),
+            None,
+        );
         return;
     };
     let Some(phase) = object.get(phase_field).filter(|phase| !phase.is_null()) else {
@@ -2054,6 +2072,30 @@ mod tests {
             .expect("night shelling must reject 99");
         assert_eq!(finding.field.as_deref(), Some("api_hougeki.api_sp_list"));
         assert!(finding.message.contains("PhaseHougeki"), "{}", finding.message);
+    }
+
+    /// A knowledge asset that lost a stage must fail the gate rather than pass
+    /// it. Silently skipping the check is the exact failure this assertion was
+    /// added to prevent.
+    #[test]
+    fn validate_day_battle_response_reports_a_missing_dispatch_stage() {
+        let mut assets = build_day_battle_assets();
+        assets.attack_type_acceptance.stages.retain(|stage| stage.id != "opening-anti-submarine");
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_opening_taisen_flag"] = serde_json::json!(1);
+        response["api_opening_taisen"] =
+            hougeki_with_attack_types("api_at_type", serde_json::json!([0]));
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        let finding = report
+            .findings
+            .iter()
+            .find(|finding| finding.kind == BattleValidationFindingKind::BootstrapGap)
+            .expect("a missing stage must be reported");
+        assert_eq!(finding.severity, BattleValidationSeverity::Error);
+        assert!(finding.message.contains("opening-anti-submarine"), "{}", finding.message);
     }
 
     #[test]

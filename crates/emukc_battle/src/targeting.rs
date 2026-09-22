@@ -660,6 +660,11 @@ pub(crate) fn is_torpedo_type(slot_type: KcSlotItemType3) -> bool {
     TORPEDO_TYPES.contains(&slot_type)
 }
 
+/// Whether the slot type is an armour piercing shell.
+pub(crate) fn is_ap_shell_type(slot_type: KcSlotItemType3) -> bool {
+    slot_type == KcSlotItemType3::ArmorPiercingShell
+}
+
 /// Whether the slot type is a radar.
 pub(crate) fn is_radar_type(slot_type: KcSlotItemType3) -> bool {
     RADAR_DISPLAY_TYPES.contains(&slot_type)
@@ -701,7 +706,8 @@ pub(crate) fn extend_limit(target: &mut Vec<i64>, source: &[i64], limit: usize) 
 }
 
 /// Display slot-item IDs for a gun-formed attack: main guns first, then
-/// secondaries, up to `limit`.
+/// secondaries, then whatever `extra` the attack was formed with (the armour
+/// piercing shell or the radar), up to `limit`.
 ///
 /// Deliberately narrower than [`is_day_surface_display_type`], which also
 /// admits 水上爆撃機 and 艦上攻撃機 -- equipment that can take part in a plain
@@ -712,6 +718,7 @@ pub(crate) fn day_gunnery_display_ids(
     codex: &Codex,
     ship: &BattleRuntimeShip,
     limit: usize,
+    extra: Option<fn(KcSlotItemType3) -> bool>,
 ) -> Vec<i64> {
     let main_guns =
         collect_matching_slot_ids(codex, ship, |slot_type, _mst| is_main_gun_type(slot_type));
@@ -721,6 +728,11 @@ pub(crate) fn day_gunnery_display_ids(
     let mut ids = Vec::new();
     extend_limit(&mut ids, &main_guns, limit);
     extend_limit(&mut ids, &secondary_guns, limit);
+    if let Some(matches_extra) = extra {
+        let extras =
+            collect_matching_slot_ids(codex, ship, |slot_type, _mst| matches_extra(slot_type));
+        extend_limit(&mut ids, &extras, limit);
+    }
     if ids.is_empty() {
         vec![-1]
     } else {
