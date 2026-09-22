@@ -516,26 +516,33 @@ fn compose_map_id(maparea_id: i64, mapinfo_no: i64) -> i64 {
 
 /// Build the regular (non-event) map prerequisite table.
 ///
-/// **This is a project-chosen approximation, not game data.** Nothing upstream
-/// publishes what unlocks a map: `api_mst_mapinfo` carries only `api_level`,
+/// **This is an inference, not game data — but it now has one real check.**
+/// Nothing upstream publishes what unlocks a map: `api_mst_mapinfo` carries only `api_level`,
 /// `api_required_defeat_count` and `api_sally_flag`, and the wikiwiki captures
 /// under `.data/temp/wikiwiki_map/extracted` hold route, enemy and drop tables
 /// with no unlock section at all. The two structural rules below were inferred
-/// from the shape of the map list, so treat the result as a plausible default
-/// rather than evidence:
+/// from the shape of the map list:
 ///
 /// - 1-1 has no prerequisite (always unlocked)
 /// - Same area sequential: N-M requires N-(M-1) cleared
 /// - Cross-area: clearing area boss (N-4) unlocks (N+1)-1
 /// - EO maps (N-5, N-6, ...) require the preceding map in the same area
 ///
-/// Two consequences worth knowing before relying on it. The table is generated
-/// for map numbers `2..=9` in every area, so roughly half of its entries name
-/// maps that do not exist — harmless, because
-/// `check_and_unlock_dependencies_impl` joins against the profile's own map
-/// records, but it does mean the entry count says nothing about coverage. And
-/// anything the real game gates on something other than the previous map in the
-/// same area is simply not represented here.
+/// One live sample has since checked it end to end. A 2026-09-22 capture of
+/// `api_get_member/mapinfo` carried 33 entries, and the official server sends a
+/// map only once it is visible, so that list is the unlocked set for a known
+/// clear state. Running the same clear state through this table reproduces all
+/// 33 ids exactly, 1-6 and 5-6 included — both absent there, and both correctly
+/// predicted absent. See `prerequisites_reproduce_the_live_mapinfo_sample`. That
+/// covers every regular map, but only one point on the clear curve; a map gated
+/// on something other than the previous map in the same area would still pass
+/// unnoticed if that gate happened to be satisfied in the sample.
+///
+/// One quirk worth knowing: the table is generated for map numbers `2..=9` in
+/// every area, so roughly half of its entries name maps that do not exist —
+/// harmless, because `check_and_unlock_dependencies_impl` joins against the
+/// profile's own map records, but it does mean the entry count says nothing
+/// about coverage.
 pub(crate) fn build_regular_prerequisites() -> HashMap<i64, i64> {
     let mut prereqs = HashMap::new();
 
@@ -614,6 +621,45 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// The only real sample the unlock table has ever been checked against.
+    ///
+    /// `api_get_member/mapinfo` from a live account on 2026-09-22 answered 33
+    /// entries; the official server sends a map only once it is visible, so that
+    /// list *is* the unlocked set for the clear state below. Feeding the same
+    /// clear state through the prerequisite table reproduces it exactly,
+    /// including the two entries that are not obvious from the shape of the map
+    /// list: 1-6 and 5-6 are absent because 1-5 and 5-5 are not cleared.
+    ///
+    /// Capture: `z/snapshot/2026-09-22/api_get_member_mapinfo.json` (gitignored),
+    /// method in `docs/solutions/best-practices/live-api-investigation.md`.
+    #[test]
+    fn prerequisites_reproduce_the_live_mapinfo_sample() {
+        // Every regular map the codex knows, 1-1 through 7-5.
+        const UNIVERSE: [i64; 37] = [
+            11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 41, 42, 43, 44, 45, 51,
+            52, 53, 54, 55, 56, 61, 62, 63, 64, 65, 71, 72, 73, 74, 75,
+        ];
+        // `api_cleared == 1` in the capture.
+        const CLEARED: [i64; 26] = [
+            11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34, 41, 42, 43, 44, 51, 52, 53, 54, 61, 62,
+            63, 64, 71, 72,
+        ];
+        // Every `api_id` the capture carried, in order.
+        const VISIBLE: [i64; 33] = [
+            11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 41, 42, 43, 44, 45, 51, 52,
+            53, 54, 55, 61, 62, 63, 64, 65, 71, 72, 73,
+        ];
+
+        let prereqs = build_regular_prerequisites();
+        let cleared: std::collections::HashSet<i64> = CLEARED.into_iter().collect();
+        let unlocked: Vec<i64> = UNIVERSE
+            .into_iter()
+            .filter(|map_id| prereqs.get(map_id).is_none_or(|prereq| cleared.contains(prereq)))
+            .collect();
+
+        assert_eq!(unlocked, VISIBLE);
     }
 
     // ------------------------------------------------------------------ validation (U7)

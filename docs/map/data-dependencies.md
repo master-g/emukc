@@ -24,7 +24,7 @@ tags: [map, data-source, provenance, ssot]
 | 敌方编成（哪些格子出什么舰队） | 同上，一个文件 | 同上 | ⚠️ 同上 |
 | 敌舰属性（HP/火力/装备） | `enemy_ship_extra.json` | 下载 | ✅ |
 | 掉落 | `assets/map_ship_drops.json` | **无** | ❌ |
-| 地图开放条件 | `build_regular_prerequisites()` | 代码里的公式 | ⚠️ 非真实数据 |
+| 地图开放条件 | `build_regular_prerequisites()` | 代码里的公式 | ⚠️ 推断，已对一份真实抓包验证 |
 
 ## 1. 拓扑
 
@@ -92,10 +92,16 @@ agent JSON 的 `ship_drops` 都是 0）；缓存的 wikiwiki 页面里也没有�
 
 ## 5. 地图开放条件
 
-`build_regular_prerequisites()` 按两条结构规则生成，**不是数据**：同区 N-M 需要 N-(M-1)，
-跨区 (N+1)-1 需要 N-4。上游无来源——`api_mst_mapinfo` 只有 `api_level` /
+`build_regular_prerequisites()` 按两条结构规则生成：同区 N-M 需要 N-(M-1)，跨区 (N+1)-1
+需要 N-4。上游**没有**对应数据——`api_mst_mapinfo` 只有 `api_level` /
 `api_required_defeat_count` / `api_sally_flag`，36 份 wikiwiki 抽取文本 0 份含开放条件。
-详见该函数的文档注释。
+
+但它有一份真实样本可对：2026-09-22 抓的 `api_get_member/mapinfo` 发回 33 条，官方只发
+「已开放」的图，所以那份列表就是某个通关状态下的开放集合。把同一通关状态喂进这张表，
+逐个 id 复现全部 33 条，连 1-6 和 5-6 两条都对上（样本里没有它们，公式也判定未开放）。
+覆盖了全部 37 张常规图，但只是通关曲线上的一个点：若某张图真正的门是别的条件、而该条件
+在这个样本里恰好也满足，这次比对看不出来。回归测试
+`prerequisites_reproduce_the_live_mapinfo_sample` 固定了这份样本。
 
 ## 断链影响
 
