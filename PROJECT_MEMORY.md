@@ -188,21 +188,22 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 地图路由调研 + 三处修复：①`assemble.rs` 的 label overlay 查不到变体时**静默跳过**，
-  7-3 因此零路由（kcdata 只给空键变体，wikiwiki 键是 `pre/post_p_unlock`，要等 normalize 后才存在）；
-  改为挂起后补，7-3 恢复 47+139 条，全局 1905→2091。②路由的 ドラム缶 按件数算，原文是「搭載艦の隻数」，
-  改为按舰计（远征那侧按件数是对的，未动）。③`build_regular_prerequisites` 标注为本项目近似。
-- 更早：`set_plane` 撤下两阶段状态机、U4 消耗系数、`DamageCell` 修复、jukebox 78 条。
-- 门禁：`cargo test --workspace` exit 0；fmt clean；改动文件 clippy 零告警。
+- [2026-09-22] 地图数据源调研 + SSOT 收敛三步：①掉落抽成 `assets/map_ship_drops.json`（原资产里 242 格
+  无可复现来源，`ca027294` 曾因重生丢掉落而冻结资产），解除资产锁死；②`wikiwiki-map normalize` 不再把
+  合并成品写回 wikiwiki 源槽位（37→36 图、`master_cell_id` 与活动图不再混入）；③删掉不可达的 legacy
+  合并路径与描述已删解析器的文档。管线产出逐项不变：37 图 / 2091 规则 / 367 掉落格 / 16499 条。
+- 更早：7-3 路由恢复、ドラム缶 按舰计数、前置表标注为近似。
+- 门禁：`cargo test --workspace` exit 0（47 组）；fmt clean；改动文件 clippy 零告警。
 
 ## Next Session
 
-- [2026-09-22] **补 ドラム缶 / 大発動艇系 分歧数据卡在结构问题上**：涉及 2-5、5-3、5-4、5-5 共约 7 条
-  （原文见 `.data/temp/wikiwiki_map/extracted/*.txt` 的 ROUTE TABLE 段）。但
-  `wikiwiki_map_catalog.json` 的生成器（曾经的 `parser/wikiwiki_map/html.rs`）已被移除，本地没有
-  任何 agent JSON 能再生它（md5 全不匹配），管线也没有人工修正入口（`wikiwiki_overlay: None`）。
-  需要先定：手改大资产，还是新增一个受跟踪的 curated overlay 输入。
-- 基地航空隊 U4（`set_action`、`change_name`、`supply`）已不阻塞，两处消耗系数都有出处。
-- 5-6 ラバウル方面海域 有 kcdata 拓扑但零路由（wikiwiki 无此页），属数据缺口。
-- 战斗侧积压：特殊攻击 `api_at_type = 100` 按每参战舰发一条，官方是一条带三个目标，见
-  `docs/battle/rules.md` Follow-up。更早积压未变：対空/阵形 spike；审计集 013 等上游版本。
+- [2026-09-22] **分歧规则没有更好的信源**，结论与证据见 `docs/map/kancolle-map-research.md`
+  「数据源与 Single Source of Truth」。拓扑有更好的：`kcwiki/kancolle-data` 的 `map/edge.json`
+  （193 图、键是 edge id 对应 `api_no`），**尚未接入，是下一步**。
+- 现有 `wikiwiki_map_catalog.json` 仍是修复前的混合产物（含 kcdata/stat 格子元数据 + maparea 42
+  活动图）。重生需要一次 agent pass（skill `emukc-scrape-wikiwiki-mapdata`，先跑 `wikiwiki-map sync`），
+  且产出不得劣于已提交版本——本地历史 agent JSON 全是 `Unknown` 谓词，不能直接用。
+- 缺 ドラム缶 / 大発動艇系 分歧数据（2-5、5-3、5-4、5-5 约 7 条），原文在
+  `.data/temp/wikiwiki_map/extracted/*.txt` 的 ROUTE TABLE 段；补它要走上面那条 agent pass。
+- 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。
+- 战斗侧积压：`api_at_type = 100` 按每参战舰发一条，官方是一条带三目标，见 `docs/battle/rules.md`。
