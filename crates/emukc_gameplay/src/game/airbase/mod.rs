@@ -3,20 +3,31 @@ use emukc_db::{
         airbase::{base, plane as plane_db},
         map_record,
     },
-    sea_orm::{ActiveValue, QueryOrder, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
-    profile::airbase::{Airbase, PlaneInfo},
+    profile::airbase::{Airbase, PlaneInfo, SQUADRON_MAX, squadron_capacity},
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::map::get_map_records_impl;
-use super::slot_item::find_slot_items_by_id_impl;
+use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl};
 use plane::{get_planes_impl, squadrons_of};
 
 mod plane;
+
+/// Outcome of assigning or removing a squadron.
+#[derive(Debug, Clone)]
+pub struct SetPlaneResult {
+    /// `(api_base, api_bonus)` of the airbase after the change.
+    pub distance: (i64, i64),
+    /// Only the slots this call touched.
+    pub updated: Vec<PlaneInfo>,
+    /// Bauxite left, when the call spent any.
+    pub after_bauxite: Option<i64>,
+}
 
 impl Ctx {
     /// Unlock an airbase.
@@ -79,6 +90,296 @@ impl Ctx {
 
         Ok(airbases)
     }
+
+    /// Assign a squadron to an airbase slot, or clear the slot.
+    ///
+    /// `item_id` below zero clears the slot; the equipment goes back to the
+    /// inventory untouched, since a squadron only ever borrows it. Moving a
+    /// squadron between slots of the *same* airbase reports both slots, which
+    /// is the 交換時は[2] case in `docs/apilist.txt`. Moving one between two
+    /// airbases is a different endpoint — see [`Ctx::change_deployment_base`].
+    ///
+    /// ponytail: assignment tops the squadron up for free. Upstream spends
+    /// bauxite here (`api_after_bauxite` exists on the response), but the cost
+    /// per aircraft has no published source and belongs with the resupply cost
+    /// the plan defers to U4 — so this returns `after_bauxite: None`, which the
+    /// client reads as "nothing was spent". Wire both to the same figure once
+    /// U4 settles it.
+    pub async fn set_airbase_plane(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        base_id: i64,
+        squadron_id: i64,
+        item_id: i64,
+    ) -> Result<SetPlaneResult, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+
+        if !(1..=SQUADRON_MAX).contains(&squadron_id) {
+            return Err(GameplayError::WrongType(format!(
+                "squadron {squadron_id} is outside 1..={SQUADRON_MAX}"
+            )));
+        }
+
+        let tx = db.begin().await?;
+
+        find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+
+        let mut touched = vec![squadron_id];
+
+        if item_id < 0 {
+            clear_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
+        } else {
+            let item = find_slot_item_impl(&tx, item_id).await?;
+            if item.profile_id != profile_id {
+                return Err(GameplayError::EntryNotFound(format!(
+                    "slot item {item_id} does not belong to profile {profile_id}"
+                )));
+            }
+            if item.equip_on != 0 {
+                return Err(GameplayError::WrongType(format!(
+                    "slot item {item_id} is equipped on ship {}",
+                    item.equip_on
+                )));
+            }
+
+            let mst = codex.manifest.find_slotitem(item.mst_id).ok_or_else(|| {
+                GameplayError::EntryNotFound(format!("slot item mst {} not found", item.mst_id))
+            })?;
+            let capacity = squadron_capacity(mst.api_type[2]).ok_or_else(|| {
+                GameplayError::WrongType(format!(
+                    "equipment {} cannot be assigned to a land base",
+                    item.mst_id
+                ))
+            })?;
+
+            // Already flying somewhere. Within this airbase it is a move and
+            // both slots are reported; anywhere else the client should have
+            // called change_deployment_base instead.
+            if let Some(current) = find_squadron_by_slot(&tx, profile_id, item_id).await? {
+                if current.area_id != area_id || current.rid != base_id {
+                    return Err(GameplayError::WrongType(format!(
+                        "slot item {item_id} is deployed to airbase {}/{}",
+                        current.area_id, current.rid
+                    )));
+                }
+                if current.squadron_id != squadron_id {
+                    touched.push(current.squadron_id);
+                }
+                current.delete(&tx).await?;
+            }
+
+            clear_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
+
+            let am = plane_db::ActiveModel {
+                slot_id: ActiveValue::Set(item_id),
+                profile_id: ActiveValue::Set(profile_id),
+                area_id: ActiveValue::Set(area_id),
+                rid: ActiveValue::Set(base_id),
+                squadron_id: ActiveValue::Set(squadron_id),
+                state: ActiveValue::Set(plane_db::Status::Assigned),
+                condition: ActiveValue::Set(1),
+                count: ActiveValue::Set(capacity),
+                max_count: ActiveValue::Set(capacity),
+            };
+            am.insert(&tx).await?;
+        }
+
+        let occupied = get_planes_impl(&tx, profile_id, area_id, base_id).await?;
+        let planes = squadrons_of(profile_id, area_id, base_id, occupied);
+        let distance = distance_of(&tx, codex, &planes).await?;
+
+        touched.sort_unstable();
+        let updated = planes
+            .into_iter()
+            .filter(|plane| touched.contains(&plane.squadron_id))
+            .collect::<Vec<_>>();
+
+        tx.commit().await?;
+
+        Ok(SetPlaneResult {
+            distance,
+            updated,
+            after_bauxite: None,
+        })
+    }
+
+    /// Swap a squadron between two airbases of the same area.
+    ///
+    /// The client only reaches here when the equipment already flies for
+    /// another airbase *and* the destination slot is occupied, so this is a
+    /// genuine exchange: the two squadrons trade places. Both airbases come
+    /// back whole, which is the `api_base_items` the client expects.
+    pub async fn change_deployment_base(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        base_id: i64,
+        base_id_src: i64,
+        squadron_id: i64,
+        item_id: i64,
+    ) -> Result<Vec<Airbase>, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+
+        if !(1..=SQUADRON_MAX).contains(&squadron_id) {
+            return Err(GameplayError::WrongType(format!(
+                "squadron {squadron_id} is outside 1..={SQUADRON_MAX}"
+            )));
+        }
+        if base_id == base_id_src {
+            return Err(GameplayError::WrongType(
+                "a deployment change needs two different airbases".to_string(),
+            ));
+        }
+
+        let tx = db.begin().await?;
+
+        find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+        find_owned_airbase(&tx, profile_id, area_id, base_id_src).await?;
+
+        let incoming = find_squadron_by_slot(&tx, profile_id, item_id).await?.ok_or_else(|| {
+            GameplayError::EntryNotFound(format!("slot item {item_id} flies for no airbase"))
+        })?;
+        if incoming.area_id != area_id || incoming.rid != base_id_src {
+            return Err(GameplayError::WrongType(format!(
+                "slot item {item_id} flies for airbase {}/{}, not {area_id}/{base_id_src}",
+                incoming.area_id, incoming.rid
+            )));
+        }
+
+        let outgoing = plane_db::Entity::find()
+            .filter(plane_db::Column::ProfileId.eq(profile_id))
+            .filter(plane_db::Column::AreaId.eq(area_id))
+            .filter(plane_db::Column::Rid.eq(base_id))
+            .filter(plane_db::Column::SquadronId.eq(squadron_id))
+            .one(&tx)
+            .await?;
+
+        let source_squadron = incoming.squadron_id;
+        move_squadron(&tx, incoming, base_id, squadron_id).await?;
+        if let Some(outgoing) = outgoing {
+            move_squadron(&tx, outgoing, base_id_src, source_squadron).await?;
+        }
+
+        let mut airbases = Vec::with_capacity(2);
+        for rid in [base_id_src, base_id] {
+            let model = find_owned_airbase(&tx, profile_id, area_id, rid).await?;
+            airbases.push(load_airbase(&tx, codex, profile_id, model).await?);
+        }
+
+        tx.commit().await?;
+
+        Ok(airbases)
+    }
+}
+
+/// Fetch one airbase, rejecting anything the profile does not own.
+async fn find_owned_airbase<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    rid: i64,
+) -> Result<base::Model, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    base::Entity::find()
+        .filter(base::Column::ProfileId.eq(profile_id))
+        .filter(base::Column::AreaId.eq(area_id))
+        .filter(base::Column::Rid.eq(rid))
+        .one(c)
+        .await?
+        .ok_or_else(|| {
+            GameplayError::EntryNotFound(format!(
+                "profile {profile_id} has no airbase {rid} in area {area_id}"
+            ))
+        })
+}
+
+/// The squadron an equipment currently flies in, if any.
+async fn find_squadron_by_slot<C>(
+    c: &C,
+    profile_id: i64,
+    slot_id: i64,
+) -> Result<Option<plane_db::Model>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let model = plane_db::Entity::find_by_id(slot_id)
+        .filter(plane_db::Column::ProfileId.eq(profile_id))
+        .one(c)
+        .await?;
+
+    Ok(model)
+}
+
+/// Empty one slot, if anything is in it.
+async fn clear_squadron<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    rid: i64,
+    squadron_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    plane_db::Entity::delete_many()
+        .filter(plane_db::Column::ProfileId.eq(profile_id))
+        .filter(plane_db::Column::AreaId.eq(area_id))
+        .filter(plane_db::Column::Rid.eq(rid))
+        .filter(plane_db::Column::SquadronId.eq(squadron_id))
+        .exec(c)
+        .await?;
+
+    Ok(())
+}
+
+/// Re-home a squadron without disturbing its strength or condition.
+async fn move_squadron<C>(
+    c: &C,
+    model: plane_db::Model,
+    rid: i64,
+    squadron_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let mut am = model.into_active_model();
+    am.rid = ActiveValue::Set(rid);
+    am.squadron_id = ActiveValue::Set(squadron_id);
+    am.update(c).await?;
+
+    Ok(())
+}
+
+/// One airbase with its squadrons and radius filled in.
+async fn load_airbase<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    model: base::Model,
+) -> Result<Airbase, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let occupied = get_planes_impl(c, profile_id, model.area_id, model.rid).await?;
+    let planes = squadrons_of(profile_id, model.area_id, model.rid, occupied);
+    let (base_range, bonus_range) = distance_of(c, codex, &planes).await?;
+
+    Ok(Airbase {
+        id: model.id,
+        area_id: model.area_id,
+        rid: model.rid,
+        action: model.action.into(),
+        base_range,
+        bonus_range,
+        name: model.name,
+        maintenance_level: model.maintenance_level,
+        planes,
+    })
 }
 
 /// Combat radius of an airbase: `api_base` plus `api_bonus`.

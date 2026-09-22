@@ -121,24 +121,38 @@ execution: code
 
 ---
 
-### U3 — 中隊配备：`set_plane` 与 `change_deployment_base`
+### U3 — 中隊配备：`set_plane` 与 `change_deployment_base` ✅ 已执行
 
 **做什么**
 
 - `set_plane`（`apilist.txt:2861-2872`）：`api_item_id = -1` 撤下，否则配属。
   配属消耗ボーキサイト，响应 `api_after_bauxite` 仅在消耗时存在；响应的
   `api_plane_info` 只含被更新的槽（配备时 1 个、交换时 2 个）。
-- `change_deployment_base`（`:2882-2888`）：同海域内两个航空隊整组交换，
-  响应 `api_base_items` 是两个基地的完整数据。
+- `change_deployment_base`（`:2882-2888`）：同海域内两个航空隊的中隊**互换**，
+  响应 `api_base_items` 是两个基地的完整数据。apilist 只列了三个 id，
+  客户端还多传 `api_squadron_id` 与 `api_item_id`（`AirUnitChangeDeployBaseAPI`）——
+  按客户端实现。触发条件也由客户端定死（`TaskAirUnitChangeConfirm._deployedAirBase`）：
+  装备已在同 area 另一隊**且**目标槽非空才走这里，否则走 `set_plane`。
 - 校验：装备必须是玩家所有、未装备在舰上、属于陸上機可配属的类型；
   `squadron_id` 在 `1..=SQUADRON_MAX` 内。草案把 4 写成「U5 之前的暂定值」，
   实际它有出处：客户端 `main.decoded.js:85380` 的 `SQUADRON_MAX = 0x4`，
   同行还有 `AIRUNIT_MAX = 0x3`。客户端画固定行数，从不按响应长度推断，
   所以服务端必须每个槽都发一条 `api_plane_info`。
 
-**完成标志** 配备后 `mapinfo` 的 `api_plane_info` 与 `api_distance` 同步变化；
-撤下后该槽 `api_state = 0` 且不再带 `api_count`/`api_cond`（apilist 明确「未配属なら存在しない」）；
-交换后两个基地的中隊互换。
+**本项目定的两张表（上游无出处）** `squadron_capacity(equip_type)` 同时回答
+「能否配属」与「几機」：偵察機系 4、大型飛行艇 1、戦闘機/攻撃機/陸上機系 18，
+其余 `None`。依据只有游戏规则本身——`api_mst_slotitem_equiptype` 只有名字和图鉴
+标志，客户端则是直接读响应里的 `api_max_count`。边界不确定的四类
+（水上爆撃機・対潜哨戒機・水上戦闘機・オートジャイロ）**排除**而非猜进来。
+已加 `squadron_capacity_table_is_pinned` 回归测试。
+
+**配属暂不扣ボーキ** `api_after_bauxite` 是可选字段，缺省即「没花费」，所以
+返回 `None` 是合法响应。每機消耗与 U4 的补给系数是同一个数，等 U4 取到数一起接上，
+代码里留了 `ponytail:` 注明。
+
+**完成标志** 配备后 `api_plane_info` 与 `api_distance` 同步变化（半径取最短的那个
+中隊）；撤下后该槽 `api_state = 0` 且不带三个 optional 字段，装备回到仓库；
+隊内移动报两个槽；跨隊交换后两边互换。五个端点测试覆盖以上全部。
 
 ---
 

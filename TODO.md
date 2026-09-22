@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-22: 128 implemented, 21 missing.
+> holds the roadmap. Last cross-checked 2026-09-22: 130 implemented, 19 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -72,9 +72,10 @@
 - [ ] **Air Corps System** (`api_req_air_corps/*`)
   - [x] `api_get_member/base_air_corps` - air corps data
   - [ ] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery
-  - [ ] `api_req_air_corps/set_plane` - assign planes
+  - [x] `api_req_air_corps/set_plane` - assign planes
   - [ ] `api_req_air_corps/set_action` - set action (standby/sortie/defense)
   - [ ] `api_req_air_corps/supply` - resupply planes
+  - [x] `api_req_air_corps/change_deployment_base` - move a squadron between bases
   - [ ] `api_req_air_corps/change_name` - rename squadron
   - [ ] Other air corps management (4 endpoints)
 - [x] **Equipment Improvement / Akashi Arsenal** (`api_req_kousyou/remodel_*`)

@@ -30,6 +30,29 @@ pub const AIRUNIT_MAX: i64 = 3;
 /// server has to send one `api_plane_info` entry per slot, occupied or not.
 pub const SQUADRON_MAX: i64 = 4;
 
+/// Squadron strength and deployability, keyed by equipment type
+/// (`api_mst_slotitem`'s `api_type[2]`).
+///
+/// `None` means the equipment cannot be assigned to a land base at all.
+///
+/// Upstream publishes neither list: `api_mst_slotitem_equiptype` carries only
+/// a name and a picture-book flag, and the client reads `api_max_count` off the
+/// response rather than computing it. Both tables are therefore this project's
+/// own reading of the game's rules. Types whose eligibility is genuinely
+/// unclear — 水上爆撃機, 対潜哨戒機, 水上戦闘機, オートジャイロ — are excluded
+/// rather than guessed in.
+pub const fn squadron_capacity(equip_type: i64) -> Option<i64> {
+    match equip_type {
+        // Reconnaissance flies in fours.
+        9 | 10 | 49 | 59 | 94 => Some(4),
+        // A flying boat is a single aircraft.
+        41 => Some(1),
+        // Fighters, bombers and the land-based line fly full squadrons.
+        6 | 7 | 8 | 47 | 48 | 53 | 56 | 57 | 58 | 91 => Some(18),
+        _ => None,
+    }
+}
+
 /// User airbase
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Airbase {
@@ -134,5 +157,33 @@ impl From<PlaneInfo> for KcApiPlaneInfo {
             api_squadron_id: value.squadron_id,
             api_state: value.state as i64,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// These figures are this project's own (see `squadron_capacity`), so a
+    /// silent flip must fail here rather than in someone's save file.
+    #[test]
+    fn squadron_capacity_table_is_pinned() {
+        // 陸上攻撃機, 局地戦闘機, 艦上戦闘機, 艦上攻撃機 — full squadrons.
+        for equip_type in [47, 48, 6, 8] {
+            assert_eq!(squadron_capacity(equip_type), Some(18), "type {equip_type}");
+        }
+        // 艦上偵察機, 水上偵察機, 陸上偵察機 — four aircraft.
+        for equip_type in [9, 10, 49] {
+            assert_eq!(squadron_capacity(equip_type), Some(4), "type {equip_type}");
+        }
+        assert_eq!(squadron_capacity(41), Some(1), "大型飛行艇 flies alone");
+
+        // 水上爆撃機, 対潜哨戒機, 水上戦闘機, オートジャイロ, 主砲 — not deployable.
+        for equip_type in [11, 26, 45, 25, 1] {
+            assert_eq!(squadron_capacity(equip_type), None, "type {equip_type}");
+        }
+
+        assert_eq!(SQUADRON_MAX, 4);
+        assert_eq!(AIRUNIT_MAX, 3);
     }
 }

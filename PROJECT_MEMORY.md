@@ -184,19 +184,19 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-22] 基地航空隊 U1+U2 合并交付（光做 U2，客户端会收到零槽基地）：
-  `Airbase` 带 `planes`、`id` 钉死为实例 id、`plane.rs` 从空壳改为读取+合成空槽、
-  半径取已配属中隊的最小 `api_distance`、`get_airbases` 惰性补齐航空隊、新增
-  `api_get_member/base_air_corps`。实施中修正了计划草案的两处错误、多修一个缺陷，
-  四条都写进计划对应节。
+- [2026-09-22] 基地航空隊 U3：`api_req_air_corps/set_plane` 与
+  `change_deployment_base`。新增 `squadron_capacity(equip_type)` 一张表同时回答
+  「能否配属」与「几機」（上游无出处，见计划 U3 节，带回归测试）。配属暂不扣ボーキ
+  （`api_after_bauxite` 缺省即没花费），每機消耗留给 U4 一起定。
 - 门禁：`cargo test --workspace` exit 0；fmt clean；clippy 17 条基线，改动文件零告警。
-  清单 **128 implemented / 21 missing**。
+  清单 **130 implemented / 19 missing**。
 
 ## Next Session
 
-- [2026-09-22] 接着做计划的 U3（`set_plane` + `change_deployment_base`）：
-  第一组写操作，依赖已就位的 `SQUADRON_MAX` 与空槽合成。U3 与 U4 无依赖。
-- U4 的补给消耗系数仍是整个计划唯一不齐的点：上游不公开、客户端无预览，
-  按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，两条都取不到就停下，不要编公式。
+- [2026-09-22] 接着做计划的 U4（`set_action`、`change_name`、`supply`）。
+  U4 的补给消耗系数仍是计划唯一不齐的点，按 wikiwiki → `KC3Kai/kcsim.js` 顺序取数，
+  两条都取不到就停下不要编公式；取到之后**同时**接上 `set_plane` 的配属消耗。
+- 之后是 U5（`expand_base` 用設営隊増开一隊、`expand_maintenance_level`、
+  `cond_recovery` + `airCorpsCondRecoveryWithTimer`），再 U6 收尾。
 - 更早的积压未变：対空/阵形建模要先做「補正表能否解码」的 spike；审计集 013 等
   上游版本变动；联合舰队剩 5 个敌联合端点卡在数据不存在。
