@@ -14,7 +14,7 @@ use crate::random::BattleRng;
 use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
 use crate::types::{
     AirState, AirstrikeOutput, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
-    BattleKoukuStage3, BattleRuntimeShip,
+    BattleKoukuStage3, BattleRuntimeShip, DamageCell,
 };
 
 // ---------------------------------------------------------------------------
@@ -470,8 +470,8 @@ pub(crate) fn simulate_kouku(
             api_ebak_flag,
             api_fcl_flag,
             api_ecl_flag: api_edam.iter().map(|dam| i64::from(*dam > 0)).collect(),
-            api_fdam,
-            api_edam,
+            api_fdam: api_fdam.into_iter().map(DamageCell::Plain).collect(),
+            api_edam: api_edam.into_iter().map(DamageCell::Plain).collect(),
             api_f_sp_list: vec![None; friendly.len()],
             api_e_sp_list: vec![None; enemy.len()],
         },
@@ -658,7 +658,7 @@ mod tests {
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
 
-        let fdam = kouku.api_stage3.api_fdam[0];
+        let fdam = kouku.api_stage3.api_fdam[0].amount();
         assert!(fdam > 0, "enemy CVL with bombers must deal airstrike damage");
         assert!(
             fdam <= 10,
@@ -693,7 +693,7 @@ mod tests {
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
 
-        let fdam = kouku.api_stage3.api_fdam[0];
+        let fdam = kouku.api_stage3.api_fdam[0].amount();
         let hp_after = friendly[0].hp();
         assert!(fdam > 0, "enemy CVL with bombers must deal airstrike damage");
         assert_eq!(
@@ -758,7 +758,7 @@ mod tests {
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
 
-        let edam = kouku.api_stage3.api_edam[0];
+        let edam = kouku.api_stage3.api_edam[0].amount();
         let enemy_hp_after = enemies[0].hp();
         assert!(edam > 0, "friendly CVL with bombers must deal airstrike damage");
         assert!(

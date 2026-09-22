@@ -108,7 +108,8 @@ fn remap_opening_attack(attack: &mut BattleOpeningAttack, escort_start: usize, e
         respread(std::mem::take(&mut attack.api_fcl_list_items), escort_start, &None);
     attack.api_fydam_list_items =
         respread(std::mem::take(&mut attack.api_fydam_list_items), escort_start, &None);
-    attack.api_fdam = respread(std::mem::take(&mut attack.api_fdam), escort_start, &0);
+    attack.api_fdam =
+        respread(std::mem::take(&mut attack.api_fdam), escort_start, &DamageCell::Plain(0));
 
     for row in attack.api_erai_list_items.iter_mut().flatten() {
         remap_defenders(row, escort_start);
@@ -123,7 +124,8 @@ fn remap_opening_attack(attack: &mut BattleOpeningAttack, escort_start: usize, e
 fn remap_raigeki(raigeki: &mut BattleRaigeki, escort_start: usize, enemy_len: usize) {
     raigeki.api_frai = respread(std::mem::take(&mut raigeki.api_frai), escort_start, &-1);
     raigeki.api_fcl = respread(std::mem::take(&mut raigeki.api_fcl), escort_start, &0);
-    raigeki.api_fdam = respread(std::mem::take(&mut raigeki.api_fdam), escort_start, &0);
+    raigeki.api_fdam =
+        respread(std::mem::take(&mut raigeki.api_fdam), escort_start, &DamageCell::Plain(0));
     raigeki.api_fydam =
         respread(std::mem::take(&mut raigeki.api_fydam), escort_start, &DamageCell::Plain(0));
 
@@ -149,7 +151,7 @@ fn split_kouku_stage3(kouku: &mut BattleKouku, escort_start: usize) {
     let api_frai_flag = split(&mut stage3.api_frai_flag);
     let api_fbak_flag = split(&mut stage3.api_fbak_flag);
     let api_fcl_flag = split(&mut stage3.api_fcl_flag);
-    let api_fdam = split(&mut stage3.api_fdam);
+    let api_fdam = stage3.api_fdam.split_off(escort_start.min(stage3.api_fdam.len()));
     let api_f_sp_list =
         stage3.api_f_sp_list.split_off(escort_start.min(stage3.api_f_sp_list.len()));
 
@@ -202,6 +204,11 @@ pub(crate) fn remap_night_packet(packet: &mut NightBattlePacket) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Summary arrays with no shield flag anywhere.
+    fn plain(values: &[i64]) -> Vec<DamageCell> {
+        values.iter().copied().map(DamageCell::Plain).collect()
+    }
     use crate::types::packet::{BattleKoukuStage3, SiListId};
 
     fn hougeki(at_eflag: Vec<i64>, at_list: Vec<i64>, df_list: Vec<Vec<i64>>) -> BattleHougeki {
@@ -260,7 +267,7 @@ mod tests {
         raigeki.api_frai[4] = 2;
         raigeki.api_fcl[4] = 1;
         raigeki.api_fydam[4] = DamageCell::Plain(33);
-        raigeki.api_fdam[1] = 12;
+        raigeki.api_fdam[1] = DamageCell::Plain(12);
         // An enemy torpedoed contiguous friendly 5 — deck 2's second ship.
         raigeki.api_erai[0] = 5;
 
@@ -271,7 +278,7 @@ mod tests {
         assert_eq!(raigeki.api_frai[4], -1, "the gap keeps the blank fill");
         assert_eq!(raigeki.api_fcl[6], 1);
         assert_eq!(raigeki.api_fydam[6], DamageCell::Plain(33));
-        assert_eq!(raigeki.api_fdam[1], 12, "deck 1 indices do not move");
+        assert_eq!(raigeki.api_fdam[1], DamageCell::Plain(12), "deck 1 indices do not move");
         assert_eq!(raigeki.api_erai[0], 7, "the friendly target moved 5 -> 7");
         assert_eq!(raigeki.api_erai.len(), 3, "enemy arrays shrink to the enemy fleet");
         assert_eq!(raigeki.api_edam.len(), 3);
@@ -282,7 +289,7 @@ mod tests {
         let mut attack = BattleOpeningAttack::blank(9);
         attack.api_frai_list_items[4] = Some(vec![1]);
         attack.api_fydam_list_items[4] = Some(vec![DamageCell::Plain(40)]);
-        attack.api_fdam[5] = 7;
+        attack.api_fdam[5] = DamageCell::Plain(7);
         attack.api_erai_list_items[1] = Some(vec![4, 0]);
 
         remap_opening_attack(&mut attack, 4, 3);
@@ -290,7 +297,7 @@ mod tests {
         assert_eq!(attack.api_frai_list_items.len(), 12);
         assert_eq!(attack.api_frai_list_items[6], Some(vec![1]));
         assert_eq!(attack.api_fydam_list_items[6], Some(vec![DamageCell::Plain(40)]));
-        assert_eq!(attack.api_fdam[7], 7);
+        assert_eq!(attack.api_fdam[7], DamageCell::Plain(7));
         assert_eq!(attack.api_erai_list_items[1], Some(vec![6, 0]));
         assert_eq!(attack.api_edam.len(), 3);
     }
@@ -324,8 +331,8 @@ mod tests {
                 api_ebak_flag: vec![0; 3],
                 api_fcl_flag: vec![0; 6],
                 api_ecl_flag: vec![0; 3],
-                api_fdam: vec![1, 2, 3, 4, 5, 6],
-                api_edam: vec![0; 3],
+                api_fdam: plain(&[1, 2, 3, 4, 5, 6]),
+                api_edam: plain(&[0, 0, 0]),
                 api_f_sp_list: vec![None; 6],
                 api_e_sp_list: vec![None; 3],
             },
@@ -334,10 +341,10 @@ mod tests {
 
         split_kouku_stage3(&mut kouku, 4);
 
-        assert_eq!(kouku.api_stage3.api_fdam, vec![1, 2, 3, 4], "deck 1 keeps api_stage3");
+        assert_eq!(kouku.api_stage3.api_fdam, plain(&[1, 2, 3, 4]), "deck 1 keeps api_stage3");
         assert_eq!(kouku.api_stage3.api_edam.len(), 3, "the enemy half is untouched");
         let combined = kouku.api_stage3_combined.expect("deck 2 half must exist");
-        assert_eq!(combined.api_fdam, vec![5, 6]);
+        assert_eq!(combined.api_fdam, plain(&[5, 6]));
         assert_eq!(combined.api_frai_flag, vec![1, 0]);
     }
 }

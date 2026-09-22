@@ -266,7 +266,7 @@ mod tests {
         )
         .unwrap();
 
-        let dealt = opening.api_edam[0];
+        let dealt = opening.api_edam[0].amount();
         assert!(dealt > 0);
         assert_eq!(opening.api_frai_list_items[0], Some(vec![0]));
         assert_eq!(opening.api_fydam_list_items[0], Some(vec![DamageCell::Plain(dealt)]));
@@ -295,7 +295,7 @@ mod tests {
         )
         .unwrap();
 
-        let dealt = opening.api_fdam[0];
+        let dealt = opening.api_fdam[0].amount();
         assert!(dealt > 0);
         assert_eq!(opening.api_erai_list_items[0], Some(vec![0]));
         assert_eq!(opening.api_eydam_list_items[0], Some(vec![DamageCell::Plain(dealt)]));
@@ -324,7 +324,7 @@ mod tests {
         )
         .unwrap();
 
-        let dealt = raigeki.api_edam[0];
+        let dealt = raigeki.api_edam[0].amount();
         assert!(dealt > 0);
         assert_eq!(raigeki.api_frai[0], 0);
         assert_eq!(raigeki.api_fydam[0], DamageCell::Plain(dealt));
@@ -353,7 +353,7 @@ mod tests {
         )
         .unwrap();
 
-        let dealt = raigeki.api_fdam[0];
+        let dealt = raigeki.api_fdam[0].amount();
         assert!(dealt > 0);
         assert_eq!(raigeki.api_erai[0], 0);
         assert_eq!(raigeki.api_eydam[0], DamageCell::Plain(dealt));

@@ -191,7 +191,7 @@ fn rebuild_day_packet_arrays(
     if god_mode {
         // Zero friendly damage in aerial combat.
         if let Some(kouku) = &mut packet.kouku {
-            kouku.api_stage3.api_fdam.fill(0);
+            kouku.api_stage3.api_fdam.fill(DamageCell::Plain(0));
         }
         // Zero friendly damage in opening torpedo. The client animates each
         // friendly's HP from the per-attacker enemy-torpedo entries
@@ -199,7 +199,7 @@ fn rebuild_day_packet_arrays(
         // zeroed too — otherwise a god_mode friendly still visibly takes (and can
         // be taiha'd by) opening-torpedo damage mid-animation.
         if let Some(opening) = &mut packet.opening_attack {
-            opening.api_fdam.fill(0);
+            opening.api_fdam.fill(DamageCell::Plain(0));
             for cells in opening.api_eydam_list_items.iter_mut().flatten() {
                 cells.iter_mut().for_each(|cell| *cell = DamageCell::Plain(0));
             }
@@ -207,7 +207,7 @@ fn rebuild_day_packet_arrays(
         // Zero friendly damage in closing torpedo. `api_eydam` is the per-attacker
         // enemy torpedo damage the client animates from (same reason as opening).
         if let Some(raigeki) = &mut packet.raigeki {
-            raigeki.api_fdam.fill(0);
+            raigeki.api_fdam.fill(DamageCell::Plain(0));
             raigeki.api_eydam.iter_mut().for_each(|cell| *cell = DamageCell::Plain(0));
         }
         // Zero friendly damage in all hougeki phases.
@@ -871,7 +871,7 @@ mod tests {
 
         // Enemy closing torpedo deals 20 to the friendly ship.
         let mut raigeki = BattleRaigeki::blank(1);
-        raigeki.api_fdam[0] = 20;
+        raigeki.api_fdam[0] = DamageCell::Plain(20);
         raigeki.api_eydam[0] = DamageCell::Plain(20);
         raigeki.api_erai[0] = 0;
         raigeki.api_ecl[0] = 1;
@@ -879,7 +879,7 @@ mod tests {
 
         // Enemy opening torpedo deals 15 to the friendly ship.
         let mut opening = BattleOpeningAttack::blank(1);
-        opening.api_fdam[0] = 15;
+        opening.api_fdam[0] = DamageCell::Plain(15);
         opening.api_eydam_list_items[0] = Some(vec![DamageCell::Plain(15)]);
         opening.api_erai_list_items[0] = Some(vec![0]);
         opening.api_ecl_list_items[0] = Some(vec![1]);
@@ -898,7 +898,7 @@ mod tests {
         let result = apply_day_debug(sim, true, false);
 
         let raigeki = result.packet.raigeki.expect("raigeki retained");
-        assert_eq!(raigeki.api_fdam, vec![0], "closing torpedo summary zeroed");
+        assert_eq!(raigeki.api_fdam, vec![DamageCell::Plain(0)], "closing torpedo summary zeroed");
         assert_eq!(
             raigeki.api_eydam,
             vec![DamageCell::Plain(0)],
@@ -914,7 +914,7 @@ mod tests {
         assert_eq!(raigeki.api_ecl, vec![1], "closing torpedo hit flag preserved");
 
         let opening = result.packet.opening_attack.expect("opening retained");
-        assert_eq!(opening.api_fdam, vec![0], "opening torpedo summary zeroed");
+        assert_eq!(opening.api_fdam, vec![DamageCell::Plain(0)], "opening torpedo summary zeroed");
         assert_eq!(
             opening.api_eydam_list_items[0],
             Some(vec![DamageCell::Plain(0)]),

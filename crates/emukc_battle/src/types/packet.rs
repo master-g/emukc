@@ -73,11 +73,28 @@ impl std::fmt::Debug for DamageCell {
 }
 
 impl DamageCell {
-    /// The integer damage amount, regardless of shield state.
-    pub(crate) fn amount(self) -> i64 {
+    /// The integer damage amount, regardless of shield state. This is what the
+    /// client's `getDamage` reads after flooring the wire value.
+    pub fn amount(self) -> i64 {
         match self {
             Self::Plain(n) | Self::Shielded(n) => n,
         }
+    }
+
+    /// Fold one hit into a per-ship total (`api_fdam` / `api_edam`).
+    ///
+    /// The client reads the shield flag off the running total as well as off
+    /// the per-attack cell (`hasShield_f`/`hasShield_e` scan the summary
+    /// arrays), so once any hit on a ship was intercepted the total keeps the
+    /// `.1`.
+    pub(crate) fn accumulate(&mut self, hit: Self) {
+        let shielded = matches!(self, Self::Shielded(_)) || matches!(hit, Self::Shielded(_));
+        let total = self.amount() + hit.amount();
+        *self = if shielded {
+            Self::Shielded(total)
+        } else {
+            Self::Plain(total)
+        };
     }
 }
 
@@ -149,8 +166,8 @@ pub struct BattleKoukuStage3 {
     pub api_ebak_flag: Vec<i64>,
     pub api_fcl_flag: Vec<i64>,
     pub api_ecl_flag: Vec<i64>,
-    pub api_fdam: Vec<i64>,
-    pub api_edam: Vec<i64>,
+    pub api_fdam: Vec<DamageCell>,
+    pub api_edam: Vec<DamageCell>,
     pub api_f_sp_list: Vec<Option<i64>>,
     pub api_e_sp_list: Vec<Option<i64>>,
 }
@@ -166,7 +183,7 @@ pub struct BattleKoukuStage3Combined {
     pub api_frai_flag: Vec<i64>,
     pub api_fbak_flag: Vec<i64>,
     pub api_fcl_flag: Vec<i64>,
-    pub api_fdam: Vec<i64>,
+    pub api_fdam: Vec<DamageCell>,
     pub api_f_sp_list: Vec<Option<i64>>,
 }
 
@@ -174,11 +191,11 @@ pub struct BattleKoukuStage3Combined {
 pub struct BattleOpeningAttack {
     pub api_frai_list_items: Vec<Option<Vec<i64>>>,
     pub api_fcl_list_items: Vec<Option<Vec<i64>>>,
-    pub api_fdam: Vec<i64>,
+    pub api_fdam: Vec<DamageCell>,
     pub api_fydam_list_items: Vec<Option<Vec<DamageCell>>>,
     pub api_erai_list_items: Vec<Option<Vec<i64>>>,
     pub api_ecl_list_items: Vec<Option<Vec<i64>>>,
-    pub api_edam: Vec<i64>,
+    pub api_edam: Vec<DamageCell>,
     pub api_eydam_list_items: Vec<Option<Vec<DamageCell>>>,
 }
 
@@ -187,11 +204,11 @@ impl BattleOpeningAttack {
         Self {
             api_frai_list_items: vec![None; len],
             api_fcl_list_items: vec![None; len],
-            api_fdam: vec![0; len],
+            api_fdam: vec![DamageCell::Plain(0); len],
             api_fydam_list_items: vec![None; len],
             api_erai_list_items: vec![None; len],
             api_ecl_list_items: vec![None; len],
-            api_edam: vec![0; len],
+            api_edam: vec![DamageCell::Plain(0); len],
             api_eydam_list_items: vec![None; len],
         }
     }
@@ -207,14 +224,14 @@ impl BattleOpeningAttack {
                     Some(vec![hit.defender_index as i64]);
                 self.api_fcl_list_items[hit.attacker_index] = Some(vec![1]);
                 self.api_fydam_list_items[hit.attacker_index] = Some(vec![torpedo_cell(hit)]);
-                self.api_edam[hit.defender_index] += hit.damage;
+                self.api_edam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
                 self.api_ecl_list_items[hit.attacker_index] = Some(vec![1]);
                 self.api_eydam_list_items[hit.attacker_index] = Some(vec![torpedo_cell(hit)]);
-                self.api_fdam[hit.defender_index] += hit.damage;
+                self.api_fdam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
         }
     }
@@ -247,11 +264,11 @@ pub struct BattleNightHougeki {
 pub struct BattleRaigeki {
     pub api_frai: Vec<i64>,
     pub api_fcl: Vec<i64>,
-    pub api_fdam: Vec<i64>,
+    pub api_fdam: Vec<DamageCell>,
     pub api_fydam: Vec<DamageCell>,
     pub api_erai: Vec<i64>,
     pub api_ecl: Vec<i64>,
-    pub api_edam: Vec<i64>,
+    pub api_edam: Vec<DamageCell>,
     pub api_eydam: Vec<DamageCell>,
 }
 
@@ -260,11 +277,11 @@ impl BattleRaigeki {
         Self {
             api_frai: vec![-1; len],
             api_fcl: vec![0; len],
-            api_fdam: vec![0; len],
+            api_fdam: vec![DamageCell::Plain(0); len],
             api_fydam: vec![DamageCell::Plain(0); len],
             api_erai: vec![-1; len],
             api_ecl: vec![0; len],
-            api_edam: vec![0; len],
+            api_edam: vec![DamageCell::Plain(0); len],
             api_eydam: vec![DamageCell::Plain(0); len],
         }
     }
@@ -279,13 +296,13 @@ impl BattleRaigeki {
                 self.api_frai[hit.attacker_index] = hit.defender_index as i64;
                 self.api_fcl[hit.attacker_index] = 1;
                 self.api_fydam[hit.attacker_index] = torpedo_cell(hit);
-                self.api_edam[hit.defender_index] += hit.damage;
+                self.api_edam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai[hit.attacker_index] = hit.defender_index as i64;
                 self.api_ecl[hit.attacker_index] = 1;
                 self.api_eydam[hit.attacker_index] = torpedo_cell(hit);
-                self.api_fdam[hit.defender_index] += hit.damage;
+                self.api_fdam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
         }
     }
@@ -294,6 +311,27 @@ impl BattleRaigeki {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_shielded_hit_flags_the_running_total() {
+        // The client reads the shield flag off the per-ship total too
+        // (`hasShield_f`/`hasShield_e` scan api_fdam/api_edam), and a live
+        // response carries it exactly here: api_edam [0, 0, 109.1, ..] while
+        // the per-attack api_fydam_list_items stayed a plain 109.
+        let mut total = DamageCell::Plain(10);
+        total.accumulate(DamageCell::Plain(5));
+        assert_eq!(serde_json::to_string(&total).unwrap(), "15");
+
+        total.accumulate(DamageCell::Shielded(7));
+        assert_eq!(serde_json::to_string(&total).unwrap(), "22.1", "one intercept flags the total");
+
+        total.accumulate(DamageCell::Plain(3));
+        assert_eq!(
+            serde_json::to_string(&total).unwrap(),
+            "25.1",
+            "and a later plain hit does not clear it"
+        );
+    }
 
     #[test]
     fn num_serializes_as_json_integer() {

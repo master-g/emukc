@@ -861,7 +861,7 @@ fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
 
     // Verify kouku phase ran and dealt some damage to the flagship.
     if let Some(kouku) = &session.packet.kouku {
-        let kouku_flagship_damage = kouku.api_stage3.api_fdam[0];
+        let kouku_flagship_damage = kouku.api_stage3.api_fdam[0].amount();
         if kouku_flagship_damage > 0 {
             // Kouku dealt damage but flagship survived → protection must have capped it.
             assert!(

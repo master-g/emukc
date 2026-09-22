@@ -586,7 +586,7 @@ mod tests {
         // Fighter-only carrier participates in air combat (api_plane_from includes it)
         // but deals no bombing damage in Stage 3.
         assert_eq!(kouku.api_plane_from[0], vec![1]);
-        assert_eq!(kouku.api_stage3.api_edam.iter().sum::<i64>(), 0);
+        assert_eq!(kouku.api_stage3.api_edam.iter().map(|d| d.amount()).sum::<i64>(), 0);
     }
 
     #[test]
