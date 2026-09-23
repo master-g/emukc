@@ -33,10 +33,7 @@ use crate::{
 
 use super::{
     ActiveSortieState,
-    enemy_ship::{
-        build_sortie_enemy_ships, fallback_enemy_composition, resolve_sortie_enemy_fleet,
-        select_random_enemy_composition,
-    },
+    enemy_ship::{EnemyEncounter, build_enemy_encounter},
 };
 
 /// The escort deck of a combined fleet is always fleet 2
@@ -78,11 +75,7 @@ pub(super) struct SortieBattleSetup {
     pub escort_ships: Vec<BattleShipInput>,
     /// `None` for a single fleet.
     pub combined_type: Option<CombinedType>,
-    pub enemy_ships: Vec<BattleShipInput>,
-    pub enemy_formation_id: i64,
-    pub enemy_level: i64,
-    pub enemy_rank: String,
-    pub enemy_deck_name: String,
+    pub enemy: EnemyEncounter,
 }
 
 /// Resolve the active sortie into battle-ready fleets, applying every guard both
@@ -169,14 +162,13 @@ where
         Vec::new()
     };
 
-    let enemy_fleet = resolve_sortie_enemy_fleet(active.map_id, stage, current_cell.cell_no);
-    let enemy_composition = active
-        .locked_enemy_composition
-        .clone()
-        .or_else(|| select_random_enemy_composition(&enemy_fleet))
-        .unwrap_or_else(|| fallback_enemy_composition(current_cell.cell_no));
-    let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
-        build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
+    let enemy = build_enemy_encounter(
+        codex,
+        definition,
+        stage,
+        current_cell.cell_no,
+        active.locked_enemy_composition.as_ref(),
+    )?;
 
     Ok(SortieBattleSetup {
         active,
@@ -184,11 +176,7 @@ where
         friend_ships,
         escort_ships,
         combined_type,
-        enemy_ships,
-        enemy_formation_id: enemy_fleet.formations.first().copied().unwrap_or(1),
-        enemy_level,
-        enemy_rank,
-        enemy_deck_name,
+        enemy,
     })
 }
 
@@ -209,10 +197,10 @@ impl SortieBattleSetup {
                 battle_type,
                 is_sortie: true,
                 friendly_formation_id: formation_id,
-                enemy_formation_id: self.enemy_formation_id,
+                enemy_formation_id: self.enemy.formation_id,
                 engagement: engagement_for_cell(self.active.map_id, self.active.current_cell_id),
                 friend_ships: self.friend_ships.clone(),
-                enemy_ships: self.enemy_ships.clone(),
+                enemy_ships: self.enemy.ships.clone(),
                 combined: self.combined_type.map(|combined_type| CombinedSetup {
                     combined_type,
                     escort_ships: self.escort_ships.clone(),
@@ -322,9 +310,9 @@ impl SortieBattleSetup {
             get_exp_lvup,
             quest_name: self.active.map_name.clone(),
             quest_level: self.active.map_level,
-            enemy_level: self.enemy_level,
-            enemy_rank: self.enemy_rank.clone(),
-            enemy_deck_name: self.enemy_deck_name.clone(),
+            enemy_level: self.enemy.level,
+            enemy_rank: self.enemy.rank.clone(),
+            enemy_deck_name: self.enemy.deck_name.clone(),
         }
     }
 }

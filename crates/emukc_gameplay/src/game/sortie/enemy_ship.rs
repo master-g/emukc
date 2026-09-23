@@ -15,27 +15,54 @@ use crate::err::GameplayError;
 /// Used when map data is missing enemy fleet definitions.
 const FALLBACK_ENEMY_SHIP_ID: i64 = 1501;
 
-pub(super) fn build_sortie_enemy_ships(
+/// The enemy a sortie meets at one cell, decided once.
+pub(super) struct EnemyEncounter {
+    pub(super) ships: Vec<BattleShipInput>,
+    pub(super) formation_id: i64,
+    pub(super) level: i64,
+    pub(super) rank: String,
+    pub(super) deck_name: String,
+}
+
+/// Build the encounter at `cell_no` from the composition the route locked, or a
+/// freshly rolled one when none was locked.
+///
+/// The formation is the composition's own: a cell lists one per composition, so
+/// the first entry of that list belongs to the first composition only. A
+/// composition without one falls back to the cell's first, then to 単縦陣.
+pub(super) fn build_enemy_encounter(
     codex: &Codex,
     definition: &MapDefinition,
-    enemy_fleet: &EnemyFleetDefinition,
-    composition: &EnemyComposition,
-) -> Result<(Vec<BattleShipInput>, i64, String, String), GameplayError> {
-    let enemy_level = (definition.level.max(1) * 5 + enemy_fleet.cell_no).max(1);
-    let enemy_rank = UserHQRank::RearAdmiral.get_name().to_string();
-    let enemy_deck_name = format!("{}海域敵艦隊", definition.name);
+    stage: &MapVariantDefinition,
+    cell_no: i64,
+    locked: Option<&EnemyComposition>,
+) -> Result<EnemyEncounter, GameplayError> {
+    let enemy_fleet = resolve_sortie_enemy_fleet(definition.map_id, stage, cell_no);
+    let composition = locked
+        .cloned()
+        .or_else(|| select_random_enemy_composition(&enemy_fleet))
+        .unwrap_or_else(|| fallback_enemy_composition(cell_no));
+    let formation_id =
+        composition.formation.or_else(|| enemy_fleet.formations.first().copied()).unwrap_or(1);
+
+    let level = (definition.level.max(1) * 5 + enemy_fleet.cell_no).max(1);
     let ship_ids = if composition.ship_ids.is_empty() {
         vec![FALLBACK_ENEMY_SHIP_ID]
     } else {
         composition.ship_ids.clone()
     };
-
-    let enemy_ships = ship_ids
+    let ships = ship_ids
         .into_iter()
-        .map(|ship_id| build_sortie_enemy_ship(codex, ship_id, enemy_level))
+        .map(|ship_id| build_sortie_enemy_ship(codex, ship_id, level))
         .collect::<Result<Vec<_>, GameplayError>>()?;
 
-    Ok((enemy_ships, enemy_level, enemy_rank, enemy_deck_name))
+    Ok(EnemyEncounter {
+        ships,
+        formation_id,
+        level,
+        rank: UserHQRank::RearAdmiral.get_name().to_string(),
+        deck_name: format!("{}海域敵艦隊", definition.name),
+    })
 }
 
 pub(super) fn build_sortie_enemy_ship(
@@ -426,10 +453,13 @@ mod tests {
             formations: vec![1],
             compositions: vec![composition("std", 1, vec![1501, 1501, 1501])],
         };
-        let comp = &enemy_fleet.compositions[0];
+        let comp = enemy_fleet.compositions[0].clone();
+        let variant = make_variant_with_enemy(2, enemy_fleet);
 
+        let encounter =
+            build_enemy_encounter(&codex, &definition, &variant, 2, Some(&comp)).unwrap();
         let (ships, enemy_level, enemy_rank, deck_name) =
-            build_sortie_enemy_ships(&codex, &definition, &enemy_fleet, comp).unwrap();
+            (encounter.ships, encounter.level, encounter.rank, encounter.deck_name);
 
         assert_eq!(ships.len(), 3);
         // All ships should be the fallback DD I-class (1501)
@@ -477,11 +507,12 @@ mod tests {
             formations: vec![1],
             compositions: vec![composition("empty", 1, vec![])],
         };
-        let comp = &enemy_fleet.compositions[0];
+        let comp = enemy_fleet.compositions[0].clone();
         assert!(comp.ship_ids.is_empty());
+        let variant = make_variant_with_enemy(1, enemy_fleet);
 
-        let (ships, _, _, _) =
-            build_sortie_enemy_ships(&codex, &definition, &enemy_fleet, comp).unwrap();
+        let ships =
+            build_enemy_encounter(&codex, &definition, &variant, 1, Some(&comp)).unwrap().ships;
 
         assert_eq!(ships.len(), 1);
         assert_eq!(ships[0].ship.api_ship_id, 1501);
@@ -531,6 +562,63 @@ mod tests {
         assert!(select_enemy_composition_for_roll(&enemy_fleet, 0).is_none());
     }
 
+    fn formed(comp_id: &str, formation: Option<i64>) -> EnemyComposition {
+        EnemyComposition {
+            formation,
+            ..composition(comp_id, 1, vec![1501])
+        }
+    }
+
+    fn encounter_formation(
+        formations: Vec<i64>,
+        compositions: Vec<EnemyComposition>,
+        locked: Option<&EnemyComposition>,
+    ) -> i64 {
+        let codex = test_codex();
+        let variant = make_variant_with_enemy(
+            4,
+            EnemyFleetDefinition {
+                cell_no: 4,
+                battle_kind: 1,
+                formations,
+                compositions,
+            },
+        );
+        build_enemy_encounter(&codex, &make_definition(5, "test"), &variant, 4, locked)
+            .unwrap()
+            .formation_id
+    }
+
+    /// AE2: three compositions formed 1/3/4; locking the second fights in 3.
+    #[test]
+    fn encounter_formation_is_the_locked_compositions_own() {
+        let comps = vec![formed("a", Some(1)), formed("b", Some(3)), formed("c", Some(4))];
+        assert_eq!(encounter_formation(vec![1, 3, 4], comps.clone(), Some(&comps[1])), 3);
+    }
+
+    /// AE3: without its own formation a composition takes the cell's first, and
+    /// with neither it is 単縦陣.
+    #[test]
+    fn encounter_formation_falls_back_to_the_cell_then_line_ahead() {
+        let bare = formed("bare", None);
+        assert_eq!(encounter_formation(vec![2, 5], vec![bare.clone()], Some(&bare)), 2);
+        assert_eq!(encounter_formation(vec![], vec![bare.clone()], Some(&bare)), 1);
+    }
+
+    /// A cell with no enemy data fights the fallback 駆逐イ級 in 単縦陣.
+    #[test]
+    fn encounter_without_cell_data_is_the_fallback_destroyer() {
+        let codex = test_codex();
+        let encounter =
+            build_enemy_encounter(&codex, &make_definition(5, "test"), &empty_variant(), 7, None)
+                .unwrap();
+        assert_eq!(encounter.formation_id, 1);
+        assert_eq!(
+            encounter.ships.iter().map(|s| s.ship.api_ship_id).collect::<Vec<_>>(),
+            vec![FALLBACK_ENEMY_SHIP_ID]
+        );
+    }
+
     // --- Integration tests ---
 
     #[test]
@@ -564,8 +652,10 @@ mod tests {
         assert_eq!(comp.ship_ids.len(), 3);
 
         // Build enemy ships
+        let encounter =
+            build_enemy_encounter(&codex, &definition, &variant, 3, Some(comp)).unwrap();
         let (ships, level, rank, deck_name) =
-            build_sortie_enemy_ships(&codex, &definition, &fleet, comp).unwrap();
+            (encounter.ships, encounter.level, encounter.rank, encounter.deck_name);
 
         assert_eq!(ships.len(), 3);
         for ship in &ships {

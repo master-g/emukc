@@ -900,7 +900,7 @@ async fn sortie_battle_impl(
             let mut response = build_day_response(
                 setup.active.deck_id,
                 &setup.friend_ships,
-                &setup.enemy_ships,
+                &setup.enemy.ships,
                 session.packet.clone(),
             );
             if setup.combined_type.is_some() {
