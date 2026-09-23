@@ -18,7 +18,7 @@ use emukc_model::{
     prelude::*,
 };
 
-use crate::map_pipeline::build_final_map_catalog_from_repo_assets;
+use crate::map_pipeline::build_final_map_catalog;
 use error::ParseError;
 pub use kc3kai::parse as parse_kc3kai;
 pub use kccp::quest::parse as parse_kccp_quests;
@@ -34,7 +34,7 @@ fn load_map_catalog(
     dir: &std::path::Path,
     manifest: &ApiManifest,
 ) -> Result<MapCatalog, ParseError> {
-    build_final_map_catalog_from_repo_assets(dir, manifest)
+    build_final_map_catalog(dir, manifest, None).map(|(catalog, _report)| catalog)
 }
 
 fn merge_manifest_ship(manifest: &mut ApiManifest, ship: ApiMstShip) {

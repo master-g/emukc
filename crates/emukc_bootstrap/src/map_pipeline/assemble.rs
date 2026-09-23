@@ -6,16 +6,17 @@ use super::{
     sources::ResolvedMapSources,
 };
 
+/// Assemble the final catalog in its one fixed order: kcdata → public overlay →
+/// stat.json → p_unlock normalization → wikiwiki label overlay.
+///
+/// The label overlay goes last because it is the only step that resolves labels
+/// to cell numbers, so it must see the final variant set and topology. It only
+/// writes routing rules, enemy fleets and ship drops, which no earlier source
+/// carries, so running it last leaves every metadata authority rule unchanged.
 pub(super) fn assemble_final_map_catalog(
     sources: ResolvedMapSources,
 ) -> (MapCatalog, MapCatalogBuildReport) {
-    let mut overlay_items_dropped = 0usize;
-    let mut deferred_overlays = Vec::new();
     let mut catalog = sources.kcdata_catalog;
-    if let Some(overlay) = &sources.wikiwiki_overlay {
-        overlay_items_dropped =
-            merge_label_overlay_catalog(&mut catalog, overlay, &mut deferred_overlays);
-    }
     catalog.merge_missing_from(sources.public_overlay_catalog);
     if let Some(ref stat_catalog) = sources.stat_catalog {
         catalog.merge_missing_from(stat_catalog.clone());
@@ -28,7 +29,12 @@ pub(super) fn assemble_final_map_catalog(
     for definition in catalog.maps.values_mut() {
         definition.normalize_p_unlock_variants();
     }
-    overlay_items_dropped += apply_deferred_label_overlays(&mut catalog, deferred_overlays);
+
+    let overlay_items_dropped = sources
+        .wikiwiki_overlay
+        .as_ref()
+        .map(|overlay| merge_label_overlay_catalog(&mut catalog, overlay))
+        .unwrap_or(0);
 
     let output_map_count = catalog.maps.len();
 
@@ -75,72 +81,29 @@ pub(super) fn assemble_final_map_catalog(
     )
 }
 
-/// Merge label-keyed wikiwiki overlay onto kcdata topology using the authoritative `label→cell_no` index.
+/// Merge the label-keyed wikiwiki overlay onto the assembled topology, resolving
+/// each label to the cells that carry it.
 fn merge_label_overlay_catalog(
-    kcdata: &mut MapCatalog,
+    catalog: &mut MapCatalog,
     overlay_catalog: &crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog,
-    deferred: &mut Vec<DeferredLabelOverlay>,
 ) -> usize {
     let mut total_dropped = 0usize;
 
     for (map_id, overlay_def) in &overlay_catalog.maps {
-        let Some(kcdata_map) = kcdata.maps.get_mut(map_id) else {
+        let Some(definition) = catalog.maps.get_mut(map_id) else {
             continue;
         };
-        let definition_has_named_variants = kcdata_map.variants.keys().any(|key| !key.is_empty());
-
         for (variant_key, overlay) in &overlay_def.variants {
-            if variant_key.is_empty() && definition_has_named_variants {
-                // Fan out to all named variants.
-                let keys: Vec<String> = kcdata_map.variants.keys().cloned().collect();
-                for key in &keys {
-                    let Some(kcdata_variant) = kcdata_map.variants.get_mut(key.as_str()) else {
-                        continue;
-                    };
-                    total_dropped += merge_label_overlay(kcdata_variant, overlay);
+            for key in definition.fan_out_variant_keys(variant_key) {
+                match definition.variants.get_mut(&key) {
+                    Some(variant) => total_dropped += merge_label_overlay(variant, overlay),
+                    None => tracing::warn!(
+                        map_id,
+                        variant_key = %key,
+                        "wikiwiki overlay names a variant the assembled map does not have; skipped"
+                    ),
                 }
-            } else if let Some(kcdata_variant) = kcdata_map.variants.get_mut(variant_key) {
-                total_dropped += merge_label_overlay(kcdata_variant, overlay);
-            } else {
-                // The variant does not exist in kcdata *yet*. A p_unlock map such as
-                // 7-3 arrives here as a single unnamed kcdata variant, while the
-                // wikiwiki routing is keyed `pre_p_unlock` / `post_p_unlock`; those
-                // variants only appear once the public overlay is merged and
-                // `normalize_p_unlock_variants` has run. Dropping the overlay here
-                // silently cost 7-3 all of its routing, so hold it back instead.
-                deferred.push(DeferredLabelOverlay {
-                    map_id: *map_id,
-                    variant_key: variant_key.clone(),
-                    overlay: overlay.clone(),
-                });
             }
-        }
-    }
-
-    total_dropped
-}
-
-/// A label overlay whose target variant did not exist when the overlay was first
-/// merged. Applied again once the variant set is final.
-struct DeferredLabelOverlay {
-    map_id: i64,
-    variant_key: String,
-    overlay: crate::parser::wikiwiki_map::WikiwikiLabelOverlay,
-}
-
-/// Apply the overlays held back by [`merge_label_overlay_catalog`], skipping any
-/// whose variant still does not exist.
-fn apply_deferred_label_overlays(
-    catalog: &mut MapCatalog,
-    deferred: Vec<DeferredLabelOverlay>,
-) -> usize {
-    let mut total_dropped = 0usize;
-
-    for entry in deferred {
-        if let Some(map) = catalog.maps.get_mut(&entry.map_id)
-            && let Some(variant) = map.variants.get_mut(&entry.variant_key)
-        {
-            total_dropped += merge_label_overlay(variant, &entry.overlay);
         }
     }
 
@@ -245,10 +208,10 @@ mod tests {
 
     /// A `p_unlock` map arrives as one unnamed kcdata variant while its wikiwiki
     /// routing is keyed `pre_p_unlock` / `post_p_unlock`; those variants only exist
-    /// after the public overlay is merged. The routing must survive that gap — 7-3
-    /// silently lost all of it, and nothing counted the loss.
+    /// once the public overlay is merged and normalized. Each must still get its own
+    /// routing — 7-3 once silently lost all of it.
     #[test]
-    fn p_unlock_routing_survives_the_variant_it_needs_appearing_late() {
+    fn p_unlock_variants_each_receive_their_own_routing() {
         // The kcdata base carries the topology, so cell 0 has to lead somewhere:
         // normalization refuses to split a map whose default would be unroutable.
         let mut kcdata = make_catalog(73, vec![make_variant("", &[0, 1, 2, 3])]);
@@ -439,5 +402,45 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(ids, vec![Some(3001), Some(3002), Some(3003), Some(3004)]);
+    }
+
+    /// An overlay keyed `""` is map-wide: it reaches every named variant when the
+    /// map has any, and the unnamed variant when it does not.
+    #[test]
+    fn map_wide_overlay_fans_out_to_named_variants() {
+        let linked = |key: &str| {
+            let mut variant = make_variant(key, &[0, 1]);
+            variant.cells[0].next_cells = vec![1];
+            variant
+        };
+        let mut kcdata = make_catalog(15, vec![linked("first"), linked("second")]);
+        kcdata.maps.insert(11, make_catalog(11, vec![linked("")]).maps.remove(&11).unwrap());
+        let wikiwiki = WikiwikiMapOverlayCatalog {
+            maps: [15, 11]
+                .into_iter()
+                .map(|map_id| {
+                    (
+                        map_id,
+                        WikiwikiMapOverlayDefinition {
+                            map_id,
+                            variants: BTreeMap::from([label_rule("", "C0", "C1")]),
+                        },
+                    )
+                })
+                .collect(),
+        };
+
+        let (catalog, _report) = assemble_final_map_catalog(ResolvedMapSources {
+            wikiwiki_overlay: Some(wikiwiki),
+            ..sources_from_kcdata(kcdata)
+        });
+
+        for (map_id, key) in [(15, "first"), (15, "second"), (11, "")] {
+            let rules = &catalog.maps[&map_id].variants[key].routing_rules;
+            assert!(
+                rules.get(&0).is_some_and(|rs| rs.iter().any(|r| r.to_cell_no == 1)),
+                "map {map_id} variant `{key}` should carry the map-wide rule, got {rules:?}"
+            );
+        }
     }
 }

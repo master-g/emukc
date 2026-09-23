@@ -42,20 +42,12 @@ pub(super) struct ResolvedMapSources {
 pub(super) fn load_explicit_source_set(
     data_root: &Path,
     manifest: &ApiManifest,
-    wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
+    mut wikiwiki_overlay: WikiwikiMapOverlayCatalog,
 ) -> Result<ResolvedMapSources, ParseError> {
     // A caller-supplied catalog comes straight from the agent skill, which does
     // not produce drops, so it needs the same fold-in the repo asset gets.
-    let mut wikiwiki_overlay = wikiwiki_overlay;
-    if let Some(overlay) = wikiwiki_overlay.as_mut() {
-        apply_ship_drops(overlay)?;
-    }
-    let wikiwiki_source = if wikiwiki_overlay.is_some() {
-        MapCatalogWikiwikiSource::Provided
-    } else {
-        MapCatalogWikiwikiSource::None
-    };
-    load_source_set(data_root, manifest, wikiwiki_source, wikiwiki_overlay)
+    apply_ship_drops(&mut wikiwiki_overlay)?;
+    load_source_set(data_root, manifest, MapCatalogWikiwikiSource::Provided, Some(wikiwiki_overlay))
 }
 
 pub(super) fn load_repo_source_set(

@@ -159,8 +159,8 @@ fn normalize_catalog(args: &NormalizeArgs) -> Result<WikiwikiMapOverlayCatalog> 
 
 fn build_public_overlays(args: &BuildOverlaysArgs) -> Result<MapOverlayBuildOutput> {
     let manifest = read_manifest(&args.data_root)?;
-    let catalog = build_final_map_catalog_from_repo_assets(&args.data_root, &manifest)
-        .map_err(anyhow::Error::from)?;
+    let (catalog, _report) =
+        build_final_map_catalog(&args.data_root, &manifest, None).map_err(anyhow::Error::from)?;
     build_public_map_catalog_overlay_from_embedded_real_map_start_assets(
         &catalog,
         EMBEDDED_REAL_MAP_START_ASSETS,

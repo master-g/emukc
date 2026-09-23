@@ -39,27 +39,29 @@ pub(super) fn merge_definition(definition: &mut MapDefinition, other: MapDefinit
     if definition.rank_stage_ids.is_empty() {
         definition.rank_stage_ids = other.rank_stage_ids;
     }
-    let definition_has_named_variants = definition.variants.keys().any(|key| !key.is_empty());
-    let fallback_variant = other.variants.get("").cloned();
-    for (variant_key, variant) in other.variants {
-        if variant_key.is_empty() && definition_has_named_variants {
-            continue;
-        }
-        match definition.variants.entry(variant_key) {
-            std::collections::btree_map::Entry::Vacant(entry) => {
-                entry.insert(variant);
-            }
-            std::collections::btree_map::Entry::Occupied(mut entry) => {
-                merge_variant_definition(entry.get_mut(), variant);
-            }
+    let mut other_variants = other.variants;
+    let map_wide_variant = other_variants.remove("");
+    for (variant_key, variant) in other_variants {
+        merge_or_insert_variant(definition, variant_key, variant);
+    }
+    if let Some(map_wide_variant) = map_wide_variant {
+        for variant_key in definition.fan_out_variant_keys("") {
+            merge_or_insert_variant(definition, variant_key, map_wide_variant.clone());
         }
     }
-    if let Some(fallback_variant) = fallback_variant {
-        for (variant_key, variant) in &mut definition.variants {
-            if variant_key.is_empty() {
-                continue;
-            }
-            merge_variant_definition(variant, fallback_variant.clone());
+}
+
+fn merge_or_insert_variant(
+    definition: &mut MapDefinition,
+    variant_key: String,
+    variant: MapVariantDefinition,
+) {
+    match definition.variants.entry(variant_key) {
+        std::collections::btree_map::Entry::Vacant(entry) => {
+            entry.insert(variant);
+        }
+        std::collections::btree_map::Entry::Occupied(mut entry) => {
+            merge_variant_definition(entry.get_mut(), variant);
         }
     }
 }
@@ -277,6 +279,41 @@ mod tests {
         assert_eq!(definition.cell(3).unwrap().event_kind, 1);
         assert!(definition.enemy_fleets.contains_key(&3));
         assert!(definition.ship_drops.contains_key(&3));
+    }
+
+    /// A secondary source's `""` variant is map-wide: on a map with named variants
+    /// it lands in each of them rather than as a stray unnamed variant.
+    #[test]
+    fn map_wide_secondary_variant_fans_out_to_named_variants() {
+        let named = |key: &str| MapVariantDefinition {
+            variant_key: key.to_string(),
+            cells: vec![cell(1, "A", vec![], 0, 0, 0)],
+            ..Default::default()
+        };
+        let mut definition = MapDefinition {
+            variants: BTreeMap::from([
+                ("pre".to_string(), named("pre")),
+                ("post".to_string(), named("post")),
+            ]),
+            ..Default::default()
+        };
+        let other = MapDefinition {
+            variants: BTreeMap::from([(
+                String::new(),
+                MapVariantDefinition {
+                    cells: vec![cell(1, "A", vec![], 5, 1, 5)],
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+
+        merge_definition(&mut definition, other);
+
+        assert!(!definition.variants.contains_key(""));
+        for key in ["pre", "post"] {
+            assert_eq!(definition.variants[key].cell(1).unwrap().event_id, 5, "{key}");
+        }
     }
 
     #[test]

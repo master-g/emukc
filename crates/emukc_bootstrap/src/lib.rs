@@ -70,8 +70,7 @@ pub mod prelude {
     };
     pub use crate::map_pipeline::{
         MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource,
-        build_final_map_catalog, build_final_map_catalog_from_repo_assets,
-        build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_report,
+        build_final_map_catalog,
     };
     pub use crate::map_route_rules::{
         MapRouteValidationFinding, MapRouteValidationFindingKind, MapRouteValidationReport,

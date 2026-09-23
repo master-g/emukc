@@ -390,6 +390,22 @@ impl MapDefinition {
             .or_else(|| self.variants.get(&self.default_variant))
             .or_else(|| self.variants.get(""))
     }
+
+    /// The variants a source item keyed `variant_key` applies to.
+    ///
+    /// `""` is the map-wide key: on a map with named variants it fans out to every
+    /// named one, otherwise it names the unnamed variant itself. Any other key
+    /// names just that variant, whether or not it exists yet.
+    pub fn fan_out_variant_keys(&self, variant_key: &str) -> Vec<String> {
+        if variant_key.is_empty() {
+            let named =
+                self.variants.keys().filter(|key| !key.is_empty()).cloned().collect::<Vec<_>>();
+            if !named.is_empty() {
+                return named;
+            }
+        }
+        vec![variant_key.to_owned()]
+    }
 }
 
 impl MapVariantDefinition {

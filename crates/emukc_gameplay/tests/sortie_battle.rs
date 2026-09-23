@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI64, Ordering};
 
-use emukc_bootstrap::prelude::build_final_map_catalog_from_repo_assets;
+use emukc_bootstrap::prelude::build_final_map_catalog;
 use emukc_db::{
     entity::profile::{self, map_record, quest, ship},
     prelude::new_mem_db,
@@ -38,7 +38,7 @@ async fn mock_context_with_repo_wikiwiki_maps() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     let data_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp");
-    codex.maps = build_final_map_catalog_from_repo_assets(&data_root, &codex.manifest).unwrap();
+    codex.maps = build_final_map_catalog(&data_root, &codex.manifest, None).unwrap().0;
     ensure_enemy_manifest_entries(&mut codex);
     Ctx::new(Arc::new(db), Arc::new(codex))
 }
