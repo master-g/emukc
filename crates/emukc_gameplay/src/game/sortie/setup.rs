@@ -4,8 +4,10 @@
 //! state (active sortie, profile, stage, both fleets) and enforce the same guards
 //! before they diverge on which simulation to run.
 
+use std::collections::BTreeMap;
+
 use emukc_battle::{
-    BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType,
+    BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType, EngagementType,
     combined_formation_min_escort_size,
 };
 use emukc_db::entity::profile;
@@ -20,6 +22,7 @@ use crate::{
         fleet::get_fleet_ships_impl,
         map::active_map_catalog,
         ship::exp::calculate_admiral_exp,
+        slot_item::find_slot_items_by_id_impl,
         sortie_result::{
             SortieBattleResultSnapshot, SortieDeckRewards, calculate_sortie_base_exp,
             calculate_sortie_deck_rewards,
@@ -34,7 +37,6 @@ use super::{
         build_sortie_enemy_ships, fallback_enemy_composition, resolve_sortie_enemy_fleet,
         select_random_enemy_composition,
     },
-    route_context::{build_sortie_friend_ships, engagement_for_cell},
 };
 
 /// The escort deck of a combined fleet is always fleet 2
@@ -324,5 +326,60 @@ impl SortieBattleSetup {
             enemy_rank: self.enemy_rank.clone(),
             enemy_deck_name: self.enemy_deck_name.clone(),
         }
+    }
+}
+
+async fn build_sortie_friend_ships<C>(
+    c: &C,
+    friend_ships: &[profile::ship::Model],
+) -> Result<Vec<BattleShipInput>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let all_slot_ids: Vec<i64> = friend_ships
+        .iter()
+        .flat_map(|ship| {
+            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+        })
+        .filter(|slot_id| *slot_id > 0)
+        .collect();
+
+    let all_slot_items = if all_slot_ids.is_empty() {
+        BTreeMap::new()
+    } else {
+        find_slot_items_by_id_impl(c, &all_slot_ids)
+            .await?
+            .into_iter()
+            .map(|item| (item.id, item))
+            .collect::<BTreeMap<_, _>>()
+    };
+
+    let mut result = Vec::with_capacity(friend_ships.len());
+    for ship in friend_ships {
+        let slot_items =
+            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+                .into_iter()
+                .filter(|slot_id| *slot_id > 0)
+                .filter_map(|slot_id| all_slot_items.get(&slot_id).cloned())
+                .map(std::convert::Into::into)
+                .collect();
+
+        result.push(BattleShipInput {
+            ship: (*ship).into(),
+            slot_items,
+            effect_list: vec![],
+            married: ship.married,
+        });
+    }
+
+    Ok(result)
+}
+
+fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
+    match (map_id + cell_id).rem_euclid(4) {
+        1 => EngagementType::HeadOn,
+        2 => EngagementType::TAdvantage,
+        3 => EngagementType::TDisadvantage,
+        _ => EngagementType::SameCourse,
     }
 }

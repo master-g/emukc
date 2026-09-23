@@ -1,11 +1,11 @@
 mod enemy_ship;
-mod route_context;
+mod route;
 mod setup;
 
 use enemy_ship::{
     fallback_enemy_composition, resolve_sortie_enemy_fleet, select_random_enemy_composition,
 };
-use route_context::build_fleet_route_context;
+use route::{SortieRoute, route_next_cell};
 use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 
 use std::collections::BTreeSet;
@@ -27,7 +27,6 @@ use crate::{err::GameplayError, gameplay::Ctx};
 use emukc_battle::{BattleType, EngagementType};
 
 use super::{
-    basic::find_profile,
     battle::{
         response::{
             DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
@@ -44,7 +43,7 @@ use super::{
         refresh_all_map_records_impl,
     },
     map_progress::resolve_record_stage_id,
-    map_route::{cell_has_routing_outgoing, evaluate_route_destination},
+    map_route::cell_has_routing_outgoing,
     material::add_material_impl,
     quest::observe::observe,
     ship::exp::calculate_admiral_exp,
@@ -164,7 +163,6 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let profile = find_profile(&tx, profile_id).await?;
         let fleet_ships = get_fleet_ships_impl(&tx, profile_id, deck_id).await?;
         if fleet_ships.is_empty() {
             return Err(GameplayError::WrongType(format!(
@@ -192,10 +190,20 @@ impl Ctx {
         let source_cell = select_start_source_cell(stage).map_err(|err| {
             GameplayError::EntryNotFound(format!("{} for map {}", err, definition.map_id))
         })?;
-        let mut route_context =
-            build_fleet_route_context(&tx, codex, &fleet_ships, profile.hq_level).await?;
-        route_context.visited_cell_ids.insert(source_cell.cell_no);
-        let first_cell = evaluate_route_destination(source_cell, stage, &route_context, None)?;
+        let first_step = route_next_cell(
+            &tx,
+            codex,
+            SortieRoute {
+                profile_id,
+                fleet_ships: &fleet_ships,
+                visited_cell_ids: &BTreeSet::new(),
+            },
+            stage,
+            source_cell,
+            None,
+        )
+        .await?;
+        let first_cell = first_step.cell_no;
         let current_cell = stage
             .cell(first_cell)
             .ok_or_else(|| GameplayError::EntryNotFound(format!("cell {first_cell} not found")))?;
@@ -211,7 +219,7 @@ impl Ctx {
             current_cell_id: first_cell,
             boss_cell_id: stage.boss_cell_no,
             pending_battle_cell_id: None,
-            visited_cell_ids: BTreeSet::from([source_cell.cell_no, first_cell]),
+            visited_cell_ids: first_step.visited_cell_ids,
             locked_enemy_composition: locked_enemy_composition.clone(),
         };
         tx.commit().await?;
@@ -319,14 +327,21 @@ impl Ctx {
 
                 let tx = db.begin().await?;
                 let fleet_ships = get_fleet_ships_impl(&tx, profile_id, active.deck_id).await?;
-                let hq_level = find_profile(&tx, profile_id).await?.hq_level;
-                let mut route_context =
-                    build_fleet_route_context(&tx, codex, &fleet_ships, hq_level).await?;
+                let step = route_next_cell(
+                    &tx,
+                    codex,
+                    SortieRoute {
+                        profile_id,
+                        fleet_ships: &fleet_ships,
+                        visited_cell_ids: &active.visited_cell_ids,
+                    },
+                    stage,
+                    current,
+                    selected_cell_id,
+                )
+                .await?;
                 tx.commit().await?;
-                route_context.visited_cell_ids = active.visited_cell_ids.clone();
-
-                let next_cell_id =
-                    evaluate_route_destination(current, stage, &route_context, selected_cell_id)?;
+                let next_cell_id = step.cell_no;
                 let next = stage.cell(next_cell_id).ok_or_else(|| {
                     GameplayError::EntryNotFound(format!("cell {next_cell_id} not found"))
                 })?;
@@ -335,7 +350,7 @@ impl Ctx {
 
                 if let Some(mut state) = store.get_active(profile_id) {
                     state.current_cell_id = next_cell_id;
-                    state.visited_cell_ids.insert(next_cell_id);
+                    state.visited_cell_ids = step.visited_cell_ids;
                     state.locked_enemy_composition = locked_enemy_composition.clone();
                     let _ = store.insert_active(profile_id, state);
                 }

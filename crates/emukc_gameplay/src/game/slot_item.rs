@@ -17,6 +17,10 @@ use crate::{
 
 use super::picturebook::add_slot_item_to_picturebook_impl;
 
+/// ドラム缶(輸送用). Expeditions count the canisters, sortie routing counts the
+/// ships carrying one; both key on this master id.
+pub(crate) const DRUM_CANISTER_MST_ID: i64 = 75;
+
 impl Ctx {
     /// Add slot item to a profile.
     ///

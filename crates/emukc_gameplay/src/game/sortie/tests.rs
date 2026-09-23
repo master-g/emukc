@@ -1,4 +1,5 @@
 use super::*;
+use crate::game::basic::find_profile;
 use crate::game::battle::sortie::{
     SortieBattleInput, pending_battle, run_day_battle, run_sp_midnight_battle,
 };
@@ -17,6 +18,7 @@ use emukc_db::{
         ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
     },
 };
+use emukc_model::codex::map::RoutePredicate;
 use emukc_model::{
     codex::{
         Codex,
@@ -654,7 +656,7 @@ async fn equip_drums_on_ship(
             db,
             codex,
             profile_id,
-            super::route_context::DRUM_CANISTER_MST_ID,
+            crate::game::slot_item::DRUM_CANISTER_MST_ID,
             0,
             0,
         )
@@ -677,24 +679,95 @@ async fn equip_drums_on_ship(
     profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap()
 }
 
+/// A stage whose `branch` cell leads to 1 when `predicate` holds and to 2
+/// otherwise. Cell 3 is a spare the route history can name.
+fn branch_stage(branch: i64, predicate: RoutePredicate) -> MapStageDefinition {
+    use emukc_model::codex::map::RouteRule;
+
+    let cell = |cell_no: i64, next_cells: Vec<i64>| MapCellDefinition {
+        cell_no,
+        next_cells,
+        ..Default::default()
+    };
+    let rule = |to_cell_no: i64, priority: i64, predicate: RoutePredicate| RouteRule {
+        from_cell_no: branch,
+        to_cell_no,
+        priority,
+        predicate,
+        ..Default::default()
+    };
+    let mut cells = vec![cell(1, vec![]), cell(2, vec![]), cell(3, vec![])];
+    cells.retain(|c| c.cell_no != branch);
+    cells.push(cell(branch, vec![1, 2]));
+    if branch != 0 {
+        cells.push(cell(0, vec![branch]));
+    }
+    MapStageDefinition {
+        cells,
+        routing_rules: BTreeMap::from([(
+            branch,
+            vec![rule(1, 0, predicate), rule(2, 1, RoutePredicate::Always)],
+        )]),
+        ..Default::default()
+    }
+}
+
+/// Route from `from` on `stage` for `fleet`, having passed `visited`.
+async fn route_from(
+    context: &Ctx,
+    profile_id: i64,
+    fleet: &[profile_ship::Model],
+    visited: &[i64],
+    stage: &MapStageDefinition,
+    from: i64,
+) -> i64 {
+    use super::route::{SortieRoute, route_next_cell};
+
+    let visited = visited.iter().copied().collect::<std::collections::BTreeSet<_>>();
+    route_next_cell(
+        context.db.as_ref(),
+        context.codex.as_ref(),
+        SortieRoute {
+            profile_id,
+            fleet_ships: fleet,
+            visited_cell_ids: &visited,
+        },
+        stage,
+        stage.cell(from).unwrap(),
+        None,
+    )
+    .await
+    .unwrap()
+    .cell_no
+}
+
+async fn routing_profile(context: &Ctx, name: &str) -> i64 {
+    let account = context.sign_up(name, "1234567").await.unwrap();
+    let profile =
+        context.new_profile(&account.access_token.token, &format!("{name}-admin")).await.unwrap();
+    context.start_game(&account.access_token.token, profile.profile.id).await.unwrap().profile.id
+}
+
 /// `DrumCanisterCount` counts ships, not canisters. Every wikiwiki routing
 /// condition reads 「ドラム缶搭載艦の隻数」, and 5-4 states the rule outright: a
 /// ship carrying both a canister and a landing craft counts once for each, never
 /// twice for two canisters. Counting items made a single well-loaded ship satisfy
-/// a two-ship branch.
+/// a two-ship branch (87127aa5).
 #[tokio::test]
 async fn drum_canister_routing_counts_ships_not_canisters() {
-    use super::route_context::build_fleet_route_context;
+    use emukc_model::codex::map::RouteOperator;
 
     let db = new_mem_db().await.unwrap();
     let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
-    let account = context.sign_up("drum-route", "1234567").await.unwrap();
-    let profile =
-        context.new_profile(&account.access_token.token, "drum-route-admin").await.unwrap();
-    let session =
-        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-    let profile_id = session.profile.id;
+    let profile_id = routing_profile(&context, "drum-route").await;
+    let stage = branch_stage(
+        0,
+        RoutePredicate::DrumCanisterCount {
+            op: RouteOperator::Gte,
+            value: 2,
+        },
+    );
 
     // One ship with three canisters, one with none.
     let loaded = context.add_ship(profile_id, 951).await.unwrap();
@@ -706,20 +779,103 @@ async fn drum_canister_routing_counts_ships_not_canisters() {
         .await
         .unwrap()
         .unwrap();
+    let next = route_from(&context, profile_id, &[loaded.clone(), empty], &[], &stage, 0).await;
+    assert_eq!(next, 2, "three canisters on one ship is still one ship");
 
-    let ctx = build_fleet_route_context(context.db.as_ref(), &codex, &[loaded, empty], 120)
-        .await
-        .unwrap();
-    assert_eq!(ctx.drum_ships, 1, "three canisters on one ship is still one ship");
-
-    // Spreading the same canisters over two ships is what a two-ship branch wants.
+    // Spreading canisters over two ships is what a two-ship branch wants.
     let second = context.add_ship(profile_id, 951).await.unwrap();
     let second =
         equip_drums_on_ship(context.db.as_ref(), &codex, profile_id, second.api_id, 1).await;
-    let ctx = build_fleet_route_context(context.db.as_ref(), &codex, &[loaded, second], 120)
+    let next = route_from(&context, profile_id, &[loaded, second], &[], &stage, 0).await;
+    assert_eq!(next, 1);
+}
+
+/// The cell being left counts as visited: on the very first step that is the
+/// start, and a 「Startを経由」-style rule must see it.
+#[tokio::test]
+async fn first_step_counts_the_start_as_visited() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let profile_id = routing_profile(&context, "route-start").await;
+    let ship = context.add_ship(profile_id, 951).await.unwrap();
+    let fleet = [profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
         .await
-        .unwrap();
-    assert_eq!(ctx.drum_ships, 2);
+        .unwrap()
+        .unwrap()];
+    let stage = branch_stage(
+        0,
+        RoutePredicate::VisitedNode {
+            cell_nos: vec![0],
+            visited: true,
+        },
+    );
+
+    assert_eq!(route_from(&context, profile_id, &fleet, &[], &stage, 0).await, 1);
+}
+
+/// Later steps read the history the sortie accumulated: 「Dマスを経由」 holds
+/// only when the fleet really passed D.
+#[tokio::test]
+async fn later_steps_read_the_accumulated_route_history() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let profile_id = routing_profile(&context, "route-history").await;
+    let ship = context.add_ship(profile_id, 951).await.unwrap();
+    let fleet = [profile_ship::Entity::find_by_id(ship.api_id)
+        .one(context.db.as_ref())
+        .await
+        .unwrap()
+        .unwrap()];
+    let stage = branch_stage(
+        4,
+        RoutePredicate::VisitedNode {
+            cell_nos: vec![3],
+            visited: true,
+        },
+    );
+
+    assert_eq!(route_from(&context, profile_id, &fleet, &[0, 3, 4], &stage, 4).await, 1);
+    assert_eq!(route_from(&context, profile_id, &fleet, &[0, 4], &stage, 4).await, 2);
+}
+
+/// Unequipped ships, empty slots and a ship the manifest does not know do not
+/// break the fleet facts; ship-type counts cover only the ships it knows.
+#[tokio::test]
+async fn fleet_facts_tolerate_bare_and_unknown_ships() {
+    use emukc_model::codex::map::RouteOperator;
+
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
+    let profile_id = routing_profile(&context, "route-bare").await;
+    let mut fleet = Vec::new();
+    for _ in 0..2 {
+        let ship = context.add_ship(profile_id, 951).await.unwrap();
+        fleet.push(
+            profile_ship::Entity::find_by_id(ship.api_id)
+                .one(context.db.as_ref())
+                .await
+                .unwrap()
+                .unwrap(),
+        );
+    }
+    let stype = codex.manifest.find_ship(951).unwrap().api_stype;
+    let mut unknown = fleet[0].clone();
+    unknown.mst_id = 999_999;
+    fleet.push(unknown);
+    let stage = branch_stage(
+        0,
+        RoutePredicate::ShipTypeCount {
+            ship_types: vec![stype],
+            op: RouteOperator::Eq,
+            value: 2,
+        },
+    );
+
+    assert_eq!(route_from(&context, profile_id, &fleet, &[], &stage, 0).await, 1);
 }
 
 #[tokio::test]

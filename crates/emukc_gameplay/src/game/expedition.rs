@@ -25,10 +25,9 @@ use super::{
     material::add_material_impl,
     quest::observe::{GameplayOutcome, observe},
     ship::{exp::settle_ship_exp, get_ships_impl, recalculate_ship_status_with_model},
+    slot_item::DRUM_CANISTER_MST_ID,
     use_item::add_use_item_impl,
 };
-
-const DRUM_CANISTER_MST_ID: i64 = 75;
 
 #[derive(Debug, Clone)]
 pub struct ExpeditionStartInfo {
