@@ -14,7 +14,7 @@ mod merge;
 
 /// Canonical repo-tracked public map overlay asset path.
 pub fn repo_public_map_catalog_overlay_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/public_map_catalog_overlays.json")
+    crate::assets::PUBLIC_MAP_CATALOG_OVERLAYS.path()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

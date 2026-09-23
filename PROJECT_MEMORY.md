@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-09-23 · branch `main`
+Last updated: 2026-09-23 · branch `refactor/deepen-map-sortie-battle-modules`
 
 ## Verified Facts
 
@@ -107,9 +107,9 @@ Current verification baseline:
 - [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body（4 个 w0* 主机实测）。
   `Kache` 现在把「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
   missing 不再重试；注意 `exists_on_remote` 走 HEAD，仍判 `Present`。
-- [2026-09-21] drift-check 跟踪 13 个资产（4 battle + 2 map-catalog + 7 cache-list 输入），基线 `--accept`
-  到 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的字节算，`_0x` 重命名即使
-  解码知识没变也算漂移。
+- [2026-09-23] drift-check 跟踪 `emukc_bootstrap::assets::REPO_ASSETS` 的全部 15 项（含不可再生的
+  `map_ship_drops`），基线 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的
+  字节算，`_0x` 重命名即使解码知识没变也算漂移。
 - [2026-09-21] manifest 差集结案，**不要补**：
   `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 - [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤不是缺陷：活动图是三位数 id，
@@ -142,6 +142,8 @@ Current verification baseline:
   `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
 - [2026-09-22] 同名 `PhaseHougeki` 昼夜两份编号互斥（昼 2=連撃/7=空母切入，夜 1=連撃/6=空母切入）；
   消歧只能按依赖它的 dispatcher（`PhaseDay*` vs `PhaseNight`/`PhaseAllyAttack`），按 hotspot 深浅挑会静默出错。
+- [2026-09-23] 常规图没有联合舰队分歧：37 张图 `sally_flag` 全是 `[x, 0, 0]`，2144 条规则无一提「連合」。
+  `FleetRouteContext.escort_ship_entries` 因此暂时没人读；`start_sortie` 也不查 `sally_flag`（计划 1116 Deferred）。
 
 ## Failed Attempts / Pitfalls
 
@@ -162,7 +164,7 @@ Current verification baseline:
 | pi-lens 每次编辑 Makefile 都重跑 shellcheck（解析不了 Make 语法）且无视 ignore glob；已在 `.shellcheckrc` 与 `.pi-lens.json` 修好，但会话缓存会重放到会话结束。 | git `b0284d1`, `83ecebb` |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
-| [2026-09-18] `crates/emukc_gameplay/tests/practice_battle.rs` asserts an unseeded battle's `api_win_rank`, so 2 of its 11 tests fail at roughly a 1-in-3 rate on any commit — it is not a regression signal. Re-run the single target before blaming a change. | session 2026-09-18 |
+| [2026-09-18] `practice_battle.rs` 断言未播种战斗的 `api_win_rank`，11 个里 2 个偶发失败（09-23 实测 `..._ranked_exercise_quest` 在 main 上 40 败 5，对手在 `rng::seed` 前生成）。不是回归信号，先单独重跑。 | sessions 2026-09-18, 09-23 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
 | [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
@@ -183,19 +185,17 @@ Current verification baseline:
 | [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
-| [2026-09-22] 谓词里带格子编号的必须和其它字段一样走 label 中转：`auto_derive_label_overlay` 曾把 `VisitedNode` 原样透传，wikiwiki 的 BFS 编号进了 kcdata 空间，4-5/5-5/7-4 共 5 条「经由某格」全在查别的格子。 | `lift_predicate_to_labels` |
+| [2026-09-22] wikiwiki 的 BFS 编号曾经进过 kcdata 空间（`VisitedNode` 被原样透传，5 条「经由某格」查错格子）。09-23 起资产只存 label，编号在 `normalize` 接入时就换掉，组装只做一次 label→kcdata；别再往资产里放编号。 | `docs/map/data-dependencies.md` §2 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
+| [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
 
 ## Last Session
 
-- [2026-09-23] boss 格编成：3-2 是资产漏抓 K/L，已补（L 3 组）；1-6 终点 N 是 event_id 8 非战斗，bosscomp=false 正确。
-  新测试 `map/boss_fleet.rs`（旧数据下红、新数据下绿）；test 1177 过 0 败 0 ignored，fmt 过，改动文件 clippy 零告警。
+- [2026-09-23] 计划 1116（U1–U10）经 PR #1 以 merge commit 合入 `main`，计划文件随 PR 入库。合并前在分支 HEAD 重跑：
+  fmt/clippy exit 0（17 条既有 warning，无一落在本分支改动行），`cargo test --workspace` exit 0，1178 过 0 败 0 忽略。
 
 ## Next Session
 
-- [2026-09-23] 地图侧剩下的：5-6 还有 6 条 `Unknown`；ドラム缶 / 大発動艇系 还缺约 7 条（2-5、5-3、5-4、5-5，
-  原文在 `extracted/*.txt`）；掉落仍不可再生。疑似：1-6 到达 N 不推进 gauge（gauge 只在战斗结算里减），未验证。
-- 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），
-  否则集成测试跑的是旧数据——09-22 撞上过，连 `music_list` 都还停在 `7ed789ec` 之前的 72 条。
-- 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。
-- 战斗侧积压：`api_at_type = 100` 按每参战舰发一条，官方是一条带三目标，见 `docs/battle/rules.md`。
+- [2026-09-23] 下一项：基地航空隊 U4（`set_action`、`change_name`、`supply`，计划 2026-09-22-001），不阻塞。
+  其后可选 1116 Deferred 首项：`start_sortie` 不查 `sally_flag`。
+- 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。

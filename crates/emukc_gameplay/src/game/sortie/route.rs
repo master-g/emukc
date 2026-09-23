@@ -1,18 +1,90 @@
+//! Sortie routing: which cell the fleet moves to next.
+//!
+//! [`route_next_cell`] is the only way in. Behind it sit the fleet facts read
+//! from the database, the route-history rule, predicate evaluation and the
+//! branch roll in [`map_route`](super::super::map_route).
+
 use std::collections::{BTreeMap, BTreeSet};
 
-use emukc_battle::{BattleShipInput, EngagementType};
 use emukc_db::entity::profile::ship;
 use emukc_db::sea_orm::ConnectionTrait;
-use emukc_model::codex::Codex;
+use emukc_model::codex::{
+    Codex,
+    map::{MapCellDefinition, MapStageDefinition},
+};
 
 use crate::err::GameplayError;
 
-use super::super::map_route::{FleetRouteContext, FleetRouteShipEntry};
-use super::super::slot_item::find_slot_items_by_id_impl;
+use super::super::basic::find_profile;
+use super::super::map_route::{FleetRouteContext, FleetRouteShipEntry, evaluate_route_destination};
+use super::super::slot_item::{DRUM_CANISTER_MST_ID, find_slot_items_by_id_impl};
+use super::setup::escort_fleet_ships_impl;
 
-pub(super) const DRUM_CANISTER_MST_ID: i64 = 75;
+/// The sortie a route is being picked for.
+pub(super) struct SortieRoute<'a> {
+    pub(super) profile_id: i64,
+    /// The sortie fleet, flagship first.
+    pub(super) fleet_ships: &'a [ship::Model],
+    /// Cells passed so far; empty when the fleet has not left the start.
+    pub(super) visited_cell_ids: &'a BTreeSet<i64>,
+}
 
-pub(super) async fn build_fleet_route_context<C>(
+/// One move of the fleet.
+pub(super) struct RouteStep {
+    /// The cell the fleet moves to.
+    pub(super) cell_no: i64,
+    /// The route history after the move, for the sortie to keep.
+    pub(super) visited_cell_ids: BTreeSet<i64>,
+}
+
+/// Pick the cell the fleet moves to from `current`.
+///
+/// The cell being left always counts as visited, so a 「〜を経由」 rule sees the
+/// start cell on the first step just as it sees every later cell.
+pub(super) async fn route_next_cell<C>(
+    c: &C,
+    codex: &Codex,
+    sortie: SortieRoute<'_>,
+    stage: &MapStageDefinition,
+    current: &MapCellDefinition,
+    selected_cell_id: Option<i64>,
+) -> Result<RouteStep, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let mut context = sortie_route_context(c, codex, &sortie).await?;
+    context.visited_cell_ids.insert(current.cell_no);
+    let cell_no = evaluate_route_destination(current, stage, &context, selected_cell_id)?;
+    let mut visited_cell_ids = context.visited_cell_ids;
+    visited_cell_ids.insert(cell_no);
+    Ok(RouteStep {
+        cell_no,
+        visited_cell_ids,
+    })
+}
+
+/// Everything the predicates may read about this sortie's fleet.
+pub(super) async fn sortie_route_context<C>(
+    c: &C,
+    codex: &Codex,
+    sortie: &SortieRoute<'_>,
+) -> Result<FleetRouteContext, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let profile = find_profile(c, sortie.profile_id).await?;
+    let mut context =
+        build_fleet_route_context(c, codex, sortie.fleet_ships, profile.hq_level).await?;
+    if profile.combined_type != 0 {
+        let escort = escort_fleet_ships_impl(c, sortie.profile_id).await?;
+        context.escort_ship_entries =
+            build_fleet_route_context(c, codex, &escort, profile.hq_level).await?.ship_entries;
+    }
+    context.visited_cell_ids = sortie.visited_cell_ids.clone();
+    Ok(context)
+}
+
+async fn build_fleet_route_context<C>(
     c: &C,
     codex: &Codex,
     fleet_ships: &[ship::Model],
@@ -135,60 +207,6 @@ where
         drum_ships,
         los_formula1: los_f1_acc,
         los_formula3,
+        escort_ship_entries: Vec::new(),
     })
-}
-
-pub(super) async fn build_sortie_friend_ships<C>(
-    c: &C,
-    friend_ships: &[emukc_db::entity::profile::ship::Model],
-) -> Result<Vec<BattleShipInput>, GameplayError>
-where
-    C: ConnectionTrait,
-{
-    let all_slot_ids: Vec<i64> = friend_ships
-        .iter()
-        .flat_map(|ship| {
-            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
-        })
-        .filter(|slot_id| *slot_id > 0)
-        .collect();
-
-    let all_slot_items = if all_slot_ids.is_empty() {
-        BTreeMap::new()
-    } else {
-        find_slot_items_by_id_impl(c, &all_slot_ids)
-            .await?
-            .into_iter()
-            .map(|item| (item.id, item))
-            .collect::<BTreeMap<_, _>>()
-    };
-
-    let mut result = Vec::with_capacity(friend_ships.len());
-    for ship in friend_ships {
-        let slot_items =
-            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
-                .into_iter()
-                .filter(|slot_id| *slot_id > 0)
-                .filter_map(|slot_id| all_slot_items.get(&slot_id).cloned())
-                .map(std::convert::Into::into)
-                .collect();
-
-        result.push(BattleShipInput {
-            ship: (*ship).into(),
-            slot_items,
-            effect_list: vec![],
-            married: ship.married,
-        });
-    }
-
-    Ok(result)
-}
-
-pub(super) fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
-    match (map_id + cell_id).rem_euclid(4) {
-        1 => EngagementType::HeadOn,
-        2 => EngagementType::TAdvantage,
-        3 => EngagementType::TDisadvantage,
-        _ => EngagementType::SameCourse,
-    }
 }

@@ -53,10 +53,16 @@ problem_type: architecture
 
 ## deck 边界不必另存
 
-`BattleRuntimeShip` 自带 `is_escort_deck()`。sortie session 把两支 deck 存成一条
-连续 vec，需要边界时用 `escort_deck_start()` 现找即可——没有第二个字段可以和它
-不一致。夜战因此不需要给 `NightBattleInput` 加"这是联合舰队"的标志：传进去的
-就是 第2艦隊，`finalize_night` 从舰船标签上认出来。
+`BattleRuntimeShip` 自带 `is_main_deck()` / `is_escort_deck()`。sortie session 把两支
+deck 存成一条连续 vec，边界从舰船标签现算——没有第二个字段可以和它不一致。夜战因此
+不需要给 `NightBattleInput` 加"这是联合舰队"的标志：传进去的就是 第2艦隊，
+`finalize_night` 从舰船标签上认出来。
+
+这条 vec 的布局只由 `SortieBattleSession`（`crates/emukc_gameplay/src/game/battle/sortie/mod.rs`）
+维护：`main_deck()` / `night_fleet()` 取两段，`escort_start()` 给出边界（单舰队为 `None`，
+没有 0 哨兵），`absorb_night()` 把夜战结果接在 第1艦隊 之后，`friendly` 与
+`friendly_nowhps` 同步。sp_midnight 用同一个 `absorb_night()` 建 session。编排代码不直接
+截断或拼接这两条 vec。
 
 ## 端点与编成是双向契约
 

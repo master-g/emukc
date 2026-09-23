@@ -16,6 +16,7 @@
 #[macro_use]
 extern crate tracing;
 
+mod assets;
 mod battle_rules;
 mod db;
 mod download;
@@ -28,13 +29,13 @@ mod populate;
 mod progress;
 mod real_map_start_asset;
 mod res;
-mod source_crosscheck;
 mod wikiwiki_map_asset;
 /// Manual wikiwiki map download helpers used by examples and one-off tooling.
 pub mod wikiwiki_map_download;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
+    pub use crate::assets::{REPO_ASSETS, RepoAsset, RepoAssetSource};
     pub use crate::battle_rules::{
         BattleAttackTypeAcceptanceAsset, BattleAttackTypeFallback, BattleAttackTypeStage,
         BattleIncidentReport, BattleIncidentTriggerMatch, BattleKnowledgeAssetSources,
@@ -44,10 +45,7 @@ pub mod prelude {
         BattleValidationFinding, BattleValidationFindingKind, BattleValidationReport,
         BattleValidationSeverity, ExpectedBattleResource, RepoBattleKnowledgeSource,
         analyze_day_battle_incident, load_repo_battle_knowledge_assets,
-        repo_battle_attack_type_acceptance_path, repo_battle_module_index_path,
-        repo_battle_protocol_fields_path, repo_battle_resource_rules_path,
-        repo_battle_slot_resource_triggers_path, validate_day_battle_response,
-        validate_night_battle_response,
+        validate_day_battle_response, validate_night_battle_response,
     };
     pub use crate::db::{DbBootstrapError, prepare};
     pub use crate::download::BootstrapDownloadError;
@@ -71,9 +69,7 @@ pub mod prelude {
     };
     pub use crate::map_pipeline::{
         MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource,
-        build_final_map_catalog, build_final_map_catalog_from_repo_assets,
-        build_final_map_catalog_from_repo_assets_with_report, build_final_map_catalog_with_overlay,
-        build_final_map_catalog_with_report,
+        build_final_map_catalog,
     };
     pub use crate::map_route_rules::{
         MapRouteValidationFinding, MapRouteValidationFindingKind, MapRouteValidationReport,
@@ -85,10 +81,6 @@ pub mod prelude {
     };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
-    pub use crate::source_crosscheck::{
-        SourceCrosscheckFinding, SourceCrosscheckFindingKind, SourceCrosscheckReport,
-        SourceCrosscheckSeverity, crosscheck_map_sources, crosscheck_map_sources_embedded,
-    };
     pub use crate::wikiwiki_map_asset::{
         RepoWikiwikiMapCatalogAsset, RepoWikiwikiMapCatalogSource,
         load_repo_wikiwiki_map_catalog_asset, repo_wikiwiki_map_catalog_path,

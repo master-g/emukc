@@ -37,6 +37,11 @@ pub(crate) struct FleetRouteContext {
     /// Precomputed `LoS` under Formula 3 (the standard 2-5-fleet formula):
     /// `Σ(equip_los × 0.6 + sqrt(ship_base_los)) − ceil(0.4 × hq_lv) + (6 − fleet_size) × 2`.
     pub(crate) los_formula3: f64,
+    /// 第2艦隊's ships when a combined fleet sorties; empty otherwise. Kept apart
+    /// from every field above, which describe 第1艦隊 alone, so no existing
+    /// predicate changes its answer. None reads it yet: the regular maps have no
+    /// combined-fleet branches (`sally_flag` is `[x, 0, 0]` on all of them).
+    pub(crate) escort_ship_entries: Vec<FleetRouteShipEntry>,
 }
 
 impl FleetRouteContext {
@@ -88,7 +93,7 @@ pub(crate) fn evaluate_route_destination(
 ) -> Result<i64, GameplayError> {
     let Some(rules) = stage.routing_rules.get(&current.cell_no).filter(|rules| !rules.is_empty())
     else {
-        return select_route_from_cells(current, stage, selected_cell_id);
+        return select_route_from_cells(current, selected_cell_id);
     };
 
     let mut fallback_rules = Vec::<&RouteRule>::new();
@@ -145,7 +150,7 @@ pub(crate) fn evaluate_route_destination(
             {
                 return Ok(selected_cell_id);
             }
-            return select_route_from_cells(current, stage, None);
+            return select_route_from_cells(current, None);
         }
 
         if let Some(selected_cell_id) = selected_cell_id
@@ -169,7 +174,7 @@ pub(crate) fn evaluate_route_destination(
             });
         }
         if any_indeterminate {
-            return select_route_from_cells(current, stage, selected_cell_id);
+            return select_route_from_cells(current, selected_cell_id);
         }
         return Err(GameplayError::WrongType(format!(
             "cell {} has no executable routing rule",
@@ -189,7 +194,7 @@ pub(crate) fn evaluate_route_destination(
             next_cells = ?current.next_cells,
             "route rules filtered by topology, falling back to next_cells"
         );
-        return select_route_from_cells(current, stage, selected_cell_id);
+        return select_route_from_cells(current, selected_cell_id);
     }
     if let Some(selected_cell_id) = selected_cell_id {
         if !candidate_targets.contains(&selected_cell_id) {
@@ -247,7 +252,6 @@ pub(crate) fn evaluate_route_destination(
 
 fn select_route_from_cells(
     current: &MapCellDefinition,
-    stage: &MapStageDefinition,
     selected_cell_id: Option<i64>,
 ) -> Result<i64, GameplayError> {
     if let Some(selected_cell_id) = selected_cell_id {
@@ -265,20 +269,6 @@ fn select_route_from_cells(
                 current.cell_no,
             ))),
             [only] => Ok(*only),
-            _ if current.cell_no == 0 => {
-                let inferred_start = stage.parse_warnings.iter().any(|warning| {
-                    warning == "missing_start_routes"
-                        || warning.starts_with("inferred_multi_root_start")
-                });
-                if inferred_start {
-                    return Err(GameplayError::WrongType(
-                        "cell 0 requires explicit start routing rules for multiple targets"
-                            .to_string(),
-                    ));
-                }
-                let index = rng::usize(0..current.next_cells.len());
-                Ok(current.next_cells[index])
-            }
             _ => {
                 let index = rng::usize(0..current.next_cells.len());
                 Ok(current.next_cells[index])
@@ -2523,7 +2513,7 @@ mod tests {
     }
 
     #[test]
-    fn ambiguous_cell_zero_without_rules_is_rejected() {
+    fn cell_zero_without_rules_picks_a_random_successor() {
         let current = MapCellDefinition {
             cell_no: 0,
             color_no: 0,
@@ -2543,13 +2533,15 @@ mod tests {
             ship_drops: BTreeMap::new(),
             required_defeat_count: None,
             clear_to_variant_key: None,
-            parse_warnings: vec!["missing_start_routes".to_string()],
+            parse_warnings: Vec::new(),
         };
 
-        let error =
-            evaluate_route_destination(&current, &variant, &FleetRouteContext::default(), None)
-                .unwrap_err();
-        assert!(error.to_string().contains("explicit start routing rules"));
+        for _ in 0..16 {
+            let next =
+                evaluate_route_destination(&current, &variant, &FleetRouteContext::default(), None)
+                    .unwrap();
+            assert!([1, 2].contains(&next), "start must lead to a declared successor, got {next}");
+        }
     }
 
     /// Map 1-3 routing must follow the directed-graph edges declared in the codex

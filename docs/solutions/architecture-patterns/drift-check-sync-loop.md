@@ -37,8 +37,9 @@ covered separately (see Related); this doc is the mechanism overview.
    The file is gitignored and only exists after `bun run decode`; **absent is
    not a panic and not drift** — it yields `VERSION_ABSENT` + `missing=true`,
    reported as a prerequisite.
-3. `fingerprint()` hashes the 13 tracked assets (`synced_asset_paths()`)
-   into a `SyncFingerprint { version, assets: name→hash }`.
+3. `fingerprint()` hashes every tracked asset (`synced_asset_paths()`, one per
+   row of `emukc_bootstrap`'s `REPO_ASSETS` table) into a
+   `SyncFingerprint { version, assets: name→hash }`.
 4. `load_manifest()` reads the tracked baseline
    `crates/emukc_bootstrap/assets/.sync-fingerprint.json` (absent → `None`).
 5. `diff(previous, current, version_missing)` → `DriftReport`.
@@ -80,12 +81,14 @@ already exists it **bails rather than overwrites**. No drift → writes nothing.
 
 ### Adding or removing a tracked asset
 
-Edit `synced_asset_paths()` — add the `(name, path)` pair, with its
-`repo_*_path()` helper if it has one, or to `CACHE_LIST_ASSETS` if it is just a
-file in the assets dir — then refresh the baseline with `make drift-accept` in
-the same commit, so the committed `.sync-fingerprint.json` matches the committed
-asset set. The 13 assets are 4 battle + 2 map-catalog + 7 cache-list inputs; the
-map-catalog two are not decoder-produced (see Related).
+Add or remove the row in `REPO_ASSETS` (`crates/emukc_bootstrap/src/assets.rs`)
+— the one list that also decides each asset's repo path and embedded copy;
+drift-check derives its set from it — then refresh the baseline with
+`make drift-accept` in the same commit, so the committed `.sync-fingerprint.json`
+matches the committed asset set. The 15 assets (2026-09-23) are 5 battle +
+3 map (wikiwiki catalog, public overlay, ship drops) + 7 cache-list inputs; the
+map three are not decoder-produced (see Related), and the ship drops cannot be
+regenerated at all.
 
 `make update` runs `drift-check` as a **non-blocking report** after the decode
 step, so a sync always shows what moved; `make drift-check` is the gating form
@@ -104,8 +107,8 @@ moved" to "here's the work."
 ## When to Apply
 
 - Modifying drift-check: put logic in the pure `fingerprint`/`diff` core.
-- Adding/removing a synced asset: update `synced_asset_paths()` and `--accept`
-  the baseline in the same commit.
+- Adding/removing a synced asset: update `REPO_ASSETS` and `--accept` the
+  baseline in the same commit.
 - Reading a DRIFT report: `version: X -> Y` plus changed/added/removed asset
   lists tell you exactly what moved.
 

@@ -152,9 +152,12 @@ pub struct WikiwikiLabelOverlay {
     /// Enemy compositions keyed by node label.
     pub enemy_nodes: BTreeMap<String, EnemyNodeRows>,
     /// Ship drop entries extracted from drop tables.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ship_drops: Vec<ShipDropDraft>,
     /// Required boss defeat count, if specified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required_defeat_count: Option<i64>,
     /// Non-fatal warnings collected during parsing.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parse_warnings: Vec<String>,
 }

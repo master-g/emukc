@@ -93,7 +93,7 @@ impl BattleRuntimeShip {
 
     /// True when this ship is in the main deck (第1艦隊) of a combined fleet.
     /// False for a single-fleet ship — it has no deck at all.
-    pub(crate) fn is_main_deck(&self) -> bool {
+    pub fn is_main_deck(&self) -> bool {
         self.combined_role() == Some(CombinedFleetRole::Main)
     }
 

@@ -20,11 +20,17 @@ related_components: [emukc_model, emukc_gameplay]
 
 `emukc_bootstrap` carries a family of validators that mirror
 `crate::battle_rules`'s validator / finding / report / severity shape:
-`map_route_rules.rs` (structural map route validator) and
+`map_route_rules.rs` (structural map route validator) and, until 2026-09-23,
 `source_crosscheck.rs` (wikiwiki vs `real_map_start_data` consistency linter).
 Both were constrained by the same hard layering rule, and both solved it the
 same way. Capture that once so the next bootstrap-side validator follows it
 without re-discovering it.
+
+`source_crosscheck.rs` was removed when the wikiwiki asset moved to label space
+(plan 2026-09-23-1116, U1): it compared the wikiwiki catalog's own cell numbers
+and boss cell against the captures, and that catalog no longer has either. The
+comparison that still matters — the final assembled catalog against the real
+captures — is `map_pipeline/verify.rs`.
 
 ## Guidance
 
@@ -46,10 +52,11 @@ divergence between sources) — not **semantic** correctness. Do not assert a
 predicate threshold (e.g. `FleetSize >= 4` vs `>= 5`): that threshold comes
 from the same wikiwiki source being validated, so checking it against itself is
 circular. Do not assert a deterministic next-cell: routing legitimately uses
-weighted random. `source_crosscheck` stays scope-honest — it is a consistency
-linter over the **thin surface the two sources actually share** (per-map
-cell-number sets and boss-cell identity via `api_bosscell_no`), because
-`real_map_start_data` carries no routing edges or per-cell enemy fleets.
+weighted random. A source cross-check stays scope-honest — it is a consistency
+linter over the **thin surface the two sources actually share** (for the
+captures: per-map cell-number sets and boss-cell identity via
+`api_bosscell_no`), because `real_map_start_data` carries no routing edges or
+per-cell enemy fleets.
 
 ### Behavioral edge-legality tests live in-crate in emukc_gameplay
 

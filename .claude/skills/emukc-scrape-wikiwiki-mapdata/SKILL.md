@@ -14,9 +14,11 @@ This skill reads cached wikiwiki.jp HTML pages and outputs structured
 2. Extracts map topology, routing rules, enemy fleets, and ship drops from wikiwiki's HTML tables
 3. Outputs a single `WikiwikiMapCatalog` JSON file matching the Rust type at `crates/emukc_bootstrap/src/parser/wikiwiki_map/types.rs`
 
-The output JSON is consumed by `cargo run -- wikiwiki-map normalize --from-agent-json <path>`
-which runs the Rust conversion layer (`into_map_catalog()`) to produce the final
-`MapCatalog` used at runtime.
+The output JSON is consumed by `cargo run -- wikiwiki-map normalize --from-agent-json <path>`,
+which runs the Rust conversion layer (`into_label_overlay_catalog()`). It lifts every
+cell number this skill assigns to its node label and writes the label-space
+`wikiwiki_map_catalog.json` asset. The map build later resolves those labels to
+kcdata's real cell numbers, so the numbers this skill assigns never reach runtime.
 
 ## Prerequisites
 

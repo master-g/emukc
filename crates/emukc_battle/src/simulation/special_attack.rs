@@ -8,10 +8,9 @@ use emukc_model::{codex::Codex, kc2::KcShipType};
 
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
+use crate::simulation::day_attack::DayAttackKind;
 use crate::targeting::{can_shell_day_ship, select_random_target_index, ship_type, target_class};
-use crate::types::{
-    BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams, SiListId,
-};
+use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
 // Ship ID constants
@@ -599,13 +598,7 @@ pub(crate) fn execute_special_attack(
     let attack_type_val = resolved.attack_type.api_value();
     let is_enemy = params.attacker_is_enemy;
 
-    let mut at_eflag = Vec::new();
-    let mut at_list = Vec::new();
-    let mut at_type = Vec::new();
-    let mut df_list = Vec::new();
-    let mut si_list = Vec::new();
-    let mut cl_list = Vec::new();
-    let mut damage = Vec::new();
+    let mut hougeki = BattleHougeki::default();
     let mut participant_indices = Vec::new();
 
     // T-disadvantage multiplier for Nelson Touch
@@ -668,7 +661,6 @@ pub(crate) fn execute_special_attack(
         };
 
         let mut hit_damages = Vec::with_capacity(num_hits);
-        let mut hit_cls = Vec::with_capacity(num_hits);
 
         for _ in 0..num_hits {
             let ci_mult = Some(total_mult * equip_mult);
@@ -686,42 +678,24 @@ pub(crate) fn execute_special_attack(
                 attacker.damage_dealt += dealt;
             }
             let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-            hit_damages.push(display);
-            hit_cls.push(1);
+            hit_damages.push(if shield {
+                DamageCell::Shielded(display)
+            } else {
+                DamageCell::Plain(display)
+            });
         }
 
-        at_eflag.push(i64::from(is_enemy));
-        at_list.push(fleet_idx as i64);
-        at_type.push(attack_type_val);
-        df_list.push(vec![target_idx as i64; num_hits]);
-        si_list.push(SiListId::text_from_i64(&crate::targeting::day_attack_display_ids(
-            codex, attacker, false,
-        )));
-        cl_list.push(hit_cls);
-        damage.push(
-            hit_damages
-                .into_iter()
-                .map(|d| {
-                    if shield {
-                        DamageCell::Shielded(d)
-                    } else {
-                        DamageCell::Plain(d)
-                    }
-                })
-                .collect(),
+        hougeki.record_day_attack(
+            DayAttackKind::Special(codex, attacker, attack_type_val),
+            is_enemy,
+            fleet_idx,
+            vec![target_idx as i64; num_hits],
+            hit_damages,
         );
     }
 
     SpecialAttackResult {
-        hougeki: BattleHougeki {
-            api_at_eflag: at_eflag,
-            api_at_list: at_list,
-            api_at_type: at_type,
-            api_df_list: df_list,
-            api_si_list: si_list,
-            api_cl_list: cl_list,
-            api_damage: damage,
-        },
+        hougeki,
         participant_indices,
     }
 }

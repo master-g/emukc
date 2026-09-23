@@ -3,8 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        map_pipeline::build_final_map_catalog_from_repo_assets,
-        real_map_start_asset::EMBEDDED_REAL_MAP_START_ASSETS,
+        map_pipeline::build_final_map_catalog, real_map_start_asset::EMBEDDED_REAL_MAP_START_ASSETS,
     };
     use emukc_model::codex::map::MapCatalog;
     use emukc_model::kc2::start2::ApiManifest;
@@ -46,8 +45,9 @@ mod tests {
             );
             return MapCatalog::default();
         }
-        build_final_map_catalog_from_repo_assets(&data_root, &manifest)
+        build_final_map_catalog(&data_root, &manifest, None)
             .unwrap_or_else(|e| panic!("topology verify: catalog build failed: {e}"))
+            .0
     }
 
     fn parse_capture(asset: &crate::prelude::RealMapStartAsset) -> Option<RealStartCapture> {

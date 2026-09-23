@@ -41,62 +41,48 @@ pub fn pending_battle(store: &SortieStore, profile_id: i64) -> Option<SortieBatt
     store.get_pending_battle(profile_id)
 }
 
-/// Run a night battle following a day battle, update the stored session.
+/// Run the night battle that follows `session`'s day battle, store the updated
+/// session and return it with the night packet.
+///
+/// The formation and engagement carry over from the day packet. 連合艦隊: only
+/// 第2艦隊 fights at night (R5); 第1艦隊 stays in the session untouched — it
+/// still has to be reported, repaired and paid experience.
 pub fn run_night_battle(
     store: &SortieStore,
     codex: &Codex,
-    profile_id: i64,
-    friendly_formation_id: i64,
-    enemy_formation_id: i64,
-    engagement: EngagementType,
+    mut session: SortieBattleSession,
     rng: &mut impl BattleRng,
-) -> Option<SortieNightBattleSession> {
+) -> (SortieBattleSession, SortieNightBattleSession) {
     use emukc_battle::AirState;
 
-    let mut session = store.get_pending_battle(profile_id)?;
+    let [friendly_formation_id, enemy_formation_id, engagement] = session.packet.formation;
     let air_state = session
         .packet
         .kouku
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-    // 連合艦隊: only 第2艦隊 fights at night (R5). 第1艦隊 stays in the session
-    // untouched — it still has to be reported, repaired and paid experience.
-    let escort_start = escort_deck_start(&session.friendly);
     let simulation = execute_night(
         codex,
         NightBattleInput {
-            friendly: session.friendly[escort_start..].to_vec(),
+            friendly: session.night_fleet().to_vec(),
             enemy: session.enemy.clone(),
             friendly_formation_id,
             enemy_formation_id,
-            engagement,
+            engagement: EngagementType::from_api_id(engagement)
+                .unwrap_or(EngagementType::SameCourse),
             air_state,
         },
         rng,
     );
-    session.friendly.truncate(escort_start);
-    session.friendly.extend(simulation.friendly.iter().cloned());
-    session.enemy = simulation.enemy.clone();
-    session.outcome = simulation.outcome.clone();
-    session.packet.friendly_nowhps.truncate(escort_start);
-    session.packet.friendly_nowhps.extend(simulation.packet.friendly_nowhps.iter().copied());
-    session.packet.enemy_nowhps = simulation.packet.enemy_nowhps.clone();
-    session.packet.midnight_flag = 0;
-    store.insert_pending_battle(profile_id, session);
+    session.absorb_night(&simulation);
+    store.insert_pending_battle(session.profile_id, session.clone());
 
-    Some(SortieNightBattleSession {
-        profile_id,
+    let night = SortieNightBattleSession {
+        profile_id: session.profile_id,
         packet: simulation.packet,
         outcome: simulation.outcome,
-    })
-}
-
-/// Where 第2艦隊 starts in a session's friendly vector, or 0 for a single fleet.
-///
-/// The ships carry their own deck tag, so the boundary is recoverable from the
-/// session alone — nothing has to store it alongside.
-pub fn escort_deck_start(friendly: &[BattleRuntimeShip]) -> usize {
-    friendly.iter().position(BattleRuntimeShip::is_escort_deck).unwrap_or(0)
+    };
+    (session, night)
 }
 
 /// Run a night-start (`sp_midnight`) battle — no preceding day battle.
@@ -124,22 +110,24 @@ pub fn run_sp_midnight_battle(
     } = input;
 
     let sp = execute_sp_midnight(codex, context, rng);
-    let escort_start = sp.main_deck.len();
-    let mut friendly = sp.main_deck;
-    friendly.extend(sp.night.friendly.iter().cloned());
-
-    let session = SortieBattleSession {
+    let mut session = SortieBattleSession {
         profile_id,
         deck_id,
         map_id,
         cell_id,
-        friendly_ship_ids: friendly.iter().map(|s| s.ship.api_id).collect(),
+        friendly_ship_ids: sp
+            .main_deck
+            .iter()
+            .chain(&sp.night.friendly)
+            .map(|s| s.ship.api_id)
+            .collect(),
         enemy_ship_ids: sp.night.enemy.iter().map(|s| s.ship.api_ship_id).collect(),
-        packet: night_start_packet(&sp.night.packet, &friendly[..escort_start]),
-        friendly,
-        enemy: sp.night.enemy,
+        packet: night_start_packet(&sp.night.packet, &sp.main_deck),
+        friendly: sp.main_deck,
+        enemy: Vec::new(),
         outcome: sp.night.outcome.clone(),
     };
+    session.absorb_night(&sp.night);
     store.insert_pending_battle(profile_id, session.clone());
 
     let night_session = SortieNightBattleSession {
@@ -151,21 +139,17 @@ pub fn run_sp_midnight_battle(
     (session, night_session)
 }
 
-/// The day-packet view of a night-start battle: no day phase ran, so only the
-/// fields later readers consume (`formation` and both `nowhps`) carry values.
+/// The day-packet view of a night-start battle before the night is absorbed: no
+/// day phase ran, so only `formation` and 第1艦隊's `nowhps` carry values.
 ///
 /// `main_deck` is 第1艦隊 when the fleet is combined and empty otherwise; its
-/// ships never fought, so they report the HP they entered the node with. The
-/// `nowhps` vector stays contiguous across both decks, which is the shape
-/// `run_night_battle` and the settlement already expect.
+/// ships never fought, so they report the HP they entered the node with.
+/// [`SortieBattleSession::absorb_night`] appends the night fleet after them.
 fn night_start_packet(night: &NightBattlePacket, main_deck: &[BattleRuntimeShip]) -> BattlePacket {
-    let mut friendly_nowhps: Vec<i64> = main_deck.iter().map(|s| s.hp().max(0)).collect();
-    friendly_nowhps.extend(night.friendly_nowhps.iter().copied());
-
     BattlePacket {
         formation: night.formation,
-        friendly_nowhps,
-        enemy_nowhps: night.enemy_nowhps.clone(),
+        friendly_nowhps: main_deck.iter().map(|s| s.hp().max(0)).collect(),
+        enemy_nowhps: Vec::new(),
         smoke_type: 0,
         balloon_cell: 0,
         atoll_cell: 0,

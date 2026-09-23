@@ -4,8 +4,10 @@
 //! state (active sortie, profile, stage, both fleets) and enforce the same guards
 //! before they diverge on which simulation to run.
 
+use std::collections::BTreeMap;
+
 use emukc_battle::{
-    BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType,
+    BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType, EngagementType,
     combined_formation_min_escort_size,
 };
 use emukc_db::entity::profile;
@@ -20,6 +22,7 @@ use crate::{
         fleet::get_fleet_ships_impl,
         map::active_map_catalog,
         ship::exp::calculate_admiral_exp,
+        slot_item::find_slot_items_by_id_impl,
         sortie_result::{
             SortieBattleResultSnapshot, SortieDeckRewards, calculate_sortie_base_exp,
             calculate_sortie_deck_rewards,
@@ -30,17 +33,29 @@ use crate::{
 
 use super::{
     ActiveSortieState,
-    enemy_ship::{
-        build_sortie_enemy_ships, fallback_enemy_composition, resolve_sortie_enemy_fleet,
-        select_random_enemy_composition,
-    },
-    route_context::{build_sortie_friend_ships, engagement_for_cell},
+    enemy_ship::{EnemyEncounter, build_enemy_encounter},
 };
 
 /// The escort deck of a combined fleet is always fleet 2
 /// (`docs/apilist.txt:3008`: `api_deck_id` is 1 by specification, and the client
 /// has no way to nominate a different escort).
 const ESCORT_DECK_ID: i64 = 2;
+
+/// 第2艦隊's ships. A profile whose second fleet is not unlocked yet reads as
+/// missing rather than empty; both mean the same thing to a combined sortie.
+pub(super) async fn escort_fleet_ships_impl<C>(
+    c: &C,
+    profile_id: i64,
+) -> Result<Vec<profile::ship::Model>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    match get_fleet_ships_impl(c, profile_id, ESCORT_DECK_ID).await {
+        Ok(models) => Ok(models),
+        Err(GameplayError::EntryNotFound(_)) => Ok(Vec::new()),
+        Err(err) => Err(err),
+    }
+}
 
 /// Which battle endpoint the client called.
 ///
@@ -76,11 +91,7 @@ pub(super) struct SortieBattleSetup {
     pub escort_ships: Vec<BattleShipInput>,
     /// `None` for a single fleet.
     pub combined_type: Option<CombinedType>,
-    pub enemy_ships: Vec<BattleShipInput>,
-    pub enemy_formation_id: i64,
-    pub enemy_level: i64,
-    pub enemy_rank: String,
-    pub enemy_deck_name: String,
+    pub enemy: EnemyEncounter,
 }
 
 /// Resolve the active sortie into battle-ready fleets, applying every guard both
@@ -150,13 +161,7 @@ where
     // 第2艦隊 sorties with 第1艦隊 but is a separate fleet row; an empty one means
     // the player disbanded it without clearing `combined_type`.
     let escort_ships = if combined_type.is_some() {
-        let escort_models = match get_fleet_ships_impl(c, profile_id, ESCORT_DECK_ID).await {
-            Ok(models) => models,
-            // A profile whose second fleet is not unlocked yet reads as missing
-            // rather than empty; both mean the same thing here.
-            Err(GameplayError::EntryNotFound(_)) => Vec::new(),
-            Err(err) => return Err(err),
-        };
+        let escort_models = escort_fleet_ships_impl(c, profile_id).await?;
         if escort_models.is_empty() {
             return Err(GameplayError::WrongType(
                 "combined sortie battle needs ships in fleet 2".to_string(),
@@ -167,14 +172,13 @@ where
         Vec::new()
     };
 
-    let enemy_fleet = resolve_sortie_enemy_fleet(active.map_id, stage, current_cell.cell_no);
-    let enemy_composition = active
-        .locked_enemy_composition
-        .clone()
-        .or_else(|| select_random_enemy_composition(&enemy_fleet))
-        .unwrap_or_else(|| fallback_enemy_composition(current_cell.cell_no));
-    let (enemy_ships, enemy_level, enemy_rank, enemy_deck_name) =
-        build_sortie_enemy_ships(codex, definition, &enemy_fleet, &enemy_composition)?;
+    let enemy = build_enemy_encounter(
+        codex,
+        definition,
+        stage,
+        current_cell.cell_no,
+        active.locked_enemy_composition.as_ref(),
+    )?;
 
     Ok(SortieBattleSetup {
         active,
@@ -182,11 +186,7 @@ where
         friend_ships,
         escort_ships,
         combined_type,
-        enemy_ships,
-        enemy_formation_id: enemy_fleet.formations.first().copied().unwrap_or(1),
-        enemy_level,
-        enemy_rank,
-        enemy_deck_name,
+        enemy,
     })
 }
 
@@ -207,10 +207,10 @@ impl SortieBattleSetup {
                 battle_type,
                 is_sortie: true,
                 friendly_formation_id: formation_id,
-                enemy_formation_id: self.enemy_formation_id,
+                enemy_formation_id: self.enemy.formation_id,
                 engagement: engagement_for_cell(self.active.map_id, self.active.current_cell_id),
                 friend_ships: self.friend_ships.clone(),
-                enemy_ships: self.enemy_ships.clone(),
+                enemy_ships: self.enemy.ships.clone(),
                 combined: self.combined_type.map(|combined_type| CombinedSetup {
                     combined_type,
                     escort_ships: self.escort_ships.clone(),
@@ -320,9 +320,64 @@ impl SortieBattleSetup {
             get_exp_lvup,
             quest_name: self.active.map_name.clone(),
             quest_level: self.active.map_level,
-            enemy_level: self.enemy_level,
-            enemy_rank: self.enemy_rank.clone(),
-            enemy_deck_name: self.enemy_deck_name.clone(),
+            enemy_level: self.enemy.level,
+            enemy_rank: self.enemy.rank.clone(),
+            enemy_deck_name: self.enemy.deck_name.clone(),
         }
+    }
+}
+
+async fn build_sortie_friend_ships<C>(
+    c: &C,
+    friend_ships: &[profile::ship::Model],
+) -> Result<Vec<BattleShipInput>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let all_slot_ids: Vec<i64> = friend_ships
+        .iter()
+        .flat_map(|ship| {
+            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+        })
+        .filter(|slot_id| *slot_id > 0)
+        .collect();
+
+    let all_slot_items = if all_slot_ids.is_empty() {
+        BTreeMap::new()
+    } else {
+        find_slot_items_by_id_impl(c, &all_slot_ids)
+            .await?
+            .into_iter()
+            .map(|item| (item.id, item))
+            .collect::<BTreeMap<_, _>>()
+    };
+
+    let mut result = Vec::with_capacity(friend_ships.len());
+    for ship in friend_ships {
+        let slot_items =
+            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+                .into_iter()
+                .filter(|slot_id| *slot_id > 0)
+                .filter_map(|slot_id| all_slot_items.get(&slot_id).cloned())
+                .map(std::convert::Into::into)
+                .collect();
+
+        result.push(BattleShipInput {
+            ship: (*ship).into(),
+            slot_items,
+            effect_list: vec![],
+            married: ship.married,
+        });
+    }
+
+    Ok(result)
+}
+
+fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
+    match (map_id + cell_id).rem_euclid(4) {
+        1 => EngagementType::HeadOn,
+        2 => EngagementType::TAdvantage,
+        3 => EngagementType::TDisadvantage,
+        _ => EngagementType::SameCourse,
     }
 }

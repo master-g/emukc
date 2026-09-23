@@ -52,7 +52,7 @@ values are highest authority.
 - No network and no cache: continue without stat data; build report records
   `stat_source: Unavailable`; event types are inferred from overlay `color_no`
   as fallback.
-- Merge order: wikiwiki → overlay → stat; `stat.json`'s
+- Merge order: kcdata → overlay → stat; `stat.json`'s
   `event_id`/`event_kind` overwrite overlay's inferred values for matched
   cells.
 - Build report includes `stat_map_count` (maps with stat data) and
@@ -61,7 +61,7 @@ values are highest authority.
 ### stat.json label matching with failure-mode handling
 
 `stat.json` cells are keyed by letter label (A, B, C…). Matching to
-wikiwiki's `cell_no` SHALL use existing `node_label`-based remap logic.
+the kcdata base's `cell_no` SHALL use existing `node_label`-based remap logic.
 
 - Unique label match: stat data applies to the single cell with that
   `node_label`.
@@ -72,6 +72,28 @@ wikiwiki's `cell_no` SHALL use existing `node_label`-based remap logic.
 - Label in stat but not in variant: skipped (no warning — stat may cover
   maps/variants not in catalog).
 
+### One entry point, one physical order (2026-09-23)
+
+`map_pipeline::build_final_map_catalog` is the only public builder. It
+assembles in a fixed order: kcdata → public overlay → `stat.json` →
+`normalize_p_unlock_variants` → wikiwiki label overlay. The authority rules
+above are unchanged; only where the wikiwiki data enters moved.
+
+The wikiwiki asset is label-space and carries only routing rules, enemy
+fleets and ship drops — no cell metadata — so applying it last cannot change
+any metadata authority. It goes last because resolving a label to cells needs
+the final variant set: 7-3's `pre_p_unlock` / `post_p_unlock` only exist
+after normalization, which is why an earlier order needed a deferred-overlay
+side list. The routing and drop writes append rather than fill-missing; the
+output stays the same because no earlier source carries rules, fleets or
+drops. If a rebuilt catalog ever diverges after a merge-order change, first
+check whether the public overlay's `merge_cells` gave a kcdata cell the
+`next_cells` it lacked, letting a previously unresolvable label rule land.
+
+A `""`-keyed item is map-wide: `MapDefinition::fan_out_variant_keys` sends it
+to every named variant when the map has any, otherwise to `""`. Both the
+model merge and the label overlay call it.
+
 ### Overlay captures boss_cell_no
 
 The public overlay capture process SHALL extract `boss_cell_no` from real KC
@@ -79,10 +101,10 @@ API data. The overlay asset SHALL be regenerated after capture code changes.
 
 - A map start API response with `api_bosscell_no` is recorded into the
   overlay.
-- Overlay `boss_cell_no` (non-zero) overrides wikiwiki during assembly (overlay
-  merges after wikiwiki, non-zero wins).
+- Overlay `boss_cell_no` (non-zero) overrides kcdata during assembly (overlay
+  merges after kcdata, non-zero wins).
 - Overlay `boss_cell_no = 0` (e.g., response-saver format lacks the field) does
-  NOT overwrite wikiwiki's value.
+  NOT overwrite kcdata's value.
 - When `capture.rs` or `merge.rs` are modified to add `boss_cell_no` or event
   inference, `cargo run -- wikiwiki-map build-overlays` MUST be run to
   regenerate `crates/emukc_bootstrap/assets/public_map_catalog_overlays.json`,
@@ -105,8 +127,8 @@ asset from silently drifting from the code that produced it.
 
 ## Examples
 
-- wikiwiki `color_no = 4` + overlay `color_no = 5` → assembled `color_no = 5`.
-- wikiwiki `next_cells = [2,3]` + later source `next_cells = []` → stays
+- kcdata `color_no = 4` + overlay `color_no = 5` → assembled `color_no = 5`.
+- kcdata `next_cells = [2,3]` + later source `next_cells = []` → stays
   `[2,3]` (routing uses fill-missing).
 - Duplicate `node_label = "A"` on two cells → stat data for "A" is skipped and
   a warning is logged.

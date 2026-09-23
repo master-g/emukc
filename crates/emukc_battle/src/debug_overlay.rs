@@ -11,6 +11,7 @@
 //! 5. Recompute `can_midnight` from the overridden alive sets (day only)
 
 use crate::BattleRuntimeShip;
+use crate::simulation::day_attack::DayAttackKind;
 use crate::types::{
     BattleHougeki, BattleNightHougeki, BattleOutcome, BattlePacket, BattleSimulation, DamageCell,
     NightBattleSimulation, SiListId,
@@ -246,44 +247,19 @@ fn synthesize_day_finishing_volley(packet: &mut BattlePacket, finishing: &Finish
         return;
     }
 
-    let mut at_eflag = Vec::new();
-    let mut at_list = Vec::new();
-    let mut at_type = Vec::new();
-    let mut df_list = Vec::new();
-    let mut si_list = Vec::new();
-    let mut cl_list = Vec::new();
-    let mut damage = Vec::new();
-
-    for &(enemy_idx, remaining_hp) in &finishing.targets {
-        at_eflag.push(0); // friendly attacking
-        at_list.push(attacker_idx as i64);
-        at_type.push(0); // normal attack → integer si_list
-        df_list.push(vec![enemy_idx as i64]);
-        si_list.push(vec![SiListId::Num(-1)]);
-        cl_list.push(vec![1]);
-        damage.push(vec![remaining_hp.into()]);
-    }
-
-    // Merge into existing hougeki3 if present, otherwise create new.
-    if let Some(h3) = &mut packet.hougeki3 {
-        h3.api_at_eflag.extend(at_eflag);
-        h3.api_at_list.extend(at_list);
-        h3.api_at_type.extend(at_type);
-        h3.api_df_list.extend(df_list);
-        h3.api_si_list.extend(si_list);
-        h3.api_cl_list.extend(cl_list);
-        h3.api_damage.extend(damage);
-    } else {
-        packet.hougeki3 = Some(BattleHougeki {
-            api_at_eflag: at_eflag,
-            api_at_list: at_list,
-            api_at_type: at_type,
-            api_df_list: df_list,
-            api_si_list: si_list,
-            api_cl_list: cl_list,
-            api_damage: damage,
-        });
+    // Append to the existing hougeki3 if present, otherwise open it.
+    if packet.hougeki3.is_none() {
         packet.hourai_flag[2] = 1;
+    }
+    let h3 = packet.hougeki3.get_or_insert_with(BattleHougeki::default);
+    for &(enemy_idx, remaining_hp) in &finishing.targets {
+        h3.record_day_attack(
+            DayAttackKind::DebugInjected,
+            false,
+            attacker_idx,
+            vec![enemy_idx as i64],
+            vec![remaining_hp.into()],
+        );
     }
 }
 

@@ -206,4 +206,27 @@ mod tests {
         assert!(after.api_exp[0] > before.api_exp[0], "第2艦隊 must be paid experience");
         assert!(after.api_fuel < before.api_fuel, "第2艦隊 must spend fuel on the node");
     }
+
+    /// AE5: the escort deck reaches the router as its own facts, and no rule
+    /// reads them, so a combined fleet routes exactly as 第1艦隊 would alone.
+    /// 1-1's first branch is a fleet-size-weighted roll; replaying each seed for
+    /// both shapes makes any difference in the facts show up as a different cell.
+    #[tokio::test]
+    async fn a_combined_fleet_routes_as_its_main_deck_alone() {
+        let context = crate::TestContext::new().await;
+        let (pid, _) = combined_profile(&context, "combined-route").await;
+        let route = async |combined_type: i64, seed: u64| {
+            context.set_combined_type(pid, combined_type).await.unwrap();
+            context.start_sortie(pid, 1, 1, 1).await.unwrap();
+            emukc_internal::crypto::rng::seed(seed);
+            let next = context.next_sortie(pid, None).await.unwrap().cell_no;
+            emukc_internal::crypto::rng::reseed_from_entropy();
+            context.sortie_goback_port(pid).await.unwrap();
+            next
+        };
+
+        for seed in 0..16 {
+            assert_eq!(route(1, seed).await, route(0, seed).await, "seed {seed}");
+        }
+    }
 }
