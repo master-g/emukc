@@ -191,12 +191,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-23] 分支 `refactor/deepen-map-sortie-battle-modules`：计划 2026-09-23-1116 U1–U10 全部完成并通过 ce-code-review（Ready to merge，0 条 finding）。
-  地图资产改存 label，最终目录与迁移前逐字节一致；`cargo test --workspace` 1177 过 0 败 0 忽略，fmt/clippy 门过。
+- [2026-09-23] 计划 1116（U1–U10）经 PR #1 以 merge commit 合入 `main`，计划文件随 PR 入库。合并前在分支 HEAD 重跑：
+  fmt/clippy exit 0（17 条既有 warning，无一落在本分支改动行），`cargo test --workspace` exit 0，1178 过 0 败 0 忽略。
 
 ## Next Session
 
-- [2026-09-23] PR #1（master-g/emukc）已开，review 结论 Ready to merge，等合并；正文已写明三份重生资产的来源。
-  计划 Deferred 列表（`sally_flag` 校验、随机交战形态等）未动。
+- [2026-09-23] 下一项：基地航空隊 U4（`set_action`、`change_name`、`supply`，计划 2026-09-22-001），不阻塞。
+  其后可选 1116 Deferred 首项：`start_sortie` 不查 `sally_flag`。
 - 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。
-- 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。
