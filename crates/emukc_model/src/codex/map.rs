@@ -16,7 +16,6 @@ use crate::{
 pub use types::*;
 
 use merge::merge_definition as merge_definition_impl;
-pub use merge::{build_cell_no_map, merge_routing_overlay};
 
 /// P-unlock variant keys, in canonical (pre → post) order. A map carrying any of these is a
 /// P-unlock map whose route is gated by a sub-gauge unlock.

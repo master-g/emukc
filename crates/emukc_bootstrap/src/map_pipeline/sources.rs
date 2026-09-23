@@ -10,7 +10,10 @@ use emukc_model::{
 };
 
 use crate::{
-    parser::{error::ParseError, wikiwiki_map::WikiwikiMapOverlayCatalog},
+    parser::{
+        error::ParseError,
+        wikiwiki_map::{ShipDropDraft, WikiwikiMapOverlayCatalog},
+    },
     wikiwiki_map_asset::{
         RepoWikiwikiMapCatalogSource, load_repo_wikiwiki_map_catalog_asset,
         repo_wikiwiki_map_catalog_path,
@@ -26,9 +29,8 @@ const STAT_JSON_FILENAME: &str = "stat.json";
 pub(super) struct ResolvedMapSources {
     pub(super) wikiwiki_source: MapCatalogWikiwikiSource,
     pub(super) wikiwiki_map_count: usize,
-    pub(super) wikiwiki_catalog: Option<MapCatalog>,
     pub(super) wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
-    pub(super) kcdata_catalog: Option<MapCatalog>,
+    pub(super) kcdata_catalog: MapCatalog,
     pub(super) kcdata_parse_errors: usize,
     pub(super) public_overlay_map_count: usize,
     pub(super) public_overlay_catalog: MapCatalog,
@@ -40,30 +42,46 @@ pub(super) struct ResolvedMapSources {
 pub(super) fn load_explicit_source_set(
     data_root: &Path,
     manifest: &ApiManifest,
-    wikiwiki_catalog: Option<MapCatalog>,
     wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
 ) -> Result<ResolvedMapSources, ParseError> {
     // A caller-supplied catalog comes straight from the agent skill, which does
     // not produce drops, so it needs the same fold-in the repo asset gets.
-    let mut wikiwiki_catalog = wikiwiki_catalog;
-    if let Some(catalog) = wikiwiki_catalog.as_mut() {
-        apply_ship_drops(catalog)?;
+    let mut wikiwiki_overlay = wikiwiki_overlay;
+    if let Some(overlay) = wikiwiki_overlay.as_mut() {
+        apply_ship_drops(overlay)?;
     }
+    let wikiwiki_source = if wikiwiki_overlay.is_some() {
+        MapCatalogWikiwikiSource::Provided
+    } else {
+        MapCatalogWikiwikiSource::None
+    };
+    load_source_set(data_root, manifest, wikiwiki_source, wikiwiki_overlay)
+}
+
+pub(super) fn load_repo_source_set(
+    data_root: &Path,
+    manifest: &ApiManifest,
+) -> Result<ResolvedMapSources, ParseError> {
+    let (wikiwiki_source, wikiwiki_overlay) = load_repo_wikiwiki_overlay()?;
+    load_source_set(data_root, manifest, wikiwiki_source, wikiwiki_overlay)
+}
+
+fn load_source_set(
+    data_root: &Path,
+    manifest: &ApiManifest,
+    wikiwiki_source: MapCatalogWikiwikiSource,
+    wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
+) -> Result<ResolvedMapSources, ParseError> {
+    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest)?;
     let wikiwiki_map_count =
-        wikiwiki_catalog.as_ref().map(|catalog| catalog.maps.len()).unwrap_or(0);
+        wikiwiki_overlay.as_ref().map(|overlay| overlay.maps.len()).unwrap_or(0);
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
     let public_overlay_map_count = public_overlay_catalog.maps.len();
     let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
-    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest);
 
     Ok(ResolvedMapSources {
-        wikiwiki_source: if wikiwiki_catalog.is_some() {
-            MapCatalogWikiwikiSource::Provided
-        } else {
-            MapCatalogWikiwikiSource::None
-        },
+        wikiwiki_source,
         wikiwiki_map_count,
-        wikiwiki_catalog,
         wikiwiki_overlay,
         kcdata_catalog,
         kcdata_parse_errors,
@@ -75,34 +93,7 @@ pub(super) fn load_explicit_source_set(
     })
 }
 
-pub(super) fn load_repo_source_set(
-    data_root: &Path,
-    manifest: &ApiManifest,
-) -> Result<ResolvedMapSources, ParseError> {
-    let (wikiwiki_source, wikiwiki_catalog) = load_repo_wikiwiki_map_catalog()?;
-    let wikiwiki_map_count =
-        wikiwiki_catalog.as_ref().map(|catalog| catalog.maps.len()).unwrap_or(0);
-    let public_overlay_catalog = load_public_map_catalog_overlays()?;
-    let public_overlay_map_count = public_overlay_catalog.maps.len();
-    let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
-    let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest);
-
-    Ok(ResolvedMapSources {
-        wikiwiki_source,
-        wikiwiki_map_count,
-        wikiwiki_catalog,
-        wikiwiki_overlay: None,
-        kcdata_catalog,
-        kcdata_parse_errors,
-        public_overlay_map_count,
-        public_overlay_catalog,
-        stat_map_count,
-        stat_catalog,
-        stat_from_cache,
-    })
-}
-
-fn load_public_map_catalog_overlays() -> Result<MapCatalog, ParseError> {
+pub(super) fn load_public_map_catalog_overlays() -> Result<MapCatalog, ParseError> {
     let path =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/public_map_catalog_overlays.json");
     serde_json::from_str::<MapCatalog>(include_str!(
@@ -111,8 +102,8 @@ fn load_public_map_catalog_overlays() -> Result<MapCatalog, ParseError> {
     .map_err(|source| ParseError::json_at(&path, source))
 }
 
-fn load_repo_wikiwiki_map_catalog()
--> Result<(MapCatalogWikiwikiSource, Option<MapCatalog>), ParseError> {
+fn load_repo_wikiwiki_overlay()
+-> Result<(MapCatalogWikiwikiSource, Option<WikiwikiMapOverlayCatalog>), ParseError> {
     let path = repo_wikiwiki_map_catalog_path();
     let asset = load_repo_wikiwiki_map_catalog_asset()
         .map_err(|source| ParseError::io_at(&path, source))?;
@@ -135,10 +126,10 @@ fn load_repo_wikiwiki_map_catalog()
         }
     };
 
-    match serde_json::from_str::<MapCatalog>(asset.raw_json()) {
-        Ok(mut catalog) => {
-            apply_ship_drops(&mut catalog)?;
-            Ok((source_kind, Some(catalog)))
+    match serde_json::from_str::<WikiwikiMapOverlayCatalog>(asset.raw_json()) {
+        Ok(mut overlay) => {
+            apply_ship_drops(&mut overlay)?;
+            Ok((source_kind, Some(overlay)))
         }
         Err(e) => Ok((
             MapCatalogWikiwikiSource::ParseFailed {
@@ -153,28 +144,26 @@ fn load_repo_wikiwiki_map_catalog()
 /// Ship drops, split out of the wikiwiki catalog so regenerating that asset
 /// cannot wipe them.
 ///
-/// They are keyed the same way the wikiwiki catalog keys them — map id, variant
-/// key, then the wikiwiki cell number — so folding them back in right after the
-/// catalog is parsed leaves every later stage, including the label-space remap
-/// that fans a drop out to duplicate labels, working on exactly what it saw
-/// before the split.
+/// They are keyed the way the wikiwiki catalog keys everything else — map id,
+/// variant key, then node label — so folding them in right after the catalog is
+/// parsed lets assembly resolve them to kcdata cells with the routing rules.
 #[derive(serde::Deserialize)]
 struct MapShipDropsAsset {
     /// Why the file exists; see the asset itself.
     #[allow(dead_code)]
     note: String,
-    maps: BTreeMap<i64, BTreeMap<String, BTreeMap<i64, Vec<ShipDropDefinition>>>>,
+    maps: BTreeMap<i64, BTreeMap<String, BTreeMap<String, Vec<ShipDropDefinition>>>>,
 }
 
-/// Fold the split-out ship drops back into the freshly parsed wikiwiki catalog.
-fn apply_ship_drops(catalog: &mut MapCatalog) -> Result<(), ParseError> {
+/// Fold the split-out ship drops into the freshly parsed wikiwiki catalog.
+fn apply_ship_drops(overlay: &mut WikiwikiMapOverlayCatalog) -> Result<(), ParseError> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/map_ship_drops.json");
     let asset: MapShipDropsAsset =
         serde_json::from_str(include_str!("../../assets/map_ship_drops.json"))
             .map_err(|source| ParseError::json_at(&path, source))?;
 
     for (map_id, variants) in asset.maps {
-        let Some(definition) = catalog.maps.get_mut(&map_id) else {
+        let Some(definition) = overlay.maps.get_mut(&map_id) else {
             warn!("ship drops name map {map_id}, which the wikiwiki catalog does not have");
             continue;
         };
@@ -183,29 +172,43 @@ fn apply_ship_drops(catalog: &mut MapCatalog) -> Result<(), ParseError> {
                 warn!("ship drops name {map_id} variant {variant_key}, which does not exist");
                 continue;
             };
-            variant.ship_drops = drops;
+            variant.ship_drops = drops
+                .into_iter()
+                .flat_map(|(node_label, drops)| {
+                    drops.into_iter().map(move |drop| ShipDropDraft {
+                        node_label: node_label.clone(),
+                        drop,
+                    })
+                })
+                .collect();
         }
     }
 
     Ok(())
 }
 
+/// kcdata is the only source of real cell numbers; without it nothing else can
+/// be placed, so its absence is an error rather than a thinner catalog.
 fn load_kcdata_map_catalog(
     data_root: &Path,
     manifest: &ApiManifest,
-) -> (Option<MapCatalog>, usize) {
+) -> Result<(MapCatalog, usize), ParseError> {
     let kcdata_root = data_root.join("kc_data");
     if !kcdata_root.exists() {
-        return (None, 0);
+        return Err(ParseError::Generic(format!(
+            "kcdata map source not found at {}; run bootstrap to download it",
+            kcdata_root.display()
+        )));
     }
-    match super::kcdata::load_map_catalog_from_kcdata_root(kcdata_root, manifest) {
-        Ok((catalog, parse_errors)) if !catalog.maps.is_empty() => (Some(catalog), parse_errors),
-        Ok((_, parse_errors)) => (None, parse_errors),
-        Err(e) => {
-            tracing::warn!("failed to load kcdata map catalog: {e}");
-            (None, 0)
-        }
+    let (catalog, parse_errors) =
+        super::kcdata::load_map_catalog_from_kcdata_root(&kcdata_root, manifest)?;
+    if catalog.maps.is_empty() {
+        return Err(ParseError::Generic(format!(
+            "kcdata map source at {} produced no maps",
+            kcdata_root.display()
+        )));
     }
+    Ok((catalog, parse_errors))
 }
 
 /// Load stat catalog from cache or download. Returns (catalog, `map_count`, `from_cache`).
@@ -350,7 +353,7 @@ mod tests {
         std::fs::write(&asset_path, "{").unwrap();
 
         let raw = std::fs::read_to_string(&asset_path).unwrap();
-        let result = serde_json::from_str::<MapCatalog>(&raw);
+        let result = serde_json::from_str::<WikiwikiMapOverlayCatalog>(&raw);
         assert!(result.is_err(), "truncated JSON must fail to parse");
 
         let source = MapCatalogWikiwikiSource::ParseFailed {
@@ -374,8 +377,24 @@ mod tests {
     #[test]
     fn wikiwiki_empty_maps_json_is_not_parse_failed() {
         let raw = r#"{"maps":{}}"#;
-        let catalog = serde_json::from_str::<MapCatalog>(raw).unwrap();
+        let catalog = serde_json::from_str::<WikiwikiMapOverlayCatalog>(raw).unwrap();
         assert_eq!(catalog.maps.len(), 0, "empty maps must parse without error");
+    }
+
+    /// Without kcdata there is no cell numbering to resolve labels against, so the
+    /// build must stop and say where it looked instead of shipping another space.
+    #[test]
+    fn missing_kcdata_is_an_error_naming_the_path() {
+        let root = tempfile::tempdir().unwrap();
+        let error = load_repo_source_set(root.path(), &ApiManifest::default())
+            .err()
+            .expect("a build without kcdata must fail");
+        let expected = root.path().join("kc_data");
+        assert!(
+            error.to_string().contains(&expected.display().to_string()),
+            "error should name {}, got: {error}",
+            expected.display()
+        );
     }
 
     // ------------------------------------------------------------------ stat.json

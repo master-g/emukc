@@ -14,24 +14,13 @@ mod verify;
 
 pub use report::{MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource};
 
-/// Build the final runtime `MapCatalog` from explicit normalized inputs.
+/// Build the final runtime `MapCatalog` from an explicit label-space wikiwiki catalog.
 pub fn build_final_map_catalog(
     data_root: impl AsRef<Path>,
     manifest: &ApiManifest,
-    wikiwiki_catalog: Option<MapCatalog>,
-) -> Result<MapCatalog, ParseError> {
-    build_final_map_catalog_with_report(data_root, manifest, wikiwiki_catalog, None)
-        .map(|(catalog, _)| catalog)
-}
-
-/// Build the final runtime `MapCatalog` from explicit inputs with overlay.
-pub fn build_final_map_catalog_with_overlay(
-    data_root: impl AsRef<Path>,
-    manifest: &ApiManifest,
-    wikiwiki_catalog: Option<MapCatalog>,
     wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
 ) -> Result<MapCatalog, ParseError> {
-    build_final_map_catalog_with_report(data_root, manifest, wikiwiki_catalog, wikiwiki_overlay)
+    build_final_map_catalog_with_report(data_root, manifest, wikiwiki_overlay)
         .map(|(catalog, _)| catalog)
 }
 
@@ -67,15 +56,10 @@ pub fn build_final_map_catalog_from_repo_assets(
 pub fn build_final_map_catalog_with_report(
     data_root: impl AsRef<Path>,
     manifest: &ApiManifest,
-    wikiwiki_catalog: Option<MapCatalog>,
     wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
 ) -> Result<(MapCatalog, MapCatalogBuildReport), ParseError> {
-    let source_set = sources::load_explicit_source_set(
-        data_root.as_ref(),
-        manifest,
-        wikiwiki_catalog,
-        wikiwiki_overlay,
-    )?;
+    let source_set =
+        sources::load_explicit_source_set(data_root.as_ref(), manifest, wikiwiki_overlay)?;
     let (mut catalog, report) = assemble::assemble_final_map_catalog(source_set);
     filter_to_manifest_maps(&mut catalog, manifest);
     Ok((catalog, report))

@@ -40,7 +40,7 @@ tags: [map, data-source, provenance, ssot]
 
 其中**只有 34 份是有效响应**：`map_7-4.json` 和 `map_7-5.json` 是 `api_result: 100` 的错误页
 （抓包用的账号没解锁这两张图，和 `api_get_member/mapinfo` 的 33 条互相印证）。
-`source_crosscheck.rs` 已有 `CaptureUnparseable` 分支跳过它们，不是缺陷，但这两张图的起点没有真实凭据。
+`build-overlays` 把它们记为 rejected record（`invalid_api_result:100`）跳过，不是缺陷，但这两张图的起点没有真实凭据。
 
 **`edges.json` 查过了，不接**。`KC3Kai/KC3Kai` 的 `src/data/edges.json` 覆盖 193 张图（含活动图），
 键是 edge id、值是 `[起点 label, 终点 label]`；`kcwiki/kancolle-data` 的 `map/edge.json` 是它的镜像，
@@ -76,7 +76,7 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 wikiwiki.jp 页面
   → cargo run -- wikiwiki-map sync          （下到 .data/temp/wikiwiki_map/pages/）
   → agent skill emukc-scrape-wikiwiki-mapdata  （读 HTML，出 JSON）
-  → cargo run -- wikiwiki-map normalize     （label → cell_no，写资产）
+  → cargo run -- wikiwiki-map normalize     （agent 的 BFS 编号 → label，写资产）
 ```
 
 中间那一步是 **LLM 而不是解析器**——2026-06 有意为之，替掉了 7389 行正则（计划见
@@ -89,9 +89,11 @@ Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB
 覆盖互有长短：它缺 1-1 / 5-6 / 7-4 / 7-5、7-3 只 3 条边，但 6-x、1-5、1-6、2-5、3-5 比我们厚。
 **值得按图人工对照，不值得替换数据链。**
 
-**当前资产的状态**：它是 2026-09-22 修分层之前的混合产物，含 kcdata/stat 的格子元数据和某次活动的
-maparea 42 地图（5 张，0 条规则，最终 catalog 会按 manifest 过滤掉）。要干净必须重跑一次 agent
-pass，且产出不得劣于已提交版本——本地历史 agent JSON 全是 `Unknown` 谓词，直接拿来重生会大幅倒退。
+**资产只存 label**：路由规则的起止、「经由某格」、敌方编成和掉落都按节点 label 标识，没有任何格子编号，
+也不再带格子元数据。2026-09-23 由当时的 wikiwiki 编号资产机械转换而来，转换前后组装出的最终 catalog
+逐字节一致。仍留着某次活动的 maparea 42 地图（5 张，0 条规则，最终 catalog 会按 manifest 过滤掉）。
+要干净必须重跑一次 agent pass，且产出不得劣于已提交版本——本地历史 agent JSON 全是 `Unknown` 谓词，
+直接拿来重生会大幅倒退。
 
 **5-6 之前完全没被抓过**：49 格、23 个分歧点、0 条规则、0 组敌方编成，每个分岐都退化成随机、
 每场战斗都走 `fallback_enemy_fleet`。现在两样都补齐了：
@@ -120,10 +122,12 @@ A/C/H/J 上与原资产逐 id 一致；陣形沿用 3-2 原有写法（从标注
 8（護衛成功）而不是 5，所以 `boss_cell_no` 落回 0 这个哨兵值，bosscomp 为 false 是对的。
 `tests/gameplay_tests/map/boss_fleet.rs` 锁住「常规图的 boss 格只要是战斗格就必须有编成」。
 
-**「经由某格」的编号空间踩过一次**：资产里的 `VisitedNode` 存的是 wikiwiki 自己的 BFS 编号，而
-`auto_derive_label_overlay` 曾把谓词原样透传，于是这些编号进了 kcdata 空间、指向了别的格子——
+**「经由某格」的编号空间踩过一次**：资产里的 `VisitedNode` 曾存 wikiwiki 自己的 BFS 编号，而
+`auto_derive_label_overlay` 把谓词原样透传，于是这些编号进了 kcdata 空间、指向了别的格子——
 4-5 的「Dマスを経由」在查 B，5-5 的「Nマス」在查 H，7-4 的「Dマス」在查 C，5 条全错。
-现在 `lift_predicate_to_labels` 先把它抬回 label，再由 `resolve_predicate_labels` 落到目标空间。
+现在编号只活在 agent JSON 里：`normalize` 接入时由 `lift_predicate_to_labels`（`parser/wikiwiki_map`）
+把规则两端和谓词里的编号一次抬成 label，组装时 `resolve_predicate_labels` 一次落到 kcdata 编号，
+中间没有第三种编号空间。
 
 ## 3. 敌舰属性
 
@@ -135,7 +139,7 @@ degraded 兜底，每级都 warn。所以敌舰属性缺失不会中断出击，
 
 ## 4. 掉落
 
-`assets/map_ship_drops.json`，242 格 / 10384 条（扇出后 367 / 16499）。
+`assets/map_ship_drops.json`，按「地图 → 变体 → 节点 label」建键，242 个节点 / 10384 条（扇出后 367 格 / 16499）。
 
 **它没有任何可复现来源。** 产出它的 Rust HTML 解析器在 2026-06 被删；agent skill 产不出（所有历史
 agent JSON 的 `ship_drops` 都是 0）；缓存的 wikiwiki 页面里也没有——36 份的 `DROP TABLE` 段全是
@@ -161,7 +165,7 @@ agent JSON 的 `ship_drops` 都是 0）；缓存的 wikiwiki 页面里也没有�
 
 | 断了什么 | 后果 |
 | --- | --- |
-| kcdata | 整个 catalog 没有底座，地图不可用 |
+| kcdata | catalog 构建直接报错（`ParseError`，指出 `kc_data` 路径），不再退回别的编号空间 |
 | wikiwiki 资产 | 所有分歧退化成随机、敌方编成消失 |
 | `map_ship_drops.json` | 出击不掉船（且**无法找回**） |
 | `enemy_ship_extra.json` | 敌舰属性降级，出击仍可进行 |

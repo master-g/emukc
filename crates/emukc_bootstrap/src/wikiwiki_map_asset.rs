@@ -61,9 +61,10 @@ fn load_repo_wikiwiki_map_catalog_asset_from(
 
 #[cfg(test)]
 mod tests {
-    use emukc_model::codex::map::{MapCatalog, RoutePredicate};
+    use emukc_model::codex::map::RoutePredicate;
 
     use super::*;
+    use crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog;
 
     #[test]
     fn load_repo_wikiwiki_map_catalog_asset_prefers_filesystem_contents() {
@@ -90,38 +91,36 @@ mod tests {
     #[test]
     fn repo_asset_limits_route_history_rules_to_known_normal_maps() {
         let asset = load_repo_wikiwiki_map_catalog_asset().unwrap();
-        let catalog = serde_json::from_str::<MapCatalog>(asset.raw_json()).unwrap();
+        let catalog = serde_json::from_str::<WikiwikiMapOverlayCatalog>(asset.raw_json()).unwrap();
         let mut visited_rules = Vec::new();
 
         for definition in catalog.maps.values() {
             for (variant_key, variant) in &definition.variants {
-                for (from_cell_no, rules) in &variant.routing_rules {
-                    for rule in rules {
-                        match &rule.predicate {
-                            RoutePredicate::VisitedNode {
-                                cell_nos,
-                                visited,
-                            } => {
-                                visited_rules.push((
-                                    definition.map_id,
-                                    variant_key.clone(),
-                                    *from_cell_no,
-                                    rule.to_cell_no,
-                                    *visited,
-                                    cell_nos.clone(),
-                                ));
-                            }
-                            RoutePredicate::VisitedNodeLabel {
-                                node_labels,
-                                ..
-                            } => {
-                                panic!(
-                                    "runtime asset still contains label-based route-history predicate on map {} variant `{}`: {node_labels:?}",
-                                    definition.map_id, variant_key,
-                                );
-                            }
-                            _ => {}
+                for rule in &variant.routing_rules {
+                    match &rule.predicate {
+                        RoutePredicate::VisitedNodeLabel {
+                            node_labels,
+                            visited,
+                        } => {
+                            visited_rules.push((
+                                definition.map_id,
+                                variant_key.clone(),
+                                rule.from_label.clone(),
+                                rule.to_label.clone(),
+                                *visited,
+                                node_labels.clone(),
+                            ));
                         }
+                        RoutePredicate::VisitedNode {
+                            cell_nos,
+                            ..
+                        } => {
+                            panic!(
+                                "label-space asset carries cell numbers on map {} variant `{}`: {cell_nos:?}",
+                                definition.map_id, variant_key,
+                            );
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -130,20 +129,18 @@ mod tests {
         visited_rules.sort();
         // Guardrail: if this list changes, re-audit whether sortie-wide visited-node history
         // remains sufficient or if we need a first-class direct arrival-edge predicate.
-        //
-        // These values are in wikiwiki BFS cell-number space — the asset stores the
-        // wikiwiki catalog pre-overlay. `auto_derive_label_overlay` lifts them to labels
-        // and `resolve_predicate_labels` puts them back in kcdata space; the pair is what
-        // keeps them pointing at the node the wikiwiki table named.
+        let rule = |map_id, from: &str, to: &str, label: &str| {
+            (map_id, String::new(), from.to_string(), to.to_string(), true, vec![label.to_string()])
+        };
         assert_eq!(
             visited_rules,
             vec![
-                (45, String::new(), 8, 15, true, vec![3]),
-                (55, String::new(), 7, 17, true, vec![8]),
-                (55, String::new(), 8, 17, true, vec![7]),
-                (56, String::new(), 6, 7, true, vec![1]),
-                (56, String::new(), 26, 28, true, vec![23]),
-                (74, String::new(), 7, 8, true, vec![3]),
+                rule(45, "K", "M", "E"),
+                rule(55, "M", "O", "N"),
+                rule(55, "N", "O", "M"),
+                rule(56, "C1", "C2", "A"),
+                rule(56, "Q2", "T", "P"),
+                rule(74, "J", "K", "D"),
             ]
         );
     }

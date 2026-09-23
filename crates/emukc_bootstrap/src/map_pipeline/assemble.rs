@@ -10,48 +10,12 @@ pub(super) fn assemble_final_map_catalog(
     sources: ResolvedMapSources,
 ) -> (MapCatalog, MapCatalogBuildReport) {
     let mut overlay_items_dropped = 0usize;
-
-    // Auto-derive label-keyed overlay from the wikiwiki catalog when no explicit
-    // overlay was provided. This bridges the incompatible cell-number spaces
-    // (wikiwiki BFS vs kcdata route-ID) by converting cell-number-keyed data to
-    // label-keyed data that merge_label_overlay() can apply correctly.
-    let wikiwiki_overlay = sources.wikiwiki_overlay.or_else(|| {
-        let wikiwiki_catalog = sources.wikiwiki_catalog.as_ref()?;
-        let mut overlay_catalog = crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog::default();
-        for (map_id, wikiwiki_map) in &wikiwiki_catalog.maps {
-            let mut overlay_def = crate::parser::wikiwiki_map::WikiwikiMapOverlayDefinition {
-                map_id: *map_id,
-                variants: std::collections::BTreeMap::new(),
-            };
-            for (variant_key, variant) in &wikiwiki_map.variants {
-                let overlay = super::label_overlay::auto_derive_label_overlay(variant);
-                overlay_def.variants.insert(variant_key.clone(), overlay);
-            }
-            if !overlay_def.variants.is_empty() {
-                overlay_catalog.maps.insert(*map_id, overlay_def);
-            }
-        }
-        if overlay_catalog.maps.is_empty() {
-            None
-        } else {
-            Some(overlay_catalog)
-        }
-    });
-
     let mut deferred_overlays = Vec::new();
-    let mut catalog = match (sources.kcdata_catalog, wikiwiki_overlay) {
-        // New path: kcdata topology + label-keyed wikiwiki overlay.
-        (Some(mut kcdata), Some(overlay)) => {
-            overlay_items_dropped =
-                merge_label_overlay_catalog(&mut kcdata, &overlay, &mut deferred_overlays);
-            kcdata
-        }
-        // No overlay derivable, which only happens when the wikiwiki catalog is
-        // absent or carries no variants — either way there is nothing to merge.
-        (Some(kcdata), None) => kcdata,
-        // Fallback path: no kcdata, wikiwiki produces full MapCatalog.
-        (None, _) => sources.wikiwiki_catalog.unwrap_or_default(),
-    };
+    let mut catalog = sources.kcdata_catalog;
+    if let Some(overlay) = &sources.wikiwiki_overlay {
+        overlay_items_dropped =
+            merge_label_overlay_catalog(&mut catalog, overlay, &mut deferred_overlays);
+    }
     catalog.merge_missing_from(sources.public_overlay_catalog);
     if let Some(ref stat_catalog) = sources.stat_catalog {
         catalog.merge_missing_from(stat_catalog.clone());
@@ -188,15 +152,17 @@ mod tests {
     use std::collections::BTreeMap;
 
     use emukc_model::codex::map::{
-        MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, RouteRule,
+        MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, RoutePredicate,
     };
 
     use super::assemble_final_map_catalog;
     use crate::map_pipeline::{report::MapCatalogWikiwikiSource, sources::ResolvedMapSources};
+    use crate::parser::wikiwiki_map::{
+        RouteRuleDraft, WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog,
+        WikiwikiMapOverlayDefinition,
+    };
 
     /// Build a [`MapCellDefinition`] with an auto-generated node label `C{cell_no}`.
-    /// The label ensures [`build_cell_no_map`] produces a non-empty map, which in turn
-    /// prevents [`merge_routing_overlay`] from bailing out early.
     fn make_cell(cell_no: i64) -> MapCellDefinition {
         MapCellDefinition {
             cell_no,
@@ -211,21 +177,11 @@ mod tests {
         }
     }
 
-    /// Build a `MapVariantDefinition` with the given cell numbers and routing rules.
-    /// Cells are auto-labeled `"C{n}"` so that `build_cell_no_map` produces identity
-    /// mappings and `merge_routing_overlay` does not short-circuit on an empty map.
-    fn make_variant(key: &str, cell_nos: &[i64], rules: Vec<RouteRule>) -> MapVariantDefinition {
-        let routing_rules: BTreeMap<i64, Vec<RouteRule>> = {
-            let mut m: BTreeMap<i64, Vec<RouteRule>> = BTreeMap::new();
-            for rule in rules {
-                m.entry(rule.from_cell_no).or_default().push(rule);
-            }
-            m
-        };
+    /// Build a `MapVariantDefinition` with the given cell numbers, auto-labeled `"C{n}"`.
+    fn make_variant(key: &str, cell_nos: &[i64]) -> MapVariantDefinition {
         MapVariantDefinition {
             variant_key: key.to_owned(),
             cells: cell_nos.iter().map(|&n| make_cell(n)).collect(),
-            routing_rules,
             ..Default::default()
         }
     }
@@ -249,25 +205,24 @@ mod tests {
         }
     }
 
-    fn rule(from: i64, to: i64) -> RouteRule {
-        RouteRule {
-            from_cell_no: from,
-            to_cell_no: to,
-            ..Default::default()
-        }
+    /// A label-space overlay for one variant carrying a single `from → to` rule.
+    fn label_rule(variant_key: &str, from: &str, to: &str) -> (String, WikiwikiLabelOverlay) {
+        (
+            variant_key.to_owned(),
+            WikiwikiLabelOverlay {
+                variant_key: variant_key.to_owned(),
+                routing_rules: vec![RouteRuleDraft {
+                    from_label: from.to_owned(),
+                    to_label: to.to_owned(),
+                    probability_pct: None,
+                    predicate: RoutePredicate::Always,
+                    raw_text: String::new(),
+                    random_placeholder: false,
+                }],
+                ..Default::default()
+            },
+        )
     }
-
-    // ------------------------------------------------------------------ happy path
-
-    // ------------------------------------------------------------------ edge: to_cell_no missing
-
-    // ------------------------------------------------------------------ edge: from_cell_no missing
-
-    // ------------------------------------------------------------------ edge: both cells missing
-
-    // ------------------------------------------------------------------ edge: other rules in same batch still merged
-
-    // ------------------------------------------------------------------ integration: multi-gauge
 
     // ------------------------------------------------------------------ P-unlock normalization
 
@@ -296,7 +251,7 @@ mod tests {
     fn p_unlock_routing_survives_the_variant_it_needs_appearing_late() {
         // The kcdata base carries the topology, so cell 0 has to lead somewhere:
         // normalization refuses to split a map whose default would be unroutable.
-        let mut kcdata = make_catalog(73, vec![make_variant("", &[0, 1, 2, 3], vec![])]);
+        let mut kcdata = make_catalog(73, vec![make_variant("", &[0, 1, 2, 3])]);
         {
             // 0 → 1 → 2 → 3: the overlay resolves its label pairs against this graph,
             // and normalization refuses to split a map whose default is unroutable.
@@ -305,24 +260,29 @@ mod tests {
                 base.cells[index].next_cells = vec![next];
             }
         }
-        let wikiwiki = make_catalog(
-            73,
-            vec![
-                make_variant("pre_p_unlock", &[0, 1, 2, 3], vec![rule(1, 2)]),
-                make_variant("post_p_unlock", &[0, 1, 2, 3], vec![rule(2, 3)]),
-            ],
-        );
+        let wikiwiki = WikiwikiMapOverlayCatalog {
+            maps: BTreeMap::from([(
+                73,
+                WikiwikiMapOverlayDefinition {
+                    map_id: 73,
+                    variants: BTreeMap::from([
+                        label_rule("pre_p_unlock", "C1", "C2"),
+                        label_rule("post_p_unlock", "C2", "C3"),
+                    ]),
+                },
+            )]),
+        };
         // The public overlay is what introduces the two p_unlock variants.
         let public_overlay = make_catalog(
             73,
             vec![
-                make_variant("pre_p_unlock", &[0, 1, 2, 3], vec![]),
-                make_variant("post_p_unlock", &[0, 1, 2, 3], vec![]),
+                make_variant("pre_p_unlock", &[0, 1, 2, 3]),
+                make_variant("post_p_unlock", &[0, 1, 2, 3]),
             ],
         );
 
         let sources = ResolvedMapSources {
-            wikiwiki_catalog: Some(wikiwiki),
+            wikiwiki_overlay: Some(wikiwiki),
             public_overlay_catalog: public_overlay,
             ..sources_from_kcdata(kcdata)
         };
@@ -343,9 +303,8 @@ mod tests {
         ResolvedMapSources {
             wikiwiki_source: MapCatalogWikiwikiSource::None,
             wikiwiki_map_count: 0,
-            wikiwiki_catalog: None,
             wikiwiki_overlay: None,
-            kcdata_catalog: Some(kcdata),
+            kcdata_catalog: kcdata,
             kcdata_parse_errors: 0,
             public_overlay_map_count: 0,
             public_overlay_catalog: MapCatalog::default(),
@@ -439,5 +398,46 @@ mod tests {
         let m11 = &catalog.maps[&11];
         assert_eq!(m11.default_variant, "");
         assert!(m11.variants.contains_key(""));
+    }
+
+    /// The public overlay's real `api_req_map/start` captures are the only source of
+    /// `master_cell_id`; assembly must carry them onto the kcdata cells.
+    #[test]
+    fn assemble_applies_public_master_cell_ids() {
+        let mut kcdata = MapCatalog::default();
+        kcdata.maps.insert(
+            11,
+            MapDefinition {
+                map_id: 11,
+                variants: BTreeMap::from([(
+                    String::new(),
+                    MapVariantDefinition {
+                        cells: vec![
+                            cell_with_next(0, vec![1]),
+                            cell_with_next(1, vec![2, 3]),
+                            cell_with_next(2, vec![]),
+                            cell_with_next(3, vec![]),
+                        ],
+                        ..Default::default()
+                    },
+                )]),
+                ..Default::default()
+            },
+        );
+        let sources = ResolvedMapSources {
+            public_overlay_catalog: crate::map_pipeline::sources::load_public_map_catalog_overlays(
+            )
+            .unwrap(),
+            ..sources_from_kcdata(kcdata)
+        };
+
+        let (catalog, _report) = assemble_final_map_catalog(sources);
+        let ids = catalog.maps[&11].variants[""]
+            .cells
+            .iter()
+            .map(|cell| cell.master_cell_id)
+            .collect::<Vec<_>>();
+
+        assert_eq!(ids, vec![Some(3001), Some(3002), Some(3003), Some(3004)]);
     }
 }

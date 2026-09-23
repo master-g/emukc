@@ -25,10 +25,6 @@ enum Command {
 
 #[derive(Args, Debug)]
 struct NormalizeArgs {
-    /// Directory containing `start2.json`.
-    #[arg(long, default_value = ".data/temp", value_name = "DIR")]
-    data_root: PathBuf,
-
     /// Path to the agent-produced `WikiwikiMapCatalog` JSON file.
     ///
     /// Generate this by running the `emukc-scrape-wikiwiki-mapdata` skill on
@@ -36,7 +32,7 @@ struct NormalizeArgs {
     #[arg(long, value_name = "FILE")]
     from_agent_json: PathBuf,
 
-    /// Output path for the normalized runtime `MapCatalog` JSON file.
+    /// Output path for the label-space wikiwiki catalog JSON file.
     #[arg(long, default_value_os_t = repo_wikiwiki_map_catalog_path(), value_name = "FILE")]
     output: PathBuf,
 }
@@ -147,19 +143,18 @@ fn read_manifest(data_root: &Path) -> Result<emukc::model::kc2::start2::ApiManif
 
 /// Turn the agent skill's JSON into the repo-tracked wikiwiki asset.
 ///
-/// This stops at `into_map_catalog`, the deterministic label→`cell_no` step. It
-/// deliberately does **not** merge kcdata, the public overlay or `stat.json`:
-/// that is the build's job, and writing a merged catalog back into the slot the
-/// build reads as the pure wikiwiki source baked those other sources into it
-/// permanently — cell metadata, `master_cell_id`, even whichever event maps
-/// happened to be live that day — and destroyed any way to tell which rule came
-/// from where.
-fn normalize_catalog(args: &NormalizeArgs) -> Result<emukc::model::codex::map::MapCatalog> {
-    let manifest = read_manifest(&args.data_root)?;
+/// This stops at `into_label_overlay_catalog`, which lifts the agent's own cell
+/// numbers to node labels. It deliberately does **not** merge kcdata, the public
+/// overlay or `stat.json`: that is the build's job, and writing a merged catalog
+/// back into the slot the build reads as the pure wikiwiki source baked those
+/// other sources into it permanently — cell metadata, `master_cell_id`, even
+/// whichever event maps happened to be live that day — and destroyed any way to
+/// tell which rule came from where.
+fn normalize_catalog(args: &NormalizeArgs) -> Result<WikiwikiMapOverlayCatalog> {
     let raw = fs::read_to_string(&args.from_agent_json)?;
     let wikiwiki_source = WikiwikiMapCatalog::from_json(&raw).map_err(anyhow::Error::from)?;
 
-    Ok(wikiwiki_source.into_map_catalog(&manifest))
+    Ok(wikiwiki_source.into_label_overlay_catalog())
 }
 
 fn build_public_overlays(args: &BuildOverlaysArgs) -> Result<MapOverlayBuildOutput> {

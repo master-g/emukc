@@ -1,9 +1,9 @@
 {
-  "note": "Ship drops for the regular maps, split out of wikiwiki_map_catalog.json. They have no reproducible source: the Rust HTML parser that produced them was replaced by the emukc-scrape-wikiwiki-mapdata agent skill in 2026-06, and neither the skill nor the cached wikiwiki pages carry drop lists (their DROP TABLE section holds only difficulty, operation name and BGM). Rebuilding the wikiwiki asset used to wipe them - see commit ca027294, which froze the asset instead. They live here so that regenerating the wikiwiki asset can no longer lose them. Hand-maintained until a real drop source exists.",
+  "note": "Ship drops for the regular maps, split out of wikiwiki_map_catalog.json and keyed by map id, variant key and node label. They have no reproducible source: the Rust HTML parser that produced them was replaced by the emukc-scrape-wikiwiki-mapdata agent skill in 2026-06, and neither the skill nor the cached wikiwiki pages carry drop lists (their DROP TABLE section holds only difficulty, operation name and BGM). Rebuilding the wikiwiki asset used to wipe them - see commit ca027294, which froze the asset instead. They live here so that regenerating the wikiwiki asset can no longer lose them. Hand-maintained until a real drop source exists.",
   "maps": {
     "11": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 1,
             "raw_ship_name": "睦月"
@@ -141,7 +141,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "2": [
+        "B": [
           {
             "ship_id": 55,
             "raw_ship_name": "神通"
@@ -291,7 +291,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "3": [
+        "C": [
           {
             "ship_id": 25,
             "raw_ship_name": "北上"
@@ -505,7 +505,7 @@
     },
     "12": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 51,
             "raw_ship_name": "天龍"
@@ -647,7 +647,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 51,
             "raw_ship_name": "天龍"
@@ -789,7 +789,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 22,
             "raw_ship_name": "五十鈴"
@@ -967,7 +967,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -1201,7 +1201,7 @@
     },
     "13": {
       "": {
-        "1": [
+        "C": [
           {
             "ship_id": 54,
             "raw_ship_name": "川内"
@@ -1371,7 +1371,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "2": [
+        "E": [
           {
             "ship_id": 54,
             "raw_ship_name": "川内"
@@ -1541,7 +1541,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "3": [
+        "F": [
           {
             "ship_id": 21,
             "raw_ship_name": "長良"
@@ -1735,7 +1735,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "J": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -1994,7 +1994,7 @@
     },
     "14": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -2208,7 +2208,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "2": [
+        "D": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -2422,7 +2422,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "3": [
+        "H": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -2660,7 +2660,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "I": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -2886,7 +2886,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "J": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -3124,7 +3124,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "L": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -3406,7 +3406,7 @@
     },
     "15": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 2,
             "raw_ship_name": "如月"
@@ -3528,7 +3528,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -3731,7 +3731,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -3901,7 +3901,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -4079,7 +4079,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "F": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -4261,210 +4261,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
-          {
-            "ship_id": 89,
-            "raw_ship_name": "鳳翔"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 25,
-            "raw_ship_name": "北上"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 2,
-            "raw_ship_name": "如月"
-          },
-          {
-            "ship_id": 6,
-            "raw_ship_name": "長月"
-          },
-          {
-            "ship_id": 7,
-            "raw_ship_name": "三日月"
-          },
-          {
-            "ship_id": 10,
-            "raw_ship_name": "白雪"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 14,
-            "raw_ship_name": "敷波"
-          },
-          {
-            "ship_id": 15,
-            "raw_ship_name": "曙"
-          },
-          {
-            "ship_id": 16,
-            "raw_ship_name": "潮"
-          },
-          {
-            "ship_id": 18,
-            "raw_ship_name": "不知火"
-          },
-          {
-            "ship_id": 19,
-            "raw_ship_name": "黒潮"
-          },
-          {
-            "ship_id": 28,
-            "raw_ship_name": "皐月"
-          },
-          {
-            "ship_id": 29,
-            "raw_ship_name": "文月"
-          },
-          {
-            "ship_id": 30,
-            "raw_ship_name": "菊月"
-          },
-          {
-            "ship_id": 31,
-            "raw_ship_name": "望月"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 33,
-            "raw_ship_name": "叢雲"
-          },
-          {
-            "ship_id": 35,
-            "raw_ship_name": "響"
-          },
-          {
-            "ship_id": 36,
-            "raw_ship_name": "雷"
-          },
-          {
-            "ship_id": 37,
-            "raw_ship_name": "電"
-          },
-          {
-            "ship_id": 39,
-            "raw_ship_name": "子日"
-          },
-          {
-            "ship_id": 40,
-            "raw_ship_name": "若葉"
-          },
-          {
-            "ship_id": 41,
-            "raw_ship_name": "初霜"
-          },
-          {
-            "ship_id": 43,
-            "raw_ship_name": "時雨"
-          },
-          {
-            "ship_id": 44,
-            "raw_ship_name": "村雨"
-          },
-          {
-            "ship_id": 45,
-            "raw_ship_name": "夕立"
-          },
-          {
-            "ship_id": 46,
-            "raw_ship_name": "五月雨"
-          },
-          {
-            "ship_id": 48,
-            "raw_ship_name": "霰"
-          },
-          {
-            "ship_id": 49,
-            "raw_ship_name": "霞"
-          },
-          {
-            "ship_id": 93,
-            "raw_ship_name": "朧"
-          },
-          {
-            "ship_id": 94,
-            "raw_ship_name": "漣"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 97,
-            "raw_ship_name": "満潮"
-          },
-          {
-            "ship_id": 98,
-            "raw_ship_name": "荒潮"
-          },
-          {
-            "ship_id": 126,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "伊168"
-          },
-          {
-            "ship_id": 127,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "伊58"
-          },
-          {
-            "ship_id": 191,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "伊19"
-          },
-          {
-            "ship_id": 102,
-            "raw_ship_name": "千歳"
-          },
-          {
-            "ship_id": 103,
-            "raw_ship_name": "千代田"
-          }
-        ],
-        "7": [
+        "H": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -4667,7 +4464,210 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "I": [
+          {
+            "ship_id": 89,
+            "raw_ship_name": "鳳翔"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 25,
+            "raw_ship_name": "北上"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月"
+          },
+          {
+            "ship_id": 6,
+            "raw_ship_name": "長月"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙"
+          },
+          {
+            "ship_id": 16,
+            "raw_ship_name": "潮"
+          },
+          {
+            "ship_id": 18,
+            "raw_ship_name": "不知火"
+          },
+          {
+            "ship_id": 19,
+            "raw_ship_name": "黒潮"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月"
+          },
+          {
+            "ship_id": 30,
+            "raw_ship_name": "菊月"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電"
+          },
+          {
+            "ship_id": 39,
+            "raw_ship_name": "子日"
+          },
+          {
+            "ship_id": 40,
+            "raw_ship_name": "若葉"
+          },
+          {
+            "ship_id": 41,
+            "raw_ship_name": "初霜"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧"
+          },
+          {
+            "ship_id": 94,
+            "raw_ship_name": "漣"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮"
+          },
+          {
+            "ship_id": 126,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "伊168"
+          },
+          {
+            "ship_id": 127,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "伊58"
+          },
+          {
+            "ship_id": 191,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "伊19"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳"
+          },
+          {
+            "ship_id": 103,
+            "raw_ship_name": "千代田"
+          }
+        ],
+        "J": [
           {
             "ship_id": 75,
             "raw_ship_name": "飛鷹"
@@ -4975,7 +4975,7 @@
     },
     "16": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -5214,7 +5214,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 2,
             "raw_ship_name": "如月"
@@ -5336,7 +5336,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -5561,7 +5561,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 2,
             "raw_ship_name": "如月"
@@ -5691,7 +5691,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "5": [
+        "F": [
           {
             "ship_id": 21,
             "raw_ship_name": "長良"
@@ -5868,7 +5868,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "I": [
           {
             "ship_id": 2,
             "raw_ship_name": "如月"
@@ -5998,7 +5998,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "7": [
+        "J": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -6244,7 +6244,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "K": [
           {
             "ship_id": 71,
             "raw_ship_name": "利根"
@@ -6425,7 +6425,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "9": [
+        "L": [
           {
             "ship_id": 61,
             "raw_ship_name": "青葉"
@@ -6579,7 +6579,7 @@
     },
     "21": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -6793,7 +6793,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -6995,221 +6995,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
-          {
-            "ship_id": 74,
-            "raw_ship_name": "祥鳳"
-          },
-          {
-            "ship_id": 89,
-            "raw_ship_name": "鳳翔"
-          },
-          {
-            "ship_id": 59,
-            "raw_ship_name": "古鷹"
-          },
-          {
-            "ship_id": 60,
-            "raw_ship_name": "加古"
-          },
-          {
-            "ship_id": 61,
-            "raw_ship_name": "青葉"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 64,
-            "raw_ship_name": "足柄"
-          },
-          {
-            "ship_id": 65,
-            "raw_ship_name": "羽黒"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 69,
-            "raw_ship_name": "鳥海"
-          },
-          {
-            "ship_id": 70,
-            "raw_ship_name": "最上"
-          },
-          {
-            "ship_id": 21,
-            "raw_ship_name": "長良"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 54,
-            "raw_ship_name": "川内"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 99,
-            "raw_ship_name": "球磨"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 2,
-            "raw_ship_name": "如月"
-          },
-          {
-            "ship_id": 6,
-            "raw_ship_name": "長月"
-          },
-          {
-            "ship_id": 7,
-            "raw_ship_name": "三日月"
-          },
-          {
-            "ship_id": 10,
-            "raw_ship_name": "白雪"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 14,
-            "raw_ship_name": "敷波"
-          },
-          {
-            "ship_id": 18,
-            "raw_ship_name": "不知火"
-          },
-          {
-            "ship_id": 19,
-            "raw_ship_name": "黒潮"
-          },
-          {
-            "ship_id": 28,
-            "raw_ship_name": "皐月"
-          },
-          {
-            "ship_id": 29,
-            "raw_ship_name": "文月"
-          },
-          {
-            "ship_id": 30,
-            "raw_ship_name": "菊月"
-          },
-          {
-            "ship_id": 31,
-            "raw_ship_name": "望月"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 33,
-            "raw_ship_name": "叢雲"
-          },
-          {
-            "ship_id": 35,
-            "raw_ship_name": "響"
-          },
-          {
-            "ship_id": 36,
-            "raw_ship_name": "雷"
-          },
-          {
-            "ship_id": 37,
-            "raw_ship_name": "電"
-          },
-          {
-            "ship_id": 39,
-            "raw_ship_name": "子日"
-          },
-          {
-            "ship_id": 40,
-            "raw_ship_name": "若葉"
-          },
-          {
-            "ship_id": 41,
-            "raw_ship_name": "初霜"
-          },
-          {
-            "ship_id": 43,
-            "raw_ship_name": "時雨"
-          },
-          {
-            "ship_id": 44,
-            "raw_ship_name": "村雨"
-          },
-          {
-            "ship_id": 45,
-            "raw_ship_name": "夕立"
-          },
-          {
-            "ship_id": 46,
-            "raw_ship_name": "五月雨"
-          },
-          {
-            "ship_id": 48,
-            "raw_ship_name": "霰"
-          },
-          {
-            "ship_id": 49,
-            "raw_ship_name": "霞"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 97,
-            "raw_ship_name": "満潮"
-          },
-          {
-            "ship_id": 98,
-            "raw_ship_name": "荒潮"
-          },
-          {
-            "ship_id": 102,
-            "raw_ship_name": "千歳"
-          },
-          {
-            "ship_id": 103,
-            "raw_ship_name": "千代田"
-          }
-        ],
-        "4": [
+        "D": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -7423,7 +7209,221 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "F": [
+          {
+            "ship_id": 74,
+            "raw_ship_name": "祥鳳"
+          },
+          {
+            "ship_id": 89,
+            "raw_ship_name": "鳳翔"
+          },
+          {
+            "ship_id": 59,
+            "raw_ship_name": "古鷹"
+          },
+          {
+            "ship_id": 60,
+            "raw_ship_name": "加古"
+          },
+          {
+            "ship_id": 61,
+            "raw_ship_name": "青葉"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 99,
+            "raw_ship_name": "球磨"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月"
+          },
+          {
+            "ship_id": 6,
+            "raw_ship_name": "長月"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波"
+          },
+          {
+            "ship_id": 18,
+            "raw_ship_name": "不知火"
+          },
+          {
+            "ship_id": 19,
+            "raw_ship_name": "黒潮"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月"
+          },
+          {
+            "ship_id": 30,
+            "raw_ship_name": "菊月"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電"
+          },
+          {
+            "ship_id": 39,
+            "raw_ship_name": "子日"
+          },
+          {
+            "ship_id": 40,
+            "raw_ship_name": "若葉"
+          },
+          {
+            "ship_id": 41,
+            "raw_ship_name": "初霜"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳"
+          },
+          {
+            "ship_id": 103,
+            "raw_ship_name": "千代田"
+          }
+        ],
+        "H": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -7737,7 +7737,7 @@
     },
     "22": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -7986,7 +7986,7 @@
             "raw_ship_name": "天霧"
           }
         ],
-        "2": [
+        "D": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -8231,7 +8231,7 @@
             "raw_ship_name": "天霧"
           }
         ],
-        "3": [
+        "E": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -8452,7 +8452,7 @@
             "raw_ship_name": "天霧"
           }
         ],
-        "4": [
+        "G": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -8689,7 +8689,7 @@
             "raw_ship_name": "天霧"
           }
         ],
-        "5": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -8889,7 +8889,7 @@
     },
     "23": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -9091,7 +9091,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "2": [
+        "E": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -9293,7 +9293,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "3": [
+        "F": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -9511,7 +9511,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "4": [
+        "J": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -9741,7 +9741,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "5": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -9971,7 +9971,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "6": [
+        "M": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -10189,7 +10189,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "7": [
+        "N": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -10507,7 +10507,7 @@
     },
     "24": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -10681,203 +10681,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
-          {
-            "ship_id": 74,
-            "raw_ship_name": "祥鳳"
-          },
-          {
-            "ship_id": 75,
-            "raw_ship_name": "飛鷹"
-          },
-          {
-            "ship_id": 76,
-            "raw_ship_name": "龍驤"
-          },
-          {
-            "ship_id": 92,
-            "raw_ship_name": "隼鷹"
-          },
-          {
-            "ship_id": 60,
-            "raw_ship_name": "加古"
-          },
-          {
-            "ship_id": 62,
-            "raw_ship_name": "妙高"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 64,
-            "raw_ship_name": "足柄"
-          },
-          {
-            "ship_id": 65,
-            "raw_ship_name": "羽黒"
-          },
-          {
-            "ship_id": 66,
-            "raw_ship_name": "高雄"
-          },
-          {
-            "ship_id": 67,
-            "raw_ship_name": "愛宕"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 69,
-            "raw_ship_name": "鳥海"
-          },
-          {
-            "ship_id": 70,
-            "raw_ship_name": "最上"
-          },
-          {
-            "ship_id": 71,
-            "raw_ship_name": "利根"
-          },
-          {
-            "ship_id": 72,
-            "raw_ship_name": "筑摩"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 24,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "大井"
-          },
-          {
-            "ship_id": 25,
-            "raw_ship_name": "北上"
-          },
-          {
-            "ship_id": 51,
-            "raw_ship_name": "天龍"
-          },
-          {
-            "ship_id": 52,
-            "raw_ship_name": "龍田"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 54,
-            "raw_ship_name": "川内"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 9,
-            "raw_ship_name": "吹雪"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 13,
-            "raw_ship_name": "綾波"
-          },
-          {
-            "ship_id": 14,
-            "raw_ship_name": "敷波"
-          },
-          {
-            "ship_id": 17,
-            "raw_ship_name": "陽炎"
-          },
-          {
-            "ship_id": 18,
-            "raw_ship_name": "不知火"
-          },
-          {
-            "ship_id": 19,
-            "raw_ship_name": "黒潮"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 33,
-            "raw_ship_name": "叢雲"
-          },
-          {
-            "ship_id": 48,
-            "raw_ship_name": "霰"
-          },
-          {
-            "ship_id": 49,
-            "raw_ship_name": "霞"
-          },
-          {
-            "ship_id": 50,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "島風"
-          },
-          {
-            "ship_id": 95,
-            "raw_ship_name": "朝潮"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 97,
-            "raw_ship_name": "満潮"
-          },
-          {
-            "ship_id": 98,
-            "raw_ship_name": "荒潮"
-          },
-          {
-            "ship_id": 102,
-            "raw_ship_name": "千歳"
-          },
-          {
-            "ship_id": 103,
-            "raw_ship_name": "千代田"
-          }
-        ],
-        "3": [
+        "E": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -11073,7 +10877,203 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
+          {
+            "ship_id": 74,
+            "raw_ship_name": "祥鳳"
+          },
+          {
+            "ship_id": 75,
+            "raw_ship_name": "飛鷹"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤"
+          },
+          {
+            "ship_id": 92,
+            "raw_ship_name": "隼鷹"
+          },
+          {
+            "ship_id": 60,
+            "raw_ship_name": "加古"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上"
+          },
+          {
+            "ship_id": 71,
+            "raw_ship_name": "利根"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 24,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "大井"
+          },
+          {
+            "ship_id": 25,
+            "raw_ship_name": "北上"
+          },
+          {
+            "ship_id": 51,
+            "raw_ship_name": "天龍"
+          },
+          {
+            "ship_id": 52,
+            "raw_ship_name": "龍田"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波"
+          },
+          {
+            "ship_id": 17,
+            "raw_ship_name": "陽炎"
+          },
+          {
+            "ship_id": 18,
+            "raw_ship_name": "不知火"
+          },
+          {
+            "ship_id": 19,
+            "raw_ship_name": "黒潮"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞"
+          },
+          {
+            "ship_id": 50,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "島風"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳"
+          },
+          {
+            "ship_id": 103,
+            "raw_ship_name": "千代田"
+          }
+        ],
+        "I": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -11262,7 +11262,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "L": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -11474,7 +11474,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "M": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -11693,7 +11693,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "P": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -11900,7 +11900,7 @@
     },
     "25": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -12074,7 +12074,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -12252,7 +12252,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "E": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -12461,7 +12461,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -12662,238 +12662,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
-          {
-            "ship_id": 26,
-            "raw_ship_name": "扶桑"
-          },
-          {
-            "ship_id": 27,
-            "raw_ship_name": "山城"
-          },
-          {
-            "ship_id": 77,
-            "raw_ship_name": "伊勢"
-          },
-          {
-            "ship_id": 87,
-            "raw_ship_name": "日向"
-          },
-          {
-            "ship_id": 74,
-            "raw_ship_name": "祥鳳"
-          },
-          {
-            "ship_id": 75,
-            "raw_ship_name": "飛鷹"
-          },
-          {
-            "ship_id": 76,
-            "raw_ship_name": "龍驤"
-          },
-          {
-            "ship_id": 92,
-            "raw_ship_name": "隼鷹"
-          },
-          {
-            "ship_id": 59,
-            "raw_ship_name": "古鷹"
-          },
-          {
-            "ship_id": 60,
-            "raw_ship_name": "加古"
-          },
-          {
-            "ship_id": 61,
-            "raw_ship_name": "青葉"
-          },
-          {
-            "ship_id": 62,
-            "raw_ship_name": "妙高"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 64,
-            "raw_ship_name": "足柄"
-          },
-          {
-            "ship_id": 65,
-            "raw_ship_name": "羽黒"
-          },
-          {
-            "ship_id": 66,
-            "raw_ship_name": "高雄"
-          },
-          {
-            "ship_id": 67,
-            "raw_ship_name": "愛宕"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 69,
-            "raw_ship_name": "鳥海"
-          },
-          {
-            "ship_id": 70,
-            "raw_ship_name": "最上"
-          },
-          {
-            "ship_id": 71,
-            "raw_ship_name": "利根"
-          },
-          {
-            "ship_id": 72,
-            "raw_ship_name": "筑摩"
-          },
-          {
-            "ship_id": 123,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "衣笠"
-          },
-          {
-            "ship_id": 21,
-            "raw_ship_name": "長良"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 24,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "大井"
-          },
-          {
-            "ship_id": 25,
-            "raw_ship_name": "北上"
-          },
-          {
-            "ship_id": 51,
-            "raw_ship_name": "天龍"
-          },
-          {
-            "ship_id": 52,
-            "raw_ship_name": "龍田"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 54,
-            "raw_ship_name": "川内"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 99,
-            "raw_ship_name": "球磨"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 1,
-            "raw_ship_name": "睦月"
-          },
-          {
-            "ship_id": 2,
-            "raw_ship_name": "如月"
-          },
-          {
-            "ship_id": 10,
-            "raw_ship_name": "白雪"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 13,
-            "raw_ship_name": "綾波"
-          },
-          {
-            "ship_id": 14,
-            "raw_ship_name": "敷波"
-          },
-          {
-            "ship_id": 15,
-            "raw_ship_name": "曙"
-          },
-          {
-            "ship_id": 16,
-            "raw_ship_name": "潮"
-          },
-          {
-            "ship_id": 28,
-            "raw_ship_name": "皐月"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 46,
-            "raw_ship_name": "五月雨"
-          },
-          {
-            "ship_id": 47,
-            "raw_ship_name": "涼風"
-          },
-          {
-            "ship_id": 95,
-            "raw_ship_name": "朝潮"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 170,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "浜風"
-          },
-          {
-            "ship_id": 102,
-            "raw_ship_name": "千歳"
-          },
-          {
-            "ship_id": 103,
-            "raw_ship_name": "千代田"
-          }
-        ],
-        "6": [
+        "J": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -13124,7 +12893,238 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "L": [
+          {
+            "ship_id": 26,
+            "raw_ship_name": "扶桑"
+          },
+          {
+            "ship_id": 27,
+            "raw_ship_name": "山城"
+          },
+          {
+            "ship_id": 77,
+            "raw_ship_name": "伊勢"
+          },
+          {
+            "ship_id": 87,
+            "raw_ship_name": "日向"
+          },
+          {
+            "ship_id": 74,
+            "raw_ship_name": "祥鳳"
+          },
+          {
+            "ship_id": 75,
+            "raw_ship_name": "飛鷹"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤"
+          },
+          {
+            "ship_id": 92,
+            "raw_ship_name": "隼鷹"
+          },
+          {
+            "ship_id": 59,
+            "raw_ship_name": "古鷹"
+          },
+          {
+            "ship_id": 60,
+            "raw_ship_name": "加古"
+          },
+          {
+            "ship_id": 61,
+            "raw_ship_name": "青葉"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上"
+          },
+          {
+            "ship_id": 71,
+            "raw_ship_name": "利根"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩"
+          },
+          {
+            "ship_id": 123,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "衣笠"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 24,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "大井"
+          },
+          {
+            "ship_id": 25,
+            "raw_ship_name": "北上"
+          },
+          {
+            "ship_id": 51,
+            "raw_ship_name": "天龍"
+          },
+          {
+            "ship_id": 52,
+            "raw_ship_name": "龍田"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 99,
+            "raw_ship_name": "球磨"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 1,
+            "raw_ship_name": "睦月"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙"
+          },
+          {
+            "ship_id": 16,
+            "raw_ship_name": "潮"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨"
+          },
+          {
+            "ship_id": 47,
+            "raw_ship_name": "涼風"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 170,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "浜風"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳"
+          },
+          {
+            "ship_id": 103,
+            "raw_ship_name": "千代田"
+          }
+        ],
+        "O": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -13486,7 +13486,7 @@
     },
     "31": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -13636,7 +13636,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -13806,7 +13806,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -13996,7 +13996,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -14206,7 +14206,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -14412,7 +14412,7 @@
     },
     "32": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -14602,7 +14602,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -14780,7 +14780,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "H": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -14982,7 +14982,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "J": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -15160,7 +15160,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -15370,7 +15370,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "L": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -15521,7 +15521,7 @@
     },
     "33": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -15694,7 +15694,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -15878,7 +15878,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "E": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -16073,7 +16073,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -16291,7 +16291,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -16502,7 +16502,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "M": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -16694,7 +16694,7 @@
     },
     "34": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -16886,7 +16886,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -17078,7 +17078,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "C": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -17278,461 +17278,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
-          {
-            "ship_id": 26,
-            "raw_ship_name": "扶桑"
-          },
-          {
-            "ship_id": 27,
-            "raw_ship_name": "山城"
-          },
-          {
-            "ship_id": 77,
-            "raw_ship_name": "伊勢"
-          },
-          {
-            "ship_id": 78,
-            "raw_ship_name": "金剛"
-          },
-          {
-            "ship_id": 79,
-            "raw_ship_name": "榛名"
-          },
-          {
-            "ship_id": 81,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "陸奥"
-          },
-          {
-            "ship_id": 85,
-            "raw_ship_name": "霧島"
-          },
-          {
-            "ship_id": 86,
-            "raw_ship_name": "比叡"
-          },
-          {
-            "ship_id": 87,
-            "raw_ship_name": "日向"
-          },
-          {
-            "ship_id": 74,
-            "raw_ship_name": "祥鳳"
-          },
-          {
-            "ship_id": 75,
-            "raw_ship_name": "飛鷹"
-          },
-          {
-            "ship_id": 76,
-            "raw_ship_name": "龍驤"
-          },
-          {
-            "ship_id": 84,
-            "raw_ship_name": "加賀"
-          },
-          {
-            "ship_id": 90,
-            "raw_ship_name": "蒼龍"
-          },
-          {
-            "ship_id": 91,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "飛龍"
-          },
-          {
-            "ship_id": 92,
-            "raw_ship_name": "隼鷹"
-          },
-          {
-            "ship_id": 62,
-            "raw_ship_name": "妙高"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 64,
-            "raw_ship_name": "足柄"
-          },
-          {
-            "ship_id": 65,
-            "raw_ship_name": "羽黒"
-          },
-          {
-            "ship_id": 66,
-            "raw_ship_name": "高雄"
-          },
-          {
-            "ship_id": 67,
-            "raw_ship_name": "愛宕"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 69,
-            "raw_ship_name": "鳥海"
-          },
-          {
-            "ship_id": 70,
-            "raw_ship_name": "最上"
-          },
-          {
-            "ship_id": 71,
-            "raw_ship_name": "利根"
-          },
-          {
-            "ship_id": 72,
-            "raw_ship_name": "筑摩"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 24,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "大井"
-          },
-          {
-            "ship_id": 25,
-            "raw_ship_name": "北上"
-          },
-          {
-            "ship_id": 51,
-            "raw_ship_name": "天龍"
-          },
-          {
-            "ship_id": 52,
-            "raw_ship_name": "龍田"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 13,
-            "raw_ship_name": "綾波"
-          },
-          {
-            "ship_id": 14,
-            "raw_ship_name": "敷波"
-          },
-          {
-            "ship_id": 17,
-            "raw_ship_name": "陽炎"
-          },
-          {
-            "ship_id": 18,
-            "raw_ship_name": "不知火"
-          },
-          {
-            "ship_id": 19,
-            "raw_ship_name": "黒潮"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 33,
-            "raw_ship_name": "叢雲"
-          },
-          {
-            "ship_id": 48,
-            "raw_ship_name": "霰"
-          },
-          {
-            "ship_id": 49,
-            "raw_ship_name": "霞"
-          },
-          {
-            "ship_id": 50,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "島風"
-          },
-          {
-            "ship_id": 95,
-            "raw_ship_name": "朝潮"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 97,
-            "raw_ship_name": "満潮"
-          },
-          {
-            "ship_id": 98,
-            "raw_ship_name": "荒潮"
-          },
-          {
-            "ship_id": 102,
-            "raw_ship_name": "千歳"
-          },
-          {
-            "ship_id": 103,
-            "raw_ship_name": "千代田"
-          }
-        ],
-        "5": [
-          {
-            "ship_id": 26,
-            "raw_ship_name": "扶桑"
-          },
-          {
-            "ship_id": 27,
-            "raw_ship_name": "山城"
-          },
-          {
-            "ship_id": 78,
-            "raw_ship_name": "金剛"
-          },
-          {
-            "ship_id": 79,
-            "raw_ship_name": "榛名"
-          },
-          {
-            "ship_id": 85,
-            "raw_ship_name": "霧島"
-          },
-          {
-            "ship_id": 86,
-            "raw_ship_name": "比叡"
-          },
-          {
-            "ship_id": 74,
-            "raw_ship_name": "祥鳳"
-          },
-          {
-            "ship_id": 75,
-            "raw_ship_name": "飛鷹"
-          },
-          {
-            "ship_id": 76,
-            "raw_ship_name": "龍驤"
-          },
-          {
-            "ship_id": 84,
-            "raw_ship_name": "加賀"
-          },
-          {
-            "ship_id": 90,
-            "raw_ship_name": "蒼龍"
-          },
-          {
-            "ship_id": 92,
-            "raw_ship_name": "隼鷹"
-          },
-          {
-            "ship_id": 62,
-            "raw_ship_name": "妙高"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 64,
-            "raw_ship_name": "足柄"
-          },
-          {
-            "ship_id": 65,
-            "raw_ship_name": "羽黒"
-          },
-          {
-            "ship_id": 66,
-            "raw_ship_name": "高雄"
-          },
-          {
-            "ship_id": 67,
-            "raw_ship_name": "愛宕"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 69,
-            "raw_ship_name": "鳥海"
-          },
-          {
-            "ship_id": 70,
-            "raw_ship_name": "最上"
-          },
-          {
-            "ship_id": 71,
-            "raw_ship_name": "利根"
-          },
-          {
-            "ship_id": 72,
-            "raw_ship_name": "筑摩"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 24,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "大井"
-          },
-          {
-            "ship_id": 25,
-            "raw_ship_name": "北上"
-          },
-          {
-            "ship_id": 51,
-            "raw_ship_name": "天龍"
-          },
-          {
-            "ship_id": 52,
-            "raw_ship_name": "龍田"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 13,
-            "raw_ship_name": "綾波"
-          },
-          {
-            "ship_id": 14,
-            "raw_ship_name": "敷波"
-          },
-          {
-            "ship_id": 17,
-            "raw_ship_name": "陽炎"
-          },
-          {
-            "ship_id": 18,
-            "raw_ship_name": "不知火"
-          },
-          {
-            "ship_id": 19,
-            "raw_ship_name": "黒潮"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 33,
-            "raw_ship_name": "叢雲"
-          },
-          {
-            "ship_id": 48,
-            "raw_ship_name": "霰"
-          },
-          {
-            "ship_id": 49,
-            "raw_ship_name": "霞"
-          },
-          {
-            "ship_id": 50,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "島風"
-          },
-          {
-            "ship_id": 95,
-            "raw_ship_name": "朝潮"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 97,
-            "raw_ship_name": "満潮"
-          },
-          {
-            "ship_id": 98,
-            "raw_ship_name": "荒潮"
-          },
-          {
-            "ship_id": 102,
-            "raw_ship_name": "千歳"
-          },
-          {
-            "ship_id": 103,
-            "raw_ship_name": "千代田"
-          }
-        ],
-        "6": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -17970,7 +17516,461 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "H": [
+          {
+            "ship_id": 26,
+            "raw_ship_name": "扶桑"
+          },
+          {
+            "ship_id": 27,
+            "raw_ship_name": "山城"
+          },
+          {
+            "ship_id": 78,
+            "raw_ship_name": "金剛"
+          },
+          {
+            "ship_id": 79,
+            "raw_ship_name": "榛名"
+          },
+          {
+            "ship_id": 85,
+            "raw_ship_name": "霧島"
+          },
+          {
+            "ship_id": 86,
+            "raw_ship_name": "比叡"
+          },
+          {
+            "ship_id": 74,
+            "raw_ship_name": "祥鳳"
+          },
+          {
+            "ship_id": 75,
+            "raw_ship_name": "飛鷹"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤"
+          },
+          {
+            "ship_id": 84,
+            "raw_ship_name": "加賀"
+          },
+          {
+            "ship_id": 90,
+            "raw_ship_name": "蒼龍"
+          },
+          {
+            "ship_id": 92,
+            "raw_ship_name": "隼鷹"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上"
+          },
+          {
+            "ship_id": 71,
+            "raw_ship_name": "利根"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 24,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "大井"
+          },
+          {
+            "ship_id": 25,
+            "raw_ship_name": "北上"
+          },
+          {
+            "ship_id": 51,
+            "raw_ship_name": "天龍"
+          },
+          {
+            "ship_id": 52,
+            "raw_ship_name": "龍田"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波"
+          },
+          {
+            "ship_id": 17,
+            "raw_ship_name": "陽炎"
+          },
+          {
+            "ship_id": 18,
+            "raw_ship_name": "不知火"
+          },
+          {
+            "ship_id": 19,
+            "raw_ship_name": "黒潮"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞"
+          },
+          {
+            "ship_id": 50,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "島風"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳"
+          },
+          {
+            "ship_id": 103,
+            "raw_ship_name": "千代田"
+          }
+        ],
+        "M": [
+          {
+            "ship_id": 26,
+            "raw_ship_name": "扶桑"
+          },
+          {
+            "ship_id": 27,
+            "raw_ship_name": "山城"
+          },
+          {
+            "ship_id": 77,
+            "raw_ship_name": "伊勢"
+          },
+          {
+            "ship_id": 78,
+            "raw_ship_name": "金剛"
+          },
+          {
+            "ship_id": 79,
+            "raw_ship_name": "榛名"
+          },
+          {
+            "ship_id": 81,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "陸奥"
+          },
+          {
+            "ship_id": 85,
+            "raw_ship_name": "霧島"
+          },
+          {
+            "ship_id": 86,
+            "raw_ship_name": "比叡"
+          },
+          {
+            "ship_id": 87,
+            "raw_ship_name": "日向"
+          },
+          {
+            "ship_id": 74,
+            "raw_ship_name": "祥鳳"
+          },
+          {
+            "ship_id": 75,
+            "raw_ship_name": "飛鷹"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤"
+          },
+          {
+            "ship_id": 84,
+            "raw_ship_name": "加賀"
+          },
+          {
+            "ship_id": 90,
+            "raw_ship_name": "蒼龍"
+          },
+          {
+            "ship_id": 91,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "飛龍"
+          },
+          {
+            "ship_id": 92,
+            "raw_ship_name": "隼鷹"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上"
+          },
+          {
+            "ship_id": 71,
+            "raw_ship_name": "利根"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 24,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "大井"
+          },
+          {
+            "ship_id": 25,
+            "raw_ship_name": "北上"
+          },
+          {
+            "ship_id": 51,
+            "raw_ship_name": "天龍"
+          },
+          {
+            "ship_id": 52,
+            "raw_ship_name": "龍田"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波"
+          },
+          {
+            "ship_id": 17,
+            "raw_ship_name": "陽炎"
+          },
+          {
+            "ship_id": 18,
+            "raw_ship_name": "不知火"
+          },
+          {
+            "ship_id": 19,
+            "raw_ship_name": "黒潮"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞"
+          },
+          {
+            "ship_id": 50,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "島風"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳"
+          },
+          {
+            "ship_id": 103,
+            "raw_ship_name": "千代田"
+          }
+        ],
+        "N": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -18185,7 +18185,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "P": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -18358,7 +18358,7 @@
     },
     "35": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -18432,116 +18432,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "2": [
-          {
-            "ship_id": 76,
-            "raw_ship_name": "龍驤"
-          },
-          {
-            "ship_id": 92,
-            "raw_ship_name": "隼鷹"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 66,
-            "raw_ship_name": "高雄"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 100,
-            "raw_ship_name": "多摩"
-          },
-          {
-            "ship_id": 101,
-            "raw_ship_name": "木曾"
-          },
-          {
-            "ship_id": 113,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "鬼怒"
-          },
-          {
-            "ship_id": 114,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "阿武隈"
-          },
-          {
-            "ship_id": 15,
-            "raw_ship_name": "曙"
-          },
-          {
-            "ship_id": 16,
-            "raw_ship_name": "潮"
-          },
-          {
-            "ship_id": 34,
-            "raw_ship_name": "暁"
-          },
-          {
-            "ship_id": 35,
-            "raw_ship_name": "響"
-          },
-          {
-            "ship_id": 36,
-            "raw_ship_name": "雷"
-          },
-          {
-            "ship_id": 37,
-            "raw_ship_name": "電"
-          },
-          {
-            "ship_id": 38,
-            "raw_ship_name": "初春"
-          },
-          {
-            "ship_id": 39,
-            "raw_ship_name": "子日"
-          },
-          {
-            "ship_id": 40,
-            "raw_ship_name": "若葉"
-          },
-          {
-            "ship_id": 41,
-            "raw_ship_name": "初霜"
-          },
-          {
-            "ship_id": 94,
-            "raw_ship_name": "漣"
-          },
-          {
-            "ship_id": 126,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "伊168"
-          },
-          {
-            "ship_id": 127,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "伊58"
-          },
-          {
-            "ship_id": 191,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "伊19"
-          }
-        ],
-        "3": [
+        "D": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -18650,7 +18541,116 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "4": [
+        "E": [
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤"
+          },
+          {
+            "ship_id": 92,
+            "raw_ship_name": "隼鷹"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾"
+          },
+          {
+            "ship_id": 113,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "鬼怒"
+          },
+          {
+            "ship_id": 114,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "阿武隈"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙"
+          },
+          {
+            "ship_id": 16,
+            "raw_ship_name": "潮"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電"
+          },
+          {
+            "ship_id": 38,
+            "raw_ship_name": "初春"
+          },
+          {
+            "ship_id": 39,
+            "raw_ship_name": "子日"
+          },
+          {
+            "ship_id": 40,
+            "raw_ship_name": "若葉"
+          },
+          {
+            "ship_id": 41,
+            "raw_ship_name": "初霜"
+          },
+          {
+            "ship_id": 94,
+            "raw_ship_name": "漣"
+          },
+          {
+            "ship_id": 126,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "伊168"
+          },
+          {
+            "ship_id": 127,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "伊58"
+          },
+          {
+            "ship_id": 191,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "伊19"
+          }
+        ],
+        "F": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -18738,7 +18738,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -18861,7 +18861,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "6": [
+        "H": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -18998,7 +18998,7 @@
             "raw_ship_name": "明石"
           }
         ],
-        "7": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -19336,7 +19336,7 @@
     },
     "41": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -19506,7 +19506,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -19680,7 +19680,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -19874,7 +19874,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 27,
             "raw_ship_name": "山城"
@@ -20052,7 +20052,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -20262,7 +20262,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "H": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -20468,7 +20468,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "J": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -20678,7 +20678,7 @@
     },
     "42": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -20852,7 +20852,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "B": [
           {
             "ship_id": 60,
             "raw_ship_name": "加古"
@@ -20970,7 +20970,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "C": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -21164,7 +21164,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "D": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -21366,7 +21366,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "E": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -21564,7 +21564,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -21778,7 +21778,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "L": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -22001,7 +22001,7 @@
     },
     "43": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -22167,7 +22167,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -22337,7 +22337,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -22543,7 +22543,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -22713,7 +22713,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "H": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -22923,7 +22923,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "I": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -23141,7 +23141,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "L": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -23319,7 +23319,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "9": [
+        "N": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -23528,7 +23528,7 @@
     },
     "44": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -23710,7 +23710,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -23892,7 +23892,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
           {
             "ship_id": 27,
             "raw_ship_name": "山城"
@@ -24014,7 +24014,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -24204,7 +24204,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "H": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -24406,7 +24406,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "I": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -24612,7 +24612,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -24880,7 +24880,7 @@
     },
     "45": {
       "": {
-        "3": [
+        "E": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -24934,7 +24934,7 @@
             "raw_ship_name": "電"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 89,
             "raw_ship_name": "鳳翔"
@@ -24984,7 +24984,7 @@
             "raw_ship_name": "電"
           }
         ],
-        "6": [
+        "H": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -25134,7 +25134,7 @@
             "raw_ship_name": "電"
           }
         ],
-        "7": [
+        "J": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -25284,7 +25284,7 @@
             "raw_ship_name": "電"
           }
         ],
-        "8": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -25483,7 +25483,7 @@
             "raw_ship_name": "Libeccio"
           }
         ],
-        "9": [
+        "N": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -25696,7 +25696,7 @@
             "raw_ship_name": "伊8"
           }
         ],
-        "11": [
+        "S": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -25884,7 +25884,7 @@
             "raw_ship_name": "Libeccio"
           }
         ],
-        "12": [
+        "T": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -26211,7 +26211,7 @@
     },
     "51": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -26369,7 +26369,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "D": [
           {
             "ship_id": 27,
             "raw_ship_name": "山城"
@@ -26550,7 +26550,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -26735,7 +26735,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -26936,7 +26936,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "J": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -27178,7 +27178,7 @@
     },
     "52": {
       "": {
-        "2": [
+        "D": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -27320,7 +27320,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "E": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -27510,7 +27510,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "F": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -27715,7 +27715,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "K": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -27757,7 +27757,7 @@
             "raw_ship_name": "響"
           }
         ],
-        "8": [
+        "O": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -28032,7 +28032,7 @@
     },
     "53": {
       "": {
-        "1": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -28197,7 +28197,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "2": [
+        "I": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -28362,7 +28362,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "3": [
+        "J": [
           {
             "ship_id": 27,
             "raw_ship_name": "山城"
@@ -28547,7 +28547,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "4": [
+        "K": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -28712,7 +28712,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "5": [
+        "M": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -28837,7 +28837,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "6": [
+        "N": [
           {
             "ship_id": 27,
             "raw_ship_name": "山城"
@@ -29022,7 +29022,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "7": [
+        "P": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -29234,7 +29234,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "8": [
+        "Q": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -29494,7 +29494,7 @@
     },
     "54": {
       "": {
-        "1": [
+        "C": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -29659,7 +29659,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "2": [
+        "E": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -29812,7 +29812,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "3": [
+        "F": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -29973,7 +29973,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "4": [
+        "G": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -30138,7 +30138,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "5": [
+        "H": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -30299,7 +30299,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "6": [
+        "J": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -30486,7 +30486,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "7": [
+        "L": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -30673,7 +30673,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "8": [
+        "P": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -30986,7 +30986,7 @@
     },
     "55": {
       "": {
-        "2": [
+        "C": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -31068,7 +31068,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "3": [
+        "G": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31158,7 +31158,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "4": [
+        "H": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31248,7 +31248,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "5": [
+        "J": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31338,7 +31338,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "6": [
+        "K": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31428,7 +31428,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "7": [
+        "M": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31553,7 +31553,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "8": [
+        "N": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31657,7 +31657,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "9": [
+        "P": [
           {
             "ship_id": 85,
             "raw_ship_name": "霧島"
@@ -31761,7 +31761,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "10": [
+        "S": [
           {
             "ship_id": 81,
             "tags": [
@@ -32002,7 +32002,7 @@
     },
     "61": {
       "": {
-        "1": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -32155,7 +32155,7 @@
             "raw_ship_name": "伊168"
           }
         ],
-        "2": [
+        "D": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -32316,7 +32316,7 @@
             "raw_ship_name": "伊168"
           }
         ],
-        "3": [
+        "F": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -32496,7 +32496,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "4": [
+        "H": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -32710,7 +32710,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "5": [
+        "I": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -32938,7 +32938,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "6": [
+        "J": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -33137,7 +33137,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "7": [
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -33443,7 +33443,7 @@
     },
     "62": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -33596,7 +33596,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -33757,7 +33757,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "3": [
+        "F": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -33949,7 +33949,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "4": [
+        "H": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -34147,234 +34147,7 @@
             "raw_ship_name": "荒潮"
           }
         ],
-        "5": [
-          {
-            "ship_id": 26,
-            "raw_ship_name": "扶桑"
-          },
-          {
-            "ship_id": 27,
-            "raw_ship_name": "山城"
-          },
-          {
-            "ship_id": 77,
-            "raw_ship_name": "伊勢"
-          },
-          {
-            "ship_id": 81,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "陸奥"
-          },
-          {
-            "ship_id": 87,
-            "raw_ship_name": "日向"
-          },
-          {
-            "ship_id": 74,
-            "raw_ship_name": "祥鳳"
-          },
-          {
-            "ship_id": 75,
-            "raw_ship_name": "飛鷹"
-          },
-          {
-            "ship_id": 92,
-            "raw_ship_name": "隼鷹"
-          },
-          {
-            "ship_id": 59,
-            "raw_ship_name": "古鷹"
-          },
-          {
-            "ship_id": 60,
-            "raw_ship_name": "加古"
-          },
-          {
-            "ship_id": 61,
-            "raw_ship_name": "青葉"
-          },
-          {
-            "ship_id": 62,
-            "raw_ship_name": "妙高"
-          },
-          {
-            "ship_id": 63,
-            "raw_ship_name": "那智"
-          },
-          {
-            "ship_id": 64,
-            "raw_ship_name": "足柄"
-          },
-          {
-            "ship_id": 65,
-            "raw_ship_name": "羽黒"
-          },
-          {
-            "ship_id": 66,
-            "raw_ship_name": "高雄"
-          },
-          {
-            "ship_id": 67,
-            "raw_ship_name": "愛宕"
-          },
-          {
-            "ship_id": 68,
-            "raw_ship_name": "摩耶"
-          },
-          {
-            "ship_id": 69,
-            "raw_ship_name": "鳥海"
-          },
-          {
-            "ship_id": 70,
-            "raw_ship_name": "最上"
-          },
-          {
-            "ship_id": 71,
-            "raw_ship_name": "利根"
-          },
-          {
-            "ship_id": 72,
-            "raw_ship_name": "筑摩"
-          },
-          {
-            "ship_id": 123,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "衣笠"
-          },
-          {
-            "ship_id": 124,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "鈴谷"
-          },
-          {
-            "ship_id": 125,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "熊野"
-          },
-          {
-            "ship_id": 21,
-            "raw_ship_name": "長良"
-          },
-          {
-            "ship_id": 22,
-            "raw_ship_name": "五十鈴"
-          },
-          {
-            "ship_id": 23,
-            "raw_ship_name": "由良"
-          },
-          {
-            "ship_id": 53,
-            "raw_ship_name": "名取"
-          },
-          {
-            "ship_id": 54,
-            "raw_ship_name": "川内"
-          },
-          {
-            "ship_id": 55,
-            "raw_ship_name": "神通"
-          },
-          {
-            "ship_id": 56,
-            "raw_ship_name": "那珂"
-          },
-          {
-            "ship_id": 113,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "鬼怒"
-          },
-          {
-            "ship_id": 9,
-            "raw_ship_name": "吹雪"
-          },
-          {
-            "ship_id": 10,
-            "raw_ship_name": "白雪"
-          },
-          {
-            "ship_id": 11,
-            "raw_ship_name": "深雪"
-          },
-          {
-            "ship_id": 12,
-            "raw_ship_name": "磯波"
-          },
-          {
-            "ship_id": 32,
-            "raw_ship_name": "初雪"
-          },
-          {
-            "ship_id": 33,
-            "raw_ship_name": "叢雲"
-          },
-          {
-            "ship_id": 38,
-            "raw_ship_name": "初春"
-          },
-          {
-            "ship_id": 39,
-            "raw_ship_name": "子日"
-          },
-          {
-            "ship_id": 40,
-            "raw_ship_name": "若葉"
-          },
-          {
-            "ship_id": 41,
-            "raw_ship_name": "初霜"
-          },
-          {
-            "ship_id": 48,
-            "raw_ship_name": "霰"
-          },
-          {
-            "ship_id": 49,
-            "raw_ship_name": "霞"
-          },
-          {
-            "ship_id": 95,
-            "raw_ship_name": "朝潮"
-          },
-          {
-            "ship_id": 96,
-            "raw_ship_name": "大潮"
-          },
-          {
-            "ship_id": 97,
-            "raw_ship_name": "満潮"
-          },
-          {
-            "ship_id": 98,
-            "raw_ship_name": "荒潮"
-          },
-          {
-            "ship_id": 133,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "夕雲"
-          },
-          {
-            "ship_id": 182,
-            "tags": [
-              "rare"
-            ],
-            "raw_ship_name": "明石"
-          }
-        ],
-        "6": [
+        "I": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -34601,7 +34374,234 @@
             "raw_ship_name": "明石"
           }
         ],
-        "7": [
+        "J": [
+          {
+            "ship_id": 26,
+            "raw_ship_name": "扶桑"
+          },
+          {
+            "ship_id": 27,
+            "raw_ship_name": "山城"
+          },
+          {
+            "ship_id": 77,
+            "raw_ship_name": "伊勢"
+          },
+          {
+            "ship_id": 81,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "陸奥"
+          },
+          {
+            "ship_id": 87,
+            "raw_ship_name": "日向"
+          },
+          {
+            "ship_id": 74,
+            "raw_ship_name": "祥鳳"
+          },
+          {
+            "ship_id": 75,
+            "raw_ship_name": "飛鷹"
+          },
+          {
+            "ship_id": 92,
+            "raw_ship_name": "隼鷹"
+          },
+          {
+            "ship_id": 59,
+            "raw_ship_name": "古鷹"
+          },
+          {
+            "ship_id": 60,
+            "raw_ship_name": "加古"
+          },
+          {
+            "ship_id": 61,
+            "raw_ship_name": "青葉"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上"
+          },
+          {
+            "ship_id": 71,
+            "raw_ship_name": "利根"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩"
+          },
+          {
+            "ship_id": 123,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "衣笠"
+          },
+          {
+            "ship_id": 124,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "鈴谷"
+          },
+          {
+            "ship_id": 125,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "熊野"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂"
+          },
+          {
+            "ship_id": 113,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "鬼怒"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲"
+          },
+          {
+            "ship_id": 38,
+            "raw_ship_name": "初春"
+          },
+          {
+            "ship_id": 39,
+            "raw_ship_name": "子日"
+          },
+          {
+            "ship_id": 40,
+            "raw_ship_name": "若葉"
+          },
+          {
+            "ship_id": 41,
+            "raw_ship_name": "初霜"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮"
+          },
+          {
+            "ship_id": 133,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "夕雲"
+          },
+          {
+            "ship_id": 182,
+            "tags": [
+              "rare"
+            ],
+            "raw_ship_name": "明石"
+          }
+        ],
+        "K": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -34892,7 +34892,7 @@
     },
     "63": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 52,
             "raw_ship_name": "龍田"
@@ -34946,7 +34946,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 51,
             "raw_ship_name": "天龍"
@@ -35008,7 +35008,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 68,
             "raw_ship_name": "摩耶"
@@ -35102,7 +35102,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -35312,7 +35312,7 @@
             "raw_ship_name": "香取"
           }
         ],
-        "5": [
+        "F": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -35515,7 +35515,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "6": [
+        "J": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -35850,7 +35850,7 @@
     },
     "64": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 1,
             "raw_ship_name": "睦月"
@@ -35900,7 +35900,7 @@
             "raw_ship_name": "涼風"
           }
         ],
-        "2": [
+        "B": [
           {
             "ship_id": 1,
             "raw_ship_name": "睦月"
@@ -35950,7 +35950,7 @@
             "raw_ship_name": "涼風"
           }
         ],
-        "3": [
+        "C": [
           {
             "ship_id": 90,
             "raw_ship_name": "蒼龍"
@@ -36104,7 +36104,7 @@
             "raw_ship_name": "瑞穂"
           }
         ],
-        "5": [
+        "E": [
           {
             "ship_id": 59,
             "raw_ship_name": "古鷹"
@@ -36204,7 +36204,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "8": [
+        "H": [
           {
             "ship_id": 90,
             "raw_ship_name": "蒼龍"
@@ -36351,7 +36351,7 @@
             "raw_ship_name": "秋津洲"
           }
         ],
-        "10": [
+        "J": [
           {
             "ship_id": 90,
             "raw_ship_name": "蒼龍"
@@ -36491,7 +36491,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "11": [
+        "K": [
           {
             "ship_id": 1,
             "raw_ship_name": "睦月"
@@ -36549,7 +36549,7 @@
             "raw_ship_name": "涼風"
           }
         ],
-        "12": [
+        "L": [
           {
             "ship_id": 90,
             "raw_ship_name": "蒼龍"
@@ -36680,7 +36680,7 @@
             "raw_ship_name": "瑞穂"
           }
         ],
-        "14": [
+        "N": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -37095,7 +37095,7 @@
     },
     "65": {
       "": {
-        "1": [
+        "A": [
           {
             "ship_id": 22,
             "raw_ship_name": "五十鈴"
@@ -37209,7 +37209,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "3": [
+        "C": [
           {
             "ship_id": 75,
             "raw_ship_name": "飛鷹"
@@ -37370,7 +37370,7 @@
             "raw_ship_name": "秋雲"
           }
         ],
-        "4": [
+        "D": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -37567,7 +37567,7 @@
             "raw_ship_name": "伊168"
           }
         ],
-        "5": [
+        "E": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -37785,7 +37785,7 @@
             "raw_ship_name": "大鯨"
           }
         ],
-        "6": [
+        "F": [
           {
             "ship_id": 22,
             "raw_ship_name": "五十鈴"
@@ -37907,7 +37907,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "9": [
+        "I": [
           {
             "ship_id": 75,
             "raw_ship_name": "飛鷹"
@@ -38068,7 +38068,7 @@
             "raw_ship_name": "秋雲"
           }
         ],
-        "10": [
+        "J": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -38279,7 +38279,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "11": [
+        "M": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -38714,7 +38714,7 @@
     },
     "71": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -38867,7 +38867,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "2": [
+        "C": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -39084,7 +39084,7 @@
             "raw_ship_name": "大鯨"
           }
         ],
-        "5": [
+        "G": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -39280,7 +39280,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "7": [
+        "K": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -39670,7 +39670,7 @@
     },
     "72": {
       "": {
-        "1": [
+        "B": [
           {
             "ship_id": 22,
             "raw_ship_name": "五十鈴"
@@ -39788,7 +39788,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "4": [
+        "G": [
           {
             "ship_id": 70,
             "raw_ship_name": "最上"
@@ -39985,7 +39985,7 @@
             "raw_ship_name": "伊19"
           }
         ],
-        "6": [
+        "I": [
           {
             "ship_id": 70,
             "raw_ship_name": "最上"
@@ -40140,7 +40140,7 @@
             "raw_ship_name": "秋雲"
           }
         ],
-        "7": [
+        "J": [
           {
             "ship_id": 21,
             "raw_ship_name": "長良"
@@ -40204,7 +40204,7 @@
             "raw_ship_name": "谷風"
           }
         ],
-        "8": [
+        "M": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
@@ -40595,7 +40595,7 @@
     },
     "73": {
       "post_p_unlock": {
-        "2": [
+        "C": [
           {
             "ship_id": 64,
             "raw_ship_name": "足柄"
@@ -40669,7 +40669,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 64,
             "raw_ship_name": "足柄"
@@ -40778,7 +40778,7 @@
             "raw_ship_name": "神風"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -40981,7 +40981,7 @@
             "raw_ship_name": "岸波"
           }
         ],
-        "6": [
+        "M": [
           {
             "ship_id": 64,
             "raw_ship_name": "足柄"
@@ -41082,7 +41082,7 @@
             "raw_ship_name": "神風"
           }
         ],
-        "7": [
+        "N": [
           {
             "ship_id": 83,
             "raw_ship_name": "赤城"
@@ -41139,7 +41139,7 @@
             "raw_ship_name": "神風"
           }
         ],
-        "8": [
+        "P": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -41357,7 +41357,7 @@
         ]
       },
       "pre_p_unlock": {
-        "2": [
+        "C": [
           {
             "ship_id": 64,
             "raw_ship_name": "足柄"
@@ -41431,7 +41431,7 @@
             "raw_ship_name": "漣"
           }
         ],
-        "3": [
+        "D": [
           {
             "ship_id": 64,
             "raw_ship_name": "足柄"
@@ -41540,7 +41540,7 @@
             "raw_ship_name": "神風"
           }
         ],
-        "4": [
+        "E": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -41743,7 +41743,7 @@
             "raw_ship_name": "岸波"
           }
         ],
-        "6": [
+        "M": [
           {
             "ship_id": 64,
             "raw_ship_name": "足柄"
@@ -41844,7 +41844,7 @@
             "raw_ship_name": "神風"
           }
         ],
-        "7": [
+        "N": [
           {
             "ship_id": 83,
             "raw_ship_name": "赤城"
@@ -41901,7 +41901,7 @@
             "raw_ship_name": "神風"
           }
         ],
-        "8": [
+        "P": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -42121,7 +42121,7 @@
     },
     "74": {
       "": {
-        "6": [
+        "H": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -42334,7 +42334,7 @@
             "raw_ship_name": "神威"
           }
         ],
-        "7": [
+        "J": [
           {
             "ship_id": 74,
             "raw_ship_name": "祥鳳"
@@ -42472,7 +42472,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "9": [
+        "L": [
           {
             "ship_id": 78,
             "raw_ship_name": "金剛"
@@ -42636,7 +42636,7 @@
             "raw_ship_name": "千代田"
           }
         ],
-        "11": [
+        "P": [
           {
             "ship_id": 77,
             "raw_ship_name": "伊勢"
@@ -43012,7 +43012,7 @@
     },
     "75": {
       "": {
-        "3": [
+        "C": [
           {
             "ship_id": 9,
             "raw_ship_name": "吹雪"
@@ -43074,7 +43074,7 @@
             "raw_ship_name": "五月雨"
           }
         ],
-        "4": [
+        "D": [
           {
             "ship_id": 56,
             "raw_ship_name": "那珂"
@@ -43140,7 +43140,7 @@
             "raw_ship_name": "五月雨"
           }
         ],
-        "5": [
+        "E": [
           {
             "ship_id": 9,
             "raw_ship_name": "吹雪"
@@ -43178,7 +43178,7 @@
             "raw_ship_name": "電"
           }
         ],
-        "6": [
+        "G": [
           {
             "ship_id": 9,
             "raw_ship_name": "吹雪"
@@ -43232,7 +43232,7 @@
             "raw_ship_name": "涼風"
           }
         ],
-        "7": [
+        "J": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -43367,7 +43367,7 @@
             "raw_ship_name": "千歳"
           }
         ],
-        "8": [
+        "K": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -43608,7 +43608,7 @@
             "raw_ship_name": "瑞穂"
           }
         ],
-        "9": [
+        "L": [
           {
             "ship_id": 11,
             "raw_ship_name": "深雪"
@@ -43634,7 +43634,7 @@
             "raw_ship_name": "電"
           }
         ],
-        "10": [
+        "M": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -43843,7 +43843,7 @@
             "raw_ship_name": "瑞穂"
           }
         ],
-        "12": [
+        "Q": [
           {
             "ship_id": 62,
             "raw_ship_name": "妙高"
@@ -44164,7 +44164,7 @@
             "raw_ship_name": "水無月"
           }
         ],
-        "13": [
+        "R": [
           {
             "ship_id": 76,
             "raw_ship_name": "龍驤"
@@ -44271,7 +44271,7 @@
             "raw_ship_name": "江風"
           }
         ],
-        "14": [
+        "T": [
           {
             "ship_id": 26,
             "raw_ship_name": "扶桑"
