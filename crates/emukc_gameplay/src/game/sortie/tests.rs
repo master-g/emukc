@@ -9,7 +9,7 @@ use crate::game::sortie_result::{
     SortieBattleResultSnapshot, SortieSettlement, apply_sortie_map_result,
     settle_sortie_battle_impl,
 };
-use emukc_battle::{BattleContext, BattleShipInput, CombinedSetup, CombinedType};
+use emukc_battle::{BattleContext, BattleShipInput, CombinedSetup, CombinedType, EngagementType};
 use emukc_bootstrap::prelude::build_final_map_catalog;
 use emukc_db::{
     entity::profile::{map_record, material as profile_material, ship as profile_ship},

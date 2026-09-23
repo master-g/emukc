@@ -24,7 +24,7 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use emukc_battle::{BattleType, EngagementType};
+use emukc_battle::{BattleType, NightBattlePacket};
 
 use super::{
     battle::{
@@ -33,7 +33,7 @@ use super::{
         },
         rng::ProductionRng,
         sortie::{
-            escort_deck_start, pending_battle, run_day_battle, run_night_battle,
+            SortieBattleSession, pending_battle, run_day_battle, run_night_battle,
             run_sp_midnight_battle, take_day_battle_result,
         },
     },
@@ -672,72 +672,38 @@ impl Ctx {
         }
 
         let mut rng = ProductionRng;
-        let night = run_night_battle(
-            store,
-            codex,
-            profile_id,
-            pending.packet.formation[0],
-            pending.packet.formation[1],
-            EngagementType::from_api_id(pending.packet.formation[2])
-                .unwrap_or(EngagementType::SameCourse),
-            &mut rng,
-        )
-        .ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "sortie battle session not found for profile {profile_id}",
-            ))
-        })?;
-
-        let ct_flagship = pending_battle(store, profile_id)
-            .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
-            .and_then(|sid| codex.manifest.find_ship(sid))
-            .is_some_and(|m| m.api_stype == 21);
+        let (session, night) = run_night_battle(store, codex, pending, &mut rng);
 
         if let Some(mut snapshot) = store.take_pending_result(profile_id) {
             snapshot.win_rank = night.outcome.win_rank.to_string();
             snapshot.get_exp = calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
-            if let Some(updated) = pending_battle(store, profile_id) {
-                snapshot.friendly_nowhps = updated.friendly.iter().map(|f| f.hp().max(0)).collect();
-                // Rescored over both decks: a combined night battle only moved
-                // 第2艦隊's HP and damage, but 第1艦隊's share of the node is
-                // still owed and its MVP still has to come from 第1艦隊 alone.
-                let escort_start = escort_deck_start(&updated.friendly);
-                let rewards = calculate_sortie_deck_rewards(
-                    &updated.friendly,
-                    &snapshot.friendly_nowhps,
-                    (escort_start > 0).then_some(escort_start),
-                    snapshot.get_base_exp,
-                    ct_flagship,
-                    codex.game_cfg.exp.ct_exp_boost,
-                );
-                snapshot.mvp = rewards.mvp;
-                snapshot.mvp_combined = rewards.mvp_combined;
-                snapshot.get_ship_exp = rewards.get_ship_exp;
-                snapshot.get_exp_lvup = rewards.get_exp_lvup;
-                snapshot.get_ship_exp_combined = rewards.get_ship_exp_combined;
-                snapshot.get_exp_lvup_combined = rewards.get_exp_lvup_combined;
-            }
+            snapshot.friendly_nowhps = session.friendly.iter().map(|f| f.hp().max(0)).collect();
+            // Rescored over both decks: a combined night battle only moved
+            // 第2艦隊's HP and damage, but 第1艦隊's share of the node is
+            // still owed and its MVP still has to come from 第1艦隊 alone.
+            let ct_flagship = session
+                .friendly
+                .first()
+                .and_then(|f| codex.manifest.find_ship(f.ship.api_ship_id))
+                .is_some_and(|m| m.api_stype == 21);
+            let rewards = calculate_sortie_deck_rewards(
+                &session.friendly,
+                &snapshot.friendly_nowhps,
+                session.escort_start(),
+                snapshot.get_base_exp,
+                ct_flagship,
+                codex.game_cfg.exp.ct_exp_boost,
+            );
+            snapshot.mvp = rewards.mvp;
+            snapshot.mvp_combined = rewards.mvp_combined;
+            snapshot.get_ship_exp = rewards.get_ship_exp;
+            snapshot.get_exp_lvup = rewards.get_exp_lvup;
+            snapshot.get_ship_exp_combined = rewards.get_ship_exp_combined;
+            snapshot.get_exp_lvup_combined = rewards.get_exp_lvup_combined;
             store.insert_pending_result(profile_id, snapshot);
         }
 
-        let current = pending_battle(store, profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "sortie battle session not found for profile {profile_id}",
-            ))
-        })?;
-        // Only 第2艦隊 fought, so the packet's friendly arrays are its alone.
-        let escort_start = escort_deck_start(&current.friendly);
-        let response = build_night_response(
-            current.deck_id,
-            &current.friendly[escort_start..],
-            &current.enemy,
-            night.packet,
-        );
-        Ok(if escort_start == 0 {
-            response
-        } else {
-            response.with_main_deck(&current.friendly[..escort_start])
-        })
+        Ok(night_battle_response(&session, night.packet))
     }
 
     /// `api_req_battle_midnight/sp_midnight` — a single fleet's night-start cell.
@@ -801,21 +767,7 @@ impl Ctx {
                 tx.commit().await?;
                 let _ = store.insert_active(profile_id, active);
 
-                // Only 第2艦隊 fought, so the packet's friendly arrays are its
-                // alone — the same split `sortie_midnight_battle` reports after a
-                // day battle.
-                let escort_start = escort_deck_start(&session.friendly);
-                let response = build_night_response(
-                    session.deck_id,
-                    &session.friendly[escort_start..],
-                    &session.enemy,
-                    night_session.packet,
-                );
-                Ok(if escort_start == 0 {
-                    response
-                } else {
-                    response.with_main_deck(&session.friendly[..escort_start])
-                })
+                Ok(night_battle_response(&session, night_session.packet))
             })
             .await
     }
@@ -841,6 +793,22 @@ impl Ctx {
     pub async fn clear_sortie_state_if_any(&self, profile_id: i64) {
         let store = self.sortie_store.as_ref();
         clear_pending_sortie_runtime_state(store, profile_id);
+    }
+}
+
+/// The night response for `session`. Only the night fleet fought, so the
+/// packet's friendly arrays are its alone; a combined fleet reports 第1艦隊
+/// beside them.
+fn night_battle_response(
+    session: &SortieBattleSession,
+    packet: NightBattlePacket,
+) -> NightBattleResponse {
+    let response =
+        build_night_response(session.deck_id, session.night_fleet(), &session.enemy, packet);
+    if session.escort_start().is_some() {
+        response.with_main_deck(session.main_deck())
+    } else {
+        response
     }
 }
 
