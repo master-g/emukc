@@ -58,6 +58,8 @@ mod tests {
 
         let err = context.set_slot_item(ship.api_id, 0, fighter).await.unwrap_err();
         assert!(err.to_string().contains("airbase"), "{err}");
+        let err = context.set_exslot_item(ship.api_id, fighter).await.unwrap_err();
+        assert!(err.to_string().contains("airbase"), "the ex-slot is no way round: {err}");
     }
 
     #[tokio::test]

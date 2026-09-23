@@ -331,4 +331,43 @@ mod tests {
         assert_eq!(result[1].level, 3);
         assert_eq!(result[2].level, 5);
     }
+
+    /// A remodel's consumables come from spare equipment only: a plane a
+    /// land-base squadron flies is not spare.
+    #[tokio::test]
+    async fn remodel_consumables_skip_a_deployed_plane() {
+        use std::sync::Arc;
+
+        use emukc_db::prelude::new_mem_db;
+
+        use crate::gameplay::Ctx;
+
+        const FIGHTER: i64 = 20;
+
+        let db = new_mem_db().await.unwrap();
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let context = Ctx::new(Arc::new(db), Arc::new(codex));
+        let account = context.sign_up("remodel-spares", "1234567").await.unwrap();
+        let profile =
+            context.new_profile(&account.access_token.token, "remodel-spares").await.unwrap();
+        let pid = context
+            .start_game(&account.access_token.token, profile.profile.id)
+            .await
+            .unwrap()
+            .profile
+            .id;
+        context.unlock_airbase(pid, 6, 1).await.unwrap();
+        let deployed = context.add_slot_item(pid, FIGHTER, 0, 0).await.unwrap().api_id;
+        let spare = context.add_slot_item(pid, FIGHTER, 0, 0).await.unwrap().api_id;
+        context.set_airbase_plane(pid, 6, 1, 1, deployed).await.unwrap();
+        let type3 = slot_item::Entity::find_by_id(spare)
+            .one(context.db.as_ref())
+            .await
+            .unwrap()
+            .unwrap()
+            .type3;
+
+        let free = get_free_slot_item_by_type3_impl(context.db.as_ref(), pid, type3).await.unwrap();
+        assert_eq!(free.iter().map(|item| item.id).collect::<Vec<_>>(), vec![spare]);
+    }
 }
