@@ -249,10 +249,9 @@ fn synthesize_day_finishing_volley(packet: &mut BattlePacket, finishing: &Finish
 
     // Append to the existing hougeki3 if present, otherwise open it.
     if packet.hougeki3.is_none() {
-        packet.hougeki3 = Some(BattleHougeki::default());
         packet.hourai_flag[2] = 1;
     }
-    let h3 = packet.hougeki3.as_mut().expect("hougeki3 was just ensured");
+    let h3 = packet.hougeki3.get_or_insert_with(BattleHougeki::default);
     for &(enemy_idx, remaining_hp) in &finishing.targets {
         h3.record_day_attack(
             DayAttackKind::DebugInjected,
