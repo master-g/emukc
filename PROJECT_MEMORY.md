@@ -191,7 +191,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-23] 分支 `refactor/deepen-map-sortie-battle-modules`：计划 2026-09-23-1116 U1–U10 全部完成，10 个提交。
+- [2026-09-23] 分支 `refactor/deepen-map-sortie-battle-modules`：计划 2026-09-23-1116 U1–U10 全部完成并通过 ce-code-review（Ready to merge，0 条 finding）。
   地图资产改存 label，最终目录与迁移前逐字节一致；`cargo test --workspace` 1177 过 0 败 0 忽略，fmt/clippy 门过。
 
 ## Next Session
