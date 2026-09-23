@@ -196,7 +196,7 @@ Current verification baseline:
 
 ## Next Session
 
-- [2026-09-23] 分支待走 review → PR；PR 说明要写清 `wikiwiki_map_catalog.json`、`map_ship_drops.json`、
-  `.sync-fingerprint.json` 为何重生。计划 Deferred 列表（`sally_flag` 校验、随机交战形态等）未动。
+- [2026-09-23] PR #1（master-g/emukc）已开，review 结论 Ready to merge，等合并；正文已写明三份重生资产的来源。
+  计划 Deferred 列表（`sally_flag` 校验、随机交战形态等）未动。
 - 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。
 - 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。
