@@ -17,6 +17,7 @@ use crate::types::{
 };
 
 pub(crate) mod asw;
+pub(crate) mod day_attack;
 pub(crate) mod day_cutin;
 pub(crate) mod kouku;
 pub(crate) mod night;

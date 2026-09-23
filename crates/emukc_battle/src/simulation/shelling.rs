@@ -1,17 +1,13 @@
 //! Day shelling phase simulation.
 
-use emukc_model::codex::Codex;
-use emukc_model::kc2::types::KcSlotItemType3;
-
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
-use crate::simulation::day_cutin::{DayAttackType, carrier_ci_display_ids, resolve_day_attack};
+use crate::simulation::day_attack::DayAttackKind;
+use crate::simulation::day_cutin::resolve_day_attack;
 use crate::simulation::special_attack;
-use crate::targeting::{
-    can_shell_day_ship, day_attack_display_ids, day_gunnery_display_ids, is_ap_shell_type,
-    is_radar_type, select_random_target_index, target_class,
-};
-use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams, SiListId};
+use crate::targeting::{can_shell_day_ship, select_random_target_index, target_class};
+use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams};
+use emukc_model::codex::Codex;
 
 /// Maximum ships per fleet. Caps the special-attack skip array.
 ///
@@ -29,13 +25,7 @@ pub(crate) fn simulate_shelling_side(
 ) -> Option<BattleHougeki> {
     let fleet_los = attackers.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum();
 
-    let mut at_eflag = Vec::new();
-    let mut at_list = Vec::new();
-    let mut at_type = Vec::new();
-    let mut df_list = Vec::new();
-    let mut si_list = Vec::new();
-    let mut cl_list = Vec::new();
-    let mut damage = Vec::new();
+    let mut hougeki = BattleHougeki::default();
     let mut special_attack_skip = [false; MAX_FLEET_SIZE];
 
     // Try flagship special attack before normal shelling loop
@@ -45,13 +35,7 @@ pub(crate) fn simulate_shelling_side(
         let result = special_attack::execute_special_attack(
             codex, rng, attackers, defenders, resolved, params,
         );
-        at_eflag.extend(result.hougeki.api_at_eflag);
-        at_list.extend(result.hougeki.api_at_list);
-        at_type.extend(result.hougeki.api_at_type);
-        df_list.extend(result.hougeki.api_df_list);
-        si_list.extend(result.hougeki.api_si_list);
-        cl_list.extend(result.hougeki.api_cl_list);
-        damage.extend(result.hougeki.api_damage);
+        hougeki = result.hougeki;
         for &i in &result.participant_indices {
             debug_assert!(
                 i < MAX_FLEET_SIZE,
@@ -106,23 +90,12 @@ pub(crate) fn simulate_shelling_side(
             }
             let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
 
-            push_attack(
-                &mut at_eflag,
-                &mut at_list,
-                &mut at_type,
-                &mut df_list,
-                &mut si_list,
-                &mut cl_list,
-                &mut damage,
+            hougeki.record_day_attack(
+                DayAttackKind::Asw(codex, ship),
                 params.attacker_is_enemy,
                 idx,
-                // Normal: `_getNormalAttackType` picks the depth-charge or
-                // ASW-plane animation from the defender. 7 is carrier cut-in.
-                0,
                 vec![target_idx as i64],
-                SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)),
-                vec![display],
-                shield,
+                vec![damage_cell(display, shield)],
             );
         } else {
             let resolved = resolve_day_attack(codex, rng, ship, params.air_state, fleet_los, idx);
@@ -156,21 +129,17 @@ pub(crate) fn simulate_shelling_side(
                         dealt,
                     ));
                 }
-                push_attack(
-                    &mut at_eflag,
-                    &mut at_list,
-                    &mut at_type,
-                    &mut df_list,
-                    &mut si_list,
-                    &mut cl_list,
-                    &mut damage,
+                hougeki.record_day_attack(
+                    DayAttackKind::Shelling {
+                        codex,
+                        ship,
+                        at_type: resolved.at_type,
+                        carrier_sub: resolved.carrier_sub,
+                    },
                     params.attacker_is_enemy,
                     idx,
-                    resolved.at_type as i64,
                     vec![target_idx as i64; 2],
-                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 2, None)),
-                    damages,
-                    shield,
+                    damages.into_iter().map(|d| damage_cell(d, shield)).collect(),
                 );
             } else {
                 let raw = calculate_shelling_damage(
@@ -188,84 +157,23 @@ pub(crate) fn simulate_shelling_side(
                 }
                 let display =
                     crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-                let display_ids = if resolved.at_type == DayAttackType::CarrierCI {
-                    SiListId::text_from_i64(&carrier_ci_display_ids(
+                hougeki.record_day_attack(
+                    DayAttackKind::Shelling {
                         codex,
                         ship,
-                        resolved.carrier_sub.expect("CarrierCI must have sub-type"),
-                    ))
-                } else if resolved.at_type != DayAttackType::Normal {
-                    // Artillery spotting CI (at_type 3-6). Each is formed from
-                    // guns plus, for two of them, the piece that qualified it:
-                    // 主砲/電探 needs the radar and the 徹甲弾 cut-ins need the
-                    // shell, and the client draws all three slots.
-                    let extra: Option<fn(KcSlotItemType3) -> bool> = match resolved.at_type {
-                        DayAttackType::MainRadarCI => Some(is_radar_type),
-                        DayAttackType::MainApSecCI | DayAttackType::MainApMainCI => {
-                            Some(is_ap_shell_type)
-                        }
-                        _ => None,
-                    };
-                    SiListId::text_from_i64(&day_gunnery_display_ids(codex, ship, 3, extra))
-                } else {
-                    SiListId::num_from_i64(&day_attack_display_ids(codex, ship, false))
-                };
-                push_attack(
-                    &mut at_eflag,
-                    &mut at_list,
-                    &mut at_type,
-                    &mut df_list,
-                    &mut si_list,
-                    &mut cl_list,
-                    &mut damage,
+                        at_type: resolved.at_type,
+                        carrier_sub: resolved.carrier_sub,
+                    },
                     params.attacker_is_enemy,
                     idx,
-                    resolved.at_type as i64,
                     vec![target_idx as i64],
-                    display_ids,
-                    vec![display],
-                    shield,
+                    vec![damage_cell(display, shield)],
                 );
             }
         }
     }
 
-    (!at_list.is_empty()).then_some(BattleHougeki {
-        api_at_eflag: at_eflag,
-        api_at_list: at_list,
-        api_at_type: at_type,
-        api_df_list: df_list,
-        api_si_list: si_list,
-        api_cl_list: cl_list,
-        api_damage: damage,
-    })
-}
-
-#[allow(clippy::too_many_arguments)]
-fn push_attack(
-    at_eflag: &mut Vec<i64>,
-    at_list: &mut Vec<i64>,
-    at_type: &mut Vec<i64>,
-    df_list: &mut Vec<Vec<i64>>,
-    si_list: &mut Vec<Vec<SiListId>>,
-    cl_list: &mut Vec<Vec<i64>>,
-    damage: &mut Vec<Vec<DamageCell>>,
-    attacker_is_enemy: bool,
-    attacker_idx: usize,
-    attack_type: i64,
-    targets: Vec<i64>,
-    display_ids: Vec<SiListId>,
-    damages: Vec<i64>,
-    shield: bool,
-) {
-    at_eflag.push(i64::from(attacker_is_enemy));
-    at_list.push(attacker_idx as i64);
-    at_type.push(attack_type);
-    df_list.push(targets);
-    si_list.push(display_ids);
-    cl_list.push(vec![1; damages.len()]);
-    // 旗艦援護: an intercepted hit carries the `.1` shield flag (DamageCell::Shielded).
-    damage.push(damages.into_iter().map(|d| damage_cell(d, shield)).collect());
+    (!hougeki.api_at_list.is_empty()).then_some(hougeki)
 }
 
 /// Wrap a display-damage value, flagging it as shield-intercepted when `shield`.

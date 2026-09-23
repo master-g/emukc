@@ -4,8 +4,9 @@ use emukc_model::codex::Codex;
 
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
-use crate::targeting::{can_opening_asw, day_attack_display_ids, select_submarine_target};
-use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType, SiListId};
+use crate::simulation::day_attack::DayAttackKind;
+use crate::targeting::{can_opening_asw, select_submarine_target};
+use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType};
 
 /// Simulate the opening ASW phase (先制対潜).
 pub(crate) fn simulate_opening_taisen(
@@ -17,13 +18,7 @@ pub(crate) fn simulate_opening_taisen(
     enemy_formation_id: i64,
     engagement: EngagementType,
 ) -> Option<BattleHougeki> {
-    let mut at_eflag = Vec::new();
-    let mut at_list = Vec::new();
-    let mut at_type = Vec::new();
-    let mut df_list = Vec::new();
-    let mut si_list = Vec::new();
-    let mut cl_list = Vec::new();
-    let mut damage = Vec::new();
+    let mut hougeki = BattleHougeki::default();
 
     // Friendly OASW attacks
     for (idx, ship) in friendly.iter_mut().enumerate() {
@@ -52,16 +47,13 @@ pub(crate) fn simulate_opening_taisen(
         ship.damage_dealt += dealt;
         let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
 
-        at_eflag.push(0);
-        at_list.push(idx as i64);
-        // `PhasePreAntiSubmarine` only dispatches 0 (normal) and 2 (double);
-        // anything else falls through to `PhaseAttackDanchaku`, which throws
-        // outside {3,4,5,6,200,201}. 7 is the client's carrier cut-in type.
-        at_type.push(0);
-        df_list.push(vec![target_idx as i64]);
-        si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
-        cl_list.push(vec![1]);
-        damage.push(vec![display.into()]);
+        hougeki.record_day_attack(
+            DayAttackKind::Asw(codex, ship),
+            false,
+            idx,
+            vec![target_idx as i64],
+            vec![display.into()],
+        );
     }
 
     // Enemy OASW attacks
@@ -83,24 +75,16 @@ pub(crate) fn simulate_opening_taisen(
         let (_, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
 
-        at_eflag.push(1);
-        at_list.push(idx as i64);
-        at_type.push(0);
-        df_list.push(vec![target_idx as i64]);
-        si_list.push(SiListId::num_from_i64(&day_attack_display_ids(codex, ship, true)));
-        cl_list.push(vec![1]);
-        damage.push(vec![dealt.into()]);
+        hougeki.record_day_attack(
+            DayAttackKind::Asw(codex, ship),
+            true,
+            idx,
+            vec![target_idx as i64],
+            vec![dealt.into()],
+        );
     }
 
-    (!at_list.is_empty()).then_some(BattleHougeki {
-        api_at_eflag: at_eflag,
-        api_at_list: at_list,
-        api_at_type: at_type,
-        api_df_list: df_list,
-        api_si_list: si_list,
-        api_cl_list: cl_list,
-        api_damage: damage,
-    })
+    (!hougeki.api_at_list.is_empty()).then_some(hougeki)
 }
 
 #[cfg(test)]

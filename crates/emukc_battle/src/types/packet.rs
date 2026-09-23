@@ -237,7 +237,7 @@ impl BattleOpeningAttack {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct BattleHougeki {
     pub api_at_eflag: Vec<i64>,
     pub api_at_list: Vec<i64>,
