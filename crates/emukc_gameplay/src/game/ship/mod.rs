@@ -17,7 +17,10 @@ use emukc_time::chrono::{Duration, Utc};
 
 use super::{
     picturebook::add_ship_to_picturebook_impl,
-    slot_item::{find_slot_items_by_id_impl, update_slot_item_impl},
+    slot_item::{
+        SlotItemOccupant, find_slot_items_by_id_impl, slot_item_occupants_impl,
+        update_slot_item_impl,
+    },
     use_item::deduct_use_item_impl,
 };
 use crate::{err::GameplayError, game::slot_item::add_slot_item_impl, gameplay::Ctx};
@@ -639,6 +642,23 @@ where
     Ok(m)
 }
 
+/// A plane a land-base squadron flies cannot also board a ship. Moving gear
+/// between ships keeps its existing path, so only the squadron counts here.
+async fn ensure_not_in_squadron<C>(c: &C, item: &slot_item::Model) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let occupants = slot_item_occupants_impl(c, item.profile_id, &[item.id]).await?;
+    match occupants.get(&item.id) {
+        Some(
+            occupant @ SlotItemOccupant::Airbase {
+                ..
+            },
+        ) => Err(GameplayError::WrongType(format!("slot item {} is {occupant}", item.id))),
+        _ => Ok(()),
+    }
+}
+
 pub(crate) async fn set_exslot_item_impl<C>(
     c: &C,
     ship_id: i64,
@@ -657,6 +677,7 @@ where
             slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
                 GameplayError::EntryNotFound(format!("slot item with id {slot_item_id} not found"))
             })?;
+        ensure_not_in_squadron(c, &slot_item_model).await?;
         let mut am = slot_item_model.into_active_model();
 
         am.equip_on = ActiveValue::Set(ship_id);
@@ -693,6 +714,7 @@ where
             slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
                 GameplayError::EntryNotFound(format!("slot item with id {slot_item_id} not found"))
             })?;
+        ensure_not_in_squadron(c, &slot_item_model).await?;
 
         let mut am = slot_item_model.into_active_model();
         am.equip_on = ActiveValue::Set(ship_id);

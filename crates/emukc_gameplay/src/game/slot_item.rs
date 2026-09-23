@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use emukc_db::{
-    entity::profile::item::slot_item,
+    entity::profile::{airbase::plane as plane_db, item::slot_item},
     sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
@@ -15,11 +15,115 @@ use crate::{
     gameplay::Ctx,
 };
 
+use super::airbase::settle_relocations_impl;
 use super::picturebook::add_slot_item_to_picturebook_impl;
 
 /// ドラム缶(輸送用). Expeditions count the canisters, sortie routing counts the
 /// ships carrying one; both key on this master id.
 pub(crate) const DRUM_CANISTER_MST_ID: i64 = 75;
+
+/// What holds a piece of equipment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SlotItemOccupant {
+    /// Fitted to this ship.
+    Ship(i64),
+    /// Flown by a squadron of this airbase.
+    Airbase {
+        area_id: i64,
+        rid: i64,
+    },
+}
+
+impl std::fmt::Display for SlotItemOccupant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ship(ship_id) => write!(f, "equipped on ship {ship_id}"),
+            Self::Airbase {
+                area_id,
+                rid,
+            } => write!(f, "deployed to airbase {area_id}/{rid}"),
+        }
+    }
+}
+
+/// What holds each of `item_ids`; an item missing from the map is free.
+///
+/// A squadron that has finished relocating no longer holds its plane, so the
+/// profile's relocations settle first — the same read-time rule the airbases
+/// follow, without which a released plane would stay locked until the player
+/// next opened the sortie menu.
+pub(crate) async fn slot_item_occupants_impl<C>(
+    c: &C,
+    profile_id: i64,
+    item_ids: &[i64],
+) -> Result<BTreeMap<i64, SlotItemOccupant>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    settle_relocations_impl(c, profile_id).await?;
+
+    let mut occupants = BTreeMap::new();
+    if item_ids.is_empty() {
+        return Ok(occupants);
+    }
+    let on_ships = slot_item::Entity::find()
+        .filter(slot_item::Column::ProfileId.eq(profile_id))
+        .filter(slot_item::Column::Id.is_in(item_ids.to_owned()))
+        .filter(slot_item::Column::EquipOn.gt(0))
+        .all(c)
+        .await?;
+    for item in on_ships {
+        occupants.insert(item.id, SlotItemOccupant::Ship(item.equip_on));
+    }
+    let in_squadrons = plane_db::Entity::find()
+        .filter(plane_db::Column::ProfileId.eq(profile_id))
+        .filter(plane_db::Column::SlotId.is_in(item_ids.to_owned()))
+        .all(c)
+        .await?;
+    for plane in in_squadrons {
+        occupants.insert(
+            plane.slot_id,
+            SlotItemOccupant::Airbase {
+                area_id: plane.area_id,
+                rid: plane.rid,
+            },
+        );
+    }
+
+    Ok(occupants)
+}
+
+/// Reject when any of `item_ids` is held by a ship or a squadron.
+pub(crate) async fn ensure_slot_items_free_impl<C>(
+    c: &C,
+    profile_id: i64,
+    item_ids: &[i64],
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    match slot_item_occupants_impl(c, profile_id, item_ids).await?.into_iter().next() {
+        Some((item_id, occupant)) => {
+            Err(GameplayError::WrongType(format!("slot item {item_id} is {occupant}")))
+        }
+        None => Ok(()),
+    }
+}
+
+/// Keep only the items nothing holds.
+pub(crate) async fn retain_free_slot_items_impl<C>(
+    c: &C,
+    profile_id: i64,
+    items: &mut Vec<slot_item::Model>,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let ids = items.iter().map(|item| item.id).collect::<Vec<_>>();
+    let occupants = slot_item_occupants_impl(c, profile_id, &ids).await?;
+    items.retain(|item| !occupants.contains_key(&item.id));
+    Ok(())
+}
 
 impl Ctx {
     /// Add slot item to a profile.
@@ -208,6 +312,9 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
+        // Checked here and not in `destroy_items_impl`: scrapping a ship goes
+        // through that `_impl` on purpose, taking its own equipment with it.
+        ensure_slot_items_free_impl(&tx, profile_id, item_ids).await?;
         let (scrapped_materials, outcomes) =
             destroy_items_impl(&tx, codex, profile_id, item_ids).await?;
 
@@ -344,11 +451,12 @@ pub(crate) async fn get_unset_slot_items_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let records = slot_item::Entity::find()
+    let mut records = slot_item::Entity::find()
         .filter(slot_item::Column::ProfileId.eq(profile_id))
         .filter(slot_item::Column::EquipOn.lte(0))
         .all(c)
         .await?;
+    retain_free_slot_items_impl(c, profile_id, &mut records).await?;
 
     Ok(records)
 }
@@ -361,12 +469,13 @@ pub(crate) async fn get_unset_slot_items_by_types_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let records = slot_item::Entity::find()
+    let mut records = slot_item::Entity::find()
         .filter(slot_item::Column::ProfileId.eq(profile_id))
         .filter(slot_item::Column::EquipOn.lte(0))
         .filter(slot_item::Column::Type3.is_in(type3.to_owned()))
         .all(c)
         .await?;
+    retain_free_slot_items_impl(c, profile_id, &mut records).await?;
 
     let mut map: BTreeMap<i64, Vec<i64>> = BTreeMap::new();
 

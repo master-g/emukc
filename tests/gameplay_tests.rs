@@ -63,6 +63,9 @@ mod remodel_preserve_fields;
 #[path = "gameplay_tests/destroy_items_persist.rs"]
 mod destroy_items_persist;
 
+#[path = "gameplay_tests/airbase.rs"]
+mod airbase;
+
 #[path = "gameplay_tests/sortie_ammo_reaches_battle.rs"]
 mod sortie_ammo_reaches_battle;
 

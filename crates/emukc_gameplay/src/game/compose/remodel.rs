@@ -11,7 +11,8 @@ use emukc_model::{
 use crate::{
     err::GameplayError,
     game::{
-        material::deduct_material_impl, slot_item::add_slot_item_impl,
+        material::deduct_material_impl,
+        slot_item::{add_slot_item_impl, retain_free_slot_items_impl},
         use_item::deduct_use_item_impl,
     },
 };
@@ -215,7 +216,7 @@ pub(crate) async fn get_free_slot_item_by_type3_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let m = slot_item::Entity::find()
+    let mut m = slot_item::Entity::find()
         .filter(slot_item::Column::ProfileId.eq(profile_id))
         .filter(slot_item::Column::Type3.eq(slot_type3))
         .filter(slot_item::Column::EquipOn.lte(0))
@@ -223,6 +224,7 @@ where
         .order_by_asc(slot_item::Column::Level)
         .all(c)
         .await?;
+    retain_free_slot_items_impl(c, profile_id, &mut m).await?;
 
     Ok(m)
 }

@@ -70,21 +70,7 @@ impl Ctx {
 
         let mut airbases = Vec::with_capacity(models.len());
         for model in models {
-            let occupied = get_planes_impl(&tx, profile_id, model.area_id, model.rid).await?;
-            let planes = squadrons_of(profile_id, model.area_id, model.rid, occupied);
-            let (base_range, bonus_range) = distance_of(&tx, codex, &planes).await?;
-
-            airbases.push(Airbase {
-                id: model.id,
-                area_id: model.area_id,
-                rid: model.rid,
-                action: model.action.into(),
-                base_range,
-                bonus_range,
-                name: model.name,
-                maintenance_level: model.maintenance_level,
-                planes,
-            });
+            airbases.push(load_airbase(&tx, codex, profile_id, model).await?);
         }
 
         tx.commit().await?;
@@ -378,7 +364,7 @@ where
 /// client does when it opens the 出撃 menu, which is exactly where the sample
 /// saw the slot already empty. Swap in a real cooldown once the duration has a
 /// source; that needs a timestamp column on `plane_info`.
-async fn settle_relocations_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+pub(crate) async fn settle_relocations_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
 where
     C: ConnectionTrait,
 {

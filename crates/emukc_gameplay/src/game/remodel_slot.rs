@@ -20,7 +20,10 @@ use crate::gameplay::Ctx;
 
 use super::fleet::get_fleet_ships_impl;
 use super::material::{deduct_material_impl, get_mat_impl};
-use super::slot_item::{add_slot_item_impl, find_slot_item_impl, update_slot_item_impl};
+use super::slot_item::{
+    add_slot_item_impl, ensure_slot_items_free_impl, find_slot_item_impl,
+    retain_free_slot_items_impl, update_slot_item_impl,
+};
 use super::use_item::deduct_use_item_impl;
 
 /// One row of the improvement candidate list.
@@ -389,11 +392,10 @@ where
             recipe.recipe_id, recipe.slot_item_id, item.mst_id
         )));
     }
-    if !allow_equipped && item.equip_on != 0 {
-        return Err(GameplayError::WrongType(format!(
-            "slot item {slot_id} is equipped on ship {}",
-            item.equip_on
-        )));
+    // A squadron holds its plane the same way a ship holds its gear, so the
+    // entries that refuse equipped gear refuse deployed planes too.
+    if !allow_equipped {
+        ensure_slot_items_free_impl(c, profile_id, &[slot_id]).await?;
     }
 
     Ok(item)
@@ -415,7 +417,7 @@ where
     let mut eaten = Vec::new();
 
     for cost in costs {
-        let candidates = slot_item::Entity::find()
+        let mut candidates = slot_item::Entity::find()
             .filter(slot_item::Column::ProfileId.eq(profile_id))
             .filter(slot_item::Column::MstId.eq(cost.id))
             .filter(slot_item::Column::Level.eq(0))
@@ -424,6 +426,7 @@ where
             .filter(slot_item::Column::Id.ne(improving_id))
             .all(c)
             .await?;
+        retain_free_slot_items_impl(c, profile_id, &mut candidates).await?;
 
         if (candidates.len() as i64) < cost.count {
             return Err(GameplayError::Insufficient(format!(
@@ -503,4 +506,50 @@ fn roll_success(rate: i64) -> bool {
         return false;
     }
     i64::from(emukc_crypto::rng::u32(0..100)) < rate
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use emukc_db::prelude::new_mem_db;
+    use emukc_model::{codex::Codex, thirdparty::Kc3rdSlotItemImproveItemConsumption};
+
+    use super::consume_required_items;
+    use crate::{err::GameplayError, gameplay::Ctx};
+
+    /// An improvement eats spare equipment only: a plane a land-base squadron
+    /// flies is as unavailable as one fitted to a ship.
+    #[tokio::test]
+    async fn improvement_never_eats_a_deployed_plane() {
+        const FIGHTER: i64 = 20;
+
+        let db = new_mem_db().await.unwrap();
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let context = Ctx::new(Arc::new(db), Arc::new(codex));
+        let account = context.sign_up("improve-eats", "1234567").await.unwrap();
+        let profile =
+            context.new_profile(&account.access_token.token, "improve-eats").await.unwrap();
+        let pid = context
+            .start_game(&account.access_token.token, profile.profile.id)
+            .await
+            .unwrap()
+            .profile
+            .id;
+        context.unlock_airbase(pid, 6, 1).await.unwrap();
+        let deployed = context.add_slot_item(pid, FIGHTER, 0, 0).await.unwrap().api_id;
+        let spare = context.add_slot_item(pid, FIGHTER, 0, 0).await.unwrap().api_id;
+        context.set_airbase_plane(pid, 6, 1, 1, deployed).await.unwrap();
+
+        let cost = |count| {
+            [Kc3rdSlotItemImproveItemConsumption {
+                id: FIGHTER,
+                count,
+            }]
+        };
+        let db = context.db.as_ref();
+        let err = consume_required_items(db, pid, -1, &cost(2)).await.unwrap_err();
+        assert!(matches!(err, GameplayError::Insufficient(_)), "{err:?}");
+        assert_eq!(consume_required_items(db, pid, -1, &cost(1)).await.unwrap(), vec![spare]);
+    }
 }
