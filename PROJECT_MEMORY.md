@@ -188,19 +188,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-09-23] 5-6 补完：它此前是全 catalog 唯一 0 条规则 + 0 组敌方编成的变体，现在 38 条 label 规则
-  （扇出 53）+ 26 个战斗节点 110 组编成（扇出 39 格）。boss 格 Z 有编成，`sortie_bosscomp` 不再恒 false。
-  数字与两点取舍（图形变体后缀取最小 id、陣形按 pattern 轮转）见 `docs/map/data-dependencies.md`。
-- 更早（09-22）：前置表对真实 `mapinfo` 33/33；`edges.json` 674/675 确认我们的拓扑、不接；
-  `VisitedNode` 编号空间修复。
-- 门禁：`cargo test --workspace --no-fail-fast` 全绿，只有 `emukc_time` 那两条日期依赖失败（JST 已跨 09-23，
-  见「失败尝试」）；改动文件 clippy 零告警。catalog：37 图 / 2144 规则 / 437 敌方格 / 1814 组编成。
+- [2026-09-23] boss 格编成：3-2 是资产漏抓 K/L，已补（L 3 组）；1-6 终点 N 是 event_id 8 非战斗，bosscomp=false 正确。
+  新测试 `map/boss_fleet.rs`（旧数据下红、新数据下绿）；test 1177 过 0 败 0 ignored，fmt 过，改动文件 clippy 零告警。
 
 ## Next Session
 
-- [2026-09-23] 地图侧剩下的：**1-6 与 3-2 的 boss 格没有编成**（`boss_cell_no` 分别是 0=Start、12=L），
-  修 5-6 之前就存在，`sortie_bosscomp` 对这两张图恒 false，尚未排查；5-6 还有 6 条 `Unknown`；
-  ドラム缶 / 大発動艇系 还缺约 7 条（2-5、5-3、5-4、5-5，原文在 `extracted/*.txt`）；掉落仍不可再生。
+- [2026-09-23] 地图侧剩下的：5-6 还有 6 条 `Unknown`；ドラム缶 / 大発動艇系 还缺约 7 条（2-5、5-3、5-4、5-5，
+  原文在 `extracted/*.txt`）；掉落仍不可再生。疑似：1-6 到达 N 不推进 gauge（gauge 只在战斗结算里减），未验证。
 - 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），
   否则集成测试跑的是旧数据——09-22 撞上过，连 `music_list` 都还停在 `7ed789ec` 之前的 72 条。
 - 基地航空隊 U4（`set_action`、`change_name`、`supply`）不阻塞，两处消耗系数都有出处。

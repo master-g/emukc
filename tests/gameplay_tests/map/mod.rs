@@ -1,5 +1,6 @@
 //! Map gameplay integration tests
 
+mod boss_fleet;
 mod compass;
 mod monthly_reset;
 mod multi_gauge;

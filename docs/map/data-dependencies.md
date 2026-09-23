@@ -113,9 +113,12 @@ pass，且产出不得劣于已提交版本——本地历史 agent JSON 全是 
 
 `5-6.html` 之前不在页面缓存里——`sync` 的图单来自 manifest，所以它一直会被拉，只是没人跑过。
 
-**两张图的 boss 格没有编成**，与 5-6 无关、修 5-6 之前就存在：1-6 的 `boss_cell_no` 是 0，也就是
-Start（有编成的是 C/F/J/K/L）；3-2 的是 12 = L（有编成的是 A/C/H/J）。`sortie_bosscomp` 靠
-`enemy_fleets.contains_key(boss_cell_no)` 判断，所以这两张图的 boss 标志一直是 false。尚未排查。
+**两张图的 boss 格没有编成**，原因不同。`sortie_bosscomp` 靠 `enemy_fleets.contains_key(boss_cell_no)` 判断。
+3-2 是资产漏抓：页面上 K、L（ボス）两行都在，资产只收了 A/C/H/J；补上后 L 有 3 组编成。舰名解析在
+A/C/H/J 上与原资产逐 id 一致；陣形沿用 3-2 原有写法（从标注的那一行起沿用，一行写多个取第一个），
+不是 5-6 的轮转。1-6 本来就没有 boss 战：终点 N 是「ゴール地点……戦闘なし」，kcdata 的 event_id 是
+8（護衛成功）而不是 5，所以 `boss_cell_no` 落回 0 这个哨兵值，bosscomp 为 false 是对的。
+`tests/gameplay_tests/map/boss_fleet.rs` 锁住「常规图的 boss 格只要是战斗格就必须有编成」。
 
 **「经由某格」的编号空间踩过一次**：资产里的 `VisitedNode` 存的是 wikiwiki 自己的 BFS 编号，而
 `auto_derive_label_overlay` 曾把谓词原样透传，于是这些编号进了 kcdata 空间、指向了别的格子——

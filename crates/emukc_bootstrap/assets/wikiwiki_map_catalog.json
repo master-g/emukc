@@ -17216,6 +17216,142 @@
                   "formation": 1
                 }
               ]
+            },
+            "5": {
+              "cell_no": 5,
+              "battle_kind": 1,
+              "formations": [
+                3
+              ],
+              "compositions": [
+                {
+                  "comp_id": "3-2:K:パターン1",
+                  "weight": 1,
+                  "ship_ids": [
+                    1525,
+                    1525,
+                    1524,
+                    1576,
+                    1502,
+                    1502
+                  ],
+                  "formation": 3
+                },
+                {
+                  "comp_id": "3-2:K:パターン2",
+                  "weight": 1,
+                  "ship_ids": [
+                    1528,
+                    1525,
+                    1524,
+                    1576,
+                    1502,
+                    1502
+                  ],
+                  "formation": 3
+                },
+                {
+                  "comp_id": "3-2:K:パターン3",
+                  "weight": 1,
+                  "ship_ids": [
+                    1528,
+                    1525,
+                    1524,
+                    1524,
+                    1576,
+                    1576
+                  ],
+                  "formation": 3
+                },
+                {
+                  "comp_id": "3-2:K:パターン4",
+                  "weight": 1,
+                  "ship_ids": [
+                    1528,
+                    1528,
+                    1524,
+                    1524,
+                    1576,
+                    1576
+                  ],
+                  "formation": 3
+                },
+                {
+                  "comp_id": "3-2:K:パターン5",
+                  "weight": 1,
+                  "ship_ids": [
+                    1528,
+                    1528,
+                    1529,
+                    1524,
+                    1576,
+                    1576
+                  ],
+                  "formation": 3
+                },
+                {
+                  "comp_id": "3-2:K:パターン6",
+                  "weight": 1,
+                  "ship_ids": [
+                    1528,
+                    1528,
+                    1529,
+                    1524,
+                    1577,
+                    1577
+                  ],
+                  "formation": 3
+                }
+              ]
+            },
+            "6": {
+              "cell_no": 6,
+              "battle_kind": 5,
+              "formations": [
+                1,
+                2
+              ],
+              "compositions": [
+                {
+                  "comp_id": "3-2:L:パターン1",
+                  "weight": 1,
+                  "ship_ids": [
+                    1554,
+                    1518,
+                    1576,
+                    1576,
+                    1513,
+                    1513
+                  ],
+                  "formation": 1
+                },
+                {
+                  "comp_id": "3-2:L:パターン2",
+                  "weight": 1,
+                  "ship_ids": [
+                    1555,
+                    1518,
+                    1577,
+                    1577,
+                    1513,
+                    1513
+                  ],
+                  "formation": 1
+                },
+                {
+                  "comp_id": "3-2:L:パターン3",
+                  "weight": 1,
+                  "ship_ids": [
+                    1555,
+                    1519,
+                    1577,
+                    1577,
+                    1577,
+                    1526
+                  ],
+                  "formation": 1
+                }
+              ]
             }
           },
           "ship_drops": {}
