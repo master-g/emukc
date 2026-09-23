@@ -7,7 +7,7 @@ use super::{
 };
 
 /// Assemble the final catalog in its one fixed order: kcdata → public overlay →
-/// stat.json → p_unlock normalization → wikiwiki label overlay.
+/// `stat.json` → `p_unlock` normalization → wikiwiki label overlay.
 ///
 /// The label overlay goes last because it is the only step that resolves labels
 /// to cell numbers, so it must see the final variant set and topology. It only

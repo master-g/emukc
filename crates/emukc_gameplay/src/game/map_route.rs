@@ -37,6 +37,11 @@ pub(crate) struct FleetRouteContext {
     /// Precomputed `LoS` under Formula 3 (the standard 2-5-fleet formula):
     /// `Σ(equip_los × 0.6 + sqrt(ship_base_los)) − ceil(0.4 × hq_lv) + (6 − fleet_size) × 2`.
     pub(crate) los_formula3: f64,
+    /// 第2艦隊's ships when a combined fleet sorties; empty otherwise. Kept apart
+    /// from every field above, which describe 第1艦隊 alone, so no existing
+    /// predicate changes its answer. None reads it yet: the regular maps have no
+    /// combined-fleet branches (`sally_flag` is `[x, 0, 0]` on all of them).
+    pub(crate) escort_ship_entries: Vec<FleetRouteShipEntry>,
 }
 
 impl FleetRouteContext {

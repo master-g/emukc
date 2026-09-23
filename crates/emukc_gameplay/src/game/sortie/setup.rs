@@ -41,6 +41,22 @@ use super::{
 /// has no way to nominate a different escort).
 const ESCORT_DECK_ID: i64 = 2;
 
+/// 第2艦隊's ships. A profile whose second fleet is not unlocked yet reads as
+/// missing rather than empty; both mean the same thing to a combined sortie.
+pub(super) async fn escort_fleet_ships_impl<C>(
+    c: &C,
+    profile_id: i64,
+) -> Result<Vec<profile::ship::Model>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    match get_fleet_ships_impl(c, profile_id, ESCORT_DECK_ID).await {
+        Ok(models) => Ok(models),
+        Err(GameplayError::EntryNotFound(_)) => Ok(Vec::new()),
+        Err(err) => Err(err),
+    }
+}
+
 /// Which battle endpoint the client called.
 ///
 /// The client picks the URL from its own `api_combined_flag`, so a mismatch
@@ -145,13 +161,7 @@ where
     // 第2艦隊 sorties with 第1艦隊 but is a separate fleet row; an empty one means
     // the player disbanded it without clearing `combined_type`.
     let escort_ships = if combined_type.is_some() {
-        let escort_models = match get_fleet_ships_impl(c, profile_id, ESCORT_DECK_ID).await {
-            Ok(models) => models,
-            // A profile whose second fleet is not unlocked yet reads as missing
-            // rather than empty; both mean the same thing here.
-            Err(GameplayError::EntryNotFound(_)) => Vec::new(),
-            Err(err) => return Err(err),
-        };
+        let escort_models = escort_fleet_ships_impl(c, profile_id).await?;
         if escort_models.is_empty() {
             return Err(GameplayError::WrongType(
                 "combined sortie battle needs ships in fleet 2".to_string(),

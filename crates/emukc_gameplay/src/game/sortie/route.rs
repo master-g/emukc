@@ -18,6 +18,7 @@ use crate::err::GameplayError;
 use super::super::basic::find_profile;
 use super::super::map_route::{FleetRouteContext, FleetRouteShipEntry, evaluate_route_destination};
 use super::super::slot_item::{DRUM_CANISTER_MST_ID, find_slot_items_by_id_impl};
+use super::setup::escort_fleet_ships_impl;
 
 /// The sortie a route is being picked for.
 pub(super) struct SortieRoute<'a> {
@@ -51,9 +52,7 @@ pub(super) async fn route_next_cell<C>(
 where
     C: ConnectionTrait,
 {
-    let hq_level = find_profile(c, sortie.profile_id).await?.hq_level;
-    let mut context = build_fleet_route_context(c, codex, sortie.fleet_ships, hq_level).await?;
-    context.visited_cell_ids = sortie.visited_cell_ids.clone();
+    let mut context = sortie_route_context(c, codex, &sortie).await?;
     context.visited_cell_ids.insert(current.cell_no);
     let cell_no = evaluate_route_destination(current, stage, &context, selected_cell_id)?;
     let mut visited_cell_ids = context.visited_cell_ids;
@@ -62,6 +61,27 @@ where
         cell_no,
         visited_cell_ids,
     })
+}
+
+/// Everything the predicates may read about this sortie's fleet.
+pub(super) async fn sortie_route_context<C>(
+    c: &C,
+    codex: &Codex,
+    sortie: &SortieRoute<'_>,
+) -> Result<FleetRouteContext, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let profile = find_profile(c, sortie.profile_id).await?;
+    let mut context =
+        build_fleet_route_context(c, codex, sortie.fleet_ships, profile.hq_level).await?;
+    if profile.combined_type != 0 {
+        let escort = escort_fleet_ships_impl(c, sortie.profile_id).await?;
+        context.escort_ship_entries =
+            build_fleet_route_context(c, codex, &escort, profile.hq_level).await?.ship_entries;
+    }
+    context.visited_cell_ids = sortie.visited_cell_ids.clone();
+    Ok(context)
 }
 
 async fn build_fleet_route_context<C>(
@@ -187,5 +207,6 @@ where
         drum_ships,
         los_formula1: los_f1_acc,
         los_formula3,
+        escort_ship_entries: Vec::new(),
     })
 }

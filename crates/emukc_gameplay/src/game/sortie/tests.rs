@@ -779,7 +779,7 @@ async fn drum_canister_routing_counts_ships_not_canisters() {
         .await
         .unwrap()
         .unwrap();
-    let next = route_from(&context, profile_id, &[loaded.clone(), empty], &[], &stage, 0).await;
+    let next = route_from(&context, profile_id, &[loaded, empty], &[], &stage, 0).await;
     assert_eq!(next, 2, "three canisters on one ship is still one ship");
 
     // Spreading canisters over two ships is what a two-ship branch wants.
@@ -863,7 +863,7 @@ async fn fleet_facts_tolerate_bare_and_unknown_ships() {
         );
     }
     let stype = codex.manifest.find_ship(951).unwrap().api_stype;
-    let mut unknown = fleet[0].clone();
+    let mut unknown = fleet[0];
     unknown.mst_id = 999_999;
     fleet.push(unknown);
     let stage = branch_stage(
@@ -876,6 +876,52 @@ async fn fleet_facts_tolerate_bare_and_unknown_ships() {
     );
 
     assert_eq!(route_from(&context, profile_id, &fleet, &[], &stage, 0).await, 1);
+}
+
+/// A combined sortie hands the router 第2艦隊's ships as a separate fact set;
+/// a single fleet, or a combined type whose fleet 2 is still locked, hands it
+/// none — and neither is an error.
+#[tokio::test]
+async fn route_context_carries_escort_facts_only_for_a_combined_fleet() {
+    use super::route::{SortieRoute, sortie_route_context};
+    use crate::game::fleet::get_fleet_ships_impl;
+
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
+    let pid = routing_profile(&context, "route-escort").await;
+    let main = context.add_ship(pid, 951).await.unwrap().api_id;
+    context.update_fleet_ships(pid, 1, &[main, -1, -1, -1, -1, -1]).await.unwrap();
+    let fleet = get_fleet_ships_impl(context.db.as_ref(), pid, 1).await.unwrap();
+    let visited = std::collections::BTreeSet::new();
+    let escort_of = async || {
+        let sortie = SortieRoute {
+            profile_id: pid,
+            fleet_ships: &fleet,
+            visited_cell_ids: &visited,
+        };
+        sortie_route_context(context.db.as_ref(), &codex, &sortie)
+            .await
+            .unwrap()
+            .escort_ship_entries
+            .iter()
+            .map(|entry| entry.ship_id)
+            .collect::<Vec<_>>()
+    };
+
+    assert!(escort_of().await.is_empty(), "a single fleet has no escort");
+
+    // Combined type left set while fleet 2 is still locked: routing goes on.
+    let mut profile = find_profile(context.db.as_ref(), pid).await.unwrap().into_active_model();
+    profile.combined_type = ActiveValue::Set(1);
+    profile.update(context.db.as_ref()).await.unwrap();
+    assert!(escort_of().await.is_empty());
+
+    context.unlock_fleet(pid, 2).await.unwrap();
+    let escort = context.add_ship(pid, 1).await.unwrap().api_id;
+    context.update_fleet_ships(pid, 2, &[escort, -1, -1, -1, -1, -1]).await.unwrap();
+    context.set_combined_type(pid, 1).await.unwrap();
+    assert_eq!(escort_of().await, vec![1]);
 }
 
 #[tokio::test]
