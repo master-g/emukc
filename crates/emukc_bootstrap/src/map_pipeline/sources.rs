@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 use emukc_model::{
@@ -10,6 +10,7 @@ use emukc_model::{
 };
 
 use crate::{
+    assets::{MAP_SHIP_DROPS, PUBLIC_MAP_CATALOG_OVERLAYS},
     parser::{
         error::ParseError,
         wikiwiki_map::{ShipDropDraft, WikiwikiMapOverlayCatalog},
@@ -86,12 +87,10 @@ fn load_source_set(
 }
 
 pub(super) fn load_public_map_catalog_overlays() -> Result<MapCatalog, ParseError> {
-    let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/public_map_catalog_overlays.json");
-    serde_json::from_str::<MapCatalog>(include_str!(
-        "../../assets/public_map_catalog_overlays.json"
-    ))
-    .map_err(|source| ParseError::json_at(&path, source))
+    let path = PUBLIC_MAP_CATALOG_OVERLAYS.path();
+    let (_, raw) =
+        PUBLIC_MAP_CATALOG_OVERLAYS.load().map_err(|source| ParseError::io_at(&path, source))?;
+    serde_json::from_str::<MapCatalog>(&raw).map_err(|source| ParseError::json_at(&path, source))
 }
 
 fn load_repo_wikiwiki_overlay()
@@ -111,10 +110,7 @@ fn load_repo_wikiwiki_overlay()
                 "repo wikiwiki map catalog not found at {}; using embedded catalog asset",
                 path.display()
             );
-            (
-                MapCatalogWikiwikiSource::Embedded,
-                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/wikiwiki_map_catalog.json"),
-            )
+            (MapCatalogWikiwikiSource::Embedded, path.clone())
         }
     };
 
@@ -149,10 +145,10 @@ struct MapShipDropsAsset {
 
 /// Fold the split-out ship drops into the freshly parsed wikiwiki catalog.
 fn apply_ship_drops(overlay: &mut WikiwikiMapOverlayCatalog) -> Result<(), ParseError> {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/map_ship_drops.json");
+    let path = MAP_SHIP_DROPS.path();
+    let (_, raw) = MAP_SHIP_DROPS.load().map_err(|source| ParseError::io_at(&path, source))?;
     let asset: MapShipDropsAsset =
-        serde_json::from_str(include_str!("../../assets/map_ship_drops.json"))
-            .map_err(|source| ParseError::json_at(&path, source))?;
+        serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?;
 
     for (map_id, variants) in asset.maps {
         let Some(definition) = overlay.maps.get_mut(&map_id) else {

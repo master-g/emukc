@@ -51,22 +51,21 @@ pub(crate) fn normalize_item_up_slot_id(rule: &CacheRuleItemUpRule, slot_id: i64
     }
 }
 
-/// The synced `cache_rules.json`, embedded so a binary running without the
-/// source tree still has it. `battle validate` is used exactly there -- on a
-/// machine diagnosing a reported incident -- and a rule that silently went
-/// missing would leave abyssal ids un-normalized and every `item_up` path
-/// reading as covered.
-const EMBEDDED_CACHE_RULES_JSON: &str = include_str!("../../../assets/cache_rules.json");
-
 /// The repo's `item_up` rule, for callers that have no loaded rules bundle of
 /// their own. Prefers the file on disk and falls back to the embedded copy;
 /// `None` only when both are unusable, in which case ids pass through
 /// unchanged.
+///
+/// The embedded `cache_rules.json` exists so a binary running without the
+/// source tree still has it. `battle validate` is used exactly there -- on a
+/// machine diagnosing a reported incident -- and a rule that silently went
+/// missing would leave abyssal ids un-normalized and every `item_up` path
+/// reading as covered.
 static REPO_ITEM_UP_RULE: LazyLock<Option<CacheRuleItemUpRule>> = LazyLock::new(|| {
     let rule = match load_cache_rules_bundle() {
         Ok(bundle) => bundle.cache_rules.slot_rules.item_up,
         Err(_) => {
-            serde_json::from_str::<types::CacheRulesAsset>(EMBEDDED_CACHE_RULES_JSON)
+            serde_json::from_str::<types::CacheRulesAsset>(crate::assets::CACHE_RULES.embedded()?)
                 .ok()?
                 .slot_rules
                 .item_up

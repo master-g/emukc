@@ -16,6 +16,7 @@
 #[macro_use]
 extern crate tracing;
 
+mod assets;
 mod battle_rules;
 mod db;
 mod download;
@@ -34,6 +35,7 @@ pub mod wikiwiki_map_download;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
+    pub use crate::assets::{REPO_ASSETS, RepoAsset, RepoAssetSource};
     pub use crate::battle_rules::{
         BattleAttackTypeAcceptanceAsset, BattleAttackTypeFallback, BattleAttackTypeStage,
         BattleIncidentReport, BattleIncidentTriggerMatch, BattleKnowledgeAssetSources,
@@ -43,10 +45,7 @@ pub mod prelude {
         BattleValidationFinding, BattleValidationFindingKind, BattleValidationReport,
         BattleValidationSeverity, ExpectedBattleResource, RepoBattleKnowledgeSource,
         analyze_day_battle_incident, load_repo_battle_knowledge_assets,
-        repo_battle_attack_type_acceptance_path, repo_battle_module_index_path,
-        repo_battle_protocol_fields_path, repo_battle_resource_rules_path,
-        repo_battle_slot_resource_triggers_path, validate_day_battle_response,
-        validate_night_battle_response,
+        validate_day_battle_response, validate_night_battle_response,
     };
     pub use crate::db::{DbBootstrapError, prepare};
     pub use crate::download::BootstrapDownloadError;

@@ -1,10 +1,8 @@
 #![allow(missing_docs)]
 
 use std::{
-    borrow::Cow,
     collections::{BTreeMap, BTreeSet},
-    fs, io,
-    path::{Path, PathBuf},
+    io,
 };
 
 use emukc_cache::IntoVersion;
@@ -12,6 +10,10 @@ use emukc_crypto::SuffixUtils;
 use emukc_model::kc2::start2::ApiManifest;
 use serde::{Deserialize, Serialize};
 
+use crate::assets::{
+    BATTLE_ATTACK_TYPE_ACCEPTANCE, BATTLE_MODULE_INDEX, BATTLE_PROTOCOL_FIELDS,
+    BATTLE_RESOURCE_RULES, BATTLE_SLOT_RESOURCE_TRIGGERS, RepoAssetSource,
+};
 use crate::make_list::{
     CacheList, errors::CacheListMakingError, has_btxt_flat_coverage, has_enemy_ship_coverage,
     has_repo_item_up_coverage, repo_item_up_slot_id,
@@ -23,21 +25,7 @@ mod resources;
 pub use attack_types::*;
 use resources::*;
 
-const EMBEDDED_BATTLE_PROTOCOL_FIELDS_JSON: &str =
-    include_str!("../assets/battle_protocol_fields.json");
-const EMBEDDED_BATTLE_RESOURCE_RULES_JSON: &str =
-    include_str!("../assets/battle_resource_rules.json");
-const EMBEDDED_BATTLE_MODULE_INDEX_JSON: &str = include_str!("../assets/battle_module_index.json");
-const EMBEDDED_BATTLE_SLOT_RESOURCE_TRIGGERS_JSON: &str =
-    include_str!("../assets/battle_slot_resource_triggers.json");
-const EMBEDDED_BATTLE_ATTACK_TYPE_ACCEPTANCE_JSON: &str =
-    include_str!("../assets/battle_attack_type_acceptance.json");
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RepoBattleKnowledgeSource {
-    Filesystem(PathBuf),
-    Embedded,
-}
+pub type RepoBattleKnowledgeSource = RepoAssetSource;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BattleKnowledgeAssetSources {
@@ -319,61 +307,14 @@ const DAY_BATTLE_HOUGEKI_FIELDS: &[&str] = &["api_hougeki1", "api_hougeki2", "ap
 const DAY_BATTLE_SI_LIST_FIELDS: &[&str] =
     &["api_opening_taisen", "api_hougeki1", "api_hougeki2", "api_hougeki3"];
 
-pub fn repo_battle_protocol_fields_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_protocol_fields.json")
-}
-
-pub fn repo_battle_resource_rules_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_resource_rules.json")
-}
-
-pub fn repo_battle_module_index_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_module_index.json")
-}
-
-pub fn repo_battle_slot_resource_triggers_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_slot_resource_triggers.json")
-}
-
-pub fn repo_battle_attack_type_acceptance_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/battle_attack_type_acceptance.json")
-}
-
-fn load_text_asset_from(
-    path: &Path,
-    embedded: &'static str,
-) -> io::Result<(RepoBattleKnowledgeSource, Cow<'static, str>)> {
-    match fs::read_to_string(path) {
-        Ok(raw_json) => {
-            Ok((RepoBattleKnowledgeSource::Filesystem(path.to_path_buf()), Cow::Owned(raw_json)))
-        }
-        Err(source) if source.kind() == io::ErrorKind::NotFound => {
-            Ok((RepoBattleKnowledgeSource::Embedded, Cow::Borrowed(embedded)))
-        }
-        Err(source) => Err(source),
-    }
-}
-
 pub fn load_repo_battle_knowledge_assets() -> io::Result<BattleKnowledgeAssets> {
-    let protocol_path = repo_battle_protocol_fields_path();
-    let resource_path = repo_battle_resource_rules_path();
-    let module_index_path = repo_battle_module_index_path();
-    let slot_resource_triggers_path = repo_battle_slot_resource_triggers_path();
-    let (protocol_source, protocol_json) =
-        load_text_asset_from(&protocol_path, EMBEDDED_BATTLE_PROTOCOL_FIELDS_JSON)?;
-    let (resource_source, resource_json) =
-        load_text_asset_from(&resource_path, EMBEDDED_BATTLE_RESOURCE_RULES_JSON)?;
-    let (module_index_source, module_index_json) =
-        load_text_asset_from(&module_index_path, EMBEDDED_BATTLE_MODULE_INDEX_JSON)?;
-    let (slot_resource_triggers_source, slot_resource_triggers_json) = load_text_asset_from(
-        &slot_resource_triggers_path,
-        EMBEDDED_BATTLE_SLOT_RESOURCE_TRIGGERS_JSON,
-    )?;
-    let attack_type_acceptance_path = repo_battle_attack_type_acceptance_path();
-    let (attack_type_acceptance_source, attack_type_acceptance_json) = load_text_asset_from(
-        &attack_type_acceptance_path,
-        EMBEDDED_BATTLE_ATTACK_TYPE_ACCEPTANCE_JSON,
-    )?;
+    let (protocol_source, protocol_json) = BATTLE_PROTOCOL_FIELDS.load()?;
+    let (resource_source, resource_json) = BATTLE_RESOURCE_RULES.load()?;
+    let (module_index_source, module_index_json) = BATTLE_MODULE_INDEX.load()?;
+    let (slot_resource_triggers_source, slot_resource_triggers_json) =
+        BATTLE_SLOT_RESOURCE_TRIGGERS.load()?;
+    let (attack_type_acceptance_source, attack_type_acceptance_json) =
+        BATTLE_ATTACK_TYPE_ACCEPTANCE.load()?;
 
     Ok(BattleKnowledgeAssets {
         sources: BattleKnowledgeAssetSources {
@@ -1288,7 +1229,7 @@ mod tests {
     /// The real decoded acceptance sets. Validator tests assert against what
     /// the client actually dispatches, not a hand-written stand-in.
     fn test_attack_type_acceptance() -> BattleAttackTypeAcceptanceAsset {
-        serde_json::from_str(EMBEDDED_BATTLE_ATTACK_TYPE_ACCEPTANCE_JSON).unwrap()
+        serde_json::from_str(BATTLE_ATTACK_TYPE_ACCEPTANCE.embedded().unwrap()).unwrap()
     }
 
     fn build_day_battle_assets() -> BattleKnowledgeAssets {
@@ -1659,24 +1600,6 @@ mod tests {
         assert!(finding.message.contains("opening-anti-submarine"), "{}", finding.message);
     }
 
-    #[test]
-    fn load_repo_battle_knowledge_assets_prefers_filesystem_contents() {
-        let root = tempfile::tempdir().unwrap();
-        let protocol_path = root.path().join("battle_protocol_fields.json");
-        std::fs::write(
-			&protocol_path,
-			r#"{"scriptVersion":"x","summary":{"moduleCount":1,"protocolFieldCount":1},"fields":[]}"#,
-		)
-		.unwrap();
-
-        let (source, raw) = load_text_asset_from(&protocol_path, "{}").unwrap();
-        assert_eq!(source, RepoBattleKnowledgeSource::Filesystem(protocol_path));
-        assert_eq!(
-            raw,
-            r#"{"scriptVersion":"x","summary":{"moduleCount":1,"protocolFieldCount":1},"fields":[]}"#
-        );
-    }
-
     /// R2/R7: the synced acceptance asset is the validator's ground truth, so a
     /// decoder run that loses a stage or drops the Danchaku guard must be
     /// visible here and not only in `drift-check`.
@@ -1706,14 +1629,6 @@ mod tests {
         assert_eq!(opening.effective_accepted_values, vec![0, 2, 3, 4, 5, 6, 200, 201]);
         // The whole point of R1: 7 reaches the Danchaku constructor and throws.
         assert!(!opening.effective_accepted_values.contains(&7));
-    }
-
-    #[test]
-    fn load_text_asset_from_falls_back_to_embedded() {
-        let (source, raw) =
-            load_text_asset_from(Path::new("/definitely/missing.json"), "{\"ok\":true}").unwrap();
-        assert_eq!(source, RepoBattleKnowledgeSource::Embedded);
-        assert_eq!(raw, "{\"ok\":true}");
     }
 
     #[test]
