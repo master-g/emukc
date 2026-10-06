@@ -26,6 +26,9 @@ const KCNAV_USER_AGENT: &str =
 /// Paging parameters: `drops` returns every entry without them and would be cut short with them.
 const KCNAV_QUERY_SKIPPED: [&str; 2] = ["page", "perPage"];
 
+/// The server gives up on a query after 60 seconds itself; this only catches a dead connection.
+const KCNAV_REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
+
 // ponytail: 1 keeps everything. Set real thresholds once the first full sync shows the
 // distribution, and say so in the asset note.
 const MIN_DROP_COUNT: i64 = 1;
@@ -155,16 +158,17 @@ async fn fetch(
         let value = check_response(&std::fs::read_to_string(save_as)?).map_err(bad)?;
         return Ok((value, false));
     }
-    let result = Request::builder()
+    let request = Request::builder()
         .url(url)
         .save_as(save_as)
         .overwrite(true)
         .skip_header_check(true)
         .build()?
-        .execute(Some(client.clone()))
-        .await;
+        .execute(Some(client.clone()));
+    // The download layer has no timeout of its own, and this server can sit on a query.
+    let result = tokio::time::timeout(KCNAV_REQUEST_TIMEOUT, request).await;
     tokio::time::sleep(interval).await;
-    result?;
+    result.map_err(|_| bad(format!("no answer within {KCNAV_REQUEST_TIMEOUT:?}")))??;
     match check_response(&std::fs::read_to_string(save_as)?) {
         Ok(value) => Ok((value, true)),
         Err(err) => {

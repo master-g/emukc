@@ -201,5 +201,5 @@ Current verification baseline:
 
 - [2026-10-06] 剩余缺口按价值排：血条阶段（5-6、7-5 的中间 boss 不推进血条，路由也只取了 5-6 末阶段）；敌方联合舰队
   （6-5 M 卡着 wikiwiki 资产的删除）；装備ボーナス（调研在 `docs/brainstorms/2026-10-06-equipment-bonus-sources.md`）；
-  下载层无请求超时；`practice_battle` 有一个偶发失败。
+  `practice_battle` 有一个测试全量并行时偶发失败，单跑未复现。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
