@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-06 · branch `chore/deps-upgrade`
+Last updated: 2026-10-06 · branch `main`
 
 ## Verified Facts
 
@@ -144,9 +144,9 @@ Current verification baseline:
   消歧只能按依赖它的 dispatcher（`PhaseDay*` vs `PhaseNight`/`PhaseAllyAttack`），按 hotspot 深浅挑会静默出错。
 - [2026-09-23] 常规图没有联合舰队分歧：37 张图 `sally_flag` 全是 `[x, 0, 0]`，2144 条规则无一提「連合」。
   `FleetRouteContext.escort_ship_entries` 因此暂时没人读；`start_sortie` 也不查 `sally_flag`（计划 1116 Deferred）。
-- [2026-10-06] 依赖：`rust-version` 1.96 没压住任何版本（MSRV-aware 与 `--ignore-rust-version` 解析结果相同），不必抬。
-  升级后 `cargo audit` 只剩 fontdue 带入的 `ttf-parser` unmaintained。tera 2 的 `render_str` 多一个 autoescape 参数，
-  传 `false` 才等同 tera 1 的旧行为（五个模板新旧输出逐字节一致）。jemallocator 0.7 只在 BSD 编译，未实测。
+- [2026-10-06] 依赖：`rust-version` 1.96 没压住任何版本，不必抬。`cargo audit` 只剩 fontdue 带入的 `ttf-parser` unmaintained。
+  tera 2 的 `render_str` 要传 autoescape=`false` 才等同 tera 1。jemallocator 0.7 只在 BSD 编译，未实测。
+  tower-http 0.7 起 `Accept-Encoding: *` 会被压缩（实测选 zstd），`*;q=0` 返回 406。
 
 ## Failed Attempts / Pitfalls
 
@@ -194,11 +194,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] 依赖全量升级（含四个大版本）分两个提交在分支 `chore/deps-upgrade`，未推送未合并。
+- [2026-10-06] 依赖全量升级（含四个大版本）已快进合入本地 `main`，**未推送**。
   升级后 fmt exit 0，clippy exit 0（仍是 17 条既有 warning），`cargo test --workspace` exit 0，1178 过 0 败 0 忽略。
 
 ## Next Session
 
-- [2026-10-06] 先把 `chore/deps-upgrade` 合入 `main`。再做基地航空隊 U4（`set_action`、`change_name`、`supply`，计划 2026-09-22-001），不阻塞。
+- [2026-10-06] 先推送 `main`。再做基地航空隊 U4（`set_action`、`change_name`、`supply`，计划 2026-09-22-001），不阻塞。
   其后可选 1116 Deferred 首项：`start_sortie` 不查 `sally_flag`。
 - 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。
