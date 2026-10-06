@@ -75,17 +75,10 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 **这两类曾共用一个文件，是整条链上最脆的一环。**
 
 `assets/wikiwiki_map_catalog.json` 同时提供路由规则（2144 条，扇出后）和敌方编成
-（284 个格子 / 1171 组 → 扇出 437 / 1814）。工作流是：
-
-```
-wikiwiki.jp 页面
-  → cargo run -- wikiwiki-map sync          （下到 .data/temp/wikiwiki_map/pages/）
-  → agent skill emukc-scrape-wikiwiki-mapdata  （读 HTML，出 JSON）
-  → cargo run -- wikiwiki-map normalize     （agent 的 BFS 编号 → label，写资产）
-```
-
-中间那一步是 **LLM 而不是解析器**——2026-06 有意为之，替掉了 7389 行正则（计划见
-`docs/plans/archive/2026-06-22-007-...`）。
+（284 个格子 / 1171 组 → 扇出 437 / 1814）。这份资产已冻结：生成它的链（`wikiwiki-map sync` 下页面 → agent skill 读 HTML 出 JSON → `wikiwiki-map normalize`
+把 agent 的 BFS 编号抬成 label）在 2026-10-06 删掉了 skill 和 `normalize`，资产不可再生，只等敌方编成换源后整个删除。
+中间那一步曾是 **LLM 而不是解析器**（2026-06 替掉了 7389 行正则，计划见 `docs/plans/archive/2026-06-22-007-...`），
+这也是它被替换的原因。
 
 **这条链上的 wikiwiki 不是唯一信源。** TsunDB / KCNav（`tsunkit.net/nav`）是权威众包库，前端调用的
 `/api/routing/...` 是公开 JSON 接口（2026-10-06 实测可用；`drops` 不带前端那套查询参数会超时），
@@ -135,8 +128,7 @@ A/C/H/J 上与原资产逐 id 一致；陣形沿用 3-2 原有写法（从标注
 **「经由某格」的编号空间踩过一次**：资产里的 `VisitedNode` 曾存 wikiwiki 自己的 BFS 编号，而
 `auto_derive_label_overlay` 把谓词原样透传，于是这些编号进了 kcdata 空间、指向了别的格子——
 4-5 的「Dマスを経由」在查 B，5-5 的「Nマス」在查 H，7-4 的「Dマス」在查 C，5 条全错。
-现在编号只活在 agent JSON 里：`normalize` 接入时由 `lift_predicate_to_labels`（`parser/wikiwiki_map`）
-把规则两端和谓词里的编号一次抬成 label，组装时 `resolve_predicate_labels` 一次落到 kcdata 编号，
+资产里现在只有 label（当时由 `normalize` 一次抬成 label，该步骤已随 agent skill 删除），组装时 `resolve_predicate_labels` 一次落到 kcdata 编号，
 中间没有第三种编号空间。
 
 ## 3. 敌舰属性

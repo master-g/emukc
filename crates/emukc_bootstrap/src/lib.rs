@@ -87,8 +87,8 @@ pub mod prelude {
         MapRouteValidationSeverity, validate_map_route_stage,
     };
     pub use crate::parser::{
-        WikiwikiLabelOverlay, WikiwikiMapCatalog, WikiwikiMapOverlayCatalog,
-        WikiwikiMapOverlayDefinition, parse_partial_codex,
+        WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
+        parse_partial_codex,
     };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
