@@ -120,7 +120,8 @@ pub(super) async fn exec(args: &KcnavArgs) -> Result<()> {
             let codex = Codex::load_without_cache_source(&args.codex)
                 .with_context(|| format!("loading the codex from {}", args.codex.display()))?;
             let maps = codex.map_catalog();
-            write_json(&kcnav_ship_drops(&catalog, &maps), &args.ship_drops)?;
+            let limited = LimitedDrops::load_repo().map_err(|err| anyhow!(err))?;
+            write_json(&kcnav_ship_drops(&catalog, &maps, &limited), &args.ship_drops)?;
             let known_ship = |id| codex.manifest.find_ship(id).is_some();
             write_json(&kcnav_enemy_fleets(&catalog, &maps, known_ship), &args.enemy_fleets)?;
             println!(

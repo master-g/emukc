@@ -446,14 +446,46 @@ pub fn repo_map_ship_drops_path() -> PathBuf {
     crate::assets::MAP_SHIP_DROPS.path()
 }
 
+/// The hand-maintained list of limited-time drops: map name, node label, then the ships.
+#[derive(Debug, Default, Deserialize)]
+pub struct LimitedDrops {
+    maps: BTreeMap<String, BTreeMap<String, Vec<LimitedDrop>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LimitedDrop {
+    ship_id: i64,
+}
+
+impl LimitedDrops {
+    /// The list checked into the repository.
+    pub fn load_repo() -> Result<Self, String> {
+        let (_, raw) = crate::assets::MAP_LIMITED_DROPS.load().map_err(|err| err.to_string())?;
+        serde_json::from_str(&raw).map_err(|err| err.to_string())
+    }
+
+    fn contains(&self, map: &str, label: &str, ship_id: i64) -> bool {
+        self.maps
+            .get(map)
+            .and_then(|nodes| nodes.get(label))
+            .is_some_and(|ships| ships.iter().any(|ship| ship.ship_id == ship_id))
+    }
+}
+
 /// Lay the observed drops out as the ship drop asset.
 ///
-/// `KCNav` knows nodes, not our variants, so a node's drops go to every variant of the map
-/// that has a cell with that label.
-pub fn kcnav_ship_drops(kcnav: &KcnavCatalog, catalog: &MapCatalog) -> MapShipDropsAsset {
+/// The observations cannot tell a limited-time drop from a regular one — a campaign's drops
+/// are simply counted while it runs. Entries on the `limited` list are tagged so, and a
+/// tagged entry never drops.
+pub fn kcnav_ship_drops(
+    kcnav: &KcnavCatalog,
+    catalog: &MapCatalog,
+    limited: &LimitedDrops,
+) -> MapShipDropsAsset {
     let mut maps = BTreeMap::new();
     for map in catalog.maps.values() {
-        let Some(nodes) = kcnav.maps.get(&format!("{}-{}", map.maparea_id, map.mapinfo_no)) else {
+        let name = format!("{}-{}", map.maparea_id, map.mapinfo_no);
+        let Some(nodes) = kcnav.maps.get(&name) else {
             continue;
         };
         let mut variants = BTreeMap::new();
@@ -476,7 +508,11 @@ pub fn kcnav_ship_drops(kcnav: &KcnavCatalog, catalog: &MapCatalog) -> MapShipDr
                         raw_ship_name: drop.name.clone(),
                         weight: drop.weight,
                         ranks: drop.ranks.clone(),
-                        ..Default::default()
+                        tags: if limited.contains(&name, label, drop.ship_id) {
+                            vec!["limited".to_owned()]
+                        } else {
+                            Vec::new()
+                        },
                     });
                     let outcomes = (node.no_drop > 0).then_some(nothing).into_iter().chain(ships);
                     (label.clone(), outcomes.collect())
@@ -488,7 +524,8 @@ pub fn kcnav_ship_drops(kcnav: &KcnavCatalog, catalog: &MapCatalog) -> MapShipDr
     }
     MapShipDropsAsset {
         note: format!(
-            "Ship drops of the regular maps, keyed by map id, variant key and node label. {} An              entry with ship_id 0 is the outcome \"nothing drops\"; ranks lists the win ranks an              outcome was seen at.",
+            "Ship drops of the regular maps, keyed by map id, variant key and node label. {} An              entry with ship_id 0 is the outcome \"nothing drops\"; ranks lists the win ranks an              outcome was seen at. Entries listed in map_limited_drops.json are tagged limited and \
+             never drop.",
             kcnav.note
         ),
         maps,
@@ -672,5 +709,40 @@ mod tests {
         std::fs::copy(format!("{FIXTURES}/1-1/edge_2_drops.json"), map.join("edge_77_drops.json"))
             .unwrap();
         assert!(normalize_kcnav(dir.path()).unwrap_err().contains("edge 77"));
+    }
+
+    #[test]
+    fn kcnav_ship_drops_tag_the_listed_limited_drops() {
+        use emukc_model::codex::map::{MapCellDefinition, MapDefinition, MapVariantDefinition};
+
+        let variant = MapVariantDefinition {
+            cells: vec![MapCellDefinition {
+                cell_no: 2,
+                node_label: Some("B".to_owned()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let mut catalog = MapCatalog::default();
+        catalog.maps.insert(
+            11,
+            MapDefinition {
+                map_id: 11,
+                maparea_id: 1,
+                mapinfo_no: 1,
+                variants: BTreeMap::from([(String::new(), variant)]),
+                ..Default::default()
+            },
+        );
+        let limited: LimitedDrops =
+            serde_json::from_str(r#"{"maps": {"1-1": {"B": [{"ship_id": 14}]}}}"#).unwrap();
+
+        let asset = kcnav_ship_drops(&normalize_kcnav(FIXTURES).unwrap(), &catalog, &limited);
+        let drops = &asset.maps[&11][""]["B"];
+
+        assert_eq!((drops[0].ship_id, drops[0].weight), (0, 2 * 181_202));
+        let tagged = drops.iter().filter(|drop| !drop.tags.is_empty()).collect::<Vec<_>>();
+        assert_eq!(tagged.len(), 1);
+        assert_eq!((tagged[0].ship_id, tagged[0].tags[0].as_str()), (14, "limited"));
     }
 }

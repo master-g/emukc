@@ -65,9 +65,9 @@ pub mod prelude {
     pub use crate::download::download_web_assets;
     pub use crate::kcnav::{
         KcnavCatalog, KcnavDrop, KcnavEnemyFleetsAsset, KcnavFleet, KcnavNode, KcnavSyncOptions,
-        KcnavSyncStats, MapShipDropsAsset, kcnav_battle_edges, kcnav_dir, kcnav_enemy_fleets,
-        kcnav_ship_drops, normalize_kcnav, repo_kcnav_enemy_fleets_path, repo_map_ship_drops_path,
-        sync_kcnav,
+        KcnavSyncStats, LimitedDrops, MapShipDropsAsset, kcnav_battle_edges, kcnav_dir,
+        kcnav_enemy_fleets, kcnav_ship_drops, normalize_kcnav, repo_kcnav_enemy_fleets_path,
+        repo_map_ship_drops_path, sync_kcnav,
     };
     pub use crate::make_list::{
         CacheListBuildDiagnostics, CacheListComparisonReport, CacheListItem, CacheListMakeStrategy,
