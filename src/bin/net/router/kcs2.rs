@@ -27,9 +27,9 @@ async fn index(version: &str) -> Response {
     let mut context = tera::Context::new();
     context.insert("version", &version);
 
-    let mut tera = Tera::default();
+    let tera = Tera::default();
 
-    let result = tera.render_str(html, &context).unwrap();
+    let result = tera.render_str(html, &context, false).unwrap();
 
     Html(result).into_response()
 }

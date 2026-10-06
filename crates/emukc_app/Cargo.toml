@@ -11,7 +11,7 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 mimalloc = { version = "0.1.47", default-features = false }
 
 [target.'cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
-tikv-jemallocator = "0.6"
+tikv-jemallocator = "0.7"
 
 [lints]
 workspace = true

@@ -45,15 +45,15 @@ async fn home(uri: Uri, Extension(session): Extension<GameSession>) -> impl Into
     let token = session.token;
     let profile_id = session.profile.id;
 
-    let mut tera = Tera::default();
+    let tera = Tera::default();
     let mut context = tera::Context::new();
     context.insert("uid", &profile_id);
     context.insert("parent", &parent);
     context.insert("token", &token);
     let url = "/emukc/game/ifr.html?synd=dmm&container=dmm&owner={{uid}}&viewer={{uid}}&aid=854854&mid=29080258&country=jp&lang=ja&view=canvas&parent={{parent}}&st={{token}}#rpctoken=1131055973";
-    let url = tera.render_str(url, &context).unwrap();
+    let url = tera.render_str(url, &context, false).unwrap();
     context.insert("ifr_url", &url);
-    let result = tera.render_str(html, &context).unwrap();
+    let result = tera.render_str(html, &context, false).unwrap();
 
     Html(result)
 }
@@ -73,12 +73,12 @@ async fn hijack_js(uid: i64) -> impl IntoResponse {
     let raw = GameSiteAssets::get("emukc/game/js/hijack.js").unwrap();
     let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
 
-    let mut tera = Tera::default();
+    let tera = Tera::default();
     let mut context = tera::Context::new();
     context.insert("version", PKG_VERSION.as_str());
     context.insert("uid", &uid);
 
-    tera.render_str(raw, &context).unwrap()
+    tera.render_str(raw, &context, false).unwrap()
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -115,7 +115,7 @@ async fn payment_html(
     let raw = GameSiteAssets::get("emukc/game/payment.html").unwrap();
     let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
 
-    let mut tera = Tera::default();
+    let tera = Tera::default();
     let mut context = tera::Context::new();
     context.insert("payment_id", &session_data.payment_id);
     context.insert("token", &session.token);
@@ -126,7 +126,7 @@ async fn payment_html(
     context.insert("total_price", &(session_data.price * session_data.count));
     context.insert("it", &serde_json::json!({ "count": session_data.count }));
 
-    match tera.render_str(raw, &context) {
+    match tera.render_str(raw, &context, false) {
         Ok(html) => Html(html).into_response(),
         Err(e) => Html(format!("template error: {e}")).into_response(),
     }
@@ -148,10 +148,10 @@ async fn game(uri: Uri, Path(path): Path<String>, Query(query): Query<ViewerQuer
         let uid = query.viewer.unwrap_or(0);
         let raw = GameSiteAssets::get("emukc/game/ifr.html").unwrap();
         let raw = std::str::from_utf8(raw.data.as_ref()).unwrap();
-        let mut tera = Tera::default();
+        let tera = Tera::default();
         let mut context = tera::Context::new();
         context.insert("uid", &uid);
-        let result = tera.render_str(raw, &context).unwrap();
+        let result = tera.render_str(raw, &context, false).unwrap();
         return Html(result).into_response();
     }
 
