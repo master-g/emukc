@@ -182,15 +182,17 @@ KCNav（`tsunkit.net/nav`）是 TsunDB 众包出击记录的查询前端。它�
 
 ## 实施记录（2026-10-06）
 
-U1 与 U2 的代码已实施，**一次联网请求都没发过**：测试只喂 `crates/emukc_bootstrap/tests/fixtures/kcnav/`
+U1 与 U2 的代码已实施；测试只喂 `crates/emukc_bootstrap/tests/fixtures/kcnav/`
 （取自 `z/kcnav_samples/` 的 1-1 样本）。`kcnav sync --dry-run` 给出全量规模：37 张图、最多 996 次请求、
 2 秒间隔约 33 分钟。U2 里依赖真实数据的部分（再生 `map_ship_drops.json`、差集报告、阈值）与 U3–U6 未做。
 
 与上文不一致之处，以实现为准：
 
 - 下载与归一化在同一个文件 `crates/emukc_bootstrap/src/kcnav.rs`，没有拆成 `kcnav_download.rs` 与 `parser/kcnav/`。
-- 查询串取 `paramDefaults` 里所有非空的标量，去掉 `page` / `perPage`（`drops` 不带分页时一次返回全部条目）。
-  这套参数是当时验证过的那条请求的超集，**未对线上验证**；首次 `kcnav sync --map 1-1` 就是验证。
+- 查询串取 `paramDefaults` 里所有非空的标量，去掉 `page` / `perPage`，再补 `start` = `end` 的前一年。
+  1-1 烟测（2026-10-06）的结果：不带 `start` 时样本多的边（1-1 的 A、C）服务端查询超过 60 秒，返回 504；
+  一年窗口下最重的 1-1 A `drops` 17 秒返回（78 万样本），三个月 7 秒。时间窗同时回答了 Open Questions 的第一条：取最近一年。
+- `rank` 查询参数对 `drops` 无效（带 `rank=S`、`rank=B` 与不带的响应逐条相同），掉落权重只能是不分档的合计。
 - `kcnav normalize` 目前写一份中间文档 `.data/temp/kcnav.normalized.json`（按地图名和节点 label 建键，掉落与编成在同一节点下），
   还不是仓库资产。拆成 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`、登记进 `REPO_ASSETS` 等拿到全量数据后做；
   在那之前 `make kcnav-update` 末尾的 `drift-check` 不会因 KCNav 数据报告漂移。

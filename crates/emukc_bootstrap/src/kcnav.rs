@@ -84,7 +84,10 @@ pub fn kcnav_battle_edges(catalog: &MapCatalog) -> BTreeMap<String, BTreeSet<i64
 
 /// The query string the front end sends, built from the `paramDefaults` of the meta document.
 ///
-/// `drops` times out without it. Unset parameters are left out; the rest go in key order.
+/// Unset parameters are left out; the rest go in key order. `start` is unset by default, and
+/// a busy edge then takes the server over a minute and ends in a 504 (1-1 A, measured
+/// 2026-10-06; one year answers in 17 seconds). So the window is the year before `end` —
+/// which also keeps drop tables that were changed long ago out of the counts.
 pub fn kcnav_query(meta: &Value) -> Result<String, String> {
     let defaults = meta
         .pointer("/result/paramDefaults")
@@ -94,11 +97,19 @@ pub fn kcnav_query(meta: &Value) -> Result<String, String> {
         .iter()
         .filter(|(key, _)| !KCNAV_QUERY_SKIPPED.contains(&key.as_str()))
         .filter_map(|(key, value)| match value {
-            Value::String(text) if !text.is_empty() => Some((key, text.clone())),
-            Value::Number(_) | Value::Bool(_) => Some((key, value.to_string())),
+            Value::String(text) if !text.is_empty() => Some((key.as_str(), text.clone())),
+            Value::Number(_) | Value::Bool(_) => Some((key.as_str(), value.to_string())),
             _ => None,
         })
         .collect::<Vec<_>>();
+    if !pairs.iter().any(|(key, _)| *key == "start") {
+        let end = defaults.get("end").and_then(Value::as_str).unwrap_or_default();
+        let start = end
+            .split_once('-')
+            .and_then(|(year, rest)| Some(format!("{}-{rest}", year.parse::<i64>().ok()? - 1)))
+            .ok_or_else(|| format!("the KCNav meta document has no usable end date: `{end}`"))?;
+        pairs.push(("start", start));
+    }
     pairs.sort();
     Ok(pairs.into_iter().map(|(key, value)| format!("{key}={value}")).collect::<Vec<_>>().join("&"))
 }
@@ -438,9 +449,10 @@ mod tests {
         }}});
         assert_eq!(
             kcnav_query(&meta).unwrap(),
-            "end=2026-10-07&minGauge=1&retreats=true&scale=1.0"
+            "end=2026-10-07&minGauge=1&retreats=true&scale=1.0&start=2025-10-07"
         );
         assert!(kcnav_query(&serde_json::json!({"result": {}})).is_err());
+        assert!(kcnav_query(&serde_json::json!({"result": {"paramDefaults": {}}})).is_err());
     }
 
     #[test]
