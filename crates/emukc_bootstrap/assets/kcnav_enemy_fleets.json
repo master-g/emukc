@@ -23930,7 +23930,7 @@
           ]
         },
         "G": {
-          "is_boss": false,
+          "is_boss": true,
           "compositions": [
             {
               "comp_id": "kcnav:0",
@@ -25170,7 +25170,7 @@
           ]
         },
         "N": {
-          "is_boss": false,
+          "is_boss": true,
           "compositions": [
             {
               "comp_id": "kcnav:0",
@@ -37522,7 +37522,7 @@
           ]
         },
         "K": {
-          "is_boss": false,
+          "is_boss": true,
           "compositions": [
             {
               "comp_id": "kcnav:0",
@@ -38012,7 +38012,7 @@
           ]
         },
         "Q": {
-          "is_boss": false,
+          "is_boss": true,
           "compositions": [
             {
               "comp_id": "kcnav:0",

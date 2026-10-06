@@ -34,6 +34,8 @@ pub(super) struct ResolvedMapSources {
     /// Routing rules converted from the compass simulator. They replace the wikiwiki
     /// catalog's routing rules; absent when a caller supplies its own catalog.
     pub(super) route_rules: Option<CompassRouteRulesAsset>,
+    /// Recorded cell kinds; `None` leaves the topology source's guesses as they are.
+    pub(super) cell_events: Option<crate::kcnav::KcnavCellEventsAsset>,
     pub(super) kcdata_catalog: MapCatalog,
     pub(super) kcdata_parse_errors: usize,
     pub(super) public_overlay_map_count: usize,
@@ -88,6 +90,12 @@ fn load_source_set(
         wikiwiki_source,
         wikiwiki_map_count,
         wikiwiki_overlay,
+        // Loaded with the routing rules: both describe the repo's own maps, and a caller
+        // that brings its own catalog gets neither.
+        cell_events: route_rules
+            .is_some()
+            .then(crate::kcnav::load_repo_kcnav_cell_events)
+            .transpose()?,
         route_rules,
         kcdata_catalog,
         kcdata_parse_errors,

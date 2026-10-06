@@ -524,10 +524,11 @@ mod tests {
             "map_route_rules",
             "kcnav_enemy_fleets",
             "map_limited_drops",
+            "kcnav_cell_events",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 18);
+        assert_eq!(paths.len(), 19);
     }
 
     #[test]

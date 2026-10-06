@@ -37,6 +37,18 @@ pub(super) fn assemble_final_map_catalog(
         definition.normalize_p_unlock_variants();
     }
 
+    // Before anything is pinned onto cells: what a cell is decides what belongs on it.
+    if let Some(cell_events) = &sources.cell_events {
+        let corrected =
+            crate::kcnav::apply_cell_events(&mut catalog, cell_events).map_err(|errors| {
+                ParseError::Generic(format!(
+                    "recorded cell kinds do not fit the map topology:\n{}",
+                    errors.join("\n")
+                ))
+            })?;
+        tracing::info!(corrected, "map catalog: cell kinds corrected from recorded routes");
+    }
+
     let overlay_items_dropped = sources
         .wikiwiki_overlay
         .as_ref()
@@ -295,6 +307,7 @@ mod tests {
         let sources = ResolvedMapSources {
             wikiwiki_overlay: Some(wikiwiki),
             route_rules: None,
+            cell_events: None,
             public_overlay_catalog: public_overlay,
             ..sources_from_kcdata(kcdata)
         };
@@ -317,6 +330,7 @@ mod tests {
             wikiwiki_map_count: 0,
             wikiwiki_overlay: None,
             route_rules: None,
+            cell_events: None,
             kcdata_catalog: kcdata,
             kcdata_parse_errors: 0,
             public_overlay_map_count: 0,
@@ -483,6 +497,7 @@ mod tests {
         let (catalog, _report) = assemble_final_map_catalog(ResolvedMapSources {
             wikiwiki_overlay: Some(wikiwiki),
             route_rules: None,
+            cell_events: None,
             ..sources_from_kcdata(kcdata)
         })
         .unwrap();
