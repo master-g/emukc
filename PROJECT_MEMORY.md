@@ -112,9 +112,6 @@ Current verification baseline:
   字节算，`_0x` 重命名即使解码知识没变也算漂移。
 - [2026-09-21] manifest 差集结案，**不要补**：
   `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
-- [2026-09-21] `api_alignment_e2e` 的 `600..700` 过滤不是缺陷：活动图是三位数 id，
-  非活动期 codex 只有 11..75 的常规图，那个循环本来就该一条不匹配（测试注释已写明）。
-
 - [2026-09-21] `emukc_battle` 里的 `escort` 绝大多数指「旗艦援護/かばう」（旗舰护盾），
   与联合舰队的护卫舰队同名不同义。判断联合舰队相关代码要看 `combined*`，不要 grep `escort`。
 - [2026-09-22] 改修配方不需要新数据源，且已对官方验证：codex `slotitem_extra_info.improvement` 的
@@ -148,6 +145,12 @@ Current verification baseline:
   tera 2 的 `render_str` 要传 autoescape=`false` 才等同 tera 1。jemallocator 0.7 只在 BSD 编译，未实测。
   tower-http 0.7 起 `Accept-Encoding: *` 会被压缩（实测选 zstd），`*;q=0` 返回 406。
 
+- [2026-10-06] 索敌分歧形同虚设（183 条 LoS 条件比的是裸合计而非 33 式得分）：计划 2026-10-06-002。
+- [2026-10-06] KCNav 有公开 JSON 接口（掉落带样本数，编成带真实 `lvl`）：计划 2026-10-06-001 前提段，样本 `z/kcnav_samples/`。
+- [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
+- [2026-10-06] 路由规则新来源：`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支（MIT，每图一个 TS 文件；`main` 只有压缩产物）。
+  其「顺序首个命中」与我们的 priority 分组求值等价。计划 2026-10-06-003。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -158,13 +161,11 @@ Current verification baseline:
 | Seeded test RNG left thread-local entropy set → cross-test pollution. Must restore entropy after seeded runs. | git `66f8317` |
 | Cache downgraded to an older local file on version rollback instead of serving the newer local copy. | git `185c0b8` |
 | `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
-| Clippy warning triage across the workspace. | `docs/solutions/best-practices/resolve-clippy-warnings-triage-2026-05-28.md` |
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
 | [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
 | 2026-08-26 stale cache-list incident: `bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed main.js; decode and make-list then consumed stale inputs. Diagnose from `version.json` and main.js mtime, not from make-list. | session 2026-08-26 |
 | `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
-| pi-lens 每次编辑 Makefile 都重跑 shellcheck（解析不了 Make 语法）且无视 ignore glob；已在 `.shellcheckrc` 与 `.pi-lens.json` 修好，但会话缓存会重放到会话结束。 | git `b0284d1`, `83ecebb` |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `practice_battle.rs` 断言未播种战斗的 `api_win_rank`，11 个里 2 个偶发失败（09-23 实测 `..._ranked_exercise_quest` 在 main 上 40 败 5，对手在 `rng::seed` 前生成）。不是回归信号，先单独重跑。 | sessions 2026-09-18, 09-23 |
@@ -199,6 +200,6 @@ Current verification baseline:
 
 ## Next Session
 
-- [2026-10-06] 先推送 `main`。再做基地航空隊 U4（`set_action`、`change_name`、`supply`，计划 2026-09-22-001），不阻塞。
-  其后可选 1116 Deferred 首项：`start_sortie` 不查 `sally_flag`。
+- [2026-10-06] 先推送 `main`。三份计划（001 KCNav、002 索敌、003 路由规则转换器）已起草未实施未提交，
+  顺序见 002 的 Sequencing，从 003 的 U1 开始。基地航空隊 U4 与 `sally_flag` 仍在队列里。
 - 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。
