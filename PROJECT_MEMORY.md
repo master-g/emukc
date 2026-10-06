@@ -195,7 +195,7 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-07] 分支 `feat/enemy-combined-fleet`（未推送）：计划 006 做完，wikiwiki 资产链已删。
-  `cargo test --workspace --exclude emukc_time` 1184 过，clippy 17。`ec_battle` 未在浏览器客户端实测。
+  `cargo test --workspace --exclude emukc_time` 1185 过，clippy 17。`ec_battle` 未在浏览器客户端实测。
 
 ## Next Session
 

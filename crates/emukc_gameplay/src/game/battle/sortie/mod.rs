@@ -188,6 +188,60 @@ mod tests {
         assert!(take_day_battle_result(&store, 42).is_none());
     }
 
+    /// Settlement reads `packet.enemy_nowhps` after the night battle, so it has
+    /// to hold HP as the night ended. The night packet itself reports HP as the
+    /// night began — taking that over wholesale once hid every night kill.
+    #[test]
+    fn night_damage_reaches_the_session_enemy_hp() {
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        codex.game_cfg.god_mode = false;
+        codex.game_cfg.one_hit_kill = false;
+        let store = crate::game::sortie_store::SortieStore::new();
+        let mut rng = super::super::rng::ProductionRng;
+
+        // A day battle in which nobody can hurt anybody much.
+        let mut friend = sample_ship(&codex, 412, 99);
+        friend.ship.api_karyoku[0] = 0;
+        friend.ship.api_raisou[0] = 0;
+        friend.ship.api_soukou[0] = 500;
+        let mut enemy = sample_ship(&codex, 412, 99);
+        enemy.ship.api_karyoku[0] = 0;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 500;
+        enemy.ship.api_nowhp = 900;
+        enemy.ship.api_maxhp = 900;
+        let simulation = execute_day(
+            &codex,
+            BattleContext {
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![friend; 6],
+                enemy_ships: vec![enemy],
+                enemy_escort_ships: Vec::new(),
+                combined: None,
+            },
+            &mut rng,
+        );
+        let mut session = build_sortie_session(42, 1, 11, 3, simulation);
+        assert!(session.enemy[0].is_alive());
+
+        // Then a night in which six ships cannot all miss an unarmoured target.
+        for ship in &mut session.friendly {
+            ship.ship.api_karyoku[0] = 300;
+        }
+        session.enemy[0].ship.api_soukou[0] = 0;
+        session.enemy[0].ship.api_kaihi[0] = 0;
+        let (session, night) = run_night_battle(&store, &codex, session, &mut rng);
+
+        let entry_hp = night.packet.enemy_nowhps[0];
+        let final_hp = session.enemy[0].hp().max(0);
+        assert!(final_hp < entry_hp, "the night dealt no damage: {entry_hp} -> {final_hp}");
+        assert_eq!(session.packet.enemy_nowhps, vec![final_hp]);
+    }
+
     /// The deck boundary comes from the ships' own tags: a single fleet has no
     /// escort segment and fights at night whole, a combined one sends 第2艦隊.
     #[test]
