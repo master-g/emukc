@@ -1,6 +1,7 @@
 use emukc_battle::{
     BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip, BattleSimulation,
-    NightBattlePacket, NightBattleSimulation,
+    CombinedFleetRole, NightBattlePacket, NightBattleSimulation, any_alive, calculate_win_rank,
+    night_enemy_deck,
 };
 
 pub(crate) mod orchestrate;
@@ -56,19 +57,47 @@ impl SortieBattleSession {
         &self.friendly[self.night_start()..]
     }
 
-    /// Take in a night battle fought by [`night_fleet`](Self::night_fleet).
+    /// Where the escort fleet begins in `enemy`, or `None` for an enemy single
+    /// fleet. Read off the ships' own deck tags, like the friendly boundary.
+    pub fn enemy_escort_start(&self) -> Option<usize> {
+        self.enemy.iter().position(BattleRuntimeShip::is_escort_deck)
+    }
+
+    /// The part of `enemy` a night battle is fought against: the whole fleet,
+    /// or one deck of a combined fleet, picked by the escort fleet's condition.
+    pub fn night_enemy(&self) -> std::ops::Range<usize> {
+        let Some(start) = self.enemy_escort_start() else {
+            return 0..self.enemy.len();
+        };
+        let escort_hps: Vec<(i64, i64)> =
+            self.enemy[start..].iter().map(|ship| (ship.hp(), ship.ship.api_maxhp)).collect();
+        match night_enemy_deck(&escort_hps, any_alive(&self.enemy[..start])) {
+            CombinedFleetRole::Main => 0..start,
+            CombinedFleetRole::Escort => start..self.enemy.len(),
+        }
+    }
+
+    /// Take in a night battle fought by [`night_fleet`](Self::night_fleet)
+    /// against `enemy[fought]`.
     ///
     /// `friendly` and `packet.friendly_nowhps` stay one contiguous vector, 第1艦隊
-    /// first and untouched, with the night fleet's state after it.
-    pub fn absorb_night(&mut self, night: &NightBattleSimulation) {
+    /// first and untouched, with the night fleet's state after it. The enemy
+    /// likewise keeps the deck that sat the night out, and the outcome is
+    /// rescored over all of it.
+    pub fn absorb_night(&mut self, night: &NightBattleSimulation, fought: std::ops::Range<usize>) {
         let kept = self.night_start();
         self.friendly.truncate(kept);
         self.friendly.extend(night.friendly.iter().cloned());
-        self.enemy = night.enemy.clone();
+        self.enemy.splice(fought, night.enemy.iter().cloned());
         self.outcome = night.outcome.clone();
+        if self.enemy_escort_start().is_some() {
+            self.outcome.win_rank = calculate_win_rank(&self.friendly, &self.enemy);
+        }
         self.packet.friendly_nowhps.truncate(kept);
         self.packet.friendly_nowhps.extend(night.packet.friendly_nowhps.iter().copied());
-        self.packet.enemy_nowhps = night.packet.enemy_nowhps.clone();
+        // The night packet reports HP as the night began; settlement needs it
+        // as the night ended.
+        self.packet.enemy_nowhps = self.enemy.iter().map(|ship| ship.hp().max(0)).collect();
         self.packet.midnight_flag = 0;
     }
 }
@@ -79,6 +108,8 @@ pub struct SortieNightBattleSession {
     pub profile_id: i64,
     pub packet: NightBattlePacket,
     pub outcome: BattleOutcome,
+    /// Which deck of an enemy combined fleet fought; `None` for a single fleet.
+    pub enemy_deck: Option<CombinedFleetRole>,
 }
 
 pub(crate) fn build_sortie_session(
@@ -140,6 +171,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 friend_ships: vec![sample_ship(&codex, 89, 99)],
                 enemy_ships: vec![sample_ship(&codex, 412, 99)],
+                enemy_escort_ships: Vec::new(),
                 combined: None,
             },
             &mut rng,
@@ -180,6 +212,7 @@ mod tests {
                     engagement: EngagementType::SameCourse,
                     friend_ships: vec![sample_ship(&codex, 89, 99); 2],
                     enemy_ships: vec![sample_ship(&codex, 412, 99)],
+                    enemy_escort_ships: Vec::new(),
                     combined,
                 },
                 &mut super::super::rng::ProductionRng,

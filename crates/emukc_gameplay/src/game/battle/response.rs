@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use emukc_battle::{
     BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattlePacket,
-    BattleRaigeki, BattleRuntimeShip, BattleShipInput, NightBattlePacket,
+    BattleRaigeki, BattleRuntimeShip, BattleShipInput, CombinedFleetRole, NightBattlePacket,
 };
 use emukc_model::kc2::{KcApiShip, KcApiSlotItem};
 
@@ -33,6 +33,19 @@ pub struct DayBattleResponse {
     pub api_e_maxhps: Vec<i64>,
     pub api_eSlot: Vec<[i64; 5]>,
     pub api_eParam: Vec<[i64; 4]>,
+    /// The escort fleet's half of the enemy arrays, absent for a single fleet.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_ship_ke_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_ship_lv_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_e_nowhps_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_e_maxhps_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_eSlot_combined: Option<Vec<[i64; 5]>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_eParam_combined: Option<Vec<[i64; 4]>>,
     pub api_e_effect_list: Vec<Vec<i64>>,
     pub api_smoke_type: i64,
     pub api_balloon_cell: i64,
@@ -81,6 +94,24 @@ pub struct NightBattleResponse {
     pub api_e_maxhps: Vec<i64>,
     pub api_eSlot: Vec<[i64; 5]>,
     pub api_eParam: Vec<[i64; 4]>,
+    /// The escort fleet's half of the enemy arrays, absent for a single fleet.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_ship_ke_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_ship_lv_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_e_nowhps_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_e_maxhps_combined: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_eSlot_combined: Option<Vec<[i64; 5]>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_eParam_combined: Option<Vec<[i64; 4]>>,
+    /// Which deck of each side fights, `[friendly, enemy]`, 1 = main and
+    /// 2 = escort. Sent only against an enemy combined fleet, where the client
+    /// would otherwise assume the escort fleet.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_active_deck: Option<[i64; 2]>,
     pub api_smoke_type: i64,
     pub api_balloon_cell: i64,
     pub api_atoll_cell: i64,
@@ -104,6 +135,25 @@ impl DayBattleResponse {
             Some(escort.iter().map(|ship| ship_params(&ship.ship)).collect());
         self
     }
+
+    /// Attach the escort fleet of an enemy combined fleet to a response whose
+    /// enemy arrays hold its main fleet.
+    ///
+    /// The client reads the enemy the way it reads a friendly combined fleet:
+    /// `_getNum(index, "api_ship_ke", "api_ship_ke_combined")` takes indices
+    /// from 6 up out of the second array.
+    #[must_use]
+    pub fn with_enemy_escort(mut self, escort: &[BattleShipInput]) -> Self {
+        self.api_ship_ke_combined = Some(escort.iter().map(|ship| ship.ship.api_ship_id).collect());
+        self.api_ship_lv_combined = Some(escort.iter().map(|ship| ship.ship.api_lv).collect());
+        self.api_e_nowhps_combined = Some(escort.iter().map(|ship| ship.ship.api_nowhp).collect());
+        self.api_e_maxhps_combined = Some(escort.iter().map(|ship| ship.ship.api_maxhp).collect());
+        self.api_eSlot_combined =
+            Some(escort.iter().map(|ship| enemy_slot_ids(&ship.ship, &ship.slot_items)).collect());
+        self.api_eParam_combined =
+            Some(escort.iter().map(|ship| ship_params(&ship.ship)).collect());
+        self
+    }
 }
 
 impl NightBattleResponse {
@@ -122,6 +172,51 @@ impl NightBattleResponse {
         self.api_f_nowhps = main.iter().map(|ship| ship.hp().max(0)).collect();
         self.api_f_maxhps = main.iter().map(|ship| ship.ship.api_maxhp).collect();
         self.api_fParam = main.iter().map(|ship| ship_params(&ship.ship)).collect();
+        self
+    }
+
+    /// Lay out both decks of an enemy combined fleet in a response whose enemy
+    /// arrays hold only the deck that fought.
+    ///
+    /// The deck that sat the night out is reported at the HP it holds; the one
+    /// that fought keeps the packet's HP, which is as the night began.
+    #[must_use]
+    pub fn with_enemy_decks(
+        mut self,
+        main: &[BattleRuntimeShip],
+        escort: &[BattleRuntimeShip],
+        fought: CombinedFleetRole,
+    ) -> Self {
+        let now = |deck: &[BattleRuntimeShip]| deck.iter().map(|s| s.hp().max(0)).collect();
+        let max = |deck: &[BattleRuntimeShip]| deck.iter().map(|s| s.ship.api_maxhp).collect();
+        let (main_hps, escort_hps): ((Vec<i64>, Vec<i64>), (Vec<i64>, Vec<i64>)) = {
+            let fought_hps =
+                (std::mem::take(&mut self.api_e_nowhps), std::mem::take(&mut self.api_e_maxhps));
+            match fought {
+                CombinedFleetRole::Main => (fought_hps, (now(escort), max(escort))),
+                CombinedFleetRole::Escort => ((now(main), max(main)), fought_hps),
+            }
+        };
+        let ids = |deck: &[BattleRuntimeShip]| deck.iter().map(|s| s.ship.api_ship_id).collect();
+        let lvs = |deck: &[BattleRuntimeShip]| deck.iter().map(|s| s.ship.api_lv).collect();
+        let slots = |deck: &[BattleRuntimeShip]| {
+            deck.iter().map(|s| enemy_slot_ids(&s.ship, &s.slot_items)).collect()
+        };
+        let params =
+            |deck: &[BattleRuntimeShip]| deck.iter().map(|s| ship_params(&s.ship)).collect();
+
+        self.api_ship_ke = ids(main);
+        self.api_ship_lv = lvs(main);
+        (self.api_e_nowhps, self.api_e_maxhps) = main_hps;
+        self.api_eSlot = slots(main);
+        self.api_eParam = params(main);
+        self.api_ship_ke_combined = Some(ids(escort));
+        self.api_ship_lv_combined = Some(lvs(escort));
+        self.api_e_nowhps_combined = Some(escort_hps.0);
+        self.api_e_maxhps_combined = Some(escort_hps.1);
+        self.api_eSlot_combined = Some(slots(escort));
+        self.api_eParam_combined = Some(params(escort));
+        self.api_active_deck = Some([1, 1 + i64::from(fought == CombinedFleetRole::Escort)]);
         self
     }
 }
@@ -175,6 +270,12 @@ pub fn build_day_response(
         api_e_maxhps: enemy.iter().map(|ship| ship.ship.api_maxhp).collect(),
         api_eSlot: enemy.iter().map(|ship| enemy_slot_ids(&ship.ship, &ship.slot_items)).collect(),
         api_eParam: enemy.iter().map(|ship| ship_params(&ship.ship)).collect(),
+        api_ship_ke_combined: None,
+        api_ship_lv_combined: None,
+        api_e_nowhps_combined: None,
+        api_e_maxhps_combined: None,
+        api_eSlot_combined: None,
+        api_eParam_combined: None,
         api_e_effect_list: enemy
             .iter()
             .map(|ship| {
@@ -228,6 +329,13 @@ pub fn build_night_response(
         api_e_maxhps: packet.enemy_maxhps,
         api_eSlot: enemy.iter().map(|ship| enemy_slot_ids(&ship.ship, &ship.slot_items)).collect(),
         api_eParam: enemy.iter().map(|ship| ship_params(&ship.ship)).collect(),
+        api_ship_ke_combined: None,
+        api_ship_lv_combined: None,
+        api_e_nowhps_combined: None,
+        api_e_maxhps_combined: None,
+        api_eSlot_combined: None,
+        api_eParam_combined: None,
+        api_active_deck: None,
         api_smoke_type: 0,
         api_balloon_cell: 0,
         api_atoll_cell: 0,
@@ -488,6 +596,7 @@ mod combined_tests {
             engagement: EngagementType::SameCourse,
             friend_ships: main.clone(),
             enemy_ships: enemy.clone(),
+            enemy_escort_ships: Vec::new(),
             combined: Some(CombinedSetup {
                 combined_type,
                 escort_ships: escort.clone(),

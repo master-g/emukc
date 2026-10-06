@@ -16,7 +16,7 @@ mod tests {
         for (map_id, map) in maps.iter().filter(|(_, m)| !m.is_event) {
             for (key, variant) in &map.variants {
                 let boss = variant.cells.iter().find(|c| c.cell_no == variant.boss_cell_no);
-                if boss.is_none_or(|c| c.event_kind != 1) {
+                if boss.is_none_or(|c| !matches!(c.event_kind, 1 | 5)) {
                     continue;
                 }
                 let has_comps = variant

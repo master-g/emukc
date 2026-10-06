@@ -51,6 +51,9 @@ pub(crate) struct BattleState {
 
     /// `None` for an ordinary single-fleet battle.
     combined: Option<CombinedLayout>,
+    /// Where the escort fleet begins in `enemy`, laid out the way
+    /// [`CombinedLayout`] lays out `friendly`; `None` for an enemy single fleet.
+    enemy_escort_start: Option<usize>,
 
     stage_flag: [i64; 3],
     hourai_flag: [i64; 4],
@@ -91,11 +94,23 @@ impl BattleState {
                 escort_start,
             }
         });
-        let enemy = context
+        let mut enemy = context
             .enemy_ships
             .into_iter()
             .map(|s| BattleRuntimeShip::new(s, false, is_sortie))
             .collect::<Vec<_>>();
+        // Same shape as the friendly side above, and the same guarantee: with
+        // no escort fleet nothing is tagged and the vector is what it was.
+        let enemy_escort_start = (!context.enemy_escort_ships.is_empty()).then(|| {
+            for ship in &mut enemy {
+                ship.enemy_deck = Some(CombinedFleetRole::Main);
+            }
+            let escort_start = enemy.len();
+            enemy.extend(context.enemy_escort_ships.into_iter().map(|s| {
+                BattleRuntimeShip::new(s, false, is_sortie).in_enemy_deck(CombinedFleetRole::Escort)
+            }));
+            escort_start
+        });
 
         Self {
             friendly,
@@ -112,6 +127,7 @@ impl BattleState {
             hougeki3: None,
             raigeki: None,
             combined,
+            enemy_escort_start,
             stage_flag: [0, 0, 0],
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
@@ -144,6 +160,7 @@ impl BattleState {
             hougeki3: None,
             raigeki: None,
             combined: None,
+            enemy_escort_start: None,
             stage_flag: [0, 0, 0],
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
@@ -172,6 +189,12 @@ impl BattleState {
     /// The combined-fleet layout, or `None` in an ordinary single-fleet battle.
     pub(crate) fn combined(&self) -> Option<CombinedLayout> {
         self.combined
+    }
+
+    /// Where the enemy escort fleet begins in `enemy`, or `None` when the enemy
+    /// is a single fleet.
+    pub(crate) fn enemy_escort_start(&self) -> Option<usize> {
+        self.enemy_escort_start
     }
 
     // -- Setters (for phase functions to write outputs) --
@@ -279,6 +302,14 @@ impl BattleState {
             );
         }
 
+        if let Some(escort_start) = self.enemy_escort_start {
+            crate::combined_packet::remap_day_packet_enemy(
+                &mut packet,
+                escort_start,
+                self.friendly.len(),
+            );
+        }
+
         let outcome = BattleOutcome {
             win_rank: calculate_win_rank(&self.friendly, &self.enemy),
             mvp: calculate_mvp(&self.friendly),
@@ -331,6 +362,11 @@ impl BattleState {
         // no caller has to declare it.
         if self.friendly.first().is_some_and(BattleRuntimeShip::is_escort_deck) {
             crate::combined_packet::remap_night_packet(&mut packet);
+        }
+        // Likewise for the enemy: against a combined fleet only one of its
+        // decks fights at night, and the escort fleet is read from 6..=11.
+        if self.enemy.first().is_some_and(BattleRuntimeShip::is_escort_deck) {
+            crate::combined_packet::remap_night_packet_enemy(&mut packet);
         }
 
         NightBattleSimulation {

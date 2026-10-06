@@ -755,9 +755,6 @@ pub fn kcnav_enemy_fleets(
                             .chain(&fleet.escort_ship_ids)
                             .all(|id| known_ship(*id))
                     })
-                    // ponytail: combined fleets are held back until `ec_battle` can field them
-                    // (plan 2026-10-06-006 U3); drop this filter then.
-                    .filter(|fleet| fleet.escort_ship_ids.is_empty())
                     .enumerate()
                     .map(|(index, fleet)| EnemyComposition {
                         comp_id: format!("kcnav:{index}"),

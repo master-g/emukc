@@ -173,6 +173,11 @@ pub(crate) fn simulate_raigeki(
     }
 
     for (idx, ship) in enemy.iter_mut().enumerate() {
+        // Of an enemy combined fleet only the escort fleet closes with
+        // torpedoes. No-op for an enemy single fleet, whose ships have no deck.
+        if ship.is_main_deck() {
+            continue;
+        }
         if !can_closing_torpedo_ship(codex, ship) {
             continue;
         }

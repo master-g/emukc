@@ -59,6 +59,8 @@ pub(super) fn assemble_final_map_catalog(
         apply_route_rules_catalog(&mut catalog, route_rules)?;
     }
 
+    mark_enemy_combined_cells(&mut catalog);
+
     let output_map_count = catalog.maps.len();
 
     // Topology validation — warn during bootstrap, not at runtime codex load.
@@ -102,6 +104,28 @@ pub(super) fn assemble_final_map_catalog(
             topology_warnings,
         },
     ))
+}
+
+/// A cell whose every recorded enemy composition is a combined fleet gets event kind 5,
+/// which is what makes the client request `ec_battle` there (`map_info.isVS12()`).
+///
+/// The captured start responses carry the kind for one cell per node at best, and the
+/// recorded routes carry none, so the fleets themselves are the only complete witness.
+fn mark_enemy_combined_cells(catalog: &mut MapCatalog) {
+    for definition in catalog.maps.values_mut() {
+        for variant in definition.variants.values_mut() {
+            for (cell_no, fleet) in &variant.enemy_fleets {
+                let combined = !fleet.compositions.is_empty()
+                    && fleet.compositions.iter().all(|comp| !comp.escort_ship_ids.is_empty());
+                if !combined {
+                    continue;
+                }
+                if let Some(cell) = variant.cells.iter_mut().find(|c| c.cell_no == *cell_no) {
+                    cell.event_kind = 5;
+                }
+            }
+        }
+    }
 }
 
 /// Pin the converted routing rules onto every map the catalog has. A rule the topology

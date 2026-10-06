@@ -176,9 +176,111 @@ pub const fn combined_correction_vs_single(
     }
 }
 
+/// Additive combined-fleet correction for 味方通常艦隊 vs 敵連合艦隊.
+///
+/// `enemy_role` is the enemy deck taking part in the attack, on whichever end
+/// of it. Same placement as [`combined_correction_vs_single`], same exclusions
+/// (daytime ASW and night battle take none).
+pub const fn combined_correction_vs_enemy_combined(
+    class: CombinedAttackClass,
+    enemy_role: CombinedFleetRole,
+    attacker_is_friendly: bool,
+) -> i64 {
+    match (class, attacker_is_friendly, enemy_role) {
+        (CombinedAttackClass::Shelling, true, _) => 5,
+        (CombinedAttackClass::Torpedo, _, _)
+        | (CombinedAttackClass::Shelling, false, CombinedFleetRole::Main) => 10,
+        (CombinedAttackClass::Shelling, false, CombinedFleetRole::Escort) => -5,
+        (CombinedAttackClass::AntiAir, true, CombinedFleetRole::Main) => -10,
+        (CombinedAttackClass::AntiAir, true, CombinedFleetRole::Escort) => -20,
+        (CombinedAttackClass::Asw, _, _) | (CombinedAttackClass::AntiAir, false, _) => 0,
+    }
+}
+
+/// Which enemy deck a night battle is fought against, given the escort fleet's
+/// HP as `(now, max)` pairs, flagship first, and whether the main fleet still
+/// has a ship afloat.
+///
+/// `docs/battle/combined-fleet-reference.md` §Night battle opponent selection:
+/// the escort flagship alive scores 1, and every escort ship scores 1 at 小破 or
+/// better, 0.7 at 中破 and 0 at 大破 or sunk. Three points or more means the
+/// escort fleet; a wiped-out main fleet means the escort fleet regardless.
+pub fn night_enemy_deck(escort_hps: &[(i64, i64)], main_alive: bool) -> CombinedFleetRole {
+    if !main_alive {
+        return CombinedFleetRole::Escort;
+    }
+    // Tenths, so the 3-point threshold is an exact integer comparison.
+    let flagship = escort_hps.first().map_or(0, |&(now, _)| {
+        if now > 0 {
+            10
+        } else {
+            0
+        }
+    });
+    let ships: i64 = escort_hps
+        .iter()
+        .map(|&(now, max)| {
+            if now * 2 > max {
+                10
+            } else if now * 4 > max {
+                7
+            } else {
+                0
+            }
+        })
+        .sum();
+    if flagship + ships >= 30 {
+        CombinedFleetRole::Escort
+    } else {
+        CombinedFleetRole::Main
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every cell of the 味方通常・敵連合 table.
+    #[test]
+    fn enemy_combined_correction_table_matches_reference() {
+        use CombinedAttackClass::{AntiAir, Asw, Shelling, Torpedo};
+        use CombinedFleetRole::{Escort, Main};
+
+        let expected = [
+            (Shelling, Main, true, 5),
+            (Shelling, Escort, true, 5),
+            (Shelling, Main, false, 10),
+            (Shelling, Escort, false, -5),
+            (Torpedo, Main, true, 10),
+            (Torpedo, Escort, false, 10),
+            (AntiAir, Main, true, -10),
+            (AntiAir, Escort, true, -20),
+            (AntiAir, Main, false, 0),
+            (Asw, Escort, true, 0),
+        ];
+        for (class, role, friendly, want) in expected {
+            assert_eq!(
+                combined_correction_vs_enemy_combined(class, role, friendly),
+                want,
+                "{class:?} {role:?} friendly={friendly}"
+            );
+        }
+    }
+
+    #[test]
+    fn night_opponent_follows_the_escort_score() {
+        use CombinedFleetRole::{Escort, Main};
+
+        // Flagship alive (1) + two healthy ships (2) = 3.
+        assert_eq!(night_enemy_deck(&[(10, 10), (10, 10), (0, 10)], true), Escort);
+        // Flagship alive but 中破 (1 + 0.7) + one healthy (1) = 2.7.
+        assert_eq!(night_enemy_deck(&[(5, 10), (10, 10), (2, 10)], true), Main);
+        // Flagship sunk: three healthy ships still reach 3.
+        assert_eq!(night_enemy_deck(&[(0, 10), (10, 10), (10, 10), (10, 10)], true), Escort);
+        assert_eq!(night_enemy_deck(&[(0, 10), (10, 10), (10, 10)], true), Main);
+        // A wiped-out main fleet overrides the score.
+        assert_eq!(night_enemy_deck(&[(0, 10), (1, 10)], false), Escort);
+    }
 
     #[test]
     fn combined_type_round_trips_through_api_id() {

@@ -168,6 +168,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
                 engagement: EngagementType::SameCourse,
                 friend_ships: main.clone(),
                 enemy_ships: enemy.clone(),
+                enemy_escort_ships: Vec::new(),
                 combined: Some(CombinedSetup {
                     combined_type: CombinedType::CarrierTaskForce,
                     escort_ships: escort.clone(),
@@ -1817,7 +1818,10 @@ async fn combined_sortie_battle_rejects_an_empty_escort_deck() {
 async fn sortie_sp_midnight_battle_rejects_non_battle_cell_like_sortie_battle() {
     let (context, pid) = guard_context().await;
     let store = context.sortie_store.as_ref();
-    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind != 1));
+    let _ = store.insert_active(
+        pid,
+        active_sortie_on_cell(&context.codex, |c| !matches!(c.event_kind, 1 | 5)),
+    );
 
     let day = context.sortie_battle(pid, 1).await.unwrap_err();
     let night = context.sortie_sp_midnight_battle(pid, 1).await.unwrap_err();
@@ -1909,4 +1913,128 @@ async fn enemies_sunk_at_night_reach_the_quest_outcomes() {
         .collect();
     assert_eq!(sunk, vec![7], "night-only sink must still report EnemyShipSunk");
     assert_eq!(settlement.dests, 1);
+}
+
+/// 6-5 の M is an enemy combined fleet: the client asks for `ec_battle` there,
+/// then `ec_midnight_battle`, then the combined `battleresult`.
+///
+/// `god_mode` keeps the lone destroyer alive, so twelve enemies are certain to
+/// outlast the day and the night battle always happens. Set `EMUKC_DUMP_DIR` to
+/// have the two responses written out for `battle validate`.
+#[tokio::test]
+async fn enemy_combined_boss_runs_day_night_and_result() {
+    let db = new_mem_db().await.unwrap();
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    codex.game_cfg.god_mode = true;
+    codex.game_cfg.one_hit_kill = false;
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("ec-boss", "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, "ec-boss").await.unwrap();
+    let pid = context
+        .start_game(&account.access_token.token, profile.profile.id)
+        .await
+        .unwrap()
+        .profile
+        .id;
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    let definition = context.codex.maps.map_definition(65).unwrap();
+    let stage = definition.stage(&definition.default_variant).unwrap();
+    let boss = stage.cell(18).unwrap();
+    assert_eq!(boss.event_kind, 5, "6-5 M must send the client to ec_battle");
+    assert_eq!(stage.cell(13).unwrap().event_kind, 5, "both cells of M are the same node");
+    let store = context.sortie_store.as_ref();
+    let _ = store.insert_active(
+        pid,
+        ActiveSortieState {
+            deck_id: 1,
+            map_id: 65,
+            map_name: definition.name.clone(),
+            map_level: definition.level,
+            stage_id: definition.default_variant.clone(),
+            current_cell_id: boss.cell_no,
+            boss_cell_id: stage.boss_cell_no,
+            pending_battle_cell_id: None,
+            visited_cell_ids: BTreeSet::from([boss.cell_no]),
+            locked_enemy_composition: None,
+        },
+    );
+
+    let wrong = context.sortie_battle(pid, 1).await.unwrap_err();
+    assert!(matches!(wrong, GameplayError::WrongType(_)), "{wrong:?}");
+
+    let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+    let dump = |name: &str, value: &serde_json::Value| {
+        if let Ok(dir) = std::env::var("EMUKC_DUMP_DIR") {
+            std::fs::write(format!("{dir}/{name}.json"), value.to_string()).unwrap();
+        }
+    };
+    // Every enemy index a shelling payload mentions, on either end of an attack.
+    let enemy_indices = |hougeki: &serde_json::Value| -> Vec<i64> {
+        let eflags = hougeki["api_at_eflag"].as_array().cloned().unwrap_or_default();
+        eflags
+            .iter()
+            .enumerate()
+            .flat_map(|(entry, eflag)| {
+                if eflag == 1 {
+                    vec![hougeki["api_at_list"][entry].as_i64().unwrap()]
+                } else {
+                    hougeki["api_df_list"][entry]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|d| d.as_i64().unwrap())
+                        .collect()
+                }
+            })
+            .collect()
+    };
+
+    let day = serde_json::to_value(context.sortie_ec_battle(pid, 1).await.unwrap()).unwrap();
+    dump("ec_battle", &day);
+    assert_eq!(day["api_ship_ke"].as_array().unwrap().len(), 6);
+    assert_eq!(day["api_ship_ke_combined"].as_array().unwrap().len(), 6);
+    assert!(day["api_e_maxhps_combined"][0].as_i64().unwrap() > 0, "client's isCombinedEnemy");
+    assert_eq!(day["api_formation"][1], 13);
+    let escort_round = enemy_indices(&day["api_hougeki1"]);
+    assert!(!escort_round.is_empty() && escort_round.iter().all(|i| (6..12).contains(i)));
+    let main_round = enemy_indices(&day["api_hougeki2"]);
+    assert!(!main_round.is_empty() && main_round.iter().all(|i| (0..6).contains(i)));
+    assert_eq!(day["api_midnight_flag"], 1);
+    let report = emukc_bootstrap::prelude::validate_day_battle_response(
+        &context.codex.manifest,
+        &day,
+        &assets,
+    )
+    .unwrap();
+    assert!(!report.has_errors(), "day findings: {:?}", report.findings);
+
+    let night = serde_json::to_value(context.sortie_midnight_battle(pid).await.unwrap()).unwrap();
+    dump("ec_midnight_battle", &night);
+    assert_eq!(night["api_ship_ke"].as_array().unwrap().len(), 6);
+    assert_eq!(night["api_ship_ke_combined"].as_array().unwrap().len(), 6);
+    assert_eq!(night["api_e_nowhps_combined"].as_array().unwrap().len(), 6);
+    let active_enemy = night["api_active_deck"][1].as_i64().unwrap();
+    assert_eq!(night["api_active_deck"][0], 1);
+    let fought = if active_enemy == 2 {
+        6..12
+    } else {
+        0..6
+    };
+    let night_round = enemy_indices(&night["api_hougeki"]);
+    assert!(
+        !night_round.is_empty() && night_round.iter().all(|i| fought.contains(i)),
+        "active deck {active_enemy}, indices {night_round:?}"
+    );
+    let report = emukc_bootstrap::prelude::validate_night_battle_response(
+        &context.codex.manifest,
+        &night,
+        &assets,
+    )
+    .unwrap();
+    assert!(!report.has_errors(), "night findings: {:?}", report.findings);
+
+    let result = context.sortie_battle_result(pid).await.unwrap();
+    assert_eq!(result.api_ship_id.len(), 12, "both enemy decks are reported");
 }
