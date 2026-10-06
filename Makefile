@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -89,6 +89,9 @@ route-rules-update: route-rules-sync ## 从钉住的源码再生路由规则资�
 	cd main-decoder && bun run route-rules
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- route-rules normalize
 	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+
+route-oracle: ## 用来源代码对拍已转换的路由规则 (需先 route-rules-update 并重建 codex), 报告写到 .data/temp
+	cd main-decoder && bun run route-oracle
 
 cache-make-list: ## 生成缓存资源清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
