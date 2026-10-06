@@ -139,6 +139,12 @@ execution: code
 - `docs/map/data-dependencies.md` 补一句索敌得分的算法出处。
 - `PROJECT_MEMORY.md` 回写，删掉「索敌分歧形同虚设」那条。
 
+## 实施记录（2026-10-06）
+
+U1–U3 已实施。U1 与计划 003 的 U4 同一次提交。U2 的对数结果（两支真实舰队、四个系数下与参考实现差值均为 0.00）
+写在 `docs/solutions/logic-errors/los-routing-compared-raw-sum-2026-10-06.md`；对数用的是按本公式写的一次性脚本，
+Rust 实现由 `fleet_los_terms_follow_formula_33` 固定同一张系数表。两支舰队都没有带装备ボーナス的装备，KD6 的差异项未被触发。
+
 ## Sequencing
 
 三份计划合起来的顺序（每一步都能独立通过质量门）：

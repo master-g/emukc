@@ -245,6 +245,31 @@ execution: code
   删掉 skill 列表里的 wikiwiki 抓取项。
 - `PROJECT_MEMORY.md` 回写。
 
+## 实施记录（2026-10-06）
+
+U1–U5 已实施并提交；U6（wikiwiki 数据链退役）与 U7 中依赖它的部分未做，等计划 `2026-10-06-001` 的 U4。
+
+结果：37 张图全部转换，资产 1313 条规则，`Unknown` 0 条，222 条 LoS 谓词全部带系数；组装进 codex 后 1800 条
+（旧 2144 条），带概率的 830 条（旧 259 条）。`make route-oracle`：99,607 组舰队，来源与路由差异 0、来源与中间文档
+差异 0，规则覆盖 1016 / 1037。同一 SHA 连续两次 `make route-rules-update` 资产哈希相同。
+
+与上文不一致之处，以实现为准：
+
+- **计数条件一律落成新的 `RoutePredicate::CountSum`**（带系数的 `RouteCounter` 求和），没有去套 `ShipTypeCount`、
+  `OnlyShipTypes` 等既有谓词。来源里有 40 处跨类别的算术（`BBs - SBB_count >= 2`、`CA + CL + Ds === ships_length`），
+  逐形状识别等于在猜。U3 第 3 步说的「模型里没有对应物的只有两项」不成立；`arBulge_carrier_count` 与 `fleet_type`
+  在常规图里只被解构、没被任何条件用到，无需折叠。
+- **舰名、装备名在 TS 侧就解析成 id**（来源自带舰船表与装备表，841 艘与本地 manifest 逐个对上），Rust 侧只映射舰种名。
+  電探搭载按来源装备表的 id 列出，因为它把 大型電探(II) 归在 大型電探 下，与游戏的装备类别不是一回事。
+- 解析器另外支持了一种前提里漏掉的写法：4-2 在节点 `case` 内嵌套的 `switch (Ds)`。
+- 解析器与对拍各是 `main-decoder/src/` 下的一个文件（`route-rules.ts`、`route-oracle.ts`），没有建子目录。
+- 分布命令是 `route-rules dist`，不是 `map route-dist`。
+- 对拍的舰队是固定种子的随机生成加按规则定向补样，不是纯枚举；多跑了一路「中间文档 vs 来源」，用来区分解析器的错与
+  归一化 / 路由的错。
+- U4 的新旧差异报告只做了汇总统计（见上），没有逐格列出；逐格的正确性由 U5 对拍承担。
+- 新增 `bootstrap --codex-only`（不联网重建 codex）与 `THIRD_PARTY_NOTICES.md`。
+- 5-6 取最后一个阶段（阶段 3）；我们没有按血条阶段切换 5-6 拓扑的机制，阶段 1、2 的规则未使用。
+
 ## Sequencing
 
 U1 → U2 → U3 → U4 是主线。U5 等计划 002；U6 等 U5 与计划 001 的 U4。

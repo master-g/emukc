@@ -20,8 +20,8 @@ tags: [map, data-source, provenance, ssot]
 | --- | --- | --- | --- |
 | 拓扑（格子、连线、格子类型） | `kc_data` + `stat.json` | 下载 | ✅ 已被 `edges.json` 独立确认 |
 | 真实起点抓包 | `assets/real_map_start_data/*.json` | 人工抓包 | ⚠️ 需真实账号 |
-| 路由规则 | `assets/wikiwiki_map_catalog.json` | agent skill | ⚠️ 见下 |
-| 敌方编成（哪些格子出什么舰队） | 同上，一个文件 | 同上 | ⚠️ 同上 |
+| 路由规则 | `assets/map_route_rules.json` | `make route-rules-update`（羅針盤シミュ源码 → 确定性转换） | ✅ 钉住提交，可对拍 |
+| 敌方编成（哪些格子出什么舰队） | `assets/wikiwiki_map_catalog.json` | agent skill | ⚠️ 见下 |
 | 敌舰属性（HP/火力/装备） | `enemy_ship_extra.json` | 下载 | ✅ |
 | 掉落 | `assets/map_ship_drops.json` | **无** | ❌ |
 | 地图开放条件 | `build_regular_prerequisites()` | 代码里的公式 | ⚠️ 推断，已对一份真实抓包验证 |
@@ -67,7 +67,12 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 
 ## 2. 路由规则与敌方编成
 
-**这两类共用一个文件，是整条链上最脆的一环。**
+> 2026-10-06 起，路由规则不再来自本节描述的 wikiwiki 抽取链，而是由羅針盤シミュ的源码确定性转换而来，
+> 见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。`wikiwiki_map_catalog.json`
+> 里的 `routing_rules` 仍在文件中但组装时不再读取；本节其余内容对**敌方编成**仍然成立。
+> 下文关于 5-6 的 6 条 `Unknown`、「经由某格」编号空间等路由侧的叙述是历史记录。
+
+**这两类曾共用一个文件，是整条链上最脆的一环。**
 
 `assets/wikiwiki_map_catalog.json` 同时提供路由规则（2144 条，扇出后）和敌方编成
 （284 个格子 / 1171 组 → 扇出 437 / 1814）。工作流是：

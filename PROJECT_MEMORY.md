@@ -75,9 +75,6 @@ Current verification baseline:
   graph id 6299/6301/6303 同理。不要再找规则。
 - [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js` 是第二条独立数据链（`COMBINEDCF1-4`
   与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
-- [2026-09-22] `cargo test --workspace` exit 0；09-20 记的三条 baseline 失败不再复现，别当既有失败引用
-  （`mkdir -p target/tmp` 的前提见 Pitfalls 的 `test_font` 条）。
-
 - [2026-09-22] 地图数据源的三条结论，证据与数字都在 `docs/map/data-dependencies.md`：自编的地图开放
   前置表用真实 `mapinfo` 的 33 条逐个 id 复现（测试 `prerequisites_reproduce_the_live_mapinfo_sample`）；
   `KC3Kai/edges.json`（kcwiki `map/edge.json` 是其纯键名镜像）**不接**——675 条边 674 条只是确认我们，
@@ -145,8 +142,10 @@ Current verification baseline:
   tera 2 的 `render_str` 要传 autoescape=`false` 才等同 tera 1。jemallocator 0.7 只在 BSD 编译，未实测。
   tower-http 0.7 起 `Accept-Encoding: *` 会被压缩（实测选 zstd），`*;q=0` 返回 406。
 
-- [2026-10-06] 索敌分歧形同虚设（183 条 LoS 条件比的是裸合计而非 33 式得分）：计划 2026-10-06-002。
 - [2026-10-06] KCNav 有公开 JSON 接口（掉落带样本数，编成带真实 `lvl`）：计划 2026-10-06-001 前提段，样本 `z/kcnav_samples/`。
+- [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
+- [2026-10-06] 路由规则由羅針盤シミュ源码（`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支，MIT；`main` 只有压缩产物）
+  确定性转换，对拍零差异。详见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则新来源：`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支（MIT，每图一个 TS 文件；`main` 只有压缩产物）。
   其「顺序首个命中」与我们的 priority 分组求值等价。计划 2026-10-06-003。
@@ -195,11 +194,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] 分支 `feat/route-rules-from-compass-source`：三份计划已提交；003 的 U1（`route-rules sync`）已实现。
-  fmt exit 0，clippy exit 0（仍 17 条既有 warning），`cargo test --workspace` exit 0，1182 过 0 败 0 忽略。
+- [2026-10-06] 分支 `feat/route-rules-from-compass-source`（未推送）：计划 003 U1–U5 与 002 已提交。
+  fmt、clippy（17 条既有 warning）、`cargo test --workspace`、`bun test` 均 exit 0，`make route-oracle` 零差异。
 
 ## Next Session
 
-- [2026-10-06] `main` 仍未推送。接着做 003 的 U2（`main-decoder` 里的 TS 解析器），总顺序见 002 的 Sequencing。
+- [2026-10-06] 下一步计划 001（KCNav），全量同步约 900 次请求，先与用户确认；再做 003 的 U6。
   基地航空隊 U4 与 `sally_flag` 仍在队列里。
-- 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。
+- 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
