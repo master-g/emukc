@@ -1,0 +1,255 @@
+{
+  "note": "Ships that drop only during limited-time campaigns, keyed by map name and node label. KCNav counts them like any other drop; `kcnav normalize` tags the matching entries of map_ship_drops.json as limited, and a limited entry never drops. Hand-maintained: add a line when a campaign adds a drop. Taken from the limited tags of the wikiwiki drop table that map_ship_drops.json held before 2026-10-06.",
+  "maps": {
+    "1-3": {
+      "J": [
+        {
+          "ship_id": 451,
+          "name": "瑞穂"
+        }
+      ]
+    },
+    "1-4": {
+      "L": [
+        {
+          "ship_id": 140,
+          "name": "酒匂"
+        }
+      ]
+    },
+    "1-5": {
+      "J": [
+        {
+          "ship_id": 637,
+          "name": "第四号海防艦"
+        },
+        {
+          "ship_id": 881,
+          "name": "伊201"
+        },
+        {
+          "ship_id": 882,
+          "name": "伊203"
+        },
+        {
+          "ship_id": 898,
+          "name": "第二十二号海防艦"
+        }
+      ]
+    },
+    "1-6": {
+      "J": [
+        {
+          "ship_id": 128,
+          "name": "伊8"
+        }
+      ]
+    },
+    "2-2": {
+      "B": [
+        {
+          "ship_id": 479,
+          "name": "天霧"
+        }
+      ],
+      "D": [
+        {
+          "ship_id": 479,
+          "name": "天霧"
+        }
+      ],
+      "E": [
+        {
+          "ship_id": 479,
+          "name": "天霧"
+        }
+      ],
+      "G": [
+        {
+          "ship_id": 479,
+          "name": "天霧"
+        }
+      ],
+      "K": [
+        {
+          "ship_id": 133,
+          "name": "夕雲"
+        },
+        {
+          "ship_id": 134,
+          "name": "巻雲"
+        },
+        {
+          "ship_id": 168,
+          "name": "浦風"
+        },
+        {
+          "ship_id": 181,
+          "name": "天津風"
+        },
+        {
+          "ship_id": 480,
+          "name": "狭霧"
+        }
+      ]
+    },
+    "2-3": {
+      "N": [
+        {
+          "ship_id": 110,
+          "name": "翔鶴"
+        },
+        {
+          "ship_id": 135,
+          "name": "長波"
+        },
+        {
+          "ship_id": 137,
+          "name": "阿賀野"
+        },
+        {
+          "ship_id": 181,
+          "name": "天津風"
+        },
+        {
+          "ship_id": 413,
+          "name": "朝雲"
+        },
+        {
+          "ship_id": 414,
+          "name": "山雲"
+        },
+        {
+          "ship_id": 421,
+          "name": "秋月"
+        },
+        {
+          "ship_id": 484,
+          "name": "浜波"
+        },
+        {
+          "ship_id": 527,
+          "name": "岸波"
+        },
+        {
+          "ship_id": 528,
+          "name": "早波"
+        },
+        {
+          "ship_id": 544,
+          "name": "Gambier Bay"
+        },
+        {
+          "ship_id": 621,
+          "name": "神州丸"
+        }
+      ]
+    },
+    "2-4": {
+      "P": [
+        {
+          "ship_id": 456,
+          "name": "親潮"
+        },
+        {
+          "ship_id": 484,
+          "name": "浜波"
+        }
+      ]
+    },
+    "2-5": {
+      "O": [
+        {
+          "ship_id": 80,
+          "name": "長門"
+        },
+        {
+          "ship_id": 81,
+          "name": "陸奥"
+        },
+        {
+          "ship_id": 120,
+          "name": "三隈"
+        },
+        {
+          "ship_id": 138,
+          "name": "能代"
+        },
+        {
+          "ship_id": 415,
+          "name": "野分"
+        },
+        {
+          "ship_id": 458,
+          "name": "海風"
+        }
+      ]
+    },
+    "3-1": {
+      "G": [
+        {
+          "ship_id": 631,
+          "name": "薄雲"
+        },
+        {
+          "ship_id": 645,
+          "name": "宗谷"
+        },
+        {
+          "ship_id": 964,
+          "name": "白雲"
+        },
+        {
+          "ship_id": 995,
+          "name": "大泊"
+        }
+      ]
+    },
+    "4-5": {
+      "T": [
+        {
+          "ship_id": 110,
+          "name": "翔鶴"
+        }
+      ]
+    },
+    "5-4": {
+      "P": [
+        {
+          "ship_id": 632,
+          "name": "有明"
+        },
+        {
+          "ship_id": 675,
+          "name": "涼波"
+        }
+      ]
+    },
+    "6-1": {
+      "K": [
+        {
+          "ship_id": 635,
+          "name": "長鯨"
+        }
+      ]
+    },
+    "7-3": {
+      "N": [
+        {
+          "ship_id": 544,
+          "name": "Gambier Bay"
+        }
+      ],
+      "P": [
+        {
+          "ship_id": 535,
+          "name": "Luigi Torelli"
+        },
+        {
+          "ship_id": 544,
+          "name": "Gambier Bay"
+        }
+      ]
+    }
+  }
+}

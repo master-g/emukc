@@ -15,26 +15,8 @@ pub(super) struct WikiwikiMapArgs {
 enum Command {
     /// Refresh local HTML cache from wikiwiki.jp.
     Sync(SyncArgs),
-    /// Normalize agent-produced catalog JSON into the repo-tracked wikiwiki map catalog asset.
-    Normalize(NormalizeArgs),
-    /// Write a human-readable debug JSON file from agent-produced catalog JSON.
-    Debug(DebugArgs),
     /// Build public map overlays from embedded real `api_req_map/start` captures.
     BuildOverlays(BuildOverlaysArgs),
-}
-
-#[derive(Args, Debug)]
-struct NormalizeArgs {
-    /// Path to the agent-produced `WikiwikiMapCatalog` JSON file.
-    ///
-    /// Generate this by running the `emukc-scrape-wikiwiki-mapdata` skill on
-    /// cached HTML pages, then pass its output here.
-    #[arg(long, value_name = "FILE")]
-    from_agent_json: PathBuf,
-
-    /// Output path for the label-space wikiwiki catalog JSON file.
-    #[arg(long, default_value_os_t = repo_wikiwiki_map_catalog_path(), value_name = "FILE")]
-    output: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -63,21 +45,6 @@ struct SyncArgs {
     /// Maximum number of concurrent requests.
     #[arg(long, default_value_t = 2)]
     concurrent: usize,
-}
-
-#[derive(Args, Debug)]
-struct DebugArgs {
-    /// Path to the agent-produced `WikiwikiMapCatalog` JSON file.
-    #[arg(long, value_name = "FILE")]
-    from_agent_json: PathBuf,
-
-    /// Output path for the human-readable debug JSON file.
-    #[arg(
-        long,
-        default_value = ".data/generated/wikiwiki_map_catalog.debug.json",
-        value_name = "FILE"
-    )]
-    output: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -110,17 +77,6 @@ pub(super) async fn exec(args: &WikiwikiMapArgs) -> Result<()> {
                 stats.failures,
             );
         }
-        Command::Normalize(paths) => {
-            let catalog = normalize_catalog(paths)?;
-            write_json(&catalog, &paths.output)?;
-            println!("wrote {} wikiwiki maps to {}", catalog.maps.len(), paths.output.display());
-        }
-        Command::Debug(args) => {
-            let raw = fs::read_to_string(&args.from_agent_json)?;
-            let catalog = WikiwikiMapCatalog::from_json(&raw).map_err(anyhow::Error::from)?;
-            write_json(&catalog.to_debug_json(), &args.output)?;
-            println!("wrote {}", args.output.display());
-        }
         Command::BuildOverlays(args) => {
             let output = build_public_overlays(args)?;
             write_json(&output.overlay, &args.output)?;
@@ -139,22 +95,6 @@ fn read_manifest(data_root: &Path) -> Result<emukc::model::kc2::start2::ApiManif
     let manifest_path = data_root.join("start2.json");
     let manifest_raw = fs::read_to_string(&manifest_path)?;
     Ok(emukc::model::kc2::start2::ApiManifest::from_str(&manifest_raw)?)
-}
-
-/// Turn the agent skill's JSON into the repo-tracked wikiwiki asset.
-///
-/// This stops at `into_label_overlay_catalog`, which lifts the agent's own cell
-/// numbers to node labels. It deliberately does **not** merge kcdata, the public
-/// overlay or `stat.json`: that is the build's job, and writing a merged catalog
-/// back into the slot the build reads as the pure wikiwiki source baked those
-/// other sources into it permanently — cell metadata, `master_cell_id`, even
-/// whichever event maps happened to be live that day — and destroyed any way to
-/// tell which rule came from where.
-fn normalize_catalog(args: &NormalizeArgs) -> Result<WikiwikiMapOverlayCatalog> {
-    let raw = fs::read_to_string(&args.from_agent_json)?;
-    let wikiwiki_source = WikiwikiMapCatalog::from_json(&raw).map_err(anyhow::Error::from)?;
-
-    Ok(wikiwiki_source.into_label_overlay_catalog())
 }
 
 fn build_public_overlays(args: &BuildOverlaysArgs) -> Result<MapOverlayBuildOutput> {

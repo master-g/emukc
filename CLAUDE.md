@@ -252,6 +252,8 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 解码并同步生成资产：`make decode-main`；先在 `main-decoder/` 安装 Bun 依赖并完成 bootstrap。
 - 缓存：`make cache-make-list`、`make cache-populate CONCURRENT=16`。
 - 可复现战斗：`make battle-sim SCENARIO=fresh_1_1 SEED=1`；可加 `FIND=night MAX_SEEDS=1000`。
+- 路由规则：`make route-rules-update` 从钉住的羅針盤シミュ源码再生 `map_route_rules.json`；之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make route-oracle` 与来源代码对拍。
+- KCNav 数据：`make kcnav-sync [MAP=1-1]` 下载原始响应（单线程、2 秒间隔、可续传，全量约 1000 次请求，先与用户确认）；`make kcnav-normalize` 不联网，再生 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`（需先有 `.data/codex`），之后 `cargo run -- bootstrap --codex-only` 重建 codex；`cargo run -- kcnav sync --dry-run` 只报请求数。
 
 ## 代码风格
 
@@ -263,7 +265,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 
 ## 禁止文件
 
-- 不手改 `crates/emukc_bootstrap/assets/*.json` 与 `main-decoder/out/battle/*.json`；通过 `make decode-main`/decoder 同步流程再生。
+- 不手改 `crates/emukc_bootstrap/assets/*.json` 与 `main-decoder/out/battle/*.json`；通过 `make decode-main`/decoder 同步流程再生。例外：`assets/map_limited_drops.json` 是手工维护的期间限定掉落清单，改后跑 `make kcnav-normalize`。
 - 不逐项手改 `tests/gameplay_tests/battle_golden.rs`；行为变化时必须有意重新冻结并解释差异。
 - 不手改 `Cargo.lock`；依赖升级使用 `cargo update -p <crate>`。
 - 不提交本地/敏感状态：`.env`、`emukc.config.toml`、`.data/`、`z/`、`target/` 及其他 `.gitignore` 所有路径。

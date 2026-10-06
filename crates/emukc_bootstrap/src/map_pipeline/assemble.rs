@@ -1,5 +1,10 @@
 use emukc_model::codex::map::MapCatalog;
 
+use crate::{
+    compass_route_rules::{CompassRouteRulesAsset, apply_route_rules},
+    parser::error::ParseError,
+};
+
 use super::{
     label_overlay::merge_label_overlay,
     report::{MapCatalogBuildReport, MapCatalogStatSource},
@@ -7,15 +12,17 @@ use super::{
 };
 
 /// Assemble the final catalog in its one fixed order: kcdata → public overlay →
-/// `stat.json` → `p_unlock` normalization → wikiwiki label overlay.
+/// `stat.json` → `p_unlock` normalization → wikiwiki label overlay → compass
+/// routing rules.
 ///
-/// The label overlay goes last because it is the only step that resolves labels
-/// to cell numbers, so it must see the final variant set and topology. It only
-/// writes routing rules, enemy fleets and ship drops, which no earlier source
-/// carries, so running it last leaves every metadata authority rule unchanged.
+/// The label overlay and the routing rules go last because they are the only steps
+/// that resolve labels to cell numbers, so they must see the final variant set and
+/// topology. They only write routing rules, enemy fleets and ship drops, which no
+/// earlier source carries, so running them last leaves every metadata authority
+/// rule unchanged. The compass rules replace the routing rules the overlay wrote.
 pub(super) fn assemble_final_map_catalog(
     sources: ResolvedMapSources,
-) -> (MapCatalog, MapCatalogBuildReport) {
+) -> Result<(MapCatalog, MapCatalogBuildReport), ParseError> {
     let mut catalog = sources.kcdata_catalog;
     catalog.merge_missing_from(sources.public_overlay_catalog);
     if let Some(ref stat_catalog) = sources.stat_catalog {
@@ -35,6 +42,10 @@ pub(super) fn assemble_final_map_catalog(
         .as_ref()
         .map(|overlay| merge_label_overlay_catalog(&mut catalog, overlay))
         .unwrap_or(0);
+
+    if let Some(route_rules) = &sources.route_rules {
+        apply_route_rules_catalog(&mut catalog, route_rules)?;
+    }
 
     let output_map_count = catalog.maps.len();
 
@@ -65,7 +76,7 @@ pub(super) fn assemble_final_map_catalog(
         MapCatalogStatSource::Unavailable
     };
 
-    (
+    Ok((
         catalog,
         MapCatalogBuildReport {
             wikiwiki_source: sources.wikiwiki_source,
@@ -78,7 +89,44 @@ pub(super) fn assemble_final_map_catalog(
             kcdata_parse_errors: sources.kcdata_parse_errors,
             topology_warnings,
         },
-    )
+    ))
+}
+
+/// Pin the converted routing rules onto every map the catalog has. A rule the topology
+/// cannot carry fails the build: the rules and the topology are meant to describe the
+/// same maps, and a silent drop would turn a branch into a coin toss.
+fn apply_route_rules_catalog(
+    catalog: &mut MapCatalog,
+    route_rules: &CompassRouteRulesAsset,
+) -> Result<(), ParseError> {
+    let mut errors = Vec::new();
+    for (map_id, variants) in &route_rules.maps {
+        let Some(definition) = catalog.maps.get_mut(map_id) else {
+            continue;
+        };
+        for (variant_key, rules) in variants {
+            match definition.variants.get_mut(variant_key) {
+                Some(variant) => {
+                    if let Err(variant_errors) = apply_route_rules(variant, rules) {
+                        errors.extend(
+                            variant_errors
+                                .into_iter()
+                                .map(|err| format!("map {map_id} variant `{variant_key}`: {err}")),
+                        );
+                    }
+                }
+                None => errors.push(format!("map {map_id} has no variant `{variant_key}`")),
+            }
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(ParseError::Generic(format!(
+            "routing rules do not fit the map topology:\n{}",
+            errors.join("\n")
+        )))
+    }
 }
 
 /// Merge the label-keyed wikiwiki overlay onto the assembled topology, resolving
@@ -246,10 +294,11 @@ mod tests {
 
         let sources = ResolvedMapSources {
             wikiwiki_overlay: Some(wikiwiki),
+            route_rules: None,
             public_overlay_catalog: public_overlay,
             ..sources_from_kcdata(kcdata)
         };
-        let (catalog, _report) = assemble_final_map_catalog(sources);
+        let (catalog, _report) = assemble_final_map_catalog(sources).unwrap();
 
         let variants = &catalog.maps[&73].variants;
         assert!(!variants.contains_key(""), "normalization drops the unnamed base");
@@ -267,6 +316,7 @@ mod tests {
             wikiwiki_source: MapCatalogWikiwikiSource::None,
             wikiwiki_map_count: 0,
             wikiwiki_overlay: None,
+            route_rules: None,
             kcdata_catalog: kcdata,
             kcdata_parse_errors: 0,
             public_overlay_map_count: 0,
@@ -341,7 +391,7 @@ mod tests {
             },
         );
 
-        let (catalog, _report) = assemble_final_map_catalog(sources_from_kcdata(kcdata));
+        let (catalog, _report) = assemble_final_map_catalog(sources_from_kcdata(kcdata)).unwrap();
 
         let m73 = &catalog.maps[&73];
         assert_eq!(m73.default_variant, "pre_p_unlock");
@@ -394,7 +444,7 @@ mod tests {
             ..sources_from_kcdata(kcdata)
         };
 
-        let (catalog, _report) = assemble_final_map_catalog(sources);
+        let (catalog, _report) = assemble_final_map_catalog(sources).unwrap();
         let ids = catalog.maps[&11].variants[""]
             .cells
             .iter()
@@ -432,8 +482,10 @@ mod tests {
 
         let (catalog, _report) = assemble_final_map_catalog(ResolvedMapSources {
             wikiwiki_overlay: Some(wikiwiki),
+            route_rules: None,
             ..sources_from_kcdata(kcdata)
-        });
+        })
+        .unwrap();
 
         for (map_id, key) in [(15, "first"), (15, "second"), (11, "")] {
             let rules = &catalog.maps[&map_id].variants[key].routing_rules;

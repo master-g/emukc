@@ -29,7 +29,7 @@ pub fn build_final_map_catalog(
         Some(overlay) => sources::load_explicit_source_set(data_root, manifest, overlay)?,
         None => sources::load_repo_source_set(data_root, manifest)?,
     };
-    let (mut catalog, report) = assemble::assemble_final_map_catalog(source_set);
+    let (mut catalog, report) = assemble::assemble_final_map_catalog(source_set)?;
     filter_to_manifest_maps(&mut catalog, manifest);
     Ok((catalog, report))
 }

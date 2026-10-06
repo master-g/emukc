@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -81,6 +81,25 @@ drift-check: ## 比对已同步资产与基线, 有漂移则退出非零
 
 drift-accept: ## review 过 diff 之后, 把当前资产记为新基线
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check --accept
+
+route-rules-sync: ## 下载钉住提交的羅針盤シミュ源码 (路由规则的来源) 到 .data/temp
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- route-rules sync
+
+route-rules-update: route-rules-sync ## 从钉住的源码再生路由规则资产: 取源 → 解析 → 归一化 → 漂移报告
+	cd main-decoder && bun run route-rules
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- route-rules normalize
+	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+
+kcnav-sync: ## 从 KCNav 下载掉落与敌方编成的原始响应到 .data/temp/kcnav (单线程, 可续传; MAP=1-1 限定地图, INTERVAL=2 请求间隔秒)
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- kcnav sync --interval $(or $(INTERVAL),2) $(if $(MAP),--map $(MAP),)
+
+kcnav-normalize: ## 把已下载的 KCNav 响应归一化成一份文档 (不联网)
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- kcnav normalize
+
+kcnav-update: kcnav-sync kcnav-normalize drift-check ## 刷新 KCNav 数据: 下载 → 归一化 → 漂移报告
+
+route-oracle: ## 用来源代码对拍已转换的路由规则 (需先 route-rules-update 并重建 codex), 报告写到 .data/temp
+	cd main-decoder && bun run route-oracle
 
 cache-make-list: ## 生成缓存资源清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite

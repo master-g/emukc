@@ -12,6 +12,8 @@ mod battle;
 mod bootstrap;
 mod cache;
 mod dev;
+mod kcnav;
+mod route_rules;
 mod serve;
 mod version;
 mod wikiwiki_map;
@@ -60,6 +62,12 @@ enum Commands {
 
     #[command(about = "Maintain the repo-tracked wikiwiki map catalog")]
     WikiwikiMap(wikiwiki_map::WikiwikiMapArgs),
+
+    #[command(about = "Maintain the routing rules converted from the compass simulator source")]
+    RouteRules(route_rules::RouteRulesArgs),
+
+    #[command(about = "Fetch and normalize drops and enemy fleets from KCNav")]
+    Kcnav(kcnav::KcnavArgs),
 
     #[command(about = "Cache management")]
     Cache(cache::CacheArgs),
@@ -210,6 +218,8 @@ pub async fn init() -> ExitCode {
         Some(Commands::Battle(args)) => battle::exec(&args, &cfg).await,
         Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
         Some(Commands::WikiwikiMap(args)) => wikiwiki_map::exec(&args).await,
+        Some(Commands::RouteRules(args)) => route_rules::exec(&args).await,
+        Some(Commands::Kcnav(args)) => kcnav::exec(&args).await,
         Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
         Some(Commands::Serve(args)) => {
             let Some(state) = prepare_state(&cfg).await else {

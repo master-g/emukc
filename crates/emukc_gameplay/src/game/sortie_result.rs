@@ -453,11 +453,31 @@ pub(super) fn eligible_sortie_ship_drops<'a>(
                 .iter()
                 .filter(|drop| {
                     !drop.tags.iter().any(|tag| tag == "limited")
-                        && codex.new_ship(drop.ship_id).is_some()
+                        && (drop.ranks.is_empty() || drop.ranks.contains(win_rank))
+                        // `0` is the outcome "nothing drops".
+                        && (drop.ship_id == 0 || codex.new_ship(drop.ship_id).is_some())
                 })
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// Pick one outcome by its share of the observed total; `None` when nothing drops.
+///
+/// The counts are not split by win rank (the source reports one total), so a rank only
+/// narrows the candidates to what was ever seen at it.
+fn pick_weighted_drop<'a>(
+    candidates: &[&'a emukc_model::codex::map::ShipDropDefinition],
+    roll: impl FnOnce(i64) -> i64,
+) -> Option<&'a emukc_model::codex::map::ShipDropDefinition> {
+    let weight = |drop: &emukc_model::codex::map::ShipDropDefinition| drop.weight.max(1);
+    let total = candidates.iter().map(|drop| weight(drop)).sum::<i64>();
+    let mut roll = roll(total);
+    let selected = candidates.iter().find(|drop| {
+        roll -= weight(drop);
+        roll < 0
+    })?;
+    (selected.ship_id != 0).then_some(*selected)
 }
 
 pub(super) async fn try_grant_sortie_ship_drop<C>(
@@ -476,7 +496,9 @@ where
         return Ok(None);
     }
 
-    let selected = { candidates[rng::usize(0..candidates.len())] };
+    let Some(selected) = pick_weighted_drop(&candidates, |total| rng::i64(0..total)) else {
+        return Ok(None);
+    };
     let mst = codex
         .manifest
         .find_ship(selected.ship_id)
@@ -866,16 +888,19 @@ mod tests {
                         ship_id: 1,
                         raw_ship_name: "睦月".to_string(),
                         tags: Vec::new(),
+                        ..Default::default()
                     },
                     ShipDropDefinition {
                         ship_id: 2,
                         raw_ship_name: "如月".to_string(),
                         tags: vec!["limited".to_string()],
+                        ..Default::default()
                     },
                     ShipDropDefinition {
                         ship_id: 999_999,
                         raw_ship_name: "unknown".to_string(),
                         tags: Vec::new(),
+                        ..Default::default()
                     },
                 ],
             )]),
@@ -1049,6 +1074,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 3,
             cells: vec![],
             routing_rules: BTreeMap::new(),
@@ -1060,16 +1086,19 @@ mod tests {
                         ship_id: 1,
                         raw_ship_name: "睦月".to_string(),
                         tags: Vec::new(),
+                        ..Default::default()
                     },
                     emukc_model::codex::map::ShipDropDefinition {
                         ship_id: 2,
                         raw_ship_name: "如月".to_string(),
                         tags: vec!["limited".to_string()],
+                        ..Default::default()
                     },
                     emukc_model::codex::map::ShipDropDefinition {
                         ship_id: 999999,
                         raw_ship_name: "missing".to_string(),
                         tags: Vec::new(),
+                        ..Default::default()
                     },
                 ],
             )]),
@@ -1082,5 +1111,31 @@ mod tests {
         assert_eq!(eligible.len(), 1);
         assert_eq!(eligible[0].ship_id, 1);
         assert!(eligible_sortie_ship_drops(&codex, &variant, 1, "C").is_empty());
+    }
+
+    #[test]
+    fn weighted_drop_follows_observed_shares_and_can_be_nothing() {
+        let drop = |ship_id, weight| emukc_model::codex::map::ShipDropDefinition {
+            ship_id,
+            weight,
+            ..Default::default()
+        };
+        // 30 nothing, 60 of ship 1, 10 of ship 2; an entry without a count weighs 1.
+        let drops = [drop(0, 30), drop(1, 60), drop(2, 10), drop(3, 0)];
+        let candidates = drops.iter().collect::<Vec<_>>();
+        let pick = |at: i64| {
+            pick_weighted_drop(&candidates, |total| {
+                assert_eq!(total, 101);
+                at
+            })
+            .map(|drop| drop.ship_id)
+        };
+
+        assert_eq!(pick(0), None);
+        assert_eq!(pick(29), None);
+        assert_eq!(pick(30), Some(1));
+        assert_eq!(pick(89), Some(1));
+        assert_eq!(pick(90), Some(2));
+        assert_eq!(pick(100), Some(3));
     }
 }

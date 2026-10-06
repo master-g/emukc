@@ -134,6 +134,7 @@ fn merge_capture_into_overlay(
     let stage = overlay_definition.variants.entry(stage_id.to_string()).or_insert_with(|| {
         MapVariantDefinition {
             variant_key: stage_id.to_string(),
+            start_rules: Vec::new(),
             boss_cell_no: 0,
             cells: Vec::new(),
             routing_rules: BTreeMap::new(),
@@ -228,6 +229,7 @@ mod tests {
                 String::new(),
                 MapVariantDefinition {
                     variant_key: String::new(),
+                    start_rules: Vec::new(),
                     boss_cell_no: 3,
                     cells: vec![
                         emukc_model::codex::map::MapCellDefinition {

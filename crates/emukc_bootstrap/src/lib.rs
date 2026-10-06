@@ -18,8 +18,12 @@ extern crate tracing;
 
 mod assets;
 mod battle_rules;
+mod compass_route_rules;
+/// Fetches the pinned compass simulator source the routing rules are converted from.
+pub mod compass_source;
 mod db;
 mod download;
+mod kcnav;
 mod make_list;
 mod map_overlay;
 mod map_pipeline;
@@ -47,10 +51,24 @@ pub mod prelude {
         analyze_day_battle_incident, load_repo_battle_knowledge_assets,
         validate_day_battle_response, validate_night_battle_response,
     };
+    pub use crate::compass_route_rules::{
+        CompassRouteRulesAsset, CompassRouteRulesSource, CompassVariantRouteRules, LabelRouteRule,
+        normalize_compass_route_rules, repo_compass_route_rules_path,
+    };
+    pub use crate::compass_source::{
+        COMPASS_SOURCE_COMMIT, COMPASS_SOURCE_REPO, compass_source_archive_url, compass_source_dir,
+        sync_compass_source,
+    };
     pub use crate::db::{DbBootstrapError, prepare};
     pub use crate::download::BootstrapDownloadError;
     pub use crate::download::download_all;
     pub use crate::download::download_web_assets;
+    pub use crate::kcnav::{
+        KcnavCatalog, KcnavDrop, KcnavEnemyFleetsAsset, KcnavFleet, KcnavNode, KcnavSyncOptions,
+        KcnavSyncStats, LimitedDrops, MapShipDropsAsset, kcnav_battle_edges, kcnav_dir,
+        kcnav_enemy_fleets, kcnav_ship_drops, normalize_kcnav, repo_kcnav_enemy_fleets_path,
+        repo_map_ship_drops_path, sync_kcnav,
+    };
     pub use crate::make_list::{
         CacheListBuildDiagnostics, CacheListComparisonReport, CacheListItem, CacheListMakeStrategy,
         CacheListPathBuildOutput, CacheListPathPrefixCount, apply_candidate_build_diagnostics,
@@ -76,8 +94,8 @@ pub mod prelude {
         MapRouteValidationSeverity, validate_map_route_stage,
     };
     pub use crate::parser::{
-        WikiwikiLabelOverlay, WikiwikiMapCatalog, WikiwikiMapOverlayCatalog,
-        WikiwikiMapOverlayDefinition, parse_partial_codex,
+        WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
+        parse_partial_codex,
     };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};

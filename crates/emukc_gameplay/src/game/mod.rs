@@ -7,6 +7,7 @@ pub use expedition::{ExpeditionCompletion, ExpeditionItemReward, ExpeditionStart
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use remodel_slot::{RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResult};
+pub use route_probe::{RouteProbe, RouteProbeFleet, RouteProbeShip, probe_route};
 pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
     SortieNextResponse, SortieStartResponse,
@@ -38,6 +39,7 @@ mod practice;
 mod presets;
 mod quest;
 mod remodel_slot;
+mod route_probe;
 mod settings;
 mod ship;
 mod slot_item;
@@ -54,8 +56,8 @@ pub mod types {
     pub use crate::game::{
         ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PortView, PowerupResp,
         QuestListItem, QuestListView, RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResult,
-        RequireInfoView, SlotDepriveParams, SortieAirSearch, SortieCellData,
-        SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
-        SortieStartResponse,
+        RequireInfoView, RouteProbe, RouteProbeFleet, RouteProbeShip, SlotDepriveParams,
+        SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
+        SortieNextResponse, SortieStartResponse,
     };
 }

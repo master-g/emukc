@@ -26,8 +26,7 @@ pub use kcwiki::parse as parse_kcwiki;
 pub use kcwikizh_kcdata::parse as parse_kcdata;
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
 pub use wikiwiki_map::{
-    WikiwikiLabelOverlay, WikiwikiMapCatalog, WikiwikiMapOverlayCatalog,
-    WikiwikiMapOverlayDefinition,
+    WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
 };
 
 fn load_map_catalog(

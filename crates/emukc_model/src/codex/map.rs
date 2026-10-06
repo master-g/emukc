@@ -171,6 +171,7 @@ impl MapCatalog {
                     String::new(),
                     MapVariantDefinition {
                         variant_key: String::new(),
+                        start_rules: Vec::new(),
                         boss_cell_no: 0,
                         cells: vec![
                             MapCellDefinition {
@@ -701,6 +702,7 @@ mod tests {
                 String::new(),
                 MapVariantDefinition {
                     variant_key: String::new(),
+                    start_rules: Vec::new(),
                     boss_cell_no: 3,
                     cells: vec![
                         MapCellDefinition {

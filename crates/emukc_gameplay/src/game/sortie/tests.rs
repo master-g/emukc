@@ -679,6 +679,61 @@ async fn equip_drums_on_ship(
     profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap()
 }
 
+#[tokio::test]
+async fn fleet_los_terms_follow_formula_33() {
+    use crate::game::slot_item::add_slot_item_impl;
+    use emukc_db::entity::profile::item::slot_item;
+
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
+    let profile_id = routing_profile(&context, "los-33").await;
+    let db = context.db.as_ref();
+
+    // Two destroyers; the first carries a 零式水上偵察機 ★4 and a 13号対空電探 ★9.
+    let scout_ship = context.add_ship(profile_id, 951).await.unwrap();
+    let bare_ship = context.add_ship(profile_id, 951).await.unwrap();
+    let bare = profile_ship::Entity::find_by_id(bare_ship.api_id).one(db).await.unwrap().unwrap();
+    let own_los = bare.los_now;
+
+    let scout = add_slot_item_impl(db, &codex, profile_id, 25, 4, 0).await.unwrap();
+    let radar = add_slot_item_impl(db, &codex, profile_id, 27, 9, 0).await.unwrap();
+    assert_eq!(codex.manifest.find_slotitem(25).unwrap().api_saku, 5);
+    assert_eq!(codex.manifest.find_slotitem(27).unwrap().api_saku, 3);
+    let mut am = profile_ship::Entity::find_by_id(scout_ship.api_id)
+        .one(db)
+        .await
+        .unwrap()
+        .unwrap()
+        .into_active_model();
+    am.slot_1 = ActiveValue::Set(scout.id);
+    am.slot_2 = ActiveValue::Set(radar.id);
+    // A ship's LoS includes its equipment's.
+    am.los_now = ActiveValue::Set(own_los + 5 + 3);
+    let equipped = am.update(db).await.unwrap();
+    for item in [scout, radar] {
+        slot_item::ActiveModel {
+            equip_on: ActiveValue::Set(equipped.id),
+            ..item.into_active_model()
+        }
+        .update(db)
+        .await
+        .unwrap();
+    }
+
+    let fleet =
+        super::route::build_fleet_route_context(db, &codex, &[equipped, bare], 120).await.unwrap();
+
+    // 水偵: 1.2 x (5 + 1.2 x √4) = 8.88; 小型電探: 0.6 x (3 + 1.25 x √9) = 4.05.
+    assert!((fleet.los_equip_term - 12.93).abs() < 1e-9, "{}", fleet.los_equip_term);
+    // 2 x √(own LoS) − ⌈0.4 x 120⌉ + 2 x (6 − 2).
+    let ship_term = 2.0 * (own_los as f64).sqrt() - 48.0 + 8.0;
+    assert!((fleet.los_ship_term - ship_term).abs() < 1e-9, "{}", fleet.los_ship_term);
+    assert_eq!(fleet.los_score(4), (ship_term + 4.0 * 12.93).floor() as i64);
+    assert!(!fleet.ship_entries[0].base_slow);
+    assert!(fleet.ship_entries[0].slotitem_ids.contains(&25));
+}
+
 /// A stage whose `branch` cell leads to 1 when `predicate` holds and to 2
 /// otherwise. Cell 3 is a spare the route history can name.
 fn branch_stage(branch: i64, predicate: RoutePredicate) -> MapStageDefinition {
@@ -1179,6 +1234,7 @@ fn kouku_and_shelling_combined_sinking_protection_keeps_flagship_alive() {
 fn start_source_cells_include_nonzero_route_cell_roots() {
     let variant = MapVariantDefinition {
         variant_key: String::new(),
+        start_rules: Vec::new(),
         boss_cell_no: 14,
         cells: vec![
             MapCellDefinition {

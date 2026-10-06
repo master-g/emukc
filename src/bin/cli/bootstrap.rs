@@ -26,6 +26,10 @@ pub(super) struct BootstrapArgs {
     #[arg(help = "Skip downloading web assets (kcs_const.js, main.js, version.json)")]
     #[arg(long)]
     pub(super) skip_web_assets: bool,
+
+    #[arg(help = "Rebuild the codex from the files already downloaded, without any network")]
+    #[arg(long)]
+    pub(super) codex_only: bool,
 }
 
 /// Execute the bootstrap command
@@ -38,8 +42,12 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
     };
 
     // Phase 1: Download resources
-    info!("Phase 1/4: Downloading resources...");
-    download_all(&output, args.overwrite, proxy, Some(16)).await?;
+    if args.codex_only {
+        info!("Phase 1/4: Skipped, rebuilding the codex from {}", output.display());
+    } else {
+        info!("Phase 1/4: Downloading resources...");
+        download_all(&output, args.overwrite, proxy, Some(16)).await?;
+    }
 
     // Phase 2: Parse codex
     info!("Phase 2/4: Parsing game data...");
@@ -48,10 +56,10 @@ pub(super) async fn exec(cfg: &AppConfig, args: &BootstrapArgs) -> Result<()> {
     // Phase 3: Save codex
     info!("Phase 3/4: Saving codex...");
     let codex_root = cfg.codex_root()?;
-    codex.save(&codex_root, args.overwrite)?;
+    codex.save(&codex_root, args.overwrite || args.codex_only)?;
 
     // Phase 4: Download web assets
-    if !args.skip_web_assets {
+    if !args.skip_web_assets && !args.codex_only {
         info!("Phase 4/4: Downloading web assets...");
         download_web_assets(
             &cfg.cache_root,
@@ -97,6 +105,7 @@ mod tests {
             proxy: proxy.map(ToOwned::to_owned),
             output: None,
             skip_web_assets: false,
+            codex_only: false,
         }
     }
 

@@ -52,16 +52,17 @@ mod tests {
         "formation: friend=1 enemy=1 engagement=1\n",
         "\n",
         "[shelling 1]\n",
-        "  F1 -> E1: dmg 22 [hit]\n",
+        "  F1 -> E1: dmg 21 [hit]\n",
+        "  F2 -> E1: dmg 22 [hit]\n",
         "\n",
-        "result: rank S, mvp F1, midnight no\n",
+        "result: rank S, mvp F2, midnight no\n",
         "\n",
         "friendly:\n",
         "  F1 ship951: 35 -> 35 (max 35)\n",
         "  F2 ship951: 35 -> 35 (max 35)\n",
         "\n",
         "enemy:\n",
-        "  E1 ship1502: 22 -> 0 (max 22) SUNK\n",
+        "  E1 ship1503: 24 -> 0 (max 24) SUNK\n",
     );
 
     /// Covers AE1. A fixed scenario + seed produces a transcript identical to the

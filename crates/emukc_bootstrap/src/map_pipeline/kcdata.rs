@@ -175,6 +175,7 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
 
     MapVariantDefinition {
         variant_key: String::new(),
+        start_rules: Vec::new(),
         boss_cell_no: boss_cell_no.unwrap_or(0),
         cells,
         routing_rules: BTreeMap::new(),

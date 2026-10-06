@@ -20,10 +20,10 @@ tags: [map, data-source, provenance, ssot]
 | --- | --- | --- | --- |
 | 拓扑（格子、连线、格子类型） | `kc_data` + `stat.json` | 下载 | ✅ 已被 `edges.json` 独立确认 |
 | 真实起点抓包 | `assets/real_map_start_data/*.json` | 人工抓包 | ⚠️ 需真实账号 |
-| 路由规则 | `assets/wikiwiki_map_catalog.json` | agent skill | ⚠️ 见下 |
-| 敌方编成（哪些格子出什么舰队） | 同上，一个文件 | 同上 | ⚠️ 同上 |
+| 路由规则 | `assets/map_route_rules.json` | `make route-rules-update`（羅針盤シミュ源码 → 确定性转换） | ✅ 钉住提交，可对拍 |
+| 敌方编成（哪些格子出什么舰队） | `assets/kcnav_enemy_fleets.json`，6-5 M 仍取 `assets/wikiwiki_map_catalog.json` | `make kcnav-update`（KCNav 实测，带权重、阵形、等级） | ✅ 454 / 487 个战斗格；⚠️ 敌方联合舰队未接 |
 | 敌舰属性（HP/火力/装备） | `enemy_ship_extra.json` | 下载 | ✅ |
-| 掉落 | `assets/map_ship_drops.json` | **无** | ❌ |
+| 掉落 | `assets/map_ship_drops.json` | `make kcnav-update`（KCNav 最近一年的实测次数） | ✅ 带权重与「无掉落」 |
 | 地图开放条件 | `build_regular_prerequisites()` | 代码里的公式 | ⚠️ 推断，已对一份真实抓包验证 |
 
 ## 1. 拓扑
@@ -67,23 +67,24 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 
 ## 2. 路由规则与敌方编成
 
-**这两类共用一个文件，是整条链上最脆的一环。**
+> 2026-10-06 起，路由规则不再来自本节描述的 wikiwiki 抽取链，而是由羅針盤シミュ的源码确定性转换而来，
+> 见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。`wikiwiki_map_catalog.json`
+> 里的 `routing_rules` 仍在文件中但组装时不再读取；本节其余内容对**敌方编成**仍然成立。
+> 下文关于 5-6 的 6 条 `Unknown`、「经由某格」编号空间等路由侧的叙述是历史记录。
+
+**这两类曾共用一个文件，是整条链上最脆的一环。**
 
 `assets/wikiwiki_map_catalog.json` 同时提供路由规则（2144 条，扇出后）和敌方编成
-（284 个格子 / 1171 组 → 扇出 437 / 1814）。工作流是：
+（284 个格子 / 1171 组 → 扇出 437 / 1814）。这份资产已冻结：生成它的链（`wikiwiki-map sync` 下页面 → agent skill 读 HTML 出 JSON → `wikiwiki-map normalize`
+把 agent 的 BFS 编号抬成 label）在 2026-10-06 删掉了 skill 和 `normalize`，资产不可再生，只等敌方编成换源后整个删除。
+中间那一步曾是 **LLM 而不是解析器**（2026-06 替掉了 7389 行正则，计划见 `docs/plans/archive/2026-06-22-007-...`），
+这也是它被替换的原因。
 
-```
-wikiwiki.jp 页面
-  → cargo run -- wikiwiki-map sync          （下到 .data/temp/wikiwiki_map/pages/）
-  → agent skill emukc-scrape-wikiwiki-mapdata  （读 HTML，出 JSON）
-  → cargo run -- wikiwiki-map normalize     （agent 的 BFS 编号 → label，写资产）
-```
-
-中间那一步是 **LLM 而不是解析器**——2026-06 有意为之，替掉了 7389 行正则（计划见
-`docs/plans/archive/2026-06-22-007-...`）。
-
-**没有更好的信源。** TsunDB / KCNav 是权威众包库但探测不到公开 API；en.kancollewiki.net 被
-Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB 推导、API 开放，但
+**这条链上的 wikiwiki 不是唯一信源。** TsunDB / KCNav（`tsunkit.net/nav`）是权威众包库，前端调用的
+`/api/routing/...` 是公开 JSON 接口（2026-10-06 实测可用；`drops` 不带前端那套查询参数会超时），
+掉落与敌方编成已改由它提供，见 `docs/plans/2026-10-06-001-feat-kcnav-map-data-source-plan.md` 的实施记录。
+路由规则已改由羅針盤シミュ源码转换，见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
+en.kancollewiki.net 被 Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB 推导、API 开放，但
 33 张图 381 条条件句只有 59% 能归入有限句式，其余是 `Otherwise, D`、`Routing unknown`、
 跨边引用 `Do not meet the requirements to go to C`——**只在边这一层结构化，条件仍是散文**。
 覆盖互有长短：它缺 1-1 / 5-6 / 7-4 / 7-5、7-3 只 3 条边，但 6-x、1-5、1-6、2-5、3-5 比我们厚。
@@ -127,8 +128,7 @@ A/C/H/J 上与原资产逐 id 一致；陣形沿用 3-2 原有写法（从标注
 **「经由某格」的编号空间踩过一次**：资产里的 `VisitedNode` 曾存 wikiwiki 自己的 BFS 编号，而
 `auto_derive_label_overlay` 把谓词原样透传，于是这些编号进了 kcdata 空间、指向了别的格子——
 4-5 的「Dマスを経由」在查 B，5-5 的「Nマス」在查 H，7-4 的「Dマス」在查 C，5 条全错。
-现在编号只活在 agent JSON 里：`normalize` 接入时由 `lift_predicate_to_labels`（`parser/wikiwiki_map`）
-把规则两端和谓词里的编号一次抬成 label，组装时 `resolve_predicate_labels` 一次落到 kcdata 编号，
+资产里现在只有 label（当时由 `normalize` 一次抬成 label，该步骤已随 agent skill 删除），组装时 `resolve_predicate_labels` 一次落到 kcdata 编号，
 中间没有第三种编号空间。
 
 ## 3. 敌舰属性
@@ -141,14 +141,13 @@ degraded 兜底，每级都 warn。所以敌舰属性缺失不会中断出击，
 
 ## 4. 掉落
 
-`assets/map_ship_drops.json`，按「地图 → 变体 → 节点 label」建键，242 个节点 / 10384 条（扇出后 367 格 / 16499）。
+`assets/map_ship_drops.json`，按「地图 → 变体 → 节点 label」建键，由 `kcnav normalize` 从 KCNav 最近一年的实测记录生成
+（2026-10-06 起；此前是没有任何可复现来源的手工表，`ca027294` 曾因重建资产把它整个弄丢）。
 
-**它没有任何可复现来源。** 产出它的 Rust HTML 解析器在 2026-06 被删；agent skill 产不出（所有历史
-agent JSON 的 `ship_drops` 都是 0）；缓存的 wikiwiki 页面里也没有——36 份的 `DROP TABLE` 段全是
-难度、作战名、BGM，最长 332 字，一个舰名都没有。
-
-`ca027294` 已经栽过一次：按流程重建资产导致掉落全丢、10 个出击测试挂掉，当时选择把资产冻结。
-2026-09-22 把它拆成独立文件，资产因此解锁，但**掉落本身仍然不可再生**。接一个真实掉落源是未解决项。
+每一项带观测次数 `weight` 和见过掉落的评价档 `ranks`；`ship_id` 为 0 的一项是「无掉落」，同样按次数参与抽取，
+所以胜利不再必掉。KCNav 的次数不分评价档，`ranks` 只用来缩小候选。
+KCNav 也分不出期间限定掉落：手工清单 `assets/map_limited_drops.json` 列出这些舰，生成时打上 `limited`，运行时不掉。旧表有而新表没有的 491 条见
+`docs/map/kcnav-drop-diff-2026-10-06.md`，其中 374 条是该节点一年样本不足 1000。
 
 ## 5. 地图开放条件
 

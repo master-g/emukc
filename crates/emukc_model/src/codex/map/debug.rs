@@ -478,18 +478,32 @@ fn route_predicate_debug_json(
         }),
         RoutePredicate::LoS {
             formula,
+            coefficient,
             op,
             value,
         } => serde_json::json!({
             "kind": "LoS",
             "formula": formula,
+            "coefficient": coefficient,
             "op": format!("{op:?}"),
             "value": value,
             "text": format!(
-                "LoS{} {} {value}",
+                "LoS{}{} {} {value}",
                 formula.as_ref().map(|formula| format!(" ({formula})")).unwrap_or_default(),
+                coefficient.map(|cn| format!(" (Cn={cn})")).unwrap_or_default(),
                 route_operator_text(*op)
             ),
+        }),
+        RoutePredicate::CountSum {
+            terms,
+            op,
+            value,
+        } => serde_json::json!({
+            "kind": "CountSum",
+            "terms": terms,
+            "op": format!("{op:?}"),
+            "value": value,
+            "text": format!("count sum {} {value}", route_operator_text(*op)),
         }),
         RoutePredicate::DrumCanisterCount {
             op,

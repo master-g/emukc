@@ -45,7 +45,16 @@ pub(super) fn build_enemy_encounter(
     let formation_id =
         composition.formation.or_else(|| enemy_fleet.formations.first().copied()).unwrap_or(1);
 
-    let level = (definition.level.max(1) * 5 + enemy_fleet.cell_no).max(1);
+    // A composition from observed data carries each ship's level. One without them gets a
+    // made-up level that only grows with the map.
+    let fallback_level = (definition.level.max(1) * 5 + enemy_fleet.cell_no).max(1);
+    if composition.levels.is_empty() && !composition.ship_ids.is_empty() {
+        warn!(
+            map_id = definition.map_id,
+            cell_no, "enemy composition has no levels; using a made-up level"
+        );
+    }
+    let level = composition.levels.first().copied().unwrap_or(fallback_level);
     let ship_ids = if composition.ship_ids.is_empty() {
         vec![FALLBACK_ENEMY_SHIP_ID]
     } else {
@@ -53,7 +62,11 @@ pub(super) fn build_enemy_encounter(
     };
     let ships = ship_ids
         .into_iter()
-        .map(|ship_id| build_sortie_enemy_ship(codex, ship_id, level))
+        .enumerate()
+        .map(|(index, ship_id)| {
+            let level = composition.levels.get(index).copied().unwrap_or(fallback_level);
+            build_sortie_enemy_ship(codex, ship_id, level)
+        })
         .collect::<Result<Vec<_>, GameplayError>>()?;
 
     Ok(EnemyEncounter {
@@ -278,7 +291,7 @@ pub(super) fn fallback_enemy_composition(cell_no: i64) -> EnemyComposition {
         weight: 1,
         ship_ids: vec![FALLBACK_ENEMY_SHIP_ID],
         formation: Some(1),
-        raw_ship_names: Vec::new(),
+        ..Default::default()
     }
 }
 
@@ -344,6 +357,7 @@ mod tests {
     fn empty_variant() -> MapVariantDefinition {
         MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 5,
             cells: vec![],
             routing_rules: BTreeMap::new(),
@@ -384,6 +398,7 @@ mod tests {
             ship_ids,
             formation: Some(1),
             raw_ship_names: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -935,6 +950,7 @@ mod tests {
                     ship_ids: vec![501],
                     formation: Some(1),
                     raw_ship_names: Vec::new(),
+                    ..Default::default()
                 },
                 EnemyComposition {
                     comp_id: "heavy".to_string(),
@@ -942,6 +958,7 @@ mod tests {
                     ship_ids: vec![502],
                     formation: Some(1),
                     raw_ship_names: Vec::new(),
+                    ..Default::default()
                 },
             ],
         };
@@ -955,6 +972,7 @@ mod tests {
     fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
         let mut variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 5,
             cells: vec![],
             routing_rules: HashMap::new().into_iter().collect(),
@@ -976,6 +994,7 @@ mod tests {
                     ship_ids: vec![501, 502],
                     formation: Some(2),
                     raw_ship_names: Vec::new(),
+                    ..Default::default()
                 }],
             },
         );

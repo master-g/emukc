@@ -40,6 +40,7 @@ async fn prepare_state(cfg: &AppConfig) -> Result<state::State> {
                 proxy: None,
                 output: None,
                 skip_web_assets: false,
+                codex_only: false,
             },
         )
         .await
