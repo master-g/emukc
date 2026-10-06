@@ -195,11 +195,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] 依赖全量升级（含四个大版本）已快进合入本地 `main`，**未推送**。
-  升级后 fmt exit 0，clippy exit 0（仍是 17 条既有 warning），`cargo test --workspace` exit 0，1178 过 0 败 0 忽略。
+- [2026-10-06] 分支 `feat/route-rules-from-compass-source`：三份计划已提交；003 的 U1（`route-rules sync`）已实现。
+  fmt exit 0，clippy exit 0（仍 17 条既有 warning），`cargo test --workspace` exit 0，1182 过 0 败 0 忽略。
 
 ## Next Session
 
-- [2026-10-06] 先推送 `main`。三份计划（001 KCNav、002 索敌、003 路由规则转换器）已起草未实施未提交，
-  顺序见 002 的 Sequencing，从 003 的 U1 开始。基地航空隊 U4 与 `sally_flag` 仍在队列里。
+- [2026-10-06] `main` 仍未推送。接着做 003 的 U2（`main-decoder` 里的 TS 解析器），总顺序见 002 的 Sequencing。
+  基地航空隊 U4 与 `sally_flag` 仍在队列里。
 - 改了 `parser/` 或 `assets/` 后必须重建 `.data/codex`（`parse_partial_codex` + `save(overwrite)`），否则集成测试跑旧数据。
