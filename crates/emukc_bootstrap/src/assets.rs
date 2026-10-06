@@ -59,6 +59,7 @@ pub(crate) const PUBLIC_MAP_CATALOG_OVERLAYS: RepoAsset =
 pub(crate) const MAP_SHIP_DROPS: RepoAsset = asset!("map_ship_drops", embedded);
 pub(crate) const MAP_ROUTE_RULES: RepoAsset = asset!("map_route_rules", embedded);
 pub(crate) const KCNAV_ENEMY_FLEETS: RepoAsset = asset!("kcnav_enemy_fleets", embedded);
+pub(crate) const KCNAV_CELL_EVENTS: RepoAsset = asset!("kcnav_cell_events", embedded);
 pub(crate) const MAP_LIMITED_DROPS: RepoAsset = asset!("map_limited_drops", embedded);
 pub(crate) const CACHE_RULES: RepoAsset = asset!("cache_rules", embedded);
 
@@ -77,6 +78,7 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     MAP_SHIP_DROPS,
     MAP_ROUTE_RULES,
     KCNAV_ENEMY_FLEETS,
+    KCNAV_CELL_EVENTS,
     MAP_LIMITED_DROPS,
     CACHE_RULES,
     asset!("resource_manifest"),

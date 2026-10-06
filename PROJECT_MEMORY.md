@@ -194,12 +194,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] PR #2 已合并进 `main` 并推送：计划 002、003 U1–U5 与 U6 前两步、001 U1–U4。合并前 fmt、clippy（17 条既有
-  warning）、`cargo test --workspace` 1193 通过。KCNav 原始响应在 `.data/temp/kcnav/`。
+- [2026-10-06] 分支 `fix/map-data-gaps`（未推送）：计划 004 已实施，34 个格子的类型按 KCNav 订正（28 场不存在的战斗、
+  4 个漏掉的 boss、2 个错标的 boss）。fmt、clippy（17 条）、`cargo test --workspace` 1196 通过。
 
 ## Next Session
 
-- [2026-10-06] 001 U5 与 003 U6 第 3–5 步卡在 6-5 M：敌方联合舰队只有 wikiwiki 有编成，要先让 KCNav 的联合舰队记录可用。
-  装備ボーナス只有调研：`docs/brainstorms/2026-10-06-equipment-bonus-sources.md`。
-  `practice_battle` 的 `idle_group_exercise_quest_...` 偶发失败。基地航空隊 U4 与 `sally_flag` 仍在队列里。
+- [2026-10-06] 剩余缺口按价值排：血条阶段（5-6、7-5 的中间 boss 不推进血条，路由也只取了 5-6 末阶段）；敌方联合舰队
+  （6-5 M 卡着 wikiwiki 资产的删除）；装備ボーナス（调研在 `docs/brainstorms/2026-10-06-equipment-bonus-sources.md`）；
+  下载层无请求超时；`practice_battle` 有一个偶发失败。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

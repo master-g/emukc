@@ -2,7 +2,7 @@
 title: "Cell Event Types From KCNav - Plan"
 type: fix
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -92,6 +92,25 @@ codex 里格子的 `event_id` 不是任何真实数据给的：`map_pipeline/kcd
 
 订正计划 001 的那句错误归因（已随本计划提交）、`data-dependencies.md` 一览表的「拓扑」行（格子类型此前并未被独立确认）、
 `PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-06）
+
+U1–U3 已实施。订正后 codex 与 KCNav 在 `event_id` 上只剩有意不改的差异：本项目的内部编码（9 / 10 / 11，共 13 格）和
+没有运行时实现的事件（8、9，各 1 格）。「战斗格没有敌方编成」从 31 格降到 0。
+
+定下来的做法：
+
+- KD1：新资产 `kcnav_cell_events.json`（图名 → `cell_no` → label、颜色码、`event_id`），由 `kcnav normalize` 从已下载的
+  `map.json` 生成，没有新请求。
+- KD2：在组装时最先订正（敌方编成、掉落、路由规则贴上去之前）。只改 `event_id` 在 {1, 4, 5, 6} 且与记录不同的格子，
+  目标限于 0 / 2 / 4 / 5 / 6。気のせい 格的 `event_kind` 取 1，能動分岐（KCNav 颜色码 91）取 2；颜色不动。
+  起点格也保留原颜色：真实抓包里 6-5 的起点画成 4。
+- KD3：取 (a)。`boss_cell_no` 仍是单值；只有它指向的格子被订正成非 boss 时才改指向最后一个 boss 格（3-4 → P，5-2 → O）。
+  5-6 的 G / N 与 7-5 的 K / Q 现在是 `event_id` 5 的 boss 战，但不在 `boss_cell_nos()` 里，打赢不推进血条、不算通关——
+  血条阶段另立计划。
+- 敌方编成资产的 `is_boss` 改由 KCNav 的记录决定，不再读 codex 的格子类型（否则订正前后要生成两遍）。
+- label 与记录不一致时组装失败（R4）；现在是 0 处。
+- 订正与路由规则一起加载：自带目录的调用方两者都不套用。
 
 ## Verification Contract
 

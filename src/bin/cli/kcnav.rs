@@ -67,6 +67,10 @@ struct NormalizeArgs {
     /// Where to write the enemy fleet asset.
     #[arg(long, default_value_os_t = repo_kcnav_enemy_fleets_path(), value_name = "FILE")]
     enemy_fleets: PathBuf,
+
+    /// Where to write the cell kind asset.
+    #[arg(long, default_value_os_t = repo_kcnav_cell_events_path(), value_name = "FILE")]
+    cell_events: PathBuf,
 }
 
 fn write_json<T: serde::Serialize>(value: &T, path: &std::path::Path) -> Result<()> {
@@ -117,6 +121,7 @@ pub(super) async fn exec(args: &KcnavArgs) -> Result<()> {
             let catalog = normalize_kcnav(&args.input).map_err(|err| anyhow!(err))?;
             let nodes = catalog.maps.values().map(std::collections::BTreeMap::len).sum::<usize>();
             write_json(&catalog, &args.output)?;
+            write_json(&kcnav_cell_events(&catalog), &args.cell_events)?;
             let codex = Codex::load_without_cache_source(&args.codex)
                 .with_context(|| format!("loading the codex from {}", args.codex.display()))?;
             let maps = codex.map_catalog();
