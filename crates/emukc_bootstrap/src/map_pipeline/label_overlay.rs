@@ -4,14 +4,14 @@ use emukc_model::codex::map::{
     EnemyFleetDefinition, MapVariantDefinition, RoutePredicate, RouteRule,
 };
 
-use crate::parser::wikiwiki_map::WikiwikiLabelOverlay;
+use crate::parser::label_overlay::LabelOverlay;
 
-/// Merge wikiwiki label-keyed overlay onto a kcdata variant via route-cell labels.
+/// Merge the label-keyed overlay onto a kcdata variant via route-cell labels.
 ///
 /// Returns the count of items dropped due to unmatched labels.
 pub fn merge_label_overlay(
     kcdata_variant: &mut MapVariantDefinition,
-    overlay: &WikiwikiLabelOverlay,
+    overlay: &LabelOverlay,
 ) -> usize {
     let mut dropped = 0usize;
     let label_index = kcdata_variant.multi_label_index();
@@ -102,7 +102,7 @@ pub fn merge_label_overlay(
     }
 
     // Enemy fleets
-    for (label, node) in &overlay.enemy_nodes {
+    for (label, node) in &overlay.enemy_rows {
         let Some(cell_nos) = label_index.get(label) else {
             tracing::warn!(label = %label, "overlay enemy fleet dropped: label not in kcdata index");
             dropped += 1;
@@ -202,7 +202,7 @@ fn collect_formations(compositions: &[emukc_model::codex::map::EnemyComposition]
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::wikiwiki_map::{EnemyNodeRows, RouteRuleDraft, ShipDropDraft};
+    use crate::parser::label_overlay::{EnemyNodeRows, RouteRuleDraft, ShipDropDraft};
     use emukc_model::codex::map::{MapCellDefinition, ShipDropDefinition};
 
     fn make_cell(cell_no: i64, label: &str) -> MapCellDefinition {
@@ -265,10 +265,10 @@ mod tests {
         ]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![draft_rule("A", "B", RoutePredicate::Always)],
-            enemy_nodes: vec![(
+            enemy_rows: vec![(
                 "C".to_string(),
                 EnemyNodeRows {
                     is_boss: false,
@@ -298,13 +298,13 @@ mod tests {
         ]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![
                 draft_rule("A", "B", RoutePredicate::Always),
                 draft_rule("A", "Z", RoutePredicate::Always),
             ],
-            enemy_nodes: BTreeMap::new(),
+            enemy_rows: BTreeMap::new(),
             ship_drops: vec![],
             required_defeat_count: None,
             parse_warnings: vec![],
@@ -320,10 +320,10 @@ mod tests {
         let variant = make_variant(vec![make_cell(0, "Start"), make_cell(1, "X")]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![draft_rule("A", "B", RoutePredicate::Always)],
-            enemy_nodes: vec![(
+            enemy_rows: vec![(
                 "C".to_string(),
                 EnemyNodeRows {
                     is_boss: false,
@@ -354,7 +354,7 @@ mod tests {
         ]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![draft_rule(
                 "A",
@@ -364,7 +364,7 @@ mod tests {
                     visited: true,
                 },
             )],
-            enemy_nodes: BTreeMap::new(),
+            enemy_rows: BTreeMap::new(),
             ship_drops: vec![],
             required_defeat_count: None,
             parse_warnings: vec![],
@@ -391,10 +391,10 @@ mod tests {
         let variant = make_variant(vec![make_cell(0, "Start"), make_cell(5, "E")]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![],
-            enemy_nodes: vec![(
+            enemy_rows: vec![(
                 "E".to_string(),
                 EnemyNodeRows {
                     is_boss: true,
@@ -425,10 +425,10 @@ mod tests {
             make_variant(vec![make_cell(0, "Start"), make_cell(5, "E"), make_cell(11, "E")]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![],
-            enemy_nodes: vec![(
+            enemy_rows: vec![(
                 "E".to_string(),
                 EnemyNodeRows {
                     is_boss: false,
@@ -454,10 +454,10 @@ mod tests {
             make_variant(vec![make_cell(0, "Start"), make_cell(10, "J"), make_cell(13, "J")]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![],
-            enemy_nodes: BTreeMap::new(),
+            enemy_rows: BTreeMap::new(),
             ship_drops: vec![draft_drop("J", 100)],
             required_defeat_count: None,
             parse_warnings: vec![],
@@ -483,13 +483,13 @@ mod tests {
         ]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![
                 draft_rule("F", "J", RoutePredicate::Always),
                 draft_rule("H", "J", RoutePredicate::Always),
             ],
-            enemy_nodes: BTreeMap::new(),
+            enemy_rows: BTreeMap::new(),
             ship_drops: vec![],
             required_defeat_count: None,
             parse_warnings: vec![],
@@ -513,7 +513,7 @@ mod tests {
         ]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![draft_rule(
                 "A",
@@ -523,7 +523,7 @@ mod tests {
                     visited: true,
                 },
             )],
-            enemy_nodes: BTreeMap::new(),
+            enemy_rows: BTreeMap::new(),
             ship_drops: vec![],
             required_defeat_count: None,
             parse_warnings: vec![],
@@ -553,10 +553,10 @@ mod tests {
         ]);
         let mut target = variant.clone();
 
-        let overlay = WikiwikiLabelOverlay {
+        let overlay = LabelOverlay {
             variant_key: String::new(),
             routing_rules: vec![draft_rule("A", "C", RoutePredicate::Always)],
-            enemy_nodes: BTreeMap::new(),
+            enemy_rows: BTreeMap::new(),
             ship_drops: vec![],
             required_defeat_count: None,
             parse_warnings: vec![],

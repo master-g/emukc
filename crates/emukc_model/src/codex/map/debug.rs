@@ -59,8 +59,6 @@ pub(super) fn to_debug_json(catalog: &MapCatalog, manifest: &ApiManifest) -> ser
                                         "weight": composition.weight,
                                         "formation": composition.formation,
                                         "ships": ships,
-                                        "raw_ship_names": (!composition.raw_ship_names.is_empty())
-                                            .then_some(composition.raw_ship_names.clone()),
                                     })
                                 })
                                 .collect::<Vec<_>>();

@@ -33,7 +33,7 @@ _Avoid_: 任务事件总线、quest 钩子
 _Avoid_: 地图数据库、map json
 
 **Label space（标签空间）**:
-仓库里 wikiwiki 资产和掉落资产标识格子的方式：只用节点标签（A、B、Start…），不用任何格子编号。标签在组装地图目录时才一次性落到 kcdata 编号。
+仓库里敌方编成资产和掉落资产标识格子的方式：只用节点标签（A、B、Start…），不用任何格子编号。标签在组装地图目录时才一次性落到 kcdata 编号。
 _Avoid_: wikiwiki 编号、BFS 编号空间
 
 **Enemy encounter（敌方遭遇）**:

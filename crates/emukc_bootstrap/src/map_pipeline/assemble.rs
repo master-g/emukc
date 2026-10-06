@@ -12,7 +12,7 @@ use super::{
 };
 
 /// Assemble the final catalog in its one fixed order: kcdata → public overlay →
-/// `stat.json` → `p_unlock` normalization → wikiwiki label overlay → compass
+/// `stat.json` → `p_unlock` normalization → label overlay → compass
 /// routing rules.
 ///
 /// The label overlay and the routing rules go last because they are the only steps
@@ -50,7 +50,7 @@ pub(super) fn assemble_final_map_catalog(
     }
 
     let overlay_items_dropped = sources
-        .wikiwiki_overlay
+        .label_overlay
         .as_ref()
         .map(|overlay| merge_label_overlay_catalog(&mut catalog, overlay))
         .unwrap_or(0);
@@ -93,8 +93,7 @@ pub(super) fn assemble_final_map_catalog(
     Ok((
         catalog,
         MapCatalogBuildReport {
-            wikiwiki_source: sources.wikiwiki_source,
-            wikiwiki_map_count: sources.wikiwiki_map_count,
+            label_overlay_map_count: sources.label_overlay_map_count,
             public_overlay_map_count: sources.public_overlay_map_count,
             stat_map_count: sources.stat_map_count,
             stat_source,
@@ -165,11 +164,11 @@ fn apply_route_rules_catalog(
     }
 }
 
-/// Merge the label-keyed wikiwiki overlay onto the assembled topology, resolving
+/// Merge the label-keyed overlay onto the assembled topology, resolving
 /// each label to the cells that carry it.
 fn merge_label_overlay_catalog(
     catalog: &mut MapCatalog,
-    overlay_catalog: &crate::parser::wikiwiki_map::WikiwikiMapOverlayCatalog,
+    overlay_catalog: &crate::parser::label_overlay::LabelOverlayCatalog,
 ) -> usize {
     let mut total_dropped = 0usize;
 
@@ -184,7 +183,7 @@ fn merge_label_overlay_catalog(
                     None => tracing::warn!(
                         map_id,
                         variant_key = %key,
-                        "wikiwiki overlay names a variant the assembled map does not have; skipped"
+                        "label overlay names a variant the assembled map does not have; skipped"
                     ),
                 }
             }
@@ -203,10 +202,9 @@ mod tests {
     };
 
     use super::assemble_final_map_catalog;
-    use crate::map_pipeline::{report::MapCatalogWikiwikiSource, sources::ResolvedMapSources};
-    use crate::parser::wikiwiki_map::{
-        RouteRuleDraft, WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog,
-        WikiwikiMapOverlayDefinition,
+    use crate::map_pipeline::sources::ResolvedMapSources;
+    use crate::parser::label_overlay::{
+        LabelOverlay, LabelOverlayCatalog, LabelOverlayDefinition, RouteRuleDraft,
     };
 
     /// Build a [`MapCellDefinition`] with an auto-generated node label `C{cell_no}`.
@@ -253,10 +251,10 @@ mod tests {
     }
 
     /// A label-space overlay for one variant carrying a single `from → to` rule.
-    fn label_rule(variant_key: &str, from: &str, to: &str) -> (String, WikiwikiLabelOverlay) {
+    fn label_rule(variant_key: &str, from: &str, to: &str) -> (String, LabelOverlay) {
         (
             variant_key.to_owned(),
-            WikiwikiLabelOverlay {
+            LabelOverlay {
                 variant_key: variant_key.to_owned(),
                 routing_rules: vec![RouteRuleDraft {
                     from_label: from.to_owned(),
@@ -290,7 +288,7 @@ mod tests {
         }
     }
 
-    /// A `p_unlock` map arrives as one unnamed kcdata variant while its wikiwiki
+    /// A `p_unlock` map arrives as one unnamed kcdata variant while its overlay
     /// routing is keyed `pre_p_unlock` / `post_p_unlock`; those variants only exist
     /// once the public overlay is merged and normalized. Each must still get its own
     /// routing — 7-3 once silently lost all of it.
@@ -307,10 +305,10 @@ mod tests {
                 base.cells[index].next_cells = vec![next];
             }
         }
-        let wikiwiki = WikiwikiMapOverlayCatalog {
+        let overlay = LabelOverlayCatalog {
             maps: BTreeMap::from([(
                 73,
-                WikiwikiMapOverlayDefinition {
+                LabelOverlayDefinition {
                     map_id: 73,
                     variants: BTreeMap::from([
                         label_rule("pre_p_unlock", "C1", "C2"),
@@ -329,7 +327,7 @@ mod tests {
         );
 
         let sources = ResolvedMapSources {
-            wikiwiki_overlay: Some(wikiwiki),
+            label_overlay: Some(overlay),
             route_rules: None,
             cell_events: None,
             public_overlay_catalog: public_overlay,
@@ -350,9 +348,8 @@ mod tests {
 
     fn sources_from_kcdata(kcdata: MapCatalog) -> ResolvedMapSources {
         ResolvedMapSources {
-            wikiwiki_source: MapCatalogWikiwikiSource::None,
-            wikiwiki_map_count: 0,
-            wikiwiki_overlay: None,
+            label_overlay_map_count: 0,
+            label_overlay: None,
             route_rules: None,
             cell_events: None,
             kcdata_catalog: kcdata,
@@ -503,13 +500,13 @@ mod tests {
         };
         let mut kcdata = make_catalog(15, vec![linked("first"), linked("second")]);
         kcdata.maps.insert(11, make_catalog(11, vec![linked("")]).maps.remove(&11).unwrap());
-        let wikiwiki = WikiwikiMapOverlayCatalog {
+        let overlay = LabelOverlayCatalog {
             maps: [15, 11]
                 .into_iter()
                 .map(|map_id| {
                     (
                         map_id,
-                        WikiwikiMapOverlayDefinition {
+                        LabelOverlayDefinition {
                             map_id,
                             variants: BTreeMap::from([label_rule("", "C0", "C1")]),
                         },
@@ -519,7 +516,7 @@ mod tests {
         };
 
         let (catalog, _report) = assemble_final_map_catalog(ResolvedMapSources {
-            wikiwiki_overlay: Some(wikiwiki),
+            label_overlay: Some(overlay),
             route_rules: None,
             cell_events: None,
             ..sources_from_kcdata(kcdata)

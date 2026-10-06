@@ -218,8 +218,6 @@ pub struct EnemyComposition {
     /// Level of each escort ship, in `escort_ship_ids` order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub escort_levels: Vec<i64>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub raw_ship_names: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

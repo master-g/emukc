@@ -528,7 +528,7 @@ mod tests {
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 19);
+        assert_eq!(paths.len(), 18);
     }
 
     #[test]

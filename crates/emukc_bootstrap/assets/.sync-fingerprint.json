@@ -9,7 +9,7 @@
     "battle_slot_resource_triggers": "DE8FGF3XUCJnxyvUTRuM1vSKFea4eA9NPLFvnhrh7FVs",
     "cache_rules": "CiimENKp8kXehjZzP1odwfyqAndWz5ky8kgncsyXMsvg",
     "kcnav_cell_events": "F3sVuaXyGL5kvCcJE6BuuLQoq2fizbwSbFniaosBtF8P",
-    "kcnav_enemy_fleets": "8RTDrPoL8suqPwXshx1Ed5tjLJi1HC7J3k9enbEXBc8S",
+    "kcnav_enemy_fleets": "Fm5ioJzcQi3sBufd6nTVnywgiDqvWdm9KzueTBk1mBjC",
     "map_limited_drops": "CbhuqggDAiP9pDgTPCpbqLVQgNhZaYNLDa8GzyW3GqPe",
     "map_route_rules": "H4XsdKJftKF61TNxp715Z2rvFes4bggASHVyTZEH5kGg",
     "map_ship_drops": "8KoWnjRNhrXVKDUenyZgTbA5ASMH4geG6oSwv8DtKwvt",
@@ -18,7 +18,6 @@
     "resource_id_sets": "929op9kvakZBaVk2mii85CCC3qGCCftFdU7zmr7znzAQ",
     "resource_manifest": "HFTBr98wu6MacNuBYAe3NgCSXnZtax51R24KN6hcN7Mq",
     "resource_templates": "3XGG4Xe2k8aRnzxrCEgTnSa6pQ6STRfzLrqVsz4oKZDc",
-    "ui_resources": "2ixuftw8BniX7LsKk41eaQXM8Acd4KThxXdEnf6tM3ro",
-    "wikiwiki_map_catalog": "7r9E29mXi3m3KXb3dj4CXab51LX1F32zBLZLNQ1aWquZ"
+    "ui_resources": "2ixuftw8BniX7LsKk41eaQXM8Acd4KThxXdEnf6tM3ro"
   }
 }

@@ -32,13 +32,13 @@ async fn mock_context() -> Ctx {
     Ctx::new(Arc::new(db), Arc::new(codex))
 }
 
-/// Rebuild `codex.maps` from the repo-tracked wikiwiki asset instead of trusting the
+/// Rebuild `codex.maps` from the repo-tracked map assets instead of trusting the
 /// bootstrap snapshot already stored in `.data/codex/map_catalog.json`.
-async fn mock_context_with_repo_wikiwiki_maps() -> Ctx {
+async fn mock_context_with_repo_maps() -> Ctx {
     let db = new_mem_db().await.unwrap();
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
     let data_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp");
-    codex.maps = build_final_map_catalog(&data_root, &codex.manifest, None).unwrap().0;
+    codex.maps = build_final_map_catalog(&data_root, &codex.manifest).unwrap().0;
     ensure_enemy_manifest_entries(&mut codex);
     Ctx::new(Arc::new(db), Arc::new(codex))
 }
@@ -143,8 +143,8 @@ async fn new_game_session() -> (Ctx, StartGameInfo) {
     (context, session)
 }
 
-async fn new_game_session_with_repo_wikiwiki_maps() -> (Ctx, StartGameInfo) {
-    let context = mock_context_with_repo_wikiwiki_maps().await;
+async fn new_game_session_with_repo_maps() -> (Ctx, StartGameInfo) {
+    let context = mock_context_with_repo_maps().await;
 
     let account = context.sign_up("test", "1234567").await.unwrap();
     let extra_profiles = PROFILE_ID_BUMP.fetch_add(1, Ordering::Relaxed);
@@ -360,7 +360,7 @@ async fn sortie_start_battle_result_flow_updates_stats() {
 
 #[tokio::test]
 async fn loaded_map_catalog_supports_start_and_next_flow() {
-    let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
+    let (context, session) = new_game_session_with_repo_maps().await;
     let pid = session.profile.id;
 
     let ship = context.add_ship(pid, 951).await.unwrap();
@@ -388,7 +388,7 @@ async fn loaded_map_catalog_supports_start_and_next_flow() {
 
 #[tokio::test]
 async fn repo_kcdata_route_cells_keep_world_1_3_api_identity() {
-    let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
+    let (context, session) = new_game_session_with_repo_maps().await;
     let pid = session.profile.id;
     ensure_map_unlocked(&context, pid, 13).await;
 
@@ -471,7 +471,7 @@ async fn sortie_battle_result_advances_generic_sortie_quest() {
 
 #[tokio::test]
 async fn sortie_battle_result_advances_boss_quest_on_real_boss_node() {
-    let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
+    let (context, session) = new_game_session_with_repo_maps().await;
     let pid = session.profile.id;
     let quest_id = 204;
     let maparea_id = 1;
@@ -505,8 +505,8 @@ async fn sortie_battle_result_advances_boss_quest_on_real_boss_node() {
 }
 
 #[tokio::test]
-async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
-    let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
+async fn repo_assets_support_real_map_boss_progression() {
+    let (context, session) = new_game_session_with_repo_maps().await;
     let pid = session.profile.id;
     let quest_id = 204;
     let maparea_id = 1;
@@ -540,8 +540,8 @@ async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
 const DROP_SEED: u64 = 1;
 
 #[tokio::test]
-async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() {
-    let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
+async fn sortie_battle_result_grants_ship_drop_from_repo_map_assets() {
+    let (context, session) = new_game_session_with_repo_maps().await;
     let pid = session.profile.id;
 
     let ship = context.add_ship(pid, 951).await.unwrap();
@@ -574,8 +574,8 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
 }
 
 #[tokio::test]
-async fn repo_wikiwiki_map_enemy_ids_are_covered_by_enemy_bootstrap_data() {
-    let codex = mock_context_with_repo_wikiwiki_maps().await.codex;
+async fn repo_map_enemy_ids_are_covered_by_enemy_bootstrap_data() {
+    let codex = mock_context_with_repo_maps().await.codex;
     let missing = codex
         .maps
         .maps
@@ -589,10 +589,7 @@ async fn repo_wikiwiki_map_enemy_ids_are_covered_by_enemy_bootstrap_data() {
         .filter(|ship_id| codex.new_enemy_ship(*ship_id).is_none())
         .collect::<Vec<_>>();
 
-    assert!(
-        missing.is_empty(),
-        "repo wikiwiki map enemy ids missing enemy bootstrap coverage: {missing:?}"
-    );
+    assert!(missing.is_empty(), "repo map enemy ids missing enemy bootstrap coverage: {missing:?}");
 }
 
 #[tokio::test]

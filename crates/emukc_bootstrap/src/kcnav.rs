@@ -16,7 +16,7 @@ use emukc_network::{client::new_reqwest_client, download::Request, reqwest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{download::BootstrapDownloadError, parser::wikiwiki_map::EnemyNodeRows};
+use crate::{download::BootstrapDownloadError, parser::label_overlay::EnemyNodeRows};
 
 const KCNAV_API_ROOT: &str = "https://tsunkit.net/api/routing";
 const KCNAV_ROOT: &str = "kcnav";

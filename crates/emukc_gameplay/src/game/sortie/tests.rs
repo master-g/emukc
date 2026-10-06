@@ -1387,7 +1387,7 @@ async fn first_gauge_clear_switches_map_variant_without_finishing_map() {
 async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
     let db = new_mem_db().await.unwrap();
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    codex.maps = build_final_map_catalog("../../.data/temp", &codex.manifest, None).unwrap().0;
+    codex.maps = build_final_map_catalog("../../.data/temp", &codex.manifest).unwrap().0;
     let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("variant-layout", "1234567").await.unwrap();
     let profile =

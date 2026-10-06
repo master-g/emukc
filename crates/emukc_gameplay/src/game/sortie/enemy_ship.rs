@@ -410,7 +410,6 @@ mod tests {
             weight,
             ship_ids,
             formation: Some(1),
-            raw_ship_names: Vec::new(),
             ..Default::default()
         }
     }
@@ -962,7 +961,6 @@ mod tests {
                     weight: 1,
                     ship_ids: vec![501],
                     formation: Some(1),
-                    raw_ship_names: Vec::new(),
                     ..Default::default()
                 },
                 EnemyComposition {
@@ -970,7 +968,6 @@ mod tests {
                     weight: 3,
                     ship_ids: vec![502],
                     formation: Some(1),
-                    raw_ship_names: Vec::new(),
                     ..Default::default()
                 },
             ],
@@ -1006,7 +1003,6 @@ mod tests {
                     weight: 1,
                     ship_ids: vec![501, 502],
                     formation: Some(2),
-                    raw_ship_names: Vec::new(),
                     ..Default::default()
                 }],
             },

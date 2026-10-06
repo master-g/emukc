@@ -13,10 +13,10 @@ mod bootstrap;
 mod cache;
 mod dev;
 mod kcnav;
+mod map;
 mod route_rules;
 mod serve;
 mod version;
-mod wikiwiki_map;
 
 const INFO: &str = r#"
 Yet Another Kantai Collection Emulator
@@ -60,8 +60,8 @@ enum Commands {
     #[command(about = "Validate and diagnose battle payloads with client-derived rules")]
     Battle(battle::BattleArgs),
 
-    #[command(about = "Maintain the repo-tracked wikiwiki map catalog")]
-    WikiwikiMap(wikiwiki_map::WikiwikiMapArgs),
+    #[command(about = "Maintain the repo-tracked map assets")]
+    Map(map::MapArgs),
 
     #[command(about = "Maintain the routing rules converted from the compass simulator source")]
     RouteRules(route_rules::RouteRulesArgs),
@@ -217,7 +217,7 @@ pub async fn init() -> ExitCode {
         }
         Some(Commands::Battle(args)) => battle::exec(&args, &cfg).await,
         Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
-        Some(Commands::WikiwikiMap(args)) => wikiwiki_map::exec(&args).await,
+        Some(Commands::Map(args)) => map::exec(&args).await,
         Some(Commands::RouteRules(args)) => route_rules::exec(&args).await,
         Some(Commands::Kcnav(args)) => kcnav::exec(&args).await,
         Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,

@@ -113,7 +113,7 @@ impl Codex {
     /// manifest-derived synthetic catalog.
     ///
     /// Note that `self.maps` is loaded from the on-disk codex snapshot. Local edits to
-    /// `crates/emukc_bootstrap/assets/wikiwiki_map_catalog.json` do not change this view until
+    /// the map assets under `crates/emukc_bootstrap/assets/` do not change this view until
     /// the runtime codex is regenerated, or tests explicitly rebuild maps from the repo asset.
     pub fn map_catalog(&self) -> Cow<'_, map::MapCatalog> {
         if self.maps.maps.is_empty() {

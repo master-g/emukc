@@ -33,9 +33,6 @@ mod populate;
 mod progress;
 mod real_map_start_asset;
 mod res;
-mod wikiwiki_map_asset;
-/// Manual wikiwiki map download helpers used by examples and one-off tooling.
-pub mod wikiwiki_map_download;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
@@ -87,25 +84,15 @@ pub mod prelude {
         repo_public_map_catalog_overlay_path,
     };
     pub use crate::map_pipeline::{
-        MapCatalogBuildReport, MapCatalogStatSource, MapCatalogWikiwikiSource,
-        build_final_map_catalog,
+        MapCatalogBuildReport, MapCatalogStatSource, build_final_map_catalog,
     };
     pub use crate::map_route_rules::{
         MapRouteValidationFinding, MapRouteValidationFindingKind, MapRouteValidationReport,
         MapRouteValidationSeverity, validate_map_route_stage,
     };
     pub use crate::parser::{
-        WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
-        parse_partial_codex,
+        LabelOverlay, LabelOverlayCatalog, LabelOverlayDefinition, parse_partial_codex,
     };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
-    pub use crate::wikiwiki_map_asset::{
-        RepoWikiwikiMapCatalogAsset, RepoWikiwikiMapCatalogSource,
-        load_repo_wikiwiki_map_catalog_asset, repo_wikiwiki_map_catalog_path,
-    };
-    pub use crate::wikiwiki_map_download::{
-        WikiwikiMapDownloadOptions, WikiwikiMapDownloadStats, download_wikiwiki_map,
-        download_wikiwiki_map_with_options, wikiwiki_map_page_url,
-    };
 }

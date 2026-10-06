@@ -13,26 +13,20 @@ use crate::{
     compass_route_rules::{CompassRouteRulesAsset, load_repo_compass_route_rules},
     parser::{
         error::ParseError,
-        wikiwiki_map::{ShipDropDraft, WikiwikiMapOverlayCatalog},
-    },
-    wikiwiki_map_asset::{
-        RepoWikiwikiMapCatalogSource, load_repo_wikiwiki_map_catalog_asset,
-        repo_wikiwiki_map_catalog_path,
+        label_overlay::{LabelOverlayCatalog, ShipDropDraft},
     },
 };
-
-use super::report::MapCatalogWikiwikiSource;
 
 const STAT_JSON_URL: &str =
     "https://raw.githubusercontent.com/KagamiChan/kcs2-mapdata/master/maps/stat.json";
 const STAT_JSON_FILENAME: &str = "stat.json";
 
 pub(super) struct ResolvedMapSources {
-    pub(super) wikiwiki_source: MapCatalogWikiwikiSource,
-    pub(super) wikiwiki_map_count: usize,
-    pub(super) wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
-    /// Routing rules converted from the compass simulator. They replace the wikiwiki
-    /// catalog's routing rules; absent when a caller supplies its own catalog.
+    /// Number of maps the observed drops and enemy fleets cover.
+    pub(super) label_overlay_map_count: usize,
+    /// Observed ship drops and enemy fleets, keyed by node label.
+    pub(super) label_overlay: Option<LabelOverlayCatalog>,
+    /// Routing rules converted from the compass simulator.
     pub(super) route_rules: Option<CompassRouteRulesAsset>,
     /// Recorded cell kinds; `None` leaves the topology source's guesses as they are.
     pub(super) cell_events: Option<crate::kcnav::KcnavCellEventsAsset>,
@@ -45,58 +39,21 @@ pub(super) struct ResolvedMapSources {
     pub(super) stat_from_cache: bool,
 }
 
-pub(super) fn load_explicit_source_set(
-    data_root: &Path,
-    manifest: &ApiManifest,
-    mut wikiwiki_overlay: WikiwikiMapOverlayCatalog,
-) -> Result<ResolvedMapSources, ParseError> {
-    // A caller-supplied catalog comes straight from the agent skill, which does
-    // not produce drops, so it needs the same fold-in the repo asset gets.
-    apply_ship_drops(&mut wikiwiki_overlay)?;
-    apply_enemy_fleets(&mut wikiwiki_overlay)?;
-    load_source_set(
-        data_root,
-        manifest,
-        MapCatalogWikiwikiSource::Provided,
-        Some(wikiwiki_overlay),
-        None,
-    )
-}
-
 pub(super) fn load_repo_source_set(
     data_root: &Path,
     manifest: &ApiManifest,
 ) -> Result<ResolvedMapSources, ParseError> {
-    let (wikiwiki_source, wikiwiki_overlay) = load_repo_wikiwiki_overlay()?;
-    let route_rules = load_repo_compass_route_rules()?;
-    load_source_set(data_root, manifest, wikiwiki_source, wikiwiki_overlay, Some(route_rules))
-}
-
-fn load_source_set(
-    data_root: &Path,
-    manifest: &ApiManifest,
-    wikiwiki_source: MapCatalogWikiwikiSource,
-    wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
-    route_rules: Option<CompassRouteRulesAsset>,
-) -> Result<ResolvedMapSources, ParseError> {
     let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest)?;
-    let wikiwiki_map_count =
-        wikiwiki_overlay.as_ref().map(|overlay| overlay.maps.len()).unwrap_or(0);
+    let label_overlay = load_repo_label_overlay()?;
     let public_overlay_catalog = load_public_map_catalog_overlays()?;
     let public_overlay_map_count = public_overlay_catalog.maps.len();
     let (stat_catalog, stat_map_count, stat_from_cache) = load_stat_catalog(data_root);
 
     Ok(ResolvedMapSources {
-        wikiwiki_source,
-        wikiwiki_map_count,
-        wikiwiki_overlay,
-        // Loaded with the routing rules: both describe the repo's own maps, and a caller
-        // that brings its own catalog gets neither.
-        cell_events: route_rules
-            .is_some()
-            .then(crate::kcnav::load_repo_kcnav_cell_events)
-            .transpose()?,
-        route_rules,
+        label_overlay_map_count: label_overlay.maps.len(),
+        label_overlay: Some(label_overlay),
+        route_rules: Some(load_repo_compass_route_rules()?),
+        cell_events: Some(crate::kcnav::load_repo_kcnav_cell_events()?),
         kcdata_catalog,
         kcdata_parse_errors,
         public_overlay_map_count,
@@ -114,88 +71,56 @@ pub(super) fn load_public_map_catalog_overlays() -> Result<MapCatalog, ParseErro
     serde_json::from_str::<MapCatalog>(&raw).map_err(|source| ParseError::json_at(&path, source))
 }
 
-fn load_repo_wikiwiki_overlay()
--> Result<(MapCatalogWikiwikiSource, Option<WikiwikiMapOverlayCatalog>), ParseError> {
-    let path = repo_wikiwiki_map_catalog_path();
-    let asset = load_repo_wikiwiki_map_catalog_asset()
-        .map_err(|source| ParseError::io_at(&path, source))?;
-
-    // Derive both the success-path source kind and the failure-path file path before
-    // consuming `asset.source`, since both arms need the same information.
-    let (source_kind, failure_path) = match &asset.source {
-        RepoWikiwikiMapCatalogSource::Filesystem(asset_path) => {
-            (MapCatalogWikiwikiSource::Filesystem, asset_path.clone())
-        }
-        RepoWikiwikiMapCatalogSource::Embedded => {
-            info!(
-                "repo wikiwiki map catalog not found at {}; using embedded catalog asset",
-                path.display()
-            );
-            (MapCatalogWikiwikiSource::Embedded, path.clone())
-        }
-    };
-
-    match serde_json::from_str::<WikiwikiMapOverlayCatalog>(asset.raw_json()) {
-        Ok(mut overlay) => {
-            apply_ship_drops(&mut overlay)?;
-            apply_enemy_fleets(&mut overlay)?;
-            Ok((source_kind, Some(overlay)))
-        }
-        Err(e) => Ok((
-            MapCatalogWikiwikiSource::ParseFailed {
-                path: failure_path,
-                error: e.to_string(),
-            },
-            None,
-        )),
-    }
+/// The label-keyed overlay: observed ship drops and enemy fleets, both from KCNav.
+fn load_repo_label_overlay() -> Result<LabelOverlayCatalog, ParseError> {
+    let mut overlay = LabelOverlayCatalog::default();
+    apply_ship_drops(&mut overlay)?;
+    apply_enemy_fleets(&mut overlay)?;
+    Ok(overlay)
 }
 
-/// Put the observed enemy fleets over the wikiwiki ones, node by node.
-///
-/// A node the observations do not cover keeps its wikiwiki fleets — today that is only the
-/// enemy combined fleets, which the observed asset leaves out.
-fn apply_enemy_fleets(overlay: &mut WikiwikiMapOverlayCatalog) -> Result<(), ParseError> {
+/// The overlay entry of one map variant, created on first use.
+fn overlay_variant<'a>(
+    overlay: &'a mut LabelOverlayCatalog,
+    map_id: i64,
+    variant_key: &str,
+) -> &'a mut crate::parser::label_overlay::LabelOverlay {
+    let definition = overlay.maps.entry(map_id).or_default();
+    definition.map_id = map_id;
+    let variant = definition.variants.entry(variant_key.to_owned()).or_default();
+    variant.variant_key = variant_key.to_owned();
+    variant
+}
+
+/// Fold the observed enemy fleets into the overlay, node by node.
+fn apply_enemy_fleets(overlay: &mut LabelOverlayCatalog) -> Result<(), ParseError> {
     let path = KCNAV_ENEMY_FLEETS.path();
     let (_, raw) = KCNAV_ENEMY_FLEETS.load().map_err(|source| ParseError::io_at(&path, source))?;
     let asset: KcnavEnemyFleetsAsset =
         serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?;
 
     for (map_id, variants) in asset.maps {
-        let Some(definition) = overlay.maps.get_mut(&map_id) else {
-            continue;
-        };
         for (variant_key, nodes) in variants {
-            if let Some(variant) = definition.variants.get_mut(&variant_key) {
-                variant.enemy_nodes.extend(nodes);
-            }
+            overlay_variant(overlay, map_id, &variant_key).enemy_rows.extend(nodes);
         }
     }
 
     Ok(())
 }
 
-/// Fold the ship drop asset into the freshly parsed wikiwiki catalog.
+/// Fold the observed ship drops into the overlay.
 ///
-/// It is keyed the way that catalog keys everything else — map id, variant key, node label —
-/// so assembly resolves the drops to kcdata cells along with the rest.
-fn apply_ship_drops(overlay: &mut WikiwikiMapOverlayCatalog) -> Result<(), ParseError> {
+/// They are keyed by map id, variant key and node label, so assembly resolves them to
+/// kcdata cells along with the enemy fleets.
+fn apply_ship_drops(overlay: &mut LabelOverlayCatalog) -> Result<(), ParseError> {
     let path = MAP_SHIP_DROPS.path();
     let (_, raw) = MAP_SHIP_DROPS.load().map_err(|source| ParseError::io_at(&path, source))?;
     let asset: MapShipDropsAsset =
         serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?;
 
     for (map_id, variants) in asset.maps {
-        let Some(definition) = overlay.maps.get_mut(&map_id) else {
-            warn!("ship drops name map {map_id}, which the wikiwiki catalog does not have");
-            continue;
-        };
         for (variant_key, drops) in variants {
-            let Some(variant) = definition.variants.get_mut(&variant_key) else {
-                warn!("ship drops name {map_id} variant {variant_key}, which does not exist");
-                continue;
-            };
-            variant.ship_drops = drops
+            overlay_variant(overlay, map_id, &variant_key).ship_drops = drops
                 .into_iter()
                 .flat_map(|(node_label, drops)| {
                     drops.into_iter().map(move |drop| ShipDropDraft {
@@ -365,45 +290,6 @@ fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::map_pipeline::report::MapCatalogWikiwikiSource;
-
-    // ------------------------------------------------------------------ wikiwiki parse-failure
-
-    /// Invalid JSON produces a `ParseFailed` variant with a non-empty error string.
-    #[test]
-    fn wikiwiki_parse_failed_variant_on_invalid_json() {
-        let dir = tempfile::tempdir().unwrap();
-        let asset_path = dir.path().join("wikiwiki_map_catalog.json");
-        std::fs::write(&asset_path, "{").unwrap();
-
-        let raw = std::fs::read_to_string(&asset_path).unwrap();
-        let result = serde_json::from_str::<WikiwikiMapOverlayCatalog>(&raw);
-        assert!(result.is_err(), "truncated JSON must fail to parse");
-
-        let source = MapCatalogWikiwikiSource::ParseFailed {
-            path: asset_path.clone(),
-            error: result.unwrap_err().to_string(),
-        };
-
-        match source {
-            MapCatalogWikiwikiSource::ParseFailed {
-                path,
-                error,
-            } => {
-                assert_eq!(path, asset_path);
-                assert!(!error.is_empty(), "error string must be non-empty");
-            }
-            _ => panic!("expected ParseFailed variant"),
-        }
-    }
-
-    /// Valid JSON with an empty maps object produces a catalog with zero maps, not `ParseFailed`.
-    #[test]
-    fn wikiwiki_empty_maps_json_is_not_parse_failed() {
-        let raw = r#"{"maps":{}}"#;
-        let catalog = serde_json::from_str::<WikiwikiMapOverlayCatalog>(raw).unwrap();
-        assert_eq!(catalog.maps.len(), 0, "empty maps must parse without error");
-    }
 
     /// Without kcdata there is no cell numbering to resolve labels against, so the
     /// build must stop and say where it looked instead of shipping another space.
