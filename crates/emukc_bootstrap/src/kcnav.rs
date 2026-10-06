@@ -11,12 +11,12 @@ use std::{
     time::Duration,
 };
 
-use emukc_model::codex::map::{MapCatalog, ShipDropDefinition};
+use emukc_model::codex::map::{EnemyComposition, MapCatalog, ShipDropDefinition};
 use emukc_network::{client::new_reqwest_client, download::Request, reqwest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::download::BootstrapDownloadError;
+use crate::{download::BootstrapDownloadError, parser::wikiwiki_map::EnemyNodeRows};
 
 const KCNAV_API_ROOT: &str = "https://tsunkit.net/api/routing";
 const KCNAV_ROOT: &str = "kcnav";
@@ -489,6 +489,81 @@ pub fn kcnav_ship_drops(kcnav: &KcnavCatalog, catalog: &MapCatalog) -> MapShipDr
     MapShipDropsAsset {
         note: format!(
             "Ship drops of the regular maps, keyed by map id, variant key and node label. {} An              entry with ship_id 0 is the outcome \"nothing drops\"; ranks lists the win ranks an              outcome was seen at.",
+            kcnav.note
+        ),
+        maps,
+    }
+}
+
+/// The repo-tracked enemy fleet asset: map id, variant key, node label, then the fleets met.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct KcnavEnemyFleetsAsset {
+    /// Where the file comes from.
+    pub note: String,
+    /// The fleets of each node.
+    pub maps: BTreeMap<i64, BTreeMap<String, BTreeMap<String, EnemyNodeRows>>>,
+}
+
+/// Where the repo-tracked enemy fleet asset lives.
+pub fn repo_kcnav_enemy_fleets_path() -> PathBuf {
+    crate::assets::KCNAV_ENEMY_FLEETS.path()
+}
+
+/// Lay the observed enemy fleets out as the enemy fleet asset.
+///
+/// A fleet naming a ship `known_ship` rejects is left out: it could not be fielded.
+pub fn kcnav_enemy_fleets(
+    kcnav: &KcnavCatalog,
+    catalog: &MapCatalog,
+    known_ship: impl Fn(i64) -> bool,
+) -> KcnavEnemyFleetsAsset {
+    let mut maps = BTreeMap::new();
+    for map in catalog.maps.values() {
+        let Some(nodes) = kcnav.maps.get(&format!("{}-{}", map.maparea_id, map.mapinfo_no)) else {
+            continue;
+        };
+        let mut variants = BTreeMap::new();
+        for (key, variant) in &map.variants {
+            let mut rows = BTreeMap::new();
+            for (label, node) in nodes {
+                let mut cells =
+                    variant.cells.iter().filter(|cell| cell.node_label.as_deref() == Some(label));
+                let compositions = node
+                    .fleets
+                    .iter()
+                    .filter(|fleet| fleet.ship_ids.iter().all(|id| known_ship(*id)))
+                    .enumerate()
+                    .map(|(index, fleet)| EnemyComposition {
+                        comp_id: format!("kcnav:{index}"),
+                        weight: fleet.weight,
+                        ship_ids: fleet.ship_ids.clone(),
+                        formation: Some(fleet.formation),
+                        levels: fleet.levels.clone(),
+                        ..Default::default()
+                    })
+                    .collect::<Vec<_>>();
+                let Some(first) = cells.next() else {
+                    continue;
+                };
+                if compositions.is_empty() {
+                    continue;
+                }
+                let is_boss = std::iter::once(first).chain(cells).any(|cell| cell.event_id == 5);
+                rows.insert(
+                    label.clone(),
+                    EnemyNodeRows {
+                        is_boss,
+                        compositions,
+                    },
+                );
+            }
+            variants.insert(key.clone(), rows);
+        }
+        maps.insert(map.map_id, variants);
+    }
+    KcnavEnemyFleetsAsset {
+        note: format!(
+            "Enemy fleets of the regular maps, keyed by map id, variant key and node label. {}",
             kcnav.note
         ),
         maps,

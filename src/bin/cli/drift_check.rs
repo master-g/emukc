@@ -522,10 +522,11 @@ mod tests {
             "resource_templates",
             "map_ship_drops",
             "map_route_rules",
+            "kcnav_enemy_fleets",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 16);
+        assert_eq!(paths.len(), 17);
     }
 
     #[test]

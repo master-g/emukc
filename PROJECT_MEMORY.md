@@ -194,12 +194,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] 分支 `feat/route-rules-from-compass-source`（未推送）：计划 003 U1–U5 与 U6 前两步、002、001 的 U1/U2 代码已提交。
-  fmt、clippy（17 条既有 warning）、`cargo test --workspace` 均 exit 0。KCNav 下载器从未联网跑过。
+- [2026-10-06] 分支 `feat/route-rules-from-compass-source`（未推送）：计划 002、003 U1–U5 与 U6 前两步、001 U1–U4 已提交。
+  fmt、clippy（17 条既有 warning）、`cargo test --workspace` 1192 通过。KCNav 原始响应在 `.data/temp/kcnav/`。
 
 ## Next Session
 
-- [2026-10-06] 等用户确认后跑 `make kcnav-sync MAP=1-1` 验证查询串，再全量（996 次请求）；拿到数据后做 001 的
-  U2 余下部分与 U3–U6，再做 003 U6 第 3–5 步。待用户定：是否在 `codex/ship.rs` 加索敌装備ボーナス（量级见计划 002 实施记录）。
-  基地航空隊 U4 与 `sally_flag` 仍在队列里。
+- [2026-10-06] 001 U5 与 003 U6 第 3–5 步卡在 6-5 M：敌方联合舰队只有 wikiwiki 有编成，要先让 KCNav 的联合舰队记录可用。
+  装備ボーナス只有调研：`docs/brainstorms/2026-10-06-equipment-bonus-sources.md`。
+  `practice_battle` 的 `idle_group_exercise_quest_...` 偶发失败。基地航空隊 U4 与 `sally_flag` 仍在队列里。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

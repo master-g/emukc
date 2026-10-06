@@ -537,6 +537,8 @@ async fn repo_wikiwiki_asset_supports_real_map_boss_progression() {
     );
 }
 
+const DROP_SEED: u64 = 1;
+
 #[tokio::test]
 async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() {
     let (context, session) = new_game_session_with_repo_wikiwiki_maps().await;
@@ -545,6 +547,8 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
     let ship = context.add_ship(pid, 951).await.unwrap();
     context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
 
+    // A win does not always drop a ship; this seed is one where it does.
+    emukc_crypto::rng::seed(DROP_SEED);
     let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
     let definition = context.codex.maps.map_definition(11).unwrap();
     let variant = definition.variant("").unwrap();
@@ -552,7 +556,7 @@ async fn sortie_battle_result_grants_ship_drop_from_repo_wikiwiki_map_catalog() 
         .ship_drops(start.cell_no)
         .unwrap()
         .iter()
-        .filter(|drop| !drop.tags.iter().any(|tag| tag == "limited"))
+        .filter(|drop| drop.ship_id != 0)
         .map(|drop| drop.ship_id)
         .collect::<std::collections::BTreeSet<_>>();
     assert!(!expected_drop_ship_ids.is_empty());

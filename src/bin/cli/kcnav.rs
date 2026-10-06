@@ -63,6 +63,10 @@ struct NormalizeArgs {
     /// Where to write the ship drop asset.
     #[arg(long, default_value_os_t = repo_map_ship_drops_path(), value_name = "FILE")]
     ship_drops: PathBuf,
+
+    /// Where to write the enemy fleet asset.
+    #[arg(long, default_value_os_t = repo_kcnav_enemy_fleets_path(), value_name = "FILE")]
+    enemy_fleets: PathBuf,
 }
 
 fn write_json<T: serde::Serialize>(value: &T, path: &std::path::Path) -> Result<()> {
@@ -115,7 +119,10 @@ pub(super) async fn exec(args: &KcnavArgs) -> Result<()> {
             write_json(&catalog, &args.output)?;
             let codex = Codex::load_without_cache_source(&args.codex)
                 .with_context(|| format!("loading the codex from {}", args.codex.display()))?;
-            write_json(&kcnav_ship_drops(&catalog, &codex.map_catalog()), &args.ship_drops)?;
+            let maps = codex.map_catalog();
+            write_json(&kcnav_ship_drops(&catalog, &maps), &args.ship_drops)?;
+            let known_ship = |id| codex.manifest.find_ship(id).is_some();
+            write_json(&kcnav_enemy_fleets(&catalog, &maps, known_ship), &args.enemy_fleets)?;
             println!(
                 "wrote {nodes} nodes of {} maps to {}",
                 catalog.maps.len(),

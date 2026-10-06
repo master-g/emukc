@@ -182,25 +182,32 @@ KCNav（`tsunkit.net/nav`）是 TsunDB 众包出击记录的查询前端。它�
 
 ## 实施记录（2026-10-06）
 
-U1 与 U2 的代码已实施；测试只喂 `crates/emukc_bootstrap/tests/fixtures/kcnav/`
-（取自 `z/kcnav_samples/` 的 1-1 样本）。`kcnav sync --dry-run` 给出全量规模：37 张图、最多 996 次请求、
-2 秒间隔约 33 分钟。U2 里依赖真实数据的部分（再生 `map_ship_drops.json`、差集报告、阈值）与 U3–U6 未做。
+U1–U4 已实施并提交；U5、U6 未做。全量同步跑过一次：37 张图、995 个响应，5 个连接错误重跑后补齐。
+
+结果：
+- 掉落：`map_ship_drops.json` 由 `kcnav normalize` 再生，11210 条。旧表 10215 条里保留 9724 条，未保留的 491 条逐条列在
+  `docs/map/kcnav-drop-diff-2026-10-06.md`（374 条是节点一年样本不足 1000）。
+- 敌方编成：新资产 `kcnav_enemy_fleets.json`，1853 组。codex 的 487 个战斗格里 454 个改用实测编成、带真实等级与阵形；
+  2 个仍用 wikiwiki（6-5 M，敌方是联合舰队）；31 个两边都没有数据，运行时仍走兜底编成，这些格子多半并非战斗格，属既有问题。
+- `battle_golden.rs` 有意重冻：1-1 第一战的敌舰由 ロ級（1502）变成按实测权重抽到的 ハ級（1503），伤害序列随之变化。
 
 与上文不一致之处，以实现为准：
 
 - 下载与归一化在同一个文件 `crates/emukc_bootstrap/src/kcnav.rs`，没有拆成 `kcnav_download.rs` 与 `parser/kcnav/`。
 - 查询串取 `paramDefaults` 里所有非空的标量，去掉 `page` / `perPage`，再补 `start` = `end` 的前一年。
-  1-1 烟测（2026-10-06）的结果：不带 `start` 时样本多的边（1-1 的 A、C）服务端查询超过 60 秒，返回 504；
-  一年窗口下最重的 1-1 A `drops` 17 秒返回（78 万样本），三个月 7 秒。时间窗同时回答了 Open Questions 的第一条：取最近一年。
-- `rank` 查询参数对 `drops` 无效（带 `rank=S`、`rank=B` 与不带的响应逐条相同），掉落权重只能是不分档的合计。
-- `kcnav normalize` 目前写一份中间文档 `.data/temp/kcnav.normalized.json`（按地图名和节点 label 建键，掉落与编成在同一节点下），
-  还不是仓库资产。拆成 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`、登记进 `REPO_ASSETS` 等拿到全量数据后做；
-  在那之前 `make kcnav-update` 末尾的 `drift-check` 不会因 KCNav 数据报告漂移。
-- 掉落的 rank 维度不另发请求：`min_s` / `min_a` / `min_b` 非空即该档见过掉落，归一化成 `ranks: "SAB"`。
-- 归一化校验两条不变量，违反即报错：`result.count` 等于条目数（防截断）；边文件的 edge id 必须在该图的 `route` 里。
-  样本里 `无掉落 + Σ各舰掉落 == total` 成立，测试固定了它。
-- 噪声阈值暂为 1（不过滤），`MIN_DROP_COUNT` / `MIN_FLEET_COUNT` 等首跑后按分布定。
-- 请求失败不中断同步：计数、继续，结束时非零即退出码非零，重跑只补缺的。
+  不带 `start` 时样本多的边（1-1 的 A、C）服务端查询超过 60 秒，返回 504；一年窗口下最重的 1-1 A `drops` 17 秒返回。
+  时间窗取一年是用户确认过的（Open Questions 第一条）。
+- `rank` 查询参数对 `drops` 无效（带与不带的响应逐条相同）。掉落权重是不分档的合计；`min_s` / `min_a` / `min_b`
+  非空视为该档见过掉落，归一化成 `ranks`，运行时只用它缩小候选。
+- 「无掉落」是掉落表里 `ship_id` 为 0 的一项，按实测次数参与抽取；此前只要胜利必掉。没有另设掉落率配置。
+- 权重缺省（旧格式）按 1 计，不是 U3 测试场景写的「权重 0 永不掉」。
+- 不过滤低样本条目（R6 的阈值为 1）：权重已经表达了不确定性，一次观测只占它应有的份额。
+- 资产里不再有 `limited` 标签：一年窗口内出现过的期间限定舰按实测比例掉。
+- 两份资产由 `kcnav normalize` 借 codex 的地图目录展开到变体与 label，所以它要先有 `.data/codex`。
+  舰 id 不在 manifest 里的编成被丢弃（本次为 0 组）。
+- 敌方联合舰队的记录（`escortFleet` 非空）归一化时跳过。**这使 U5 的前提不成立**：6-5 M 只有 wikiwiki 有编成，
+  `wikiwiki_map_catalog.json` 还不能删，计划 `2026-10-06-003` 的 U6 第 3–5 步因此仍然挂起。
+- 请求失败不中断同步：计数、继续，结束时非零即退出码非零，重跑只补缺的。下载层没有请求超时。
 
 ## Sequencing
 

@@ -7,9 +7,9 @@ use emukc_model::{
     kc2::start2::ApiManifest,
 };
 
-use crate::kcnav::MapShipDropsAsset;
+use crate::kcnav::{KcnavEnemyFleetsAsset, MapShipDropsAsset};
 use crate::{
-    assets::{MAP_SHIP_DROPS, PUBLIC_MAP_CATALOG_OVERLAYS},
+    assets::{KCNAV_ENEMY_FLEETS, MAP_SHIP_DROPS, PUBLIC_MAP_CATALOG_OVERLAYS},
     compass_route_rules::{CompassRouteRulesAsset, load_repo_compass_route_rules},
     parser::{
         error::ParseError,
@@ -51,6 +51,7 @@ pub(super) fn load_explicit_source_set(
     // A caller-supplied catalog comes straight from the agent skill, which does
     // not produce drops, so it needs the same fold-in the repo asset gets.
     apply_ship_drops(&mut wikiwiki_overlay)?;
+    apply_enemy_fleets(&mut wikiwiki_overlay)?;
     load_source_set(
         data_root,
         manifest,
@@ -129,6 +130,7 @@ fn load_repo_wikiwiki_overlay()
     match serde_json::from_str::<WikiwikiMapOverlayCatalog>(asset.raw_json()) {
         Ok(mut overlay) => {
             apply_ship_drops(&mut overlay)?;
+            apply_enemy_fleets(&mut overlay)?;
             Ok((source_kind, Some(overlay)))
         }
         Err(e) => Ok((
@@ -139,6 +141,30 @@ fn load_repo_wikiwiki_overlay()
             None,
         )),
     }
+}
+
+/// Put the observed enemy fleets over the wikiwiki ones, node by node.
+///
+/// A node the observations do not cover keeps its wikiwiki fleets — today that is only the
+/// enemy combined fleets, which the observed asset leaves out.
+fn apply_enemy_fleets(overlay: &mut WikiwikiMapOverlayCatalog) -> Result<(), ParseError> {
+    let path = KCNAV_ENEMY_FLEETS.path();
+    let (_, raw) = KCNAV_ENEMY_FLEETS.load().map_err(|source| ParseError::io_at(&path, source))?;
+    let asset: KcnavEnemyFleetsAsset =
+        serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?;
+
+    for (map_id, variants) in asset.maps {
+        let Some(definition) = overlay.maps.get_mut(&map_id) else {
+            continue;
+        };
+        for (variant_key, nodes) in variants {
+            if let Some(variant) = definition.variants.get_mut(&variant_key) {
+                variant.enemy_nodes.extend(nodes);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Fold the ship drop asset into the freshly parsed wikiwiki catalog.

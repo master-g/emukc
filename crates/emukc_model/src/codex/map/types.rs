@@ -209,6 +209,9 @@ pub struct EnemyComposition {
     pub ship_ids: Vec<i64>,
     #[serde(default)]
     pub formation: Option<i64>,
+    /// Level of each ship, in `ship_ids` order. Empty when the source has none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub levels: Vec<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub raw_ship_names: Vec<String>,
 }
