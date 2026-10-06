@@ -88,6 +88,16 @@ execution: code
 - **实现形态**：我方联合已有先例——`BattleState` 把两队放在一个连续向量里，用 `CombinedLayout.escort_start` 分界，各阶段在这个空间里算，
   `finalize_day` 再经 `combined_packet` 翻译成客户端的下标。敌方照此加一个 `enemy_escort_start`，不另起一套状态。
 
+## 进度（2026-10-06）
+
+- U1 完成，结果见上。
+- U2 做了一半：`EnemyComposition` 有了 `escort_ship_ids` / `escort_levels`，`kcnav normalize` 的中间文档保留护卫队
+  （6-5 M 有 3 组、阵形 13）。但 `kcnav_enemy_fleets` 写资产时仍把联合编成滤掉（代码里有 `ponytail:` 标记），
+  因为战斗引擎还不能打；U3 落地时去掉这道过滤并重生成资产。
+- U3 起未做。引擎侧的落点已读清：`emukc_battle/src/simulation/mod.rs` 的 `simulate_day_combined` 与 `execute_combined_shelling`
+  是我方联合的编排，敌方联合照此加一个编排器；`state.rs` 的 `from_context` / `finalize_day` 加敌方护卫队的分界与下标翻译；
+  `combined_packet.rs` 负责把连续下标翻成客户端的 7–12。
+
 ## Verification Contract
 
 三道质量门以退出码为准；`cargo run -- battle validate` 对 6-5 M 的昼战与夜战包无 finding；
