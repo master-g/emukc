@@ -4,7 +4,8 @@
 
 `api_req_combined_battle/` serves 味方連合 vs 敵通常艦隊 in full: the day battle in
 both 編成, the aerial and long-distance cells, the night-start cell, the night
-battle, the result and the return to port. The `api_req_sortie/` and
+battle, the result and the return to port, and 通常艦隊 vs 敵連合艦隊 by day and
+night (`ec_battle`, `ec_midnight_battle`). The `api_req_sortie/` and
 `api_req_battle_midnight/` twins cover the single-fleet simulation.
 
 ```plain
@@ -49,6 +50,8 @@ api_req_combined_battle/airbattle
 api_req_combined_battle/battle
 api_req_combined_battle/battle_water
 api_req_combined_battle/battleresult
+api_req_combined_battle/ec_battle
+api_req_combined_battle/ec_midnight_battle
 api_req_combined_battle/goback_port
 api_req_combined_battle/ld_airbattle
 api_req_combined_battle/ld_shooting
@@ -171,8 +174,6 @@ combined (`ec_*`, `each_*`). Every 味方連合 vs 敵通常艦隊 cell is imple
 ```plain
 api_req_combined_battle/each_battle
 api_req_combined_battle/each_battle_water
-api_req_combined_battle/ec_battle
-api_req_combined_battle/ec_midnight_battle
 api_req_combined_battle/ec_night_to_day
 ```
 

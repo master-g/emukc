@@ -1,6 +1,6 @@
 # KCSAPI Handler Coverage Analysis
 
-> Last updated: 2026-09-21
+> Last updated: 2026-10-07
 > Reference: `docs/apilist.txt` (a copy of
 > [sinsinpub/kcs2-assets apilist.txt](https://github.com/sinsinpub/kcs2-assets/blob/master/api_info/apilist.txt))
 
@@ -14,8 +14,8 @@ inventory of its own.
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
 and diff that against the fenced blocks. Verified on 2026-09-21 at client
-6.3.5.0: **126 implemented**, **22 missing**, no overlap, and the 22 are exactly
-the upstream reference's 136 endpoints minus the 126.
+6.3.5.0, with the two `ec_` endpoints of 2026-10-07 moved over since:
+**128 implemented**, **20 missing**, no overlap.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -23,24 +23,22 @@ Do not restate those lists here — a second copy is a second thing to drift.
 
 ### `api_req_combined_battle/` — Combined Fleet Battles (P0)
 
-5 endpoints left, all of them 敵連合艦隊. Every 味方連合 vs 敵通常艦隊 cell
+3 endpoints left, all of them 敵連合艦隊. Every 味方連合 vs 敵通常艦隊 cell
 shipped 2026-09-21: `battle`, `battle_water`, `airbattle`, `ld_airbattle`,
 `ld_shooting`, `sp_midnight`, `midnight_battle`, `battleresult`, `goback_port`.
+通常艦隊 vs 敵連合艦隊 shipped 2026-10-07: `ec_battle`, `ec_midnight_battle`.
 
-- `each_battle`, `each_battle_water`, `ec_battle`, `ec_midnight_battle`,
-  `ec_night_to_day` — the enemy is combined too, which changes phase order,
-  night opponent selection and the correction table
+- `each_battle`, `each_battle_water` — both sides combined
+- `ec_night_to_day` — the night-into-day battle against an enemy combined fleet
 
 Key challenges left:
-- Enemy-side fleet splitting, and the night opponent score
-  (`docs/battle/combined-fleet-reference.md` §Night battle opponent selection)
 - The 連合 vs 連合 correction table, which upstream marks 要検証
-- **No data to drive it.** The bootstrapped `map_catalog.json` holds 37 regular
-  maps (1-1..7-5) and not one enemy composition longer than six ships, so no
-  cell in the local codex can produce an enemy combined fleet. Enemy combined
-  fleets exist only on event maps. Until event map data is available these five
-  endpoints cannot be exercised end to end, only unit-tested against hand-built
-  fixtures.
+- **No regular map to drive them.** The one enemy combined fleet on the regular
+  maps is 6-5 M (six main + six escort ships, observed by KCNav), and 6-5 cannot
+  be sortied with a combined fleet, nor is it a night-into-day cell. These three
+  endpoints need event map data.
+- `ec_battle` / `ec_midnight_battle` have passed the client-derived packet
+  validation but have not been played in a browser client yet.
 
 ### `api_req_air_corps/` — Land-Based Air Corps (P1)
 
@@ -105,8 +103,8 @@ Reuse existing `api_req_sortie/` battle framework.
 
 1. Add combined fleet composition types to `emukc_model` — done
 2. Implement fleet splitting logic in `emukc_gameplay` — done
-3. Adapt battle simulation for escort fleet phases — done for 敵通常艦隊
-4. Implement `api_req_combined_battle/` handlers — 5 of 14 done
+3. Adapt battle simulation for escort fleet phases — done for 敵通常艦隊 and for 通常艦隊 vs 敵連合
+4. Implement `api_req_combined_battle/` handlers — 11 of 14 done
 5. Verify: full event map sortie with combined fleet
 
 ### Phase 2: Equipment Improvement (P1) — done 2026-09-21

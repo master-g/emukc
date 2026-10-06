@@ -129,9 +129,9 @@ Current verification baseline:
   `api_dev_num` 只有 1/2/3，成功率上游不告诉客户端，50/75/100 是本项目定值
   （`codex/remodel_slot.rs::recover_success_rate`）。
 
-- [2026-09-21] 敌方联合舰队在本地 codex 里**没有数据**：`map_catalog.json` 只有 37 张常规图
-  （1-1~7-5），编成 >6 船 0 个、`battle_kind` 只有 1。敌联合只在活动海域出现，所以 `ec_*`/`each_*`
-  五个端点本地无格可触发、做不出端到端测试。不要再去 codex 里找。
+- [2026-10-07] 常规图里敌方联合舰队只有 6-5 M（13、18 号格，`event_kind` 5）。客户端按格子 `event_kind`
+  5 / 7 选 `ec_*` 接口。`each_*`、`ec_night_to_day` 常规图触发不到。要点见 `combined-fleet-index-spaces.md`。
+- [2026-10-07] `emukc_time` 的 `jst_next_*_day_of_the_month` 两个测试在日本时间 05:00 前必败（循环加天数直到溢出），与改动无关。
 - [2026-09-22] `api_si_list` 只放对应阶段画得出名牌的装备；`btxt_flat` 的存在范围与探测方法见
   `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
 - [2026-09-22] 同名 `PhaseHougeki` 昼夜两份编号互斥（昼 2=連撃/7=空母切入，夜 1=連撃/6=空母切入）；
@@ -194,11 +194,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] PR #2、#3 已合并进 `main`。分支 `docs/plans-gauge-combined-bonus`（未推送）只有三份新计划：
-  005 血条阶段、006 敌方联合舰队（做完才能删 wikiwiki 资产）、007 装備ボーナス。都未实施。
+- [2026-10-07] 分支 `feat/enemy-combined-fleet`（未推送）：计划 006 做完，wikiwiki 资产链已删。
+  `cargo test --workspace --exclude emukc_time` 1184 过，clippy 17。`ec_battle` 未在浏览器客户端实测。
 
 ## Next Session
 
-- [2026-10-06] 三份计划等用户定先后。005 的 U1 要先查清各阶段血条长度（KCNav 不给）；006 只做 `ec_battle` 与
-  `ec_midnight_battle`；007 先做对拍工具量差异。`practice_battle` 有一个测试全量并行时偶发失败，单跑未复现。
+- [2026-10-07] 先请用户在浏览器里打一次 6-5 M，再推送开 PR。之后按 007（装備ボーナス）→ 005（血条阶段）。
+  待查：战斗入口的守卫看 `event_kind`（1 / 5），而 codex 里有 22 个战斗格是 2 / 4 / 6（夜战、航空戦、空襲），疑似被拒，未验证。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

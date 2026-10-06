@@ -2,7 +2,7 @@
 title: "KCNav Map Data Source - Plan"
 type: feat
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -232,3 +232,9 @@ U3 与 U4 都会动 golden，尽量在同一轮里重冻一次。
 - 掉落的时间窗：KCNav 的 `start` 默认不限，会混入已经改过的旧掉落表。取最近一两年
   还是全量，U2 首跑后看差集报告再定。
 - 是否先向维护者打招呼再跑全量。计划本身不依赖答复。
+
+## 收口（2026-10-07）
+
+U5、U6 随计划 `2026-10-06-006` 完成：敌方联合舰队的记录不再跳过，6-5 M 用 KCNav 的编成；
+7-4 的 G 格在格子类型订正之后才成为战斗格，补同步了它的两个响应。448 个战斗格与 boss 格全部有实测编成，
+`wikiwiki_map_catalog.json` 已删除。

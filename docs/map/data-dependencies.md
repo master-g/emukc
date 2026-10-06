@@ -22,7 +22,7 @@ tags: [map, data-source, provenance, ssot]
 | 格子类型（战斗 / boss / 気のせい / 资源） | `kc_data` 的推测，再由 `assets/kcnav_cell_events.json` 订正 | `make kcnav-update` | ✅ 实测事件；⚠️ 空襲、夜战、航空偵察仍是内部编码 |
 | 真实起点抓包 | `assets/real_map_start_data/*.json` | 人工抓包 | ⚠️ 需真实账号 |
 | 路由规则 | `assets/map_route_rules.json` | `make route-rules-update`（羅針盤シミュ源码 → 确定性转换） | ✅ 钉住提交，可对拍 |
-| 敌方编成（哪些格子出什么舰队） | `assets/kcnav_enemy_fleets.json`，6-5 M 仍取 `assets/wikiwiki_map_catalog.json` | `make kcnav-update`（KCNav 实测，带权重、阵形、等级） | ✅ 454 / 487 个战斗格；⚠️ 敌方联合舰队未接 |
+| 敌方编成（哪些格子出什么舰队） | `assets/kcnav_enemy_fleets.json` | `make kcnav-update`（KCNav 实测，带权重、阵形、等级，含 6-5 M 的敌方联合舰队） | ✅ 448 / 448 个战斗格与 boss 格 |
 | 敌舰属性（HP/火力/装备） | `enemy_ship_extra.json` | 下载 | ✅ |
 | 掉落 | `assets/map_ship_drops.json` | `make kcnav-update`（KCNav 最近一年的实测次数） | ✅ 带权重与「无掉落」 |
 | 地图开放条件 | `build_regular_prerequisites()` | 代码里的公式 | ⚠️ 推断，已对一份真实抓包验证 |
@@ -36,7 +36,7 @@ tags: [map, data-source, provenance, ssot]
 **KagamiChan/kcs2-mapdata 的 `stat.json`** 补格子的 `event_id` / `event_kind`，按 label 键。
 
 **真实抓包**：`assets/real_map_start_data/*.json` 共 36 份，是 `api_req_map/start` 的真实响应，经
-`wikiwiki-map build-overlays` 生成 `assets/public_map_catalog_overlays.json`。它是唯一能证明
+`map build-overlays` 生成 `assets/public_map_catalog_overlays.json`。它是唯一能证明
 「官方实际发了什么」的源，7-3 的两阶段变体就靠它。
 
 其中**只有 34 份是有效响应**：`map_7-4.json` 和 `map_7-5.json` 是 `api_result: 100` 的错误页
@@ -68,20 +68,18 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 
 ## 2. 路由规则与敌方编成
 
-> 2026-10-06 起，路由规则不再来自本节描述的 wikiwiki 抽取链，而是由羅針盤シミュ的源码确定性转换而来，
-> 见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。`wikiwiki_map_catalog.json`
-> 里的 `routing_rules` 仍在文件中但组装时不再读取；本节其余内容对**敌方编成**仍然成立。
-> 下文关于 5-6 的 6 条 `Unknown`、「经由某格」编号空间等路由侧的叙述是历史记录。
+> 本节是历史记录。路由规则在 2026-10-06 改由羅針盤シミュ的源码确定性转换而来
+> （`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`），掉落与敌方编成改由 KCNav 实测提供；
+> 2026-10-07 起 `wikiwiki_map_catalog.json`、它的下载器和 `wikiwiki-map` 命令都已删除。
+> 删除前后重建的 `map_catalog.json` 完全相同。
 
 **这两类曾共用一个文件，是整条链上最脆的一环。**
 
-`assets/wikiwiki_map_catalog.json` 同时提供路由规则（2144 条，扇出后）和敌方编成
-（284 个格子 / 1171 组 → 扇出 437 / 1814）。这份资产已冻结：生成它的链（`wikiwiki-map sync` 下页面 → agent skill 读 HTML 出 JSON → `wikiwiki-map normalize`
-把 agent 的 BFS 编号抬成 label）在 2026-10-06 删掉了 skill 和 `normalize`，资产不可再生，只等敌方编成换源后整个删除。
-中间那一步曾是 **LLM 而不是解析器**（2026-06 替掉了 7389 行正则，计划见 `docs/plans/archive/2026-06-22-007-...`），
-这也是它被替换的原因。
+`wikiwiki_map_catalog.json` 曾同时提供路由规则和敌方编成。生成它的链是「下载页面 → agent skill 读 HTML 出 JSON →
+`normalize` 把 agent 的 BFS 编号抬成 label」，中间那一步是 **LLM 而不是解析器**
+（2026-06 替掉了 7389 行正则，计划见 `docs/plans/archive/2026-06-22-007-...`），这也是它被替换的原因。
 
-**这条链上的 wikiwiki 不是唯一信源。** TsunDB / KCNav（`tsunkit.net/nav`）是权威众包库，前端调用的
+**替代它的信源。** TsunDB / KCNav（`tsunkit.net/nav`）是权威众包库，前端调用的
 `/api/routing/...` 是公开 JSON 接口（2026-10-06 实测可用；`drops` 不带前端那套查询参数会超时），
 掉落与敌方编成已改由它提供，见 `docs/plans/2026-10-06-001-feat-kcnav-map-data-source-plan.md` 的实施记录。
 路由规则已改由羅針盤シミュ源码转换，见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。

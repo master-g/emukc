@@ -2,7 +2,7 @@
 title: "Enemy Combined Fleet Battles - Plan"
 type: feat
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -88,15 +88,38 @@ execution: code
 - **实现形态**：我方联合已有先例——`BattleState` 把两队放在一个连续向量里，用 `CombinedLayout.escort_start` 分界，各阶段在这个空间里算，
   `finalize_day` 再经 `combined_packet` 翻译成客户端的下标。敌方照此加一个 `enemy_escort_start`，不另起一套状态。
 
-## 进度（2026-10-06）
+## 实施记录（2026-10-07）
 
-- U1 完成，结果见上。
-- U2 做了一半：`EnemyComposition` 有了 `escort_ship_ids` / `escort_levels`，`kcnav normalize` 的中间文档保留护卫队
-  （6-5 M 有 3 组、阵形 13）。但 `kcnav_enemy_fleets` 写资产时仍把联合编成滤掉（代码里有 `ponytail:` 标记），
-  因为战斗引擎还不能打；U3 落地时去掉这道过滤并重生成资产。
-- U3 起未做。引擎侧的落点已读清：`emukc_battle/src/simulation/mod.rs` 的 `simulate_day_combined` 与 `execute_combined_shelling`
-  是我方联合的编排，敌方联合照此加一个编排器；`state.rs` 的 `from_context` / `finalize_day` 加敌方护卫队的分界与下标翻译；
-  `combined_packet.rs` 负责把连续下标翻成客户端的 7–12。
+U1–U7 全部完成。
+
+- **数据**：`kcnav_enemy_fleets.json` 收了 6-5 M 的 6 组联合编成（两个格子各 3 组，主力 6 + 护卫 6，阵形 13）。
+  组装末尾有一步 `mark_enemy_combined_cells`：某格的实测编成全是联合舰队，就把它的 `event_kind` 记为 5。
+- **昼战**：`simulate_day_enemy_combined`。敌方两队放在一个连续向量里，各阶段在这个空间里算，
+  `finalize_day` 再把敌方下标翻成客户端的空间（护卫队固定从 6 开始）。炮击三轮分别对护卫队、主力、全体，
+  落在 `hougeki1` → `raigeki` → `hougeki2` → `hougeki3`。
+- **修正**：炮击与雷击走 `combined_correction_vs_enemy_combined`；航空攻撃的 −10 / −20 加在 `kouku.rs` 的基本攻撃力上。
+- **夜战**：`night_enemy_deck` 按护卫队的状态评分选对手，只打选中的那一队，响应里用 `api_active_deck` 告诉客户端。
+- **结算**：复用 `battleresult`，敌方 12 艘一起计。
+- **校验器**：`api_ship_ke_combined` 等六个数组并入逐舰检查。
+- **wikiwiki 退役**：见计划 `2026-10-06-003` 的收口一节。
+
+### 与计划不同或计划没写到的地方
+
+- **开幕雷击敌方两队都参加，闭幕雷击只有护卫队。** 参考文档只对闭幕雷击点名了护卫队，开幕没有限定，按字面实现。
+- **开幕对潜没有限制敌方哪一队。** 参考文档只写了我方开幕对潜。
+- **夜战结算修了一个既有问题**：会话在夜战后保存的敌方 HP 取自夜战包，而夜战包报的是入夜时的 HP，
+  所以夜战击沉的敌舰不计入结算（击沉数、旗舰击沉、血条）。现在改为取夜战结束后各舰的实际 HP。单舰队也受这次修正影响。
+- **验证方式**：`battle sim` 只打出击后的第一场战斗，到不了 boss 格。改为测试
+  `enemy_combined_boss_runs_day_night_and_result` 把出击状态直接放在 6-5 的 18 号格上跑完昼战、夜战、结算，
+  昼夜两个包各过一遍客户端规则校验；设 `EMUKC_DUMP_DIR` 可把两个包写出来，昼战包可再用 `battle validate` 看。
+  `battle validate` 命令本身只认昼战包。没有冻结 transcript：出击入口用的是不可注入的生产随机源。
+- **没有在浏览器客户端里实际打过。** 校验器的规则和战斗包出自同一轮工作，两边若对协议有同样的误解，校验照样通过。
+
+### 遗留
+
+- `each_battle`、`each_battle_water`、`ec_night_to_day` 仍未实现，常规图触发不到。
+- 夜战对手评分里上游标为未验证的三条（旗舰中破 / 大破的分值、护卫 5 艘以上、PT 与潜水艦）按文档主规则实现。
+- 敌方护卫队的旗舰不享受旗艦援護。
 
 ## Verification Contract
 
