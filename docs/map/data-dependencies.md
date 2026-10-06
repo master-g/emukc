@@ -87,8 +87,11 @@ wikiwiki.jp 页面
 中间那一步是 **LLM 而不是解析器**——2026-06 有意为之，替掉了 7389 行正则（计划见
 `docs/plans/archive/2026-06-22-007-...`）。
 
-**没有更好的信源。** TsunDB / KCNav 是权威众包库但探测不到公开 API；en.kancollewiki.net 被
-Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB 推导、API 开放，但
+**这条链上的 wikiwiki 不是唯一信源。** TsunDB / KCNav（`tsunkit.net/nav`）是权威众包库，前端调用的
+`/api/routing/...` 是公开 JSON 接口（2026-10-06 实测可用；`drops` 不带前端那套查询参数会超时），
+掉落与敌方编成计划改由它提供，见 `docs/plans/2026-10-06-001-feat-kcnav-map-data-source-plan.md`。
+路由规则已改由羅針盤シミュ源码转换，见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
+en.kancollewiki.net 被 Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB 推导、API 开放，但
 33 张图 381 条条件句只有 59% 能归入有限句式，其余是 `Otherwise, D`、`Routing unknown`、
 跨边引用 `Do not meet the requirements to go to C`——**只在边这一层结构化，条件仍是散文**。
 覆盖互有长短：它缺 1-1 / 5-6 / 7-4 / 7-5、7-3 只 3 条边，但 6-x、1-5、1-6、2-5、3-5 比我们厚。
