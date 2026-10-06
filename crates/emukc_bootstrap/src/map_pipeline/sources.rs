@@ -3,12 +3,11 @@ use std::path::Path;
 use std::time::Duration;
 
 use emukc_model::{
-    codex::map::{
-        MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition, ShipDropDefinition,
-    },
+    codex::map::{MapCatalog, MapCellDefinition, MapDefinition, MapVariantDefinition},
     kc2::start2::ApiManifest,
 };
 
+use crate::kcnav::MapShipDropsAsset;
 use crate::{
     assets::{MAP_SHIP_DROPS, PUBLIC_MAP_CATALOG_OVERLAYS},
     compass_route_rules::{CompassRouteRulesAsset, load_repo_compass_route_rules},
@@ -142,21 +141,10 @@ fn load_repo_wikiwiki_overlay()
     }
 }
 
-/// Ship drops, split out of the wikiwiki catalog so regenerating that asset
-/// cannot wipe them.
+/// Fold the ship drop asset into the freshly parsed wikiwiki catalog.
 ///
-/// They are keyed the way the wikiwiki catalog keys everything else — map id,
-/// variant key, then node label — so folding them in right after the catalog is
-/// parsed lets assembly resolve them to kcdata cells with the routing rules.
-#[derive(serde::Deserialize)]
-struct MapShipDropsAsset {
-    /// Why the file exists; see the asset itself.
-    #[allow(dead_code)]
-    note: String,
-    maps: BTreeMap<i64, BTreeMap<String, BTreeMap<String, Vec<ShipDropDefinition>>>>,
-}
-
-/// Fold the split-out ship drops into the freshly parsed wikiwiki catalog.
+/// It is keyed the way that catalog keys everything else — map id, variant key, node label —
+/// so assembly resolves the drops to kcdata cells along with the rest.
 fn apply_ship_drops(overlay: &mut WikiwikiMapOverlayCatalog) -> Result<(), ParseError> {
     let path = MAP_SHIP_DROPS.path();
     let (_, raw) = MAP_SHIP_DROPS.load().map_err(|source| ParseError::io_at(&path, source))?;

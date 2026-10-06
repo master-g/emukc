@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use emukc_model::codex::map::MapCatalog;
+use emukc_model::codex::map::{MapCatalog, ShipDropDefinition};
 use emukc_network::{client::new_reqwest_client, download::Request, reqwest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -331,11 +331,8 @@ fn add_drops(node: &mut KcnavNode, value: &Value) -> Result<(), String> {
             }
         };
         seen.weight += entry.drops;
-        for (rank, min) in ranks {
-            if min.is_some() && !seen.ranks.contains(rank) {
-                seen.ranks.push_str(rank);
-            }
-        }
+        let ranks = ranks.map(|(rank, min)| (rank, min.is_some() || seen.ranks.contains(rank)));
+        seen.ranks = ranks.iter().filter(|(_, seen)| *seen).map(|(rank, _)| *rank).collect();
     }
     Ok(())
 }
@@ -435,6 +432,69 @@ pub fn normalize_kcnav(dir: impl AsRef<Path>) -> Result<KcnavCatalog, String> {
     })
 }
 
+/// The repo-tracked ship drop asset: map id, variant key, node label, then the outcomes.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MapShipDropsAsset {
+    /// Why the file exists and where it comes from.
+    pub note: String,
+    /// The drops; `ship_id` 0 is the outcome "nothing drops".
+    pub maps: BTreeMap<i64, BTreeMap<String, BTreeMap<String, Vec<ShipDropDefinition>>>>,
+}
+
+/// Where the repo-tracked ship drop asset lives.
+pub fn repo_map_ship_drops_path() -> PathBuf {
+    crate::assets::MAP_SHIP_DROPS.path()
+}
+
+/// Lay the observed drops out as the ship drop asset.
+///
+/// `KCNav` knows nodes, not our variants, so a node's drops go to every variant of the map
+/// that has a cell with that label.
+pub fn kcnav_ship_drops(kcnav: &KcnavCatalog, catalog: &MapCatalog) -> MapShipDropsAsset {
+    let mut maps = BTreeMap::new();
+    for map in catalog.maps.values() {
+        let Some(nodes) = kcnav.maps.get(&format!("{}-{}", map.maparea_id, map.mapinfo_no)) else {
+            continue;
+        };
+        let mut variants = BTreeMap::new();
+        for (key, variant) in &map.variants {
+            let labels = variant
+                .cells
+                .iter()
+                .filter_map(|cell| cell.node_label.as_deref())
+                .collect::<BTreeSet<_>>();
+            let drops = nodes
+                .iter()
+                .filter(|(label, node)| labels.contains(label.as_str()) && !node.drops.is_empty())
+                .map(|(label, node)| {
+                    let nothing = ShipDropDefinition {
+                        weight: node.no_drop,
+                        ..Default::default()
+                    };
+                    let ships = node.drops.iter().map(|drop| ShipDropDefinition {
+                        ship_id: drop.ship_id,
+                        raw_ship_name: drop.name.clone(),
+                        weight: drop.weight,
+                        ranks: drop.ranks.clone(),
+                        ..Default::default()
+                    });
+                    let outcomes = (node.no_drop > 0).then_some(nothing).into_iter().chain(ships);
+                    (label.clone(), outcomes.collect())
+                })
+                .collect::<BTreeMap<_, Vec<_>>>();
+            variants.insert(key.clone(), drops);
+        }
+        maps.insert(map.map_id, variants);
+    }
+    MapShipDropsAsset {
+        note: format!(
+            "Ship drops of the regular maps, keyed by map id, variant key and node label. {} An              entry with ship_id 0 is the outcome \"nothing drops\"; ranks lists the win ranks an              outcome was seen at.",
+            kcnav.note
+        ),
+        maps,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,6 +558,7 @@ mod tests {
         assert_eq!(node.drops[0].name, "敷波");
         assert_eq!(node.drops[0].weight, 2 * 17_373);
         assert_eq!(node.drops[0].ranks, "SA");
+        assert!(node.drops.iter().all(|drop| ["S", "SA", "SAB", "A", "AB", "B", "SB"].contains(&drop.ranks.as_str())));
         assert_eq!(
             node.no_drop + node.drops.iter().map(|drop| drop.weight).sum::<i64>(),
             node.drop_samples

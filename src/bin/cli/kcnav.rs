@@ -55,6 +55,20 @@ struct NormalizeArgs {
     /// Where to write the normalized document.
     #[arg(long, default_value = ".data/temp/kcnav.normalized.json", value_name = "FILE")]
     output: PathBuf,
+
+    /// Codex directory; its map catalog says which variants have which nodes.
+    #[arg(long, default_value = ".data/codex", value_name = "DIR")]
+    codex: PathBuf,
+
+    /// Where to write the ship drop asset.
+    #[arg(long, default_value_os_t = repo_map_ship_drops_path(), value_name = "FILE")]
+    ship_drops: PathBuf,
+}
+
+fn write_json<T: serde::Serialize>(value: &T, path: &std::path::Path) -> Result<()> {
+    let mut json = serde_json::to_string_pretty(value)?;
+    json.push('\n');
+    fs::write(path, json).with_context(|| format!("writing {}", path.display()))
 }
 
 pub(super) async fn exec(args: &KcnavArgs) -> Result<()> {
@@ -98,10 +112,10 @@ pub(super) async fn exec(args: &KcnavArgs) -> Result<()> {
         Command::Normalize(args) => {
             let catalog = normalize_kcnav(&args.input).map_err(|err| anyhow!(err))?;
             let nodes = catalog.maps.values().map(std::collections::BTreeMap::len).sum::<usize>();
-            let mut json = serde_json::to_string_pretty(&catalog)?;
-            json.push('\n');
-            fs::write(&args.output, json)
-                .with_context(|| format!("writing {}", args.output.display()))?;
+            write_json(&catalog, &args.output)?;
+            let codex = Codex::load_without_cache_source(&args.codex)
+                .with_context(|| format!("loading the codex from {}", args.codex.display()))?;
+            write_json(&kcnav_ship_drops(&catalog, &codex.map_catalog()), &args.ship_drops)?;
             println!(
                 "wrote {nodes} nodes of {} maps to {}",
                 catalog.maps.len(),

@@ -215,9 +215,15 @@ pub struct EnemyComposition {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ShipDropDefinition {
+    /// Master id of the ship, or `0` for the outcome "nothing drops".
     pub ship_id: i64,
     pub raw_ship_name: String,
     pub tags: Vec<String>,
+    /// Times this outcome was observed; the chance of it is its share of the cell's total.
+    /// `0` is an entry without a count and weighs as `1`.
+    pub weight: i64,
+    /// The win ranks this outcome was seen at, out of `S`, `A`, `B`. Empty means any.
+    pub ranks: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,7 +236,16 @@ enum CompactShipDropDefinition {
         tags: Vec<String>,
         #[serde(default, skip_serializing_if = "String::is_empty")]
         raw_ship_name: String,
+        #[serde(default, skip_serializing_if = "is_zero")]
+        weight: i64,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        ranks: String,
     },
+}
+
+#[expect(clippy::trivially_copy_pass_by_ref)]
+fn is_zero(value: &i64) -> bool {
+    *value == 0
 }
 
 impl Serialize for ShipDropDefinition {
@@ -238,13 +253,20 @@ impl Serialize for ShipDropDefinition {
     where
         S: Serializer,
     {
-        if self.tags.is_empty() && self.raw_ship_name.is_empty() {
+        if *self
+            == (Self {
+                ship_id: self.ship_id,
+                ..Default::default()
+            })
+        {
             CompactShipDropDefinition::ShipId(self.ship_id).serialize(serializer)
         } else {
             CompactShipDropDefinition::Detailed {
                 ship_id: self.ship_id,
                 tags: self.tags.clone(),
                 raw_ship_name: self.raw_ship_name.clone(),
+                weight: self.weight,
+                ranks: self.ranks.clone(),
             }
             .serialize(serializer)
         }
@@ -260,17 +282,20 @@ impl<'de> Deserialize<'de> for ShipDropDefinition {
         Ok(match compact {
             CompactShipDropDefinition::ShipId(ship_id) => Self {
                 ship_id,
-                raw_ship_name: String::new(),
-                tags: Vec::new(),
+                ..Default::default()
             },
             CompactShipDropDefinition::Detailed {
                 ship_id,
                 tags,
                 raw_ship_name,
+                weight,
+                ranks,
             } => Self {
                 ship_id,
                 raw_ship_name,
                 tags,
+                weight,
+                ranks,
             },
         })
     }
@@ -533,11 +558,13 @@ mod tests {
                 ship_id: 1,
                 raw_ship_name: "睦月".to_string(),
                 tags: Vec::new(),
+                ..Default::default()
             },
             ShipDropDefinition {
                 ship_id: 2,
                 raw_ship_name: "如月".to_string(),
                 tags: vec!["limited".to_string()],
+                ..Default::default()
             },
         ];
 
@@ -576,16 +603,19 @@ mod tests {
                     ship_id: 1,
                     raw_ship_name: String::new(),
                     tags: Vec::new(),
+                    ..Default::default()
                 },
                 ShipDropDefinition {
                     ship_id: 2,
                     raw_ship_name: String::new(),
                     tags: vec!["limited".to_string()],
+                    ..Default::default()
                 },
                 ShipDropDefinition {
                     ship_id: 3,
                     raw_ship_name: "綾波".to_string(),
                     tags: vec!["rare".to_string()],
+                    ..Default::default()
                 },
             ]
         );
