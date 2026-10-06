@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "decode": "bun run src/cli.ts",
+    "route-rules": "bun run src/route-rules.ts",
     "check": "tsc --noEmit",
     "test": "bun test",
     "build": "bun build ./src/cli.ts --outdir ./dist --target bun"
