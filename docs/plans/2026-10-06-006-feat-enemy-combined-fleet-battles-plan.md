@@ -1,0 +1,77 @@
+---
+title: "Enemy Combined Fleet Battles - Plan"
+type: feat
+date: 2026-10-06
+status: draft
+artifact_contract: ce-unified-plan/v1
+product_contract_source: ce-plan-bootstrap
+execution: code
+---
+
+# Enemy Combined Fleet Battles - Plan
+
+## Goal Capsule
+
+让单舰队打敌方联合舰队的战斗能走通（`ec_battle`、`ec_midnight_battle`），用 KCNav 的实测编成驱动 6-5 的 M 格。
+做完之后 `wikiwiki_map_catalog.json` 没有任何消费者，可以连同其代码一起删除。
+
+## Product Contract
+
+### Problem Frame
+
+- 6-5 的 boss 格 M 在真实游戏里是敌方联合舰队：KCNav 的 6 组编成全是主力 6 艘 + 护卫 6 艘、阵形 13。
+- 本项目给它的是 wikiwiki 抄来的 6 艘单舰队、阵形 6（把联合舰队当单舰队抄了），客户端按普通战斗打。
+- `kcnav normalize` 目前跳过 `escortFleet` 非空的记录，所以 M 格只能继续读 wikiwiki 资产；
+  计划 `2026-10-06-001` 的 U5 / U6 和 `2026-10-06-003` 的 U6 第 3–5 步因此挂起。
+
+### 已核实的前提
+
+- `docs/api_coverage.md` 写着「常规图里没有一个超过 6 艘的敌方编成，敌方联合舰队只在活动图出现，没有数据可驱动」。
+  **这句已经不成立**：6-5 M 就是，数据在 `.data/temp/kcnav/6-5/edge_13_enemycomps.json`、`edge_18_enemycomps.json`。本计划收口时订正。
+- 敌方联合舰队在常规图里只此一处（全量同步的 37 张图里，带 `escortFleet` 的记录只在 6-5，共 6 条）。
+- 我方联合舰队对敌方单舰队的 9 个端点已在 2026-09-21 交付；剩下 5 个都是敌方联合：
+  `ec_battle`、`ec_midnight_battle`、`ec_night_to_day`、`each_battle`、`each_battle_water`。
+- 倍率与修正表在 `crates/emukc_battle/src/combined.rs`，出处 `docs/battle/combined-fleet-reference.md`；
+  其中「連合 vs 連合」的修正表上游标为要検証，夜战选哪一队作对手有一套评分规则（同文档 §Night battle opponent selection）。
+- 协议字段在 `docs/apilist.txt`：`ec_battle` 第 2501 行起，`ec_midnight_battle` 第 2653 行起。
+- 客户端按什么决定调 `ec_battle` 而不是 `battle`，要在 `main.js` 里确认（预期是 `api_req_map/next` 返回里敌方为联合的标记）。
+
+### Key Decisions
+
+- **KD1 只做常规图用得到的两个端点**：`ec_battle` 与 `ec_midnight_battle`（单舰队 vs 敌联合）。6-5 不能用联合舰队出击，
+  `each_battle*` 没有常规图可以触发，留给活动图；`ec_night_to_day` 同理。
+- **KD2 编成模型加护卫队**：`EnemyComposition` 加 `escort_ship_ids` 与 `escort_levels`，空即单舰队。
+  `kcnav normalize` 不再跳过联合记录，阵形原样保留（11–14 是联合阵形）。
+- **KD3 战斗模拟按参考文档的阶段顺序实现**，没有可靠数值的修正项（上游标 `?` 的命中 / 回避）不建模，与现有 `combined.rs` 的取舍一致。
+- **KD4 验证靠协议校验而不是数值对拍**：没有可对拍的参考实现；用 `battle validate` 的客户端规则确认包结构，
+  再用固定种子冻结一份 6-5 M 的 transcript。
+
+### Requirements
+
+- R1 6-5 的 M 格出现 12 艘的敌方联合舰队，客户端能正常演出昼战与夜战并结算。
+- R2 `kcnav_enemy_fleets.json` 覆盖全部战斗格，组装不再读 wikiwiki 的敌方编成。
+- R3 `wikiwiki_map_catalog.json`、`wikiwiki_map_asset.rs`、`wikiwiki_map_download.rs`、`wikiwiki-map sync`、
+  `label_overlay.rs` 里贴 wikiwiki 编成的分支、`EnemyComposition.raw_ship_names` 全部删除；`wikiwiki-map build-overlays` 挪到 `map build-overlays`。
+- R4 `docs/api_coverage.md` 的端点计数与那段「没有数据」的说明更新。
+
+### Scope Boundaries
+
+- 不做 `each_battle`、`each_battle_water`、`ec_night_to_day`。
+- 不做基地航空隊对敌联合的部分，除非 6-5 的现有基地航空逻辑因为敌方变成 12 艘而出错（U1 检查）。
+
+## Implementation Units
+
+- **U1 协议与触发条件**：读 `apilist.txt` 与 `main.js`，列出 `ec_battle` / `ec_midnight_battle` 相对普通战斗多出和改名的字段，
+  以及 `next` 响应里让客户端走 `ec_` 路径的字段。产出写回本计划。
+- **U2 数据**：模型加护卫队字段；`kcnav normalize` 收联合记录；重生成资产。此时 M 格已有 12 艘的编成但战斗还不能打，
+  所以 U2 与 U3 同一个 PR 交付。
+- **U3 昼战 `ec_battle`**：敌方分主力 / 护卫的阶段顺序、目标选择、修正表；handler 与路由注册。
+- **U4 夜战 `ec_midnight_battle`**：对手队伍的评分选择。
+- **U5 结算**：`api_req_combined_battle/battleresult` 对「我方单舰队、敌方联合」的分支；MVP、掉落、血条照常。
+- **U6 wikiwiki 退役**（R2、R3）：前提是覆盖报告显示没有格子还依赖 wikiwiki 编成。
+- **U7 收口**：文档、`PROJECT_MEMORY.md`、golden（6-5 不在现有 transcript 里，新增一份）。
+
+## Verification Contract
+
+三道质量门以退出码为准；`cargo run -- battle validate` 对 6-5 M 的昼战与夜战包无 finding；
+仓库内 grep `wikiwiki_map`、`enemy_nodes` 无命中（`docs/plans/`、`docs/solutions/` 的历史叙述除外）。

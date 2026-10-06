@@ -194,12 +194,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] 分支 `fix/map-data-gaps`（未推送）：计划 004 已实施，34 个格子的类型按 KCNav 订正（28 场不存在的战斗、
-  4 个漏掉的 boss、2 个错标的 boss）。fmt、clippy（17 条）、`cargo test --workspace` 1196 通过。
+- [2026-10-06] PR #2、#3 已合并进 `main`。分支 `docs/plans-gauge-combined-bonus`（未推送）只有三份新计划：
+  005 血条阶段、006 敌方联合舰队（做完才能删 wikiwiki 资产）、007 装備ボーナス。都未实施。
 
 ## Next Session
 
-- [2026-10-06] 剩余缺口按价值排：血条阶段（5-6、7-5 的中间 boss 不推进血条，路由也只取了 5-6 末阶段）；敌方联合舰队
-  （6-5 M 卡着 wikiwiki 资产的删除）；装備ボーナス（调研在 `docs/brainstorms/2026-10-06-equipment-bonus-sources.md`）；
-  `practice_battle` 有一个测试全量并行时偶发失败，单跑未复现。
+- [2026-10-06] 三份计划等用户定先后。005 的 U1 要先查清各阶段血条长度（KCNav 不给）；006 只做 `ec_battle` 与
+  `ec_midnight_battle`；007 先做对拍工具量差异。`practice_battle` 有一个测试全量并行时偶发失败，单跑未复现。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
