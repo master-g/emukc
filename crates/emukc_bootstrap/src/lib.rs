@@ -23,6 +23,7 @@ mod compass_route_rules;
 pub mod compass_source;
 mod db;
 mod download;
+mod kcnav;
 mod make_list;
 mod map_overlay;
 mod map_pipeline;
@@ -62,6 +63,10 @@ pub mod prelude {
     pub use crate::download::BootstrapDownloadError;
     pub use crate::download::download_all;
     pub use crate::download::download_web_assets;
+    pub use crate::kcnav::{
+        KcnavCatalog, KcnavDrop, KcnavFleet, KcnavNode, KcnavSyncOptions, KcnavSyncStats,
+        kcnav_battle_edges, kcnav_dir, normalize_kcnav, sync_kcnav,
+    };
     pub use crate::make_list::{
         CacheListBuildDiagnostics, CacheListComparisonReport, CacheListItem, CacheListMakeStrategy,
         CacheListPathBuildOutput, CacheListPathPrefixCount, apply_candidate_build_diagnostics,

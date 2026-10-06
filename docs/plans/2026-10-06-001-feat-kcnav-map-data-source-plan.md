@@ -69,7 +69,7 @@ KCNav（`tsunkit.net/nav`）是 TsunDB 众包出击记录的查询前端。它�
 - **KD3 下载与归一化分两步，中间落盘原始 JSON。** 归一化不联网、可重放，测试只喂夹具。
 - **KD4 归一化产出按节点 label 建键**，与 `map_ship_drops.json`、wikiwiki 资产同一约定
   （`data-dependencies.md` §2「资产只存 label」）。多条边进同一节点时把样本相加。
-- **KD5 KCNav 只覆盖它实测得到的东西。** 路由规则仍来自 wikiwiki；KCNav 的敌方编成
+- **KD5 KCNav 只覆盖它实测得到的东西。** 路由规则来自羅針盤シミュ源码（计划 `2026-10-06-003`，已落地）；KCNav 的敌方编成
   覆盖 wikiwiki 的编成，但某格在 KCNav 没有数据时保留 wikiwiki 的。这条回退只活到 U5。
 
 ### Requirements
@@ -85,7 +85,7 @@ KCNav（`tsunkit.net/nav`）是 TsunDB 众包出击记录的查询前端。它�
 ### Scope Boundaries
 
 - 只做 37 张常规图。活动海域 KCNav 也有，但本地 codex 没有活动图的其余数据，不在此列。
-- 不改路由规则来源，不动 `wikiwiki_map_catalog.json` 的 `routing_rules`。
+- 不碰路由规则：它已由计划 `2026-10-06-003` 换成 `map_route_rules.json`。
 - 不把 KCNav 的路由统计接成 `probability_pct`——那是独立的一项，另起计划。
 - 敌方联合舰队（`escortFleet` 非空）只落盘不消费，等 `ec_*` 端点有计划时再用。
 - 不取 `los` 接口：5-6 的索敌阈值已由计划 `2026-10-06-003` 的规则来源给出。
@@ -179,6 +179,26 @@ KCNav（`tsunkit.net/nav`）是 TsunDB 众包出击记录的查询前端。它�
 - `docs/solutions/` 记一条：KCNav 接口的查询参数陷阱（不带参数超时、200 里包 error）。
 - `CLAUDE.md` 的 Do-Not-Modify 清单已用通配覆盖 `assets/*.json`，只需在命令段加 `make kcnav-update`。
 - `make drift-accept` 收新基线；`PROJECT_MEMORY.md` 回写。
+
+## 实施记录（2026-10-06）
+
+U1 与 U2 的代码已实施，**一次联网请求都没发过**：测试只喂 `crates/emukc_bootstrap/tests/fixtures/kcnav/`
+（取自 `z/kcnav_samples/` 的 1-1 样本）。`kcnav sync --dry-run` 给出全量规模：37 张图、最多 996 次请求、
+2 秒间隔约 33 分钟。U2 里依赖真实数据的部分（再生 `map_ship_drops.json`、差集报告、阈值）与 U3–U6 未做。
+
+与上文不一致之处，以实现为准：
+
+- 下载与归一化在同一个文件 `crates/emukc_bootstrap/src/kcnav.rs`，没有拆成 `kcnav_download.rs` 与 `parser/kcnav/`。
+- 查询串取 `paramDefaults` 里所有非空的标量，去掉 `page` / `perPage`（`drops` 不带分页时一次返回全部条目）。
+  这套参数是当时验证过的那条请求的超集，**未对线上验证**；首次 `kcnav sync --map 1-1` 就是验证。
+- `kcnav normalize` 目前写一份中间文档 `.data/temp/kcnav.normalized.json`（按地图名和节点 label 建键，掉落与编成在同一节点下），
+  还不是仓库资产。拆成 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`、登记进 `REPO_ASSETS` 等拿到全量数据后做；
+  在那之前 `make kcnav-update` 末尾的 `drift-check` 不会因 KCNav 数据报告漂移。
+- 掉落的 rank 维度不另发请求：`min_s` / `min_a` / `min_b` 非空即该档见过掉落，归一化成 `ranks: "SAB"`。
+- 归一化校验两条不变量，违反即报错：`result.count` 等于条目数（防截断）；边文件的 edge id 必须在该图的 `route` 里。
+  样本里 `无掉落 + Σ各舰掉落 == total` 成立，测试固定了它。
+- 噪声阈值暂为 1（不过滤），`MIN_DROP_COUNT` / `MIN_FLEET_COUNT` 等首跑后按分布定。
+- 请求失败不中断同步：计数、继续，结束时非零即退出码非零，重跑只补缺的。
 
 ## Sequencing
 

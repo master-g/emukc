@@ -142,7 +142,8 @@ Current verification baseline:
   tera 2 的 `render_str` 要传 autoescape=`false` 才等同 tera 1。jemallocator 0.7 只在 BSD 编译，未实测。
   tower-http 0.7 起 `Accept-Encoding: *` 会被压缩（实测选 zstd），`*;q=0` 返回 406。
 
-- [2026-10-06] KCNav 有公开 JSON 接口（掉落带样本数，编成带真实 `lvl`）：计划 2026-10-06-001 前提段，样本 `z/kcnav_samples/`。
+- [2026-10-06] KCNav 有公开 JSON 接口（掉落带样本数，编成带真实 `lvl`）：计划 2026-10-06-001 前提段与实施记录，样本 `z/kcnav_samples/`。
+  `robots.txt` 点名禁 ClaudeBot，对它的请求由用户确认或用户自己执行，agent 不主动发。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则由羅針盤シミュ源码（`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支，MIT；`main` 只有压缩产物）
   确定性转换，对拍零差异。详见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
@@ -188,17 +189,17 @@ Current verification baseline:
 | [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
-| [2026-09-22] wikiwiki 的 BFS 编号曾经进过 kcdata 空间（`VisitedNode` 被原样透传，5 条「经由某格」查错格子）。09-23 起资产只存 label，编号在 `normalize` 接入时就换掉，组装只做一次 label→kcdata；别再往资产里放编号。 | `docs/map/data-dependencies.md` §2 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
 
 ## Last Session
 
-- [2026-10-06] 分支 `feat/route-rules-from-compass-source`（未推送）：计划 003 U1–U5 与 002 已提交。
-  fmt、clippy（17 条既有 warning）、`cargo test --workspace`、`bun test` 均 exit 0，`make route-oracle` 零差异。
+- [2026-10-06] 分支 `feat/route-rules-from-compass-source`（未推送）：计划 003 U1–U5 与 U6 前两步、002、001 的 U1/U2 代码已提交。
+  fmt、clippy（17 条既有 warning）、`cargo test --workspace` 均 exit 0。KCNav 下载器从未联网跑过。
 
 ## Next Session
 
-- [2026-10-06] 下一步计划 001（KCNav），全量同步约 900 次请求，先与用户确认；再做 003 的 U6。
+- [2026-10-06] 等用户确认后跑 `make kcnav-sync MAP=1-1` 验证查询串，再全量（996 次请求）；拿到数据后做 001 的
+  U2 余下部分与 U3–U6，再做 003 U6 第 3–5 步。待用户定：是否在 `codex/ship.rs` 加索敌装備ボーナス（量级见计划 002 实施记录）。
   基地航空隊 U4 与 `sally_flag` 仍在队列里。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
