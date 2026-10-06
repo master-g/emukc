@@ -21,9 +21,9 @@ tags: [map, data-source, provenance, ssot]
 | 拓扑（格子、连线、格子类型） | `kc_data` + `stat.json` | 下载 | ✅ 已被 `edges.json` 独立确认 |
 | 真实起点抓包 | `assets/real_map_start_data/*.json` | 人工抓包 | ⚠️ 需真实账号 |
 | 路由规则 | `assets/map_route_rules.json` | `make route-rules-update`（羅針盤シミュ源码 → 确定性转换） | ✅ 钉住提交，可对拍 |
-| 敌方编成（哪些格子出什么舰队） | `assets/wikiwiki_map_catalog.json` | agent skill | ⚠️ 见下 |
+| 敌方编成（哪些格子出什么舰队） | `assets/kcnav_enemy_fleets.json`，6-5 M 仍取 `assets/wikiwiki_map_catalog.json` | `make kcnav-update`（KCNav 实测，带权重、阵形、等级） | ✅ 454 / 487 个战斗格；⚠️ 敌方联合舰队未接 |
 | 敌舰属性（HP/火力/装备） | `enemy_ship_extra.json` | 下载 | ✅ |
-| 掉落 | `assets/map_ship_drops.json` | **无** | ❌ |
+| 掉落 | `assets/map_ship_drops.json` | `make kcnav-update`（KCNav 最近一年的实测次数） | ✅ 带权重与「无掉落」 |
 | 地图开放条件 | `build_regular_prerequisites()` | 代码里的公式 | ⚠️ 推断，已对一份真实抓包验证 |
 
 ## 1. 拓扑
@@ -82,7 +82,7 @@ wikiwiki 是独立的第三方来源，它给 7-4 的 Start 列了 6 条分歧�
 
 **这条链上的 wikiwiki 不是唯一信源。** TsunDB / KCNav（`tsunkit.net/nav`）是权威众包库，前端调用的
 `/api/routing/...` 是公开 JSON 接口（2026-10-06 实测可用；`drops` 不带前端那套查询参数会超时），
-掉落与敌方编成计划改由它提供，见 `docs/plans/2026-10-06-001-feat-kcnav-map-data-source-plan.md`。
+掉落与敌方编成已改由它提供，见 `docs/plans/2026-10-06-001-feat-kcnav-map-data-source-plan.md` 的实施记录。
 路由规则已改由羅針盤シミュ源码转换，见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 en.kancollewiki.net 被 Cloudflare 挡住。Fandom 的 `{{MapBranchingTable}}` 按边分键、由 TsunDB 推导、API 开放，但
 33 张图 381 条条件句只有 59% 能归入有限句式，其余是 `Otherwise, D`、`Routing unknown`、
@@ -141,14 +141,12 @@ degraded 兜底，每级都 warn。所以敌舰属性缺失不会中断出击，
 
 ## 4. 掉落
 
-`assets/map_ship_drops.json`，按「地图 → 变体 → 节点 label」建键，242 个节点 / 10384 条（扇出后 367 格 / 16499）。
+`assets/map_ship_drops.json`，按「地图 → 变体 → 节点 label」建键，由 `kcnav normalize` 从 KCNav 最近一年的实测记录生成
+（2026-10-06 起；此前是没有任何可复现来源的手工表，`ca027294` 曾因重建资产把它整个弄丢）。
 
-**它没有任何可复现来源。** 产出它的 Rust HTML 解析器在 2026-06 被删；agent skill 产不出（所有历史
-agent JSON 的 `ship_drops` 都是 0）；缓存的 wikiwiki 页面里也没有——36 份的 `DROP TABLE` 段全是
-难度、作战名、BGM，最长 332 字，一个舰名都没有。
-
-`ca027294` 已经栽过一次：按流程重建资产导致掉落全丢、10 个出击测试挂掉，当时选择把资产冻结。
-2026-09-22 把它拆成独立文件，资产因此解锁，但**掉落本身仍然不可再生**。接一个真实掉落源是未解决项。
+每一项带观测次数 `weight` 和见过掉落的评价档 `ranks`；`ship_id` 为 0 的一项是「无掉落」，同样按次数参与抽取，
+所以胜利不再必掉。KCNav 的次数不分评价档，`ranks` 只用来缩小候选。旧表有而新表没有的 491 条见
+`docs/map/kcnav-drop-diff-2026-10-06.md`，其中 374 条是该节点一年样本不足 1000。
 
 ## 5. 地图开放条件
 
