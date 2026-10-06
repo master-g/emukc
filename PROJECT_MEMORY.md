@@ -194,8 +194,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-06] 分支 `feat/route-rules-from-compass-source`（未推送）：计划 002、003 U1–U5 与 U6 前两步、001 U1–U4 已提交。
-  fmt、clippy（17 条既有 warning）、`cargo test --workspace` 1192 通过。KCNav 原始响应在 `.data/temp/kcnav/`。
+- [2026-10-06] PR #2 已合并进 `main` 并推送：计划 002、003 U1–U5 与 U6 前两步、001 U1–U4。合并前 fmt、clippy（17 条既有
+  warning）、`cargo test --workspace` 1193 通过。KCNav 原始响应在 `.data/temp/kcnav/`。
 
 ## Next Session
 
