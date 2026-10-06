@@ -17,7 +17,10 @@ export type Term =
 	| { kind: "ship_types"; types: string[] }
 	| { kind: "ships"; ids: number[] }
 	| { kind: "fleet_size" }
-	| { kind: "field"; name: string };
+	/** Ships carrying at least one equipment with one of the ids. */
+	| { kind: "equip_carriers"; ids: number[] }
+	/** Ships of the given types whose own (unequipped) speed is slow. */
+	| { kind: "slow_ships"; types: string[] };
 
 export type Expr =
 	| { and: Expr[] }
@@ -66,17 +69,11 @@ export interface SourceData {
 	ships: Record<number, SourceShip>;
 	/** Helper functions counting ships by a fixed list of base names. */
 	countHelpers: Record<string, string[]>;
+	/** Precomputed per-fleet counters such as `drum_carrier_count`, as the term they stand for. */
+	fields: Record<string, Term>;
 	/** Phase option values per map; maps without a phase option are absent. */
 	phases: Record<string, number[]>;
 }
-
-const COUNT_FIELDS = new Set([
-	"drum_carrier_count",
-	"craft_carrier_count",
-	"radar_carrier_count",
-	"arBulge_carrier_count",
-	"SBB_count",
-]);
 
 const SPEED_HELPERS: Record<string, { op: string; value: number }> = {
 	is_fleet_speed_slow: { op: "==", value: 1 },
@@ -233,8 +230,9 @@ function linearize(scope: Scope, raw: t.Expression, sign: number, into: Linear):
 				addTerm(into, sign, { kind: "fleet_size" });
 				return;
 			}
-			if (COUNT_FIELDS.has(name)) {
-				addTerm(into, sign, { kind: "field", name });
+			const field = scope.data.fields[name];
+			if (field !== undefined) {
+				addTerm(into, sign, field);
 				return;
 			}
 			if (scope.data.baseTypes.includes(name)) {
@@ -587,13 +585,52 @@ export function loadSourceData(sourceDir: string): SourceData {
 		if (names !== undefined) countHelpers[match[1] as string] = names;
 	}
 
+	// The counters `FleetComponent` and `EquippedShip` precompute. Their definitions are short
+	// enough to pin with a pattern each, so a changed definition fails here instead of
+	// silently keeping the old meaning.
+	const equipIds: Record<string, number> = {};
+	const equipSource = read("data", "equip.ts");
+	const radarIds: number[] = [];
+	for (const match of equipSource.matchAll(/^[ ,]*(\d+):\{[^}]*\btype:EquipType\.(\w+),\s*name:'([^']+)'/gm)) {
+		equipIds[match[3] as string] = Number(match[1]);
+		// The source files radars under its own two types, which is not the game's
+		// equipment type for every one of them, so the ids are what is exact.
+		if (match[2] === "RadarS" || match[2] === "RadarL") radarIds.push(Number(match[1]));
+	}
+	const equipId = (name: string): number => {
+		const id = equipIds[name];
+		if (id === undefined) throw new RouteRuleSyntaxError(`compass source: unknown equipment ${name}`);
+		return id;
+	};
+	const equippedShip = read("models", "ship", "EquippedShip.ts");
+	const craftNames = requireMatch(equippedShip, /ROUTING_CRAFT_NAMES: EquipName\[\]\s*=\s*\[([^\]]*)\]/, "ROUTING_CRAFT_NAMES")[1] ?? "";
+	requireMatch(equippedShip, /name === 'ドラム缶\(輸送用\)'\) acc\.drum_count\+\+/, "the drum canister counter");
+	requireMatch(equippedShip, /name === '北方迷彩\(\+北方装備\)'\) acc\.has_arBulge = true/, "the arctic bulge flag");
+	requireMatch(equippedShip, /\[EquipType\.RadarS, EquipType\.RadarL\]\.includes\(equip\.type\)\) \{\s*acc\.has_radar = true/, "the radar flag");
+	if (radarIds.length === 0) throw new RouteRuleSyntaxError("compass source: no radars in the equipment table");
+	requireMatch(
+		read("models", "fleet", "FleetComponent.ts"),
+		/ship\.type === ShipType\.BB\s*&& ship\.speed_group >= SLOW_THRESHOLD\s*\) acc\.SBB_count\+\+/,
+		"the slow battleship counter",
+	);
+	const fields: Record<string, Term> = {
+		drum_carrier_count: { kind: "equip_carriers", ids: [equipId("ドラム缶(輸送用)")] },
+		arBulge_carrier_count: { kind: "equip_carriers", ids: [equipId("北方迷彩(+北方装備)")] },
+		craft_carrier_count: {
+			kind: "equip_carriers",
+			ids: [...craftNames.matchAll(/'([^']+)'/g)].map((name) => equipId(name[1] as string)).sort((a, b) => a - b),
+		},
+		radar_carrier_count: { kind: "equip_carriers", ids: radarIds.sort((a, b) => a - b) },
+		SBB_count: { kind: "slow_ships", types: ["BB"] },
+	};
+
 	const phases: Record<string, number[]> = {};
 	const options = read("data", "options.ts");
 	for (const match of options.matchAll(/'(\d+-\d+)':\s*\{\s*'phase':\s*\{[\s\S]*?options:\s*\[([\s\S]*?)\]/g)) {
 		phases[match[1] as string] = [...(match[2] as string).matchAll(/value:\s*'(\d+)'/g)].map((value) => Number(value[1]));
 	}
 
-	return { baseTypes, groups, ships, countHelpers, phases };
+	return { baseTypes, groups, ships, countHelpers, fields, phases };
 }
 
 export interface RouteRulesDocument {

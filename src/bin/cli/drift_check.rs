@@ -521,10 +521,11 @@ mod tests {
             "ui_resources",
             "resource_templates",
             "map_ship_drops",
+            "map_route_rules",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 15);
+        assert_eq!(paths.len(), 16);
     }
 
     #[test]

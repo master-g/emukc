@@ -11,6 +11,7 @@ use emukc_model::{
 
 use crate::{
     assets::{MAP_SHIP_DROPS, PUBLIC_MAP_CATALOG_OVERLAYS},
+    compass_route_rules::{CompassRouteRulesAsset, load_repo_compass_route_rules},
     parser::{
         error::ParseError,
         wikiwiki_map::{ShipDropDraft, WikiwikiMapOverlayCatalog},
@@ -31,6 +32,9 @@ pub(super) struct ResolvedMapSources {
     pub(super) wikiwiki_source: MapCatalogWikiwikiSource,
     pub(super) wikiwiki_map_count: usize,
     pub(super) wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
+    /// Routing rules converted from the compass simulator. They replace the wikiwiki
+    /// catalog's routing rules; absent when a caller supplies its own catalog.
+    pub(super) route_rules: Option<CompassRouteRulesAsset>,
     pub(super) kcdata_catalog: MapCatalog,
     pub(super) kcdata_parse_errors: usize,
     pub(super) public_overlay_map_count: usize,
@@ -48,7 +52,13 @@ pub(super) fn load_explicit_source_set(
     // A caller-supplied catalog comes straight from the agent skill, which does
     // not produce drops, so it needs the same fold-in the repo asset gets.
     apply_ship_drops(&mut wikiwiki_overlay)?;
-    load_source_set(data_root, manifest, MapCatalogWikiwikiSource::Provided, Some(wikiwiki_overlay))
+    load_source_set(
+        data_root,
+        manifest,
+        MapCatalogWikiwikiSource::Provided,
+        Some(wikiwiki_overlay),
+        None,
+    )
 }
 
 pub(super) fn load_repo_source_set(
@@ -56,7 +66,8 @@ pub(super) fn load_repo_source_set(
     manifest: &ApiManifest,
 ) -> Result<ResolvedMapSources, ParseError> {
     let (wikiwiki_source, wikiwiki_overlay) = load_repo_wikiwiki_overlay()?;
-    load_source_set(data_root, manifest, wikiwiki_source, wikiwiki_overlay)
+    let route_rules = load_repo_compass_route_rules()?;
+    load_source_set(data_root, manifest, wikiwiki_source, wikiwiki_overlay, Some(route_rules))
 }
 
 fn load_source_set(
@@ -64,6 +75,7 @@ fn load_source_set(
     manifest: &ApiManifest,
     wikiwiki_source: MapCatalogWikiwikiSource,
     wikiwiki_overlay: Option<WikiwikiMapOverlayCatalog>,
+    route_rules: Option<CompassRouteRulesAsset>,
 ) -> Result<ResolvedMapSources, ParseError> {
     let (kcdata_catalog, kcdata_parse_errors) = load_kcdata_map_catalog(data_root, manifest)?;
     let wikiwiki_map_count =
@@ -76,6 +88,7 @@ fn load_source_set(
         wikiwiki_source,
         wikiwiki_map_count,
         wikiwiki_overlay,
+        route_rules,
         kcdata_catalog,
         kcdata_parse_errors,
         public_overlay_map_count,
@@ -308,6 +321,7 @@ fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
             String::new(),
             MapVariantDefinition {
                 variant_key: String::new(),
+                start_rules: Vec::new(),
                 boss_cell_no: 0,
                 cells: variant_cells,
                 routing_rules: Default::default(),

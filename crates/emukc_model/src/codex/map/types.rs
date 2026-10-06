@@ -93,6 +93,10 @@ pub struct MapVariantDefinition {
     pub cells: Vec<MapCellDefinition>,
     #[serde(default)]
     pub routing_rules: BTreeMap<i64, Vec<RouteRule>>,
+    /// Rules choosing among several start cells; `to_cell_no` is a start cell and
+    /// `from_cell_no` is unused. Empty when the map has one start or nothing decides it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub start_rules: Vec<RouteRule>,
     pub enemy_fleets: BTreeMap<i64, EnemyFleetDefinition>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub ship_drops: BTreeMap<i64, Vec<ShipDropDefinition>>,
@@ -356,6 +360,17 @@ pub enum RoutePredicate {
     },
     LoS {
         formula: Option<String>,
+        /// The branch-point coefficient (分岐点係数) the formula-33 score is taken with.
+        /// `None` on rules whose source never stated one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        coefficient: Option<i64>,
+        op: RouteOperator,
+        value: i64,
+    },
+    /// Compares a weighted sum of fleet counters with a constant, e.g.
+    /// `戦艦級 − 低速戦艦 ≥ 2` or `重巡 + 軽巡 + 駆逐 − 艦数 = 0`.
+    CountSum {
+        terms: Vec<RouteCountTerm>,
         op: RouteOperator,
         value: i64,
     },
@@ -377,6 +392,32 @@ pub enum RoutePredicate {
     },
     SourceUnknown {
         raw_text: String,
+    },
+}
+
+/// One addend of a [`RoutePredicate::CountSum`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RouteCountTerm {
+    pub coef: i64,
+    pub counter: RouteCounter,
+}
+
+/// A per-fleet quantity a routing condition counts. Every variant counts ships.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RouteCounter {
+    /// Ships of any of the given ship types.
+    ShipTypes(Vec<i64>),
+    /// Ships whose master id is one of the given ids.
+    Ships(Vec<i64>),
+    /// Every ship in the fleet.
+    FleetSize,
+    /// Ships carrying at least one equipment with one of the master ids.
+    EquipCarriers {
+        slotitem_ids: Vec<i64>,
+    },
+    /// Ships of the given types whose own, unequipped speed is slow.
+    SlowShips {
+        ship_types: Vec<i64>,
     },
 }
 

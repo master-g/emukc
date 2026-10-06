@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use emukc_crypto::rng;
 use emukc_model::codex::map::{
-    MapCellDefinition, MapStageDefinition, RouteOperator, RoutePredicate, RouteRule, SpeedClass,
+    MapCellDefinition, MapStageDefinition, RouteCounter, RouteOperator, RoutePredicate, RouteRule,
+    SpeedClass,
 };
 
 use crate::err::GameplayError;
@@ -13,6 +14,10 @@ pub(crate) struct FleetRouteShipEntry {
     pub(crate) ship_type: i64,
     pub(crate) speed: i64,
     pub(crate) slotitem_types: BTreeSet<i64>,
+    /// Master ids of the equipment carried.
+    pub(crate) slotitem_ids: BTreeSet<i64>,
+    /// The ship's own speed, before equipment, is slow.
+    pub(crate) base_slow: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -25,18 +30,14 @@ pub(crate) struct FleetRouteContext {
     pub(crate) ship_type_counts: BTreeMap<i64, i64>,
     pub(crate) ship_entries: Vec<FleetRouteShipEntry>,
     pub(crate) min_speed: i64,
-    /// Raw sum of each ship's current `LoS` (base + equipment).  Used as the
-    /// fallback when no formula is specified.
-    pub(crate) los_total: i64,
     /// Ships carrying at least one drum canister — not the canister count.
     pub(crate) drum_ships: i64,
-    /// Precomputed `LoS` under Formula 1: `Σ sqrt(ship.los_now)`.
-    /// Formula 1 uses per-equipment sqrt-weighted values; this is an approximation
-    /// using the combined ship `LoS` when per-equipment breakdown is unavailable.
-    pub(crate) los_formula1: f64,
-    /// Precomputed `LoS` under Formula 3 (the standard 2-5-fleet formula):
-    /// `Σ(equip_los × 0.6 + sqrt(ship_base_los)) − ceil(0.4 × hq_lv) + (6 − fleet_size) × 2`.
-    pub(crate) los_formula3: f64,
+    /// The part of the formula-33 `LoS` score that does not depend on the branch point:
+    /// `Σ√(ship's own LoS) − ⌈0.4 × HQ level⌉ + 2 × (6 − fleet size)`.
+    pub(crate) los_ship_term: f64,
+    /// The part the branch-point coefficient multiplies:
+    /// `Σ equipment coefficient × (equipment LoS + improvement bonus)`.
+    pub(crate) los_equip_term: f64,
     /// 第2艦隊's ships when a combined fleet sorties; empty otherwise. Kept apart
     /// from every field above, which describe 第1艦隊 alone, so no existing
     /// predicate changes its answer. None reads it yet: the regular maps have no
@@ -45,28 +46,30 @@ pub(crate) struct FleetRouteContext {
 }
 
 impl FleetRouteContext {
-    /// Return the `LoS` value to compare against a route predicate threshold.
+    /// The formula-33 `LoS` score at a branch point with the given coefficient, floored.
     ///
-    /// `formula` mirrors the `formula` field of `RoutePredicate::LoS`:
-    /// - `None` or unrecognised string → `los_total` (raw sum, backward-compatible)
-    /// - `"式1"` / `"1"` → formula-1 precomputed value
-    /// - `"式3"` / `"3"` → formula-3 precomputed value
-    ///
-    /// Unknown formula strings produce a `tracing::warn!` and fall back to
-    /// `los_total` so that unrecognised wiki annotations degrade gracefully.
-    pub(crate) fn los_by_formula(&self, formula: Option<&str>) -> f64 {
-        match formula {
-            None => self.los_total as f64,
-            Some("式1") | Some("1") => self.los_formula1,
-            Some("式3") | Some("3") => self.los_formula3,
-            Some(unknown) => {
-                tracing::warn!(
-                    formula = unknown,
-                    los_total = self.los_total,
-                    "unknown LoS formula, falling back to los_total"
-                );
-                self.los_total as f64
+    /// Thresholds are whole numbers read as 「N 以上」 / 「N 未満」, stored as `Gte N` /
+    /// `Lte N-1`; flooring the score first keeps a fractional score from falling between them.
+    pub(crate) fn los_score(&self, coefficient: i64) -> i64 {
+        (self.los_ship_term + coefficient as f64 * self.los_equip_term).floor() as i64
+    }
+
+    fn count(&self, counter: &RouteCounter) -> i64 {
+        let ships = |matches: &dyn Fn(&FleetRouteShipEntry) -> bool| {
+            self.ship_entries.iter().filter(|entry| matches(entry)).count() as i64
+        };
+        match counter {
+            RouteCounter::ShipTypes(ship_types) => {
+                ships(&|entry| ship_types.contains(&entry.ship_type))
             }
+            RouteCounter::Ships(ship_ids) => ships(&|entry| ship_ids.contains(&entry.ship_id)),
+            RouteCounter::FleetSize => self.fleet_size,
+            RouteCounter::EquipCarriers {
+                slotitem_ids,
+            } => ships(&|entry| slotitem_ids.iter().any(|id| entry.slotitem_ids.contains(id))),
+            RouteCounter::SlowShips {
+                ship_types,
+            } => ships(&|entry| entry.base_slow && ship_types.contains(&entry.ship_type)),
         }
     }
 }
@@ -96,39 +99,11 @@ pub(crate) fn evaluate_route_destination(
         return select_route_from_cells(current, selected_cell_id);
     };
 
-    let mut fallback_rules = Vec::<&RouteRule>::new();
-    let mut matched_groups = BTreeMap::<String, (i64, Vec<&RouteRule>)>::new();
-    let mut saw_source_unknown = false;
-    let mut saw_unsupported = false;
-    for rule in rules {
-        match route_predicate_matches(&rule.predicate, context, stage) {
-            RoutePredicateEval::Matched if matches!(rule.predicate, RoutePredicate::Always) => {
-                fallback_rules.push(rule);
-            }
-            RoutePredicateEval::Matched => {
-                let key = route_predicate_key(&rule.predicate);
-                let entry =
-                    matched_groups.entry(key).or_insert_with(|| (rule.priority, Vec::new()));
-                entry.0 = entry.0.min(rule.priority);
-                entry.1.push(rule);
-            }
-            RoutePredicateEval::NotMatched => {}
-            RoutePredicateEval::SourceUnknown => saw_source_unknown = true,
-            RoutePredicateEval::Unsupported => saw_unsupported = true,
-        }
-    }
-
-    let executable = if matched_groups.is_empty() {
-        fallback_rules
-    } else {
-        let min_priority =
-            matched_groups.values().map(|(priority, _)| *priority).min().unwrap_or(0);
-        matched_groups
-            .into_values()
-            .filter(|(priority, _)| *priority == min_priority)
-            .flat_map(|(_, rules)| rules)
-            .collect::<Vec<_>>()
-    };
+    let FiringRules {
+        executable,
+        saw_source_unknown,
+        saw_unsupported,
+    } = firing_rules(rules, context, stage);
 
     if executable.is_empty() {
         let any_indeterminate = saw_source_unknown || saw_unsupported;
@@ -211,7 +186,77 @@ pub(crate) fn evaluate_route_destination(
         });
     }
 
-    let weights = executable.iter().fold(BTreeMap::<i64, u64>::new(), |mut acc, rule| {
+    let weights = rule_weights(&executable, context);
+    let total_weight = weights.values().sum::<u64>();
+    if total_weight == 0 {
+        return candidate_targets.iter().next().copied().ok_or_else(|| {
+            GameplayError::WrongType(format!("cell {} has no executable route", current.cell_no))
+        });
+    }
+
+    let roll = rng::u64(0..total_weight);
+    select_route_target_for_roll(&weights, roll).ok_or_else(|| {
+        GameplayError::WrongType(format!("cell {} has no executable route", current.cell_no))
+    })
+}
+
+struct FiringRules<'a> {
+    /// The rules that decide this roll.
+    executable: Vec<&'a RouteRule>,
+    saw_source_unknown: bool,
+    saw_unsupported: bool,
+}
+
+/// The rules that fire for this fleet: of the conditional rules that match, the group with
+/// the lowest priority; the unconditional rules when none does.
+fn firing_rules<'a>(
+    rules: &'a [RouteRule],
+    context: &FleetRouteContext,
+    stage: &MapStageDefinition,
+) -> FiringRules<'a> {
+    let mut fallback_rules = Vec::<&RouteRule>::new();
+    let mut matched_groups = BTreeMap::<String, (i64, Vec<&RouteRule>)>::new();
+    let mut saw_source_unknown = false;
+    let mut saw_unsupported = false;
+    for rule in rules {
+        match route_predicate_matches(&rule.predicate, context, stage) {
+            RoutePredicateEval::Matched if matches!(rule.predicate, RoutePredicate::Always) => {
+                fallback_rules.push(rule);
+            }
+            RoutePredicateEval::Matched => {
+                let key = route_predicate_key(&rule.predicate);
+                let entry =
+                    matched_groups.entry(key).or_insert_with(|| (rule.priority, Vec::new()));
+                entry.0 = entry.0.min(rule.priority);
+                entry.1.push(rule);
+            }
+            RoutePredicateEval::NotMatched => {}
+            RoutePredicateEval::SourceUnknown => saw_source_unknown = true,
+            RoutePredicateEval::Unsupported => saw_unsupported = true,
+        }
+    }
+
+    let executable = if matched_groups.is_empty() {
+        fallback_rules
+    } else {
+        let min_priority =
+            matched_groups.values().map(|(priority, _)| *priority).min().unwrap_or(0);
+        matched_groups
+            .into_values()
+            .filter(|(priority, _)| *priority == min_priority)
+            .flat_map(|(_, rules)| rules)
+            .collect::<Vec<_>>()
+    };
+    FiringRules {
+        executable,
+        saw_source_unknown,
+        saw_unsupported,
+    }
+}
+
+/// Roll weight per target cell of the firing rules.
+fn rule_weights(executable: &[&RouteRule], context: &FleetRouteContext) -> BTreeMap<i64, u64> {
+    executable.iter().fold(BTreeMap::<i64, u64>::new(), |mut acc, rule| {
         let weight = if let RoutePredicate::FleetSizeWeightedRandom {
             weights,
         } = &rule.predicate
@@ -236,18 +281,63 @@ pub(crate) fn evaluate_route_destination(
         };
         *acc.entry(rule.to_cell_no).or_default() += weight.max(1) as u64;
         acc
-    });
+    })
+}
+
+/// Pick the start cell the fleet sorties from when the map has several and its start
+/// rules decide. `None` when the variant has no start rules or none of them fires.
+pub(crate) fn select_start_cell(
+    stage: &MapStageDefinition,
+    context: &FleetRouteContext,
+) -> Option<i64> {
+    let weights = start_cell_weights(stage, context);
     let total_weight = weights.values().sum::<u64>();
     if total_weight == 0 {
-        return candidate_targets.iter().next().copied().ok_or_else(|| {
-            GameplayError::WrongType(format!("cell {} has no executable route", current.cell_no))
-        });
+        return None;
     }
+    select_route_target_for_roll(&weights, rng::u64(0..total_weight))
+}
 
-    let roll = rng::u64(0..total_weight);
-    select_route_target_for_roll(&weights, roll).ok_or_else(|| {
-        GameplayError::WrongType(format!("cell {} has no executable route", current.cell_no))
-    })
+fn start_cell_weights(
+    stage: &MapStageDefinition,
+    context: &FleetRouteContext,
+) -> BTreeMap<i64, u64> {
+    rule_weights(&firing_rules(&stage.start_rules, context, stage).executable, context)
+}
+
+/// Where the fleet can go from `current` and how likely each cell is, without rolling.
+///
+/// Follows [`evaluate_route_destination`] for a client that sends no choice: when no rule
+/// decides, every next cell is equally likely.
+pub(crate) fn route_distribution(
+    current: &MapCellDefinition,
+    stage: &MapStageDefinition,
+    context: &FleetRouteContext,
+) -> BTreeMap<i64, f64> {
+    let rules = stage.routing_rules.get(&current.cell_no).map(Vec::as_slice).unwrap_or_default();
+    let executable = firing_rules(rules, context, stage).executable;
+    let mut weights = rule_weights(&executable, context);
+    if !weights.keys().any(|cell_no| current.next_cells.contains(cell_no)) {
+        weights = current.next_cells.iter().map(|cell_no| (*cell_no, 1)).collect();
+    }
+    normalize_weights(weights)
+}
+
+/// Which start the fleet sorties from and how likely each is, without rolling.
+pub(crate) fn start_distribution(
+    stage: &MapStageDefinition,
+    context: &FleetRouteContext,
+) -> BTreeMap<i64, f64> {
+    let mut weights = start_cell_weights(stage, context);
+    if weights.is_empty() {
+        weights = stage.start_source_cells().iter().map(|cell| (cell.cell_no, 1)).collect();
+    }
+    normalize_weights(weights)
+}
+
+fn normalize_weights(weights: BTreeMap<i64, u64>) -> BTreeMap<i64, f64> {
+    let total = weights.values().sum::<u64>() as f64;
+    weights.into_iter().map(|(cell_no, weight)| (cell_no, weight as f64 / total)).collect()
 }
 
 fn select_route_from_cells(
@@ -436,12 +526,22 @@ pub(crate) fn route_predicate_matches(
             class,
         } => RoutePredicateEval::from_bool(context.min_speed >= speed_class_floor(*class)),
         RoutePredicate::LoS {
-            formula,
+            coefficient: Some(coefficient),
+            op,
+            value,
+            ..
+        } => RoutePredicateEval::from_bool(compare_route_value(
+            context.los_score(*coefficient),
+            *op,
+            *value,
+        )),
+        RoutePredicate::CountSum {
+            terms,
             op,
             value,
         } => {
-            let los = context.los_by_formula(formula.as_deref());
-            RoutePredicateEval::from_bool(compare_route_value_f64(los, *op, *value as f64))
+            let sum = terms.iter().map(|term| term.coef * context.count(&term.counter)).sum();
+            RoutePredicateEval::from_bool(compare_route_value(sum, *op, *value))
         }
         RoutePredicate::DrumCanisterCount {
             op,
@@ -483,7 +583,13 @@ pub(crate) fn route_predicate_matches(
                 RoutePredicateEval::Unsupported => RoutePredicateEval::Unsupported,
             }
         }
+        // An `LoS` rule without the branch-point coefficient has no score to compare:
+        // its threshold means nothing against any other number.
         RoutePredicate::SourceUnknown {
+            ..
+        }
+        | RoutePredicate::LoS {
+            coefficient: None,
             ..
         } => RoutePredicateEval::SourceUnknown,
     }
@@ -492,17 +598,6 @@ pub(crate) fn route_predicate_matches(
 fn compare_route_value(actual: i64, op: RouteOperator, expected: i64) -> bool {
     match op {
         RouteOperator::Eq => actual == expected,
-        RouteOperator::Gte => actual >= expected,
-        RouteOperator::Lte => actual <= expected,
-    }
-}
-
-/// Floating-point variant of [`compare_route_value`] for `LoS` comparisons where
-/// the computed value is a `f64` (e.g. when applying a formula).  The threshold
-/// (`expected`) is truncated to `f64` before comparison.
-fn compare_route_value_f64(actual: f64, op: RouteOperator, expected: f64) -> bool {
-    match op {
-        RouteOperator::Eq => (actual - expected).abs() < f64::EPSILON,
         RouteOperator::Gte => actual >= expected,
         RouteOperator::Lte => actual <= expected,
     }
@@ -700,9 +795,15 @@ fn route_predicate_key(predicate: &RoutePredicate) -> String {
         } => format!("spd:{class:?}"),
         RoutePredicate::LoS {
             formula,
+            coefficient,
             op,
             value,
-        } => format!("los:{formula:?}:{op:?}:{value}"),
+        } => format!("los:{formula:?}:{coefficient:?}:{op:?}:{value}"),
+        RoutePredicate::CountSum {
+            terms,
+            op,
+            value,
+        } => format!("cs:{terms:?}:{op:?}:{value}"),
         RoutePredicate::DrumCanisterCount {
             op,
             value,
@@ -947,16 +1048,11 @@ mod tests {
 
     // --- LoS formula helpers ---
 
-    /// Build a minimal `FleetRouteContext` for `LoS` tests.
-    /// `los_total` is the raw sum.
-    /// `los_formula1` and `los_formula3` are supplied explicitly so tests can
-    /// set different values to verify formula dispatch.
-    fn make_los_context(los_total: i64, los_formula1: f64, los_formula3: f64) -> FleetRouteContext {
+    /// A context whose formula-33 score is `score` whatever the coefficient.
+    fn make_los_context(score: f64) -> FleetRouteContext {
         FleetRouteContext {
             fleet_size: 6,
-            los_total,
-            los_formula1,
-            los_formula3,
+            los_ship_term: score,
             ..Default::default()
         }
     }
@@ -1189,134 +1285,139 @@ mod tests {
         assert_eq!(result.unwrap(), 7);
     }
 
-    // --- LoS formula dispatch tests ---
+    // --- LoS score tests ---
+
+    fn los_predicate(coefficient: Option<i64>, op: RouteOperator, value: i64) -> RoutePredicate {
+        RoutePredicate::LoS {
+            formula: None,
+            coefficient,
+            op,
+            value,
+        }
+    }
 
     #[test]
-    fn los_formula_none_uses_los_total() {
-        // formula: None should fall back to los_total regardless of the precomputed values.
-        let ctx = make_los_context(80, 50.0, 40.0);
-        let stage = make_los_stage();
-        let eval = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: None,
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: 80,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval, RoutePredicateEval::Matched),
-            "formula=None should use los_total=80, threshold=80"
-        );
-        // Also verify threshold just above fails
-        let eval_fail = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: None,
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: 81,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval_fail, RoutePredicateEval::NotMatched),
-            "formula=None los_total=80 should not meet threshold=81"
+    fn los_score_scales_the_equipment_term_by_the_coefficient_and_floors() {
+        let ctx = FleetRouteContext {
+            los_ship_term: 10.4,
+            los_equip_term: 5.3,
+            ..Default::default()
+        };
+
+        assert_eq!(ctx.los_score(1), 15, "10.4 + 5.3 = 15.7");
+        assert_eq!(ctx.los_score(4), 31, "10.4 + 21.2 = 31.6");
+        assert_eq!(
+            ctx.los_score(4) - ctx.los_score(1),
+            16,
+            "the difference is 3 x the equipment term"
         );
     }
 
     #[test]
-    fn los_formula1_uses_precomputed_formula1() {
-        // formula "式1" routes to los_formula1 (50.0), not los_total (80).
-        let ctx = make_los_context(80, 50.0, 40.0);
+    fn los_threshold_is_compared_with_the_score_not_a_raw_sum() {
+        // A fleet scoring 40 used to pass 「49 以上」 because the raw LoS sum was compared.
+        let ctx = make_los_context(40.0);
         let stage = make_los_stage();
-        let eval = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: Some("式1".to_string()),
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: 50,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval, RoutePredicateEval::Matched),
-            "formula=式1 should use los_formula1=50, threshold=50"
-        );
-        // Threshold above formula1 value but below los_total should NOT match.
-        let eval_fail = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: Some("式1".to_string()),
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: 51,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval_fail, RoutePredicateEval::NotMatched),
-            "formula=式1 los_formula1=50 should not meet threshold=51"
-        );
+
+        assert!(matches!(
+            route_predicate_matches(&los_predicate(Some(1), RouteOperator::Gte, 49), &ctx, &stage),
+            RoutePredicateEval::NotMatched
+        ));
+        assert!(matches!(
+            route_predicate_matches(&los_predicate(Some(1), RouteOperator::Gte, 40), &ctx, &stage),
+            RoutePredicateEval::Matched
+        ));
     }
 
     #[test]
-    fn los_formula3_uses_precomputed_formula3() {
-        // formula "式3" routes to los_formula3 (40.0).  Same fleet that passes
-        // formula 1 (50.0 >= 45) may fail formula 3 (40.0 < 45).
-        let ctx = make_los_context(80, 50.0, 40.0);
+    fn fractional_los_score_does_not_fall_between_whole_thresholds() {
+        // 「28 未満」 is stored as `Lte 27`, 「28 以上」 as `Gte 28`.
+        let ctx = make_los_context(27.5);
         let stage = make_los_stage();
 
-        let threshold = 45;
-
-        // Formula 1 passes (50 >= 45)
-        let eval_f1 = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: Some("式1".to_string()),
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: threshold,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval_f1, RoutePredicateEval::Matched),
-            "formula=式1 50.0 >= 45 should match"
-        );
-
-        // Formula 3 fails (40 < 45) — different result for same fleet and threshold
-        let eval_f3 = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: Some("式3".to_string()),
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: threshold,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval_f3, RoutePredicateEval::NotMatched),
-            "formula=式3 40.0 < 45 should not match"
-        );
+        assert!(matches!(
+            route_predicate_matches(&los_predicate(Some(3), RouteOperator::Lte, 27), &ctx, &stage),
+            RoutePredicateEval::Matched
+        ));
+        assert!(matches!(
+            route_predicate_matches(&los_predicate(Some(3), RouteOperator::Gte, 28), &ctx, &stage),
+            RoutePredicateEval::NotMatched
+        ));
     }
 
     #[test]
-    fn los_unknown_formula_falls_back_to_los_total() {
-        // An unknown formula string (e.g. "式9") should fall back to los_total.
-        let ctx = make_los_context(100, 60.0, 50.0);
+    fn los_without_a_coefficient_is_source_unknown() {
+        let ctx = make_los_context(999.0);
         let stage = make_los_stage();
-        let eval = route_predicate_matches(
-            &RoutePredicate::LoS {
-                formula: Some("式9".to_string()),
-                op: emukc_model::codex::map::RouteOperator::Gte,
-                value: 100,
-            },
-            &ctx,
-            &stage,
-        );
-        assert!(
-            matches!(eval, RoutePredicateEval::Matched),
-            "unknown formula should fall back to los_total=100, threshold=100"
-        );
+
+        assert!(matches!(
+            route_predicate_matches(&los_predicate(None, RouteOperator::Gte, 1), &ctx, &stage),
+            RoutePredicateEval::SourceUnknown
+        ));
+    }
+
+    #[test]
+    fn count_sum_weighs_each_counter() {
+        use emukc_model::codex::map::{RouteCountTerm, RouteCounter};
+
+        let entry = |ship_id, ship_type, base_slow, slotitem_ids: &[i64]| FleetRouteShipEntry {
+            ship_id,
+            ship_type,
+            base_slow,
+            slotitem_ids: slotitem_ids.iter().copied().collect(),
+            ..Default::default()
+        };
+        let ctx = FleetRouteContext {
+            fleet_size: 4,
+            // A fast and a slow battleship, an aviation battleship, a destroyer with a drum.
+            ship_entries: vec![
+                entry(78, 8, false, &[]),
+                entry(26, 9, true, &[]),
+                entry(82, 10, true, &[]),
+                entry(1, 2, false, &[75]),
+            ],
+            ..Default::default()
+        };
+        let stage = make_los_stage();
+        let sum = |terms: Vec<(i64, RouteCounter)>, op, value| {
+            let predicate = RoutePredicate::CountSum {
+                terms: terms
+                    .into_iter()
+                    .map(|(coef, counter)| RouteCountTerm {
+                        coef,
+                        counter,
+                    })
+                    .collect(),
+                op,
+                value,
+            };
+            matches!(route_predicate_matches(&predicate, &ctx, &stage), RoutePredicateEval::Matched)
+        };
+        let battleships = || RouteCounter::ShipTypes(vec![8, 9, 10]);
+        let slow_bb = || RouteCounter::SlowShips {
+            ship_types: vec![8, 9],
+        };
+
+        // 戦艦級 − 低速戦艦 = 3 − 1: the slow aviation battleship is not a 低速戦艦.
+        assert!(sum(vec![(1, battleships()), (-1, slow_bb())], RouteOperator::Eq, 2));
+        // 戦艦級 + 駆逐 = 艦数.
+        assert!(sum(
+            vec![(1, RouteCounter::ShipTypes(vec![2, 8, 9, 10])), (-1, RouteCounter::FleetSize)],
+            RouteOperator::Eq,
+            0
+        ));
+        assert!(sum(vec![(1, RouteCounter::Ships(vec![26, 78, 999]))], RouteOperator::Gte, 2));
+        assert!(sum(
+            vec![(
+                1,
+                RouteCounter::EquipCarriers {
+                    slotitem_ids: vec![75]
+                }
+            )],
+            RouteOperator::Lte,
+            1
+        ));
+        assert!(!sum(vec![(1, battleships())], RouteOperator::Gte, 4));
     }
 
     #[test]
@@ -1619,7 +1720,7 @@ mod tests {
         from: i64,
         to: i64,
         priority: i64,
-        formula: Option<&str>,
+        coefficient: i64,
         op: RouteOperator,
         value: i64,
     ) -> RouteRule {
@@ -1629,7 +1730,8 @@ mod tests {
             priority,
             weight: Some(1),
             predicate: RoutePredicate::LoS {
-                formula: formula.map(String::from),
+                formula: None,
+                coefficient: Some(coefficient),
                 op,
                 value,
             },
@@ -1713,8 +1815,8 @@ mod tests {
         routing_rules.insert(
             1,
             vec![
-                make_los_rule(1, 2, 1, None, RouteOperator::Gte, 60),
-                make_los_rule(1, 3, 2, None, RouteOperator::Gte, 30),
+                make_los_rule(1, 2, 1, 1, RouteOperator::Gte, 60),
+                make_los_rule(1, 3, 2, 1, RouteOperator::Gte, 30),
             ],
         );
         let stage = MapStageDefinition {
@@ -1725,12 +1827,12 @@ mod tests {
         let current = make_cell(1, vec![2, 3]);
 
         // LoS 50: fails threshold 60 (cell 2), passes threshold 30 (cell 3)
-        let context = make_los_context(50, 50.0, 50.0);
+        let context = make_los_context(50.0);
         let result = evaluate_route_destination(&current, &stage, &context, None).unwrap();
         assert_eq!(result, 3, "los=50 should route to cell 3 (threshold 30)");
 
         // LoS 70: passes threshold 60 (cell 2)
-        let context_high = make_los_context(70, 70.0, 70.0);
+        let context_high = make_los_context(70.0);
         let result_high =
             evaluate_route_destination(&current, &stage, &context_high, None).unwrap();
         assert_eq!(result_high, 2, "los=70 should route to cell 2 (threshold 60)");
@@ -1833,7 +1935,7 @@ mod tests {
     #[test]
     fn empty_next_cells_no_rule_match_returns_error() {
         let mut routing_rules = BTreeMap::new();
-        routing_rules.insert(1, vec![make_los_rule(1, 2, 0, None, RouteOperator::Gte, 100)]);
+        routing_rules.insert(1, vec![make_los_rule(1, 2, 0, 1, RouteOperator::Gte, 100)]);
         let stage = MapStageDefinition {
             cells: vec![make_cell(1, vec![])],
             routing_rules,
@@ -1841,7 +1943,7 @@ mod tests {
         };
         let current = make_cell(1, vec![]);
         // LoS is 10, threshold is 100 → rule doesn't match, next_cells is empty
-        let context = make_los_context(10, 10.0, 10.0);
+        let context = make_los_context(10.0);
 
         let result = evaluate_route_destination(&current, &stage, &context, None);
         assert!(result.is_err(), "empty next_cells with no rule match should error");
@@ -1945,10 +2047,7 @@ mod tests {
         // Cell 1: high LoS routes to cell 5, Always fallback routes to cell 4
         routing_rules.insert(
             1,
-            vec![
-                make_los_rule(1, 5, 0, None, RouteOperator::Gte, 40),
-                make_always_rule(1, 4, 1, 1),
-            ],
+            vec![make_los_rule(1, 5, 0, 1, RouteOperator::Gte, 40), make_always_rule(1, 4, 1, 1)],
         );
         // Cell 3: fleet size >= 4 routes to cell 6
         routing_rules.insert(3, vec![make_fleet_size_rule(3, 6, 0, RouteOperator::Gte, 4)]);
@@ -1966,12 +2065,12 @@ mod tests {
 
         // --- At cell 1, high LoS (50 >= 40) → cell 5 ---
         let current_1 = make_cell(1, vec![4, 5]);
-        let ctx_high_los = make_los_context(50, 50.0, 50.0);
+        let ctx_high_los = make_los_context(50.0);
         let result = evaluate_route_destination(&current_1, &stage, &ctx_high_los, None).unwrap();
         assert_eq!(result, 5, "high LoS at cell 1 should route to cell 5");
 
         // --- At cell 1, low LoS (20 < 40) → Always fallback rule at priority 1 → cell 4 ---
-        let ctx_low_los = make_los_context(20, 20.0, 20.0);
+        let ctx_low_los = make_los_context(20.0);
         let result = evaluate_route_destination(&current_1, &stage, &ctx_low_los, None).unwrap();
         assert_eq!(result, 4, "low LoS at cell 1 should use Always fallback to cell 4");
 
@@ -2017,25 +2116,18 @@ mod tests {
             FleetRouteContext {
                 fleet_size: 6,
                 min_speed: 20,
-                los_total: 120,
-                los_formula1: 120.0,
-                los_formula3: 120.0,
                 drum_ships: 4,
                 ..Default::default()
             },
             FleetRouteContext {
                 fleet_size: 4,
                 min_speed: 10,
-                los_total: 40,
-                los_formula1: 40.0,
-                los_formula3: 40.0,
                 drum_ships: 0,
                 ..Default::default()
             },
             FleetRouteContext {
                 fleet_size: 1,
                 min_speed: 5,
-                los_total: 0,
                 ..Default::default()
             },
         ]
@@ -2134,6 +2226,7 @@ mod tests {
                 ship_type,
                 speed,
                 slotitem_types: slotitem_types.iter().copied().collect(),
+                ..Default::default()
             }
         }
 
@@ -2150,7 +2243,6 @@ mod tests {
                 route_entry(6002, 2, 10, &[]),
             ],
             min_speed: 10,
-            los_total: 20,
             drum_ships: 0,
             ..Default::default()
         };
@@ -2217,28 +2309,31 @@ mod tests {
                     ship_type: 3,
                     speed: 10,
                     slotitem_types: BTreeSet::from([12]),
+                    ..Default::default()
                 },
                 FleetRouteShipEntry {
                     ship_id: 9002,
                     ship_type: 8,
                     speed: 5,
                     slotitem_types: BTreeSet::new(),
+                    ..Default::default()
                 },
                 FleetRouteShipEntry {
                     ship_id: 9003,
                     ship_type: 8,
                     speed: 5,
                     slotitem_types: BTreeSet::new(),
+                    ..Default::default()
                 },
                 FleetRouteShipEntry {
                     ship_id: 9004,
                     ship_type: 11,
                     speed: 10,
                     slotitem_types: BTreeSet::new(),
+                    ..Default::default()
                 },
             ],
             min_speed: 5,
-            los_total: 20,
             drum_ships: 0,
             ..Default::default()
         };
@@ -2318,6 +2413,7 @@ mod tests {
         };
         let variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 3,
             cells: vec![current.clone()],
             routing_rules: BTreeMap::from([(
@@ -2365,7 +2461,6 @@ mod tests {
                 FleetRouteShipEntry::default(),
             ],
             min_speed: 10,
-            los_total: 20,
             drum_ships: 0,
             ..Default::default()
         };
@@ -2388,6 +2483,7 @@ mod tests {
         };
         let variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 3,
             cells: vec![current.clone()],
             routing_rules: BTreeMap::from([(
@@ -2434,13 +2530,13 @@ mod tests {
                     ship_type: 13,
                     speed: 10,
                     slotitem_types: BTreeSet::new(),
+                    ..Default::default()
                 },
                 FleetRouteShipEntry::default(),
                 FleetRouteShipEntry::default(),
                 FleetRouteShipEntry::default(),
             ],
             min_speed: 10,
-            los_total: 20,
             drum_ships: 0,
             ..Default::default()
         };
@@ -2463,6 +2559,7 @@ mod tests {
         };
         let variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 2,
             cells: vec![
                 current.clone(),
@@ -2526,6 +2623,7 @@ mod tests {
         };
         let variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 2,
             cells: vec![current.clone()],
             routing_rules: BTreeMap::new(),

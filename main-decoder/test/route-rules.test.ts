@@ -11,6 +11,7 @@ const DATA: SourceData = {
 		2: { name: "如月", type: "DD", base: 2 },
 	},
 	countHelpers: { count_Mutsuki_class: ["睦月", "如月"] },
+	fields: { SBB_count: { kind: "slow_ships", types: ["BB"] } },
 	phases: { "9-2": [1, 2] },
 };
 
@@ -79,7 +80,7 @@ describe("parseBranchFile", () => {
 					cmp: {
 						lhs: [
 							{ coef: 1, term: { kind: "ship_types", types: ["BB", "BBV"] } },
-							{ coef: -1, term: { kind: "field", name: "SBB_count" } },
+							{ coef: -1, term: { kind: "slow_ships", types: ["BB"] } },
 						],
 						op: ">=",
 						rhs: 2,

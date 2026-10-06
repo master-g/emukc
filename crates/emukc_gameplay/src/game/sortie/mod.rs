@@ -5,7 +5,7 @@ mod setup;
 use enemy_ship::{
     fallback_enemy_composition, resolve_sortie_enemy_fleet, select_random_enemy_composition,
 };
-use route::{SortieRoute, route_next_cell};
+use route::{SortieRoute, route_next_cell, route_start_cell};
 use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 
 use std::collections::BTreeSet;
@@ -187,22 +187,20 @@ impl Ctx {
                 definition.map_id,
             ))
         })?;
-        let source_cell = select_start_source_cell(stage).map_err(|err| {
-            GameplayError::EntryNotFound(format!("{} for map {}", err, definition.map_id))
-        })?;
-        let first_step = route_next_cell(
-            &tx,
-            codex,
-            SortieRoute {
-                profile_id,
-                fleet_ships: &fleet_ships,
-                visited_cell_ids: &BTreeSet::new(),
-            },
-            stage,
-            source_cell,
-            None,
-        )
-        .await?;
+        let no_cells_visited = BTreeSet::new();
+        let sortie_route = SortieRoute {
+            profile_id,
+            fleet_ships: &fleet_ships,
+            visited_cell_ids: &no_cells_visited,
+        };
+        let source_cell = match route_start_cell(&tx, codex, &sortie_route, stage).await? {
+            Some(cell) => cell,
+            None => select_start_source_cell(stage).map_err(|err| {
+                GameplayError::EntryNotFound(format!("{} for map {}", err, definition.map_id))
+            })?,
+        };
+        let first_step =
+            route_next_cell(&tx, codex, sortie_route, stage, source_cell, None).await?;
         let first_cell = first_step.cell_no;
         let current_cell = stage
             .cell(first_cell)

@@ -636,6 +636,7 @@ async fn monthly_map_record_resets_on_map_info_read() {
                 String::new(),
                 MapVariantDefinition {
                     variant_key: String::new(),
+                    start_rules: Vec::new(),
                     boss_cell_no: 1,
                     cells: vec![],
                     routing_rules: std::collections::BTreeMap::new(),

@@ -30,6 +30,7 @@ pub mod prelude {
         err::GameplayError,
         game::PracticeStore,
         game::SortieStore,
+        game::probe_route,
         game::types::*,
         gameplay::Ctx,
         scenario::{PRESETS, PhaseExpectation, Preset, Scenario, ShipSpec, apply_scenario},

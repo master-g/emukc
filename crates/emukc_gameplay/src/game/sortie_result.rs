@@ -1049,6 +1049,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 3,
             cells: vec![],
             routing_rules: BTreeMap::new(),

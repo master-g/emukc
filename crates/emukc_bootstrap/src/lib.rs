@@ -18,6 +18,7 @@ extern crate tracing;
 
 mod assets;
 mod battle_rules;
+mod compass_route_rules;
 /// Fetches the pinned compass simulator source the routing rules are converted from.
 pub mod compass_source;
 mod db;
@@ -48,6 +49,10 @@ pub mod prelude {
         BattleValidationSeverity, ExpectedBattleResource, RepoBattleKnowledgeSource,
         analyze_day_battle_incident, load_repo_battle_knowledge_assets,
         validate_day_battle_response, validate_night_battle_response,
+    };
+    pub use crate::compass_route_rules::{
+        CompassRouteRulesAsset, CompassRouteRulesSource, CompassVariantRouteRules, LabelRouteRule,
+        normalize_compass_route_rules, repo_compass_route_rules_path,
     };
     pub use crate::compass_source::{
         COMPASS_SOURCE_COMMIT, COMPASS_SOURCE_REPO, compass_source_archive_url, compass_source_dir,

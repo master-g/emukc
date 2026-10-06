@@ -344,6 +344,7 @@ mod tests {
     fn empty_variant() -> MapVariantDefinition {
         MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 5,
             cells: vec![],
             routing_rules: BTreeMap::new(),
@@ -955,6 +956,7 @@ mod tests {
     fn fallback_enemy_fleet_is_only_used_when_catalog_data_is_missing() {
         let mut variant = MapVariantDefinition {
             variant_key: String::new(),
+            start_rules: Vec::new(),
             boss_cell_no: 5,
             cells: vec![],
             routing_rules: HashMap::new().into_iter().collect(),

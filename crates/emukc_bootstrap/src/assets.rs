@@ -57,6 +57,7 @@ pub(crate) const WIKIWIKI_MAP_CATALOG: RepoAsset = asset!("wikiwiki_map_catalog"
 pub(crate) const PUBLIC_MAP_CATALOG_OVERLAYS: RepoAsset =
     asset!("public_map_catalog_overlays", embedded);
 pub(crate) const MAP_SHIP_DROPS: RepoAsset = asset!("map_ship_drops", embedded);
+pub(crate) const MAP_ROUTE_RULES: RepoAsset = asset!("map_route_rules", embedded);
 pub(crate) const CACHE_RULES: RepoAsset = asset!("cache_rules", embedded);
 
 /// Every checked-in asset. The cache-list inputs without an embedded copy are
@@ -72,6 +73,7 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     WIKIWIKI_MAP_CATALOG,
     PUBLIC_MAP_CATALOG_OVERLAYS,
     MAP_SHIP_DROPS,
+    MAP_ROUTE_RULES,
     CACHE_RULES,
     asset!("resource_manifest"),
     asset!("resource_categories"),

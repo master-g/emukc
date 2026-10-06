@@ -16,9 +16,41 @@ use emukc_model::codex::{
 use crate::err::GameplayError;
 
 use super::super::basic::find_profile;
-use super::super::map_route::{FleetRouteContext, FleetRouteShipEntry, evaluate_route_destination};
+use super::super::map_route::{
+    FleetRouteContext, FleetRouteShipEntry, evaluate_route_destination, select_start_cell,
+};
 use super::super::slot_item::{DRUM_CANISTER_MST_ID, find_slot_items_by_id_impl};
 use super::setup::escort_fleet_ships_impl;
+
+/// A ship's own `api_soku` at or above this is fast (5 is slow, 10 is fast).
+const FAST_SPEED: i64 = 10;
+
+/// One equipment's share of the formula-33 `LoS` score, before the branch-point coefficient:
+/// `equipment coefficient × (LoS + improvement coefficient × √★)`.
+///
+/// Both coefficient tables follow the compass simulator's `logic/seek/equip.ts`, keyed by
+/// `api_type[2]`. It files 艦上偵察機(II) (94) under 艦上偵察機 and 大型電探(II) (93) under
+/// 大型電探, so they share those rows here.
+fn los_equipment_score(type3: i64, saku: i64, level: i64) -> f64 {
+    if saku == 0 {
+        return 0.0;
+    }
+    let coefficient = match type3 {
+        8 => 0.8,      // 艦上攻撃機
+        9 | 94 => 1.0, // 艦上偵察機
+        11 => 1.1,     // 水上爆撃機
+        10 => 1.2,     // 水上偵察機
+        _ => 0.6,
+    };
+    let improvement = match type3 {
+        11 => 1.15,              // 水上爆撃機
+        9 | 94 | 10 | 41 => 1.2, // 艦上偵察機, 水上偵察機, 大型飛行艇
+        12 => 1.25,              // 小型電探
+        13 | 93 => 1.4,          // 大型電探
+        _ => 0.0,
+    };
+    coefficient * (saku as f64 + improvement * (level as f64).sqrt())
+}
 
 /// The sortie a route is being picked for.
 pub(super) struct SortieRoute<'a> {
@@ -63,6 +95,24 @@ where
     })
 }
 
+/// Pick the start cell on a map whose start depends on the fleet. `None` when the map has
+/// no start rules or none of them fires, leaving the choice to the caller.
+pub(super) async fn route_start_cell<'a, C>(
+    c: &C,
+    codex: &Codex,
+    sortie: &SortieRoute<'_>,
+    stage: &'a MapStageDefinition,
+) -> Result<Option<&'a MapCellDefinition>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    if stage.start_rules.is_empty() {
+        return Ok(None);
+    }
+    let context = sortie_route_context(c, codex, sortie).await?;
+    Ok(select_start_cell(stage, &context).and_then(|cell_no| stage.cell(cell_no)))
+}
+
 /// Everything the predicates may read about this sortie's fleet.
 pub(super) async fn sortie_route_context<C>(
     c: &C,
@@ -84,7 +134,7 @@ where
     Ok(context)
 }
 
-async fn build_fleet_route_context<C>(
+pub(super) async fn build_fleet_route_context<C>(
     c: &C,
     codex: &Codex,
     fleet_ships: &[ship::Model],
@@ -105,26 +155,25 @@ where
     } else {
         find_slot_items_by_id_impl(c, &slot_ids).await?
     };
-    // Map slot instance id → (type3 equip category, master id, LoS stat from master)
+    // Map slot instance id → (type3 equip category, master id, LoS stat from master, ★)
     let slot_item_info = slot_items
         .into_iter()
         .map(|item| {
             let api_saku =
                 codex.manifest.find_slotitem(item.mst_id).map(|mst| mst.api_saku).unwrap_or(0);
-            (item.id, (item.type3, item.mst_id, api_saku))
+            (item.id, (item.type3, item.mst_id, api_saku, item.level))
         })
         .collect::<BTreeMap<_, _>>();
     let mut ship_ids = BTreeSet::new();
     let mut ship_type_counts = BTreeMap::<i64, i64>::new();
     let mut ship_entries = Vec::with_capacity(fleet_ships.len());
     let mut min_speed = i64::MAX;
-    let mut los_total = 0;
     let mut drum_ships = 0;
     let mut flagship_ship_id = None;
     let mut flagship_ship_type = None;
-    // Accumulators for LoS formulas.
-    let mut los_f1_acc: f64 = 0.0;
-    let mut los_f3_acc: f64 = 0.0;
+    // Formula-33 accumulators: Σ√(ship's own LoS) and Σ weighted equipment LoS.
+    let mut los_own_acc: f64 = 0.0;
+    let mut los_equip_acc: f64 = 0.0;
 
     for (idx, ship) in fleet_ships.iter().enumerate() {
         ship_ids.insert(ship.mst_id);
@@ -139,8 +188,11 @@ where
                 ship_type: mst.api_stype,
                 speed: ship.speed,
                 slotitem_types: BTreeSet::new(),
+                slotitem_ids: BTreeSet::new(),
+                base_slow: mst.api_soku < FAST_SPEED,
             };
-            // Sum equipment LoS for this ship (used in formula 3).
+            // `los_now` is the ship's own LoS plus its equipment's, so the equipment
+            // sum is what has to come off to get the value under the square root.
             let mut ship_equip_saku: i64 = 0;
             // Routing counts the *ship*, not the canisters on it: every wikiwiki
             // condition reads 「ドラム缶搭載艦の隻数」, and 5-4 spells the rule out —
@@ -151,44 +203,40 @@ where
             for slot_id in
                 [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
             {
-                let Some((type3, mst_id, api_saku)) = slot_item_info.get(&slot_id).copied() else {
+                let Some((type3, mst_id, api_saku, level)) = slot_item_info.get(&slot_id).copied()
+                else {
                     continue;
                 };
                 entry.slotitem_types.insert(type3);
+                entry.slotitem_ids.insert(mst_id);
                 if mst_id == DRUM_CANISTER_MST_ID {
                     carries_drum = true;
                 }
                 ship_equip_saku += api_saku;
+                los_equip_acc += los_equipment_score(type3, api_saku, level);
             }
             if carries_drum {
                 drum_ships += 1;
             }
             ship_entries.push(entry);
 
-            // Formula 1: Σ sqrt(ship.los_now).  Per-equipment sqrt-weighting is
-            // an approximation here; we use the combined value since individual
-            // equipment LoS is not split out in the DB entity.
-            los_f1_acc += (ship.los_now as f64).sqrt();
-
-            // Formula 3: Σ(equip_los × 0.6 + sqrt(ship_base_los)).
-            // ship_base_los = ship.los_now − ship_equip_saku.
-            let ship_base_los = (ship.los_now - ship_equip_saku).max(0) as f64;
-            los_f3_acc += ship_equip_saku as f64 * 0.6 + ship_base_los.sqrt();
+            // ponytail: equipment LoS bonuses (装備ボーナス) are not modelled anywhere in ship
+            // stats; once they are, they belong under this square root.
+            los_own_acc += ((ship.los_now - ship_equip_saku).max(0) as f64).sqrt();
         } else {
-            // Unknown ship — fall back to raw los_now for both formulas.
-            los_f1_acc += (ship.los_now as f64).sqrt();
-            los_f3_acc += (ship.los_now as f64).sqrt();
+            // Unknown ship — its equipment cannot be told apart from its own LoS.
+            los_own_acc += (ship.los_now.max(0) as f64).sqrt();
         }
         min_speed = min_speed.min(ship.speed);
-        los_total += ship.los_now;
     }
 
     let fleet_size = fleet_ships.len() as i64;
-    // Formula 3 HQ penalty: ceil(0.4 × hq_level).
+    // ponytail: 0.4 is the commonly used HQ-level factor; 3-5 G and 6-3 H have reported
+    // counter-examples (6-3 H measured 0.33–0.35). Revisit if a per-node factor is verified.
     let hq_penalty = (0.4 * hq_level as f64).ceil();
-    // Fleet-size bonus: (6 - fleet_size) × 2.
+    // A 7-ship 遊撃部隊 would make this negative; the regular maps never field one.
     let fleet_bonus = ((6 - fleet_size).max(0)) as f64 * 2.0;
-    let los_formula3 = (los_f3_acc - hq_penalty + fleet_bonus).max(0.0);
+    let los_ship_term = los_own_acc - hq_penalty + fleet_bonus;
 
     Ok(FleetRouteContext {
         fleet_size,
@@ -203,10 +251,9 @@ where
         } else {
             min_speed
         },
-        los_total,
         drum_ships,
-        los_formula1: los_f1_acc,
-        los_formula3,
+        los_ship_term,
+        los_equip_term: los_equip_acc,
         escort_ship_entries: Vec::new(),
     })
 }
