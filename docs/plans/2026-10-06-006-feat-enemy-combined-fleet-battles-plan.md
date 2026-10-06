@@ -71,6 +71,23 @@ execution: code
 - **U6 wikiwiki 退役**（R2、R3）：前提是覆盖报告显示没有格子还依赖 wikiwiki 编成。
 - **U7 收口**：文档、`PROJECT_MEMORY.md`、golden（6-5 不在现有 transcript 里，新增一份）。
 
+## U1 的结果（2026-10-06）
+
+- **触发条件是格子的 `event_kind`。** 客户端 `map_info.isVS12()` 是 `5 == type || 7 == type`（`main.decoded.js:21206`），
+  为真时昼战请求 `ec_battle`（我方联合则是 `each_battle*`），夜战请求 `ec_midnight_battle`。5 是敌联合，7 是对敌联合的夜昼戦。
+- **codex 里 6-5 的 M 有两个格子**：13 号是 `(5, 5, 5)`，18 号是 `(5, 5, 1)`。也就是说从 13 号边进 M 时客户端会请求 `ec_battle`，
+  而服务端没有这个接口，且 `sortie/setup.rs` 与 `select_locked_enemy_composition` 都以 `event_kind != 1` 拒绝——**这条路现在走不通**；
+  从 18 号边进 M 则被当成普通战斗打。两个格子都应是 5。`event_kind` 的来源是真实起点抓包，KCNav 的路线文档没有这一列，
+  所以这一处用「该节点的实测编成全是联合舰队」来定：节点有联合编成，进它的每个格子 `event_kind` 都是 5。
+- **阶段顺序、修正值、夜战对手的选择规则都已在 `docs/battle/combined-fleet-reference.md`**（§Friendly single vs enemy combined、
+  §Night battle opponent selection），不需要再查。昼战是：航空 → 先制对潜 → 开幕雷击（打敌两队）→ 对敌护卫队炮击一轮 →
+  雷击 → 对敌主力炮击一轮 → 任一方有戦艦級时再对全体一轮。
+- **协议**（`docs/apilist.txt:2501` 起）：敌方多出 `api_ship_ke_combined`、`api_ship_lv_combined`、`api_eSlot_combined`、
+  `api_eParam_combined`，HP 多出 `api_nowhps_combined` / `api_maxhps_combined`，航空与基地航空多出 `api_stage3_combined`，
+  攻击目标下标 1–6 是主力、7–12 是护卫。
+- **实现形态**：我方联合已有先例——`BattleState` 把两队放在一个连续向量里，用 `CombinedLayout.escort_start` 分界，各阶段在这个空间里算，
+  `finalize_day` 再经 `combined_packet` 翻译成客户端的下标。敌方照此加一个 `enemy_escort_start`，不另起一套状态。
+
 ## Verification Contract
 
 三道质量门以退出码为准；`cargo run -- battle validate` 对 6-5 M 的昼战与夜战包无 finding；
