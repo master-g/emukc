@@ -83,3 +83,35 @@ gameplay 侧不看 URL，只看 profile 的 `combined_type`。所以放开联合
 像 `weaken_for_midnight` 那样直接注入弱化舰队——`update_ship` 不写
 `api_karyoku`/`api_soukou`（派生字段），从 DB 侧改不动。
 昼战 → battleresult 这一半可以走集成测试。
+
+## 敌方联合舰队（2026-10-07）
+
+敌方照同一套规则：`BattleState::enemy` 把护卫队接在主力后面，`enemy_escort_start` 是主力的实际舰数；
+客户端用同一个 `_getNum(index, "api_ship_ke", "api_ship_ke_combined")` 读敌方，护卫队同样固定从 6 开始。
+翻译也在 `finalize_day` / `finalize_night`，函数是 `remap_day_packet_enemy` / `remap_night_packet_enemy`，
+方向与友方相反：平移敌方攻击的 `api_at_list` 和友方攻击的 `api_df_list`。
+
+与友方不同的几处：
+
+- **舰上的标记分开存。** 友方用 `combined`（带 `CombinedType`），敌方用 `enemy_deck`（只有主力 / 护卫）。
+  敌方舰队没有类型，不要往 `combined` 里塞一个假的。`is_main_deck()` / `is_escort_deck()` 两边都认。
+- **按队切片时要把敌方下标抬回去。** 对护卫队的那一轮炮击传进去的是 `enemy[escort_start..]`，
+  阶段函数从 0 编号，出来之后友方攻击的防御方、敌方攻击的攻击方都要加回 `escort_start`。
+  这一步在模拟空间里做，与最后翻译成客户端空间是两回事。
+- **`api_stage3_combined` 这时装的是 `e` 开头的数组**，`f` 开头的留空不发。
+- **客户端按格子的 `event_kind` 选接口，不看包。** 5 或 7 才会请求 `ec_battle`；格子种类不对，接口写得再对也不会被调用。
+- **夜战只打一队，但会话里要留着两队。** 夜战包里的敌方 HP 是入夜时的值，结算要用的是夜战打完后的值，
+  两者不能混用：`SortieBattleSession::absorb_night` 把打过的那一队拼回去，再从舰上重新读 HP。
+- **夜战必须发 `api_active_deck`。** 不发的话客户端在敌方是联合舰队时默认对手是护卫队。
+
+## 用客户端自己的代码核对（2026-10-07）
+
+`main-decoder/src/battle-replay.ts` 在 Bun 里加载解码后的 bundle，把战斗包交给客户端的 `BattleRecordDay` /
+`BattleRecordNight`，按客户端的播放顺序读出每一次攻击并累计 HP，再与服务端结算的 HP 比较。
+下标空间、阶段顺序、哪一队参战只要有一处与客户端的读法不一致，HP 就对不上。几条读代码得来的事实：
+
+- 6 对 12 的播放顺序在 `PhaseDay_06vs12`：开幕对潜 → 开幕雷击 → `hougeki1` → 雷击 → `hougeki2` → `hougeki3`。
+- `AirWarStage3Model` 把 `api_stage3_combined` 的每个键接到 `api_stage3` 同名数组后面；
+  **`api_stage3` 里没有的键出现在 `_combined` 里会让客户端抛异常**，所以只发有内容的那一侧。
+- `BattleCommonModel._getNum` 先看主数组够不够长，够长就不读 `_combined`：主力数组不能超过 6 项。
+- `main-decoder/out/modules/` 里同名模块有两份，其中一份是旧版本解码留下的，模块号在 bundle 里并不存在；以 `main.decoded.js` 为准。

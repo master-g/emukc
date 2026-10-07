@@ -212,8 +212,12 @@ pub struct EnemyComposition {
     /// Level of each ship, in `ship_ids` order. Empty when the source has none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub levels: Vec<i64>,
+    /// The escort fleet of an enemy combined fleet, flagship first. Empty for a single fleet.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub raw_ship_names: Vec<String>,
+    pub escort_ship_ids: Vec<i64>,
+    /// Level of each escort ship, in `escort_ship_ids` order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub escort_levels: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

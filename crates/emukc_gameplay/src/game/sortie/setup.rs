@@ -79,6 +79,10 @@ pub(super) enum SortieBattleEndpoint {
     /// their packets carry no shelling round order for the two sides to disagree
     /// about, so the client sends every combined fleet to the same URL.
     CombinedAnyType,
+    /// `api_req_combined_battle/ec_battle` — a single fleet against an enemy
+    /// combined fleet. The client picks it from the cell's event kind
+    /// (`map_info.isVS12()`), not from anything about its own fleet.
+    EnemyCombined,
 }
 
 /// Everything a sortie battle entry needs before it picks a simulation.
@@ -92,6 +96,8 @@ pub(super) struct SortieBattleSetup {
     /// `None` for a single fleet.
     pub combined_type: Option<CombinedType>,
     pub enemy: EnemyEncounter,
+    /// Whether the cell's event kind sends the client to the `ec_` endpoints.
+    pub enemy_combined_cell: bool,
 }
 
 /// Resolve the active sortie into battle-ready fleets, applying every guard both
@@ -141,7 +147,7 @@ where
             active.current_cell_id, active.map_id,
         ))
     })?;
-    if current_cell.event_kind != 1 {
+    if !matches!(current_cell.event_kind, 1 | 5) {
         return Err(GameplayError::WrongType(format!(
             "cell {} is not a battle cell",
             current_cell.cell_no,
@@ -187,6 +193,7 @@ where
         escort_ships,
         combined_type,
         enemy,
+        enemy_combined_cell: current_cell.event_kind == 5,
     })
 }
 
@@ -211,6 +218,7 @@ impl SortieBattleSetup {
                 engagement: engagement_for_cell(self.active.map_id, self.active.current_cell_id),
                 friend_ships: self.friend_ships.clone(),
                 enemy_ships: self.enemy.ships.clone(),
+                enemy_escort_ships: self.enemy.escort_ships.clone(),
                 combined: self.combined_type.map(|combined_type| CombinedSetup {
                     combined_type,
                     escort_ships: self.escort_ships.clone(),
@@ -224,9 +232,17 @@ impl SortieBattleSetup {
         &self,
         endpoint: SortieBattleEndpoint,
     ) -> Result<(), GameplayError> {
+        // The enemy's shape is the other half of the contract. A friendly
+        // combined fleet against an enemy one (`each_battle*`) is not served.
+        let enemy_combined = self.enemy_combined_cell || !self.enemy.escort_ships.is_empty();
+        if enemy_combined != (endpoint == SortieBattleEndpoint::EnemyCombined) {
+            return Err(GameplayError::WrongType(format!(
+                "{endpoint:?} does not serve this cell's enemy (combined: {enemy_combined})",
+            )));
+        }
         let ok = matches!(
             (endpoint, self.combined_type),
-            (SortieBattleEndpoint::Single, None)
+            (SortieBattleEndpoint::Single | SortieBattleEndpoint::EnemyCombined, None)
                 | (
                     SortieBattleEndpoint::Combined,
                     Some(CombinedType::CarrierTaskForce | CombinedType::TransportEscort),

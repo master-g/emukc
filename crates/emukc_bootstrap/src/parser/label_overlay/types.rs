@@ -42,29 +42,29 @@ pub struct ShipDropDraft {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Label-keyed overlay data keyed by in-game map ID.
-pub struct WikiwikiMapOverlayCatalog {
+pub struct LabelOverlayCatalog {
     /// Parsed map overlay definitions.
-    pub maps: BTreeMap<i64, WikiwikiMapOverlayDefinition>,
+    pub maps: BTreeMap<i64, LabelOverlayDefinition>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Overlay data for a single map, keyed by variant.
-pub struct WikiwikiMapOverlayDefinition {
+pub struct LabelOverlayDefinition {
     /// In-game map ID.
     pub map_id: i64,
     /// Variant-keyed label overlays.
-    pub variants: BTreeMap<String, WikiwikiLabelOverlay>,
+    pub variants: BTreeMap<String, LabelOverlay>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Parsed overlay data for a single map variant, using label-based keys.
-pub struct WikiwikiLabelOverlay {
+pub struct LabelOverlay {
     /// Variant identifier.
     pub variant_key: String,
     /// Routing rules extracted from the route table.
     pub routing_rules: Vec<RouteRuleDraft>,
     /// Enemy compositions keyed by node label.
-    pub enemy_nodes: BTreeMap<String, EnemyNodeRows>,
+    pub enemy_rows: BTreeMap<String, EnemyNodeRows>,
     /// Ship drop entries extracted from drop tables.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ship_drops: Vec<ShipDropDraft>,

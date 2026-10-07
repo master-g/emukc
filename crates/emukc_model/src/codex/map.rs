@@ -534,9 +534,8 @@ fn compose_map_id(maparea_id: i64, mapinfo_no: i64) -> i64 {
 ///
 /// **This is an inference, not game data — but it now has one real check.**
 /// Nothing upstream publishes what unlocks a map: `api_mst_mapinfo` carries only `api_level`,
-/// `api_required_defeat_count` and `api_sally_flag`, and the wikiwiki captures
-/// under `.data/temp/wikiwiki_map/extracted` hold route, enemy and drop tables
-/// with no unlock section at all. The two structural rules below were inferred
+/// `api_required_defeat_count` and `api_sally_flag`, and the wikiwiki map pages
+/// hold route, enemy and drop tables with no unlock section at all. The two structural rules below were inferred
 /// from the shape of the map list:
 ///
 /// - 1-1 has no prerequisite (always unlocked)

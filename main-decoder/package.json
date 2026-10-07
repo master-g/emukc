@@ -7,6 +7,7 @@
     "decode": "bun run src/cli.ts",
     "route-rules": "bun run src/route-rules.ts",
     "route-oracle": "bun run src/route-oracle.ts",
+    "battle-replay": "bun run src/battle-replay.ts",
     "check": "tsc --noEmit",
     "test": "bun test",
     "build": "bun build ./src/cli.ts --outdir ./dist --target bun"

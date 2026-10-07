@@ -172,19 +172,41 @@ pub struct BattleKoukuStage3 {
     pub api_e_sp_list: Vec<Option<i64>>,
 }
 
-/// The 第2艦隊 half of an airstrike's stage 3.
+/// The escort-deck half of an airstrike's stage 3.
 ///
-/// Only the friendly-side arrays split: the enemy is a single fleet, so its
-/// arrays stay whole in [`BattleKoukuStage3`].
-#[derive(Debug, Clone, Serialize)]
+/// Only a combined side has a half here: the `f` arrays are filled for a
+/// friendly combined fleet, the `e` arrays for an enemy one, and a single
+/// fleet's arrays stay whole in [`BattleKoukuStage3`] and are left out here.
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct BattleKoukuStage3Combined {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_frai: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_fbak: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_frai_flag: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_fbak_flag: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_fcl_flag: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_fdam: Vec<DamageCell>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub api_f_sp_list: Vec<Option<i64>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_erai: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_ebak: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_erai_flag: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_ebak_flag: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_ecl_flag: Vec<i64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_edam: Vec<DamageCell>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_e_sp_list: Vec<Option<i64>>,
 }
 
 #[derive(Debug, Clone, Serialize)]

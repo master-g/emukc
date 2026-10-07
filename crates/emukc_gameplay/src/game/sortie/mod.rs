@@ -24,7 +24,7 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use emukc_battle::{BattleType, NightBattlePacket};
+use emukc_battle::{BattleType, CombinedFleetRole};
 
 use super::{
     battle::{
@@ -33,8 +33,8 @@ use super::{
         },
         rng::ProductionRng,
         sortie::{
-            SortieBattleSession, pending_battle, run_day_battle, run_night_battle,
-            run_sp_midnight_battle, take_day_battle_result,
+            SortieBattleSession, SortieNightBattleSession, pending_battle, run_day_battle,
+            run_night_battle, run_sp_midnight_battle, take_day_battle_result,
         },
     },
     fleet::get_fleet_ships_impl,
@@ -464,6 +464,27 @@ impl Ctx {
         .await
     }
 
+    /// `api_req_combined_battle/ec_battle` — a single fleet against an enemy
+    /// combined fleet. The night that follows is
+    /// [`sortie_midnight_battle`](Self::sortie_midnight_battle), which reports
+    /// whichever enemy deck it fought.
+    pub async fn sortie_ec_battle(
+        &self,
+        profile_id: i64,
+        formation_id: i64,
+    ) -> Result<DayBattleResponse, GameplayError> {
+        sortie_battle_impl(
+            self.sortie_store.as_ref(),
+            self.codex.as_ref(),
+            self.db.as_ref(),
+            profile_id,
+            formation_id,
+            BattleType::Normal,
+            SortieBattleEndpoint::EnemyCombined,
+        )
+        .await
+    }
+
     /// `api_req_combined_battle/battle` — 空母機動部隊 or 輸送護衛部隊.
     pub async fn sortie_combined_battle(
         &self,
@@ -701,7 +722,7 @@ impl Ctx {
             store.insert_pending_result(profile_id, snapshot);
         }
 
-        Ok(night_battle_response(&session, night.packet))
+        Ok(night_battle_response(&session, night))
     }
 
     /// `api_req_battle_midnight/sp_midnight` — a single fleet's night-start cell.
@@ -765,7 +786,7 @@ impl Ctx {
                 tx.commit().await?;
                 let _ = store.insert_active(profile_id, active);
 
-                Ok(night_battle_response(&session, night_session.packet))
+                Ok(night_battle_response(&session, night_session))
             })
             .await
     }
@@ -796,13 +817,23 @@ impl Ctx {
 
 /// The night response for `session`. Only the night fleet fought, so the
 /// packet's friendly arrays are its alone; a combined fleet reports 第1艦隊
-/// beside them.
+/// beside them. Likewise only one deck of an enemy combined fleet fought, and
+/// both are reported.
 fn night_battle_response(
     session: &SortieBattleSession,
-    packet: NightBattlePacket,
+    night: SortieNightBattleSession,
 ) -> NightBattleResponse {
-    let response =
-        build_night_response(session.deck_id, session.night_fleet(), &session.enemy, packet);
+    let escort_start = session.enemy_escort_start().unwrap_or(session.enemy.len());
+    let (enemy_main, enemy_escort) = session.enemy.split_at(escort_start);
+    let fought = match night.enemy_deck {
+        Some(CombinedFleetRole::Escort) => enemy_escort,
+        _ => enemy_main,
+    };
+    let mut response =
+        build_night_response(session.deck_id, session.night_fleet(), fought, night.packet);
+    if let Some(deck) = night.enemy_deck {
+        response = response.with_enemy_decks(enemy_main, enemy_escort, deck);
+    }
     if session.escort_start().is_some() {
         response.with_main_deck(session.main_deck())
     } else {
@@ -871,6 +902,9 @@ async fn sortie_battle_impl(
             );
             if setup.combined_type.is_some() {
                 response = response.with_escort_deck(&setup.escort_ships);
+            }
+            if endpoint == SortieBattleEndpoint::EnemyCombined {
+                response = response.with_enemy_escort(&setup.enemy.escort_ships);
             }
             store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
 
@@ -941,7 +975,7 @@ fn select_locked_enemy_composition(
     cell_no: i64,
 ) -> Option<EnemyComposition> {
     let current = stage.cell(cell_no)?;
-    if current.event_kind != 1 {
+    if !matches!(current.event_kind, 1 | 5) {
         return None;
     }
 

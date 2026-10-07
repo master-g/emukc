@@ -608,6 +608,46 @@ fn check_equal_lengths(
     }
 }
 
+/// Fold the escort fleet of an enemy combined fleet into the enemy arrays, so
+/// every per-ship check that follows covers both decks.
+///
+/// The client reads the enemy through `_getNum(index, "api_ship_ke",
+/// "api_ship_ke_combined")`, taking indices from 6 up out of the second array;
+/// a response without `api_ship_ke_combined` is a single fleet and is left as is.
+fn append_enemy_escort_fleet(
+    object: &serde_json::Map<String, serde_json::Value>,
+    report: &mut BattleValidationReport,
+    ship_ids: &mut Vec<i64>,
+    nowhps: &mut Vec<i64>,
+    maxhps: &mut Vec<i64>,
+    slot_rows: &mut Vec<serde_json::Value>,
+) {
+    if !object.contains_key("api_ship_ke_combined") {
+        return;
+    }
+    check_equal_lengths(
+        object,
+        report,
+        &[
+            "api_ship_ke_combined",
+            "api_ship_lv_combined",
+            "api_e_nowhps_combined",
+            "api_e_maxhps_combined",
+            "api_eSlot_combined",
+            "api_eParam_combined",
+        ],
+    );
+    // The escort fleet is addressed from index 6, so a main fleet of any other
+    // size would shift every ship behind it; pad to keep the HP lookups aligned.
+    for values in [&mut *ship_ids, &mut *nowhps, &mut *maxhps] {
+        values.resize(6, -1);
+    }
+    ship_ids.extend(read_i64_array(object, "api_ship_ke_combined", report).unwrap_or_default());
+    nowhps.extend(read_i64_array(object, "api_e_nowhps_combined", report).unwrap_or_default());
+    maxhps.extend(read_i64_array(object, "api_e_maxhps_combined", report).unwrap_or_default());
+    slot_rows.extend(read_array(object, "api_eSlot_combined").cloned().unwrap_or_default());
+}
+
 fn check_array_flag_payload(
     object: &serde_json::Map<String, serde_json::Value>,
     report: &mut BattleValidationReport,
@@ -768,7 +808,17 @@ pub fn validate_day_battle_response<T: Serialize>(
     let enemy_ship_ids = read_i64_array(object, "api_ship_ke", &mut report).unwrap_or_default();
     let enemy_nowhps = read_i64_array(object, "api_e_nowhps", &mut report).unwrap_or_default();
     let enemy_maxhps = read_i64_array(object, "api_e_maxhps", &mut report).unwrap_or_default();
-    let slot_rows = read_array(object, "api_eSlot").cloned().unwrap_or_default();
+    let mut slot_rows = read_array(object, "api_eSlot").cloned().unwrap_or_default();
+    let (mut enemy_ship_ids, mut enemy_nowhps, mut enemy_maxhps) =
+        (enemy_ship_ids, enemy_nowhps, enemy_maxhps);
+    append_enemy_escort_fleet(
+        object,
+        &mut report,
+        &mut enemy_ship_ids,
+        &mut enemy_nowhps,
+        &mut enemy_maxhps,
+        &mut slot_rows,
+    );
     let slot_target_types = collect_slotitem_target_types(assets);
 
     for (index, ship_id) in enemy_ship_ids.iter().copied().enumerate() {
@@ -1005,7 +1055,17 @@ pub fn validate_night_battle_response<T: Serialize>(
     let enemy_ship_ids = read_i64_array(object, "api_ship_ke", &mut report).unwrap_or_default();
     let enemy_nowhps = read_i64_array(object, "api_e_nowhps", &mut report).unwrap_or_default();
     let enemy_maxhps = read_i64_array(object, "api_e_maxhps", &mut report).unwrap_or_default();
-    let slot_rows = read_array(object, "api_eSlot").cloned().unwrap_or_default();
+    let mut slot_rows = read_array(object, "api_eSlot").cloned().unwrap_or_default();
+    let (mut enemy_ship_ids, mut enemy_nowhps, mut enemy_maxhps) =
+        (enemy_ship_ids, enemy_nowhps, enemy_maxhps);
+    append_enemy_escort_fleet(
+        object,
+        &mut report,
+        &mut enemy_ship_ids,
+        &mut enemy_nowhps,
+        &mut enemy_maxhps,
+        &mut slot_rows,
+    );
     let slot_target_types = collect_slotitem_target_types(assets);
 
     for (index, ship_id) in enemy_ship_ids.iter().copied().enumerate() {
@@ -1784,6 +1844,35 @@ mod tests {
             finding.kind == BattleValidationFindingKind::FlagPayloadMismatch
                 && finding.field.as_deref() == Some("api_hougeki3")
         }));
+    }
+
+    /// The escort fleet of an enemy combined fleet gets the same per-ship
+    /// checks as the main fleet, and its arrays must align among themselves.
+    #[test]
+    fn validate_day_battle_response_covers_the_enemy_escort_fleet() {
+        let assets = build_day_battle_assets();
+        let manifest = build_manifest_with_enemy();
+        let mut response = build_valid_day_battle_response();
+        response["api_ship_ke_combined"] = serde_json::json!([999999]);
+        response["api_ship_lv_combined"] = serde_json::json!([1]);
+        response["api_e_nowhps_combined"] = serde_json::json!([10]);
+        response["api_e_maxhps_combined"] = serde_json::json!([10, 10]);
+        response["api_eSlot_combined"] = serde_json::json!([[-1, -1, -1, -1, -1]]);
+        response["api_eParam_combined"] = serde_json::json!([[1, 1, 1, 1]]);
+
+        let report = validate_day_battle_response(&manifest, &response, &assets).unwrap();
+
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.kind == BattleValidationFindingKind::UnknownShipMstId })
+        );
+        assert!(
+            report.findings.iter().any(|finding| {
+                finding.kind == BattleValidationFindingKind::ArrayLengthMismatch
+            })
+        );
     }
 
     #[test]

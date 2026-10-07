@@ -1,8 +1,8 @@
 //! Sortie battle orchestration — build context → call `emukc_battle` → persist.
 
 use emukc_battle::{
-    BattlePacket, BattleRng, BattleRuntimeShip, EngagementType, NightBattleInput,
-    NightBattlePacket, execute_day, execute_night, execute_sp_midnight,
+    BattlePacket, BattleRng, BattleRuntimeShip, CombinedFleetRole, EngagementType,
+    NightBattleInput, NightBattlePacket, execute_day, execute_night, execute_sp_midnight,
 };
 use emukc_model::codex::Codex;
 
@@ -61,11 +61,19 @@ pub fn run_night_battle(
         .kouku
         .as_ref()
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
+    let fought = session.night_enemy();
+    let enemy_deck = session.enemy_escort_start().map(|start| {
+        if fought.start == start {
+            CombinedFleetRole::Escort
+        } else {
+            CombinedFleetRole::Main
+        }
+    });
     let simulation = execute_night(
         codex,
         NightBattleInput {
             friendly: session.night_fleet().to_vec(),
-            enemy: session.enemy.clone(),
+            enemy: session.enemy[fought.clone()].to_vec(),
             friendly_formation_id,
             enemy_formation_id,
             engagement: EngagementType::from_api_id(engagement)
@@ -74,13 +82,14 @@ pub fn run_night_battle(
         },
         rng,
     );
-    session.absorb_night(&simulation);
+    session.absorb_night(&simulation, fought);
     store.insert_pending_battle(session.profile_id, session.clone());
 
     let night = SortieNightBattleSession {
         profile_id: session.profile_id,
         packet: simulation.packet,
-        outcome: simulation.outcome,
+        outcome: session.outcome.clone(),
+        enemy_deck,
     };
     (session, night)
 }
@@ -124,16 +133,18 @@ pub fn run_sp_midnight_battle(
         enemy_ship_ids: sp.night.enemy.iter().map(|s| s.ship.api_ship_id).collect(),
         packet: night_start_packet(&sp.night.packet, &sp.main_deck),
         friendly: sp.main_deck,
-        enemy: Vec::new(),
+        enemy: sp.night.enemy.clone(),
         outcome: sp.night.outcome.clone(),
     };
-    session.absorb_night(&sp.night);
+    let fought = 0..sp.night.enemy.len();
+    session.absorb_night(&sp.night, fought);
     store.insert_pending_battle(profile_id, session.clone());
 
     let night_session = SortieNightBattleSession {
         profile_id,
         packet: sp.night.packet,
         outcome: sp.night.outcome,
+        enemy_deck: None,
     };
 
     (session, night_session)

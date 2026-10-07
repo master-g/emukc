@@ -6,9 +6,9 @@ pub mod kcanotify;
 pub mod kccp;
 pub mod kcwiki;
 pub mod kcwikizh_kcdata;
+pub mod label_overlay;
 pub mod music;
 pub mod tsunkit_quest;
-pub mod wikiwiki_map;
 
 use std::str::FromStr;
 
@@ -24,16 +24,14 @@ pub use kc3kai::parse as parse_kc3kai;
 pub use kccp::quest::parse as parse_kccp_quests;
 pub use kcwiki::parse as parse_kcwiki;
 pub use kcwikizh_kcdata::parse as parse_kcdata;
+pub use label_overlay::{LabelOverlay, LabelOverlayCatalog, LabelOverlayDefinition};
 pub use tsunkit_quest::parse as parse_tsunkit_quests;
-pub use wikiwiki_map::{
-    WikiwikiLabelOverlay, WikiwikiMapOverlayCatalog, WikiwikiMapOverlayDefinition,
-};
 
 fn load_map_catalog(
     dir: &std::path::Path,
     manifest: &ApiManifest,
 ) -> Result<MapCatalog, ParseError> {
-    build_final_map_catalog(dir, manifest, None).map(|(catalog, _report)| catalog)
+    build_final_map_catalog(dir, manifest).map(|(catalog, _report)| catalog)
 }
 
 fn merge_manifest_ship(manifest: &mut ApiManifest, ship: ApiMstShip) {

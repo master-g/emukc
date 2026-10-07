@@ -127,6 +127,7 @@ mod tests {
             engagement: EngagementType::SameCourse,
             friend_ships: vec![sample_ship(codex, 79, 99), sample_ship(codex, 79, 99)],
             enemy_ships: vec![sample_ship(codex, 412, 99), sample_ship(codex, 412, 99)],
+            enemy_escort_ships: Vec::new(),
             combined: None,
         }
     }

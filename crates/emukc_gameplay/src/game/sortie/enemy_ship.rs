@@ -17,7 +17,10 @@ const FALLBACK_ENEMY_SHIP_ID: i64 = 1501;
 
 /// The enemy a sortie meets at one cell, decided once.
 pub(super) struct EnemyEncounter {
+    /// The main fleet when `escort_ships` is non-empty, otherwise the whole fleet.
     pub(super) ships: Vec<BattleShipInput>,
+    /// The escort fleet of an enemy combined fleet; empty for a single fleet.
+    pub(super) escort_ships: Vec<BattleShipInput>,
     pub(super) formation_id: i64,
     pub(super) level: i64,
     pub(super) rank: String,
@@ -68,9 +71,19 @@ pub(super) fn build_enemy_encounter(
             build_sortie_enemy_ship(codex, ship_id, level)
         })
         .collect::<Result<Vec<_>, GameplayError>>()?;
+    let escort_ships = composition
+        .escort_ship_ids
+        .iter()
+        .enumerate()
+        .map(|(index, &ship_id)| {
+            let level = composition.escort_levels.get(index).copied().unwrap_or(fallback_level);
+            build_sortie_enemy_ship(codex, ship_id, level)
+        })
+        .collect::<Result<Vec<_>, GameplayError>>()?;
 
     Ok(EnemyEncounter {
         ships,
+        escort_ships,
         formation_id,
         level,
         rank: UserHQRank::RearAdmiral.get_name().to_string(),
@@ -397,7 +410,6 @@ mod tests {
             weight,
             ship_ids,
             formation: Some(1),
-            raw_ship_names: Vec::new(),
             ..Default::default()
         }
     }
@@ -949,7 +961,6 @@ mod tests {
                     weight: 1,
                     ship_ids: vec![501],
                     formation: Some(1),
-                    raw_ship_names: Vec::new(),
                     ..Default::default()
                 },
                 EnemyComposition {
@@ -957,7 +968,6 @@ mod tests {
                     weight: 3,
                     ship_ids: vec![502],
                     formation: Some(1),
-                    raw_ship_names: Vec::new(),
                     ..Default::default()
                 },
             ],
@@ -993,7 +1003,6 @@ mod tests {
                     weight: 1,
                     ship_ids: vec![501, 502],
                     formation: Some(2),
-                    raw_ship_names: Vec::new(),
                     ..Default::default()
                 }],
             },

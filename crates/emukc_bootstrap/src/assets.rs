@@ -53,7 +53,6 @@ pub(crate) const BATTLE_SLOT_RESOURCE_TRIGGERS: RepoAsset =
     asset!("battle_slot_resource_triggers", embedded);
 pub(crate) const BATTLE_ATTACK_TYPE_ACCEPTANCE: RepoAsset =
     asset!("battle_attack_type_acceptance", embedded);
-pub(crate) const WIKIWIKI_MAP_CATALOG: RepoAsset = asset!("wikiwiki_map_catalog", embedded);
 pub(crate) const PUBLIC_MAP_CATALOG_OVERLAYS: RepoAsset =
     asset!("public_map_catalog_overlays", embedded);
 pub(crate) const MAP_SHIP_DROPS: RepoAsset = asset!("map_ship_drops", embedded);
@@ -73,7 +72,6 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     BATTLE_MODULE_INDEX,
     BATTLE_SLOT_RESOURCE_TRIGGERS,
     BATTLE_ATTACK_TYPE_ACCEPTANCE,
-    WIKIWIKI_MAP_CATALOG,
     PUBLIC_MAP_CATALOG_OVERLAYS,
     MAP_SHIP_DROPS,
     MAP_ROUTE_RULES,
@@ -149,15 +147,15 @@ mod tests {
     #[test]
     fn a_present_file_wins_and_a_missing_one_falls_back_to_the_embedded_copy() {
         let root = tempfile::tempdir().unwrap();
-        let path = root.path().join("wikiwiki_map_catalog.json");
+        let path = root.path().join("map_ship_drops.json");
         fs::write(&path, r#"{"maps":{}}"#).unwrap();
 
-        let (source, raw) = WIKIWIKI_MAP_CATALOG.load_from(&path).unwrap();
+        let (source, raw) = MAP_SHIP_DROPS.load_from(&path).unwrap();
         assert_eq!(source, RepoAssetSource::Filesystem(path));
         assert_eq!(raw, r#"{"maps":{}}"#);
 
         let (source, raw) =
-            WIKIWIKI_MAP_CATALOG.load_from(Path::new("/definitely/missing.json")).unwrap();
+            MAP_SHIP_DROPS.load_from(Path::new("/definitely/missing.json")).unwrap();
         assert_eq!(source, RepoAssetSource::Embedded);
         assert!(raw.contains("\"maps\""));
     }

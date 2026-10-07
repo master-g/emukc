@@ -13,7 +13,8 @@ use emukc_model::{
 };
 
 use crate::combined::{
-    CombinedAttackClass, combined_correction_vs_single, combined_formation_modifier,
+    CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
+    combined_formation_modifier,
 };
 use crate::random::BattleRng;
 use crate::targeting::{
@@ -441,7 +442,16 @@ fn combined_correction(
         defender
     };
     let Some(membership) = friendly.combined else {
-        return 0;
+        // A single friendly fleet against an enemy combined fleet: the enemy
+        // ship carries the deck the table is keyed by.
+        let enemy = if attacker.is_friendly {
+            defender
+        } else {
+            attacker
+        };
+        return enemy.enemy_deck.map_or(0, |role| {
+            combined_correction_vs_enemy_combined(class, role, attacker.is_friendly)
+        });
     };
     combined_correction_vs_single(
         membership.combined_type,

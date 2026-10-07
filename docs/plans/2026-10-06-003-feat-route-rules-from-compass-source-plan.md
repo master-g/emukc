@@ -2,7 +2,7 @@
 title: "Route Rules from the Compass Simulator Source - Plan"
 type: feat
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -289,3 +289,10 @@ U1 → U2 → U3 → U4 是主线。U5 等计划 002；U6 等 U5 与计划 001 �
 - 路由规则由一条命令从钉住的来源提交再生，资产里没有 `Unknown`。
 - 对拍在 37 张图上无未登记的差异。
 - 仓库里不再有 wikiwiki 抓取的 skill、解析器与资产。
+
+## 收口（2026-10-07）
+
+U6 的第 3–5 步随计划 `2026-10-06-006` 完成：`wikiwiki_map_catalog.json`、`wikiwiki_map_asset.rs`、
+`wikiwiki_map_download.rs`、`wikiwiki-map sync` 与 `EnemyComposition.raw_ship_names` 已删除，
+`build-overlays` 挪到 `map build-overlays`。删除前后重建的 `map_catalog.json` 完全相同。
+标签叠加层里的路由规则合并代码（`map_pipeline/label_overlay.rs`）现在只有测试在用，未删。

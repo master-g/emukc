@@ -1,50 +1,20 @@
-use std::{collections::BTreeSet, fs, path::Path, path::PathBuf, str::FromStr};
+use std::{fs, path::Path, path::PathBuf, str::FromStr};
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
 use emukc_internal::prelude::*;
 
-/// Manual maintenance commands for the repo-tracked wikiwiki map catalog.
+/// Maintenance commands for the repo-tracked map assets.
 #[derive(Args, Debug)]
-pub(super) struct WikiwikiMapArgs {
+pub(super) struct MapArgs {
     #[command(subcommand)]
     command: Command,
 }
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Refresh local HTML cache from wikiwiki.jp.
-    Sync(SyncArgs),
     /// Build public map overlays from embedded real `api_req_map/start` captures.
     BuildOverlays(BuildOverlaysArgs),
-}
-
-#[derive(Args, Debug)]
-struct SyncArgs {
-    /// Directory containing `start2.json` and the `wikiwiki_map/` cache directory.
-    #[arg(long, default_value = ".data/temp", value_name = "DIR")]
-    data_root: PathBuf,
-
-    /// Output path for the normalized runtime `MapCatalog` JSON file (unused by sync,
-    /// kept for structural compatibility).
-    #[arg(long, default_value_os_t = repo_wikiwiki_map_catalog_path(), value_name = "FILE")]
-    output: PathBuf,
-
-    /// Proxy URL used for wikiwiki requests.
-    #[arg(long, value_name = "URL")]
-    proxy: Option<String>,
-
-    /// Overwrite existing files under `<data-root>/wikiwiki_map`.
-    #[arg(long)]
-    overwrite: bool,
-
-    /// Limit sync to one or more map IDs, e.g. `1-1`.
-    #[arg(long = "map", value_name = "MAP")]
-    maps: Vec<String>,
-
-    /// Maximum number of concurrent requests.
-    #[arg(long, default_value_t = 2)]
-    concurrent: usize,
 }
 
 #[derive(Args, Debug)]
@@ -66,17 +36,8 @@ struct BuildOverlaysArgs {
     report_output: PathBuf,
 }
 
-pub(super) async fn exec(args: &WikiwikiMapArgs) -> Result<()> {
+pub(super) async fn exec(args: &MapArgs) -> Result<()> {
     match &args.command {
-        Command::Sync(sync) => {
-            let stats = run_sync(sync).await?;
-            println!(
-                "synced wikiwiki cache to {} (downloaded pages={}, failures={})",
-                sync.data_root.join("wikiwiki_map").display(),
-                stats.pages,
-                stats.failures,
-            );
-        }
         Command::BuildOverlays(args) => {
             let output = build_public_overlays(args)?;
             write_json(&output.overlay, &args.output)?;
@@ -100,7 +61,7 @@ fn read_manifest(data_root: &Path) -> Result<emukc::model::kc2::start2::ApiManif
 fn build_public_overlays(args: &BuildOverlaysArgs) -> Result<MapOverlayBuildOutput> {
     let manifest = read_manifest(&args.data_root)?;
     let (catalog, _report) =
-        build_final_map_catalog(&args.data_root, &manifest, None).map_err(anyhow::Error::from)?;
+        build_final_map_catalog(&args.data_root, &manifest).map_err(anyhow::Error::from)?;
     build_public_map_catalog_overlay_from_embedded_real_map_start_assets(
         &catalog,
         EMBEDDED_REAL_MAP_START_ASSETS,
@@ -128,27 +89,6 @@ fn write_json<T: serde::Serialize>(value: &T, output: &Path) -> Result<()> {
     }
     fs::write(output, serde_json::to_string_pretty(value)?)?;
     Ok(())
-}
-
-async fn run_sync(sync: &SyncArgs) -> Result<WikiwikiMapDownloadStats> {
-    let map_filter = if sync.maps.is_empty() {
-        None
-    } else {
-        Some(sync.maps.iter().cloned().collect::<BTreeSet<_>>())
-    };
-
-    download_wikiwiki_map_with_options(
-        &sync.data_root,
-        sync.overwrite,
-        sync.proxy.as_deref(),
-        WikiwikiMapDownloadOptions {
-            concurrent: Some(sync.concurrent),
-            map_filter,
-            strict: true,
-        },
-    )
-    .await
-    .map_err(anyhow::Error::from)
 }
 
 #[cfg(test)]

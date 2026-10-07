@@ -40,7 +40,8 @@ pub use types::{
 // Public API — combined fleet tables
 pub use combined::{
     CombinedAttackClass, CombinedFleetRole, CombinedType, ESCORT_INDEX_OFFSET,
-    combined_correction_vs_single, combined_formation_min_escort_size, combined_formation_modifier,
+    combined_correction_vs_enemy_combined, combined_correction_vs_single,
+    combined_formation_min_escort_size, combined_formation_modifier, night_enemy_deck,
 };
 
 // Public API — RNG

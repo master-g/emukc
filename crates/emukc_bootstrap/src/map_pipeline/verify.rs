@@ -45,7 +45,7 @@ mod tests {
             );
             return MapCatalog::default();
         }
-        build_final_map_catalog(&data_root, &manifest, None)
+        build_final_map_catalog(&data_root, &manifest)
             .unwrap_or_else(|e| panic!("topology verify: catalog build failed: {e}"))
             .0
     }

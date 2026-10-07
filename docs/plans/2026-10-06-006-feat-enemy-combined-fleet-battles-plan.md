@@ -2,7 +2,7 @@
 title: "Enemy Combined Fleet Battles - Plan"
 type: feat
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -70,6 +70,61 @@ execution: code
 - **U5 结算**：`api_req_combined_battle/battleresult` 对「我方单舰队、敌方联合」的分支；MVP、掉落、血条照常。
 - **U6 wikiwiki 退役**（R2、R3）：前提是覆盖报告显示没有格子还依赖 wikiwiki 编成。
 - **U7 收口**：文档、`PROJECT_MEMORY.md`、golden（6-5 不在现有 transcript 里，新增一份）。
+
+## U1 的结果（2026-10-06）
+
+- **触发条件是格子的 `event_kind`。** 客户端 `map_info.isVS12()` 是 `5 == type || 7 == type`（`main.decoded.js:21206`），
+  为真时昼战请求 `ec_battle`（我方联合则是 `each_battle*`），夜战请求 `ec_midnight_battle`。5 是敌联合，7 是对敌联合的夜昼戦。
+- **codex 里 6-5 的 M 有两个格子**：13 号是 `(5, 5, 5)`，18 号是 `(5, 5, 1)`。也就是说从 13 号边进 M 时客户端会请求 `ec_battle`，
+  而服务端没有这个接口，且 `sortie/setup.rs` 与 `select_locked_enemy_composition` 都以 `event_kind != 1` 拒绝——**这条路现在走不通**；
+  从 18 号边进 M 则被当成普通战斗打。两个格子都应是 5。`event_kind` 的来源是真实起点抓包，KCNav 的路线文档没有这一列，
+  所以这一处用「该节点的实测编成全是联合舰队」来定：节点有联合编成，进它的每个格子 `event_kind` 都是 5。
+- **阶段顺序、修正值、夜战对手的选择规则都已在 `docs/battle/combined-fleet-reference.md`**（§Friendly single vs enemy combined、
+  §Night battle opponent selection），不需要再查。昼战是：航空 → 先制对潜 → 开幕雷击（打敌两队）→ 对敌护卫队炮击一轮 →
+  雷击 → 对敌主力炮击一轮 → 任一方有戦艦級时再对全体一轮。
+- **协议**（`docs/apilist.txt:2501` 起）：敌方多出 `api_ship_ke_combined`、`api_ship_lv_combined`、`api_eSlot_combined`、
+  `api_eParam_combined`，HP 多出 `api_nowhps_combined` / `api_maxhps_combined`，航空与基地航空多出 `api_stage3_combined`，
+  攻击目标下标 1–6 是主力、7–12 是护卫。
+- **实现形态**：我方联合已有先例——`BattleState` 把两队放在一个连续向量里，用 `CombinedLayout.escort_start` 分界，各阶段在这个空间里算，
+  `finalize_day` 再经 `combined_packet` 翻译成客户端的下标。敌方照此加一个 `enemy_escort_start`，不另起一套状态。
+
+## 实施记录（2026-10-07）
+
+U1–U7 全部完成。
+
+- **数据**：`kcnav_enemy_fleets.json` 收了 6-5 M 的 6 组联合编成（两个格子各 3 组，主力 6 + 护卫 6，阵形 13）。
+  组装末尾有一步 `mark_enemy_combined_cells`：某格的实测编成全是联合舰队，就把它的 `event_kind` 记为 5。
+- **昼战**：`simulate_day_enemy_combined`。敌方两队放在一个连续向量里，各阶段在这个空间里算，
+  `finalize_day` 再把敌方下标翻成客户端的空间（护卫队固定从 6 开始）。炮击三轮分别对护卫队、主力、全体，
+  落在 `hougeki1` → `raigeki` → `hougeki2` → `hougeki3`。
+- **修正**：炮击与雷击走 `combined_correction_vs_enemy_combined`；航空攻撃的 −10 / −20 加在 `kouku.rs` 的基本攻撃力上。
+- **夜战**：`night_enemy_deck` 按护卫队的状态评分选对手，只打选中的那一队，响应里用 `api_active_deck` 告诉客户端。
+- **结算**：复用 `battleresult`，敌方 12 艘一起计。
+- **校验器**：`api_ship_ke_combined` 等六个数组并入逐舰检查。
+- **wikiwiki 退役**：见计划 `2026-10-06-003` 的收口一节。
+
+### 与计划不同或计划没写到的地方
+
+- **开幕雷击敌方两队都参加，闭幕雷击只有护卫队。** 参考文档只对闭幕雷击点名了护卫队，开幕没有限定，按字面实现。
+- **开幕对潜没有限制敌方哪一队。** 参考文档只写了我方开幕对潜。
+- **夜战结算修了一个既有问题**：会话在夜战后保存的敌方 HP 取自夜战包，而夜战包报的是入夜时的 HP，
+  所以夜战击沉的敌舰不计入结算（击沉数、旗舰击沉、血条）。现在改为取夜战结束后各舰的实际 HP。单舰队也受这次修正影响。
+- **验证方式**：`battle sim` 只打出击后的第一场战斗，到不了 boss 格。改为测试
+  `enemy_combined_boss_runs_day_night_and_result` 把出击状态直接放在 6-5 的 18 号格上跑完昼战、夜战、结算，
+  昼夜两个包各过一遍客户端规则校验；设 `EMUKC_DUMP_DIR` 可把两个包写出来，昼战包可再用 `battle validate` 看。
+  `battle validate` 命令本身只认昼战包。没有冻结 transcript：出击入口用的是不可注入的生产随机源。
+- **没有在浏览器客户端里实际打过，但用客户端自己的读取代码回放过。** `main-decoder/src/battle-replay.ts`
+  在 Bun 里加载解码后的 `BattleRecordDay` / `BattleRecordNight`，按 `PhaseDay_06vs12` 的播放顺序逐次读出攻击，
+  核对客户端算出的入夜 HP、夜战后 HP 与服务端一致，夜战的攻防双方都落在 `api_active_deck` 指的那一队。
+  连续 60 场随机战斗全部一致，两种夜战对手都出现过。它不跑阶段类，所以动画、资源加载、场景衔接仍未验证。
+  用法：`EMUKC_DUMP_DIR=<目录> cargo test -p emukc_gameplay --lib enemy_combined_boss`，再
+  `cd main-decoder && bun run battle-replay <目录>`。
+
+### 遗留
+
+- `each_battle`、`each_battle_water`、`ec_night_to_day` 仍未实现，常规图触发不到。
+- 夜战对手评分里上游标为未验证的三条（旗舰中破 / 大破的分值、护卫 5 艘以上、PT 与潜水艦）按文档主规则实现。
+- 敌方护卫队的旗舰不享受旗艦援護。
 
 ## Verification Contract
 

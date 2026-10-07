@@ -163,7 +163,143 @@ fn split_kouku_stage3(kouku: &mut BattleKouku, escort_start: usize) {
         api_fcl_flag,
         api_fdam,
         api_f_sp_list,
+        ..Default::default()
     });
+}
+
+/// The enemy counterpart of [`split_kouku_stage3`]: `api_stage3` keeps the
+/// enemy main fleet, `api_stage3_combined` takes its escort fleet. The launch
+/// indices in `api_plane_from[1]` are 1-based and move with the rest.
+fn split_enemy_kouku_stage3(kouku: &mut BattleKouku, escort_start: usize) {
+    for index in &mut kouku.api_plane_from[1] {
+        if *index > 0 {
+            *index = remap_index(*index - 1, escort_start) + 1;
+        }
+    }
+
+    let stage3 = &mut kouku.api_stage3;
+    let split = |values: &mut Vec<i64>| values.split_off(escort_start.min(values.len()));
+
+    let api_erai = split(&mut stage3.api_erai);
+    let api_ebak = split(&mut stage3.api_ebak);
+    let api_erai_flag = split(&mut stage3.api_erai_flag);
+    let api_ebak_flag = split(&mut stage3.api_ebak_flag);
+    let api_ecl_flag = split(&mut stage3.api_ecl_flag);
+    let api_edam = stage3.api_edam.split_off(escort_start.min(stage3.api_edam.len()));
+    let api_e_sp_list =
+        stage3.api_e_sp_list.split_off(escort_start.min(stage3.api_e_sp_list.len()));
+
+    kouku.api_stage3_combined = Some(BattleKoukuStage3Combined {
+        api_erai,
+        api_ebak,
+        api_erai_flag,
+        api_ebak_flag,
+        api_ecl_flag,
+        api_edam,
+        api_e_sp_list,
+        ..Default::default()
+    });
+}
+
+/// Rewrite the enemy indices of one shelling round: the mirror image of
+/// [`remap_hougeki`], moving the attacker of an enemy attack and the defenders
+/// of a friendly one.
+fn remap_enemy_side(
+    api_at_eflag: &[i64],
+    api_at_list: &mut [i64],
+    api_df_list: &mut [Vec<i64>],
+    escort_start: usize,
+) {
+    for (entry, &eflag) in api_at_eflag.iter().enumerate() {
+        if eflag == 1 {
+            if let Some(attacker) = api_at_list.get_mut(entry) {
+                *attacker = remap_index(*attacker, escort_start);
+            }
+        } else if let Some(defenders) = api_df_list.get_mut(entry) {
+            remap_defenders(defenders, escort_start);
+        }
+    }
+}
+
+/// Rewrite a whole day packet for an enemy combined fleet whose escort fleet
+/// starts at `escort_start` in the simulation's enemy vector.
+///
+/// The client reads the enemy exactly as it reads a friendly combined fleet —
+/// `_getNum(index, "api_ship_ke", "api_ship_ke_combined")` dispatches on
+/// `index >= 6` — so the escort fleet sits at 6 however short the main fleet
+/// is, and every enemy-indexed array grows to 12. The friendly arrays are cut
+/// back to the friendly fleet's own size, which the torpedo phases
+/// over-allocate to `max(friendly, enemy)`.
+pub(crate) fn remap_day_packet_enemy(
+    packet: &mut BattlePacket,
+    escort_start: usize,
+    friendly_len: usize,
+) {
+    if let Some(kouku) = packet.kouku.as_mut() {
+        split_enemy_kouku_stage3(kouku, escort_start);
+    }
+    for hougeki in [
+        &mut packet.opening_taisen,
+        &mut packet.hougeki1,
+        &mut packet.hougeki2,
+        &mut packet.hougeki3,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        remap_enemy_side(
+            &hougeki.api_at_eflag,
+            &mut hougeki.api_at_list,
+            &mut hougeki.api_df_list,
+            escort_start,
+        );
+    }
+    if let Some(attack) = packet.opening_attack.as_mut() {
+        attack.api_erai_list_items =
+            respread(std::mem::take(&mut attack.api_erai_list_items), escort_start, &None);
+        attack.api_ecl_list_items =
+            respread(std::mem::take(&mut attack.api_ecl_list_items), escort_start, &None);
+        attack.api_eydam_list_items =
+            respread(std::mem::take(&mut attack.api_eydam_list_items), escort_start, &None);
+        attack.api_edam =
+            respread(std::mem::take(&mut attack.api_edam), escort_start, &DamageCell::Plain(0));
+
+        for row in attack.api_frai_list_items.iter_mut().flatten() {
+            remap_defenders(row, escort_start);
+        }
+        attack.api_frai_list_items.truncate(friendly_len);
+        attack.api_fcl_list_items.truncate(friendly_len);
+        attack.api_fydam_list_items.truncate(friendly_len);
+        attack.api_fdam.truncate(friendly_len);
+    }
+    if let Some(raigeki) = packet.raigeki.as_mut() {
+        raigeki.api_erai = respread(std::mem::take(&mut raigeki.api_erai), escort_start, &-1);
+        raigeki.api_ecl = respread(std::mem::take(&mut raigeki.api_ecl), escort_start, &0);
+        raigeki.api_edam =
+            respread(std::mem::take(&mut raigeki.api_edam), escort_start, &DamageCell::Plain(0));
+        raigeki.api_eydam =
+            respread(std::mem::take(&mut raigeki.api_eydam), escort_start, &DamageCell::Plain(0));
+
+        remap_defenders(&mut raigeki.api_frai, escort_start);
+        raigeki.api_frai.truncate(friendly_len);
+        raigeki.api_fcl.truncate(friendly_len);
+        raigeki.api_fdam.truncate(friendly_len);
+        raigeki.api_fydam.truncate(friendly_len);
+    }
+}
+
+/// Rewrite a night packet whose enemy side is the escort fleet alone: every
+/// enemy index shifts by the full offset, as [`remap_night_packet`] does for a
+/// friendly 第2艦隊.
+pub(crate) fn remap_night_packet_enemy(packet: &mut NightBattlePacket) {
+    if let Some(hougeki) = packet.hougeki.as_mut() {
+        remap_enemy_side(
+            &hougeki.api_at_eflag,
+            &mut hougeki.api_at_list,
+            &mut hougeki.api_df_list,
+            0,
+        );
+    }
 }
 
 /// Rewrite a whole day packet for a combined fleet whose 第2艦隊 starts at

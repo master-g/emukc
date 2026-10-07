@@ -2,7 +2,7 @@
 title: "Map LoS Routing: 判定式(33) - Plan"
 type: fix
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code

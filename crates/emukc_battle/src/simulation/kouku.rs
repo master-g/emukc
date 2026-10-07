@@ -194,6 +194,18 @@ fn apply_plane_losses(codex: &Codex, ships: &mut [BattleRuntimeShip], mut lostco
 // Single-slot airstrike damage
 // ---------------------------------------------------------------------------
 
+/// 連合艦隊補正 of an airstrike: only a friendly strike on an enemy combined
+/// fleet has one (−10 against its main fleet, −20 against its escort fleet).
+fn aerial_correction(defender: &BattleRuntimeShip) -> f64 {
+    defender.enemy_deck.map_or(0.0, |role| {
+        crate::combined::combined_correction_vs_enemy_combined(
+            crate::combined::CombinedAttackClass::AntiAir,
+            role,
+            true,
+        ) as f64
+    })
+}
+
 /// Calculate airstrike damage for a single bomber slot.
 ///
 /// Uses bomb/torpedo stat × √(onslot) + 25, capped at 170.
@@ -224,7 +236,7 @@ fn calculate_single_slot_airstrike_damage(
     if bomb_power <= 0.0 {
         return 0;
     }
-    let raw_power = bomb_power + 25.0;
+    let raw_power = bomb_power + 25.0 + aerial_correction(defender);
     let capped = apply_cap(raw_power, 170.0) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped, defense, defender.hp())

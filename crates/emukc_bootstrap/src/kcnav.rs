@@ -16,7 +16,7 @@ use emukc_network::{client::new_reqwest_client, download::Request, reqwest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{download::BootstrapDownloadError, parser::wikiwiki_map::EnemyNodeRows};
+use crate::{download::BootstrapDownloadError, parser::label_overlay::EnemyNodeRows};
 
 const KCNAV_API_ROOT: &str = "https://tsunkit.net/api/routing";
 const KCNAV_ROOT: &str = "kcnav";
@@ -289,6 +289,12 @@ pub struct KcnavFleet {
     pub formation: i64,
     /// Times it was met.
     pub weight: i64,
+    /// The escort fleet of an enemy combined fleet; empty for a single fleet.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub escort_ship_ids: Vec<i64>,
+    /// Levels of the escort fleet, in the same order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub escort_levels: Vec<i64>,
 }
 
 #[derive(Deserialize)]
@@ -358,23 +364,23 @@ fn add_drops(node: &mut KcnavNode, value: &Value) -> Result<(), String> {
 
 fn add_fleets(node: &mut KcnavNode, value: &Value) -> Result<(), String> {
     for entry in entries::<RawFleet>(value)? {
-        // Combined enemy fleets stay on disk until something can field them.
-        if !entry.escort_fleet.is_empty() {
-            continue;
-        }
         // The same fleet comes back once per equipment numbering (500 and 1500 based).
-        let ship_ids = entry.main_fleet.iter().map(|ship| ship.id).collect::<Vec<_>>();
-        match node
-            .fleets
-            .iter_mut()
-            .find(|fleet| fleet.ship_ids == ship_ids && fleet.formation == entry.formation)
-        {
+        let ids = |fleet: &[RawShip]| fleet.iter().map(|ship| ship.id).collect::<Vec<_>>();
+        let levels = |fleet: &[RawShip]| fleet.iter().map(|ship| ship.lvl).collect::<Vec<_>>();
+        let (ship_ids, escort_ship_ids) = (ids(&entry.main_fleet), ids(&entry.escort_fleet));
+        match node.fleets.iter_mut().find(|fleet| {
+            fleet.ship_ids == ship_ids
+                && fleet.escort_ship_ids == escort_ship_ids
+                && fleet.formation == entry.formation
+        }) {
             Some(fleet) => fleet.weight += entry.count,
             None => node.fleets.push(KcnavFleet {
-                levels: entry.main_fleet.iter().map(|ship| ship.lvl).collect(),
+                levels: levels(&entry.main_fleet),
                 ship_ids,
                 formation: entry.formation,
                 weight: entry.count,
+                escort_levels: levels(&entry.escort_fleet),
+                escort_ship_ids,
             }),
         }
     }
@@ -742,7 +748,13 @@ pub fn kcnav_enemy_fleets(
                 let compositions = node
                     .fleets
                     .iter()
-                    .filter(|fleet| fleet.ship_ids.iter().all(|id| known_ship(*id)))
+                    .filter(|fleet| {
+                        fleet
+                            .ship_ids
+                            .iter()
+                            .chain(&fleet.escort_ship_ids)
+                            .all(|id| known_ship(*id))
+                    })
                     .enumerate()
                     .map(|(index, fleet)| EnemyComposition {
                         comp_id: format!("kcnav:{index}"),
@@ -750,6 +762,8 @@ pub fn kcnav_enemy_fleets(
                         ship_ids: fleet.ship_ids.clone(),
                         formation: Some(fleet.formation),
                         levels: fleet.levels.clone(),
+                        escort_ship_ids: fleet.escort_ship_ids.clone(),
+                        escort_levels: fleet.escort_levels.clone(),
                         ..Default::default()
                     })
                     .collect::<Vec<_>>();

@@ -40,6 +40,10 @@ pub struct BattleRuntimeShip {
     /// round belongs to exactly one deck); `damage` reads both halves to look up
     /// the 連合艦隊補正.
     pub(crate) combined: Option<CombinedMembership>,
+    /// This ship's deck in an enemy combined fleet, or `None` for a friendly
+    /// ship and for an enemy single fleet. Kept apart from `combined` because
+    /// an enemy fleet has no [`CombinedType`] to go with the deck.
+    pub(crate) enemy_deck: Option<CombinedFleetRole>,
     pub married: bool,
 }
 
@@ -56,6 +60,7 @@ impl BattleRuntimeShip {
             is_friendly,
             is_sortie,
             combined: None,
+            enemy_deck: None,
             married: input.married,
         }
     }
@@ -77,9 +82,15 @@ impl BattleRuntimeShip {
         self
     }
 
-    /// This ship's deck, or `None` in a single-fleet battle.
+    /// Tag this ship with its deck in an enemy combined fleet.
+    pub(crate) fn in_enemy_deck(mut self, role: CombinedFleetRole) -> Self {
+        self.enemy_deck = Some(role);
+        self
+    }
+
+    /// This ship's deck — on either side — or `None` in a single fleet.
     pub(crate) fn combined_role(&self) -> Option<CombinedFleetRole> {
-        self.combined.map(|m| m.role)
+        self.combined.map(|m| m.role).or(self.enemy_deck)
     }
 
     /// True when this ship is in the escort deck (第2艦隊) of a combined fleet.
@@ -220,7 +231,11 @@ pub struct BattleContext {
     pub engagement: EngagementType,
     /// 第1艦隊 when `combined` is set, otherwise the whole fleet.
     pub friend_ships: Vec<BattleShipInput>,
+    /// The enemy main fleet when `enemy_escort_ships` is non-empty, otherwise
+    /// the whole enemy fleet.
     pub enemy_ships: Vec<BattleShipInput>,
+    /// The escort fleet of an enemy combined fleet; empty for a single fleet.
+    pub enemy_escort_ships: Vec<BattleShipInput>,
     /// `None` for an ordinary single-fleet battle.
     pub combined: Option<CombinedSetup>,
 }
@@ -242,6 +257,7 @@ impl BattleContext {
             engagement: EngagementType::SameCourse,
             friend_ships,
             enemy_ships,
+            enemy_escort_ships: Vec::new(),
             combined: None,
         }
     }

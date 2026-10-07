@@ -1,6 +1,8 @@
 # KanColle Map / Route Research
 
 > 这份文档记录当前 map 子系统在 EmuKC 里的实际数据链路，以及它和 battle 子系统之间还剩哪些 fidelity gap。
+>
+> **2026-10-07 起本文是历史记录。** wikiwiki 数据链已整体退役，现状见 `docs/map/data-dependencies.md`。
 
 ## TL;DR
 
