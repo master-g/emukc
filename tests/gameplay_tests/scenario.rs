@@ -168,6 +168,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn full_modernisation_reaches_the_master_maximums() {
+        let ctx = crate::TestContext::new().await;
+        let pid = new_profile(&ctx).await;
+
+        // 夕立改二. Both ships carry the same starting equipment, so the difference
+        // between them is the modernisation alone.
+        let scenario = Scenario {
+            fleet: vec![ShipSpec::new(144, 99), ShipSpec::new(144, 99).fully_modernised()],
+            ..Default::default()
+        };
+        let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
+        let plain = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        let modernised = ctx.find_ship(ids[1]).await.unwrap().unwrap();
+        let mst = ctx.codex.manifest.api_mst_ship.iter().find(|m| m.api_id == 144).unwrap();
+        let gap = |range: Option<[i64; 2]>| range.map(|[min, max]| max - min).unwrap();
+
+        assert_eq!(modernised.api_karyoku[0] - plain.api_karyoku[0], gap(mst.api_houg));
+        assert_eq!(modernised.api_raisou[0] - plain.api_raisou[0], gap(mst.api_raig));
+        assert_eq!(modernised.api_taiku[0] - plain.api_taiku[0], gap(mst.api_tyku));
+        assert_eq!(modernised.api_soukou[0] - plain.api_soukou[0], gap(mst.api_souk));
+    }
+
+    #[tokio::test]
     async fn opening_asw_preset_crosses_the_destroyer_threshold() {
         let ctx = crate::TestContext::new().await;
         let pid = new_profile(&ctx).await;

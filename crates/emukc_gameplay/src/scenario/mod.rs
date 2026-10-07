@@ -44,6 +44,9 @@ pub struct ShipSpec {
     /// declared while a derived stat like `api_taisen[0]` cannot: every write
     /// path ends in a recalculation that would overwrite the derived value.
     pub asw_mod: Option<i64>,
+    /// Modernise firepower, torpedo, anti-air and armour to the ship's maximum
+    /// (`api_kyouka[0..4]`). Off by default: a freshly added ship has none.
+    pub fully_modernised: bool,
 }
 
 impl ShipSpec {
@@ -57,6 +60,7 @@ impl ShipSpec {
             ammo: None,
             slots: Vec::new(),
             asw_mod: None,
+            fully_modernised: false,
         }
     }
 
@@ -71,6 +75,13 @@ impl ShipSpec {
     #[must_use]
     pub fn with_slots(mut self, slots: impl IntoIterator<Item = i64>) -> Self {
         self.slots = slots.into_iter().collect();
+        self
+    }
+
+    /// Modernise firepower, torpedo, anti-air and armour to the maximum (builder style).
+    #[must_use]
+    pub fn fully_modernised(mut self) -> Self {
+        self.fully_modernised = true;
         self
     }
 
@@ -328,6 +339,13 @@ pub async fn apply_scenario(
     for spec in &scenario.fleet {
         let mut ship = ctx.add_ship(profile_id, spec.mst_id).await?;
         apply_ship_spec(&mut ship, spec);
+        if spec.fully_modernised {
+            let mst = ctx.codex.manifest.api_mst_ship.iter().find(|m| m.api_id == spec.mst_id);
+            let ranges = mst.map(|m| [m.api_houg, m.api_raig, m.api_tyku, m.api_souk]);
+            for (slot, range) in ship.api_kyouka.iter_mut().zip(ranges.into_iter().flatten()) {
+                *slot = range.map_or(0, |[min, max]| max - min);
+            }
+        }
         ctx.update_ship(&ship).await?;
 
         // Equip after the level is in place: both write paths end in
