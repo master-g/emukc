@@ -2383,26 +2383,38 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
 
     let phase2 = definition.stage("phase2").unwrap();
     assert_eq!(phase2.start_source_cells().len(), 1, "the second start is not open yet");
-    let r = phase2.multi_label_index()["R"][0];
-    for cell_no in [1, r] {
-        crate::game::sortie_result::advance_stage_on_reach(
-            context.db.as_ref(),
-            profile_id,
-            &definition,
-            phase2,
-            cell_no,
-        )
-        .await
-        .unwrap();
-        assert_eq!(
-            stage().await,
-            if cell_no == r {
-                "phase3"
-            } else {
-                "phase2"
-            }
-        );
-    }
+    // Any other cell leaves the map where it is.
+    crate::game::sortie_result::advance_stage_on_reach(
+        context.db.as_ref(),
+        profile_id,
+        &definition,
+        phase2,
+        1,
+    )
+    .await
+    .unwrap();
+    assert_eq!(stage().await, "phase2");
+
+    // A sortie standing on H has one way on, to R.
+    let h = phase2.multi_label_index()["H"][0];
+    let _ = context.sortie_store.insert_active(
+        profile_id,
+        ActiveSortieState {
+            deck_id: 1,
+            map_id: definition.map_id,
+            map_name: definition.name.clone(),
+            map_level: definition.level,
+            stage_id: "phase2".to_string(),
+            current_cell_id: h,
+            boss_cell_id: phase2.boss_cell_no,
+            pending_battle_cell_id: None,
+            visited_cell_ids: BTreeSet::from([h]),
+            locked_enemy_composition: None,
+        },
+    );
+    let arrived = context.next_sortie(profile_id, None).await.unwrap();
+    assert_eq!(arrived.cell_no, phase2.multi_label_index()["R"][0]);
+    assert_eq!(stage().await, "phase3");
     assert_eq!(definition.stage("phase3").unwrap().start_source_cells().len(), 2);
 
     for _ in 0..2 {

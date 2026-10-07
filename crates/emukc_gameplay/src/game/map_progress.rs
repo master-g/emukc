@@ -25,10 +25,8 @@ pub(crate) fn active_stage_for_record<'a>(
     definition: &'a MapDefinition,
     record: &map_record::Model,
 ) -> Option<&'a MapStageDefinition> {
-    record
-        .stage_id
-        .as_deref()
-        .and_then(|stage_id| definition.stage(stage_id))
+    resolve_record_stage_id(definition, record)
+        .and_then(|stage_id| definition.variants.get(&stage_id))
         .or_else(|| definition.active_stage(None))
 }
 

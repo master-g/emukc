@@ -809,6 +809,14 @@ mod tests {
         };
 
         assert_eq!(gauge("phase1"), (Some(1), Some(3)));
+        // A record from before the map had stages: at the first one, or the last if cleared.
+        assert_eq!(gauge(""), (Some(1), Some(3)));
+        let cleared = map_record::Model {
+            cleared: true,
+            ..sample_record(Some(""))
+        };
+        let info = build_map_info(&definition, &cleared);
+        assert_eq!((info.api_gauge_num, info.api_required_defeat_count), (Some(2), Some(4)));
         assert_eq!(gauge("phase2"), (Some(2), Some(4)), "a stage without a gauge shows the next");
         assert_eq!(gauge("phase3"), (Some(2), Some(4)));
     }

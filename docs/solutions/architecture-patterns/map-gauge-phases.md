@@ -6,6 +6,7 @@ module: emukc_bootstrap
 problem_type: architecture_pattern
 component: service_object
 severity: medium
+tags: [map, gauge, phases, sortie, kcnav, route-rules]
 applies_when:
   - "A regular map gains a gauge, a phase or an unlock condition (5-6, 7-2, 7-3, 7-5 today)"
   - "A boss win does not move a gauge, or moves the wrong one"
