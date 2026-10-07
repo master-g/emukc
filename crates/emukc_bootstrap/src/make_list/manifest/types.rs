@@ -317,6 +317,9 @@ pub(crate) struct UiResourcesAsset {
     pub area: UiAreaAsset,
     #[serde(default)]
     pub world_select: UiWorldSelectAsset,
+    /// Files under `kcs2/img/` the client names in a `UIImageLoader` chain.
+    #[serde(default)]
+    pub image_loader: UiWorldSelectAsset,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

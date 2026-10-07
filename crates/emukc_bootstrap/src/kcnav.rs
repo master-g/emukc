@@ -75,9 +75,8 @@ pub fn kcnav_battle_edges(catalog: &MapCatalog) -> BTreeMap<String, BTreeSet<i64
                 variant
                     .cells
                     .iter()
-                    // 4 battle, 5 boss, 7 aerial, 10 long-range air raid. An aerial
-                    // reconnaissance cell is also 7; asking about it only returns nothing.
-                    .filter(|cell| matches!(cell.event_id, 4 | 5 | 7 | 10))
+                    // 4 battle, 5 boss: the only two event ids the client fights on.
+                    .filter(|cell| matches!(cell.event_id, 4 | 5))
                     .map(|cell| cell.cell_no),
             );
         }

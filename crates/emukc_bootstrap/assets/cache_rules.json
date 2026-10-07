@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-22T08:18:10.561Z",
+  "generatedAt": "2026-10-07T05:12:09.058Z",
   "scriptVersion": "6.3.5.0",
   "summary": {
     "shipRuleCount": 2,
@@ -12,7 +12,7 @@
   },
   "resourceManifest": {
     "version": 2,
-    "generatedAt": "2026-09-22T08:18:10.216Z",
+    "generatedAt": "2026-10-07T05:12:08.812Z",
     "scriptVersion": "6.3.5.0",
     "pathRules": {
       "shipDamageVariants": {
@@ -11172,7 +11172,7 @@
   },
   "resourceCategories": {
     "version": 1,
-    "generatedAt": "2026-09-22T08:18:08.445Z",
+    "generatedAt": "2026-10-07T05:12:07.693Z",
     "scriptVersion": "6.3.5.0",
     "summary": {
       "shipTargetTypeCount": 36,

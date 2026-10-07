@@ -454,13 +454,14 @@ static LIST: LazyLock<&[&str]> = LazyLock::new(|| {
         "sally/sally_top.png",
         "supply/supply_main.json",
         "supply/supply_main.png",
-        "title/01.png",
-        "title/02.png",
-        "title/03.png",
-        "title/04.png",
-        "title/05.png",
-        "title/06.png",
-        "title/title2.png",
+        // The background is `zeroPadding(rnd + 1, 2) + ".jpg"` with `rnd` in 0..6.
+        "title/01.jpg",
+        "title/02.jpg",
+        "title/03.jpg",
+        "title/04.jpg",
+        "title/05.jpg",
+        "title/06.jpg",
+        "title/title2.jpg",
         "title/title_main.json",
         "title/title_main.png",
         "tutorial/bg.png",
@@ -542,9 +543,13 @@ pub(super) async fn make(
     cache: &Kache,
     versions: &BTreeMap<String, String>,
     strategy: &CacheListMakeStrategy,
+    ui_images: &[String],
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
-    for p in LIST.iter() {
+    // `LIST` is kept by hand and falls behind the client; the decoder reads the
+    // loader calls themselves, so whatever it names that `LIST` lacks is added.
+    let decoded = ui_images.iter().map(String::as_str).filter(|p| !LIST.contains(p));
+    for p in LIST.iter().copied().chain(decoded) {
         let category = p.split('/').next().unwrap();
         let full_path = format!("kcs2/img/{p}");
         let version_json_ver = versions.get(category);

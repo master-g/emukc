@@ -24,7 +24,10 @@ pub(super) async fn make_manifest_support(
 
     let previous = list.set_authority_stage(Some(CacheListAuthorityStage::FallbackAuthored));
     plain::make(kache, list).await?;
-    versioned::make(kache, &strategy, list).await?;
+    let ui_images = decoder_assets
+        .and_then(|assets| assets.ui_resources.as_ref())
+        .map_or(&[][..], |ui| ui.image_loader.files.as_slice());
+    versioned::make(kache, &strategy, ui_images, list).await?;
     list.set_authority_stage(previous);
 
     resources::make_manifest_support(

@@ -14,6 +14,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -72,6 +73,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -154,6 +156,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -292,6 +295,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -462,6 +466,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -592,6 +597,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -714,6 +720,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -860,6 +867,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -1054,6 +1062,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -1256,6 +1265,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -1450,6 +1460,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -1556,6 +1567,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -1710,6 +1722,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -1880,6 +1893,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -2106,6 +2120,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -2260,6 +2275,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -2398,6 +2414,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -2560,6 +2577,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -2770,6 +2788,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -2940,6 +2959,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -3230,6 +3250,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -3368,6 +3389,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -3401,8 +3423,8 @@
             {
               "cell_no": 3,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 3355
             },
@@ -3449,8 +3471,8 @@
             {
               "cell_no": 9,
               "color_no": 7,
-              "event_id": 7,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 4,
               "next_cells": [],
               "master_cell_id": 3361
             },
@@ -3473,8 +3495,8 @@
             {
               "cell_no": 12,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 3364
             },
@@ -3529,8 +3551,8 @@
             {
               "cell_no": 19,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 3371
             },
@@ -3570,6 +3592,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -3651,24 +3674,24 @@
             {
               "cell_no": 9,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3383
             },
             {
               "cell_no": 10,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3384
             },
             {
               "cell_no": 11,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3385
             },
@@ -3691,8 +3714,8 @@
             {
               "cell_no": 14,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3388
             },
@@ -3707,8 +3730,8 @@
             {
               "cell_no": 16,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3390
             },
@@ -3739,16 +3762,16 @@
             {
               "cell_no": 20,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3394
             },
             {
               "cell_no": 21,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3395
             },
@@ -3788,6 +3811,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -3845,8 +3869,8 @@
             {
               "cell_no": 6,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3404
             },
@@ -3861,8 +3885,8 @@
             {
               "cell_no": 8,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3406
             },
@@ -3877,8 +3901,8 @@
             {
               "cell_no": 10,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3408
             },
@@ -3949,16 +3973,16 @@
             {
               "cell_no": 19,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3417
             },
             {
               "cell_no": 20,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3418
             },
@@ -3998,6 +4022,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -4063,8 +4088,8 @@
             {
               "cell_no": 7,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3428
             },
@@ -4111,8 +4136,8 @@
             {
               "cell_no": 13,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3434
             },
@@ -4191,8 +4216,8 @@
             {
               "cell_no": 23,
               "color_no": 11,
-              "event_id": 11,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 2,
               "next_cells": [],
               "master_cell_id": 3444
             },
@@ -4256,6 +4281,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -4394,6 +4420,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -4572,6 +4599,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -4702,6 +4730,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -4746,8 +4775,8 @@
             {
               "cell_no": 4,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 415,
               "distance": 2
@@ -4764,8 +4793,8 @@
             {
               "cell_no": 6,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 417,
               "distance": 4
@@ -4773,8 +4802,8 @@
             {
               "cell_no": 7,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 418,
               "distance": 3
@@ -4791,8 +4820,8 @@
             {
               "cell_no": 9,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 420,
               "distance": 6
@@ -4845,8 +4874,8 @@
             {
               "cell_no": 15,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 426,
               "distance": 2
@@ -4854,8 +4883,8 @@
             {
               "cell_no": 16,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 427,
               "distance": 2
@@ -4863,8 +4892,8 @@
             {
               "cell_no": 17,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 428,
               "distance": 2
@@ -4881,8 +4910,8 @@
             {
               "cell_no": 19,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 430,
               "distance": 6
@@ -4933,6 +4962,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -5004,8 +5034,8 @@
             {
               "cell_no": 7,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 441,
               "distance": 4
@@ -5013,8 +5043,8 @@
             {
               "cell_no": 8,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 442,
               "distance": 4
@@ -5076,8 +5106,8 @@
             {
               "cell_no": 15,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 449,
               "distance": 4
@@ -5085,8 +5115,8 @@
             {
               "cell_no": 16,
               "color_no": 10,
-              "event_id": 10,
-              "event_kind": 1,
+              "event_id": 4,
+              "event_kind": 6,
               "next_cells": [],
               "master_cell_id": 450,
               "distance": 4
@@ -5137,6 +5167,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -5291,6 +5322,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "": {
@@ -5397,6 +5429,7 @@
       "gauge_count": null,
       "required_defeat_count": null,
       "max_hp": null,
+      "gauge_type_e": null,
       "default_variant": "",
       "variants": {
         "post_p_unlock": {

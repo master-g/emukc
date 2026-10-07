@@ -434,10 +434,20 @@ fn resolve_slot_ids_for_target(
             .filter(|entry| entry.type_ == "item_up")
             .map(|entry| entry.mst_id)
             .collect::<std::collections::BTreeSet<_>>();
+        // Abyssal equipment never comes out of the slot-id sources, yet the client
+        // shows it too (an enemy contact plane, an enemy cut-in). The replace map
+        // names every abyssal id that has art of its own.
+        let border = rule.enemy_slot_border.unwrap_or(i64::MAX);
+        let abyssal = rule
+            .replace_map
+            .values()
+            .copied()
+            .filter(|slot_id| *slot_id > border && !ABYSSAL_ITEM_UP_HOLES.contains(slot_id));
         let mut ids = resolve::resolve_slotitem_ids(sources, mst)
             .into_iter()
             .filter(|slot_id| !exclude.contains(slot_id))
             .map(|slot_id| super::normalize_item_up_slot_id(rule, slot_id))
+            .chain(abyssal)
             .filter(|slot_id| *slot_id > 0)
             .collect::<Vec<_>>();
         ids.sort_unstable();
@@ -499,6 +509,11 @@ fn resolve_slot_ids_for_target(
         .filter(|slot_id| *slot_id <= enemy_slot_border)
         .collect()
 }
+
+/// Abyssal ids the client's replace map keeps as they are, but whose `item_up` art
+/// the CDN answers 404 for (three mirrors, 2026-10-07): the 深海空要塞 land-based
+/// planes and 深海空超要塞.
+const ABYSSAL_ITEM_UP_HOLES: [i64; 5] = [1594, 1595, 1597, 1598, 1630];
 
 pub(crate) fn generate_entry_paths(
     entry: &ResourceManifestEntry,

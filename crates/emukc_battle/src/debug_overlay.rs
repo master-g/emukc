@@ -114,7 +114,8 @@ pub(crate) fn apply_night_debug(
     // (see `apply_day_debug`).
     let finishing = one_hit_kill.then(|| FinishingVolley::capture(&sim.friendly, &sim.enemy));
 
-    override_night_packet(&mut sim.packet, &debug);
+    // The night packet's HP arrays are the HP the client starts the night with and then
+    // subtracts each attack from, so they stay at entry HP; only the damage arrays change.
     rebuild_night_packet_arrays(&mut sim.packet, god_mode, finishing.as_ref());
     override_ships(&mut sim.friendly, &mut sim.enemy, &debug);
     override_outcome(&mut sim.outcome, &sim.friendly, &sim.enemy);
@@ -348,11 +349,6 @@ fn recompute_midnight(
         && crate::targeting::any_alive(enemy);
     outcome.can_midnight = new_can_midnight;
     packet.midnight_flag = i64::from(new_can_midnight);
-}
-
-fn override_night_packet(packet: &mut crate::NightBattlePacket, debug: &DebugHp) {
-    packet.friendly_nowhps = debug.friendly.clone();
-    packet.enemy_nowhps = debug.enemy.clone();
 }
 
 fn override_ships(
@@ -699,7 +695,7 @@ mod tests {
             enemy: vec![make_ship(0, 40, false)],
             packet: crate::NightBattlePacket {
                 formation: [1, 1, 1],
-                friendly_nowhps: vec![10],
+                friendly_nowhps: vec![30],
                 friendly_maxhps: vec![40],
                 enemy_nowhps: vec![0],
                 enemy_maxhps: vec![40],
@@ -741,7 +737,10 @@ mod tests {
         };
         let result = apply_night_debug(sim, false, true);
         assert_eq!(result.enemy[0].hp(), 0, "one_hit_kill sinks enemies in night");
-        assert_eq!(result.packet.enemy_nowhps[0], 0);
+        assert_eq!(
+            result.packet.enemy_nowhps[0], 30,
+            "the client starts the night from entry HP and sinks the enemy through the volley"
+        );
         assert!(result.packet.hougeki.is_some(), "finishing volley synthesized in night hougeki");
     }
 

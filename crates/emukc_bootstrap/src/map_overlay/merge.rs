@@ -107,6 +107,13 @@ pub(super) fn build_public_map_catalog_overlay_from_captures(
     }
 }
 
+/// The `(event_id, event_kind)` a captured cell colour stands for.
+///
+/// A start response carries only the colour, so this is a guess that later sources may
+/// overrule. For the battle colours it has to be the right one all the same: the client
+/// enters a battle only on event id 4 or 5 (`TaskNextSpot._cellEvent`) and reads the kind
+/// to pick the endpoint, so copying the colour into the id turns a battle cell into an
+/// anchorage repair (10) or an item cell (11).
 fn infer_event_from_color(color_no: i64) -> (i64, i64) {
     match color_no {
         0 => (0, 0),
@@ -114,6 +121,11 @@ fn infer_event_from_color(color_no: i64) -> (i64, i64) {
         3 => (3, 0),
         4 => (4, 1),
         5 => (5, 1),
+        // 航空戦, 長距離空襲戦, 夜戦, レーダー射撃.
+        7 => (4, 4),
+        10 => (4, 6),
+        11 => (4, 2),
+        13 => (4, 8),
         n if n >= 6 => (n, 1),
         _ => (0, 0),
     }
@@ -204,6 +216,18 @@ fn merge_capture_into_overlay(
 
 #[cfg(test)]
 mod tests {
+
+    /// The client enters a battle only on event id 4 or 5, so every battle colour has
+    /// to infer one of them; the kind is what tells the battle types apart.
+    #[test]
+    fn battle_colours_infer_event_ids_the_client_fights_on() {
+        assert_eq!(super::infer_event_from_color(4), (4, 1));
+        assert_eq!(super::infer_event_from_color(5), (5, 1));
+        assert_eq!(super::infer_event_from_color(7), (4, 4), "航空戦");
+        assert_eq!(super::infer_event_from_color(10), (4, 6), "長距離空襲戦");
+        assert_eq!(super::infer_event_from_color(11), (4, 2), "夜戦");
+        assert_eq!(super::infer_event_from_color(13), (4, 8), "レーダー射撃");
+    }
     use super::*;
     use crate::map_overlay::capture::CapturedMapCell;
 
@@ -312,9 +336,9 @@ mod tests {
     }
 
     #[test]
-    fn infer_event_from_color_six_and_above_gives_kind_one() {
+    fn infer_event_from_color_other_colours_keep_their_number() {
         assert_eq!(infer_event_from_color(6), (6, 1));
-        assert_eq!(infer_event_from_color(10), (10, 1));
+        assert_eq!(infer_event_from_color(9), (9, 1));
         assert_eq!(infer_event_from_color(99), (99, 1));
     }
 
