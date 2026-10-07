@@ -93,10 +93,9 @@ impl SortieBattleSession {
         if self.enemy_escort_start().is_some() {
             self.outcome.win_rank = calculate_win_rank(&self.friendly, &self.enemy);
         }
-        self.packet.friendly_nowhps.truncate(kept);
-        self.packet.friendly_nowhps.extend(night.packet.friendly_nowhps.iter().copied());
-        // The night packet reports HP as the night began; settlement needs it
-        // as the night ended.
+        // The night packet reports HP as the night began; the session holds it
+        // as the night ended, which is what settlement needs.
+        self.packet.friendly_nowhps = self.friendly.iter().map(|ship| ship.hp().max(0)).collect();
         self.packet.enemy_nowhps = self.enemy.iter().map(|ship| ship.hp().max(0)).collect();
         self.packet.midnight_flag = 0;
     }

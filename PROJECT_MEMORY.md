@@ -194,11 +194,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-07] 分支 `feat/enemy-combined-fleet`（未推送）：计划 006 做完，wikiwiki 资产链已删。
-  `cargo test --workspace --exclude emukc_time` 1185 过，clippy 17。`ec_battle` 未在浏览器客户端实测。
+- [2026-10-07] 分支 `feat/enemy-combined-fleet`（未推送）：计划 006 与 wikiwiki 退役完成。
+  `cargo test --workspace --exclude emukc_time` 1185 过，clippy 17。`ec_battle` 经 `bun run battle-replay` 回放一致，画面未在浏览器实测。
 
 ## Next Session
 
 - [2026-10-07] 先请用户在浏览器里打一次 6-5 M，再推送开 PR。之后按 007（装備ボーナス）→ 005（血条阶段）。
-  待查：战斗入口的守卫看 `event_kind`（1 / 5），而 codex 里有 22 个战斗格是 2 / 4 / 6（夜战、航空戦、空襲），疑似被拒，未验证。
+  待查：战斗入口守卫只放行 `event_kind` 1 / 5，codex 有 22 个战斗格是 2 / 4 / 6，疑似被拒，未验证。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

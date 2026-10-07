@@ -113,7 +113,12 @@ U1–U7 全部完成。
   `enemy_combined_boss_runs_day_night_and_result` 把出击状态直接放在 6-5 的 18 号格上跑完昼战、夜战、结算，
   昼夜两个包各过一遍客户端规则校验；设 `EMUKC_DUMP_DIR` 可把两个包写出来，昼战包可再用 `battle validate` 看。
   `battle validate` 命令本身只认昼战包。没有冻结 transcript：出击入口用的是不可注入的生产随机源。
-- **没有在浏览器客户端里实际打过。** 校验器的规则和战斗包出自同一轮工作，两边若对协议有同样的误解，校验照样通过。
+- **没有在浏览器客户端里实际打过，但用客户端自己的读取代码回放过。** `main-decoder/src/battle-replay.ts`
+  在 Bun 里加载解码后的 `BattleRecordDay` / `BattleRecordNight`，按 `PhaseDay_06vs12` 的播放顺序逐次读出攻击，
+  核对客户端算出的入夜 HP、夜战后 HP 与服务端一致，夜战的攻防双方都落在 `api_active_deck` 指的那一队。
+  连续 60 场随机战斗全部一致，两种夜战对手都出现过。它不跑阶段类，所以动画、资源加载、场景衔接仍未验证。
+  用法：`EMUKC_DUMP_DIR=<目录> cargo test -p emukc_gameplay --lib enemy_combined_boss`，再
+  `cd main-decoder && bun run battle-replay <目录>`。
 
 ### 遗留
 

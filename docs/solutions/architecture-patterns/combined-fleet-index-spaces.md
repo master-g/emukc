@@ -103,3 +103,15 @@ gameplay 侧不看 URL，只看 profile 的 `combined_type`。所以放开联合
 - **夜战只打一队，但会话里要留着两队。** 夜战包里的敌方 HP 是入夜时的值，结算要用的是夜战打完后的值，
   两者不能混用：`SortieBattleSession::absorb_night` 把打过的那一队拼回去，再从舰上重新读 HP。
 - **夜战必须发 `api_active_deck`。** 不发的话客户端在敌方是联合舰队时默认对手是护卫队。
+
+## 用客户端自己的代码核对（2026-10-07）
+
+`main-decoder/src/battle-replay.ts` 在 Bun 里加载解码后的 bundle，把战斗包交给客户端的 `BattleRecordDay` /
+`BattleRecordNight`，按客户端的播放顺序读出每一次攻击并累计 HP，再与服务端结算的 HP 比较。
+下标空间、阶段顺序、哪一队参战只要有一处与客户端的读法不一致，HP 就对不上。几条读代码得来的事实：
+
+- 6 对 12 的播放顺序在 `PhaseDay_06vs12`：开幕对潜 → 开幕雷击 → `hougeki1` → 雷击 → `hougeki2` → `hougeki3`。
+- `AirWarStage3Model` 把 `api_stage3_combined` 的每个键接到 `api_stage3` 同名数组后面；
+  **`api_stage3` 里没有的键出现在 `_combined` 里会让客户端抛异常**，所以只发有内容的那一侧。
+- `BattleCommonModel._getNum` 先看主数组够不够长，够长就不读 `_combined`：主力数组不能超过 6 项。
+- `main-decoder/out/modules/` 里同名模块有两份，其中一份是旧版本解码留下的，模块号在 bundle 里并不存在；以 `main.decoded.js` 为准。

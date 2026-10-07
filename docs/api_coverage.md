@@ -38,7 +38,9 @@ Key challenges left:
   be sortied with a combined fleet, nor is it a night-into-day cell. These three
   endpoints need event map data.
 - `ec_battle` / `ec_midnight_battle` have passed the client-derived packet
-  validation but have not been played in a browser client yet.
+  validation and a replay through the client's own record classes
+  (`main-decoder/src/battle-replay.ts`), but have not been played in a browser
+  client yet, so the animation layer is unverified.
 
 ### `api_req_air_corps/` — Land-Based Air Corps (P1)
 

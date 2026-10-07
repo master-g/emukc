@@ -1918,14 +1918,15 @@ async fn enemies_sunk_at_night_reach_the_quest_outcomes() {
 /// 6-5 の M is an enemy combined fleet: the client asks for `ec_battle` there,
 /// then `ec_midnight_battle`, then the combined `battleresult`.
 ///
-/// `god_mode` keeps the lone destroyer alive, so twelve enemies are certain to
-/// outlast the day and the night battle always happens. Set `EMUKC_DUMP_DIR` to
-/// have the two responses written out for `battle validate`.
+/// Six battleships cannot sink all twelve enemies in a day — the boss alone has
+/// 350 HP — and a sortie flagship cannot be sunk, so the night battle always happens. Set `EMUKC_DUMP_DIR` to
+/// have the two responses and the settled HP written out for `battle validate`
+/// and `main-decoder`'s client replay.
 #[tokio::test]
 async fn enemy_combined_boss_runs_day_night_and_result() {
     let db = new_mem_db().await.unwrap();
     let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    codex.game_cfg.god_mode = true;
+    codex.game_cfg.god_mode = false;
     codex.game_cfg.one_hit_kill = false;
     let context = Ctx::new(Arc::new(db), Arc::new(codex));
     let account = context.sign_up("ec-boss", "1234567").await.unwrap();
@@ -1936,8 +1937,13 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
         .unwrap()
         .profile
         .id;
-    let ship = context.add_ship(pid, 951).await.unwrap();
-    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+    // 山城改二 ×6: enough firepower to wreck the escort fleet on some runs, so both
+    // night opponents turn up across runs.
+    let mut fleet = [-1; 6];
+    for slot in &mut fleet {
+        *slot = context.add_ship(pid, 412).await.unwrap().api_id;
+    }
+    context.update_fleet_ships(pid, 1, &fleet).await.unwrap();
 
     let definition = context.codex.maps.map_definition(65).unwrap();
     let stage = definition.stage(&definition.default_variant).unwrap();
@@ -2034,6 +2040,15 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
     )
     .unwrap();
     assert!(!report.has_errors(), "night findings: {:?}", report.findings);
+
+    let settled = pending_battle(store, pid).unwrap();
+    dump(
+        "final_hp",
+        &serde_json::json!({
+            "friendly": settled.packet.friendly_nowhps,
+            "enemy": settled.packet.enemy_nowhps,
+        }),
+    );
 
     let result = context.sortie_battle_result(pid).await.unwrap();
     assert_eq!(result.api_ship_id.len(), 12, "both enemy decks are reported");
