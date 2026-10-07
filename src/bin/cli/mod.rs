@@ -12,6 +12,7 @@ mod battle;
 mod bootstrap;
 mod cache;
 mod dev;
+mod gear_bonus;
 mod kcnav;
 mod map;
 mod route_rules;
@@ -65,6 +66,9 @@ enum Commands {
 
     #[command(about = "Maintain the routing rules converted from the compass simulator source")]
     RouteRules(route_rules::RouteRulesArgs),
+
+    #[command(about = "Maintain the equipment bonus table converted from KC3Kai")]
+    GearBonus(gear_bonus::GearBonusArgs),
 
     #[command(about = "Fetch and normalize drops and enemy fleets from KCNav")]
     Kcnav(kcnav::KcnavArgs),
@@ -219,6 +223,7 @@ pub async fn init() -> ExitCode {
         Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,
         Some(Commands::Map(args)) => map::exec(&args).await,
         Some(Commands::RouteRules(args)) => route_rules::exec(&args).await,
+        Some(Commands::GearBonus(args)) => gear_bonus::exec(&args).await,
         Some(Commands::Kcnav(args)) => kcnav::exec(&args).await,
         Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
         Some(Commands::Serve(args)) => {

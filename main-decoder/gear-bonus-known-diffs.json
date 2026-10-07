@@ -1,0 +1,336 @@
+{
+  "against": {
+    "kc3kai": "ee4d7dfb1461723ff2bd0722a290d4e4c2e90d83",
+    "client": "6.3.5.0"
+  },
+  "gears": {
+    "30": {
+      "probes": 10,
+      "reason": "not looked into"
+    },
+    "35": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "39": {
+      "probes": 11,
+      "reason": "not looked into"
+    },
+    "40": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "49": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "50": {
+      "probes": 22,
+      "reason": "not looked into"
+    },
+    "85": {
+      "probes": 140,
+      "reason": "not looked into"
+    },
+    "106": {
+      "probes": 47,
+      "reason": "not looked into"
+    },
+    "118": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "122": {
+      "probes": 22,
+      "reason": "not looked into"
+    },
+    "123": {
+      "probes": 4,
+      "reason": "not looked into"
+    },
+    "136": {
+      "probes": 147,
+      "reason": "not looked into"
+    },
+    "144": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "158": {
+      "probes": 8,
+      "reason": "not looked into"
+    },
+    "179": {
+      "probes": 28,
+      "reason": "not looked into"
+    },
+    "194": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "229": {
+      "probes": 11,
+      "reason": "not looked into"
+    },
+    "267": {
+      "probes": 75,
+      "reason": "not looked into"
+    },
+    "268": {
+      "probes": 486,
+      "reason": "not looked into"
+    },
+    "285": {
+      "probes": 5,
+      "reason": "not looked into"
+    },
+    "286": {
+      "probes": 832,
+      "reason": "not looked into"
+    },
+    "289": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "294": {
+      "probes": 2,
+      "reason": "not looked into"
+    },
+    "295": {
+      "probes": 2,
+      "reason": "not looked into"
+    },
+    "299": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "300": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "310": {
+      "probes": 54,
+      "reason": "not looked into"
+    },
+    "317": {
+      "probes": 125,
+      "reason": "not looked into"
+    },
+    "330": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "331": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "332": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "363": {
+      "probes": 49,
+      "reason": "not looked into"
+    },
+    "364": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "366": {
+      "probes": 1792,
+      "reason": "not looked into"
+    },
+    "377": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "379": {
+      "probes": 1623,
+      "reason": "not looked into"
+    },
+    "380": {
+      "probes": 1311,
+      "reason": "not looked into"
+    },
+    "399": {
+      "probes": 892,
+      "reason": "not looked into"
+    },
+    "410": {
+      "probes": 24,
+      "reason": "not looked into"
+    },
+    "411": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "413": {
+      "probes": 28,
+      "reason": "not looked into"
+    },
+    "434": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "435": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "450": {
+      "probes": 96,
+      "reason": "not looked into"
+    },
+    "455": {
+      "probes": 2,
+      "reason": "not looked into"
+    },
+    "463": {
+      "probes": 18,
+      "reason": "not looked into"
+    },
+    "465": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "466": {
+      "probes": 28,
+      "reason": "not looked into"
+    },
+    "468": {
+      "probes": 20,
+      "reason": "not looked into"
+    },
+    "470": {
+      "probes": 217,
+      "reason": "not looked into"
+    },
+    "502": {
+      "probes": 60,
+      "reason": "not looked into"
+    },
+    "503": {
+      "probes": 23,
+      "reason": "not looked into"
+    },
+    "505": {
+      "probes": 150,
+      "reason": "not looked into"
+    },
+    "507": {
+      "probes": 278,
+      "reason": "not looked into"
+    },
+    "508": {
+      "probes": 992,
+      "reason": "not looked into"
+    },
+    "510": {
+      "probes": 20,
+      "reason": "not looked into"
+    },
+    "517": {
+      "probes": 1938,
+      "reason": "not looked into"
+    },
+    "518": {
+      "probes": 108,
+      "reason": "not looked into"
+    },
+    "520": {
+      "probes": 52,
+      "reason": "not looked into"
+    },
+    "521": {
+      "probes": 7,
+      "reason": "not looked into"
+    },
+    "523": {
+      "probes": 112,
+      "reason": "not looked into"
+    },
+    "525": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "526": {
+      "probes": 14,
+      "reason": "not looked into"
+    },
+    "529": {
+      "probes": 227,
+      "reason": "not looked into"
+    },
+    "530": {
+      "probes": 38,
+      "reason": "not looked into"
+    },
+    "536": {
+      "probes": 18,
+      "reason": "not looked into"
+    },
+    "537": {
+      "probes": 18,
+      "reason": "not looked into"
+    },
+    "538": {
+      "probes": 44,
+      "reason": "not looked into"
+    },
+    "540": {
+      "probes": 119,
+      "reason": "not looked into"
+    },
+    "569": {
+      "probes": 1856,
+      "reason": "not looked into"
+    },
+    "571": {
+      "probes": 2304,
+      "reason": "not looked into"
+    },
+    "572": {
+      "probes": 1640,
+      "reason": "not looked into"
+    },
+    "573": {
+      "probes": 49,
+      "reason": "not looked into"
+    },
+    "575": {
+      "probes": 98,
+      "reason": "not looked into"
+    },
+    "577": {
+      "probes": 1910,
+      "reason": "not looked into"
+    },
+    "578": {
+      "probes": 340,
+      "reason": "not looked into"
+    },
+    "579": {
+      "probes": 6,
+      "reason": "not looked into"
+    },
+    "580": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "581": {
+      "probes": 12,
+      "reason": "not looked into"
+    },
+    "585": {
+      "probes": 204,
+      "reason": "not looked into"
+    },
+    "586": {
+      "probes": 452,
+      "reason": "not looked into"
+    },
+    "t3_11": {
+      "probes": 136,
+      "reason": "not looked into"
+    }
+  }
+}

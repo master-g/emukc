@@ -7,6 +7,8 @@
     "decode": "bun run src/cli.ts",
     "route-rules": "bun run src/route-rules.ts",
     "route-oracle": "bun run src/route-oracle.ts",
+    "gear-bonus": "bun run src/gear-bonus.ts",
+    "gear-bonus-oracle": "bun run src/gear-bonus-oracle.ts",
     "battle-replay": "bun run src/battle-replay.ts",
     "check": "tsc --noEmit",
     "test": "bun test",

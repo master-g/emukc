@@ -18,7 +18,8 @@ pub mod prelude {
     //! The `emukc_model` crate prelude.
     #[doc(hidden)]
     pub use crate::{
-        codex::Codex, fields::*, kc2::api::*, kc2::level::*, kc2::remodel::*, kc2::start2::*,
-        kc2::types::*, profile::preset_dev_item::PresetDevItemElement, thirdparty::*,
+        codex::Codex, codex::CodexError, codex::gear_bonus::*, fields::*, kc2::api::*,
+        kc2::level::*, kc2::remodel::*, kc2::start2::*, kc2::types::*,
+        profile::preset_dev_item::PresetDevItemElement, thirdparty::*,
     };
 }
