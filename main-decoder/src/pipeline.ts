@@ -1,3 +1,4 @@
+import { readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
@@ -129,6 +130,12 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   }
   if (options.syncResourceManifest === true) {
     await writeTextFile(resolve(bootstrapAssetsDir, "resource_manifest.json"), `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
+  }
+  // Module ids change with every client build, so the previous build's files would otherwise
+  // stay behind under other names and turn up in searches as if they were current.
+  const current = new Set(result.moduleGraph.modules.map(module => module.fileName));
+  for (const file of await readdir(modulesDir).catch(() => [])) {
+    if (/^module-\d+.*\.js$/.test(file) && !current.has(file)) await rm(resolve(modulesDir, file));
   }
   await Promise.all(
     result.moduleGraph.modules.map(module => writeTextFile(resolve(modulesDir, module.fileName), module.source)),

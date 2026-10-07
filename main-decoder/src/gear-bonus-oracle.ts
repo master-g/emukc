@@ -127,6 +127,8 @@ if (import.meta.main) {
 
 	const shipById = new Map(ships.map((ship) => [ship.api_id as number, ship]));
 	const differing = new Map<string, { count: number; first: string }>();
+	/** Every differing probe, for working out what a correction has to say. */
+	const details: string[] = [];
 	probes.forEach((probe, index) => {
 		const mst = shipById.get(probe.ship);
 		const ship = { mstID: mst.api_id, yomi: mst.api_yomi, shipTypeID: mst.api_stype, getClassType: () => mst.api_ctype };
@@ -134,6 +136,7 @@ if (import.meta.main) {
 		const want = SlotItemEffectUtil.getSlotitemEffect(ship, slots);
 		const diffs = Object.entries(STATS).filter(([theirs, ours]) => (want?.[theirs] ?? 0) !== (actual[index]![ours] ?? 0));
 		if (diffs.length === 0) return;
+		details.push(JSON.stringify({ key: origins[index], ship: probe.ship, gears: probe.gears, delta: Object.fromEntries(diffs.map(([theirs, ours]) => [ours, (want?.[theirs] ?? 0) - (actual[index]![ours] ?? 0)])) }));
 		const entry = differing.get(origins[index]!) ?? { count: 0, first: "" };
 		entry.count += 1;
 		entry.first ||= `${mst.api_name} (${mst.api_id}, class ${mst.api_ctype}) with ${probe.gears.map(([id, stars]) => `${id}★${stars}`).join(" ")}: ${diffs.map(([theirs, ours]) => `${theirs} client ${want?.[theirs] ?? 0} / server ${actual[index]![ours] ?? 0}`).join(", ")}`;
@@ -150,6 +153,7 @@ if (import.meta.main) {
 	const stale = Object.keys(known.gears).filter((key) => !differing.has(key));
 	const reportFile = repoPath(".data/temp/gear_bonus_oracle.txt");
 	writeFileSync(reportFile, `${report.join("\n")}\n`);
+	writeFileSync(repoPath(".data/temp/gear_bonus_diffs.jsonl"), `${details.join("\n")}\n`);
 	console.log(`${probes.length} probes over ${document.gears.length} entries and ${ships.length} ships: ${differing.size} entries differ, ${unlisted.length} of them not as listed; report at ${reportFile}`);
 	if (stale.length > 0) console.log(`listed but no longer differing: ${stale.join(", ")}`);
 	if (process.argv.includes("--accept")) {
