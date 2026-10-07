@@ -37,7 +37,7 @@ pub(super) async fn make_manifest_support(
 
     let previous = list.set_authority_stage(Some(CacheListAuthorityStage::RuleAuthored));
     if let Some(decoder_assets) = decoder_assets {
-        add_decoder_audio_paths(mst, decoder_assets, list);
+        add_decoder_audio_paths(decoder_assets, list);
         add_decoder_ui_paths(decoder_assets, list);
         add_decoder_template_paths(mst, decoder_assets, list);
         let furniture_categories = decoder_furniture_categories(decoder_assets);
@@ -318,11 +318,7 @@ fn add_template_range_paths(family: &ResourceTemplateFamily, list: &mut CacheLis
     }
 }
 
-fn add_decoder_audio_paths(
-    mst: &ApiManifest,
-    decoder_assets: &DecoderCoverageAssets,
-    list: &mut CacheList,
-) {
+fn add_decoder_audio_paths(decoder_assets: &DecoderCoverageAssets, list: &mut CacheList) {
     let Some(audio) = decoder_assets.audio_resources.as_ref() else {
         return;
     };
@@ -339,10 +335,9 @@ fn add_decoder_audio_paths(
         }
         list.add_unversioned(gen_bgm_path(*id, "fanfare"));
     }
+    // The client plays these by a literal id (the shop, the arsenal, the result
+    // screen), so most of them are not in `api_mst_bgm` at all.
     for id in &audio.bgm.port_ids.ids {
-        if !mst.api_mst_bgm.iter().any(|bgm| bgm.api_id == *id) {
-            continue;
-        }
         list.add_unversioned(gen_bgm_path(*id, "port"));
     }
     for id in &audio.bgm.battle_ids.ids {

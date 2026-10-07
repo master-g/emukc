@@ -1147,7 +1147,7 @@ mod tests {
                 "itemUp": {
                     "coverageMode": "observed-complete",
                     "kind": "item_up_normalization",
-                    "replaceMap": { "1501": 1 },
+                    "replaceMap": { "1501": 1, "1517": 1517, "1594": 1594 },
                     "enemySlotBorder": 1500,
                     "exclude": [],
                     "moduleIds": ["m2"],
@@ -1175,6 +1175,9 @@ mod tests {
         assert!(paths.iter().any(|path| path.contains("kcs2/resources/ship/special/0001_")));
         assert!(paths.iter().any(|path| path.contains("kcs2/resources/slot/item_up/0001_")));
         assert!(!paths.iter().any(|path| path.contains("kcs2/resources/slot/item_up/1501_")));
+        // An abyssal id the replace map keeps has art of its own, except the CDN holes.
+        assert!(paths.iter().any(|path| path.contains("kcs2/resources/slot/item_up/1517_")));
+        assert!(!paths.iter().any(|path| path.contains("kcs2/resources/slot/item_up/1594_")));
     }
 
     #[test]

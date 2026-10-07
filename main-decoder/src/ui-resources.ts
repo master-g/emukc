@@ -11,6 +11,7 @@ interface ExtractedUiResources {
 	areaAirunitIds: Set<string>;
 	areaAirunitExtendConfirmIds: Set<string>;
 	worldSelectFiles: Set<string>;
+	imageLoaderFiles: Set<string>;
 }
 
 function coverageMode(values: Set<unknown>): ResourceCoverageMode {
@@ -97,6 +98,27 @@ function addWorldSelectRange(source: string, files: Set<string>): void {
 	}
 }
 
+/**
+ * `new UIImageLoader("battle").add("battle_main.json")…load(…)` names files under
+ * `kcs2/img/<dir>/`. Only literal names are collected; a sprite sheet's `.json` brings its
+ * `.png` with it. A name built at run time (the title background) is left to the cache list.
+ */
+function addImageLoaderFiles(source: string, files: Set<string>): void {
+	for (const loader of source.matchAll(/UIImageLoader\(\s*["']([a-z0-9_/]+)["']\s*\)/g)) {
+		const start = (loader.index ?? 0) + loader[0].length;
+		const window = source.slice(start, start + 2500);
+		const end = window.indexOf(".load(");
+		const chain = end >= 0 ? window.slice(0, end) : window;
+		for (const add of chain.matchAll(/\.add\(\s*["']([A-Za-z0-9_.-]+\.(?:json|png|jpg))["']/g)) {
+			const file = `${loader[1]}/${add[1]}`;
+			files.add(file);
+			if (file.endsWith(".json")) {
+				files.add(`${file.slice(0, -".json".length)}.png`);
+			}
+		}
+	}
+}
+
 export function extractUiResources(moduleGraph: ModuleGraph, supplementalSources: string[] = []): ExtractedUiResources {
 	const extracted: ExtractedUiResources = {
 		mapDefaultFiles: new Set(),
@@ -109,6 +131,7 @@ export function extractUiResources(moduleGraph: ModuleGraph, supplementalSources
 		areaAirunitIds: new Set(),
 		areaAirunitExtendConfirmIds: new Set(),
 		worldSelectFiles: new Set(),
+		imageLoaderFiles: new Set(),
 	};
 
 	const sources = [
@@ -268,6 +291,7 @@ export function extractUiResources(moduleGraph: ModuleGraph, supplementalSources
 			}
 		}
 		addWorldSelectRange(source, extracted.worldSelectFiles);
+		addImageLoaderFiles(source, extracted.imageLoaderFiles);
 	}
 
 	return extracted;
@@ -290,6 +314,7 @@ export function toUiResourcesAsset(
 			areaSallyIdCount: extracted.areaSallyIds.size,
 			areaAirunitIdCount: extracted.areaAirunitIds.size,
 			worldSelectFileCount: extracted.worldSelectFiles.size,
+			imageLoaderFileCount: extracted.imageLoaderFiles.size,
 		},
 		map: {
 			defaultFiles: {
@@ -331,6 +356,9 @@ export function toUiResourcesAsset(
 		},
 		worldSelect: {
 			files: [...extracted.worldSelectFiles].sort(),
+		},
+		imageLoader: {
+			files: [...extracted.imageLoaderFiles].sort(),
 		},
 	};
 }

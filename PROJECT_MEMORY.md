@@ -65,7 +65,7 @@ Current verification baseline:
   `group_by` / `find_with_related`，`Relation` 只喂 `create_table_from_entity`。换 sqlx/rusqlite 要重写
   ~450 处调用来省 25 个依赖，不值。
 - [2026-09-20] 跑完整的 `cache populate` 就是权威的 CDN 存在性探针：它请求每条非 hole 路径，失败清单即
-  「上游缺什么」，`--greedy` 不是替代（见 Pitfalls）。[2026-09-22] 但它只请求表内路径——`z/cache` 的 336 个
+  「上游缺什么」，[2026-09-22] 但它只请求表内路径——`z/cache` 的 336 个
   `btxt_flat` 与 `BTXT_FLAT_IDS` 条数相同，只证明「表内存在」，表外 id 必须单独探测。
 - [2026-09-20] hole 表的流向是 Rust → 资产而非 decoder → Rust：`main-decoder/src/path-rules.ts` 从 Rust 源码
   反解 `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` 写进 `cache_rules.json`。改 hole 要改 Rust
@@ -144,9 +144,15 @@ Current verification baseline:
 
 - [2026-10-06] KCNav 有公开 JSON 接口（掉落带样本数，编成带真实 `lvl`）：计划 2026-10-06-001 前提段与实施记录，样本 `z/kcnav_samples/`。
   `robots.txt` 点名禁 ClaudeBot，对它的请求由用户确认或用户自己执行，agent 不主动发。
+- [2026-10-07] 缓存清单：客户端写死的母港 BGM 不在 `api_mst_bgm`；深海 `item_up` 取替换表里 >1500 的目标，其中
+  5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
+  服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则由羅針盤シミュ源码（`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支，MIT；`main` 只有压缩产物）
   确定性转换，对拍零差异。详见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
+- [2026-10-07] 缓存清单：客户端写死的母港 BGM 不在 `api_mst_bgm`；深海 `item_up` 取替换表里 >1500 的目标，其中
+  5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
+  服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则新来源：`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支（MIT，每图一个 TS 文件；`main` 只有压缩产物）。
   其「顺序首个命中」与我们的 priority 分组求值等价。计划 2026-10-06-003。
@@ -158,13 +164,8 @@ Current verification baseline:
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
 | `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错。 | session 2026-09-21 |
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
-| Seeded test RNG left thread-local entropy set → cross-test pollution. Must restore entropy after seeded runs. | git `66f8317` |
-| Cache downgraded to an older local file on version rollback instead of serving the newer local copy. | git `185c0b8` |
-| `remodel()` dropped fields + faulty boiler query (logic error). | `docs/solutions/logic-errors/remodel-preserve-fields-and-boiler-query-2026-05-14.md` |
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
-| [2026-07-30] Seed-search tests inherited local `god_mode` / `one_hit_kill`, making the night branch unreachable; normalize debug policy in the test fixture instead of changing production behavior or local data. | git `64a8239` |
-| 2026-08-26 stale cache-list incident: `bootstrap` died in Phase 2 (`kcwiki_enemy.json` `BoolOrString` null), so Phase 4 never refreshed main.js; decode and make-list then consumed stale inputs. Diagnose from `version.json` and main.js mtime, not from make-list. | session 2026-08-26 |
 | `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
@@ -180,7 +181,6 @@ Current verification baseline:
 | [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
 | [2026-09-19] A refactor comment saying "keeps feeding X as before" was preserving a bug: plan 002 froze the day-battle `enemy_nowhps` copy, so night-only sinks fired no quest event. Treat "as before" as unverified. | git `HEAD` |
 | [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
-| [2026-09-20] `--greedy`'s holes report is dead code: `HOLES_COLLECTOR` has a reader and a clear but no writer, so it is always empty and `GreedyConfig.concurrent` is unused. `z/cache/holes_report.txt` is an April artifact, not current data. | session 2026-09-20, `ship.rs` |
 | [2026-09-20] Duplicate progress bars are NOT error line-wraps: any terminal write bypassing `MultiProgress` strands a copy of the bar block in scrollback and is itself overwritten (invisible). Spinner churn, resizes and `mp.suspend` all tested clean. | session 2026-09-20 |
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
 | [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
@@ -194,10 +194,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-07] 分支 `fix/battle-cell-kinds`（叠在未推送的 `feat/enemy-combined-fleet` 上，均未推送）：计划 006、
-  wikiwiki 退役、战斗格判定（计划 2026-10-07-001）完成。`cargo test --workspace --exclude emukc_time` 1187 过，clippy 17。
+- [2026-10-07] 分支 `fix/battle-cell-kinds`（叠在 `feat/enemy-combined-fleet` 上，均未推送）：用户在浏览器打完 6-5，
+  途中修了无敌模式夜战血量、缓存清单三类缺口（+53 −7 条）。测试 1188 过（排除 `emukc_time`），clippy 17。
+  未提交：`scenario` 的 `fully_modernised`；未跟踪的建号脚本 `examples/playtest_seed.rs`。
 
 ## Next Session
 
-- [2026-10-07] 先请用户在浏览器里打一次 6-5 M 和一个夜战 / 空襲格，再推送开 PR。之后按 007（装備ボーナス）→ 005（血条阶段）。
+- [2026-10-07] 待修（用户实测发现，均未动）：`engagement_for_cell` 按 `(海域+格子)%4` 定交战形态而非随机，改它要重冻
+  golden 并先写计划；boss 格 S/A/B 胜就加击破数、不看旗舰是否击沉（`sortie_result.rs` `apply_sortie_map_result`），并进 005。
+- 5-3 I、6-4 D 还没在浏览器里测。之后推送开 PR，再按 007 → 005。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

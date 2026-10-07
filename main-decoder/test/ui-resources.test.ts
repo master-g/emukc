@@ -101,6 +101,26 @@ describe("extractUiResources", () => {
 		]));
 	});
 
+	test("collects the literal files of a UIImageLoader chain, with each sheet's png", () => {
+		const graph = makeGraph([
+			makeModule("u1", `
+				var l = new x.UIImageLoader("battle");
+				l.add("battle_main.json"), 1 == this._night && l.add("battle_night.json"), l.load(function() {});
+				new x.UIImageLoader("title").add(bg, "title_bg1").add("title2.jpg", "title_bg2").load(function() {});
+				other.add("not_a_loader.json");
+			`),
+		]);
+
+		const extracted = extractUiResources(graph);
+		expect([...extracted.imageLoaderFiles].sort()).toEqual([
+			"battle/battle_main.json",
+			"battle/battle_main.png",
+			"battle/battle_night.json",
+			"battle/battle_night.png",
+			"title/title2.jpg",
+		]);
+	});
+
 	test("captures furniture regex categories from loader modules", () => {
 		const graph = makeGraph([
 			makeModule("u-furniture", `

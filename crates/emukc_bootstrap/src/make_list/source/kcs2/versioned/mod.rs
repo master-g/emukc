@@ -46,6 +46,7 @@ fn parse_version_info(raw: &str) -> Result<BTreeMap<String, String>, serde_json:
 pub(super) async fn make(
     cache: &Kache,
     strategy: &CacheListMakeStrategy,
+    ui_images: &[String],
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
     // Force remote fetch to ensure we always get the latest version.json.
@@ -58,7 +59,7 @@ pub(super) async fn make(
     trace!("version.json fetched from remote, {} bytes", raw.len());
     let version_info = parse_version_info(&raw)?;
 
-    img::make(cache, &version_info, strategy, list).await?;
+    img::make(cache, &version_info, strategy, ui_images, list).await?;
 
     Ok(())
 }

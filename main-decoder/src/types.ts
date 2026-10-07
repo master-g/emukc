@@ -726,6 +726,7 @@ export interface UiResourcesAsset {
     areaSallyIdCount: number;
     areaAirunitIdCount: number;
     worldSelectFileCount: number;
+    imageLoaderFileCount: number;
   };
   map: {
     defaultFiles: UiResourcePathGroup;
@@ -745,6 +746,9 @@ export interface UiResourcesAsset {
     airunitExtendConfirmIds: UiResourceIdGroup;
   };
   worldSelect: {
+    files: string[];
+  };
+  imageLoader: {
     files: string[];
   };
 }

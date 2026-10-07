@@ -1,23 +1,23 @@
 {
   "version": "6.3.5.0",
   "assets": {
-    "audio_resources": "ErNSgffg5NE6sKTLpWegYnKuPXy8Ax72W5HVg36Yj8DD",
+    "audio_resources": "5GEpg449Cg6LEQEpyo4KK7gQv6Qq2ChaVZcB4ptDAyG1",
     "battle_attack_type_acceptance": "BBuoarPPu3fBTyre3UXUPw32vjg3aKNMsN8EM3SR343d",
     "battle_module_index": "Ae6VUFCZx8dtajzB5yyPZ68odViu9Bs118FCiK31dAbP",
     "battle_protocol_fields": "3UUcxEhzDUFDc7XbQMWZ5rRQUAR4PXyW9QiiMYX3bikn",
     "battle_resource_rules": "CbTJYCqNsYWV1Far79mL57yDdVYMau63g9zysksCRNEE",
     "battle_slot_resource_triggers": "DE8FGF3XUCJnxyvUTRuM1vSKFea4eA9NPLFvnhrh7FVs",
-    "cache_rules": "CiimENKp8kXehjZzP1odwfyqAndWz5ky8kgncsyXMsvg",
+    "cache_rules": "FDCHQ9ETkrUcECjjC6BsTwe6xtnBUdeFhnvDzCLaM6tn",
     "kcnav_cell_events": "F3sVuaXyGL5kvCcJE6BuuLQoq2fizbwSbFniaosBtF8P",
     "kcnav_enemy_fleets": "Fm5ioJzcQi3sBufd6nTVnywgiDqvWdm9KzueTBk1mBjC",
     "map_limited_drops": "CbhuqggDAiP9pDgTPCpbqLVQgNhZaYNLDa8GzyW3GqPe",
     "map_route_rules": "H4XsdKJftKF61TNxp715Z2rvFes4bggASHVyTZEH5kGg",
     "map_ship_drops": "8KoWnjRNhrXVKDUenyZgTbA5ASMH4geG6oSwv8DtKwvt",
     "public_map_catalog_overlays": "E1AT4wGopwQqKmZ9TatZHeBnXnCn8d91AQFNtZeJ6HN8",
-    "resource_categories": "HrinjHagmeW2MWz8mb9cc6JLWDRg469Lw4ohodTmsgL6",
-    "resource_id_sets": "929op9kvakZBaVk2mii85CCC3qGCCftFdU7zmr7znzAQ",
-    "resource_manifest": "HFTBr98wu6MacNuBYAe3NgCSXnZtax51R24KN6hcN7Mq",
-    "resource_templates": "3XGG4Xe2k8aRnzxrCEgTnSa6pQ6STRfzLrqVsz4oKZDc",
-    "ui_resources": "2ixuftw8BniX7LsKk41eaQXM8Acd4KThxXdEnf6tM3ro"
+    "resource_categories": "6ZaD8a9WeibUP2cb6NJw5NjrTcUYsVpwpS4oYLvuzbHr",
+    "resource_id_sets": "6APJBGmcm3qZfiX5mrsN1NKqNoEbFXNjdVVBXFPvEToM",
+    "resource_manifest": "EZN8Zt2t3WTjc2jH7gzKdVg3hSUMdantjgatxxMTDBoU",
+    "resource_templates": "Gx2dC99H2WwGn8sHPbPbSQLfrKcTPtBe53eRTFpQYk3u",
+    "ui_resources": "DNWuU4baDs65rqGzF35LJweuakDXJKsqsqCgEdMezkMd"
   }
 }
