@@ -23,6 +23,7 @@ mod compass_route_rules;
 pub mod compass_source;
 mod db;
 mod download;
+pub mod kc3kai_source;
 mod kcnav;
 mod make_list;
 mod map_overlay;
@@ -60,6 +61,7 @@ pub mod prelude {
     pub use crate::download::BootstrapDownloadError;
     pub use crate::download::download_all;
     pub use crate::download::download_web_assets;
+    pub use crate::kc3kai_source::{KC3KAI_SOURCE_COMMIT, sync_kc3kai_source};
     pub use crate::kcnav::{
         KcnavCatalog, KcnavCell, KcnavCellEventsAsset, KcnavDrop, KcnavEnemyFleetsAsset,
         KcnavFleet, KcnavNode, KcnavSyncOptions, KcnavSyncStats, LimitedDrops, MapShipDropsAsset,

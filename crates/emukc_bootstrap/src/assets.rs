@@ -61,6 +61,7 @@ pub(crate) const KCNAV_ENEMY_FLEETS: RepoAsset = asset!("kcnav_enemy_fleets", em
 pub(crate) const KCNAV_CELL_EVENTS: RepoAsset = asset!("kcnav_cell_events", embedded);
 pub(crate) const MAP_LIMITED_DROPS: RepoAsset = asset!("map_limited_drops", embedded);
 pub(crate) const CACHE_RULES: RepoAsset = asset!("cache_rules", embedded);
+pub(crate) const GEAR_BONUS: RepoAsset = asset!("gear_bonus", embedded);
 
 /// Every checked-in asset. The cache-list inputs without an embedded copy are
 /// still found next to whatever rules file a caller names (see
@@ -79,6 +80,7 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     KCNAV_CELL_EVENTS,
     MAP_LIMITED_DROPS,
     CACHE_RULES,
+    GEAR_BONUS,
     asset!("resource_manifest"),
     asset!("resource_categories"),
     asset!("resource_id_sets"),

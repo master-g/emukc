@@ -9,7 +9,10 @@ use crate::{
     },
 };
 
-use super::{Codex, CodexError};
+use super::{
+    Codex, CodexError,
+    gear_bonus::{GearBonusGear, GearBonusShip, GearBonusStats},
+};
 
 impl Codex {
     /// Create a new ship instance.
@@ -235,6 +238,7 @@ impl Codex {
         let mut item_tais = 0; // anti-sub
         let mut item_houk = 0; // evasion
         let mut item_saku = 0; // los
+        let mut bonus_gears = Vec::new();
 
         // set ship locked equipment
         ship.api_locked_equip = 0;
@@ -261,6 +265,15 @@ impl Codex {
             item_tais += item_mst.api_tais;
             item_houk += item_mst.api_houk;
             item_saku += item_mst.api_saku;
+            bonus_gears.push(GearBonusGear {
+                id: item_mst.api_id,
+                type2: item_mst.api_type[2],
+                type3: item_mst.api_type[3],
+                stars: slotitem.api_level,
+                saku: item_mst.api_saku,
+                tyku: item_mst.api_tyku,
+                houm: item_mst.api_houm,
+            });
         }
 
         // calculate ship status
@@ -316,6 +329,16 @@ impl Codex {
         ship.api_taisen[0] += item_tais;
         ship.api_sakuteki[0] += item_saku;
 
+        // apply equipment bonuses
+        let bonus = self.gear_bonus(mst, &bonus_gears)?;
+        ship.api_karyoku[0] += bonus.houg;
+        ship.api_raisou[0] += bonus.raig;
+        ship.api_taiku[0] += bonus.tyku;
+        ship.api_soukou[0] += bonus.souk;
+        ship.api_kaihi[0] += bonus.houk;
+        ship.api_taisen[0] += bonus.tais;
+        ship.api_sakuteki[0] += bonus.saku;
+
         // apply special effect items
         ship.api_sp_effect_items.iter().flatten().for_each(|v| {
             ship.api_karyoku[0] += v.api_houg.unwrap_or(0);
@@ -325,6 +348,26 @@ impl Codex {
         });
 
         Ok(())
+    }
+
+    /// The stats a ship gains for carrying particular equipment (装備ボーナス), on top of
+    /// the equipment's own stats.
+    pub fn gear_bonus(
+        &self,
+        mst: &ApiMstShip,
+        gears: &[GearBonusGear],
+    ) -> Result<GearBonusStats, CodexError> {
+        // Most loadouts have no entry at all; the remodel chain is only walked for the rest.
+        if !self.gear_bonus.covers(gears) {
+            return Ok(GearBonusStats::default());
+        }
+        let ship = GearBonusShip {
+            id: mst.api_id,
+            class: mst.api_ctype,
+            stype: mst.api_stype,
+            remodel_chain: self.ships_before_and_after(mst.api_id)?,
+        };
+        Ok(self.gear_bonus.bonus(&ship, gears))
     }
 
     /// Calculate ship powerup potentials.
@@ -424,20 +467,35 @@ impl Codex {
     ///
     /// * `ship_mst_id` - The ship manifest ID.
     pub fn ships_before_and_after(&self, ship_mst_id: i64) -> Result<Vec<i64>, CodexError> {
-        let mut first_ship_id = ship_mst_id;
-        loop {
-            let key = first_ship_id.to_string();
-            if let Some(before) = self
-                .manifest
-                .api_mst_ship
-                .iter()
-                .find(|m| m.api_aftershipid.as_ref().unwrap_or(&"0".to_owned()) == &key)
-            {
-                first_ship_id = before.api_id;
-            } else {
-                break;
+        // Some remodels convert back and forth, so walking to "the form before" can go
+        // round in circles. Collect every earlier form instead; the first form is the one
+        // nothing remodels into, or the lowest id when the whole chain is a circle.
+        let mut earlier = vec![ship_mst_id];
+        let mut next = 0;
+        while let Some(id) = earlier.get(next).copied() {
+            next += 1;
+            let key = id.to_string();
+            for before in &self.manifest.api_mst_ship {
+                if before.api_aftershipid.as_deref() == Some(key.as_str())
+                    && !earlier.contains(&before.api_id)
+                {
+                    earlier.push(before.api_id);
+                }
             }
         }
+        let has_before = |id: &i64| {
+            let key = id.to_string();
+            self.manifest
+                .api_mst_ship
+                .iter()
+                .any(|m| m.api_aftershipid.as_deref() == Some(key.as_str()))
+        };
+        let first_ship_id = earlier
+            .iter()
+            .copied()
+            .find(|id| !has_before(id))
+            .or_else(|| earlier.iter().copied().min())
+            .unwrap_or(ship_mst_id);
 
         self.ship_and_after(first_ship_id)
     }
@@ -708,6 +766,57 @@ mod tests {
         }
 
         codex
+    }
+
+    #[test]
+    fn remodel_chains_end_even_when_remodels_convert_back_and_forth() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        // Fletcher Mk.II converts back to 改 Mod.2.
+        assert_eq!(codex.ships_before_and_after(629).unwrap(), [596, 692, 628, 629]);
+        // 宗谷's three forms are a circle with no first form.
+        assert_eq!(codex.ships_before_and_after(650).unwrap(), [645, 650, 699]);
+        for mst in codex.manifest.api_mst_ship.iter().filter(|m| m.api_id <= 1500) {
+            let chain = codex.ships_before_and_after(mst.api_id).unwrap();
+            assert!(chain.contains(&mst.api_id), "{} is missing from {chain:?}", mst.api_id);
+        }
+    }
+
+    #[test]
+    fn equipment_bonus_is_part_of_the_ship_stats() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let stats = |ship_id: i64, item_id: i64| {
+            let (mut ship, _) = codex.new_ship(ship_id).unwrap();
+            let item = KcApiSlotItem {
+                api_id: 1,
+                api_slotitem_id: item_id,
+                api_locked: 0,
+                api_level: 0,
+                api_alv: None,
+            };
+            ship.api_slot = [1, -1, -1, -1, -1];
+            codex.cal_ship_status(&mut ship, &[item], false).unwrap();
+            [ship.api_karyoku[0], ship.api_kaihi[0], ship.api_taisen[0], ship.api_sakuteki[0]]
+        };
+        let difference = |ship_id: i64, bonus_item: i64, plain_item: i64| {
+            let (with, without) = (stats(ship_id, bonus_item), stats(ship_id, plain_item));
+            std::array::from_fn::<_, 4, _>(|i| with[i] - without[i])
+        };
+        let own = |item_id: i64| {
+            let mst = codex.find::<ApiMstSlotitem>(&item_id).unwrap();
+            [mst.api_houg, mst.api_houk, mst.api_tais, mst.api_saku]
+        };
+        // Fairey Seafox改 (371) against 零式水上偵察機 (25), which grants nothing extra.
+        let (seafox, zero) = (own(371), own(25));
+        let expect =
+            |bonus: [i64; 4]| std::array::from_fn::<_, 4, _>(|i| seafox[i] - zero[i] + bonus[i]);
+
+        // Gotland: firepower +4, evasion +3, anti-submarine +2, line of sight +6.
+        assert_eq!(difference(574, 371, 25), expect([4, 3, 2, 6]));
+        // Gotland andra adds firepower +2, evasion +2, line of sight +3 once.
+        assert_eq!(difference(630, 371, 25), expect([6, 5, 2, 9]));
+        // 夕立改二 has no rule for it.
+        assert_eq!(difference(144, 371, 25), expect([0, 0, 0, 0]));
     }
 
     #[test]

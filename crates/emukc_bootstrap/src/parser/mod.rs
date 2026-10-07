@@ -18,7 +18,7 @@ use emukc_model::{
     prelude::*,
 };
 
-use crate::map_pipeline::build_final_map_catalog;
+use crate::{assets::GEAR_BONUS, map_pipeline::build_final_map_catalog};
 use error::ParseError;
 pub use kc3kai::parse as parse_kc3kai;
 pub use kccp::quest::parse as parse_kccp_quests;
@@ -113,6 +113,11 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
     }
 
     let maps = load_map_catalog(dir, &manifest)?;
+    let gear_bonus = {
+        let path = GEAR_BONUS.path();
+        let (_, raw) = GEAR_BONUS.load().map_err(|source| ParseError::io_at(&path, source))?;
+        serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?
+    };
 
     Ok(Codex {
         manifest,
@@ -128,6 +133,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
         game_cfg: GameConfig::default(),
         music_list,
         maps,
+        gear_bonus,
         cache_source: Some(cache_source),
     })
 }

@@ -153,9 +153,9 @@ Current verification baseline:
 - [2026-10-07] 缓存清单：客户端写死的母港 BGM 不在 `api_mst_bgm`；深海 `item_up` 取替换表里 >1500 的目标，其中
   5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
   服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
-- [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
-- [2026-10-06] 路由规则新来源：`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支（MIT，每图一个 TS 文件；`main` 只有压缩产物）。
-  其「顺序首个命中」与我们的 priority 分组求值等价。计划 2026-10-06-003。
+- [2026-10-07] 装備ボーナス：数据取 KC3Kai `GearBonus.js`（钉住提交，MIT），Rust 是其读取函数的移植，客户端
+  `SlotItemEffectUtil` 只用来对拍。KC3Kai 与客户端的 82 条差异由手工订正层 `main-decoder/gear-bonus-corrections.json` 补平（多数是拟合出来的）。
+  详见 `docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 ## Failed Attempts / Pitfalls
 
@@ -194,13 +194,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-07] 分支 `fix/battle-cell-kinds`（叠在 `feat/enemy-combined-fleet` 上，均未推送）：用户在浏览器打完 6-5，
-  途中修了无敌模式夜战血量、缓存清单三类缺口（+53 −7 条）。测试 1188 过（排除 `emukc_time`），clippy 17。
-  未提交：`scenario` 的 `fully_modernised`；未跟踪的建号脚本 `examples/playtest_seed.rs`。
+- [2026-10-07] PR #5、#7 已合入 `main`（#6 因基线分支被删自动关闭，内容在 #7）。分支 `feat/equipment-stat-bonuses`：
+  计划 007 实施完。clippy 17，`bun test` 95 过，对拍 226 万次差异 0。
+  `battle_golden` 因天津風改二初期装备火力 +4 重冻。
 
 ## Next Session
 
-- [2026-10-07] 待修（用户实测发现，均未动）：`engagement_for_cell` 按 `(海域+格子)%4` 定交战形态而非随机，改它要重冻
-  golden 并先写计划；boss 格 S/A/B 胜就加击破数、不看旗舰是否击沉（`sortie_result.rs` `apply_sortie_map_result`），并进 005。
-- 5-3 I、6-4 D 还没在浏览器里测。之后推送开 PR，再按 007 → 005。
+- [2026-10-07] 007 之后按约定做 005（海域血条阶段）。客户端或 KC3Kai 更新后重跑 `make gear-bonus-oracle`，新差异补进订正文件。
+- 待修（用户实测发现，均未动）：`engagement_for_cell` 按 `(海域+格子)%4` 定交战形态而非随机，改它要重冻 golden 并先写计划；
+  boss 格 S/A/B 胜就加击破数、不看旗舰是否击沉（`sortie_result.rs` `apply_sortie_map_result`），并进 005。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

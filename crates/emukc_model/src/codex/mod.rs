@@ -13,6 +13,7 @@ use crate::{
 
 pub mod furniture;
 pub mod game_config;
+pub mod gear_bonus;
 pub mod group;
 pub mod incentive;
 /// Map catalog and cache parsing support.
@@ -86,6 +87,9 @@ pub struct Codex {
     /// Map catalog
     pub maps: map::MapCatalog,
 
+    /// Visible equipment bonuses.
+    pub gear_bonus: gear_bonus::GearBonusTable,
+
     /// Cache source.
     pub cache_source: Option<CacheSource>,
     // TODO(#0): add more limitations.
@@ -104,6 +108,7 @@ const PATH_EXPEDITION_CONDITION: &str = "expedition_condition.json";
 const PATH_MUSIC_LIST: &str = "music_list.json";
 const PATH_MAP_CATALOG: &str = "map_catalog.json";
 const PATH_GAME_CFG: &str = "game_config.json";
+const PATH_GEAR_BONUS: &str = "gear_bonus.json";
 const PATH_CACHE_SOURCE: &str = "cache_source.json";
 
 impl Codex {
@@ -273,6 +278,7 @@ impl Codex {
             expedition_conditions,
             music_list,
             maps,
+            gear_bonus: Self::load_single_item(path.join(PATH_GEAR_BONUS))?,
             game_cfg: Self::load_single_item(path.join(PATH_GAME_CFG))?,
             cache_source,
         })
@@ -348,6 +354,7 @@ impl Codex {
         Self::save_item(dst.join(PATH_GAME_CFG), overwrite, &self.game_cfg)?;
         Self::save_item(dst.join(PATH_MUSIC_LIST), overwrite, &self.music_list)?;
         Self::save_item(dst.join(PATH_MAP_CATALOG), overwrite, &self.maps)?;
+        Self::save_item(dst.join(PATH_GEAR_BONUS), overwrite, &self.gear_bonus)?;
         if let Some(source) = &self.cache_source {
             Self::save_item(dst.join(PATH_CACHE_SOURCE), overwrite, source)?;
         }

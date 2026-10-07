@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate battle-sim clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -100,6 +100,16 @@ kcnav-update: kcnav-sync kcnav-normalize drift-check ## 刷新 KCNav 数据: 下
 
 route-oracle: ## 用来源代码对拍已转换的路由规则 (需先 route-rules-update 并重建 codex), 报告写到 .data/temp
 	cd main-decoder && bun run route-oracle
+
+gear-bonus-sync: ## 下载钉住提交的 KC3Kai 文件 (装備ボーナス表的来源) 到 .data/temp
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- gear-bonus sync
+
+gear-bonus-update: gear-bonus-sync ## 从钉住的源码再生装備ボーナス资产: 取源 → 转换 → 漂移报告 (之后重建 codex)
+	cd main-decoder && bun run gear-bonus
+	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+
+gear-bonus-oracle: ## 用客户端 main.js 的加成函数对拍装備ボーナス (需先 decode-main 并重建 codex), 报告写到 .data/temp
+	cd main-decoder && bun run gear-bonus-oracle
 
 cache-make-list: ## 生成缓存资源清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite

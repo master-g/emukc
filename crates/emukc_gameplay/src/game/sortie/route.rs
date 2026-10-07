@@ -220,8 +220,8 @@ where
             }
             ship_entries.push(entry);
 
-            // ponytail: equipment LoS bonuses (装備ボーナス) are not modelled anywhere in ship
-            // stats; once they are, they belong under this square root.
+            // What is left includes the equipment LoS bonus (装備ボーナス), which belongs
+            // under this square root.
             los_own_acc += ((ship.los_now - ship_equip_saku).max(0) as f64).sqrt();
         } else {
             // Unknown ship — its equipment cannot be told apart from its own LoS.

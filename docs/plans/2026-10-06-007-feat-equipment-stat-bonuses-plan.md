@@ -2,7 +2,7 @@
 title: "Equipment Stat Bonuses - Plan"
 type: feat
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -27,10 +27,11 @@ execution: code
 - 数据：`KC3Kai/KC3Kai` 的 `src/library/objects/GearBonus.js`（MIT），356 个装备条目；结构是装备 id →
   `byClass` / `byNation` / `byShip` → `multiple`（按数量倍乘）或 `single`（一次性），限定词 `remodel`、`minStars`、`minCount`、
   `excludes`、`distinctGears`，另有与其他装备的组合加成 `synergy`。
-- 对拍用的客户端代码已在本仓库解码：`main-decoder/out/modules/module-82692-slot-item-effect-util.js` 分发到 291 个效果函数。
-  输入模型 `module-73785` 的构造函数只从舰船对象读 `mstID`、`yomi`、`shipTypeID`、`getClassType()`，再加装备列表——桩很小。
-  国籍由 `module-72170`（`shipCountryModule`）按舰级推出。
-- 输出模型 `module-74496` 的字段：`houg`、`raig`、`tyku`、`souk`、`kaih`、`tais`、`saku` 等。
+- 对拍用的客户端代码已在本仓库解码：`SlotItemEffectUtil` 分发到约 290 个效果函数。输入模型 `SlotItemEffectParamModel`
+  的构造函数只从舰船对象读 `mstID`、`yomi`、`shipTypeID`、`getClassType()`，再加装备列表——桩很小。
+  国籍由 `shipCountryModule` 按舰级推出。（模块编号每版都变，6.3.5.0 是 96115 / 98672 / 32903 / 34170；
+  本计划初稿写的 82692 等来自 `out/modules` 里的旧版残留，对拍工具按导出名找模块，不依赖编号。）
+- 输出模型 `SlotItemEffectModel` 的字段：`houg`、`raig`、`tyku`、`souk`、`kaih`、`tais`、`saku` 等。
 - 抽查 Fairey Seafox改（id 371）的五条规则，两个来源数值一致。
 - 落点：`crates/emukc_model/src/codex/ship.rs` 里 `apply slotitem boost` 之后。路由的素索敌是 `los_now − Σ装备索敌`，
   属性里有了加成它自动落在根号内。
@@ -71,10 +72,57 @@ execution: code
 - **U5 行为验证**：R2 的回归（现有舰船属性测试不变）；带 SG レーダー的美国舰索敌 +4 等三五个手算用例；golden。
 - **U6 收口**：删 `ponytail:` 注释，更新计划 002、`docs/solutions/`、`PROJECT_MEMORY.md`、`THIRD_PARTY_NOTICES.md`（KC3Kai 的 MIT 声明）。
 
+## 实施记录（2026-10-07）
+
+**与计划的出入**
+
+- **实施顺序**：U2 的开放问题（桩有多大）先用一个探针脚本回答了——客户端函数只需要替换 `model.slot.getMst`
+  一处全局读取。随后按 U1 → U3 → U4 → U2 做，因为量差异需要先有 Rust 求值器。
+- **国籍表取自 KC3Kai 的 `Meta.js`，不取客户端的 `shipCountryModule`**（U3 原文相反）。表里的 `byNation` 用的是
+  KC3Kai 的国名和它自己的舰级划分，换成客户端的划分就不再是同一张表；两边划分的差异由对拍报出。
+- **转换器直接写资产**，没有路由规则那样的 Rust 归一化一步：表本身已经是声明式的，转换只做别名展开和
+  「单个或列表」的归一。
+- **Rust 侧是 KC3Kai 读取函数的移植**（`KC3Gear.equipmentTotalStatsOnShipBonus`）。用 KC3Kai 原函数对 9.2 万次
+  抽样探测逐项核对过，66 次不同，全部落在下面这处有意的偏离上。偏离：KC3Kai 只对声明了 `starsDist` 的条目看改修星数，
+  其余条目的 `minStars` 会把每一件都算上；对拍显示客户端从不这样，改为始终看星数后 4 个条目（279、467、557、558）
+  与客户端一致，没有条目变差。`byStars` 的两处偏离见下面的对拍结果。
+- **五个按类别计数的组合标志**（水上电探、对空电探、高精度电探、回转翼机、对空机枪）按主数据判定而不是按表里的
+  id 列表，与 KC3Kai 读取函数一致；按列表会把 573 这类数值变过的装备算错。
+
+**途中发现并修掉的既有问题**
+
+- `Codex::ships_before_and_after` 对可往返改造的舰死循环（Fletcher Mk.II、Fletcher改 Mod.2、宗谷三形态、
+  Glorious改 两个，共 7 艘）。此前没有调用路径碰到这些舰；加成计算要改造阶数，会让服务器卡死。
+  改为先收集全部前级再取「没有任何舰改造成它」的那一艘，整条链成环时取最小 id。
+
+**对拍结果（KC3Kai `ee4d7dfb` 对客户端 6.3.5.0）**
+
+- 探测：每个条目 × 865 艘舰 ×（1–3 件、改修 0–10 每一档、与规则点名的装备搭配），只取舰装得上的搭配，共 2,261,930 次。
+- 未订正时 363 个条目里 82 个有差异（1.8% 的探测）。成因三类：客户端对所有舰生效的改修星数加成，KC3Kai 只给了部分舰
+  或没有；新舰的规则 KC3Kai 还没有；KC3Kai 自己的数据或读法问题（同一组 `distinctGears` 的第二条规则永远不生效、
+  两种装备合计封顶表达不了）。
+- **订正层**（用户 2026-10-07 定）：`main-decoder/gear-bonus-corrections.json` 手工维护，转换时并进资产。71 个条目、
+  216 条规则，订正后 **差异为 0**，`gear-bonus-known-diffs.json` 为空。R1 成立。
+- 订正怎么来的：少数条目照客户端函数重写（286 / 577、470 / 529、517、569、578 等）；多数是把「每艘舰单独带 1–3 件、
+  改修 0–10」的客户端值与服务端值相减，拟合成逐件 / 一次性 / 按件数的差额规则，带其他装备时的差额同样处理。
+  拟合出来的规则按舰 id 列举，不解释原因，只保证在探测到的搭配上与客户端一致。
+- 为订正给中性格式加了两样 KC3Kai 没有的东西：用 `+` 连起来的条目键（几种装备合计计数，如 `286+577`），
+  以及组合条件 `requires`（要求同时带着某些装备、且达到某个改修星数）。
+- 对拍还裁定了两处读法：`byStars` 直接读所带装备的星数（KC3Kai 读对方条目的记录，对方没有条目就读不到），
+  `isMultiple` 生效（客户端按件数算）。
+- 只对拍 KD1 的七项。表里还有命中、射程、速力、爆装，资产里保留，服务端不套用。
+
+**Open Questions 的结论**
+
+- 桩：见上，一处。
+- `make update` 后对拍失败算阻断还是告警：对拍没有接进 `make update`，是单独的 `make gear-bonus-oracle`；
+  它失败不挡任何流程，只表示订正层要补。客户端或 KC3Kai 提交更新后重跑，新差异写进订正文件。
+
 ## Verification Contract
 
 三道质量门与 `cd main-decoder && bun run check && bun test` 以退出码为准；`make gear-bonus-oracle` 未登记差异为 0；
 同一提交连转两次 `git diff` 为空。
+对拍命令：`make gear-bonus-oracle`（需要先 `make decode-main` 并重建 codex）。
 
 ## Open Questions
 

@@ -15,41 +15,15 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { loadClient } from "./client-runtime";
+
 /** Webpack ids, checked against 6.3.5.0; a new client build renumbers them. */
-const MODULES = { entry: 32875, recordDay: 66019, recordNight: 53311 };
+const MODULES = { recordDay: 66019, recordNight: 53311 };
 
 /** `PhaseDay_06vs12`: the order the client plays a single fleet against an enemy combined one. */
 const DAY_ORDER = ["air_war", "taisen_opening", "raigeki_opening", "hougeki1", "raigeki", "hougeki2", "hougeki3"] as const;
 
 type Json = Record<string, unknown>;
-type ClientRequire = (id: number) => any;
-
-/** Load the decoded bundle without starting the game, and hand back its module loader. */
-function loadClient(bundlePath: string): ClientRequire {
-	// The record classes pull in utility modules that touch the renderer at load time. Nothing
-	// here calls into it, so anything that swallows property reads and calls will do.
-	const stub: any = new Proxy(function () {}, {
-		get: (target, key) => (key === "prototype" ? (target as any).prototype : key === Symbol.toPrimitive ? () => 0 : stub),
-		apply: () => stub,
-		construct: () => ({}),
-	});
-	const globals = globalThis as any;
-	globals.window = globalThis;
-	for (const name of ["PIXI", "document", "createjs", "Howl", "Howler", "WebFont"]) {
-		globals[name] = stub;
-	}
-
-	const source = readFileSync(bundlePath, "utf8");
-	const bootstrap = new RegExp(`var (_0x[0-9a-f]+) = (_0x[0-9a-f]+)\\(${MODULES.entry}\\);\\s*return \\1 = \\1\\.default;`);
-	const found = source.match(bootstrap);
-	if (!found) {
-		throw new Error(`bundle bootstrap not found in ${bundlePath}; the entry module id probably changed`);
-	}
-	const patched = source.replace(bootstrap, `globalThis.__clientRequire = ${found[2]}; return {};`);
-	const module = { exports: {} };
-	new Function("self", "require", "module", "exports", patched)(globalThis, () => ({}), module, module.exports);
-	return globals.__clientRequire;
-}
 
 /** One side's ships in the client's index space: the escort deck sits at 6..=11. */
 class Side {
@@ -208,7 +182,7 @@ function readJson(path: string): Json {
 
 function main() {
 	const dumpDir = resolve(process.argv[2] ?? ".");
-	const client = loadClient(resolve(import.meta.dir, "../out/main.decoded.js"));
+	const client = loadClient(resolve(import.meta.dir, "../out/main.decoded.js")).require;
 	const { BattleRecordDay } = client(MODULES.recordDay);
 	const { BattleRecordNight } = client(MODULES.recordNight);
 

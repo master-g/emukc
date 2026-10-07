@@ -32,3 +32,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ```
+
+## KC3Kai
+
+`crates/emukc_bootstrap/assets/gear_bonus.json` is converted from the visible equipment
+bonus table of KC3Kai, <https://github.com/KC3Kai/KC3Kai>
+(`src/library/objects/GearBonus.js`, with the nation table of
+`src/library/modules/Meta.js`), and `crates/emukc_model/src/codex/gear_bonus.rs` is a port
+of the function reading that table (`KC3Gear.equipmentTotalStatsOnShipBonus`). The
+converted commit is recorded in the asset and in
+`crates/emukc_bootstrap/src/kc3kai_source.rs`. The source is used under the MIT license:
+
+```text
+The MIT License (MIT)
+
+Copyright (c) 2015-2026 dragonjet
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
