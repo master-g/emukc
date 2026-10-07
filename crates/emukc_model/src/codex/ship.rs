@@ -424,20 +424,35 @@ impl Codex {
     ///
     /// * `ship_mst_id` - The ship manifest ID.
     pub fn ships_before_and_after(&self, ship_mst_id: i64) -> Result<Vec<i64>, CodexError> {
-        let mut first_ship_id = ship_mst_id;
-        loop {
-            let key = first_ship_id.to_string();
-            if let Some(before) = self
-                .manifest
-                .api_mst_ship
-                .iter()
-                .find(|m| m.api_aftershipid.as_ref().unwrap_or(&"0".to_owned()) == &key)
-            {
-                first_ship_id = before.api_id;
-            } else {
-                break;
+        // Some remodels convert back and forth, so walking to "the form before" can go
+        // round in circles. Collect every earlier form instead; the first form is the one
+        // nothing remodels into, or the lowest id when the whole chain is a circle.
+        let mut earlier = vec![ship_mst_id];
+        let mut next = 0;
+        while let Some(id) = earlier.get(next).copied() {
+            next += 1;
+            let key = id.to_string();
+            for before in &self.manifest.api_mst_ship {
+                if before.api_aftershipid.as_deref() == Some(key.as_str())
+                    && !earlier.contains(&before.api_id)
+                {
+                    earlier.push(before.api_id);
+                }
             }
         }
+        let has_before = |id: &i64| {
+            let key = id.to_string();
+            self.manifest
+                .api_mst_ship
+                .iter()
+                .any(|m| m.api_aftershipid.as_deref() == Some(key.as_str()))
+        };
+        let first_ship_id = earlier
+            .iter()
+            .copied()
+            .find(|id| !has_before(id))
+            .or_else(|| earlier.iter().copied().min())
+            .unwrap_or(ship_mst_id);
 
         self.ship_and_after(first_ship_id)
     }
@@ -708,6 +723,20 @@ mod tests {
         }
 
         codex
+    }
+
+    #[test]
+    fn remodel_chains_end_even_when_remodels_convert_back_and_forth() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        // Fletcher Mk.II converts back to 改 Mod.2.
+        assert_eq!(codex.ships_before_and_after(629).unwrap(), [596, 692, 628, 629]);
+        // 宗谷's three forms are a circle with no first form.
+        assert_eq!(codex.ships_before_and_after(650).unwrap(), [645, 650, 699]);
+        for mst in codex.manifest.api_mst_ship.iter().filter(|m| m.api_id <= 1500) {
+            let chain = codex.ships_before_and_after(mst.api_id).unwrap();
+            assert!(chain.contains(&mst.api_id), "{} is missing from {chain:?}", mst.api_id);
+        }
     }
 
     #[test]
