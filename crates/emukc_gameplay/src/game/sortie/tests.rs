@@ -1804,7 +1804,7 @@ async fn combined_sortie_battle_rejects_an_empty_escort_deck() {
     profile.combined_type = ActiveValue::Set(1);
     profile.update(context.db.as_ref()).await.unwrap();
     let store = context.sortie_store.as_ref();
-    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_kind == 1));
+    let _ = store.insert_active(pid, active_sortie_on_cell(&context.codex, |c| c.event_id == 4));
 
     let day = context.sortie_battle(pid, 1).await.unwrap_err();
 
@@ -1820,7 +1820,7 @@ async fn sortie_sp_midnight_battle_rejects_non_battle_cell_like_sortie_battle() 
     let store = context.sortie_store.as_ref();
     let _ = store.insert_active(
         pid,
-        active_sortie_on_cell(&context.codex, |c| !matches!(c.event_kind, 1 | 5)),
+        active_sortie_on_cell(&context.codex, |c| !matches!(c.event_id, 4 | 5)),
     );
 
     let day = context.sortie_battle(pid, 1).await.unwrap_err();
@@ -2052,4 +2052,187 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
 
     let result = context.sortie_battle_result(pid).await.unwrap();
     assert_eq!(result.api_ship_id.len(), 12, "both enemy decks are reported");
+}
+
+/// Every battle cell of every map can be fought through the entry the client picks
+/// for its event kind (`map_info.isNightStart` / `isAirBattle` / `isVS12` / `isAirRaid` /
+/// `isLongRangeFires`), and the packet passes the client-derived rules.
+///
+/// Set `EMUKC_DUMP_DIR` to have one packet of each special kind written out.
+#[tokio::test]
+async fn every_battle_cell_is_playable_through_its_own_entry() {
+    let db = new_mem_db().await.unwrap();
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    codex.game_cfg.god_mode = false;
+    codex.game_cfg.one_hit_kill = false;
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("all-cells", "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, "all-cells").await.unwrap();
+    let pid = context
+        .start_game(&account.access_token.token, profile.profile.id)
+        .await
+        .unwrap()
+        .profile
+        .id;
+    let mut fleet = [-1; 6];
+    for slot in &mut fleet {
+        *slot = context.add_ship(pid, 412).await.unwrap().api_id;
+    }
+    context.update_fleet_ships(pid, 1, &fleet).await.unwrap();
+
+    let store = context.sortie_store.as_ref();
+    let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+    let manifest = &context.codex.manifest;
+    let mut failures = Vec::new();
+    let mut fought = BTreeMap::<i64, usize>::new();
+    let mut dumped = BTreeSet::new();
+
+    for (map_id, definition) in &context.codex.maps.maps {
+        for (variant_key, stage) in &definition.variants {
+            for cell in stage.cells.iter().filter(|cell| matches!(cell.event_id, 4 | 5)) {
+                store.remove_active(pid);
+                super::clear_pending_sortie_runtime_state(store, pid);
+                let _ = store.insert_active(
+                    pid,
+                    ActiveSortieState {
+                        deck_id: 1,
+                        map_id: *map_id,
+                        map_name: definition.name.clone(),
+                        map_level: definition.level,
+                        stage_id: variant_key.clone(),
+                        current_cell_id: cell.cell_no,
+                        boss_cell_id: stage.boss_cell_no,
+                        pending_battle_cell_id: None,
+                        visited_cell_ids: BTreeSet::from([cell.cell_no]),
+                        locked_enemy_composition: None,
+                    },
+                );
+                let at = format!("map {map_id} `{variant_key}` cell {}", cell.cell_no);
+                let (name, packet, night) = match cell.event_kind {
+                    1 => (
+                        "battle",
+                        context.sortie_battle(pid, 1).await.map(|r| serde_json::json!(r)),
+                        false,
+                    ),
+                    2 => (
+                        "sp_midnight",
+                        context
+                            .sortie_sp_midnight_battle(pid, 1)
+                            .await
+                            .map(|r| serde_json::json!(r)),
+                        true,
+                    ),
+                    4 => (
+                        "airbattle",
+                        context.sortie_airbattle(pid, 1).await.map(|r| serde_json::json!(r)),
+                        false,
+                    ),
+                    5 => (
+                        "ec_battle",
+                        context.sortie_ec_battle(pid, 1).await.map(|r| serde_json::json!(r)),
+                        false,
+                    ),
+                    6 => (
+                        "ld_airbattle",
+                        context.sortie_ld_airbattle(pid, 1).await.map(|r| serde_json::json!(r)),
+                        false,
+                    ),
+                    8 => (
+                        "ld_shooting",
+                        context.sortie_ld_shooting(pid, 1).await.map(|r| serde_json::json!(r)),
+                        false,
+                    ),
+                    kind => {
+                        failures.push(format!("{at}: no entry serves event kind {kind}"));
+                        continue;
+                    }
+                };
+                let packet = match packet {
+                    Ok(packet) => packet,
+                    Err(err) => {
+                        failures.push(format!("{at}: {name} failed: {err}"));
+                        continue;
+                    }
+                };
+                let report = if night {
+                    emukc_bootstrap::prelude::validate_night_battle_response(
+                        manifest, &packet, &assets,
+                    )
+                } else {
+                    emukc_bootstrap::prelude::validate_day_battle_response(
+                        manifest, &packet, &assets,
+                    )
+                }
+                .unwrap();
+                if report.has_errors() {
+                    failures.push(format!("{at}: {name} packet: {:?}", report.findings));
+                }
+                *fought.entry(cell.event_kind).or_default() += 1;
+                if cell.event_kind != 1
+                    && dumped.insert(cell.event_kind)
+                    && let Ok(dir) = std::env::var("EMUKC_DUMP_DIR")
+                {
+                    std::fs::write(format!("{dir}/{name}.json"), packet.to_string()).unwrap();
+                }
+            }
+
+            // 気のせい and the other non-battle cells take no battle and lock no enemy.
+            if let Some(cell) = stage.cells.iter().find(|cell| cell.event_id == 6) {
+                assert!(
+                    super::select_locked_enemy_composition(*map_id, stage, cell.cell_no).is_none(),
+                    "map {map_id} cell {} is not a battle cell",
+                    cell.cell_no
+                );
+            }
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "{} battle cells failed:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+    for kind in [1, 2, 4, 5, 6] {
+        assert!(
+            fought.get(&kind).is_some_and(|n| *n > 0),
+            "no cell of event kind {kind} was fought"
+        );
+    }
+    println!("battle cells fought by event kind: {fought:?}");
+
+    // A 気のせい cell refuses every battle entry.
+    let _ = store.remove_active(pid);
+    super::clear_pending_sortie_runtime_state(store, pid);
+    let (map_id, definition, variant_key, stage, cell) = context
+        .codex
+        .maps
+        .maps
+        .iter()
+        .flat_map(|(id, def)| def.variants.iter().map(move |(key, stage)| (id, def, key, stage)))
+        .find_map(|(id, def, key, stage)| {
+            let cell = stage.cells.iter().find(|cell| cell.event_id == 6)?;
+            Some((*id, def, key.clone(), stage, cell))
+        })
+        .unwrap();
+    let _ = store.insert_active(
+        pid,
+        ActiveSortieState {
+            deck_id: 1,
+            map_id,
+            map_name: definition.name.clone(),
+            map_level: definition.level,
+            stage_id: variant_key,
+            current_cell_id: cell.cell_no,
+            boss_cell_id: stage.boss_cell_no,
+            pending_battle_cell_id: None,
+            visited_cell_ids: BTreeSet::from([cell.cell_no]),
+            locked_enemy_composition: None,
+        },
+    );
+    let refused = context.sortie_battle(pid, 1).await.unwrap_err();
+    assert!(
+        matches!(refused, GameplayError::WrongType(ref msg) if msg.contains("is not a battle cell")),
+        "{refused:?}"
+    );
 }

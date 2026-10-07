@@ -129,8 +129,8 @@ Current verification baseline:
   `api_dev_num` 只有 1/2/3，成功率上游不告诉客户端，50/75/100 是本项目定值
   （`codex/remodel_slot.rs::recover_success_rate`）。
 
-- [2026-10-07] 常规图里敌方联合舰队只有 6-5 M（13、18 号格，`event_kind` 5）。客户端按格子 `event_kind`
-  5 / 7 选 `ec_*` 接口。`each_*`、`ec_night_to_day` 常规图触发不到。要点见 `combined-fleet-index-spaces.md`。
+- [2026-10-07] 客户端进不进战斗只看 `event_id`（4 / 5），`event_kind` 只选接口（2 夜战、4 航空戦、5 敌联合、6 空襲、8 レーダー）。
+  常规图的敌联合只有 6-5 M；`each_*`、`ec_night_to_day` 触发不到。见 `combined-fleet-index-spaces.md` 与计划 2026-10-07-001。
 - [2026-10-07] `emukc_time` 的 `jst_next_*_day_of_the_month` 两个测试在日本时间 05:00 前必败（循环加天数直到溢出），与改动无关。
 - [2026-09-22] `api_si_list` 只放对应阶段画得出名牌的装备；`btxt_flat` 的存在范围与探测方法见
   `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
@@ -194,11 +194,10 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-07] 分支 `feat/enemy-combined-fleet`（未推送）：计划 006 与 wikiwiki 退役完成。
-  `cargo test --workspace --exclude emukc_time` 1185 过，clippy 17。`ec_battle` 经 `bun run battle-replay` 回放一致，画面未在浏览器实测。
+- [2026-10-07] 分支 `fix/battle-cell-kinds`（叠在未推送的 `feat/enemy-combined-fleet` 上，均未推送）：计划 006、
+  wikiwiki 退役、战斗格判定（计划 2026-10-07-001）完成。`cargo test --workspace --exclude emukc_time` 1187 过，clippy 17。
 
 ## Next Session
 
-- [2026-10-07] 先请用户在浏览器里打一次 6-5 M，再推送开 PR。之后按 007（装備ボーナス）→ 005（血条阶段）。
-  待查：战斗入口守卫只放行 `event_kind` 1 / 5，codex 有 22 个战斗格是 2 / 4 / 6，疑似被拒，未验证。
+- [2026-10-07] 先请用户在浏览器里打一次 6-5 M 和一个夜战 / 空襲格，再推送开 PR。之后按 007（装備ボーナス）→ 005（血条阶段）。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。

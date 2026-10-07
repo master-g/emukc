@@ -975,7 +975,7 @@ fn select_locked_enemy_composition(
     cell_no: i64,
 ) -> Option<EnemyComposition> {
     let current = stage.cell(cell_no)?;
-    if !matches!(current.event_kind, 1 | 5) {
+    if !matches!(current.event_id, 4 | 5) {
         return None;
     }
 

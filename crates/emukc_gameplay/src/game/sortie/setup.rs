@@ -147,7 +147,9 @@ where
             active.current_cell_id, active.map_id,
         ))
     })?;
-    if !matches!(current_cell.event_kind, 1 | 5) {
+    // The client enters a battle on event id 4 (battle) or 5 (boss); the event kind
+    // only picks which battle endpoint it then calls.
+    if !matches!(current_cell.event_id, 4 | 5) {
         return Err(GameplayError::WrongType(format!(
             "cell {} is not a battle cell",
             current_cell.cell_no,

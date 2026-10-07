@@ -19,7 +19,7 @@ tags: [map, data-source, provenance, ssot]
 | 数据种类 | 唯一来源 | 生成器 | 可再生 |
 | --- | --- | --- | --- |
 | 拓扑（格子、连线） | `kc_data` + `stat.json` | 下载 | ✅ 已被 `edges.json` 独立确认 |
-| 格子类型（战斗 / boss / 気のせい / 资源） | `kc_data` 的推测，再由 `assets/kcnav_cell_events.json` 订正 | `make kcnav-update` | ✅ 实测事件；⚠️ 空襲、夜战、航空偵察仍是内部编码 |
+| 格子类型（战斗 / boss / 気のせい / 资源） | `kc_data` 的推测，再由 `assets/kcnav_cell_events.json` 订正 | `make kcnav-update` | ✅ 实测事件；战斗格的事件 ID 一律是 4 / 5，种类区分夜战、航空戦、空襲、敌联合；⚠️ 航空偵察、揚陸地点的种类未订正 |
 | 真实起点抓包 | `assets/real_map_start_data/*.json` | 人工抓包 | ⚠️ 需真实账号 |
 | 路由规则 | `assets/map_route_rules.json` | `make route-rules-update`（羅針盤シミュ源码 → 确定性转换） | ✅ 钉住提交，可对拍 |
 | 敌方编成（哪些格子出什么舰队） | `assets/kcnav_enemy_fleets.json` | `make kcnav-update`（KCNav 实测，带权重、阵形、等级，含 6-5 M 的敌方联合舰队） | ✅ 448 / 448 个战斗格与 boss 格 |
