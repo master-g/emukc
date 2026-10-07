@@ -58,6 +58,8 @@ the phases as played).
   ends but no longer count: `boss_cell_nos()` is what gauge progress, the end of a sortie and
   the quest event's `boss_cell` all read.
 - The map becomes `Monthly`, and `gauge_count` is the number of phases with a gauge.
+  For these maps the asset wins over `DEFAULT_MAP_RECORDS`, which still lists 7-2 and 7-3
+  with one gauge of 3.
 
 Enemy fleets and ship drops are keyed by node label and go to every variant that has the
 label, so each phase gets its own part with no extra work. After a rebuild, `kcnav

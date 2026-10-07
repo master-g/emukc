@@ -117,4 +117,44 @@ mod tests {
         assert_eq!(refreshed.defeat_count, Some(0), "defeat_count should be reset to 0");
         assert_eq!(refreshed.gauge_index, 1, "gauge_index should be reset to 1");
     }
+
+    #[tokio::test]
+    async fn monthly_reset_returns_a_staged_map_to_its_first_stage() {
+        use emukc_internal::db::entity::profile::map_record;
+        use emukc_internal::db::sea_orm::{
+            ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
+        };
+        use emukc_internal::time::chrono::{Duration, Utc};
+
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        let find = || async {
+            map_record::Entity::find()
+                .filter(map_record::Column::ProfileId.eq(pid))
+                .filter(map_record::Column::MapId.eq(75))
+                .one(context.db())
+                .await
+                .unwrap()
+                .unwrap()
+        };
+
+        // 7-5 cleared last month: at its last stage, with the S rank at M on record.
+        let mut am = find().await.into_active_model();
+        am.cleared = ActiveValue::Set(true);
+        am.unlocked = ActiveValue::Set(true);
+        am.stage_id = ActiveValue::Set(Some("phase3".to_string()));
+        am.defeat_count = ActiveValue::Set(Some(3));
+        am.event_state = ActiveValue::Set(Some(1));
+        am.last_reset_at = ActiveValue::Set(Some(Utc::now() - Duration::days(60)));
+        am.update(context.db()).await.unwrap();
+
+        let infos = context.get_map_infos(pid).await.unwrap();
+
+        let refreshed = find().await;
+        assert_eq!(refreshed.stage_id.as_deref(), Some("phase1"));
+        assert_eq!(refreshed.event_state, None);
+        assert_eq!((refreshed.cleared, refreshed.defeat_count), (false, Some(0)));
+        let info = infos.iter().find(|info| info.api_id == 75).unwrap();
+        assert_eq!((info.api_gauge_num, info.api_required_defeat_count), (Some(1), Some(2)));
+    }
 }
