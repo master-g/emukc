@@ -2,7 +2,7 @@
 title: "Map Gauge Phases - Plan"
 type: feat
 date: 2026-10-06
-status: draft
+status: implemented
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
@@ -52,6 +52,28 @@ execution: code
 - 5-6 的 `stages` 是 4 而 boss 只有 3 个：按 breakpoints 切，第 2 段只多出 18、19 两条边且其中没有 boss 格
   （G 是 11、N 是 27、Z 是 43），像是不靠击破 boss 推进的开路阶段。它靠什么条件进入第 3 段要查清。
 
+### U1 查到的结果（2026-10-07）
+
+来源：wikiwiki.jp/kancolle（南方海域/5-6）、zekamashi.net/kancolle-kouryaku（5-6、7-2、7-5），
+与 murasame.blog.jp（7-2、7-3）、kyuku9999.livedoor.blog（7-2、7-3、5-6）互相印证。
+
+| 图 | 阶段 | 推进条件 |
+| --- | --- | --- |
+| 5-6 | 1（G） | 输送血条 280 TP：G 点 A 胜以上才减，A 胜是 S 胜的七成，需经过揚陸点 E，大破舰不计 |
+| 5-6 | 2 | 到达 R 格一次（无 boss），之后出现第二出击点与 N |
+| 5-6 | 3（N）/ 4（Z） | 击沉旗舰 2 次 / 3 次 |
+| 7-5 | 1（K）/ 2（Q）/ 3（T） | 2 / 3 / 3 次；进入第三段另需 M 格 S 胜一次，与 Q 先后不限 |
+| 7-2 | 1（G）/ 2（M） | 3 / 4 次 |
+| 7-3 | 1（E）/ 2（P） | 3 / 4 次（此前第二段回落到 3，是既有错） |
+
+- 四张图都在每月 1 日重置并回到第一阶段。5-6、7-5 此前是 `Never`。
+- 5-6 的 `stages` 是 4 而 boss 只有 3 个：第 2 段就是「到达 R」的开路阶段。
+- `api_mst_mapinfo` 里 5-6 的 `api_required_defeat_count` 280 是 TP 上限；客户端用
+  `defeat_required − defeat_count` 画常规图的血条，输送血条也走这两个字段。
+
+**与用户确认的范围（2026-10-07）**：5-6 的真 TP 另开计划，第一段暂用「G 点胜利 3 次」占位；
+7-5 的 M 格条件在本计划内做，标记存在 `map_record.event_state`，不加列。
+
 ### Key Decisions
 
 - **KD1 阶段用变体表示**，变体键 `phase1`…`phaseN`，沿用 7-3 的机制；不引入「一张图多个 boss 的集合」。
@@ -84,6 +106,17 @@ execution: code
   指向阶段外格子的规则在该阶段丢弃（需要与「规则贴不上拓扑即失败」的现有约束区分开）。
 - **U5 存档迁移与通关语义**（R3），以及 `api_get_member/mapinfo` 里血条字段的输出。
 - **U6 对拍与收口**。
+
+## 实施记录（2026-10-07）
+
+- 与计划的出入：资产是两份——手工的 `map_gauge_rules.json`（推进条件）与 `kcnav normalize` 生成的
+  `map_gauge_phases.json`（前者加上 KCNav 的断点）；boss label 不进资产，由组装时「该阶段新增的 boss 格」得出。
+- phase → 变体的映射在 Rust 侧的 `compass_route_rules.rs`，不在 `route-rules.ts`；`route-rules.ts` 没有改。
+- 7-3 两个变体保留原样，只按断点校验并接线；实测机械切分与现有两个变体的格子集合一致（9 格 / 26 格）。
+- 新增两种推进方式：到达某格（`advance_on_reach`）与需要某格 S 胜（`advance_needs_s_rank_at`）。
+- `route-oracle` 覆盖 5-6 的 phase1、phase3、phase4；phase2（开路阶段）来源没有对应的 phase，不对拍。
+- 未做：5-6 的输送血条（占位）；血条按击沉旗舰计数（现状是 boss 点 B 胜以上即计数，所有血条图一致）。
+- 沉淀：`docs/solutions/architecture-patterns/map-gauge-phases.md`。
 
 ## Verification Contract
 

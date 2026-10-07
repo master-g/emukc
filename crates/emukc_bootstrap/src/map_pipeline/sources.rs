@@ -30,6 +30,8 @@ pub(super) struct ResolvedMapSources {
     pub(super) route_rules: Option<CompassRouteRulesAsset>,
     /// Recorded cell kinds; `None` leaves the topology source's guesses as they are.
     pub(super) cell_events: Option<crate::kcnav::KcnavCellEventsAsset>,
+    /// The phases of the multi-gauge maps; `None` leaves every map in one piece.
+    pub(super) gauge_phases: Option<crate::map_gauge_phases::MapGaugePhasesAsset>,
     pub(super) kcdata_catalog: MapCatalog,
     pub(super) kcdata_parse_errors: usize,
     pub(super) public_overlay_map_count: usize,
@@ -54,6 +56,7 @@ pub(super) fn load_repo_source_set(
         label_overlay: Some(label_overlay),
         route_rules: Some(load_repo_compass_route_rules()?),
         cell_events: Some(crate::kcnav::load_repo_kcnav_cell_events()?),
+        gauge_phases: Some(crate::map_gauge_phases::load_repo_map_gauge_phases()?),
         kcdata_catalog,
         kcdata_parse_errors,
         public_overlay_map_count,
@@ -276,6 +279,8 @@ fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
                 ship_drops: Default::default(),
                 required_defeat_count: None,
                 clear_to_variant_key: None,
+                advance_on_reach: Vec::new(),
+                advance_needs_s_rank_at: Vec::new(),
                 parse_warnings: Vec::new(),
             },
         )]

@@ -26,6 +26,7 @@ mod download;
 pub mod kc3kai_source;
 mod kcnav;
 mod make_list;
+mod map_gauge_phases;
 mod map_overlay;
 mod map_pipeline;
 mod map_route_rules;
@@ -77,6 +78,10 @@ pub mod prelude {
         build_cache_list_paths, build_cache_list_paths_with_manifest_path,
         build_cache_list_paths_with_rules_path, compare_cache_list_path_sets,
         errors::CacheListMakingError, make as make_cache_list,
+    };
+    pub use crate::map_gauge_phases::{
+        GaugePhase, MapGaugePhasesAsset, kcnav_gauge_phases, load_repo_map_gauge_rules,
+        repo_map_gauge_phases_path,
     };
     pub use crate::map_overlay::{
         MapOverlayAcceptedRecord, MapOverlayBuildError, MapOverlayBuildOutput,

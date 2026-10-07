@@ -1304,6 +1304,8 @@ fn start_source_cells_include_nonzero_route_cell_roots() {
         ship_drops: BTreeMap::new(),
         required_defeat_count: None,
         clear_to_variant_key: None,
+        advance_on_reach: Vec::new(),
+        advance_needs_s_rank_at: Vec::new(),
         parse_warnings: Vec::new(),
     };
 
@@ -2235,4 +2237,177 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
         matches!(refused, GameplayError::WrongType(ref msg) if msg.contains("is not a battle cell")),
         "{refused:?}"
     );
+}
+
+/// A fresh profile with its map records in place, on the real codex.
+async fn staged_map_context(name: &str) -> (Ctx, i64) {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up(name, "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, name).await.unwrap();
+    let session =
+        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+    context.get_map_infos(session.profile.id).await.unwrap();
+    (context, session.profile.id)
+}
+
+/// Settle a win of `win_rank` on the cell labelled `label`, at whatever stage the record is.
+async fn settle_win_at(
+    context: &Ctx,
+    profile_id: i64,
+    definition: &MapDefinition,
+    label: &str,
+    win_rank: &str,
+) -> SortieSettlement {
+    let stage_id = staged_map_stage(context, profile_id, definition).await;
+    let stage = definition.stage(&stage_id).unwrap();
+    let cell_no = stage.multi_label_index()[label][0];
+    let active = ActiveSortieState {
+        deck_id: 1,
+        map_id: definition.map_id,
+        map_name: definition.name.clone(),
+        map_level: definition.level,
+        stage_id,
+        current_cell_id: cell_no,
+        boss_cell_id: stage.boss_cell_no,
+        pending_battle_cell_id: Some(cell_no),
+        visited_cell_ids: BTreeSet::from([cell_no]),
+        locked_enemy_composition: None,
+    };
+    settle_sortie_battle_impl(
+        context.db.as_ref(),
+        context.codex.as_ref(),
+        profile_id,
+        definition,
+        &active,
+        SortieBattleResultSnapshot {
+            win_rank: win_rank.to_string(),
+            ..successful_boss_snapshot()
+        },
+        &[],
+    )
+    .await
+    .unwrap()
+}
+
+async fn staged_map_record(
+    context: &Ctx,
+    profile_id: i64,
+    definition: &MapDefinition,
+) -> map_record::Model {
+    crate::game::map::find_map_record_impl(context.db.as_ref(), profile_id, definition.map_id)
+        .await
+        .unwrap()
+}
+
+async fn staged_map_stage(context: &Ctx, profile_id: i64, definition: &MapDefinition) -> String {
+    let record = staged_map_record(context, profile_id, definition).await;
+    resolve_record_stage_id(definition, &record).unwrap()
+}
+
+#[tokio::test]
+async fn map_7_5_is_cleared_one_gauge_after_another() {
+    let (context, profile_id) = staged_map_context("gauge-7-5").await;
+    let definition = context.codex.map_catalog().map_definition(75).unwrap().clone();
+    let stage = || staged_map_stage(&context, profile_id, &definition);
+
+    assert_eq!(stage().await, "phase1");
+    assert_eq!(definition.chained_gauge("phase1"), Some((1, 2)));
+    settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    assert_eq!(stage().await, "phase1");
+    settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    assert_eq!(stage().await, "phase2");
+    assert_eq!(definition.chained_gauge("phase2"), Some((2, 3)));
+
+    // The first boss is still on the map, but the gauge is no longer its.
+    settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    assert_eq!(staged_map_record(&context, profile_id, &definition).await.defeat_count, Some(0));
+
+    // The emptied second gauge waits for an S rank at M; an A rank there is not one.
+    for _ in 0..3 {
+        settle_win_at(&context, profile_id, &definition, "Q", "S").await;
+    }
+    settle_win_at(&context, profile_id, &definition, "M", "A").await;
+    assert_eq!(stage().await, "phase2");
+    let record = staged_map_record(&context, profile_id, &definition).await;
+    assert_eq!((record.defeat_count, record.cleared), (Some(3), false));
+    settle_win_at(&context, profile_id, &definition, "M", "S").await;
+    assert_eq!(stage().await, "phase3");
+    assert_eq!(definition.chained_gauge("phase3"), Some((3, 3)));
+
+    for _ in 0..2 {
+        let settlement = settle_win_at(&context, profile_id, &definition, "T", "S").await;
+        assert_eq!(settlement.first_clear, 0);
+    }
+    assert!(!staged_map_record(&context, profile_id, &definition).await.cleared);
+    let settlement = settle_win_at(&context, profile_id, &definition, "T", "S").await;
+    assert_eq!(settlement.first_clear, 1);
+    let record = staged_map_record(&context, profile_id, &definition).await;
+    assert!(record.cleared);
+    assert_eq!(record.stage_id.as_deref(), Some("phase3"));
+}
+
+#[tokio::test]
+async fn map_7_5_opens_its_last_gauge_when_m_was_won_first() {
+    let (context, profile_id) = staged_map_context("gauge-7-5-m").await;
+    let definition = context.codex.map_catalog().map_definition(75).unwrap().clone();
+
+    for _ in 0..2 {
+        settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    }
+    settle_win_at(&context, profile_id, &definition, "M", "S").await;
+    for _ in 0..2 {
+        settle_win_at(&context, profile_id, &definition, "Q", "S").await;
+    }
+    assert_eq!(staged_map_stage(&context, profile_id, &definition).await, "phase2");
+    settle_win_at(&context, profile_id, &definition, "Q", "S").await;
+    assert_eq!(staged_map_stage(&context, profile_id, &definition).await, "phase3");
+}
+
+#[tokio::test]
+async fn map_5_6_opens_its_second_start_by_reaching_r() {
+    let (context, profile_id) = staged_map_context("gauge-5-6").await;
+    let definition = context.codex.map_catalog().map_definition(56).unwrap().clone();
+    let stage = || staged_map_stage(&context, profile_id, &definition);
+
+    for _ in 0..3 {
+        settle_win_at(&context, profile_id, &definition, "G", "S").await;
+    }
+    assert_eq!(stage().await, "phase2");
+    // No gauge here: the next one, N's, is shown, and wins at G do not move it.
+    assert_eq!(definition.chained_gauge("phase2"), Some((2, 2)));
+    settle_win_at(&context, profile_id, &definition, "G", "S").await;
+    assert_eq!(stage().await, "phase2");
+    assert_eq!(staged_map_record(&context, profile_id, &definition).await.defeat_count, Some(0));
+
+    let phase2 = definition.stage("phase2").unwrap();
+    assert_eq!(phase2.start_source_cells().len(), 1, "the second start is not open yet");
+    let r = phase2.multi_label_index()["R"][0];
+    for cell_no in [1, r] {
+        crate::game::sortie_result::advance_stage_on_reach(
+            context.db.as_ref(),
+            profile_id,
+            &definition,
+            phase2,
+            cell_no,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            stage().await,
+            if cell_no == r {
+                "phase3"
+            } else {
+                "phase2"
+            }
+        );
+    }
+    assert_eq!(definition.stage("phase3").unwrap().start_source_cells().len(), 2);
+
+    for _ in 0..2 {
+        settle_win_at(&context, profile_id, &definition, "N", "S").await;
+    }
+    assert_eq!(stage().await, "phase4");
+    assert_eq!(definition.chained_gauge("phase4"), Some((3, 3)));
 }

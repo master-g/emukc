@@ -47920,7 +47920,4201 @@
       }
     },
     "56": {
-      "": {
+      "phase1": {
+        "A": [
+          {
+            "ship_id": 0,
+            "weight": 4122
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 1027,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1003,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 814,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 771,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 768,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 540,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 529,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 514,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 366,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 347,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 345,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 316,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 236,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 219,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 209,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 207,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 201,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 188,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 187,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 180,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 168,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 161,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 161,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 114,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 34,
+            "ranks": "AB"
+          }
+        ],
+        "A1": [
+          {
+            "ship_id": 0,
+            "weight": 330
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 53,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 51,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 50,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 48,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 31,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 23,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 22,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 22,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 21,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 21,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 18,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 17,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 16,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 16,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 15,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 14,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 13,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 13,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 12,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 11,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 10,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 3,
+            "ranks": "S"
+          }
+        ],
+        "A2": [
+          {
+            "ship_id": 0,
+            "weight": 894
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 189,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 189,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 166,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 158,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 152,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 110,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 109,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 93,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 87,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 78,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 76,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 74,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 56,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 47,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 46,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 43,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 42,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 34,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 34,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 27,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 24,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 24,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 18,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 10,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 9,
+            "ranks": "AB"
+          }
+        ],
+        "B": [
+          {
+            "ship_id": 0,
+            "weight": 2601
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C": [
+          {
+            "ship_id": 0,
+            "weight": 2437
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C1": [
+          {
+            "ship_id": 0,
+            "weight": 649
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C2": [
+          {
+            "ship_id": 0,
+            "weight": 11526
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 8,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 7,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 4,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "D": [
+          {
+            "ship_id": 0,
+            "weight": 10004
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 9,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 8,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "G": [
+          {
+            "ship_id": 0,
+            "weight": 2852
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 540,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 423,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 388,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 371,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 357,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 304,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 304,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 300,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 298,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 292,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 267,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 252,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 234,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 215,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 485,
+            "raw_ship_name": "藤波",
+            "weight": 215,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 186,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 161,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 153,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 146,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 145,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 144,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 127,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 112,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 95,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 115,
+            "raw_ship_name": "夕張",
+            "weight": 88,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 675,
+            "raw_ship_name": "涼波",
+            "weight": 88,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 674,
+            "raw_ship_name": "玉波",
+            "weight": 81,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 699,
+            "raw_ship_name": "宗谷(AGS)",
+            "weight": 75,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 582,
+            "raw_ship_name": "夏雲",
+            "weight": 72,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 31,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 138,
+            "raw_ship_name": "能代",
+            "weight": 31,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 655,
+            "raw_ship_name": "Northampton",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 886,
+            "raw_ship_name": "早潮",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "B"
+          }
+        ]
+      },
+      "phase2": {
+        "A": [
+          {
+            "ship_id": 0,
+            "weight": 4122
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 1027,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1003,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 814,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 771,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 768,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 540,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 529,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 514,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 366,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 347,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 345,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 316,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 236,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 219,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 209,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 207,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 201,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 188,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 187,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 180,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 168,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 161,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 161,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 114,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 34,
+            "ranks": "AB"
+          }
+        ],
+        "A1": [
+          {
+            "ship_id": 0,
+            "weight": 330
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 53,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 51,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 50,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 48,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 31,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 23,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 22,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 22,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 21,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 21,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 18,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 17,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 16,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 16,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 15,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 14,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 13,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 13,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 12,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 11,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 10,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 3,
+            "ranks": "S"
+          }
+        ],
+        "A2": [
+          {
+            "ship_id": 0,
+            "weight": 894
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 189,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 189,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 166,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 158,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 152,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 110,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 109,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 93,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 87,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 78,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 76,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 74,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 56,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 47,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 46,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 43,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 42,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 34,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 34,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 27,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 24,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 24,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 18,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 10,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 9,
+            "ranks": "AB"
+          }
+        ],
+        "B": [
+          {
+            "ship_id": 0,
+            "weight": 2601
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C": [
+          {
+            "ship_id": 0,
+            "weight": 2437
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C1": [
+          {
+            "ship_id": 0,
+            "weight": 649
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C2": [
+          {
+            "ship_id": 0,
+            "weight": 11526
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 8,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 7,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 4,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "D": [
+          {
+            "ship_id": 0,
+            "weight": 10004
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 9,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 8,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "G": [
+          {
+            "ship_id": 0,
+            "weight": 2852
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 540,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 423,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 388,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 371,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 357,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 304,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 304,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 300,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 298,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 292,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 267,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 252,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 234,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 215,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 485,
+            "raw_ship_name": "藤波",
+            "weight": 215,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 186,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 161,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 153,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 146,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 145,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 144,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 127,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 112,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 95,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 115,
+            "raw_ship_name": "夕張",
+            "weight": 88,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 675,
+            "raw_ship_name": "涼波",
+            "weight": 88,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 674,
+            "raw_ship_name": "玉波",
+            "weight": 81,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 699,
+            "raw_ship_name": "宗谷(AGS)",
+            "weight": 75,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 582,
+            "raw_ship_name": "夏雲",
+            "weight": 72,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 31,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 138,
+            "raw_ship_name": "能代",
+            "weight": 31,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 655,
+            "raw_ship_name": "Northampton",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 886,
+            "raw_ship_name": "早潮",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "B"
+          }
+        ],
+        "H": [
+          {
+            "ship_id": 0,
+            "weight": 2248
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "A"
+          }
+        ]
+      },
+      "phase3": {
+        "A": [
+          {
+            "ship_id": 0,
+            "weight": 4122
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 1027,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1003,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 814,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 771,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 768,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 540,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 529,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 514,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 366,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 347,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 345,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 316,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 236,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 219,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 209,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 207,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 201,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 188,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 187,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 180,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 168,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 161,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 161,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 114,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 34,
+            "ranks": "AB"
+          }
+        ],
+        "A1": [
+          {
+            "ship_id": 0,
+            "weight": 330
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 53,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 51,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 50,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 48,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 31,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 23,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 22,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 22,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 21,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 21,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 18,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 17,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 16,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 16,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 15,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 14,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 13,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 13,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 12,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 11,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 10,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 3,
+            "ranks": "S"
+          }
+        ],
+        "A2": [
+          {
+            "ship_id": 0,
+            "weight": 894
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 189,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 189,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 166,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 158,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 152,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 110,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 109,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 93,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 87,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 78,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 76,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 74,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 56,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 47,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 46,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 43,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 42,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 34,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 34,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 27,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 24,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 24,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 18,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 10,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 9,
+            "ranks": "AB"
+          }
+        ],
+        "B": [
+          {
+            "ship_id": 0,
+            "weight": 2601
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C": [
+          {
+            "ship_id": 0,
+            "weight": 2437
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C1": [
+          {
+            "ship_id": 0,
+            "weight": 649
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "C2": [
+          {
+            "ship_id": 0,
+            "weight": 11526
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 8,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 7,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 4,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "D": [
+          {
+            "ship_id": 0,
+            "weight": 10004
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 9,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 8,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 5,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 3,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "G": [
+          {
+            "ship_id": 0,
+            "weight": 2852
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 540,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 423,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 388,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 371,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 357,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 304,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 304,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 300,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 298,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 292,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 267,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 252,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 234,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 215,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 485,
+            "raw_ship_name": "藤波",
+            "weight": 215,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 186,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 161,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 153,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 146,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 145,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 144,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 127,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 112,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 95,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 115,
+            "raw_ship_name": "夕張",
+            "weight": 88,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 675,
+            "raw_ship_name": "涼波",
+            "weight": 88,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 674,
+            "raw_ship_name": "玉波",
+            "weight": 81,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 699,
+            "raw_ship_name": "宗谷(AGS)",
+            "weight": 75,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 582,
+            "raw_ship_name": "夏雲",
+            "weight": 72,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 31,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 138,
+            "raw_ship_name": "能代",
+            "weight": 31,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 655,
+            "raw_ship_name": "Northampton",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 886,
+            "raw_ship_name": "早潮",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "B"
+          }
+        ],
+        "H": [
+          {
+            "ship_id": 0,
+            "weight": 2248
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "A"
+          }
+        ],
+        "J": [
+          {
+            "ship_id": 0,
+            "weight": 1905
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 531,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 498,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 406,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 398,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 384,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 287,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 272,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 245,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 181,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 166,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 163,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 162,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 161,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 136,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 90,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 90,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 85,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 77,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 76,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 75,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 72,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 50,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 29,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 27,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 26,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 25,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 23,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 22,
+            "ranks": "AB"
+          }
+        ],
+        "K": [
+          {
+            "ship_id": 0,
+            "weight": 5794
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "K1": [
+          {
+            "ship_id": 0,
+            "weight": 903
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 1,
+            "ranks": "A"
+          }
+        ],
+        "L": [
+          {
+            "ship_id": 0,
+            "weight": 2023
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 323,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 284,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 278,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 277,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 263,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 261,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 245,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 229,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 225,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 169,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 133,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 127,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 119,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 103,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 95,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 74,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 66,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 58,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 55,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 51,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 51,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 50,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 50,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 45,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 45,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 485,
+            "raw_ship_name": "藤波",
+            "weight": 44,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 38,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 37,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 31,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 29,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 29,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 28,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 675,
+            "raw_ship_name": "涼波",
+            "weight": 21,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 18,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 138,
+            "raw_ship_name": "能代",
+            "weight": 6,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 674,
+            "raw_ship_name": "玉波",
+            "weight": 6,
+            "ranks": "S"
+          }
+        ],
+        "N": [
+          {
+            "ship_id": 0,
+            "weight": 105
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 394,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 328,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 303,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 229,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 206,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 135,
+            "raw_ship_name": "長波",
+            "weight": 201,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 188,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 187,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 635,
+            "raw_ship_name": "長鯨",
+            "weight": 185,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 481,
+            "raw_ship_name": "水無月",
+            "weight": 176,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 175,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 173,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 170,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 485,
+            "raw_ship_name": "藤波",
+            "weight": 165,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 675,
+            "raw_ship_name": "涼波",
+            "weight": 150,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 699,
+            "raw_ship_name": "宗谷(AGS)",
+            "weight": 141,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 50,
+            "raw_ship_name": "島風",
+            "weight": 137,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 124,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 114,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 165,
+            "raw_ship_name": "卯月",
+            "weight": 114,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 113,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 106,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 103,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 101,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 168,
+            "raw_ship_name": "浦風",
+            "weight": 101,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 674,
+            "raw_ship_name": "玉波",
+            "weight": 96,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 137,
+            "raw_ship_name": "阿賀野",
+            "weight": 89,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 111,
+            "raw_ship_name": "瑞鶴",
+            "weight": 86,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 110,
+            "raw_ship_name": "翔鶴",
+            "weight": 82,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 615,
+            "raw_ship_name": "Helena",
+            "weight": 77,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 64,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 51,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 655,
+            "raw_ship_name": "Northampton",
+            "weight": 50,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 596,
+            "raw_ship_name": "Fletcher",
+            "weight": 48,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 44,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 33,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 30,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 29,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 138,
+            "raw_ship_name": "能代",
+            "weight": 26,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 19,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 47,
+            "raw_ship_name": "涼風",
+            "weight": 11,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 7,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 1,
+            "raw_ship_name": "睦月",
+            "weight": 3,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 3,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 30,
+            "raw_ship_name": "菊月",
+            "weight": 1,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 94,
+            "raw_ship_name": "漣",
+            "weight": 1,
+            "ranks": "B"
+          }
+        ],
+        "P": [
+          {
+            "ship_id": 0,
+            "weight": 11
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 2,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "Q": [
+          {
+            "ship_id": 0,
+            "weight": 5124
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 1060,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 1017,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 632,
+            "raw_ship_name": "有明",
+            "weight": 963,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 882,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 819,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 811,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 799,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 486,
+            "raw_ship_name": "浦波",
+            "weight": 753,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 719,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 525,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 505,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 502,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 499,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 633,
+            "raw_ship_name": "夕暮",
+            "weight": 381,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 277,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 485,
+            "raw_ship_name": "藤波",
+            "weight": 258,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 231,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 227,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 225,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 479,
+            "raw_ship_name": "天霧",
+            "weight": 224,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 223,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 222,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 222,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 216,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 213,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 39,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 37,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 29,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 23,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 21,
+            "ranks": "A"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 20,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 17,
+            "ranks": "A"
+          }
+        ]
+      },
+      "phase4": {
         "A": [
           {
             "ship_id": 0,
@@ -60889,7 +65083,447 @@
       }
     },
     "72": {
-      "": {
+      "phase1": {
+        "B": [
+          {
+            "ship_id": 0,
+            "weight": 12476
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 573,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 325,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 319,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 318,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波",
+            "weight": 317,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 316,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 314,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 307,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月",
+            "weight": 305,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 303,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙",
+            "weight": 302,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 302,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 300,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 94,
+            "raw_ship_name": "漣",
+            "weight": 300,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 295,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 294,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 294,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 30,
+            "raw_ship_name": "菊月",
+            "weight": 290,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 6,
+            "raw_ship_name": "長月",
+            "weight": 287,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 16,
+            "raw_ship_name": "潮",
+            "weight": 286,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 284,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 1,
+            "raw_ship_name": "睦月",
+            "weight": 283,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 282,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾",
+            "weight": 277,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 276,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 265,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 256,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 166,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩",
+            "weight": 158,
+            "ranks": "S"
+          }
+        ],
+        "G": [
+          {
+            "ship_id": 0,
+            "weight": 11985
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 1259,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 16,
+            "raw_ship_name": "潮",
+            "weight": 794,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 94,
+            "raw_ship_name": "漣",
+            "weight": 776,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 770,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙",
+            "weight": 769,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 169,
+            "raw_ship_name": "谷風",
+            "weight": 712,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 132,
+            "raw_ship_name": "秋雲",
+            "weight": 694,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 464,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 30,
+            "raw_ship_name": "菊月",
+            "weight": 450,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 438,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 429,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 427,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 426,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 424,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月",
+            "weight": 422,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 420,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 419,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 6,
+            "raw_ship_name": "長月",
+            "weight": 417,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 416,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 412,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 410,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 409,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 405,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波",
+            "weight": 404,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 398,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 396,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩",
+            "weight": 396,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 392,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 1,
+            "raw_ship_name": "睦月",
+            "weight": 387,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 385,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾",
+            "weight": 380,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 114,
+            "raw_ship_name": "阿武隈",
+            "weight": 380,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 115,
+            "raw_ship_name": "夕張",
+            "weight": 378,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 370,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 126,
+            "raw_ship_name": "伊168",
+            "weight": 370,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 127,
+            "raw_ship_name": "伊58",
+            "weight": 368,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 99,
+            "raw_ship_name": "球磨",
+            "weight": 363,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 528,
+            "raw_ship_name": "早波",
+            "weight": 357,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 351,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 349,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 191,
+            "raw_ship_name": "伊19",
+            "weight": 306,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 128,
+            "raw_ship_name": "伊8",
+            "weight": 211,
+            "ranks": "S"
+          }
+        ]
+      },
+      "phase2": {
         "B": [
           {
             "ship_id": 0,
@@ -65383,7 +70017,2417 @@
       }
     },
     "75": {
-      "": {
+      "phase1": {
+        "C": [
+          {
+            "ship_id": 0,
+            "weight": 439
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 12,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 12,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 11,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 10,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 10,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 9,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 2,
+            "ranks": "S"
+          }
+        ],
+        "D": [
+          {
+            "ship_id": 0,
+            "weight": 62821
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2381,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 1271,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 1240,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 1239,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1237,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 1233,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1226,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 1211,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 1211,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 1199,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 1194,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 1171,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 1155,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 1138,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 1123,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 1105,
+            "ranks": "S"
+          }
+        ],
+        "E": [
+          {
+            "ship_id": 0,
+            "weight": 155
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "G": [
+          {
+            "ship_id": 0,
+            "weight": 20854
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 702,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 405,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 398,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 394,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 382,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 379,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 373,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 369,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 365,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 364,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 362,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 356,
+            "ranks": "S"
+          }
+        ],
+        "J": [
+          {
+            "ship_id": 0,
+            "weight": 31710
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 1596,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 847,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 838,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 823,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 816,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 806,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 797,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 797,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 794,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 787,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 125,
+            "raw_ship_name": "熊野",
+            "weight": 787,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 783,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 782,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 771,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄",
+            "weight": 766,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 755,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 754,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 754,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 752,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智",
+            "weight": 751,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤",
+            "weight": 750,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 748,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 113,
+            "raw_ship_name": "鬼怒",
+            "weight": 747,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 744,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 742,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳",
+            "weight": 741,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 737,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 709,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 708,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 706,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 687,
+            "ranks": "S"
+          }
+        ],
+        "K": [
+          {
+            "ship_id": 0,
+            "weight": 5454
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 629,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 585,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 499,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 478,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 448,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 368,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 274,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 272,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳",
+            "weight": 259,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤",
+            "weight": 258,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 451,
+            "raw_ship_name": "瑞穂",
+            "weight": 258,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 459,
+            "raw_ship_name": "江風",
+            "weight": 257,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 255,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 457,
+            "raw_ship_name": "山風",
+            "weight": 255,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 253,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 253,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智",
+            "weight": 253,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 252,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 250,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 247,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 246,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 244,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 125,
+            "raw_ship_name": "熊野",
+            "weight": 244,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 243,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 113,
+            "raw_ship_name": "鬼怒",
+            "weight": 242,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 474,
+            "raw_ship_name": "松風",
+            "weight": 242,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 240,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 240,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 238,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 238,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 238,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄",
+            "weight": 230,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 229,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 228,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 226,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 405,
+            "raw_ship_name": "春雨",
+            "weight": 223,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 219,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 215,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 175,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 613,
+            "raw_ship_name": "Perth",
+            "weight": 149,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙",
+            "weight": 148,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 604,
+            "raw_ship_name": "De Ruyter",
+            "weight": 107,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 102,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 583,
+            "raw_ship_name": "峯雲",
+            "weight": 82,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 595,
+            "raw_ship_name": "Houston",
+            "weight": 47,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 181,
+            "raw_ship_name": "天津風",
+            "weight": 31,
+            "ranks": "S"
+          }
+        ]
+      },
+      "phase2": {
+        "C": [
+          {
+            "ship_id": 0,
+            "weight": 439
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 12,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 12,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 11,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 10,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 10,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 9,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 8,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 7,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 4,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 2,
+            "ranks": "S"
+          }
+        ],
+        "D": [
+          {
+            "ship_id": 0,
+            "weight": 62821
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 2381,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 1271,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 1240,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 1239,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 1237,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 1233,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 1226,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 1211,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 1211,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 1199,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 1194,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 1171,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 1155,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 1138,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 1123,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 1105,
+            "ranks": "S"
+          }
+        ],
+        "E": [
+          {
+            "ship_id": 0,
+            "weight": 155
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 2,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "G": [
+          {
+            "ship_id": 0,
+            "weight": 20854
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 702,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 405,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 398,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 394,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 382,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 379,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 373,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 369,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 365,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 364,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 362,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 356,
+            "ranks": "S"
+          }
+        ],
+        "J": [
+          {
+            "ship_id": 0,
+            "weight": 31710
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 1596,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 847,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 838,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 823,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 816,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 806,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 797,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 797,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 794,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 787,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 125,
+            "raw_ship_name": "熊野",
+            "weight": 787,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 783,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 782,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 771,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄",
+            "weight": 766,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 755,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 754,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 754,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 752,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智",
+            "weight": 751,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤",
+            "weight": 750,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 748,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 113,
+            "raw_ship_name": "鬼怒",
+            "weight": 747,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 744,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 742,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳",
+            "weight": 741,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 737,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 709,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 708,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 706,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 687,
+            "ranks": "S"
+          }
+        ],
+        "K": [
+          {
+            "ship_id": 0,
+            "weight": 5454
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 629,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 585,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 499,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 478,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 448,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 368,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 274,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 272,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳",
+            "weight": 259,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤",
+            "weight": 258,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 451,
+            "raw_ship_name": "瑞穂",
+            "weight": 258,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 459,
+            "raw_ship_name": "江風",
+            "weight": 257,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 255,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 457,
+            "raw_ship_name": "山風",
+            "weight": 255,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 253,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 253,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智",
+            "weight": 253,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 252,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 251,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 250,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 247,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 246,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 244,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 125,
+            "raw_ship_name": "熊野",
+            "weight": 244,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 243,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 113,
+            "raw_ship_name": "鬼怒",
+            "weight": 242,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 474,
+            "raw_ship_name": "松風",
+            "weight": 242,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 240,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 240,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 238,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 238,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 238,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄",
+            "weight": 230,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 229,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 228,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 226,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 405,
+            "raw_ship_name": "春雨",
+            "weight": 223,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 219,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 215,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 175,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 613,
+            "raw_ship_name": "Perth",
+            "weight": 149,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙",
+            "weight": 148,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 604,
+            "raw_ship_name": "De Ruyter",
+            "weight": 107,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 102,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 583,
+            "raw_ship_name": "峯雲",
+            "weight": 82,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 595,
+            "raw_ship_name": "Houston",
+            "weight": 47,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 181,
+            "raw_ship_name": "天津風",
+            "weight": 31,
+            "ranks": "S"
+          }
+        ],
+        "L": [
+          {
+            "ship_id": 0,
+            "weight": 107
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 5,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 3,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 1,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 1,
+            "ranks": "S"
+          }
+        ],
+        "M": [
+          {
+            "ship_id": 0,
+            "weight": 2996
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 247,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 230,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 223,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 205,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 148,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 139,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 459,
+            "raw_ship_name": "江風",
+            "weight": 133,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 127,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 102,
+            "raw_ship_name": "千歳",
+            "weight": 126,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 124,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 123,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 123,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 123,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 190,
+            "raw_ship_name": "初風",
+            "weight": 123,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 451,
+            "raw_ship_name": "瑞穂",
+            "weight": 122,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 474,
+            "raw_ship_name": "松風",
+            "weight": 122,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 76,
+            "raw_ship_name": "龍驤",
+            "weight": 121,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 125,
+            "raw_ship_name": "熊野",
+            "weight": 120,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 405,
+            "raw_ship_name": "春雨",
+            "weight": 120,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 119,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 118,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 116,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智",
+            "weight": 116,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄",
+            "weight": 116,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 113,
+            "raw_ship_name": "鬼怒",
+            "weight": 114,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 413,
+            "raw_ship_name": "朝雲",
+            "weight": 112,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 111,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 110,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 110,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 109,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 108,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 108,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 107,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 106,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 105,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 104,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 457,
+            "raw_ship_name": "山風",
+            "weight": 100,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 99,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 20,
+            "raw_ship_name": "雪風",
+            "weight": 98,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 124,
+            "raw_ship_name": "鈴谷",
+            "weight": 98,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 94,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 186,
+            "raw_ship_name": "時津風",
+            "weight": 59,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 595,
+            "raw_ship_name": "Houston",
+            "weight": 22,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 181,
+            "raw_ship_name": "天津風",
+            "weight": 19,
+            "ranks": "S"
+          }
+        ],
+        "Q": [
+          {
+            "ship_id": 0,
+            "weight": 1086
+          },
+          {
+            "ship_id": 53,
+            "raw_ship_name": "名取",
+            "weight": 961,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 70,
+            "raw_ship_name": "最上",
+            "weight": 932,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 23,
+            "raw_ship_name": "由良",
+            "weight": 919,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 64,
+            "raw_ship_name": "足柄",
+            "weight": 787,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 65,
+            "raw_ship_name": "羽黒",
+            "weight": 780,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 63,
+            "raw_ship_name": "那智",
+            "weight": 773,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 9,
+            "raw_ship_name": "吹雪",
+            "weight": 717,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 56,
+            "raw_ship_name": "那珂",
+            "weight": 677,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 481,
+            "raw_ship_name": "水無月",
+            "weight": 610,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 38,
+            "raw_ship_name": "初春",
+            "weight": 522,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 12,
+            "raw_ship_name": "磯波",
+            "weight": 503,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 34,
+            "raw_ship_name": "暁",
+            "weight": 489,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 99,
+            "raw_ship_name": "球磨",
+            "weight": 488,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 17,
+            "raw_ship_name": "陽炎",
+            "weight": 483,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 10,
+            "raw_ship_name": "白雪",
+            "weight": 478,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 101,
+            "raw_ship_name": "木曾",
+            "weight": 473,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 47,
+            "raw_ship_name": "涼風",
+            "weight": 469,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 100,
+            "raw_ship_name": "多摩",
+            "weight": 467,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 55,
+            "raw_ship_name": "神通",
+            "weight": 461,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 13,
+            "raw_ship_name": "綾波",
+            "weight": 460,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 32,
+            "raw_ship_name": "初雪",
+            "weight": 460,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 22,
+            "raw_ship_name": "五十鈴",
+            "weight": 458,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 54,
+            "raw_ship_name": "川内",
+            "weight": 457,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 1,
+            "raw_ship_name": "睦月",
+            "weight": 452,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 42,
+            "raw_ship_name": "白露",
+            "weight": 451,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 11,
+            "raw_ship_name": "深雪",
+            "weight": 449,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 21,
+            "raw_ship_name": "長良",
+            "weight": 443,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 95,
+            "raw_ship_name": "朝潮",
+            "weight": 438,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 72,
+            "raw_ship_name": "筑摩",
+            "weight": 423,
+            "ranks": "SA"
+          },
+          {
+            "ship_id": 473,
+            "raw_ship_name": "春風",
+            "weight": 332,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 475,
+            "raw_ship_name": "旗風",
+            "weight": 331,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 66,
+            "raw_ship_name": "高雄",
+            "weight": 328,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 25,
+            "raw_ship_name": "北上",
+            "weight": 317,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 69,
+            "raw_ship_name": "鳥海",
+            "weight": 316,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 24,
+            "raw_ship_name": "大井",
+            "weight": 315,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 71,
+            "raw_ship_name": "利根",
+            "weight": 315,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 62,
+            "raw_ship_name": "妙高",
+            "weight": 304,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 67,
+            "raw_ship_name": "愛宕",
+            "weight": 303,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 68,
+            "raw_ship_name": "摩耶",
+            "weight": 278,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 472,
+            "raw_ship_name": "朝風",
+            "weight": 258,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 94,
+            "raw_ship_name": "漣",
+            "weight": 213,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 14,
+            "raw_ship_name": "敷波",
+            "weight": 207,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 16,
+            "raw_ship_name": "潮",
+            "weight": 205,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 33,
+            "raw_ship_name": "叢雲",
+            "weight": 203,
+            "ranks": "SAB"
+          },
+          {
+            "ship_id": 15,
+            "raw_ship_name": "曙",
+            "weight": 202,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 30,
+            "raw_ship_name": "菊月",
+            "weight": 199,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 37,
+            "raw_ship_name": "電",
+            "weight": 198,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 31,
+            "raw_ship_name": "望月",
+            "weight": 197,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 93,
+            "raw_ship_name": "朧",
+            "weight": 194,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 28,
+            "raw_ship_name": "皐月",
+            "weight": 193,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 39,
+            "raw_ship_name": "子日",
+            "weight": 192,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 2,
+            "raw_ship_name": "如月",
+            "weight": 191,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 36,
+            "raw_ship_name": "雷",
+            "weight": 190,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 41,
+            "raw_ship_name": "初霜",
+            "weight": 190,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 6,
+            "raw_ship_name": "長月",
+            "weight": 189,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 40,
+            "raw_ship_name": "若葉",
+            "weight": 189,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 43,
+            "raw_ship_name": "時雨",
+            "weight": 189,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 7,
+            "raw_ship_name": "三日月",
+            "weight": 184,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 35,
+            "raw_ship_name": "響",
+            "weight": 176,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 29,
+            "raw_ship_name": "文月",
+            "weight": 175,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 595,
+            "raw_ship_name": "Houston",
+            "weight": 119,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 613,
+            "raw_ship_name": "Perth",
+            "weight": 110,
+            "ranks": "S"
+          },
+          {
+            "ship_id": 44,
+            "raw_ship_name": "村雨",
+            "weight": 47,
+            "ranks": "AB"
+          },
+          {
+            "ship_id": 45,
+            "raw_ship_name": "夕立",
+            "weight": 44,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 49,
+            "raw_ship_name": "霞",
+            "weight": 44,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 96,
+            "raw_ship_name": "大潮",
+            "weight": 44,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 46,
+            "raw_ship_name": "五月雨",
+            "weight": 38,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 19,
+            "raw_ship_name": "黒潮",
+            "weight": 36,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 18,
+            "raw_ship_name": "不知火",
+            "weight": 35,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 98,
+            "raw_ship_name": "荒潮",
+            "weight": 33,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 97,
+            "raw_ship_name": "満潮",
+            "weight": 31,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 48,
+            "raw_ship_name": "霰",
+            "weight": 25,
+            "ranks": "B"
+          },
+          {
+            "ship_id": 120,
+            "raw_ship_name": "三隈",
+            "weight": 25,
+            "ranks": "S"
+          }
+        ]
+      },
+      "phase3": {
         "C": [
           {
             "ship_id": 0,

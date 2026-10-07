@@ -1,7 +1,7 @@
 use emukc_battle::{BattleRuntimeShip, calculate_mvp};
 use emukc_crypto::rng;
 use emukc_db::{
-    entity::profile::ship,
+    entity::profile::{map_record, ship},
     sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait, IntoActiveModel},
 };
 use emukc_model::{
@@ -163,6 +163,7 @@ where
         win_rank = %snapshot.win_rank,
         "sortie_battle_result: boss check"
     );
+    record_stage_unlock(c, profile_id, definition, stage, current_cell.cell_no, &snapshot).await?;
     let first_clear =
         apply_sortie_map_result(c, profile_id, definition, stage, is_boss_cell, &snapshot).await?;
     tracing::debug!(
@@ -608,6 +609,74 @@ where
     Ok(snapshot)
 }
 
+/// `event_state` of a regular map whose current stage has had its S-rank condition met.
+const STAGE_UNLOCKED: i64 = 1;
+
+/// Put a record at the start of the stage it has just reached.
+fn enter_stage(am: &mut map_record::ActiveModel, stage_id: String, gauge_index: i64) {
+    assign_stage_id(am, Some(stage_id));
+    am.defeat_count = ActiveValue::Set(Some(0));
+    am.gauge_index = ActiveValue::Set(gauge_index);
+    am.event_state = ActiveValue::Set(None);
+    am.cleared = ActiveValue::Set(false);
+    am.last_cleared_at = ActiveValue::Set(None);
+}
+
+/// Arriving at one of the stage's `advance_on_reach` cells opens the next stage.
+pub(super) async fn advance_stage_on_reach<C>(
+    c: &C,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage: &MapStageDefinition,
+    cell_no: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let Some(next_stage_id) = stage.clear_to_variant_key.clone() else {
+        return Ok(());
+    };
+    if !stage.advance_on_reach.contains(&cell_no) {
+        return Ok(());
+    }
+    let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
+    let gauge_index = record.gauge_index + 1;
+    let mut am = record.into_active_model();
+    enter_stage(&mut am, next_stage_id, gauge_index);
+    am.update(c).await?;
+    Ok(())
+}
+
+/// An S rank on one of the stage's `advance_needs_s_rank_at` cells is remembered, and opens
+/// the next stage at once when the gauge is already empty.
+async fn record_stage_unlock<C>(
+    c: &C,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage: &MapStageDefinition,
+    cell_no: i64,
+    snapshot: &SortieBattleResultSnapshot,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    if snapshot.win_rank != "S" || !stage.advance_needs_s_rank_at.contains(&cell_no) {
+        return Ok(());
+    }
+    let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
+    let gauge_empty = stage
+        .required_defeat_count
+        .is_some_and(|required| record.defeat_count.unwrap_or_default() >= required);
+    let gauge_index = record.gauge_index + 1;
+    let mut am = record.into_active_model();
+    match stage.clear_to_variant_key.clone() {
+        Some(next_stage_id) if gauge_empty => enter_stage(&mut am, next_stage_id, gauge_index),
+        _ => am.event_state = ActiveValue::Set(Some(STAGE_UNLOCKED)),
+    }
+    am.update(c).await?;
+    Ok(())
+}
+
 pub(super) async fn apply_sortie_map_result<C>(
     c: &C,
     profile_id: i64,
@@ -629,9 +698,16 @@ where
         return Ok(0);
     }
 
+    // A stage opened by arrival has no gauge; its boss is the previous stage's.
+    if !stage.advance_on_reach.is_empty() {
+        return Ok(0);
+    }
+
     let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
     let now = Utc::now();
     let was_cleared = record.cleared;
+    let unlocked =
+        stage.advance_needs_s_rank_at.is_empty() || record.event_state == Some(STAGE_UNLOCKED);
     let current_hp = record.current_hp;
     let current_gauge_index = record.gauge_index;
     let previous_defeat_count = record.defeat_count.unwrap_or_default();
@@ -692,12 +768,11 @@ where
         let next_defeat = previous_defeat_count + 1;
         let stage_cleared = next_defeat >= required;
         am.defeat_count = ActiveValue::Set(Some(next_defeat.min(required)));
-        if stage_cleared && let Some(next_variant_key) = stage.clear_to_variant_key.clone() {
-            assign_stage_id(&mut am, Some(next_variant_key));
-            am.defeat_count = ActiveValue::Set(Some(0));
-            am.gauge_index = ActiveValue::Set(next_gauge_index);
-            am.cleared = ActiveValue::Set(false);
-            am.last_cleared_at = ActiveValue::Set(None);
+        if let Some(next_variant_key) = stage.clear_to_variant_key.clone() {
+            // An emptied gauge waits here until the stage's S-rank condition is met.
+            if stage_cleared && unlocked {
+                enter_stage(&mut am, next_variant_key, next_gauge_index);
+            }
             am.update(c).await?;
             return Ok(0);
         }
@@ -1104,6 +1179,8 @@ mod tests {
             )]),
             required_defeat_count: None,
             clear_to_variant_key: None,
+            advance_on_reach: Vec::new(),
+            advance_needs_s_rank_at: Vec::new(),
             parse_warnings: Vec::new(),
         };
 

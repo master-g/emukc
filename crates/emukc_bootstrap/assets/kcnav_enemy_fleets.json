@@ -22921,7 +22921,5542 @@
       }
     },
     "56": {
-      "": {
+      "phase1": {
+        "A": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1999,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1938,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1911,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 792,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 748,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 736,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 515,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 511,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 476,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "A1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 99,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1501,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 93,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 91,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 81,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 67,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 48,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1501,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "A2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 400,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 378,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1531,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 354,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 273,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1531,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 272,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 189,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "B": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 297,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 290,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 219,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 207,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 191,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 178,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 132,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 125,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "C": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 413,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 387,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 362,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 219,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 219,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 198,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 100,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 89,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 73,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 71,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 46,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 27,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 2391,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1699,
+              "ship_ids": [
+                1640,
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1606,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1329,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1108,
+              "ship_ids": [
+                1640,
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 899,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "D": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1564,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1541,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1539,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1517,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1487,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 63,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            }
+          ]
+        },
+        "G": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1899,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1311,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1297,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 680,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 642,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 602,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 117,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 70,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 51,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      "phase2": {
+        "A": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1999,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1938,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1911,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 792,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 748,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 736,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 515,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 511,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 476,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "A1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 99,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1501,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 93,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 91,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 81,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 67,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 48,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1501,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "A2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 400,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 378,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1531,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 354,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 273,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1531,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 272,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 189,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "B": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 297,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 290,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 219,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 207,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 191,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 178,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 132,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 125,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "C": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 413,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 387,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 362,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 219,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 219,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 198,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 100,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 89,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 73,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 71,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 46,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 27,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 2391,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1699,
+              "ship_ids": [
+                1640,
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1606,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1329,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1108,
+              "ship_ids": [
+                1640,
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 899,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "D": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1564,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1541,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1539,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1517,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1487,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 63,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            }
+          ]
+        },
+        "G": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1899,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1311,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1297,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 680,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 642,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 602,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 117,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 70,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 51,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "H": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 385,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 301,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 266,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 194,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 159,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 156,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 116,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 91,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        }
+      },
+      "phase3": {
+        "A": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1999,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1938,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1911,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 792,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 748,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 736,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 515,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 511,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1575,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 476,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1576,
+                1575,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "A1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 99,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1501,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 93,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 91,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 81,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 67,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 48,
+              "ship_ids": [
+                1591,
+                1576,
+                1576,
+                1501,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "A2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 400,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 378,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1531,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 354,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 273,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1576,
+                1531,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 272,
+              "ship_ids": [
+                1554,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 189,
+              "ship_ids": [
+                1518,
+                1591,
+                1576,
+                1576,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "B": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 297,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 290,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 219,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 207,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 191,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 178,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 132,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 125,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "C": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 413,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 387,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 362,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 219,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 219,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 198,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 100,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 89,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 73,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 71,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 46,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 27,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 2391,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1699,
+              "ship_ids": [
+                1640,
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1606,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1329,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1108,
+              "ship_ids": [
+                1640,
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 899,
+              "ship_ids": [
+                1640,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "D": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1564,
+              "ship_ids": [
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1541,
+              "ship_ids": [
+                2094,
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1539,
+              "ship_ids": [
+                1650,
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1517,
+              "ship_ids": [
+                1650,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1487,
+              "ship_ids": [
+                2094,
+                2094,
+                1889
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 63,
+              "ship_ids": [
+                2094
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            }
+          ]
+        },
+        "G": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1899,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1311,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1297,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 680,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 642,
+              "ship_ids": [
+                1548,
+                1559,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 602,
+              "ship_ids": [
+                1548,
+                1762,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 117,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 70,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 51,
+              "ship_ids": [
+                1764,
+                1558,
+                1559,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "H": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 385,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 301,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 266,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 194,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 159,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 156,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 116,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 91,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "J": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 904,
+              "ship_ids": [
+                1554,
+                1591,
+                1577,
+                1576,
+                1576,
+                1530
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 888,
+              "ship_ids": [
+                1555,
+                1591,
+                1577,
+                1576,
+                1576,
+                1531
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 837,
+              "ship_ids": [
+                1591,
+                1577,
+                1577,
+                1576,
+                1576,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 367,
+              "ship_ids": [
+                1555,
+                1591,
+                1577,
+                1576,
+                1576,
+                1531
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 362,
+              "ship_ids": [
+                1591,
+                1577,
+                1577,
+                1576,
+                1576,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 352,
+              "ship_ids": [
+                1554,
+                1591,
+                1577,
+                1576,
+                1576,
+                1530
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 252,
+              "ship_ids": [
+                1555,
+                1591,
+                1577,
+                1576,
+                1576,
+                1531
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 225,
+              "ship_ids": [
+                1554,
+                1591,
+                1577,
+                1576,
+                1576,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 214,
+              "ship_ids": [
+                1591,
+                1577,
+                1577,
+                1576,
+                1576,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:9",
+              "weight": 1,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "K": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1065,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1015,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 692,
+              "ship_ids": [
+                1535,
+                1533,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 676,
+              "ship_ids": [
+                1535,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 238,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 201,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 176,
+              "ship_ids": [
+                1533,
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 174,
+              "ship_ids": [
+                1533,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "K1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 146,
+              "ship_ids": [
+                1616,
+                1616,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 143,
+              "ship_ids": [
+                1616,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 59,
+              "ship_ids": [
+                1616,
+                1616,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 58,
+              "ship_ids": [
+                1616,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 43,
+              "ship_ids": [
+                1616,
+                1527,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 24,
+              "ship_ids": [
+                1762,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 16,
+              "ship_ids": [
+                1762,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 8,
+              "ship_ids": [
+                1616,
+                1527,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "K2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 232,
+              "ship_ids": [
+                1616,
+                1616,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 109,
+              "ship_ids": [
+                1616,
+                1616,
+                1762,
+                1562,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 89,
+              "ship_ids": [
+                1616,
+                1616,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 58,
+              "ship_ids": [
+                1616,
+                1762,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 46,
+              "ship_ids": [
+                1616,
+                1561,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 46,
+              "ship_ids": [
+                1616,
+                1616,
+                1762,
+                1562,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 35,
+              "ship_ids": [
+                1616,
+                1762,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 13,
+              "ship_ids": [
+                1616,
+                1561,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "L": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 1011,
+              "ship_ids": [
+                1616,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 975,
+              "ship_ids": [
+                1616,
+                1616,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 673,
+              "ship_ids": [
+                1616,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 665,
+              "ship_ids": [
+                1616,
+                1616,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 228,
+              "ship_ids": [
+                1762,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 220,
+              "ship_ids": [
+                1616,
+                1527,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 162,
+              "ship_ids": [
+                1762,
+                1762,
+                1527,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 142,
+              "ship_ids": [
+                1616,
+                1527,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "N": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 759,
+              "ship_ids": [
+                1616,
+                1616,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 757,
+              "ship_ids": [
+                1616,
+                1616,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 575,
+              "ship_ids": [
+                1616,
+                1616,
+                1562,
+                1592,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 552,
+              "ship_ids": [
+                1616,
+                1616,
+                1562,
+                1592,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 247,
+              "ship_ids": [
+                1616,
+                1561,
+                1594,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 246,
+              "ship_ids": [
+                1616,
+                1561,
+                1594,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 180,
+              "ship_ids": [
+                1616,
+                1561,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 169,
+              "ship_ids": [
+                1616,
+                1561,
+                1591,
+                1577,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "P": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 3,
+              "ship_ids": [
+                1594,
+                1594,
+                1591,
+                1577,
+                1576,
+                1576
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 2,
+              "ship_ids": [
+                1554,
+                1594,
+                1594,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 2,
+              "ship_ids": [
+                1555,
+                1595,
+                1595,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 2,
+              "ship_ids": [
+                1594,
+                1594,
+                1591,
+                1577,
+                1576,
+                1576
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1,
+              "ship_ids": [
+                1554,
+                1594,
+                1594,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 1,
+              "ship_ids": [
+                1555,
+                1595,
+                1595,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "Q": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 4183,
+              "ship_ids": [
+                1555,
+                1595,
+                1591,
+                1577,
+                1577,
+                1531
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1604,
+              "ship_ids": [
+                1555,
+                1595,
+                1591,
+                1577,
+                1577,
+                1531
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1548,
+              "ship_ids": [
+                1555,
+                1595,
+                1591,
+                1577,
+                1577,
+                1531
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1476,
+              "ship_ids": [
+                1594,
+                1591,
+                1577,
+                1577,
+                1576,
+                1576
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1471,
+              "ship_ids": [
+                1554,
+                1594,
+                1591,
+                1577,
+                1577,
+                1531
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 576,
+              "ship_ids": [
+                1554,
+                1594,
+                1591,
+                1577,
+                1577,
+                1531
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 576,
+              "ship_ids": [
+                1594,
+                1591,
+                1577,
+                1577,
+                1576,
+                1576
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 360,
+              "ship_ids": [
+                1594,
+                1591,
+                1577,
+                1577,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 350,
+              "ship_ids": [
+                1554,
+                1594,
+                1591,
+                1577,
+                1577,
+                1531
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            }
+          ]
+        },
+        "Q1": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 3,
+              "ship_ids": [
+                1616,
+                1762,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1,
+              "ship_ids": [
+                1616,
+                1616,
+                1592,
+                1623,
+                1623,
+                1533
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1,
+              "ship_ids": [
+                1616,
+                1762,
+                1561,
+                1591,
+                1577,
+                1577
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "Q2": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 26,
+              "ship_ids": [
+                1535,
+                1533,
+                1533,
+                1533,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 12,
+              "ship_ids": [
+                1535,
+                1535,
+                1533,
+                1533,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 11,
+              "ship_ids": [
+                1533,
+                1533,
+                1533,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 11,
+              "ship_ids": [
+                1535,
+                1535,
+                1533,
+                1533,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 8,
+              "ship_ids": [
+                1535,
+                1533,
+                1533,
+                1533,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 4,
+              "ship_ids": [
+                1533,
+                1533,
+                1533,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 4,
+              "ship_ids": [
+                1535,
+                1533,
+                1533,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 3,
+              "ship_ids": [
+                1535,
+                1533,
+                1533,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        }
+      },
+      "phase4": {
         "A": {
           "is_boss": false,
           "compositions": [
@@ -32601,7 +38136,602 @@
       }
     },
     "72": {
-      "": {
+      "phase1": {
+        "B": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 4307,
+              "ship_ids": [
+                1555,
+                1554,
+                1592,
+                1576,
+                1576,
+                1576
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 3210,
+              "ship_ids": [
+                1555,
+                1554,
+                1591,
+                1576,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 2386,
+              "ship_ids": [
+                1555,
+                1554,
+                1592,
+                1576,
+                1576,
+                1576
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1718,
+              "ship_ids": [
+                1555,
+                1554,
+                1591,
+                1576,
+                1501,
+                1501
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1236,
+              "ship_ids": [
+                1555,
+                1554,
+                1592,
+                1576,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 866,
+              "ship_ids": [
+                1555,
+                1554,
+                1591,
+                1576,
+                1501,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 465,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 251,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 143,
+              "ship_ids": [
+                1555,
+                1591,
+                1576,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "C": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 5426,
+              "ship_ids": [
+                1532,
+                1530,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 5384,
+              "ship_ids": [
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 5287,
+              "ship_ids": [
+                1532,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 5207,
+              "ship_ids": [
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 3610,
+              "ship_ids": [
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 3601,
+              "ship_ids": [
+                1532,
+                1532,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 3524,
+              "ship_ids": [
+                1532,
+                1530,
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 3502,
+              "ship_ids": [
+                1532,
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "E": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 4012,
+              "ship_ids": [
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 3142,
+              "ship_ids": [
+                1532,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 3138,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 3079,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 2131,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 2101,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 2069,
+              "ship_ids": [
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 994,
+              "ship_ids": [
+                1530,
+                1530,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "G": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 8874,
+              "ship_ids": [
+                1572,
+                1532,
+                1532,
+                1526,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 4588,
+              "ship_ids": [
+                1571,
+                1532,
+                1532,
+                1526,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 2504,
+              "ship_ids": [
+                1571,
+                1532,
+                1532,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 2183,
+              "ship_ids": [
+                1572,
+                1532,
+                1532,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 735,
+              "ship_ids": [
+                1571,
+                1530,
+                1530,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 484,
+              "ship_ids": [
+                1571,
+                1530,
+                1530,
+                1513,
+                1576,
+                1576
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      "phase2": {
         "B": {
           "is_boss": false,
           "compositions": [
@@ -36903,7 +43033,2511 @@
       }
     },
     "75": {
-      "": {
+      "phase1": {
+        "A": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 51859,
+              "ship_ids": [
+                2047,
+                1650
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 43733,
+              "ship_ids": [
+                2047,
+                1651
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 8845,
+              "ship_ids": [
+                2048,
+                2047,
+                1650
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 5313,
+              "ship_ids": [
+                1651
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 410,
+              "ship_ids": [
+                2048,
+                1650
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "B": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 12985,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 11689,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 10811,
+              "ship_ids": [
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 6525,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 6515,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 5346,
+              "ship_ids": [
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 3787,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 2381,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 276,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:9",
+              "weight": 186,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "C": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 214,
+              "ship_ids": [
+                1622,
+                1575,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 103,
+              "ship_ids": [
+                1622,
+                1575,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 61,
+              "ship_ids": [
+                1622,
+                1622,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 35,
+              "ship_ids": [
+                1575,
+                1575,
+                1575,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 12,
+              "ship_ids": [
+                1575,
+                1575,
+                1575,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 8,
+              "ship_ids": [
+                1622,
+                1575,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "D": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 28118,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 14197,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 10163,
+              "ship_ids": [
+                1555,
+                1554,
+                1554,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 2603,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1339,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 882,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "E": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 50,
+              "ship_ids": [
+                1575,
+                1575,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 35,
+              "ship_ids": [
+                1575,
+                1501,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 25,
+              "ship_ids": [
+                1575,
+                1575,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 6,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 19,
+              "ship_ids": [
+                1575,
+                1575,
+                1640,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 12,
+              "ship_ids": [
+                1575,
+                1501,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 6,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 12,
+              "ship_ids": [
+                1575,
+                1501,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "G": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 7704,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 5900,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 2690,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 678,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 522,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 256,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "J": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 19199,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1622,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 10288,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1622,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 5986,
+              "ship_ids": [
+                1527,
+                1555,
+                1762,
+                1622,
+                1622,
+                1622
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1724,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 943,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 682,
+              "ship_ids": [
+                1527,
+                1555,
+                1523,
+                1622,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "K": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 5392,
+              "ship_ids": [
+                1998,
+                1527,
+                1527,
+                1592,
+                1576,
+                1576
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 3879,
+              "ship_ids": [
+                1998,
+                1527,
+                1527,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1587,
+              "ship_ids": [
+                1998,
+                1527,
+                1527,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 436,
+              "ship_ids": [
+                1520,
+                1527,
+                1522,
+                1592,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 400,
+              "ship_ids": [
+                1520,
+                1522,
+                1522,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 154,
+              "ship_ids": [
+                1520,
+                1522,
+                1522,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      "phase2": {
+        "A": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 51859,
+              "ship_ids": [
+                2047,
+                1650
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 43733,
+              "ship_ids": [
+                2047,
+                1651
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 8845,
+              "ship_ids": [
+                2048,
+                2047,
+                1650
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 5313,
+              "ship_ids": [
+                1651
+              ],
+              "formation": 3,
+              "levels": [
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 410,
+              "ship_ids": [
+                2048,
+                1650
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "B": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 12985,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 11689,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 10811,
+              "ship_ids": [
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 6525,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 6515,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 5346,
+              "ship_ids": [
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 3787,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 2381,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 276,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:9",
+              "weight": 186,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "C": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 214,
+              "ship_ids": [
+                1622,
+                1575,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 103,
+              "ship_ids": [
+                1622,
+                1575,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 61,
+              "ship_ids": [
+                1622,
+                1622,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 35,
+              "ship_ids": [
+                1575,
+                1575,
+                1575,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 12,
+              "ship_ids": [
+                1575,
+                1575,
+                1575,
+                1501,
+                1501,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 8,
+              "ship_ids": [
+                1622,
+                1575,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "D": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 28118,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 14197,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 10163,
+              "ship_ids": [
+                1555,
+                1554,
+                1554,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 2603,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 1339,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 882,
+              "ship_ids": [
+                1554,
+                1554,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "E": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 50,
+              "ship_ids": [
+                1575,
+                1575,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 35,
+              "ship_ids": [
+                1575,
+                1501,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 25,
+              "ship_ids": [
+                1575,
+                1575,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 6,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 19,
+              "ship_ids": [
+                1575,
+                1575,
+                1640,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 12,
+              "ship_ids": [
+                1575,
+                1501,
+                1639,
+                1638,
+                1637
+              ],
+              "formation": 6,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 12,
+              "ship_ids": [
+                1575,
+                1501,
+                1639,
+                1638,
+                1637,
+                1637
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "G": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 7704,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 5900,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 2690,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 678,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1575,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 522,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 256,
+              "ship_ids": [
+                1555,
+                1575,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "J": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 19199,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1622,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 10288,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1622,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 5986,
+              "ship_ids": [
+                1527,
+                1555,
+                1762,
+                1622,
+                1622,
+                1622
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 1724,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 943,
+              "ship_ids": [
+                1527,
+                1555,
+                1622,
+                1575,
+                1501,
+                1501
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 682,
+              "ship_ids": [
+                1527,
+                1555,
+                1523,
+                1622,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "K": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 5392,
+              "ship_ids": [
+                1998,
+                1527,
+                1527,
+                1592,
+                1576,
+                1576
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 3879,
+              "ship_ids": [
+                1998,
+                1527,
+                1527,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1587,
+              "ship_ids": [
+                1998,
+                1527,
+                1527,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 436,
+              "ship_ids": [
+                1520,
+                1527,
+                1522,
+                1592,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 400,
+              "ship_ids": [
+                1520,
+                1522,
+                1522,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 154,
+              "ship_ids": [
+                1520,
+                1522,
+                1522,
+                1591,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "L": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 30,
+              "ship_ids": [
+                1621,
+                1621,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 27,
+              "ship_ids": [
+                1621,
+                1621,
+                1532
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 13,
+              "ship_ids": [
+                1621,
+                1621,
+                1532
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 7,
+              "ship_ids": [
+                1575,
+                1575,
+                1532
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 6,
+              "ship_ids": [
+                1575,
+                1575,
+                1532
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 3,
+              "ship_ids": [
+                1575,
+                1575,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                50
+              ]
+            }
+          ]
+        },
+        "M": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 3149,
+              "ship_ids": [
+                1905,
+                1621,
+                1621
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 1030,
+              "ship_ids": [
+                1905,
+                1621,
+                1621
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 1024,
+              "ship_ids": [
+                1905,
+                1621,
+                1621
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 259,
+              "ship_ids": [
+                1904,
+                1575,
+                1575
+              ],
+              "formation": 1,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 88,
+              "ship_ids": [
+                1904,
+                1575,
+                1575
+              ],
+              "formation": 4,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 76,
+              "ship_ids": [
+                1904,
+                1575,
+                1575
+              ],
+              "formation": 2,
+              "levels": [
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        "N": {
+          "is_boss": false,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 222,
+              "ship_ids": [
+                1534,
+                1534,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 174,
+              "ship_ids": [
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 171,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 119,
+              "ship_ids": [
+                1534,
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 109,
+              "ship_ids": [
+                1534,
+                1534,
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 72,
+              "ship_ids": [
+                1534,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:6",
+              "weight": 63,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:7",
+              "weight": 30,
+              "ship_ids": [
+                1532,
+                1532,
+                1532
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:8",
+              "weight": 5,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 4,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            },
+            {
+              "comp_id": "kcnav:9",
+              "weight": 4,
+              "ship_ids": [
+                1532,
+                1532,
+                1530
+              ],
+              "formation": 5,
+              "levels": [
+                50,
+                50,
+                50
+              ]
+            }
+          ]
+        },
+        "Q": {
+          "is_boss": true,
+          "compositions": [
+            {
+              "comp_id": "kcnav:0",
+              "weight": 6254,
+              "ship_ids": [
+                1666,
+                1665,
+                1651,
+                1922,
+                1640,
+                1639
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:1",
+              "weight": 4877,
+              "ship_ids": [
+                1666,
+                1666,
+                1665,
+                1651,
+                1925,
+                1640
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:2",
+              "weight": 4667,
+              "ship_ids": [
+                1666,
+                1665,
+                1651,
+                1925,
+                1640,
+                1526
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:3",
+              "weight": 540,
+              "ship_ids": [
+                1666,
+                1651,
+                1922,
+                1639,
+                1638,
+                1513
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:4",
+              "weight": 393,
+              "ship_ids": [
+                1666,
+                1665,
+                1651,
+                1925,
+                1639,
+                1513
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            {
+              "comp_id": "kcnav:5",
+              "weight": 353,
+              "ship_ids": [
+                1666,
+                1651,
+                1925,
+                1639,
+                1513,
+                1513
+              ],
+              "formation": 3,
+              "levels": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      "phase3": {
         "A": {
           "is_boss": false,
           "compositions": [

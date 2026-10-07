@@ -25695,7 +25695,3259 @@
       }
     },
     "56": {
-      "": {
+      "phase1": {
+        "rules": [
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        16,
+                        17
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 3
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 4
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A2",
+            "predicate": "Always"
+          },
+          {
+            "from": "A",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        7,
+                        8,
+                        9,
+                        10
+                      ]
+                    }
+                  },
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "Ships": [
+                        161,
+                        166
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A",
+            "to": "B",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            5,
+                            6
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "A",
+            "to": "C2",
+            "predicate": "Always"
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "Not": {
+                "Speed": {
+                  "class": "Fast"
+                }
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        5,
+                        6
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2,
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 3
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "A2",
+            "to": "C",
+            "predicate": "Always"
+          },
+          {
+            "from": "B",
+            "to": "C2",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            16,
+                            17
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "Speed": {
+                "class": "Fast"
+              }
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 3
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": "Always"
+          },
+          {
+            "from": "C1",
+            "to": "C2",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "A"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "C1",
+            "to": "C",
+            "predicate": "Always"
+          },
+          {
+            "from": "E",
+            "to": "G",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                {
+                  "LoS": {
+                    "formula": null,
+                    "coefficient": 4,
+                    "op": "Gte",
+                    "value": 58
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "E",
+            "to": "G",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "LoS": {
+                    "formula": null,
+                    "coefficient": 4,
+                    "op": "Gte",
+                    "value": 65
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "E",
+            "to": "F",
+            "predicate": "Always"
+          },
+          {
+            "from": "J",
+            "to": "K1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            11,
+                            18
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "J",
+            "to": "K",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "J",
+            "to": "K1",
+            "predicate": "Always"
+          },
+          {
+            "from": "K",
+            "to": "L",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10,
+                            11,
+                            18
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "K",
+            "to": "K2",
+            "predicate": "Always"
+          },
+          {
+            "from": "L",
+            "to": "N",
+            "predicate": {
+              "LoS": {
+                "formula": null,
+                "coefficient": 4,
+                "op": "Gte",
+                "value": 80
+              }
+            }
+          },
+          {
+            "from": "L",
+            "to": "M",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q",
+            "to": "Q2",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q1",
+            "to": "T",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "Q1",
+            "to": "Q2",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q2",
+            "to": "T",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "P"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "Q2",
+            "to": "V",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "Q"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 4
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 3
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "X",
+            "predicate": "Always"
+          },
+          {
+            "from": "X",
+            "to": "Z",
+            "predicate": {
+              "LoS": {
+                "formula": null,
+                "coefficient": 4,
+                "op": "Gte",
+                "value": 88
+              }
+            }
+          },
+          {
+            "from": "X",
+            "to": "Y",
+            "predicate": "Always"
+          }
+        ]
+      },
+      "phase2": {
+        "rules": [
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        16,
+                        17
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 3
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 4
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A2",
+            "predicate": "Always"
+          },
+          {
+            "from": "A",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        7,
+                        8,
+                        9,
+                        10
+                      ]
+                    }
+                  },
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "Ships": [
+                        161,
+                        166
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A",
+            "to": "B",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            5,
+                            6
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "A",
+            "to": "C2",
+            "predicate": "Always"
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "Not": {
+                "Speed": {
+                  "class": "Fast"
+                }
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        5,
+                        6
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2,
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 3
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "A2",
+            "to": "C",
+            "predicate": "Always"
+          },
+          {
+            "from": "B",
+            "to": "C2",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            16,
+                            17
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "Speed": {
+                "class": "Fast"
+              }
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 3
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": "Always"
+          },
+          {
+            "from": "C1",
+            "to": "C2",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "A"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "C1",
+            "to": "C",
+            "predicate": "Always"
+          },
+          {
+            "from": "E",
+            "to": "G",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                {
+                  "LoS": {
+                    "formula": null,
+                    "coefficient": 4,
+                    "op": "Gte",
+                    "value": 58
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "E",
+            "to": "G",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "LoS": {
+                    "formula": null,
+                    "coefficient": 4,
+                    "op": "Gte",
+                    "value": 65
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "E",
+            "to": "F",
+            "predicate": "Always"
+          },
+          {
+            "from": "J",
+            "to": "K1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            11,
+                            18
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "J",
+            "to": "K",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "J",
+            "to": "K1",
+            "predicate": "Always"
+          },
+          {
+            "from": "K",
+            "to": "L",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10,
+                            11,
+                            18
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "K",
+            "to": "K2",
+            "predicate": "Always"
+          },
+          {
+            "from": "L",
+            "to": "N",
+            "predicate": {
+              "LoS": {
+                "formula": null,
+                "coefficient": 4,
+                "op": "Gte",
+                "value": 80
+              }
+            }
+          },
+          {
+            "from": "L",
+            "to": "M",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q",
+            "to": "Q2",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q1",
+            "to": "T",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "Q1",
+            "to": "Q2",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q2",
+            "to": "T",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "P"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "Q2",
+            "to": "V",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "Q"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 4
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 3
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "X",
+            "predicate": "Always"
+          },
+          {
+            "from": "X",
+            "to": "Z",
+            "predicate": {
+              "LoS": {
+                "formula": null,
+                "coefficient": 4,
+                "op": "Gte",
+                "value": 88
+              }
+            }
+          },
+          {
+            "from": "X",
+            "to": "Y",
+            "predicate": "Always"
+          }
+        ]
+      },
+      "phase3": {
+        "start": [
+          {
+            "from": "",
+            "to": "1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        16,
+                        17
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "",
+            "to": "1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "",
+            "to": "1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "",
+            "to": "2",
+            "predicate": "Always"
+          }
+        ],
+        "rules": [
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        16,
+                        17
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 3
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 4
+              }
+            }
+          },
+          {
+            "from": "1",
+            "to": "A2",
+            "predicate": "Always"
+          },
+          {
+            "from": "A",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        7,
+                        8,
+                        9,
+                        10
+                      ]
+                    }
+                  },
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "Ships": [
+                        161,
+                        166
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A",
+            "to": "B",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            5,
+                            6
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "A",
+            "to": "C2",
+            "predicate": "Always"
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "Not": {
+                "Speed": {
+                  "class": "Fast"
+                }
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        5,
+                        6
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        1,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "A2",
+            "to": "B",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2,
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 3
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "A2",
+            "to": "C",
+            "predicate": "Always"
+          },
+          {
+            "from": "B",
+            "to": "C2",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            16,
+                            17
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": {
+              "And": [
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "Speed": {
+                "class": "Fast"
+              }
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "Ships": [
+                            161,
+                            166
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 1
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            1,
+                            2
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 3
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "B",
+            "to": "C1",
+            "predicate": "Always"
+          },
+          {
+            "from": "C1",
+            "to": "C2",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "A"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "C1",
+            "to": "C",
+            "predicate": "Always"
+          },
+          {
+            "from": "E",
+            "to": "G",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Eq",
+                    "value": 0
+                  }
+                },
+                {
+                  "LoS": {
+                    "formula": null,
+                    "coefficient": 4,
+                    "op": "Gte",
+                    "value": 58
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "E",
+            "to": "G",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            8,
+                            9,
+                            10
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "LoS": {
+                    "formula": null,
+                    "coefficient": 4,
+                    "op": "Gte",
+                    "value": 65
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "E",
+            "to": "F",
+            "predicate": "Always"
+          },
+          {
+            "from": "J",
+            "to": "K1",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            11,
+                            18
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 2
+                  }
+                },
+                {
+                  "Not": {
+                    "Speed": {
+                      "class": "Fast"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "J",
+            "to": "K",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "J",
+            "to": "K1",
+            "predicate": "Always"
+          },
+          {
+            "from": "K",
+            "to": "L",
+            "predicate": {
+              "And": [
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            7,
+                            8,
+                            9,
+                            10,
+                            11,
+                            18
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Lte",
+                    "value": 2
+                  }
+                },
+                {
+                  "CountSum": {
+                    "terms": [
+                      {
+                        "coef": 1,
+                        "counter": {
+                          "ShipTypes": [
+                            3
+                          ]
+                        }
+                      }
+                    ],
+                    "op": "Gte",
+                    "value": 1
+                  }
+                },
+                {
+                  "Speed": {
+                    "class": "Fast"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "from": "K",
+            "to": "K2",
+            "predicate": "Always"
+          },
+          {
+            "from": "L",
+            "to": "N",
+            "predicate": {
+              "LoS": {
+                "formula": null,
+                "coefficient": 4,
+                "op": "Gte",
+                "value": 80
+              }
+            }
+          },
+          {
+            "from": "L",
+            "to": "M",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q",
+            "to": "Q2",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q1",
+            "to": "T",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 2
+              }
+            }
+          },
+          {
+            "from": "Q1",
+            "to": "Q2",
+            "predicate": "Always"
+          },
+          {
+            "from": "Q2",
+            "to": "T",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "P"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "Q2",
+            "to": "V",
+            "predicate": {
+              "VisitedNodeLabel": {
+                "node_labels": [
+                  "Q"
+                ],
+                "visited": true
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 4
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        11,
+                        18
+                      ]
+                    }
+                  }
+                ],
+                "op": "Gte",
+                "value": 3
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "W",
+            "predicate": {
+              "CountSum": {
+                "terms": [
+                  {
+                    "coef": 1,
+                    "counter": {
+                      "ShipTypes": [
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "op": "Lte",
+                "value": 1
+              }
+            }
+          },
+          {
+            "from": "V",
+            "to": "X",
+            "predicate": "Always"
+          },
+          {
+            "from": "X",
+            "to": "Z",
+            "predicate": {
+              "LoS": {
+                "formula": null,
+                "coefficient": 4,
+                "op": "Gte",
+                "value": 88
+              }
+            }
+          },
+          {
+            "from": "X",
+            "to": "Y",
+            "predicate": "Always"
+          }
+        ]
+      },
+      "phase4": {
         "start": [
           {
             "from": "",

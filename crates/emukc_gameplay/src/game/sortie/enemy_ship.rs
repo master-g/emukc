@@ -378,6 +378,8 @@ mod tests {
             ship_drops: BTreeMap::new(),
             required_defeat_count: None,
             clear_to_variant_key: None,
+            advance_on_reach: Vec::new(),
+            advance_needs_s_rank_at: Vec::new(),
             parse_warnings: Vec::new(),
         }
     }
@@ -990,6 +992,8 @@ mod tests {
             ship_drops: BTreeMap::new(),
             required_defeat_count: None,
             clear_to_variant_key: None,
+            advance_on_reach: Vec::new(),
+            advance_needs_s_rank_at: Vec::new(),
             parse_warnings: Vec::new(),
         };
         variant.enemy_fleets.insert(

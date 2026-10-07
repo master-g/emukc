@@ -60,6 +60,8 @@ pub(crate) const MAP_ROUTE_RULES: RepoAsset = asset!("map_route_rules", embedded
 pub(crate) const KCNAV_ENEMY_FLEETS: RepoAsset = asset!("kcnav_enemy_fleets", embedded);
 pub(crate) const KCNAV_CELL_EVENTS: RepoAsset = asset!("kcnav_cell_events", embedded);
 pub(crate) const MAP_LIMITED_DROPS: RepoAsset = asset!("map_limited_drops", embedded);
+pub(crate) const MAP_GAUGE_RULES: RepoAsset = asset!("map_gauge_rules", embedded);
+pub(crate) const MAP_GAUGE_PHASES: RepoAsset = asset!("map_gauge_phases", embedded);
 pub(crate) const CACHE_RULES: RepoAsset = asset!("cache_rules", embedded);
 pub(crate) const GEAR_BONUS: RepoAsset = asset!("gear_bonus", embedded);
 
@@ -79,6 +81,8 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     KCNAV_ENEMY_FLEETS,
     KCNAV_CELL_EVENTS,
     MAP_LIMITED_DROPS,
+    MAP_GAUGE_RULES,
+    MAP_GAUGE_PHASES,
     CACHE_RULES,
     GEAR_BONUS,
     asset!("resource_manifest"),

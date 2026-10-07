@@ -645,6 +645,8 @@ async fn monthly_map_record_resets_on_map_info_read() {
                     ship_drops: std::collections::BTreeMap::new(),
                     required_defeat_count: Some(4),
                     clear_to_variant_key: None,
+                    advance_on_reach: Vec::new(),
+                    advance_needs_s_rank_at: Vec::new(),
                     parse_warnings: vec![],
                 },
             )]),
