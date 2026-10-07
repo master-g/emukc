@@ -12,8 +12,8 @@ use super::{
 };
 
 /// Assemble the final catalog in its one fixed order: kcdata → public overlay →
-/// `stat.json` → `p_unlock` normalization → label overlay → compass
-/// routing rules.
+/// `stat.json` → `p_unlock` normalization → cell kinds → gauge phases → label
+/// overlay → compass routing rules.
 ///
 /// The label overlay and the routing rules go last because they are the only steps
 /// that resolve labels to cell numbers, so they must see the final variant set and
@@ -47,6 +47,19 @@ pub(super) fn assemble_final_map_catalog(
                 ))
             })?;
         tracing::info!(corrected, "map catalog: cell kinds corrected from recorded routes");
+    }
+
+    // After the cell kinds, which say where each phase's boss is; before the steps that
+    // pin things onto cells, which must see the phases as they will be played.
+    if let Some(gauge_phases) = &sources.gauge_phases {
+        crate::map_gauge_phases::apply_gauge_phases(&mut catalog, gauge_phases).map_err(
+            |errors| {
+                ParseError::Generic(format!(
+                    "gauge phases do not fit the map topology:\n{}",
+                    errors.join("\n")
+                ))
+            },
+        )?;
     }
 
     let overlay_items_dropped = sources
@@ -139,18 +152,24 @@ fn apply_route_rules_catalog(
         let Some(definition) = catalog.maps.get_mut(map_id) else {
             continue;
         };
-        for (variant_key, rules) in variants {
-            match definition.variants.get_mut(variant_key) {
-                Some(variant) => {
-                    if let Err(variant_errors) = apply_route_rules(variant, rules) {
-                        errors.extend(
-                            variant_errors
-                                .into_iter()
-                                .map(|err| format!("map {map_id} variant `{variant_key}`: {err}")),
-                        );
+        // Rules are written for the whole map, which is what the last phase is.
+        let whole = definition.stage_chain().last().copied().cloned();
+        for (source_key, rules) in variants {
+            // Rules a map has only one set of go to each of its phases.
+            for variant_key in definition.fan_out_variant_keys(source_key) {
+                let whole = whole.as_ref().filter(|whole| whole.variant_key != variant_key);
+                match definition.variants.get_mut(&variant_key) {
+                    Some(variant) => {
+                        if let Err(variant_errors) = apply_route_rules(variant, rules, whole) {
+                            errors.extend(
+                                variant_errors.into_iter().map(|err| {
+                                    format!("map {map_id} variant `{variant_key}`: {err}")
+                                }),
+                            );
+                        }
                     }
+                    None => errors.push(format!("map {map_id} has no variant `{variant_key}`")),
                 }
-                None => errors.push(format!("map {map_id} has no variant `{variant_key}`")),
             }
         }
     }
@@ -330,6 +349,7 @@ mod tests {
             label_overlay: Some(overlay),
             route_rules: None,
             cell_events: None,
+            gauge_phases: None,
             public_overlay_catalog: public_overlay,
             ..sources_from_kcdata(kcdata)
         };
@@ -352,6 +372,7 @@ mod tests {
             label_overlay: None,
             route_rules: None,
             cell_events: None,
+            gauge_phases: None,
             kcdata_catalog: kcdata,
             kcdata_parse_errors: 0,
             public_overlay_map_count: 0,
@@ -519,6 +540,7 @@ mod tests {
             label_overlay: Some(overlay),
             route_rules: None,
             cell_events: None,
+            gauge_phases: None,
             ..sources_from_kcdata(kcdata)
         })
         .unwrap();

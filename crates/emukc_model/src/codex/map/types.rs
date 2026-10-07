@@ -104,6 +104,18 @@ pub struct MapVariantDefinition {
     pub required_defeat_count: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clear_to_variant_key: Option<String>,
+    /// The gauge moves on every boss win of rank A or better, the flagship sunk or not, as
+    /// a transport gauge does. Otherwise only a sunk boss flagship moves it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub gauge_counts_wins: bool,
+    /// Cells whose arrival moves the map on to `clear_to_variant_key`. A stage with any has
+    /// no gauge of its own: it is a route to open, not a boss to sink.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub advance_on_reach: Vec<i64>,
+    /// Cells one of which must have been won with an S rank before the emptied gauge moves
+    /// the map on to `clear_to_variant_key`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub advance_needs_s_rank_at: Vec<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parse_warnings: Vec<String>,
 }

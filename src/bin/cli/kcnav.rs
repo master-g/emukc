@@ -71,6 +71,10 @@ struct NormalizeArgs {
     /// Where to write the cell kind asset.
     #[arg(long, default_value_os_t = repo_kcnav_cell_events_path(), value_name = "FILE")]
     cell_events: PathBuf,
+
+    /// Where to write the gauge phase asset.
+    #[arg(long, default_value_os_t = repo_map_gauge_phases_path(), value_name = "FILE")]
+    gauge_phases: PathBuf,
 }
 
 fn write_json<T: serde::Serialize>(value: &T, path: &std::path::Path) -> Result<()> {
@@ -122,6 +126,16 @@ pub(super) async fn exec(args: &KcnavArgs) -> Result<()> {
             let nodes = catalog.maps.values().map(std::collections::BTreeMap::len).sum::<usize>();
             write_json(&catalog, &args.output)?;
             write_json(&kcnav_cell_events(&catalog), &args.cell_events)?;
+            let meta_path = args.input.join("meta.json");
+            let meta = serde_json::from_str(
+                &fs::read_to_string(&meta_path)
+                    .with_context(|| format!("reading {}", meta_path.display()))?,
+            )?;
+            let rules = load_repo_map_gauge_rules()?;
+            write_json(
+                &kcnav_gauge_phases(&meta, &rules).map_err(|err| anyhow!(err))?,
+                &args.gauge_phases,
+            )?;
             let codex = Codex::load_without_cache_source(&args.codex)
                 .with_context(|| format!("loading the codex from {}", args.codex.display()))?;
             let maps = codex.map_catalog();

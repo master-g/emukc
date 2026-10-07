@@ -1,7 +1,7 @@
 use emukc_battle::{BattleRuntimeShip, calculate_mvp};
 use emukc_crypto::rng;
 use emukc_db::{
-    entity::profile::ship,
+    entity::profile::{map_record, ship},
     sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait, IntoActiveModel},
 };
 use emukc_model::{
@@ -155,6 +155,7 @@ where
 
     let snapshot = update_sortie_result_stats(c, codex, profile_id, snapshot).await?;
     let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);
+    let flagship_sunk = final_enemy_nowhps.first().is_some_and(|hp| *hp <= 0);
     tracing::debug!(
         map_id = definition.map_id,
         cell_no = current_cell.cell_no,
@@ -163,8 +164,17 @@ where
         win_rank = %snapshot.win_rank,
         "sortie_battle_result: boss check"
     );
-    let first_clear =
-        apply_sortie_map_result(c, profile_id, definition, stage, is_boss_cell, &snapshot).await?;
+    record_stage_unlock(c, profile_id, definition, stage, current_cell.cell_no, &snapshot).await?;
+    let first_clear = apply_sortie_map_result(
+        c,
+        profile_id,
+        definition,
+        stage,
+        is_boss_cell,
+        flagship_sunk,
+        &snapshot,
+    )
+    .await?;
     tracing::debug!(
         map_id = definition.map_id,
         first_clear,
@@ -608,12 +618,81 @@ where
     Ok(snapshot)
 }
 
+/// `event_state` of a regular map whose current stage has had its S-rank condition met.
+const STAGE_UNLOCKED: i64 = 1;
+
+/// Put a record at the start of the stage it has just reached.
+fn enter_stage(am: &mut map_record::ActiveModel, stage_id: String, gauge_index: i64) {
+    assign_stage_id(am, Some(stage_id));
+    am.defeat_count = ActiveValue::Set(Some(0));
+    am.gauge_index = ActiveValue::Set(gauge_index);
+    am.event_state = ActiveValue::Set(None);
+    am.cleared = ActiveValue::Set(false);
+    am.last_cleared_at = ActiveValue::Set(None);
+}
+
+/// Arriving at one of the stage's `advance_on_reach` cells opens the next stage.
+pub(super) async fn advance_stage_on_reach<C>(
+    c: &C,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage: &MapStageDefinition,
+    cell_no: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let Some(next_stage_id) = stage.clear_to_variant_key.clone() else {
+        return Ok(());
+    };
+    if !stage.advance_on_reach.contains(&cell_no) {
+        return Ok(());
+    }
+    let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
+    let gauge_index = record.gauge_index + 1;
+    let mut am = record.into_active_model();
+    enter_stage(&mut am, next_stage_id, gauge_index);
+    am.update(c).await?;
+    Ok(())
+}
+
+/// An S rank on one of the stage's `advance_needs_s_rank_at` cells is remembered, and opens
+/// the next stage at once when the gauge is already empty.
+async fn record_stage_unlock<C>(
+    c: &C,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage: &MapStageDefinition,
+    cell_no: i64,
+    snapshot: &SortieBattleResultSnapshot,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    if snapshot.win_rank != "S" || !stage.advance_needs_s_rank_at.contains(&cell_no) {
+        return Ok(());
+    }
+    let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
+    let gauge_empty = stage
+        .required_defeat_count
+        .is_some_and(|required| record.defeat_count.unwrap_or_default() >= required);
+    let gauge_index = record.gauge_index + 1;
+    let mut am = record.into_active_model();
+    match stage.clear_to_variant_key.clone() {
+        Some(next_stage_id) if gauge_empty => enter_stage(&mut am, next_stage_id, gauge_index),
+        _ => am.event_state = ActiveValue::Set(Some(STAGE_UNLOCKED)),
+    }
+    am.update(c).await?;
+    Ok(())
+}
+
 pub(super) async fn apply_sortie_map_result<C>(
     c: &C,
     profile_id: i64,
     definition: &MapDefinition,
     stage: &MapStageDefinition,
     is_boss_cell: bool,
+    flagship_sunk: bool,
     snapshot: &SortieBattleResultSnapshot,
 ) -> Result<i64, GameplayError>
 where
@@ -629,9 +708,16 @@ where
         return Ok(0);
     }
 
+    // A stage opened by arrival has no gauge; its boss is the previous stage's.
+    if !stage.advance_on_reach.is_empty() {
+        return Ok(0);
+    }
+
     let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
     let now = Utc::now();
     let was_cleared = record.cleared;
+    let unlocked =
+        stage.advance_needs_s_rank_at.is_empty() || record.event_state == Some(STAGE_UNLOCKED);
     let current_hp = record.current_hp;
     let current_gauge_index = record.gauge_index;
     let previous_defeat_count = record.defeat_count.unwrap_or_default();
@@ -689,15 +775,23 @@ where
     }
 
     if let Some(required) = stage.required_defeat_count.or(definition.required_defeat_count) {
+        // A gauge is emptied by sinking the boss flagship; winning without that leaves it.
+        let counts = if stage.gauge_counts_wins {
+            matches!(snapshot.win_rank.as_str(), "S" | "A")
+        } else {
+            flagship_sunk
+        };
+        if !counts {
+            return Ok(0);
+        }
         let next_defeat = previous_defeat_count + 1;
         let stage_cleared = next_defeat >= required;
         am.defeat_count = ActiveValue::Set(Some(next_defeat.min(required)));
-        if stage_cleared && let Some(next_variant_key) = stage.clear_to_variant_key.clone() {
-            assign_stage_id(&mut am, Some(next_variant_key));
-            am.defeat_count = ActiveValue::Set(Some(0));
-            am.gauge_index = ActiveValue::Set(next_gauge_index);
-            am.cleared = ActiveValue::Set(false);
-            am.last_cleared_at = ActiveValue::Set(None);
+        if let Some(next_variant_key) = stage.clear_to_variant_key.clone() {
+            // An emptied gauge waits here until the stage's S-rank condition is met.
+            if stage_cleared && unlocked {
+                enter_stage(&mut am, next_variant_key, next_gauge_index);
+            }
             am.update(c).await?;
             return Ok(0);
         }
@@ -985,6 +1079,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_defeat_gauge_moves_only_when_the_boss_flagship_sinks() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let pid = insert_test_profile(&db).await;
+        let definition = MapDefinition {
+            required_defeat_count: Some(2),
+            max_hp: None,
+            ..gauge_map_definition(1, 1)
+        };
+        let mut stage = gauge_stage();
+        insert_gauge_record(&db, pid, definition.map_id).await;
+        let defeats = || async { get_record(&db, pid, definition.map_id).await.defeat_count };
+
+        // An S rank that left the flagship afloat is a win, not a kill.
+        let snap = snapshot("S");
+        apply_sortie_map_result(&db, pid, &definition, &stage, true, false, &snap).await.unwrap();
+        assert_eq!(defeats().await.unwrap_or_default(), 0);
+        apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
+        assert_eq!(defeats().await, Some(1));
+
+        // A gauge that counts wins takes A or better, the flagship sunk or not.
+        stage.gauge_counts_wins = true;
+        let snap = snapshot("B");
+        apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
+        assert_eq!(defeats().await, Some(1));
+        let snap = snapshot("A");
+        let first_clear =
+            apply_sortie_map_result(&db, pid, &definition, &stage, true, false, &snap)
+                .await
+                .unwrap();
+        assert_eq!((defeats().await, first_clear), (Some(2), 1));
+    }
+
+    #[tokio::test]
     async fn gauge_advances_after_boss_kill_with_remaining_gauges() {
         let db = emukc_db::prelude::new_mem_db().await.unwrap();
         let pid = insert_test_profile(&db).await;
@@ -993,8 +1120,9 @@ mod tests {
         insert_gauge_record(&db, pid, definition.map_id).await;
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 0, "gauge advance should not report first-clear");
 
         let idx = get_gauge_index(&db, pid, definition.map_id).await;
@@ -1029,8 +1157,9 @@ mod tests {
         record.insert(&db).await.unwrap();
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 1, "final gauge clear should report first-clear");
 
         let cleared = is_cleared(&db, pid, definition.map_id).await;
@@ -1046,8 +1175,9 @@ mod tests {
         insert_gauge_record(&db, pid, definition.map_id).await;
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 1, "single-gauge clear should report first-clear");
         assert!(is_cleared(&db, pid, definition.map_id).await);
     }
@@ -1061,8 +1191,9 @@ mod tests {
         insert_gauge_record(&db, pid, definition.map_id).await;
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, false, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, false, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 0);
 
         let idx = get_gauge_index(&db, pid, definition.map_id).await;
@@ -1104,6 +1235,9 @@ mod tests {
             )]),
             required_defeat_count: None,
             clear_to_variant_key: None,
+            advance_on_reach: Vec::new(),
+            gauge_counts_wins: false,
+            advance_needs_s_rank_at: Vec::new(),
             parse_warnings: Vec::new(),
         };
 

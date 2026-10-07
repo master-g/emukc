@@ -39,7 +39,11 @@ const TOLERANCE = 0.01;
 /** The variant of ours each source phase is compared against; phases left out have none. */
 const VARIANTS: Record<string, Record<string, string>> = {
 	"7-3": { "1": "pre_p_unlock", "2": "post_p_unlock" },
-	"5-6": { "3": "" },
+	// The route-opening phase2 plays by phase 1's rules on a map two cells larger; it has no phase of its own to compare with.
+	"5-6": { "1": "phase1", "2": "phase3", "3": "phase4" },
+	// One set of rules for every phase: compared on the last, which is the whole map.
+	"7-2": { "": "phase2" },
+	"7-5": { "": "phase3" },
 };
 
 function repoPath(...segments: string[]): string {
@@ -340,13 +344,20 @@ async function main(): Promise<void> {
 	const uncovered: string[] = [];
 	const random = mulberry32(20261006);
 
+	const catalog = JSON.parse(readFileSync(repoPath(".data/codex/map_catalog.json"), "utf8")) as { maps: Record<string, { variants: Record<string, { cells: { node_label?: string; next_cells: number[] }[] }> }> };
+
 	for (const [area, phases] of Object.entries(document.maps)) {
 		for (const [phase, rules] of Object.entries(phases)) {
-			const variant = phase === "" ? "" : VARIANTS[area]?.[phase];
+			const variant = VARIANTS[area]?.[phase] ?? (phase === "" ? "" : undefined);
 			if (variant === undefined) continue;
+			// The source writes every phase's rules for the whole map; an early phase of ours has only part of it, and nothing leaves a node whose edges are not open yet.
+			const ours = catalog.maps[area.replace("-", "")]?.variants[variant];
+			if (ours === undefined) throw new Error(`${area} has no variant ${JSON.stringify(variant)} in the codex`);
+			const ourLabels = new Set(ours.cells.filter((cell) => cell.next_cells.length > 0).map((cell) => cell.node_label));
 			const nodes: [string | null, Rule[]][] = [[null, rules.start], ...Object.entries(rules.nodes).filter(([, node]) => !node.active).map(([label, node]): [string, Rule[]] => [label, node.rules])];
 			for (const [node, nodeRules] of nodes) {
 				if (nodeRules.length === 0) continue;
+				if (node !== null && !ourLabels.has(node)) continue;
 				const generator = probeGenerator(area, variant, node, nodeRules, data, stypes, equipChoices, random);
 				const fired = new Set<number>();
 				for (let round = 0; round <= EXTRA_ROUNDS && fired.size < nodeRules.length; round += 1) {

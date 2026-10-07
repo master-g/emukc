@@ -192,17 +192,20 @@ fn ship_types(names: &[String]) -> Result<Vec<i64>, String> {
     Ok(ids)
 }
 
-/// The variant a source phase describes, or `None` when no variant of ours does.
+/// The variants a source phase describes.
 ///
-/// A map without a phase option has the single phase `""`. 7-3's two phases are its two
-/// variants. 5-6 has three phases (the second start and the Q routes open up as its gauges
-/// fall) but one variant, which carries the whole topology, so it takes the last phase.
-fn variant_key(map_id: i64, phase: &str) -> Result<Option<&'static str>, String> {
+/// A map without a phase option has the single phase `""`, which goes to every variant the
+/// map has. 7-3's two phases are its two variants. 5-6 has three phases, one per gauge, and
+/// four variants: the second, where a route is opened rather than a gauge emptied, is still
+/// played by the first gauge's rules.
+fn variant_keys(map_id: i64, phase: &str) -> Result<&'static [&'static str], String> {
     match (map_id, phase) {
-        (_, "") | (56, "3") => Ok(Some("")),
-        (73, "1") => Ok(Some("pre_p_unlock")),
-        (73, "2") => Ok(Some("post_p_unlock")),
-        (56, "1" | "2") => Ok(None),
+        (_, "") => Ok(&[""]),
+        (73, "1") => Ok(&["pre_p_unlock"]),
+        (73, "2") => Ok(&["post_p_unlock"]),
+        (56, "1") => Ok(&["phase1", "phase2"]),
+        (56, "2") => Ok(&["phase3"]),
+        (56, "3") => Ok(&["phase4"]),
         _ => Err(format!("phase {phase} has no variant to go to")),
     }
 }
@@ -356,9 +359,7 @@ pub fn normalize_compass_route_rules(raw: &str) -> Result<CompassRouteRulesAsset
         let mut variants = BTreeMap::new();
         for (phase, rules) in phases {
             let context = |err: String| format!("{area} phase `{phase}`: {err}");
-            let Some(key) = variant_key(map_id, phase).map_err(context)? else {
-                continue;
-            };
+            let keys = variant_keys(map_id, phase).map_err(context)?;
             // A map with one start has the lone rule "go to start 1", which decides nothing.
             let start = match rules.start.as_slice() {
                 [only] if only.cond.is_none() => Vec::new(),
@@ -374,7 +375,9 @@ pub fn normalize_compass_route_rules(raw: &str) -> Result<CompassRouteRulesAsset
                         .map_err(|err| format!("{area} phase `{phase}` node {node}: {err}"))?,
                 );
             }
-            variants.insert(key.to_owned(), variant);
+            for key in keys {
+                variants.insert((*key).to_owned(), variant.clone());
+            }
         }
         maps.insert(map_id, variants);
     }
@@ -399,11 +402,23 @@ pub fn normalize_compass_route_rules(raw: &str) -> Result<CompassRouteRulesAsset
 ///
 /// Fails without touching the variant when a rule names a label the topology lacks or an
 /// edge it does not have.
+///
+/// `whole` is the map's last phase when `variant` is an earlier one. The rules are written
+/// for the whole map, so they must fit that; whatever an earlier phase has no cells for
+/// yet is left out of it.
 pub(crate) fn apply_route_rules(
     variant: &mut MapVariantDefinition,
     rules: &CompassVariantRouteRules,
+    whole: Option<&MapVariantDefinition>,
 ) -> Result<(), Vec<String>> {
+    if let Some(whole) = whole {
+        apply_route_rules(&mut whole.clone(), rules, None)?;
+    }
+    let partial = whole.is_some();
     let label_index = variant.multi_label_index();
+    // A cell the phase lacks is simply never visited.
+    let visited_index =
+        whole.map_or_else(|| label_index.clone(), MapVariantDefinition::multi_label_index);
     let mut starts =
         variant.start_source_cells().iter().map(|cell| cell.cell_no).collect::<Vec<_>>();
     starts.sort_unstable();
@@ -426,6 +441,7 @@ pub(crate) fn apply_route_rules(
                 predicate: rule.predicate.clone(),
                 raw_text: String::new(),
             }),
+            None if partial => {}
             None => errors.push(format!("start rule names start {}, which is missing", rule.to)),
         }
     }
@@ -436,6 +452,7 @@ pub(crate) fn apply_route_rules(
             Some(cell_no) => vec![cell_no],
             None => match label_index.get(&rule.from) {
                 Some(cell_nos) => cell_nos.clone(),
+                None if partial => continue,
                 None => {
                     errors.push(format!(
                         "{} -> {}: no cell is labelled {}",
@@ -445,7 +462,7 @@ pub(crate) fn apply_route_rules(
                 }
             },
         };
-        let predicate = match resolve_visited_labels(&rule.predicate, &label_index) {
+        let predicate = match resolve_visited_labels(&rule.predicate, &visited_index) {
             Ok(predicate) => predicate,
             Err(label) => {
                 errors.push(format!(
@@ -478,7 +495,7 @@ pub(crate) fn apply_route_rules(
                 }
             }
         }
-        if !resolved {
+        if !resolved && !partial {
             errors.push(format!("{} -> {}: the topology has no such edge", rule.from, rule.to));
         }
     }
@@ -700,8 +717,14 @@ mod tests {
         let to = |map_id: i64, key: &str| asset.maps[&map_id][key].rules[0].to.clone();
         assert_eq!(to(73, "pre_p_unlock"), "B");
         assert_eq!(to(73, "post_p_unlock"), "C");
-        assert_eq!(asset.maps[&56].keys().collect::<Vec<_>>(), [""]);
-        assert_eq!(to(56, ""), "Z", "5-6 takes its last phase");
+        assert_eq!(to(56, "phase1"), "X");
+        assert_eq!(
+            to(56, "phase2"),
+            "X",
+            "the route-opening phase plays by the first gauge's rules"
+        );
+        assert_eq!(to(56, "phase3"), "Y");
+        assert_eq!(to(56, "phase4"), "Z");
     }
 
     #[test]
@@ -759,7 +782,7 @@ mod tests {
             ],
         };
 
-        apply_route_rules(&mut variant, &rules).unwrap();
+        apply_route_rules(&mut variant, &rules, None).unwrap();
 
         let edges = |from: i64| {
             variant.routing_rules[&from]
@@ -783,7 +806,7 @@ mod tests {
             rules: vec![label_rule("A", "B", None), label_rule("Z", "C", None)],
         };
 
-        let errors = apply_route_rules(&mut variant, &rules).unwrap_err();
+        let errors = apply_route_rules(&mut variant, &rules, None).unwrap_err();
 
         assert_eq!(errors.len(), 2, "{errors:?}");
         assert!(errors[0].contains("no such edge"), "{errors:?}");

@@ -56,8 +56,9 @@ replacing the routing rules of the wikiwiki catalog, which is kept for enemy fle
 - **Start points.** The source's `case null` chooses between start `1` and `2` by fleet. Those
   rules are `start_rules` on the variant, read by `route_start_cell`. Both start cells are
   labelled `Start` in the catalog; `1` is the one with the lower cell number.
-- **Phases.** 7-3's two phases are its two variants. 5-6 has three phases and one variant
-  with the whole topology, so it uses the last phase.
+- **Phases.** 7-3's two phases are its two variants. 5-6's three phases go to its four
+  phase variants, and a map with one set of rules but several phases (7-2, 7-5) gets it on
+  each. An earlier phase drops the rules it has no cells for. See `map-gauge-phases.md`.
 
 ## Upgrading the source
 

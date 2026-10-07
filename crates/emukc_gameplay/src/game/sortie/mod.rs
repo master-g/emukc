@@ -47,7 +47,9 @@ use super::{
     material::add_material_impl,
     quest::observe::observe,
     ship::exp::calculate_admiral_exp,
-    sortie_result::{calculate_sortie_deck_rewards, settle_sortie_battle_impl},
+    sortie_result::{
+        advance_stage_on_reach, calculate_sortie_deck_rewards, settle_sortie_battle_impl,
+    },
     sortie_store::SortieStore,
 };
 
@@ -358,6 +360,7 @@ impl Ctx {
                 let (itemget, happening) =
                     resolve_non_battle_node_effect(&tx, codex, profile_id, next, &fleet_ships)
                         .await?;
+                advance_stage_on_reach(&tx, profile_id, definition, stage, next.cell_no).await?;
                 tx.commit().await?;
 
                 let (maparea_id, mapinfo_no) = split_map_id(active.map_id);

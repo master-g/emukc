@@ -8,8 +8,16 @@ pub(crate) fn resolve_record_stage_id(
     record
         .stage_id
         .as_deref()
-        .filter(|stage_id| definition.stage(stage_id).is_some())
+        .filter(|stage_id| definition.variants.contains_key(*stage_id))
         .map(ToOwned::to_owned)
+        // A record from before the map had stages names none of them. A cleared map
+        // stays cleared, which only its last stage can be.
+        .or_else(|| {
+            record
+                .cleared
+                .then(|| definition.stage_chain().last().map(|stage| stage.variant_key.clone()))
+                .flatten()
+        })
         .or_else(|| definition.default_stage_id().map(ToOwned::to_owned))
 }
 
@@ -17,10 +25,8 @@ pub(crate) fn active_stage_for_record<'a>(
     definition: &'a MapDefinition,
     record: &map_record::Model,
 ) -> Option<&'a MapStageDefinition> {
-    record
-        .stage_id
-        .as_deref()
-        .and_then(|stage_id| definition.stage(stage_id))
+    resolve_record_stage_id(definition, record)
+        .and_then(|stage_id| definition.variants.get(&stage_id))
         .or_else(|| definition.active_stage(None))
 }
 
@@ -103,10 +109,22 @@ mod tests {
     }
 
     #[test]
-    fn resolve_record_stage_id_returns_stage_id_even_when_not_a_variant_key() {
+    fn resolve_record_stage_id_falls_back_when_the_stage_is_gone() {
         let definition = sample_definition();
         let record = sample_record(Some("nonexistent"));
-        assert_eq!(resolve_record_stage_id(&definition, &record), Some("nonexistent".to_string()));
+        assert_eq!(resolve_record_stage_id(&definition, &record), Some("legacy".to_string()));
+    }
+
+    #[test]
+    fn a_cleared_record_from_before_the_map_had_stages_is_at_the_last_one() {
+        let mut definition = sample_definition();
+        definition.default_variant = "legacy".to_string();
+        definition.variants.get_mut("legacy").unwrap().clear_to_variant_key =
+            Some("current".to_string());
+        let mut record = sample_record(Some(""));
+        assert_eq!(resolve_record_stage_id(&definition, &record), Some("legacy".to_string()));
+        record.cleared = true;
+        assert_eq!(resolve_record_stage_id(&definition, &record), Some("current".to_string()));
     }
 
     #[test]

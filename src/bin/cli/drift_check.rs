@@ -526,10 +526,12 @@ mod tests {
             "map_limited_drops",
             "kcnav_cell_events",
             "gear_bonus",
+            "map_gauge_rules",
+            "map_gauge_phases",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 19);
+        assert_eq!(paths.len(), 21);
     }
 
     #[test]

@@ -200,6 +200,9 @@ impl MapCatalog {
                         ship_drops: BTreeMap::new(),
                         required_defeat_count: None,
                         clear_to_variant_key: None,
+                        advance_on_reach: Vec::new(),
+                        gauge_counts_wins: false,
+                        advance_needs_s_rank_at: Vec::new(),
                         parse_warnings: Vec::new(),
                     },
                 );
@@ -365,6 +368,36 @@ impl MapDefinition {
             return Some("");
         }
         self.variants.keys().next().map(String::as_str)
+    }
+
+    /// The stages in the order they are played: the default one, then whatever each
+    /// `clear_to_variant_key` leads to.
+    pub fn stage_chain(&self) -> Vec<&MapStageDefinition> {
+        let mut chain = Vec::new();
+        let mut next = self.default_stage_id().and_then(|key| self.variants.get(key));
+        while let Some(stage) = next {
+            if chain.len() >= self.variants.len() {
+                break;
+            }
+            chain.push(stage);
+            next = stage.clear_to_variant_key.as_deref().and_then(|key| self.variants.get(key));
+        }
+        chain
+    }
+
+    /// Which gauge a stage of a multi-stage map shows, counted from 1, and how many boss
+    /// kills empty it. A stage without a gauge of its own shows the one it leads to.
+    /// `None` for a map with a single stage.
+    pub fn chained_gauge(&self, stage_key: &str) -> Option<(i64, i64)> {
+        let chain = self.stage_chain();
+        if chain.len() < 2 {
+            return None;
+        }
+        let at = chain.iter().position(|stage| stage.variant_key == stage_key)?;
+        let earlier =
+            chain[..at].iter().filter(|stage| stage.required_defeat_count.is_some()).count();
+        let length = chain[at..].iter().find_map(|stage| stage.required_defeat_count)?;
+        Some((earlier as i64 + 1, length))
     }
 
     pub fn resolve_stage_id_for_rank(&self, rank: i64) -> Option<&str> {
@@ -730,6 +763,9 @@ mod tests {
                     ship_drops: BTreeMap::new(),
                     required_defeat_count: None,
                     clear_to_variant_key: None,
+                    advance_on_reach: Vec::new(),
+                    gauge_counts_wins: false,
+                    advance_needs_s_rank_at: Vec::new(),
                     parse_warnings: Vec::new(),
                 },
             )]),

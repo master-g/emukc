@@ -327,14 +327,20 @@ pub(crate) fn build_map_infos(codex: &Codex, records: Vec<map_record::Model>) ->
 
 fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcApiMapInfo {
     let active_stage = active_stage_for_record(definition, record);
-    let required_defeat_count = active_stage
-        .and_then(|stage| stage.required_defeat_count)
+    // A map played in stages shows the gauge of the stage it is at.
+    let chained_gauge = active_stage.and_then(|stage| definition.chained_gauge(&stage.variant_key));
+    let required_defeat_count = chained_gauge
+        .map(|(_, length)| length)
+        .or_else(|| active_stage.and_then(|stage| stage.required_defeat_count))
         .or(definition.required_defeat_count);
     let mut info = KcApiMapInfo {
         api_id: definition.map_id,
         api_cleared: record.cleared as i64,
         api_defeat_count: required_defeat_count.map(|_| record.defeat_count.unwrap_or(0)),
-        api_gauge_num: definition.gauge_count.or_else(|| required_defeat_count.map(|_| 1)),
+        api_gauge_num: chained_gauge
+            .map(|(number, _)| number)
+            .or(definition.gauge_count)
+            .or_else(|| required_defeat_count.map(|_| 1)),
         api_gauge_type: definition.gauge_type,
         api_gauge_type_e: definition.gauge_type_e,
         api_required_defeat_count: required_defeat_count,
@@ -770,6 +776,49 @@ mod tests {
         let info = build_map_info(&definition, &sample_record(None));
 
         assert_eq!(info.api_gauge_type_e, Some(2));
+    }
+
+    /// A map played in stages reports the gauge of the stage the record is at.
+    #[test]
+    fn build_map_info_reports_the_gauge_of_the_current_stage() {
+        let stage = |key: &str, defeats, next: Option<&str>| {
+            (
+                key.to_string(),
+                MapStageDefinition {
+                    variant_key: key.to_string(),
+                    required_defeat_count: defeats,
+                    clear_to_variant_key: next.map(ToOwned::to_owned),
+                    ..Default::default()
+                },
+            )
+        };
+        let definition = MapDefinition {
+            default_variant: "phase1".to_string(),
+            gauge_count: Some(2),
+            required_defeat_count: Some(3),
+            variants: BTreeMap::from([
+                stage("phase1", Some(3), Some("phase2")),
+                stage("phase2", None, Some("phase3")),
+                stage("phase3", Some(4), None),
+            ]),
+            ..sample_definition()
+        };
+        let gauge = |stage_id: &str| {
+            let info = build_map_info(&definition, &sample_record(Some(stage_id)));
+            (info.api_gauge_num, info.api_required_defeat_count)
+        };
+
+        assert_eq!(gauge("phase1"), (Some(1), Some(3)));
+        // A record from before the map had stages: at the first one, or the last if cleared.
+        assert_eq!(gauge(""), (Some(1), Some(3)));
+        let cleared = map_record::Model {
+            cleared: true,
+            ..sample_record(Some(""))
+        };
+        let info = build_map_info(&definition, &cleared);
+        assert_eq!((info.api_gauge_num, info.api_required_defeat_count), (Some(2), Some(4)));
+        assert_eq!(gauge("phase2"), (Some(2), Some(4)), "a stage without a gauge shows the next");
+        assert_eq!(gauge("phase3"), (Some(2), Some(4)));
     }
 
     /// `gauge_type_e` absent → field stays `None` (serialized omitted).
