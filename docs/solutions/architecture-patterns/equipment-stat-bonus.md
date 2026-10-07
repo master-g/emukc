@@ -65,8 +65,13 @@ Unpatched, 82 of 363 entries disagree with client 6.3.5.0 somewhere. KC3Kai lags
 ships, limits to a few ships star bonuses the client gives to all, and cannot express some
 of what the client does. `main-decoder/gear-bonus-corrections.json` is hand-maintained and
 merged by the converter, per entry key: `replace` stands in for the source's rules, `append`
-follows them. With it the oracle reports no difference over 2.26 million probes, and
-`gear-bonus-known-diffs.json` is empty.
+follows them. With it the oracle reports no difference over 2.26 million probes but the
+ones listed in `gear-bonus-known-diffs.json`.
+
+One difference is kept on purpose. The client shows evasion +6 per copy of 571 (53cm連装魚雷改)
+from 9 stars, on nearly every ship; KC3Kai, recorded against the server, has +1. That reads
+as a slip in the client, so 571 has no correction and stays at +1. The known-diffs file lists
+it, and 503 and 530, whose probes carry 571 alongside.
 
 Two things in the converted form exist only for corrections:
 

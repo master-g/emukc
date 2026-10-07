@@ -3,5 +3,18 @@
     "kc3kai": "ee4d7dfb1461723ff2bd0722a290d4e4c2e90d83",
     "client": "6.3.5.0"
   },
-  "gears": {}
+  "gears": {
+    "503": {
+      "probes": 23,
+      "reason": "only the probes that also carry 571 at 9 stars or more; see 571"
+    },
+    "530": {
+      "probes": 23,
+      "reason": "only the probes that also carry 571 at 9 stars or more; see 571"
+    },
+    "571": {
+      "probes": 2880,
+      "reason": "kept at KC3Kai's value on purpose: the client shows evasion +6 per copy from 9 stars where KC3Kai, recorded against the server, has +1; +6 from one torpedo mount on nearly every ship reads as a client slip (docs/plans/2026-10-07-003)"
+    }
+  }
 }

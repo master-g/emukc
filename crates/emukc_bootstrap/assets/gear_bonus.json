@@ -31472,12 +31472,6 @@
           "multiple": {
             "raig": 1
           }
-        },
-        {
-          "minStars": 9,
-          "multiple": {
-            "houk": 5
-          }
         }
       ]
     },

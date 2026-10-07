@@ -2692,17 +2692,6 @@
         }
       ]
     },
-    "571": {
-      "why": "the client grants evasion +6 per copy from 9 stars, the source +1",
-      "append": [
-        {
-          "minStars": 9,
-          "multiple": {
-            "houk": 5
-          }
-        }
-      ]
-    },
     "572": {
       "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
       "append": [
