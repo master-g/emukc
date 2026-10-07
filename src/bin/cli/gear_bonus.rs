@@ -40,6 +40,10 @@ struct ProbeArgs {
     /// Codex directory to read the table and the master data from.
     #[arg(long, default_value = ".data/codex", value_name = "DIR")]
     codex: PathBuf,
+
+    /// Use this bonus table instead of the one in the codex.
+    #[arg(long, value_name = "FILE")]
+    table: Option<PathBuf>,
 }
 
 #[derive(Deserialize)]
@@ -62,8 +66,14 @@ pub(super) async fn exec(args: &GearBonusArgs) -> Result<()> {
             println!("KC3Kai source {KC3KAI_SOURCE_COMMIT} {state} at {}", dir.display());
         }
         Command::Probe(args) => {
-            let codex = Codex::load_without_cache_source(&args.codex)
+            let mut codex = Codex::load_without_cache_source(&args.codex)
                 .with_context(|| format!("loading the codex from {}", args.codex.display()))?;
+            if let Some(table) = &args.table {
+                let raw = fs::read_to_string(table)
+                    .with_context(|| format!("reading {}", table.display()))?;
+                codex.gear_bonus = serde_json::from_str(&raw)
+                    .with_context(|| format!("parsing {}", table.display()))?;
+            }
             let raw = fs::read_to_string(&args.input)
                 .with_context(|| format!("reading {}", args.input.display()))?;
             let bonuses = serde_json::from_str::<Vec<Probe>>(&raw)?

@@ -9,7 +9,7 @@ severity: medium
 applies_when:
   - "A ship's displayed stats differ from the real game for a particular ship and equipment"
   - "Upgrading the pinned KC3Kai commit or the game client"
-  - "make gear-bonus-oracle fails"
+  - "make gear-bonus-oracle fails, or gear-bonus-corrections.json needs a new entry"
   - "Calling Codex::ships_before_and_after or anything else that walks a remodel chain"
 ---
 
@@ -51,19 +51,40 @@ make gear-bonus-oracle                  # compare with the client's own bonus co
 
 ## Where the port deliberately leaves the reader
 
-KC3Kai's reader looks at improvement stars only for entries declaring `starsDist`; for the
-rest a `minStars` rule counts every copy. The client never does that, and honouring stars
-everywhere made four entries agree with it and none disagree, so the port always honours
-them. Change this only with an oracle run showing the effect.
+All three are about improvement stars, and each was settled by an oracle run:
 
-## Known differences
+- KC3Kai's reader looks at stars only for entries declaring `starsDist`; for the rest a
+  `minStars` rule counts every copy. The port always honours stars.
+- `byStars` reads the star record of the other equipment's entry and finds nothing when
+  that equipment has no entry. The port reads the stars of what is carried.
+- `isMultiple` is declared in the table but never read. The port honours it.
 
-82 of 363 entries disagree with client 6.3.5.0 somewhere (1.8% of probes), listed in
-`main-decoder/gear-bonus-known-diffs.json` with their probe counts. They are KC3Kai lagging
-behind new ships and a few plain data errors on its side; the port itself was compared with
-KC3Kai's original function on a sample of 92,000 probes and differs only where it
-deliberately honours stars. The oracle fails on a new entry or a
-changed count; `bun run gear-bonus-oracle -- --accept` re-records after a review.
+## Corrections
+
+Unpatched, 82 of 363 entries disagree with client 6.3.5.0 somewhere. KC3Kai lags behind new
+ships, limits to a few ships star bonuses the client gives to all, and cannot express some
+of what the client does. `main-decoder/gear-bonus-corrections.json` is hand-maintained and
+merged by the converter, per entry key: `replace` stands in for the source's rules, `append`
+follows them. With it the oracle reports no difference over 2.26 million probes, and
+`gear-bonus-known-diffs.json` is empty.
+
+Two things in the converted form exist only for corrections:
+
+- an entry key joining ids with `+` (`286+577`) counts the copies of all of them together,
+  for bonuses capped across two kinds of equipment;
+- `requires` on a synergy asks for other equipment by id, with a minimum of stars or copies.
+
+A few corrections restate a client function (286/577, 470/529, 517, 569, 578). Most were
+fitted: the client's value minus the server's for every ship carrying one to three copies at
+every star level, turned into per-copy, once-only and by-count rules listed by ship id, and
+the same again with other equipment carried. Fitted rules explain nothing and are only known
+to match on the probed loadouts — when one looks wrong, read the client function.
+
+After a client or KC3Kai upgrade: `make gear-bonus-update`, rebuild the codex,
+`make gear-bonus-oracle`, and put what differs into the corrections file. While working on
+one entry, `EMUKC_BIN=target/release/emukcd bun run gear-bonus-oracle -- --only <key>`
+skips the rebuild the embedded asset would otherwise trigger;
+`.data/temp/gear_bonus_diffs.jsonl` lists every differing probe.
 
 Only loadouts the ship can actually carry are probed. Both sides say arbitrary things about
 the rest, since the rules are written assuming the game's equip restrictions.

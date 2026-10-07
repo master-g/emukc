@@ -81,6 +81,27 @@ describe("convertGearBonus", () => {
 	});
 });
 
+describe("corrections", () => {
+	test("replace or follow an entry's rules, and add joined entries after the numbered ones", () => {
+		const document = convertGearBonus(
+			table(`"50": { count: 0, byShip: { single: { "houg": 1 } } }, "60": { count: 0, byShip: { single: { "houg": 2 } } }, "t2_12": { count: 0 }`),
+			META,
+			SOURCE,
+			{
+				"50": { why: "", append: [{ minStars: 9, multiple: { houk: 5 } }] },
+				"60": { why: "", replace: [], append: [{ synergy: [{ requires: [{ gears: [50], minStars: 3 }], single: { tyku: 1 } } as never] }] },
+				"50+60": { why: "", replace: [{ countCap: 2, multiple: { raig: 2 } }] },
+				"55": { why: "", replace: [{ single: { saku: 1 } }] },
+			},
+		);
+
+		expect(document.gears.map((gear) => gear.key)).toEqual(["50", "55", "60", "50+60", "t2_12"]);
+		expect(document.gears[0]?.rules).toEqual([{ single: { houg: 1 } }, { minStars: 9, multiple: { houk: 5 } }]);
+		expect(document.gears[2]?.rules).toEqual([{ synergy: [{ requires: [{ gears: [50], minStars: 3 }], single: { tyku: 1 }, flags: [] }] }]);
+		expect(() => convertGearBonus(table(`"50": { count: 0 }`), META, SOURCE, { fifty: { why: "", replace: [] } })).toThrow("unknown entry fifty");
+	});
+});
+
 describe("oracle loadouts", () => {
 	test("pair an entry with the equipment its rules look at", () => {
 		const document = convertGearBonus(

@@ -1,0 +1,3490 @@
+{
+  "note": "Hand-written. Where KC3Kai's table disagrees with the game client's SlotItemEffectUtil, the fix goes here and `bun run gear-bonus` merges it into the asset; `bun run gear-bonus-oracle` shows what is left. Rules use the converted form of gear_bonus.json.",
+  "gears": {
+    "35": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            593,
+            954
+          ],
+          "single": {
+            "houg": -1,
+            "tyku": -1
+          }
+        }
+      ]
+    },
+    "39": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 8,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "40": {
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "tyku": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "49": {
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "tyku": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "50": {
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            502,
+            507
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houg": -1,
+                "houk": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "85": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            171,
+            172,
+            173,
+            174,
+            175,
+            176,
+            177,
+            178,
+            179,
+            180,
+            310,
+            311,
+            334,
+            347,
+            353,
+            358,
+            361,
+            365,
+            431,
+            432,
+            441,
+            442,
+            443,
+            444,
+            446,
+            447,
+            448,
+            449,
+            496,
+            530,
+            535,
+            539,
+            575,
+            580,
+            589,
+            590,
+            605,
+            614,
+            619,
+            653,
+            658,
+            691,
+            693,
+            731,
+            877,
+            878,
+            879,
+            934,
+            939,
+            940
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": -1
+          }
+        },
+        {
+          "ids": [
+            171,
+            172,
+            173,
+            174,
+            175,
+            176,
+            177,
+            178,
+            179,
+            180,
+            310,
+            311,
+            334,
+            347,
+            353,
+            358,
+            361,
+            365,
+            431,
+            432,
+            441,
+            442,
+            443,
+            444,
+            446,
+            447,
+            448,
+            449,
+            496,
+            530,
+            535,
+            539,
+            575,
+            580,
+            589,
+            590,
+            605,
+            614,
+            619,
+            653,
+            658,
+            691,
+            693,
+            731,
+            877,
+            878,
+            879,
+            934,
+            939,
+            940
+          ],
+          "minStars": 10,
+          "single": {
+            "houg": 1
+          }
+        }
+      ]
+    },
+    "106": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            668
+          ],
+          "single": {
+            "tyku": 1,
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "118": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            507
+          ],
+          "multiple": {
+            "houk": -1
+          }
+        }
+      ]
+    },
+    "122": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            1035,
+            1040
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            1035,
+            1040
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            1035,
+            1040
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        }
+      ]
+    },
+    "123": {
+      "why": "the client grants the bonus for the stars of the FuMO radar whatever the gun's own stars, the source only with the gun at 10 stars",
+      "replace": [
+        {
+          "nation": "Germany",
+          "synergy": [
+            {
+              "flags": [
+                "germanLargeRadar"
+              ],
+              "countFlag": 0,
+              "multiple": {
+                "houk": 1
+              }
+            }
+          ]
+        },
+        {
+          "nation": "Germany",
+          "minStars": 5,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "nation": "Germany",
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Germany",
+          "minStars": 9,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "nation": "Germany",
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Germany",
+          "synergy": [
+            {
+              "flags": [
+                "germanLargeRadar"
+              ],
+              "byStars": {
+                "gearId": "124",
+                "isMultiple": true,
+                "table": [
+                  {
+                    "minStars": 8,
+                    "stats": {
+                      "houk": 1
+                    }
+                  },
+                  {
+                    "minStars": 10,
+                    "stats": {
+                      "houm": 1
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "136": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            347,
+            358,
+            361,
+            443,
+            448,
+            449,
+            496,
+            530,
+            535,
+            539,
+            575,
+            580,
+            589,
+            590,
+            605,
+            614,
+            619,
+            653,
+            658,
+            691,
+            693
+          ],
+          "single": {
+            "souk": 2,
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            347,
+            358,
+            361,
+            443,
+            448,
+            449,
+            496,
+            530,
+            535,
+            539,
+            575,
+            580,
+            589,
+            590,
+            605,
+            614,
+            619,
+            653,
+            658,
+            691,
+            693
+          ],
+          "minStars": 3,
+          "multiple": {
+            "souk": 1
+          }
+        },
+        {
+          "ids": [
+            347,
+            358,
+            361,
+            443,
+            448,
+            449,
+            496,
+            530,
+            535,
+            539,
+            575,
+            580,
+            589,
+            590,
+            605,
+            614,
+            619,
+            653,
+            658,
+            691,
+            693
+          ],
+          "minStars": 6,
+          "multiple": {
+            "souk": 1
+          }
+        },
+        {
+          "ids": [
+            347,
+            358,
+            361,
+            443,
+            448,
+            449,
+            496,
+            530,
+            535,
+            539,
+            575,
+            580,
+            589,
+            590,
+            605,
+            614,
+            619,
+            653,
+            658,
+            691,
+            693
+          ],
+          "minStars": 10,
+          "multiple": {
+            "souk": 1
+          }
+        }
+      ]
+    },
+    "144": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            461,
+            466
+          ],
+          "single": {
+            "houg": 1
+          }
+        }
+      ]
+    },
+    "158": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            353,
+            432
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "179": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            330,
+            346,
+            357,
+            421,
+            422,
+            423,
+            532,
+            533,
+            537,
+            538,
+            963,
+            968,
+            1041,
+            1046
+          ],
+          "minCount": 3,
+          "single": {
+            "raig": 1
+          }
+        }
+      ]
+    },
+    "194": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            724
+          ],
+          "multiple": {
+            "houg": -1,
+            "houk": -2,
+            "saku": -2
+          }
+        }
+      ]
+    },
+    "229": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            488
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            488
+          ],
+          "minStars": 7,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houg": -3,
+                "houk": -2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "267": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            955,
+            956,
+            960
+          ],
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houg": -3,
+                "raig": -6,
+                "houk": -3
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "268": {
+      "why": "the client grants the bonus for carrying the arctic deck personnel to every ship, the source only to a few; the rest fitted to the client's values",
+      "append": [
+        {
+          "ids": [
+            64,
+            193,
+            267
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houk": 2,
+            "tais": 1
+          }
+        }
+      ],
+      "replace": [
+        {
+          "origins": [
+            100,
+            101,
+            511
+          ],
+          "single": {
+            "souk": 2,
+            "houk": 7
+          }
+        },
+        {
+          "ids": [
+            290,
+            200
+          ],
+          "single": {
+            "souk": 2,
+            "houk": 7
+          }
+        },
+        {
+          "minStars": 7,
+          "origins": [
+            63,
+            100,
+            101,
+            114,
+            35,
+            516,
+            574,
+            511,
+            1001
+          ],
+          "multiple": {
+            "tais": 1,
+            "houk": 2,
+            "houm": 1
+          }
+        },
+        {
+          "minStars": 7,
+          "synergy": [
+            {
+              "flags": [
+                "arcticGearDeckPersonnel"
+              ],
+              "multiple": {
+                "tais": 2,
+                "houk": 4,
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "minStars": 7,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "minStars": 9,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "285": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            959
+          ],
+          "minCount": 2,
+          "single": {
+            "raig": 1
+          }
+        },
+        {
+          "ids": [
+            959
+          ],
+          "minCount": 3,
+          "single": {
+            "raig": 1
+          }
+        }
+      ]
+    },
+    "286": {
+      "why": "moved to the joined entry 286+577",
+      "replace": []
+    },
+    "289": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            591
+          ],
+          "multiple": {
+            "tyku": 1
+          }
+        }
+      ]
+    },
+    "299": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            694
+          ],
+          "multiple": {
+            "houg": 2,
+            "houk": -2,
+            "souk": 1
+          }
+        }
+      ]
+    },
+    "300": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            694
+          ],
+          "multiple": {
+            "houg": 2,
+            "houk": -2,
+            "souk": 1
+          }
+        }
+      ]
+    },
+    "317": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            77,
+            82,
+            87,
+            88,
+            553,
+            554
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -1,
+            "tyku": -1,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            77,
+            82,
+            87,
+            88,
+            553,
+            554
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -1,
+            "tyku": -1,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            78,
+            79,
+            85,
+            86,
+            209,
+            210,
+            211,
+            212
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -2,
+            "tyku": -1
+          }
+        },
+        {
+          "ids": [
+            78,
+            79,
+            85,
+            86,
+            209,
+            210,
+            211,
+            212
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -2,
+            "tyku": -1
+          }
+        },
+        {
+          "ids": [
+            149,
+            591,
+            592
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -4,
+            "tyku": -3
+          }
+        },
+        {
+          "ids": [
+            149,
+            591,
+            592
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -4,
+            "tyku": -3
+          }
+        },
+        {
+          "ids": [
+            150
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -3,
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            150
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -3,
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            151
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -3,
+            "tyku": -2,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            151
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -3,
+            "tyku": -2,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            152,
+            694
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -4,
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            152,
+            694
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -4,
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            541
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -1,
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            541
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -1,
+            "tyku": -2
+          }
+        },
+        {
+          "ids": [
+            573
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -2,
+            "tyku": -2,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            573
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -2,
+            "tyku": -2,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            593
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -3,
+            "tyku": -4,
+            "houk": -2
+          }
+        },
+        {
+          "ids": [
+            593
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -3,
+            "tyku": -4,
+            "houk": -2
+          }
+        },
+        {
+          "ids": [
+            954
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": -4,
+            "tyku": -3,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            954
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -4,
+            "tyku": -3,
+            "houk": -1
+          }
+        }
+      ]
+    },
+    "330": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            577
+          ],
+          "multiple": {
+            "houg": -1
+          }
+        }
+      ]
+    },
+    "331": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            577
+          ],
+          "multiple": {
+            "houg": -1
+          }
+        }
+      ]
+    },
+    "332": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            577
+          ],
+          "multiple": {
+            "houg": -1
+          }
+        }
+      ]
+    },
+    "363": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            923,
+            924,
+            928,
+            929,
+            936,
+            1005,
+            1010
+          ],
+          "multiple": {
+            "houk": 1,
+            "tyku": 1
+          }
+        }
+      ]
+    },
+    "364": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            1071
+          ],
+          "multiple": {
+            "houg": 1,
+            "houk": 7
+          }
+        }
+      ]
+    },
+    "366": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            17,
+            18,
+            19,
+            20,
+            50,
+            122,
+            132,
+            133,
+            134,
+            135,
+            167,
+            168,
+            169,
+            170,
+            181,
+            186,
+            190,
+            225,
+            226,
+            227,
+            228,
+            294,
+            300,
+            301,
+            302,
+            303,
+            304,
+            312,
+            313,
+            316,
+            317,
+            320,
+            322,
+            324,
+            325,
+            329,
+            344,
+            345,
+            349,
+            354,
+            355,
+            359,
+            362,
+            373,
+            409,
+            410,
+            415,
+            424,
+            425,
+            452,
+            453,
+            454,
+            455,
+            456,
+            484,
+            485,
+            527,
+            528,
+            556,
+            557,
+            558,
+            559,
+            566,
+            567,
+            568,
+            625,
+            651,
+            656,
+            670,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            720,
+            886,
+            915,
+            951
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houg": -1
+          }
+        },
+        {
+          "ids": [
+            956,
+            960
+          ],
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            955
+          ],
+          "single": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            955
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": 2
+          }
+        },
+        {
+          "ids": [
+            955
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "single": {
+            "houg": 3,
+            "tyku": 3
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": 4,
+            "tyku": 2
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": 2
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houg": 2,
+                "houk": 2,
+                "raig": 4
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            961
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "airRadar"
+              ],
+              "single": {
+                "houg": 1,
+                "tyku": 5,
+                "houk": 3
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            961
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "twin127SmallGunMountModelDK2Nonexist"
+              ],
+              "requires": [
+                {
+                  "gears": [
+                    129
+                  ]
+                }
+              ],
+              "single": {
+                "houg": 2,
+                "houk": 3,
+                "tyku": 2
+              }
+            },
+            {
+              "flags": [
+                "twin127SmallGunMountModelDK2Nonexist"
+              ],
+              "requires": [
+                {
+                  "gears": [
+                    412
+                  ]
+                }
+              ],
+              "single": {
+                "houg": 2,
+                "houk": 3,
+                "tyku": 2
+              }
+            },
+            {
+              "flags": [
+                "twin127SmallGunMountModelDK2Nonexist"
+              ],
+              "requires": [
+                {
+                  "gears": [
+                    74
+                  ]
+                }
+              ],
+              "single": {
+                "houg": 3,
+                "houk": -3
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "377": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            613,
+            618
+          ],
+          "single": {
+            "houk": 1,
+            "tais": 1
+          }
+        }
+      ]
+    },
+    "379": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            133,
+            134,
+            135,
+            302,
+            303,
+            304,
+            324,
+            325,
+            344,
+            345,
+            349,
+            359,
+            373,
+            409,
+            410,
+            424,
+            425,
+            452,
+            453,
+            484,
+            485,
+            527,
+            528,
+            542,
+            543,
+            563,
+            564,
+            569,
+            578,
+            625,
+            649,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            743,
+            744,
+            745,
+            955,
+            956,
+            960,
+            981,
+            982,
+            983,
+            1033,
+            1034
+          ],
+          "multiple": {
+            "houk": 1,
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            651
+          ],
+          "multiple": {
+            "houk": 3,
+            "tais": 2
+          }
+        },
+        {
+          "ids": [
+            641,
+            642,
+            643,
+            644,
+            702,
+            706,
+            708,
+            716,
+            736,
+            742,
+            746,
+            992,
+            993,
+            994,
+            997,
+            1044
+          ],
+          "single": {
+            "houk": 3
+          }
+        },
+        {
+          "ids": [
+            641,
+            642,
+            643,
+            644,
+            702,
+            706,
+            708,
+            716,
+            736,
+            742,
+            746,
+            992,
+            993,
+            994,
+            997,
+            1044
+          ],
+          "minCount": 2,
+          "single": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            641,
+            642,
+            643,
+            644,
+            702,
+            706,
+            708,
+            716,
+            736,
+            742,
+            746,
+            992,
+            993,
+            994,
+            997,
+            1044
+          ],
+          "minCount": 3,
+          "single": {
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "380": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            133,
+            134,
+            135,
+            302,
+            303,
+            304,
+            324,
+            325,
+            344,
+            345,
+            349,
+            359,
+            373,
+            409,
+            410,
+            424,
+            425,
+            452,
+            453,
+            484,
+            485,
+            527,
+            528,
+            542,
+            543,
+            563,
+            564,
+            569,
+            578,
+            625,
+            649,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            743,
+            744,
+            745,
+            955,
+            956,
+            960,
+            981,
+            982,
+            983,
+            1033,
+            1034
+          ],
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            961,
+            1035,
+            1040
+          ],
+          "multiple": {
+            "houg": -2
+          }
+        },
+        {
+          "ids": [
+            118,
+            119
+          ],
+          "single": {
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "399": {
+      "why": "the client grants firepower +1 from 10 stars to every ship, the source only to the Town class",
+      "append": [
+        {
+          "minStars": 10,
+          "excludeClasses": [
+            108
+          ],
+          "multiple": {
+            "houg": 1
+          }
+        }
+      ]
+    },
+    "410": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            502,
+            507
+          ],
+          "single": {
+            "houg": 1,
+            "tyku": 2,
+            "souk": 1,
+            "houk": 2
+          }
+        }
+      ]
+    },
+    "411": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 5,
+          "single": {
+            "houg": 1,
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 10,
+          "single": {
+            "houg": 2,
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            748,
+            749
+          ],
+          "minStars": 4,
+          "single": {
+            "houg": 1,
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            748,
+            749
+          ],
+          "minStars": 10,
+          "single": {
+            "houg": 1,
+            "tyku": 1
+          }
+        }
+      ]
+    },
+    "413": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            325,
+            410,
+            955,
+            960
+          ],
+          "single": {
+            "tyku": 1,
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "434": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            713,
+            885
+          ],
+          "multiple": {
+            "houg": -1,
+            "houk": -3,
+            "tyku": -2
+          }
+        }
+      ]
+    },
+    "435": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            713,
+            885
+          ],
+          "multiple": {
+            "houg": -1,
+            "houk": -3,
+            "tyku": -2
+          }
+        }
+      ]
+    },
+    "450": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            593,
+            911,
+            916,
+            954,
+            961,
+            975
+          ],
+          "multiple": {
+            "houg": 1,
+            "houk": 3,
+            "souk": 1,
+            "tyku": 2
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "multiple": {
+            "houg": 2,
+            "houk": 4,
+            "souk": 2,
+            "tyku": 6
+          }
+        },
+        {
+          "ids": [
+            668
+          ],
+          "single": {
+            "tyku": 1,
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            668
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    106
+                  ]
+                }
+              ],
+              "single": {
+                "houk": -1,
+                "tyku": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "463": {
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            546,
+            911,
+            916
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    460
+                  ]
+                }
+              ],
+              "single": {
+                "houg": 1,
+                "tyku": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "465": {
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            546,
+            911
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    460
+                  ]
+                }
+              ],
+              "single": {
+                "tyku": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "466": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            461,
+            462,
+            466,
+            467
+          ],
+          "multiple": {
+            "houg": 1
+          }
+        }
+      ]
+    },
+    "502": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            592
+          ],
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            593,
+            954
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houk": -1,
+            "tyku": 1
+          }
+        }
+      ]
+    },
+    "505": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            145,
+            497,
+            656,
+            668,
+            951,
+            975
+          ],
+          "single": {
+            "houg": -1,
+            "tyku": -1,
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "tyku": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "507": {
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "append": []
+    },
+    "508": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "minStars": 3,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "minStars": 6,
+          "multiple": {
+            "souk": 1
+          }
+        },
+        {
+          "ids": [
+            924,
+            929,
+            936
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    507
+                  ]
+                }
+              ],
+              "multiple": {
+                "houg": 1,
+                "houk": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "510": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            571,
+            572,
+            576,
+            577
+          ],
+          "minCount": 2,
+          "single": {
+            "saku": 3
+          }
+        },
+        {
+          "ids": [
+            571,
+            572,
+            576,
+            577
+          ],
+          "minCount": 3,
+          "single": {
+            "saku": 3
+          }
+        }
+      ]
+    },
+    "517": {
+      "why": "the client only grants the bonus for the Type 13 radar when a D-type gun with 3 stars is carried too, and accepts either D-type gun; with other equipment carried, fitted the same way",
+      "replace": [
+        {
+          "class": 1,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 5,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 10,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 12,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 18,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 22,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 23,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 28,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 30,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 38,
+          "single": {
+            "houg": 1,
+            "houk": 1,
+            "houm": 2,
+            "saku": 1
+          },
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    267,
+                    366
+                  ],
+                  "minStars": 3
+                }
+              ],
+              "single": {
+                "houg": 1,
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "class": 54,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 66,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 74,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 77,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 85,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 101,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 104,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "class": 117,
+          "single": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "ids": [
+            960
+          ],
+          "single": {
+            "houg": 2,
+            "houk": 3,
+            "houm": 1,
+            "saku": 2
+          }
+        },
+        {
+          "ids": [
+            147,
+            235,
+            407,
+            419,
+            464,
+            470,
+            656,
+            961,
+            578,
+            955,
+            975,
+            1035,
+            1040,
+            744,
+            1071
+          ],
+          "single": {
+            "houg": 1,
+            "houk": 2,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "ids": [
+            981,
+            983,
+            982,
+            1033,
+            1034,
+            745
+          ],
+          "single": {
+            "houg": 1,
+            "houk": 1,
+            "houm": 1
+          }
+        },
+        {
+          "minStars": 7,
+          "single": {
+            "houm": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "single": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 9,
+          "single": {
+            "houg": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "single": {
+            "houm": 1
+          }
+        },
+        {
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    267,
+                    366
+                  ],
+                  "minStars": 3
+                }
+              ],
+              "single": {
+                "houg": 1,
+                "houm": 1
+              }
+            },
+            {
+              "requires": [
+                {
+                  "gears": [
+                    267,
+                    366
+                  ],
+                  "minStars": 3
+                },
+                {
+                  "gears": [
+                    450
+                  ],
+                  "minStars": 4
+                }
+              ],
+              "single": {
+                "houg": 1,
+                "houm": 1,
+                "tyku": 4,
+                "houk": 3
+              }
+            }
+          ]
+        },
+        {
+          "origins": [
+            44,
+            583
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "origins": [
+            44,
+            583
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "origins": [
+            44,
+            583
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        }
+      ],
+      "append": []
+    },
+    "518": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            115,
+            154,
+            293,
+            343,
+            356,
+            465,
+            622,
+            623,
+            624
+          ],
+          "multiple": {
+            "houk": 1
+          }
+        }
+      ]
+    },
+    "520": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            70,
+            71,
+            72,
+            73,
+            120,
+            121,
+            124,
+            125,
+            129,
+            130,
+            188,
+            189,
+            273,
+            274,
+            501,
+            502,
+            503,
+            504,
+            506,
+            507
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": -2
+          }
+        }
+      ]
+    },
+    "521": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            507
+          ],
+          "multiple": {
+            "houk": -1
+          }
+        }
+      ]
+    },
+    "523": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            155,
+            367,
+            374,
+            375,
+            399,
+            400,
+            401,
+            403,
+            493,
+            494,
+            495,
+            606,
+            971,
+            972,
+            976,
+            977
+          ],
+          "multiple": {
+            "saku": 4
+          }
+        }
+      ]
+    },
+    "525": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            972,
+            977
+          ],
+          "single": {
+            "houg": 2,
+            "raig": 1
+          }
+        }
+      ]
+    },
+    "526": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            972,
+            977
+          ],
+          "single": {
+            "houg": 2,
+            "raig": 1
+          }
+        }
+      ]
+    },
+    "529": {
+      "why": "the client grants the surface radar bonus once for both C-type Kai San guns together, the source once for each",
+      "append": [
+        {
+          "class": 18,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "requires": [
+                {
+                  "gears": [
+                    470
+                  ]
+                }
+              ],
+              "single": {
+                "houg": -1,
+                "raig": -3,
+                "houk": -1,
+                "houm": -1
+              }
+            }
+          ]
+        },
+        {
+          "class": 23,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "requires": [
+                {
+                  "gears": [
+                    470
+                  ]
+                }
+              ],
+              "single": {
+                "houg": -1,
+                "raig": -3,
+                "houk": -1,
+                "houm": -1
+              }
+            }
+          ]
+        },
+        {
+          "class": 30,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "requires": [
+                {
+                  "gears": [
+                    470
+                  ]
+                }
+              ],
+              "single": {
+                "houg": -2,
+                "raig": -3,
+                "houk": -1,
+                "houm": -3
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "530": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 4,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 6,
+          "multiple": {
+            "souk": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 9,
+          "multiple": {
+            "souk": 1
+          }
+        }
+      ]
+    },
+    "538": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            372,
+            392,
+            491,
+            492,
+            724,
+            935,
+            965,
+            969,
+            970,
+            1051,
+            1056
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houk": -1
+          }
+        }
+      ]
+    },
+    "540": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            200,
+            445,
+            450,
+            487,
+            488,
+            501,
+            502,
+            507,
+            581,
+            586,
+            690
+          ],
+          "multiple": {
+            "saku": 1
+          }
+        }
+      ]
+    },
+    "569": {
+      "why": "the client grants the star bonuses to every ship, the source only to the ships with other rules",
+      "replace": [
+        {
+          "class": 56,
+          "multiple": {
+            "tais": 3,
+            "houk": 2
+          }
+        },
+        {
+          "ids": [
+            982,
+            1033,
+            961,
+            1035,
+            1040
+          ],
+          "multiple": {
+            "tais": 1,
+            "houk": 1,
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            648,
+            564
+          ],
+          "multiple": {
+            "houk": 1,
+            "houm": 1
+          }
+        },
+        {
+          "class": 101,
+          "stypes": [
+            2
+          ],
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "stypes": [
+            1
+          ],
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "minStars": 6,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        }
+      ]
+    },
+    "571": {
+      "why": "the client grants evasion +6 per copy from 9 stars, the source +1",
+      "append": [
+        {
+          "minStars": 9,
+          "multiple": {
+            "houk": 5
+          }
+        }
+      ]
+    },
+    "572": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            133,
+            134,
+            135,
+            302,
+            303,
+            304,
+            324,
+            325,
+            344,
+            345,
+            349,
+            359,
+            373,
+            409,
+            410,
+            424,
+            425,
+            452,
+            453,
+            484,
+            485,
+            527,
+            528,
+            542,
+            543,
+            563,
+            564,
+            569,
+            578,
+            625,
+            649,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            743,
+            744,
+            955,
+            956,
+            960,
+            981,
+            982,
+            983,
+            1033
+          ],
+          "multiple": {
+            "houk": 1,
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            651
+          ],
+          "multiple": {
+            "houk": 3,
+            "tais": 2
+          }
+        },
+        {
+          "ids": [
+            745,
+            1034
+          ],
+          "multiple": {
+            "houk": 1,
+            "tais": 1,
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            641,
+            642,
+            643,
+            644,
+            702,
+            706,
+            708,
+            716,
+            736,
+            742,
+            746,
+            992,
+            993,
+            994,
+            997,
+            1044
+          ],
+          "single": {
+            "houk": 3
+          }
+        },
+        {
+          "ids": [
+            641,
+            642,
+            643,
+            644,
+            702,
+            706,
+            708,
+            716,
+            736,
+            742,
+            746,
+            992,
+            993,
+            994,
+            997,
+            1044
+          ],
+          "minCount": 2,
+          "single": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            641,
+            642,
+            643,
+            644,
+            702,
+            706,
+            708,
+            716,
+            736,
+            742,
+            746,
+            992,
+            993,
+            994,
+            997,
+            1044
+          ],
+          "minCount": 3,
+          "single": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "single": {
+            "houg": 5,
+            "tyku": 5,
+            "houk": 6,
+            "tais": 2
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": 5,
+            "tyku": 5,
+            "houk": 5,
+            "tais": 2
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "minCount": 3,
+          "single": {
+            "houg": 5,
+            "tyku": 5,
+            "houk": 5,
+            "tais": 2
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houg": 2,
+                "houk": 2
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "airRadar"
+              ],
+              "single": {
+                "tyku": 3,
+                "houk": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "573": {
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            651,
+            656,
+            961,
+            979,
+            1035,
+            1040,
+            1071
+          ],
+          "single": {
+            "houk": 3
+          }
+        }
+      ]
+    },
+    "575": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "append": [
+        {
+          "ids": [
+            738,
+            739,
+            973,
+            978,
+            998,
+            999
+          ],
+          "multiple": {
+            "houk": -1,
+            "tyku": -1
+          }
+        },
+        {
+          "ids": [
+            738,
+            739,
+            973,
+            978,
+            998,
+            999
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": -1
+          }
+        },
+        {
+          "ids": [
+            738,
+            739,
+            973,
+            978,
+            998,
+            999
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            738,
+            739,
+            973,
+            978,
+            998,
+            999
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": -1
+          }
+        },
+        {
+          "ids": [
+            748,
+            749,
+            1071
+          ],
+          "multiple": {
+            "houk": 1,
+            "tyku": 1
+          }
+        }
+      ]
+    },
+    "577": {
+      "why": "what both mounts share moved to the joined entry 286+577; the radar bonus is for Japanese destroyers only",
+      "replace": [
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "ids": [
+            961,
+            1035,
+            1040
+          ],
+          "multiple": {
+            "raig": 1,
+            "houk": 1,
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 8,
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 9,
+          "multiple": {
+            "souk": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "raig": 1,
+                "houm": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "578": {
+      "why": "the client grants the star bonuses to every ship, the source only to American and British ones",
+      "replace": [
+        {
+          "nation": "UnitedStates",
+          "multiple": {
+            "houg": 1,
+            "saku": 1
+          }
+        },
+        {
+          "nation": "UnitedKingdom",
+          "multiple": {
+            "saku": 1
+          }
+        },
+        {
+          "origins": [
+            931,
+            966
+          ],
+          "multiple": {
+            "houg": 1,
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "origins": [
+            433
+          ],
+          "multiple": {
+            "houk": 1,
+            "houm": 1,
+            "saku": 1
+          }
+        },
+        {
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        }
+      ]
+    },
+    "580": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            1061
+          ],
+          "multiple": {
+            "houk": -1
+          }
+        },
+        {
+          "ids": [
+            1061
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "raig": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "581": {
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "append": [
+        {
+          "ids": [
+            1061
+          ],
+          "multiple": {
+            "raig": -1
+          }
+        },
+        {
+          "ids": [
+            1061
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "raig": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "586": {
+      "why": "the client grants firepower, anti-air, evasion and accuracy +1 from 6 stars to every ship",
+      "append": [
+        {
+          "minStars": 6,
+          "multiple": {
+            "houg": 1,
+            "tyku": 1,
+            "houk": 1,
+            "houm": 1
+          }
+        }
+      ]
+    },
+    "286+577": {
+      "why": "the client counts both torpedo mounts together, up to two, for a fixed list of ships; the source counts each on its own and loses its star rules to its own once-only bookkeeping",
+      "replace": [
+        {
+          "ids": [
+            566,
+            145,
+            961,
+            498,
+            144,
+            469,
+            463,
+            468,
+            199,
+            489,
+            490,
+            464,
+            470,
+            198,
+            543,
+            567,
+            568,
+            497,
+            542,
+            563,
+            564,
+            587,
+            578,
+            569,
+            648,
+            651,
+            656,
+            649,
+            588,
+            667,
+            670,
+            915,
+            951,
+            955,
+            960,
+            975,
+            956,
+            981,
+            982,
+            983,
+            1033,
+            1040,
+            743,
+            744,
+            1034,
+            745
+          ],
+          "countCap": 2,
+          "multiple": {
+            "raig": 2,
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            566,
+            145,
+            961,
+            498,
+            144,
+            469,
+            463,
+            468,
+            199,
+            489,
+            490,
+            464,
+            470,
+            198,
+            543,
+            567,
+            568,
+            497,
+            542,
+            563,
+            564,
+            587,
+            578,
+            569,
+            648,
+            651,
+            656,
+            649,
+            588,
+            667,
+            670,
+            915,
+            951,
+            955,
+            960,
+            975,
+            956,
+            981,
+            982,
+            983,
+            1033,
+            1040,
+            743,
+            744,
+            1034,
+            745
+          ],
+          "minStars": 10,
+          "countCap": 2,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            566,
+            145,
+            961,
+            498,
+            144,
+            469,
+            463,
+            468,
+            199,
+            489,
+            490,
+            464,
+            470,
+            198,
+            543,
+            567,
+            568,
+            497,
+            542,
+            563,
+            564,
+            587,
+            578,
+            569,
+            648,
+            651,
+            656,
+            649,
+            588,
+            667,
+            670,
+            915,
+            951,
+            955,
+            960,
+            975,
+            956,
+            981,
+            982,
+            983,
+            1033,
+            1040,
+            743,
+            744,
+            1034,
+            745
+          ],
+          "classes": [
+            30
+          ],
+          "minStars": 5,
+          "countCap": 2,
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minStars": 5,
+          "countCap": 2,
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "origins": [
+            642
+          ],
+          "single": {
+            "raig": 7,
+            "houk": 2
+          }
+        },
+        {
+          "origins": [
+            642
+          ],
+          "minStars": 7,
+          "single": {
+            "raig": 2
+          }
+        },
+        {
+          "origins": [
+            642
+          ],
+          "minStars": 10,
+          "single": {
+            "raig": 2
+          }
+        },
+        {
+          "ids": [
+            662,
+            663,
+            668
+          ],
+          "multiple": {
+            "raig": 2
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "raig": 3,
+                "houk": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "470+529": {
+      "why": "the client counts both C-type Kai San guns together for the two-gun bonus, the source only lets the first of them count",
+      "replace": [
+        {
+          "ids": [
+            566,
+            567,
+            568,
+            656,
+            670,
+            915,
+            651,
+            145,
+            961,
+            951
+          ],
+          "minCount": 2,
+          "single": {
+            "houg": 2
+          }
+        }
+      ]
+    }
+  }
+}

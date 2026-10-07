@@ -5,9 +5,11 @@
 //! [`GearBonusTable::bonus`] is a port of its reader,
 //! `KC3Gear.equipmentTotalStatsOnShipBonus`. Where that reader is quirky the port follows it
 //! rather than the apparent intent, so that table and reader stay a matched pair. The one
-//! exception is star thresholds, which the reader skips for entries that do not declare a
-//! star record and which are always honoured here: `make gear-bonus-oracle`, which compares
-//! the result with the game client's own bonus code, shows the client never skips them.
+//! exceptions are about improvement stars: the reader skips star thresholds for entries that
+//! do not declare a star record, cannot read the stars of equipment without an entry of its
+//! own, and ignores the `isMultiple` it is given. `make gear-bonus-oracle`, which compares
+//! the result with the game client's own bonus code, shows the client does none of that, so
+//! stars are always read from what is carried and `isMultiple` is honoured.
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -93,7 +95,8 @@ pub struct GearBonusTable {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GearBonusEntry {
-    /// An equipment id, or `t2_<n>` / `t3_<n>` for `api_type[2]` / `api_type[3]`.
+    /// An equipment id, or `t2_<n>` / `t3_<n>` for `api_type[2]` / `api_type[3]`. Several
+    /// ids joined by `+` make one entry counting the copies of all of them together.
     pub key: String,
     /// Scoped rules first (by class, then by nation), unscoped ones last.
     pub rules: Vec<GearBonusRule>,
@@ -159,6 +162,9 @@ pub struct GearBonusSynergy {
     /// Counters that all have to be above zero. `<name>Nonexist` is above zero when
     /// `<name>` is zero.
     pub flags: Vec<String>,
+    /// Other equipment that has to be carried as well; every item has to be met.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub requires: Vec<GearBonusRequirement>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub single: Option<GearBonusStats>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -176,6 +182,21 @@ pub struct GearBonusSynergy {
     pub by_count: Option<GearBonusByCount>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub by_stars: Option<GearBonusByStars>,
+}
+
+/// "At least `min_count` of these, each with `min_stars` or more." The source cannot say
+/// this; corrections use it where the client asks for it.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+pub struct GearBonusRequirement {
+    /// Equipment ids, counted together.
+    pub gears: Vec<i64>,
+    /// Stars a copy needs to count.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub min_stars: i64,
+    /// Copies needed; one when absent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_count: Option<i64>,
 }
 
 /// A grant looked up by how many copies of something are carried.
@@ -200,7 +221,7 @@ pub struct GearBonusByStars {
     /// No grant when a copy with fewer stars is carried.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_stars_less_than: Option<usize>,
-    /// Declared by the source but not read by its reader, which grants each row once.
+    /// Grant each row once per copy reaching it instead of once.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub is_multiple: bool,
     /// Every row whose star threshold some copy reaches is granted.
@@ -272,7 +293,7 @@ impl GearBonusTable {
         gears
             .iter()
             .map(GearBonusGear::keys)
-            .any(|keys| self.gears.iter().any(|entry| keys.contains(&entry.key)))
+            .any(|keys| self.gears.iter().any(|entry| entry.covers(&keys)))
     }
 
     /// The stats `ship` gains for carrying `gears`.
@@ -306,7 +327,7 @@ impl GearBonusTable {
             .map(|entry| {
                 let mut carried = Carried::default();
                 for (gear, keys) in gears.iter().zip(&keys) {
-                    if keys.contains(&entry.key) {
+                    if entry.covers(keys) {
                         carried.count += 1;
                         carried.stars[gear.stars.clamp(0, 10) as usize] += 1;
                     }
@@ -400,7 +421,17 @@ impl GearBonusTable {
                         Some(base) => i64::from(counters.get(base).copied().unwrap_or(0) == 0),
                         None => counters.get(name).copied().unwrap_or(0),
                     };
-                    if !synergy.flags.iter().all(|name| flag(name) > 0) {
+                    let met = |requirement: &GearBonusRequirement| {
+                        let copies = gears
+                            .iter()
+                            .filter(|gear| requirement.gears.contains(&gear.id))
+                            .filter(|gear| gear.stars >= requirement.min_stars)
+                            .count() as i64;
+                        copies >= requirement.min_count.unwrap_or(1)
+                    };
+                    if !synergy.flags.iter().all(|name| flag(name) > 0)
+                        || !synergy.requires.iter().all(met)
+                    {
                         continue;
                     }
                     total.add(synergy.single.as_ref(), 1);
@@ -433,13 +464,26 @@ impl GearBonusTable {
                         total.add(row, 1);
                     }
                     if let Some(by_stars) = &synergy.by_stars {
-                        let other = carried_of(&by_stars.gear_id).cloned().unwrap_or_default();
+                        // The source reads the star record of the other equipment's entry
+                        // and so finds nothing when there is no such entry, and it never
+                        // reads `is_multiple`. The client does neither; see the module doc.
+                        let mut other = Carried::default();
+                        for gear in gears {
+                            if gear.id.to_string() == by_stars.gear_id {
+                                other.count += 1;
+                                other.stars[gear.stars.clamp(0, 10) as usize] += 1;
+                            }
+                        }
                         let lower = by_stars.no_stars_less_than.unwrap_or(0);
                         if other.stars.iter().take(lower).sum::<i64>() == 0 {
                             for row in &by_stars.table {
-                                if other.with_stars_from(row.min_stars) > 0 {
-                                    total.add(Some(&row.stats), 1);
-                                }
+                                let copies = other.with_stars_from(row.min_stars);
+                                let times = if by_stars.is_multiple {
+                                    copies
+                                } else {
+                                    copies.min(1)
+                                };
+                                total.add(Some(&row.stats), times);
                             }
                         }
                     }
@@ -450,6 +494,12 @@ impl GearBonusTable {
             }
         }
         total
+    }
+}
+
+impl GearBonusEntry {
+    fn covers(&self, gear_keys: &[String; 3]) -> bool {
+        self.key.split('+').any(|key| gear_keys.iter().any(|gear_key| gear_key == key))
     }
 }
 
@@ -527,6 +577,33 @@ mod tests {
 
         assert_eq!(table.bonus(&any, &carried).tyku, 1);
         assert_eq!(table.bonus(&any, &carried[1..]).tyku, 0);
+    }
+
+    #[test]
+    fn a_joined_entry_counts_the_copies_of_all_its_equipment() {
+        let table = table(serde_json::json!([{ "key": "1+2", "rules": [
+            { "countCap": 2, "multiple": { "raig": 2 } },
+            { "minStars": 10, "multiple": { "houg": 1 } },
+        ] }]));
+        let any = ship(1, 1, &[1]);
+
+        let mixed = table.bonus(&any, &[gear(1, 10), gear(2, 10), gear(2, 0)]);
+        assert_eq!((mixed.raig, mixed.houg), (4, 2));
+        assert_eq!(table.bonus(&any, &[gear(2, 0)]).raig, 2);
+        assert!(!table.covers(&[gear(3, 0)]));
+    }
+
+    #[test]
+    fn a_requirement_looks_at_the_stars_of_other_equipment() {
+        let table = table(serde_json::json!([{ "key": "1", "rules": [{ "synergy": [{
+            "requires": [{ "gears": [2, 3], "minStars": 3 }, { "gears": [4], "minCount": 2 }],
+            "single": { "tyku": 4 },
+        }] }] }]));
+        let any = ship(1, 1, &[1]);
+
+        assert_eq!(table.bonus(&any, &[gear(1, 0), gear(3, 3), gear(4, 0), gear(4, 0)]).tyku, 4);
+        assert_eq!(table.bonus(&any, &[gear(1, 0), gear(3, 2), gear(4, 0), gear(4, 0)]).tyku, 0);
+        assert_eq!(table.bonus(&any, &[gear(1, 0), gear(2, 9), gear(4, 0)]).tyku, 0);
     }
 
     #[test]

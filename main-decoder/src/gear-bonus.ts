@@ -7,6 +7,9 @@
 // becomes a list, and the nation table the rules refer to is taken from `Meta.js` of the same
 // commit. A key it does not know fails the conversion instead of being dropped, so a source
 // upgrade that introduces a new qualifier is noticed.
+//
+// Where the table disagrees with the game client, `gear-bonus-corrections.json` holds the fix
+// and is merged in here; `gear-bonus-oracle.ts` is what finds the disagreements.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -23,6 +26,8 @@ export type Stats = Partial<Record<(typeof STATS)[number], number>>;
 export interface Synergy {
 	/** Counters that all have to be above zero. `<name>Nonexist` is above zero when `<name>` is zero. */
 	flags: string[];
+	/** Corrections only: other equipment that has to be carried as well, `minCount` copies (one by default) with `minStars` or more. */
+	requires?: { gears: number[]; minStars?: number; minCount?: number }[];
 	single?: Stats;
 	multiple?: Stats;
 	/** Index into `flags` of the counter `multiple` scales with; the equipment's own count otherwise. */
@@ -59,7 +64,10 @@ export interface Rule {
 }
 
 export interface GearEntry {
-	/** An equipment id, or `t2_<n>` / `t3_<n>` for every equipment of that `api_type[2]` / `api_type[3]`. */
+	/**
+	 * An equipment id, or `t2_<n>` / `t3_<n>` for every equipment of that `api_type[2]` / `api_type[3]`.
+	 * Corrections may join ids with `+` into one entry that counts the copies of all of them together.
+	 */
 	key: string;
 	rules: Rule[];
 }
@@ -247,7 +255,14 @@ function convertRule(value: Plain, scope: Pick<Rule, "class" | "nation">, where:
 	return rule;
 }
 
-export function convertGearBonus(gearBonusCode: string, metaCode: string, source: GearBonusDocument["source"]): GearBonusDocument {
+/**
+ * Hand-written fixes where the source disagrees with the game client, by entry key. The rules
+ * are in the converted form. `replace` stands in for the source's rules, `append` follows them
+ * (or the replacement).
+ */
+export type Corrections = Record<string, { why: string; replace?: Rule[]; append?: Rule[] }>;
+
+export function convertGearBonus(gearBonusCode: string, metaCode: string, source: GearBonusDocument["source"], corrections: Corrections = {}): GearBonusDocument {
 	const table = returnedObject(gearBonusCode, "explicitStatsBonusGears");
 	const nationTable = propertyObject(metaCode, "countryCtypeMap");
 	if (!isRecord(table) || !isRecord(table.synergyGears) || !isRecord(nationTable)) fail("the tables are not objects");
@@ -304,6 +319,20 @@ export function convertGearBonus(gearBonusCode: string, metaCode: string, source
 		return { key, rules };
 	});
 
+	for (const [key, correction] of Object.entries(corrections)) {
+		if (!/^(\d+(\+\d+)*|t[23]_\d+)$/.test(key)) fail(`correction for the unknown entry ${key}`);
+		let gear = gears.find((candidate) => candidate.key === key);
+		if (gear === undefined) {
+			// Numbered entries come first and in order, as in the source's reader.
+			gear = { key, rules: [] };
+			const after = gears.findIndex((candidate) => !/^\d+$/.test(candidate.key) || (/^\d+$/.test(key) && Number(candidate.key) > Number(key)));
+			gears.splice(after < 0 ? gears.length : after, 0, gear);
+		}
+		if (correction.replace) gear.rules = [...correction.replace];
+		if (correction.append) gear.rules.push(...correction.append);
+		// A correction's synergy may consist of `requires` alone.
+		for (const rule of gear.rules) for (const synergy of rule.synergy ?? []) synergy.flags ??= [];
+	}
 	return { source, nations, synergyGears, gears };
 }
 
@@ -326,8 +355,9 @@ if (import.meta.main) {
 	const source = pinnedSource();
 	const [gearBonus, meta] = source.files.map((file) => readFileSync(repoPath(".data/temp/kc3kai", source.commit, file), "utf8")) as [string, string];
 	const output = process.argv[2] ?? repoPath("crates/emukc_bootstrap/assets/gear_bonus.json");
-	const document = convertGearBonus(gearBonus, meta, source);
+	const corrections = JSON.parse(readFileSync(resolve(import.meta.dir, "../gear-bonus-corrections.json"), "utf8")).gears as Corrections;
+	const document = convertGearBonus(gearBonus, meta, source, corrections);
 	writeFileSync(output, `${JSON.stringify(document, null, 2)}\n`);
 	const rules = document.gears.reduce((sum, gear) => sum + gear.rules.length, 0);
-	console.log(`converted ${document.gears.length} equipment entries (${rules} rules, ${Object.keys(document.synergyGears).length} synergy counters) -> ${output}`);
+	console.log(`converted ${document.gears.length} equipment entries (${rules} rules, ${Object.keys(document.synergyGears).length} synergy counters, ${Object.keys(corrections).length} corrected entries) -> ${output}`);
 }

@@ -44,6 +44,8 @@ export function loadoutsFor(ids: number[], companions: number[]): Loadout[] {
 		for (const stars of [0, 10]) {
 			for (const count of [1, 2, 3]) loadouts.push(Array(count).fill([id, stars]));
 		}
+		// Star thresholds sit anywhere from 1 to 10.
+		for (let stars = 1; stars < 10; stars++) loadouts.push([[id, stars]]);
 		loadouts.push([[id, 10], [id, 0]]);
 		for (const other of companions) {
 			if (other === id) continue;
@@ -66,13 +68,17 @@ export function companionsOf(document: GearBonusDocument, key: string): number[]
 				if (ids?.[0] !== undefined) found.add(ids[0]);
 			}
 			if (synergy.byStars) found.add(Number(synergy.byStars.gearId));
+			for (const requirement of synergy.requires ?? []) requirement.gears.forEach((id) => found.add(id));
 		}
 	}
 	return [...found];
 }
 
 if (import.meta.main) {
-	const document = JSON.parse(readFileSync(repoPath("crates/emukc_bootstrap/assets/gear_bonus.json"), "utf8")) as GearBonusDocument;
+	const tableFile = repoPath("crates/emukc_bootstrap/assets/gear_bonus.json");
+	const document = JSON.parse(readFileSync(tableFile, "utf8")) as GearBonusDocument;
+	/** `--only 30,410` probes just those entries, for working on a correction. */
+	const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1]?.split(",") : undefined;
 	const knownFile = resolve(import.meta.dir, "../gear-bonus-known-diffs.json");
 	const known = JSON.parse(readFileSync(knownFile, "utf8")) as KnownDiffs;
 	const start2 = JSON.parse(readFileSync(repoPath(".data/codex/start2.json"), "utf8"));
@@ -107,9 +113,10 @@ if (import.meta.main) {
 	const probes: Probe[] = [];
 	const origins: string[] = [];
 	for (const gear of document.gears) {
+		if (only && !only.includes(gear.key)) continue;
 		const typed = gear.key.match(/^t([23])_(\d+)$/);
-		const ids = typed ? [...items.values()].filter((item) => item.api_type[Number(typed[1])] === Number(typed[2])).map((item) => item.api_id as number).slice(0, 3) : [Number(gear.key)];
-		for (const gears of loadoutsFor(ids.filter((id) => items.has(id)), companionsOf(document, gear.key).filter((id) => items.has(id)))) {
+		const ids = typed ? [...items.values()].filter((item) => item.api_type[Number(typed[1])] === Number(typed[2])).map((item) => item.api_id as number).slice(0, 3) : gear.key.split("+").map(Number);
+		for (const gears of loadoutsFor(ids.filter((id) => items.has(id)), [...ids, ...companionsOf(document, gear.key)].filter((id) => items.has(id)))) {
 			for (const ship of ships) {
 				if (!gears.every(([id]) => canEquip(ship, id))) continue;
 				probes.push({ ship: ship.api_id, gears });
@@ -121,7 +128,10 @@ if (import.meta.main) {
 	const probeFile = repoPath(".data/temp/gear_bonus_probes.json");
 	mkdirSync(repoPath(".data/temp"), { recursive: true });
 	writeFileSync(probeFile, JSON.stringify(probes));
-	const server = Bun.spawnSync(["cargo", "run", "-q", "--release", "--", "gear-bonus", "probe", "--input", probeFile], { cwd: repoPath(), stdout: "pipe", stderr: "inherit" });
+	// The table is also compiled into the server, so `cargo run` rebuilds after every conversion.
+	// `EMUKC_BIN` names an already built server instead, for going back and forth on a correction.
+	const command = process.env.EMUKC_BIN ? [process.env.EMUKC_BIN] : ["cargo", "run", "-q", "--release", "--"];
+	const server = Bun.spawnSync([...command, "gear-bonus", "probe", "--input", probeFile, "--table", tableFile], { cwd: repoPath(), stdout: "pipe", stderr: "inherit" });
 	if (server.exitCode !== 0) throw new Error(`gear-bonus probe failed with exit code ${server.exitCode}`);
 	const actual = JSON.parse(server.stdout.toString()) as Record<string, number>[];
 
@@ -150,7 +160,7 @@ if (import.meta.main) {
 		if (listed?.probes !== count) unlisted.push(key);
 		report.push(`${listed?.probes === count ? "listed" : "UNLISTED"} ${key} ${items.get(Number(key))?.api_name ?? ""}: ${count} probes differ${listed ? ` (listed: ${listed.probes}; ${listed.reason})` : ""}\n  e.g. ${first}`);
 	}
-	const stale = Object.keys(known.gears).filter((key) => !differing.has(key));
+	const stale = only ? [] : Object.keys(known.gears).filter((key) => !differing.has(key));
 	const reportFile = repoPath(".data/temp/gear_bonus_oracle.txt");
 	writeFileSync(reportFile, `${report.join("\n")}\n`);
 	writeFileSync(repoPath(".data/temp/gear_bonus_diffs.jsonl"), `${details.join("\n")}\n`);
