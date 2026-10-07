@@ -77,6 +77,11 @@ matching the real KanColle game data for all maps with available API captures:
   9+=special).
 - A battle node (real `api_color_no` = 4) SHALL have `event_kind = 1` (battle)
   and `event_id = 4`, so the client correctly triggers battle UI.
+- Every other battle colour SHALL also infer `event_id = 4`, with the kind naming the
+  battle type: 7 → kind 4 (航空戦), 10 → kind 6 (長距離空襲戦), 11 → kind 2 (夜戦),
+  13 → kind 8 (レーダー射撃). The client enters a battle on `event_id` 4 or 5 only and reads
+  `event_kind` just to pick the endpoint; the server's battle guard follows the same split
+  (plan `2026-10-07-001`).
 
 ### Ship level cap enforcement
 
