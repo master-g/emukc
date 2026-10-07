@@ -61,7 +61,7 @@ async fn settle_boss_win(
     definition: &MapDefinition,
     stage_id: &str,
 ) -> SortieSettlement {
-    settle_boss_win_with_enemies(context, profile_id, definition, stage_id, vec![], &[]).await
+    settle_boss_win_with_enemies(context, profile_id, definition, stage_id, vec![], &[0]).await
 }
 
 /// `settle_boss_win` against a known enemy line-up: `enemy_ship_types` indexes
@@ -1305,6 +1305,7 @@ fn start_source_cells_include_nonzero_route_cell_roots() {
         required_defeat_count: None,
         clear_to_variant_key: None,
         advance_on_reach: Vec::new(),
+        gauge_counts_wins: false,
         advance_needs_s_rank_at: Vec::new(),
         parse_warnings: Vec::new(),
     };
@@ -1440,6 +1441,7 @@ async fn start_sortie_returns_post_p_unlock_layout_after_first_gauge_clear() {
         profile_id,
         &definition,
         &variant,
+        true,
         true,
         &snapshot,
     )
@@ -1738,6 +1740,7 @@ async fn clearing_map_1_1_unlocks_dependents_via_cascade() {
         definition,
         stage,
         true, // boss cell
+        true, // flagship sunk
         &snapshot,
     )
     .await
@@ -2285,7 +2288,8 @@ async fn settle_win_at(
             win_rank: win_rank.to_string(),
             ..successful_boss_snapshot()
         },
-        &[],
+        // The enemy flagship is sunk.
+        &[0],
     )
     .await
     .unwrap()

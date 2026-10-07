@@ -1,10 +1,10 @@
 {
-  "note": "What moves each multi-gauge regular map from one phase to the next, in phase order. Hand-maintained; `kcnav normalize` joins it with KCNav's phase boundaries into map_gauge_phases.json. `defeats` is how many boss kills empty the phase's gauge, `reach` a node whose arrival opens the next phase, `s_rank_at` a node that must also have been won with an S rank, `key` the variant name where it is not `phase<N>`. Every map here refills on the first of the month and starts over from its first phase. Sources, read 2026-10-07: wikiwiki.jp/kancolle (南方海域/5-6) and zekamashi.net/kancolle-kouryaku (5-6, 7-2, 7-5), agreeing with murasame.blog.jp (7-2, 7-3) and kyuku9999.livedoor.blog (7-2, 7-3, 5-6).",
+  "note": "What moves each multi-gauge regular map from one phase to the next, in phase order. Hand-maintained; `kcnav normalize` joins it with KCNav's phase boundaries into map_gauge_phases.json. `defeats` is how many sunk boss flagships empty the phase's gauge, `wins` how many boss wins of rank A or better do instead (flagship sunk or not), `reach` a node whose arrival opens the next phase, `s_rank_at` a node that must also have been won with an S rank, `key` the variant name where it is not `phase<N>`. Every map here refills on the first of the month and starts over from its first phase. Sources, read 2026-10-07: wikiwiki.jp/kancolle (南方海域/5-6) and zekamashi.net/kancolle-kouryaku (5-6, 7-2, 7-5), agreeing with murasame.blog.jp (7-2, 7-3) and kyuku9999.livedoor.blog (7-2, 7-3, 5-6).",
   "maps": {
     "5-6": [
       {
-        "defeats": 3,
-        "note": "Provisional. The real gauge is a transport gauge of 280 TP, emptied by A or S ranks at G; transport points are not modelled yet."
+        "wins": 3,
+        "note": "Provisional. The real gauge is a transport gauge of 280 TP, emptied by A or S ranks at G whether or not the flagship sinks; transport points are not modelled yet, so three such wins stand in."
       },
       {
         "reach": "R"

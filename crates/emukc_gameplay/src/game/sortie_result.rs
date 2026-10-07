@@ -155,6 +155,7 @@ where
 
     let snapshot = update_sortie_result_stats(c, codex, profile_id, snapshot).await?;
     let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);
+    let flagship_sunk = final_enemy_nowhps.first().is_some_and(|hp| *hp <= 0);
     tracing::debug!(
         map_id = definition.map_id,
         cell_no = current_cell.cell_no,
@@ -164,8 +165,16 @@ where
         "sortie_battle_result: boss check"
     );
     record_stage_unlock(c, profile_id, definition, stage, current_cell.cell_no, &snapshot).await?;
-    let first_clear =
-        apply_sortie_map_result(c, profile_id, definition, stage, is_boss_cell, &snapshot).await?;
+    let first_clear = apply_sortie_map_result(
+        c,
+        profile_id,
+        definition,
+        stage,
+        is_boss_cell,
+        flagship_sunk,
+        &snapshot,
+    )
+    .await?;
     tracing::debug!(
         map_id = definition.map_id,
         first_clear,
@@ -683,6 +692,7 @@ pub(super) async fn apply_sortie_map_result<C>(
     definition: &MapDefinition,
     stage: &MapStageDefinition,
     is_boss_cell: bool,
+    flagship_sunk: bool,
     snapshot: &SortieBattleResultSnapshot,
 ) -> Result<i64, GameplayError>
 where
@@ -765,6 +775,15 @@ where
     }
 
     if let Some(required) = stage.required_defeat_count.or(definition.required_defeat_count) {
+        // A gauge is emptied by sinking the boss flagship; winning without that leaves it.
+        let counts = if stage.gauge_counts_wins {
+            matches!(snapshot.win_rank.as_str(), "S" | "A")
+        } else {
+            flagship_sunk
+        };
+        if !counts {
+            return Ok(0);
+        }
         let next_defeat = previous_defeat_count + 1;
         let stage_cleared = next_defeat >= required;
         am.defeat_count = ActiveValue::Set(Some(next_defeat.min(required)));
@@ -1060,6 +1079,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_defeat_gauge_moves_only_when_the_boss_flagship_sinks() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let pid = insert_test_profile(&db).await;
+        let definition = MapDefinition {
+            required_defeat_count: Some(2),
+            max_hp: None,
+            ..gauge_map_definition(1, 1)
+        };
+        let mut stage = gauge_stage();
+        insert_gauge_record(&db, pid, definition.map_id).await;
+        let defeats = || async { get_record(&db, pid, definition.map_id).await.defeat_count };
+
+        // An S rank that left the flagship afloat is a win, not a kill.
+        let snap = snapshot("S");
+        apply_sortie_map_result(&db, pid, &definition, &stage, true, false, &snap).await.unwrap();
+        assert_eq!(defeats().await.unwrap_or_default(), 0);
+        apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
+        assert_eq!(defeats().await, Some(1));
+
+        // A gauge that counts wins takes A or better, the flagship sunk or not.
+        stage.gauge_counts_wins = true;
+        let snap = snapshot("B");
+        apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
+        assert_eq!(defeats().await, Some(1));
+        let snap = snapshot("A");
+        let first_clear =
+            apply_sortie_map_result(&db, pid, &definition, &stage, true, false, &snap)
+                .await
+                .unwrap();
+        assert_eq!((defeats().await, first_clear), (Some(2), 1));
+    }
+
+    #[tokio::test]
     async fn gauge_advances_after_boss_kill_with_remaining_gauges() {
         let db = emukc_db::prelude::new_mem_db().await.unwrap();
         let pid = insert_test_profile(&db).await;
@@ -1068,8 +1120,9 @@ mod tests {
         insert_gauge_record(&db, pid, definition.map_id).await;
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 0, "gauge advance should not report first-clear");
 
         let idx = get_gauge_index(&db, pid, definition.map_id).await;
@@ -1104,8 +1157,9 @@ mod tests {
         record.insert(&db).await.unwrap();
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 1, "final gauge clear should report first-clear");
 
         let cleared = is_cleared(&db, pid, definition.map_id).await;
@@ -1121,8 +1175,9 @@ mod tests {
         insert_gauge_record(&db, pid, definition.map_id).await;
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 1, "single-gauge clear should report first-clear");
         assert!(is_cleared(&db, pid, definition.map_id).await);
     }
@@ -1136,8 +1191,9 @@ mod tests {
         insert_gauge_record(&db, pid, definition.map_id).await;
 
         let snap = snapshot("S");
-        let result =
-            apply_sortie_map_result(&db, pid, &definition, &stage, false, &snap).await.unwrap();
+        let result = apply_sortie_map_result(&db, pid, &definition, &stage, false, true, &snap)
+            .await
+            .unwrap();
         assert_eq!(result, 0);
 
         let idx = get_gauge_index(&db, pid, definition.map_id).await;
@@ -1180,6 +1236,7 @@ mod tests {
             required_defeat_count: None,
             clear_to_variant_key: None,
             advance_on_reach: Vec::new(),
+            gauge_counts_wins: false,
             advance_needs_s_rank_at: Vec::new(),
             parse_warnings: Vec::new(),
         };

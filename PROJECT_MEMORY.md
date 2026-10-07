@@ -199,8 +199,8 @@ Current verification baseline:
 
 ## Next Session
 
-- [2026-10-07] 5-6 第一段是占位（G 点胜 3 次），真输送血条 280 TP 要另写计划（用户定）。
+- [2026-10-07] 5-6 第一段是占位（G 点 A 胜以上 3 次），真输送血条 280 TP 要另写计划（用户定）。
 - 待修（用户实测发现，均未动）：`engagement_for_cell` 按 `(海域+格子)%4` 定交战形态而非随机，改它要重冻 golden 并先写计划；
-  血条按 boss 格 S/A/B 胜计数、不看旗舰是否击沉（`sortie_result.rs` `apply_sortie_map_result`），用户未表态。
+  （血条已改为击沉 boss 旗舰才计数，计划 `2026-10-07-002`。）
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
   多血条图改 `map_gauge_rules.json` 后顺序是 `kcnav normalize` → 重建 codex → 再 `kcnav normalize`（掉落与编成按变体键展开）。

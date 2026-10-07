@@ -115,7 +115,7 @@ execution: code
 - 7-3 两个变体保留原样，只按断点校验并接线；实测机械切分与现有两个变体的格子集合一致（9 格 / 26 格）。
 - 新增两种推进方式：到达某格（`advance_on_reach`）与需要某格 S 胜（`advance_needs_s_rank_at`）。
 - `route-oracle` 覆盖 5-6 的 phase1、phase3、phase4；phase2（开路阶段）来源没有对应的 phase，不对拍。
-- 未做：5-6 的输送血条（占位）；血条按击沉旗舰计数（现状是 boss 点 B 胜以上即计数，所有血条图一致）。
+- 未做：5-6 的输送血条（占位，G 点 A 胜以上 3 次）。血条按击沉旗舰计数见计划 `2026-10-07-002`。
 - 沉淀：`docs/solutions/architecture-patterns/map-gauge-phases.md`。
 
 ## Verification Contract

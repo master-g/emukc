@@ -25,9 +25,13 @@ pub struct GaugePhase {
     /// Filled in from `KCNav`, never by hand.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cells_below: Option<i64>,
-    /// Boss kills that empty the phase's gauge.
+    /// Sunk boss flagships that empty the phase's gauge.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub defeats: Option<i64>,
+    /// Boss wins of rank A or better that empty the phase's gauge, the flagship sunk or
+    /// not. A stand-in for a transport gauge; a phase has this or `defeats`, not both.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wins: Option<i64>,
     /// Node whose arrival opens the next phase.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reach: Option<String>,
@@ -136,6 +140,13 @@ pub fn kcnav_gauge_phases(
     })
 }
 
+impl GaugePhase {
+    /// How long the phase's gauge is, if it has one.
+    fn gauge(&self) -> Option<i64> {
+        self.defeats.or(self.wins)
+    }
+}
+
 fn phase_key(index: usize, phase: &GaugePhase) -> String {
     phase.key.clone().unwrap_or_else(|| format!("phase{}", index + 1))
 }
@@ -190,8 +201,8 @@ pub fn apply_gauge_phases(
         definition.reset_policy = MapResetPolicy::Monthly;
         definition.gauge_type.get_or_insert(1);
         definition.gauge_count =
-            Some(phases.iter().filter(|phase| phase.defeats.is_some()).count() as i64);
-        definition.required_defeat_count = phases.iter().find_map(|phase| phase.defeats);
+            Some(phases.iter().filter(|phase| phase.gauge().is_some()).count() as i64);
+        definition.required_defeat_count = phases.iter().find_map(GaugePhase::gauge);
     }
     if errors.is_empty() {
         Ok(())
@@ -249,7 +260,10 @@ fn wire(
         .iter()
         .find(|cell| cell.cell_no >= lower && cell.event_id == 5)
         .map(|cell| cell.cell_no);
-    match (boss, phase.defeats) {
+    if phase.defeats.is_some() && phase.wins.is_some() {
+        return Err("both `defeats` and `wins`".to_owned());
+    }
+    match (boss, phase.gauge()) {
         (Some(boss), _) => variant.boss_cell_no = boss,
         (None, Some(_)) => return Err("a gauge, but the phase adds no boss cell".to_owned()),
         (None, None) => {
@@ -258,10 +272,11 @@ fn wire(
             }
         }
     }
-    if phase.defeats.is_none() && advance_on_reach.is_empty() && next_key.is_some() {
+    if phase.gauge().is_none() && advance_on_reach.is_empty() && next_key.is_some() {
         return Err("nothing moves the map on from this phase".to_owned());
     }
-    variant.required_defeat_count = phase.defeats;
+    variant.required_defeat_count = phase.gauge();
+    variant.gauge_counts_wins = phase.wins.is_some();
     variant.clear_to_variant_key = next_key.cloned();
     variant.advance_on_reach = advance_on_reach;
     variant.advance_needs_s_rank_at = advance_needs_s_rank_at;

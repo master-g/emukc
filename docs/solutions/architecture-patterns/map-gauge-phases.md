@@ -24,7 +24,7 @@ the map; emptying a gauge opens the next. In the catalog a phase is a variant
 
 | Map | Phases | What moves it on |
 | --- | --- | --- |
-| 5-6 | `phase1`…`phase4` | G ×3 (placeholder, see below) → reach R → N ×2 → Z ×3 |
+| 5-6 | `phase1`…`phase4` | three wins of rank A or better at G (placeholder, see below) → reach R → N ×2 → Z ×3 |
 | 7-2 | `phase1`, `phase2` | G ×3 → M ×4 |
 | 7-3 | `pre_p_unlock`, `post_p_unlock` | E ×3 → P ×4 |
 | 7-5 | `phase1`…`phase3` | K ×2 → Q ×3 and one S rank at M, in either order → T ×3 |
@@ -70,7 +70,11 @@ normalize` writes those two assets keyed by the phase variants.
 
 `MapVariantDefinition` carries them; `game/sortie_result.rs` plays them.
 
-- `required_defeat_count`: boss wins that empty the gauge (`apply_sortie_map_result`).
+- `required_defeat_count`: sunk boss flagships that empty the gauge
+  (`apply_sortie_map_result`). A win that leaves the flagship afloat does not count; whether
+  it sank is read from the enemy HP after any night battle. With `gauge_counts_wins` the
+  gauge instead takes every boss win of rank A or better, flagship sunk or not, which is how
+  a transport gauge behaves and what 5-6's placeholder uses (`wins` in the rules file).
 - `advance_on_reach`: cells whose arrival opens the next phase (`advance_stage_on_reach`,
   called from `next_sortie`). Such a phase has no gauge: boss wins there do nothing, and
   `mapinfo` shows the gauge of the phase it leads to.
@@ -106,8 +110,7 @@ first. Nothing is rewritten until the record next changes.
 
 - **5-6 phase 1 is a placeholder.** The real gauge is a transport gauge of 280 TP, emptied
   by A or S ranks at G in proportion to what the fleet carries. Transport points are not
-  modelled; three wins at G stand in, marked provisional in `map_gauge_rules.json`.
-- **A gauge counts boss wins of rank B or better**, as every gauge map here does. The real
-  game counts sunk boss flagships.
+  modelled; three wins of rank A or better at G stand in, marked provisional in
+  `map_gauge_rules.json`.
 - What `mapinfo` reports during 5-6's route-opening phase (gauge 2, 0 of 2) is a guess; no
   capture of that state exists.
