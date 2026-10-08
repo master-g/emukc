@@ -155,6 +155,7 @@ Current verification baseline:
   服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-07] 装備ボーナス：数据取 KC3Kai `GearBonus.js`（钉住提交，MIT），Rust 是其读取函数的移植，客户端
   `SlotItemEffectUtil` 只用来对拍。KC3Kai 与客户端的 82 条差异由手工订正层 `main-decoder/gear-bonus-corrections.json` 补平（多数是拟合出来的）。
+  例外：571 ★9+ 回避客户端 +6 像笔误，保留 KC3Kai 的 +1 并登记进 `gear-bonus-known-diffs.json`（用户定，计划 `2026-10-07-003`）。
   详见 `docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 ## Failed Attempts / Pitfalls
@@ -194,8 +195,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-07] 分支 `feat/map-gauge-phases`：计划 005 实施完（5-6 / 7-2 / 7-3 / 7-5 按阶段推进）。
-  `make route-oracle` 9.6 万次差异 0；clippy 17。细节见 `docs/solutions/architecture-patterns/map-gauge-phases.md`。
+- [2026-10-07] 计划 005（多血条图）已合入 main。分支 `fix/gear-bonus-571-evasion`：571 回避改回 KC3Kai 值，
+  `make gear-bonus-oracle` 只剩登记的 3 条；clippy 17。
 
 ## Next Session
 
