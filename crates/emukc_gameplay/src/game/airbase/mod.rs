@@ -561,6 +561,24 @@ impl Ctx {
     }
 }
 
+/// The profile's air corps in one area, with squadrons and radius, in `rid` order.
+pub(crate) async fn load_area_airbases_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    area_id: i64,
+) -> Result<Vec<Airbase>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let mut airbases = Vec::new();
+    for model in airbases_of_area(c, profile_id, area_id).await? {
+        airbases.push(load_airbase(c, codex, profile_id, model).await?);
+    }
+
+    Ok(airbases)
+}
+
 /// The profile's air corps in one area, in `rid` order.
 async fn airbases_of_area<C>(
     c: &C,

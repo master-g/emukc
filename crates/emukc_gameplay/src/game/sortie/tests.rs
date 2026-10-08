@@ -88,6 +88,7 @@ async fn settle_boss_win_with_enemies(
         visited_cell_ids: BTreeSet::from([stage.boss_cell_no]),
         locked_enemy_composition: None,
         landing_tp: None,
+        air_strikes: vec![],
     };
     settle_sortie_battle_impl(
         context.db.as_ref(),
@@ -1797,6 +1798,7 @@ fn active_sortie_on_cell(
         visited_cell_ids: BTreeSet::from([cell.cell_no]),
         locked_enemy_composition: None,
         landing_tp: None,
+        air_strikes: vec![],
     }
 }
 
@@ -1972,6 +1974,7 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
             visited_cell_ids: BTreeSet::from([boss.cell_no]),
             locked_enemy_composition: None,
             landing_tp: None,
+            air_strikes: vec![],
         },
     );
 
@@ -2114,6 +2117,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
                         visited_cell_ids: BTreeSet::from([cell.cell_no]),
                         locked_enemy_composition: None,
                         landing_tp: None,
+                        air_strikes: vec![],
                     },
                 );
                 let at = format!("map {map_id} `{variant_key}` cell {}", cell.cell_no);
@@ -2238,6 +2242,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
             visited_cell_ids: BTreeSet::from([cell.cell_no]),
             locked_enemy_composition: None,
             landing_tp: None,
+            air_strikes: vec![],
         },
     );
     let refused = context.sortie_battle(pid, 1).await.unwrap_err();
@@ -2295,6 +2300,7 @@ async fn settle_win_carrying(
         visited_cell_ids: BTreeSet::from([cell_no]),
         locked_enemy_composition: None,
         landing_tp,
+        air_strikes: vec![],
     };
     settle_sortie_battle_impl(
         context.db.as_ref(),
@@ -2431,6 +2437,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
             visited_cell_ids: BTreeSet::from([h]),
             locked_enemy_composition: None,
             landing_tp: None,
+            air_strikes: vec![],
         },
     );
     let arrived = context.next_sortie(profile_id, None).await.unwrap();
@@ -2508,6 +2515,7 @@ async fn map_5_6_counts_the_cargo_on_arrival_at_the_landing_cell() {
             visited_cell_ids: BTreeSet::from([before]),
             locked_enemy_composition: None,
             landing_tp: None,
+            air_strikes: vec![],
         },
     );
 
