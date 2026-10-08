@@ -52,9 +52,7 @@ Current verification baseline:
 - [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
-- [2026-09-22] 基地航空隊两处消耗都有出处：配属 = `api_mst_slotitem.api_cost` × 機数（一式陸攻 12，
-  实测 18 機扣 216 ボーキ 吻合）；补给 = 燃料 喪失機数×3 / ボーキ ×5。未决：wikiwiki 说乘数 = 槽容量
-  （偵察 4 / 大型陸上機 9 / 其他 18），但我们给大型飛行艇的容量是 1。见计划 2026-09-22-001。
+- [2026-10-08] 基地航空隊的可配属机种、每中隊機数、配属扣铝都以客户端为准（`getEquipTypes`、`getKadouCount`，见计划 2026-09-22-001 订正段）；补给每機 燃料 3 / ボーキ 5。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
   `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
   两者不互补。`docs/apilist.txt` 是字段**语义**最全来源，解码客户端才是字段**是否存在**的真源。
@@ -191,12 +189,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `test/headless-air-corps`：新预设与无头场景 `air_corps_6_4`（配备、行动指示、扩张）无人值守跑通，未推送。
-  发现清单漏项：`slot/airunit_{banner,fairy,name}` 按图像分组只列 57 件，客户端按装备 id 取，169 官服有。未修（要探测官服）。
+- [2026-10-08] 分支 `test/headless-air-corps`（未推送）：无头场景 `air_corps_6_4`；`squadron_capacity` 改按客户端；清单补 `airunit_*` 618 条（73,778）。
+  全量测试 1227 过，clippy 17，对拍 0 差异，无头航空队场景资源报告全空。本地 `z/cache` 清单已换成新的。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步候选：补 `airunit_*` 清单漏项（先告知用户再探测官服）；航空队出击侧（`start_air_base` 与战斗阶段，会重冻结 golden，先写计划）。
+  下一步候选：航空队出击侧（`start_air_base` 与战斗阶段，会重冻结 golden，先写计划）。

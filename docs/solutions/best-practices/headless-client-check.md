@@ -72,10 +72,9 @@ screen, pass steps on the command line and read the screenshots:
   order is changed. Its sim target is 1-1, because every entry of `PRESETS` is also
   battled by the sim gate.
 - That run found the cache list short of `slot/airunit_banner`, `airunit_fairy` and
-  `airunit_name` for 一式陸攻 (169): the list keeps one equipment per plane picture
-  (`airunit_slot_ids`, 57 of them), but the client loads them by the equipment's own id and
-  the origin has 169's. Not fixed yet; how many of the other planes the origin has is
-  unknown until it is asked.
+  `airunit_name`: the list kept one equipment per plane picture (57), but the client loads
+  them by the equipment's own id. The list now names every equipment the client's
+  deployment list offers (263); the origin had all 618 added files.
 
 ## Limits
 

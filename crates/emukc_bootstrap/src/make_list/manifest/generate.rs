@@ -1,6 +1,7 @@
 use emukc_cache::IntoVersion;
 use emukc_crypto::SuffixUtils;
-use emukc_model::kc2::start2::{ApiManifest, ApiMstShipgraph, ApiMstSlotitem};
+use emukc_model::kc2::start2::{ApiManifest, ApiMstShipgraph};
+use emukc_model::profile::airbase::squadron_capacity;
 
 use super::resolve;
 use super::types::{
@@ -411,24 +412,14 @@ fn resolve_ship_ids_for_target(
     .unwrap_or_else(|| resolve::resolve_ship_ids(source, mst))
 }
 
+/// Equipment an air corps can fly: the client loads these pictures by the
+/// equipment's own id, for everything its deployment list offers.
 fn airunit_slot_ids(mst: &ApiManifest) -> Vec<i64> {
-    let mut plane_slots: std::collections::BTreeMap<i64, &ApiMstSlotitem> =
-        std::collections::BTreeMap::new();
-    for slot in mst.api_mst_slotitem.iter() {
-        if let Some(key) =
-            (slot.api_type[4] != 0 && slot.api_sortno > 0).then_some(slot.api_type[4])
-        {
-            plane_slots
-                .entry(key)
-                .and_modify(|entry| {
-                    if entry.api_version.is_none() && slot.api_version.is_some() {
-                        *entry = slot;
-                    }
-                })
-                .or_insert(slot);
-        }
-    }
-    plane_slots.values().map(|slot| slot.api_id).collect()
+    mst.api_mst_slotitem
+        .iter()
+        .filter(|slot| slot.api_sortno > 0 && squadron_capacity(slot.api_type[2]).is_some())
+        .map(|slot| slot.api_id)
+        .collect()
 }
 
 fn resolve_slot_ids_for_target(
