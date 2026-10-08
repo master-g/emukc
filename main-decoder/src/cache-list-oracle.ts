@@ -67,6 +67,22 @@ function main() {
 	for (const entry of callSites) {
 		if (typeof entry.targetType === "string") typed.set(directoryOf(entry.kind, entry.targetType), `${entry.kind} ${entry.targetType} (${entry.moduleNames?.[0] ?? "?"})`);
 	}
+	// The manifest is itself extracted, by following loaders, and can miss a call. Counted
+	// independently: every call in the source with the shape `(id, damaged, "<ship type>"[,
+	// broken])`, whatever it is called on, must be in the manifest with that type, that kind
+	// of damaged state and that kind of broken look.
+	const kindOf = (value: string | undefined) => (value === undefined ? "none" : /^(true|!0)$/.test(value.trim()) ? "true" : /^(false|!1)$/.test(value.trim()) ? "false" : "variable");
+	const recorded = new Set(callSites.filter((entry) => entry.kind === "ship").map((entry) => `${entry.targetType} damaged:${kindOf(entry.damagedSource)} broken:${kindOf(entry.brokenSource)}`));
+	const shipType = "(album_status|banner[23]?(?:_g)?|card(?:_round)?|character_(?:full|up)|full|icon_box|power_up|remodel|reward_(?:card|icon)|sp_remodel/[a-z_0-9]+|special|supply_character)";
+	const shaped = new RegExp(`\\([^()]*?(?:\\([^()]*\\))?[^()]*?,\\s*([^,()]+(?:\\([^()]*\\))?),\\s*"${shipType}"(?:,\\s*([^()]+?))?\\)`, "g");
+	const unrecorded = new Set<string>();
+	let shapedCalls = 0;
+	for (const [, damaged, type, broken] of source.join("\n").matchAll(shaped)) {
+		shapedCalls += 1;
+		const combination = `${type} damaged:${kindOf(damaged)} broken:${kindOf(broken)}`;
+		if (!recorded.has(combination)) unrecorded.add(combination);
+	}
+
 	const unlistedTypes = [...typed].filter(([directory]) => !listed.some((path) => path.startsWith(directory)));
 
 	const ui = JSON.parse(readFileSync(repoPath("crates/emukc_bootstrap/assets/ui_resources.json"), "utf8"));
@@ -127,7 +143,7 @@ function main() {
 	// What the origin is known not to have: the generator's own hole tables, which travel in
 	// the manifest's path rules, and the ones recorded beside this script.
 	const pathRules = JSON.parse(readFileSync(repoPath("crates/emukc_bootstrap/assets/resource_manifest.json"), "utf8")).pathRules;
-	const recorded = JSON.parse(readFileSync(resolve(import.meta.dir, "../cache-list-known-holes.json"), "utf8"));
+	const knownHoles = JSON.parse(readFileSync(resolve(import.meta.dir, "../cache-list-known-holes.json"), "utf8"));
 	const holeTables: Record<string, number[]> = {
 		"character_full/": pathRules.eventShipHoles.full,
 		"character_full_dmg/": pathRules.eventShipHoles.fullDmg,
@@ -136,7 +152,7 @@ function main() {
 		"full/": pathRules.enemyShipHoles.full,
 		"full_dmg/": pathRules.enemyShipHoles.fullDmg,
 	};
-	for (const [directory, hole] of Object.entries<any>(recorded)) {
+	for (const [directory, hole] of Object.entries<any>(knownHoles)) {
 		if (typeof hole === "object" && directory.startsWith("kcs2/resources/ship/")) holeTables[directory.replace("kcs2/resources/ship/", "")] = hole.ids;
 	}
 	const isKnownHole = (path: string, id: number) => Object.entries(holeTables).some(([directory, ids]) => path.startsWith(`kcs2/resources/ship/${directory}`) && ids.includes(id));
@@ -149,7 +165,7 @@ function main() {
 		...start2.api_mst_mapinfo.flatMap((map: any) => ["_image.png", "_image.json", "_info.json"].map((file) => [`kcs2/resources/map/${pad(map.api_maparea_id, 3)}/${pad(map.api_no, 2)}${file}`, map.api_id])),
 		...start2.api_mst_useitem.filter((item: any) => item.api_name).flatMap((item: any) => ["card", "card_"].map((kind) => [`kcs2/resources/useitem/${kind}/${pad(item.api_id, 3)}.png`, item.api_id])),
 	];
-	const unswept = sweeps.filter(([path, id]) => !listedSet.has(path) && !recorded[path.slice(0, path.lastIndexOf("/") + 1)]?.ids?.includes(id)).map(([path]) => `NOT LISTED ${path} (its id is in the master data; ask the origin, then list it or record the hole)`);
+	const unswept = sweeps.filter(([path, id]) => !listedSet.has(path) && !knownHoles[path.slice(0, path.lastIndexOf("/") + 1)]?.ids?.includes(id)).map(([path]) => `NOT LISTED ${path} (its id is in the master data; ask the origin, then list it or record the hole)`);
 	let holes = 0;
 	const variants: string[] = [];
 	let asked = 0;
@@ -175,6 +191,7 @@ function main() {
 	const report = [
 		...empty.map(([directory, line]) => `NOTHING LISTED under ${directory} (main.decoded.js:${line})`),
 		...unlistedTypes.map(([directory, site]) => `NOTHING LISTED under ${directory}, asked for by ${site}`),
+		...[...unrecorded].map((combination) => `CALL NOT IN THE MANIFEST ${combination}: the source has a ship loading call of this shape the decoder did not record`),
 		...wrong.map((line) => `WRONG SUFFIX ${line}`),
 		...variants,
 		...unswept,
@@ -187,7 +204,7 @@ function main() {
 		...byHand.map((group) => `ids listed by hand and in no master data to sweep them against: ${group}`),
 	];
 	writeFileSync(reportFile, `${[...report, ...notJudged.map((line) => `NOT JUDGED ${line}`)].join("\n")}\n`);
-	console.log(`${listed.length} listed paths: ${named.size} directories named by the client, ${empty.length} with nothing listed; ${typed.size} resource types at ${callSites.length} loader call sites, ${unlistedTypes.length} with nothing listed; ${checked} suffixes checked, ${wrong.length} wrong; ${asked} ship addresses asked of the client's loader, ${variants.length} not listed as it asks (${holes} more are known holes); ${sweeps.length} addresses of hand-listed families swept against the master data, ${unswept.length} unaccounted for; ${notJudged.length} things not judged; report at ${reportFile}`);
+	console.log(`${listed.length} listed paths: ${named.size} directories named by the client, ${empty.length} with nothing listed; ${typed.size} resource types at ${callSites.length} loader call sites, ${unlistedTypes.length} with nothing listed; ${shapedCalls} ship loading calls counted in the source, ${unrecorded.size} kinds of them missing from the manifest; ${checked} suffixes checked, ${wrong.length} wrong; ${asked} ship addresses asked of the client's loader, ${variants.length} not listed as it asks (${holes} more are known holes); ${sweeps.length} addresses of hand-listed families swept against the master data, ${unswept.length} unaccounted for; ${notJudged.length} things not judged; report at ${reportFile}`);
 	for (const line of report.slice(0, 20)) console.log(line);
 	for (const line of notJudged) console.log(`not judged: ${line}`);
 	if (report.length > 0) process.exit(1);

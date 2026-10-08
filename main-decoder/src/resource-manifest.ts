@@ -13,6 +13,8 @@ export interface ResourceManifestShipEntry {
 	targetType: string;
 	shipMstIdSource: string;
 	damagedSource: string;
+	/** Present when the call passes a fourth argument. */
+	brokenSource?: string;
 	moduleIds: string[];
 	moduleNames: string[];
 }
@@ -139,6 +141,9 @@ function getCallExpressionChain(node: t.Expression | t.V8IntrinsicIdentifier): s
 
 // --- Dedup key builders ---
 
+/** Resource types `ShipLoader` is asked for; they are also the directories under `resources/ship/`. */
+const SHIP_TARGET_TYPE = /^(album_status|banner[23]?(_g)?|card(_round)?|character_(full|up)|full|icon_box|power_up|remodel|reward_(card|icon)|sp_remodel\/[a-z_0-9]+|special|supply_character)$/;
+
 function shipDedupKey(source: string, targetType: string, shipMstIdSource: string, damagedSource: string): string {
 	return `ship:${source}:${targetType}:${shipMstIdSource}:${damagedSource}`;
 }
@@ -173,6 +178,7 @@ function extractModuleResources(module: ModuleArtifact): ModuleResourceFindings 
 		&& !source.includes("ShipLoader")
 		&& !source.includes("SlotLoader")
 		&& !source.includes("resources/")
+		&& !source.includes('"banner')
 	) {
 		return findings;
 	}
@@ -247,13 +253,21 @@ function extractModuleResources(module: ModuleArtifact): ModuleResourceFindings 
 						? "SlotLoader.add"
 						: undefined;
 			}
+			// A loader handed in as a parameter has no `new ShipLoader()` to follow. Its `add`
+			// is still told apart by its shape: an id, a damaged state and a ship resource type.
+			if (isAliasedLoaderAdd && !(normalizedCalleeChain?.endsWith("Loader.add") ?? false)) {
+				const typeArg = path.node.arguments[2];
+				if (path.node.arguments.length <= 4 && t.isStringLiteral(typeArg) && SHIP_TARGET_TYPE.test(typeArg.value)) {
+					normalizedCalleeChain = "ShipLoader.add";
+				}
+			}
 			if (normalizedCalleeChain === undefined) {
 				return;
 			}
 
 			// Ship: resources.getShip or ShipLoader.add
 			if (normalizedCalleeChain.endsWith("resources.getShip") || normalizedCalleeChain.endsWith("ShipLoader.add")) {
-				const [idArg, damagedArg, typeArg] = path.node.arguments;
+				const [idArg, damagedArg, typeArg, brokenArg] = path.node.arguments;
 				if (idArg === undefined || damagedArg === undefined || typeArg === undefined) {
 					return;
 				}
@@ -266,15 +280,18 @@ function extractModuleResources(module: ModuleArtifact): ModuleResourceFindings 
 				if (shipMstIdSource === undefined || damagedSource === undefined) {
 					return;
 				}
+				// The fourth argument asks for the broken look of an abyssal ship that has one.
+				const brokenSource = brokenArg === undefined || t.isSpreadElement(brokenArg) ? undefined : expressionToSource(brokenArg);
 
 				const action = normalizedCalleeChain.endsWith("resources.getShip") ? "resources.getShip" : "ShipLoader.add";
-				const key = shipDedupKey(action, typeArg.value, shipMstIdSource, damagedSource);
+				const key = shipDedupKey(action, typeArg.value, shipMstIdSource, damagedSource) + (brokenSource === undefined ? "" : `:${brokenSource}`);
 				findings.shipEntries.set(key, {
 					kind: "ship",
 					source: action,
 					targetType: typeArg.value,
 					shipMstIdSource,
 					damagedSource,
+					...(brokenSource === undefined ? {} : { brokenSource }),
 					moduleIds: [module.id],
 					moduleNames: [moduleName],
 				});

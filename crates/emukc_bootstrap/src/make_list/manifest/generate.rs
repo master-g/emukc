@@ -281,6 +281,12 @@ fn ship_selector_scope_for_id(
     let ship = mst.api_mst_ship.iter().find(|ship| ship.api_id == ship_id)?;
     if ship.api_aftershipid.is_some() {
         Some(CacheRuleShipSelectorScope::DefaultFriendly)
+    } else if mst
+        .api_mst_shipgraph
+        .iter()
+        .any(|graph| graph.api_id == ship_id && graph.api_sp_flag == Some(1))
+    {
+        Some(CacheRuleShipSelectorScope::BreakAbyssal)
     } else {
         Some(CacheRuleShipSelectorScope::DefaultAbyssal)
     }
@@ -303,7 +309,7 @@ fn ship_semantic_targets_for_id(
     ship_id: i64,
     mst: &ApiManifest,
     cache_rules: Option<&CacheRulesAsset>,
-) -> Option<Vec<String>> {
+) -> Option<Vec<(String, bool)>> {
     let rule = cache_rules
         .map(|rules| &rules.ship_rules.target_semantics)
         .filter(|rule| rule.coverage_mode != ResourceCoverageMode::Unresolved)?;
@@ -323,8 +329,13 @@ fn ship_semantic_targets_for_id(
                 && scope.as_ref().is_some_and(|scope| &case.selector_scope == scope)
                 && case.damaged_state == damaged_state
         })
-        .flat_map(|case| case.target_types.iter().cloned())
+        .flat_map(|case| {
+            case.target_types
+                .iter()
+                .map(|target| (target.clone(), case.broken_target_types.contains(target)))
+        })
         .collect::<Vec<_>>();
+    // A type some case asks for broken sorts after the same type asked for plain.
     target_types.sort();
     target_types.dedup();
     Some(target_types)
@@ -578,34 +589,6 @@ fn add_ship_animation(
     }
 }
 
-/// An abyssal ship whose graph has `api_sp_flag` 1 has a second, broken look
-/// (`ShipUtil.isEnemyBreakGraph`). Unlike any other enemy she has damaged banners, and the
-/// battle scenes also ask for each with `_b` after her id once she is broken.
-fn add_enemy_break_banners(
-    list: &mut CacheList,
-    ship_id: &str,
-    target: &str,
-    graph: Option<&ApiMstShipgraph>,
-    version: Option<&String>,
-) {
-    let is_break_graph =
-        graph.is_some_and(|graph| graph.api_sp_flag == Some(1) && graph.api_sortno.is_none());
-    if !is_break_graph || !matches!(target, "banner" | "banner3") {
-        return;
-    }
-    for (category, looks) in
-        [(format!("{target}_dmg"), &["", "_b"][..]), (format!("{target}_g_dmg"), &["_b"][..])]
-    {
-        let suffix = SuffixUtils::create(ship_id, format!("ship_{category}").as_str());
-        for look in looks {
-            list.add(
-                format!("kcs2/resources/ship/{category}/{ship_id}{look}_{suffix}.png"),
-                version,
-            );
-        }
-    }
-}
-
 fn generate_ship_paths(
     entry: &ResourceManifestEntry,
     mst: &ApiManifest,
@@ -649,15 +632,10 @@ fn generate_ship_paths(
             .find(|g| g.api_id == id)
             .and_then(|g| g.api_version.first().into_version());
 
-        add_enemy_break_banners(
-            list,
-            &ship_id,
-            target,
-            mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
-            version.as_ref(),
-        );
-
-        if target == "special" && SPECIAL_DMG_SHIPS.contains(&id) {
+        // Without decoder rules there is nothing to say the client never asks; list them.
+        let special_may_be_damaged =
+            cache_rules.is_none_or(|rules| rules.ship_rules.special.may_be_damaged);
+        if target == "special" && special_may_be_damaged && SPECIAL_DMG_SHIPS.contains(&id) {
             let suffix = SuffixUtils::create(&ship_id, "ship_special_dmg");
             list.add(
                 format!("kcs2/resources/ship/special_dmg/{ship_id}_{suffix}.png"),
@@ -680,7 +658,7 @@ fn generate_ship_paths(
                 ship_semantic_targets_for_id(target, damaged, id, mst, cache_rules)
                     .unwrap_or_default();
 
-            for semantic_target in semantic_targets {
+            for (semantic_target, broken) in semantic_targets {
                 if should_skip_ship_category(
                     id,
                     semantic_target.as_str(),
@@ -696,6 +674,12 @@ fn generate_ship_paths(
                     format!("kcs2/resources/ship/{semantic_target}/{ship_id}_{suffix}.png"),
                     version.as_ref(),
                 );
+                if broken {
+                    list.add(
+                        format!("kcs2/resources/ship/{semantic_target}/{ship_id}_b_{suffix}.png"),
+                        version.as_ref(),
+                    );
+                }
             }
             continue;
         }
@@ -927,43 +911,6 @@ mod tests {
         };
         let mut list = CacheList::new();
         add_ship_animation(&mut list, "0951", "full", &still, None);
-        assert!(list.items.is_empty());
-    }
-
-    #[test]
-    fn a_breaking_enemy_adds_her_damaged_and_broken_banners() {
-        let graph = ApiMstShipgraph {
-            api_id: 2317,
-            api_sp_flag: Some(1),
-            ..Default::default()
-        };
-        let mut list = CacheList::new();
-        for target in ["banner", "banner3", "full"] {
-            add_enemy_break_banners(&mut list, "2317", target, Some(&graph), None);
-        }
-        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
-        // The suffixes without `_b` are the ones of the same ship's listed banners.
-        assert!(paths.contains(&"kcs2/resources/ship/banner_g_dmg/2317_b_1980.png"));
-        assert!(paths.contains(&"kcs2/resources/ship/banner3_g_dmg/2317_b_6763.png"));
-        for category in ["banner_dmg", "banner3_dmg"] {
-            let of = |look: &str| {
-                paths
-                    .iter()
-                    .filter(|path| path.contains(&format!("/{category}/2317{look}_")))
-                    .count()
-            };
-            // `2317_` also begins `2317_b_`.
-            assert_eq!((of(""), of("_b")), (2, 1), "{category}");
-        }
-        assert_eq!(paths.len(), 6);
-
-        let owned = ApiMstShipgraph {
-            api_sortno: Some(551),
-            ..graph
-        };
-        let mut list = CacheList::new();
-        add_enemy_break_banners(&mut list, "0951", "banner", Some(&owned), None);
-        add_enemy_break_banners(&mut list, "1501", "banner", None, None);
         assert!(list.items.is_empty());
     }
 
@@ -1369,6 +1316,7 @@ mod tests {
             resource_categories: ResourceCategoriesAsset::default(),
             ship_rules: CacheRuleShipRules {
                 special: CacheRuleSpecialShipRule {
+                    may_be_damaged: false,
                     coverage_mode: ResourceCoverageMode::ObservedComplete,
                     kind: "special_cases".to_string(),
                     cases: vec![CacheRuleSpecialCase {
@@ -1427,12 +1375,14 @@ mod tests {
             kind: "ship_target_semantics".to_string(),
             cases: vec![
                 CacheRuleShipTargetSemanticCase {
+                    broken_target_types: vec![],
                     raw_target_type: "banner".to_string(),
                     selector_scope: CacheRuleShipSelectorScope::DefaultFriendly,
                     damaged_state: CacheRuleDamagedState::Variable,
                     target_types: vec!["banner".to_string(), "banner_dmg".to_string()],
                 },
                 CacheRuleShipTargetSemanticCase {
+                    broken_target_types: vec![],
                     raw_target_type: "banner".to_string(),
                     selector_scope: CacheRuleShipSelectorScope::DefaultAbyssal,
                     damaged_state: CacheRuleDamagedState::Variable,
@@ -1464,6 +1414,7 @@ mod tests {
             coverage_mode: ResourceCoverageMode::ObservedComplete,
             kind: "ship_target_semantics".to_string(),
             cases: vec![CacheRuleShipTargetSemanticCase {
+                broken_target_types: vec![],
                 raw_target_type: "banner_g".to_string(),
                 selector_scope: CacheRuleShipSelectorScope::DefaultFriendly,
                 damaged_state: CacheRuleDamagedState::True,
@@ -1478,6 +1429,65 @@ mod tests {
         let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
         assert_eq!(paths.len(), 1);
         assert!(paths[0].contains("ship/banner_g_dmg/0001_"));
+    }
+
+    #[test]
+    fn an_abyssal_ship_with_a_broken_look_gets_the_banners_her_rule_names() {
+        let mut mst = make_minimal_manifest();
+        mst.api_mst_shipgraph.iter_mut().find(|graph| graph.api_id == 1500).unwrap().api_sp_flag =
+            Some(1);
+        let mut cache_rules = make_cache_rules_asset();
+        cache_rules.resource_categories.ship_generation_groups = ShipGenerationGroups {
+            default_friendly: vec!["banner".to_string()],
+            default_abyssal: vec!["banner".to_string()],
+            ..Default::default()
+        };
+        cache_rules.ship_rules.target_semantics = CacheRuleShipTargetSemanticsRule {
+            coverage_mode: ResourceCoverageMode::ObservedComplete,
+            kind: "ship_target_semantics".to_string(),
+            cases: vec![
+                CacheRuleShipTargetSemanticCase {
+                    raw_target_type: "banner".to_string(),
+                    selector_scope: CacheRuleShipSelectorScope::BreakAbyssal,
+                    damaged_state: CacheRuleDamagedState::True,
+                    target_types: vec!["banner_dmg".to_string()],
+                    broken_target_types: vec!["banner_dmg".to_string()],
+                },
+                CacheRuleShipTargetSemanticCase {
+                    raw_target_type: "banner".to_string(),
+                    selector_scope: CacheRuleShipSelectorScope::DefaultAbyssal,
+                    damaged_state: CacheRuleDamagedState::True,
+                    target_types: vec!["banner".to_string()],
+                    broken_target_types: vec![],
+                },
+            ],
+            module_ids: vec![],
+            module_names: vec![],
+        };
+        let entry = make_ship_entry("banner", "this._mst_id", Some("true"));
+
+        let mut list = CacheList::new();
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+        let of_1500 = |list: &CacheList| {
+            list.items
+                .iter()
+                .filter(|item| item.path.contains("/1500_"))
+                .map(|item| item.path.rsplit_once("ship/").unwrap().1.to_string())
+                .collect::<Vec<_>>()
+        };
+        let broken = of_1500(&list);
+        assert_eq!(broken.len(), 2, "{broken:?}");
+        assert!(broken.iter().all(|path| path.starts_with("banner_dmg/1500_")));
+        assert_eq!(broken.iter().filter(|path| path.starts_with("banner_dmg/1500_b_")).count(), 1);
+
+        // Without the flag she is an ordinary enemy: no damaged banner at all.
+        mst.api_mst_shipgraph.iter_mut().find(|graph| graph.api_id == 1500).unwrap().api_sp_flag =
+            None;
+        let mut list = CacheList::new();
+        generate_entry_paths(&entry, &mst, None, None, Some(&cache_rules), &mut list);
+        let plain = of_1500(&list);
+        assert_eq!(plain.len(), 1, "{plain:?}");
+        assert!(plain[0].starts_with("banner/1500_"));
     }
 
     #[test]

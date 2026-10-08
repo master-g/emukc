@@ -486,6 +486,9 @@ pub(crate) struct CacheRuleSpecialShipRule {
     pub kind: String,
     #[serde(default)]
     pub cases: Vec<CacheRuleSpecialCase>,
+    /// Some call site loads `special` with a damaged state that is not a literal `false`.
+    #[serde(default)]
+    pub may_be_damaged: bool,
     #[serde(default)]
     pub module_ids: Vec<String>,
     #[serde(default)]
@@ -500,6 +503,9 @@ pub(crate) enum CacheRuleShipSelectorScope {
     DefaultFriendly,
     #[serde(rename = "default-abyssal")]
     DefaultAbyssal,
+    /// An abyssal ship with a second, broken look (`ShipUtil.isEnemyBreakGraph`).
+    #[serde(rename = "break-abyssal")]
+    BreakAbyssal,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -522,6 +528,9 @@ pub(crate) struct CacheRuleShipTargetSemanticCase {
     pub damaged_state: CacheRuleDamagedState,
     #[serde(default)]
     pub target_types: Vec<String>,
+    /// Of `target_types`, those also asked for with `_b` after the ship id.
+    #[serde(default)]
+    pub broken_target_types: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
