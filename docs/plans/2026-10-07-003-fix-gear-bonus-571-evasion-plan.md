@@ -2,7 +2,7 @@
 title: "Gear Bonus 571 Evasion Follows KC3Kai - Plan"
 type: fix
 date: 2026-10-07
-status: implemented
+status: withdrawn
 execution: code
 ---
 
@@ -28,3 +28,10 @@ execution: code
 ## Verification
 
 `make gear-bonus-oracle` 只报已登记的 3 条；三道质量门。
+
+## Withdrawn (2026-10-08)
+
+判断错了，已撤回：571 的订正恢复，已知差异表清空。合入后查了两份第三方数据，都与客户端一致：
+wikiwiki.jp 的 53cm連装魚雷改(酸素魚雷) 页面实测表写「上記の艦以外」★+9 回避 +6，金剛型改二丙 +4→+10、
+夕張改二 +6→+12；noro6 的制空権シミュレータ表同样是 ★9 回避 +6。KC3Kai 的 +1 是没跟上。
+全部分歧的对照结果见 `docs/solutions/architecture-patterns/equipment-stat-bonus.md`。

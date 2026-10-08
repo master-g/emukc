@@ -65,13 +65,26 @@ Unpatched, 82 of 363 entries disagree with client 6.3.5.0 somewhere. KC3Kai lags
 ships, limits to a few ships star bonuses the client gives to all, and cannot express some
 of what the client does. `main-decoder/gear-bonus-corrections.json` is hand-maintained and
 merged by the converter, per entry key: `replace` stands in for the source's rules, `append`
-follows them. With it the oracle reports no difference over 2.26 million probes but the
-ones listed in `gear-bonus-known-diffs.json`.
+follows them. With it the oracle reports no difference over 2.26 million probes, and
+`gear-bonus-known-diffs.json` is empty.
 
-One difference is kept on purpose. The client shows evasion +6 per copy of 571 (53cm連装魚雷改)
-from 9 stars, on nearly every ship; KC3Kai, recorded against the server, has +1. That reads
-as a slip in the client, so 571 has no correction and stays at +1. The known-diffs file lists
-it, and 503 and 530, whose probes carry 571 alongside.
+### Where the two disagree, the client is right
+
+Checked on 2026-10-08 against a third table, the bonus data of noro6's 制空権シミュレータ
+(`noro6/kc-web`, `src/classes/item/ItemBonus.ts`, last changed 2026-09-19), evaluated on
+every probe where KC3Kai and the client differ:
+
+- with one kind of equipment carried, it gives the client's value on all 30,853 differing
+  stats, none KC3Kai's;
+- with several kinds carried, the client's on 21,528, KC3Kai's on 6,424 and neither's on
+  30, those 6,454 all one pair: 450 (13号対空電探改(後期型)) carried with 517. KC3Kai and noro6 give the pair
+  its bonus on any destroyer, the client only next to a D-type gun of 3 stars or more.
+  Nothing found settles that one; the asset follows the client.
+
+The value that looked most like a slip in the client, evasion +6 per copy of 571
+(53cm連装魚雷改) from 9 stars against KC3Kai's +1, is also what wikiwiki.jp's table of
+observed values has. It was reverted to +1 for a day on that suspicion and put back. A
+large or odd value in the client is no reason to prefer KC3Kai; KC3Kai lags.
 
 Two things in the converted form exist only for corrections:
 
