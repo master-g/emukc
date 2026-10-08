@@ -644,21 +644,24 @@ where
     Ok(())
 }
 
-/// The air corps sent against `cell_no`, as the battle takes them: each with
-/// the squadrons that still fly and one wave for every time it was pointed here.
+/// The air corps sent against a node, as the battle takes them: each with the
+/// squadrons that still fly and one wave for every time it was pointed here.
+///
+/// `cell_nos` are all the cell numbers of the node: a node reached by several
+/// edges has one per edge, and the client names whichever it drew the spot for.
 pub(crate) async fn striking_air_corps_impl<C>(
     c: &C,
     profile_id: i64,
     area_id: i64,
     strikes: &[AirStrike],
-    cell_no: i64,
+    cell_nos: &[i64],
 ) -> Result<Vec<AirCorpsInput>, GameplayError>
 where
     C: ConnectionTrait,
 {
     let mut air_corps = Vec::new();
     for strike in strikes {
-        let waves = strike.cells.iter().filter(|cell| **cell == cell_no).count();
+        let waves = strike.cells.iter().filter(|cell| cell_nos.contains(cell)).count();
         if waves == 0 {
             continue;
         }

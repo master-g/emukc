@@ -219,7 +219,7 @@ mod tests {
             .await
             .unwrap();
 
-        emukc_internal::crypto::rng::seed(1);
+        emukc_internal::crypto::rng::seed(5);
         let battle = context.state.sortie_battle(pid, 1).await.unwrap();
         context.state.sortie_battle_result(pid).await.unwrap();
         emukc_internal::crypto::rng::reseed_from_entropy();
@@ -236,8 +236,19 @@ mod tests {
         );
         assert!(json["api_air_base_attack"][0].get("remaining").is_none());
 
+        // The rules read out of the client accept the packet as a day battle.
+        let assets =
+            emukc_internal::bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+        let report = emukc_internal::bootstrap::prelude::validate_day_battle_response(
+            &context.state.codex.manifest,
+            &battle,
+            &assets,
+        )
+        .unwrap();
+        assert!(!report.has_errors(), "validation findings: {:?}", report.findings);
+
         let left = attacks.last().unwrap().remaining[0].1;
-        assert!(left < 18, "seed 1 costs the squadron aircraft; pick another seed if it stops");
+        assert!(left < 18, "this seed costs the squadron aircraft; pick another if it stops");
         let planes = squadrons_of_air_corps(&context, pid).await;
         assert_eq!(planes[0].count, left, "what the last attack left is what was written back");
 

@@ -126,6 +126,7 @@ api_req_kousyou/remodel_slotlist_detail
 api_req_map/next
 api_req_map/select_eventmap_rank
 api_req_map/start
+api_req_map/start_air_base
 
 api_req_member/get_event_selected_reward
 api_req_member/get_incentive
@@ -195,7 +196,6 @@ enemy combined battles it waits for event map data.
 ```plain
 api_req_map/air_raid
 api_req_map/anchorage_repair
-api_req_map/start_air_base
 ```
 
 `api_req_ranking/getlist` used to be listed here. The client no longer calls it;
@@ -206,8 +206,8 @@ the ranking it shows comes from `api_req_ranking/mxltvkpyuklh`, which is served.
 ### High Priority (Core Gameplay)
 
 1. **Combined Fleet Battles** - the 5 remaining 敵連合 `api_req_combined_battle/*` endpoints
-2. **Air Corps sortie** - `api_req_map/start_air_base` and the air corps phases of a battle; the port side is complete
+2. **Air Corps, what is left** - base defence and air raids on the base (`api_destruction_battle`), jet assault, fatigue
 
 ### Medium Priority (Enhanced Features)
 
-1. **Map & Sortie remainder** - air_raid, anchorage_repair, start_air_base
+1. **Map & Sortie remainder** - air_raid, anchorage_repair

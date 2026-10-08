@@ -195,12 +195,23 @@ where
         active.locked_enemy_composition.as_ref(),
     )?;
 
+    // Every cell number of the node the fleet stands on: the air corps were
+    // pointed at the node, by whichever of its numbers the client used.
+    let node_cells: Vec<i64> = stage
+        .cells
+        .iter()
+        .filter(|cell| {
+            cell.cell_no == current_cell.cell_no
+                || (cell.node_label.is_some() && cell.node_label == current_cell.node_label)
+        })
+        .map(|cell| cell.cell_no)
+        .collect();
     let air_corps = striking_air_corps_impl(
         c,
         profile_id,
         definition.maparea_id,
         &active.air_strikes,
-        current_cell.cell_no,
+        &node_cells,
     )
     .await?;
 

@@ -65,12 +65,14 @@ screen, pass steps on the command line and read the screenshots:
   offers a map whose whole prerequisite chain is cleared, so a preset clears the chain
   rather than unlocking the one map.
 - Animations run in real time: 5-6 with four battles takes about four minutes.
-- A preset need not be about a battle. `air_corps_6_4` opens 中部海域 as far as 6-4 and
-  leaves bombers and 設営隊 in the inventory; its steps deploy a squadron, order a sortie,
-  buy a second air corps and close the panel. The client only sends
-  `api_req_air_corps/set_action` when the panel closes (a click outside it), not when the
-  order is changed. Its sim target is 1-1, because every entry of `PRESETS` is also
-  battled by the sim gate.
+- A preset need not be about one battle. `air_corps_6_4` opens 中部海域 as far as 6-4 and
+  leaves bombers and 設営隊 in the inventory; its steps deploy a squadron, order a sortie, buy
+  a second air corps, sortie 6-4 with the air corps pointed at D, fight there and resupply at
+  home. The client only sends `api_req_air_corps/set_action` when the panel closes (a click
+  outside it), not when the order is changed. Its sim target is 1-1, because every entry of
+  `PRESETS` is also battled by the sim gate.
+- A spot tapped while waiting must be harmless on every screen it may land on: a tap meant to
+  close the air corps panel, repeated after it closed, chose the map underneath.
 - That run found the cache list short of `slot/airunit_banner`, `airunit_fairy` and
   `airunit_name`: the list kept one equipment per plane picture (57), but the client loads
   them by the equipment's own id. The list now names every equipment the client's
@@ -83,7 +85,7 @@ screen, pass steps on the command line and read the screenshots:
 - The server holds the redb lock of `z/cache`; stop your own server first.
 - A page error is the only sign of a broken animation. A sprite that is merely wrong shows
   only in a screenshot someone reads.
-- The air corps scenario cannot reach `supply` or `cond_recovery`: nothing costs a squadron
-  aircraft or morale until the sortie side exists. The 整備Lv screen is not driven either.
+- The air corps scenario does not reach `cond_recovery` (nothing tires a squadron) or the
+  整備Lv screen.
 - The entry module id (32875) changes with a client build; `run.py` and
   `client-runtime.ts` say so when their patch no longer matches.

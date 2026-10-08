@@ -75,6 +75,18 @@ def check_air_corps_6_4(work: Path) -> list[str]:
         problems.append(f"the expansion added air corps {added['api_rid']}, not the second")
     if not list((work / "api").glob("*_api_req_air_corps.set_action.json")):
         problems.append("closing the panel sent no orders")
+    if not list((work / "api").glob("*_api_req_map.start_air_base.json")):
+        problems.append("the air corps was given no cells")
+    battles = [battle for path in ("api_req_sortie/battle", "api_req_sortie/ld_airbattle") for battle in responses(work, path)]
+    attacks = [battle["api_air_base_attack"] for battle in battles if battle.get("api_air_base_attack")]
+    if len(attacks) != 1 or len(attacks[0]) != 2 or attacks[0][0]["api_squadron_plane"][0] != {"api_mst_id": 169, "api_count": 18}:
+        problems.append(f"the air corps should attack D twice, starting with eighteen bombers; the battles carried {attacks}")
+    left = responses(work, "api_get_member/mapinfo")[-1]["api_air_base"][0]["api_plane_info"][0]["api_count"]
+    supplied = responses(work, "api_req_air_corps/supply")[-1]
+    stock = responses(work, "api_port/port")[-1]["api_material"]
+    paid = (stock[0]["api_value"] - supplied["api_after_fuel"], stock[3]["api_value"] - supplied["api_after_bauxite"])
+    if supplied["api_plane_info"][0]["api_count"] != 18 or paid != ((18 - left) * 3, (18 - left) * 5):
+        problems.append(f"filling {18 - left} aircraft answered {supplied} for {paid} fuel and bauxite")
     return problems
 
 
@@ -87,12 +99,17 @@ SCENARIOS = {
         f"u:{TAPS}:api_req_map/next w:3 s:landing {BATTLE} w:14 s:result u:{TAPS}:api_port/port",
         check_transport_5_6,
     ),
-    # 中部海域, the air corps panel: deploy bombers to the first squadron, order a sortie, add a second
-    # air corps, and close the panel, which is when the client sends the orders.
+    # 中部海域, the air corps: deploy bombers to the first squadron, order a sortie, add a second air
+    # corps and close the panel (which is when the client sends the orders); sortie 6-4, point the air
+    # corps at D twice, fight B and then D with its two attacks; go home and resupply the squadron.
     "air_corps_6_4": (
         f"{TO_MAPS} c:800,680 w:4 c:720,182 w:5 c:1032,383 w:4 c:760,267 w:4 u:1017,655:api_req_air_corps/set_plane "
         "w:4 s:deployed c:1162,237 w:4 c:1030,180 w:4 u:477,477:api_req_air_corps/expand_base w:8 "
-        "u:300,300;300,560:api_req_air_corps/set_action w:4 s:closed",
+        "u:250,150:api_req_air_corps/set_action w:4 "
+        "c:925,525 w:4 c:1015,668 w:4 u:830,668:api_req_map/start w:8 c:437,304 w:2 c:437,304 w:3 s:targets "
+        f"u:157,90:api_req_map/start_air_base w:4 {BATTLE} u:{TAPS}:api_req_map/next {BATTLE} "
+        "u:600,400;770,365:api_port/port w:6 c:295,400 w:3 u:345,450:api_get_member/mapinfo w:4 c:800,680 w:4 "
+        "c:720,182 w:5 s:home c:1030,382 w:4 u:1055,608:api_req_air_corps/supply w:5 s:supplied",
         check_air_corps_6_4,
     ),
 }

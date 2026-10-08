@@ -52,7 +52,7 @@ Current verification baseline:
 - [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
-- [2026-10-08] 基地航空攻击与舰载机航空战同档简化（必中、対空线性近似），威力式取 `kcsim.js`；逐条出处与没做的项在计划 2026-10-08-006 的公式表。
+- [2026-10-08] 基地航空隊的全貌、数值出处与「不带航空队的战斗不多抽一个随机数」的规矩：`docs/solutions/architecture-patterns/air-corps.md`。
 - [2026-10-08] 基地航空隊的可配属机种、每中隊機数、配属扣铝都以客户端为准（`getEquipTypes`、`getKadouCount`，见计划 2026-09-22-001 订正段）；补给每機 燃料 3 / ボーキ 5。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
   `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
@@ -190,12 +190,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `feat/air-corps-sortie`（未推送，计划 `2026-10-08-006`）：U1–U3 完成——`start_air_base`、战斗里的基地航空攻击阶段、
-  損失写回与出击消耗。U4（真实客户端验证）与 U5 未完。疲劳与配置転換的 12 分钟计时单列后续（要时间戳列）。
+- [2026-10-08] 分支 `feat/air-corps-sortie`（未推送）：计划 `2026-10-08-006` 全部实施——`start_air_base`、基地航空攻击阶段、損失写回、出击消耗；
+  无头场景 `air_corps_6_4` 跑完整一轮（含补给）。清单 143/5。疲劳、配置転換计时、防空与空襲未做，见 `air-corps.md` 的 Known gaps。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步：计划 `2026-10-08-006` 的 U4（`battle validate` 带基地航空的包；无头场景加 6-4 出击与选目标）与 U5。
+  下一步候选：航空队的疲劳与配置転換计时（要时间戳列与迁移步骤）；基地防空与空襲（要敌方空襲编成的来源）。

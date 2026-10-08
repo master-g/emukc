@@ -1,8 +1,11 @@
 //! An air corps' attack on the enemy fleet, flown before the fleets meet.
 //!
 //! The three stages are those of the carrier air battle in [`super::kouku`]
-//! and are kept at its level of detail: every attack hits, the anti-air stage
-//! is the same linear estimate and a target is any enemy still afloat. What is
+//! and are kept at its level of detail where that does no harm: every attack
+//! hits and a target is any enemy still afloat. The anti-air stage is the
+//! source's own, one ship firing on each squadron, because the carrier battle's
+//! estimate (the whole fleet's anti-air over 400) empties a squadron against
+//! an ordinary six-ship fleet. What is
 //! particular to an air corps follows `KC3Kai/kancolle-replay`'s `kcsim.js`
 //! (`LBASPhase`, `airstrikeLBAS`) and `kcships.js` (`LandBase.airPower`); the
 //! plan `2026-10-08-006` lists each formula with its line and what was left out.
@@ -91,6 +94,85 @@ fn strike_stat(mst: &ApiMstSlotitem, on_land: bool) -> f64 {
     }
 }
 
+/// What an enemy ship's fixed shot takes of its own and its fleet's anti-air.
+const ENEMY_FLAT_SHOT: f64 = 0.1875;
+
+/// 加重対空 of an enemy ship: the root of her anti-air, plus her anti-air
+/// equipment weighted by kind (`Ship.weightedAntiAir`, `kcships.js:1619`).
+fn weighted_anti_air(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+    let mut weighted = (ship.ship.api_taiku[0].max(0) as f64).sqrt();
+    for item in &ship.slot_items {
+        let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+            continue;
+        };
+        weighted += mst.api_tyku as f64
+            * match anti_air_kind(mst) {
+                AntiAirKind::HighAngle => 2.0,
+                AntiAirKind::Gun => 3.0,
+                AntiAirKind::AirRadar => 1.5,
+                AntiAirKind::Type3Shell | AntiAirKind::LargeGun | AntiAirKind::Other => 0.0,
+            };
+    }
+    weighted.floor() as i64
+}
+
+/// 艦隊防空 of the enemy fleet: each ship afloat adds her equipment's anti-air
+/// weighted by kind (`Fleet.fleetAntiAir`, `kcships.js:57`). The formation's
+/// modifier is left out.
+fn fleet_anti_air(codex: &Codex, fleet: &[BattleRuntimeShip]) -> i64 {
+    fleet
+        .iter()
+        .filter(|ship| ship.is_alive())
+        .map(|ship| {
+            ship.slot_items
+                .iter()
+                .filter_map(|item| codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok())
+                .map(|mst| {
+                    mst.api_tyku as f64
+                        * match anti_air_kind(mst) {
+                            AntiAirKind::HighAngle => 0.35,
+                            AntiAirKind::AirRadar => 0.4,
+                            AntiAirKind::Type3Shell => 0.6,
+                            AntiAirKind::LargeGun => 0.25,
+                            AntiAirKind::Gun | AntiAirKind::Other => 0.2,
+                        }
+                })
+                .sum::<f64>()
+                .floor() as i64
+        })
+        .sum()
+}
+
+/// How a piece of equipment counts towards anti-air fire.
+enum AntiAirKind {
+    /// 高角砲 and 高射装置.
+    HighAngle,
+    /// 対空機銃.
+    Gun,
+    /// 対空電探.
+    AirRadar,
+    /// 三式弾.
+    Type3Shell,
+    /// 大口径主砲.
+    LargeGun,
+    Other,
+}
+
+fn anti_air_kind(mst: &ApiMstSlotitem) -> AntiAirKind {
+    // 高角砲 is told by its icon; the rest by equipment type.
+    if mst.api_type[3] == 16 {
+        return AntiAirKind::HighAngle;
+    }
+    match mst.api_type[2] {
+        36 => AntiAirKind::HighAngle,
+        21 => AntiAirKind::Gun,
+        12 | 13 if mst.api_tyku >= 2 => AntiAirKind::AirRadar,
+        18 => AntiAirKind::Type3Shell,
+        3 => AntiAirKind::LargeGun,
+        _ => AntiAirKind::Other,
+    }
+}
+
 /// Attack power of one squadron before the target's armour:
 /// `25 + stat × √(1.8 × strength)`, a land attacker's taken at 0.8, capped at
 /// 220, and 陸上攻撃機's then multiplied by 1.8.
@@ -142,8 +224,8 @@ pub(crate) fn simulate_air_base_attack(
     let stage1_e_lost = (enemy_planes as f64 * e_ratio).floor() as i64;
     apply_plane_losses(codex, enemy, stage1_e_lost);
 
-    // Stage 2: the fleet's anti-air fire on the squadrons that come to strike.
-    let enemy_aa: f64 = enemy.iter().map(|ship| ship.ship.api_taiku[0].max(0) as f64).sum();
+    // Stage 2: each squadron that comes to strike is fired on by one enemy ship.
+    let fleet_aa = fleet_anti_air(codex, enemy);
     let mut stage2_f_count = 0;
     let mut stage2_f_lost = 0;
     for squadron in &mut corps.squadrons {
@@ -153,8 +235,26 @@ pub(crate) fn simulate_air_base_attack(
         if !striking || squadron.count <= 0 {
             continue;
         }
-        let lost =
-            ((enemy_aa / 400.0) * squadron.count as f64).floor().min(squadron.count as f64) as i64;
+        let afloat: Vec<usize> = enemy
+            .iter()
+            .enumerate()
+            .filter(|(_, ship)| ship.is_alive())
+            .map(|(index, _)| index)
+            .collect();
+        let Some(pick) = rng.choose_index(afloat.len()) else {
+            break;
+        };
+        let ship_aa = weighted_anti_air(codex, &enemy[afloat[pick]]);
+        // Two shots, each landing half the time: one takes a share of the
+        // squadron, the other a fixed number.
+        let mut lost = 0;
+        if rng.roll_range(0, 2) == 0 {
+            lost += squadron.count * ship_aa / 200;
+        }
+        if rng.roll_range(0, 2) == 0 {
+            lost += ((ship_aa + fleet_aa) as f64 * ENEMY_FLAT_SHOT).floor() as i64;
+        }
+        let lost = lost.min(squadron.count);
         stage2_f_count += squadron.count;
         stage2_f_lost += lost;
         squadron.count -= lost;
@@ -344,8 +444,9 @@ mod tests {
         assert_eq!(attack.api_stage_flag, [1, 1, 1]);
         assert_eq!(attack.kouku.api_stage1.api_f_count, 36);
         assert_eq!(
-            attack.kouku.api_stage2.api_f_count, corps.squadrons[0].count,
-            "only the bombers"
+            attack.kouku.api_stage2.api_f_count - attack.kouku.api_stage2.api_f_lostcount,
+            corps.squadrons[0].count,
+            "only the bombers are fired on"
         );
         assert_eq!(attack.kouku.api_stage3.api_erai_flag, [1], "torpedoes on a ship afloat");
         assert_eq!(attack.kouku.api_stage3.api_ebak_flag, [0]);
@@ -355,6 +456,28 @@ mod tests {
             [(1, corps.squadrons[0].count), (2, corps.squadrons[1].count)],
             "what is left is what the caller writes back"
         );
+    }
+
+    /// Six ordinary ships must not empty a squadron: each squadron is fired on
+    /// by one of them, not by the sum.
+    #[test]
+    fn a_fleets_anti_air_fire_takes_a_few_aircraft_not_the_squadron() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut worst = 0;
+        for seed in 0..50 {
+            let mut enemy: Vec<BattleRuntimeShip> =
+                (0..6).flat_map(|_| lone_enemy(&codex, KcShipType::CA)).collect();
+            for ship in &mut enemy {
+                ship.ship.api_taiku[0] = 60;
+                ship.slot_items.clear();
+            }
+            let mut corps = corps(&[(LAND_ATTACKER, 18)]);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
+            worst = worst.max(attack.kouku.api_stage2.api_f_lostcount);
+        }
+        // √60 = 7: at most 18 × 7 / 200 = 0 by share and 7 × 0.1875 = 1 fixed.
+        assert!(worst <= 1, "anti-air fire took {worst} of a squadron");
     }
 
     #[test]
