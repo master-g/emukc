@@ -6,7 +6,7 @@ use enemy_ship::{
     fallback_enemy_composition, resolve_sortie_enemy_fleet, select_random_enemy_composition,
 };
 use route::{SortieRoute, route_next_cell, route_start_cell};
-use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl, roll_engagement};
+use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 
 use std::collections::BTreeSet;
 
@@ -28,6 +28,7 @@ use emukc_battle::{BattleType, CombinedFleetRole};
 
 use super::{
     battle::{
+        engagement::roll_engagement,
         response::{
             DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
         },

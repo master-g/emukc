@@ -11,6 +11,7 @@ use crate::err::GameplayError;
 use super::response::calculate_base_exp;
 use super::{PracticeBattleInput, PracticeBattleResultSnapshot, PracticeBattleSession};
 use crate::game::PracticeStore;
+use crate::game::battle::engagement::{carries_saiun, roll_engagement};
 use crate::game::battle::response::{
     DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
 };
@@ -69,6 +70,7 @@ pub fn run_day_battle(
 ) -> Result<(DayBattleResponse, PracticeBattleResultSnapshot), GameplayError> {
     let friend_ships = input.friend_ships.clone();
     let enemy_ships = input.enemy_ships.clone();
+    let engagement = roll_engagement(rng, input.friend_ships.iter().any(carries_saiun));
     let simulation = execute_day(
         codex,
         BattleContext {
@@ -76,7 +78,7 @@ pub fn run_day_battle(
             is_sortie: false,
             friendly_formation_id: input.formation_id,
             enemy_formation_id: 1,
-            engagement: EngagementType::SameCourse,
+            engagement,
             friend_ships: input.friend_ships,
             enemy_ships: input.enemy_ships,
             enemy_escort_ships: Vec::new(),
