@@ -1,0 +1,82 @@
+{
+  "note": "Addresses the client's loader can compute for a listed ship that the origin does not have. Each was asked of the origin once (one mirror).",
+  "kcs2/resources/ship/special_dmg/": {
+    "reason": "only some ships with a special attack portrait have a damaged one; cache populate on 2026-10-08 found the others missing",
+    "ids": [
+      178,
+      360,
+      364,
+      392,
+      411,
+      412,
+      446,
+      447,
+      541,
+      546,
+      571,
+      572,
+      573,
+      576,
+      577,
+      591,
+      592,
+      593,
+      601,
+      659,
+      694,
+      697,
+      724,
+      733,
+      911,
+      913,
+      916,
+      918,
+      954,
+      969,
+      1496
+    ]
+  },
+  "kcs2/resources/useitem/card/": {
+    "reason": "named in api_mst_useitem, but cache populate on 2026-10-08 found no image on the origin",
+    "ids": [
+      2,
+      10,
+      44,
+      50,
+      53,
+      76,
+      103
+    ]
+  },
+  "kcs2/resources/useitem/card_/": {
+    "reason": "named in api_mst_useitem, but cache populate on 2026-10-08 found no image on the origin",
+    "ids": [
+      10,
+      50,
+      53,
+      55,
+      56,
+      61,
+      62,
+      63,
+      66,
+      67,
+      69,
+      72,
+      76,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      93,
+      103
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 use emukc_cache::IntoVersion;
 use emukc_crypto::SuffixUtils;
-use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
+use emukc_model::kc2::start2::{ApiManifest, ApiMstShipgraph, ApiMstSlotitem};
 
 use super::resolve;
 use super::types::{
@@ -67,6 +67,15 @@ const ALBUM_STATUS_HOLES: &[i64] = &[743, 744, 745, 748, 749];
 
 /// Ship target types that use `full`/`full_dmg` pattern (with `api_filename`).
 const SHIP_FULL_CATEGORIES: &[&str] = &["full", "full_dmg"];
+
+/// Ships whose special attack portrait has a damaged version on the CDN.
+///
+/// Two cut-ins (`CutinZRK` and one more) load `special` with the attacker's damaged state,
+/// so the client can ask for `special_dmg` of any ship with a `special` portrait. Nothing in
+/// `start2` says which have one: a `cache populate` of all 40 candidates on 2026-10-08 found
+/// these nine and no others. The rest are named in
+/// `main-decoder/cache-list-known-holes.json`.
+const SPECIAL_DMG_SHIPS: &[i64] = &[184, 553, 554, 634, 635, 639, 640, 944, 949];
 
 /// SP remodel sub-categories.
 const _SP_REMODEL_CATEGORIES: &[&str] = &[
@@ -540,6 +549,63 @@ pub(crate) fn generate_entry_paths(
     }
 }
 
+/// A ship whose graph has `api_sp_flag` 1 is drawn animated where she would be drawn `full`
+/// (`_loadFlagShipAnimation` in the client's port scene): a sprite sheet, its image and the
+/// animation data, under `full_animation` or `full_animation_dmg`. The client builds these
+/// addresses by hand instead of through `ShipLoader`, so no decoder rule names them.
+fn add_ship_animation(
+    list: &mut CacheList,
+    ship_id: &str,
+    full_category: &str,
+    graph: &ApiMstShipgraph,
+    version: Option<&String>,
+) {
+    // Abyssal ships carry the flag too, but only a ship the player owns can be a flagship,
+    // and the origin has these files for no other.
+    if graph.api_sp_flag != Some(1) || !graph.api_sortno.is_some_and(|sortno| sortno > 0) {
+        return;
+    }
+    let category = full_category.replacen("full", "full_animation", 1);
+    let suffix = SuffixUtils::create(ship_id, format!("ship_{category}").as_str());
+    for file in ["_data.json", ".json", ".png"] {
+        list.add(
+            format!(
+                "kcs2/resources/ship/{category}/{ship_id}_{suffix}_{}{file}",
+                graph.api_filename
+            ),
+            version,
+        );
+    }
+}
+
+/// An abyssal ship whose graph has `api_sp_flag` 1 has a second, broken look
+/// (`ShipUtil.isEnemyBreakGraph`). Unlike any other enemy she has damaged banners, and the
+/// battle scenes also ask for each with `_b` after her id once she is broken.
+fn add_enemy_break_banners(
+    list: &mut CacheList,
+    ship_id: &str,
+    target: &str,
+    graph: Option<&ApiMstShipgraph>,
+    version: Option<&String>,
+) {
+    let is_break_graph =
+        graph.is_some_and(|graph| graph.api_sp_flag == Some(1) && graph.api_sortno.is_none());
+    if !is_break_graph || !matches!(target, "banner" | "banner3") {
+        return;
+    }
+    for (category, looks) in
+        [(format!("{target}_dmg"), &["", "_b"][..]), (format!("{target}_g_dmg"), &["_b"][..])]
+    {
+        let suffix = SuffixUtils::create(ship_id, format!("ship_{category}").as_str());
+        for look in looks {
+            list.add(
+                format!("kcs2/resources/ship/{category}/{ship_id}{look}_{suffix}.png"),
+                version,
+            );
+        }
+    }
+}
+
 fn generate_ship_paths(
     entry: &ResourceManifestEntry,
     mst: &ApiManifest,
@@ -582,6 +648,22 @@ fn generate_ship_paths(
             .iter()
             .find(|g| g.api_id == id)
             .and_then(|g| g.api_version.first().into_version());
+
+        add_enemy_break_banners(
+            list,
+            &ship_id,
+            target,
+            mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
+            version.as_ref(),
+        );
+
+        if target == "special" && SPECIAL_DMG_SHIPS.contains(&id) {
+            let suffix = SuffixUtils::create(&ship_id, "ship_special_dmg");
+            list.add(
+                format!("kcs2/resources/ship/special_dmg/{ship_id}_{suffix}.png"),
+                version.as_ref(),
+            );
+        }
 
         // Check if this is a sp_remodel target
         if target.starts_with("sp_remodel") {
@@ -653,6 +735,7 @@ fn generate_ship_paths(
                     ),
                     version.as_ref(),
                 );
+                add_ship_animation(list, &ship_id, cat, graph, version.as_ref());
             }
             continue;
         }
@@ -811,7 +894,78 @@ mod tests {
         CacheRuleSpecialCase, CacheRuleSpecialShipRule, CacheRulesAsset, PathRules,
         ResourceCategoriesAsset, ResourceManifest, ShipGenerationGroups, ShipPathHoles,
     };
-    use emukc_model::kc2::start2::{ApiMstShip, ApiMstShipgraph, ApiMstSlotitem};
+    use emukc_model::kc2::start2::{ApiMstShip, ApiMstSlotitem};
+
+    #[test]
+    fn an_animated_ship_adds_her_sheet_image_and_data() {
+        let graph = ApiMstShipgraph {
+            api_id: 951,
+            api_filename: "uocopczppbln".to_string(),
+            api_sp_flag: Some(1),
+            api_sortno: Some(551),
+            ..Default::default()
+        };
+        let mut list = CacheList::new();
+        add_ship_animation(&mut list, "0951", "full", &graph, None);
+        add_ship_animation(&mut list, "0951", "full_dmg", &graph, None);
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        // The first three are what the client asked for in a headless run on 2026-10-08.
+        assert!(
+            paths.contains(&"kcs2/resources/ship/full_animation/0951_8344_uocopczppbln_data.json")
+        );
+        assert!(paths.contains(&"kcs2/resources/ship/full_animation/0951_8344_uocopczppbln.json"));
+        assert!(paths.contains(&"kcs2/resources/ship/full_animation/0951_8344_uocopczppbln.png"));
+        assert_eq!(
+            paths.iter().filter(|path| path.contains("/full_animation_dmg/0951_")).count(),
+            3
+        );
+        assert_eq!(paths.len(), 6);
+
+        let still = ApiMstShipgraph {
+            api_sp_flag: None,
+            ..graph
+        };
+        let mut list = CacheList::new();
+        add_ship_animation(&mut list, "0951", "full", &still, None);
+        assert!(list.items.is_empty());
+    }
+
+    #[test]
+    fn a_breaking_enemy_adds_her_damaged_and_broken_banners() {
+        let graph = ApiMstShipgraph {
+            api_id: 2317,
+            api_sp_flag: Some(1),
+            ..Default::default()
+        };
+        let mut list = CacheList::new();
+        for target in ["banner", "banner3", "full"] {
+            add_enemy_break_banners(&mut list, "2317", target, Some(&graph), None);
+        }
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        // The suffixes without `_b` are the ones of the same ship's listed banners.
+        assert!(paths.contains(&"kcs2/resources/ship/banner_g_dmg/2317_b_1980.png"));
+        assert!(paths.contains(&"kcs2/resources/ship/banner3_g_dmg/2317_b_6763.png"));
+        for category in ["banner_dmg", "banner3_dmg"] {
+            let of = |look: &str| {
+                paths
+                    .iter()
+                    .filter(|path| path.contains(&format!("/{category}/2317{look}_")))
+                    .count()
+            };
+            // `2317_` also begins `2317_b_`.
+            assert_eq!((of(""), of("_b")), (2, 1), "{category}");
+        }
+        assert_eq!(paths.len(), 6);
+
+        let owned = ApiMstShipgraph {
+            api_sortno: Some(551),
+            ..graph
+        };
+        let mut list = CacheList::new();
+        add_enemy_break_banners(&mut list, "0951", "banner", Some(&owned), None);
+        add_enemy_break_banners(&mut list, "1501", "banner", None, None);
+        assert!(list.items.is_empty());
+    }
 
     fn make_minimal_manifest() -> ApiManifest {
         ApiManifest {

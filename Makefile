@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate battle-sim headless-check clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate cache-list-oracle battle-sim headless-check clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -76,6 +76,8 @@ update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 漂移
 	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
 	@echo "--- 装備ボーナス对拍新客户端 (不阻断; 有差异则订正 main-decoder/gear-bonus-corrections.json) ---"
 	-cd main-decoder && bun run gear-bonus-oracle
+	@echo "--- 缓存清单对拍新客户端 (不阻断; 对的是现有清单, 报出的目录先 cache-make-list 再看) ---"
+	-cd main-decoder && bun run cache-list-oracle
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
 
 drift-check: ## 比对已同步资产与基线, 有漂移则退出非零
@@ -118,6 +120,9 @@ cache-make-list: ## 生成缓存资源清单
 
 cache-populate: ## 按清单填充缓存 (CONCURRENT=$(CONCURRENT))
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache populate --concurrent $(CONCURRENT)
+
+cache-list-oracle: ## 用客户端 main.js 对拍缓存清单: 客户端点名的目录是否都有条目、舰船与装备地址的后缀是否一致 (需先 decode-main 与 cache-make-list), 报告写到 .data/temp
+	cd main-decoder && bun run cache-list-oracle
 
 battle-sim: ## 跑 seeded 场景出击并打印战斗记录 (SCENARIO/SEED/FIND/MAX_SEEDS)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle sim --scenario $(SCENARIO) --seed $(SEED) $(BATTLE_SIM_FIND_FLAG)

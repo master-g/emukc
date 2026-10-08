@@ -195,11 +195,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `feat/headless-client-check`（计划 `2026-10-08-003`）：`make headless-check` 用无头 Chrome 跑真实客户端，
-  `transport_5_6` 与 `fresh_1_1` 两个场景通过。全量测试 1219 过；clippy 17。未推送。
+- [2026-10-08] 分支 `fix/cache-list-coverage`（计划 `2026-10-08-004`）：清单 +78 条（均已取到），`make cache-list-oracle` 五项检查 0 差异，
+  站外库改本地。未推送。
 
 ## Next Session
 
-- [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器
-  （见 `docs/solutions/best-practices/headless-client-check.md`）。下一件玩法项待用户定。改了 `parser/` 或 `assets/` 后重建 codex：
-  `cargo run -- bootstrap --codex-only`；多血条图改 `map_gauge_rules.json` 后是 `kcnav normalize` → 重建 codex → 再 `kcnav normalize`。
+- [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
+  查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
+  改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
