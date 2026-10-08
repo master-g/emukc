@@ -1,0 +1,133 @@
+---
+title: "Air Corps Sortie - Plan"
+type: feat
+date: 2026-10-08
+status: draft
+execution: code
+---
+
+# Air Corps Sortie - Plan
+
+## Problem
+
+基地航空隊的母港侧已经做完（计划 `2026-09-22-001`）：玩家能配属、下达行动指示、补给、扩张。
+但航空隊从不出击：`api_req_map/start_air_base` 没有，战斗包里没有 `api_air_base_attack`，
+`emukc_battle` 里对基地航空隊零命中。结果是：
+
+- 行动指示设成「出撃」后进 6-4 / 6-5，客户端会让玩家选攻击目标并发 `start_air_base`，服务器 404。
+- 没有任何东西让中隊损失機数或疲劳，所以已实现的 `supply`、`cond_recovery` 在游玩中触发不到，
+  也没法用真实客户端验证它们的响应。
+
+## Evidence
+
+2026-10-08 读代码与数据得到，实施时不必再查：
+
+- **落点**：常规图只有 6-4（`airbase_count` 1）与 6-5（2）有航空隊可出击。
+- **格子距离已经在发**：`real_map_start_data/map_6-4.json`、`map_6-5.json` 的每个格子带 `api_distance`
+  （6-4 为 1–8，6-5 为 1–5），已进目录的 `MapCell.distance`，并由 `api_req_map/projection.rs` 发成
+  `api_cell_data[].api_distance`。客户端按它给目标格上色：超出半径红，等于半径黄（`main.decoded.js:117247`）。
+- **请求形状**：`api_strike_point_1..3`，每个是逗号分隔的格子号（客户端 `:110152`），只在该航空隊为「出撃」时带。
+  响应无内容。
+- **战斗包字段**：`docs/apilist.txt:2121` 起的 `api_air_base_attack[]`（`api_base_id`、`api_stage_flag`、
+  `api_plane_from`、`api_squadron_plane[]`、`api_stage1`、`api_stage2`、`api_stage3` 只含敌方数组）。
+  解码器的 `battle_protocol_fields.json` 已有 `api_air_base_attack`、`api_air_base_injection`、
+  `api_air_base_rescue_type` 三项（模块 58435）。
+- **数值来源存在**：`KC3Kai/kancolle-replay` 的 `js/kcsim.js` 有 `LBASPhase`（2988 行起）与 `airstrikeLBAS`
+  （3135 行起），2026-10-08 取 master 分支核对过函数在；内容还没逐条读。
+- **敌方对基地的制空值**：KCNav 的敌编成带 `lbasAirpower`，已在 `.data/temp/kcnav/6-4|6-5/` 里。
+- **已有的航空战实现**：`crates/emukc_battle/src/simulation/kouku.rs`（825 行，`simulate_kouku`、
+  `calculate_fighter_power` 等），基地航空攻击的三个 stage 与它同构。
+- **golden 的代价**：`crates/emukc_battle/tests/golden/` 有 40 份 `{:#?}` dump，加字段就全量失配
+  （见 `PROJECT_MEMORY.md` 失败尝试）；`tests/gameplay_tests/battle_golden.rs` 渲染 transcript，加字段不动它。
+
+## Decision
+
+- **没有航空隊参战时，战斗的随机数消耗一位都不变。** 基地航空阶段只在这次出击带了攻击该格的航空隊时才运行并抽随机数。
+  这样现有 golden 的差异只会是新增字段那一行，可以逐份确认；任何别的差异都是回归。
+- **数值来源按可信度排序**：客户端代码（字段是否存在、動画需要什么）＞ `KC3Kai/kancolle-replay` 的 `js/kcsim.js`
+  （已知的第二条数据链，含基地航空的伤害与制空）＞ wikiwiki 基地航空隊页。两条来源都给不出的数，不实现，写进 Known gaps。
+- **出击侧状态放在出击会话里**：攻击目标记在 `ActiveSortieState` 上，不落库；损失的機数与疲劳在战斗结算时写回
+  `plane_info`，与舰船的结算走同一个事务。
+- 不做（各有原因，见 Scope）：噴式強襲、基地防空与空襲、超重爆迎撃、カタリナ救助、联合舰队下的基地航空。
+
+## Scope
+
+范围内：`start_air_base`；6-4 / 6-5 上「出撃」航空隊对目标格的航空攻击；機数损失、出击消耗与疲劳；
+用真实客户端走一遍。
+
+范围外：
+
+- `api_air_base_injection`（噴式強襲）：要噴式機，另有独立的動画与消耗规则，等基本攻击稳定后单列。
+- 基地防空（「防空」指示）与 `api_destruction_battle`（基地空襲）：是敌方打基地的另一条链，
+  需要敌方空襲编成的数据来源，单列计划。
+- `api_req_map/air_raid`（超重爆迎撃）与活动图的位置ギミック：只在活动海域。
+- 联合舰队 + 基地航空：6-4 / 6-5 不能用联合舰队出击。
+
+## Implementation Units
+
+### U1 出击目标：`start_air_base`
+
+接上端点。校验：出击会话存在且在出发点；每个带目标的航空隊在该海域、行动指示是「出撃」；
+带目标的航空隊数不超过地图的 `airbase_count`；每队恰好两个目标格（可重复），格子属于这张图且
+`distance` 不超过该队的半径（`api_base + api_bonus`）。通过后把目标记到 `ActiveSortieState`。
+
+先读客户端目标选择画面（`main.decoded.js:117100` 附近）确认「两个目标」「可否选同一格」「半径为 0 的队能否出击」。
+
+完成标志：端到端测试覆盖接受与四种拒绝；出击会话里能读到各队的目标。
+
+### U2 战斗核心：基地航空攻击阶段
+
+`emukc_battle` 新增基地航空阶段，输入是「攻击本格的航空隊列表（每队的四个中隊：装备、機数、熟練度）」，
+在既有航空战之前运行，每队按它指向本格的目标次数攻击一到两次。每次三个 stage：
+制空（我方只算该队的中隊，敌方用舰队制空）、对空射击（敌舰击落我方攻击机）、对舰攻击（陸攻 / 艦攻 / 艦爆）。
+敌方 HP 的削减进入后续阶段。输出对应 `api_air_base_attack[]` 的结构，并报告每个中隊损失的機数。
+
+公式从 `kcsim.js` 的基地航空部分读，逐条写出处；实施第一步是把要用的公式列成表，
+缺来源的条目停下来报告，不自己定值。
+
+完成标志：单元测试覆盖制空五档、击落、伤害上限与陸攻的对舰倍率；不带航空隊的战斗，
+`cargo test -p emukc_battle` 的 golden 只有新增字段的差异，逐份确认后重冻结并在 PR 说明。
+
+### U3 接进出击：到达目标格时带上航空隊，结算时写回
+
+`next_sortie` 到达战斗格时，从会话取出攻击该格的航空隊交给战斗；战斗包带 `api_air_base_attack`；
+`battleresult` 结算时把損失機数写回 `plane_info.count`。出击开始时扣出击消耗（各机种的燃料与弾薬，
+来源 wikiwiki 基地航空隊页「出撃コスト」，实施时核对并写进计划），并按来源的规则加疲劳。
+
+完成标志：6-4 的集成测试——配属陸攻的航空隊指向 boss 格出击，boss 战的包里有 `api_air_base_attack`，
+敌方起始 HP 已被削减，战后 `plane_info.count` 减少，随后 `supply` 能补回并按每機 3 / 5 扣资源。
+
+### U4 用真实客户端验证
+
+用客户端派生的战斗规则校验 U3 产出的包（`battle validate`）；扩展无头场景 `air_corps_6_4`：
+配属 → 指示出撃 → 出击 6-4 → 选目标 → 打到目标格，要求无页面异常、无失败请求、战斗包带基地航空阶段，
+回港后补给。这一步顺带实测 `supply` 响应里的 `api_distance`。
+
+完成标志：`make headless-check SCENARIO=air_corps_6_4` 无人值守跑通；`battle validate` 无错误。
+
+### U5 质量门与沉淀
+
+三道质量门；`apilist.md`、`TODO.md`、`docs/api_coverage.md` 按路由重推；
+`docs/solutions/architecture-patterns/` 记基地航空阶段的输入输出与数值出处；`PROJECT_MEMORY.md` 回写。
+
+## Open Questions
+
+- 出击消耗与疲劳的确切规则（哪些机种多少燃料弾薬、疲劳何时加、何时自然恢复）。恢复若按时间，
+  `airCorpsCondRecoveryWithTimer` 就有了内容，是否纳入本计划由 U3 读完来源后定。
+- 敌方对空射击对基地航空机的击落规则与舰载机是否相同（`kcsim.js` 里如何处理）。
+- 基地航空的触接、陸攻的熟練度与クリティカル补正是否有可用来源。
+- 6-4 路线上的陆上型敌舰对各机种的特效（陸攻对地无效等）在来源里是否完整。
+- 目标格是否必须是战斗格；客户端会不会让玩家选非战斗格。
+
+## Stop Conditions
+
+- U2 的公式表里，对舰伤害或制空任何一项两条来源都给不出：停在 U2，不编数。
+- 不带航空隊的战斗出现「新增字段」以外的 golden 差异：停下查随机数消耗顺序，不重冻结。
+- 客户端播放基地航空阶段需要的字段超出 apilist 所列且含义读不出来：停在 U4 报告。
+
+## Verification
+
+- `cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -W warnings`（基线 17）、
+  `cargo test --workspace --exclude emukc_time --no-fail-fast`。
+- `cargo test -p emukc_battle` 的 golden 重冻结差异逐份说明。
+- `cargo run -- battle validate` 对带基地航空的包；`make headless-check SCENARIO=air_corps_6_4`。

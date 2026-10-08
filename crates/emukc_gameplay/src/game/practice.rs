@@ -52,6 +52,42 @@ pub struct PracticeInfo {
 }
 
 impl Ctx {
+    /// Choose which group the next practice rivals are drawn from.
+    ///
+    /// The list in hand stays; the choice applies when it is next drawn, at
+    /// 03:00 or 15:00 JST.
+    pub async fn change_practice_matching_kind(
+        &self,
+        profile_id: i64,
+        kind: i64,
+    ) -> Result<(), GameplayError> {
+        let selected = match kind {
+            0 => profile::practice::config::RivalType::FirstGroup,
+            1 => profile::practice::config::RivalType::SecondGroup,
+            2 => profile::practice::config::RivalType::All,
+            _ => {
+                return Err(GameplayError::WrongType(format!(
+                    "practice matching kind {kind} is not one of 0..=2"
+                )));
+            }
+        };
+
+        let db = self.db.as_ref();
+        let config = profile::practice::config::Entity::find_by_id(profile_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| {
+                GameplayError::EntryNotFound(format!(
+                    "Practice config not found for profile {profile_id}",
+                ))
+            })?;
+        let mut am = config.into_active_model();
+        am.selected_type = ActiveValue::Set(selected);
+        am.update(db).await?;
+
+        Ok(())
+    }
+
     /// Get practice rivals.
     ///
     /// # Parameters

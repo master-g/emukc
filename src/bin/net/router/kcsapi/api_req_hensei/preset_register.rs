@@ -21,6 +21,7 @@ pub(super) async fn handler(
     let preset = PresetDeckItem {
         index: params.api_preset_no,
         name: params.api_name.clone(),
+        locked: false,
         ships: [
             fleet.ships[0],
             fleet.ships[1],

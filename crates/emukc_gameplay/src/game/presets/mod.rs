@@ -1,6 +1,7 @@
 use deck::{
-    apply_preset_deck_impl, delete_preset_deck_impl, expand_preset_deck_capacity_impl,
-    find_preset_deck_impl, get_preset_decks_impl, register_preset_deck_impl,
+    apply_preset_deck_impl, delete_preset_deck_impl, exchange_preset_decks_impl,
+    expand_preset_deck_capacity_impl, find_preset_deck_impl, get_preset_decks_impl,
+    register_preset_deck_impl, toggle_preset_deck_lock_impl,
 };
 use dev_item::{
     delete_preset_dev_item_impl, expand_preset_dev_item_capacity_impl, get_preset_dev_items_impl,
@@ -150,6 +151,40 @@ impl Ctx {
         let tx = db.begin().await?;
 
         delete_preset_deck_impl(&tx, profile_id, preset_no).await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    /// Flip a preset deck's lock; a locked one is neither overwritten nor deleted.
+    pub async fn toggle_preset_deck_lock(
+        &self,
+        profile_id: i64,
+        preset_no: i64,
+    ) -> Result<bool, GameplayError> {
+        let db = self.db.as_ref();
+        let tx = db.begin().await?;
+
+        let locked = toggle_preset_deck_lock_impl(&tx, profile_id, preset_no).await?;
+
+        tx.commit().await?;
+
+        Ok(locked)
+    }
+
+    /// Let two preset deck numbers trade what they hold, the way the client
+    /// reorders its list.
+    pub async fn exchange_preset_decks(
+        &self,
+        profile_id: i64,
+        from: i64,
+        to: i64,
+    ) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
+        let tx = db.begin().await?;
+
+        exchange_preset_decks_impl(&tx, profile_id, from, to).await?;
 
         tx.commit().await?;
 

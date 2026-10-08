@@ -189,12 +189,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `test/headless-air-corps`（未推送）：无头场景 `air_corps_6_4`；`squadron_capacity` 改按客户端；清单补 `airunit_*` 618 条（73,778）。
-  全量测试 1227 过，clippy 17，对拍 0 差异，无头航空队场景资源报告全空。本地 `z/cache` 清单已换成新的。
+- [2026-10-08] 分支 `feat/small-endpoints`（未推送）：编成预设锁定与排序、演习匹配切换（清单 142/6）；航空队出击侧计划 `2026-10-08-006`（draft）。
+  `preset_deck.locked` 是第一个后加的列，启动时对旧库 `ALTER TABLE` 补列（没有通用迁移；再加列时写迁移步骤）。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步候选：航空队出击侧（`start_air_base` 与战斗阶段，会重冻结 golden，先写计划）。
+  下一步：航空队出击侧的计划 `2026-10-08-006` 已写（draft），等用户确认后从 U1 做起。

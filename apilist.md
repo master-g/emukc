@@ -77,6 +77,8 @@ api_req_hensei/combined
 api_req_hensei/lock
 api_req_hensei/preset_delete
 api_req_hensei/preset_expand
+api_req_hensei/preset_lock
+api_req_hensei/preset_order_change
 api_req_hensei/preset_register
 api_req_hensei/preset_select
 
@@ -149,6 +151,7 @@ api_req_nyukyo/start
 
 api_req_practice/battle
 api_req_practice/battle_result
+api_req_practice/change_matching_kind
 api_req_practice/midnight_battle
 
 api_req_quest/clearitemget
@@ -186,30 +189,17 @@ api_req_combined_battle/ec_night_to_day
 
 ### Map & Sortie System
 
+`anchorage_repair` needs a 泊地修理 cell, and no regular map has one, so like the
+enemy combined battles it waits for event map data.
+
 ```plain
 api_req_map/air_raid
 api_req_map/anchorage_repair
 api_req_map/start_air_base
 ```
 
-### Practice System
-
-```plain
-api_req_practice/change_matching_kind
-```
-
-### Fleet Preset
-
-```plain
-api_req_hensei/preset_lock
-api_req_hensei/preset_order_change
-```
-
-### Ranking
-
-```plain
-api_req_ranking/getlist
-```
+`api_req_ranking/getlist` used to be listed here. The client no longer calls it;
+the ranking it shows comes from `api_req_ranking/mxltvkpyuklh`, which is served.
 
 ## Implementation Priority
 
@@ -221,9 +211,3 @@ api_req_ranking/getlist
 ### Medium Priority (Enhanced Features)
 
 1. **Map & Sortie remainder** - air_raid, anchorage_repair, start_air_base
-
-### Low Priority (Optional Features)
-
-1. **Fleet Presets** - QoL enhancements (preset_lock, preset_order_change)
-2. **Practice matching** - change_matching_kind
-3. **Ranking** - Ranking list display

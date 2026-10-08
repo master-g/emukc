@@ -13,6 +13,9 @@ pub struct PresetDeckItem {
 
     /// Ships
     pub ships: [i64; 7],
+
+    /// Locked against overwriting and deleting
+    pub locked: bool,
 }
 
 /// Preset deck
@@ -32,6 +35,7 @@ impl From<PresetDeckItem> for KcApiPresetDeckElement {
             api_name: value.name,
             api_name_id: "".to_string(),
             api_ship: value.ships,
+            api_lock_flag: i64::from(value.locked),
         }
     }
 }

@@ -240,6 +240,7 @@ pub struct KcApiPresetDeckElement {
     pub api_name: String,
     pub api_name_id: String,
     pub api_ship: [i64; 7],
+    pub api_lock_flag: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

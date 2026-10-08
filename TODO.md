@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-10-08: 139 implemented, 10 missing.
+> holds the roadmap. Last cross-checked 2026-10-08: 142 implemented, 6 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -68,7 +68,7 @@
   - [x] `api_req_practice/battle` - practice battle
   - [x] `api_req_practice/battle_result` - practice result
   - [x] `api_req_practice/midnight_battle` - practice night battle
-  - [ ] `api_req_practice/change_matching_kind` - change matching type
+  - [x] `api_req_practice/change_matching_kind` - change matching type
 - [x] **Air Corps System, port side** (`api_req_air_corps/*`)
   - [x] `api_get_member/base_air_corps` - air corps data
   - [x] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery (answers "nothing recovered" until squadrons tire)
@@ -85,9 +85,9 @@
   - [x] `api_req_kousyou/remodel_slot_recover` - reset improvement level
 
 ## Low Priority - Optional
-- [ ] `api_req_hensei/preset_lock` - lock fleet preset
-- [ ] `api_req_hensei/preset_order_change` - reorder fleet presets
-- [ ] `api_req_ranking/getlist` - ranking list display
+- [x] `api_req_hensei/preset_lock` - lock fleet preset
+- [x] `api_req_hensei/preset_order_change` - reorder fleet presets
+- [x] `api_req_ranking/getlist` - dropped: the client no longer calls it (`mxltvkpyuklh` is served)
 - [x] `api_dmm_payment/paycheck` - payment (stub returning check_value 1)
 
 ## Ideas / Not Scheduled
