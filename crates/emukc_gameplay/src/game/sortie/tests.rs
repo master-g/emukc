@@ -2511,17 +2511,17 @@ async fn map_5_6_counts_the_cargo_on_arrival_at_the_landing_cell() {
         },
     );
 
+    // Two destroyers, 5 points each.
+    let first = context.add_ship(profile_id, 951).await.unwrap();
+    let second = context.add_ship(profile_id, 951).await.unwrap();
+    context
+        .update_fleet_ships(profile_id, 1, &[first.api_id, second.api_id, -1, -1, -1, -1])
+        .await
+        .unwrap();
+
     let arrived = context.next_sortie(profile_id, None).await.unwrap();
     assert_eq!(arrived.cell_no, landing);
-    let fleet = get_fleet_ships_impl(context.db.as_ref(), profile_id, 1).await.unwrap();
-    let carried = crate::game::transport::fleet_transport_points_impl(
-        context.db.as_ref(),
-        context.codex.as_ref(),
-        &fleet,
-    )
-    .await
-    .unwrap();
-    assert_eq!(context.sortie_store.get_active(profile_id).unwrap().landing_tp, Some(carried));
+    assert_eq!(context.sortie_store.get_active(profile_id).unwrap().landing_tp, Some(10));
 }
 
 #[tokio::test]

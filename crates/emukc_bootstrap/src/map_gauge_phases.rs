@@ -283,6 +283,10 @@ fn wire(
         return Err("`tp` and `landing` go together".to_owned());
     }
     labelled(&phase.landing)?;
+    // Landing the last of the cargo only knows how to open the next phase.
+    if phase.tp.is_some() && (next_key.is_none() || phase.s_rank_at.is_some()) {
+        return Err("`tp` needs a next phase and cannot be combined with `s_rank_at`".to_owned());
+    }
     match (boss, phase.gauge()) {
         (Some(boss), _) => variant.boss_cell_no = boss,
         (None, Some(_)) => return Err("a gauge, but the phase adds no boss cell".to_owned()),
@@ -443,5 +447,71 @@ mod tests {
         ];
         let errors = apply_gauge_phases(&mut catalog(), &rules(phases)).unwrap_err();
         assert!(errors[0].contains("the phase adds no boss cell"), "{errors:?}");
+    }
+
+    fn transport(landing: Option<&str>) -> GaugePhase {
+        GaugePhase {
+            cells_below: Some(3),
+            tp: Some(280),
+            landing: landing.map(ToOwned::to_owned),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_transport_phase_marks_its_landing_cell_in_every_phase() {
+        let mut catalog = catalog();
+        apply_gauge_phases(&mut catalog, &rules(vec![transport(Some("A")), defeats(3)])).unwrap();
+
+        let map = &catalog.maps[&75];
+        let first = &map.variants["phase1"];
+        assert!(first.transport_gauge);
+        assert_eq!(first.required_defeat_count, Some(280));
+        assert!(!map.variants["phase2"].transport_gauge);
+        for variant in map.variants.values() {
+            let landing = variant.cell(1).unwrap();
+            assert_eq!(
+                (landing.event_id, landing.event_kind, landing.color_no),
+                LANDING_CELL,
+                "{}",
+                variant.variant_key,
+            );
+            assert_eq!(variant.cell(3).map(|cell| cell.event_id).unwrap_or(4), 4, "M is untouched");
+        }
+    }
+
+    #[test]
+    fn transport_rules_that_cannot_be_played_are_refused() {
+        let refused = |phases: Vec<GaugePhase>| {
+            apply_gauge_phases(&mut catalog(), &rules(phases)).unwrap_err().join("; ")
+        };
+
+        let err = refused(vec![transport(None), defeats(3)]);
+        assert!(err.contains("`tp` and `landing` go together"), "{err}");
+        let err = refused(vec![transport(Some("Z")), defeats(3)]);
+        assert!(err.contains("no cell is labelled Z"), "{err}");
+        let both = GaugePhase {
+            defeats: Some(2),
+            ..transport(Some("A"))
+        };
+        let err = refused(vec![both, defeats(3)]);
+        assert!(err.contains("both `defeats` and `tp`"), "{err}");
+        let gated = GaugePhase {
+            s_rank_at: Some("A".to_owned()),
+            ..transport(Some("A"))
+        };
+        let err = refused(vec![gated, defeats(3)]);
+        assert!(err.contains("cannot be combined with `s_rank_at`"), "{err}");
+        // A transport gauge cannot be a map's last.
+        let last = GaugePhase {
+            cells_below: None,
+            ..transport(Some("A"))
+        };
+        let first = GaugePhase {
+            cells_below: Some(3),
+            ..defeats(2)
+        };
+        let err = refused(vec![first, last]);
+        assert!(err.contains("`tp` needs a next phase"), "{err}");
     }
 }
