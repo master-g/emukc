@@ -70,6 +70,9 @@ where
         .filter(preset_deck::Column::Index.eq(preset.index))
         .one(c)
         .await?;
+    if record.as_ref().is_some_and(|record| record.locked) {
+        return Err(GameplayError::WrongType(format!("preset deck {} is locked", preset.index)));
+    }
 
     let mut am =
         record.map(emukc_db::sea_orm::IntoActiveModel::into_active_model).unwrap_or_else(|| {
@@ -77,6 +80,7 @@ where
                 id: ActiveValue::NotSet,
                 profile_id: ActiveValue::Set(profile_id),
                 index: ActiveValue::Set(preset.index),
+                locked: ActiveValue::Set(false),
                 ..Default::default()
             }
         });
@@ -108,8 +112,61 @@ where
     preset_deck::Entity::delete_many()
         .filter(preset_deck::Column::ProfileId.eq(profile_id))
         .filter(preset_deck::Column::Index.eq(preset_no))
+        .filter(preset_deck::Column::Locked.eq(false))
         .exec(c)
         .await?;
+
+    Ok(())
+}
+
+/// Flip a preset's lock and say what it is now.
+pub(crate) async fn toggle_preset_deck_lock_impl<C>(
+    c: &C,
+    profile_id: i64,
+    preset_no: i64,
+) -> Result<bool, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let record = find_preset_deck_impl(c, profile_id, preset_no).await?;
+    let locked = !record.locked;
+    let mut am = record.into_active_model();
+    am.locked = ActiveValue::Set(locked);
+    am.update(c).await?;
+
+    Ok(locked)
+}
+
+/// Let two preset numbers trade what they hold; either may be empty.
+pub(crate) async fn exchange_preset_decks_impl<C>(
+    c: &C,
+    profile_id: i64,
+    from: i64,
+    to: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let (caps, records) = get_preset_decks_impl(c, profile_id).await?;
+    for preset_no in [from, to] {
+        if !(1..=caps.deck_limit).contains(&preset_no) {
+            return Err(GameplayError::WrongType(format!(
+                "preset deck {preset_no} is outside 1..={}",
+                caps.deck_limit
+            )));
+        }
+    }
+
+    for record in records {
+        let index = match record.index {
+            index if index == from => to,
+            index if index == to => from,
+            _ => continue,
+        };
+        let mut am = record.into_active_model();
+        am.index = ActiveValue::Set(index);
+        am.update(c).await?;
+    }
 
     Ok(())
 }

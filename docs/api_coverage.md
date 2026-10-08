@@ -14,7 +14,7 @@ inventory of its own.
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
 and diff that against the fenced blocks. Verified on 2026-10-08 at client
-6.3.5.0: **139 implemented**, **10 missing**, no overlap.
+6.3.5.0: **142 implemented**, **6 missing**, no overlap.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -74,12 +74,8 @@ Dependencies:
 | Endpoint | Description | Priority | Notes |
 |----------|-------------|----------|-------|
 | `api_req_map/start_air_base` | LBAS sortie | P1 | Implement with air_corps module |
-| `api_req_map/anchorage_repair` | Emergency anchorage repair | P2 | Independent QoL feature |
+| `api_req_map/anchorage_repair` | Emergency anchorage repair | P2 | No regular map has a 泊地修理 cell; waits for event maps |
 | `api_req_map/air_raid` | Heavy bomber interception | P2 | Implement with combined_battle |
-| `api_req_hensei/preset_lock` | Fleet preset lock | P3 | Can stub |
-| `api_req_hensei/preset_order_change` | Fleet preset reorder | P3 | Can stub |
-| `api_req_practice/change_matching_kind` | Practice matching mode | P3 | Can stub |
-| `api_req_ranking/getlist` | Ranking list | P3 | Return empty list |
 
 `api_req_ranking/mxltvkpyuklh` used to be listed here; it has been implemented
 since. `api_req_member/registration_sp` appears in neither the router nor
@@ -133,9 +129,8 @@ Low-priority stubs and QoL features.
 
 - `api_req_map/anchorage_repair` (P2)
 - `api_req_map/air_raid` (P2)
-- `api_req_hensei/preset_lock`, `preset_order_change` (P3)
-- `api_req_practice/change_matching_kind` (P3)
-- `api_req_ranking/getlist` (P3, return empty)
+- `api_req_hensei/preset_lock`, `preset_order_change`, `api_req_practice/change_matching_kind` — done 2026-10-08
+- `api_req_ranking/getlist` — dropped, the client no longer calls it
 
 ## Relation to Existing Plan
 

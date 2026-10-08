@@ -37,6 +37,9 @@ pub struct Model {
 
     /// ship 6
     pub ship_6: i64,
+
+    /// locked against overwriting and deleting
+    pub locked: bool,
 }
 
 crate::entity::profile_relation!("Column::ProfileId");
@@ -46,6 +49,7 @@ impl From<Model> for PresetDeckItem {
         Self {
             index: value.index,
             name: value.name,
+            locked: value.locked,
             ships: [
                 value.ship_1,
                 value.ship_2,

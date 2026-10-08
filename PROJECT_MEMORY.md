@@ -189,8 +189,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `test/headless-air-corps`（未推送）：无头场景 `air_corps_6_4`；`squadron_capacity` 改按客户端；清单补 `airunit_*` 618 条（73,778）。
-  全量测试 1227 过，clippy 17，对拍 0 差异，无头航空队场景资源报告全空。本地 `z/cache` 清单已换成新的。
+- [2026-10-08] 分支 `feat/small-endpoints`（未推送）：编成预设锁定与排序、演习匹配切换；清单 142/6，剩下 6 个都要活动图或航空队出击侧。
+  `preset_deck.locked` 是第一个后加的列，启动时对旧库 `ALTER TABLE` 补列（没有通用迁移；再加列时写迁移步骤）。
 
 ## Next Session
 
