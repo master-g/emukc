@@ -16,6 +16,7 @@ use crate::types::{
     NightBattleInput, NightBattleSimulation, ShellingParams,
 };
 
+pub(crate) mod air_base;
 pub(crate) mod asw;
 pub(crate) mod day_attack;
 pub(crate) mod day_cutin;
@@ -72,6 +73,12 @@ pub(crate) fn simulate_day(
     if let Some(escort_start) = state.enemy_escort_start() {
         simulate_day_enemy_combined(codex, &mut state, rng, escort_start, enemy_first);
         return state.finalize_day();
+    }
+
+    // Gated on there being an air corps at all, so a battle without one draws
+    // exactly the random numbers it always did.
+    if !state.air_corps.is_empty() {
+        execute_air_base_attacks(codex, &mut state, rng);
     }
 
     for &phase in flow.phases {
@@ -451,6 +458,21 @@ fn merge_hougeki(
             Some(a)
         }
         (only @ Some(_), None) | (None, only) => only,
+    }
+}
+
+/// Fly every air corps sent against this cell, one attack for each time it was
+/// pointed here, in air corps order. Losses carry from one attack to the next.
+fn execute_air_base_attacks(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRng) {
+    let mut air_corps = std::mem::take(&mut state.air_corps);
+    for corps in &mut air_corps {
+        for _ in 0..corps.waves {
+            if !any_alive(&state.enemy) {
+                break;
+            }
+            let attack = air_base::simulate_air_base_attack(codex, corps, &mut state.enemy, rng);
+            state.air_base_attack.push(attack);
+        }
     }
 }
 

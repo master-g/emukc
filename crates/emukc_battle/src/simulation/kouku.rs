@@ -160,7 +160,11 @@ fn best_bomber_index(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<usize
 // Plane loss application
 // ---------------------------------------------------------------------------
 
-fn apply_plane_losses(codex: &Codex, ships: &mut [BattleRuntimeShip], mut lostcount: i64) {
+pub(super) fn apply_plane_losses(
+    codex: &Codex,
+    ships: &mut [BattleRuntimeShip],
+    mut lostcount: i64,
+) {
     while lostcount > 0 {
         let mut best_slot: Option<(usize, usize, i64)> = None;
         for (ship_idx, ship) in ships.iter().enumerate() {
