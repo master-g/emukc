@@ -1,12 +1,18 @@
 use axum::{Router, routing::post};
 
 mod change_deployment_base;
+mod change_name;
+mod set_action;
 mod set_plane;
+mod supply;
 
 pub(super) fn router() -> Router {
     Router::new()
         .route("/change_deployment_base", post(change_deployment_base::handler))
+        .route("/change_name", post(change_name::handler))
+        .route("/set_action", post(set_action::handler))
         .route("/set_plane", post(set_plane::handler))
+        .route("/supply", post(supply::handler))
 }
 
 #[cfg(test)]
@@ -44,6 +50,7 @@ mod tests {
         seed_airbase(&context.state, pid, 1).await;
 
         let bomber = context.state.add_slot_item(pid, BOMBER, 0, 0).await.unwrap();
+        let before = context.state.get_materials(pid).await.unwrap().bauxite;
 
         let resp = set_plane::handler(
             app_state(&context.state),
@@ -67,10 +74,7 @@ mod tests {
         assert_eq!(updated[0]["api_slotid"], bomber.api_id);
         assert_eq!(updated[0]["api_count"], 18, "a bomber squadron flies eighteen");
         assert_eq!(updated[0]["api_max_count"], 18);
-        assert!(
-            data.get("api_after_bauxite").is_none(),
-            "assignment is free until the resupply cost is settled"
-        );
+        assert_eq!(data["api_after_bauxite"], before - 216, "eighteen bombers at 12 bauxite each");
 
         // A second, shorter-legged squadron drags the radius down.
         let fighter = context.state.add_slot_item(pid, FIGHTER, 0, 0).await.unwrap();
@@ -171,6 +175,10 @@ mod tests {
         let data = resp.api_data.unwrap();
         let slot = &data["api_plane_info"].as_array().unwrap()[0];
         assert_eq!(slot["api_state"], 1, "the second airbase took it");
+        assert!(
+            data.get("api_after_bauxite").is_some(),
+            "landing from relocation is a deployment and is paid for"
+        );
         assert_eq!(slot["api_slotid"], bomber.api_id);
     }
 
@@ -194,13 +202,19 @@ mod tests {
             )
             .await
             .unwrap();
-            let updated = resp.api_data.unwrap()["api_plane_info"].as_array().unwrap().len();
+            let data = resp.api_data.unwrap();
+            let updated = data["api_plane_info"].as_array().unwrap().len();
             let expected = if squadron_id == 1 {
                 1
             } else {
                 2
             };
             assert_eq!(updated, expected, "a move reports the slot it left as well");
+            assert_eq!(
+                data.get("api_after_bauxite").is_some(),
+                squadron_id == 1,
+                "only the deployment spends bauxite, not the move"
+            );
         }
 
         let planes = squadrons(&context.state, pid, 1).await;
@@ -291,5 +305,114 @@ mod tests {
 
         assert_eq!(squadrons(&context.state, pid, 1).await[0].api_slotid, fighter.api_id);
         assert_eq!(squadrons(&context.state, pid, 2).await[0].api_slotid, bomber.api_id);
+    }
+
+    #[tokio::test]
+    async fn orders_and_a_name_reach_the_airbases() {
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_airbase(&context.state, pid, 1).await;
+        seed_airbase(&context.state, pid, 2).await;
+
+        set_action::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(set_action::Params {
+                api_area_id: 6,
+                api_base_id: vec![1, 2],
+                api_action_kind: vec![2, 1],
+            }),
+        )
+        .await
+        .unwrap();
+        change_name::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(change_name::Params {
+                api_area_id: 6,
+                api_base_id: 2,
+                api_name: "\u{9678}\u{653B}\u{968A}".to_string(),
+            }),
+        )
+        .await
+        .unwrap();
+
+        let bases: Vec<KcApiAirBase> = context
+            .state
+            .get_airbases(pid)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(std::convert::Into::into)
+            .collect();
+        assert_eq!(bases[0].api_action_kind, 2, "the first airbase defends");
+        assert_eq!(bases[1].api_action_kind, 1, "the second sorties");
+        assert_eq!(bases[1].api_name, "\u{9678}\u{653B}\u{968A}");
+
+        let err = set_action::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(set_action::Params {
+                api_area_id: 6,
+                api_base_id: vec![1],
+                api_action_kind: vec![5],
+            }),
+        )
+        .await;
+        assert!(err.is_err(), "there is no fifth order");
+    }
+
+    /// 15 of 18 left: three aircraft at 3 fuel and 5 bauxite each.
+    #[tokio::test]
+    async fn a_resupply_fills_the_squadron_and_charges_per_aircraft() {
+        use emukc_internal::db::entity::profile::airbase::plane;
+        use emukc_internal::db::sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait};
+
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_airbase(&context.state, pid, 1).await;
+
+        let bomber = context.state.add_slot_item(pid, BOMBER, 0, 0).await.unwrap();
+        set_plane::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(set_plane::Params {
+                api_area_id: 6,
+                api_base_id: 1,
+                api_squadron_id: 1,
+                api_item_id: bomber.api_id,
+            }),
+        )
+        .await
+        .unwrap();
+
+        // Nothing loses aircraft yet, so take three away by hand.
+        let db = context.state.db.as_ref();
+        let mut am: plane::ActiveModel =
+            plane::Entity::find_by_id(bomber.api_id).one(db).await.unwrap().unwrap().into();
+        am.count = ActiveValue::Set(15);
+        am.update(db).await.unwrap();
+
+        let before = context.state.get_materials(pid).await.unwrap();
+        let resp = supply::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(supply::Params {
+                api_area_id: 6,
+                api_base_id: 1,
+                api_squadron_id: vec![1, 2],
+            }),
+        )
+        .await
+        .unwrap();
+        let data = resp.api_data.unwrap();
+
+        assert_eq!(data["api_after_fuel"], before.fuel - 9);
+        assert_eq!(data["api_after_bauxite"], before.bauxite - 15);
+        assert_eq!(data["api_distance"]["api_base"], 9, "the client reads the radius here too");
+        let slots = data["api_plane_info"].as_array().unwrap();
+        assert_eq!(slots.len(), 2, "both named slots come back");
+        assert_eq!(slots[0]["api_count"], 18);
+        assert_eq!(slots[1]["api_state"], 0, "the empty one untouched");
     }
 }

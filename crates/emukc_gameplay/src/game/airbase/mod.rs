@@ -7,12 +7,14 @@ use emukc_db::{
 };
 use emukc_model::{
     codex::Codex,
+    kc2::MaterialCategory,
     profile::airbase::{Airbase, PlaneInfo, PlaneState, SQUADRON_MAX, squadron_capacity},
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::map::get_map_records_impl;
+use super::material::deduct_material_impl;
 use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl};
 use plane::{get_planes_impl, squadrons_of};
 
@@ -27,6 +29,28 @@ pub struct SetPlaneResult {
     pub updated: Vec<PlaneInfo>,
     /// Bauxite left, when the call spent any.
     pub after_bauxite: Option<i64>,
+}
+
+/// Fuel a resupply spends per aircraft replaced.
+///
+/// Both figures are the same for every aircraft type. Sources: wikiwiki's
+/// 基地航空隊 page and <https://note.com/sukumo_inaudu/n/n3b6ad98713c2>, which
+/// agree (a 15/18 squadron costs 9 fuel and 15 bauxite to fill).
+pub const SUPPLY_FUEL_PER_PLANE: i64 = 3;
+/// Bauxite a resupply spends per aircraft replaced.
+pub const SUPPLY_BAUXITE_PER_PLANE: i64 = 5;
+
+/// Outcome of resupplying squadrons.
+#[derive(Debug, Clone)]
+pub struct SupplyResult {
+    /// `(api_base, api_bonus)` of the airbase.
+    pub distance: (i64, i64),
+    /// The squadrons the call named.
+    pub updated: Vec<PlaneInfo>,
+    /// Fuel left.
+    pub after_fuel: i64,
+    /// Bauxite left.
+    pub after_bauxite: i64,
 }
 
 impl Ctx {
@@ -86,12 +110,9 @@ impl Ctx {
     /// is the 交換時は[2] case in `docs/apilist.txt`. Moving one between two
     /// airbases is a different endpoint — see [`Ctx::change_deployment_base`].
     ///
-    /// ponytail: assignment tops the squadron up for free. Upstream spends
-    /// bauxite here (`api_after_bauxite` exists on the response), but the cost
-    /// per aircraft has no published source and belongs with the resupply cost
-    /// the plan defers to U4 — so this returns `after_bauxite: None`, which the
-    /// client reads as "nothing was spent". Wire both to the same figure once
-    /// U4 settles it.
+    /// A deployment spends bauxite: the equipment's `api_cost` for each
+    /// aircraft of the squadron (一式陸攻 costs 12, and a live account paid 216
+    /// for its eighteen). A move within the airbase spends nothing.
     pub async fn set_airbase_plane(
         &self,
         profile_id: i64,
@@ -114,6 +135,7 @@ impl Ctx {
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
 
         let mut touched = vec![squadron_id];
+        let mut after_bauxite = None;
 
         if item_id < 0 {
             relocate_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
@@ -144,8 +166,11 @@ impl Ctx {
             // Already flying somewhere. Within this airbase it is a move and
             // both slots are reported; anywhere else the client should have
             // called change_deployment_base instead.
+            let mut deployed = true;
             if let Some(current) = find_squadron_by_slot(&tx, profile_id, item_id).await? {
                 let here = current.area_id == area_id && current.rid == base_id;
+                // A squadron coming back from relocation is deployed anew.
+                deployed = current.state == plane_db::Status::Reassigning;
                 // A relocating squadron flies for nobody, so it may land
                 // anywhere; one still assigned belongs to its airbase.
                 if !here && current.state != plane_db::Status::Reassigning {
@@ -174,6 +199,14 @@ impl Ctx {
                 max_count: ActiveValue::Set(capacity),
             };
             am.insert(&tx).await?;
+
+            if deployed {
+                let cost = mst.api_cost.unwrap_or(0) * capacity;
+                let left =
+                    deduct_material_impl(&tx, profile_id, &[(MaterialCategory::Bauxite, cost)])
+                        .await?;
+                after_bauxite = Some(left.bauxite);
+            }
         }
 
         let occupied = get_planes_impl(&tx, profile_id, area_id, base_id).await?;
@@ -191,7 +224,7 @@ impl Ctx {
         Ok(SetPlaneResult {
             distance,
             updated,
-            after_bauxite: None,
+            after_bauxite,
         })
     }
 
@@ -262,6 +295,124 @@ impl Ctx {
         tx.commit().await?;
 
         Ok(airbases)
+    }
+
+    /// Give airbases of one area their orders.
+    ///
+    /// The client sends every airbase it changed in one call, as two lists of
+    /// the same length.
+    pub async fn set_airbase_actions(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        orders: &[(i64, i64)],
+    ) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
+        let tx = db.begin().await?;
+
+        for (base_id, kind) in orders {
+            let action = i32::try_from(*kind).ok().and_then(base::Action::n).ok_or_else(|| {
+                GameplayError::WrongType(format!("airbase action {kind} is not one of 0..=4"))
+            })?;
+            let mut am =
+                find_owned_airbase(&tx, profile_id, area_id, *base_id).await?.into_active_model();
+            am.action = ActiveValue::Set(action);
+            am.update(&tx).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    /// Rename an airbase.
+    pub async fn rename_airbase(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        base_id: i64,
+        name: &str,
+    ) -> Result<(), GameplayError> {
+        if name.is_empty() {
+            return Err(GameplayError::WrongType("an airbase needs a name".to_string()));
+        }
+
+        let db = self.db.as_ref();
+        let tx = db.begin().await?;
+
+        let mut am =
+            find_owned_airbase(&tx, profile_id, area_id, base_id).await?.into_active_model();
+        am.name = ActiveValue::Set(name.to_string());
+        am.update(&tx).await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    /// Bring the named squadrons of an airbase back to full strength.
+    ///
+    /// Each aircraft replaced costs [`SUPPLY_FUEL_PER_PLANE`] fuel and
+    /// [`SUPPLY_BAUXITE_PER_PLANE`] bauxite. A squadron that is full, empty or
+    /// relocating is left alone.
+    ///
+    /// ponytail: all or nothing. What upstream does when the stock covers only
+    /// part of the request has no source, so the call fails rather than fill
+    /// some squadrons by a rule of our own.
+    pub async fn supply_airbase(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        base_id: i64,
+        squadron_ids: &[i64],
+    ) -> Result<SupplyResult, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+        let tx = db.begin().await?;
+
+        find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+
+        let mut lost = 0;
+        for model in get_planes_impl(&tx, profile_id, area_id, base_id).await? {
+            if !squadron_ids.contains(&model.squadron_id)
+                || model.state != plane_db::Status::Assigned
+                || model.count >= model.max_count
+            {
+                continue;
+            }
+            lost += model.max_count - model.count;
+            let full = model.max_count;
+            let mut am = model.into_active_model();
+            am.count = ActiveValue::Set(full);
+            am.update(&tx).await?;
+        }
+
+        // Read the stock through the deduction even when nothing was lost: it
+        // skips zero amounts and the client sets both counters from the answer.
+        let left = deduct_material_impl(
+            &tx,
+            profile_id,
+            &[
+                (MaterialCategory::Fuel, lost * SUPPLY_FUEL_PER_PLANE),
+                (MaterialCategory::Bauxite, lost * SUPPLY_BAUXITE_PER_PLANE),
+            ],
+        )
+        .await?;
+
+        let occupied = get_planes_impl(&tx, profile_id, area_id, base_id).await?;
+        let planes = squadrons_of(profile_id, area_id, base_id, occupied);
+        let distance = distance_of(&tx, codex, &planes).await?;
+        let updated =
+            planes.into_iter().filter(|plane| squadron_ids.contains(&plane.squadron_id)).collect();
+
+        tx.commit().await?;
+
+        Ok(SupplyResult {
+            distance,
+            updated,
+            after_fuel: left.fuel,
+            after_bauxite: left.bauxite,
+        })
     }
 }
 

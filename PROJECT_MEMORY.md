@@ -190,11 +190,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `chore/memory-and-practice-seed`：演习测试把播种挪到列出对手之前（对手与战斗同用线程内随机数），
-  改前连跑 40 次败 5，改后 50 次全过。无头检查、缓存清单对拍、解码器驱动的舰船规则已随 PR #15–#17 并入 `main`。
+- [2026-10-08] 分支 `feat/air-corps-u4`（计划 `2026-09-22-001` 的 U4）：`set_action`、`change_name`、`supply` 已接，`set_plane` 配属扣铝。
+  未做：U5（扩张与疲劳恢复）、U6（三份清单的计数重推，`docs/api_coverage.md` 的航空队段仍写 U1/U2）。未决：大型飛行艇按容量 1 扣铝。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
+  下一步：航空队 U5；做时加一个带航空队的无头场景预设，顺带确认 `supply` 响应里客户端读的 `api_distance`。
