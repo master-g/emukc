@@ -7,7 +7,8 @@ command line are for finding the way through a new screen. Steps are space separ
 (1200x720), `s:<name>` saves a screenshot, `api:<path>` waits until the client has called
 that KCSAPI path since the last call a step waited for, and `u:<x>,<y>:<path>` does the
 same while clicking that spot every few seconds (several spots, separated by `;`, are
-clicked in turn). Every KCSAPI response is saved under api/. The run fails on a page error, a failed request or a step that
+clicked in turn). Every KCSAPI response is saved under api/, and the report lists the
+resources the client asked for that the cache list misses or the origin does not have. The run fails on a page error, a failed request or a step that
 times out; the report and screenshots land in .data/temp/headless/<scenario>/.
 
 Needs the bootstrapped .data/codex, the resource cache, main-decoder/out/main.decoded.js
@@ -71,6 +72,22 @@ SCENARIOS = {
         check_transport_5_6,
     ),
 }
+
+
+def resource_report(work: Path, requested: set[str]) -> dict:
+    """What the client asked other sites for, what it asked this one for that the cache list
+    does not name, and what the server had
+    to go to the origin for: a file fetched there is missing from the cache, one refused
+    there is an address the origin does not have."""
+    cache_list = ROOT / "z/cache/cache_resources.nedb"
+    listed = {json.loads(line)["path"] for line in cache_list.read_text().splitlines() if line}
+    log = re.sub(r"\x1b\[[0-9;]*m", "", (work / "server.log").read_text())
+    return {
+        "off_site": sorted(path for path in requested if "://" in path),
+        "not_in_cache_list": sorted(path for path in requested - listed if "://" not in path),
+        "fetched_from_origin": sorted(set(re.findall(r"🛬 (\S+)", log))),
+        "missing_on_origin": sorted(set(re.findall(r"🚫 404 on (\S+?),", log))),
+    }
 
 
 def workspace(scenario: str) -> tuple[Path, Path]:
@@ -144,7 +161,14 @@ def main() -> int:
             page = browser.new_page(viewport={"width": 1280, "height": 800})
             page.on("pageerror", lambda error: report["page_errors"].append(str(error)[:500]))
 
+            requested = set()
+
             def on_response(response):
+                path = response.url.split("?")[0].split(f":{PORT}/", 1)[-1]
+                # What the server makes up itself is not a cached resource.
+                made_here = ("kcsapi/", "emukc", "gadgets/", "social/", "kcs2/index.php", "kcs2/world.html", "kcs2/version.json", "kcs2/resources/world/")
+                if not path.startswith(made_here):
+                    requested.add(path)
                 if response.status >= 400:
                     report["failed_requests"].append([response.status, response.url])
                 if "/kcsapi/" in response.url:
@@ -197,11 +221,18 @@ def main() -> int:
         server.terminate()
         server.wait()
 
+    report["resources"] = {"requested": len(requested)} | resource_report(work, requested)
     if not report["failed_step"]:
         report["problems"] = check(work)
     (work / "report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
-    failed = bool(report["page_errors"] or report["failed_requests"] or report["failed_step"] or report["problems"])
-    print(json.dumps(report, indent=1, ensure_ascii=False))
+    failed = bool(
+        report["page_errors"]
+        or report["failed_requests"]
+        or report["failed_step"]
+        or report["problems"]
+        or report["resources"]["missing_on_origin"]
+    )
+    print(json.dumps(report | {"api": len(report["api"])}, indent=1, ensure_ascii=False))
     print(f"{'FAILED' if failed else 'ok'}: {work / 'report.json'}")
     return 1 if failed else 0
 

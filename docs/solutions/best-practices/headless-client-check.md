@@ -41,6 +41,14 @@ name, then for the getter that wraps it.
    with status 400 or more, a step that times out, or a problem the scenario's check finds
    in the saved KCSAPI responses (`api/NNN_<path>.json`).
 
+The report also sorts the resources the client asked for: `off_site` (other hosts),
+`not_in_cache_list` (asked of this server, absent from `z/cache/cache_resources.nedb`),
+`fetched_from_origin` and `missing_on_origin` (from the server's log; the last fails the
+run). A file can be missing from the list and still be served, because playing fills the
+cache from the origin, so only the comparison with the list shows a gap. The first run
+found one: `ship/full_animation`, loaded for a flagship whose `api_mst_shipgraph` entry has
+`api_sp_flag` 1, is not generated at all.
+
 A scenario is a preset plus a line of steps in `SCENARIOS`. To find the way through a new
 screen, pass steps on the command line and read the screenshots:
 `python tests/headless/run.py <preset> "… c:600,400 w:3 s:look"`.
