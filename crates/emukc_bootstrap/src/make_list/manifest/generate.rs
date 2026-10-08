@@ -1,6 +1,6 @@
 use emukc_cache::IntoVersion;
 use emukc_crypto::SuffixUtils;
-use emukc_model::kc2::start2::{ApiManifest, ApiMstSlotitem};
+use emukc_model::kc2::start2::{ApiManifest, ApiMstShipgraph, ApiMstSlotitem};
 
 use super::resolve;
 use super::types::{
@@ -540,6 +540,33 @@ pub(crate) fn generate_entry_paths(
     }
 }
 
+/// A ship whose graph has `api_sp_flag` 1 is drawn animated where she would be drawn `full`
+/// (`_loadFlagShipAnimation` in the client's port scene): a sprite sheet, its image and the
+/// animation data, under `full_animation` or `full_animation_dmg`. The client builds these
+/// addresses by hand instead of through `ShipLoader`, so no decoder rule names them.
+fn add_ship_animation(
+    list: &mut CacheList,
+    ship_id: &str,
+    full_category: &str,
+    graph: &ApiMstShipgraph,
+    version: Option<&String>,
+) {
+    if graph.api_sp_flag != Some(1) {
+        return;
+    }
+    let category = full_category.replacen("full", "full_animation", 1);
+    let suffix = SuffixUtils::create(ship_id, format!("ship_{category}").as_str());
+    for file in ["_data.json", ".json", ".png"] {
+        list.add(
+            format!(
+                "kcs2/resources/ship/{category}/{ship_id}_{suffix}_{}{file}",
+                graph.api_filename
+            ),
+            version,
+        );
+    }
+}
+
 fn generate_ship_paths(
     entry: &ResourceManifestEntry,
     mst: &ApiManifest,
@@ -653,6 +680,7 @@ fn generate_ship_paths(
                     ),
                     version.as_ref(),
                 );
+                add_ship_animation(list, &ship_id, cat, graph, version.as_ref());
             }
             continue;
         }
@@ -811,7 +839,40 @@ mod tests {
         CacheRuleSpecialCase, CacheRuleSpecialShipRule, CacheRulesAsset, PathRules,
         ResourceCategoriesAsset, ResourceManifest, ShipGenerationGroups, ShipPathHoles,
     };
-    use emukc_model::kc2::start2::{ApiMstShip, ApiMstShipgraph, ApiMstSlotitem};
+    use emukc_model::kc2::start2::{ApiMstShip, ApiMstSlotitem};
+
+    #[test]
+    fn an_animated_ship_adds_her_sheet_image_and_data() {
+        let graph = ApiMstShipgraph {
+            api_id: 951,
+            api_filename: "uocopczppbln".to_string(),
+            api_sp_flag: Some(1),
+            ..Default::default()
+        };
+        let mut list = CacheList::new();
+        add_ship_animation(&mut list, "0951", "full", &graph, None);
+        add_ship_animation(&mut list, "0951", "full_dmg", &graph, None);
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        // The first three are what the client asked for in a headless run on 2026-10-08.
+        assert!(
+            paths.contains(&"kcs2/resources/ship/full_animation/0951_8344_uocopczppbln_data.json")
+        );
+        assert!(paths.contains(&"kcs2/resources/ship/full_animation/0951_8344_uocopczppbln.json"));
+        assert!(paths.contains(&"kcs2/resources/ship/full_animation/0951_8344_uocopczppbln.png"));
+        assert_eq!(
+            paths.iter().filter(|path| path.contains("/full_animation_dmg/0951_")).count(),
+            3
+        );
+        assert_eq!(paths.len(), 6);
+
+        let still = ApiMstShipgraph {
+            api_sp_flag: None,
+            ..graph
+        };
+        let mut list = CacheList::new();
+        add_ship_animation(&mut list, "0951", "full", &still, None);
+        assert!(list.items.is_empty());
+    }
 
     fn make_minimal_manifest() -> ApiManifest {
         ApiManifest {
