@@ -150,9 +150,6 @@ Current verification baseline:
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则由羅針盤シミュ源码（`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支，MIT；`main` 只有压缩产物）
   确定性转换，对拍零差异。详见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
-- [2026-10-07] 缓存清单：客户端写死的母港 BGM 不在 `api_mst_bgm`；深海 `item_up` 取替换表里 >1500 的目标，其中
-  5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
-  服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-07] 装備ボーナス：数据取 KC3Kai `GearBonus.js`（钉住提交，MIT），Rust 是其读取函数的移植，客户端
   `SlotItemEffectUtil` 只用来对拍。KC3Kai 与客户端的 82 条差异由手工订正层 `main-decoder/gear-bonus-corrections.json` 补平（多数是拟合出来的）。
   分歧处客户端对：noro6 `kc-web` 的 `ItemBonus.ts` 与 wikiwiki 实测都同客户端（571 ★9 回避 +6 是真的），别因数值大改回 KC3Kai。
@@ -170,11 +167,9 @@ Current verification baseline:
 | `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
-| [2026-09-18] `practice_battle.rs` 断言未播种战斗的 `api_win_rank`，11 个里 2 个偶发失败（09-23 实测 `..._ranked_exercise_quest` 在 main 上 40 败 5，对手在 `rng::seed` 前生成）。不是回归信号，先单独重跑。 | sessions 2026-09-18, 09-23 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
 | [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
-| [2026-09-21] `emukc_time`'s `test_jst_next_28/370_day_of_the_month` failures are DATE-dependent: they overflowed at `lib.rs:355` on 09-20 and passed untouched on 09-21. Note the date before calling them baseline. | sessions 2026-09-18, 09-21 |
 | `cargo clippy` 默认档比 `-D warnings` 宽（漏过 `match`→`let-else`），但 `-D` 会被既有的 `result_large_err`（`emukc_network/src/download.rs:236`、`src/bin/net/auth.rs:139`）挡住。仓库门是 `-W warnings`；新代码用 touched-file 的 `-D` 检查。 | plan 004 U7、sessions 2026-09-18/19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
 | [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` 给假结果：`.bak` 保留原 mtime，cargo 认为没变，复用按**改动后**源码编出的产物。还原后必须 `touch` 再跑。 | session 2026-09-19 |
@@ -195,8 +190,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `refactor/decoder-ship-rules`（计划 `2026-10-08-005`）：破损立绘与特殊攻击中破图改由解码器规则驱动，
-  清单逐行不变（73,160）。全量测试 1222 过；clippy 17；对拍 0 差异。未推送。
+- [2026-10-08] 分支 `chore/memory-and-practice-seed`：演习测试把播种挪到列出对手之前（对手与战斗同用线程内随机数），
+  改前连跑 40 次败 5，改后 50 次全过。无头检查、缓存清单对拍、解码器驱动的舰船规则已随 PR #15–#17 并入 `main`。
 
 ## Next Session
 

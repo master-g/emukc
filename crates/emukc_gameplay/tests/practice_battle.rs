@@ -21,7 +21,8 @@ use emukc_time::chrono::Utc;
 
 /// Practice battles draw from the thread-local production RNG, so an unseeded run
 /// lands on a losing rank often enough to make the win-rank tests flaky (observed
-/// ~1 in 5). Seeding determinizes the battle; entropy is restored before the
+/// ~1 in 5). Seeding determinizes the battle and, since the rivals are drawn from
+/// the same RNG, has to come before they are listed; entropy is restored before the
 /// assertions so a failing assert cannot skip the cleanup and leak the seeded
 /// stream into other tests sharing this OS thread.
 ///
@@ -364,10 +365,10 @@ async fn practice_battle_result_decrements_ranked_exercise_quest() {
         .unwrap();
     ensure_started_quest(&context, pid, quest_id).await;
 
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
-    emukc_crypto::rng::seed(WIN_RANK_SEED);
     context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
     let result = context.practice_battle_result(pid).await.unwrap();
     emukc_crypto::rng::reseed_from_entropy();
@@ -390,10 +391,10 @@ async fn practice_battle_result_decrements_group_exercise_quest_when_composition
         .unwrap();
     ensure_started_quest(&context, pid, quest_id).await;
 
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
-    emukc_crypto::rng::seed(WIN_RANK_SEED);
     context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
     let result = context.practice_battle_result(pid).await.unwrap();
     emukc_crypto::rng::reseed_from_entropy();
@@ -484,11 +485,13 @@ async fn idle_group_exercise_quest_shows_initial_progress_after_matching_battle(
         .unwrap();
     ensure_idle_quest(&context, pid, quest_id).await;
 
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
     context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
     context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
 
     assert_eq!(exercise_times_remaining(&context, pid, quest_id).await, 3);
     assert_eq!(quest_progress_of(&context, pid, quest_id).await, quest::progress::Progress::Half);
