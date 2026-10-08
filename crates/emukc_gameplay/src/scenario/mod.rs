@@ -204,8 +204,29 @@ impl Scenario {
             clear_maps: vec![11, 12, 13, 14],
         }
     }
+
+    /// Four destroyers into 5-6, a drum and a radar each: enough small ships for the route
+    /// past the landing point E, enough line of sight to be sent from there to the boss, and
+    /// 40 transport points to land.
+    pub fn transport_5_6() -> Self {
+        Self {
+            fleet: (0..4)
+                .map(|_| ShipSpec::new(951, 99).with_slots([DRUM_CANISTER, SURFACE_RADAR]))
+                .collect(),
+            materials: default_materials(),
+            unlock_maps: vec![],
+            // Everything 5-6 is opened by, in order, so the client offers it.
+            clear_maps: vec![
+                11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34, 41, 42, 43, 44, 51, 52, 53, 54, 55,
+            ],
+        }
+    }
 }
 
+/// ドラム缶(輸送用), 5 transport points each.
+const DRUM_CANISTER: i64 = 75;
+/// 33号対水上電探.
+const SURFACE_RADAR: i64 = 29;
 /// Fletcher Mk.II: the highest-ASW destroyer in the manifest (97 at level 99).
 const FLETCHER_MK2_MST_ID: i64 = 629;
 /// 零式水中聴音機 (大型ソナー, +11 ASW).
@@ -307,6 +328,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::CarrierCutIn,
+    },
+    Preset {
+        name: "transport_5_6",
+        build: Scenario::transport_5_6,
+        maparea: 5,
+        mapinfo: 6,
+        expects: PhaseExpectation::PlainBattle,
     },
 ];
 
