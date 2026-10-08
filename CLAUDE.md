@@ -253,7 +253,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 缓存：`make cache-make-list`、`make cache-populate CONCURRENT=16`。
 - 可复现战斗：`make battle-sim SCENARIO=fresh_1_1 SEED=1`；可加 `FIND=night MAX_SEEDS=1000`。
 - 路由规则：`make route-rules-update` 从钉住的羅針盤シミュ源码再生 `map_route_rules.json`；之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make route-oracle` 与来源代码对拍。
-- 装備ボーナス：`make gear-bonus-update` 从钉住的 KC3Kai 提交再生 `gear_bonus.json`，之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make gear-bonus-oracle` 与客户端 `main.js` 的加成函数对拍（需先 `make decode-main`）。对拍报出的差异手工写进 `main-decoder/gear-bonus-corrections.json`。
+- 装備ボーナス：`make gear-bonus-update` 从钉住的 KC3Kai 提交再生 `gear_bonus.json`，之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make gear-bonus-oracle` 与客户端 `main.js` 的加成函数对拍（需先 `make decode-main`）。对拍报出的差异手工写进 `main-decoder/gear-bonus-corrections.json`。`make update` 在漂移报告之后会自动跑一次对拍（不阻断）。
 - KCNav 数据：`make kcnav-sync [MAP=1-1]` 下载原始响应（单线程、2 秒间隔、可续传，全量约 1000 次请求，先与用户确认）；`make kcnav-normalize` 不联网，再生 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`（需先有 `.data/codex`），之后 `cargo run -- bootstrap --codex-only` 重建 codex；`cargo run -- kcnav sync --dry-run` 只报请求数。
 
 ## 代码风格
