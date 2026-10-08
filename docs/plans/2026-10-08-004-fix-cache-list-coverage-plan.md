@@ -2,7 +2,7 @@
 title: "Cache List Coverage - Plan"
 type: fix
 date: 2026-10-08
-status: draft
+status: implemented
 execution: code
 ---
 
@@ -94,3 +94,14 @@ execution: code
 - `make cache-list-oracle` 的结果；两个无头场景的资源报告。
 - 注意：`make-list` / `populate` 与无头检查都要先停掉占着 `z/cache` 锁的服务器；`populate` 会向官服下载新增条目，
   执行前告知用户条目数。
+
+## Outcome
+
+- U1：动画进清单，10 舰 × 6 文件。951 的三条与无头运行里客户端请求的地址一致。
+- U2 与 U3 合成一个脚本 `cache-list-oracle`，没有写进 `cache_rules.json` 的 `unresolvedRules`：对账的对象改成
+  "客户端源码里的目录字面量 × 生成出的清单"，比对规则集合更直接。28 个目录里 4 个为空：三个登记为合理
+  （活动与节分的面板、服务器自己画的镇守府名），一个是真漏项 `area/airunit_extend_confirm`，已补（3 个海域 × 2 文件）。
+  后缀对拍 32,573 条，0 差异。版本号没有对拍（客户端的 `VersionUtil` 要先装载主数据模型）。
+- U4：`index.php` 指向已内嵌的副本；`world.html` 在提供时改写。axios 0.19.0 用 0.19.2 的副本顶替，没有下载新文件。
+  无头运行的 `off_site` 从 8 降到 0。
+- 清单 73,082 → 73,148 条（+66）。其中 63 条在官服是否存在未确认，待 `cache populate`。

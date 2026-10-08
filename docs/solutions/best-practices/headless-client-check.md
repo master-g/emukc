@@ -46,8 +46,8 @@ The report also sorts the resources the client asked for: `off_site` (other host
 `fetched_from_origin` and `missing_on_origin` (from the server's log; the last fails the
 run). A file can be missing from the list and still be served, because playing fills the
 cache from the origin, so only the comparison with the list shows a gap. The first run
-found one: `ship/full_animation`, loaded for a flagship whose `api_mst_shipgraph` entry has
-`api_sp_flag` 1, is not generated at all.
+found `ship/full_animation` missing from the list and eight libraries loaded from other
+sites; both are fixed (`decoder-first-cachelist-pipeline.md`, `kcs2.rs`).
 
 A scenario is a preset plus a line of steps in `SCENARIOS`. To find the way through a new
 screen, pass steps on the command line and read the screenshots:

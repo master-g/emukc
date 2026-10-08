@@ -95,6 +95,12 @@ pub(super) async fn make(list: &mut CacheList) -> Result<(), CacheListMakingErro
 
     for air_unit in AREA_AIR_UNIT.iter() {
         list.add_unversioned(format!("kcs2/resources/area/airunit/{air_unit}.png"));
+        // The dialog that confirms buying another air base there, and its caption.
+        for file in ["", "_"] {
+            list.add_unversioned(format!(
+                "kcs2/resources/area/airunit_extend_confirm/{air_unit}{file}.png"
+            ));
+        }
     }
 
     for voice in TUTORIAL_VOICE.iter() {
