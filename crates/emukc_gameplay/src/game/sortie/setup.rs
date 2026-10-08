@@ -18,6 +18,7 @@ use crate::{
     err::GameplayError,
     game::{
         basic::find_profile,
+        battle::engagement::carries_saiun,
         battle::sortie::{SortieBattleInput, SortieBattleSession},
         fleet::get_fleet_ships_impl,
         map::active_map_catalog,
@@ -98,6 +99,9 @@ pub(super) struct SortieBattleSetup {
     pub enemy: EnemyEncounter,
     /// Whether the cell's event kind sends the client to the `ec_` endpoints.
     pub enemy_combined_cell: bool,
+    /// Whether either fleet carries a 彩雲 with planes left, which keeps the
+    /// engagement from being T字不利.
+    pub carries_saiun: bool,
 }
 
 /// Resolve the active sortie into battle-ready fleets, applying every guard both
@@ -188,9 +192,12 @@ where
         active.locked_enemy_composition.as_ref(),
     )?;
 
+    let carries_saiun = friend_ships.iter().chain(&escort_ships).any(carries_saiun);
+
     Ok(SortieBattleSetup {
         active,
         profile,
+        carries_saiun,
         friend_ships,
         escort_ships,
         combined_type,
@@ -200,12 +207,13 @@ where
 }
 
 impl SortieBattleSetup {
-    /// The simulation input for this setup; only the battle type and the player's
-    /// formation differ between entries.
+    /// The simulation input for this setup; only the battle type, the player's
+    /// formation and the engagement differ between entries.
     pub(super) fn battle_input(
         &self,
         battle_type: BattleType,
         formation_id: i64,
+        engagement: EngagementType,
     ) -> SortieBattleInput {
         SortieBattleInput {
             profile_id: self.profile.id,
@@ -217,7 +225,7 @@ impl SortieBattleSetup {
                 is_sortie: true,
                 friendly_formation_id: formation_id,
                 enemy_formation_id: self.enemy.formation_id,
-                engagement: engagement_for_cell(self.active.map_id, self.active.current_cell_id),
+                engagement,
                 friend_ships: self.friend_ships.clone(),
                 enemy_ships: self.enemy.ships.clone(),
                 enemy_escort_ships: self.enemy.escort_ships.clone(),
@@ -389,13 +397,4 @@ where
     }
 
     Ok(result)
-}
-
-fn engagement_for_cell(map_id: i64, cell_id: i64) -> EngagementType {
-    match (map_id + cell_id).rem_euclid(4) {
-        1 => EngagementType::HeadOn,
-        2 => EngagementType::TAdvantage,
-        3 => EngagementType::TDisadvantage,
-        _ => EngagementType::SameCourse,
-    }
 }

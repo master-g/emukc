@@ -28,6 +28,7 @@ use emukc_battle::{BattleType, CombinedFleetRole};
 
 use super::{
     battle::{
+        engagement::roll_engagement,
         response::{
             DayBattleResponse, NightBattleResponse, build_day_response, build_night_response,
         },
@@ -775,10 +776,12 @@ impl Ctx {
                 setup.validate_endpoint(endpoint)?;
                 setup.validate_formation(formation_id)?;
                 let mut rng = ProductionRng;
+                // A battle that opens at night cannot be kept from T字不利.
+                let engagement = roll_engagement(&mut rng, false);
                 let (session, night_session) = run_sp_midnight_battle(
                     store,
                     codex,
-                    setup.battle_input(BattleType::Normal, formation_id),
+                    setup.battle_input(BattleType::Normal, formation_id, engagement),
                     &mut rng,
                 );
                 store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
@@ -891,10 +894,11 @@ async fn sortie_battle_impl(
             setup.validate_endpoint(endpoint)?;
             setup.validate_formation(formation_id)?;
             let mut rng = ProductionRng;
+            let engagement = roll_engagement(&mut rng, setup.carries_saiun);
             let session = run_day_battle(
                 store,
                 codex,
-                setup.battle_input(battle_type, formation_id),
+                setup.battle_input(battle_type, formation_id, engagement),
                 &mut rng,
             );
             let mut response = build_day_response(

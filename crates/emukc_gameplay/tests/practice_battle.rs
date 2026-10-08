@@ -235,7 +235,9 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
 
     let battle = context.practice_battle(pid, 1, 1, enemy_id).await.unwrap();
     assert_eq!(battle.api_deck_id, 1);
-    assert_eq!(battle.api_formation, [1, 1, 1]);
+    assert_eq!(battle.api_formation[..2], [1, 1]);
+    // The engagement is drawn at random.
+    assert!((1..=4).contains(&battle.api_formation[2]));
     assert!(!battle.api_ship_ke.is_empty());
     assert_eq!(battle.api_f_nowhps[0], (before_ship.hp_now - 3).max(1));
 
