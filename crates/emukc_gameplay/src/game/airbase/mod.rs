@@ -14,11 +14,14 @@ use emukc_model::{
     },
 };
 
+use emukc_battle::{AirCorpsInput, AirSquadronInput, BattleAirBaseAttack};
+
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::map::get_map_records_impl;
-use super::material::deduct_material_impl;
+use super::material::{deduct_material_impl, get_mat_impl};
 use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl};
+use super::sortie::AirStrike;
 use super::use_item::deduct_use_item_impl;
 use plane::{get_planes_impl, squadrons_of};
 
@@ -579,6 +582,146 @@ where
     Ok(airbases)
 }
 
+/// Fuel and ammunition one squadron spends on a sortie, whatever it then does.
+///
+/// wikiwiki 基地航空隊「出撃コスト」: a land attacker 1.5 fuel a plane (rounded
+/// up) and 0.7 ammunition (rounded down); 大型陸上機 2 and 2; anything else 1
+/// fuel and 0.6 ammunition (rounded up). Eighteen 陸攻 cost 27 and 12.
+pub(crate) fn sortie_cost(equip_type: i64, count: i64) -> (i64, i64) {
+    match equip_type {
+        47 => ((count * 3 + 1) / 2, count * 7 / 10),
+        53 => (count * 2, count * 2),
+        _ => (count, (count * 6 + 9) / 10),
+    }
+}
+
+/// Charge the sortie of the air corps `rids` of one area to the stock.
+///
+/// A stock that cannot cover it pays what it has and the air corps flies
+/// anyway, which is what upstream does (same wikiwiki section).
+pub(crate) async fn charge_air_sortie_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    area_id: i64,
+    rids: &[i64],
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let (mut fuel, mut ammo) = (0, 0);
+    for rid in rids {
+        let planes: Vec<plane_db::Model> = get_planes_impl(c, profile_id, area_id, *rid)
+            .await?
+            .into_iter()
+            .filter(|plane| plane.state == plane_db::Status::Assigned && plane.count > 0)
+            .collect();
+        let slot_ids: Vec<i64> = planes.iter().map(|plane| plane.slot_id).collect();
+        let items = find_slot_items_by_id_impl(c, &slot_ids).await?;
+        for plane in &planes {
+            let equip_type = items
+                .iter()
+                .find(|item| item.id == plane.slot_id)
+                .and_then(|item| codex.manifest.find_slotitem(item.mst_id))
+                .map_or(0, |mst| mst.api_type[2]);
+            let (squadron_fuel, squadron_ammo) = sortie_cost(equip_type, plane.count);
+            fuel += squadron_fuel;
+            ammo += squadron_ammo;
+        }
+    }
+
+    let stock = get_mat_impl(c, profile_id).await?;
+    deduct_material_impl(
+        c,
+        profile_id,
+        &[
+            (MaterialCategory::Fuel, fuel.min(stock.fuel)),
+            (MaterialCategory::Ammo, ammo.min(stock.ammo)),
+        ],
+    )
+    .await?;
+
+    Ok(())
+}
+
+/// The air corps sent against `cell_no`, as the battle takes them: each with
+/// the squadrons that still fly and one wave for every time it was pointed here.
+pub(crate) async fn striking_air_corps_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    strikes: &[AirStrike],
+    cell_no: i64,
+) -> Result<Vec<AirCorpsInput>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let mut air_corps = Vec::new();
+    for strike in strikes {
+        let waves = strike.cells.iter().filter(|cell| **cell == cell_no).count();
+        if waves == 0 {
+            continue;
+        }
+        let planes: Vec<plane_db::Model> = get_planes_impl(c, profile_id, area_id, strike.base_rid)
+            .await?
+            .into_iter()
+            .filter(|plane| plane.state == plane_db::Status::Assigned && plane.count > 0)
+            .collect();
+        let slot_ids: Vec<i64> = planes.iter().map(|plane| plane.slot_id).collect();
+        let items = find_slot_items_by_id_impl(c, &slot_ids).await?;
+        let squadrons: Vec<AirSquadronInput> = planes
+            .iter()
+            .filter_map(|plane| {
+                let item = items.iter().find(|item| item.id == plane.slot_id)?;
+                Some(AirSquadronInput {
+                    squadron_id: plane.squadron_id,
+                    mst_id: item.mst_id,
+                    count: plane.count,
+                })
+            })
+            .collect();
+        if !squadrons.is_empty() {
+            air_corps.push(AirCorpsInput {
+                base_rid: strike.base_rid,
+                waves,
+                squadrons,
+            });
+        }
+    }
+
+    Ok(air_corps)
+}
+
+/// Write back what the air corps have left after a battle: for each one, the
+/// counts its last attack ended with.
+pub(crate) async fn record_strike_losses_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    attacks: &[BattleAirBaseAttack],
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    for (index, attack) in attacks.iter().enumerate() {
+        if attacks[index + 1..].iter().any(|later| later.api_base_id == attack.api_base_id) {
+            continue;
+        }
+        for (squadron_id, count) in &attack.remaining {
+            plane_db::Entity::update_many()
+                .col_expr(plane_db::Column::Count, Expr::value(*count))
+                .filter(plane_db::Column::ProfileId.eq(profile_id))
+                .filter(plane_db::Column::AreaId.eq(area_id))
+                .filter(plane_db::Column::Rid.eq(attack.api_base_id))
+                .filter(plane_db::Column::SquadronId.eq(*squadron_id))
+                .exec(c)
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
 /// The profile's air corps in one area, in `rid` order.
 async fn airbases_of_area<C>(
     c: &C,
@@ -954,6 +1097,16 @@ mod tests {
             event_state: None,
             unlocked,
         }
+    }
+
+    /// The figures wikiwiki gives as examples.
+    #[test]
+    fn a_sortie_costs_what_the_source_says() {
+        assert_eq!(sortie_cost(47, 18), (27, 12), "陸攻");
+        assert_eq!(sortie_cost(53, 9), (18, 18), "大型陸上機");
+        assert_eq!(sortie_cost(9, 4), (4, 3), "偵察機");
+        assert_eq!(sortie_cost(48, 18), (18, 11), "the rest");
+        assert_eq!(sortie_cost(47, 17), (26, 11), "1.5 rounds up, 0.7 down");
     }
 
     /// 6-4 and 6-5 are the only regular maps that declare an airbase, and both

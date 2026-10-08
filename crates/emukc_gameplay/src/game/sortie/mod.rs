@@ -28,7 +28,7 @@ use crate::{err::GameplayError, gameplay::Ctx};
 use emukc_battle::{BattleType, CombinedFleetRole};
 
 use super::{
-    airbase::load_area_airbases_impl,
+    airbase::{charge_air_sortie_impl, load_area_airbases_impl, record_strike_losses_impl},
     battle::{
         engagement::roll_engagement,
         response::{
@@ -308,6 +308,13 @@ impl Ctx {
                     ))
                 })?;
 
+                // Once a sortie: the air corps are paid for when they are sent.
+                if !active.air_strikes.is_empty() {
+                    return Err(GameplayError::WrongType(
+                        "the air corps of this sortie were already sent".to_string(),
+                    ));
+                }
+
                 let catalog = active_map_catalog(codex);
                 let definition =
                     catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
@@ -389,6 +396,12 @@ impl Ctx {
                         cells: cells.clone(),
                     });
                 }
+
+                let rids: Vec<i64> = air_strikes.iter().map(|strike| strike.base_rid).collect();
+                let tx = self.db.begin().await?;
+                charge_air_sortie_impl(&tx, codex, profile_id, definition.maparea_id, &rids)
+                    .await?;
+                tx.commit().await?;
 
                 active.air_strikes = air_strikes;
                 let _ = store.insert_active(profile_id, active);
@@ -774,6 +787,14 @@ impl Ctx {
             &active,
             snapshot,
             &session.packet.enemy_nowhps,
+        )
+        .await?;
+
+        record_strike_losses_impl(
+            &tx,
+            profile_id,
+            definition.maparea_id,
+            &session.packet.air_base_attack,
         )
         .await?;
 
