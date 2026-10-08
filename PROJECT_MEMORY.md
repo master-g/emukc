@@ -195,8 +195,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `fix/cache-list-coverage`（计划 `2026-10-08-004`）：清单补舰船动画与基地扩张确认图（+10 条，均已取到），
-  新增 `make cache-list-oracle`，站外库改本地。全量测试 1221 过；clippy 17；对拍 0 差异。两个无头场景资源报告全空。未推送。
+- [2026-10-08] 分支 `fix/cache-list-coverage`（计划 `2026-10-08-004`）：清单补舰船动画、基地扩张确认图、深海舰破损立绘（+64 条，均已取到），
+  新增 `make cache-list-oracle`，站外库改本地。全量测试 1222 过；clippy 17；对拍 0 差异。两个无头场景资源报告全空。未推送。
 
 ## Next Session
 

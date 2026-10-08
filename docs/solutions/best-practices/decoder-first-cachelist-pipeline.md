@@ -155,18 +155,33 @@ without a trace: `cache_rules.json` reported no unresolved rules while a whole f
   it. Addresses built by hand (`"resources/ship/".concat(…)`) are exactly the ones the
   rule extraction misses, and they all carry such a literal. Directories that are rightly
   empty are named with their reason in `KNOWN_EMPTY`.
+- every resource type a ship or equipment loader is called with (the 289 call sites the
+  decoder records in `resource_manifest.json`, 35 types) must have something listed under
+  it.
 - the suffix of every listed ship and equipment address is recomputed with the client's
-  own `SuffixUtil` (32,519 addresses on 6.3.5.0, none wrong).
+  own `SuffixUtil` (32,573 addresses on 6.3.5.0, none wrong).
+
+It asks only that something is listed under each directory, not that every id is. It says
+what it does not judge: call sites without a literal type, addresses whose form it does
+not parse, and the id groups `ui_resources.json` marks `unresolved` or `partial`, which
+are listed by hand (map files, use item cards, the area images). `cache_rules.json`'s
+"unresolved 0" still only counts the rules the decoder attempted.
 
 It runs after the drift report of `make update`, without blocking, against the list as it
 is; regenerate the list before reading what it says about directories. A directory reached
 only through a variable is not seen; a headless run (`headless-client-check.md`) reports
 those as `not_in_cache_list` when the client asks for them.
 
-Found this way: `ship/full_animation` and `full_animation_dmg` (a ship whose graph has
-`api_sp_flag` 1 is drawn animated in port; abyssal graphs carry the flag too but the origin
-has files only for ships the player can own), and `area/airunit_extend_confirm`
-(`<area>.png` and `<area>_.png`; the decoder marks its ids unresolved, so they follow the
-hand list of areas with air bases, regular areas only). `cache populate` on just the added
-lines (`--src` with the difference of the two lists) said which of them the origin has.
+Found this way: `ship/full_animation` and `full_animation_dmg` (a ship the player owns
+whose graph has `api_sp_flag` 1 is drawn animated in port), and
+`area/airunit_extend_confirm` (`<area>.png` and `<area>_.png`; they follow the hand list of
+areas with air bases, regular areas only).
 
+Found by reading the call sites, not by the oracle: on an abyssal graph the same
+`api_sp_flag` means a second, broken look (`ShipUtil.isEnemyBreakGraph`). Those nine ships
+have damaged banners like no other enemy, and the battle scenes ask for each with `_b`
+after the id; 54 files, all on the origin, none listed before. A flag argument at a call
+site changes the file name without changing the directory, which neither check sees.
+
+`cache populate --src` on just the added lines (the difference of two lists) says which of
+them the origin has.

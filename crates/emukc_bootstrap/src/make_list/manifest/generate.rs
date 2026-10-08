@@ -569,6 +569,34 @@ fn add_ship_animation(
     }
 }
 
+/// An abyssal ship whose graph has `api_sp_flag` 1 has a second, broken look
+/// (`ShipUtil.isEnemyBreakGraph`). Unlike any other enemy she has damaged banners, and the
+/// battle scenes also ask for each with `_b` after her id once she is broken.
+fn add_enemy_break_banners(
+    list: &mut CacheList,
+    ship_id: &str,
+    target: &str,
+    graph: Option<&ApiMstShipgraph>,
+    version: Option<&String>,
+) {
+    let is_break_graph =
+        graph.is_some_and(|graph| graph.api_sp_flag == Some(1) && graph.api_sortno.is_none());
+    if !is_break_graph || !matches!(target, "banner" | "banner3") {
+        return;
+    }
+    for (category, looks) in
+        [(format!("{target}_dmg"), &["", "_b"][..]), (format!("{target}_g_dmg"), &["_b"][..])]
+    {
+        let suffix = SuffixUtils::create(ship_id, format!("ship_{category}").as_str());
+        for look in looks {
+            list.add(
+                format!("kcs2/resources/ship/{category}/{ship_id}{look}_{suffix}.png"),
+                version,
+            );
+        }
+    }
+}
+
 fn generate_ship_paths(
     entry: &ResourceManifestEntry,
     mst: &ApiManifest,
@@ -611,6 +639,14 @@ fn generate_ship_paths(
             .iter()
             .find(|g| g.api_id == id)
             .and_then(|g| g.api_version.first().into_version());
+
+        add_enemy_break_banners(
+            list,
+            &ship_id,
+            target,
+            mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
+            version.as_ref(),
+        );
 
         // Check if this is a sp_remodel target
         if target.starts_with("sp_remodel") {
@@ -874,6 +910,43 @@ mod tests {
         };
         let mut list = CacheList::new();
         add_ship_animation(&mut list, "0951", "full", &still, None);
+        assert!(list.items.is_empty());
+    }
+
+    #[test]
+    fn a_breaking_enemy_adds_her_damaged_and_broken_banners() {
+        let graph = ApiMstShipgraph {
+            api_id: 2317,
+            api_sp_flag: Some(1),
+            ..Default::default()
+        };
+        let mut list = CacheList::new();
+        for target in ["banner", "banner3", "full"] {
+            add_enemy_break_banners(&mut list, "2317", target, Some(&graph), None);
+        }
+        let paths = list.items.iter().map(|item| item.path.as_str()).collect::<Vec<_>>();
+        // The suffixes without `_b` are the ones of the same ship's listed banners.
+        assert!(paths.contains(&"kcs2/resources/ship/banner_g_dmg/2317_b_1980.png"));
+        assert!(paths.contains(&"kcs2/resources/ship/banner3_g_dmg/2317_b_6763.png"));
+        for category in ["banner_dmg", "banner3_dmg"] {
+            let of = |look: &str| {
+                paths
+                    .iter()
+                    .filter(|path| path.contains(&format!("/{category}/2317{look}_")))
+                    .count()
+            };
+            // `2317_` also begins `2317_b_`.
+            assert_eq!((of(""), of("_b")), (2, 1), "{category}");
+        }
+        assert_eq!(paths.len(), 6);
+
+        let owned = ApiMstShipgraph {
+            api_sortno: Some(551),
+            ..graph
+        };
+        let mut list = CacheList::new();
+        add_enemy_break_banners(&mut list, "0951", "banner", Some(&owned), None);
+        add_enemy_break_banners(&mut list, "1501", "banner", None, None);
         assert!(list.items.is_empty());
     }
 
