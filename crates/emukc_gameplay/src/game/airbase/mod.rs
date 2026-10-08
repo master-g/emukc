@@ -8,7 +8,10 @@ use emukc_db::{
 use emukc_model::{
     codex::Codex,
     kc2::MaterialCategory,
-    profile::airbase::{Airbase, PlaneInfo, PlaneState, SQUADRON_MAX, squadron_capacity},
+    profile::airbase::{
+        AIRUNIT_MAX, Airbase, MAINTENANCE_LEVEL_MAX, PlaneInfo, PlaneState, SQUADRON_MAX,
+        squadron_capacity,
+    },
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -16,11 +19,12 @@ use crate::{err::GameplayError, gameplay::Ctx};
 use super::map::get_map_records_impl;
 use super::material::deduct_material_impl;
 use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl};
+use super::use_item::deduct_use_item_impl;
 use plane::{get_planes_impl, squadrons_of};
 
 mod plane;
 
-/// Outcome of assigning or removing a squadron.
+/// Outcome of assigning, removing or resting squadrons.
 #[derive(Debug, Clone)]
 pub struct SetPlaneResult {
     /// `(api_base, api_bonus)` of the airbase after the change.
@@ -39,6 +43,13 @@ pub struct SetPlaneResult {
 pub const SUPPLY_FUEL_PER_PLANE: i64 = 3;
 /// Bauxite a resupply spends per aircraft replaced.
 pub const SUPPLY_BAUXITE_PER_PLANE: i64 = 5;
+
+/// 設営隊, spent to add an air corps or raise an area's 整備Lv.
+const USE_ITEM_CONSTRUCTION_CORPS: i64 = 73;
+/// 航空特別増加食, spent to rest an air corps.
+const USE_ITEM_AIR_RATION: i64 = 102;
+/// `api_cond` of a squadron that is neither tired nor at peak morale.
+const COND_NORMAL: i64 = 1;
 
 /// Outcome of resupplying squadrons.
 #[derive(Debug, Clone)]
@@ -414,6 +425,159 @@ impl Ctx {
             after_bauxite: left.bauxite,
         })
     }
+
+    /// Add an air corps to an area, for one 設営隊.
+    ///
+    /// The area must already have its first one, which comes with the map, and
+    /// holds at most `AIRUNIT_MAX`.
+    pub async fn expand_airbase(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+    ) -> Result<Airbase, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+        let tx = db.begin().await?;
+
+        let owned = airbases_of_area(&tx, profile_id, area_id).await?;
+        let Some(first) = owned.first() else {
+            return Err(GameplayError::EntryNotFound(format!(
+                "profile {profile_id} has no air corps in area {area_id} to expand"
+            )));
+        };
+        let rid = i64::try_from(owned.len()).unwrap_or(AIRUNIT_MAX) + 1;
+        if rid > AIRUNIT_MAX {
+            return Err(GameplayError::WrongType(format!(
+                "area {area_id} already holds {AIRUNIT_MAX} air corps"
+            )));
+        }
+        let level = first.maintenance_level;
+
+        deduct_use_item_impl(&tx, profile_id, USE_ITEM_CONSTRUCTION_CORPS, 1).await?;
+
+        let mut am = unlock_airbase_impl(&tx, profile_id, area_id, rid).await?.into_active_model();
+        am.maintenance_level = ActiveValue::Set(level);
+        let model = am.update(&tx).await?;
+        let airbase = load_airbase(&tx, codex, profile_id, model).await?;
+
+        tx.commit().await?;
+
+        Ok(airbase)
+    }
+
+    /// Raise an area's 整備Lv by one, for one 設営隊.
+    ///
+    /// ponytail: the level lives on the area's airbase rows, so an area the
+    /// profile has no air corps in cannot be raised. Upstream allows an event
+    /// area that is not open yet; that needs a per-area table, add it with the
+    /// event maps.
+    pub async fn expand_airbase_maintenance(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+    ) -> Result<i64, GameplayError> {
+        let db = self.db.as_ref();
+        let tx = db.begin().await?;
+
+        let owned = airbases_of_area(&tx, profile_id, area_id).await?;
+        let Some(first) = owned.first() else {
+            return Err(GameplayError::EntryNotFound(format!(
+                "profile {profile_id} has no air corps in area {area_id}"
+            )));
+        };
+        let level = first.maintenance_level + 1;
+        if level > MAINTENANCE_LEVEL_MAX {
+            return Err(GameplayError::WrongType(format!(
+                "area {area_id} is already at maintenance level {MAINTENANCE_LEVEL_MAX}"
+            )));
+        }
+
+        deduct_use_item_impl(&tx, profile_id, USE_ITEM_CONSTRUCTION_CORPS, 1).await?;
+
+        for model in owned {
+            let mut am = model.into_active_model();
+            am.maintenance_level = ActiveValue::Set(level);
+            am.update(&tx).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(level)
+    }
+
+    /// Rest an air corps with one 航空特別増加食: every tired squadron goes back
+    /// to normal. The ration is spent even when nobody was tired.
+    pub async fn recover_airbase_condition(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        base_id: i64,
+    ) -> Result<SetPlaneResult, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+        let tx = db.begin().await?;
+
+        find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+        deduct_use_item_impl(&tx, profile_id, USE_ITEM_AIR_RATION, 1).await?;
+
+        for model in get_planes_impl(&tx, profile_id, area_id, base_id).await? {
+            if model.state == plane_db::Status::Assigned && model.condition > COND_NORMAL {
+                let mut am = model.into_active_model();
+                am.condition = ActiveValue::Set(COND_NORMAL);
+                am.update(&tx).await?;
+            }
+        }
+
+        let occupied = get_planes_impl(&tx, profile_id, area_id, base_id).await?;
+        let planes = squadrons_of(profile_id, area_id, base_id, occupied);
+        let distance = distance_of(&tx, codex, &planes).await?;
+        let updated =
+            planes.into_iter().filter(|p| matches!(p.state, PlaneState::Assigned)).collect();
+
+        tx.commit().await?;
+
+        Ok(SetPlaneResult {
+            distance,
+            updated,
+            after_bauxite: None,
+        })
+    }
+
+    /// Check that an air corps exists, for the client's timed recovery poll.
+    ///
+    /// ponytail: nothing tires a squadron yet (the battle side is not built),
+    /// so there is never a timed recovery to report and the handler answers
+    /// without data, which the client accepts. Report the recovered squadrons
+    /// here once fatigue exists.
+    pub async fn check_airbase(
+        &self,
+        profile_id: i64,
+        area_id: i64,
+        base_id: i64,
+    ) -> Result<(), GameplayError> {
+        find_owned_airbase(self.db.as_ref(), profile_id, area_id, base_id).await?;
+
+        Ok(())
+    }
+}
+
+/// The profile's air corps in one area, in `rid` order.
+async fn airbases_of_area<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+) -> Result<Vec<base::Model>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let models = base::Entity::find()
+        .filter(base::Column::ProfileId.eq(profile_id))
+        .filter(base::Column::AreaId.eq(area_id))
+        .order_by_asc(base::Column::Rid)
+        .all(c)
+        .await?;
+
+    Ok(models)
 }
 
 /// Fetch one airbase, rejecting anything the profile does not own.
@@ -666,6 +830,17 @@ fn areas_entitled_to_air_corps(codex: &Codex, records: &[map_record::Model]) -> 
     areas
 }
 
+/// The name upstream gives an air corps: 第一基地航空隊, 第二…, 第三….
+fn default_name(rid: i64) -> String {
+    let ordinal = match rid {
+        1 => "\u{4E00}",
+        2 => "\u{4E8C}",
+        3 => "\u{4E09}",
+        _ => return format!("\u{7B2C}{rid}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}"),
+    };
+    format!("\u{7B2C}{ordinal}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}")
+}
+
 pub(crate) async fn unlock_airbase_impl<C>(
     c: &C,
     profile_id: i64,
@@ -694,8 +869,8 @@ where
         action: ActiveValue::Set(base::Action::Idle),
         base_range: ActiveValue::Set(0),
         bonus_range: ActiveValue::Set(0),
-        name: ActiveValue::Set(format!("\u{7B2C}{rid}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}")),
-        maintenance_level: ActiveValue::Set(1),
+        name: ActiveValue::Set(default_name(rid)),
+        maintenance_level: ActiveValue::Set(0),
     };
 
     let m = am.insert(c).await?;

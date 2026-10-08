@@ -2,6 +2,9 @@ use axum::{Router, routing::post};
 
 mod change_deployment_base;
 mod change_name;
+mod cond_recovery;
+mod expand_base;
+mod expand_maintenance_level;
 mod set_action;
 mod set_plane;
 mod supply;
@@ -10,6 +13,9 @@ pub(super) fn router() -> Router {
     Router::new()
         .route("/change_deployment_base", post(change_deployment_base::handler))
         .route("/change_name", post(change_name::handler))
+        .route("/cond_recovery", post(cond_recovery::handler))
+        .route("/expand_base", post(expand_base::handler))
+        .route("/expand_maintenance_level", post(expand_maintenance_level::handler))
         .route("/set_action", post(set_action::handler))
         .route("/set_plane", post(set_plane::handler))
         .route("/supply", post(supply::handler))
@@ -414,5 +420,145 @@ mod tests {
         assert_eq!(slots.len(), 2, "both named slots come back");
         assert_eq!(slots[0]["api_count"], 18);
         assert_eq!(slots[1]["api_state"], 0, "the empty one untouched");
+    }
+
+    /// 設営隊 buys the second and third air corps, and no fourth.
+    #[tokio::test]
+    async fn construction_corps_add_air_corps_up_to_three() {
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_airbase(&context.state, pid, 1).await;
+        context.state.add_use_item(pid, 73, 2).await.unwrap();
+
+        for rid in [2, 3] {
+            let resp = expand_base::handler(
+                app_state(&context.state),
+                Pid(pid),
+                Form(expand_base::Params {
+                    api_area_id: 6,
+                }),
+            )
+            .await
+            .unwrap();
+            let data = resp.api_data.unwrap();
+            let added = data.as_array().expect("the client reads element 0");
+            assert_eq!(added.len(), 1);
+            assert_eq!(added[0]["api_rid"], rid);
+            assert_eq!(added[0]["api_plane_info"].as_array().unwrap().len(), 4);
+        }
+
+        let bases = context.state.get_airbases(pid).await.unwrap();
+        assert_eq!(
+            bases.iter().map(|b| b.name.as_str()).collect::<Vec<_>>(),
+            [
+                "\u{7B2C}\u{4E00}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}",
+                "\u{7B2C}\u{4E8C}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}",
+                "\u{7B2C}\u{4E09}\u{57FA}\u{5730}\u{822A}\u{7A7A}\u{968A}",
+            ],
+            "named the way a live account's are"
+        );
+
+        context.state.add_use_item(pid, 73, 1).await.unwrap();
+        let err = expand_base::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(expand_base::Params {
+                api_area_id: 6,
+            }),
+        )
+        .await;
+        assert!(err.is_err(), "an area holds three air corps");
+        assert_eq!(
+            context.state.find_use_item(pid, 73).await.unwrap().api_count,
+            1,
+            "and the refused one cost nothing"
+        );
+    }
+
+    /// An area nobody expanded reports no 整備Lv at all; 設営隊 raise it to 3.
+    #[tokio::test]
+    async fn maintenance_level_is_per_area_and_stops_at_three() {
+        use emukc_internal::model::profile::airbase::expanded_info;
+
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_airbase(&context.state, pid, 1).await;
+        seed_airbase(&context.state, pid, 2).await;
+        context.state.add_use_item(pid, 73, 4).await.unwrap();
+
+        let bases = context.state.get_airbases(pid).await.unwrap();
+        assert!(expanded_info(&bases).is_empty(), "no entry before the first expansion");
+
+        let raise = || {
+            expand_maintenance_level::handler(
+                app_state(&context.state),
+                Pid(pid),
+                Form(expand_maintenance_level::Params {
+                    api_area_id: 6,
+                }),
+            )
+        };
+        for _ in 0..3 {
+            raise().await.unwrap();
+        }
+        assert!(raise().await.is_err(), "level 3 is the last");
+
+        let bases = context.state.get_airbases(pid).await.unwrap();
+        let info = expanded_info(&bases);
+        assert_eq!(info.len(), 1, "one entry for the area, not one per air corps");
+        assert_eq!(info[0].api_area_id, 6);
+        assert_eq!(info[0].api_maintenance_level, 3);
+        assert_eq!(context.state.find_use_item(pid, 73).await.unwrap().api_count, 1);
+    }
+
+    #[tokio::test]
+    async fn a_ration_rests_a_tired_squadron() {
+        use emukc_internal::db::entity::profile::airbase::plane;
+        use emukc_internal::db::sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait};
+
+        let context = new_test_context().await;
+        let pid = context.session.profile.id;
+        seed_airbase(&context.state, pid, 1).await;
+
+        let bomber = context.state.add_slot_item(pid, BOMBER, 0, 0).await.unwrap();
+        set_plane::handler(
+            app_state(&context.state),
+            Pid(pid),
+            Form(set_plane::Params {
+                api_area_id: 6,
+                api_base_id: 1,
+                api_squadron_id: 1,
+                api_item_id: bomber.api_id,
+            }),
+        )
+        .await
+        .unwrap();
+
+        // Nothing tires a squadron yet, so do it by hand.
+        let db = context.state.db.as_ref();
+        let mut am: plane::ActiveModel =
+            plane::Entity::find_by_id(bomber.api_id).one(db).await.unwrap().unwrap().into();
+        am.condition = ActiveValue::Set(3);
+        am.update(db).await.unwrap();
+
+        let rest = || {
+            cond_recovery::handler(
+                app_state(&context.state),
+                Pid(pid),
+                Form(cond_recovery::Params {
+                    api_area_id: 6,
+                    api_base_id: 1,
+                }),
+            )
+        };
+        assert!(rest().await.is_err(), "resting takes a ration");
+
+        context.state.add_use_item(pid, 102, 1).await.unwrap();
+        let data = rest().await.unwrap().api_data.unwrap();
+        let slots = data["api_plane_info"].as_array().unwrap();
+        assert_eq!(slots.len(), 1, "only the squadron that flies");
+        assert_eq!(slots[0]["api_cond"], 1);
+        assert_eq!(data["api_distance"]["api_base"], 9);
+        assert_eq!(context.state.find_use_item(pid, 102).await.unwrap().api_count, 0);
     }
 }

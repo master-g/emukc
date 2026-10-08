@@ -3,8 +3,8 @@ title: "Land Base Air Corps - Port Side - Plan"
 type: feat
 date: 2026-09-22
 artifact_contract: ce-unified-plan/v1
-artifact_readiness: in-progress
-status: draft
+artifact_readiness: implemented
+status: implemented
 product_contract_source: ce-plan-bootstrap
 execution: code
 ---
@@ -197,7 +197,7 @@ execution: code
 
 ---
 
-### U5 — 扩张类：`expand_base`、`expand_maintenance_level`、`cond_recovery`
+### U5 — 扩张类：`expand_base`、`expand_maintenance_level`、`cond_recovery` ✅ 已执行
 
 **做什么**
 
@@ -213,9 +213,22 @@ execution: code
 **完成标志** 三处写操作落库且被 `mapinfo` 读出；`expand_base` 后该 area 多出
 一个航空隊（各带 `SQUADRON_MAX` 个空槽），到 `AIRUNIT_MAX` 为止拒绝继续。
 
+**实施记录（2026-10-08）**
+
+- 真实账号快照（`z/snapshot/2026-09-22/` 的 mapinfo）纠正了两处既有实现：有三个航空隊的 area 6
+  在 `api_air_base_expanded_info` 里**没有条目**，整備Lv 从 0 起、未扩张的常规海域不报
+  （活动海域 62 是 Lv 0 也带条目，做活动图时要补）；航空隊默认名是
+  「第一/第二/第三基地航空隊」。原先新基地写 Lv 1、每个航空隊报一条、名字用阿拉伯数字，都已改。
+- 整備Lv 上限 3（客户端 `AIRBASE_MAX_LEVEL`），存在该 area 的每一行 `airbase` 上，新扩的航空隊继承。
+  没有航空隊的海域（上游允许未开放的活动海域）因此不能强化，等活动图时加按 area 的表。
+- `cond_recovery` 扣 1 个 航空特別増加食（useItem 102），把疲劳的中隊恢复到通常；即使没人疲劳也扣。
+- `airCorpsCondRecoveryWithTimer` 只校验归属并返回无数据：现在没有任何东西让中隊疲劳，
+  客户端对无 `api_data` 的应答有分支。
+- 清单按路由机械重推：139 implemented、10 missing（计划写的 137/12 是按当时的基数估的）。
+
 ---
 
-### U6 — 质量门与清单
+### U6 — 质量门与清单 ✅ 已执行
 
 `cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -W warnings`
 （基线 17 条，新代码零告警）、`cargo test --workspace` exit 0。
