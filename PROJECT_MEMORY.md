@@ -195,12 +195,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 571 回避的撤回已合入 main。分支 `chore/update-runs-gear-bonus-oracle`：`make update` 加了
-  装備ボーナス对拍一步（不阻断）；`make gear-bonus-oracle` 差异 0。
+- [2026-10-08] 分支 `feat/random-engagement`：出击交战形态改为每场随机（计划 `2026-10-08-001`），golden 已重冻。
+  全量测试 1211 过；clippy 17。
 
 ## Next Session
 
 - [2026-10-07] 5-6 第一段是占位（G 点 A 胜以上 3 次），真输送血条 280 TP 要另写计划（用户定）。
-- 待修（用户实测发现，均未动）：`engagement_for_cell` 按 `(海域+格子)%4` 定交战形态而非随机，改它要重冻 golden 并先写计划。
+- 演习的交战形态仍固定同航戦（真实游戏也随机），未做。
 - 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
   多血条图改 `map_gauge_rules.json` 后顺序是 `kcnav normalize` → 重建 codex → 再 `kcnav normalize`（掉落与编成按变体键展开）。
