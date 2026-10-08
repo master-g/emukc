@@ -68,6 +68,15 @@ const ALBUM_STATUS_HOLES: &[i64] = &[743, 744, 745, 748, 749];
 /// Ship target types that use `full`/`full_dmg` pattern (with `api_filename`).
 const SHIP_FULL_CATEGORIES: &[&str] = &["full", "full_dmg"];
 
+/// Ships whose special attack portrait has a damaged version on the CDN.
+///
+/// Two cut-ins (`CutinZRK` and one more) load `special` with the attacker's damaged state,
+/// so the client can ask for `special_dmg` of any ship with a `special` portrait. Nothing in
+/// `start2` says which have one: a `cache populate` of all 40 candidates on 2026-10-08 found
+/// these nine and no others. The rest are named in
+/// `main-decoder/cache-list-known-holes.json`.
+const SPECIAL_DMG_SHIPS: &[i64] = &[184, 553, 554, 634, 635, 639, 640, 944, 949];
+
 /// SP remodel sub-categories.
 const _SP_REMODEL_CATEGORIES: &[&str] = &[
     "sp_remodel/full_x2",
@@ -647,6 +656,14 @@ fn generate_ship_paths(
             mst.api_mst_shipgraph.iter().find(|g| g.api_id == id),
             version.as_ref(),
         );
+
+        if target == "special" && SPECIAL_DMG_SHIPS.contains(&id) {
+            let suffix = SuffixUtils::create(&ship_id, "ship_special_dmg");
+            list.add(
+                format!("kcs2/resources/ship/special_dmg/{ship_id}_{suffix}.png"),
+                version.as_ref(),
+            );
+        }
 
         // Check if this is a sp_remodel target
         if target.starts_with("sp_remodel") {

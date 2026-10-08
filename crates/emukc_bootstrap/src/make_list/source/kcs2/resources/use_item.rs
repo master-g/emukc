@@ -21,18 +21,21 @@ pub(super) async fn make(
     Ok(())
 }
 
+// Both lists are kept by hand: nothing in `start2` says which use items have an image.
+// `make cache-list-oracle` names every named use item that is in neither a list nor
+// `main-decoder/cache-list-known-holes.json`, which is how a new item gets noticed.
 static CARD_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     vec![
         1, 3, 4, 5, 11, 12, 31, 32, 33, 34, 49, 51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
         65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
-        89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
+        89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 104, 105,
     ]
 });
 
 static CARD_UNDERLINE_IDS: LazyLock<Vec<i64>> = LazyLock::new(|| {
     vec![
         1, 2, 3, 4, 5, 11, 12, 31, 32, 33, 34, 44, 49, 51, 52, 54, 57, 58, 59, 60, 64, 65, 68, 70,
-        71, 73, 74, 75, 77, 78, 90, 91, 92, 94, 95, 96, 97, 98, 99, 100, 101,
+        71, 73, 74, 75, 77, 78, 90, 91, 92, 94, 95, 96, 97, 98, 99, 100, 101, 102, 104, 105,
     ]
 });
 

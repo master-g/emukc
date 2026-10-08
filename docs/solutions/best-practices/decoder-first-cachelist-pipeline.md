@@ -147,41 +147,49 @@ breaking downstream cache consumers.
 ## Checking the list from the client's side (2026-10-08)
 
 A way of building an address that the decoder does not recognise is left out of the list
-without a trace: `cache_rules.json` reported no unresolved rules while a whole family,
-`ship/full_animation`, was missing. `make cache-list-oracle`
-(`main-decoder/src/cache-list-oracle.ts`) looks from the other side:
+without a trace: `cache_rules.json` reported no unresolved rules while whole families were
+missing. `make cache-list-oracle` (`main-decoder/src/cache-list-oracle.ts`) looks from the
+other side, in five checks:
 
-- every directory the client names in a string literal must have something listed under
-  it. Addresses built by hand (`"resources/ship/".concat(…)`) are exactly the ones the
-  rule extraction misses, and they all carry such a literal. Directories that are rightly
-  empty are named with their reason in `KNOWN_EMPTY`.
-- every resource type a ship or equipment loader is called with (the 289 call sites the
-  decoder records in `resource_manifest.json`, 35 types) must have something listed under
-  it.
-- the suffix of every listed ship and equipment address is recomputed with the client's
-  own `SuffixUtil` (32,573 addresses on 6.3.5.0, none wrong).
+1. Every directory the client names in a string literal has something listed under it.
+   Addresses built by hand (`"resources/ship/".concat(…)`) are the ones rule extraction
+   misses, and they all carry such a literal. Rightly empty ones are in `KNOWN_EMPTY`.
+2. Every resource type a ship or equipment loader is called with (289 call sites, 35
+   types, from `resource_manifest.json`) has something listed under it.
+3. The suffix of every listed ship and equipment address is the one the client's
+   `SuffixUtil` computes.
+4. The client's own `ShipLoader.getPath` runs in Bun, answering from `start2` what it
+   would ask the master data models. For every ship that has a type listed, every damaged
+   state a call site can ask of that type, and the broken look where a call site passes
+   it, is asked of the loader; the address it answers must be listed, at the version it
+   answers (36,968 addresses on 6.3.5.0).
+5. Families whose ids are kept by hand (area banners, map files, use item cards) are swept
+   against the ids of the master data.
 
-It asks only that something is listed under each directory, not that every id is. It says
-what it does not judge: call sites without a literal type, addresses whose form it does
-not parse, and the id groups `ui_resources.json` marks `unresolved` or `partial`, which
-are listed by hand (map files, use item cards, the area images). `cache_rules.json`'s
-"unresolved 0" still only counts the rules the decoder attempted.
+An address the origin does not have is a hole, not a difference: the generator's own hole
+tables are read from the manifest's path rules, and the rest are recorded with their reason
+in `main-decoder/cache-list-known-holes.json`. To learn whether a reported address exists,
+write the reported lines to a file and run `cache populate --src` on it; it downloads what
+the origin has and names the rest.
+
+It says what it does not judge: which areas have air bases and which event files exist
+come from the server's own map data, and `sp_remodel/animation_key` uses a file name it
+does not parse. `ShipLoader.hasai` (`_d` after the id for a boss the battle marks damaged)
+and `enemy_overwrite_force` come from battle data of events and are not asked.
+`cache_rules.json`'s "unresolved 0" still only counts the rules the decoder attempted.
 
 It runs after the drift report of `make update`, without blocking, against the list as it
-is; regenerate the list before reading what it says about directories. A directory reached
-only through a variable is not seen; a headless run (`headless-client-check.md`) reports
-those as `not_in_cache_list` when the client asks for them.
+is; regenerate the list before reading it.
 
-Found this way: `ship/full_animation` and `full_animation_dmg` (a ship the player owns
-whose graph has `api_sp_flag` 1 is drawn animated in port), and
-`area/airunit_extend_confirm` (`<area>.png` and `<area>_.png`; they follow the hand list of
-areas with air bases, regular areas only).
+What it found on 6.3.5.0, all confirmed on the origin:
 
-Found by reading the call sites, not by the oracle: on an abyssal graph the same
-`api_sp_flag` means a second, broken look (`ShipUtil.isEnemyBreakGraph`). Those nine ships
-have damaged banners like no other enemy, and the battle scenes ask for each with `_b`
-after the id; 54 files, all on the origin, none listed before. A flag argument at a call
-site changes the file name without changing the directory, which neither check sees.
+| Missing from the list | Why the client asks | Files |
+|---|---|---|
+| `ship/full_animation`, `full_animation_dmg` | an owned ship with `api_sp_flag` 1 is drawn animated in port | 6 |
+| `area/airunit_extend_confirm` | the dialog for buying an air base, regular areas | 4 |
+| abyssal `banner_dmg`, `banner3_dmg` and `_b` files | on an abyssal graph `api_sp_flag` 1 is a second, broken look | 54 |
+| `ship/special_dmg` | two cut-ins load `special` with the attacker's damaged state | 9 |
+| `useitem/card` 104, 105; `card_` 102, 104, 105 | the hand lists had not followed new items | 5 |
 
-`cache populate --src` on just the added lines (the difference of two lists) says which of
-them the origin has.
+The first two came from check 1, the abyssal files from reading call sites (check 4 now
+covers them), the last two from checks 4 and 5.
