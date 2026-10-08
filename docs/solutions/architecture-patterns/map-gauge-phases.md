@@ -134,7 +134,13 @@ first. Nothing is rewritten until the record next changes.
 - A ship that retreats mid-sortie should stop carrying; retreat is not modelled for regular
   maps, so it is not checked. Equipment whose points differ in some events is given its
   ordinary value.
-- That `api_landing_hp` is sent on a regular map, and the landing cell's `event_kind` and
-  `color_no`, follow the client code and event-map practice; no capture of 5-6 exists.
+- No capture of 5-6 exists, but the client (6.3.5.0) and its resources agree with what is
+  sent: `resources/map/005/06_info.json` puts the landing point on spot 9, the cell the rules
+  call E; `resources/gauge/00506.json` (gauge 1) carries a `transport` counter of three
+  digits, gauges 2 and 3 do not; `CellTaskLanding` plays the landing only while
+  `gauge_type` is 3 and the map is not cleared; `PhaseTransportResult` runs whenever
+  `api_landing_hp` is present and counts down from `api_now_hp` by `api_sub_value`, drawing a
+  failure when that is 0. The landing cell's `event_kind` and `color_no` are still taken
+  from event-map practice.
 - What `mapinfo` reports during 5-6's route-opening phase (gauge 2, 0 of 2) is a guess; no
   capture of that state exists.

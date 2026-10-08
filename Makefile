@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate battle-sim clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate battle-sim headless-check clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -121,6 +121,11 @@ cache-populate: ## 按清单填充缓存 (CONCURRENT=$(CONCURRENT))
 
 battle-sim: ## 跑 seeded 场景出击并打印战斗记录 (SCENARIO/SEED/FIND/MAX_SEEDS)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle sim --scenario $(SCENARIO) --seed $(SEED) $(BATTLE_SIM_FIND_FLAG)
+
+HEADLESS_PYTHON ?= $(HOME)/.local/pipx/venvs/playwright/bin/python
+headless-check: ## 无头浏览器里用真实客户端跑一个场景 (SCENARIO=transport_5_6; 需资源缓存、已解码的 main.js、Playwright+Chrome), 报告写到 .data/temp/headless
+	$(CARGO) build
+	$(HEADLESS_PYTHON) tests/headless/run.py $(SCENARIO)
 
 clean-debug: ## 只清理 debug 产物, 保留 release
 	$(CARGO) clean --profile dev

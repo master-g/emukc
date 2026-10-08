@@ -1,0 +1,210 @@
+"""Drive the real client, headless, against a throwaway server.
+
+    python run.py <scenario preset> ["<steps>"]
+
+Without steps the scenario's own are played and its check is run. Steps given on the
+command line are for finding the way through a new screen. Steps are space separated: `w:<seconds>` waits, `c:<x>,<y>` clicks the game canvas
+(1200x720), `s:<name>` saves a screenshot, `api:<path>` waits until the client has called
+that KCSAPI path since the last call a step waited for, and `u:<x>,<y>:<path>` does the
+same while clicking that spot every few seconds (several spots, separated by `;`, are
+clicked in turn). Every KCSAPI response is saved under api/. The run fails on a page error, a failed request or a step that
+times out; the report and screenshots land in .data/temp/headless/<scenario>/.
+
+Needs the bootstrapped .data/codex, the resource cache, main-decoder/out/main.decoded.js
+and Playwright for Python with Chrome installed. Never touches .data/emukc.db.
+"""
+
+import json
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from playwright.sync_api import sync_playwright
+
+ROOT = Path(__file__).resolve().parents[2]
+PORT = 27777
+# Where the game canvas sits inside the page.
+CANVAS_X, CANVAS_Y = 40, 0
+# The same patch as main-decoder/src/client-runtime.ts, keeping the game running.
+ENTRY = re.compile(r"var (_0x[0-9a-f]+) = (_0x[0-9a-f]+)\(32875\);\s*return \1 = \1\.default;")
+
+
+# Places that are clicked while waiting: a neutral one, 進撃, and 単縦陣.
+TAPS = "600,400;430,365;670,278"
+BATTLE = f"u:{TAPS}:api_req_sortie/battleresult"
+# From the entry page to the sortie screen's list of maps.
+TO_MAPS = (
+    "api:api_world/get_worldinfo u:310,85:api_start2/get_option_setting u:910,605:api_port/port w:5 "
+    "c:295,400 w:3 u:345,450:api_get_member/mapinfo w:4"
+)
+# 決定, then 出撃開始.
+START = "c:1015,668 w:4 u:830,668:api_req_map/start"
+
+
+def responses(work: Path, path: str) -> list[dict]:
+    """What the server answered to every call of `path`, in order."""
+    return [json.loads(dump.read_text())["api_data"] for dump in sorted((work / "api").glob(f"*_{path.replace('/', '.')}.json"))]
+
+
+def check_transport_5_6(work: Path) -> list[str]:
+    problems = []
+    visited = [cell["api_no"] for cell in responses(work, "api_req_map/next")]
+    if visited != [6, 8, 9, 11]:
+        problems.append(f"the fleet went {visited}, not C2, D, the landing point E and the boss G")
+    landing = responses(work, "api_req_sortie/battleresult")[-1].get("api_landing_hp")
+    if landing != {"api_max_hp": 280, "api_now_hp": 280, "api_sub_value": 40}:
+        problems.append(f"the boss result landed {landing}, not 40 of 280")
+    return problems
+
+
+SCENARIOS = {
+    # One battle of 1-1, up to the choice between going on and going home.
+    "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
+    # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
+    "transport_5_6": (
+        f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
+        f"u:{TAPS}:api_req_map/next w:3 s:landing {BATTLE} w:14 s:result u:{TAPS}:api_port/port",
+        check_transport_5_6,
+    ),
+}
+
+
+def workspace(scenario: str) -> tuple[Path, Path]:
+    """A fresh workspace holding a copy of the codex, and the config that points at it."""
+    work = ROOT / ".data/temp/headless" / scenario
+    shutil.rmtree(work, ignore_errors=True)
+    shutil.copytree(ROOT / ".data/codex", work / "codex")
+    game = work / "codex/game_config.json"
+    # Short battles that are always won.
+    game.write_text(json.dumps(json.loads(game.read_text()) | {"god_mode": True, "one_hit_kill": True}))
+
+    replaced = ("workspace_root", "cache_root", "mods_root", "bind", "tls_cert", "tls_key")
+    kept = [
+        line
+        for line in (ROOT / "emukc.config.toml").read_text().splitlines()
+        if not line.startswith(replaced)
+    ]
+    config = work / "emukc.config.toml"
+    config.write_text(
+        "\n".join(
+            [
+                f'workspace_root = "{work}"',
+                f'cache_root = "{ROOT / "z/cache"}"',
+                f'mods_root = "{ROOT / "z/mods"}"',
+                f'bind = "127.0.0.1:{PORT}"',
+                *kept,
+            ]
+        )
+    )
+    (work / "api").mkdir()
+    return work, config
+
+
+def wait_for_port() -> None:
+    for _ in range(100):
+        with socket.socket() as probe:
+            if probe.connect_ex(("127.0.0.1", PORT)) == 0:
+                return
+        time.sleep(0.2)
+    raise SystemExit(f"the server did not start listening on {PORT}")
+
+
+def main() -> int:
+    scenario = sys.argv[1]
+    steps, check = SCENARIOS.get(scenario, ("", lambda work: []))
+    if len(sys.argv) > 2:
+        steps, check = sys.argv[2], lambda work: []
+    steps = steps.split()
+    work, config = workspace(scenario)
+    emukcd = [str(ROOT / "target/debug/emukcd"), "-c", str(config)]
+    session = subprocess.run(
+        [*emukcd, "new-session", "--name", "headless", "--pass", "1234567", "--scenario", scenario, "--no-open", "--no-start"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    url = next(line for line in session.stdout.splitlines() if "api_token=" in line)
+
+    client = (ROOT / "main-decoder/out/main.decoded.js").read_text()
+    entry = ENTRY.search(client)
+    if not entry:
+        raise SystemExit("bundle bootstrap not found; the entry module id probably changed")
+    client = f"{client[: entry.start()]}globalThis.__clientRequire = {entry.group(2)}; {client[entry.start() :]}"
+
+    report = {"scenario": scenario, "page_errors": [], "failed_requests": [], "api": [], "failed_step": None, "problems": []}
+    server = subprocess.Popen([*emukcd, "serve", "--no-banner"], stdout=(work / "server.log").open("w"), stderr=subprocess.STDOUT)
+    try:
+        wait_for_port()
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(channel="chrome", headless=True, args=["--mute-audio", "--enable-unsafe-swiftshader"])
+            page = browser.new_page(viewport={"width": 1280, "height": 800})
+            page.on("pageerror", lambda error: report["page_errors"].append(str(error)[:500]))
+
+            def on_response(response):
+                if response.status >= 400:
+                    report["failed_requests"].append([response.status, response.url])
+                if "/kcsapi/" in response.url:
+                    path = response.url.split("/kcsapi/")[1]
+                    report["api"].append(path)
+                    dump = work / "api" / f"{len(report['api']):03}_{path.replace('/', '.')}.json"
+                    dump.write_text(response.text().removeprefix("svdata="))
+
+            page.on("response", on_response)
+            page.route(re.compile(r"/kcs2/js/main\.js"), lambda route: route.fulfill(body=client, content_type="application/javascript"))
+            page.goto(url, wait_until="domcontentloaded")
+            cursor = 0
+
+            def click(x: int, y: int) -> None:
+                # Some buttons only take a press after they have seen the pointer arrive.
+                page.mouse.move(CANVAS_X + x, CANVAS_Y + y)
+                page.wait_for_timeout(200)
+                page.mouse.click(CANVAS_X + x, CANVAS_Y + y, delay=80)
+
+            def called(path: str, taps: list[tuple[int, int]]) -> bool:
+                """Wait for a call made after the last one a step waited for, tapping meanwhile."""
+                nonlocal cursor
+                deadline = time.time() + 180
+                while path not in report["api"][cursor:] and time.time() < deadline:
+                    for tap in taps:
+                        click(*tap)
+                    page.wait_for_timeout(2000 if taps else 250)
+                if path not in report["api"][cursor:]:
+                    return False
+                cursor += report["api"][cursor:].index(path) + 1
+                return True
+
+            for step in steps:
+                kind, _, value = step.partition(":")
+                if kind == "w":
+                    page.wait_for_timeout(float(value) * 1000)
+                elif kind == "c":
+                    click(*map(int, value.split(",")))
+                elif kind == "s":
+                    page.screenshot(path=work / f"{value}.png")
+                elif kind in ("api", "u"):
+                    spot, _, path = value.rpartition(":")
+                    taps = [tuple(map(int, at.split(","))) for at in spot.split(";")] if spot else []
+                    if not called(path, taps):
+                        report["failed_step"] = step
+                        page.screenshot(path=work / "failed.png")
+                        break
+            browser.close()
+    finally:
+        server.terminate()
+        server.wait()
+
+    if not report["failed_step"]:
+        report["problems"] = check(work)
+    (work / "report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
+    failed = bool(report["page_errors"] or report["failed_requests"] or report["failed_step"] or report["problems"])
+    print(json.dumps(report, indent=1, ensure_ascii=False))
+    print(f"{'FAILED' if failed else 'ok'}: {work / 'report.json'}")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
