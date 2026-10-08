@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
 use emukc_internal::model::kc2::level;
+use emukc_internal::model::profile::airbase::expanded_info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Record {
@@ -47,13 +48,7 @@ struct Rate {
 
 pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let air_bases = state.get_airbases(pid).await?;
-    let api_air_base_expanded_info = air_bases
-        .iter()
-        .map(|v| KcApiAirBaseExpandedInfo {
-            api_area_id: v.area_id,
-            api_maintenance_level: v.maintenance_level,
-        })
-        .collect();
+    let api_air_base_expanded_info = expanded_info(&air_bases);
 
     let (_, basic) = state.get_user_basic(pid).await?;
     let (hq_lv, next_lv_exp) = level::exp_to_hq_level(basic.api_experience);

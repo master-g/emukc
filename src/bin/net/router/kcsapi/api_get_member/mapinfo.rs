@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
+use emukc_internal::model::profile::airbase::expanded_info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Resp {
@@ -11,13 +12,7 @@ struct Resp {
 
 pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
     let airbases = state.get_airbases(pid).await?;
-    let api_air_base_expanded_info = airbases
-        .iter()
-        .map(|v| KcApiAirBaseExpandedInfo {
-            api_area_id: v.area_id,
-            api_maintenance_level: v.maintenance_level,
-        })
-        .collect();
+    let api_air_base_expanded_info = expanded_info(&airbases);
     let api_air_base = airbases.into_iter().map(std::convert::Into::into).collect();
 
     let api_map_info = state.get_map_infos(pid).await?;

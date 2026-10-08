@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::kc2::{KcApiAirBase, KcApiDistance, KcApiPlaneInfo};
+use crate::kc2::{KcApiAirBase, KcApiAirBaseExpandedInfo, KcApiDistance, KcApiPlaneInfo};
 
 /// Airbase action assigned
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
@@ -22,6 +22,28 @@ pub enum AirbaseAction {
 ///
 /// The client's own limit (`AIRUNIT_MAX` in `main.decoded.js`).
 pub const AIRUNIT_MAX: i64 = 3;
+
+/// Highest 整備Lv an area can reach (the client's `AIRBASE_MAX_LEVEL`).
+pub const MAINTENANCE_LEVEL_MAX: i64 = 3;
+
+/// The 整備Lv entries `mapinfo` and `record` report: one per expanded area.
+///
+/// A regular area nobody expanded has no entry at all — a live account with
+/// three air corps in area 6 reports none for it — and the client treats a
+/// missing entry as level 0. An event area is different: upstream always
+/// lists it, level 0 included, which this does not do yet.
+pub fn expanded_info(airbases: &[Airbase]) -> Vec<KcApiAirBaseExpandedInfo> {
+    let mut info: Vec<KcApiAirBaseExpandedInfo> = Vec::new();
+    for airbase in airbases {
+        if airbase.maintenance_level > 0 && info.iter().all(|i| i.api_area_id != airbase.area_id) {
+            info.push(KcApiAirBaseExpandedInfo {
+                api_area_id: airbase.area_id,
+                api_maintenance_level: airbase.maintenance_level,
+            });
+        }
+    }
+    info
+}
 
 /// Squadron slots every air corps has.
 ///

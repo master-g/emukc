@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-09-22: 130 implemented, 19 missing.
+> holds the roadmap. Last cross-checked 2026-10-08: 139 implemented, 10 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -69,15 +69,15 @@
   - [x] `api_req_practice/battle_result` - practice result
   - [x] `api_req_practice/midnight_battle` - practice night battle
   - [ ] `api_req_practice/change_matching_kind` - change matching type
-- [ ] **Air Corps System** (`api_req_air_corps/*`)
+- [x] **Air Corps System, port side** (`api_req_air_corps/*`)
   - [x] `api_get_member/base_air_corps` - air corps data
-  - [ ] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery
+  - [x] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery (answers "nothing recovered" until squadrons tire)
   - [x] `api_req_air_corps/set_plane` - assign planes
-  - [ ] `api_req_air_corps/set_action` - set action (standby/sortie/defense)
-  - [ ] `api_req_air_corps/supply` - resupply planes
+  - [x] `api_req_air_corps/set_action` - set action (standby/sortie/defense)
+  - [x] `api_req_air_corps/supply` - resupply planes
   - [x] `api_req_air_corps/change_deployment_base` - move a squadron between bases
-  - [ ] `api_req_air_corps/change_name` - rename squadron
-  - [ ] Other air corps management (4 endpoints)
+  - [x] `api_req_air_corps/change_name` - rename squadron
+  - [x] `api_req_air_corps/{expand_base,expand_maintenance_level,cond_recovery}` - add an air corps, raise 整備Lv, rest
 - [x] **Equipment Improvement / Akashi Arsenal** (`api_req_kousyou/remodel_*`)
   - [x] `api_req_kousyou/remodel_slotlist` - improvement candidate list
   - [x] `api_req_kousyou/remodel_slotlist_detail` - improvement detail

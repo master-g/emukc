@@ -120,6 +120,7 @@ Current verification baseline:
 - [2026-09-21] 联合舰队 friendly 索引有三层空间（模拟连续 / 客户端固定从 6 / 切片本地编号），
   缺一层就把命中记到错误的舰上：`docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
 
+- [2026-10-08] 真实 mapinfo：未强化的海域在 `api_air_base_expanded_info` 里没有条目（整備Lv 0 = 不报），航空隊默认名用汉字数字。
 - [2026-09-22] 基地航空隊的客户端硬限制（`AIRUNIT_MAX`/`SQUADRON_MAX`）、
   `airbase_count` 是出撃可能数而非拥有数、`expand_base` 是増开一隊而非扩槽、
   空槽为何不落库：四条都在
@@ -190,11 +191,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `chore/memory-and-practice-seed`：演习测试把播种挪到列出对手之前（对手与战斗同用线程内随机数），
-  改前连跑 40 次败 5，改后 50 次全过。无头检查、缓存清单对拍、解码器驱动的舰船规则已随 PR #15–#17 并入 `main`。
+- [2026-10-08] 分支 `feat/air-corps-u4`：航空队母港侧（计划 `2026-09-22-001`）U4–U6 完成，10 个端点全部接上，清单 139/10。
+  无头检查没跑（现有场景到不了 6-4）。未决：大型飛行艇按容量 1 扣铝；补给与疲劳恢复在战斗侧做出来之前游玩中触发不到。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
+  下一步候选：航空队出击侧（`start_air_base` 与战斗里的航空队阶段，会重冻结 golden，先写计划）；届时加带航空队的无头场景预设。

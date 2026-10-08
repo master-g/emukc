@@ -13,9 +13,8 @@ inventory of its own.
 `apilist.md` in the repo root holds the two lists, and they are mechanically
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
-and diff that against the fenced blocks. Verified on 2026-09-21 at client
-6.3.5.0, with the two `ec_` endpoints of 2026-10-07 moved over since:
-**128 implemented**, **20 missing**, no overlap.
+and diff that against the fenced blocks. Verified on 2026-10-08 at client
+6.3.5.0: **139 implemented**, **10 missing**, no overlap.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -57,10 +56,12 @@ Key challenges left:
 
 Planned in `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md`, which
 splits the port side (these eight plus `base_air_corps` and
-`airCorpsCondRecoveryWithTimer`) from sortie and battle. U1 and U2 are done:
-`api_get_member/base_air_corps` is served, and an area gets its first air corps
+`airCorpsCondRecoveryWithTimer`) from sortie and battle. The port side is done (2026-10-08):
+all ten endpoints are served, and an area gets its first air corps
 once any of its unlocked maps declares an airbase — 6-4 and 6-5 are the only
-regular ones that do, both in area 6.
+regular ones that do, both in area 6. Nothing costs a squadron aircraft or
+morale yet, so `supply` and `cond_recovery` have nothing to do in play until
+the sortie side exists.
 
 Dependencies:
 - DB entities exist (`entity/profile/airbase/{base,plane}`)
@@ -79,7 +80,6 @@ Dependencies:
 | `api_req_hensei/preset_order_change` | Fleet preset reorder | P3 | Can stub |
 | `api_req_practice/change_matching_kind` | Practice matching mode | P3 | Can stub |
 | `api_req_ranking/getlist` | Ranking list | P3 | Return empty list |
-| `api_port/airCorpsCondRecoveryWithTimer` | LBAS condition recovery | P1 | Implement with air_corps module |
 
 `api_req_ranking/mxltvkpyuklh` used to be listed here; it has been implemented
 since. `api_req_member/registration_sp` appears in neither the router nor
@@ -121,8 +121,8 @@ Rules and the success-rate table are in
 Coupled with map/sortie, implement after combined fleet.
 
 1. Data model and ownership — done 2026-09-22 (plan U1/U2)
-2. Implement `api_req_air_corps/` handlers (8 files) — plan U3/U4/U5
-3. Add `api_port/airCorpsCondRecoveryWithTimer` — plan U5
+2. `api_req_air_corps/` handlers (8 files) — done 2026-10-08 (plan U3/U4/U5)
+3. `api_port/airCorpsCondRecoveryWithTimer` — done 2026-10-08 (plan U5)
 4. Add `api_req_map/start_air_base` and the LBAS strike phase — out of the
    current plan's scope, it is the follow-up
 5. Verify: deploy LBAS → sortie → verify air strike phase

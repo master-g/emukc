@@ -38,10 +38,17 @@ api_get_member/sortie_conditions
 api_get_member/unsetslot
 api_get_member/useitem
 
+api_port/airCorpsCondRecoveryWithTimer
 api_port/port
 
 api_req_air_corps/change_deployment_base
+api_req_air_corps/change_name
+api_req_air_corps/cond_recovery
+api_req_air_corps/expand_base
+api_req_air_corps/expand_maintenance_level
+api_req_air_corps/set_action
 api_req_air_corps/set_plane
+api_req_air_corps/supply
 
 api_req_battle_midnight/battle
 api_req_battle_midnight/sp_midnight
@@ -191,18 +198,6 @@ api_req_map/start_air_base
 api_req_practice/change_matching_kind
 ```
 
-### Air Corps System
-
-```plain
-api_port/airCorpsCondRecoveryWithTimer
-api_req_air_corps/set_action
-api_req_air_corps/supply
-api_req_air_corps/change_name
-api_req_air_corps/expand_base
-api_req_air_corps/expand_maintenance_level
-api_req_air_corps/cond_recovery
-```
-
 ### Fleet Preset
 
 ```plain
@@ -221,7 +216,7 @@ api_req_ranking/getlist
 ### High Priority (Core Gameplay)
 
 1. **Combined Fleet Battles** - the 5 remaining 敵連合 `api_req_combined_battle/*` endpoints
-2. **Air Corps System** - event map support, and the only remaining `api_get_member` gap
+2. **Air Corps sortie** - `api_req_map/start_air_base` and the air corps phases of a battle; the port side is complete
 
 ### Medium Priority (Enhanced Features)
 
