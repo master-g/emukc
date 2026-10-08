@@ -105,6 +105,10 @@ pub struct Scenario {
     /// Maps to mark cleared (in dependency order); each cascades unlock to its
     /// dependents.
     pub clear_maps: Vec<i64>,
+    /// Equipment left in the inventory, by master id.
+    pub spare_items: Vec<i64>,
+    /// Use items to add, as `(master id, count)`.
+    pub use_items: Vec<(i64, i64)>,
 }
 
 impl Scenario {
@@ -115,6 +119,8 @@ impl Scenario {
             materials: default_materials(),
             unlock_maps: vec![],
             clear_maps: vec![],
+            spare_items: vec![],
+            use_items: vec![],
         }
     }
 
@@ -142,6 +148,8 @@ impl Scenario {
             // point field submarines, so opening ASW actually happens. A map
             // with a submarine node deeper in would never be reached.
             clear_maps: vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34, 41, 42],
+            spare_items: vec![],
+            use_items: vec![],
         }
     }
 
@@ -172,6 +180,8 @@ impl Scenario {
             materials: default_materials(),
             unlock_maps: vec![],
             clear_maps: vec![11, 12, 13, 14],
+            spare_items: vec![],
+            use_items: vec![],
         }
     }
 
@@ -191,6 +201,8 @@ impl Scenario {
             materials: default_materials(),
             unlock_maps: vec![],
             clear_maps: vec![11, 12, 13, 14],
+            spare_items: vec![],
+            use_items: vec![],
         }
     }
 
@@ -202,6 +214,8 @@ impl Scenario {
             materials: default_materials(),
             unlock_maps: vec![],
             clear_maps: vec![11, 12, 13, 14],
+            spare_items: vec![],
+            use_items: vec![],
         }
     }
 
@@ -219,10 +233,27 @@ impl Scenario {
             clear_maps: vec![
                 11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34, 41, 42, 43, 44, 51, 52, 53, 54, 55,
             ],
+            spare_items: vec![],
+            use_items: vec![],
         }
     }
 }
 
+impl Scenario {
+    /// Area 6 open as far as 6-4, which brings the first air corps, with what
+    /// the air corps panel can spend: land-based bombers to deploy, 設営隊 to
+    /// expand with and a ration to rest a squadron.
+    pub fn air_corps_6_4() -> Self {
+        let mut scenario = Self::transport_5_6();
+        scenario.clear_maps.extend([61, 62, 63]);
+        scenario.spare_items = vec![LAND_ATTACKER_MST_ID; 4];
+        scenario.use_items = vec![(73, 3), (102, 1)];
+        scenario
+    }
+}
+
+/// 一式陸攻.
+const LAND_ATTACKER_MST_ID: i64 = 169;
 /// ドラム缶(輸送用), 5 transport points each.
 const DRUM_CANISTER: i64 = 75;
 /// 33号対水上電探.
@@ -336,6 +367,14 @@ pub const PRESETS: &[Preset] = &[
         mapinfo: 6,
         expects: PhaseExpectation::PlainBattle,
     },
+    // The air corps panel is what this is for; the battle target is only 1-1.
+    Preset {
+        name: "air_corps_6_4",
+        build: Scenario::air_corps_6_4,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
 ];
 
 fn default_materials() -> Vec<(MaterialCategory, i64)> {
@@ -422,6 +461,13 @@ pub async fn apply_scenario(
             clear_and_unlock_map_impl(&tx, codex, profile_id, map_id).await?;
         }
         tx.commit().await?;
+    }
+
+    for &mst_id in &scenario.spare_items {
+        ctx.add_slot_item(profile_id, mst_id, 0, 0).await?;
+    }
+    for &(mst_id, count) in &scenario.use_items {
+        ctx.add_use_item(profile_id, mst_id, count).await?;
     }
 
     Ok(ship_ids)

@@ -34,10 +34,12 @@ mod tests {
     const BOMBER: i64 = 169;
     /// 雷電, a local fighter with the shortest radius of the pair.
     const FIGHTER: i64 = 175;
-    /// 瑞雲, a seaplane bomber: it has a radius but no land base flies it.
+    /// 瑞雲, a seaplane bomber; the client's list offers it like any bomber.
     const SEAPLANE_BOMBER: i64 = 26;
-    /// 二式大艇, a flying boat — one aircraft, not eighteen.
+    /// 二式大艇, a flying boat — four aircraft, not eighteen.
     const FLYING_BOAT: i64 = 138;
+    /// 12cm単装砲.
+    const MAIN_GUN: i64 = 1;
 
     async fn seed_airbase(state: &std::sync::Arc<State>, pid: i64, rid: i64) {
         state.unlock_airbase(pid, 6, rid).await.unwrap();
@@ -235,36 +237,29 @@ mod tests {
         let pid = context.session.profile.id;
         seed_airbase(&context.state, pid, 1).await;
 
+        let gun = context.state.add_slot_item(pid, MAIN_GUN, 0, 0).await.unwrap();
         let seaplane = context.state.add_slot_item(pid, SEAPLANE_BOMBER, 0, 0).await.unwrap();
-        let err = set_plane::handler(
-            app_state(&context.state),
-            Pid(pid),
-            Form(set_plane::Params {
-                api_area_id: 6,
-                api_base_id: 1,
-                api_squadron_id: 1,
-                api_item_id: seaplane.api_id,
-            }),
-        )
-        .await;
-        assert!(err.is_err(), "a seaplane bomber has a radius but no land base flies it");
-
-        // A flying boat may fly, but only one of it.
         let boat = context.state.add_slot_item(pid, FLYING_BOAT, 0, 0).await.unwrap();
-        set_plane::handler(
-            app_state(&context.state),
-            Pid(pid),
-            Form(set_plane::Params {
-                api_area_id: 6,
-                api_base_id: 1,
-                api_squadron_id: 1,
-                api_item_id: boat.api_id,
-            }),
-        )
-        .await
-        .unwrap();
+        let assign = |squadron_id, item_id| {
+            set_plane::handler(
+                app_state(&context.state),
+                Pid(pid),
+                Form(set_plane::Params {
+                    api_area_id: 6,
+                    api_base_id: 1,
+                    api_squadron_id: squadron_id,
+                    api_item_id: item_id,
+                }),
+            )
+        };
+
+        assert!(assign(1, gun.api_id).await.is_err(), "a gun is not on the client's list");
+        assign(1, seaplane.api_id).await.unwrap();
+        assign(2, boat.api_id).await.unwrap();
+
         let planes = squadrons(&context.state, pid, 1).await;
-        assert_eq!(planes[0].api_count, Some(1), "a flying boat squadron is a single aircraft");
+        assert_eq!(planes[0].api_count, Some(18), "a seaplane bomber flies a full squadron");
+        assert_eq!(planes[1].api_count, Some(4), "a flying boat squadron is four aircraft");
     }
 
     #[tokio::test]
