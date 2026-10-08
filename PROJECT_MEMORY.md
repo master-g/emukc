@@ -191,12 +191,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `feat/air-corps-u4`：航空队母港侧（计划 `2026-09-22-001`）U4–U6 完成，10 个端点全部接上，清单 139/10。
-  无头检查没跑（现有场景到不了 6-4）。未决：大型飛行艇按容量 1 扣铝；补给与疲劳恢复在战斗侧做出来之前游玩中触发不到。
+- [2026-10-08] 分支 `test/headless-air-corps`：新预设与无头场景 `air_corps_6_4`（配备、行动指示、扩张）无人值守跑通，未推送。
+  发现清单漏项：`slot/airunit_{banner,fairy,name}` 按图像分组只列 57 件，客户端按装备 id 取，169 官服有。未修（要探测官服）。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步候选：航空队出击侧（`start_air_base` 与战斗里的航空队阶段，会重冻结 golden，先写计划）；届时加带航空队的无头场景预设。
+  下一步候选：补 `airunit_*` 清单漏项（先告知用户再探测官服）；航空队出击侧（`start_air_base` 与战斗阶段，会重冻结 golden，先写计划）。

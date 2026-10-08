@@ -62,6 +62,22 @@ def check_transport_5_6(work: Path) -> list[str]:
     return problems
 
 
+def check_air_corps_6_4(work: Path) -> list[str]:
+    problems = []
+    deployed = responses(work, "api_req_air_corps/set_plane")[-1]
+    slot = deployed["api_plane_info"][0]
+    if (slot["api_state"], slot["api_count"], deployed["api_distance"]["api_base"]) != (1, 18, 9):
+        problems.append(f"the deployment answered {deployed}, not eighteen bombers reaching 9")
+    if deployed.get("api_after_bauxite") != 11000 - 216:
+        problems.append(f"the deployment left {deployed.get('api_after_bauxite')} bauxite, not 216 less")
+    added = responses(work, "api_req_air_corps/expand_base")[-1][0]
+    if added["api_rid"] != 2:
+        problems.append(f"the expansion added air corps {added['api_rid']}, not the second")
+    if not list((work / "api").glob("*_api_req_air_corps.set_action.json")):
+        problems.append("closing the panel sent no orders")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -70,6 +86,14 @@ SCENARIOS = {
         f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
         f"u:{TAPS}:api_req_map/next w:3 s:landing {BATTLE} w:14 s:result u:{TAPS}:api_port/port",
         check_transport_5_6,
+    ),
+    # 中部海域, the air corps panel: deploy bombers to the first squadron, order a sortie, add a second
+    # air corps, and close the panel, which is when the client sends the orders.
+    "air_corps_6_4": (
+        f"{TO_MAPS} c:800,680 w:4 c:720,182 w:5 c:1032,383 w:4 c:760,267 w:4 u:1017,655:api_req_air_corps/set_plane "
+        "w:4 s:deployed c:1162,237 w:4 c:1030,180 w:4 u:477,477:api_req_air_corps/expand_base w:8 "
+        "u:300,300;300,560:api_req_air_corps/set_action w:4 s:closed",
+        check_air_corps_6_4,
     ),
 }
 
