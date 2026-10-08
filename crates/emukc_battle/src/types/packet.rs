@@ -136,6 +136,31 @@ pub struct BattleKouku {
     pub api_stage3_combined: Option<BattleKoukuStage3Combined>,
 }
 
+/// One attack of an air corps on the enemy fleet, before the fleets meet.
+///
+/// The client reads it with the class it reads `api_kouku` with
+/// (`AirUnitData` extends `AirWarDataBase`), so the three stages are those of
+/// an ordinary air battle and only the first three fields are its own.
+#[derive(Debug, Clone, Serialize)]
+pub struct BattleAirBaseAttack {
+    pub api_base_id: i64,
+    pub api_stage_flag: [i64; 3],
+    pub api_squadron_plane: Vec<BattleSquadronPlane>,
+    #[serde(flatten)]
+    pub kouku: BattleKouku,
+    /// What each squadron has left after this attack, as `(squadron id, count)`.
+    /// Not part of the packet: the caller writes it back to the air corps.
+    #[serde(skip)]
+    pub remaining: Vec<(i64, i64)>,
+}
+
+/// A squadron taking part in an air corps attack.
+#[derive(Debug, Clone, Serialize)]
+pub struct BattleSquadronPlane {
+    pub api_mst_id: i64,
+    pub api_count: i64,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct BattleKoukuStage1 {
     pub api_f_count: i64,

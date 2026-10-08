@@ -171,6 +171,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
                 friend_ships: main.clone(),
                 enemy_ships: enemy.clone(),
                 enemy_escort_ships: Vec::new(),
+                air_corps: Vec::new(),
                 combined: Some(CombinedSetup {
                     combined_type: CombinedType::CarrierTaskForce,
                     escort_ships: escort.clone(),

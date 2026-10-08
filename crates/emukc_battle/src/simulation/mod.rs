@@ -1306,6 +1306,7 @@ mod combined_tests {
             friend_ships: vec![tank(bb), tank(dd)],
             enemy_ships: vec![tank(dd); 3],
             enemy_escort_ships: vec![tank(dd); 2],
+            air_corps: Vec::new(),
             combined: None,
         };
         let sim = super::simulate_day(&codex, context, &mut SeededRng::new(7));
@@ -1370,6 +1371,7 @@ mod combined_tests {
             friend_ships: vec![sample_ship(codex, ss, 99), sample_ship(codex, ss, 99)],
             enemy_ships: vec![sample_ship(codex, dd, 50), sample_ship(codex, dd, 50)],
             enemy_escort_ships: Vec::new(),
+            air_corps: Vec::new(),
             combined: Some(CombinedSetup {
                 combined_type,
                 escort_ships: vec![sample_ship(codex, dd, 99), sample_ship(codex, dd, 99)],

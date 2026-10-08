@@ -229,6 +229,7 @@ impl SortieBattleSetup {
                 friend_ships: self.friend_ships.clone(),
                 enemy_ships: self.enemy.ships.clone(),
                 enemy_escort_ships: self.enemy.escort_ships.clone(),
+                air_corps: Vec::new(),
                 combined: self.combined_type.map(|combined_type| CombinedSetup {
                     combined_type,
                     escort_ships: self.escort_ships.clone(),

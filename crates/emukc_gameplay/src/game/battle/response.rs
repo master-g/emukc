@@ -422,6 +422,7 @@ mod tests {
             midnight_flag: 0,
             search: [1, 1],
             stage_flag: [0, 0, 0],
+            air_base_attack: Vec::new(),
             kouku: None,
             opening_taisen_flag: 0,
             opening_taisen: None,
@@ -597,6 +598,7 @@ mod combined_tests {
             friend_ships: main.clone(),
             enemy_ships: enemy.clone(),
             enemy_escort_ships: Vec::new(),
+            air_corps: Vec::new(),
             combined: Some(CombinedSetup {
                 combined_type,
                 escort_ships: escort.clone(),
