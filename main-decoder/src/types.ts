@@ -570,9 +570,12 @@ export interface CacheRuleSpecialShipRule extends CacheRuleProvenance {
   coverageMode: ResourceCoverageMode;
   kind: "special_cases";
   cases: CacheRuleSpecialCase[];
+  /** Some call site loads `special` with a damaged state that is not a literal `false`. */
+  mayBeDamaged: boolean;
 }
 
-export type CacheRuleShipSelectorScope = "default-friendly" | "default-abyssal";
+/** `break-abyssal` is an abyssal ship with a second, broken look (`ShipUtil.isEnemyBreakGraph`). */
+export type CacheRuleShipSelectorScope = "default-friendly" | "default-abyssal" | "break-abyssal";
 export type CacheRuleDamagedState = "false" | "true" | "variable";
 
 export interface CacheRuleShipTargetSemanticCase {
@@ -580,6 +583,8 @@ export interface CacheRuleShipTargetSemanticCase {
   selectorScope: CacheRuleShipSelectorScope;
   damagedState: CacheRuleDamagedState;
   targetTypes: string[];
+  /** Of `targetTypes`, those also asked for with `_b` after the ship id. */
+  brokenTargetTypes?: string[];
 }
 
 export interface CacheRuleShipTargetSemanticsRule extends CacheRuleProvenance {

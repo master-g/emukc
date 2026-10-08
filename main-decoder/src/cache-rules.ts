@@ -268,6 +268,38 @@ const SHIP_TARGET_SEMANTIC_CASES: CacheRulesAsset["shipRules"]["targetSemantics"
 	{ rawTargetType: "banner3_g", selectorScope: "default-abyssal", damagedState: "true", targetTypes: ["banner3_g_dmg"] },
 ];
 
+/**
+ * `ShipLoader.getPath` keeps the damaged state of an abyssal ship only when she has a broken
+ * look, so she alone among enemies has `_dmg` banners. Which of them are also asked for with
+ * the broken look is read from the call sites (`addBrokenLookTargets`).
+ */
+function breakAbyssalCases(brokenTargets: Set<string>): CacheRulesAsset["shipRules"]["targetSemantics"]["cases"] {
+	const cases: CacheRulesAsset["shipRules"]["targetSemantics"]["cases"] = [];
+	const add = (rawTargetType: string, damagedState: "false" | "true" | "variable", targetTypes: string[]) => {
+		const brokenTargetTypes = brokenTargets.has(rawTargetType) ? targetTypes.filter(type => type.endsWith("_dmg")) : [];
+		cases.push({ rawTargetType, selectorScope: "break-abyssal", damagedState, targetTypes, ...(brokenTargetTypes.length > 0 ? { brokenTargetTypes } : {}) });
+	};
+	for (const banner of ["banner", "banner3"]) {
+		add(banner, "false", [banner]);
+		add(banner, "true", [`${banner}_dmg`]);
+		add(banner, "variable", [banner, `${banner}_dmg`]);
+		add(`${banner}_g`, "true", [`${banner}_g_dmg`]);
+	}
+	return cases;
+}
+
+/** Ship resource types some call passes a literal `true` after: the broken look. */
+function addBrokenLookTargets(source: string, targets: Set<string>): void {
+	for (const match of source.matchAll(/["'](banner[23]?(?:_g)?)["']\s*,\s*(?:true|!0)\s*\)/g)) {
+		targets.add(match[1]!);
+	}
+}
+
+/** A `special` portrait loaded with a damaged state that is not a literal `false`. */
+function loadsSpecialDamaged(source: string): boolean {
+	return [...source.matchAll(/,\s*([^,()]+?)\s*,\s*["']special["']/g)].some(match => !/^(false|!1)$/.test(match[1]!));
+}
+
 const SHIP_TARGET_SEMANTIC_REQUIRED_TARGETS = [
 	"banner",
 	"banner_g",
@@ -314,6 +346,8 @@ function addSpecialCasesFromSource(
 export function extractCacheRules(moduleGraph: ModuleGraph): ExtractedCacheRules {
 	const specialProvenance = emptyProvenance();
 	const specialCases = new Map<string, { damaged: boolean; shipIds: Set<number> }>();
+	const brokenLookTargets = new Set<string>();
+	let specialMayBeDamaged = false;
 	const shipTargetSemanticsProvenance = emptyProvenance();
 	const itemUpProvenance = emptyProvenance();
 	const btxtFlatProvenance = emptyProvenance();
@@ -411,6 +445,8 @@ export function extractCacheRules(moduleGraph: ModuleGraph): ExtractedCacheRules
 			addProvenance(btxtFlatProvenance, module);
 		}
 
+		addBrokenLookTargets(source, brokenLookTargets);
+		specialMayBeDamaged ||= loadsSpecialDamaged(source);
 		if (addShipTargetSemanticObservations(source, shipTargetSemanticTypes)) {
 			addProvenance(shipTargetSemanticsProvenance, module);
 		}
@@ -566,12 +602,13 @@ export function extractCacheRules(moduleGraph: ModuleGraph): ExtractedCacheRules
 				kind: "special_cases",
 				coverageMode: coverageModeFromCount(specialCaseList.length, specialCaseList.length > 0),
 				cases: specialCaseList,
+				mayBeDamaged: specialMayBeDamaged,
 				...sortedProvenance(specialProvenance),
 			},
 			targetSemantics: {
 				kind: "ship_target_semantics",
 				coverageMode: shipTargetSemanticsCoverageMode,
-				cases: hasCompleteShipTargetSemantics ? SHIP_TARGET_SEMANTIC_CASES : [],
+				cases: hasCompleteShipTargetSemantics ? [...SHIP_TARGET_SEMANTIC_CASES, ...breakAbyssalCases(brokenLookTargets)] : [],
 				...sortedProvenance(shipTargetSemanticsProvenance),
 			},
 		},

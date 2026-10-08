@@ -59,6 +59,17 @@ describe("extractResourceManifest — ship resources", () => {
 		expect(entry.moduleIds).toEqual(["m1"]);
 	});
 
+	test("follows a loader handed in as a parameter, and records the broken look argument", () => {
+		const source = wrapModule(`function load(loader, id) { loader.add(id, true, "banner"); loader.add(id, true, "banner_g", true); loader.add(name, url, "not_a_ship_type"); }`);
+		const manifest = extractResourceManifest(SCRIPT_VERSION, makeGraph([makeModule({ id: "m1", source })]));
+		const ships = manifest.entries.filter(entry => entry.kind === "ship");
+
+		expect(ships.map(entry => [entry.source, entry.targetType, entry.damagedSource, entry.brokenSource])).toEqual([
+			["ShipLoader.add", "banner", "true", undefined],
+			["ShipLoader.add", "banner_g", "true", "true"],
+		]);
+	});
+
 	test("extracts ShipLoader.add call", () => {
 		const source = wrapModule(`var loader = new ShipLoader(); loader.add(shipId, true, "banner")`);
 		const graph = makeGraph([makeModule({ id: "m2", source })]);

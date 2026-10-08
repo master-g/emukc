@@ -195,8 +195,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `fix/cache-list-coverage`（计划 `2026-10-08-004`）：清单 +78 条（均已取到），`make cache-list-oracle` 五项检查 0 差异，
-  站外库改本地。未推送。
+- [2026-10-08] 分支 `refactor/decoder-ship-rules`（计划 `2026-10-08-005`）：破损立绘与特殊攻击中破图改由解码器规则驱动，
+  清单逐行不变（73,160）。全量测试 1222 过；clippy 17；对拍 0 差异。未推送。
 
 ## Next Session
 

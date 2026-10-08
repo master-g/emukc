@@ -193,3 +193,11 @@ What it found on 6.3.5.0, all confirmed on the origin:
 
 The first two came from check 1, the abyssal files from reading call sites (check 4 now
 covers them), the last two from checks 4 and 5.
+
+Since plan `2026-10-08-005` the abyssal files and the damaged special portraits are no
+longer patched in by the generator: the manifest records a loader that arrives as a
+function parameter (recognised by the shape of its `add`) and the fourth, broken-look
+argument; `cache_rules.json` has a `break-abyssal` scope whose cases name the directories
+also asked for with `_b`, and `special.mayBeDamaged`. The generator reads those. Which
+ships have a damaged special portrait is still a hand table, and the two families whose
+addresses the client builds by hand are still generated from the master data directly.

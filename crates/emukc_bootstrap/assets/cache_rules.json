@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-07T05:12:09.058Z",
+  "generatedAt": "2026-10-08T09:52:07.103Z",
   "scriptVersion": "6.3.5.0",
   "summary": {
     "shipRuleCount": 2,
@@ -12,7 +12,7 @@
   },
   "resourceManifest": {
     "version": 2,
-    "generatedAt": "2026-10-07T05:12:08.812Z",
+    "generatedAt": "2026-10-08T09:52:06.801Z",
     "scriptVersion": "6.3.5.0",
     "pathRules": {
       "shipDamageVariants": {
@@ -1073,13 +1073,13 @@
       ]
     },
     "summary": {
-      "totalEntries": 420,
-      "shipEntryCount": 145,
+      "totalEntries": 437,
+      "shipEntryCount": 162,
       "slotitemEntryCount": 144,
       "textureProviderEntryCount": 130,
       "explicitPathEntryCount": 1,
       "totalExplicitPaths": 39,
-      "modulesCovered": 794
+      "modulesCovered": 795
     },
     "entries": [
       {
@@ -2128,11 +2128,13 @@
         "damagedSource": "true",
         "moduleIds": [
           "7076",
-          "9288"
+          "9288",
+          "74153"
         ],
         "moduleNames": [
           "PhaseAllyOpening",
-          "PhaseAllyOpening"
+          "PhaseAllyOpening",
+          "TaskInit"
         ]
       },
       {
@@ -2176,6 +2178,192 @@
         ],
         "moduleNames": [
           "PhaseAllyOpening"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "false",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner_g",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "brokenSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner_g",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "brokenSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner2",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "false",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner2",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner2_g",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner3",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "false",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner3_g",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner3",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner3",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "brokenSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner3_g",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "true",
+        "brokenSource": "true",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "full",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "_0x4252fe",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "full",
+        "shipMstIdSource": "mst_id",
+        "damagedSource": "false",
+        "moduleIds": [
+          "74153"
+        ],
+        "moduleNames": [
+          "TaskInit"
         ]
       },
       {
@@ -2890,9 +3078,24 @@
       {
         "kind": "ship",
         "source": "resources.getShip",
+        "targetType": "banner_g",
+        "shipMstIdSource": "this._mst_id",
+        "damagedSource": "true",
+        "brokenSource": "_0x1fcb8a",
+        "moduleIds": [
+          "68695"
+        ],
+        "moduleNames": [
+          "BannerImage"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "resources.getShip",
         "targetType": "banner",
         "shipMstIdSource": "this._mst_id",
         "damagedSource": "_0x3dd6aa",
+        "brokenSource": "_0x1fcb8a",
         "moduleIds": [
           "68695"
         ],
@@ -2932,6 +3135,7 @@
         "targetType": "banner3_g",
         "shipMstIdSource": "this._mst_id",
         "damagedSource": "true",
+        "brokenSource": "_0x4c7f0e",
         "moduleIds": [
           "68695"
         ],
@@ -2945,6 +3149,7 @@
         "targetType": "banner3",
         "shipMstIdSource": "this._mst_id",
         "damagedSource": "_0x2306fe",
+        "brokenSource": "_0x4c7f0e",
         "moduleIds": [
           "68695"
         ],
@@ -2980,10 +3185,38 @@
       },
       {
         "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner_g",
+        "shipMstIdSource": "_0x5a29f5.mst_id",
+        "damagedSource": "true",
+        "moduleIds": [
+          "78436"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
+        "source": "ShipLoader.add",
+        "targetType": "banner_g",
+        "shipMstIdSource": "_0x5a29f5.mst_id",
+        "damagedSource": "true",
+        "brokenSource": "true",
+        "moduleIds": [
+          "78436"
+        ],
+        "moduleNames": [
+          "TaskInit"
+        ]
+      },
+      {
+        "kind": "ship",
         "source": "resources.getShip",
         "targetType": "banner_g",
         "shipMstIdSource": "_0x5e0ff9",
         "damagedSource": "true",
+        "brokenSource": "_0x576e85",
         "moduleIds": [
           "98934"
         ],
@@ -2997,6 +3230,7 @@
         "targetType": "banner",
         "shipMstIdSource": "_0x5e0ff9",
         "damagedSource": "true",
+        "brokenSource": "_0x576e85",
         "moduleIds": [
           "98934"
         ],
@@ -11172,7 +11406,7 @@
   },
   "resourceCategories": {
     "version": 1,
-    "generatedAt": "2026-10-07T05:12:07.693Z",
+    "generatedAt": "2026-10-08T09:52:05.616Z",
     "scriptVersion": "6.3.5.0",
     "summary": {
       "shipTargetTypeCount": 36,
@@ -12716,6 +12950,7 @@
           ]
         }
       ],
+      "mayBeDamaged": true,
       "moduleIds": [
         "23534",
         "28409",
@@ -12858,6 +13093,90 @@
           "selectorScope": "default-abyssal",
           "damagedState": "true",
           "targetTypes": [
+            "banner3_g_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner",
+          "selectorScope": "break-abyssal",
+          "damagedState": "false",
+          "targetTypes": [
+            "banner"
+          ]
+        },
+        {
+          "rawTargetType": "banner",
+          "selectorScope": "break-abyssal",
+          "damagedState": "true",
+          "targetTypes": [
+            "banner_dmg"
+          ],
+          "brokenTargetTypes": [
+            "banner_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner",
+          "selectorScope": "break-abyssal",
+          "damagedState": "variable",
+          "targetTypes": [
+            "banner",
+            "banner_dmg"
+          ],
+          "brokenTargetTypes": [
+            "banner_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner_g",
+          "selectorScope": "break-abyssal",
+          "damagedState": "true",
+          "targetTypes": [
+            "banner_g_dmg"
+          ],
+          "brokenTargetTypes": [
+            "banner_g_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner3",
+          "selectorScope": "break-abyssal",
+          "damagedState": "false",
+          "targetTypes": [
+            "banner3"
+          ]
+        },
+        {
+          "rawTargetType": "banner3",
+          "selectorScope": "break-abyssal",
+          "damagedState": "true",
+          "targetTypes": [
+            "banner3_dmg"
+          ],
+          "brokenTargetTypes": [
+            "banner3_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner3",
+          "selectorScope": "break-abyssal",
+          "damagedState": "variable",
+          "targetTypes": [
+            "banner3",
+            "banner3_dmg"
+          ],
+          "brokenTargetTypes": [
+            "banner3_dmg"
+          ]
+        },
+        {
+          "rawTargetType": "banner3_g",
+          "selectorScope": "break-abyssal",
+          "damagedState": "true",
+          "targetTypes": [
+            "banner3_g_dmg"
+          ],
+          "brokenTargetTypes": [
             "banner3_g_dmg"
           ]
         }
