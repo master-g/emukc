@@ -28,10 +28,13 @@ pub struct GaugePhase {
     /// Sunk boss flagships that empty the phase's gauge.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub defeats: Option<i64>,
-    /// Boss wins of rank A or better that empty the phase's gauge, the flagship sunk or
-    /// not. A stand-in for a transport gauge; a phase has this or `defeats`, not both.
+    /// Transport points that empty the phase's gauge; a phase has this or `defeats`, not
+    /// both.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub wins: Option<i64>,
+    pub tp: Option<i64>,
+    /// Node where a transport gauge's cargo is landed. Needed with `tp`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub landing: Option<String>,
     /// Node whose arrival opens the next phase.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reach: Option<String>,
@@ -143,7 +146,7 @@ pub fn kcnav_gauge_phases(
 impl GaugePhase {
     /// How long the phase's gauge is, if it has one.
     fn gauge(&self) -> Option<i64> {
-        self.defeats.or(self.wins)
+        self.defeats.or(self.tp)
     }
 }
 
@@ -194,6 +197,16 @@ pub fn apply_gauge_phases(
             if let Err(error) = wire(&mut variant, phase, keys.get(index + 1), lower, upper) {
                 errors.push(format!("{name} {}: {error}", keys[index]));
             }
+            // The landing cell is one in every phase that has it; only the phase with the
+            // transport gauge lands anything there.
+            for cell in &mut variant.cells {
+                if phases
+                    .iter()
+                    .any(|phase| phase.landing.is_some() && phase.landing == cell.node_label)
+                {
+                    (cell.event_id, cell.event_kind, cell.color_no) = LANDING_CELL;
+                }
+            }
             definition.variants.insert(keys[index].clone(), variant);
             lower = upper;
         }
@@ -210,6 +223,9 @@ pub fn apply_gauge_phases(
         Err(errors)
     }
 }
+
+/// `event_id`, `event_kind` and `color_no` of a landing cell (揚陸地点).
+const LANDING_CELL: (i64, i64, i64) = (9, 1, 9);
 
 /// The part of the whole map a phase can be played on.
 fn cut(whole: &MapVariantDefinition, key: &str, upper: i64) -> MapVariantDefinition {
@@ -260,9 +276,13 @@ fn wire(
         .iter()
         .find(|cell| cell.cell_no >= lower && cell.event_id == 5)
         .map(|cell| cell.cell_no);
-    if phase.defeats.is_some() && phase.wins.is_some() {
-        return Err("both `defeats` and `wins`".to_owned());
+    if phase.defeats.is_some() && phase.tp.is_some() {
+        return Err("both `defeats` and `tp`".to_owned());
     }
+    if phase.tp.is_some() != phase.landing.is_some() {
+        return Err("`tp` and `landing` go together".to_owned());
+    }
+    labelled(&phase.landing)?;
     match (boss, phase.gauge()) {
         (Some(boss), _) => variant.boss_cell_no = boss,
         (None, Some(_)) => return Err("a gauge, but the phase adds no boss cell".to_owned()),
@@ -276,7 +296,7 @@ fn wire(
         return Err("nothing moves the map on from this phase".to_owned());
     }
     variant.required_defeat_count = phase.gauge();
-    variant.gauge_counts_wins = phase.wins.is_some();
+    variant.transport_gauge = phase.tp.is_some();
     variant.clear_to_variant_key = next_key.cloned();
     variant.advance_on_reach = advance_on_reach;
     variant.advance_needs_s_rank_at = advance_needs_s_rank_at;
