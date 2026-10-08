@@ -57,20 +57,18 @@ pub const SQUADRON_MAX: i64 = 4;
 ///
 /// `None` means the equipment cannot be assigned to a land base at all.
 ///
-/// Upstream publishes neither list: `api_mst_slotitem_equiptype` carries only
-/// a name and a picture-book flag, and the client reads `api_max_count` off the
-/// response rather than computing it. Both tables are therefore this project's
-/// own reading of the game's rules. Types whose eligibility is genuinely
-/// unclear — 水上爆撃機, 対潜哨戒機, 水上戦闘機, オートジャイロ — are excluded
-/// rather than guessed in.
+/// Both lists are the client's own. Which types may be deployed is what the
+/// five tabs of its deployment list offer (`getEquipTypes` in
+/// `main.decoded.js`), and the strength is `getKadouCount`, which the client
+/// uses to tell whether the bauxite covers a deployment.
 pub const fn squadron_capacity(equip_type: i64) -> Option<i64> {
     match equip_type {
-        // Reconnaissance flies in fours.
-        9 | 10 | 49 | 59 | 94 => Some(4),
-        // A flying boat is a single aircraft.
-        41 => Some(1),
-        // Fighters, bombers and the land-based line fly full squadrons.
-        6 | 7 | 8 | 47 | 48 | 53 | 56 | 57 | 58 | 91 => Some(18),
+        // Reconnaissance and the flying boat fly in fours.
+        9 | 10 | 41 | 49 | 59 | 94 => Some(4),
+        // 大型陸上機 in nines.
+        53 => Some(9),
+        // Everything else the list offers flies a full squadron.
+        6 | 7 | 8 | 11 | 25 | 26 | 45 | 47 | 48 | 56 | 57 | 58 | 91 => Some(18),
         _ => None,
     }
 }
@@ -187,22 +185,28 @@ impl From<PlaneInfo> for KcApiPlaneInfo {
 mod tests {
     use super::*;
 
-    /// These figures are this project's own (see `squadron_capacity`), so a
-    /// silent flip must fail here rather than in someone's save file.
+    /// These figures are the client's (see `squadron_capacity`); a silent flip
+    /// must fail here rather than in someone's save file.
     #[test]
     fn squadron_capacity_table_is_pinned() {
-        // 陸上攻撃機, 局地戦闘機, 艦上戦闘機, 艦上攻撃機 — full squadrons.
-        for equip_type in [47, 48, 6, 8] {
-            assert_eq!(squadron_capacity(equip_type), Some(18), "type {equip_type}");
+        // The five tabs of the client's deployment list.
+        let tabs: [&[i64]; 5] = [
+            &[47, 53, 91],
+            &[48],
+            &[6, 56],
+            &[7, 8, 26, 57, 58],
+            &[9, 10, 11, 25, 41, 45, 49, 59, 94],
+        ];
+        for equip_type in tabs.concat() {
+            let expected = match equip_type {
+                9 | 10 | 41 | 49 | 59 | 94 => 4,
+                53 => 9,
+                _ => 18,
+            };
+            assert_eq!(squadron_capacity(equip_type), Some(expected), "type {equip_type}");
         }
-        // 艦上偵察機, 水上偵察機, 陸上偵察機 — four aircraft.
-        for equip_type in [9, 10, 49] {
-            assert_eq!(squadron_capacity(equip_type), Some(4), "type {equip_type}");
-        }
-        assert_eq!(squadron_capacity(41), Some(1), "大型飛行艇 flies alone");
-
-        // 水上爆撃機, 対潜哨戒機, 水上戦闘機, オートジャイロ, 主砲 — not deployable.
-        for equip_type in [11, 26, 45, 25, 1] {
+        // 主砲 and 上陸用舟艇 are on no tab.
+        for equip_type in [1, 24] {
             assert_eq!(squadron_capacity(equip_type), None, "type {equip_type}");
         }
 
