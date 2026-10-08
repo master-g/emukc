@@ -87,6 +87,7 @@ async fn settle_boss_win_with_enemies(
         pending_battle_cell_id: Some(stage.boss_cell_no),
         visited_cell_ids: BTreeSet::from([stage.boss_cell_no]),
         locked_enemy_composition: None,
+        landing_tp: None,
     };
     settle_sortie_battle_impl(
         context.db.as_ref(),
@@ -1305,7 +1306,7 @@ fn start_source_cells_include_nonzero_route_cell_roots() {
         required_defeat_count: None,
         clear_to_variant_key: None,
         advance_on_reach: Vec::new(),
-        gauge_counts_wins: false,
+        transport_gauge: false,
         advance_needs_s_rank_at: Vec::new(),
         parse_warnings: Vec::new(),
     };
@@ -1795,6 +1796,7 @@ fn active_sortie_on_cell(
         pending_battle_cell_id: None,
         visited_cell_ids: BTreeSet::from([cell.cell_no]),
         locked_enemy_composition: None,
+        landing_tp: None,
     }
 }
 
@@ -1969,6 +1971,7 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
             pending_battle_cell_id: None,
             visited_cell_ids: BTreeSet::from([boss.cell_no]),
             locked_enemy_composition: None,
+            landing_tp: None,
         },
     );
 
@@ -2110,6 +2113,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
                         pending_battle_cell_id: None,
                         visited_cell_ids: BTreeSet::from([cell.cell_no]),
                         locked_enemy_composition: None,
+                        landing_tp: None,
                     },
                 );
                 let at = format!("map {map_id} `{variant_key}` cell {}", cell.cell_no);
@@ -2233,6 +2237,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
             pending_battle_cell_id: None,
             visited_cell_ids: BTreeSet::from([cell.cell_no]),
             locked_enemy_composition: None,
+            landing_tp: None,
         },
     );
     let refused = context.sortie_battle(pid, 1).await.unwrap_err();
@@ -2263,6 +2268,18 @@ async fn settle_win_at(
     label: &str,
     win_rank: &str,
 ) -> SortieSettlement {
+    settle_win_carrying(context, profile_id, definition, label, win_rank, None).await
+}
+
+/// [`settle_win_at`] for a fleet that passed the landing cell carrying `landing_tp`.
+async fn settle_win_carrying(
+    context: &Ctx,
+    profile_id: i64,
+    definition: &MapDefinition,
+    label: &str,
+    win_rank: &str,
+    landing_tp: Option<i64>,
+) -> SortieSettlement {
     let stage_id = staged_map_stage(context, profile_id, definition).await;
     let stage = definition.stage(&stage_id).unwrap();
     let cell_no = stage.multi_label_index()[label][0];
@@ -2277,6 +2294,7 @@ async fn settle_win_at(
         pending_battle_cell_id: Some(cell_no),
         visited_cell_ids: BTreeSet::from([cell_no]),
         locked_enemy_composition: None,
+        landing_tp,
     };
     settle_sortie_battle_impl(
         context.db.as_ref(),
@@ -2375,9 +2393,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
     let definition = context.codex.map_catalog().map_definition(56).unwrap().clone();
     let stage = || staged_map_stage(&context, profile_id, &definition);
 
-    for _ in 0..3 {
-        settle_win_at(&context, profile_id, &definition, "G", "S").await;
-    }
+    settle_win_carrying(&context, profile_id, &definition, "G", "S", Some(280)).await;
     assert_eq!(stage().await, "phase2");
     // No gauge here: the next one, N's, is shown, and wins at G do not move it.
     assert_eq!(definition.chained_gauge("phase2"), Some((2, 2)));
@@ -2414,6 +2430,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
             pending_battle_cell_id: None,
             visited_cell_ids: BTreeSet::from([h]),
             locked_enemy_composition: None,
+            landing_tp: None,
         },
     );
     let arrived = context.next_sortie(profile_id, None).await.unwrap();
@@ -2426,4 +2443,118 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
     }
     assert_eq!(stage().await, "phase4");
     assert_eq!(definition.chained_gauge("phase4"), Some((3, 3)));
+}
+
+#[tokio::test]
+async fn map_5_6_empties_its_transport_gauge_by_what_the_fleet_lands() {
+    let (context, profile_id) = staged_map_context("tp-5-6").await;
+    let definition = context.codex.map_catalog().map_definition(56).unwrap().clone();
+    let landed = || async {
+        staged_map_record(&context, profile_id, &definition).await.defeat_count.unwrap_or_default()
+    };
+    let landing_hp = |settlement: SortieSettlement| {
+        let hp = settlement.landing_hp.unwrap();
+        (hp.api_max_hp, hp.api_now_hp, hp.api_sub_value)
+    };
+
+    // Sinking the flagship without having passed the landing cell lands nothing.
+    let settled = settle_win_at(&context, profile_id, &definition, "G", "S").await;
+    assert_eq!(landing_hp(settled), (280, 280, 0));
+    assert_eq!(landed().await, 0);
+
+    // An A rank lands seven tenths, a B rank nothing.
+    let settled = settle_win_carrying(&context, profile_id, &definition, "G", "A", Some(100)).await;
+    assert_eq!(landing_hp(settled), (280, 280, 70));
+    let settled = settle_win_carrying(&context, profile_id, &definition, "G", "B", Some(100)).await;
+    assert_eq!(landing_hp(settled), (280, 210, 0));
+    assert_eq!(landed().await, 70);
+
+    // A battle elsewhere is not a landing.
+    let settled = settle_win_carrying(&context, profile_id, &definition, "A", "S", Some(100)).await;
+    assert!(settled.landing_hp.is_none());
+
+    // The last delivery takes only what is left and opens the next phase.
+    settle_win_carrying(&context, profile_id, &definition, "G", "S", Some(100)).await;
+    assert_eq!(landed().await, 170);
+    let settled = settle_win_carrying(&context, profile_id, &definition, "G", "S", Some(200)).await;
+    assert_eq!(landing_hp(settled), (280, 110, 110));
+    assert_eq!(staged_map_stage(&context, profile_id, &definition).await, "phase2");
+    assert_eq!(landed().await, 0);
+}
+
+#[tokio::test]
+async fn map_5_6_counts_the_cargo_on_arrival_at_the_landing_cell() {
+    let (context, profile_id) = staged_map_context("tp-landing-5-6").await;
+    let definition = context.codex.map_catalog().map_definition(56).unwrap().clone();
+    let phase1 = definition.stage("phase1").unwrap();
+    let landing = phase1.multi_label_index()["E"][0];
+    let before = *phase1
+        .cells
+        .iter()
+        .find(|cell| cell.next_cells == [landing])
+        .map(|cell| &cell.cell_no)
+        .unwrap();
+    let _ = context.sortie_store.insert_active(
+        profile_id,
+        ActiveSortieState {
+            deck_id: 1,
+            map_id: definition.map_id,
+            map_name: definition.name.clone(),
+            map_level: definition.level,
+            stage_id: "phase1".to_string(),
+            current_cell_id: before,
+            boss_cell_id: phase1.boss_cell_no,
+            pending_battle_cell_id: None,
+            visited_cell_ids: BTreeSet::from([before]),
+            locked_enemy_composition: None,
+            landing_tp: None,
+        },
+    );
+
+    // Two destroyers, 5 points each.
+    let first = context.add_ship(profile_id, 951).await.unwrap();
+    let second = context.add_ship(profile_id, 951).await.unwrap();
+    context
+        .update_fleet_ships(profile_id, 1, &[first.api_id, second.api_id, -1, -1, -1, -1])
+        .await
+        .unwrap();
+
+    let arrived = context.next_sortie(profile_id, None).await.unwrap();
+    assert_eq!(arrived.cell_no, landing);
+    assert_eq!(context.sortie_store.get_active(profile_id).unwrap().landing_tp, Some(10));
+}
+
+#[tokio::test]
+async fn a_badly_damaged_ship_carries_nothing() {
+    let (context, profile_id) = staged_map_context("tp-fleet").await;
+    let db = context.db.as_ref();
+    let codex = context.codex.as_ref();
+    let points = |ship: profile_ship::Model| async move {
+        crate::game::transport::fleet_transport_points_impl(db, codex, &[ship]).await.unwrap()
+    };
+
+    let added = context.add_ship(profile_id, 951).await.unwrap();
+    let drum =
+        crate::game::slot_item::add_slot_item_impl(db, codex, profile_id, 75, 0, 0).await.unwrap();
+    let mut am = profile_ship::Entity::find_by_id(added.api_id)
+        .one(db)
+        .await
+        .unwrap()
+        .unwrap()
+        .into_active_model();
+    am.slot_1 = ActiveValue::Set(drum.id);
+    let ship = am.update(db).await.unwrap();
+    let stype = codex.manifest.find_ship(951).unwrap().api_stype;
+    assert_eq!(stype, 2, "the test ship is a destroyer");
+
+    // A destroyer and her drum.
+    assert_eq!(points(ship).await, 5 + 5);
+    // 中破 still carries; 大破 does not.
+    let hp_max = ship.hp_max;
+    let at = |hp_now| profile_ship::Model {
+        hp_now,
+        ..ship
+    };
+    assert_eq!(points(at(hp_max / 4 + 1)).await, 10);
+    assert_eq!(points(at(hp_max / 4)).await, 0);
 }

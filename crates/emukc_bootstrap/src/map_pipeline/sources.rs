@@ -280,7 +280,7 @@ fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
                 required_defeat_count: None,
                 clear_to_variant_key: None,
                 advance_on_reach: Vec::new(),
-                gauge_counts_wins: false,
+                transport_gauge: false,
                 advance_needs_s_rank_at: Vec::new(),
                 parse_warnings: Vec::new(),
             },

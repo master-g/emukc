@@ -341,7 +341,12 @@ fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcA
             .map(|(number, _)| number)
             .or(definition.gauge_count)
             .or_else(|| required_defeat_count.map(|_| 1)),
-        api_gauge_type: definition.gauge_type,
+        // 3 draws the gauge as a transport gauge.
+        api_gauge_type: if active_stage.is_some_and(|stage| stage.transport_gauge) {
+            Some(3)
+        } else {
+            definition.gauge_type
+        },
         api_gauge_type_e: definition.gauge_type_e,
         api_required_defeat_count: required_defeat_count,
         api_air_base_decks: definition.airbase_count,
@@ -819,6 +824,43 @@ mod tests {
         assert_eq!((info.api_gauge_num, info.api_required_defeat_count), (Some(2), Some(4)));
         assert_eq!(gauge("phase2"), (Some(2), Some(4)), "a stage without a gauge shows the next");
         assert_eq!(gauge("phase3"), (Some(2), Some(4)));
+    }
+
+    #[test]
+    fn build_map_info_draws_a_transport_gauge_only_at_its_stage() {
+        let stage = |key: &str, transport_gauge, next: Option<&str>| {
+            (
+                key.to_string(),
+                MapStageDefinition {
+                    variant_key: key.to_string(),
+                    required_defeat_count: Some(if transport_gauge {
+                        280
+                    } else {
+                        3
+                    }),
+                    transport_gauge,
+                    clear_to_variant_key: next.map(ToOwned::to_owned),
+                    ..Default::default()
+                },
+            )
+        };
+        let definition = MapDefinition {
+            default_variant: "phase1".to_string(),
+            gauge_type: Some(1),
+            gauge_count: Some(2),
+            variants: BTreeMap::from([
+                stage("phase1", true, Some("phase2")),
+                stage("phase2", false, None),
+            ]),
+            ..sample_definition()
+        };
+        let gauge = |stage_id: &str| {
+            let info = build_map_info(&definition, &sample_record(Some(stage_id)));
+            (info.api_gauge_type, info.api_required_defeat_count)
+        };
+
+        assert_eq!(gauge("phase1"), (Some(3), Some(280)));
+        assert_eq!(gauge("phase2"), (Some(1), Some(3)));
     }
 
     /// `gauge_type_e` absent → field stays `None` (serialized omitted).

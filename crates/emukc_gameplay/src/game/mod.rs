@@ -46,6 +46,7 @@ mod slot_item;
 mod sortie;
 mod sortie_result;
 pub(crate) mod sortie_store;
+mod transport;
 mod use_item;
 mod view;
 

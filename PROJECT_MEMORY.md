@@ -195,11 +195,10 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `feat/random-engagement`：出击与演习的交战形态改为每场随机（计划 `2026-10-08-001`），golden 已重冻。
-  全量测试 1211 过；clippy 17。
+- [2026-10-08] 分支 `feat/transport-gauge`：5-6 第一段改为真输送血条 280 TP（计划 `2026-10-08-002`）。
+  全量测试 1219 过；clippy 17；`make route-oracle` 差异 0。
 
 ## Next Session
 
-- [2026-10-07] 5-6 第一段是占位（G 点 A 胜以上 3 次），真输送血条 280 TP 要另写计划（用户定）。
-- 改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
+- [2026-10-08] 路线图上的玩法项已做完，下一件待用户定。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`，否则集成测试跑旧数据。
   多血条图改 `map_gauge_rules.json` 后顺序是 `kcnav normalize` → 重建 codex → 再 `kcnav normalize`（掉落与编成按变体键展开）。

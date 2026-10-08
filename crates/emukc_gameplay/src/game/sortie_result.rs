@@ -27,6 +27,7 @@ use super::{
         update_ship_impl,
     },
     sortie::ActiveSortieState,
+    transport::landed_points,
 };
 
 #[derive(Debug, Clone)]
@@ -102,6 +103,9 @@ pub struct SortieBattleResultResponse {
     pub api_get_ship: Option<SortieBattleResultGetShip>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_next_map_ids: Option<Vec<i64>>,
+    /// A transport gauge's boss battle: what was left to land and what this battle landed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_landing_hp: Option<SortieLandingHp>,
 }
 
 /// The persisted outcome of one sortie battle: everything the result response
@@ -114,6 +118,7 @@ pub(super) struct SortieSettlement {
     pub first_clear: i64,
     pub ship_drop: Option<SortieBattleResultGetShip>,
     pub next_map_ids: Option<Vec<i64>>,
+    pub landing_hp: Option<SortieLandingHp>,
     pub dests: i64,
     pub destsf: i64,
     /// What this battle did, in the order it happened, for the caller to observe.
@@ -165,6 +170,12 @@ where
         "sortie_battle_result: boss check"
     );
     record_stage_unlock(c, profile_id, definition, stage, current_cell.cell_no, &snapshot).await?;
+    let landing_hp = if is_boss_cell {
+        land_transport(c, profile_id, definition, stage, active.landing_tp, &snapshot.win_rank)
+            .await?
+    } else {
+        None
+    };
     let first_clear = apply_sortie_map_result(
         c,
         profile_id,
@@ -227,6 +238,7 @@ where
         first_clear,
         ship_drop,
         next_map_ids,
+        landing_hp,
         outcomes,
     })
 }
@@ -239,6 +251,7 @@ impl From<SortieSettlement> for SortieBattleResultResponse {
             first_clear,
             ship_drop,
             next_map_ids,
+            landing_hp,
             dests,
             destsf,
             outcomes: _,
@@ -269,6 +282,7 @@ impl From<SortieSettlement> for SortieBattleResultResponse {
             api_get_flag: [0, i64::from(ship_drop.is_some()), 0],
             api_get_ship: ship_drop,
             api_next_map_ids: next_map_ids,
+            api_landing_hp: landing_hp,
         }
     }
 }
@@ -631,6 +645,55 @@ fn enter_stage(am: &mut map_record::ActiveModel, stage_id: String, gauge_index: 
     am.last_cleared_at = ActiveValue::Set(None);
 }
 
+/// `api_landing_hp` of a battle result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SortieLandingHp {
+    /// The gauge's length.
+    pub api_max_hp: i64,
+    /// What was left before this battle.
+    pub api_now_hp: i64,
+    /// What this battle landed.
+    pub api_sub_value: i64,
+}
+
+/// A boss battle on a stage with a transport gauge lands what the fleet carried past the
+/// landing cell (`landing_tp`), by the rank won. Emptying the gauge opens the next stage.
+async fn land_transport<C>(
+    c: &C,
+    profile_id: i64,
+    definition: &MapDefinition,
+    stage: &MapStageDefinition,
+    landing_tp: Option<i64>,
+    win_rank: &str,
+) -> Result<Option<SortieLandingHp>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let (true, Some(length)) = (stage.transport_gauge, stage.required_defeat_count) else {
+        return Ok(None);
+    };
+    let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
+    let landed_before = record.defeat_count.unwrap_or_default();
+    let left = (length - landed_before).max(0);
+    let landed = landed_points(landing_tp.unwrap_or_default(), win_rank).min(left);
+    if landed > 0 {
+        let gauge_index = record.gauge_index + 1;
+        let mut am = record.into_active_model();
+        am.defeat_count = ActiveValue::Set(Some(landed_before + landed));
+        if landed == left
+            && let Some(next_stage_id) = stage.clear_to_variant_key.clone()
+        {
+            enter_stage(&mut am, next_stage_id, gauge_index);
+        }
+        am.update(c).await?;
+    }
+    Ok(Some(SortieLandingHp {
+        api_max_hp: length,
+        api_now_hp: left,
+        api_sub_value: landed,
+    }))
+}
+
 /// Arriving at one of the stage's `advance_on_reach` cells opens the next stage.
 pub(super) async fn advance_stage_on_reach<C>(
     c: &C,
@@ -708,8 +771,9 @@ where
         return Ok(0);
     }
 
-    // A stage opened by arrival has no gauge; its boss is the previous stage's.
-    if !stage.advance_on_reach.is_empty() {
+    // A stage opened by arrival has no gauge; its boss is the previous stage's. A
+    // transport gauge is moved by `land_transport`.
+    if !stage.advance_on_reach.is_empty() || stage.transport_gauge {
         return Ok(0);
     }
 
@@ -776,12 +840,7 @@ where
 
     if let Some(required) = stage.required_defeat_count.or(definition.required_defeat_count) {
         // A gauge is emptied by sinking the boss flagship; winning without that leaves it.
-        let counts = if stage.gauge_counts_wins {
-            matches!(snapshot.win_rank.as_str(), "S" | "A")
-        } else {
-            flagship_sunk
-        };
-        if !counts {
+        if !flagship_sunk {
             return Ok(0);
         }
         let next_defeat = previous_defeat_count + 1;
@@ -887,6 +946,7 @@ mod tests {
             pending_battle_cell_id: Some(3),
             visited_cell_ids: BTreeSet::new(),
             locked_enemy_composition: None,
+            landing_tp: None,
         };
 
         let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("A")).unwrap();
@@ -957,6 +1017,7 @@ mod tests {
             pending_battle_cell_id: Some(4),
             visited_cell_ids: BTreeSet::new(),
             locked_enemy_composition: None,
+            landing_tp: None,
         };
 
         let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("S")).unwrap();
@@ -1087,7 +1148,7 @@ mod tests {
             max_hp: None,
             ..gauge_map_definition(1, 1)
         };
-        let mut stage = gauge_stage();
+        let stage = gauge_stage();
         insert_gauge_record(&db, pid, definition.map_id).await;
         let defeats = || async { get_record(&db, pid, definition.map_id).await.defeat_count };
 
@@ -1097,18 +1158,6 @@ mod tests {
         assert_eq!(defeats().await.unwrap_or_default(), 0);
         apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
         assert_eq!(defeats().await, Some(1));
-
-        // A gauge that counts wins takes A or better, the flagship sunk or not.
-        stage.gauge_counts_wins = true;
-        let snap = snapshot("B");
-        apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
-        assert_eq!(defeats().await, Some(1));
-        let snap = snapshot("A");
-        let first_clear =
-            apply_sortie_map_result(&db, pid, &definition, &stage, true, false, &snap)
-                .await
-                .unwrap();
-        assert_eq!((defeats().await, first_clear), (Some(2), 1));
     }
 
     #[tokio::test]
@@ -1236,7 +1285,7 @@ mod tests {
             required_defeat_count: None,
             clear_to_variant_key: None,
             advance_on_reach: Vec::new(),
-            gauge_counts_wins: false,
+            transport_gauge: false,
             advance_needs_s_rank_at: Vec::new(),
             parse_warnings: Vec::new(),
         };

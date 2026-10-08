@@ -24,7 +24,7 @@ the map; emptying a gauge opens the next. In the catalog a phase is a variant
 
 | Map | Phases | What moves it on |
 | --- | --- | --- |
-| 5-6 | `phase1`…`phase4` | three wins of rank A or better at G (placeholder, see below) → reach R → N ×2 → Z ×3 |
+| 5-6 | `phase1`…`phase4` | land 280 transport points at G → reach R → N ×2 → Z ×3 |
 | 7-2 | `phase1`, `phase2` | G ×3 → M ×4 |
 | 7-3 | `pre_p_unlock`, `post_p_unlock` | E ×3 → P ×4 |
 | 7-5 | `phase1`…`phase3` | K ×2 → Q ×3 and one S rank at M, in either order → T ×3 |
@@ -66,15 +66,15 @@ Enemy fleets and ship drops are keyed by node label and go to every variant that
 label, so each phase gets its own part with no extra work. After a rebuild, `kcnav
 normalize` writes those two assets keyed by the phase variants.
 
-## Three ways to move on
+## Four ways to move on
 
 `MapVariantDefinition` carries them; `game/sortie_result.rs` plays them.
 
 - `required_defeat_count`: sunk boss flagships that empty the gauge
   (`apply_sortie_map_result`). A win that leaves the flagship afloat does not count; whether
-  it sank is read from the enemy HP after any night battle. With `gauge_counts_wins` the
-  gauge instead takes every boss win of rank A or better, flagship sunk or not, which is how
-  a transport gauge behaves and what 5-6's placeholder uses (`wins` in the rules file).
+  it sank is read from the enemy HP after any night battle.
+- `transport_gauge`: `required_defeat_count` is then a length in transport points (`tp` in
+  the rules file, with `landing` naming the landing node). See *Transport gauge* below.
 - `advance_on_reach`: cells whose arrival opens the next phase (`advance_stage_on_reach`,
   called from `next_sortie`). Such a phase has no gauge: boss wins there do nothing, and
   `mapinfo` shows the gauge of the phase it leads to.
@@ -85,6 +85,29 @@ normalize` writes those two assets keyed by the phase variants.
 
 `MapDefinition::chained_gauge(stage)` gives the gauge number and length `mapinfo` reports.
 The number counts gauges, not phases, so 5-6's four phases report 1, 2, 2, 3.
+
+## Transport gauge
+
+5-6's first gauge is 280 transport points (TP), landed by boss wins at G.
+
+- **What a fleet carries** (`game/transport.rs`): each ship brings points for her type
+  (駆逐 5, 軽巡 2, 航巡 4, 航戦 7, 水母 9, 揚陸艦 12, 補給艦 15, 練巡 6, 潜水母艦 7, 潜水空母
+  1, the rest 0) and for her equipment (上陸用舟艇 8, ドラム缶 5, 特型内火艇 2, 戦闘糧食 1).
+  鬼怒改二 has a 大発動艇 built in. Source: zekamashi.net `yusou-tp`, read 2026-10-08.
+- **When it is counted**: on arrival at the landing cell (`next_sortie`, `event_id` 9), and
+  kept on the sortie as `ActiveSortieState::landing_tp`. A ship at 大破 or worse then
+  carries nothing; damage taken afterwards changes nothing. A fleet that reaches the boss
+  without passing the landing cell lands nothing.
+- **What a battle lands** (`land_transport`): all of it for an S rank at the boss, seven
+  tenths rounded down for an A rank, nothing below. The flagship need not sink.
+- **What the client is told**: `mapinfo` reports `api_gauge_type` 3 while the map is at that
+  phase, with the length as `api_required_defeat_count` and the points landed so far as
+  `api_defeat_count`, which is how the client draws a non-event transport gauge. The boss
+  battle's result carries `api_landing_hp` (`api_max_hp` the length, `api_now_hp` what was
+  left before, `api_sub_value` what the battle landed) for the landing animation.
+- **The landing cell** is marked by `apply_gauge_phases` (`event_id` 9, `event_kind` 1,
+  `color_no` 9) in every phase that has it; the map data has it as an empty cell. The client
+  plays the landing only while the gauge type is 3.
 
 ## Routing rules per phase
 
@@ -108,9 +131,10 @@ first. Nothing is rewritten until the record next changes.
 
 ## Known gaps
 
-- **5-6 phase 1 is a placeholder.** The real gauge is a transport gauge of 280 TP, emptied
-  by A or S ranks at G in proportion to what the fleet carries. Transport points are not
-  modelled; three wins of rank A or better at G stand in, marked provisional in
-  `map_gauge_rules.json`.
+- A ship that retreats mid-sortie should stop carrying; retreat is not modelled for regular
+  maps, so it is not checked. Equipment whose points differ in some events is given its
+  ordinary value.
+- That `api_landing_hp` is sent on a regular map, and the landing cell's `event_kind` and
+  `color_no`, follow the client code and event-map practice; no capture of 5-6 exists.
 - What `mapinfo` reports during 5-6's route-opening phase (gauge 2, 0 of 2) is a guess; no
   capture of that state exists.

@@ -52,7 +52,11 @@ use super::{
         advance_stage_on_reach, calculate_sortie_deck_rewards, settle_sortie_battle_impl,
     },
     sortie_store::SortieStore,
+    transport::fleet_transport_points_impl,
 };
+
+/// `api_event_id` of a landing cell (揚陸地点).
+const LANDING_EVENT_ID: i64 = 9;
 
 pub use super::sortie_result::SortieBattleResultResponse;
 
@@ -68,6 +72,9 @@ pub struct ActiveSortieState {
     pub pending_battle_cell_id: Option<i64>,
     pub visited_cell_ids: BTreeSet<i64>,
     pub locked_enemy_composition: Option<EnemyComposition>,
+    /// What the fleet carried when it passed the landing cell of a transport gauge;
+    /// `None` until it has.
+    pub landing_tp: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,6 +229,7 @@ impl Ctx {
             pending_battle_cell_id: None,
             visited_cell_ids: first_step.visited_cell_ids,
             locked_enemy_composition: locked_enemy_composition.clone(),
+            landing_tp: None,
         };
         tx.commit().await?;
         self.sortie_store
@@ -362,6 +370,14 @@ impl Ctx {
                     resolve_non_battle_node_effect(&tx, codex, profile_id, next, &fleet_ships)
                         .await?;
                 advance_stage_on_reach(&tx, profile_id, definition, stage, next.cell_no).await?;
+                // The cargo is counted where it is landed: later damage does not shrink it.
+                if stage.transport_gauge && next.event_id == LANDING_EVENT_ID {
+                    let points = fleet_transport_points_impl(&tx, codex, &fleet_ships).await?;
+                    if let Some(mut state) = store.get_active(profile_id) {
+                        state.landing_tp = Some(points);
+                        let _ = store.insert_active(profile_id, state);
+                    }
+                }
                 tx.commit().await?;
 
                 let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
