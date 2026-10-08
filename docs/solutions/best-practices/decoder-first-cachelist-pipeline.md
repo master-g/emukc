@@ -156,7 +156,7 @@ without a trace: `cache_rules.json` reported no unresolved rules while a whole f
   rule extraction misses, and they all carry such a literal. Directories that are rightly
   empty are named with their reason in `KNOWN_EMPTY`.
 - the suffix of every listed ship and equipment address is recomputed with the client's
-  own `SuffixUtil` (32,573 addresses on 6.3.5.0, none wrong).
+  own `SuffixUtil` (32,519 addresses on 6.3.5.0, none wrong).
 
 It runs after the drift report of `make update`, without blocking, against the list as it
 is; regenerate the list before reading what it says about directories. A directory reached
@@ -164,7 +164,9 @@ only through a variable is not seen; a headless run (`headless-client-check.md`)
 those as `not_in_cache_list` when the client asks for them.
 
 Found this way: `ship/full_animation` and `full_animation_dmg` (a ship whose graph has
-`api_sp_flag` 1 is drawn animated in port), and `area/airunit_extend_confirm` (`<area>.png`
-and `<area>_.png`, the decoder marks its ids unresolved, so they follow the hand list of
-areas with air bases).
+`api_sp_flag` 1 is drawn animated in port; abyssal graphs carry the flag too but the origin
+has files only for ships the player can own), and `area/airunit_extend_confirm`
+(`<area>.png` and `<area>_.png`; the decoder marks its ids unresolved, so they follow the
+hand list of areas with air bases, regular areas only). `cache populate` on just the added
+lines (`--src` with the difference of the two lists) said which of them the origin has.
 

@@ -551,7 +551,9 @@ fn add_ship_animation(
     graph: &ApiMstShipgraph,
     version: Option<&String>,
 ) {
-    if graph.api_sp_flag != Some(1) {
+    // Abyssal ships carry the flag too, but only a ship the player owns can be a flagship,
+    // and the origin has these files for no other.
+    if graph.api_sp_flag != Some(1) || !graph.api_sortno.is_some_and(|sortno| sortno > 0) {
         return;
     }
     let category = full_category.replacen("full", "full_animation", 1);
@@ -847,6 +849,7 @@ mod tests {
             api_id: 951,
             api_filename: "uocopczppbln".to_string(),
             api_sp_flag: Some(1),
+            api_sortno: Some(551),
             ..Default::default()
         };
         let mut list = CacheList::new();
