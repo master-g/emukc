@@ -4,10 +4,10 @@
 <head>
 	<meta charset="utf-8" />
 	<title>艦隊これくしょん - 艦これ -</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tweenjs/0.6.2/tweenjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.8.8/pixi.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.0/howler.core.min.js"></script>
+    <script src="/emukc/game/assets/js/libs/axios/0.19.2/axios.min.js"></script>
+    <script src="/emukc/game/assets/js/libs/tweenjs/0.6.2/tweenjs.min.js"></script>
+    <script src="/emukc/game/assets/js/libs/pixi.js/4.8.8/pixi.min.js"></script>
+    <script src="/emukc/game/assets/js/libs/howler/2.2.0/howler.core.min.js"></script>
 	<script src="/kcs2/js/main.js?version={{version}}"></script>
 
 	<style>
