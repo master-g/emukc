@@ -69,11 +69,13 @@ bootstrap: ## 下载/刷新游戏数据 (--overwrite --force-update)
 decode-main: ## decode main.js 并同步全部资源资产到 rust 项目
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
 
-update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 漂移报告 → 生成缓存清单
+update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 漂移报告 → 装備ボーナス对拍 → 生成缓存清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --overwrite --force-update
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
 	@echo "--- 资产漂移报告 (不阻断; review 过 diff 后跑 make drift-accept) ---"
 	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+	@echo "--- 装備ボーナス对拍新客户端 (不阻断; 有差异则订正 main-decoder/gear-bonus-corrections.json) ---"
+	-cd main-decoder && bun run gear-bonus-oracle
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
 
 drift-check: ## 比对已同步资产与基线, 有漂移则退出非零

@@ -98,7 +98,8 @@ every star level, turned into per-copy, once-only and by-count rules listed by s
 the same again with other equipment carried. Fitted rules explain nothing and are only known
 to match on the probed loadouts — when one looks wrong, read the client function.
 
-After a client or KC3Kai upgrade: `make gear-bonus-update`, rebuild the codex,
+`make update` runs the oracle after its drift report, so a client upgrade that changes a bonus is reported
+there (it does not stop the update). After a client or KC3Kai upgrade: `make gear-bonus-update`, rebuild the codex,
 `make gear-bonus-oracle`, and put what differs into the corrections file. While working on
 one entry, `EMUKC_BIN=target/release/emukcd bun run gear-bonus-oracle -- --only <key>`
 skips the rebuild the embedded asset would otherwise trigger;
