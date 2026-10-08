@@ -201,3 +201,10 @@ argument; `cache_rules.json` has a `break-abyssal` scope whose cases name the di
 also asked for with `_b`, and `special.mayBeDamaged`. The generator reads those. Which
 ships have a damaged special portrait is still a hand table, and the two families whose
 addresses the client builds by hand are still generated from the master data directly.
+
+The manifest check 2 leans on was itself incomplete before that plan: the decoder only
+followed loaders created in the same function, so the 289 call sites it reported "all
+covered" left out the battle scene's banner preloading. The oracle now counts ship loading
+calls in the source independently, by their shape `(id, damaged, "<ship type>"[, broken])`
+whatever they are called on, and requires each kind in the manifest. Against the manifest
+of that time it names twelve kinds; against the current one, none of 245 calls.
