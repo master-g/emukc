@@ -115,4 +115,8 @@ pub struct KcApiMapNext {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_happening: Option<KcApiMapHappening>,
+
+    /// The raid on the air base this step brought, laid out as a battle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_destruction_battle: Option<serde_json::Value>,
 }

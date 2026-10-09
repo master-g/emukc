@@ -17,6 +17,7 @@ use crate::types::{
 };
 
 pub(crate) mod air_base;
+pub(crate) mod air_raid;
 pub(crate) mod asw;
 pub(crate) mod day_attack;
 pub(crate) mod day_cutin;

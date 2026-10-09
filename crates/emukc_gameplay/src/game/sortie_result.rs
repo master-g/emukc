@@ -948,6 +948,7 @@ mod tests {
             locked_enemy_composition: None,
             landing_tp: None,
             air_strikes: vec![],
+            raided: false,
         };
 
         let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("A")).unwrap();
@@ -1020,6 +1021,7 @@ mod tests {
             locked_enemy_composition: None,
             landing_tp: None,
             air_strikes: vec![],
+            raided: false,
         };
 
         let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("S")).unwrap();
@@ -1261,6 +1263,8 @@ mod tests {
             cells: vec![],
             routing_rules: BTreeMap::new(),
             enemy_fleets: BTreeMap::new(),
+            air_raid_fleets: Vec::new(),
+            last_bar_air_raid_fleets: Vec::new(),
             ship_drops: BTreeMap::from([(
                 1,
                 vec![

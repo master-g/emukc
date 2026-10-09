@@ -53,6 +53,7 @@ Current verification baseline:
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
 - [2026-10-08] 基地航空隊的全貌、数值出处与「不带航空队的战斗不多抽一个随机数」的规矩：`docs/solutions/architecture-patterns/air-corps.md`。
+- [2026-10-09] 基地空袭的敌编成在 KCNav 的 `maps/{图}/nodes/AB/enemycomps`；通常海域只有 6-5 有。战斗模型出自 `kcsim.js` 的 `simLBRaid`。
 - [2026-10-08] 基地航空隊的可配属机种、每中隊機数、配属扣铝都以客户端为准（`getEquipTypes`、`getKadouCount`，见计划 2026-09-22-001 订正段）；补给每機 燃料 3 / ボーキ 5。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
   `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
@@ -192,12 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] PR #24（航空隊疲劳）、#25（任务领奖扣装备）已合并。分支 `test/headless-quest-claim`：无头场景 `quest_equipment`
-  在任务画面领 614、637、641，通过；没走到上锁提示与领奖后旗舰槽位的显示。
+- [2026-10-09] PR #26（任务画面无头场景）已合并。分支 `feat/base-air-raid`：计划 `2026-10-09-003` 实施完——6-5 的基地空袭与防空，
+  无头场景 `air_raid_6_5` 通过。发生规则是自定的（见 `air-corps.md`）。
 
 ## Next Session
 
-- [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
-  查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
-  改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步候选：基地防空与空襲（要敌方空襲编成的来源）；`TODO.md` 剩下的任务欠账只有 `api_voice_id` 与 `api_c_list`，都不改变游戏结果。
+- [2026-10-09] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
+  查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
+  多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
+  候选：航空攻击的命中判定（现在每次都命中，6-5 空袭把基地打到只剩 1）；任务的 `api_voice_id` 与 `api_c_list`。

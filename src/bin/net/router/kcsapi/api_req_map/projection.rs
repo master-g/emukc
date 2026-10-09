@@ -53,6 +53,9 @@ pub(super) fn project_next(response: SortieNextResponse) -> KcApiMapNext {
         api_limit_state: response.limit_state,
         api_itemget: response.itemget.map(|items| items.into_iter().map(project_itemget).collect()),
         api_happening: response.happening.map(project_happening),
+        api_destruction_battle: response
+            .destruction_battle
+            .and_then(|raid| serde_json::to_value(raid).ok()),
     }
 }
 

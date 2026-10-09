@@ -83,6 +83,11 @@ screen, pass steps on the command line and read the screenshots:
   lost too. The 工廠 filter makes no call, while a tab on the left asks for the list again
   (遂行中任務 answers the three quests). A reward is several screens, so 閉じる is pressed until
   the client reads the quest list again.
+- `air_raid_6_5` sorties 6-5 to its boss with the gauge down two bars (`sunk:65:2` writes the
+  count) and the air corps ordered to defend (`order:2`, also written: the raid needs only the
+  server to know). The raid comes with one `api_req_map/next` or another, so the check looks
+  through all of them and the screenshots after each step may or may not show it. 6-5's boss
+  is a combined fleet: its result is `api_req_combined_battle/battleresult`.
 - That run found the cache list short of `slot/airunit_banner`, `airunit_fairy` and
   `airunit_name`: the list kept one equipment per plane picture (57), but the client loads
   them by the equipment's own id. The list now names every equipment the client's

@@ -22,7 +22,8 @@ pub mod prelude {
 
     #[doc(hidden)]
     pub use emukc_battle::{
-        BattleSimulation, NightBattleSimulation, render_day_battle, render_night_battle,
+        BattleAirRaid, BattleSimulation, NightBattleSimulation, render_day_battle,
+        render_night_battle,
     };
 
     #[doc(hidden)]
