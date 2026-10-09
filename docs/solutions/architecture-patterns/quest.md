@@ -55,6 +55,29 @@ via the quest operations on `Ctx`. Definitions come from the Codex
   `update_quests_impl`; consumption requirements are deducted (materials,
   items); rewards are granted per the definition.
 
+### Equipment a quest takes
+
+Two kinds of condition name equipment, and both are read against the player's state at
+the moment of asking (`game/quest/holding.rs`), never through counters:
+
+- `ModelConversion`: the flagship of fleet 1 must be the named ship and carry the piece in
+  slot `pos` (counted from 1; 0 is any slot, the extra slot included), with the asked 改修
+  level and 熟練度.
+- `Consumption::SlotItemConsumption`: unlocked pieces nothing holds, the least improved first.
+
+`is_satisfied` still counts both as met, so counters alone carry a quest to `Completed`.
+`validate_equipment_quests` runs last when the list is read: equipment not in hand pulls
+the quest back to 80%. A locked flagship piece leaves it `Completed` and sets
+`api_invalid_flag`, because that is the only state in which the client shows its alert
+(`main.decoded.js:102069`). The claim resolves the same thing again inside its transaction
+and refuses if it fails. Taking the equipment deletes the rows directly: it is not 廃棄, so
+nothing is refunded and no `SlotItemScrapped` outcome is emitted.
+
+A conversion whose reward is exactly one piece of equipment does not delete and re-add:
+the flagship's piece becomes the new model under the same instance id, in the same slot.
+The client re-reads equipment after such a claim but not the ship
+(`main.decoded.js:104036`), so a deleted instance would leave its slot pointing nowhere.
+
 ### Quest progress tracking (cross-cutting)
 
 Quest progress SHALL be advanced through `game/quest/observe.rs::observe`, the

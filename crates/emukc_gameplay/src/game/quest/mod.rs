@@ -9,7 +9,8 @@ use emukc_model::{
     codex::{Codex, query::FoundInCodex},
     kc2::KcApiQuestClearItemGet,
     thirdparty::{
-        Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement, reward::get_quest_rewards,
+        Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement, Kc3rdQuestRewardCategory,
+        reward::get_quest_rewards,
     },
 };
 use emukc_time::chrono;
@@ -18,13 +19,15 @@ use update::update_quests_impl;
 use crate::{
     err::GameplayError,
     game::quest::{
-        consume::handle_consumption, consume::handle_module_conversion,
+        consume::handle_consumption,
+        holding::{Holding, Taken},
         record::mark_quest_as_completed,
     },
     gameplay::Ctx,
 };
 
 mod consume;
+pub(crate) mod holding;
 pub(crate) mod observe;
 mod record;
 pub(crate) mod update;
@@ -141,6 +144,7 @@ impl Ctx {
 
         // Validate composition quests
         update::validate_composition_quests(&tx, codex, profile_id).await?;
+        holding::validate_equipment_quests(&tx, codex, profile_id).await?;
         tx.commit().await?;
 
         tx = db.begin().await?;
@@ -212,6 +216,7 @@ impl Ctx {
 
         update_quest_status(&tx, profile_id, quest_id, Status::Activated, Some(codex)).await?;
         update::validate_composition_quests(&tx, codex, profile_id).await?;
+        holding::validate_equipment_quests(&tx, codex, profile_id).await?;
 
         tx.commit().await?;
 
@@ -273,6 +278,25 @@ impl Ctx {
             )));
         }
 
+        // The equipment the quest takes must still be there, whatever the
+        // list said when it was last read.
+        let codex = self.codex.as_ref();
+        let quest_mst = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
+        let snapshot = holding::load_snapshot(&tx, profile_id).await?;
+        let taken = match holding::holding(
+            codex,
+            &snapshot,
+            holding::conditions_of(&quest_mst.requirements),
+        ) {
+            None => Taken::default(),
+            Some(Holding::Held(taken)) => taken,
+            Some(Holding::Missing | Holding::Locked) => {
+                return Err(GameplayError::QuestStatusInvalid(format!(
+                    "quest {quest_id} in profile {profile_id} lacks the equipment it takes"
+                )));
+            }
+        };
+
         // mark as completed
         mark_quest_as_completed(&tx, profile_id, quest_id, quest.period).await?;
 
@@ -286,18 +310,49 @@ impl Ctx {
 
         // reconstruct quest tree
         // this will be called by mainjs, but we do it here to ensure consistency
-        let codex = self.codex.as_ref();
         update_quests_impl(&tx, codex, profile_id).await?;
 
-        let quest_mst = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
         // deduct requirements
         deduct_requirements(&tx, profile_id, quest_mst).await?;
+        // A conversion with one piece of equipment for a reward turns the
+        // flagship's piece into it, at the level it keeps or the reward's own.
+        let converts_to = {
+            let mut rewards = quest_mst
+                .additional_rewards
+                .iter()
+                .filter(|reward| reward.category == Kc3rdQuestRewardCategory::Slotitem);
+            match (rewards.next(), rewards.next()) {
+                (Some(reward), None) if reward.amount == 1 => Some(reward),
+                _ => None,
+            }
+        };
+        let kept_stars = taken.kept_stars.filter(|_| converts_to.is_some());
+        let converted = holding::take(
+            &tx,
+            codex,
+            profile_id,
+            &taken,
+            converts_to.map(|reward| (reward.api_id, kept_stars.unwrap_or(reward.stars))),
+        )
+        .await?;
 
         // claim rewards
-        claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref()).await?;
+        claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref(), converted)
+            .await?;
 
         // get rewards for kcs API response
-        let resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
+        let mut resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
+        if let Some(stars) = kept_stars.filter(|stars| *stars > 0) {
+            let rewards = &quest_mst.additional_rewards;
+            for item in resp.api_bounus.iter_mut().filter_map(|bonus| bonus.api_item.as_mut()) {
+                if rewards.iter().any(|reward| {
+                    reward.category == Kc3rdQuestRewardCategory::Slotitem
+                        && item.api_id == Some(reward.api_id)
+                }) {
+                    item.api_slotitem_level = Some(stars);
+                }
+            }
+        }
 
         tx.commit().await?;
 
@@ -320,14 +375,8 @@ where
     };
 
     for cond in conds {
-        match cond {
-            Kc3rdQuestCondition::ModelConversion(conversion) => {
-                handle_module_conversion(c, profile_id, conversion).await?;
-            }
-            Kc3rdQuestCondition::Consumption(consumption) => {
-                handle_consumption(c, profile_id, consumption).await?;
-            }
-            _ => {}
+        if let Kc3rdQuestCondition::Consumption(consumption) = cond {
+            handle_consumption(c, profile_id, consumption).await?;
         }
     }
 
@@ -340,6 +389,7 @@ async fn claim_rewards<C>(
     profile_id: i64,
     quest_mst: &Kc3rdQuest,
     reward_choices: Option<&[i64]>,
+    converted: bool,
 ) -> Result<(), GameplayError>
 where
     C: ConnectionTrait,
@@ -372,6 +422,10 @@ where
 
     // Process additional rewards
     for reward in &quest_mst.additional_rewards {
+        // The converted piece is this reward already.
+        if converted && reward.category == Kc3rdQuestRewardCategory::Slotitem {
+            continue;
+        }
         apply_single_reward(c, codex, profile_id, reward).await?;
     }
 
@@ -400,7 +454,9 @@ where
             add_material_impl(c, codex, profile_id, &mats).await?;
         }
         Kc3rdQuestRewardCategory::Slotitem => {
-            add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
+            for _ in 0..reward.amount.max(1) {
+                add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
+            }
         }
         Kc3rdQuestRewardCategory::Ship => {
             add_ship_impl(c, codex, profile_id, reward.api_id).await?;

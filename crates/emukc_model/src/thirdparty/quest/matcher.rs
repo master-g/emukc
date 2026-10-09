@@ -485,7 +485,12 @@ fn ship_matches_stype(cond: &Kc3rdQuestConditionShip, codex: Option<&Codex>, sty
     }
 }
 
-fn ship_matches_mst_id(cond: &Kc3rdQuestConditionShip, codex: Option<&Codex>, mst_id: i64) -> bool {
+/// Whether the ship `mst_id` is one the condition names.
+pub fn ship_matches_mst_id(
+    cond: &Kc3rdQuestConditionShip,
+    codex: Option<&Codex>,
+    mst_id: i64,
+) -> bool {
     match cond {
         Kc3rdQuestConditionShip::Any => true,
         Kc3rdQuestConditionShip::Ship(ids) => ids.contains(&mst_id),

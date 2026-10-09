@@ -192,12 +192,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] 分支 `feat/air-corps-fatigue`（未推送）：计划 `2026-10-09-001` 全部实施——中隊疲劳（内部值 0–46、按时间回复、出击扣减）、
-  配置転換计时（母港结算、`api_base_convert_slot` 与解除时的 `api_unset_slot`）。全量测试 1251/0/0，clippy 17，三个无头场景通过。`TODO.md` 已对照代码整理。
+- [2026-10-09] PR #24（航空隊疲劳与配置転換计时）已合并。分支 `feat/quest-equipment-consumption`：计划 `2026-10-09-002` 实施完——
+  任务领奖扣装备、机种转换、`api_invalid_flag`（`game/quest/holding.rs`）。验证结果见该分支提交说明；任务画面没有无头场景。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步候选：任务领奖消耗装备（`TODO.md` 里唯一会改变游戏结果的欠账，要先写计划）；基地防空与空襲（要敌方空襲编成的来源）。
+  下一步候选：基地防空与空襲（要敌方空襲编成的来源）；`TODO.md` 剩下的任务欠账只有 `api_voice_id` 与 `api_c_list`，都不改变游戏结果。

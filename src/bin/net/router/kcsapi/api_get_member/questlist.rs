@@ -78,6 +78,6 @@ fn project_item(item: QuestListItem) -> KcApiQuestItem {
         api_select_rewards: item.select_rewards,
         api_bonus_flag: item.bonus_flag,
         api_progress_flag: item.progress_flag,
-        api_invalid_flag: 0, // TODO(#0): invalid_flag is missing now, (e.g: plane convert)
+        api_invalid_flag: i64::from(item.invalid),
     }
 }

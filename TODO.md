@@ -20,9 +20,9 @@
 ## Code Quality / Tech Debt
 - [x] recalculate quest progress on `start` the quest
 - [ ] quest `api_voice_id` field is missing (`questlist.rs`)
-- [ ] quest `api_invalid_flag` field is missing, e.g. plane convert quests (`questlist.rs`) — belongs with the slotitem consumption below
+- [x] quest `api_invalid_flag`: 1 when a conversion's flagship equipment is locked (`game/quest/holding.rs`)
 - [ ] quest `api_c_list` (composition quest list) not populated (`questlist.rs`)
-- [ ] implement slotitem consumption for quest reward claim (`game/quest/consume.rs`) — the only item here that changes a game outcome: 42 quests hand in equipment and 63 convert a model, and none of them takes anything
+- [x] implement slotitem consumption for quest reward claim (`game/quest/holding.rs`)
 - [x] implement combined fleet handler (`api_req_hensei/combined`)
 - [ ] update quest progress on port entry (`game/view/port.rs`) — probably unnecessary: quests are refreshed when the quest list is read
 - [ ] fix naming confusion in `net/assets/mod.rs`

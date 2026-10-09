@@ -93,4 +93,22 @@ mod tests {
             }
         }
     }
+
+    /// The client re-reads its equipment after a claim only when the answer
+    /// carries a ship, equipment or conversion entry. These quests take
+    /// equipment and give none back, so they answer with 装備消費 (type 16).
+    #[test]
+    fn quests_that_only_take_equipment_answer_with_a_consumption_entry() {
+        let codex = load_codex();
+        for quest_id in [637, 646, 648, 651, 652] {
+            let rewards = get_quest_rewards(&codex, quest_id, None).unwrap();
+            let entry = rewards
+                .api_bounus
+                .iter()
+                .find(|b| b.api_type == 16)
+                .unwrap_or_else(|| panic!("quest {quest_id}: {rewards:?}"));
+            let item = entry.api_item.as_ref().unwrap();
+            assert_eq!((item.api_id_from, item.api_id_to), (Some(9999), Some(9999)));
+        }
+    }
 }
