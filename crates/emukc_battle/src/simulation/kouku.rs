@@ -422,7 +422,6 @@ pub(crate) fn simulate_kouku(
     let mut api_ebak_flag = vec![0i64; enemy.len()];
     let mut api_frai_flag = vec![0i64; friendly.len()];
     let mut api_fbak_flag = vec![0i64; friendly.len()];
-    let mut api_fcl_flag = vec![0i64; friendly.len()];
 
     // Stage 3: Per-slot bombing — split into dive bombing and torpedo bombing phases
     // Each bomber slot independently selects a random alive target.
@@ -454,7 +453,6 @@ pub(crate) fn simulate_kouku(
             rai_flags: &mut api_frai_flag,
         },
     );
-    api_fcl_flag = api_fdam.iter().map(|&d| i64::from(d > 0)).collect();
 
     BattleKouku {
         api_plane_from: [attack_plane_from(codex, friendly), attack_plane_from(codex, enemy)],
@@ -484,8 +482,10 @@ pub(crate) fn simulate_kouku(
             api_erai_flag,
             api_fbak_flag,
             api_ebak_flag,
-            api_fcl_flag,
-            api_ecl_flag: api_edam.iter().map(|dam| i64::from(*dam > 0)).collect(),
+            // The client reads these as the critical flag (hit type = flag + 1).
+            // ponytail: no critical roll yet, so every strike is a plain hit.
+            api_fcl_flag: vec![0; friendly.len()],
+            api_ecl_flag: vec![0; enemy.len()],
             api_fdam: api_fdam.into_iter().map(DamageCell::Plain).collect(),
             api_edam: api_edam.into_iter().map(DamageCell::Plain).collect(),
             api_f_sp_list: vec![None; friendly.len()],

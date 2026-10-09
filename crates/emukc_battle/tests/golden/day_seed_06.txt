@@ -86,8 +86,8 @@ BattlePacket {
                     0,
                 ],
                 api_fcl_flag: [
-                    1,
-                    1,
+                    0,
+                    0,
                 ],
                 api_ecl_flag: [
                     0,
