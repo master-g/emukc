@@ -192,8 +192,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] PR #24（航空隊疲劳与配置転換计时）已合并。分支 `feat/quest-equipment-consumption`：计划 `2026-10-09-002` 实施完——
-  任务领奖扣装备、机种转换、`api_invalid_flag`（`game/quest/holding.rs`）。验证结果见该分支提交说明；任务画面没有无头场景。
+- [2026-10-09] PR #24（航空隊疲劳）、#25（任务领奖扣装备）已合并。分支 `test/headless-quest-claim`：无头场景 `quest_equipment`
+  在任务画面领 614、637、641，通过；没走到上锁提示与领奖后旗舰槽位的显示。
 
 ## Next Session
 

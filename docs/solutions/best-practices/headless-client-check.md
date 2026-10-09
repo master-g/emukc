@@ -76,6 +76,13 @@ screen, pass steps on the command line and read the screenshots:
   `PRESETS` is also battled by the sim gate.
 - A spot tapped while waiting must be harmless on every screen it may land on: a tap meant to
   close the air corps panel, repeated after it closed, chose the map underneath.
+- `quest_equipment` leaves three 工廠 quests ready to claim and claims them from the quest
+  list: 614 (a conversion in place), 637 (equipment taken, none given, answered as 装備消費)
+  and 641 (loose equipment taken). The first click on the list after 大淀 has left does
+  nothing, so the steps spend one on the header; clicks made while she is still on screen are
+  lost too. The 工廠 filter makes no call, while a tab on the left asks for the list again
+  (遂行中任務 answers the three quests). A reward is several screens, so 閉じる is pressed until
+  the client reads the quest list again.
 - That run found the cache list short of `slot/airunit_banner`, `airunit_fairy` and
   `airunit_name`: the list kept one equipment per plane picture (57), but the client loads
   them by the equipment's own id. The list now names every equipment the client's
@@ -88,7 +95,9 @@ screen, pass steps on the command line and read the screenshots:
 - The server holds the redb lock of `z/cache`; stop your own server first.
 - A page error is the only sign of a broken animation. A sprite that is merely wrong shows
   only in a screenshot someone reads.
-- The air corps scenario does not reach `cond_recovery` (nothing tires a squadron) or the
+- The air corps scenario does not reach `cond_recovery` (it has no rest step) or the
   整備Lv screen.
+- The quest scenario does not show a locked piece's warning (`api_invalid_flag`), and it
+  cannot see what the client draws in the flagship's slots after a claim.
 - The entry module id (32875) changes with a client build; `run.py` and
   `client-runtime.ts` say so when their patch no longer matches.
