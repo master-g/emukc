@@ -190,8 +190,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-08] 分支 `feat/air-corps-sortie`（未推送）：计划 `2026-10-08-006` 全部实施——`start_air_base`、基地航空攻击阶段、損失写回、出击消耗；
-  无头场景 `air_corps_6_4` 跑完整一轮（含补给）。清单 143/5。疲劳、配置転換计时、防空与空襲未做，见 `air-corps.md` 的 Known gaps。
+- [2026-10-09] 航空队出击侧（计划 `2026-10-08-006`）已合并进 `main`（PR #22）。合并后重跑无头场景 `fresh_1_1`、`transport_5_6`：
+  均无页面异常、无失败请求、资源报告全空。清单 143/5，剩下 5 个都要活动海域数据。未做项见 `air-corps.md` 的 Known gaps。
 
 ## Next Session
 

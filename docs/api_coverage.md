@@ -41,33 +41,23 @@ Key challenges left:
   (`main-decoder/src/battle-replay.ts`), but have not been played in a browser
   client yet, so the animation layer is unverified.
 
-### `api_req_air_corps/` — Land-Based Air Corps (P1)
+### `api_req_air_corps/` — Land-Based Air Corps (P1) — done 2026-10-08
 
-8 endpoints. Tightly coupled with map/sortie system.
+All ten port-side endpoints (the eight under `api_req_air_corps/` plus
+`base_air_corps` and `airCorpsCondRecoveryWithTimer`) and the sortie side
+(`api_req_map/start_air_base`, the air base attack phase of the day battle,
+losses written back at battle result, sortie cost) are served. Plans:
+`docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md` and
+`docs/plans/2026-10-08-006-feat-air-corps-sortie-plan.md`. An area gets its
+first air corps once any of its unlocked maps declares an airbase — 6-4 and 6-5
+are the only regular ones that do, both in area 6.
 
-- `set_plane` — assign planes to base
-- `change_name` — rename base
-- `change_deployment_base` — move base between map areas
-- `set_action` — set sortie/defense mode
-- `supply` — resupply planes
-- `expand_base` — unlock new base slot
-- `expand_maintenance_level` — upgrade base level
-- `cond_recovery` — recover plane condition
+Still open, listed in `docs/solutions/architecture-patterns/air-corps.md`:
 
-Planned in `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md`, which
-splits the port side (these eight plus `base_air_corps` and
-`airCorpsCondRecoveryWithTimer`) from sortie and battle. The port side is done (2026-10-08):
-all ten endpoints are served, and an area gets its first air corps
-once any of its unlocked maps declares an airbase — 6-4 and 6-5 are the only
-regular ones that do, both in area 6. Nothing costs a squadron aircraft or
-morale yet, so `supply` and `cond_recovery` have nothing to do in play until
-the sortie side exists.
-
-Dependencies:
-- DB entities exist (`entity/profile/airbase/{base,plane}`)
-- Map integration: `api_req_map/start_air_base` (sortie with LBAS)
-- Sortie integration: LBAS strike phase in battle — the plan's closing section
-  explains why it is deliberately deferred (it re-freezes every battle golden)
+- Squadron fatigue and the 12-minute relocation timer — both need a timestamp
+  column, so `cond_recovery` and `airCorpsCondRecoveryWithTimer` have nothing
+  to recover yet
+- Base defence, air raids on the base, jet assault, heavy bombers
 
 ## Scattered Missing Endpoints
 
@@ -121,7 +111,8 @@ Coupled with map/sortie, implement after combined fleet.
 4. `api_req_map/start_air_base` and the air corps attack phase — done 2026-10-08
    (plan `2026-10-08-006`); base defence, air raids on the base, jet assault and
    fatigue are still open
-5. Verify: deploy LBAS → sortie → verify air strike phase
+5. Verify: deploy LBAS → sortie → verify air strike phase — done 2026-10-08,
+   headless scenario `air_corps_6_4`
 
 ### Phase 4: Scattered Endpoints (P2–P3)
 
