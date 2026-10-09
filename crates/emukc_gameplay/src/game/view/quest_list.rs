@@ -6,7 +6,7 @@ use emukc_model::{
     thirdparty::{Kc3rdQuest, Kc3rdQuestPeriod},
 };
 
-use crate::{err::GameplayError, gameplay::Ctx};
+use crate::{err::GameplayError, game::quest::holding::quests_behind_a_lock_impl, gameplay::Ctx};
 
 /// Everything the `questlist` view shows.
 #[derive(Debug)]
@@ -59,6 +59,9 @@ pub struct QuestListItem {
 
     /// Progress bucket, 0 once the quest is ready to claim.
     pub progress_flag: i64,
+
+    /// The quest cannot be handed in: equipment it takes is locked.
+    pub invalid: bool,
 }
 
 impl Ctx {
@@ -77,6 +80,16 @@ impl Ctx {
         let codex = self.codex.as_ref();
 
         let quests = self.get_quest_records(profile_id).await?;
+        let ready: Vec<i64> = quests
+            .iter()
+            .filter(|model| {
+                model.status == progress::Status::Activated
+                    && model.progress == progress::Progress::Completed
+            })
+            .map(|model| model.quest_id)
+            .collect();
+        let behind_a_lock =
+            quests_behind_a_lock_impl(self.db.as_ref(), codex, profile_id, &ready).await?;
 
         let mut completed_kind = 0;
         let mut exec_count = 0;
@@ -140,6 +153,7 @@ impl Ctx {
                     } else {
                         model.progress as i64
                     },
+                    invalid: behind_a_lock.contains(&model.quest_id),
                 })
             })
             .collect();
