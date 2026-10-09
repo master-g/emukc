@@ -20,10 +20,20 @@ struct Resp {
     api_event_object: KcApiEventObject,
     api_parallel_quest_count: i64,
     api_dest_ship_slot: i64,
-    // api_plane_info: Vec<KcApiPlaneInfo>,
+    /// Absent unless a squadron is relocating; the client then clears its list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    api_plane_info: Option<PlaneInfo>,
     // api_furniture_affect_items: Vec<i64>,
     api_c_flags: Vec<i64>,
     api_c_flag2: i64,
+}
+
+/// The air corps part of the port: a live account with one squadron in
+/// 配置転換 sent `{"api_base_convert_slot": [21991]}` and nothing else.
+#[derive(Serialize, Debug)]
+struct PlaneInfo {
+    /// Instance ids of the equipment still relocating.
+    api_base_convert_slot: Vec<i64>,
 }
 
 pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
@@ -62,6 +72,9 @@ fn project(view: PortView) -> Resp {
         api_material: view.materials.into(),
         api_deck_port: view.fleets.into_iter().map(std::convert::Into::into).collect(),
         api_dest_ship_slot: 1,
+        api_plane_info: (!view.relocating_slots.is_empty()).then_some(PlaneInfo {
+            api_base_convert_slot: view.relocating_slots,
+        }),
         api_ndock: view.ndocks.into_iter().map(std::convert::Into::into).collect(),
         api_ship: view.ships,
         api_parallel_quest_count: view.basic.api_max_quests,

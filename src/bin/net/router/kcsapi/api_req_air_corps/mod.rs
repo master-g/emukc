@@ -142,7 +142,25 @@ mod tests {
             "the airbase reaches nowhere once its only squadron left"
         );
 
-        // Reading the airbases settles the relocation and empties the slot.
+        // The slot stays that way through reads of the airbases; once twelve
+        // minutes are up, the port lets the squadron go and the slot empties.
+        let planes = squadrons(&context.state, pid, 1).await;
+        assert_eq!(planes[0].api_state, 2);
+        {
+            use emukc_internal::db::{
+                entity::profile::airbase::plane,
+                sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, IntoActiveModel},
+            };
+            use emukc_internal::time::chrono::{Duration, Utc};
+
+            let db = &*context.state.db;
+            let row = plane::Entity::find_by_id(bomber.api_id).one(db).await.unwrap().unwrap();
+            let mut am = row.into_active_model();
+            am.since = ActiveValue::Set(Some(Utc::now() - Duration::minutes(12)));
+            am.update(db).await.unwrap();
+        }
+        let port = context.state.port_view(pid).await.unwrap();
+        assert!(port.relocating_slots.is_empty());
         let planes = squadrons(&context.state, pid, 1).await;
         assert_eq!(planes[0].api_state, 0);
         assert_eq!(planes[0].api_slotid, 0);

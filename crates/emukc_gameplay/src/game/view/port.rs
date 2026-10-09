@@ -9,6 +9,7 @@ use emukc_model::{
 use crate::{
     err::GameplayError,
     game::{
+        airbase::settle_relocations_impl,
         basic::{find_profile, get_user_basic_impl},
         fleet::get_fleets_impl,
         material::{get_mat_impl, update_materials_impl},
@@ -41,6 +42,9 @@ pub struct PortView {
 
     /// Current combined fleet type.
     pub combined_type: i64,
+
+    /// Equipment of the air corps squadrons still in 配置転換, by instance id.
+    pub relocating_slots: Vec<i64>,
 }
 
 impl Ctx {
@@ -64,6 +68,8 @@ impl Ctx {
 
         // TODO(#0): update quests here
 
+        let relocating_slots = settle_relocations_impl(&tx, profile_id).await?;
+
         let (_, basic) = get_user_basic_impl(&tx, profile_id).await?;
         let materials = get_mat_impl(&tx, profile_id).await?;
         let fleets = get_fleets_impl(&tx, profile_id).await?;
@@ -85,6 +91,7 @@ impl Ctx {
             ships,
             port_bgm_id: game_settings.api_p_bgm_id,
             combined_type: profile.combined_type,
+            relocating_slots,
         })
     }
 }

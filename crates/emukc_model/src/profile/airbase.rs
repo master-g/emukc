@@ -45,6 +45,68 @@ pub fn expanded_info(airbases: &[Airbase]) -> Vec<KcApiAirBaseExpandedInfo> {
     info
 }
 
+/// A squadron's condition on deployment, and where the orders stop restoring it.
+///
+/// Every figure of the condition model below is wikiwiki's 基地航空隊「疲労」and
+/// 「整備Lv強化による効果」, which marks its own values as 推測される値: upstream
+/// publishes none of them and the client only ever sees the three tiers.
+pub const COND_DEPLOYED: i64 = 40;
+
+/// The most a squadron's condition reaches, one point a tick past [`COND_DEPLOYED`].
+pub const COND_MAX: i64 = 46;
+
+/// Seconds between two recoveries of a squadron's condition.
+pub const COND_TICK_SECS: i64 = 180;
+
+/// Condition one sortie costs: both strikes on one cell, or spread over two.
+pub const COND_COST_CONCENTRATED: i64 = 6;
+/// See [`COND_COST_CONCENTRATED`].
+pub const COND_COST_SPREAD: i64 = 8;
+
+/// `api_cond` for an inner condition: 1 untired, 2 orange, 3 red — the only
+/// three values the client's fatigue icon tells apart.
+pub fn cond_tier(condition: i64) -> i64 {
+    match condition {
+        30.. => 1,
+        20..=29 => 2,
+        _ => 3,
+    }
+}
+
+/// Condition a squadron regains each tick under an order, by the area's 整備Lv.
+pub fn recovery_per_tick(action: AirbaseAction, maintenance_level: i64) -> i64 {
+    let by_level: [i64; 4] = match action {
+        AirbaseAction::Attack => [1, 1, 1, 2],
+        AirbaseAction::Defense => [2, 2, 3, 3],
+        AirbaseAction::Evasion => [3, 3, 4, 4],
+        AirbaseAction::Idle => [4, 4, 5, 5],
+        AirbaseAction::Resort => [8, 10, 12, 12],
+    };
+    by_level[maintenance_level.clamp(0, MAINTENANCE_LEVEL_MAX) as usize]
+}
+
+/// A condition after `ticks` recoveries of `rate`: the order restores it up to
+/// [`COND_DEPLOYED`], and from there every tick adds one up to [`COND_MAX`].
+pub fn recovered_condition(condition: i64, rate: i64, ticks: i64) -> i64 {
+    if ticks <= 0 {
+        return condition;
+    }
+    if condition >= COND_DEPLOYED {
+        return (condition + ticks).min(COND_MAX);
+    }
+    let to_deployed = (COND_DEPLOYED - condition + rate - 1) / rate;
+    if ticks < to_deployed {
+        condition + rate * ticks
+    } else {
+        (COND_DEPLOYED + ticks - to_deployed).min(COND_MAX)
+    }
+}
+
+/// Minutes a removed squadron stays in 配置転換, by the area's 整備Lv.
+pub fn relocation_minutes(maintenance_level: i64) -> i64 {
+    [12, 10, 8, 6][maintenance_level.clamp(0, MAINTENANCE_LEVEL_MAX) as usize]
+}
+
 /// Squadron slots every air corps has.
 ///
 /// The client's own limit (`SQUADRON_MAX`, same line), and it draws exactly
@@ -137,7 +199,7 @@ pub struct PlaneInfo {
     /// plane status
     pub state: PlaneState,
 
-    /// plane condition
+    /// plane condition, the inner value (see [`cond_tier`])
     pub condition: i64,
 
     /// plane count
@@ -171,7 +233,7 @@ impl From<PlaneInfo> for KcApiPlaneInfo {
         let assigned = matches!(value.state, PlaneState::Assigned);
 
         Self {
-            api_cond: assigned.then_some(value.condition),
+            api_cond: assigned.then_some(cond_tier(value.condition)),
             api_count: assigned.then_some(value.count),
             api_max_count: assigned.then_some(value.max_count),
             api_slotid: value.slot_id,
@@ -184,6 +246,31 @@ impl From<PlaneInfo> for KcApiPlaneInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The condition model's figures, pinned (wikiwiki, 推測される値).
+    #[test]
+    fn condition_model_is_pinned() {
+        assert_eq!(
+            [cond_tier(46), cond_tier(30), cond_tier(29), cond_tier(20), cond_tier(19)],
+            [1, 1, 2, 2, 3]
+        );
+        assert_eq!(cond_tier(0), 3);
+
+        assert_eq!(recovery_per_tick(AirbaseAction::Attack, 0), 1);
+        assert_eq!(recovery_per_tick(AirbaseAction::Attack, 3), 2);
+        assert_eq!(recovery_per_tick(AirbaseAction::Idle, 2), 5);
+        assert_eq!(recovery_per_tick(AirbaseAction::Resort, 1), 10);
+
+        // 休息 from red: 0 → 40 in five ticks, then one a tick up to 46.
+        assert_eq!(recovered_condition(0, 8, 4), 32);
+        assert_eq!(recovered_condition(0, 8, 5), 40);
+        assert_eq!(recovered_condition(34, 8, 1), 40, "the order stops at 40");
+        assert_eq!(recovered_condition(34, 8, 3), 42);
+        assert_eq!(recovered_condition(40, 1, 100_000), 46);
+        assert_eq!(recovered_condition(12, 4, 0), 12);
+
+        assert_eq!([0, 1, 2, 3].map(relocation_minutes), [12, 10, 8, 6]);
+    }
 
     /// These figures are the client's (see `squadron_capacity`); a silent flip
     /// must fail here rather than in someone's save file.

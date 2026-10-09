@@ -68,7 +68,7 @@
   - [x] `api_req_practice/change_matching_kind` - change matching type
 - [x] **Air Corps System, port side** (`api_req_air_corps/*`)
   - [x] `api_get_member/base_air_corps` - air corps data
-  - [x] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery (answers "nothing recovered" until squadrons tire)
+  - [x] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery with time
   - [x] `api_req_air_corps/set_plane` - assign planes
   - [x] `api_req_air_corps/set_action` - set action (standby/sortie/defense)
   - [x] `api_req_air_corps/supply` - resupply planes

@@ -65,6 +65,9 @@ screen, pass steps on the command line and read the screenshots:
   offers a map whose whole prerequisite chain is cleared, so a preset clears the chain
   rather than unlocking the one map.
 - Animations run in real time: 5-6 with four battles takes about four minutes.
+- What only time or many repetitions would produce is written into the workspace database
+  mid-run: `tire:<n>` sets every squadron's condition, which is how `air_corps_6_4` gets to
+  see the orange fatigue icon after one sortie.
 - A preset need not be about one battle. `air_corps_6_4` opens 中部海域 as far as 6-4 and
   leaves bombers and 設営隊 in the inventory; its steps deploy a squadron, order a sortie, buy
   a second air corps, sortie 6-4 with the air corps pointed at D, fight there and resupply at

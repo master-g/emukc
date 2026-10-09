@@ -43,20 +43,26 @@ pub(crate) fn squadrons_of(
 ) -> Vec<PlaneInfo> {
     (1..=SQUADRON_MAX)
         .map(|squadron_id| {
-            occupied.iter().find(|m| m.squadron_id == squadron_id).map_or_else(
-                || PlaneInfo {
-                    id: profile_id,
-                    area_id,
-                    rid,
-                    slot_id: 0,
-                    squadron_id,
-                    state: PlaneState::Unassigned,
-                    condition: 0,
-                    count: 0,
-                    max_count: 0,
-                },
-                |m| m.clone().into(),
-            )
+            // A slot can hold a squadron still relocating out of it beside the
+            // one that replaced it; the one flying is the one to show.
+            occupied
+                .iter()
+                .filter(|m| m.squadron_id == squadron_id)
+                .min_by_key(|m| m.state != plane::Status::Assigned)
+                .map_or_else(
+                    || PlaneInfo {
+                        id: profile_id,
+                        area_id,
+                        rid,
+                        slot_id: 0,
+                        squadron_id,
+                        state: PlaneState::Unassigned,
+                        condition: 0,
+                        count: 0,
+                        max_count: 0,
+                    },
+                    |m| m.clone().into(),
+                )
         })
         .collect()
 }

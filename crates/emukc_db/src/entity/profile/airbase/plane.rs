@@ -1,6 +1,7 @@
 //! Aircrafts belonging to an airbase.
 #![allow(missing_docs)]
 
+use chrono::{DateTime, Utc};
 use emukc_model::profile::airbase::{PlaneInfo, PlaneState};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
@@ -46,7 +47,7 @@ pub struct Model {
     /// Plane status
     pub state: Status,
 
-    /// Condition
+    /// Condition, the inner 0–46 value; the wire's `api_cond` is derived from it
     pub condition: i64,
 
     /// Plane count
@@ -54,6 +55,10 @@ pub struct Model {
 
     /// Max count
     pub max_count: i64,
+
+    /// When the condition last recovered (assigned), or when the relocation
+    /// began (reassigning)
+    pub since: Option<DateTime<Utc>>,
 }
 
 crate::entity::profile_relation!("Column::ProfileId");
@@ -90,6 +95,7 @@ impl From<PlaneInfo> for ActiveModel {
             condition: ActiveValue::Set(value.condition),
             count: ActiveValue::Set(value.count),
             max_count: ActiveValue::Set(value.max_count),
+            since: ActiveValue::NotSet,
         }
     }
 }

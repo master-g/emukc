@@ -154,6 +154,8 @@ Current verification baseline:
   `SlotItemEffectUtil` 只用来对拍。KC3Kai 与客户端的 82 条差异由手工订正层 `main-decoder/gear-bonus-corrections.json` 补平（多数是拟合出来的）。
   分歧处客户端对：noro6 `kc-web` 的 `ItemBonus.ts` 与 wikiwiki 实测都同客户端（571 ★9 回避 +6 是真的），别因数值大改回 KC3Kai。
   详见 `docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
+- [2026-10-09] 航空隊疲劳数值全部来自 wikiwiki 且该页自标「推測される値」；疲劳不影响战斗。内部值/双行槽位/加列回填的做法见
+  `docs/solutions/architecture-patterns/air-corps.md`「Condition and relocation run on one timestamp」。
 
 ## Failed Attempts / Pitfalls
 
@@ -190,12 +192,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] 航空队出击侧（计划 `2026-10-08-006`）已合并进 `main`（PR #22）。合并后重跑无头场景 `fresh_1_1`、`transport_5_6`：
-  均无页面异常、无失败请求、资源报告全空。清单 143/5，剩下 5 个都要活动海域数据。未做项见 `air-corps.md` 的 Known gaps。
+- [2026-10-09] 分支 `feat/air-corps-fatigue`（未推送）：计划 `2026-10-09-001` 全部实施——中隊疲劳（内部值 0–46、按时间回复、出击扣减）、
+  配置転換计时（母港结算、`api_base_convert_slot`）。全量测试 1250/0/0，clippy 17，`air_corps_6_4` 无头通过。`TODO.md` 已对照代码整理。
 
 ## Next Session
 
 - [2026-10-08] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`（见 `docs/solutions/best-practices/` 下 headless-client-check 与 decoder-first-cachelist-pipeline）。
   改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  下一步候选：航空队的疲劳与配置転換计时（要时间戳列与迁移步骤）；基地防空与空襲（要敌方空襲编成的来源）。
+  下一步候选：任务领奖消耗装备（`TODO.md` 里唯一会改变游戏结果的欠账，要先写计划）；基地防空与空襲（要敌方空襲编成的来源）。
