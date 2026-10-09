@@ -73,6 +73,11 @@ the quest back to 80%. A locked flagship piece leaves it `Completed` and sets
 and refuses if it fails. Taking the equipment deletes the rows directly: it is not 廃棄, so
 nothing is refunded and no `SlotItemScrapped` outcome is emitted.
 
+A conversion whose reward is exactly one piece of equipment does not delete and re-add:
+the flagship's piece becomes the new model under the same instance id, in the same slot.
+The client re-reads equipment after such a claim but not the ship
+(`main.decoded.js:104036`), so a deleted instance would leave its slot pointing nowhere.
+
 ### Quest progress tracking (cross-cutting)
 
 Quest progress SHALL be advanced through `game/quest/observe.rs::observe`, the

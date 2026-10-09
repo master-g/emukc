@@ -314,20 +314,30 @@ impl Ctx {
 
         // deduct requirements
         deduct_requirements(&tx, profile_id, quest_mst).await?;
-        holding::take(&tx, codex, profile_id, &taken).await?;
-
-        // A conversion that keeps the 改修 level hands it to its one reward.
-        let kept_stars = taken.kept_stars.filter(|_| {
-            quest_mst
+        // A conversion with one piece of equipment for a reward turns the
+        // flagship's piece into it, at the level it keeps or the reward's own.
+        let converts_to = {
+            let mut rewards = quest_mst
                 .additional_rewards
                 .iter()
-                .filter(|reward| reward.category == Kc3rdQuestRewardCategory::Slotitem)
-                .count()
-                == 1
-        });
+                .filter(|reward| reward.category == Kc3rdQuestRewardCategory::Slotitem);
+            match (rewards.next(), rewards.next()) {
+                (Some(reward), None) if reward.amount == 1 => Some(reward),
+                _ => None,
+            }
+        };
+        let kept_stars = taken.kept_stars.filter(|_| converts_to.is_some());
+        let converted = holding::take(
+            &tx,
+            codex,
+            profile_id,
+            &taken,
+            converts_to.map(|reward| (reward.api_id, kept_stars.unwrap_or(reward.stars))),
+        )
+        .await?;
 
         // claim rewards
-        claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref(), kept_stars)
+        claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref(), converted)
             .await?;
 
         // get rewards for kcs API response
@@ -379,7 +389,7 @@ async fn claim_rewards<C>(
     profile_id: i64,
     quest_mst: &Kc3rdQuest,
     reward_choices: Option<&[i64]>,
-    kept_stars: Option<i64>,
+    converted: bool,
 ) -> Result<(), GameplayError>
 where
     C: ConnectionTrait,
@@ -412,16 +422,11 @@ where
 
     // Process additional rewards
     for reward in &quest_mst.additional_rewards {
-        match kept_stars {
-            Some(stars) if reward.category == Kc3rdQuestRewardCategory::Slotitem => {
-                let reward = emukc_model::thirdparty::Kc3rdQuestReward {
-                    stars,
-                    ..reward.clone()
-                };
-                apply_single_reward(c, codex, profile_id, &reward).await?;
-            }
-            _ => apply_single_reward(c, codex, profile_id, reward).await?,
+        // The converted piece is this reward already.
+        if converted && reward.category == Kc3rdQuestRewardCategory::Slotitem {
+            continue;
         }
+        apply_single_reward(c, codex, profile_id, reward).await?;
     }
 
     Ok(())

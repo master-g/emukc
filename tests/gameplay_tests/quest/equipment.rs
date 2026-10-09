@@ -4,7 +4,7 @@
 //! - 641 「航空基地設営」事前準備 — scrap ドラム缶 x2, hold 7.7mm機銃 (37) x2
 //!   and 九六式艦戦 (19) x2; rewards 設営隊 x2 and equipment 168.
 //! - 614 機種転換 — a carrier flagship carrying 九七式艦攻(友永隊) (93), scrap
-//!   two of equipment 17; the 93 becomes 94 and keeps its 改修 level.
+//!   two of equipment 17; the 93 becomes 94 in its slot and keeps its 改修 level.
 
 #[cfg(test)]
 mod tests {
@@ -114,11 +114,12 @@ mod tests {
             "the answer names the kept level: {reward:?}"
         );
 
+        // The piece itself turns into the new model, where it sits.
         let left = held(&context, pid).await;
         assert!(!left.iter().any(|i| i.api_slotitem_id == 93));
         let converted = left.iter().find(|i| i.api_slotitem_id == 94).expect("the new model");
-        assert_eq!(converted.api_level, 4);
+        assert_eq!((converted.api_id, converted.api_level), (tomonaga, 4));
         let ship = context.find_ship(carrier).await.unwrap().unwrap();
-        assert!(!ship.api_slot.contains(&tomonaga), "the ship no longer carries it");
+        assert!(ship.api_slot.contains(&tomonaga), "the ship still carries it");
     }
 }

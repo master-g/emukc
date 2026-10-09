@@ -17,6 +17,7 @@ use emukc_db::{
 };
 use emukc_model::{
     codex::Codex,
+    kc2::start2::ApiMstSlotitem,
     thirdparty::{
         Kc3rdQuestCondition, Kc3rdQuestConditionConsumption, Kc3rdQuestConditionSlotItem,
         Kc3rdQuestConditionSlotItemType, Kc3rdQuestRequirement, matcher::ship_matches_mst_id,
@@ -27,6 +28,7 @@ use crate::{
     err::GameplayError,
     game::{
         fleet::find_fleet,
+        picturebook::add_slot_item_to_picturebook_impl,
         ship::recalculate_ship_status_with_model,
         slot_item::{find_slot_items_by_id_impl, get_unset_slot_items_impl},
     },
@@ -283,15 +285,38 @@ fn names_equipment(condition: &Kc3rdQuestCondition) -> bool {
 
 /// Take the equipment away. Nothing is refunded and nothing counts as scrapped:
 /// handing equipment to a quest is not 廃棄.
+///
+/// With `convert_to` (a model and its 改修 level), the first piece taken from
+/// the flagship is not removed but becomes that model where it sits. The client
+/// re-reads equipment after a conversion and not the ship
+/// (`main.decoded.js:104036`), so the instance must survive in its slot.
+/// Returns whether a piece was converted.
 pub(super) async fn take<C>(
     c: &C,
     codex: &Codex,
     profile_id: i64,
     taken: &Taken,
-) -> Result<(), GameplayError>
+    convert_to: Option<(i64, i64)>,
+) -> Result<bool, GameplayError>
 where
     C: ConnectionTrait,
 {
+    let converted = convert_to.zip(taken.equipped.first().copied());
+    if let Some(((mst_id, stars), item_id)) = converted {
+        let mst = codex.find::<ApiMstSlotitem>(&mst_id)?;
+        let mut am = slot_item::ActiveModel {
+            id: ActiveValue::Unchanged(item_id),
+            ..Default::default()
+        };
+        am.mst_id = ActiveValue::Set(mst_id);
+        am.type3 = ActiveValue::Set(mst.api_type[2]);
+        am.level = ActiveValue::Set(stars);
+        am.aircraft_lv = ActiveValue::Set(0);
+        am.update(c).await?;
+        add_slot_item_to_picturebook_impl(c, profile_id, mst.api_sortno).await?;
+    }
+    let gone = |id: &i64| converted.is_none_or(|(_, kept)| kept != *id);
+
     if !taken.equipped.is_empty() {
         let flagship_id = find_fleet(c, profile_id, 1).await?.ship_1;
         let mut ship = ship::Entity::find_by_id(flagship_id).one(c).await?.ok_or_else(|| {
@@ -305,14 +330,14 @@ where
             &mut ship.slot_5,
             &mut ship.slot_ex,
         ] {
-            if taken.equipped.contains(slot) {
+            if taken.equipped.contains(slot) && gone(slot) {
                 *slot = -1;
             }
         }
         recalculate_ship_status_with_model(c, codex, &ship).await?.update(c).await?;
     }
 
-    let ids: Vec<i64> = taken.equipped.iter().chain(&taken.loose).copied().collect();
+    let ids: Vec<i64> = taken.equipped.iter().chain(&taken.loose).copied().filter(gone).collect();
     if !ids.is_empty() {
         slot_item::Entity::delete_many()
             .filter(slot_item::Column::ProfileId.eq(profile_id))
@@ -321,7 +346,7 @@ where
             .await?;
     }
 
-    Ok(())
+    Ok(converted.is_some())
 }
 
 /// Of `quest_ids`, the ones whose equipment is all there with a locked piece on
