@@ -546,7 +546,8 @@ impl Ctx {
                     }
                 }
                 // A map without raids asks nothing more here, not even a random number.
-                let destruction_battle = if stage.air_raid_fleets.is_empty()
+                let destruction_battle = if (stage.air_raid_fleets.is_empty()
+                    && stage.last_bar_air_raid_fleets.is_empty())
                     || active.raided
                     || !matches!(next.event_id, 4 | 5)
                 {
@@ -562,8 +563,16 @@ impl Ctx {
                         && (next.cell_no == stage.boss_cell_no
                             || ProductionRng.roll_range(0, 2) == 0);
                     if due {
+                        // Against the last bar the raid is that bar's own, where it has one.
+                        let last_bar = required == Some(sunk + 1)
+                            && !stage.last_bar_air_raid_fleets.is_empty();
+                        let fleets = if last_bar {
+                            &stage.last_bar_air_raid_fleets
+                        } else {
+                            &stage.air_raid_fleets
+                        };
                         let raid =
-                            air_raid_impl(&tx, codex, profile_id, active.map_id, stage).await?;
+                            air_raid_impl(&tx, codex, profile_id, active.map_id, fleets).await?;
                         if let Some(mut state) = store.get_active(profile_id) {
                             state.raided = true;
                             let _ = store.insert_active(profile_id, state);
@@ -1051,19 +1060,19 @@ impl Ctx {
 // map that has raids.
 const RAIDS_FROM_BOSS_KILLS: i64 = 2;
 
-/// Fly one of the stage's raids on the map area's air corps and take what it cost.
+/// Fly one of `fleets` against the map area's air corps and take what it cost.
 async fn air_raid_impl<C>(
     c: &C,
     codex: &Codex,
     profile_id: i64,
     map_id: i64,
-    stage: &MapStageDefinition,
+    fleets: &[EnemyComposition],
 ) -> Result<BattleAirRaid, GameplayError>
 where
     C: ConnectionTrait,
 {
     let fleet = emukc_model::codex::map::EnemyFleetDefinition {
-        compositions: stage.air_raid_fleets.clone(),
+        compositions: fleets.to_vec(),
         ..Default::default()
     };
     let composition =

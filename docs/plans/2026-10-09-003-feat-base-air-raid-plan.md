@@ -81,8 +81,7 @@ Known gaps）。
 
 ## Scope
 
-范围外：噴式强袭、超重爆迎击（`api_req_map/air_raid`）、活动图、高高度迎击补正、防空带来的疲劳（出处没写）、
-按血条阶段区分编成。
+范围外：噴式强袭、超重爆迎击（`api_req_map/air_raid`）、活动图、高高度迎击补正、防空带来的疲劳（出处没写）。
 
 ## Implementation Units
 
@@ -115,6 +114,11 @@ Known gaps）。
 - 真实客户端：`make headless-check SCENARIO=air_raid_6_5` 通过两次，空袭一次出现在 C 格、一次出现在 Boss 格，
   之后出击照常进行，没有页面错误，没有缺失资源。截图只拍到空袭战斗的开场，结语画面没有拍到。
 - 没有走到的：没有防空航空队时的演出（场景里总有一队防空）、三种结语各自的画面。
+
+按血条阶段区分（用户 2026-10-09 同意后补做，推翻 Decision 里「不按血条阶段分」）：同步对 `nodes/AB` 多取一次、限定
+`minGaugeLevel=1&maxGaugeLevel=1`；归一化把这次返回的编成从整条血条的列表里拿出来，单独放在 `AB:last` 节点；图变体多一个
+`last_bar_air_raid_fleets`，再击沉一次就破坏血条时从它里面取。6-5 为此又发了一次请求，结果是最后一格只有模式 3，
+其余各格是模式 1 与 2。
 
 ## Stop Conditions
 

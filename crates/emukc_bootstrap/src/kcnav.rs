@@ -119,8 +119,21 @@ pub fn kcnav_query(meta: &Value) -> Result<String, String> {
 /// `KCNav`'s name for the air base, a node no edge leads to: the fleets met there are the ones
 /// that raid it.
 pub const AIR_BASE_NODE: &str = "AB";
+/// Our own label for the fleets that raid the air base while the gauge stands at its last bar.
+pub const AIR_BASE_LAST_BAR_NODE: &str = "AB:last";
 
-/// The requests for one map: its route document, two per battle edge, then the air base's raiders.
+/// `query` narrowed to sorties made against the last bar of the gauge.
+fn last_bar_query(query: &str) -> String {
+    query
+        .split('&')
+        .filter(|pair| !pair.starts_with("minGaugeLevel=") && !pair.starts_with("maxGaugeLevel="))
+        .chain(["minGaugeLevel=1", "maxGaugeLevel=1"])
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+/// The requests for one map: its route document, two per battle edge, then the air base's
+/// raiders, over the whole gauge and against its last bar.
 fn map_jobs(dir: &Path, map: &str, edges: &BTreeSet<i64>, query: &str) -> Vec<(String, PathBuf)> {
     let base = format!("{KCNAV_API_ROOT}/maps/{map}");
     let dir = dir.join(map);
@@ -136,6 +149,10 @@ fn map_jobs(dir: &Path, map: &str, edges: &BTreeSet<i64>, query: &str) -> Vec<(S
     jobs.push((
         format!("{base}/nodes/{AIR_BASE_NODE}/enemycomps?{query}"),
         dir.join(format!("node_{AIR_BASE_NODE}_enemycomps.json")),
+    ));
+    jobs.push((
+        format!("{base}/nodes/{AIR_BASE_NODE}/enemycomps?{}", last_bar_query(query)),
+        dir.join(format!("node_{AIR_BASE_NODE}_last_enemycomps.json")),
     ));
     jobs
 }
@@ -423,8 +440,12 @@ pub fn normalize_kcnav(dir: impl AsRef<Path>) -> Result<KcnavCatalog, String> {
         let mut nodes = BTreeMap::<String, KcnavNode>::new();
         for path in list(&map_dir)? {
             let name = path.file_stem().unwrap_or_default().to_string_lossy().into_owned();
-            if name == format!("node_{AIR_BASE_NODE}_enemycomps") {
-                add_fleets(nodes.entry(AIR_BASE_NODE.to_owned()).or_default(), &read_json(&path)?)
+            let raided = [
+                (format!("node_{AIR_BASE_NODE}_enemycomps"), AIR_BASE_NODE),
+                (format!("node_{AIR_BASE_NODE}_last_enemycomps"), AIR_BASE_LAST_BAR_NODE),
+            ];
+            if let Some((_, label)) = raided.iter().find(|(file, _)| *file == name) {
+                add_fleets(nodes.entry((*label).to_owned()).or_default(), &read_json(&path)?)
                     .map_err(|err| format!("{}: {err}", path.display()))?;
                 continue;
             }
@@ -455,6 +476,13 @@ pub fn normalize_kcnav(dir: impl AsRef<Path>) -> Result<KcnavCatalog, String> {
             node.fleets.sort_by(|a, b| {
                 (-a.weight, &a.ship_ids, a.formation).cmp(&(-b.weight, &b.ship_ids, b.formation))
             });
+        }
+        // A fleet met against the last bar is kept there alone: the whole-gauge answer counts
+        // it too, and it is the last bar's by being seen there, not by what sails in it.
+        if let Some(last) = nodes.get(AIR_BASE_LAST_BAR_NODE).map(|node| node.fleets.clone())
+            && let Some(all) = nodes.get_mut(AIR_BASE_NODE)
+        {
+            all.fleets.retain(|fleet| !last.iter().any(|seen| seen.ship_ids == fleet.ship_ids));
         }
         nodes.retain(|_, node| node.drop_samples > 0 || !node.fleets.is_empty());
         maps.insert(map, nodes);
@@ -782,7 +810,7 @@ pub fn kcnav_enemy_fleets(
                 if compositions.is_empty() {
                     continue;
                 }
-                if label == AIR_BASE_NODE {
+                if label == AIR_BASE_NODE || label == AIR_BASE_LAST_BAR_NODE {
                     rows.insert(
                         label.clone(),
                         EnemyNodeRows {
@@ -819,7 +847,8 @@ pub fn kcnav_enemy_fleets(
     KcnavEnemyFleetsAsset {
         note: format!(
             "Enemy fleets of the regular maps, keyed by map id, variant key and node label; the \
-             node AB holds the fleets that raid the air base. {}",
+             node AB holds the fleets that raid the air base and AB:last the ones that come against \
+             the gauge's last bar. {}",
             kcnav.note
         ),
         maps,
@@ -850,7 +879,15 @@ mod tests {
     fn kcnav_jobs_ask_for_the_route_then_both_kinds_per_edge() {
         let jobs = map_jobs(Path::new("raw"), "1-1", &BTreeSet::from([2, 3]), "a=1");
         let urls = jobs.iter().map(|(url, _)| url.as_str()).collect::<Vec<_>>();
-        assert_eq!(urls.len(), 6);
+        assert_eq!(urls.len(), 7);
+        assert_eq!(
+            urls[6],
+            "https://tsunkit.net/api/routing/maps/1-1/nodes/AB/enemycomps?a=1&minGaugeLevel=1&maxGaugeLevel=1"
+        );
+        assert_eq!(
+            last_bar_query("a=1&maxGaugeLevel=9&minGaugeLevel=0&z=2"),
+            "a=1&z=2&minGaugeLevel=1&maxGaugeLevel=1"
+        );
         assert_eq!(urls[5], "https://tsunkit.net/api/routing/maps/1-1/nodes/AB/enemycomps?a=1");
         assert_eq!(jobs[5].1, Path::new("raw/1-1/node_AB_enemycomps.json"));
         assert_eq!(urls[0], "https://tsunkit.net/api/routing/maps/1-1");
@@ -919,11 +956,17 @@ mod tests {
     #[test]
     fn kcnav_keeps_the_fleets_that_raid_the_air_base() {
         let kcnav = normalize_kcnav(FIXTURES).unwrap();
-        assert_eq!(kcnav.maps["1-1"][AIR_BASE_NODE].fleets.len(), 3);
+        // The fixture's last bar saw one of the three fleets; it is that bar's alone.
+        let fleets = |label: &str| {
+            kcnav.maps["1-1"][label].fleets.iter().map(|f| f.ship_ids.clone()).collect::<Vec<_>>()
+        };
+        assert_eq!(fleets(AIR_BASE_NODE), vec![vec![1501, 1501], vec![1503, 1503]]);
+        assert_eq!(fleets(AIR_BASE_LAST_BAR_NODE), vec![vec![1502, 1502]]);
 
         let catalog = catalog_with(vec![(2, "B", (4, 4, 1))], 0);
         let asset = kcnav_enemy_fleets(&kcnav, &catalog, |_| true);
-        assert_eq!(asset.maps[&11][""][AIR_BASE_NODE].compositions.len(), 3);
+        assert_eq!(asset.maps[&11][""][AIR_BASE_NODE].compositions.len(), 2);
+        assert_eq!(asset.maps[&11][""][AIR_BASE_LAST_BAR_NODE].compositions.len(), 1);
     }
 
     #[test]

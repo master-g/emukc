@@ -322,6 +322,23 @@ mod tests {
         assert_eq!((14..18).contains(&left), ground_loss, "{left} of 18 left");
     }
 
+    /// 6-5's strongest raid, 空母棲姫 with two 空母ヲ級, comes against the last bar and only then.
+    #[tokio::test]
+    async fn the_last_bar_brings_its_own_raid() {
+        const LAST_BAR: [i64; 6] = [1586, 1615, 1615, 1592, 1578, 1578];
+        let context = crate::TestContext::new().await;
+
+        let (pid, _) = raided_profile(&context, "airbase-raid-last", 5).await;
+        let raid = first_raid(&context, pid, 40).await.expect("a raid within forty sorties");
+        assert_eq!(raid.api_ship_ke, LAST_BAR);
+
+        let (pid, _) = raided_profile(&context, "airbase-raid-early", 4).await;
+        for _ in 0..6 {
+            let raid = first_raid(&context, pid, 40).await.expect("a raid within forty sorties");
+            assert_ne!(raid.api_ship_ke, LAST_BAR);
+        }
+    }
+
     #[tokio::test]
     async fn no_raid_comes_before_the_boss_was_sunk_twice() {
         let context = crate::TestContext::new().await;

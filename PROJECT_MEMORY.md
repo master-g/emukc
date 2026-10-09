@@ -194,11 +194,11 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-09] PR #26（任务画面无头场景）已合并。分支 `feat/base-air-raid`：计划 `2026-10-09-003` 实施完——6-5 的基地空袭与防空，
-  无头场景 `air_raid_6_5` 通过。发生规则是自定的，三种编成不分血条阶段（见 `air-corps.md` 的 Known gaps）。
+  无头场景 `air_raid_6_5` 通过。发生规则是自定的（见 `air-corps.md`）。
 
 ## Next Session
 
 - [2026-10-09] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  候选：空袭编成按血条阶段区分（KCNav 可按 `minGaugeLevel`/`maxGaugeLevel` 查）；任务的 `api_voice_id` 与 `api_c_list`。
+  候选：航空攻击的命中判定（现在每次都命中，6-5 空袭把基地打到只剩 1）；任务的 `api_voice_id` 与 `api_c_list`。

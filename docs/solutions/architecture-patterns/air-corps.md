@@ -112,6 +112,12 @@ air state, not the anti-air fire.
 `air_raid_fleets`, and a map with none asks nothing more of `next_sortie`, not even a random
 number.
 
+The raids against the gauge's last bar are kept apart (`last_bar_air_raid_fleets`): 6-5 sends
+its strongest fleet then and never before. Which fleets those are is asked of KCNav, not read
+off their ships: the same node queried with `minGaugeLevel=1&maxGaugeLevel=1`, and whatever
+answers is taken out of the whole-gauge list. Two groups are all 6-5 has; a map whose raids
+change bar by bar would need the query per bar.
+
 When it comes is a rule of ours (`RAIDS_FROM_BOSS_KILLS` and the lines under it in
 `sortie/mod.rs`): the boss sunk twice and the gauge unbroken, half the time on reaching a
 battle cell, for certain on the boss cell, once a sortie. Upstream publishes only "random,
@@ -133,8 +139,6 @@ place in the area as a string.
 
 ## Known gaps
 
-- The three raiding fleets of 6-5 are drawn by how often each was seen, whatever the gauge
-  shows. Upstream the strongest comes only against the last bar and never before it.
 - A raid always costs stores when it does damage; upstream that is random at a rate nobody
   published. Defending does not tire a squadron (no source says it does), 改修 and 熟練度 add
   nothing to the defenders' fighter power, and the high-altitude modifier is left out.

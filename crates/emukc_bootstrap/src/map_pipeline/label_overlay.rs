@@ -107,6 +107,10 @@ pub fn merge_label_overlay(
             kcdata_variant.air_raid_fleets.clone_from(&node.compositions);
             continue;
         }
+        if label == crate::kcnav::AIR_BASE_LAST_BAR_NODE {
+            kcdata_variant.last_bar_air_raid_fleets.clone_from(&node.compositions);
+            continue;
+        }
         let Some(cell_nos) = label_index.get(label) else {
             tracing::warn!(label = %label, "overlay enemy fleet dropped: label not in kcdata index");
             dropped += 1;

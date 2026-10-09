@@ -277,6 +277,7 @@ fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
                 routing_rules: Default::default(),
                 enemy_fleets: Default::default(),
                 air_raid_fleets: Vec::new(),
+                last_bar_air_raid_fleets: Vec::new(),
                 ship_drops: Default::default(),
                 required_defeat_count: None,
                 clear_to_variant_key: None,
