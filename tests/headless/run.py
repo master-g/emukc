@@ -97,6 +97,33 @@ def check_air_corps_6_4(work: Path) -> list[str]:
     return problems
 
 
+def check_quest_equipment(work: Path) -> list[str]:
+    problems = []
+    calls = [dump.name.split("_", 1)[1].removesuffix(".json") for dump in sorted((work / "api").glob("*.json"))]
+    claims = [claim["api_bounus"] for claim in responses(work, "api_req_quest/clearitemget")]
+    if len(claims) != 3:
+        return [f"three quests should be claimed, not {len(claims)}"]
+    turned = claims[0][0]
+    if (turned["api_type"], turned["api_item"].get("api_id_to"), turned["api_item"].get("api_slotitem_level")) != (15, 94, 10):
+        problems.append(f"614 should turn the piece into 94 at its ten stars; it answered {turned}")
+    taken = claims[1][-1]
+    if (taken["api_type"], taken["api_item"].get("api_id_from")) != (16, 9999):
+        problems.append(f"637 should answer a consumption entry; it answered {taken}")
+    # The client reads its equipment again after every one of the three.
+    after = [calls[at + 1 :][: calls[at + 1 :].index("api_get_member.questlist")] for at, call in enumerate(calls) if call == "api_req_quest.clearitemget"]
+    if not all("api_get_member.slot_item" in reads and "api_get_member.unsetslot" in reads for reads in after):
+        problems.append(f"the client should read its equipment again after each claim; it read {after}")
+    held = sorted((item["api_slotitem_id"], item["api_level"]) for item in responses(work, "api_get_member/slot_item")[-1])
+    kept = [item for item in held if item[0] in (93, 94, 19, 37, 168)]
+    if kept != [(94, 10), (168, 0)]:
+        problems.append(f"only the converted piece and the reward should be left of the quests' equipment, not {kept}")
+    flagship = responses(work, "api_port/port")[-1]["api_ship"][0]
+    carried = [slot for slot in flagship["api_slot"] if slot > 0]
+    if len(carried) != 1:
+        problems.append(f"the flagship should carry the converted piece alone, not {carried}")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -119,6 +146,19 @@ SCENARIOS = {
         "u:600,400;770,365:api_port/port w:6 tire:22 c:295,400 w:3 u:345,450:api_get_member/mapinfo w:4 c:800,680 w:4 "
         "c:720,182 w:5 s:home c:1030,382 w:4 u:1055,608:api_req_air_corps/supply w:5 s:supplied",
         check_air_corps_6_4,
+    ),
+    # The quest list, its 工廠 filter, and three quests claimed from the second row: 614 turns the
+    # flagship's piece into another, 637 takes one from her and gives none back, 641 takes loose
+    # ones. The first click on the list after 大淀 leaves does nothing, so one is spent on the header.
+    "quest_equipment": (
+        "api:api_world/get_worldinfo u:310,85:api_start2/get_option_setting u:910,605:api_port/port w:6 "
+        "u:825,75:api_get_member/questlist w:15 c:500,125 w:3 c:1040,130 w:4 s:list "
+        + " ".join(
+            f"u:500,307:api_req_quest/clearitemget w:4 s:reward{n} c:600,605 w:5 s:after{n} u:600,605:api_get_member/questlist w:4"
+            for n in (1, 2, 3)
+        )
+        + " s:claimed u:125,690:api_port/port w:5 s:port",
+        check_quest_equipment,
     ),
 }
 

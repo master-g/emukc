@@ -47,6 +47,8 @@ pub struct ShipSpec {
     /// Modernise firepower, torpedo, anti-air and armour to the ship's maximum
     /// (`api_kyouka[0..4]`). Off by default: a freshly added ship has none.
     pub fully_modernised: bool,
+    /// Carry every piece at 改修 max and 熟練度 max.
+    pub slots_maxed: bool,
 }
 
 impl ShipSpec {
@@ -61,6 +63,7 @@ impl ShipSpec {
             slots: Vec::new(),
             asw_mod: None,
             fully_modernised: false,
+            slots_maxed: false,
         }
     }
 
@@ -75,6 +78,13 @@ impl ShipSpec {
     #[must_use]
     pub fn with_slots(mut self, slots: impl IntoIterator<Item = i64>) -> Self {
         self.slots = slots.into_iter().collect();
+        self
+    }
+
+    /// Carry every piece at 改修 max and 熟練度 max (builder style).
+    #[must_use]
+    pub fn with_slots_maxed(mut self) -> Self {
+        self.slots_maxed = true;
         self
     }
 
@@ -109,6 +119,10 @@ pub struct Scenario {
     pub spare_items: Vec<i64>,
     /// Use items to add, as `(master id, count)`.
     pub use_items: Vec<(i64, i64)>,
+    /// Quests taken, in progress.
+    pub quests: Vec<i64>,
+    /// Equipment scrapped once the quests are taken, by master id.
+    pub scrapped: Vec<i64>,
 }
 
 impl Scenario {
@@ -121,6 +135,8 @@ impl Scenario {
             clear_maps: vec![],
             spare_items: vec![],
             use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
         }
     }
 
@@ -150,6 +166,8 @@ impl Scenario {
             clear_maps: vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34, 41, 42],
             spare_items: vec![],
             use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
         }
     }
 
@@ -182,6 +200,8 @@ impl Scenario {
             clear_maps: vec![11, 12, 13, 14],
             spare_items: vec![],
             use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
         }
     }
 
@@ -203,6 +223,8 @@ impl Scenario {
             clear_maps: vec![11, 12, 13, 14],
             spare_items: vec![],
             use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
         }
     }
 
@@ -216,6 +238,8 @@ impl Scenario {
             clear_maps: vec![11, 12, 13, 14],
             spare_items: vec![],
             use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
         }
     }
 
@@ -235,6 +259,8 @@ impl Scenario {
             ],
             spare_items: vec![],
             use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
         }
     }
 }
@@ -252,6 +278,28 @@ impl Scenario {
     }
 }
 
+impl Scenario {
+    /// Three factory quests ready to claim, each taking equipment its own way: 614 turns the
+    /// flagship's 九七式艦攻(友永隊) into 天山(友永隊) where it sits, 637 takes her 九六式艦戦
+    /// and two 勲章 and gives no equipment back, 641 takes four loose pieces.
+    pub fn quest_equipment() -> Self {
+        Self {
+            fleet: vec![
+                ShipSpec::new(HOUSHOU_MST_ID, 99).with_slots([93, 19]).with_slots_maxed(),
+                ShipSpec::new(951, 99),
+            ],
+            materials: default_materials(),
+            spare_items: vec![37, 37, 19, 19],
+            use_items: vec![(57, 2)],
+            quests: vec![614, 637, 641],
+            scrapped: vec![17, 17, DRUM_CANISTER, DRUM_CANISTER],
+            ..Self::default()
+        }
+    }
+}
+
+/// 鳳翔.
+const HOUSHOU_MST_ID: i64 = 89;
 /// 一式陸攻.
 const LAND_ATTACKER_MST_ID: i64 = 169;
 /// ドラム缶(輸送用), 5 transport points each.
@@ -375,6 +423,14 @@ pub const PRESETS: &[Preset] = &[
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
     },
+    // The quest screen is what this is for; the battle target is only 1-1.
+    Preset {
+        name: "quest_equipment",
+        build: Scenario::quest_equipment,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
 ];
 
 fn default_materials() -> Vec<(MaterialCategory, i64)> {
@@ -423,7 +479,12 @@ pub async fn apply_scenario(
         for (slot_idx, mst_id) in
             spec.slots.iter().copied().take(slot_count).enumerate().filter(|(_, id)| *id > 0)
         {
-            let item = ctx.add_slot_item(profile_id, mst_id, 0, 0).await?;
+            let (stars, skill) = if spec.slots_maxed {
+                (10, 7)
+            } else {
+                (0, 0)
+            };
+            let item = ctx.add_slot_item(profile_id, mst_id, stars, skill).await?;
             ctx.set_slot_item(ship.api_id, slot_idx as i64, item.api_id).await?;
             equipped_any = true;
         }
@@ -468,6 +529,17 @@ pub async fn apply_scenario(
     }
     for &(mst_id, count) in &scenario.use_items {
         ctx.add_use_item(profile_id, mst_id, count).await?;
+    }
+    for &quest_id in &scenario.quests {
+        ctx.quest_add(profile_id, quest_id).await?;
+        ctx.quest_start(profile_id, quest_id).await?;
+    }
+    let mut scrapped = Vec::with_capacity(scenario.scrapped.len());
+    for &mst_id in &scenario.scrapped {
+        scrapped.push(ctx.add_slot_item(profile_id, mst_id, 0, 0).await?.api_id);
+    }
+    if !scrapped.is_empty() {
+        ctx.destroy_items(profile_id, &scrapped).await?;
     }
 
     Ok(ship_ids)
