@@ -39,7 +39,8 @@
   - [x] Non-battle node effects: resource acquisition, maelstrom (渦潮) with radar reduction
   - [x] Battle damage persistence: ship HP updated after battle result
   - [x] Sortie resource consumption: fuel/ammo per battle node
-  - [ ] `api_req_map/air_raid` - air raid on base
+  - [x] air raid on the air base during a sortie (`api_destruction_battle` in `api_req_map/next`; 6-5 only)
+  - [ ] `api_req_map/air_raid` - 超重爆迎撃, event maps only
   - [ ] `api_req_map/anchorage_repair` - anchorage repair
   - [x] `api_req_map/start_air_base` - air base sortie
 - [ ] **Battle System** (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_combined_battle/*`)

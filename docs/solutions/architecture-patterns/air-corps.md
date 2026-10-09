@@ -105,15 +105,47 @@ rolls, contact, per-equipment bonuses) should be done for both air battles toget
 A corps of bombers without fighters loses heavily to an enemy with aircraft: that is the
 air state, not the anti-air fire.
 
+## The raid on the air base
+
+6-5 is the only regular map whose sortie brings one. Its raiders come from KCNav's node `AB`
+(`maps/{map}/nodes/AB/enemycomps`), a node no edge enters; a map variant carries them as
+`air_raid_fleets`, and a map with none asks nothing more of `next_sortie`, not even a random
+number.
+
+When it comes is a rule of ours (`RAIDS_FROM_BOSS_KILLS` and the lines under it in
+`sortie/mod.rs`): the boss sunk twice and the gauge unbroken, half the time on reaching a
+battle cell, for certain on the boss cell, once a sortie. Upstream publishes only "random,
+likelier further in"; KCNav has no raid before the gauge is down two of six and none after it
+is broken, which is where the two came from.
+
+The battle itself has a source: `simLBRaid` in `kancolle-replay`'s `kcsim.js`, in
+`emukc_battle::simulation::air_raid` — the defenders' fighter power (a land fighter adds its
+interception and twice its anti-bomber figure, the best reconnaissance aircraft multiplies the
+corps), the share of each raiding slot shot down, and bases of 200 that keep their last point.
+What it costs follows wikiwiki (`settle_air_raid_impl`): fuel or bauxite for nine tenths of the
+damage, and 1 to 4 aircraft off the first squadrons of a base that took 50 or more, unless it
+was ordered to shelter.
+
+The raid goes out inside `api_req_map/next` as `api_destruction_battle`, which the client
+reads as a day battle record whose friendly side is the bases. `api_plane_from[0]` and
+`api_map_squadron_plane` are null when nobody defends, and the latter is keyed by the base's
+place in the area as a string.
+
 ## Known gaps
+
+- The three raiding fleets of 6-5 are drawn by how often each was seen, whatever the gauge
+  shows. Upstream the strongest comes only against the last bar and never before it.
+- A raid always costs stores when it does damage; upstream that is random at a rate nobody
+  published. Defending does not tire a squadron (no source says it does), 改修 and 熟練度 add
+  nothing to the defenders' fighter power, and the high-altitude modifier is left out.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published, and the attacks here have no hit roll to lower.
 - 休息 does not halve the bauxite regeneration (no figure upstream).
 - What a 航空特別増加食 restores has no source; it brings a squadron below 40 back to 40.
 - The server lets a relocating plane be deployed again; only the client stops it.
-- Base defence (the 防空 order), air raids on the base (`api_destruction_battle`), jet
-  assault (`api_air_base_injection`) and 超重爆迎撃 (`api_req_map/air_raid`).
+- Jet assault (`api_air_base_injection`) and 超重爆迎撃 (`api_req_map/air_raid`), which only
+  event maps have.
 - A friendly combined fleet does not get air corps attacks; 6-4 and 6-5 cannot be sortied
   with one.
 - The maintenance level lives on the area's airbase rows, so an area without an air corps

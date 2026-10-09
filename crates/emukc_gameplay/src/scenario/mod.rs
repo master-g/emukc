@@ -298,6 +298,16 @@ impl Scenario {
     }
 }
 
+impl Scenario {
+    /// The air corps preset with 6-5 open: the one regular map whose sortie brings a raid on
+    /// the air base, once its boss was sunk twice. Four destroyers go A, C, D, G and the boss.
+    pub fn air_raid_6_5() -> Self {
+        let mut scenario = Self::air_corps_6_4();
+        scenario.clear_maps.push(64);
+        scenario
+    }
+}
+
 /// 鳳翔.
 const HOUSHOU_MST_ID: i64 = 89;
 /// 一式陸攻.
@@ -419,6 +429,14 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "air_corps_6_4",
         build: Scenario::air_corps_6_4,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    // The raid on the air base is what this is for; the battle target is only 1-1.
+    Preset {
+        name: "air_raid_6_5",
+        build: Scenario::air_raid_6_5,
         maparea: 1,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,

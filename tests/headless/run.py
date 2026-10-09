@@ -124,6 +124,23 @@ def check_quest_equipment(work: Path) -> list[str]:
     return problems
 
 
+def check_air_raid_6_5(work: Path) -> list[str]:
+    raids = [step["api_destruction_battle"] for step in responses(work, "api_req_map/next") if "api_destruction_battle" in step]
+    if len(raids) != 1:
+        return [f"one raid should come on the way to the boss, not {len(raids)}"]
+    raid = raids[0]
+    problems = []
+    attack = raid["api_air_base_attack"]
+    if attack["api_plane_from"][0] != [1] or len((attack["api_map_squadron_plane"] or {}).get("1", [])) != 1:
+        problems.append(f"the first air corps should send its one squadron up; the raid carried {attack}")
+    if len(raid["api_ship_ke"]) != 6 or raid["api_f_nowhps"] != [200] * len(raid["api_f_nowhps"]):
+        problems.append(f"six raiders should meet bases at 200: {raid['api_ship_ke']}, {raid['api_f_nowhps']}")
+    hit = sum(attack["api_stage3"]["api_fdam"])
+    if (raid["api_lost_kind"] == 4) != (hit == 0):
+        problems.append(f"a raid that did {hit} damage answered api_lost_kind {raid['api_lost_kind']}")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -146,6 +163,19 @@ SCENARIOS = {
         "u:600,400;770,365:api_port/port w:6 tire:22 c:295,400 w:3 u:345,450:api_get_member/mapinfo w:4 c:800,680 w:4 "
         "c:720,182 w:5 s:home c:1030,382 w:4 u:1055,608:api_req_air_corps/supply w:5 s:supplied",
         check_air_corps_6_4,
+    ),
+    # 中部海域 with 6-5's boss sunk twice: deploy bombers, order the air corps to defend (in the
+    # database: the raid only needs the server to know), sortie 6-5 through A, C, D, G to the boss
+    # and home. The raid comes with one of the steps, at the latest the one onto the boss; each is
+    # photographed twice, because nothing tells the steps which one it was.
+    "air_raid_6_5": (
+        f"sunk:65:2 {TO_MAPS} c:800,680 w:4 c:720,182 w:5 c:1032,383 w:4 c:760,267 w:4 u:1017,655:api_req_air_corps/set_plane "
+        f"w:4 c:250,150 w:4 order:2 c:1105,415 w:4 c:700,275 w:3 {START} {BATTLE} "
+        + " ".join(f"u:{TAPS}:api_req_map/next w:7 s:step{n} w:9 s:step{n}_later {BATTLE}" for n in (1, 2, 3))
+        # The boss is a combined fleet, whose result has its own address.
+        + f" u:{TAPS}:api_req_map/next w:7 s:step4 w:9 s:step4_later u:{TAPS}:api_req_combined_battle/battleresult"
+        + f" w:14 u:{TAPS}:api_port/port w:5 s:home",
+        check_air_raid_6_5,
     ),
     # The quest list, its 工廠 filter, and three quests claimed from the second row: 614 turns the
     # flagship's piece into another, 637 takes one from her and gives none back, 641 takes loose
@@ -302,6 +332,15 @@ def main() -> int:
                     # Nothing short of several sorties tires a squadron that far.
                     with sqlite3.connect(work / "emukc.db", timeout=30) as db:
                         db.execute("UPDATE plane_info SET condition = ?", (int(value),))
+                elif kind == "sunk":
+                    # A gauge half down takes sorties to reach: `sunk:<map id>:<times>`.
+                    map_id, times = value.split(":")
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute("UPDATE map_record SET defeat_count = ? WHERE map_id = ?", (int(times), int(map_id)))
+                elif kind == "order":
+                    # Every air corps gets this order (2 is 防空); the client still shows its own.
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute("UPDATE airbase SET action = ?", (int(value),))
                 elif kind in ("api", "u"):
                     spot, _, path = value.rpartition(":")
                     taps = [tuple(map(int, at.split(","))) for at in spot.split(";")] if spot else []

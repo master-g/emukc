@@ -2,7 +2,7 @@
 title: "Base Air Raid and Air Defence - Plan"
 type: feat
 date: 2026-10-09
-status: accepted
+status: implemented
 execution: code
 ---
 
@@ -103,6 +103,18 @@ Known gaps）。
 
 ### U5 沉淀
 `air-corps.md`、`TODO.md`、`PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-09）
+
+按 Decision 实施。与计划不同或值得记下的：
+
+- 只同步了 6-5 的 `nodes/AB`（一次请求）。其余图的这个节点等下次全量同步时取，届时每张图多一次请求。
+- 敌机击落按 `kcsim.js` 逐槽计算，没有另加「确保时受伤为 0」的规则：确保时比例已超过 100%。
+- 防空中队的改修值与熟练度不计入制空值（出击侧的制空值同样不计）。
+- 回应里 `api_stage3` 沿用普通航空战的结构，多出几个空数组，客户端不读。
+- 真实客户端：`make headless-check SCENARIO=air_raid_6_5` 通过两次，空袭一次出现在 C 格、一次出现在 Boss 格，
+  之后出击照常进行，没有页面错误，没有缺失资源。截图只拍到空袭战斗的开场，结语画面没有拍到。
+- 没有走到的：没有防空航空队时的演出（场景里总有一队防空）、三种结语各自的画面。
 
 ## Stop Conditions
 
