@@ -20,10 +20,33 @@ struct Resp {
     api_event_object: KcApiEventObject,
     api_parallel_quest_count: i64,
     api_dest_ship_slot: i64,
-    // api_plane_info: Vec<KcApiPlaneInfo>,
+    /// Absent unless a squadron is relocating or has just finished; the client
+    /// then clears its relocation list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    api_plane_info: Option<PlaneInfo>,
     // api_furniture_affect_items: Vec<i64>,
     api_c_flags: Vec<i64>,
     api_c_flag2: i64,
+}
+
+/// The air corps part of the port: a live account with one squadron in
+/// 配置転換 sent `{"api_base_convert_slot": [21991]}` and nothing else.
+#[derive(Serialize, Debug)]
+struct PlaneInfo {
+    /// Instance ids of the equipment still relocating.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    api_base_convert_slot: Vec<i64>,
+    /// The unequipped lists a finished relocation changed. No sample of it;
+    /// the shape is the one the client reads (`main.decoded.js:2830`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    api_unset_slot: Vec<UnsetSlot>,
+}
+
+#[derive(Serialize, Debug)]
+struct UnsetSlot {
+    #[serde(rename = "api_type3No")]
+    api_type3_no: i64,
+    api_slot_list: Vec<i64>,
 }
 
 pub(super) async fn handler(state: AppState, Pid(pid): Pid) -> KcApiResult {
@@ -62,6 +85,19 @@ fn project(view: PortView) -> Resp {
         api_material: view.materials.into(),
         api_deck_port: view.fleets.into_iter().map(std::convert::Into::into).collect(),
         api_dest_ship_slot: 1,
+        api_plane_info: (!view.relocating_slots.is_empty()
+            || !view.returned_unset_slots.is_empty())
+        .then_some(PlaneInfo {
+            api_base_convert_slot: view.relocating_slots,
+            api_unset_slot: view
+                .returned_unset_slots
+                .into_iter()
+                .map(|(api_type3_no, api_slot_list)| UnsetSlot {
+                    api_type3_no,
+                    api_slot_list,
+                })
+                .collect(),
+        }),
         api_ndock: view.ndocks.into_iter().map(std::convert::Into::into).collect(),
         api_ship: view.ships,
         api_parallel_quest_count: view.basic.api_max_quests,

@@ -15,7 +15,6 @@ use crate::{
     gameplay::Ctx,
 };
 
-use super::airbase::settle_relocations_impl;
 use super::picturebook::add_slot_item_to_picturebook_impl;
 
 /// ドラム缶(輸送用). Expeditions count the canisters, sortie routing counts the
@@ -48,10 +47,8 @@ impl std::fmt::Display for SlotItemOccupant {
 
 /// What holds each of `item_ids`; an item missing from the map is free.
 ///
-/// A squadron that has finished relocating no longer holds its plane, so the
-/// profile's relocations settle first — the same read-time rule the airbases
-/// follow, without which a released plane would stay locked until the player
-/// next opened the sortie menu.
+/// A squadron still relocating holds its plane like one that flies; it lets
+/// go when the port settles the relocation.
 pub(crate) async fn slot_item_occupants_impl<C>(
     c: &C,
     profile_id: i64,
@@ -60,8 +57,6 @@ pub(crate) async fn slot_item_occupants_impl<C>(
 where
     C: ConnectionTrait,
 {
-    settle_relocations_impl(c, profile_id).await?;
-
     let mut occupants = BTreeMap::new();
     if item_ids.is_empty() {
         return Ok(occupants);

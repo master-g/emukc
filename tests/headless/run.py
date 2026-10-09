@@ -19,6 +19,7 @@ import json
 import re
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 import time
@@ -81,7 +82,13 @@ def check_air_corps_6_4(work: Path) -> list[str]:
     attacks = [battle["api_air_base_attack"] for battle in battles if battle.get("api_air_base_attack")]
     if len(attacks) != 1 or len(attacks[0]) != 2 or attacks[0][0]["api_squadron_plane"][0] != {"api_mst_id": 169, "api_count": 18}:
         problems.append(f"the air corps should attack D twice, starting with eighteen bombers; the battles carried {attacks}")
-    left = responses(work, "api_get_member/mapinfo")[-1]["api_air_base"][0]["api_plane_info"][0]["api_count"]
+    home = responses(work, "api_get_member/mapinfo")[-1]["api_air_base"][0]["api_plane_info"][0]
+    left = home["api_count"]
+    if home["api_cond"] != 2:
+        problems.append(f"a squadron at 22 should come home orange, not api_cond {home['api_cond']}")
+    timed = responses(work, "api_port/airCorpsCondRecoveryWithTimer")
+    if not timed or timed[-1]["api_plane_info"][0]["api_cond"] != 2:
+        problems.append(f"the timed recovery should answer the squadron as it is; it answered {timed}")
     supplied = responses(work, "api_req_air_corps/supply")[-1]
     stock = responses(work, "api_port/port")[-1]["api_material"]
     paid = (stock[0]["api_value"] - supplied["api_after_fuel"], stock[3]["api_value"] - supplied["api_after_bauxite"])
@@ -101,14 +108,15 @@ SCENARIOS = {
     ),
     # 中部海域, the air corps: deploy bombers to the first squadron, order a sortie, add a second air
     # corps and close the panel (which is when the client sends the orders); sortie 6-4, point the air
-    # corps at D twice, fight B and then D with its two attacks; go home and resupply the squadron.
+    # corps at D twice, fight B and then D with its two attacks; go home to a squadron tired orange
+    # and resupply it.
     "air_corps_6_4": (
         f"{TO_MAPS} c:800,680 w:4 c:720,182 w:5 c:1032,383 w:4 c:760,267 w:4 u:1017,655:api_req_air_corps/set_plane "
         "w:4 s:deployed c:1162,237 w:4 c:1030,180 w:4 u:477,477:api_req_air_corps/expand_base w:8 "
         "u:250,150:api_req_air_corps/set_action w:4 "
         "c:925,525 w:4 c:1015,668 w:4 u:830,668:api_req_map/start w:8 c:437,304 w:2 c:437,304 w:3 s:targets "
         f"u:157,90:api_req_map/start_air_base w:4 {BATTLE} u:{TAPS}:api_req_map/next {BATTLE} "
-        "u:600,400;770,365:api_port/port w:6 c:295,400 w:3 u:345,450:api_get_member/mapinfo w:4 c:800,680 w:4 "
+        "u:600,400;770,365:api_port/port w:6 tire:22 c:295,400 w:3 u:345,450:api_get_member/mapinfo w:4 c:800,680 w:4 "
         "c:720,182 w:5 s:home c:1030,382 w:4 u:1055,608:api_req_air_corps/supply w:5 s:supplied",
         check_air_corps_6_4,
     ),
@@ -250,6 +258,10 @@ def main() -> int:
                     click(*map(int, value.split(",")))
                 elif kind == "s":
                     page.screenshot(path=work / f"{value}.png")
+                elif kind == "tire":
+                    # Nothing short of several sorties tires a squadron that far.
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute("UPDATE plane_info SET condition = ?", (int(value),))
                 elif kind in ("api", "u"):
                     spot, _, path = value.rpartition(":")
                     taps = [tuple(map(int, at.split(","))) for at in spot.split(";")] if spot else []

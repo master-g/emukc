@@ -9,10 +9,12 @@ use emukc_model::{
     codex::Codex,
     kc2::MaterialCategory,
     profile::airbase::{
-        AIRUNIT_MAX, Airbase, MAINTENANCE_LEVEL_MAX, PlaneInfo, PlaneState, SQUADRON_MAX,
-        squadron_capacity,
+        AIRUNIT_MAX, Airbase, AirbaseAction, COND_DEPLOYED, COND_TICK_SECS, MAINTENANCE_LEVEL_MAX,
+        PlaneInfo, PlaneState, SQUADRON_MAX, recovered_condition, recovery_per_tick,
+        relocation_minutes, squadron_capacity,
     },
 };
+use emukc_time::chrono::{Duration, Utc};
 
 use emukc_battle::{AirCorpsInput, AirSquadronInput, BattleAirBaseAttack};
 
@@ -51,8 +53,6 @@ pub const SUPPLY_BAUXITE_PER_PLANE: i64 = 5;
 const USE_ITEM_CONSTRUCTION_CORPS: i64 = 73;
 /// 航空特別増加食, spent to rest an air corps.
 const USE_ITEM_AIR_RATION: i64 = 102;
-/// `api_cond` of a squadron that is neither tired nor at peak morale.
-const COND_NORMAL: i64 = 1;
 
 /// Outcome of resupplying squadrons.
 #[derive(Debug, Clone)]
@@ -102,7 +102,7 @@ impl Ctx {
         let tx = db.begin().await?;
 
         ensure_airbases_impl(&tx, codex, profile_id).await?;
-        settle_relocations_impl(&tx, profile_id).await?;
+        settle_conditions_impl(&tx, profile_id).await?;
 
         let models = get_airbases_impl(&tx, profile_id).await?;
 
@@ -147,6 +147,7 @@ impl Ctx {
         let tx = db.begin().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+        settle_conditions_impl(&tx, profile_id).await?;
 
         let mut touched = vec![squadron_id];
         let mut after_bauxite = None;
@@ -177,44 +178,52 @@ impl Ctx {
                 ))
             })?;
 
-            // Already flying somewhere. Within this airbase it is a move and
-            // both slots are reported; anywhere else the client should have
-            // called change_deployment_base instead.
-            let mut deployed = true;
-            if let Some(current) = find_squadron_by_slot(&tx, profile_id, item_id).await? {
-                let here = current.area_id == area_id && current.rid == base_id;
-                // A squadron coming back from relocation is deployed anew.
-                deployed = current.state == plane_db::Status::Reassigning;
-                // A relocating squadron flies for nobody, so it may land
-                // anywhere; one still assigned belongs to its airbase.
-                if !here && current.state != plane_db::Status::Reassigning {
+            // Already flying somewhere. Within this airbase it is a move: the
+            // two slots trade squadrons as they are, strength and condition
+            // included, and both are reported. Anywhere else the client should
+            // have called change_deployment_base instead.
+            let current = find_squadron_by_slot(&tx, profile_id, item_id).await?;
+            let flying = current.as_ref().filter(|m| m.state == plane_db::Status::Assigned);
+            if let Some(current) = flying {
+                if current.area_id != area_id || current.rid != base_id {
                     return Err(GameplayError::WrongType(format!(
                         "slot item {item_id} is deployed to airbase {}/{}",
                         current.area_id, current.rid
                     )));
                 }
-                if here && current.squadron_id != squadron_id {
-                    touched.push(current.squadron_id);
+                let source = current.squadron_id;
+                if source != squadron_id {
+                    touched.push(source);
+                    let other =
+                        find_assigned_squadron(&tx, profile_id, area_id, base_id, squadron_id)
+                            .await?;
+                    move_squadron(&tx, current.clone(), base_id, squadron_id).await?;
+                    if let Some(other) = other {
+                        move_squadron(&tx, other, base_id, source).await?;
+                    }
                 }
-                current.delete(&tx).await?;
-            }
+            } else {
+                // A new deployment, which a squadron coming back from relocation
+                // is too. Whatever flew in the slot goes into relocation.
+                if let Some(relocating) = current {
+                    relocating.delete(&tx).await?;
+                }
+                relocate_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
 
-            clear_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
+                let am = plane_db::ActiveModel {
+                    slot_id: ActiveValue::Set(item_id),
+                    profile_id: ActiveValue::Set(profile_id),
+                    area_id: ActiveValue::Set(area_id),
+                    rid: ActiveValue::Set(base_id),
+                    squadron_id: ActiveValue::Set(squadron_id),
+                    state: ActiveValue::Set(plane_db::Status::Assigned),
+                    condition: ActiveValue::Set(COND_DEPLOYED),
+                    count: ActiveValue::Set(capacity),
+                    max_count: ActiveValue::Set(capacity),
+                    since: ActiveValue::Set(Some(Utc::now())),
+                };
+                am.insert(&tx).await?;
 
-            let am = plane_db::ActiveModel {
-                slot_id: ActiveValue::Set(item_id),
-                profile_id: ActiveValue::Set(profile_id),
-                area_id: ActiveValue::Set(area_id),
-                rid: ActiveValue::Set(base_id),
-                squadron_id: ActiveValue::Set(squadron_id),
-                state: ActiveValue::Set(plane_db::Status::Assigned),
-                condition: ActiveValue::Set(1),
-                count: ActiveValue::Set(capacity),
-                max_count: ActiveValue::Set(capacity),
-            };
-            am.insert(&tx).await?;
-
-            if deployed {
                 let cost = mst.api_cost.unwrap_or(0) * capacity;
                 let left =
                     deduct_material_impl(&tx, profile_id, &[(MaterialCategory::Bauxite, cost)])
@@ -275,6 +284,8 @@ impl Ctx {
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         find_owned_airbase(&tx, profile_id, area_id, base_id_src).await?;
+        // The two air corps may be under different orders.
+        settle_conditions_impl(&tx, profile_id).await?;
 
         let incoming = find_squadron_by_slot(&tx, profile_id, item_id).await?.ok_or_else(|| {
             GameplayError::EntryNotFound(format!("slot item {item_id} flies for no airbase"))
@@ -285,14 +296,12 @@ impl Ctx {
                 incoming.area_id, incoming.rid
             )));
         }
+        if incoming.state != plane_db::Status::Assigned {
+            return Err(GameplayError::WrongType(format!("slot item {item_id} is relocating")));
+        }
 
-        let outgoing = plane_db::Entity::find()
-            .filter(plane_db::Column::ProfileId.eq(profile_id))
-            .filter(plane_db::Column::AreaId.eq(area_id))
-            .filter(plane_db::Column::Rid.eq(base_id))
-            .filter(plane_db::Column::SquadronId.eq(squadron_id))
-            .one(&tx)
-            .await?;
+        let outgoing =
+            find_assigned_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
 
         let source_squadron = incoming.squadron_id;
         move_squadron(&tx, incoming, base_id, squadron_id).await?;
@@ -323,6 +332,9 @@ impl Ctx {
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
+
+        // What the squadrons regained so far, they regained under the old orders.
+        settle_conditions_impl(&tx, profile_id).await?;
 
         for (base_id, kind) in orders {
             let action = i32::try_from(*kind).ok().and_then(base::Action::n).ok_or_else(|| {
@@ -385,6 +397,7 @@ impl Ctx {
         let tx = db.begin().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+        settle_conditions_impl(&tx, profile_id).await?;
 
         let mut lost = 0;
         for model in get_planes_impl(&tx, profile_id, area_id, base_id).await? {
@@ -482,6 +495,8 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
+        // The level changes the recovery rate from here on.
+        settle_conditions_impl(&tx, profile_id).await?;
         let owned = airbases_of_area(&tx, profile_id, area_id).await?;
         let Some(first) = owned.first() else {
             return Err(GameplayError::EntryNotFound(format!(
@@ -508,8 +523,12 @@ impl Ctx {
         Ok(level)
     }
 
-    /// Rest an air corps with one 航空特別増加食: every tired squadron goes back
-    /// to normal. The ration is spent even when nobody was tired.
+    /// Rest an air corps with one 航空特別増加食: every squadron below a fresh
+    /// deployment's condition goes back to it. The ration is spent even when
+    /// nobody was tired.
+    ///
+    /// ponytail: how much a ration restores has no source; "back to untired"
+    /// is this project's reading of the item.
     pub async fn recover_airbase_condition(
         &self,
         profile_id: i64,
@@ -522,11 +541,12 @@ impl Ctx {
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         deduct_use_item_impl(&tx, profile_id, USE_ITEM_AIR_RATION, 1).await?;
+        settle_conditions_impl(&tx, profile_id).await?;
 
         for model in get_planes_impl(&tx, profile_id, area_id, base_id).await? {
-            if model.state == plane_db::Status::Assigned && model.condition > COND_NORMAL {
+            if model.state == plane_db::Status::Assigned && model.condition < COND_DEPLOYED {
                 let mut am = model.into_active_model();
-                am.condition = ActiveValue::Set(COND_NORMAL);
+                am.condition = ActiveValue::Set(COND_DEPLOYED);
                 am.update(&tx).await?;
             }
         }
@@ -546,22 +566,113 @@ impl Ctx {
         })
     }
 
-    /// Check that an air corps exists, for the client's timed recovery poll.
+    /// The squadrons of an air corps after the recovery time has brought them,
+    /// for the client's timed recovery poll.
     ///
-    /// ponytail: nothing tires a squadron yet (the battle side is not built),
-    /// so there is never a timed recovery to report and the handler answers
-    /// without data, which the client accepts. Report the recovered squadrons
-    /// here once fatigue exists.
-    pub async fn check_airbase(
+    /// The client asks once per air corps each time it enters the sortie
+    /// scene, and only while it holds a squadron it has not seen untired. It
+    /// may hold a condition from before several sorties, so the answer is
+    /// always the settled squadrons rather than "what changed just now".
+    pub async fn recover_airbase_condition_with_time(
         &self,
         profile_id: i64,
         area_id: i64,
         base_id: i64,
-    ) -> Result<(), GameplayError> {
-        find_owned_airbase(self.db.as_ref(), profile_id, area_id, base_id).await?;
+    ) -> Result<SetPlaneResult, GameplayError> {
+        let db = self.db.as_ref();
+        let codex = self.codex.as_ref();
+        let tx = db.begin().await?;
 
-        Ok(())
+        find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
+        settle_conditions_impl(&tx, profile_id).await?;
+
+        let occupied = get_planes_impl(&tx, profile_id, area_id, base_id).await?;
+        let planes = squadrons_of(profile_id, area_id, base_id, occupied);
+        let distance = distance_of(&tx, codex, &planes).await?;
+        let updated =
+            planes.into_iter().filter(|p| matches!(p.state, PlaneState::Assigned)).collect();
+
+        tx.commit().await?;
+
+        Ok(SetPlaneResult {
+            distance,
+            updated,
+            after_bauxite: None,
+        })
     }
+}
+
+/// Bring every flying squadron's condition up to now.
+///
+/// A squadron regains condition every [`COND_TICK_SECS`] at the rate of its air
+/// corps' order and the area's 整備Lv. Nothing runs on a clock: the ticks since
+/// `since` are applied whenever something is about to read a condition or
+/// change the rate, so call this first in both cases.
+pub(crate) async fn settle_conditions_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let now = Utc::now();
+    let airbases = get_airbases_impl(c, profile_id).await?;
+    let planes = plane_db::Entity::find()
+        .filter(plane_db::Column::ProfileId.eq(profile_id))
+        .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
+        .all(c)
+        .await?;
+
+    for plane in planes {
+        // A row from before the column existed starts counting now.
+        let since = plane.since.unwrap_or(now);
+        let ticks = (now - since).num_seconds() / COND_TICK_SECS;
+        if plane.since.is_some() && ticks <= 0 {
+            continue;
+        }
+        let rate = airbases
+            .iter()
+            .find(|base| base.area_id == plane.area_id && base.rid == plane.rid)
+            .map_or(0, |base| {
+                recovery_per_tick(AirbaseAction::from(base.action), base.maintenance_level)
+            });
+        let condition = recovered_condition(plane.condition, rate.max(1), ticks.max(0));
+
+        let mut am = plane.into_active_model();
+        am.condition = ActiveValue::Set(condition);
+        am.since = ActiveValue::Set(Some(since + Duration::seconds(ticks.max(0) * COND_TICK_SECS)));
+        am.update(c).await?;
+    }
+
+    Ok(())
+}
+
+/// Tire the squadrons of the air corps sent on a sortie: `(rid, condition lost)`.
+///
+/// Every flying squadron pays, whatever it then meets (wikiwiki: 攻撃結果や
+/// 戦闘での勝利判定は影響しない, and a sortie that retreats before the attack
+/// costs the same).
+pub(crate) async fn tire_air_corps_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    costs: &[(i64, i64)],
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    settle_conditions_impl(c, profile_id).await?;
+
+    for (rid, cost) in costs {
+        for plane in get_planes_impl(c, profile_id, area_id, *rid).await? {
+            if plane.state != plane_db::Status::Assigned {
+                continue;
+            }
+            let condition = (plane.condition - cost).max(0);
+            let mut am = plane.into_active_model();
+            am.condition = ActiveValue::Set(condition);
+            am.update(c).await?;
+        }
+    }
+
+    Ok(())
 }
 
 /// The profile's air corps in one area, with squadrons and radius, in `rid` order.
@@ -717,6 +828,7 @@ where
                 .filter(plane_db::Column::AreaId.eq(area_id))
                 .filter(plane_db::Column::Rid.eq(attack.api_base_id))
                 .filter(plane_db::Column::SquadronId.eq(*squadron_id))
+                .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
                 .exec(c)
                 .await?;
         }
@@ -784,29 +896,31 @@ where
     Ok(model)
 }
 
-/// Empty one slot, if anything is in it.
-async fn clear_squadron<C>(
+/// The squadron flying in one slot, if any. A slot may also hold squadrons
+/// still relocating out of it; those are not it.
+async fn find_assigned_squadron<C>(
     c: &C,
     profile_id: i64,
     area_id: i64,
     rid: i64,
     squadron_id: i64,
-) -> Result<(), GameplayError>
+) -> Result<Option<plane_db::Model>, GameplayError>
 where
     C: ConnectionTrait,
 {
-    plane_db::Entity::delete_many()
+    let model = plane_db::Entity::find()
         .filter(plane_db::Column::ProfileId.eq(profile_id))
         .filter(plane_db::Column::AreaId.eq(area_id))
         .filter(plane_db::Column::Rid.eq(rid))
         .filter(plane_db::Column::SquadronId.eq(squadron_id))
-        .exec(c)
+        .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
+        .one(c)
         .await?;
 
-    Ok(())
+    Ok(model)
 }
 
-/// Send one slot's squadron into relocation, if anything is in it.
+/// Send the squadron flying in one slot into relocation, if there is one.
 ///
 /// Removing a squadron does not empty the slot at once. The live server answers
 /// `api_state: 2` with `api_slotid` still set and the radius unchanged, and only
@@ -824,36 +938,63 @@ where
 {
     plane_db::Entity::update_many()
         .col_expr(plane_db::Column::State, Expr::value(plane_db::Status::Reassigning))
+        .col_expr(plane_db::Column::Since, Expr::value(Some(Utc::now())))
         .filter(plane_db::Column::ProfileId.eq(profile_id))
         .filter(plane_db::Column::AreaId.eq(area_id))
         .filter(plane_db::Column::Rid.eq(rid))
         .filter(plane_db::Column::SquadronId.eq(squadron_id))
+        .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
         .exec(c)
         .await?;
 
     Ok(())
 }
 
-/// Let every finished relocation empty its slot.
+/// Release every squadron whose relocation is over, and name the equipment of
+/// those still in it.
 ///
-/// ponytail: settles on the next airbase read rather than on a clock. The one
-/// live measurement only bounds the real delay — the slot answered `api_state: 2`
-/// at 18:03 and `0 / 0` at 18:16 — and nothing upstream publishes the duration,
-/// so a timer would be an invented number. Reading the airbases is what the
-/// client does when it opens the 出撃 menu, which is exactly where the sample
-/// saw the slot already empty. Swap in a real cooldown once the duration has a
-/// source; that needs a timestamp column on `plane_info`.
-pub(crate) async fn settle_relocations_impl<C>(c: &C, profile_id: i64) -> Result<(), GameplayError>
+/// A relocation lasts [`relocation_minutes`] of the area's 整備Lv and then
+/// needs a visit to the port (wikiwiki 基地航空隊: 12分経過のち一旦母港を経由する),
+/// so the port view is the one caller. The live sample fits: the slot answered
+/// `api_state: 2` at 18:03 and `0 / 0` at 18:16. A row from before `since`
+/// existed has no start and is released at once, as it used to be.
+///
+/// Returns the equipment still waiting and the equipment released by this call.
+pub(crate) async fn settle_relocations_impl<C>(
+    c: &C,
+    profile_id: i64,
+) -> Result<(Vec<i64>, Vec<i64>), GameplayError>
 where
     C: ConnectionTrait,
 {
-    plane_db::Entity::delete_many()
+    let now = Utc::now();
+    let airbases = get_airbases_impl(c, profile_id).await?;
+    let relocating = plane_db::Entity::find()
         .filter(plane_db::Column::ProfileId.eq(profile_id))
         .filter(plane_db::Column::State.eq(plane_db::Status::Reassigning))
-        .exec(c)
+        .order_by_asc(plane_db::Column::SlotId)
+        .all(c)
         .await?;
 
-    Ok(())
+    let mut waiting = Vec::new();
+    let mut released = Vec::new();
+    for plane in relocating {
+        let level = airbases
+            .iter()
+            .find(|base| base.area_id == plane.area_id)
+            .map_or(0, |base| base.maintenance_level);
+        let over = plane
+            .since
+            .is_none_or(|since| now - since >= Duration::minutes(relocation_minutes(level)));
+        if over {
+            released.push(plane.slot_id);
+            plane.delete(c).await?;
+        } else {
+            waiting.push(plane.slot_id);
+        }
+    }
+
+    Ok((waiting, released))
 }
 
 /// Re-home a squadron without disturbing its strength or condition.

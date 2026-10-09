@@ -19,7 +19,7 @@ use emukc_model::{
         map::{EnemyComposition, MapCellDefinition, MapStageDefinition, split_map_id},
     },
     kc2::MaterialCategory,
-    profile::airbase::AirbaseAction,
+    profile::airbase::{AirbaseAction, COND_COST_CONCENTRATED, COND_COST_SPREAD},
 };
 use serde::Serialize;
 
@@ -28,7 +28,10 @@ use crate::{err::GameplayError, gameplay::Ctx};
 use emukc_battle::{BattleType, CombinedFleetRole};
 
 use super::{
-    airbase::{charge_air_sortie_impl, load_area_airbases_impl, record_strike_losses_impl},
+    airbase::{
+        charge_air_sortie_impl, load_area_airbases_impl, record_strike_losses_impl,
+        tire_air_corps_impl,
+    },
     battle::{
         engagement::roll_engagement,
         response::{
@@ -401,6 +404,22 @@ impl Ctx {
                 let tx = self.db.begin().await?;
                 charge_air_sortie_impl(&tx, codex, profile_id, definition.maparea_id, &rids)
                     .await?;
+                // ponytail: tired on leaving rather than on the way home. Upstream
+                // takes it at 帰投, but takes it whatever happened in between, and
+                // a sortie ends in more places than it starts.
+                let costs: Vec<(i64, i64)> = air_strikes
+                    .iter()
+                    .map(|strike| {
+                        let spread = strike.cells.iter().any(|cell| *cell != strike.cells[0]);
+                        let cost = if spread {
+                            COND_COST_SPREAD
+                        } else {
+                            COND_COST_CONCENTRATED
+                        };
+                        (strike.base_rid, cost)
+                    })
+                    .collect();
+                tire_air_corps_impl(&tx, profile_id, definition.maparea_id, &costs).await?;
                 tx.commit().await?;
 
                 active.air_strikes = air_strikes;

@@ -1,5 +1,7 @@
 //! The `port` view.
 
+use std::collections::BTreeMap;
+
 use emukc_db::sea_orm::TransactionTrait;
 use emukc_model::{
     kc2::{KcApiGameSetting, KcApiShip, KcApiUserBasic},
@@ -9,11 +11,13 @@ use emukc_model::{
 use crate::{
     err::GameplayError,
     game::{
+        airbase::settle_relocations_impl,
         basic::{find_profile, get_user_basic_impl},
         fleet::get_fleets_impl,
         material::{get_mat_impl, update_materials_impl},
         ndock::get_ndocks_impl,
         settings::game::get_game_settings_impl,
+        slot_item::{find_slot_items_by_id_impl, get_unset_slot_items_by_types_impl},
     },
     gameplay::Ctx,
 };
@@ -41,6 +45,14 @@ pub struct PortView {
 
     /// Current combined fleet type.
     pub combined_type: i64,
+
+    /// Equipment of the air corps squadrons still in 配置転換, by instance id.
+    pub relocating_slots: Vec<i64>,
+
+    /// The unequipped list of every equipment type a relocation just gave
+    /// back, by `api_type[2]`. The client took the equipment off its own list
+    /// when the squadron was deployed and has no other way to hear of it.
+    pub returned_unset_slots: BTreeMap<i64, Vec<i64>>,
 }
 
 impl Ctx {
@@ -64,6 +76,15 @@ impl Ctx {
 
         // TODO(#0): update quests here
 
+        let (relocating_slots, released) = settle_relocations_impl(&tx, profile_id).await?;
+        let returned: Vec<i64> = find_slot_items_by_id_impl(&tx, &released)
+            .await?
+            .into_iter()
+            .map(|item| item.type3)
+            .collect();
+        let returned_unset_slots =
+            get_unset_slot_items_by_types_impl(&tx, profile_id, &returned).await?;
+
         let (_, basic) = get_user_basic_impl(&tx, profile_id).await?;
         let materials = get_mat_impl(&tx, profile_id).await?;
         let fleets = get_fleets_impl(&tx, profile_id).await?;
@@ -85,6 +106,8 @@ impl Ctx {
             ships,
             port_bgm_id: game_settings.api_p_bgm_id,
             combined_type: profile.combined_type,
+            relocating_slots,
+            returned_unset_slots,
         })
     }
 }

@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-10-08: 143 implemented, 5 missing.
+> holds the roadmap. Last cross-checked 2026-10-09: 143 implemented, 5 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -18,20 +18,17 @@
 - [x] rewrite async for with `StreamExt` and `FutureExt`
 
 ## Code Quality / Tech Debt
-- [ ] recalculate quest progress on `start` the quest
+- [x] recalculate quest progress on `start` the quest
 - [ ] quest `api_voice_id` field is missing (`questlist.rs`)
-- [ ] quest `api_invalid_flag` field is missing, e.g. plane convert quests (`questlist.rs`)
+- [ ] quest `api_invalid_flag` field is missing, e.g. plane convert quests (`questlist.rs`) — belongs with the slotitem consumption below
 - [ ] quest `api_c_list` (composition quest list) not populated (`questlist.rs`)
-- [ ] implement slotitem consumption for quest reward claim (`game/quest/consume.rs`)
+- [ ] implement slotitem consumption for quest reward claim (`game/quest/consume.rs`) — the only item here that changes a game outcome: 42 quests hand in equipment and 63 convert a model, and none of them takes anything
 - [x] implement combined fleet handler (`api_req_hensei/combined`)
-- [ ] update quest progress on port entry (`api_port/port.rs`)
+- [ ] update quest progress on port entry (`game/view/port.rs`) — probably unnecessary: quests are refreshed when the quest list is read
 - [ ] fix naming confusion in `net/assets/mod.rs`
-- [ ] remove all profile data on account deletion (`user/account.rs`)
-- [ ] add more codex limitations (`codex/mod.rs`)
-- [ ] add more DB entity relations (`entity/profile/mod.rs`)
-- [ ] review tsunkit quest parser edge cases (`parser/tsunkit_quest/types.rs`)
-- [ ] practice system: implement opponent fleet generation (`game/practice.rs`)
-- [ ] ship ops: replace temporary implementation (`game/ship/mod.rs`)
+- [ ] remove all profile data on account deletion (`user/account.rs`) — only the `profile` row goes; child tables keep orphans
+- [ ] practice system: implement opponent fleet generation (`game/practice.rs`) — five template rivals with one level-180 ship each for now
+- [ ] `calculate_single_slot_airstrike_damage` (`emukc_battle/src/damage.rs`) is dead code kept for an airstrike phase that never used it
 - [x] migrate off deprecated `axum_extra::extract::Host` in `net/router/game.rs`
 
 ## High Priority - Core Gameplay
@@ -55,7 +52,7 @@
   - [x] `api_req_battle_midnight/battle` - night battle
   - [x] `api_req_battle_midnight/sp_midnight` - night-start battle
   - [x] `api_req_combined_battle/{battle,battle_water,airbattle,ld_airbattle,ld_shooting,sp_midnight,midnight_battle}` - 味方連合 vs 敵通常
-  - [ ] 敵連合 variants (5 remaining: `ec_*`, `each_*`) - blocked on event map data
+  - [ ] 敵連合 variants (3 remaining: `each_battle`, `each_battle_water`, `ec_night_to_day`) - blocked on event map data
 - [ ] **Mission / Expedition System** (`api_req_mission/*`)
   - [x] `api_req_mission/start` - start expedition
   - [x] `api_req_mission/result` - expedition result
@@ -64,14 +61,14 @@
     Priority: low until a reliable structured data source is available
 
 ## Medium Priority - Enhanced Features
-- [ ] **Practice System** (`api_req_practice/*`)
+- [x] **Practice System** (`api_req_practice/*`)
   - [x] `api_req_practice/battle` - practice battle
   - [x] `api_req_practice/battle_result` - practice result
   - [x] `api_req_practice/midnight_battle` - practice night battle
   - [x] `api_req_practice/change_matching_kind` - change matching type
 - [x] **Air Corps System, port side** (`api_req_air_corps/*`)
   - [x] `api_get_member/base_air_corps` - air corps data
-  - [x] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery (answers "nothing recovered" until squadrons tire)
+  - [x] `api_port/airCorpsCondRecoveryWithTimer` - condition recovery with time
   - [x] `api_req_air_corps/set_plane` - assign planes
   - [x] `api_req_air_corps/set_action` - set action (standby/sortie/defense)
   - [x] `api_req_air_corps/supply` - resupply planes

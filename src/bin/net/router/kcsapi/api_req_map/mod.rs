@@ -210,7 +210,12 @@ mod tests {
     /// pays for exactly what it lost.
     #[tokio::test]
     async fn an_air_corps_attacks_its_cell_and_comes_home_short() {
+        const SEED: u64 = 9;
+
         let context = new_test_context().await;
+        // Seeded before the sortie starts: the enemy the fleet meets is rolled
+        // on the way, and most of 6-4's first fleets cannot hit a squadron.
+        emukc_internal::crypto::rng::seed(SEED);
         let pid = air_corps_over_6_4(&context, 1).await;
         let cell = context.state.sortie_store.get_active(pid).unwrap().current_cell_id;
         let target = format!("{cell},{cell}");
@@ -219,7 +224,6 @@ mod tests {
             .await
             .unwrap();
 
-        emukc_internal::crypto::rng::seed(5);
         let battle = context.state.sortie_battle(pid, 1).await.unwrap();
         context.state.sortie_battle_result(pid).await.unwrap();
         emukc_internal::crypto::rng::reseed_from_entropy();

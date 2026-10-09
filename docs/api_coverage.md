@@ -54,9 +54,8 @@ are the only regular ones that do, both in area 6.
 
 Still open, listed in `docs/solutions/architecture-patterns/air-corps.md`:
 
-- Squadron fatigue and the 12-minute relocation timer — both need a timestamp
-  column, so `cond_recovery` and `airCorpsCondRecoveryWithTimer` have nothing
-  to recover yet
+- Fatigue is shown, recovers and can be rested away (2026-10-09, plan
+  `2026-10-09-001`), but does not change what a squadron does in battle
 - Base defence, air raids on the base, jet assault, heavy bombers
 
 ## Scattered Missing Endpoints
@@ -109,8 +108,9 @@ Coupled with map/sortie, implement after combined fleet.
 2. `api_req_air_corps/` handlers (8 files) — done 2026-10-08 (plan U3/U4/U5)
 3. `api_port/airCorpsCondRecoveryWithTimer` — done 2026-10-08 (plan U5)
 4. `api_req_map/start_air_base` and the air corps attack phase — done 2026-10-08
-   (plan `2026-10-08-006`); base defence, air raids on the base, jet assault and
-   fatigue are still open
+   (plan `2026-10-08-006`), fatigue and the relocation wait 2026-10-09 (plan
+   `2026-10-09-001`); base defence, air raids on the base and jet assault are
+   still open
 5. Verify: deploy LBAS → sortie → verify air strike phase — done 2026-10-08,
    headless scenario `air_corps_6_4`
 
