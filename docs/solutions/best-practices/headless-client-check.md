@@ -64,7 +64,16 @@ screen, pass steps on the command line and read the screenshots:
 - A new profile has no world, so the first screen is the server list; and the client only
   offers a map whose whole prerequisite chain is cleared, so a preset clears the chain
   rather than unlocking the one map.
-- Animations run in real time: 5-6 with four battles takes about four minutes.
+- The page runs on Chrome's virtual time (`Emulation.setVirtualTimePolicy`, policy
+  `pauseIfNetworkFetchesPending`): every wait in the steps is a budget of the page's own
+  milliseconds, spent as fast as its timers can run and held while a request is out. The
+  client's logic is `createjs.Ticker` on `setTimeout` and its drawing is PIXI on
+  `requestAnimationFrame`, so the ticks all happen and only a few frames are drawn. 5-6 with
+  four battles went from six and a half minutes to under one, 6-5 from ten to under one.
+  Multiplying the clock instead (16x) broke 6-5: loading does not speed up, and the fixed
+  waits shrank below it.
+- The client has no switch for this. Its battle skip (`skip`, `skip_battle`, `SkipButton`,
+  `_skipBattle`) and its `_debug` arguments are left in the release build as empty shells.
 - What only time or many repetitions would produce is written into the workspace database
   mid-run: `tire:<n>` sets every squadron's condition, which is how `air_corps_6_4` gets to
   see the orange fatigue icon after one sortie.
@@ -95,6 +104,9 @@ screen, pass steps on the command line and read the screenshots:
 
 ## Limits
 
+- Virtual time waits for requests only, not for image decoding or audio, and `Date` runs on it
+  too: the client's clock ends a run minutes ahead of the server's, which a scenario about
+  expeditions or repairs would have to mind. Between steps the page is frozen.
 - Not a quality gate: it needs the 7 GB resource cache, the decoded `main.js`, Playwright
   and Chrome. Run it after a change the client has to play.
 - The server holds the redb lock of `z/cache`; stop your own server first.

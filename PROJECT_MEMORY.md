@@ -196,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] PR #28（航空战暴击标记）、#29（任务 `api_voice_id`）已合并。分支 `feat/hit-and-critical-rolls`：计划 `2026-10-09-004`
-  实施完——七个战斗阶段都掷命中与暴击；fmt、clippy 17、1268 测试全过，无头 `fresh_1_1`、`transport_5_6` 通过。
+- [2026-10-09] PR #28–#30（航空战暴击标记、任务语音、七个阶段的命中与暴击）已合并。分支 `feat/headless-virtual-time`：
+  无头检查改走 Chrome 虚拟时间，五个场景 `make headless-check` 全过，合计约 160 秒（原先单个 6-5 就要十分钟）；未推送。
 
 ## Next Session
 
