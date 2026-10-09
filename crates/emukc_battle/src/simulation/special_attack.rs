@@ -6,6 +6,7 @@
 
 use emukc_model::{codex::Codex, kc2::KcShipType};
 
+use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
@@ -661,9 +662,21 @@ pub(crate) fn execute_special_attack(
         };
 
         let mut hit_damages = Vec::with_capacity(num_hits);
+        let mut cls = Vec::with_capacity(num_hits);
 
         for _ in 0..num_hits {
             let ci_mult = Some(total_mult * equip_mult);
+            // ponytail: the source gives each special attack its own accuracy
+            // multiplier (`getSpecialAttackMod`, 1.05 to 1.4 and more with AP
+            // shells or radar); a plain shelling roll stands in for all of them.
+            let outcome = roll_attack(
+                codex,
+                rng,
+                attacker,
+                &defenders[target_idx],
+                Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id),
+            );
+            cls.push(outcome.cl());
             let raw = calculate_shelling_damage(
                 codex,
                 rng,
@@ -672,6 +685,7 @@ pub(crate) fn execute_special_attack(
                 params.formation_id,
                 params.engagement,
                 ci_mult,
+                outcome,
             );
             let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
             if !is_enemy {
@@ -691,6 +705,7 @@ pub(crate) fn execute_special_attack(
             fleet_idx,
             vec![target_idx as i64; num_hits],
             hit_damages,
+            cls,
         );
     }
 

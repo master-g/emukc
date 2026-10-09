@@ -2,6 +2,7 @@
 
 use emukc_model::codex::Codex;
 
+use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
@@ -35,6 +36,13 @@ pub(crate) fn simulate_opening_taisen(
         let Some(target_idx) = select_submarine_target(codex, rng, enemy) else {
             continue;
         };
+        let outcome = roll_attack(
+            codex,
+            rng,
+            ship,
+            &enemy[target_idx],
+            Aim::new(AttackKind::Asw, friendly_formation_id, enemy_formation_id),
+        );
         let raw = calculate_asw_damage(
             codex,
             rng,
@@ -42,6 +50,7 @@ pub(crate) fn simulate_opening_taisen(
             &enemy[target_idx],
             friendly_formation_id,
             engagement,
+            outcome,
         );
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
@@ -53,6 +62,7 @@ pub(crate) fn simulate_opening_taisen(
             idx,
             vec![target_idx as i64],
             vec![display.into()],
+            vec![outcome.cl()],
         );
     }
 
@@ -64,6 +74,13 @@ pub(crate) fn simulate_opening_taisen(
         let Some(target_idx) = select_submarine_target(codex, rng, friendly) else {
             continue;
         };
+        let outcome = roll_attack(
+            codex,
+            rng,
+            ship,
+            &friendly[target_idx],
+            Aim::new(AttackKind::Asw, enemy_formation_id, friendly_formation_id),
+        );
         let raw = calculate_asw_damage(
             codex,
             rng,
@@ -71,6 +88,7 @@ pub(crate) fn simulate_opening_taisen(
             &friendly[target_idx],
             enemy_formation_id,
             engagement,
+            outcome,
         );
         let (_, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
@@ -81,6 +99,7 @@ pub(crate) fn simulate_opening_taisen(
             idx,
             vec![target_idx as i64],
             vec![dealt.into()],
+            vec![outcome.cl()],
         );
     }
 

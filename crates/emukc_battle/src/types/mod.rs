@@ -253,6 +253,7 @@ mod tests {
                 attacker_index: 1,
                 defender_index: 0,
                 damage: 21,
+                cl: 1,
                 shield: false,
             },
         );
@@ -262,6 +263,7 @@ mod tests {
                 attacker_index: 0,
                 defender_index: 1,
                 damage: 34,
+                cl: 1,
                 shield: false,
             },
         );
@@ -286,6 +288,7 @@ mod tests {
                 attacker_index: 1,
                 defender_index: 0,
                 damage: 21,
+                cl: 1,
                 shield: false,
             },
         );
@@ -295,6 +298,7 @@ mod tests {
                 attacker_index: 0,
                 defender_index: 1,
                 damage: 34,
+                cl: 1,
                 shield: false,
             },
         );

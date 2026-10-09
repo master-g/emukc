@@ -33,12 +33,15 @@ NightBattlePacket {
             api_at_eflag: [
                 0,
                 0,
+                1,
             ],
             api_at_list: [
                 0,
                 1,
+                0,
             ],
             api_n_mother_list: [
+                0,
                 0,
                 0,
             ],
@@ -48,8 +51,12 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    0,
-                    0,
+                    1,
+                    1,
+                ],
+                [
+                    1,
+                    1,
                 ],
             ],
             api_si_list: [
@@ -69,29 +76,46 @@ NightBattlePacket {
                         "11",
                     ),
                 ],
+                [
+                    Text(
+                        "105",
+                    ),
+                    Text(
+                        "8",
+                    ),
+                ],
             ],
             api_cl_list: [
+                [
+                    0,
+                    0,
+                ],
                 [
                     1,
                     1,
                 ],
                 [
-                    1,
+                    0,
                     1,
                 ],
             ],
             api_sp_list: [
                 1,
                 1,
+                1,
             ],
             api_damage: [
+                [
+                    0,
+                    0,
+                ],
                 [
                     284,
                     0,
                 ],
                 [
-                    286,
                     0,
+                    8,
                 ],
             ],
         },

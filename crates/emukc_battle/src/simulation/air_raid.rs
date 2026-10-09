@@ -2,8 +2,8 @@
 //!
 //! Follows `KC3Kai/kancolle-replay`'s `simLBRaid` (`kcsim.js`) and
 //! `LandBase.airPowerDefend` (`kcships.js`); the plan `2026-10-09-003` lists
-//! each figure with its line. As in the other two air battles here, every
-//! strike hits; contact and the high-altitude modifier are left out.
+//! each figure with its line. Contact and the high-altitude modifier are left
+//! out.
 
 use std::collections::BTreeMap;
 
@@ -13,6 +13,7 @@ use emukc_model::{
 };
 use serde::Serialize;
 
+use crate::accuracy::{HitOutcome, roll_strike_on_base};
 use crate::damage::apply_cap;
 use crate::random::BattleRng;
 use crate::targeting::{is_air_combat_type, is_airstrike_attack_type};
@@ -21,7 +22,7 @@ use crate::types::{
     BattleSquadronPlane, DamageCell,
 };
 
-use super::kouku::{attack_plane_from, calculate_fighter_power};
+use super::kouku::{AIRSTRIKE_HIT_PERCENT, attack_plane_from, calculate_fighter_power};
 
 /// What an air base can take; it is never brought below 1.
 const BASE_HP: i64 = 200;
@@ -248,6 +249,16 @@ pub fn simulate_air_raid(
             if stat <= 0 {
                 continue;
             }
+            // The base cannot dodge, so only the aircraft's own miss rate counts.
+            let outcome = roll_strike_on_base(rng, AIRSTRIKE_HIT_PERCENT);
+            if torpedo {
+                api_frai_flag[target] = 1;
+            } else {
+                api_fbak_flag[target] = 1;
+            }
+            if outcome == HitOutcome::Miss {
+                continue;
+            }
             let mut power = stat as f64 * (onslot as f64).sqrt() + 25.0;
             if torpedo {
                 // A torpedo run does either less or more than a bombing one.
@@ -261,11 +272,6 @@ pub fn simulate_air_raid(
             let damage = apply_cap(power, DAMAGE_CAP).min(hp[target] - 1);
             hp[target] -= damage;
             base_damage[target] += damage;
-            if torpedo {
-                api_frai_flag[target] = 1;
-            } else {
-                api_fbak_flag[target] = 1;
-            }
         }
     }
 

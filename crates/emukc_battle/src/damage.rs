@@ -12,6 +12,7 @@ use emukc_model::{
     },
 };
 
+use crate::accuracy::HitOutcome;
 use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
@@ -132,6 +133,7 @@ pub(crate) fn ammo_modifier(codex: &Codex, attacker: &BattleRuntimeShip) -> f64 
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied post-cap
 /// (after the daytime soft cap of 220) — matching `KanColle`'s artillery
 /// spotting damage pipeline.
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn calculate_shelling_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -140,6 +142,7 @@ pub(crate) fn calculate_shelling_damage(
     formation_id: i64,
     engagement: EngagementType,
     ci_multiplier: Option<f64>,
+    outcome: HitOutcome,
 ) -> i64 {
     let basic_power = if is_cv_type(codex, attacker) {
         let bomber_count = bomber_plane_count(codex, attacker);
@@ -167,20 +170,21 @@ pub(crate) fn calculate_shelling_damage(
         capped_power *= m;
     }
     capped_power *= ammo_modifier(codex, attacker);
+    let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
 
-/// Calculate torpedo damage for a single attack.
-pub(crate) fn calculate_torpedo_damage(
+/// A torpedo's attack power after the cap, before ammunition and armour.
+/// A fifth of it also goes into the torpedo's accuracy.
+pub(crate) fn torpedo_attack_power(
     codex: &Codex,
-    rng: &mut impl BattleRng,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
     formation_id: i64,
     engagement: EngagementType,
     phase: BattlePhase,
-) -> i64 {
+) -> f64 {
     let basic_power = attacker.ship.api_raisou[0].max(0) as f64
         + improvement_bonus_torpedo(codex, attacker)
         + combined_correction(attacker, defender, CombinedAttackClass::Torpedo) as f64;
@@ -189,8 +193,25 @@ pub(crate) fn calculate_torpedo_damage(
         * day_formation_modifier(formation_id, CombinedAttackClass::Torpedo)
         * engagement.modifier()
         * dmg_state;
-    let mut capped_power = apply_cap(pre_cap, TORPEDO_CAP) as f64;
-    capped_power *= ammo_modifier(codex, attacker);
+    apply_cap(pre_cap, TORPEDO_CAP) as f64
+}
+
+/// Calculate torpedo damage for a single attack.
+#[expect(clippy::too_many_arguments)]
+pub(crate) fn calculate_torpedo_damage(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+    formation_id: i64,
+    engagement: EngagementType,
+    phase: BattlePhase,
+    outcome: HitOutcome,
+) -> i64 {
+    let capped_power =
+        torpedo_attack_power(codex, attacker, defender, formation_id, engagement, phase)
+            * ammo_modifier(codex, attacker);
+    let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -206,6 +227,7 @@ pub(crate) fn calculate_night_damage(
     defender: &BattleRuntimeShip,
     air_state: Option<&AirState>,
     ci_multiplier: Option<f64>,
+    outcome: HitOutcome,
 ) -> i64 {
     let basic_power = (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5)
         as f64
@@ -217,6 +239,7 @@ pub(crate) fn calculate_night_damage(
     };
     let mut capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
     capped_power *= ammo_modifier(codex, attacker);
+    let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
@@ -229,6 +252,7 @@ pub(crate) fn calculate_asw_damage(
     defender: &BattleRuntimeShip,
     formation_id: i64,
     engagement: EngagementType,
+    outcome: HitOutcome,
 ) -> i64 {
     let ship_asw = attacker.ship.api_taisen[0].max(0) as f64;
     let equip_asw = equipment_asw_total(codex, attacker);
@@ -258,7 +282,7 @@ pub(crate) fn calculate_asw_damage(
         * day_formation_modifier(formation_id, CombinedAttackClass::Asw)
         * engagement.modifier()
         * dmg_state;
-    let capped = apply_cap(modified, ASW_CAP) as f64;
+    let capped = outcome.power(apply_cap(modified, ASW_CAP) as f64);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     let armor_reduction = depth_charge_armor_reduction(codex, attacker);
     let adjusted_defense = (defense - armor_reduction).max(0.0);
@@ -823,6 +847,7 @@ mod tests {
                 1,
                 EngagementType::SameCourse,
                 None,
+                HitOutcome::Hit,
             )
         };
 
@@ -864,6 +889,7 @@ mod tests {
                 1,
                 EngagementType::SameCourse,
                 BattlePhase::OpeningTorpedo,
+                HitOutcome::Hit,
             );
             let (atk, def) = build(bull_max / 10);
             let mut rng = crate::random::SeededRng::new(seed);
@@ -875,15 +901,18 @@ mod tests {
                 1,
                 EngagementType::SameCourse,
                 BattlePhase::OpeningTorpedo,
+                HitOutcome::Hit,
             );
             assert!(torp_low <= torp_full, "torpedo seed {seed}: {torp_low} > {torp_full}");
 
             let (atk, def) = build(bull_max);
             let mut rng = crate::random::SeededRng::new(seed);
-            let night_full = calculate_night_damage(&codex, &mut rng, &atk, &def, None, None);
+            let night_full =
+                calculate_night_damage(&codex, &mut rng, &atk, &def, None, None, HitOutcome::Hit);
             let (atk, def) = build(bull_max / 10);
             let mut rng = crate::random::SeededRng::new(seed);
-            let night_low = calculate_night_damage(&codex, &mut rng, &atk, &def, None, None);
+            let night_low =
+                calculate_night_damage(&codex, &mut rng, &atk, &def, None, None, HitOutcome::Hit);
             assert!(night_low <= night_full, "night seed {seed}: {night_low} > {night_full}");
         }
     }
@@ -909,6 +938,7 @@ mod tests {
                 1,
                 EngagementType::SameCourse,
                 None,
+                HitOutcome::Hit,
             )
         };
 
@@ -990,6 +1020,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             None,
+            HitOutcome::Hit,
         );
         // Scratch damage is proportional to target HP: 0.06*H + 0.08*rand(0,H-1)
         // It should be much less than capped_power - defense (which would be negative)
@@ -1014,6 +1045,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             None,
+            HitOutcome::Hit,
         );
         // capped ~205, defense ~7-13, so damage should be 192-198
         assert!(dmg > 100, "normal damage should be large: got {dmg}");
@@ -1035,6 +1067,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             BattlePhase::OpeningTorpedo,
+            HitOutcome::Hit,
         );
         // Basic power = 100 (NOT 105). After formation (1.0) and engagement (1.0), capped at 100.
         // Defense with armor 10: ~7-13. Damage ~87-93.
@@ -1060,6 +1093,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             BattlePhase::OpeningTorpedo,
+            HitOutcome::Hit,
         );
         assert_eq!(dmg, 0, "taiha torpedo should deal 0 damage, got {dmg}");
     }
@@ -1099,6 +1133,7 @@ mod tests {
             &defender,
             1, // line ahead
             EngagementType::SameCourse,
+            HitOutcome::Hit,
         );
 
         // Verify damage is positive and uses the ASW formula (not shelling formula)
@@ -1133,6 +1168,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             None,
+            HitOutcome::Hit,
         );
         let penalized_damage = calculate_shelling_damage(
             &codex,
@@ -1142,6 +1178,7 @@ mod tests {
             5,
             EngagementType::TDisadvantage,
             None,
+            HitOutcome::Hit,
         );
 
         assert!(normal_damage > penalized_damage);
@@ -1180,6 +1217,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             None,
+            HitOutcome::Hit,
         );
         assert!(dmg > 0, "CV with bombers should deal shelling damage");
     }
@@ -1216,6 +1254,7 @@ mod tests {
             &defender,
             1,
             EngagementType::SameCourse,
+            HitOutcome::Hit,
         );
         assert!(dmg > 0, "ASW with both aircraft and depth charge should deal damage");
     }

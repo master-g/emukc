@@ -144,7 +144,8 @@ place in the area as a string.
   nothing to the defenders' fighter power, and the high-altitude modifier is left out.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
-  amount nobody has published, and the attacks here have no hit roll to lower.
+  amount nobody has published. The hit roll itself is in
+  `battle-hit-and-critical-rolls.md`; a raid on the base lands 95 times in a hundred.
 - 休息 does not halve the bauxite regeneration (no figure upstream).
 - What a 航空特別増加食 restores has no source; it brings a squadron below 40 back to 40.
 - The server lets a relocating plane be deployed again; only the client stops it.

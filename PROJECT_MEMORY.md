@@ -196,13 +196,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] PR #27（6-5 基地空袭与防空）已合并。PR #28（`fix/aerial-critical-flag`）待合并：航空战暴击标记不再有伤害就置 1。
-  分支 `feat/quest-voice-and-c-list` 叠在 #28 上：任务 `api_voice_id` 填了，`api_c_list` 查明不需要。
+- [2026-10-09] PR #28（航空战暴击标记）、#29（任务 `api_voice_id`）已合并。分支 `feat/hit-and-critical-rolls`：计划 `2026-10-09-004`
+  实施完——七个战斗阶段都掷命中与暴击；fmt、clippy 17、1268 测试全过，无头 `fresh_1_1`、`transport_5_6` 通过。
 
 ## Next Session
 
 - [2026-10-09] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  整个战斗引擎都没有命中与暴击判定（炮击、雷击、夜战、航空全部必中）。kcsim.js 的空袭命中率约 95%，加判定救不了
-  「6-5 空袭把基地打到只剩 1」，无防空时这本来就接近实机上限。下一步：全引擎命中判定，计划见 `docs/plans/2026-10-09-004`。
+  带种子的战斗测试因落空失败时换种子、不放宽断言。命中判定没做的补正见 `battle-hit-and-critical-rolls.md`；
+  「6-5 空袭把基地打到只剩 1」不是命中问题，无防空时接近实机上限。

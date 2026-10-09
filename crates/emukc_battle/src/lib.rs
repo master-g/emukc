@@ -3,9 +3,10 @@
 //! Pure computation crate — takes `Codex` (read-only) and battle inputs,
 //! produces battle simulation results. No database, HTTP, or side effects.
 
+/// Rewrites a combined-fleet packet into the client's ship index space.
+mod accuracy;
 /// Combined fleet (連合艦隊) formation multipliers and attack corrections.
 pub mod combined;
-/// Rewrites a combined-fleet packet into the client's ship index space.
 mod combined_packet;
 /// Internal battle configuration.
 mod config;

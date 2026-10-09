@@ -967,7 +967,7 @@ mod tests {
         enemy.ship.api_karyoku[0] = 200;
         enemy.ship.api_soukou[0] = 200;
 
-        let mut rng = SeededRng::new(42);
+        let mut rng = SeededRng::new(45);
         let simulation = simulate_day(
             &codex,
             BattleContext::head_on(BattleType::Normal, true, friend_ships, vec![enemy]),

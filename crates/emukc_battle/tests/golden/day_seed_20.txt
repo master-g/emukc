@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        53,
-        46,
+        60,
+        60,
     ],
     enemy_nowhps: [
         0,
@@ -66,8 +66,8 @@ BattlePacket {
                     -1,
                 ],
                 api_ebak: [
+                    -1,
                     1,
-                    0,
                 ],
                 api_frai_flag: [
                     0,
@@ -78,7 +78,7 @@ BattlePacket {
                     0,
                 ],
                 api_fbak_flag: [
-                    1,
+                    0,
                     1,
                 ],
                 api_ebak_flag: [
@@ -94,8 +94,8 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    7,
-                    14,
+                    0,
+                    0,
                 ],
                 api_edam: [
                     0,
@@ -167,10 +167,10 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    117,
+                    114.1,
                 ],
                 [
-                    113,
+                    117,
                 ],
             ],
         },

@@ -98,6 +98,7 @@ impl BattleHougeki {
         attacker_idx: usize,
         targets: Vec<i64>,
         damage: Vec<DamageCell>,
+        cl: Vec<i64>,
     ) {
         let (at_type, si) = day_si_entry(&kind);
         self.api_at_eflag.push(i64::from(attacker_is_enemy));
@@ -105,7 +106,7 @@ impl BattleHougeki {
         self.api_at_type.push(at_type);
         self.api_df_list.push(targets);
         self.api_si_list.push(si);
-        self.api_cl_list.push(vec![1; damage.len()]);
+        self.api_cl_list.push(cl);
         self.api_damage.push(damage);
     }
 }
@@ -263,6 +264,7 @@ mod tests {
             2,
             vec![4, 4],
             vec![DamageCell::Plain(10), DamageCell::Shielded(3)],
+            vec![1, 1],
         );
         assert_eq!(hougeki.api_at_eflag, vec![0]);
         assert_eq!(hougeki.api_at_list, vec![2]);

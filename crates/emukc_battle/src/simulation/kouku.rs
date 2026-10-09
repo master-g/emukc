@@ -9,6 +9,7 @@ use emukc_model::{
     kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
+use crate::accuracy::{HitOutcome, roll_strike};
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
@@ -210,6 +211,10 @@ fn aerial_correction(defender: &BattleRuntimeShip) -> f64 {
     })
 }
 
+/// The share of carrier strikes that would land on a target that cannot
+/// dodge, in percent (`kcsim.js` `airstrike`).
+pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
+
 /// Calculate airstrike damage for a single bomber slot.
 ///
 /// Uses bomb/torpedo stat × √(onslot) + 25, capped at 170.
@@ -219,6 +224,7 @@ fn calculate_single_slot_airstrike_damage(
     slot_item: &KcApiSlotItem,
     onslot: i64,
     defender: &BattleRuntimeShip,
+    outcome: HitOutcome,
 ) -> i64 {
     if onslot <= 0 {
         return 0;
@@ -241,7 +247,7 @@ fn calculate_single_slot_airstrike_damage(
         return 0;
     }
     let raw_power = bomb_power + 25.0 + aerial_correction(defender);
-    let capped = apply_cap(raw_power, 170.0) as f64;
+    let capped = outcome.power(apply_cap(raw_power, 170.0) as f64);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped, defense, defender.hp())
 }
@@ -290,12 +296,15 @@ fn execute_airstrike_phase(
             let target_idx = alive_targets[rng
                 .choose_index(alive_targets.len())
                 .expect("alive_targets non-empty by construction")];
+            let outcome =
+                roll_strike(codex, rng, &defenders[target_idx], AIRSTRIKE_HIT_PERCENT, 1.0);
             let damage = calculate_single_slot_airstrike_damage(
                 codex,
                 rng,
                 slot_item,
                 onslot,
                 &defenders[target_idx],
+                outcome,
             );
             if damage > 0 {
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
@@ -304,6 +313,10 @@ fn execute_airstrike_phase(
                 let display =
                     crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 output.damage[target_idx] += display;
+            }
+            // A strike that misses is still flown at its target: the client
+            // draws the run from the flag and the miss from the zero.
+            if damage > 0 || outcome == HitOutcome::Miss {
                 output.bak_targets[ship_idx] = target_idx as i64;
                 output.bak_flags[target_idx] = 1;
             }
@@ -338,12 +351,15 @@ fn execute_airstrike_phase(
             let target_idx = alive_targets[rng
                 .choose_index(alive_targets.len())
                 .expect("alive_targets non-empty by construction")];
+            let outcome =
+                roll_strike(codex, rng, &defenders[target_idx], AIRSTRIKE_HIT_PERCENT, 1.0);
             let damage = calculate_single_slot_airstrike_damage(
                 codex,
                 rng,
                 slot_item,
                 onslot,
                 &defenders[target_idx],
+                outcome,
             );
             if damage > 0 {
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
@@ -352,6 +368,8 @@ fn execute_airstrike_phase(
                 let display =
                     crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
                 output.damage[target_idx] += display;
+            }
+            if damage > 0 || outcome == HitOutcome::Miss {
                 output.rai_targets[ship_idx] = target_idx as i64;
                 output.rai_flags[target_idx] = 1;
             }

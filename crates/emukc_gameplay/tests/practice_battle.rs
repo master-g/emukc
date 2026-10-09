@@ -29,7 +29,7 @@ use emukc_time::chrono::Utc;
 /// If a battle-math change makes a seeded run lose, pick another seed rather than
 /// widening the rank assertion — the point of the assertion is that a win advances
 /// the quest.
-const WIN_RANK_SEED: u64 = 1;
+const WIN_RANK_SEED: u64 = 2;
 
 static PROFILE_ID_BUMP: AtomicI64 = AtomicI64::new(0);
 

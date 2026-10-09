@@ -2,7 +2,8 @@
 
 use emukc_model::codex::Codex;
 
-use crate::damage::calculate_torpedo_damage;
+use crate::accuracy::{Aim, AttackKind, roll_attack};
+use crate::damage::{calculate_torpedo_damage, torpedo_attack_power};
 use crate::random::BattleRng;
 use crate::targeting::{
     can_closing_torpedo_ship, can_opening_torpedo_ship, select_escort_shield,
@@ -52,6 +53,23 @@ pub(crate) fn simulate_opening_torpedo(
             }
             None => false,
         };
+        // A fifth of the torpedo's power goes into its accuracy.
+        let power = torpedo_attack_power(
+            codex,
+            ship,
+            &enemy[target_idx],
+            friendly_formation_id,
+            engagement,
+            BattlePhase::OpeningTorpedo,
+        );
+        let outcome = roll_attack(
+            codex,
+            rng,
+            ship,
+            &enemy[target_idx],
+            Aim::new(AttackKind::Torpedo, friendly_formation_id, enemy_formation_id)
+                .with_flat((power / 5.0).floor()),
+        );
         let raw = calculate_torpedo_damage(
             codex,
             rng,
@@ -60,6 +78,7 @@ pub(crate) fn simulate_opening_torpedo(
             friendly_formation_id,
             engagement,
             BattlePhase::OpeningTorpedo,
+            outcome,
         );
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
@@ -70,6 +89,7 @@ pub(crate) fn simulate_opening_torpedo(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                cl: outcome.cl(),
                 shield,
             },
         );
@@ -94,6 +114,23 @@ pub(crate) fn simulate_opening_torpedo(
                 }
                 None => false,
             };
+        // A fifth of the torpedo's power goes into its accuracy.
+        let power = torpedo_attack_power(
+            codex,
+            ship,
+            &friendly[target_idx],
+            enemy_formation_id,
+            engagement,
+            BattlePhase::OpeningTorpedo,
+        );
+        let outcome = roll_attack(
+            codex,
+            rng,
+            ship,
+            &friendly[target_idx],
+            Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
+                .with_flat((power / 5.0).floor()),
+        );
         let raw = calculate_torpedo_damage(
             codex,
             rng,
@@ -102,6 +139,7 @@ pub(crate) fn simulate_opening_torpedo(
             enemy_formation_id,
             engagement,
             BattlePhase::OpeningTorpedo,
+            outcome,
         );
         let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
@@ -112,6 +150,7 @@ pub(crate) fn simulate_opening_torpedo(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                cl: outcome.cl(),
                 shield,
             },
         );
@@ -148,6 +187,23 @@ pub(crate) fn simulate_raigeki(
         else {
             continue;
         };
+        // A fifth of the torpedo's power goes into its accuracy.
+        let power = torpedo_attack_power(
+            codex,
+            ship,
+            &enemy[target_idx],
+            friendly_formation_id,
+            engagement,
+            BattlePhase::ClosingTorpedo,
+        );
+        let outcome = roll_attack(
+            codex,
+            rng,
+            ship,
+            &enemy[target_idx],
+            Aim::new(AttackKind::Torpedo, friendly_formation_id, enemy_formation_id)
+                .with_flat((power / 5.0).floor()),
+        );
         let raw = calculate_torpedo_damage(
             codex,
             rng,
@@ -156,6 +212,7 @@ pub(crate) fn simulate_raigeki(
             friendly_formation_id,
             engagement,
             BattlePhase::ClosingTorpedo,
+            outcome,
         );
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
@@ -166,6 +223,7 @@ pub(crate) fn simulate_raigeki(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                cl: outcome.cl(),
                 shield: false, // closing torpedo is out of scope for かばう
             },
         );
@@ -186,6 +244,23 @@ pub(crate) fn simulate_raigeki(
         else {
             continue;
         };
+        // A fifth of the torpedo's power goes into its accuracy.
+        let power = torpedo_attack_power(
+            codex,
+            ship,
+            &friendly[target_idx],
+            enemy_formation_id,
+            engagement,
+            BattlePhase::ClosingTorpedo,
+        );
+        let outcome = roll_attack(
+            codex,
+            rng,
+            ship,
+            &friendly[target_idx],
+            Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
+                .with_flat((power / 5.0).floor()),
+        );
         let raw = calculate_torpedo_damage(
             codex,
             rng,
@@ -194,6 +269,7 @@ pub(crate) fn simulate_raigeki(
             enemy_formation_id,
             engagement,
             BattlePhase::ClosingTorpedo,
+            outcome,
         );
         let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
@@ -204,6 +280,7 @@ pub(crate) fn simulate_raigeki(
                 attacker_index: idx,
                 defender_index: target_idx,
                 damage: display,
+                cl: outcome.cl(),
                 shield: false, // closing torpedo is out of scope for かばう
             },
         );
