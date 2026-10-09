@@ -3,7 +3,8 @@
     python run.py <scenario preset> ["<steps>"]
 
 Without steps the scenario's own are played and its check is run. Steps given on the
-command line are for finding the way through a new screen. Steps are space separated: `w:<seconds>` waits, `c:<x>,<y>` clicks the game canvas
+command line are for finding the way through a new screen. Steps are space separated: `w:<seconds>` lets the game live
+that long (its own time: see `advance`), `c:<x>,<y>` clicks the game canvas
 (1200x720), `s:<name>` saves a screenshot, `api:<path>` waits until the client has called
 that KCSAPI path since the last call a step waited for, and `u:<x>,<y>:<path>` does the
 same while clicking that spot every few seconds (several spots, separated by `;`, are
@@ -298,14 +299,36 @@ def main() -> int:
 
             page.on("response", on_response)
             page.route(re.compile(r"/kcs2/js/main\.js"), lambda route: route.fulfill(body=client, content_type="application/javascript"))
+            # The page runs on Chrome's virtual time: its timers fire one after another without
+            # waiting, and the clock stands still while a request is out. So an animation costs
+            # what its ticks cost to compute, and a wait is never eaten by loading.
+            cdp = page.context.new_cdp_session(page)
+            expired = []
+            cdp.on("Emulation.virtualTimeBudgetExpired", lambda _: expired.append(True))
+
+            def advance(ms: float) -> None:
+                """Let the page live `ms` of its own time; it is frozen again when this returns."""
+                expired.clear()
+                cdp.send(
+                    "Emulation.setVirtualTimePolicy",
+                    {"policy": "pauseIfNetworkFetchesPending", "budget": ms, "maxVirtualTimeTaskStarvationCount": 100},
+                )
+                deadline = time.time() + 120
+                while not expired:
+                    if time.time() > deadline:
+                        raise SystemExit(f"the page did not get through {ms} ms of its own time in two minutes")
+                    page.wait_for_timeout(5)
+
             page.goto(url, wait_until="domcontentloaded")
             cursor = 0
 
             def click(x: int, y: int) -> None:
                 # Some buttons only take a press after they have seen the pointer arrive.
                 page.mouse.move(CANVAS_X + x, CANVAS_Y + y)
-                page.wait_for_timeout(200)
-                page.mouse.click(CANVAS_X + x, CANVAS_Y + y, delay=80)
+                advance(200)
+                page.mouse.down()
+                advance(80)
+                page.mouse.up()
 
             def called(path: str, taps: list[tuple[int, int]]) -> bool:
                 """Wait for a call made after the last one a step waited for, tapping meanwhile."""
@@ -314,7 +337,7 @@ def main() -> int:
                 while path not in report["api"][cursor:] and time.time() < deadline:
                     for tap in taps:
                         click(*tap)
-                    page.wait_for_timeout(2000 if taps else 250)
+                    advance(2000 if taps else 250)
                 if path not in report["api"][cursor:]:
                     return False
                 cursor += report["api"][cursor:].index(path) + 1
@@ -323,7 +346,7 @@ def main() -> int:
             for step in steps:
                 kind, _, value = step.partition(":")
                 if kind == "w":
-                    page.wait_for_timeout(float(value) * 1000)
+                    advance(float(value) * 1000)
                 elif kind == "c":
                     click(*map(int, value.split(",")))
                 elif kind == "s":
