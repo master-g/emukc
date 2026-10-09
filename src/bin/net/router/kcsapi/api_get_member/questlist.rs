@@ -16,16 +16,6 @@ pub(super) struct Params {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct CListItem {
-    api_no: i64,
-    api_progress_flag: i64,
-    api_stage: i64,
-
-    // 1: Completed
-    api_c_flag: Option<i64>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 struct Resp {
     api_count: i64,
     api_completed_kind: i64,
@@ -34,10 +24,10 @@ struct Resp {
 
     // never used
     api_exec_type: i64,
-
-    // those factory conversion quests will have this when in progress or completed
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    api_c_list: Vec<CListItem>,
+    // `api_c_list` is left out on purpose. The official server sends it so the
+    // client can finish judging a conversion quest from the player's holdings;
+    // this server judges the holdings itself and sends `api_state` 3, which the
+    // client's own check leaves alone.
 }
 
 pub(super) async fn handler(
@@ -59,7 +49,6 @@ fn project(view: QuestListView) -> Resp {
         api_list,
         api_exec_count: view.exec_count,
         api_exec_type: 0,
-        api_c_list: vec![], // TODO(#0): we are not there yet
     }
 }
 
@@ -73,7 +62,7 @@ fn project_item(item: QuestListItem) -> KcApiQuestItem {
         api_title: item.title,
         api_detail: item.detail,
         api_lost_badges: item.lost_badges,
-        api_voice_id: 0, // TODO(#0): voice_id is missing now
+        api_voice_id: item.voice_id,
         api_get_material: item.reward_materials,
         api_select_rewards: item.select_rewards,
         api_bonus_flag: item.bonus_flag,
