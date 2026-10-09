@@ -1261,6 +1261,7 @@ mod tests {
             cells: vec![],
             routing_rules: BTreeMap::new(),
             enemy_fleets: BTreeMap::new(),
+            air_raid_fleets: Vec::new(),
             ship_drops: BTreeMap::from([(
                 1,
                 vec![

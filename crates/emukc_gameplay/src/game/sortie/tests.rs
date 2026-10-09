@@ -1304,6 +1304,7 @@ fn start_source_cells_include_nonzero_route_cell_roots() {
         ],
         routing_rules: BTreeMap::new(),
         enemy_fleets: BTreeMap::new(),
+        air_raid_fleets: Vec::new(),
         ship_drops: BTreeMap::new(),
         required_defeat_count: None,
         clear_to_variant_key: None,

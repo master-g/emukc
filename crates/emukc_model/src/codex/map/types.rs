@@ -98,6 +98,10 @@ pub struct MapVariantDefinition {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub start_rules: Vec<RouteRule>,
     pub enemy_fleets: BTreeMap<i64, EnemyFleetDefinition>,
+    /// The fleets that raid the air base while this map is sortied. Empty for a map without
+    /// raids.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub air_raid_fleets: Vec<EnemyComposition>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub ship_drops: BTreeMap<i64, Vec<ShipDropDefinition>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

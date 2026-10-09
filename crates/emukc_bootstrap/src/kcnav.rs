@@ -116,7 +116,11 @@ pub fn kcnav_query(meta: &Value) -> Result<String, String> {
     Ok(pairs.into_iter().map(|(key, value)| format!("{key}={value}")).collect::<Vec<_>>().join("&"))
 }
 
-/// The requests for one map: its route document, then two per battle edge.
+/// `KCNav`'s name for the air base, a node no edge leads to: the fleets met there are the ones
+/// that raid it.
+pub const AIR_BASE_NODE: &str = "AB";
+
+/// The requests for one map: its route document, two per battle edge, then the air base's raiders.
 fn map_jobs(dir: &Path, map: &str, edges: &BTreeSet<i64>, query: &str) -> Vec<(String, PathBuf)> {
     let base = format!("{KCNAV_API_ROOT}/maps/{map}");
     let dir = dir.join(map);
@@ -129,6 +133,10 @@ fn map_jobs(dir: &Path, map: &str, edges: &BTreeSet<i64>, query: &str) -> Vec<(S
             ));
         }
     }
+    jobs.push((
+        format!("{base}/nodes/{AIR_BASE_NODE}/enemycomps?{query}"),
+        dir.join(format!("node_{AIR_BASE_NODE}_enemycomps.json")),
+    ));
     jobs
 }
 
@@ -415,6 +423,11 @@ pub fn normalize_kcnav(dir: impl AsRef<Path>) -> Result<KcnavCatalog, String> {
         let mut nodes = BTreeMap::<String, KcnavNode>::new();
         for path in list(&map_dir)? {
             let name = path.file_stem().unwrap_or_default().to_string_lossy().into_owned();
+            if name == format!("node_{AIR_BASE_NODE}_enemycomps") {
+                add_fleets(nodes.entry(AIR_BASE_NODE.to_owned()).or_default(), &read_json(&path)?)
+                    .map_err(|err| format!("{}: {err}", path.display()))?;
+                continue;
+            }
             let Some((edge, kind)) =
                 name.strip_prefix("edge_").and_then(|rest| rest.split_once('_'))
             else {
@@ -766,12 +779,22 @@ pub fn kcnav_enemy_fleets(
                         ..Default::default()
                     })
                     .collect::<Vec<_>>();
-                let Some(first) = cells.next() else {
-                    continue;
-                };
                 if compositions.is_empty() {
                     continue;
                 }
+                if label == AIR_BASE_NODE {
+                    rows.insert(
+                        label.clone(),
+                        EnemyNodeRows {
+                            is_boss: false,
+                            compositions,
+                        },
+                    );
+                    continue;
+                }
+                let Some(first) = cells.next() else {
+                    continue;
+                };
                 // From the recorded route, not from our catalog: the catalog's own flag is
                 // what `apply_cell_events` corrects.
                 let name = format!("{}-{}", map.maparea_id, map.mapinfo_no);
@@ -795,7 +818,8 @@ pub fn kcnav_enemy_fleets(
     }
     KcnavEnemyFleetsAsset {
         note: format!(
-            "Enemy fleets of the regular maps, keyed by map id, variant key and node label. {}",
+            "Enemy fleets of the regular maps, keyed by map id, variant key and node label; the \
+             node AB holds the fleets that raid the air base. {}",
             kcnav.note
         ),
         maps,
@@ -826,7 +850,9 @@ mod tests {
     fn kcnav_jobs_ask_for_the_route_then_both_kinds_per_edge() {
         let jobs = map_jobs(Path::new("raw"), "1-1", &BTreeSet::from([2, 3]), "a=1");
         let urls = jobs.iter().map(|(url, _)| url.as_str()).collect::<Vec<_>>();
-        assert_eq!(urls.len(), 5);
+        assert_eq!(urls.len(), 6);
+        assert_eq!(urls[5], "https://tsunkit.net/api/routing/maps/1-1/nodes/AB/enemycomps?a=1");
+        assert_eq!(jobs[5].1, Path::new("raw/1-1/node_AB_enemycomps.json"));
         assert_eq!(urls[0], "https://tsunkit.net/api/routing/maps/1-1");
         assert_eq!(urls[2], "https://tsunkit.net/api/routing/maps/1-1/edges/2/drops?a=1");
         assert_eq!(jobs[2].1, Path::new("raw/1-1/edge_2_drops.json"));
@@ -886,6 +912,18 @@ mod tests {
             ]
         );
         assert!(node.fleets.iter().all(|fleet| fleet.levels == [1, 1] && fleet.formation == 1));
+    }
+
+    /// The air base is a node no edge enters; its fleets are kept under its own label and reach
+    /// the asset without a cell to stand on.
+    #[test]
+    fn kcnav_keeps_the_fleets_that_raid_the_air_base() {
+        let kcnav = normalize_kcnav(FIXTURES).unwrap();
+        assert_eq!(kcnav.maps["1-1"][AIR_BASE_NODE].fleets.len(), 3);
+
+        let catalog = catalog_with(vec![(2, "B", (4, 4, 1))], 0);
+        let asset = kcnav_enemy_fleets(&kcnav, &catalog, |_| true);
+        assert_eq!(asset.maps[&11][""][AIR_BASE_NODE].compositions.len(), 3);
     }
 
     #[test]

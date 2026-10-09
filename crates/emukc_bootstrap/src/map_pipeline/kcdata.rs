@@ -180,6 +180,7 @@ fn build_variant_from_kcdata(data: &KcDataMapData) -> MapVariantDefinition {
         cells,
         routing_rules: BTreeMap::new(),
         enemy_fleets: BTreeMap::new(),
+        air_raid_fleets: Vec::new(),
         ship_drops: BTreeMap::new(),
         required_defeat_count: None,
         clear_to_variant_key: None,

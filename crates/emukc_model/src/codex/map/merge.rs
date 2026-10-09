@@ -89,6 +89,9 @@ fn merge_variant_definition(definition: &mut MapVariantDefinition, other: MapVar
         }
         definition.enemy_fleets.entry(cell_no).or_insert(fleet);
     }
+    if definition.air_raid_fleets.is_empty() {
+        definition.air_raid_fleets = other.air_raid_fleets;
+    }
     for (cell_no, drops) in other.ship_drops {
         definition.ship_drops.entry(cell_no).or_insert(drops);
     }
