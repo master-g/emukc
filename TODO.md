@@ -19,9 +19,9 @@
 
 ## Code Quality / Tech Debt
 - [x] recalculate quest progress on `start` the quest
-- [ ] quest `api_voice_id` field is missing (`questlist.rs`)
+- [x] quest `api_voice_id`: `1000 + quest no` for the twelve quests with a line in `kc9999` (`game/view/quest_list.rs`)
 - [x] quest `api_invalid_flag`: 1 when a conversion's flagship equipment is locked (`game/quest/holding.rs`)
-- [ ] quest `api_c_list` (composition quest list) not populated (`questlist.rs`)
+- [x] quest `api_c_list`: not needed — the server judges a conversion quest's holdings itself and sends `api_state` 3 (`questlist.rs`)
 - [x] implement slotitem consumption for quest reward claim (`game/quest/holding.rs`)
 - [x] implement combined fleet handler (`api_req_hensei/combined`)
 - [ ] update quest progress on port entry (`game/view/port.rs`) — probably unnecessary: quests are refreshed when the quest list is read

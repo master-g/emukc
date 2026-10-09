@@ -158,6 +158,9 @@ Current verification baseline:
 - [2026-10-09] 航空隊疲劳数值全部来自 wikiwiki 且该页自标「推測される値」；疲劳不影响战斗。内部值/双行槽位/加列回填的做法见
   `docs/solutions/architecture-patterns/air-corps.md`「Condition and relocation run on one timestamp」。
 
+- [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
+  `api_c_list` 不发：改装系任务由服务器判持有。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -174,7 +177,7 @@ Current verification baseline:
 | [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | `cargo clippy` 默认档比 `-D warnings` 宽（漏过 `match`→`let-else`），但 `-D` 会被既有的 `result_large_err`（`emukc_network/src/download.rs:236`、`src/bin/net/auth.rs:139`）挡住。仓库门是 `-W warnings`；新代码用 touched-file 的 `-D` 检查。 | plan 004 U7、sessions 2026-09-18/19 |
-| [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only to the dead file registers nothing. Verified with `compile_error!` by the U7 worker. | session 2026-09-19, U7 |
+| [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only there registers nothing. | session 2026-09-19 |
 | [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` 给假结果：`.bak` 保留原 mtime，cargo 认为没变，复用按**改动后**源码编出的产物。还原后必须 `touch` 再跑。 | session 2026-09-19 |
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
 | [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
@@ -193,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] PR #27（6-5 基地空袭与防空）已合并。分支 `feat/airstrike-accuracy`：只修了航空战 `api_fcl_flag`/`api_ecl_flag`
-  （客户端按「暴击」读，原先有伤害就置 1），crate 内 20 份战斗基线随之重冻。命中判定本身没做，等用户定范围。
+- [2026-10-09] PR #27（6-5 基地空袭与防空）已合并。PR #28（`fix/aerial-critical-flag`）待合并：航空战暴击标记不再有伤害就置 1。
+  分支 `feat/quest-voice-and-c-list` 叠在 #28 上：任务 `api_voice_id` 填了，`api_c_list` 查明不需要。
 
 ## Next Session
 
@@ -202,4 +205,4 @@ Current verification baseline:
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
   整个战斗引擎都没有命中与暴击判定（炮击、雷击、夜战、航空全部必中）。kcsim.js 的空袭命中率约 95%，加判定救不了
-  「6-5 空袭把基地打到只剩 1」，无防空时这本来就接近实机上限。候选：全引擎命中判定；任务的 `api_voice_id` 与 `api_c_list`。
+  「6-5 空袭把基地打到只剩 1」，无防空时这本来就接近实机上限。下一步：全引擎命中判定，计划见 `docs/plans/2026-10-09-004`。

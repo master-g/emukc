@@ -55,6 +55,20 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_quest_a_ship_girl_answers_names_her_line() {
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context, "voice").await;
+        context.quest_add(pid, 198).await.unwrap();
+        context.quest_add(pid, 605).await.unwrap();
+
+        let all = context.quest_list_view(pid, 0).await.unwrap();
+        let voice = |no| all.items.iter().find(|item| item.no == no).unwrap().voice_id;
+        // 198 -> 1198 is what the official server sent.
+        assert_eq!(voice(198), 1198);
+        assert_eq!(voice(605), 0);
+    }
+
+    #[tokio::test]
     async fn quest_list_state_follows_status_and_progress() {
         use emukc_internal::db::entity::profile::quest::progress;
 
