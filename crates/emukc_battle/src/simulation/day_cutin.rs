@@ -41,6 +41,26 @@ impl CarrierCiSubType {
     }
 }
 
+/// What a day attack type does to accuracy (`kcsim.js` `ARTILLERYSPOTDATA`).
+pub(crate) fn day_accuracy_modifier(
+    at_type: DayAttackType,
+    carrier_sub: Option<CarrierCiSubType>,
+) -> f64 {
+    match at_type {
+        DayAttackType::Normal => 1.0,
+        DayAttackType::DoubleAttack => 1.1,
+        DayAttackType::MainSecCI | DayAttackType::MainApSecCI => 1.3,
+        DayAttackType::MainRadarCI => 1.5,
+        DayAttackType::MainApMainCI => 1.2,
+        DayAttackType::CarrierCI => match carrier_sub {
+            Some(CarrierCiSubType::Fba) => 1.35,
+            Some(CarrierCiSubType::Bba) => 1.2,
+            Some(CarrierCiSubType::Ba) => 1.18,
+            None => 1.0,
+        },
+    }
+}
+
 /// Post-cap damage multiplier for day CI types.
 /// `DoubleAttack` uses 1.2x per hit (×2 hits total).
 ///

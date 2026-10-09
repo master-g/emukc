@@ -1,8 +1,8 @@
 //! An air corps' attack on the enemy fleet, flown before the fleets meet.
 //!
 //! The three stages are those of the carrier air battle in [`super::kouku`]
-//! and are kept at its level of detail where that does no harm: every attack
-//! hits and a target is any enemy still afloat. The anti-air stage is the
+//! and are kept at its level of detail where that does no harm: a target is
+//! any enemy still afloat. The anti-air stage is the
 //! source's own, one ship firing on each squadron, because the carrier battle's
 //! estimate (the whole fleet's anti-air over 400) empties a squadron against
 //! an ordinary six-ship fleet. What is
@@ -15,6 +15,7 @@ use emukc_model::{
     kc2::{KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
+use crate::accuracy::roll_strike;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_airstrike_attack_type, target_class};
@@ -291,7 +292,22 @@ pub(crate) fn simulate_air_base_attack(
             continue;
         }
         let land_attacker = is_land_attacker(mst.api_type[2]);
-        let power = strike_power(mst, squadron.count, on_land);
+        // A land-based strike lands 90 times in a hundred plus 7 for each
+        // point of the aircraft's 命中, and the target dodges it less well
+        // than it dodges anything else: 0.86 of its evasion, 0.68 in a
+        // combined fleet (`airstrikeLBAS`, `lbasEvaMod*`).
+        let outcome = roll_strike(
+            codex,
+            rng,
+            &enemy[target],
+            90.0 + 7.0 * mst.api_houm as f64,
+            if enemy[target].enemy_deck.is_some() {
+                0.68
+            } else {
+                0.86
+            },
+        );
+        let power = outcome.power(strike_power(mst, squadron.count, on_land));
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
         let damage = resolve_damage(rng, power, defense, enemy[target].hp());
         struck = true;
@@ -434,7 +450,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let mut enemy = lone_enemy(&codex, KcShipType::DD);
         let mut corps = corps(&[(LAND_ATTACKER, 18), (LOCAL_FIGHTER, 18)]);
-        let mut rng = crate::random::SeededRng::new(7);
+        let mut rng = crate::random::SeededRng::new(8);
 
         let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
 

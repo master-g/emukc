@@ -260,6 +260,7 @@ fn synthesize_day_finishing_volley(packet: &mut BattlePacket, finishing: &Finish
             attacker_idx,
             vec![enemy_idx as i64],
             vec![remaining_hp.into()],
+            vec![1],
         );
     }
 }

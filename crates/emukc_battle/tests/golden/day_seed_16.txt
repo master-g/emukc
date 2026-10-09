@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        55,
-        54,
+        60,
+        60,
     ],
     enemy_nowhps: [
         0,
@@ -94,8 +94,8 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    5,
-                    6,
+                    0,
+                    0,
                 ],
                 api_edam: [
                     0,

@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        54,
-        46,
+        60,
+        52,
     ],
     enemy_nowhps: [
         0,
@@ -67,7 +67,7 @@ BattlePacket {
                 ],
                 api_ebak: [
                     1,
-                    0,
+                    1,
                 ],
                 api_frai_flag: [
                     0,
@@ -78,7 +78,7 @@ BattlePacket {
                     0,
                 ],
                 api_fbak_flag: [
-                    1,
+                    0,
                     1,
                 ],
                 api_ebak_flag: [
@@ -94,8 +94,8 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    6,
-                    14,
+                    0,
+                    8,
                 ],
                 api_edam: [
                     0,
@@ -119,9 +119,9 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
+        1,
         0,
-        0,
-        0,
+        1,
     ],
     hougeki1: Some(
         BattleHougeki {
@@ -139,10 +139,10 @@ BattlePacket {
             ],
             api_df_list: [
                 [
-                    0,
+                    1,
                 ],
                 [
-                    1,
+                    0,
                 ],
             ],
             api_si_list: [
@@ -162,20 +162,89 @@ BattlePacket {
                     1,
                 ],
                 [
-                    1,
+                    0,
                 ],
             ],
             api_damage: [
                 [
-                    115,
+                    114,
                 ],
                 [
-                    113,
+                    0,
                 ],
             ],
         },
     ),
-    hougeki2: None,
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                1,
+            ],
+            api_at_list: [
+                0,
+            ],
+            api_at_type: [
+                0,
+            ],
+            api_df_list: [
+                [
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        105,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    0,
+                ],
+            ],
+            api_damage: [
+                [
+                    0,
+                ],
+            ],
+        },
+    ),
     hougeki3: None,
-    raigeki: None,
+    raigeki: Some(
+        BattleRaigeki {
+            api_frai: [
+                0,
+                -1,
+            ],
+            api_fcl: [
+                1,
+                0,
+            ],
+            api_fdam: [
+                0,
+                0,
+            ],
+            api_fydam: [
+                110,
+                0,
+            ],
+            api_erai: [
+                -1,
+                -1,
+            ],
+            api_ecl: [
+                0,
+                0,
+            ],
+            api_edam: [
+                110,
+                0,
+            ],
+            api_eydam: [
+                0,
+                0,
+            ],
+        },
+    ),
 }

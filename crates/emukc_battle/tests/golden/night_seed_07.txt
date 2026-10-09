@@ -76,7 +76,7 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    1,
+                    0,
                     1,
                 ],
             ],
@@ -86,12 +86,12 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    286,
+                    283,
                     0,
                 ],
                 [
-                    287,
                     0,
+                    285,
                 ],
             ],
         },

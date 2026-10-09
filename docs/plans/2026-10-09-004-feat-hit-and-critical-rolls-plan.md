@@ -2,7 +2,7 @@
 title: "Hit and Critical Rolls for Every Battle Phase - Plan"
 type: feat
 date: 2026-10-09
-status: draft
+status: implemented
 execution: code
 ---
 
@@ -137,6 +137,23 @@ execution: code
 
 `docs/solutions/architecture-patterns/` 新增一篇命中与暴击判定的说明（公式、来源、没做的补正）；
 更新 `air-corps.md` 的 Known gaps、`TODO.md`、`PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-09）
+
+- 判定在 `crates/emukc_battle/src/accuracy.rs`，七个阶段都接上了；说明见
+  `docs/solutions/architecture-patterns/battle-hit-and-critical-rolls.md`。
+- 与计划的出入：
+  - 攻击方装备命中直接取各装备 `api_houm` 之和；对潜只算声纳，取其対潜的两倍（照 `ASW()`）。
+  - 雷击的命中修正里加了「攻击力的五分之一」（`torpedoPhase` 1858 行），计划的表里漏了这一项。
+  - 警戒阵没有按位置分前后两行，全队用后半队那一行。
+  - 夜战的照明弹与夜间触接补正没做（夜战本身还不掷这两样）；夜战打潜艇仍然必中、只造成擦伤。
+  - 舰队特殊攻击（Nelson Touch 等）没有用 `getSpecialAttackMod` 的命中倍率，按普通炮击判定。
+  - 航空战落空时，`rai_flag` / `bak_flag` 照样置位，伤害为 0。
+- 换了种子的测试：`simulation/mod.rs` 的 `day_battle_all_friendly_survive_under_protection`（42 → 45）、
+  `simulation/air_base.rs` 的 `a_strike_damages_one_enemy_and_reports_what_flew`（7 → 8）、
+  `crates/emukc_gameplay/tests/practice_battle.rs` 的 `WIN_RANK_SEED`（1 → 2）。断言都没有放宽。
+- 重新冻结：`crates/emukc_battle/tests/golden/` 全部 40 份，`tests/gameplay_tests/battle_golden.rs`
+  （F1 的伤害 17 → 20，MVP 由 F2 变为 F1，没有落空）。
 
 ## Stop Conditions
 

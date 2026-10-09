@@ -269,14 +269,14 @@ impl BattleOpeningAttack {
             TorpedoAttackerSide::Friendly => {
                 self.api_frai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
-                self.api_fcl_list_items[hit.attacker_index] = Some(vec![1]);
+                self.api_fcl_list_items[hit.attacker_index] = Some(vec![hit.cl]);
                 self.api_fydam_list_items[hit.attacker_index] = Some(vec![torpedo_cell(hit)]);
                 self.api_edam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai_list_items[hit.attacker_index] =
                     Some(vec![hit.defender_index as i64]);
-                self.api_ecl_list_items[hit.attacker_index] = Some(vec![1]);
+                self.api_ecl_list_items[hit.attacker_index] = Some(vec![hit.cl]);
                 self.api_eydam_list_items[hit.attacker_index] = Some(vec![torpedo_cell(hit)]);
                 self.api_fdam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
@@ -341,13 +341,13 @@ impl BattleRaigeki {
         match attacker_side {
             TorpedoAttackerSide::Friendly => {
                 self.api_frai[hit.attacker_index] = hit.defender_index as i64;
-                self.api_fcl[hit.attacker_index] = 1;
+                self.api_fcl[hit.attacker_index] = hit.cl;
                 self.api_fydam[hit.attacker_index] = torpedo_cell(hit);
                 self.api_edam[hit.defender_index].accumulate(torpedo_cell(hit));
             }
             TorpedoAttackerSide::Enemy => {
                 self.api_erai[hit.attacker_index] = hit.defender_index as i64;
-                self.api_ecl[hit.attacker_index] = 1;
+                self.api_ecl[hit.attacker_index] = hit.cl;
                 self.api_eydam[hit.attacker_index] = torpedo_cell(hit);
                 self.api_fdam[hit.defender_index].accumulate(torpedo_cell(hit));
             }

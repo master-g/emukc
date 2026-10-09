@@ -1,9 +1,10 @@
 //! Day shelling phase simulation.
 
+use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::simulation::day_cutin::resolve_day_attack;
+use crate::simulation::day_cutin::{day_accuracy_modifier, resolve_day_attack};
 use crate::simulation::special_attack;
 use crate::targeting::{can_shell_day_ship, select_random_target_index, target_class};
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams};
@@ -76,6 +77,13 @@ pub(crate) fn simulate_shelling_side(
         let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
 
         if is_asw_attack {
+            let outcome = roll_attack(
+                codex,
+                rng,
+                ship,
+                &defenders[target_idx],
+                Aim::new(AttackKind::Asw, params.formation_id, params.defender_formation_id),
+            );
             let raw = calculate_asw_damage(
                 codex,
                 rng,
@@ -83,6 +91,7 @@ pub(crate) fn simulate_shelling_side(
                 &defenders[target_idx],
                 params.formation_id,
                 params.engagement,
+                outcome,
             );
             let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
             if !params.attacker_is_enemy {
@@ -96,6 +105,7 @@ pub(crate) fn simulate_shelling_side(
                 idx,
                 vec![target_idx as i64],
                 vec![damage_cell(display, shield)],
+                vec![outcome.cl()],
             );
         } else {
             let resolved = resolve_day_attack(codex, rng, ship, params.air_state, fleet_los, idx);
@@ -106,10 +116,17 @@ pub(crate) fn simulate_shelling_side(
                 None
             };
 
+            let aim =
+                Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
+                    .with_modifier(day_accuracy_modifier(resolved.at_type, resolved.carrier_sub));
+
             if resolved.hit_count == 2 {
                 // DoubleAttack: 2 hits on the same target
                 let mut damages = Vec::with_capacity(2);
+                let mut cls = Vec::with_capacity(2);
                 for _ in 0..2 {
+                    let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
+                    cls.push(outcome.cl());
                     let raw = calculate_shelling_damage(
                         codex,
                         rng,
@@ -118,6 +135,7 @@ pub(crate) fn simulate_shelling_side(
                         params.formation_id,
                         params.engagement,
                         ci_mult,
+                        outcome,
                     );
                     let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
                     if !params.attacker_is_enemy {
@@ -140,8 +158,10 @@ pub(crate) fn simulate_shelling_side(
                     idx,
                     vec![target_idx as i64; 2],
                     damages.into_iter().map(|d| damage_cell(d, shield)).collect(),
+                    cls,
                 );
             } else {
+                let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
                 let raw = calculate_shelling_damage(
                     codex,
                     rng,
@@ -150,6 +170,7 @@ pub(crate) fn simulate_shelling_side(
                     params.formation_id,
                     params.engagement,
                     ci_mult,
+                    outcome,
                 );
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
                 if !params.attacker_is_enemy {
@@ -168,6 +189,7 @@ pub(crate) fn simulate_shelling_side(
                     idx,
                     vec![target_idx as i64],
                     vec![damage_cell(display, shield)],
+                    vec![outcome.cl()],
                 );
             }
         }

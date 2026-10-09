@@ -8,6 +8,7 @@ use emukc_model::{
     kc2::{KcShipType, KcSlotItemType3},
 };
 
+use crate::accuracy::{Aim, AttackKind, HitOutcome, roll_attack};
 use crate::damage::{calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::targeting::{
@@ -46,6 +47,27 @@ pub(crate) enum NightAttackType {
 }
 
 impl NightAttackType {
+    /// What the attack type does to accuracy (`kcsim.js` `NBATTACKDATA`).
+    fn accuracy_modifier(self) -> f64 {
+        match self {
+            Self::Normal => 1.0,
+            Self::DoubleAttack | Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 1.1,
+            Self::MainTorpRadar
+            | Self::MainMainSec
+            | Self::DdTorpDrumLookout
+            | Self::DdTorpDrumLookout2 => 1.5,
+            Self::TorpTorpTorp
+            | Self::DdTorpLookoutRadar
+            | Self::DdTorpLookoutRadar2
+            | Self::DdTorpTorpLookout
+            | Self::DdTorpTorpLookout2 => 1.65,
+            Self::MainMainMain => 2.0,
+            // The source has 1.25 for one of the four carrier cut-ins and
+            // 1.2 for the rest.
+            Self::CarrierNightCI(_) => 1.2,
+        }
+    }
+
     fn api_sp_list(self) -> i64 {
         match self {
             Self::Normal => 0,
@@ -816,6 +838,24 @@ pub(crate) fn simulate_night_hougeki(
         let mut total_dealt = 0i64;
 
         for _ in 0..hits {
+            // ponytail: a night attack on a submarine always lands for scratch
+            // damage; give it the ASW roll when night ASW gets its own formula.
+            let outcome = if is_submarine {
+                HitOutcome::Hit
+            } else {
+                roll_attack(
+                    codex,
+                    rng,
+                    ship,
+                    &enemy[target_idx],
+                    Aim::new(
+                        AttackKind::Night,
+                        params.friendly_formation_id,
+                        params.enemy_formation_id,
+                    )
+                    .with_modifier(attack_type.accuracy_modifier()),
+                )
+            };
             let raw = if is_submarine {
                 calculate_scratch_damage(rng, enemy[target_idx].hp().max(1))
             } else {
@@ -830,13 +870,14 @@ pub(crate) fn simulate_night_hougeki(
                     } else {
                         None
                     },
+                    outcome,
                 )
             };
             let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
             total_dealt += dealt;
             let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
             hit_damages.push(display);
-            hit_cls.push(1i64);
+            hit_cls.push(outcome.cl());
         }
         ship.damage_dealt += total_dealt;
 
@@ -894,6 +935,24 @@ pub(crate) fn simulate_night_hougeki(
         let mut total_dealt = 0i64;
 
         for _ in 0..hits {
+            // ponytail: a night attack on a submarine always lands for scratch
+            // damage; give it the ASW roll when night ASW gets its own formula.
+            let outcome = if is_submarine {
+                HitOutcome::Hit
+            } else {
+                roll_attack(
+                    codex,
+                    rng,
+                    ship,
+                    &friendly[target_idx],
+                    Aim::new(
+                        AttackKind::Night,
+                        params.enemy_formation_id,
+                        params.friendly_formation_id,
+                    )
+                    .with_modifier(attack_type.accuracy_modifier()),
+                )
+            };
             let raw = if is_submarine {
                 calculate_scratch_damage(rng, friendly[target_idx].hp().max(1))
             } else {
@@ -908,13 +967,14 @@ pub(crate) fn simulate_night_hougeki(
                     } else {
                         None
                     },
+                    outcome,
                 )
             };
             let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
             total_dealt += dealt;
             let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
             hit_damages.push(display);
-            hit_cls.push(1i64);
+            hit_cls.push(outcome.cl());
         }
         ship.damage_dealt += total_dealt;
 
@@ -1597,12 +1657,26 @@ mod tests {
         let mut rng = crate::random::SeededRng::new(42);
 
         // Damage with 2.0x CI multiplier (MainMainMain)
-        let dmg_with_ci =
-            calculate_night_damage(&codex, &mut rng, &rt_attacker, &rt_defender, None, Some(2.0));
+        let dmg_with_ci = calculate_night_damage(
+            &codex,
+            &mut rng,
+            &rt_attacker,
+            &rt_defender,
+            None,
+            Some(2.0),
+            HitOutcome::Hit,
+        );
 
         // Damage without CI multiplier
-        let dmg_normal =
-            calculate_night_damage(&codex, &mut rng, &rt_attacker, &rt_defender, None, None);
+        let dmg_normal = calculate_night_damage(
+            &codex,
+            &mut rng,
+            &rt_attacker,
+            &rt_defender,
+            None,
+            None,
+            HitOutcome::Hit,
+        );
 
         // With pre-cap: apply_cap(455*2.0, 360) = 360 + sqrt(550) ≈ 383
         // capped_power ≈ 383, defense ≈ 0, so damage ≈ 383

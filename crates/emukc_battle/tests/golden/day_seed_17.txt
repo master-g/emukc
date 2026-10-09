@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        46,
-        46,
+        44,
+        55,
     ],
     enemy_nowhps: [
         0,
@@ -94,8 +94,8 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    14,
-                    14,
+                    11,
+                    5,
                 ],
                 api_edam: [
                     0,
@@ -119,9 +119,9 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
+        1,
         0,
-        0,
-        0,
+        1,
     ],
     hougeki1: Some(
         BattleHougeki {
@@ -162,20 +162,89 @@ BattlePacket {
                     1,
                 ],
                 [
+                    0,
+                ],
+            ],
+            api_damage: [
+                [
+                    117,
+                ],
+                [
+                    0,
+                ],
+            ],
+        },
+    ),
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                1,
+            ],
+            api_at_list: [
+                0,
+            ],
+            api_at_type: [
+                0,
+            ],
+            api_df_list: [
+                [
+                    0,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        105,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
                     1,
                 ],
             ],
             api_damage: [
                 [
-                    116.1,
-                ],
-                [
-                    118,
+                    5,
                 ],
             ],
         },
     ),
-    hougeki2: None,
     hougeki3: None,
-    raigeki: None,
+    raigeki: Some(
+        BattleRaigeki {
+            api_frai: [
+                0,
+                0,
+            ],
+            api_fcl: [
+                0,
+                1,
+            ],
+            api_fdam: [
+                0,
+                0,
+            ],
+            api_fydam: [
+                0,
+                109,
+            ],
+            api_erai: [
+                -1,
+                -1,
+            ],
+            api_ecl: [
+                0,
+                0,
+            ],
+            api_edam: [
+                109,
+                0,
+            ],
+            api_eydam: [
+                0,
+                0,
+            ],
+        },
+    ),
 }
