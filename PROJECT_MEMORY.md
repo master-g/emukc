@@ -193,7 +193,7 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-09] 分支 `feat/air-corps-fatigue`（未推送）：计划 `2026-10-09-001` 全部实施——中隊疲劳（内部值 0–46、按时间回复、出击扣减）、
-  配置転換计时（母港结算、`api_base_convert_slot`）。全量测试 1250/0/0，clippy 17，`air_corps_6_4` 无头通过。`TODO.md` 已对照代码整理。
+  配置転換计时（母港结算、`api_base_convert_slot` 与解除时的 `api_unset_slot`）。全量测试 1251/0/0，clippy 17，三个无头场景通过。`TODO.md` 已对照代码整理。
 
 ## Next Session
 

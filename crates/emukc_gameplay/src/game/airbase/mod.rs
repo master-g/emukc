@@ -296,6 +296,9 @@ impl Ctx {
                 incoming.area_id, incoming.rid
             )));
         }
+        if incoming.state != plane_db::Status::Assigned {
+            return Err(GameplayError::WrongType(format!("slot item {item_id} is relocating")));
+        }
 
         let outgoing =
             find_assigned_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
@@ -955,10 +958,12 @@ where
 /// so the port view is the one caller. The live sample fits: the slot answered
 /// `api_state: 2` at 18:03 and `0 / 0` at 18:16. A row from before `since`
 /// existed has no start and is released at once, as it used to be.
+///
+/// Returns the equipment still waiting and the equipment released by this call.
 pub(crate) async fn settle_relocations_impl<C>(
     c: &C,
     profile_id: i64,
-) -> Result<Vec<i64>, GameplayError>
+) -> Result<(Vec<i64>, Vec<i64>), GameplayError>
 where
     C: ConnectionTrait,
 {
@@ -972,6 +977,7 @@ where
         .await?;
 
     let mut waiting = Vec::new();
+    let mut released = Vec::new();
     for plane in relocating {
         let level = airbases
             .iter()
@@ -981,13 +987,14 @@ where
             .since
             .is_none_or(|since| now - since >= Duration::minutes(relocation_minutes(level)));
         if over {
+            released.push(plane.slot_id);
             plane.delete(c).await?;
         } else {
             waiting.push(plane.slot_id);
         }
     }
 
-    Ok(waiting)
+    Ok((waiting, released))
 }
 
 /// Re-home a squadron without disturbing its strength or condition.

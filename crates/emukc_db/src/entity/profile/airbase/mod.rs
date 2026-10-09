@@ -16,17 +16,21 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
     // inner value now lives, so they are reset to a fresh deployment's 40.
     // Still no migration table: this and `preset_deck.locked` are the only two
     // such columns. Write one when a change cannot be told from "add failed".
+    // One transaction, so a start cut short cannot keep the column and lose
+    // the reset.
     {
-        use sea_orm::ConnectionTrait;
-        let added = db
+        use sea_orm::{ConnectionTrait, TransactionTrait};
+        let tx = db.begin().await?;
+        let added = tx
             .execute_unprepared(
                 "ALTER TABLE plane_info ADD COLUMN since timestamp_with_timezone_text NULL",
             )
             .await
             .is_ok();
         if added {
-            db.execute_unprepared("UPDATE plane_info SET condition = 40").await?;
+            tx.execute_unprepared("UPDATE plane_info SET condition = 40").await?;
         }
+        tx.commit().await?;
     }
 
     Ok(())

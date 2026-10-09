@@ -44,11 +44,12 @@ pub(crate) fn squadrons_of(
     (1..=SQUADRON_MAX)
         .map(|squadron_id| {
             // A slot can hold a squadron still relocating out of it beside the
-            // one that replaced it; the one flying is the one to show.
+            // one that replaced it; the one flying is the one to show, and
+            // failing that the one taken off last.
             occupied
                 .iter()
                 .filter(|m| m.squadron_id == squadron_id)
-                .min_by_key(|m| m.state != plane::Status::Assigned)
+                .min_by_key(|m| (m.state != plane::Status::Assigned, std::cmp::Reverse(m.since)))
                 .map_or_else(
                     || PlaneInfo {
                         id: profile_id,

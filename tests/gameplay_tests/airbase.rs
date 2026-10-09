@@ -75,7 +75,11 @@ mod tests {
         age(&context, fighter, 12, None).await;
         let base = context.get_airbases(pid).await.unwrap().remove(0);
         assert_eq!(base.planes[0].slot_id, fighter, "reading the airbases settles nothing");
-        assert!(context.port_view(pid).await.unwrap().relocating_slots.is_empty());
+        let port = context.port_view(pid).await.unwrap();
+        assert!(port.relocating_slots.is_empty());
+        // The port that releases it hands back the list it rejoins, once.
+        assert!(port.returned_unset_slots.values().any(|ids| ids.contains(&fighter)));
+        assert!(context.port_view(pid).await.unwrap().returned_unset_slots.is_empty());
 
         let base = context.get_airbases(pid).await.unwrap().remove(0);
         assert_eq!(base.planes[0].slot_id, 0);
@@ -109,6 +113,20 @@ mod tests {
 
         assert_eq!(context.port_view(pid).await.unwrap().relocating_slots, vec![old]);
         assert!(!unset_ids(&context, pid).await.contains(&old));
+    }
+
+    #[tokio::test]
+    async fn a_relocating_squadron_cannot_change_airbase() {
+        let context = crate::TestContext::new().await;
+        let pid = profile(&context, "airbase-relocating-move").await;
+        context.unlock_airbase(pid, AREA, 2).await.unwrap();
+        let old = deployed_fighter(&context, pid).await;
+        let new = context.add_slot_item(pid, FIGHTER, 0, 0).await.unwrap().api_id;
+        context.set_airbase_plane(pid, AREA, 1, 1, new).await.unwrap();
+
+        assert!(context.change_deployment_base(pid, AREA, 2, 1, 1, old).await.is_err());
+        let moved = context.change_deployment_base(pid, AREA, 2, 1, 1, new).await.unwrap();
+        assert_eq!(moved[1].planes[0].slot_id, new);
     }
 
     #[tokio::test]

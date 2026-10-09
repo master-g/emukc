@@ -71,7 +71,10 @@ or 8 in `start_air_base`, not on the way home: upstream takes it whatever happen
 between, and a sortie ends in more places than it starts.
 
 A relocation is settled by the port view alone (`settle_relocations_impl`), which also
-names the equipment still waiting for `api_plane_info.api_base_convert_slot`. Until then a
+names the equipment still waiting for `api_plane_info.api_base_convert_slot`. The port that
+releases a squadron also sends `api_unset_slot` with the whole unequipped list of that
+equipment type: the client dropped the item from its own list on deployment
+(`main.decoded.js:14684`) and learns of its return nowhere else. Until then a
 relocating row stays in its slot, so **a slot can hold two rows**: the squadron that
 replaced it flies, and readers by `squadron_id` must take the `Assigned` one
 (`squadrons_of`, `find_assigned_squadron`).
