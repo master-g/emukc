@@ -163,8 +163,15 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
             }
         };
         if let Some(item) = b.api_item.as_mut() {
+            // 装備消費 (type 16): equipment goes and none comes back, so both
+            // ids are the placeholder 9999 (ElectronicObserver apilist:
+            // 存在しなければ9999, 熟練搭乗員任務など). The client draws these
+            // quests from its own table (`main.decoded.js:12492`) and, seeing
+            // the type, reads its equipment and use items again (:102372).
             item.api_message = Some(msg);
-            b.api_type = KcApiQuestClearItemBonusType::UseItem as i64;
+            item.api_id_from = Some(9999);
+            item.api_id_to = Some(9999);
+            b.api_type = KcApiQuestClearItemBonusType::ModelChange2 as i64;
         } else {
             error!("no bonus item for quest {}", quest.api_no);
         }
