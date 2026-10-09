@@ -38,6 +38,11 @@ pub use types::{
     SiListId,
 };
 
+// Public API — the raid on the air base
+pub use simulation::air_raid::{
+    AirRaidBase, BattleAirRaid, BattleAirRaidAttack, simulate_air_raid,
+};
+
 // Public API — combined fleet tables
 pub use combined::{
     CombinedAttackClass, CombinedFleetRole, CombinedType, ESCORT_INDEX_OFFSET,
