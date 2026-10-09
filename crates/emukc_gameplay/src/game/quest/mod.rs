@@ -454,7 +454,9 @@ where
             add_material_impl(c, codex, profile_id, &mats).await?;
         }
         Kc3rdQuestRewardCategory::Slotitem => {
-            add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
+            for _ in 0..reward.amount.max(1) {
+                add_slot_item_impl(c, codex, profile_id, reward.api_id, reward.stars, 0).await?;
+            }
         }
         Kc3rdQuestRewardCategory::Ship => {
             add_ship_impl(c, codex, profile_id, reward.api_id).await?;

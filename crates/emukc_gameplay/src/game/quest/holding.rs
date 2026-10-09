@@ -19,8 +19,9 @@ use emukc_model::{
     codex::Codex,
     kc2::start2::ApiMstSlotitem,
     thirdparty::{
-        Kc3rdQuestCondition, Kc3rdQuestConditionConsumption, Kc3rdQuestConditionSlotItem,
-        Kc3rdQuestConditionSlotItemType, Kc3rdQuestRequirement, matcher::ship_matches_mst_id,
+        Kc3rdQuestCondition, Kc3rdQuestConditionConsumption, Kc3rdQuestConditionShip,
+        Kc3rdQuestConditionSlotItem, Kc3rdQuestConditionSlotItemType, Kc3rdQuestRequirement,
+        matcher::ship_matches_mst_id,
     },
 };
 
@@ -116,6 +117,17 @@ fn fits(item: &slot_item::Model, wanted: &Kc3rdQuestConditionSlotItem) -> bool {
         && (!wanted.fully_skilled || item.aircraft_lv >= AIRCRAFT_LV_MAX)
 }
 
+/// A named ship stands for itself and its later remodels: the data lists 鳳翔
+/// where 鳳翔改 serves as well, and 伊勢改二 where 伊勢 does not.
+fn secretary_matches(codex: &Codex, cond: &Kc3rdQuestConditionShip, mst_id: i64) -> bool {
+    match cond {
+        Kc3rdQuestConditionShip::Ship(ids) => ids.iter().any(|id| {
+            *id == mst_id || codex.ship_and_after(*id).is_ok_and(|v| v.contains(&mst_id))
+        }),
+        _ => ship_matches_mst_id(cond, Some(codex), mst_id),
+    }
+}
+
 /// Resolve the equipment conditions among `conditions`. `None` when there are none.
 pub(super) fn holding(
     codex: &Codex,
@@ -133,12 +145,11 @@ pub(super) fn holding(
             Kc3rdQuestCondition::ModelConversion(conversion) => {
                 any = true;
                 let mst_id = snapshot.flagship.as_ref().map(|ship| ship.mst_id);
-                let wanted = conversion.secretary.as_ref().is_none_or(|cond| {
-                    mst_id.is_some_and(|id| ship_matches_mst_id(cond, Some(codex), id))
-                });
-                let banned = conversion.banned_secretary.as_ref().is_some_and(|cond| {
-                    mst_id.is_some_and(|id| ship_matches_mst_id(cond, Some(codex), id))
-                });
+                let is = |cond: &Kc3rdQuestConditionShip| {
+                    mst_id.is_some_and(|id| secretary_matches(codex, cond, id))
+                };
+                let wanted = conversion.secretary.as_ref().is_none_or(is);
+                let banned = conversion.banned_secretary.as_ref().is_some_and(is);
                 if !wanted || banned {
                     missing = true;
                 }

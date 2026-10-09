@@ -5,6 +5,9 @@
 //!   and 九六式艦戦 (19) x2; rewards 設営隊 x2 and equipment 168.
 //! - 614 機種転換 — a carrier flagship carrying 九七式艦攻(友永隊) (93), scrap
 //!   two of equipment 17; the 93 becomes 94 in its slot and keeps its 改修 level.
+//! - 678 — 零式艦戦52型 (21) in the flagship's slots 1 and 2, scrap 19 x3 and
+//!   20 x5, bauxite 4000; rewards two of equipment 55, so nothing converts in
+//!   place and both pieces leave the ship.
 
 #[cfg(test)]
 mod tests {
@@ -117,9 +120,44 @@ mod tests {
         // The piece itself turns into the new model, where it sits.
         let left = held(&context, pid).await;
         assert!(!left.iter().any(|i| i.api_slotitem_id == 93));
-        let converted = left.iter().find(|i| i.api_slotitem_id == 94).expect("the new model");
-        assert_eq!((converted.api_id, converted.api_level), (tomonaga, 4));
+        let converted: Vec<_> = left.iter().filter(|i| i.api_slotitem_id == 94).collect();
+        assert_eq!(converted.len(), 1, "the converted piece is the reward, not an extra one");
+        assert_eq!((converted[0].api_id, converted[0].api_level), (tomonaga, 4));
         let ship = context.find_ship(carrier).await.unwrap().unwrap();
         assert!(ship.api_slot.contains(&tomonaga), "the ship still carries it");
+    }
+
+    #[tokio::test]
+    async fn pieces_that_do_not_convert_leave_the_flagship() {
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context, "leave").await;
+        context.quest_add(pid, 678).await.unwrap();
+        context.quest_start(pid, 678).await.unwrap();
+        let mut junk = Vec::new();
+        for mst in [19, 19, 19, 20, 20, 20, 20, 20] {
+            junk.push(item(&context, pid, mst, 0).await);
+        }
+        context.destroy_items(pid, &junk).await.unwrap();
+        context.add_material(pid, &[(MaterialCategory::Bauxite, 4000)]).await.unwrap();
+
+        let carrier = context.add_ship(pid, AKAGI).await.unwrap().api_id;
+        context.update_fleet_ships(pid, 1, &[carrier, -1, -1, -1, -1, -1]).await.unwrap();
+        let first = item(&context, pid, 21, 0).await;
+        let second = item(&context, pid, 21, 0).await;
+        context.set_slot_item(carrier, 0, first).await.unwrap();
+        // The right piece in the wrong slot does not count.
+        context.set_slot_item(carrier, 2, second).await.unwrap();
+        assert_eq!(shown(&context, pid, 678).await.0, 2);
+
+        context.set_slot_item(carrier, 2, -1).await.unwrap();
+        context.set_slot_item(carrier, 1, second).await.unwrap();
+        assert_eq!(shown(&context, pid, 678).await, (3, false));
+        context.quest_clear_and_claim_reward(pid, 678, Some(vec![0])).await.unwrap();
+
+        let left = held(&context, pid).await;
+        assert!(!left.iter().any(|i| i.api_id == first || i.api_id == second));
+        assert_eq!(left.iter().filter(|i| i.api_slotitem_id == 55).count(), 2);
+        let ship = context.find_ship(carrier).await.unwrap().unwrap();
+        assert!(!ship.api_slot.contains(&first) && !ship.api_slot.contains(&second));
     }
 }
