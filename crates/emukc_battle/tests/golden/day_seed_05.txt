@@ -25,6 +25,7 @@ BattlePacket {
         1,
         1,
     ],
+    air_base_attack: [],
     kouku: Some(
         BattleKouku {
             api_plane_from: [

@@ -12,13 +12,15 @@ pub(crate) use domain::{
 };
 pub use packet::SiListId;
 pub use packet::{
-    BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2, BattleKoukuStage3,
-    BattleKoukuStage3Combined, BattleNightHougeki, BattleOpeningAttack, BattleRaigeki, DamageCell,
+    BattleAirBaseAttack, BattleHougeki, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
+    BattleKoukuStage3, BattleKoukuStage3Combined, BattleNightHougeki, BattleOpeningAttack,
+    BattleRaigeki, BattleSquadronPlane, DamageCell,
 };
 pub(crate) use runtime::CombinedMembership;
 pub use runtime::{
-    BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip, BattleShipInput,
-    BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket, NightBattleSimulation,
+    AirCorpsInput, AirSquadronInput, BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip,
+    BattleShipInput, BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket,
+    NightBattleSimulation,
 };
 
 #[cfg(test)]

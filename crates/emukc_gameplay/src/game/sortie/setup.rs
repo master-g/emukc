@@ -7,8 +7,8 @@
 use std::collections::BTreeMap;
 
 use emukc_battle::{
-    BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType, EngagementType,
-    combined_formation_min_escort_size,
+    AirCorpsInput, BattleContext, BattleShipInput, BattleType, CombinedSetup, CombinedType,
+    EngagementType, combined_formation_min_escort_size,
 };
 use emukc_db::entity::profile;
 use emukc_db::sea_orm::ConnectionTrait;
@@ -17,6 +17,7 @@ use emukc_model::{codex::Codex, kc2::start2::ApiMstShip};
 use crate::{
     err::GameplayError,
     game::{
+        airbase::striking_air_corps_impl,
         basic::find_profile,
         battle::engagement::carries_saiun,
         battle::sortie::{SortieBattleInput, SortieBattleSession},
@@ -97,6 +98,8 @@ pub(super) struct SortieBattleSetup {
     /// `None` for a single fleet.
     pub combined_type: Option<CombinedType>,
     pub enemy: EnemyEncounter,
+    /// The air corps sent against this cell; empty for most battles.
+    pub air_corps: Vec<AirCorpsInput>,
     /// Whether the cell's event kind sends the client to the `ec_` endpoints.
     pub enemy_combined_cell: bool,
     /// Whether either fleet carries a 彩雲 with planes left, which keeps the
@@ -192,6 +195,26 @@ where
         active.locked_enemy_composition.as_ref(),
     )?;
 
+    // Every cell number of the node the fleet stands on: the air corps were
+    // pointed at the node, by whichever of its numbers the client used.
+    let node_cells: Vec<i64> = stage
+        .cells
+        .iter()
+        .filter(|cell| {
+            cell.cell_no == current_cell.cell_no
+                || (cell.node_label.is_some() && cell.node_label == current_cell.node_label)
+        })
+        .map(|cell| cell.cell_no)
+        .collect();
+    let air_corps = striking_air_corps_impl(
+        c,
+        profile_id,
+        definition.maparea_id,
+        &active.air_strikes,
+        &node_cells,
+    )
+    .await?;
+
     let carries_saiun = friend_ships.iter().chain(&escort_ships).any(carries_saiun);
 
     Ok(SortieBattleSetup {
@@ -202,6 +225,7 @@ where
         escort_ships,
         combined_type,
         enemy,
+        air_corps,
         enemy_combined_cell: current_cell.event_kind == 5,
     })
 }
@@ -229,6 +253,7 @@ impl SortieBattleSetup {
                 friend_ships: self.friend_ships.clone(),
                 enemy_ships: self.enemy.ships.clone(),
                 enemy_escort_ships: self.enemy.escort_ships.clone(),
+                air_corps: self.air_corps.clone(),
                 combined: self.combined_type.map(|combined_type| CombinedSetup {
                     combined_type,
                     escort_ships: self.escort_ships.clone(),

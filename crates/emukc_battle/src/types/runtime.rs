@@ -5,7 +5,8 @@ use emukc_model::kc2::{KcApiShip, KcApiSlotItem, KcSortieResultRank};
 
 use super::domain::{AirState, BattleType, EngagementType};
 use super::packet::{
-    BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattleRaigeki,
+    BattleAirBaseAttack, BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack,
+    BattleRaigeki,
 };
 use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::random::BattleRng;
@@ -238,6 +239,31 @@ pub struct BattleContext {
     pub enemy_escort_ships: Vec<BattleShipInput>,
     /// `None` for an ordinary single-fleet battle.
     pub combined: Option<CombinedSetup>,
+    /// The air corps sent against this battle's cell; empty for most battles,
+    /// and then the battle draws not one random number more.
+    pub air_corps: Vec<AirCorpsInput>,
+}
+
+/// An air corps attacking the enemy fleet before the fleets meet.
+#[derive(Debug, Clone)]
+pub struct AirCorpsInput {
+    /// The air corps, by its id within the area.
+    pub base_rid: i64,
+    /// How many times it attacks this cell: once for each time it was pointed here.
+    pub waves: usize,
+    /// Its squadrons that fly, in squadron order.
+    pub squadrons: Vec<AirSquadronInput>,
+}
+
+/// One squadron of an attacking air corps.
+#[derive(Debug, Clone)]
+pub struct AirSquadronInput {
+    /// Squadron slot, 1-based.
+    pub squadron_id: i64,
+    /// Equipment master id.
+    pub mst_id: i64,
+    /// Aircraft left.
+    pub count: i64,
 }
 
 impl BattleContext {
@@ -259,6 +285,7 @@ impl BattleContext {
             enemy_ships,
             enemy_escort_ships: Vec::new(),
             combined: None,
+            air_corps: Vec::new(),
         }
     }
 }
@@ -284,6 +311,8 @@ pub struct BattlePacket {
     pub midnight_flag: i64,
     pub search: [i64; 2],
     pub stage_flag: [i64; 3],
+    /// Air corps attacks, in the order they were flown; empty when none was sent.
+    pub air_base_attack: Vec<BattleAirBaseAttack>,
     pub kouku: Option<BattleKouku>,
     pub opening_taisen_flag: i64,
     pub opening_taisen: Option<BattleHougeki>,

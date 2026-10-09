@@ -83,6 +83,7 @@ pub fn run_day_battle(
             enemy_ships: input.enemy_ships,
             enemy_escort_ships: Vec::new(),
             // Practice battles are never combined.
+            air_corps: Vec::new(),
             combined: None,
         },
         rng,

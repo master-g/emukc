@@ -2,7 +2,7 @@
 
 > Endpoint coverage is not tracked here. `apilist.md` holds the implemented and
 > missing lists, derived mechanically from the router; `docs/api_coverage.md`
-> holds the roadmap. Last cross-checked 2026-10-08: 142 implemented, 6 missing.
+> holds the roadmap. Last cross-checked 2026-10-08: 143 implemented, 5 missing.
 
 ## Completed
 - [x] impl incentive gameplay and api
@@ -44,7 +44,7 @@
   - [x] Sortie resource consumption: fuel/ammo per battle node
   - [ ] `api_req_map/air_raid` - air raid on base
   - [ ] `api_req_map/anchorage_repair` - anchorage repair
-  - [ ] `api_req_map/start_air_base` - air base sortie
+  - [x] `api_req_map/start_air_base` - air base sortie
 - [ ] **Battle System** (`api_req_sortie/*`, `api_req_battle_midnight/*`, `api_req_combined_battle/*`)
   - [x] `api_req_sortie/battle` - normal day battle
   - [x] `api_req_sortie/battleresult` - battle result

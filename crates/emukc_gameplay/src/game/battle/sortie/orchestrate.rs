@@ -167,6 +167,7 @@ fn night_start_packet(night: &NightBattlePacket, main_deck: &[BattleRuntimeShip]
         midnight_flag: 0,
         search: [1, 1],
         stage_flag: [0, 0, 0],
+        air_base_attack: Vec::new(),
         kouku: None,
         opening_taisen_flag: 0,
         opening_taisen: None,

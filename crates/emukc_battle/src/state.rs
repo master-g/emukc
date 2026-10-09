@@ -3,9 +3,9 @@ use crate::outcome::{calculate_mvp, calculate_win_rank, verify_protected_ships_a
 use crate::targeting::any_alive;
 use crate::types::CombinedMembership;
 use crate::types::{
-    BattleContext, BattleHougeki, BattleKouku, BattleOpeningAttack, BattleOutcome, BattlePacket,
-    BattleRaigeki, BattleRuntimeShip, BattleSimulation, BattleType, NightBattlePacket,
-    NightBattleSimulation,
+    AirCorpsInput, BattleAirBaseAttack, BattleContext, BattleHougeki, BattleKouku,
+    BattleOpeningAttack, BattleOutcome, BattlePacket, BattleRaigeki, BattleRuntimeShip,
+    BattleSimulation, BattleType, NightBattlePacket, NightBattleSimulation,
 };
 
 /// Combined-fleet layout of [`BattleState::friendly`].
@@ -41,6 +41,9 @@ pub(crate) struct BattleState {
     enemy_formation_id: i64,
     engagement: super::types::EngagementType,
 
+    /// The air corps still to attack, and what they have left.
+    pub(crate) air_corps: Vec<AirCorpsInput>,
+    pub(crate) air_base_attack: Vec<BattleAirBaseAttack>,
     kouku: Option<BattleKouku>,
     opening_attack: Option<BattleOpeningAttack>,
     opening_taisen: Option<BattleHougeki>,
@@ -119,6 +122,8 @@ impl BattleState {
             friendly_formation_id: context.friendly_formation_id,
             enemy_formation_id: context.enemy_formation_id,
             engagement: context.engagement,
+            air_corps: context.air_corps,
+            air_base_attack: Vec::new(),
             kouku: None,
             opening_attack: None,
             opening_taisen: None,
@@ -152,6 +157,8 @@ impl BattleState {
             friendly_formation_id,
             enemy_formation_id,
             engagement,
+            air_corps: Vec::new(),
+            air_base_attack: Vec::new(),
             kouku: None,
             opening_attack: None,
             opening_taisen: None,
@@ -279,6 +286,7 @@ impl BattleState {
             midnight_flag: i64::from(can_midnight),
             search: [1, 1],
             stage_flag: self.stage_flag,
+            air_base_attack: self.air_base_attack,
             kouku: self.kouku,
             opening_taisen_flag: self.opening_taisen_flag,
             opening_taisen: self.opening_taisen,

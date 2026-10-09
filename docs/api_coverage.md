@@ -14,7 +14,7 @@ inventory of its own.
 checkable rather than hand-maintained: extract `nest("/prefix", mod::router())`
 from `src/bin/net/router/kcsapi/mod.rs` plus each submodule's `.route("/leaf"`,
 and diff that against the fenced blocks. Verified on 2026-10-08 at client
-6.3.5.0: **142 implemented**, **6 missing**, no overlap.
+6.3.5.0: **143 implemented**, **5 missing**, no overlap.
 
 Do not restate those lists here — a second copy is a second thing to drift.
 
@@ -73,7 +73,6 @@ Dependencies:
 
 | Endpoint | Description | Priority | Notes |
 |----------|-------------|----------|-------|
-| `api_req_map/start_air_base` | LBAS sortie | P1 | Implement with air_corps module |
 | `api_req_map/anchorage_repair` | Emergency anchorage repair | P2 | No regular map has a 泊地修理 cell; waits for event maps |
 | `api_req_map/air_raid` | Heavy bomber interception | P2 | Implement with combined_battle |
 
@@ -119,8 +118,9 @@ Coupled with map/sortie, implement after combined fleet.
 1. Data model and ownership — done 2026-09-22 (plan U1/U2)
 2. `api_req_air_corps/` handlers (8 files) — done 2026-10-08 (plan U3/U4/U5)
 3. `api_port/airCorpsCondRecoveryWithTimer` — done 2026-10-08 (plan U5)
-4. Add `api_req_map/start_air_base` and the LBAS strike phase — out of the
-   current plan's scope, it is the follow-up
+4. `api_req_map/start_air_base` and the air corps attack phase — done 2026-10-08
+   (plan `2026-10-08-006`); base defence, air raids on the base, jet assault and
+   fatigue are still open
 5. Verify: deploy LBAS → sortie → verify air strike phase
 
 ### Phase 4: Scattered Endpoints (P2–P3)

@@ -19,6 +19,7 @@ use emukc_model::{
         map::{EnemyComposition, MapCellDefinition, MapStageDefinition, split_map_id},
     },
     kc2::MaterialCategory,
+    profile::airbase::AirbaseAction,
 };
 use serde::Serialize;
 
@@ -27,6 +28,7 @@ use crate::{err::GameplayError, gameplay::Ctx};
 use emukc_battle::{BattleType, CombinedFleetRole};
 
 use super::{
+    airbase::{charge_air_sortie_impl, load_area_airbases_impl, record_strike_losses_impl},
     battle::{
         engagement::roll_engagement,
         response::{
@@ -75,6 +77,18 @@ pub struct ActiveSortieState {
     /// What the fleet carried when it passed the landing cell of a transport gauge;
     /// `None` until it has.
     pub landing_tp: Option<i64>,
+    /// The cells each air corps was sent against; empty until
+    /// `api_req_map/start_air_base` names them.
+    pub air_strikes: Vec<AirStrike>,
+}
+
+/// The cells one air corps was sent against, in the order it flies them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AirStrike {
+    /// The air corps, by its id within the area.
+    pub base_rid: i64,
+    /// One or two cells; the same cell twice is two attacks on it.
+    pub cells: Vec<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -230,6 +244,7 @@ impl Ctx {
             visited_cell_ids: first_step.visited_cell_ids,
             locked_enemy_composition: locked_enemy_composition.clone(),
             landing_tp: None,
+            air_strikes: vec![],
         };
         tx.commit().await?;
         self.sortie_store
@@ -269,6 +284,131 @@ impl Ctx {
                 .map(build_enemy_deck_preview)
                 .filter(|preview| !preview.is_empty()),
         })
+    }
+
+    /// Send the area's air corps against cells of the map being sortied.
+    ///
+    /// `strike_points[i]` holds the cells of air corps `i + 1`, empty for one
+    /// that stays home. The client lets a corps pick up to two cells its radius
+    /// reaches, the same one twice if wanted, and only offers this for a corps
+    /// ordered to sortie.
+    pub async fn start_air_base(
+        &self,
+        profile_id: i64,
+        strike_points: &[Vec<i64>],
+    ) -> Result<(), GameplayError> {
+        self.sortie_store
+            .as_ref()
+            .with_profile_lock(profile_id, async {
+                let codex = self.codex.as_ref();
+                let store = self.sortie_store.as_ref();
+                let mut active = store.get_active(profile_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "active sortie not found for profile {profile_id}",
+                    ))
+                })?;
+
+                // Once a sortie: the air corps are paid for when they are sent.
+                if !active.air_strikes.is_empty() {
+                    return Err(GameplayError::WrongType(
+                        "the air corps of this sortie were already sent".to_string(),
+                    ));
+                }
+
+                let catalog = active_map_catalog(codex);
+                let definition =
+                    catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
+                        GameplayError::EntryNotFound(format!(
+                            "map definition {} not found",
+                            active.map_id
+                        ))
+                    })?;
+                let stage = definition.stage(&active.stage_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "stage `{}` not found for map {}",
+                        active.stage_id, active.map_id
+                    ))
+                })?;
+
+                let sent = strike_points.iter().filter(|cells| !cells.is_empty()).count();
+                let allowed = usize::try_from(definition.airbase_count.unwrap_or(0)).unwrap_or(0);
+                if sent > allowed {
+                    return Err(GameplayError::WrongType(format!(
+                        "map {} lets {allowed} air corps sortie, not {sent}",
+                        active.map_id
+                    )));
+                }
+
+                let airbases = load_area_airbases_impl(
+                    self.db.as_ref(),
+                    codex,
+                    profile_id,
+                    definition.maparea_id,
+                )
+                .await?;
+
+                let mut air_strikes = Vec::with_capacity(sent);
+                for (base_rid, cells) in (1_i64..).zip(strike_points) {
+                    if cells.is_empty() {
+                        continue;
+                    }
+                    let airbase =
+                        airbases.iter().find(|airbase| airbase.rid == base_rid).ok_or_else(
+                            || {
+                                GameplayError::EntryNotFound(format!(
+                                    "profile {profile_id} has no air corps {base_rid} in area {}",
+                                    definition.maparea_id
+                                ))
+                            },
+                        )?;
+                    if airbase.action != AirbaseAction::Attack {
+                        return Err(GameplayError::WrongType(format!(
+                            "air corps {base_rid} is not ordered to sortie"
+                        )));
+                    }
+                    if cells.len() > 2 {
+                        return Err(GameplayError::WrongType(format!(
+                            "air corps {base_rid} was given {} cells, at most 2",
+                            cells.len()
+                        )));
+                    }
+                    let radius = airbase.base_range + airbase.bonus_range;
+                    for cell_no in cells {
+                        // A cell without a distance is one the client never offers.
+                        let distance = stage
+                            .cell(*cell_no)
+                            .and_then(|cell| cell.distance)
+                            .filter(|distance| *distance > 0)
+                            .ok_or_else(|| {
+                                GameplayError::WrongType(format!(
+                                    "cell {cell_no} of map {} cannot be attacked from the air",
+                                    active.map_id
+                                ))
+                            })?;
+                        if distance > radius {
+                            return Err(GameplayError::WrongType(format!(
+                                "cell {cell_no} is {distance} away, air corps {base_rid} reaches {radius}"
+                            )));
+                        }
+                    }
+                    air_strikes.push(AirStrike {
+                        base_rid,
+                        cells: cells.clone(),
+                    });
+                }
+
+                let rids: Vec<i64> = air_strikes.iter().map(|strike| strike.base_rid).collect();
+                let tx = self.db.begin().await?;
+                charge_air_sortie_impl(&tx, codex, profile_id, definition.maparea_id, &rids)
+                    .await?;
+                tx.commit().await?;
+
+                active.air_strikes = air_strikes;
+                let _ = store.insert_active(profile_id, active);
+
+                Ok(())
+            })
+            .await
     }
 
     pub async fn next_sortie(
@@ -647,6 +787,14 @@ impl Ctx {
             &active,
             snapshot,
             &session.packet.enemy_nowhps,
+        )
+        .await?;
+
+        record_strike_losses_impl(
+            &tx,
+            profile_id,
+            definition.maparea_id,
+            &session.packet.air_base_attack,
         )
         .await?;
 

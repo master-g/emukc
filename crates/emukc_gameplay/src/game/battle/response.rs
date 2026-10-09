@@ -6,8 +6,9 @@
 use serde::Serialize;
 
 use emukc_battle::{
-    BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack, BattlePacket,
-    BattleRaigeki, BattleRuntimeShip, BattleShipInput, CombinedFleetRole, NightBattlePacket,
+    BattleAirBaseAttack, BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack,
+    BattlePacket, BattleRaigeki, BattleRuntimeShip, BattleShipInput, CombinedFleetRole,
+    NightBattlePacket,
 };
 use emukc_model::kc2::{KcApiShip, KcApiSlotItem};
 
@@ -52,6 +53,9 @@ pub struct DayBattleResponse {
     pub api_atoll_cell: i64,
     pub api_midnight_flag: i64,
     pub api_search: [i64; 2],
+    /// Air corps attacks, present only when one was flown.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub api_air_base_attack: Vec<BattleAirBaseAttack>,
     pub api_stage_flag: [i64; 3],
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_kouku: Option<BattleKouku>,
@@ -291,6 +295,7 @@ pub fn build_day_response(
         api_atoll_cell: packet.atoll_cell,
         api_midnight_flag: packet.midnight_flag,
         api_search: packet.search,
+        api_air_base_attack: packet.air_base_attack,
         api_stage_flag: packet.stage_flag,
         api_kouku: packet.kouku,
         api_opening_taisen_flag: packet.opening_taisen_flag,
@@ -422,6 +427,7 @@ mod tests {
             midnight_flag: 0,
             search: [1, 1],
             stage_flag: [0, 0, 0],
+            air_base_attack: Vec::new(),
             kouku: None,
             opening_taisen_flag: 0,
             opening_taisen: None,
@@ -597,6 +603,7 @@ mod combined_tests {
             friend_ships: main.clone(),
             enemy_ships: enemy.clone(),
             enemy_escort_ships: Vec::new(),
+            air_corps: Vec::new(),
             combined: Some(CombinedSetup {
                 combined_type,
                 escort_ships: escort.clone(),

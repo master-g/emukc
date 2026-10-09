@@ -433,6 +433,7 @@ mod tests {
             midnight_flag: 0,
             search: [1, 1],
             stage_flag: [1, 1, 1],
+            air_base_attack: Vec::new(),
             kouku,
             opening_taisen_flag: 0,
             opening_taisen: None,
