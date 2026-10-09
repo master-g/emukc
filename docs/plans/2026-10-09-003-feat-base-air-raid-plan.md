@@ -2,13 +2,11 @@
 title: "Base Air Raid and Air Defence - Plan"
 type: feat
 date: 2026-10-09
-status: draft
+status: accepted
 execution: code
 ---
 
 # Base Air Raid and Air Defence - Plan
-
-只做了调研，还没有定方案。下面是来源、能确定的规则、确定不了的部分，以及要用户定的事。
 
 ## Problem
 
@@ -48,26 +46,71 @@ Known gaps）。
   `退避` 的航空队不受地上击破。
 - 画面上的三种结语由受伤量决定：0、< 50、≥ 50。
 
+**模拟器里有现成的模型**：`KC3Kai/kancolle-replay` 的 `js/kcsim.js`（master，2026-10-09 读）`simLBRaid`（4409 行起）
+与 `js/kcships.js` 的 `LandBase`（2228 行起），也是计划 `2026-10-08-006` 的数值来源：
+
+| 项 | 做法 | 出处 |
+|---|---|---|
+| 基地 | 耐久 200，装甲 0；被打到 0 以下时留 1 | `kcships.js:2230`，`kcsim.js:4540` |
+| 防空制空值 | 与上面 wikiwiki 的公式相同；侦察机补正取各中队里最大的一个 | `kcships.js:2258` |
+| 制空状态 | 全部防空航空队的制空值合计对敌方全机制空值 | `kcsim.js:4439` |
+| 我方损失 | 普通航空战的我方比例（按制空状态） | `kcsim.js:2340` |
+| 敌机击落 | 敌方每个有机的槽依次对上防空中队的第 1、2…槽，取该槽位里对爆最高的局地战斗机；比例 `6.5×m + 3.5×(对爆 + m×min(1, 迎击) + rand×(m + 对爆))` %，`m` 按制空状态 1 / 4 / 6 / 8 / 10（丧失→确保），向上取整 | `kcsim.js:4478` |
+| 轰炸 | 每个还有机的舰爆 / 舰攻槽随机打一个基地，按普通航空攻击算伤害 | `kcsim.js:4532` |
+
+**血条与空袭的对应**：按血条剩余值各取了一次 `nodes/AB/enemycomps`（共 7 次请求，加上前面 4 次试取）：剩余 6、5、0 时
+没有空袭；剩余 4、3、2 时是模式 1 与 2；剩余 1 时只有模式 3。与出处「削两次后发生、破坏后不再发生」一致。
+
 **回应格式**：客户端从 `api_req_map/next` 读 `api_destruction_battle`（`main.decoded.js:74162`），其中
 `api_map_squadron_plane`（:124389）、`api_lost_kind`（:115521）等字段的读法都在客户端里。本地没有抓包。
 
-## 确定不了的部分
+## Decision
 
-1. **敌机被击落的比例**：出处写明「式は判明していない」，只知道对爆值越高击落越多、确保时几乎不受伤。
-2. **基地受到的伤害**：没有公开公式；基地的耐久、装甲也没有出处。
-3. **发生概率与格子**：只知道「越往里越容易发生」，没有数字。
-4. **三个模式各在哪个血条阶段出现**：出处只说随进度变强、第三个是最终形态。KCNav 的查询参数里有血条范围
-   （`minGauge` / `maxGauge`），按阶段各取一次应该能分出来，没有试。
+用户 2026-10-09 定的三件事：没有来源的数值接受近似并标明；发生规则由我定一个临时的；只做 6-5。读到 `kcsim.js` 之后，
+击落与伤害不再需要自定，只剩发生规则是临时的。
 
-## 要用户定的事
+- **数据**：`kcnav sync` 每张图多取一个 `nodes/AB/enemycomps`；`kcnav normalize` 把它放进敌舰队资产的 `AB` 节点，
+  codex 的图变体多一个 `air_raid_fleets`。三个模式按样本数随机，不按血条阶段分（现有各格的编成同样不分阶段）。
+- **发生规则（临时）**：图有 `air_raid_fleets`、Boss 已被击沉两次以上且图未通关、本次出击还没被空袭过时，到达战斗格
+  有一半机会发生，到达 Boss 格必定发生。一次出击至多一次。
+- **战斗**：按上表。命中判定省略（每次轰炸都命中），与现有两种航空战一致；触接、高高度补正不做。
+- **结算**：防空中队的空战损失写回机数；全基地受伤合计大于 0 时扣燃料或铝土（各半），数量 `合计×0.9+0.1` 四舍五入，
+  不够扣时扣到 0；受伤 ≥ 50 的基地从最上面的中队起损失 1–4 架，顺延，不扣到 0，`退避` 的航空队除外。出处说资源损失
+  「发生是随机的」但没有概率，这里受伤就扣。`api_lost_kind`：没受伤 4，有地上击破 2，否则 1。
+- **回应**：`api_req_map/next` 在发生时带 `api_destruction_battle`，字段按 ElectronicObserver 的接口表。
 
-- 第 1、2 项没有来源，只能自己定一个做法（例如沿用现有航空战的击落与对舰伤害，把基地当成一个固定耐久的目标）。
-  是接受一个标明「自定」的近似，还是等有来源再做。
-- 第 3 项同理：例如「血条削过两次且未破坏时，每次出击在到达 Boss 前的某个战斗格发生一次」。
-- 范围是否只做 6-5 的空袭与防空，把噴式强袭、超重爆迎击（`api_req_map/air_raid`，只在活动图）留在范围外。
+## Scope
 
-## 建议的范围（待确认）
+范围外：噴式强袭、超重爆迎击（`api_req_map/air_raid`）、活动图、高高度迎击补正、防空带来的疲劳（出处没写）、
+按血条阶段区分编成。
 
-- KCNav 同步多取一个 `nodes/AB/enemycomps`（每张有航空队的图一次请求），`kcnav normalize` 产出空袭编成。
-- `api_req_map/next` 在条件满足时带 `api_destruction_battle`；`防空` 中队迎击、损耗；按上面的规则扣资源与地上击破。
-- 无头场景：6-5 一次出击，看到空袭演出与三种结语之一。
+## Implementation Units
+
+### U1 数据
+`kcnav.rs` 的同步任务与归一化加 `AB` 节点；`MapVariantDefinition.air_raid_fleets`；标签覆盖层把 `AB` 写进去。
+只同步 6-5（一次请求），其余图等下次全量同步。重建 codex。测试：归一化夹具带一个 `AB` 文件。
+
+### U2 模拟
+`emukc_battle::simulation::air_raid`：输入防空航空队、基地数、敌舰队，输出空战记录、各基地受伤、中队剩余机数。
+单元测试：无防空时受伤；确保时敌攻击机被大量击落。
+
+### U3 出击流程
+`next_sortie` 按发生规则触发，结算写库，`SortieNextResponse` 带上结果；处理器输出 `api_destruction_battle`。
+没有 `air_raid_fleets` 的图不多抽一个随机数。集成测试：6-5 击沉两次后到达战斗格，回应的形状与写回的损失。
+
+### U4 真实客户端
+无头场景：6-5 一次出击打到 Boss，途中出现空袭演出，没有页面错误。
+
+### U5 沉淀
+`air-corps.md`、`TODO.md`、`PROJECT_MEMORY.md`。
+
+## Stop Conditions
+
+- 客户端读空袭记录时需要接口表里没有的字段，且从客户端代码读不出该填什么。
+- 6-5 在无头场景里走不到 Boss（路线或编成条件满足不了）。
+
+## Verification
+
+`cargo fmt --all --check`；`cargo clippy --workspace --all-targets -- -W warnings`（基线 17）；
+`cargo test --workspace --exclude emukc_time --no-fail-fast`；战斗 golden 不应变化；
+`make headless-check SCENARIO=<新场景>`。
