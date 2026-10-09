@@ -224,6 +224,111 @@ mod tests {
         assert_eq!(condition(&context, attacker).await, 34, "集中 costs 6");
     }
 
+    /// 6-5 with the boss sunk `sunk` times and 一式陸攻 in the first squadron of the area's
+    /// one air corps, ordered to stand by. Returns the profile and the squadron's equipment.
+    async fn raided_profile(context: &crate::TestContext, name: &str, sunk: i64) -> (i64, i64) {
+        use emukc_internal::db::{
+            entity::profile::map_record,
+            sea_orm::{ColumnTrait, QueryFilter},
+        };
+        use emukc_internal::gameplay::scenario::{Scenario, apply_scenario};
+
+        let account = context.sign_up(name, "1234567").await.unwrap();
+        let profile = context.new_profile(&account.access_token.token, name).await.unwrap();
+        let pid = context
+            .start_game(&account.access_token.token, profile.profile.id)
+            .await
+            .unwrap()
+            .profile
+            .id;
+        let mut scenario = Scenario::air_corps_6_4();
+        scenario.clear_maps.push(64);
+        apply_scenario(context, pid, &scenario).await.unwrap();
+        context.get_airbases(pid).await.unwrap();
+        let attacker = context
+            .get_unset_slot_items(pid)
+            .await
+            .unwrap()
+            .iter()
+            .find(|item| item.api_slotitem_id == 169)
+            .unwrap()
+            .api_id;
+        context.set_airbase_plane(pid, AREA, 1, 1, attacker).await.unwrap();
+
+        let record = map_record::Entity::find()
+            .filter(map_record::Column::ProfileId.eq(pid))
+            .filter(map_record::Column::MapId.eq(65))
+            .one(&*context.db)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut am = record.into_active_model();
+        am.defeat_count = ActiveValue::Set(Some(sunk));
+        am.update(&*context.db).await.unwrap();
+
+        (pid, attacker)
+    }
+
+    /// Sortie 6-5 and step onto its first battle cell, as often as it takes for the raid's
+    /// even chance there to come up. `None` when it never did.
+    async fn first_raid(
+        context: &crate::TestContext,
+        pid: i64,
+        tries: usize,
+    ) -> Option<emukc_internal::prelude::BattleAirRaid> {
+        for _ in 0..tries {
+            context.start_sortie(pid, 1, AREA, 5).await.unwrap();
+            let step = context.next_sortie(pid, None).await.unwrap();
+            assert!(matches!(step.event_id, 4 | 5), "6-5 opens on a battle cell");
+            context.clear_sortie_state_if_any(pid).await;
+            if step.destruction_battle.is_some() {
+                return step.destruction_battle;
+            }
+        }
+        None
+    }
+
+    #[tokio::test]
+    async fn a_raid_on_an_undefended_base_costs_stores_and_aircraft() {
+        let context = crate::TestContext::new().await;
+        let (pid, attacker) = raided_profile(&context, "airbase-raid", 2).await;
+        let before = context.get_materials(pid).await.unwrap();
+
+        let raid = first_raid(&context, pid, 40).await.expect("a raid within forty sorties");
+
+        let bases = context.get_airbases(pid).await.unwrap().len();
+        assert_eq!(raid.api_f_nowhps, vec![200; bases]);
+        assert_eq!(raid.api_ship_ke.len(), 6);
+        assert_eq!(raid.api_air_base_attack.api_plane_from.0, None, "nobody was told to defend");
+        let damage: i64 = raid.base_damage.iter().sum();
+        assert!(damage > 0, "three carriers' bombers got through: {raid:?}");
+
+        let after = context.get_materials(pid).await.unwrap();
+        let lost = (before.fuel - after.fuel, before.bauxite - after.bauxite);
+        let owed = (damage as f64 * 0.9 + 0.1).round() as i64;
+        assert!(lost == (owed, 0) || lost == (0, owed), "{lost:?} of {owed} for {damage} damage");
+
+        let left =
+            plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap().count;
+        let ground_loss = raid.base_damage[0] >= 50;
+        assert_eq!(
+            raid.api_lost_kind,
+            if ground_loss {
+                2
+            } else {
+                1
+            }
+        );
+        assert_eq!((14..18).contains(&left), ground_loss, "{left} of 18 left");
+    }
+
+    #[tokio::test]
+    async fn no_raid_comes_before_the_boss_was_sunk_twice() {
+        let context = crate::TestContext::new().await;
+        let (pid, _) = raided_profile(&context, "airbase-no-raid", 1).await;
+        assert!(first_raid(&context, pid, 12).await.is_none());
+    }
+
     #[tokio::test]
     async fn a_ration_rests_a_tired_squadron() {
         let context = crate::TestContext::new().await;

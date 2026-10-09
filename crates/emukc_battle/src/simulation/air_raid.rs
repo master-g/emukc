@@ -41,7 +41,7 @@ pub struct AirRaidBase {
 
 /// `api_destruction_battle`: the raid as the client plays it.
 #[expect(missing_docs)]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleAirRaid {
     pub api_formation: [i64; 3],
     pub api_ship_ke: Vec<i64>,
@@ -63,7 +63,7 @@ pub struct BattleAirRaid {
 
 /// The one air battle of a raid.
 #[expect(missing_docs)]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleAirRaidAttack {
     pub api_stage_flag: [i64; 3],
     /// The defending bases by their place in the area, from 1, then the enemy ships that

@@ -52,7 +52,7 @@ impl SiListId {
 /// is the shield flag the KC client detects via `damage % 1 > 0` (`getDamage`
 /// floors the value for the actual HP change). Any non-zero fraction triggers
 /// the animation; `.1` matches the official server convention.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DamageCell {
     /// Normal damage — serializes as an integer.
     Plain(i64),
@@ -155,13 +155,13 @@ pub struct BattleAirBaseAttack {
 }
 
 /// A squadron taking part in an air corps attack.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleSquadronPlane {
     pub api_mst_id: i64,
     pub api_count: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleKoukuStage1 {
     pub api_f_count: i64,
     pub api_f_lostcount: i64,
@@ -179,7 +179,7 @@ pub struct BattleKoukuStage2 {
     pub api_e_lostcount: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleKoukuStage3 {
     pub api_frai: Vec<i64>,
     pub api_erai: Vec<i64>,

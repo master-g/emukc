@@ -16,7 +16,9 @@ use emukc_model::{
 };
 use emukc_time::chrono::{Duration, Utc};
 
-use emukc_battle::{AirCorpsInput, AirSquadronInput, BattleAirBaseAttack};
+use emukc_battle::{
+    AirCorpsInput, AirRaidBase, AirSquadronInput, BattleAirBaseAttack, BattleAirRaid, BattleRng,
+};
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
@@ -833,6 +835,126 @@ where
                 .await?;
         }
     }
+
+    Ok(())
+}
+
+/// Damage to one base from which a raid destroys aircraft on the ground.
+const GROUND_LOSS_DAMAGE: i64 = 50;
+
+/// The air corps of an area as a raid finds them, in `rid` order: every one is a target, and
+/// the ones ordered to defend send their squadrons up.
+pub(crate) async fn raided_air_corps_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+) -> Result<Vec<AirRaidBase>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let mut bases = Vec::new();
+    for model in airbases_of_area(c, profile_id, area_id).await? {
+        let planes: Vec<plane_db::Model> = get_planes_impl(c, profile_id, area_id, model.rid)
+            .await?
+            .into_iter()
+            .filter(|plane| plane.state == plane_db::Status::Assigned)
+            .collect();
+        let slot_ids: Vec<i64> = planes.iter().map(|plane| plane.slot_id).collect();
+        let items = find_slot_items_by_id_impl(c, &slot_ids).await?;
+        bases.push(AirRaidBase {
+            base_rid: model.rid,
+            defending: model.action == base::Action::Defense,
+            squadrons: planes
+                .iter()
+                .filter_map(|plane| {
+                    let item = items.iter().find(|item| item.id == plane.slot_id)?;
+                    Some(AirSquadronInput {
+                        squadron_id: plane.squadron_id,
+                        mst_id: item.mst_id,
+                        count: plane.count,
+                    })
+                })
+                .collect(),
+        });
+    }
+
+    Ok(bases)
+}
+
+/// Take what a raid cost: the aircraft the defenders lost in the air, stores in proportion to
+/// the damage, and aircraft on the ground of every base hit hard. Sets `api_lost_kind`.
+///
+/// wikiwiki 基地航空隊「基地への空襲」: fuel or bauxite, `damage × 0.9 + 0.1` rounded; a base
+/// that took 50 or more loses 1 to 4 aircraft from its first squadron down, never the last
+/// one of a squadron, unless it was ordered to shelter. Whether stores are lost at all is
+/// random upstream at an unpublished rate; here any damage costs them.
+pub(crate) async fn settle_air_raid_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    bases: &mut [AirRaidBase],
+    raid: &mut BattleAirRaid,
+    rng: &mut impl BattleRng,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let sheltered: Vec<i64> = airbases_of_area(c, profile_id, area_id)
+        .await?
+        .into_iter()
+        .filter(|model| model.action == base::Action::Evasion)
+        .map(|model| model.rid)
+        .collect();
+
+    let mut planes_lost = false;
+    for (base, &damage) in bases.iter_mut().zip(&raid.base_damage) {
+        if damage < GROUND_LOSS_DAMAGE || sheltered.contains(&base.base_rid) {
+            continue;
+        }
+        let mut owed = rng.roll_range(1, 5);
+        for squadron in &mut base.squadrons {
+            let taken = owed.min(squadron.count - 1).max(0);
+            squadron.count -= taken;
+            owed -= taken;
+            planes_lost |= taken > 0;
+        }
+    }
+    for base in bases.iter() {
+        for squadron in &base.squadrons {
+            plane_db::Entity::update_many()
+                .col_expr(plane_db::Column::Count, Expr::value(squadron.count))
+                .filter(plane_db::Column::ProfileId.eq(profile_id))
+                .filter(plane_db::Column::AreaId.eq(area_id))
+                .filter(plane_db::Column::Rid.eq(base.base_rid))
+                .filter(plane_db::Column::SquadronId.eq(squadron.squadron_id))
+                .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
+                .exec(c)
+                .await?;
+        }
+    }
+
+    let damage: i64 = raid.base_damage.iter().sum();
+    let mut stores_lost = false;
+    if damage > 0 {
+        let stock = get_mat_impl(c, profile_id).await?;
+        let (category, held) = if rng.roll_range(0, 2) == 0 {
+            (MaterialCategory::Fuel, stock.fuel)
+        } else {
+            (MaterialCategory::Bauxite, stock.bauxite)
+        };
+        let lost = ((damage as f64 * 0.9 + 0.1).round() as i64).min(held);
+        if lost > 0 {
+            deduct_material_impl(c, profile_id, &[(category, lost)]).await?;
+            stores_lost = true;
+        }
+    }
+
+    raid.api_lost_kind = match (stores_lost, planes_lost) {
+        (true, false) => 1,
+        (true, true) => 2,
+        (false, true) => 3,
+        (false, false) => 4,
+    };
 
     Ok(())
 }

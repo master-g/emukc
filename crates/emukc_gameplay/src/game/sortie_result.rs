@@ -948,6 +948,7 @@ mod tests {
             locked_enemy_composition: None,
             landing_tp: None,
             air_strikes: vec![],
+            raided: false,
         };
 
         let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("A")).unwrap();
@@ -1020,6 +1021,7 @@ mod tests {
             locked_enemy_composition: None,
             landing_tp: None,
             air_strikes: vec![],
+            raided: false,
         };
 
         let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("S")).unwrap();

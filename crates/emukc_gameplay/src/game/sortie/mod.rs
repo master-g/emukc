@@ -3,7 +3,8 @@ mod route;
 mod setup;
 
 use enemy_ship::{
-    fallback_enemy_composition, resolve_sortie_enemy_fleet, select_random_enemy_composition,
+    build_sortie_enemy_ship, fallback_enemy_composition, resolve_sortie_enemy_fleet,
+    select_random_enemy_composition,
 };
 use route::{SortieRoute, route_next_cell, route_start_cell};
 use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
@@ -25,12 +26,14 @@ use serde::Serialize;
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
-use emukc_battle::{BattleType, CombinedFleetRole};
+use emukc_battle::{
+    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, simulate_air_raid,
+};
 
 use super::{
     airbase::{
-        charge_air_sortie_impl, load_area_airbases_impl, record_strike_losses_impl,
-        tire_air_corps_impl,
+        charge_air_sortie_impl, load_area_airbases_impl, raided_air_corps_impl,
+        record_strike_losses_impl, settle_air_raid_impl, tire_air_corps_impl,
     },
     battle::{
         engagement::roll_engagement,
@@ -83,6 +86,8 @@ pub struct ActiveSortieState {
     /// The cells each air corps was sent against; empty until
     /// `api_req_map/start_air_base` names them.
     pub air_strikes: Vec<AirStrike>,
+    /// The air base was raided on this sortie; a sortie brings one raid at most.
+    pub raided: bool,
 }
 
 /// The cells one air corps was sent against, in the order it flies them.
@@ -173,6 +178,8 @@ pub struct SortieNextResponse {
     pub limit_state: Option<i64>,
     pub itemget: Option<Vec<SortieItemGet>>,
     pub happening: Option<SortieHappening>,
+    /// The raid on the air base that this step brought, if any.
+    pub destruction_battle: Option<BattleAirRaid>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -248,6 +255,7 @@ impl Ctx {
             locked_enemy_composition: locked_enemy_composition.clone(),
             landing_tp: None,
             air_strikes: vec![],
+            raided: false,
         };
         tx.commit().await?;
         self.sortie_store
@@ -537,6 +545,34 @@ impl Ctx {
                         let _ = store.insert_active(profile_id, state);
                     }
                 }
+                // A map without raids asks nothing more here, not even a random number.
+                let destruction_battle = if stage.air_raid_fleets.is_empty()
+                    || active.raided
+                    || !matches!(next.event_id, 4 | 5)
+                {
+                    None
+                } else {
+                    let required = stage.required_defeat_count.or(definition.required_defeat_count);
+                    let sunk = find_map_record_impl(&tx, profile_id, active.map_id)
+                        .await?
+                        .defeat_count
+                        .unwrap_or_default();
+                    let due = required
+                        .is_some_and(|required| (RAIDS_FROM_BOSS_KILLS..required).contains(&sunk))
+                        && (next.cell_no == stage.boss_cell_no
+                            || ProductionRng.roll_range(0, 2) == 0);
+                    if due {
+                        let raid =
+                            air_raid_impl(&tx, codex, profile_id, active.map_id, stage).await?;
+                        if let Some(mut state) = store.get_active(profile_id) {
+                            state.raided = true;
+                            let _ = store.insert_active(profile_id, state);
+                        }
+                        Some(raid)
+                    } else {
+                        None
+                    }
+                };
                 tx.commit().await?;
 
                 let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
@@ -570,6 +606,7 @@ impl Ctx {
                     limit_state: Some(0),
                     itemget,
                     happening,
+                    destruction_battle,
                 })
             })
             .await
@@ -1008,6 +1045,55 @@ impl Ctx {
 /// packet's friendly arrays are its alone; a combined fleet reports 第1艦隊
 /// beside them. Likewise only one deck of an enemy combined fleet fought, and
 /// both are reported.
+/// How many times the boss must have been sunk before the air base is raided.
+// ponytail: fitted to 6-5, the only regular map with raids (KCNav has none before the gauge
+// is down two of six, and none once it is broken). Move it into the map data with the next
+// map that has raids.
+const RAIDS_FROM_BOSS_KILLS: i64 = 2;
+
+/// Fly one of the stage's raids on the map area's air corps and take what it cost.
+async fn air_raid_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    map_id: i64,
+    stage: &MapStageDefinition,
+) -> Result<BattleAirRaid, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let fleet = emukc_model::codex::map::EnemyFleetDefinition {
+        compositions: stage.air_raid_fleets.clone(),
+        ..Default::default()
+    };
+    let composition =
+        select_random_enemy_composition(&fleet).unwrap_or_else(|| fallback_enemy_composition(0));
+    let mut enemy = composition
+        .ship_ids
+        .iter()
+        .enumerate()
+        .map(|(index, &ship_id)| {
+            let level = composition.levels.get(index).copied().unwrap_or(1);
+            build_sortie_enemy_ship(codex, ship_id, level)
+                .map(|ship| BattleRuntimeShip::new(ship, false, true))
+        })
+        .collect::<Result<Vec<_>, GameplayError>>()?;
+
+    let (area_id, _) = split_map_id(map_id);
+    let mut bases = raided_air_corps_impl(c, profile_id, area_id).await?;
+    let mut rng = ProductionRng;
+    let mut raid = simulate_air_raid(
+        codex,
+        &mut bases,
+        &mut enemy,
+        composition.formation.unwrap_or(1),
+        &mut rng,
+    );
+    settle_air_raid_impl(c, profile_id, area_id, &mut bases, &mut raid, &mut rng).await?;
+
+    Ok(raid)
+}
+
 fn night_battle_response(
     session: &SortieBattleSession,
     night: SortieNightBattleSession,
