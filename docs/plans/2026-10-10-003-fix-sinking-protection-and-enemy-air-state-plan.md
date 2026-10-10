@@ -2,7 +2,7 @@
 title: "Sinking Protection on Current HP, and the Enemy's Own Air State - Plan"
 type: fix
 date: 2026-10-10
-status: planned
+status: implemented
 execution: code
 ---
 
@@ -54,6 +54,16 @@ execution: code
   测试：我方制空确保时敌方不出弹着观测。
 - **U3** 重新冻结基线，换种子不放宽断言；`battle-hit-and-critical-rolls.md` 旁记一笔或在 `day-shelling-order.md`
   之外另写一条；回写 `PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-10）
+
+- U1、U2 按计划做完。钉住旧行为的测试 `protection_uses_entry_hp_not_current_hp` 改写成按当前血量断言，
+  另加「第二次致命伤害不会剩 1」和「敌方只在自己的制空状态下弹着观测」两个测试。
+- 基线：13 个文本基线重新冻结；`battle_golden.rs` 没变。没有需要换种子的测试。
+- `gunnery_cutin` 种子 38：赤城 69→69，敌方不再連撃；30 个种子里敌方的切入次数从有到 0（我方每场都是制空确保）。
+- 文档：`night-battle-sinking-protection.md`、`docs/battle/damage-formula-reference.md` 里的旧公式改掉；
+  制空状态的视角记在 `day-shelling-order.md`。
+- 无头检查 `gunnery_cutin`、`leveled_for_mid_boss` 通过。
 
 ## Verification
 

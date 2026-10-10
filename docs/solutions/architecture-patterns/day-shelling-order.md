@@ -64,6 +64,12 @@ enemy did (plan `docs/plans/2026-10-10-002`):
   first, so the random stream keeps its order, but what the enemy fires is settled from a copy
   of the enemy taken when the phase began: a ship the friendly salvo sinks has fired already.
 
+## Whose air state
+
+`AirState` is worked out from the friendly side. An enemy attack reads it reversed
+(`AirState::reversed`): the enemy spots for its guns by day, and its night recon counts, when
+the sky is the enemy's. Day shelling and the night battle both pass it that way.
+
 ## Not modelled
 
 - The once-a-battle rule stops at the day battle: the night battle is a request of its own and

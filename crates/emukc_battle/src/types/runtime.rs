@@ -133,7 +133,9 @@ impl BattleRuntimeShip {
     /// In real `KanColle`:
     /// - Friendly ships that were **not** in taiha (HP <= 25% max) at the start of
     ///   the battle node cannot be sunk. Lethal damage is replaced with
-    ///   proportional damage: `floor(0.5 * H + 0.3 * rand(0..H))`.
+    ///   proportional damage: `floor(0.5 * H + 0.3 * rand(0..H))`, `H` being
+    ///   the hit points the ship has when it is hit. That is always less than
+    ///   `H`, and nothing at 1.
     /// - The flagship (index 0) can **never** be sunk regardless of HP state.
     /// - Protection only applies to friendly ships during sorties (not practice).
     ///
@@ -169,17 +171,14 @@ impl BattleRuntimeShip {
             let is_protected = is_flagship || !was_taiha_at_entry;
 
             if is_protected {
-                // Replace lethal damage with proportional damage (割合ダメージ).
-                // Formula uses entry_hp as base: (H / 2) + (rand_part * 3) / 10
-                // Clamped to [0, current_hp - 1] to guarantee survival.
-                let h = self.entry_hp;
-                let rand_part = if h > 1 {
-                    rng.roll_range(0, h)
+                // Replace lethal damage with proportional damage (割合ダメージ),
+                // taken from what the ship has left now.
+                let h = self.current_hp;
+                let dealt = if h > 1 {
+                    (5 * h + 3 * rng.roll_range(0, h)) / 10
                 } else {
                     0
                 };
-                let proportional = (h / 2) + (rand_part * 3) / 10;
-                let dealt = proportional.min(self.current_hp - 1).max(0);
                 self.current_hp -= dealt;
                 return (raw_damage, dealt);
             }

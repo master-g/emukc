@@ -35,8 +35,11 @@ When `simulate_night` is called for a sortie battle, sinking protection
 - Non-taiha friendly ship survives lethal damage in sortie night battle: when
   `is_sortie == true` and a friendly ship that was NOT in taiha (HP > 25% max)
   at entry receives lethal damage, the ship SHALL survive with HP ≥ 1; the
-  damage applied SHALL be proportional:
-  `floor(0.5 × entry_hp + 0.3 × rand(0..entry_hp))`.
+  damage applied SHALL be proportional to what the ship has left when it is
+  hit: `floor(0.5 × hp + 0.3 × rand(0..hp))`, and nothing at 1 HP. (Until
+  2026-10-10 this was taken from `entry_hp` and capped at `hp − 1`, which left
+  every ship hit twice at exactly 1; see plan `2026-10-10-003`.) Whether a ship
+  is protected is still decided by its HP at entry.
 - Flagship always survives in sortie night battle: when `is_sortie == true` and
   the flagship (index 0) receives lethal damage at any HP state, the flagship
   SHALL survive with HP ≥ 1.

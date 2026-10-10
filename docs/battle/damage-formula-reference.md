@@ -479,13 +479,15 @@ Applies to friendly sortie ships only:
 ```
 if effective_damage ≥ current_hp AND (is_flagship OR NOT was_taiha_at_entry):
     replace with proportional damage
-    D_proportional = floor(H/2) + floor(rand(0, H) × 0.3)
-    clamped to [0, current_hp − 1]
+    D_proportional = floor(0.5 × H + 0.3 × rand(0, H))     (0 when H = 1)
 ```
 
-Where `H` = HP at node entry (`entry_hp`).
+Where `H` = the ship's HP when it is hit (`kcsim.js` `takeDamage`). The result is always
+less than `H`, so it needs no clamp. Whether the ship is protected is decided by its HP at
+node entry.
 
-**Current code** (core.rs:194-214): ✓ Correctly implemented.
+**Current code** (`types/runtime.rs` `apply_damage`): ✓ since 2026-10-10; before that `H` was
+the entry HP, clamped to `current_hp − 1`.
 
 ---
 

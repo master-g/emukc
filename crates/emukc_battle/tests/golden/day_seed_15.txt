@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        60,
-        46,
+        54,
+        39,
     ],
     enemy_nowhps: [
         0,
@@ -139,7 +139,7 @@ BattlePacket {
             ],
             api_at_type: [
                 0,
-                0,
+                2,
                 0,
                 0,
             ],
@@ -149,12 +149,13 @@ BattlePacket {
                 ],
                 [
                     1,
-                ],
-                [
                     1,
                 ],
                 [
                     1,
+                ],
+                [
+                    0,
                 ],
             ],
             api_si_list: [
@@ -164,8 +165,11 @@ BattlePacket {
                     ),
                 ],
                 [
-                    Num(
-                        105,
+                    Text(
+                        "105",
+                    ),
+                    Text(
+                        "8",
                     ),
                 ],
                 [
@@ -184,13 +188,14 @@ BattlePacket {
                     0,
                 ],
                 [
+                    2,
                     1,
                 ],
                 [
                     1,
                 ],
                 [
-                    0,
+                    1,
                 ],
             ],
             api_damage: [
@@ -198,13 +203,14 @@ BattlePacket {
                     0,
                 ],
                 [
-                    3,
+                    5,
+                    5,
                 ],
                 [
-                    118,
+                    117,
                 ],
                 [
-                    0,
+                    6,
                 ],
             ],
         },
@@ -239,7 +245,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    114,
+                    115,
                 ],
             ],
         },

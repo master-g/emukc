@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        53,
+        60,
     ],
     enemy_nowhps: [
         0,
@@ -173,7 +173,7 @@ BattlePacket {
                     1,
                 ],
                 [
-                    1,
+                    0,
                 ],
                 [
                     1,
@@ -184,7 +184,7 @@ BattlePacket {
                     117.1,
                 ],
                 [
-                    7,
+                    0,
                 ],
                 [
                     116,
