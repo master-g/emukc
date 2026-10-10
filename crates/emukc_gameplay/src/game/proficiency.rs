@@ -43,7 +43,7 @@ fn growth_constant(mst_id: i64) -> i64 {
 // submarine) and the jet assault's extra roll are left out.
 fn growth_rolls(type3: i64, air_battle: bool) -> Option<i64> {
     use KcSlotItemType3 as T;
-    match KcSlotItemType3::n(type3)? {
+    match T::n(type3)? {
         T::CarrierBasedFighter
         | T::CarrierBasedDiveBomber
         | T::CarrierBasedTorpedoBomber
@@ -51,7 +51,9 @@ fn growth_rolls(type3: i64, air_battle: bool) -> Option<i64> {
         | T::JetFighter
         | T::JetFighterBomber
         | T::JetAttacker => Some(i64::from(air_battle)),
-        T::CarrierBasedRecon | T::SeaBasedRecon | T::LargeFlyingBoat => Some(1),
+        T::CarrierBasedRecon | T::CarrierBasedRecon2 | T::SeaBasedRecon | T::LargeFlyingBoat => {
+            Some(1)
+        }
         T::SeaBasedBomber => Some(1 + i64::from(air_battle)),
         _ => None,
     }
@@ -64,6 +66,7 @@ fn is_scout(type3: i64) -> bool {
         KcSlotItemType3::n(type3),
         Some(
             KcSlotItemType3::CarrierBasedRecon
+                | KcSlotItemType3::CarrierBasedRecon2
                 | KcSlotItemType3::SeaBasedRecon
                 | KcSlotItemType3::LargeFlyingBoat
         )
@@ -125,6 +128,7 @@ pub(crate) fn settle(
         settled -= loss(exp, before, after, roll());
     }
     if grows {
+        // The band is the one the slot entered the battle in, as the loss was.
         let constant = growth_constant(mst_id);
         for _ in 0..rolls {
             settled += gain(constant, exp, roll());
@@ -136,6 +140,7 @@ pub(crate) fn settle(
 /// Each aircraft's growth constant, by master id: how readily it gains
 /// experience. Estimates from the sheet named at the top of this file, kept by
 /// hand; an aircraft missing here takes [`DEFAULT_GROWTH`]. Sorted by id.
+// One aircraft a line, with its name: rustfmt would fold the short ones together.
 #[rustfmt::skip]
 const GROWTH: &[(i64, i64)] = &[
     (16, 8), // 九七式艦攻

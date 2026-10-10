@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use emukc_db::{
     entity::profile::{airbase::plane as plane_db, item::slot_item},
-    sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, Condition, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
@@ -404,7 +404,7 @@ where
     let flown = slot_item::Entity::find()
         .filter(slot_item::Column::ProfileId.eq(profile_id))
         .filter(
-            emukc_db::sea_orm::Condition::any()
+            Condition::any()
                 .add(slot_item::Column::AircraftExp.ne(0))
                 .add(slot_item::Column::AircraftLv.ne(0)),
         )

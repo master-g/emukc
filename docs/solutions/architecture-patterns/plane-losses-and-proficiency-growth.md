@@ -70,7 +70,18 @@ marks as estimates. Nothing here was read from the game.
 The air corps and air defence; patrol planes and autogyros, which grow when their ship attacks
 a submarine; the jet assault's extra roll; the escort fleet's growth (it needs an enemy
 combined fleet); scouts' gradual loss. The battle still reads a level's representative
-experience rather than the real one. Practice changes nothing.
+experience rather than the real one. A night-start battle counts as a search like any other,
+which the sources do not settle. Practice settles no proficiency; the aircraft it costs were
+already kept, and resupplying them now charges for every slot.
+
+## Slots with gaps
+
+The battle walks `slot_items`, which skips empty slots, and pairs it with `api_onslot` by
+position. Equipping and unequipping through the API close any gap when the ship is
+recalculated, so the two normally line up. Should a ship reach a sortie with a gap anyway
+(`slot_1` empty, `slot_2` filled), `build_sortie_friend_ships` closes the same gap in the
+counts on the way in and the battle result puts each count back in the slot its equipment
+sits in (`occupied_slots`). No test builds such a ship: nothing public leaves one.
 
 ## When something looks wrong
 

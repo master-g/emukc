@@ -198,7 +198,7 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-10] 分支 `feat/proficiency-growth`（计划 `2026-10-10-005`）：舰载机损失入库、熟练度成长、补给补五槽；
-  `cargo test --workspace` 1299 全过，无头 `gunnery_cutin` 通过。`slot_item` 加了列，旧的本地库要重建。
+  `cargo test --workspace` 1299 全过，无头 `gunnery_cutin` 通过；PR #37 待合并。`slot_item` 加了列，旧的本地库要重建。
 
 ## Next Session
 

@@ -76,6 +76,15 @@ execution: code
 - **U5** gameplay 测试：一次带航空战的出击后，机数减少入库、`aircraft_exp` 上涨；补给补满五槽并扣铝土。
 - **U6** 文档（`battle-hit-and-critical-rolls.md` 的「Not modelled」、新的 solutions 条目）、基线、`PROJECT_MEMORY.md`。
 
+## 审查后的修正（2026-10-10）
+
+- 第二类艦偵（`CarrierBasedRecon2`）原先被当成没有熟练度，已补进侦察机一类。
+- 装备栏有空槽时，战斗按去掉空槽后的次序读机数，而结算按物理槽写回，两者会错位。现在进战斗前把机数按同样的次序排好，
+  结算时放回装备所在的槽。经公开接口装卸装备会在重算时自动压实，造不出空槽，所以这一条没有测试。
+- 成长判定的分段取的是这一战开始时的经验（和损失用的是同一个值），不是减损之后的；已在代码里注明。
+- 开幕夜战也按一次索敌给侦察机成长，来源没有说明这一点。
+- 没有直接断言 `aircraft_exp` 的集成测试：它不在 API 里，测试通过回港后的等级间接验证；无头检查的数据库里确认过数值。
+
 ## Verification
 
 - `cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`、`cargo test --workspace`。

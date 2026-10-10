@@ -605,8 +605,14 @@ where
         api_ship.api_nowhp = final_hp.max(0);
         let is_sunk = final_hp <= 0;
 
-        // Aircraft shot down stay down until the ship is resupplied.
-        if let Some(left) = snapshot.friendly_onslots.get(idx).copied() {
+        // Aircraft shot down stay down until the ship is resupplied. The battle
+        // counted them with the gaps between equipment closed; put each count
+        // back in the slot its equipment sits in.
+        if let Some(closed) = snapshot.friendly_onslots.get(idx) {
+            let mut left = api_ship.api_onslot;
+            for (slot, count) in occupied_slots(&slots).zip(closed) {
+                left[slot] = *count;
+            }
             if !is_sunk {
                 // 第2艦隊's aircraft gain only against an enemy combined fleet,
                 // which no battle here has.
@@ -660,6 +666,11 @@ where
     snapshot.member_lv = updated_profile.hq_level;
     snapshot.member_exp = updated_profile.experience;
     Ok(snapshot)
+}
+
+/// The slots of a ship that hold equipment, in order.
+pub(super) fn occupied_slots(slots: &[i64; 5]) -> impl Iterator<Item = usize> + '_ {
+    slots.iter().enumerate().filter(|(_, item)| **item > 0).map(|(slot, _)| slot)
 }
 
 /// Settle the proficiency of one ship's aircraft after a battle that took its
