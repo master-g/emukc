@@ -233,6 +233,10 @@ impl Request {
     }
 
     /// Execute the download
+    #[expect(
+        clippy::result_large_err,
+        reason = "the error names the url and the file; it is built once per failed download"
+    )]
     pub async fn execute(self, client: Option<reqwest::Client>) -> Result<(), DownloadError> {
         let client = match client {
             Some(client) => client,

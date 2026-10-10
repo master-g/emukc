@@ -447,7 +447,7 @@ mod tests {
         assert!(matches!(result, Err(ParseError::UnknownCategory)));
     }
 
-    /// The shape of api_no 1033: `category: sortie` with no `sortie` block.
+    /// The shape of `api_no` 1033: `category: sortie` with no `sortie` block.
     /// Before plan 006 this degraded to `And([])`, which the progress
     /// calculator reads as already completed.
     #[test]
@@ -486,7 +486,7 @@ mod tests {
         ));
     }
 
-    /// The shape of api_no 1019: an `or` whose first branch has no `sortie`
+    /// The shape of `api_no` 1019: an `or` whose first branch has no `sortie`
     /// block and whose second one is complete. Dropping a branch only removes
     /// a way to finish the quest, so the quest itself must survive.
     #[test]

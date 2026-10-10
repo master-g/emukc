@@ -134,6 +134,7 @@ where
     }
 }
 
+#[expect(clippy::result_large_err, reason = "the error is the response axum sends back")]
 async fn extract_kcs_api_game_session(
     request: Request,
 ) -> Result<(GameSession, Request), Response> {

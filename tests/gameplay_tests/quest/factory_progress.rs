@@ -5,8 +5,8 @@
 //! a development quest by exactly 1.
 //!
 //! Dev quests (codex `quest.json`):
-//! - 605 「新装備「開発」指令」 — daily, requires SlotItemConstruction: 1
-//! - 607 「装備「開発」集中強化！」 — daily, requires SlotItemConstruction: 3 (the batch case)
+//! - 605 「新装備「開発」指令」 — daily, requires `SlotItemConstruction`: 1
+//! - 607 「装備「開発」集中強化！」 — daily, requires `SlotItemConstruction`: 3 (the batch case)
 //!
 //! Asserts on the remaining counter stored in each quest's progress record (3 → 0).
 

@@ -804,7 +804,6 @@ pub fn kcnav_enemy_fleets(
                         levels: fleet.levels.clone(),
                         escort_ship_ids: fleet.escort_ship_ids.clone(),
                         escort_levels: fleet.escort_levels.clone(),
-                        ..Default::default()
                     })
                     .collect::<Vec<_>>();
                 if compositions.is_empty() {

@@ -13,6 +13,13 @@ repos:
             description: Lint rust sources
             entry: cargo clippy
             language: system
-            args: ["--", "-W", "warnings"]
+            args: ["--workspace", "--all-targets", "--", "-D", "warnings"]
             types: [rust]
+            pass_filenames: false
+          - id: project-memory
+            name: project memory
+            description: Keep PROJECT_MEMORY.md within its limits (skipped where the checker is not installed).
+            entry: bash -c 's="$HOME/.claude/skills/bootstrap-claude/scripts/memory.py"; [ -f "$s" ] || exit 0; python3 "$s" check PROJECT_MEMORY.md'
+            language: system
+            files: ^PROJECT_MEMORY\.md$
             pass_filenames: false
