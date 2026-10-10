@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        52,
+        48,
     ],
     enemy_nowhps: [
         0,
@@ -127,13 +127,19 @@ BattlePacket {
         BattleHougeki {
             api_at_eflag: [
                 0,
-                0,
-            ],
-            api_at_list: [
+                1,
                 0,
                 1,
             ],
+            api_at_list: [
+                0,
+                0,
+                1,
+                1,
+            ],
             api_at_type: [
+                0,
+                0,
                 0,
                 0,
             ],
@@ -142,7 +148,13 @@ BattlePacket {
                     1,
                 ],
                 [
-                    0,
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
                 ],
             ],
             api_si_list: [
@@ -153,45 +165,14 @@ BattlePacket {
                 ],
                 [
                     Num(
+                        105,
+                    ),
+                ],
+                [
+                    Num(
                         7,
                     ),
                 ],
-            ],
-            api_cl_list: [
-                [
-                    1,
-                ],
-                [
-                    0,
-                ],
-            ],
-            api_damage: [
-                [
-                    114,
-                ],
-                [
-                    0,
-                ],
-            ],
-        },
-    ),
-    hougeki2: Some(
-        BattleHougeki {
-            api_at_eflag: [
-                1,
-            ],
-            api_at_list: [
-                0,
-            ],
-            api_at_type: [
-                0,
-            ],
-            api_df_list: [
-                [
-                    1,
-                ],
-            ],
-            api_si_list: [
                 [
                     Num(
                         105,
@@ -202,10 +183,97 @@ BattlePacket {
                 [
                     0,
                 ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
             ],
             api_damage: [
                 [
                     0,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
+            ],
+        },
+    ),
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+                1,
+                0,
+            ],
+            api_at_list: [
+                0,
+                0,
+                1,
+            ],
+            api_at_type: [
+                0,
+                0,
+                0,
+            ],
+            api_df_list: [
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        7,
+                    ),
+                ],
+                [
+                    Num(
+                        105,
+                    ),
+                ],
+                [
+                    Num(
+                        7,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    0,
+                ],
+                [
+                    2,
+                ],
+                [
+                    1,
+                ],
+            ],
+            api_damage: [
+                [
+                    0,
+                ],
+                [
+                    4.1,
+                ],
+                [
+                    118,
                 ],
             ],
         },
@@ -226,7 +294,7 @@ BattlePacket {
                 0,
             ],
             api_fydam: [
-                110,
+                112,
                 0,
             ],
             api_erai: [
@@ -238,7 +306,7 @@ BattlePacket {
                 0,
             ],
             api_edam: [
-                110,
+                112,
                 0,
             ],
             api_eydam: [

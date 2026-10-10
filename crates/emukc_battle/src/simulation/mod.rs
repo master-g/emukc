@@ -9,11 +9,12 @@ use emukc_model::codex::Codex;
 use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::config::{BattleFlow, BattlePhaseKind};
 use crate::random::BattleRng;
+use crate::simulation::shelling::ShellingRound;
 use crate::state::{BattleState, CombinedLayout};
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
-    AirState, BattleContext, BattleHougeki, BattlePhase, BattleRuntimeShip, BattleSimulation,
-    NightBattleInput, NightBattleSimulation, ShellingParams,
+    AirState, BattleContext, BattleHougeki, BattleSimulation, NightBattleInput,
+    NightBattleSimulation,
 };
 
 pub(crate) mod air_base;
@@ -26,17 +27,6 @@ pub(crate) mod night;
 pub(crate) mod shelling;
 pub(crate) mod special_attack;
 pub(crate) mod torpedo;
-
-/// Returns the fleet speed value (minimum `api_soku` among alive ships).
-/// `KanColle` speed values: 5=slow, 10=fast, 15=fast+, 20=fastest.
-fn fleet_speed(fleet: &[BattleRuntimeShip]) -> i64 {
-    fleet.iter().filter(|s| s.is_alive()).map(|s| s.ship.api_soku).min().unwrap_or(0)
-}
-
-/// Returns true if the friendly fleet is faster (enemy attacks first in shelling).
-fn enemy_shells_first(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntimeShip]) -> bool {
-    fleet_speed(enemy) > fleet_speed(friendly)
-}
 
 /// Simulate a full day battle.
 ///
@@ -55,24 +45,21 @@ pub(crate) fn simulate_day(
 ) -> BattleSimulation {
     let mut state = BattleState::from_context(context);
     let flow = BattleFlow::for_battle_type(state.battle_type());
-    let enemy_first = enemy_shells_first(&state.friendly, &state.enemy);
 
     let has_bb =
         fleet_has_bb_class(codex, &state.friendly) || fleet_has_bb_class(codex, &state.enemy);
     state.set_has_bb_class_at_start(has_bb);
 
     // A combined fleet reorders the shelling tail and scopes several phases to
-    // one deck, so it gets its own orchestrator. The single-fleet arm below is
-    // untouched, which is what guarantees the frozen golden transcript and every
-    // existing seed still produce the same RNG stream.
+    // one deck, so it gets its own orchestrator.
     if let Some(layout) = state.combined() {
-        simulate_day_combined(codex, &mut state, rng, layout, enemy_first);
+        simulate_day_combined(codex, &mut state, rng, layout);
         return state.finalize_day();
     }
 
     // Likewise an enemy combined fleet, which is fought one deck at a time.
     if let Some(escort_start) = state.enemy_escort_start() {
-        simulate_day_enemy_combined(codex, &mut state, rng, escort_start, enemy_first);
+        simulate_day_enemy_combined(codex, &mut state, rng, escort_start);
         return state.finalize_day();
     }
 
@@ -87,8 +74,8 @@ pub(crate) fn simulate_day(
             BattlePhaseKind::Kouku => execute_kouku(codex, &mut state, rng),
             BattlePhaseKind::OpeningAsw => execute_opening_asw(codex, &mut state, rng),
             BattlePhaseKind::OpeningTorpedo => execute_opening_torpedo(codex, &mut state, rng),
-            BattlePhaseKind::Shelling1 => execute_shelling1(codex, &mut state, rng, enemy_first),
-            BattlePhaseKind::Shelling2 => execute_shelling2(codex, &mut state, rng, enemy_first),
+            BattlePhaseKind::Shelling1 => execute_shelling(codex, &mut state, rng, true),
+            BattlePhaseKind::Shelling2 => execute_shelling(codex, &mut state, rng, false),
             BattlePhaseKind::ClosingTorpedo => execute_closing_torpedo(codex, &mut state, rng),
         }
     }
@@ -116,7 +103,6 @@ fn simulate_day_combined(
     state: &mut BattleState,
     rng: &mut impl BattleRng,
     layout: CombinedLayout,
-    enemy_first: bool,
 ) {
     let flow = BattleFlow::for_battle_type(state.battle_type());
     let runs = |kind: BattlePhaseKind| flow.phases.contains(&kind);
@@ -159,7 +145,13 @@ fn simulate_day_combined(
         // being present exactly as the single-fleet path gates `hougeki2`.
         let is_second_round = round > 0 && deck == rounds[round - 1];
         if !is_second_round || state.has_bb_class_at_start() {
-            let hougeki = execute_combined_shelling(codex, state, rng, layout, deck, enemy_first);
+            let friendly_deck = match deck {
+                CombinedFleetRole::Main => 0..layout.escort_start,
+                CombinedFleetRole::Escort => layout.escort_start..state.friendly.len(),
+            };
+            let enemy_deck = 0..state.enemy.len();
+            let hougeki =
+                shelling_round(codex, state, rng, friendly_deck, enemy_deck, !is_second_round);
             let happened = hougeki.is_some();
             match round {
                 0 => state.set_hougeki1(hougeki),
@@ -180,94 +172,36 @@ fn simulate_day_combined(
     }
 }
 
-/// One combined shelling round: the designated friendly deck and the enemy each
-/// fire once, ordered by fleet speed.
+/// One round of shelling between part of each fleet, the first kind of round
+/// (`by_range`) or the second. `None` when either part has nobody left.
 ///
-/// This is where a combined round departs from the single-fleet path. There,
-/// `hougeki1` and `hougeki2` each hold **one** side's attacks and the two sides
-/// alternate across the rounds. A combined battle cannot use that scheme: with
-/// three rounds and a fixed deck per round (see `docs/apilist.txt`), alternating
-/// would cost one of the decks its shelling entirely. So both sides fire inside
-/// every round and are merged into one `BattleHougeki`, told apart by
-/// `api_at_eflag` — which is what the client expects in either case. The
-/// single-fleet path keeps its own scheme untouched.
-fn execute_combined_shelling(
+/// Both sides fire inside every round, ship by ship, into one `BattleHougeki`
+/// that tells them apart by `api_at_eflag`.
+fn shelling_round(
     codex: &Codex,
     state: &mut BattleState,
     rng: &mut impl BattleRng,
-    layout: CombinedLayout,
-    deck: CombinedFleetRole,
-    enemy_first: bool,
+    friendly_deck: std::ops::Range<usize>,
+    enemy_deck: std::ops::Range<usize>,
+    by_range: bool,
 ) -> Option<BattleHougeki> {
-    let deck_range = match deck {
-        CombinedFleetRole::Main => 0..layout.escort_start,
-        CombinedFleetRole::Escort => layout.escort_start..state.friendly.len(),
-    };
-    if !any_alive(&state.friendly[deck_range.clone()]) || !any_alive(&state.enemy) {
+    if !any_alive(&state.friendly[friendly_deck.clone()])
+        || !any_alive(&state.enemy[enemy_deck.clone()])
+    {
         return None;
     }
-
-    let friendly_form = state.friendly_formation_id();
-    let enemy_form = state.enemy_formation_id();
-    let eng = state.engagement();
     let air_state =
         state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-
-    // `simulate_shelling_side` numbers its attackers from the start of the slice
-    // it is handed, and deck 2's slice starts at `escort_start` — so its output
-    // has to be lifted back into the whole-fleet space the rest of the packet
-    // speaks. Deck 1's slice starts at 0 and the shift is a no-op.
-    let deck_offset = deck_range.start;
-    let friendly_turn = |state: &mut BattleState, rng: &mut _| {
-        let mut round = shelling::simulate_shelling_side(
-            codex,
-            rng,
-            &mut state.friendly[deck_range.clone()],
-            &mut state.enemy,
-            &ShellingParams {
-                attacker_is_enemy: false,
-                formation_id: friendly_form,
-                defender_formation_id: enemy_form,
-                engagement: eng,
-                phase: BattlePhase::DayShelling,
-                air_state: air_state.as_ref(),
-            },
-        );
-        if let Some(round) = round.as_mut() {
-            shift_friendly_attackers(round, deck_offset);
-        }
-        round
+    let round = ShellingRound {
+        friendly_deck,
+        enemy_deck,
+        by_range,
+        friendly_formation: state.friendly_formation_id(),
+        enemy_formation: state.enemy_formation_id(),
+        engagement: state.engagement(),
+        air_state: air_state.as_ref(),
     };
-    let enemy_turn = |state: &mut BattleState, rng: &mut _| {
-        // The enemy fires at the whole friendly force, not just the deck whose
-        // round this is.
-        shelling::simulate_shelling_side(
-            codex,
-            rng,
-            &mut state.enemy,
-            &mut state.friendly,
-            &ShellingParams {
-                attacker_is_enemy: true,
-                formation_id: enemy_form,
-                defender_formation_id: friendly_form,
-                engagement: eng,
-                phase: BattlePhase::DayShelling,
-                air_state: air_state.as_ref(),
-            },
-        )
-    };
-
-    let (first, second) = if enemy_first {
-        let e = enemy_turn(state, rng);
-        let f = friendly_turn(state, rng);
-        (e, f)
-    } else {
-        let f = friendly_turn(state, rng);
-        let e = enemy_turn(state, rng);
-        (f, e)
-    };
-
-    merge_hougeki(first, second)
+    shelling::simulate_shelling_round(codex, rng, &mut state.friendly, &mut state.enemy, &round)
 }
 
 /// Simulate a day battle for a friendly single fleet against an enemy combined
@@ -286,7 +220,6 @@ fn simulate_day_enemy_combined(
     state: &mut BattleState,
     rng: &mut impl BattleRng,
     escort_start: usize,
-    enemy_first: bool,
 ) {
     let flow = BattleFlow::for_battle_type(state.battle_type());
     let runs = |kind: BattlePhaseKind| flow.phases.contains(&kind);
@@ -309,7 +242,8 @@ fn simulate_day_enemy_combined(
     let rounds = [escort_start..enemy_len, 0..escort_start, 0..enemy_len];
     for (round, deck) in rounds.into_iter().enumerate() {
         if round < 2 || state.has_bb_class_at_start() {
-            let hougeki = execute_enemy_deck_shelling(codex, state, rng, deck, enemy_first);
+            let friendly_deck = 0..state.friendly.len();
+            let hougeki = shelling_round(codex, state, rng, friendly_deck, deck, round < 2);
             let happened = hougeki.is_some();
             match round {
                 0 => state.set_hougeki1(hougeki),
@@ -323,142 +257,6 @@ fn simulate_day_enemy_combined(
         if round == 0 && runs(BattlePhaseKind::ClosingTorpedo) {
             execute_closing_torpedo(codex, state, rng);
         }
-    }
-}
-
-/// One shelling round against part of an enemy combined fleet: the friendly
-/// fleet and the enemy ships in `deck` each fire once, ordered by fleet speed
-/// and merged into one `BattleHougeki` as in [`execute_combined_shelling`].
-fn execute_enemy_deck_shelling(
-    codex: &Codex,
-    state: &mut BattleState,
-    rng: &mut impl BattleRng,
-    deck: std::ops::Range<usize>,
-    enemy_first: bool,
-) -> Option<BattleHougeki> {
-    if !any_alive(&state.friendly) || !any_alive(&state.enemy[deck.clone()]) {
-        return None;
-    }
-
-    let friendly_form = state.friendly_formation_id();
-    let enemy_form = state.enemy_formation_id();
-    let eng = state.engagement();
-    let air_state =
-        state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-
-    // Both turns number the enemy from the start of the slice, so the enemy end
-    // of every attack has to be lifted back into the whole-fleet space.
-    let deck_offset = deck.start;
-    let turn = |state: &mut BattleState, rng: &mut _, attacker_is_enemy: bool| {
-        let mut round = if attacker_is_enemy {
-            shelling::simulate_shelling_side(
-                codex,
-                rng,
-                &mut state.enemy[deck.clone()],
-                &mut state.friendly,
-                &ShellingParams {
-                    attacker_is_enemy: true,
-                    formation_id: enemy_form,
-                    defender_formation_id: friendly_form,
-                    engagement: eng,
-                    phase: BattlePhase::DayShelling,
-                    air_state: air_state.as_ref(),
-                },
-            )
-        } else {
-            shelling::simulate_shelling_side(
-                codex,
-                rng,
-                &mut state.friendly,
-                &mut state.enemy[deck.clone()],
-                &ShellingParams {
-                    attacker_is_enemy: false,
-                    formation_id: friendly_form,
-                    defender_formation_id: enemy_form,
-                    engagement: eng,
-                    phase: BattlePhase::DayShelling,
-                    air_state: air_state.as_ref(),
-                },
-            )
-        };
-        if let Some(round) = round.as_mut() {
-            shift_enemy_indices(round, deck_offset);
-        }
-        round
-    };
-
-    let first = turn(state, rng, enemy_first);
-    let second = turn(state, rng, !enemy_first);
-    merge_hougeki(first, second)
-}
-
-/// Lift every enemy index in a round by `offset`: the attacker of an enemy
-/// attack and the defenders of a friendly one.
-fn shift_enemy_indices(round: &mut BattleHougeki, offset: usize) {
-    if offset == 0 {
-        return;
-    }
-    let BattleHougeki {
-        api_at_eflag,
-        api_at_list,
-        api_df_list,
-        ..
-    } = round;
-    for (entry, &eflag) in api_at_eflag.iter().enumerate() {
-        if eflag == 1 {
-            if let Some(attacker) = api_at_list.get_mut(entry) {
-                *attacker += offset as i64;
-            }
-        } else if let Some(defenders) = api_df_list.get_mut(entry) {
-            for defender in defenders.iter_mut().filter(|d| **d >= 0) {
-                *defender += offset as i64;
-            }
-        }
-    }
-}
-
-/// Lift every friendly attacker index in a round by `offset`.
-///
-/// Only the attacker end moves: a friendly attack's `api_df_list` holds enemy
-/// indices, and an enemy attack was simulated against the whole friendly force,
-/// so both are already in the right space.
-fn shift_friendly_attackers(round: &mut BattleHougeki, offset: usize) {
-    if offset == 0 {
-        return;
-    }
-    let BattleHougeki {
-        api_at_eflag,
-        api_at_list,
-        ..
-    } = round;
-    for (entry, &eflag) in api_at_eflag.iter().enumerate() {
-        if eflag == 0
-            && let Some(attacker) = api_at_list.get_mut(entry)
-        {
-            *attacker += offset as i64;
-        }
-    }
-}
-
-/// Concatenate two shelling rounds into one `BattleHougeki`, preserving order.
-/// Every field is a parallel per-attack array, so a concatenation is all the
-/// merge needs; `api_at_eflag` already records which side each attack came from.
-fn merge_hougeki(
-    first: Option<BattleHougeki>,
-    second: Option<BattleHougeki>,
-) -> Option<BattleHougeki> {
-    match (first, second) {
-        (Some(mut a), Some(b)) => {
-            a.api_at_eflag.extend(b.api_at_eflag);
-            a.api_at_list.extend(b.api_at_list);
-            a.api_at_type.extend(b.api_at_type);
-            a.api_df_list.extend(b.api_df_list);
-            a.api_si_list.extend(b.api_si_list);
-            a.api_cl_list.extend(b.api_cl_list);
-            a.api_damage.extend(b.api_damage);
-            Some(a)
-        }
-        (only @ Some(_), None) | (None, only) => only,
     }
 }
 
@@ -527,110 +325,28 @@ fn execute_opening_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
     }
 }
 
-fn execute_shelling1(
+/// A single fleet's shelling round: the first, ordered by range, or the second,
+/// which is fought down the line and only when a battleship was there to begin
+/// with.
+fn execute_shelling(
     codex: &Codex,
     state: &mut BattleState,
     rng: &mut impl BattleRng,
-    enemy_first: bool,
+    first_round: bool,
 ) {
-    if any_alive(&state.friendly) && any_alive(&state.enemy) {
-        let friendly_form = state.friendly_formation_id();
-        let enemy_form = state.enemy_formation_id();
-        let eng = state.engagement();
-        let air_state =
-            state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-        let hougeki = if enemy_first {
-            shelling::simulate_shelling_side(
-                codex,
-                rng,
-                &mut state.enemy,
-                &mut state.friendly,
-                &ShellingParams {
-                    attacker_is_enemy: true,
-                    formation_id: enemy_form,
-                    defender_formation_id: friendly_form,
-                    engagement: eng,
-                    phase: BattlePhase::DayShelling,
-                    air_state: air_state.as_ref(),
-                },
-            )
-        } else {
-            shelling::simulate_shelling_side(
-                codex,
-                rng,
-                &mut state.friendly,
-                &mut state.enemy,
-                &ShellingParams {
-                    attacker_is_enemy: false,
-                    formation_id: friendly_form,
-                    defender_formation_id: enemy_form,
-                    engagement: eng,
-                    phase: BattlePhase::DayShelling,
-                    air_state: air_state.as_ref(),
-                },
-            )
-        };
-        let has_hougeki = hougeki.is_some();
-        state.set_hougeki1(hougeki);
-        if has_hougeki {
-            state.set_hourai_flag(0, 1);
-        }
-    }
-}
-
-fn execute_shelling2(
-    codex: &Codex,
-    state: &mut BattleState,
-    rng: &mut impl BattleRng,
-    enemy_first: bool,
-) {
-    if !state.has_bb_class_at_start() {
+    if !first_round && !state.has_bb_class_at_start() {
         return;
     }
-    if any_alive(&state.friendly) && any_alive(&state.enemy) {
-        let friendly_form = state.friendly_formation_id();
-        let enemy_form = state.enemy_formation_id();
-        let eng = state.engagement();
-        let air_state =
-            state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
-        // Shelling2 reverses the attack order: the side that went second in
-        // Shelling1 attacks first here (KanColle alternating rule).
-        let hougeki = if enemy_first {
-            shelling::simulate_shelling_side(
-                codex,
-                rng,
-                &mut state.friendly,
-                &mut state.enemy,
-                &ShellingParams {
-                    attacker_is_enemy: false,
-                    formation_id: friendly_form,
-                    defender_formation_id: enemy_form,
-                    engagement: eng,
-                    phase: BattlePhase::DayShelling,
-                    air_state: air_state.as_ref(),
-                },
-            )
-        } else {
-            shelling::simulate_shelling_side(
-                codex,
-                rng,
-                &mut state.enemy,
-                &mut state.friendly,
-                &ShellingParams {
-                    attacker_is_enemy: true,
-                    formation_id: enemy_form,
-                    defender_formation_id: friendly_form,
-                    engagement: eng,
-                    phase: BattlePhase::DayShelling,
-                    air_state: air_state.as_ref(),
-                },
-            )
-        };
-        let has_hougeki = hougeki.is_some();
+    let (friendly_deck, enemy_deck) = (0..state.friendly.len(), 0..state.enemy.len());
+    let hougeki = shelling_round(codex, state, rng, friendly_deck, enemy_deck, first_round);
+    let slot = usize::from(!first_round);
+    if hougeki.is_some() {
+        state.set_hourai_flag(slot, 1);
+    }
+    if first_round {
+        state.set_hougeki1(hougeki);
+    } else {
         state.set_hougeki2(hougeki);
-        if has_hougeki {
-            state.set_hourai_flag(1, 1);
-        }
     }
 }
 
@@ -817,85 +533,96 @@ mod tests {
         assert_eq!(simulation.packet.stage_flag, [1, 1, 1]);
     }
 
+    /// A ship nobody can sink, so that a round is fought to its end.
+    fn armoured(codex: &Codex, ship_type: KcShipType) -> crate::BattleShipInput {
+        let mut ship = sample_ship(codex, first_ship_mst_by_type(codex, ship_type), 99);
+        ship.ship.api_karyoku[0] = 50;
+        ship.ship.api_soukou[0] = 400;
+        ship
+    }
+
     #[test]
-    fn faster_enemy_fleet_shells_first() {
+    fn both_sides_shell_in_turn_with_no_battleship_about() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let fleet = || vec![armoured(&codex, KcShipType::DD); 3];
 
-        // Friendly: slow ship (soku=5)
-        let mut friend = sample_ship(&codex, dd_mst, 99);
-        friend.ship.api_soku = 5;
-        friend.ship.api_karyoku[0] = 50;
-        friend.ship.api_soukou[0] = 200;
-
-        // Enemy: fast ship (soku=10)
-        let mut enemy = sample_ship(&codex, dd_mst, 99);
-        enemy.ship.api_soku = 10;
-        enemy.ship.api_karyoku[0] = 50;
-        enemy.ship.api_soukou[0] = 200;
-
-        let mut rng = SeededRng::new(42);
         let simulation = simulate_day(
             &codex,
-            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
-            &mut rng,
+            BattleContext::head_on(BattleType::Normal, true, fleet(), fleet()),
+            &mut SeededRng::new(42),
         );
 
-        // When enemy is faster, shelling1 should be enemy attacking, shelling2 should be friendly
-        let h1 = simulation.packet.hougeki1.unwrap();
-        assert_eq!(h1.api_at_eflag[0], 1, "enemy should attack first in shelling1");
-        if let Some(h2) = &simulation.packet.hougeki2 {
-            assert_eq!(h2.api_at_eflag[0], 0, "friendly should attack second in shelling2");
+        let round = simulation.packet.hougeki1.unwrap();
+        assert_eq!(round.api_at_eflag, [0, 1, 0, 1, 0, 1], "friendly first, then ship by ship");
+        assert!(simulation.packet.hougeki2.is_none(), "no battleship, no second round");
+    }
+
+    #[test]
+    fn the_first_round_goes_by_range_and_the_second_down_the_line() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut short = armoured(&codex, KcShipType::DD);
+        short.ship.api_leng = 1;
+        short.slot_items.clear();
+        let mut long = armoured(&codex, KcShipType::BB);
+        long.ship.api_leng = 4;
+
+        let simulation = simulate_day(
+            &codex,
+            BattleContext::head_on(
+                BattleType::Normal,
+                true,
+                vec![short, long],
+                vec![armoured(&codex, KcShipType::DD); 2],
+            ),
+            &mut SeededRng::new(42),
+        );
+
+        let friendly_order = |round: &BattleHougeki| -> Vec<i64> {
+            round
+                .api_at_eflag
+                .iter()
+                .zip(&round.api_at_list)
+                .filter(|(eflag, _)| **eflag == 0)
+                .map(|(_, attacker)| *attacker)
+                .collect()
+        };
+        assert_eq!(friendly_order(simulation.packet.hougeki1.as_ref().unwrap()), [1, 0]);
+        assert_eq!(friendly_order(simulation.packet.hougeki2.as_ref().unwrap()), [0, 1]);
+    }
+
+    #[test]
+    fn a_ship_sunk_before_its_turn_does_not_fire() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut friend = armoured(&codex, KcShipType::DD);
+        friend.ship.api_karyoku[0] = 500;
+        let mut enemy = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
+        enemy.ship.api_kaihi[0] = 0;
+        enemy.ship.api_lucky[0] = 0;
+
+        // Whatever the seed lands on, the enemy never fires after it is sunk.
+        for seed in 0..20 {
+            let simulation = simulate_day(
+                &codex,
+                BattleContext::head_on(
+                    BattleType::Normal,
+                    true,
+                    vec![friend.clone()],
+                    vec![enemy.clone()],
+                ),
+                &mut SeededRng::new(seed),
+            );
+            let round = simulation.packet.hougeki1.unwrap();
+            let sunk = round.api_cl_list[0][0] > 0;
+            assert_eq!(
+                round.api_at_eflag.len(),
+                if sunk {
+                    1
+                } else {
+                    2
+                },
+                "seed {seed}"
+            );
         }
-    }
-
-    #[test]
-    fn equal_speed_friendly_shells_first() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-
-        // Both fast
-        let mut friend = sample_ship(&codex, dd_mst, 99);
-        friend.ship.api_soku = 10;
-        friend.ship.api_karyoku[0] = 50;
-        friend.ship.api_soukou[0] = 200;
-
-        let mut enemy = sample_ship(&codex, dd_mst, 99);
-        enemy.ship.api_soku = 10;
-        enemy.ship.api_karyoku[0] = 50;
-        enemy.ship.api_soukou[0] = 200;
-
-        let mut rng = SeededRng::new(42);
-        let simulation = simulate_day(
-            &codex,
-            BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),
-            &mut rng,
-        );
-
-        // Equal speed: friendly goes first (default)
-        let h1 = simulation.packet.hougeki1.unwrap();
-        assert_eq!(h1.api_at_eflag[0], 0, "friendly should attack first on equal speed");
-    }
-
-    #[test]
-    fn fleet_speed_returns_min_alive() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-
-        let mut ship1 = sample_ship(&codex, dd_mst, 99);
-        ship1.ship.api_soku = 10;
-        let mut ship2 = sample_ship(&codex, dd_mst, 99);
-        ship2.ship.api_soku = 5;
-        let mut ship3 = sample_ship(&codex, dd_mst, 99);
-        ship3.ship.api_soku = 15;
-        ship3.ship.api_nowhp = 0; // sunk
-
-        let fleet: Vec<BattleRuntimeShip> = vec![
-            BattleRuntimeShip::from(ship1),
-            BattleRuntimeShip::from(ship2),
-            BattleRuntimeShip::from(ship3),
-        ];
-        assert_eq!(fleet_speed(&fleet), 5, "fleet speed is min of alive ships");
     }
 
     #[test]
@@ -1210,9 +937,8 @@ mod tests {
         friend.ship.api_maxhp = 200;
         friend.ship.api_nowhp = 200;
 
-        // Enemy DD: fast (speed=15), extreme firepower, high raisou
+        // Enemy DD: extreme firepower, high raisou
         let mut enemy = sample_ship(&codex, dd_mst, 99);
-        enemy.ship.api_soku = 15;
         enemy.ship.api_karyoku[0] = 200;
         enemy.ship.api_raisou[0] = 80;
         enemy.ship.api_soukou[0] = 200;
@@ -1420,8 +1146,7 @@ mod combined_tests {
             .map_or(0, |o| o.api_frai_list_items.iter().filter(|targets| targets.is_some()).count())
     }
 
-    /// Deck 2 is shelled as a sub-slice, so `simulate_shelling_side` numbers its
-    /// attackers from 0. By the time the packet leaves the simulation they must
+    /// Deck 2 is shelled as a sub-slice, whose attackers are numbered from 0. By the time the packet leaves the simulation they must
     /// be at 6 or above: the client reads anything below 6 as 第1艦隊 and would
     /// credit every deck 2 hit to the wrong ship.
     #[test]

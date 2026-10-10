@@ -130,8 +130,8 @@ BattlePacket {
                 0,
             ],
             api_at_list: [
-                0,
                 1,
+                0,
             ],
             api_at_type: [
                 0,
@@ -167,7 +167,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    115.1,
+                    115,
                 ],
                 [
                     114,
