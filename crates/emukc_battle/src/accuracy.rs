@@ -6,9 +6,11 @@
 //! `kcships.js`. The arithmetic is kept in whole percent, as the source does
 //! after its `floor(round(x * 1e6) / 1e4)` step.
 //!
+//! Aircraft proficiency follows `Ship.updateProficiencyBonus` in `kcships.js`.
+//!
 //! Left out, each a correction the source applies on top of what is here:
-//! aircraft proficiency, gun fit, 改修, the combined-fleet accuracy terms, 警戒陣
-//! by position, smoke, balloons, PT imps and event bonuses.
+//! gun fit, 改修, the combined-fleet accuracy terms, 警戒陣 by position, smoke,
+//! balloons, PT imps and event bonuses.
 
 use emukc_model::{
     codex::Codex,
@@ -18,6 +20,7 @@ use emukc_model::{
     },
 };
 
+use crate::damage::is_cv_type;
 use crate::random::BattleRng;
 use crate::types::BattleRuntimeShip;
 
@@ -50,11 +53,133 @@ impl HitOutcome {
 
     /// The capped attack power this outcome sends against the armour.
     pub(crate) fn power(self, capped: f64) -> f64 {
+        self.power_with(capped, 1.0)
+    }
+
+    /// The same for an attack flown by aircraft, whose proficiency makes a
+    /// critical worth `critical_damage` times more.
+    pub(crate) fn power_with(self, capped: f64, critical_damage: f64) -> f64 {
         match self {
             Self::Miss => 0.0,
             Self::Hit => capped,
-            Self::Critical => (capped * CRITICAL_MODIFIER).floor(),
+            // The source multiplies the two factors first (`rollHit`), then the power.
+            Self::Critical => (capped * (CRITICAL_MODIFIER * critical_damage)).floor(),
         }
+    }
+}
+
+/// What the proficiency of a ship's aircraft adds to the attacks they fly.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct PlaneProficiency {
+    /// Added to the chance to hit, above the ceiling.
+    pub accuracy: f64,
+    /// Added to the chance of a critical, in percent.
+    pub critical_rate: f64,
+    /// Multiplies what a critical does to the attack power.
+    pub critical_damage: f64,
+    /// The mean experience of the aircraft counted.
+    pub average_exp: f64,
+}
+
+impl PlaneProficiency {
+    /// No aircraft, or none with any proficiency.
+    pub(crate) const NONE: Self = Self {
+        accuracy: 0.0,
+        critical_rate: 0.0,
+        critical_damage: 1.0,
+        average_exp: 0.0,
+    };
+
+    /// A carrier cut-in swaps the summed critical rate for 13 in a hundred at
+    /// full experience (`kcsim.js` 470).
+    // ponytail: the source's further terms for the first slot's aircraft type
+    // and experience are left out; add them with the cut-in's own critical damage.
+    pub(crate) fn for_carrier_cut_in(mut self) -> Self {
+        self.critical_rate = 13.0 * self.average_exp / 120.0;
+        self
+    }
+}
+
+/// The experience behind each proficiency level the client shows.
+const PROFICIENCY_EXP: [f64; 8] = [0.0, 10.0, 25.0, 40.0, 55.0, 70.0, 85.0, 120.0];
+/// What each level is worth towards a critical.
+const PROFICIENCY_CRITICAL: [f64; 8] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0];
+/// How much of its experience a patrol plane or autogyro counts for.
+const PATROL_EXP_SHARE: f64 = 0.825;
+
+/// Sum a ship's aircraft proficiency (`updateProficiencyBonus`). The first
+/// piece of equipment counts for more than the others; a patrol plane or
+/// autogyro that can bomb counts one level lower.
+pub(crate) fn plane_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> PlaneProficiency {
+    let mut out = PlaneProficiency::NONE;
+    let (mut total_exp, mut planes) = (0.0, 0);
+    for (i, item) in ship.slot_items.iter().enumerate() {
+        let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+            continue;
+        };
+        let patrol = match KcSlotItemType3::n(mst.api_type[2]) {
+            Some(
+                KcSlotItemType3::CarrierBasedTorpedoBomber
+                | KcSlotItemType3::CarrierBasedDiveBomber
+                | KcSlotItemType3::SeaBasedBomber
+                | KcSlotItemType3::LargeFlyingBoat
+                | KcSlotItemType3::LandBasedAttacker
+                | KcSlotItemType3::LargeLandBasedAircraft
+                | KcSlotItemType3::JetFighterBomber,
+            ) => false,
+            Some(KcSlotItemType3::AutoGyro | KcSlotItemType3::AntiSubmarinePatrol)
+                if mst.api_baku > 0 =>
+            {
+                true
+            }
+            _ => continue,
+        };
+        planes += 1;
+        let mut level = item.api_alv.unwrap_or(0).clamp(0, 7) as usize;
+        if level == 0 {
+            continue;
+        }
+        let mut exp = PROFICIENCY_EXP[level];
+        if patrol {
+            exp *= PATROL_EXP_SHARE;
+            level -= 1;
+        }
+        let critical = PROFICIENCY_CRITICAL[level];
+        let (rate, divisor) = if i == 0 {
+            (0.8, 100.0)
+        } else {
+            (0.6, 200.0)
+        };
+        out.critical_rate += critical * rate;
+        out.critical_damage += (exp.sqrt() + critical).floor() / divisor;
+        total_exp += exp;
+    }
+    if planes > 0 {
+        let average = total_exp / planes as f64;
+        out.average_exp = average;
+        if average >= 10.0 {
+            out.accuracy = (average * 0.1).sqrt();
+        }
+        out.accuracy += match average {
+            a if a >= 100.0 => 9.0,
+            a if a >= 80.0 => 6.0,
+            a if a >= 70.0 => 4.0,
+            a if a >= 55.0 => 3.0,
+            a if a >= 40.0 => 2.0,
+            a if a >= 25.0 => 1.0,
+            _ => 0.0,
+        };
+    }
+    out
+}
+
+/// The proficiency a ship's shelling takes: a carrier's, whose shelling is
+/// flown by its aircraft, and no one else's.
+pub(crate) fn shelling_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> PlaneProficiency {
+    if is_cv_type(codex, ship) {
+        plane_proficiency(codex, ship)
+    } else {
+        PlaneProficiency::NONE
     }
 }
 
@@ -240,11 +365,20 @@ pub(crate) fn hit_chance(hit: f64, dodge: i64, target_morale: f64) -> i64 {
 
 /// Roll one attack against its chance to hit. A critical is rolled on the same
 /// draw: it happens `floor(sqrt(chance) * critical_factor)` times in a hundred.
-pub(crate) fn roll(rng: &mut impl BattleRng, chance: i64, critical_factor: f64) -> HitOutcome {
-    let critical = ((chance as f64).sqrt() * critical_factor).floor() as i64;
+/// Aircraft proficiency adds to the chance after its ceiling, and to the
+/// critical threshold after the square root.
+pub(crate) fn roll(
+    rng: &mut impl BattleRng,
+    chance: i64,
+    critical_factor: f64,
+    planes: PlaneProficiency,
+) -> HitOutcome {
+    let chance = chance as f64 + planes.accuracy;
+    let critical = (chance.sqrt() * critical_factor + planes.critical_rate).floor() as i64;
+    let chance = chance.floor() as i64;
     let drawn = rng.roll_range(0, 100);
     // The source compares with `<=` on both steps.
-    if critical_factor > 0.0 && drawn <= critical {
+    if (critical_factor > 0.0 || planes.critical_rate > 0.0) && drawn <= critical {
         HitOutcome::Critical
     } else if drawn <= chance {
         HitOutcome::Hit
@@ -264,6 +398,8 @@ pub(crate) struct Aim {
     pub modifier: f64,
     /// Accuracy the phase adds on its own: a fifth of the torpedo's power.
     pub flat: f64,
+    /// Whether this is a carrier's cut-in, which has its own critical rate.
+    pub carrier_cut_in: bool,
 }
 
 impl Aim {
@@ -274,7 +410,13 @@ impl Aim {
             defender_formation,
             modifier: 1.0,
             flat: 0.0,
+            carrier_cut_in: false,
         }
+    }
+
+    pub(crate) fn as_carrier_cut_in(mut self, carrier_cut_in: bool) -> Self {
+        self.carrier_cut_in = carrier_cut_in;
+        self
     }
 
     pub(crate) fn with_modifier(mut self, modifier: f64) -> Self {
@@ -325,19 +467,25 @@ pub(crate) fn roll_attack(
         fuel_shortfall(codex, defender),
     );
     let chance = hit_chance(hit, dodge, target_morale(defender));
-    roll(rng, chance, aim.kind.critical_factor())
+    let planes = match aim.kind {
+        AttackKind::Shelling if aim.carrier_cut_in => {
+            shelling_proficiency(codex, attacker).for_carrier_cut_in()
+        }
+        AttackKind::Shelling => shelling_proficiency(codex, attacker),
+        _ => PlaneProficiency::NONE,
+    };
+    roll(rng, chance, aim.kind.critical_factor(), planes)
 }
 
 /// Roll an aircraft's strike on a ship. Aircraft hit at a fixed rate that no
 /// formation changes, and score no critical without proficiency.
-// ponytail: proficiency is not modelled, so a strike never rolls a critical;
-// add its accuracy and critical terms here when 熟練度 reaches the simulation.
 pub(crate) fn roll_strike(
     codex: &Codex,
     rng: &mut impl BattleRng,
     defender: &BattleRuntimeShip,
     hit_percent: f64,
     evasion_modifier: f64,
+    planes: PlaneProficiency,
 ) -> HitOutcome {
     let dodge = evasion_term(
         defender.ship.api_kaihi[0],
@@ -346,12 +494,12 @@ pub(crate) fn roll_strike(
         fuel_shortfall(codex, defender),
     );
     let dodge = (dodge as f64 * evasion_modifier).floor() as i64;
-    roll(rng, hit_chance(hit_percent, dodge, target_morale(defender)), 0.0)
+    roll(rng, hit_chance(hit_percent, dodge, target_morale(defender)), 0.0, planes)
 }
 
 /// Roll a strike on something that cannot dodge: the air base.
 pub(crate) fn roll_strike_on_base(rng: &mut impl BattleRng, hit_percent: f64) -> HitOutcome {
-    roll(rng, hit_chance(hit_percent, 0, 1.0), 0.0)
+    roll(rng, hit_chance(hit_percent, 0, 1.0), 0.0, PlaneProficiency::NONE)
 }
 
 #[cfg(test)]
@@ -397,19 +545,86 @@ mod tests {
     #[test]
     fn one_draw_decides_miss_hit_and_critical() {
         // chance 64 with factor 1.5: critical up to 12, hit up to 64.
-        assert_eq!(roll(&mut Fixed(12), 64, 1.5), HitOutcome::Critical);
-        assert_eq!(roll(&mut Fixed(13), 64, 1.5), HitOutcome::Hit);
-        assert_eq!(roll(&mut Fixed(64), 64, 1.5), HitOutcome::Hit);
-        assert_eq!(roll(&mut Fixed(65), 64, 1.5), HitOutcome::Miss);
+        assert_eq!(roll(&mut Fixed(12), 64, 1.5, PlaneProficiency::NONE), HitOutcome::Critical);
+        assert_eq!(roll(&mut Fixed(13), 64, 1.5, PlaneProficiency::NONE), HitOutcome::Hit);
+        assert_eq!(roll(&mut Fixed(64), 64, 1.5, PlaneProficiency::NONE), HitOutcome::Hit);
+        assert_eq!(roll(&mut Fixed(65), 64, 1.5, PlaneProficiency::NONE), HitOutcome::Miss);
         // Without a critical factor even a zero is a plain hit.
-        assert_eq!(roll(&mut Fixed(0), 64, 0.0), HitOutcome::Hit);
+        assert_eq!(roll(&mut Fixed(0), 64, 0.0, PlaneProficiency::NONE), HitOutcome::Hit);
+    }
+
+    #[test]
+    fn proficiency_lifts_the_chance_and_the_critical_on_the_same_draw() {
+        let planes = PlaneProficiency {
+            accuracy: 12.5,
+            critical_rate: 8.0,
+            critical_damage: 1.2,
+            average_exp: 120.0,
+        };
+        // An aircraft's strike has no factor: the critical is the bonus alone.
+        assert_eq!(roll(&mut Fixed(8), 95, 0.0, planes), HitOutcome::Critical);
+        assert_eq!(roll(&mut Fixed(9), 95, 0.0, planes), HitOutcome::Hit);
+        // 96 + 12.5 passes the ceiling, so nothing the die shows is a miss.
+        assert_eq!(roll(&mut Fixed(100), 96, 0.0, planes), HitOutcome::Hit);
+        // A carrier's shelling: floor(sqrt(76.5) x 1.3 + 8) = 19.
+        assert_eq!(roll(&mut Fixed(19), 64, 1.3, planes), HitOutcome::Critical);
+        assert_eq!(roll(&mut Fixed(20), 64, 1.3, planes), HitOutcome::Hit);
+        assert_eq!(HitOutcome::Critical.power_with(101.0, 1.2), 181.0);
+        // 1.5 x 1.2 falls a hair short of 1.8, as it does in the source.
+        assert_eq!(HitOutcome::Critical.power_with(100.0, 1.2), 179.0);
+        assert_eq!(planes.for_carrier_cut_in().critical_rate, 13.0);
+        assert_eq!(HitOutcome::Hit.power_with(101.0, 1.2), 101.0);
+    }
+
+    #[test]
+    fn a_fully_skilled_first_slot_is_worth_the_sources_figures() {
+        use crate::test_utils::{
+            first_ship_mst_by_type, first_slotitem_mst_by_type, sample_ship, slotitem_with_mst_id,
+        };
+        use emukc_model::kc2::KcShipType;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        let carrier = |stype, levels: &[Option<i64>]| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, stype), 50);
+            ship.slot_items = levels
+                .iter()
+                .map(|alv| {
+                    let mut item = slotitem_with_mst_id(bomber);
+                    item.api_alv = *alv;
+                    item
+                })
+                .collect();
+            BattleRuntimeShip::from(ship)
+        };
+
+        let skilled = plane_proficiency(&codex, &carrier(KcShipType::CVL, &[Some(7)]));
+        assert_eq!(skilled.accuracy, 12.0_f64.sqrt() + 9.0);
+        assert_eq!(skilled.critical_rate, 8.0);
+        assert_eq!(skilled.critical_damage, 1.2);
+
+        // A second slot counts for less, and a green one only drags the average down.
+        let mixed = plane_proficiency(&codex, &carrier(KcShipType::CVL, &[None, Some(7)]));
+        assert_eq!(mixed.accuracy, 6.0_f64.sqrt() + 3.0);
+        assert_eq!(mixed.critical_rate, 6.0);
+        assert_eq!(mixed.critical_damage, 1.1);
+
+        let green = carrier(KcShipType::CVL, &[None]);
+        assert_eq!(plane_proficiency(&codex, &green), PlaneProficiency::NONE);
+
+        // Only a carrier's shelling is flown by its aircraft.
+        assert_eq!(shelling_proficiency(&codex, &carrier(KcShipType::CVL, &[Some(7)])), skilled);
+        assert_eq!(
+            shelling_proficiency(&codex, &carrier(KcShipType::BBV, &[Some(7)])),
+            PlaneProficiency::NONE
+        );
     }
 
     #[test]
     fn a_roll_draws_exactly_once() {
         let mut one = SeededRng::new(7);
         let mut two = SeededRng::new(7);
-        roll(&mut one, 50, 1.3);
+        roll(&mut one, 50, 1.3, PlaneProficiency::NONE);
         two.roll_range(0, 100);
         assert_eq!(one.roll_range(0, 1000), two.roll_range(0, 1000));
     }

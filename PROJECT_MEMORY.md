@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-07 · branch `feat/map-gauge-phases`
+Last updated: 2026-10-10 · branch `feat/aircraft-proficiency`
 
 ## Verified Facts
 
@@ -193,15 +193,16 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
+| [2026-10-10] 根目录 `cargo test` 只跑根包；全量要 `--workspace`。 | session 2026-10-10 |
 
 ## Last Session
 
-- [2026-10-10] PR #32–#34 已合并（不开无敌的无头场景；各阶段双方逐舰交替、雷击同时结算）。分支 `fix/sinking-protection-and-enemy-air-state`
-  （计划 `2026-10-10-003`）：击沉保护按当前血量、敌方用自己的制空状态；fmt、clippy 17、1273 测试全过，无头检查通过；未推送。
+- [2026-10-10] PR #36（计划 `2026-10-10-004`）：熟练度进开幕航空战与空母昼战炮击；
+  `cargo test --workspace` 1291 全过，无头 `gunnery_cutin` 通过。
 
 ## Next Session
 
-- [2026-10-09] 验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
+- [2026-10-10] 下一项：熟练度成长（wikiwiki 只有触发条件，增量待用户定）。验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
   带种子的战斗测试因落空失败时换种子、不放宽断言。命中判定没做的补正见 `battle-hit-and-critical-rolls.md`；

@@ -15,7 +15,7 @@ use emukc_model::{
     kc2::{KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
-use crate::accuracy::roll_strike;
+use crate::accuracy::{PlaneProficiency, roll_strike};
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_airstrike_attack_type, target_class};
@@ -306,6 +306,7 @@ pub(crate) fn simulate_air_base_attack(
             } else {
                 0.86
             },
+            PlaneProficiency::NONE,
         );
         let power = outcome.power(strike_power(mst, squadron.count, on_land));
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);

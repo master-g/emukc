@@ -29,7 +29,7 @@ writes `outcome.cl()` (0, 1, 2) where the client expects it.
 | Opening torpedo | `roll_attack` `Torpedo` | `api_fcl_list_items` / `api_ecl_list_items` |
 | Closing torpedo | `roll_attack` `Torpedo` | `api_fcl` / `api_ecl` |
 | Night battle | `roll_attack` `Night` | `api_cl_list` |
-| Carrier air phase | `roll_strike` at 95 | nothing: see below |
+| Carrier air phase | `roll_strike` at 95 | `api_fcl_flag` / `api_ecl_flag`, set by a critical |
 | Air corps attack | `roll_strike` at `90 + 7 x 命中`, evasion x0.86 (x0.68 on a combined fleet) | nothing |
 | Raid on the air base | `roll_strike_on_base` at 95 | nothing |
 
@@ -47,13 +47,39 @@ Transcribed from `KC3Kai/kancolle-replay` `kcsim.js` (`hitRate`, `accuracyAndCri
 - Chance: `max(attacker - target, 10) x target morale`, floored, at most 96.
 - One draw in 0..=99: at or under `floor(sqrt(chance) x factor)` is a critical, at or under the
   chance is a hit. The factor is 1.3 for shelling and ASW, 1.5 for torpedo and night, 0 for
-  aircraft.
+  aircraft, whose criticals come from proficiency alone.
 - A critical multiplies the attack power by 1.5 and floors it **after the cap and before the
   armour**; a miss sends 0 and deals 0. Scratch damage still belongs to a hit that cannot
   pierce.
 
 A formation that is countered (複縦 against 単横, 梯形 against 単縦, 単横 against 梯形) gives
 shelling and ASW no accuracy multiplier; torpedo and night attacks always take theirs.
+
+## Aircraft proficiency
+
+`plane_proficiency` sums a ship's 熟練度 the way `kcships.js` `updateProficiencyBonus` does and
+hands the roll three numbers. The level the server stores (`api_alv`, 0-7) stands for the
+experience `0, 10, 25, 40, 55, 70, 85, 120`, and is worth `0, 1, 2, 3, 4, 5, 7, 10` towards a
+critical.
+
+- Accuracy: `sqrt(average experience / 10)` plus `1, 2, 3, 4, 6, 9` from an average of 25, 40,
+  55, 70, 80, 100. It is added **after** the ceiling of 96, so skilled aircraft can pass it.
+- Critical rate: the level's worth times 0.8 for the first piece of equipment on the ship, 0.6
+  for any other, added to the threshold after the square root. An aerial strike has factor 0,
+  so this is its whole critical rate: 8 in a hundred for one fully skilled first slot.
+- Critical damage: `1 + floor(sqrt(experience) + worth) / 100` for the first piece, `/ 200` for
+  the others. It multiplies the 1.5 first and the power second, as the source does: 1.2 for one
+  fully skilled first slot, which makes 179 of a power of 100, not 180.
+
+It counts torpedo, dive and seaplane bombers, jet fighter-bombers, flying boats and land
+attackers, plus a patrol plane or autogyro that can bomb, one level lower. The sum is taken
+per ship, not per slot, and goes to the carrier air phase (which then sets the target's
+`api_fcl_flag` / `api_ecl_flag`) and to the day shelling of a CV, CVL or CVB. A ship without
+skilled aircraft rolls exactly as before, on the same single draw.
+
+A carrier's cut-in does not take the summed critical rate: the source cancels it and gives
+`13 x average experience / 120` instead (`Aim::as_carrier_cut_in`). Its further terms for the
+first slot's aircraft type and experience, and the cut-in's own critical damage, are not here.
 
 ## Aircraft: a miss has no marker
 
@@ -73,8 +99,10 @@ So the flags are set whenever a strike is flown at a target, whether or not it l
 
 ## Not modelled
 
-Each is a correction the source applies on top: aircraft proficiency (so no aerial strike is
-ever a critical), gun fit, 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
+Each is a correction the source applies on top: proficiency for the air corps, the night air
+attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; proficiency in
+fighter power; its growth after a battle and its loss with a wiped slot (nothing on the server
+changes `aircraft_lv` after the equipment is handed out); gun fit, 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
 A night attack on a submarine still always lands for scratch damage. Abyssal ships fight at

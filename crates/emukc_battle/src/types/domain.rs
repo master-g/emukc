@@ -208,6 +208,8 @@ pub(crate) struct AirstrikeOutput<'a> {
     pub rai_targets: &'a mut [i64],
     pub bak_flags: &'a mut [i64],
     pub rai_flags: &'a mut [i64],
+    /// 1 for each target a critical landed on.
+    pub cl_flags: &'a mut [i64],
 }
 
 /// Parameters for night battle shelling simulation.
