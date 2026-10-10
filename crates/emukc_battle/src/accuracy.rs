@@ -62,7 +62,8 @@ impl HitOutcome {
         match self {
             Self::Miss => 0.0,
             Self::Hit => capped,
-            Self::Critical => (capped * CRITICAL_MODIFIER * critical_damage).floor(),
+            // The source multiplies the two factors first (`rollHit`), then the power.
+            Self::Critical => (capped * (CRITICAL_MODIFIER * critical_damage)).floor(),
         }
     }
 }
@@ -76,6 +77,8 @@ pub(crate) struct PlaneProficiency {
     pub critical_rate: f64,
     /// Multiplies what a critical does to the attack power.
     pub critical_damage: f64,
+    /// The mean experience of the aircraft counted.
+    pub average_exp: f64,
 }
 
 impl PlaneProficiency {
@@ -84,13 +87,25 @@ impl PlaneProficiency {
         accuracy: 0.0,
         critical_rate: 0.0,
         critical_damage: 1.0,
+        average_exp: 0.0,
     };
+
+    /// A carrier cut-in swaps the summed critical rate for 13 in a hundred at
+    /// full experience (`kcsim.js` 470).
+    // ponytail: the source's further terms for the first slot's aircraft type
+    // and experience are left out; add them with the cut-in's own critical damage.
+    pub(crate) fn for_carrier_cut_in(mut self) -> Self {
+        self.critical_rate = 13.0 * self.average_exp / 120.0;
+        self
+    }
 }
 
 /// The experience behind each proficiency level the client shows.
 const PROFICIENCY_EXP: [f64; 8] = [0.0, 10.0, 25.0, 40.0, 55.0, 70.0, 85.0, 120.0];
 /// What each level is worth towards a critical.
 const PROFICIENCY_CRITICAL: [f64; 8] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0];
+/// How much of its experience a patrol plane or autogyro counts for.
+const PATROL_EXP_SHARE: f64 = 0.825;
 
 /// Sum a ship's aircraft proficiency (`updateProficiencyBonus`). The first
 /// piece of equipment counts for more than the others; a patrol plane or
@@ -126,21 +141,22 @@ pub(crate) fn plane_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> Plan
         }
         let mut exp = PROFICIENCY_EXP[level];
         if patrol {
-            exp *= 0.825;
+            exp *= PATROL_EXP_SHARE;
             level -= 1;
         }
         let critical = PROFICIENCY_CRITICAL[level];
-        let (rate, share) = if i == 0 {
+        let (rate, divisor) = if i == 0 {
             (0.8, 100.0)
         } else {
             (0.6, 200.0)
         };
         out.critical_rate += critical * rate;
-        out.critical_damage += (exp.sqrt() + critical).floor() / share;
+        out.critical_damage += (exp.sqrt() + critical).floor() / divisor;
         total_exp += exp;
     }
     if planes > 0 {
         let average = total_exp / planes as f64;
+        out.average_exp = average;
         if average >= 10.0 {
             out.accuracy = (average * 0.1).sqrt();
         }
@@ -382,6 +398,8 @@ pub(crate) struct Aim {
     pub modifier: f64,
     /// Accuracy the phase adds on its own: a fifth of the torpedo's power.
     pub flat: f64,
+    /// Whether this is a carrier's cut-in, which has its own critical rate.
+    pub carrier_cut_in: bool,
 }
 
 impl Aim {
@@ -392,7 +410,13 @@ impl Aim {
             defender_formation,
             modifier: 1.0,
             flat: 0.0,
+            carrier_cut_in: false,
         }
+    }
+
+    pub(crate) fn as_carrier_cut_in(mut self, carrier_cut_in: bool) -> Self {
+        self.carrier_cut_in = carrier_cut_in;
+        self
     }
 
     pub(crate) fn with_modifier(mut self, modifier: f64) -> Self {
@@ -444,6 +468,9 @@ pub(crate) fn roll_attack(
     );
     let chance = hit_chance(hit, dodge, target_morale(defender));
     let planes = match aim.kind {
+        AttackKind::Shelling if aim.carrier_cut_in => {
+            shelling_proficiency(codex, attacker).for_carrier_cut_in()
+        }
         AttackKind::Shelling => shelling_proficiency(codex, attacker),
         _ => PlaneProficiency::NONE,
     };
@@ -532,6 +559,7 @@ mod tests {
             accuracy: 12.5,
             critical_rate: 8.0,
             critical_damage: 1.2,
+            average_exp: 120.0,
         };
         // An aircraft's strike has no factor: the critical is the bonus alone.
         assert_eq!(roll(&mut Fixed(8), 95, 0.0, planes), HitOutcome::Critical);
@@ -542,6 +570,9 @@ mod tests {
         assert_eq!(roll(&mut Fixed(19), 64, 1.3, planes), HitOutcome::Critical);
         assert_eq!(roll(&mut Fixed(20), 64, 1.3, planes), HitOutcome::Hit);
         assert_eq!(HitOutcome::Critical.power_with(101.0, 1.2), 181.0);
+        // 1.5 x 1.2 falls a hair short of 1.8, as it does in the source.
+        assert_eq!(HitOutcome::Critical.power_with(100.0, 1.2), 179.0);
+        assert_eq!(planes.for_carrier_cut_in().critical_rate, 13.0);
         assert_eq!(HitOutcome::Hit.power_with(101.0, 1.2), 101.0);
     }
 

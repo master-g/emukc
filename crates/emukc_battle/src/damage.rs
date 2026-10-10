@@ -650,6 +650,38 @@ mod tests {
     /// R2: 警戒航行序列 reach the damage formula. Before the tables were wired
     /// up, `formation_modifier(11..=14)` fell through to `1.0` and a combined
     /// fleet's formation had no effect on damage at all.
+    /// A carrier's shelling is flown by its aircraft, so their proficiency
+    /// makes its critical land harder; a plain hit is left alone.
+    #[test]
+    fn a_skilled_carrier_shells_a_harder_critical() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let shell = |alv: Option<i64>, outcome: HitOutcome| {
+            let mut carrier =
+                sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 50);
+            let mut item = slotitem_with_mst_id(bomber);
+            item.api_alv = alv;
+            carrier.slot_items = vec![item];
+            carrier.ship.api_onslot = [18, 0, 0, 0, 0];
+            let mut target =
+                sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+            target.ship.api_nowhp = 9999;
+            target.ship.api_maxhp = 9999;
+            calculate_shelling_damage(
+                &codex,
+                &mut crate::random::SeededRng::new(3),
+                &BattleRuntimeShip::from(carrier),
+                &BattleRuntimeShip::from(target),
+                1,
+                EngagementType::SameCourse,
+                None,
+                outcome,
+            )
+        };
+        assert!(shell(Some(7), HitOutcome::Critical) > shell(None, HitOutcome::Critical));
+        assert_eq!(shell(Some(7), HitOutcome::Hit), shell(None, HitOutcome::Hit));
+    }
+
     #[test]
     fn day_formation_modifier_uses_the_combined_table_for_keisen_formations() {
         use CombinedAttackClass::{Asw, Shelling, Torpedo};

@@ -29,7 +29,7 @@ writes `outcome.cl()` (0, 1, 2) where the client expects it.
 | Opening torpedo | `roll_attack` `Torpedo` | `api_fcl_list_items` / `api_ecl_list_items` |
 | Closing torpedo | `roll_attack` `Torpedo` | `api_fcl` / `api_ecl` |
 | Night battle | `roll_attack` `Night` | `api_cl_list` |
-| Carrier air phase | `roll_strike` at 95 | `api_fcl_flag` / `api_ecl_flag`, criticals only: see below |
+| Carrier air phase | `roll_strike` at 95 | `api_fcl_flag` / `api_ecl_flag`, set by a critical |
 | Air corps attack | `roll_strike` at `90 + 7 x 命中`, evasion x0.86 (x0.68 on a combined fleet) | nothing |
 | Raid on the air base | `roll_strike_on_base` at 95 | nothing |
 
@@ -68,13 +68,18 @@ critical.
   for any other, added to the threshold after the square root. An aerial strike has factor 0,
   so this is its whole critical rate: 8 in a hundred for one fully skilled first slot.
 - Critical damage: `1 + floor(sqrt(experience) + worth) / 100` for the first piece, `/ 200` for
-  the others, multiplied into the 1.5 before the floor. 1.2 for one fully skilled first slot.
+  the others. It multiplies the 1.5 first and the power second, as the source does: 1.2 for one
+  fully skilled first slot, which makes 179 of a power of 100, not 180.
 
 It counts torpedo, dive and seaplane bombers, jet fighter-bombers, flying boats and land
 attackers, plus a patrol plane or autogyro that can bomb, one level lower. The sum is taken
 per ship, not per slot, and goes to the carrier air phase (which then sets the target's
 `api_fcl_flag` / `api_ecl_flag`) and to the day shelling of a CV, CVL or CVB. A ship without
 skilled aircraft rolls exactly as before, on the same single draw.
+
+A carrier's cut-in does not take the summed critical rate: the source cancels it and gives
+`13 x average experience / 120` instead (`Aim::as_carrier_cut_in`). Its further terms for the
+first slot's aircraft type and experience, and the cut-in's own critical damage, are not here.
 
 ## Aircraft: a miss has no marker
 
@@ -95,7 +100,7 @@ So the flags are set whenever a strike is flown at a target, whether or not it l
 ## Not modelled
 
 Each is a correction the source applies on top: proficiency for the air corps, the night air
-attack, ASW flown by aircraft and the carrier cut-in's own critical term; proficiency in
+attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; proficiency in
 fighter power; its growth after a battle and its loss with a wiped slot (nothing on the server
 changes `aircraft_lv` after the equipment is handed out); gun fit, 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,

@@ -83,9 +83,17 @@ execution: code
 - 测试：满熟练度首槽的三个值、第二槽与零熟练度的折算、抽签的两个阈值；200 个种子里无熟练度的
   艦攻不出暴击、满熟练度出暴击并置 `api_ecl_flag`，且两者之后的随机流相同。
 
+## 审查后的修正（2026-10-10）
+
+- 暴击伤害的乘法顺序改成与来源一致：先 `1.5 × 加成`，再乘威力后取整（威力 100、加成 1.2 得 179）。
+- 空母切入原先会吃到汇总的暴击率，而来源把它抵掉、换成 `13 × 平均经验 / 120`。现在切入走这一项；
+  来源按首槽机种与经验再加的项、切入专用的暴击伤害仍然不做。
+- 补了 U3 缺的测试：带熟练度的空母经 `calculate_shelling_damage` 的暴击更重，普通命中不变。
+- 来源的 `CVshelltype` 还包括带艦攻/艦爆的補給艦；我方只认 CV / CVL / CVB，未改。
+
 ## Verification
 
-- `cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`、`cargo test`。
+- `cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`、`cargo test --workspace`。
 - 无头检查 `gunnery_cutin` 通过。这个场景的赤城只带零熟练度的艦戦，所以它只说明无熟练度时没有回归；
   客户端对 `cl_flag` 的读法来自已解码的 `getHitType`，暴击演出没有在真实客户端里观察过
   （现有出击场景都没有带熟练度的攻击机）。
