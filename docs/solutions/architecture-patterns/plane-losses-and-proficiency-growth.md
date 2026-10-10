@@ -74,6 +74,16 @@ experience rather than the real one. A night-start battle counts as a search lik
 which the sources do not settle. Practice settles no proficiency; the aircraft it costs were
 already kept, and resupplying them now charges for every slot.
 
+## Known deviation: losses come off the largest slot
+
+`emukc_battle` works out how many aircraft a side loses in a phase and takes them one at a
+time from whichever slot has the most left (`kouku.rs` `apply_plane_losses`). The game rolls
+each slot's losses on its own, in proportion, so there a small slot is the one that gets wiped.
+Here a small slot almost never loses anything: Akagi's 18/18/20/10 came out of one battle at
+15/15/16/10. That was invisible while aircraft came back after every battle. Now it decides
+which slots cost bauxite, which lose proficiency, and it makes "wiped, back to 0" rare where
+the game makes it common. Fixing it belongs to the battle simulation and moves its baselines.
+
 ## Slots with gaps
 
 The battle walks `slot_items`, which skips empty slots, and pairs it with `api_onslot` by
