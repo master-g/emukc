@@ -28,6 +28,7 @@
 - [ ] fix naming confusion in `net/assets/mod.rs`
 - [ ] remove all profile data on account deletion (`user/account.rs`) — only the `profile` row goes; child tables keep orphans
 - [ ] practice system: implement opponent fleet generation (`game/practice.rs`) — five template rivals with one level-180 ship each for now
+- [ ] single-fleet day shelling gives each round to one side (`execute_shelling1` / `execute_shelling2` in `emukc_battle/src/simulation/mod.rs`): the side that fires second never shells unless a battleship opens a second round. The combined-fleet paths already run both sides in every round
 - [ ] `calculate_single_slot_airstrike_damage` (`emukc_battle/src/damage.rs`) is dead code kept for an airstrike phase that never used it
 - [x] migrate off deprecated `axum_extra::extract::Host` in `net/router/game.rs`
 

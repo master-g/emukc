@@ -30,7 +30,8 @@ name, then for the getter that wraps it.
 `make headless-check SCENARIO=<preset>` runs `tests/headless/run.py`:
 
 1. A fresh workspace under `.data/temp/headless/<preset>/` gets a copy of the codex with
-   `god_mode` and `one_hit_kill` on, and a config on port 27777 without TLS. The user's
+   `god_mode` and `one_hit_kill` on (off for the scenarios named in `FAIR`), and a config on
+   port 27777 without TLS. The user's
    `.data/emukc.db` is never opened.
 2. `new-session --scenario <preset> --no-open --no-start` creates the profile, applies the
    preset from `emukc_gameplay::scenario::PRESETS` and marks the tutorial done.
@@ -101,6 +102,12 @@ screen, pass steps on the command line and read the screenshots:
   `airunit_name`: the list kept one equipment per plane picture (57), but the client loads
   them by the equipment's own id. The list now names every equipment the client's
   deployment list offers (263); the origin had all 618 added files.
+
+- `gunnery_cutin` is fought without the cheats: one battle of 2-1, the night battle if the day
+  leaves it open, and home. Its outcome differs from run to run, so the check is a relation
+  rather than a value: the fleet's hit points after every attack in the day packet are what
+  the night packet starts from, and what is left after that is what `api_port/port` answers.
+  夜戦突入 sits where 撤退 does on the next choice (770, 365), so one spot serves both.
 
 ## Limits
 

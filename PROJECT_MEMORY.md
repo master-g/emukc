@@ -196,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-09] PR #28–#30（航空战暴击标记、任务语音、七个阶段的命中与暴击）已合并。分支 `feat/headless-virtual-time`：
-  无头检查改走 Chrome 虚拟时间，五个场景 `make headless-check` 全过，合计约 160 秒（原先单个 6-5 就要十分钟）；未推送。
+- [2026-10-10] PR #28–#31 已合并（命中与暴击、无头检查走虚拟时间）。分支 `test/headless-fair-battle`：新增不开无敌的无头场景
+  `gunnery_cutin`，跑三次全过；发现单舰队昼战每轮炮击只有一方出手，已记入 `TODO.md`，未修。
 
 ## Next Session
 

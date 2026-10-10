@@ -142,9 +142,50 @@ def check_air_raid_6_5(work: Path) -> list[str]:
     return problems
 
 
+def after_battle(battle: dict) -> list[int]:
+    """The friendly fleet's hit points once everything in a battle packet has been played."""
+    left = list(battle["api_f_nowhps"])
+    for name in ("api_opening_taisen", "api_hougeki1", "api_hougeki2", "api_hougeki3", "api_hougeki"):
+        shelling = battle.get(name) or {}
+        for by_enemy, targets, damages in zip(shelling.get("api_at_eflag") or [], shelling.get("api_df_list") or [], shelling.get("api_damage") or []):
+            for target, damage in zip(targets, damages):
+                if by_enemy and target >= 0:
+                    left[target] -= int(damage)
+    taken = [(battle.get(name) or {}).get("api_fdam") for name in ("api_opening_atack", "api_raigeki")]
+    taken.append(((battle.get("api_kouku") or {}).get("api_stage3") or {}).get("api_fdam"))
+    for damages in filter(None, taken):
+        left = [hp - int(damage) for hp, damage in zip(left, damages)]
+    return [max(hp, 0) for hp in left]
+
+
+def check_gunnery_cutin(work: Path) -> list[str]:
+    problems = []
+    day = responses(work, "api_req_sortie/battle")[0]
+    left = after_battle(day)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if bool(day["api_midnight_flag"]) != bool(nights):
+        problems.append(f"the day battle said api_midnight_flag {day['api_midnight_flag']} and {len(nights)} night battles were fought")
+    if nights:
+        if nights[0]["api_f_nowhps"] != left:
+            problems.append(f"the day battle left the fleet at {left} and the night began at {nights[0]['api_f_nowhps']}")
+        left = after_battle(nights[0])
+    home = {ship["api_id"]: ship["api_nowhp"] for ship in responses(work, "api_port/port")[-1]["api_ship"]}
+    if [home[ship] for ship in range(1, 7)] != left:
+        problems.append(f"the battles left the fleet at {left} and it came home at {home}")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
+    # 南西諸島海域, 2-1, without the cheats: one battle, into the night if it is offered (夜戦突入
+    # sits where 撤退 does on the next choice), and home. What the packets say the fleet was
+    # left with has to be what it comes home with.
+    "gunnery_cutin": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        "u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_gunnery_cutin,
+    ),
     # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
     "transport_5_6": (
         f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
@@ -193,6 +234,9 @@ SCENARIOS = {
     ),
 }
 
+# Fought as the server would fight them for a player.
+FAIR = {"gunnery_cutin"}
+
 
 def resource_report(work: Path, requested: set[str]) -> dict:
     """What the client asked other sites for, what it asked this one for that the cache list
@@ -216,8 +260,9 @@ def workspace(scenario: str) -> tuple[Path, Path]:
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(ROOT / ".data/codex", work / "codex")
     game = work / "codex/game_config.json"
-    # Short battles that are always won.
-    game.write_text(json.dumps(json.loads(game.read_text()) | {"god_mode": True, "one_hit_kill": True}))
+    # Short battles that are always won, except where the battle itself is what is looked at.
+    cheats = scenario not in FAIR
+    game.write_text(json.dumps(json.loads(game.read_text()) | {"god_mode": cheats, "one_hit_kill": cheats}))
 
     replaced = ("workspace_root", "cache_root", "mods_root", "bind", "tls_cert", "tls_key")
     kept = [
