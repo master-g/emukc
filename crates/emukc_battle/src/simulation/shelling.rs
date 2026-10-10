@@ -67,9 +67,11 @@ pub(crate) fn simulate_shelling_round(
     let enemy_los = fleet_los(&enemy[round.enemy_deck.clone()]);
     // The orders are fixed when the round begins; a ship sunk before its turn
     // comes loses it.
+    let can_shell = |ship: &BattleRuntimeShip| can_shell_day_ship(codex, ship);
     let friendly_order =
-        shelling_order(codex, rng, &friendly[round.friendly_deck.clone()], round.by_range);
-    let enemy_order = shelling_order(codex, rng, &enemy[round.enemy_deck.clone()], round.by_range);
+        firing_order(codex, rng, &friendly[round.friendly_deck.clone()], round.by_range, can_shell);
+    let enemy_order =
+        firing_order(codex, rng, &enemy[round.enemy_deck.clone()], round.by_range, can_shell);
 
     let mut hougeki = BattleHougeki::default();
     let mut friendly_skip = [false; MAX_FLEET_SIZE];
@@ -116,16 +118,16 @@ fn fleet_los(ships: &[BattleRuntimeShip]) -> i64 {
     ships.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum()
 }
 
-/// The ships of one side that can shell, in the order they will: longest range
-/// first with equal ranges in random order, or simply down the line.
-fn shelling_order(
+/// The ships of one side that `can_fire`, in the order they will: longest
+/// range first with equal ranges in random order, or simply down the line.
+pub(crate) fn firing_order(
     codex: &Codex,
     rng: &mut impl BattleRng,
     ships: &[BattleRuntimeShip],
     by_range: bool,
+    can_fire: impl Fn(&BattleRuntimeShip) -> bool,
 ) -> Vec<usize> {
-    let mut order: Vec<usize> =
-        (0..ships.len()).filter(|&idx| can_shell_day_ship(codex, &ships[idx])).collect();
+    let mut order: Vec<usize> = (0..ships.len()).filter(|&idx| can_fire(&ships[idx])).collect();
     if by_range {
         for last in (1..order.len()).rev() {
             order.swap(last, rng.roll_range(0, last as i64 + 1) as usize);

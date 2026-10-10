@@ -196,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] 分支 `fix/day-shelling-order`（计划 `2026-10-10-001`）：昼战每轮炮击双方逐舰交替、首轮按射程、我方先手；
-  fmt、clippy 17、1268 测试全过，无头检查含不开无敌的两个场景通过。
+- [2026-10-10] 分支 `fix/phase-order-rest`（计划 `2026-10-10-002`，接在 `-001` 之后）：先制对潜、夜战改成双方逐舰交替，雷击同时结算，
+  特殊攻击每场昼战一次且只占旗舰那一手；fmt、clippy 17、1271 测试全过，无头检查含夜战通过。
 
 ## Next Session
 

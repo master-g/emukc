@@ -32,12 +32,12 @@ NightBattlePacket {
         BattleNightHougeki {
             api_at_eflag: [
                 0,
-                0,
                 1,
+                0,
             ],
             api_at_list: [
                 0,
-                1,
+                0,
                 1,
             ],
             api_n_mother_list: [
@@ -70,18 +70,18 @@ NightBattlePacket {
                 ],
                 [
                     Text(
-                        "7",
-                    ),
-                    Text(
-                        "11",
-                    ),
-                ],
-                [
-                    Text(
                         "105",
                     ),
                     Text(
                         "8",
+                    ),
+                ],
+                [
+                    Text(
+                        "7",
+                    ),
+                    Text(
+                        "11",
                     ),
                 ],
             ],
@@ -110,12 +110,12 @@ NightBattlePacket {
                     0,
                 ],
                 [
-                    431,
+                    2,
                     0,
                 ],
                 [
-                    1,
-                    7,
+                    431,
+                    0,
                 ],
             ],
         },

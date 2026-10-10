@@ -2,7 +2,7 @@
 title: "Opening ASW, Night Battle and Torpedoes: Who Acts When - Plan"
 type: fix
 date: 2026-10-10
-status: planned
+status: implemented
 execution: code
 ---
 
@@ -69,6 +69,17 @@ execution: code
 
 重新冻结文本基线与 `battle_golden.rs`，换种子不放宽断言；`day-shelling-order.md` 改成覆盖所有阶段的顺序；
 回写 `PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-10）
+
+- U1–U3 按计划做完。`shelling_order` 改名 `firing_order` 并接受出手条件；夜战两份循环合成 `night_turn`；
+  雷击两处各加一份开始时的敌舰快照。
+- 基线：18 个文本基线重新冻结（夜战全部、带雷击或先制对潜的昼战）；`battle_golden.rs` 没变
+  （那场战斗没有雷击和夜战）。没有需要换种子的测试。
+- 新增三个测试：对潜交替、夜战交替、被击沉的敌舰仍发射鱼雷。
+- 无头检查：`fresh_1_1`、`transport_5_6` 通过；不开无敌的 `gunnery_cutin` 三次通过但都在昼战结束；
+  另用六艘驱逐（`leveled_for_mid_boss`）不开无敌打 2-1 三次，三次都进了夜战，全部通过，
+  夜战包的 `api_at_eflag` 是交替的，回港血量与包一致。
 
 ## Stop Conditions
 

@@ -28,6 +28,11 @@ pub(crate) fn simulate_opening_torpedo(
     let mut payload = BattleOpeningAttack::blank(fleet_size);
     let mut happened = false;
 
+    // Every ship that could fire when the phase began fires: what the enemy
+    // sends is settled from the enemy as it was, not as the friendly torpedoes
+    // resolved just before leave it.
+    let enemy_at_start = enemy.to_vec();
+
     for (idx, ship) in friendly.iter_mut().enumerate() {
         // 第1艦隊 never torpedoes in a combined battle, opening or closing.
         // (Upstream has a narrow exception — a handful of ships can open-torpedo
@@ -96,7 +101,7 @@ pub(crate) fn simulate_opening_torpedo(
         happened = true;
     }
 
-    for (idx, ship) in enemy.iter_mut().enumerate() {
+    for (idx, ship) in enemy_at_start.iter().enumerate() {
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
@@ -142,7 +147,7 @@ pub(crate) fn simulate_opening_torpedo(
             outcome,
         );
         let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
-        ship.damage_dealt += dealt;
+        enemy[idx].damage_dealt += dealt;
         let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
@@ -173,6 +178,11 @@ pub(crate) fn simulate_raigeki(
     let fleet_size = friendly.len().max(enemy.len());
     let mut payload = BattleRaigeki::blank(fleet_size);
     let mut happened = false;
+
+    // Every ship that could fire when the phase began fires: what the enemy
+    // sends is settled from the enemy as it was, not as the friendly torpedoes
+    // resolved just before leave it.
+    let enemy_at_start = enemy.to_vec();
 
     for (idx, ship) in friendly.iter_mut().enumerate() {
         // 第1艦隊 does not torpedo — see the opening phase above.
@@ -230,7 +240,7 @@ pub(crate) fn simulate_raigeki(
         happened = true;
     }
 
-    for (idx, ship) in enemy.iter_mut().enumerate() {
+    for (idx, ship) in enemy_at_start.iter().enumerate() {
         // Of an enemy combined fleet only the escort fleet closes with
         // torpedoes. No-op for an enemy single fleet, whose ships have no deck.
         if ship.is_main_deck() {
@@ -272,7 +282,7 @@ pub(crate) fn simulate_raigeki(
             outcome,
         );
         let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
-        ship.damage_dealt += dealt;
+        enemy[idx].damage_dealt += dealt;
         let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
@@ -498,5 +508,38 @@ mod tests {
             }
         }
         assert!(found, "expected an intercepted opening-torpedo hit on the flagship");
+    }
+
+    /// Torpedoes are in the water together: an enemy the friendly salvo sinks
+    /// has already fired its own.
+    #[test]
+    fn an_enemy_sunk_by_the_friendly_salvo_still_fires() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut friend = sample_ship(&codex, dd_mst, 99);
+        friend.ship.api_raisou[0] = 300;
+        let mut foe = sample_ship(&codex, dd_mst, 1);
+        foe.ship.api_raisou[0] = 50;
+
+        let mut sunk = 0;
+        for seed in 0..20 {
+            let mut friendly = vec![BattleRuntimeShip::from(friend.clone())];
+            let mut enemy = vec![BattleRuntimeShip::from(foe.clone())];
+            let raigeki = simulate_raigeki(
+                &codex,
+                &mut SeededRng::new(seed),
+                &mut friendly,
+                &mut enemy,
+                1,
+                1,
+                crate::types::EngagementType::SameCourse,
+            )
+            .unwrap();
+            if enemy[0].is_sunk() {
+                sunk += 1;
+                assert_eq!(raigeki.api_erai[0], 0, "seed {seed}: the sunk ship fired at F1");
+            }
+        }
+        assert!(sunk > 0, "no seed sank the enemy, so nothing was tested");
     }
 }
