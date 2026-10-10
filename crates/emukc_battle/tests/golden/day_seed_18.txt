@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        60,
+        56,
     ],
     enemy_nowhps: [
         0,
@@ -39,7 +39,7 @@ BattlePacket {
                 api_f_count: 0,
                 api_f_lostcount: 0,
                 api_e_count: 46,
-                api_e_lostcount: 0,
+                api_e_lostcount: 1,
                 api_disp_seiku: 4,
                 api_touch_plane: [
                     -1,
@@ -49,8 +49,8 @@ BattlePacket {
             api_stage2: BattleKoukuStage2 {
                 api_f_count: 0,
                 api_f_lostcount: 0,
-                api_e_count: 46,
-                api_e_lostcount: 5,
+                api_e_count: 45,
+                api_e_lostcount: 3,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: [
@@ -66,8 +66,8 @@ BattlePacket {
                     -1,
                 ],
                 api_ebak: [
-                    0,
                     1,
+                    0,
                 ],
                 api_frai_flag: [
                     0,
@@ -95,7 +95,7 @@ BattlePacket {
                 ],
                 api_fdam: [
                     0,
-                    0,
+                    4,
                 ],
                 api_edam: [
                     0,
@@ -127,25 +127,19 @@ BattlePacket {
         BattleHougeki {
             api_at_eflag: [
                 0,
-                1,
                 0,
             ],
             api_at_list: [
+                0,
                 1,
-                0,
-                0,
             ],
             api_at_type: [
-                0,
                 0,
                 0,
             ],
             api_df_list: [
                 [
                     1,
-                ],
-                [
-                    0,
                 ],
                 [
                     0,
@@ -159,35 +153,24 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        105,
-                    ),
-                ],
-                [
-                    Num(
                         7,
                     ),
                 ],
             ],
             api_cl_list: [
                 [
-                    1,
-                ],
-                [
-                    0,
-                ],
-                [
                     2,
+                ],
+                [
+                    1,
                 ],
             ],
             api_damage: [
                 [
-                    117,
-                ],
-                [
-                    0,
-                ],
-                [
                     177,
+                ],
+                [
+                    114,
                 ],
             ],
         },

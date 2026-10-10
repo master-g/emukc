@@ -47,18 +47,21 @@ mod tests {
     async fn what_a_battle_leaves_in_the_slots_is_what_the_ship_keeps() {
         let context = crate::TestContext::new().await;
         let pid = new_profile(&context).await;
-        apply_scenario(&context, pid, &Scenario::gunnery_cutin()).await.unwrap();
+        // Six carriers with bombers: anti-air fire only reaches aircraft that strike.
+        apply_scenario(&context, pid, &Scenario::carrier_cutin()).await.unwrap();
         rng::seed(1);
 
-        let before = carrier(&context, pid).await.api_onslot;
+        let slots = |ships: Vec<KcApiShip>| {
+            ships.into_iter().map(|ship| ship.api_onslot).collect::<Vec<_>>()
+        };
+        let before = slots(context.get_ships(pid).await.unwrap());
         let left = one_battle(&context, pid).await;
-        let after = carrier(&context, pid).await.api_onslot;
+        let after = slots(context.get_ships(pid).await.unwrap());
 
-        assert_eq!(after, left[0], "the flagship keeps what the battle left it");
-        assert!(
-            after.iter().sum::<i64>() < before.iter().sum::<i64>(),
-            "an air battle costs aircraft: {before:?} -> {after:?}"
-        );
+        // The profile also owns its starter, who stayed home.
+        assert_eq!(after[..left.len()], left, "every ship keeps what the battle left it");
+        let total = |fleet: &[[i64; 5]]| fleet.iter().flatten().sum::<i64>();
+        assert!(total(&after) < total(&before), "an air battle costs aircraft");
     }
 
     #[tokio::test]

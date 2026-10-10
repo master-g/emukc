@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        57,
+        55,
     ],
     enemy_nowhps: [
         0,
@@ -50,7 +50,7 @@ BattlePacket {
                 api_f_count: 0,
                 api_f_lostcount: 0,
                 api_e_count: 46,
-                api_e_lostcount: 5,
+                api_e_lostcount: 6,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: [
@@ -66,7 +66,7 @@ BattlePacket {
                     -1,
                 ],
                 api_ebak: [
-                    1,
+                    0,
                     1,
                 ],
                 api_frai_flag: [
@@ -78,7 +78,7 @@ BattlePacket {
                     0,
                 ],
                 api_fbak_flag: [
-                    0,
+                    1,
                     1,
                 ],
                 api_ebak_flag: [
@@ -95,7 +95,7 @@ BattlePacket {
                 ],
                 api_fdam: [
                     0,
-                    3,
+                    0,
                 ],
                 api_edam: [
                     0,
@@ -127,17 +127,23 @@ BattlePacket {
         BattleHougeki {
             api_at_eflag: [
                 0,
+                1,
                 0,
             ],
             api_at_list: [
-                1,
                 0,
+                0,
+                1,
             ],
             api_at_type: [
                 0,
                 0,
+                0,
             ],
             api_df_list: [
+                [
+                    1,
+                ],
                 [
                     1,
                 ],
@@ -153,6 +159,11 @@ BattlePacket {
                 ],
                 [
                     Num(
+                        105,
+                    ),
+                ],
+                [
+                    Num(
                         7,
                     ),
                 ],
@@ -164,13 +175,19 @@ BattlePacket {
                 [
                     1,
                 ],
+                [
+                    2,
+                ],
             ],
             api_damage: [
                 [
-                    115,
+                    118.1,
                 ],
                 [
-                    114,
+                    5,
+                ],
+                [
+                    176,
                 ],
             ],
         },

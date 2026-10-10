@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        56,
         60,
+        56,
     ],
     enemy_nowhps: [
         0,
@@ -39,7 +39,7 @@ BattlePacket {
                 api_f_count: 0,
                 api_f_lostcount: 0,
                 api_e_count: 46,
-                api_e_lostcount: 1,
+                api_e_lostcount: 2,
                 api_disp_seiku: 4,
                 api_touch_plane: [
                     -1,
@@ -49,8 +49,8 @@ BattlePacket {
             api_stage2: BattleKoukuStage2 {
                 api_f_count: 0,
                 api_f_lostcount: 0,
-                api_e_count: 45,
-                api_e_lostcount: 5,
+                api_e_count: 44,
+                api_e_lostcount: 9,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: [
@@ -67,7 +67,7 @@ BattlePacket {
                 ],
                 api_ebak: [
                     0,
-                    0,
+                    1,
                 ],
                 api_frai_flag: [
                     0,
@@ -79,7 +79,7 @@ BattlePacket {
                 ],
                 api_fbak_flag: [
                     1,
-                    0,
+                    1,
                 ],
                 api_ebak_flag: [
                     0,
@@ -94,7 +94,7 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    4,
+                    0,
                     0,
                 ],
                 api_edam: [
@@ -127,18 +127,25 @@ BattlePacket {
         BattleHougeki {
             api_at_eflag: [
                 0,
+                1,
                 0,
             ],
             api_at_list: [
                 1,
                 0,
+                0,
             ],
             api_at_type: [
                 0,
+                2,
                 0,
             ],
             api_df_list: [
                 [
+                    1,
+                ],
+                [
+                    1,
                     1,
                 ],
                 [
@@ -152,6 +159,14 @@ BattlePacket {
                     ),
                 ],
                 [
+                    Text(
+                        "105",
+                    ),
+                    Text(
+                        "8",
+                    ),
+                ],
+                [
                     Num(
                         7,
                     ),
@@ -162,6 +177,10 @@ BattlePacket {
                     1,
                 ],
                 [
+                    1,
+                    0,
+                ],
+                [
                     2,
                 ],
             ],
@@ -170,7 +189,11 @@ BattlePacket {
                     114,
                 ],
                 [
-                    180,
+                    4,
+                    0,
+                ],
+                [
+                    177,
                 ],
             ],
         },

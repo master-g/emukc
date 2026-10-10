@@ -9,7 +9,9 @@ use emukc_model::{
     kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
+use super::air_base::{fleet_anti_air, weighted_anti_air};
 use crate::accuracy::{HitOutcome, plane_proficiency, roll_strike};
+use crate::combined::CombinedFleetRole;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
@@ -158,9 +160,129 @@ fn best_bomber_index(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<usize
 }
 
 // ---------------------------------------------------------------------------
+// Plane losses, slot by slot
+// ---------------------------------------------------------------------------
+
+/// What a combined fleet's ship keeps of her anti-air fire.
+fn combined_anti_air(defender: &BattleRuntimeShip) -> f64 {
+    if defender.is_escort_deck() || defender.enemy_deck == Some(CombinedFleetRole::Escort) {
+        0.48
+    } else if defender.is_main_deck() || defender.enemy_deck.is_some() {
+        0.8
+    } else {
+        1.0
+    }
+}
+
+/// Stage 1: every slot of `ships` that fights for the air loses its own share
+/// (`kcsim.js` `AADefenceFighters`). Returns how many aircraft that was.
+fn fight_for_the_air(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    ships: &mut [BattleRuntimeShip],
+    air_state: AirState,
+    friendly: bool,
+) -> i64 {
+    let mut total = 0;
+    for ship in ships.iter_mut() {
+        for (slot, item) in ship.slot_items.iter().enumerate().take(5) {
+            let count = ship.ship.api_onslot[slot];
+            if count <= 0 {
+                continue;
+            }
+            let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+                continue;
+            };
+            if !is_fighter_power_type(mst.api_type[2]) {
+                continue;
+            }
+            let jet = match KcSlotItemType3::n(mst.api_type[2]) {
+                Some(
+                    KcSlotItemType3::JetFighter
+                    | KcSlotItemType3::JetFighterBomber
+                    | KcSlotItemType3::JetAttacker,
+                ) => 0.6,
+                _ => 1.0,
+            };
+            let share = if friendly {
+                let (always, more) = air_state.stage1_friendly_slot_loss();
+                always + rng.roll_range(0, more + 1) as f64 / 1000.0
+            } else {
+                let below = air_state.stage1_enemy_slot_loss();
+                (0.35 * rng.roll_range(0, below) as f64 + 0.65 * rng.roll_range(0, below) as f64)
+                    / 10.0
+            };
+            let lost = ((count as f64 * share * jet).floor() as i64).min(count);
+            ship.ship.api_onslot[slot] = count - lost;
+            total += lost;
+        }
+    }
+    total
+}
+
+/// Stage 2: every slot of `attackers` that comes to strike is fired on by one
+/// of `defenders` still afloat (`kcsim.js` `AADefenceBombersAndAirstrike`).
+/// Returns how many aircraft flew in and how many were shot down.
+// ponytail: no anti-air cut-in, formation modifier or 改修; add them to the
+// fixed shot when they are modelled.
+fn fly_through_anti_air(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attackers: &mut [BattleRuntimeShip],
+    defenders: &[BattleRuntimeShip],
+) -> (i64, i64) {
+    let fleet_aa = fleet_anti_air(codex, defenders) as f64;
+    let (mut flew, mut shot) = (0, 0);
+    for ship in attackers.iter_mut() {
+        for (slot, item) in ship.slot_items.iter().enumerate().take(5) {
+            let count = ship.ship.api_onslot[slot];
+            if count <= 0 {
+                continue;
+            }
+            let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+                continue;
+            };
+            if !is_airstrike_attack_type(mst.api_type[2]) {
+                continue;
+            }
+            let afloat: Vec<&BattleRuntimeShip> =
+                defenders.iter().filter(|defender| defender.is_alive()).collect();
+            let Some(pick) = rng.choose_index(afloat.len()) else {
+                return (flew, shot);
+            };
+            let defender = afloat[pick];
+            let kept = combined_anti_air(defender);
+            let ship_aa = weighted_anti_air(codex, defender) as f64 * kept;
+            // A friendly fleet's fire counts for less, at a higher rate, and
+            // always takes at least one aircraft.
+            let (fleet_aa, rate, at_least) = if defender.is_friendly {
+                ((fleet_aa / 1.3).floor() * kept, 0.2, 1)
+            } else {
+                (fleet_aa * kept, 0.1875, 0)
+            };
+            let mut lost = at_least;
+            if rng.roll_range(0, 2) == 0 {
+                lost += (count as f64 * ship_aa / 200.0).floor() as i64;
+            }
+            if rng.roll_range(0, 2) == 0 {
+                lost += ((ship_aa + fleet_aa) * rate).floor() as i64;
+            }
+            let lost = lost.min(count);
+            ship.ship.api_onslot[slot] = count - lost;
+            flew += count;
+            shot += lost;
+        }
+    }
+    (flew, shot)
+}
+
+// ---------------------------------------------------------------------------
 // Plane loss application
 // ---------------------------------------------------------------------------
 
+/// Take `lostcount` aircraft from `ships`, largest slot first. The carrier air
+/// phase rolls each slot on its own instead; this is what is left for the
+/// enemy's aircraft under an air corps attack.
 pub(super) fn apply_plane_losses(
     codex: &Codex,
     ships: &mut [BattleRuntimeShip],
@@ -411,34 +533,13 @@ pub(crate) fn simulate_kouku(
     let enemy_fighter_power = calculate_fighter_power(codex, enemy);
     let air_state = AirState::from_power(friend_fighter_power, enemy_fighter_power);
 
-    // Stage 1: fighter combat — proportional losses based on air state
-    let (f_loss_min, f_loss_max) = air_state.stage1_friendly_loss_ratio();
-    let (e_loss_min, e_loss_max) = air_state.stage1_enemy_loss_ratio();
-    let f_loss_ratio = rng.random_f64_range(f_loss_min, f_loss_max);
-    let e_loss_ratio = rng.random_f64_range(e_loss_min, e_loss_max);
-    let stage1_f_lost = (friend_planes as f64 * f_loss_ratio).floor() as i64;
-    let stage1_e_lost = (enemy_planes as f64 * e_loss_ratio).floor() as i64;
+    // Stage 1: the fight for the air costs every slot that flies in it.
+    let stage1_f_lost = fight_for_the_air(codex, rng, friendly, air_state, true);
+    let stage1_e_lost = fight_for_the_air(codex, rng, enemy, air_state, false);
 
-    apply_plane_losses(codex, friendly, stage1_f_lost);
-    apply_plane_losses(codex, enemy, stage1_e_lost);
-
-    // Stage 2: anti-air fire — simplified proportional model.
-    // NOTE: Real KanColle uses per-ship AA with slot-level shootdowns and fleet AA modifiers.
-    // This linear approximation (total_aa / 400 × plane_count) is a known simplification.
-    // Should be replaced with per-ship AA calculation before implementing airbattle / ld_airbattle.
-    let friend_planes_after_s1 = total_plane_count(codex, friendly);
-    let enemy_planes_after_s1 = total_plane_count(codex, enemy);
-    let friendly_aa: f64 = friendly.iter().map(|s| s.ship.api_taiku[0].max(0) as f64).sum();
-    let enemy_aa: f64 = enemy.iter().map(|s| s.ship.api_taiku[0].max(0) as f64).sum();
-    let stage2_f_lost = ((enemy_aa / 400.0) * friend_planes_after_s1 as f64)
-        .floor()
-        .min(friend_planes_after_s1 as f64) as i64;
-    let stage2_e_lost = ((friendly_aa / 400.0) * enemy_planes_after_s1 as f64)
-        .floor()
-        .min(enemy_planes_after_s1 as f64) as i64;
-
-    apply_plane_losses(codex, friendly, stage2_f_lost);
-    apply_plane_losses(codex, enemy, stage2_e_lost);
+    // Stage 2: each slot that comes to strike is fired on by one ship.
+    let (stage2_f_count, stage2_f_lost) = fly_through_anti_air(codex, rng, friendly, enemy);
+    let (stage2_e_count, stage2_e_lost) = fly_through_anti_air(codex, rng, enemy, friendly);
 
     // Stage 3: bombing damage
     let mut api_edam = vec![0i64; enemy.len()];
@@ -501,9 +602,9 @@ pub(crate) fn simulate_kouku(
             ],
         },
         api_stage2: BattleKoukuStage2 {
-            api_f_count: friend_planes_after_s1,
+            api_f_count: stage2_f_count,
             api_f_lostcount: stage2_f_lost,
-            api_e_count: enemy_planes_after_s1,
+            api_e_count: stage2_e_count,
             api_e_lostcount: stage2_e_lost,
         },
         api_stage3: BattleKoukuStage3 {
@@ -682,6 +783,84 @@ mod tests {
         assert!((5..=30).contains(&criticals), "{criticals} criticals in 200 strikes");
     }
 
+    /// Losses are rolled slot by slot: a small slot loses its own share and can
+    /// be emptied, which taking from the largest slot first never did.
+    #[test]
+    fn every_slot_takes_its_own_losses() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cv_mst = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let fighter = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+
+        let fly = |seed: u64, friendly_side: bool| {
+            let mut carrier = sample_ship(&codex, cv_mst, 50);
+            carrier.slot_items = vec![
+                slotitem_with_mst_id(bomber),
+                slotitem_with_mst_id(bomber),
+                slotitem_with_mst_id(bomber),
+            ];
+            carrier.ship.api_onslot = [30, 12, 3, 0, 0];
+            // The other side holds the air, so every slot loses a quarter or more.
+            let mut screen = sample_ship(&codex, cv_mst, 50);
+            screen.slot_items = vec![slotitem_with_mst_id(fighter)];
+            screen.ship.api_onslot = [90, 0, 0, 0, 0];
+            screen.ship.api_nowhp = 9999;
+            screen.ship.api_maxhp = 9999;
+            // An escort with anti-air to spare: her fixed shot alone takes five.
+            let mut escort = sample_ship(&codex, dd_mst, 50);
+            escort.ship.api_taiku[0] = 900;
+            let (mut friendly, mut enemies) = if friendly_side {
+                (
+                    vec![BattleRuntimeShip::new(carrier, true, true)],
+                    vec![
+                        BattleRuntimeShip::new(screen, false, true),
+                        BattleRuntimeShip::new(escort, false, true),
+                    ],
+                )
+            } else {
+                (
+                    vec![
+                        BattleRuntimeShip::new(screen, true, true),
+                        BattleRuntimeShip::new(escort, true, true),
+                    ],
+                    vec![BattleRuntimeShip::new(carrier, false, true)],
+                )
+            };
+            let mut rng = crate::random::SeededRng::new(seed);
+            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+            let left = if friendly_side {
+                friendly[0].ship.api_onslot
+            } else {
+                enemies[0].ship.api_onslot
+            };
+            (left, kouku)
+        };
+
+        let mut small_slot_emptied = 0;
+        for seed in 0..50 {
+            let (left, kouku) = fly(seed, true);
+            assert_eq!(kouku.api_stage1.api_disp_seiku, 4, "the enemy holds the air");
+            assert!(left[0] <= 30 - 7, "seed {seed}: the large slot lost a quarter: {left:?}");
+            assert!(left[1] <= 12 - 3, "seed {seed}: the middle slot lost a quarter: {left:?}");
+            assert_eq!(
+                kouku.api_stage1.api_f_lostcount + kouku.api_stage2.api_f_lostcount,
+                45 - left.iter().sum::<i64>(),
+                "seed {seed}: the two stages report what the slots lost"
+            );
+            small_slot_emptied += i64::from(left[2] == 0);
+
+            // Fired on by a friendly fleet, a slot that strikes loses one at least.
+            let (left, kouku) = fly(seed, false);
+            let flew = kouku.api_stage2.api_e_count;
+            assert!(
+                kouku.api_stage2.api_e_lostcount >= i64::from(flew > 0),
+                "seed {seed}: {left:?}"
+            );
+        }
+        assert!(small_slot_emptied > 0, "a slot of three is emptied now and then");
+    }
+
     #[test]
     fn kouku_flag_arrays_match_fleet_sizes() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
@@ -739,7 +918,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
-        let mut rng = crate::random::SeededRng::new(42);
+        let mut rng = crate::random::SeededRng::new(2);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
 
@@ -774,7 +953,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
-        let mut rng = crate::random::SeededRng::new(42);
+        let mut rng = crate::random::SeededRng::new(2);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
 

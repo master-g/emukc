@@ -98,10 +98,19 @@ fn strike_stat(mst: &ApiMstSlotitem, on_land: bool) -> f64 {
 /// What an enemy ship's fixed shot takes of its own and its fleet's anti-air.
 const ENEMY_FLAT_SHOT: f64 = 0.1875;
 
-/// 加重対空 of an enemy ship: the root of her anti-air, plus her anti-air
-/// equipment weighted by kind (`Ship.weightedAntiAir`, `kcships.js:1619`).
-fn weighted_anti_air(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
-    let mut weighted = (ship.ship.api_taiku[0].max(0) as f64).sqrt();
+/// 加重対空 of a ship: for an enemy the root of her anti-air, for a friendly
+/// ship half of what she has without equipment, plus her anti-air equipment
+/// weighted by kind (`Ship.weightedAntiAir`, `kcships.js:1619`).
+pub(super) fn weighted_anti_air(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+    let anti_air = ship.ship.api_taiku[0].max(0) as f64;
+    let equipped = |item: &emukc_model::kc2::KcApiSlotItem| {
+        codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).map_or(0, |mst| mst.api_tyku)
+    };
+    let mut weighted = if ship.is_friendly {
+        (anti_air - ship.slot_items.iter().map(equipped).sum::<i64>() as f64).max(0.0) / 2.0
+    } else {
+        anti_air.sqrt()
+    };
     for item in &ship.slot_items {
         let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
             continue;
@@ -117,10 +126,10 @@ fn weighted_anti_air(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
     weighted.floor() as i64
 }
 
-/// 艦隊防空 of the enemy fleet: each ship afloat adds her equipment's anti-air
+/// 艦隊防空 of a fleet: each ship afloat adds her equipment's anti-air
 /// weighted by kind (`Fleet.fleetAntiAir`, `kcships.js:57`). The formation's
 /// modifier is left out.
-fn fleet_anti_air(codex: &Codex, fleet: &[BattleRuntimeShip]) -> i64 {
+pub(super) fn fleet_anti_air(codex: &Codex, fleet: &[BattleRuntimeShip]) -> i64 {
     fleet
         .iter()
         .filter(|ship| ship.is_alive())
