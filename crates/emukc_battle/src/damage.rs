@@ -12,7 +12,7 @@ use emukc_model::{
     },
 };
 
-use crate::accuracy::HitOutcome;
+use crate::accuracy::{HitOutcome, shelling_proficiency};
 use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
@@ -170,7 +170,8 @@ pub(crate) fn calculate_shelling_damage(
         capped_power *= m;
     }
     capped_power *= ammo_modifier(codex, attacker);
-    let capped_power = outcome.power(capped_power);
+    let capped_power =
+        outcome.power_with(capped_power, shelling_proficiency(codex, attacker).critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }

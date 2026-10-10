@@ -193,11 +193,12 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
+| [2026-10-10] 根目录 `cargo test` 只跑根包（255 个）；全量数字来自 `cargo test --workspace`。 | session 2026-10-10 |
 
 ## Last Session
 
-- [2026-10-10] PR #32–#35 已合并进 `main` 并推送（最后一项：击沉保护按当前血量、敌方用自己的制空状态，计划 `2026-10-10-003`）。
-  没有进行中的分支、stash 或 open issue；下一项从 `battle-hit-and-critical-rolls.md` 的「Not modelled」里取，先做舰载机熟练度。
+- [2026-10-10] 分支 `feat/aircraft-proficiency`（计划 `2026-10-10-004`）：熟练度进开幕航空战与空母昼战炮击；全量测试与无头
+  `gunnery_cutin` 通过；已推送，未开 PR。下一项：熟练度的制空値加成或成长。
 
 ## Next Session
 
