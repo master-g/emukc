@@ -168,11 +168,9 @@ mod tests {
     #[test]
     fn test_parse_slotitem() {
         let context = get_parse_context();
-        let map = slot_item::parse(
-            &context,
-            &std::path::Path::new(FIXTURES).join("kcwiki_slotitem.json"),
-        )
-        .unwrap();
+        let map =
+            slot_item::parse(&context, std::path::Path::new(FIXTURES).join("kcwiki_slotitem.json"))
+                .unwrap();
 
         assert!(!map.map.is_empty());
     }
@@ -182,8 +180,8 @@ mod tests {
         let context = get_parse_context();
         assert!(!context.ship_name_map.is_empty());
 
-        let map = ship::parse(&context, &std::path::Path::new(FIXTURES).join("kcwiki_ship.json"))
-            .unwrap();
+        let map =
+            ship::parse(&context, std::path::Path::new(FIXTURES).join("kcwiki_ship.json")).unwrap();
 
         assert!(!map.is_empty());
     }

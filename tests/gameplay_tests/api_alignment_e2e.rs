@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
 
-    /// 赤城, api_maxeq = [18, 18, 27, 10, 0]
+    /// 赤城, `api_maxeq` = [18, 18, 27, 10, 0]
     const AKAGI_MST_ID: i64 = 83;
 
     async fn new_profile(context: &crate::TestContext) -> i64 {

@@ -96,6 +96,10 @@ pub enum BootstrapDownloadError {
 /// * `overwrite` - Whether to overwrite existing files
 /// * `proxy` - The proxy server
 /// * `concurrent` - The maximum number of concurrent downloads, default is 4
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 pub async fn download_all(
     dir: impl AsRef<std::path::Path>,
     overwrite: bool,
@@ -319,6 +323,10 @@ const WEB_ASSETS: &[WebAsset] = &[
 /// is true. If any asset cannot be fetched — because every CDN failed or because
 /// none is configured — the whole call fails with
 /// [`BootstrapDownloadError::WebAssetUnavailable`].
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 pub async fn download_web_assets(
     cache_root: &std::path::Path,
     gadgets_cdn: &[String],

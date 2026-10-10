@@ -74,7 +74,7 @@ pub(super) fn load_public_map_catalog_overlays() -> Result<MapCatalog, ParseErro
     serde_json::from_str::<MapCatalog>(&raw).map_err(|source| ParseError::json_at(&path, source))
 }
 
-/// The label-keyed overlay: observed ship drops and enemy fleets, both from KCNav.
+/// The label-keyed overlay: observed ship drops and enemy fleets, both from `KCNav`.
 fn load_repo_label_overlay() -> Result<LabelOverlayCatalog, ParseError> {
     let mut overlay = LabelOverlayCatalog::default();
     apply_ship_drops(&mut overlay)?;

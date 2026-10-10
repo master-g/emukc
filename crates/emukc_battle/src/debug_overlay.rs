@@ -841,9 +841,9 @@ mod tests {
         assert!(result.packet.hougeki3.is_none(), "god_mode adds no finishing volley");
     }
 
-    /// god_mode must zero the per-attacker enemy torpedo damage the client
+    /// `god_mode` must zero the per-attacker enemy torpedo damage the client
     /// animates HP from, not just the `api_fdam` summary. Regression: opening /
-    /// closing torpedo `api_eydam` survived god_mode, so a friendly still visibly
+    /// closing torpedo `api_eydam` survived `god_mode`, so a friendly still visibly
     /// took (and could be taiha'd by) torpedo damage mid-animation even though the
     /// summary and final HP were restored.
     #[test]

@@ -50,8 +50,8 @@ cargo run -- new-session -u <username> -p <password>
 # Bootstrap game data (downloads manifests/resources)
 cargo run -- bootstrap
 
-# Run all tests
-cargo test
+# Run all tests (a bare `cargo test` runs the root package only)
+cargo test --workspace
 
 # Run integration gameplay tests
 cargo test --test gameplay_tests
@@ -221,8 +221,8 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 **Hard gates (must pass before requesting review):**
 
 - `cargo fmt --all --check` — pre-commit hook.
-- `cargo clippy --workspace -- -W warnings` — pre-commit hook; `-W warnings` means any warning fails.
-- `cargo test` (plus the crate-specific and `--test gameplay_tests` subsets) green. Skipped or `#[ignore]`d tests must be surfaced in the PR — silent skips fail review.
+- `cargo clippy --workspace --all-targets -- -D warnings` — pre-commit hook; any warning fails.
+- `cargo test --workspace` green. Skipped or `#[ignore]`d tests must be surfaced in the PR — silent skips fail review.
 
 **Change hygiene:**
 
@@ -247,7 +247,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 ## 命令
 
 - 常用入口：`make build [PROFILE=debug|release]`、`make test`、`make clippy`、`make fmt`、`make serve`。
-- 最终质量门：`cargo fmt --all --check`、`cargo clippy --workspace -- -W warnings`、`cargo test`。
+- 最终质量门：`cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace`。
 - 数据准备：`make bootstrap`；需要已配置 `emukc.config.toml`，生成的本地数据位于忽略目录 `.data/`、`z/`。
 - 解码并同步生成资产：`make decode-main`；先在 `main-decoder/` 安装 Bun 依赖并完成 bootstrap。
 - 缓存：`make cache-make-list`、`make cache-populate CONCURRENT=16`。

@@ -55,10 +55,10 @@ serve-dump: ## 启动服务器(auto 模式: 自动 auth + 开浏览器)并把 KC
 	EMUKC_KCSAPI_DUMP=$(DUMP) $(CARGO) run $(CARGO_PROFILE_FLAG)
 
 test: ## 运行全部测试
-	$(CARGO) test
+	$(CARGO) test --workspace
 
 clippy: ## 运行 clippy 检查
-	$(CARGO) clippy --workspace
+	$(CARGO) clippy --workspace --all-targets -- -D warnings
 
 fmt: ## 格式化全部代码
 	$(CARGO) fmt --all
