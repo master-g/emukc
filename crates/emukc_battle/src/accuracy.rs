@@ -101,7 +101,7 @@ impl PlaneProficiency {
 }
 
 /// The experience behind each proficiency level the client shows.
-const PROFICIENCY_EXP: [f64; 8] = [0.0, 10.0, 25.0, 40.0, 55.0, 70.0, 85.0, 120.0];
+pub(crate) const PROFICIENCY_EXP: [f64; 8] = [0.0, 10.0, 25.0, 40.0, 55.0, 70.0, 85.0, 120.0];
 /// What each level is worth towards a critical.
 const PROFICIENCY_CRITICAL: [f64; 8] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0];
 /// How much of its experience a patrol plane or autogyro counts for.
