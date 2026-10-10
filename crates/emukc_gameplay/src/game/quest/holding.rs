@@ -323,6 +323,7 @@ where
         am.type3 = ActiveValue::Set(mst.api_type[2]);
         am.level = ActiveValue::Set(stars);
         am.aircraft_lv = ActiveValue::Set(0);
+        am.aircraft_exp = ActiveValue::Set(0);
         am.update(c).await?;
         add_slot_item_to_picturebook_impl(c, profile_id, mst.api_sortno).await?;
     }

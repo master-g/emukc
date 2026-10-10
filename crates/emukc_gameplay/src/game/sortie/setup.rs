@@ -27,7 +27,7 @@ use crate::{
         slot_item::find_slot_items_by_id_impl,
         sortie_result::{
             SortieBattleResultSnapshot, SortieDeckRewards, calculate_sortie_base_exp,
-            calculate_sortie_deck_rewards,
+            calculate_sortie_deck_rewards, occupied_slots,
         },
         sortie_store::SortieStore,
     },
@@ -353,6 +353,8 @@ impl SortieBattleSetup {
             friendly_ship_ids: session.friendly_ship_ids.clone(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps,
+            friendly_onslots: session.friendly.iter().map(|f| f.ship.api_onslot).collect(),
+            air_battle: session.packet.kouku.is_some(),
             mvp_combined,
             get_ship_exp_combined,
             get_exp_lvup_combined,
@@ -413,8 +415,15 @@ where
                 .map(std::convert::Into::into)
                 .collect();
 
+        // The battle pairs `slot_items` with `api_onslot` by position, and
+        // `slot_items` has no gaps: close the same gaps in the counts.
+        let mut api_ship: emukc_model::kc2::KcApiShip = (*ship).into();
+        let (held, slots) = (api_ship.api_onslot, api_ship.api_slot);
+        let mut counts = occupied_slots(&slots).map(|slot| held[slot]);
+        api_ship.api_onslot = std::array::from_fn(|_| counts.next().unwrap_or(0));
+
         result.push(BattleShipInput {
-            ship: (*ship).into(),
+            ship: api_ship,
             slot_items,
             effect_list: vec![],
             married: ship.married,

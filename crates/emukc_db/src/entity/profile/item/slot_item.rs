@@ -26,8 +26,12 @@ pub struct Model {
     /// modify level
     pub level: i64,
 
-    /// aircraft level
+    /// aircraft level, the one the client shows: derived from `aircraft_exp`
+    /// when the fleet is back in port
     pub aircraft_lv: i64,
+
+    /// aircraft proficiency experience, 0 to 120
+    pub aircraft_exp: i64,
 
     /// equip on ship instance id
     pub equip_on: i64,

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use emukc_db::{
     entity::profile::{airbase::plane as plane_db, item::slot_item},
-    sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, Condition, TransactionTrait, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
@@ -16,6 +16,7 @@ use crate::{
 };
 
 use super::picturebook::add_slot_item_to_picturebook_impl;
+use super::proficiency::{exp_of_level, level_of_exp};
 
 /// ドラム缶(輸送用). Expeditions count the canisters, sortie routing counts the
 /// ships carrying one; both key on this master id.
@@ -351,6 +352,7 @@ where
         locked: ActiveValue::Set(false),
         level: ActiveValue::Set(stars),
         aircraft_lv: ActiveValue::Set(alv),
+        aircraft_exp: ActiveValue::Set(exp_of_level(alv)),
         equip_on: ActiveValue::Set(0),
     };
 
@@ -389,6 +391,36 @@ where
     Ok(records)
 }
 
+/// Bring the proficiency level the client shows into line with the experience
+/// the last sortie left. Battles move only the experience, so a level changes
+/// when the fleet is back in port and not between two battles of a sortie.
+pub(crate) async fn refresh_proficiency_levels_impl<C>(
+    c: &C,
+    profile_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let flown = slot_item::Entity::find()
+        .filter(slot_item::Column::ProfileId.eq(profile_id))
+        .filter(
+            Condition::any()
+                .add(slot_item::Column::AircraftExp.ne(0))
+                .add(slot_item::Column::AircraftLv.ne(0)),
+        )
+        .all(c)
+        .await?;
+    for item in flown {
+        let level = level_of_exp(item.aircraft_exp);
+        if level != item.aircraft_lv {
+            let mut am: slot_item::ActiveModel = item.into();
+            am.aircraft_lv = ActiveValue::Set(level);
+            am.update(c).await?;
+        }
+    }
+    Ok(())
+}
+
 pub(crate) async fn update_slot_item_impl<C>(
     c: &C,
     id: i64,
@@ -413,6 +445,7 @@ where
 
     if let Some(alv) = alv {
         am.aircraft_lv = ActiveValue::Set(alv);
+        am.aircraft_exp = ActiveValue::Set(exp_of_level(alv));
     }
 
     if let Some(equip_on) = equip_on {

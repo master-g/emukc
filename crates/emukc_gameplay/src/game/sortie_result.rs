@@ -1,7 +1,7 @@
 use emukc_battle::{BattleRuntimeShip, calculate_mvp};
 use emukc_crypto::rng;
 use emukc_db::{
-    entity::profile::{map_record, ship},
+    entity::profile::{item::slot_item, map_record, ship},
     sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, EntityTrait, IntoActiveModel},
 };
 use emukc_model::{
@@ -20,6 +20,7 @@ use super::{
     basic::find_profile,
     map::{check_and_unlock_dependencies_impl, find_map_record_impl},
     map_progress::assign_stage_id,
+    proficiency,
     quest::observe::GameplayOutcome,
     ship::{
         add_ship_impl,
@@ -37,6 +38,10 @@ pub struct SortieBattleResultSnapshot {
     pub enemy_ship_ids: Vec<i64>,
     /// Indexed like [`friendly_ship_ids`](Self::friendly_ship_ids).
     pub friendly_nowhps: Vec<i64>,
+    /// The aircraft each ship has left in each slot, indexed the same way.
+    pub friendly_onslots: Vec<[i64; 5]>,
+    /// Whether the battle had an air phase, where carrier aircraft gain proficiency.
+    pub air_battle: bool,
     pub enemy_ship_types: Vec<i64>,
     pub win_rank: String,
     pub get_exp: i64,
@@ -586,12 +591,43 @@ where
         let ship_model = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
             GameplayError::EntryNotFound(format!("ship with id {ship_id} not found"))
         })?;
+        let slots = [
+            ship_model.slot_1,
+            ship_model.slot_2,
+            ship_model.slot_3,
+            ship_model.slot_4,
+            ship_model.slot_5,
+        ];
         let mut api_ship: emukc_model::kc2::KcApiShip = ship_model.into();
 
         // Apply battle damage: update HP from battle result.
         let final_hp = snapshot.friendly_nowhps.get(idx).copied().unwrap_or(1);
         api_ship.api_nowhp = final_hp.max(0);
         let is_sunk = final_hp <= 0;
+
+        // Aircraft shot down stay down until the ship is resupplied. The battle
+        // counted them with the gaps between equipment closed; put each count
+        // back in the slot its equipment sits in.
+        if let Some(closed) = snapshot.friendly_onslots.get(idx) {
+            let mut left = api_ship.api_onslot;
+            for (slot, count) in occupied_slots(&slots).zip(closed) {
+                left[slot] = *count;
+            }
+            if !is_sunk {
+                // 第2艦隊's aircraft gain only against an enemy combined fleet,
+                // which no battle here has.
+                settle_proficiency_impl(
+                    c,
+                    slots,
+                    api_ship.api_onslot,
+                    left,
+                    snapshot.air_battle,
+                    idx < main_len,
+                )
+                .await?;
+            }
+            api_ship.api_onslot = left;
+        }
 
         // Sunk ships: save HP=0 but skip resource consumption and EXP
         if !is_sunk {
@@ -630,6 +666,51 @@ where
     snapshot.member_lv = updated_profile.hq_level;
     snapshot.member_exp = updated_profile.experience;
     Ok(snapshot)
+}
+
+/// The slots of a ship that hold equipment, in order.
+pub(super) fn occupied_slots(slots: &[i64; 5]) -> impl Iterator<Item = usize> + '_ {
+    slots.iter().enumerate().filter(|(_, item)| **item > 0).map(|(slot, _)| slot)
+}
+
+/// Settle the proficiency of one ship's aircraft after a battle that took its
+/// slots from `before` to `after`. Only the experience moves here; the level
+/// the client and the next battle read follows at port
+/// (`refresh_proficiency_levels_impl`).
+async fn settle_proficiency_impl<C>(
+    c: &C,
+    slots: [i64; 5],
+    before: [i64; 5],
+    after: [i64; 5],
+    air_battle: bool,
+    grows: bool,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    for ((item_id, before), after) in slots.into_iter().zip(before).zip(after) {
+        if item_id <= 0 || before <= 0 {
+            continue;
+        }
+        let Some(item) = slot_item::Entity::find_by_id(item_id).one(c).await? else {
+            continue;
+        };
+        let exp = proficiency::settle(
+            item.mst_id,
+            item.type3,
+            item.aircraft_exp,
+            (before, after),
+            air_battle,
+            grows,
+            rng::f64,
+        );
+        if exp != item.aircraft_exp {
+            let mut am = item.into_active_model();
+            am.aircraft_exp = ActiveValue::Set(exp);
+            am.update(c).await?;
+        }
+    }
+    Ok(())
 }
 
 /// `event_state` of a regular map whose current stage has had its S-rank condition met.
@@ -888,6 +969,8 @@ mod tests {
             friendly_ship_ids: vec![],
             enemy_ship_ids: vec![],
             friendly_nowhps: vec![],
+            friendly_onslots: vec![],
+            air_battle: false,
             enemy_ship_types: vec![],
             win_rank: win_rank.to_string(),
             get_exp: 0,

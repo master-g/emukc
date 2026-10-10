@@ -17,7 +17,10 @@ use crate::{
         material::{get_mat_impl, update_materials_impl},
         ndock::get_ndocks_impl,
         settings::game::get_game_settings_impl,
-        slot_item::{find_slot_items_by_id_impl, get_unset_slot_items_by_types_impl},
+        slot_item::{
+            find_slot_items_by_id_impl, get_unset_slot_items_by_types_impl,
+            refresh_proficiency_levels_impl,
+        },
     },
     gameplay::Ctx,
 };
@@ -73,6 +76,7 @@ impl Ctx {
 
         let profile = find_profile(&tx, profile_id).await?;
         update_materials_impl(&tx, codex, profile_id, profile.hq_level).await?;
+        refresh_proficiency_levels_impl(&tx, profile_id).await?;
 
         // TODO(#0): update quests here
 
