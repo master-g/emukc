@@ -15,12 +15,6 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::start2::ApiMstSlotitem;
 use std::ops::Range;
 
-/// Maximum ships per fleet. Caps the special-attack skip array.
-///
-/// Six holds for a combined fleet too: `attackers` is always one deck's slice,
-/// never both, so the indices here stay deck-local.
-const MAX_FLEET_SIZE: usize = 6;
-
 /// One round of day shelling: who fires, at whom, and in what order.
 pub(crate) struct ShellingRound<'a> {
     /// The friendly ships that fire this round. The enemy fires at the whole
@@ -46,6 +40,7 @@ pub(crate) fn simulate_shelling_round(
     friendly: &mut [BattleRuntimeShip],
     enemy: &mut [BattleRuntimeShip],
     round: &ShellingRound,
+    special_attack_used: &mut [bool; 2],
 ) -> Option<BattleHougeki> {
     let friendly_params = ShellingParams {
         attacker_is_enemy: false,
@@ -67,13 +62,14 @@ pub(crate) fn simulate_shelling_round(
     let enemy_los = fleet_los(&enemy[round.enemy_deck.clone()]);
     // The orders are fixed when the round begins; a ship sunk before its turn
     // comes loses it.
+    let can_shell = |ship: &BattleRuntimeShip| can_shell_day_ship(codex, ship);
     let friendly_order =
-        shelling_order(codex, rng, &friendly[round.friendly_deck.clone()], round.by_range);
-    let enemy_order = shelling_order(codex, rng, &enemy[round.enemy_deck.clone()], round.by_range);
+        firing_order(codex, rng, &friendly[round.friendly_deck.clone()], round.by_range, can_shell);
+    let enemy_order =
+        firing_order(codex, rng, &enemy[round.enemy_deck.clone()], round.by_range, can_shell);
 
     let mut hougeki = BattleHougeki::default();
-    let mut friendly_skip = [false; MAX_FLEET_SIZE];
-    let mut enemy_skip = [false; MAX_FLEET_SIZE];
+    let [friendly_special, enemy_special] = special_attack_used;
     for turn in 0..friendly_order.len().max(enemy_order.len()) {
         if let Some(&idx) = friendly_order.get(turn) {
             let fired = shell_turn(
@@ -84,7 +80,7 @@ pub(crate) fn simulate_shelling_round(
                 &mut enemy[round.enemy_deck.clone()],
                 &friendly_params,
                 friendly_los,
-                &mut friendly_skip,
+                friendly_special,
             );
             append_turn(&mut hougeki, fired, friendly_at, enemy_at);
         }
@@ -100,7 +96,7 @@ pub(crate) fn simulate_shelling_round(
                 friendly,
                 &enemy_params,
                 enemy_los,
-                &mut enemy_skip,
+                enemy_special,
             );
             append_turn(&mut hougeki, fired, enemy_at, 0);
         }
@@ -116,16 +112,16 @@ fn fleet_los(ships: &[BattleRuntimeShip]) -> i64 {
     ships.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum()
 }
 
-/// The ships of one side that can shell, in the order they will: longest range
-/// first with equal ranges in random order, or simply down the line.
-fn shelling_order(
+/// The ships of one side that `can_fire`, in the order they will: longest
+/// range first with equal ranges in random order, or simply down the line.
+pub(crate) fn firing_order(
     codex: &Codex,
     rng: &mut impl BattleRng,
     ships: &[BattleRuntimeShip],
     by_range: bool,
+    can_fire: impl Fn(&BattleRuntimeShip) -> bool,
 ) -> Vec<usize> {
-    let mut order: Vec<usize> =
-        (0..ships.len()).filter(|&idx| can_shell_day_ship(codex, &ships[idx])).collect();
+    let mut order: Vec<usize> = (0..ships.len()).filter(|&idx| can_fire(&ships[idx])).collect();
     if by_range {
         for last in (1..order.len()).rev() {
             order.swap(last, rng.roll_range(0, last as i64 + 1) as usize);
@@ -179,17 +175,17 @@ pub(crate) fn simulate_shelling_side(
 ) -> Option<BattleHougeki> {
     let los = fleet_los(attackers);
     let mut hougeki = BattleHougeki::default();
-    let mut skip = [false; MAX_FLEET_SIZE];
+    let mut special = false;
     for idx in 0..attackers.len() {
-        let fired = shell_turn(codex, rng, attackers, idx, defenders, params, los, &mut skip);
+        let fired = shell_turn(codex, rng, attackers, idx, defenders, params, los, &mut special);
         append_turn(&mut hougeki, fired, 0, 0);
     }
     (!hougeki.api_at_list.is_empty()).then_some(hougeki)
 }
 
 /// What the ship at `idx` fires when its turn comes: nothing, one attack, or
-/// from the flagship the whole of a special attack. Indices are those of the
-/// two slices.
+/// from the flagship the whole of a special attack, which a side makes once in
+/// a battle. Indices are those of the two slices.
 #[expect(clippy::too_many_arguments)]
 fn shell_turn(
     codex: &Codex,
@@ -199,32 +195,22 @@ fn shell_turn(
     defenders: &mut [BattleRuntimeShip],
     params: &ShellingParams,
     fleet_los: i64,
-    special_attack_skip: &mut [bool; MAX_FLEET_SIZE],
+    special_attack_used: &mut bool,
 ) -> BattleHougeki {
-    // A flagship special attack is decided when the flagship's turn comes.
+    // A special attack is decided when the flagship's turn comes and takes
+    // that turn; the ships that join it still have their own.
     if idx == 0
+        && !*special_attack_used
         && let Some(resolved) =
             special_attack::try_special_attack(codex, rng, attackers, params.formation_id)
     {
-        let result = special_attack::execute_special_attack(
+        *special_attack_used = true;
+        return special_attack::execute_special_attack(
             codex, rng, attackers, defenders, resolved, params,
         );
-        for &i in &result.participant_indices {
-            debug_assert!(
-                i < MAX_FLEET_SIZE,
-                "special_attack participant index {i} exceeds MAX_FLEET_SIZE"
-            );
-            if i < MAX_FLEET_SIZE {
-                special_attack_skip[i] = true;
-            }
-        }
-        return result.hougeki;
     }
 
     let mut hougeki = BattleHougeki::default();
-    if idx < MAX_FLEET_SIZE && special_attack_skip[idx] {
-        return hougeki;
-    }
     let ship = &mut attackers[idx];
     if !can_shell_day_ship(codex, ship) {
         return hougeki;
@@ -924,26 +910,5 @@ mod tests {
             }
         }
         assert!(saw_attack, "no ASW shelling fired across 50 seeds; assertion unverified");
-    }
-
-    #[test]
-    fn special_attack_skip_marks_participants_and_spares_others() {
-        // Mirror the production code in `shell_turn`: when a special attack
-        // produces participant indices 0/2/4, the skip array must mark exactly those
-        // slots as true. Indices 1/3/5 (and any future slot) must remain attackable.
-        const MAX_FLEET_SIZE: usize = super::MAX_FLEET_SIZE;
-        let participant_indices = vec![0_usize, 2, 4];
-
-        let mut special_attack_skip = [false; MAX_FLEET_SIZE];
-        for &i in &participant_indices {
-            if i < MAX_FLEET_SIZE {
-                special_attack_skip[i] = true;
-            }
-        }
-
-        for (idx, &skip) in special_attack_skip.iter().enumerate() {
-            let should_skip = participant_indices.contains(&idx);
-            assert_eq!(skip, should_skip, "idx {idx}: expected skip={should_skip}, got {skip}",);
-        }
     }
 }

@@ -1,19 +1,19 @@
 ---
-title: "Day shelling order: both sides in every round, ship by ship"
+title: "Who acts when: shelling, opening ASW, night battle and torpedoes"
 date: 2026-10-10
 category: architecture-patterns
 module: emukc_battle
 problem_type: architecture_pattern
 component: service_object
 severity: high
-tags: [battle, shelling, order, range, combined-fleet]
+tags: [battle, shelling, order, range, night, torpedo, asw, combined-fleet]
 applies_when:
   - "A day shelling round is added, reordered or given a different set of ships"
   - "A phase is found where one whole side acts before the other"
   - "A seeded battle test or a golden transcript fails after a change to who fires when"
 ---
 
-# Day shelling order
+# Who acts when
 
 ## What was wrong
 
@@ -37,7 +37,9 @@ whether the order is by range.
   (`BattleRng`, a shuffle followed by a stable sort). A ship's range is its own or that of the
   longest piece it carries: `api_leng` on the ship does not include equipment.
 - A second round goes down the line.
-- The flagship's special attack is decided when the flagship's turn comes.
+- The flagship's special attack is decided when the flagship's turn comes and takes that
+  turn only: the ships that join it still fire on their own. A side makes it once in a day
+  battle (`BattleState::special_attack_used`), so a second round does not roll it again.
 - Every index written is a position in the whole fleet (`append_turn` lifts them), so the
   combined paths need no shifting afterwards.
 
@@ -48,18 +50,33 @@ line and the enemy combined fleet's third round does too.
 Source: `KC3Kai/kancolle-replay` `kcsim.js`: `shellPhase`, `shellPhaseC`, `orderByRangeOld`,
 and the two shelling blocks of `sim`. The plan `docs/plans/2026-10-10-001` lists the lines.
 
+## The other phases
+
+The same fault was in three more places, each letting the whole friendly side act before the
+enemy did (plan `docs/plans/2026-10-10-002`):
+
+- **Opening ASW** (`asw.rs`) uses the shelling loop: the ships of each side that can open with
+  ASW, by range (`shelling::firing_order` takes the condition), in turn.
+- **Night battle** (`night.rs`) goes down the two lines in turn: the ship at position `i` of
+  the friendly fleet, then the enemy's, each checked when its turn comes. `night_turn` is the
+  one attack both sides share.
+- **Torpedoes** (`torpedo.rs`) are in the water together. The friendly salvo is still resolved
+  first, so the random stream keeps its order, but what the enemy fires is settled from a copy
+  of the enemy taken when the phase began: a ship the friendly salvo sinks has fired already.
+
 ## Not modelled
 
-- A special attack can be rolled in each round and its participants lose the turns they have
-  not taken yet; the source rolls it once a battle and lets them fire again.
+- The once-a-battle rule stops at the day battle: the night battle is a request of its own and
+  does not know a special attack was made by day.
 - Submarines joining the order when the other side has an installation.
 - The 39% split of a combined fleet's targets between main and escort.
-- Opening ASW and the night battle still let one whole side act first, and torpedoes are
-  resolved one side after the other.
+- Star shells, searchlights and night contact; when a night special attack is decided; the
+  order of the decks in a combined night battle; the 35% split of torpedo targets between a
+  combined fleet's main and escort.
 
 ## When a test breaks
 
 The order draws random numbers, so every day transcript moved with this change. Re-bless
 `crates/emukc_battle/tests/golden/*.txt` with `EMUKC_BLESS_GOLDEN=1`, re-freeze
-`tests/gameplay_tests/battle_golden.rs`, and move the seed of a seeded test rather than its
+`tests/gameplay_tests/battle_golden.rs` (the second change left it as it was), and move the seed of a seeded test rather than its
 assertion (`DROP_SEED` in `crates/emukc_gameplay/tests/sortie_battle.rs` went from 1 to 3).

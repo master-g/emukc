@@ -62,6 +62,8 @@ pub(crate) struct BattleState {
     hourai_flag: [i64; 4],
     opening_taisen_flag: i64,
     has_bb_class_at_start: bool,
+    /// Whether each side, friendly then enemy, has made its special attack.
+    pub(crate) special_attack_used: [bool; 2],
 }
 
 impl BattleState {
@@ -137,6 +139,7 @@ impl BattleState {
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
+            special_attack_used: [false; 2],
         }
     }
 
@@ -172,6 +175,7 @@ impl BattleState {
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
+            special_attack_used: [false; 2],
         }
     }
 

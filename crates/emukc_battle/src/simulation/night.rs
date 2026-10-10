@@ -12,12 +12,13 @@ use crate::accuracy::{Aim, AttackKind, HitOutcome, roll_attack};
 use crate::damage::{calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::targeting::{
-    can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
+    any_alive, can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
     is_day_surface_display_type, is_main_gun_type, is_radar_type, is_secondary_gun_type,
     is_torpedo_type, select_random_target_index, ship_type, target_class,
 };
 use crate::types::{
-    BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams, SiListId,
+    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams,
+    SiListId,
 };
 
 // ---------------------------------------------------------------------------
@@ -788,7 +789,9 @@ fn night_si_entry(
     }
 }
 
-/// Simulate the night battle hougeki phase.
+/// Simulate the night battle hougeki phase. The two fleets fire in turn down
+/// their lines, the friendly side first: its first ship, the enemy's first,
+/// its second, and so on.
 pub(crate) fn simulate_night_hougeki(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -796,223 +799,162 @@ pub(crate) fn simulate_night_hougeki(
     enemy: &mut [BattleRuntimeShip],
     params: &NightBattleParams,
 ) -> Option<BattleNightHougeki> {
-    let mut at_eflag = Vec::new();
-    let mut at_list = Vec::new();
-    let mut n_mother_list = Vec::new();
-    let mut df_list = Vec::new();
-    let mut si_list = Vec::new();
-    let mut cl_list = Vec::new();
-    let mut sp_list = Vec::new();
-    let mut damage = Vec::new();
+    let mut hougeki = BattleNightHougeki {
+        api_at_eflag: Vec::new(),
+        api_at_list: Vec::new(),
+        api_n_mother_list: Vec::new(),
+        api_df_list: Vec::new(),
+        api_si_list: Vec::new(),
+        api_cl_list: Vec::new(),
+        api_sp_list: Vec::new(),
+        api_damage: Vec::new(),
+    };
+    let (friendly_form, enemy_form) = (params.friendly_formation_id, params.enemy_formation_id);
 
-    for (idx, ship) in friendly.iter_mut().enumerate() {
-        if !can_attack_night_ship(codex, ship) {
-            continue;
+    for idx in 0..friendly.len().max(enemy.len()) {
+        if idx < friendly.len() {
+            let forms = (friendly_form, enemy_form);
+            night_turn(
+                codex,
+                rng,
+                friendly,
+                idx,
+                enemy,
+                forms,
+                params.air_state,
+                false,
+                &mut hougeki,
+            );
         }
-        let Some(mut target_idx) =
-            select_random_target_index(codex, rng, ship, enemy, BattlePhase::NightShelling)
-        else {
-            continue;
-        };
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let shield = match crate::targeting::select_escort_shield(
-            codex,
-            rng,
-            enemy,
-            target_idx,
-            params.enemy_formation_id,
-        ) {
-            Some(escort) => {
-                target_idx = escort;
-                true
-            }
-            None => false,
-        };
-        let is_submarine = target_class(codex, &enemy[target_idx]).is_submarine();
-        let attack_type = resolve_night_attack(codex, rng, ship, idx == 0, is_submarine);
-        let hits = attack_type.hit_count();
-        let multiplier = attack_type.damage_multiplier();
+        if !any_alive(enemy) {
+            break;
+        }
+        if idx < enemy.len() {
+            let forms = (enemy_form, friendly_form);
+            night_turn(
+                codex,
+                rng,
+                enemy,
+                idx,
+                friendly,
+                forms,
+                params.air_state,
+                true,
+                &mut hougeki,
+            );
+        }
+        if !any_alive(friendly) {
+            break;
+        }
+    }
 
-        let mut hit_damages = Vec::new();
-        let mut hit_cls = Vec::new();
-        let mut total_dealt = 0i64;
+    (!hougeki.api_at_list.is_empty()).then_some(hougeki)
+}
 
-        for _ in 0..hits {
-            // ponytail: a night attack on a submarine always lands for scratch
-            // damage; give it the ASW roll when night ASW gets its own formula.
-            let outcome = if is_submarine {
-                HitOutcome::Hit
-            } else {
-                roll_attack(
-                    codex,
-                    rng,
-                    ship,
-                    &enemy[target_idx],
-                    Aim::new(
-                        AttackKind::Night,
-                        params.friendly_formation_id,
-                        params.enemy_formation_id,
-                    )
+/// One ship's night attack, if it can make one and has a target.
+#[expect(clippy::too_many_arguments)]
+fn night_turn(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attackers: &mut [BattleRuntimeShip],
+    idx: usize,
+    defenders: &mut [BattleRuntimeShip],
+    (attacker_formation, defender_formation): (i64, i64),
+    air_state: Option<&AirState>,
+    attacker_is_enemy: bool,
+    hougeki: &mut BattleNightHougeki,
+) {
+    let ship = &mut attackers[idx];
+    if !can_attack_night_ship(codex, ship) {
+        return;
+    }
+    let Some(mut target_idx) =
+        select_random_target_index(codex, rng, ship, defenders, BattlePhase::NightShelling)
+    else {
+        return;
+    };
+    // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+    let shield = match crate::targeting::select_escort_shield(
+        codex,
+        rng,
+        defenders,
+        target_idx,
+        defender_formation,
+    ) {
+        Some(escort) => {
+            target_idx = escort;
+            true
+        }
+        None => false,
+    };
+    let is_submarine = target_class(codex, &defenders[target_idx]).is_submarine();
+    let attack_type = resolve_night_attack(codex, rng, ship, idx == 0, is_submarine);
+    let hits = attack_type.hit_count();
+    let multiplier = attack_type.damage_multiplier();
+
+    let mut hit_damages = Vec::new();
+    let mut hit_cls = Vec::new();
+    let mut total_dealt = 0i64;
+
+    for _ in 0..hits {
+        // ponytail: a night attack on a submarine always lands for scratch
+        // damage; give it the ASW roll when night ASW gets its own formula.
+        let outcome = if is_submarine {
+            HitOutcome::Hit
+        } else {
+            roll_attack(
+                codex,
+                rng,
+                ship,
+                &defenders[target_idx],
+                Aim::new(AttackKind::Night, attacker_formation, defender_formation)
                     .with_modifier(attack_type.accuracy_modifier()),
-                )
-            };
-            let raw = if is_submarine {
-                calculate_scratch_damage(rng, enemy[target_idx].hp().max(1))
-            } else {
-                calculate_night_damage(
-                    codex,
-                    rng,
-                    ship,
-                    &enemy[target_idx],
-                    params.air_state,
-                    if multiplier != 1.0 {
-                        Some(multiplier)
-                    } else {
-                        None
-                    },
-                    outcome,
-                )
-            };
-            let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
-            total_dealt += dealt;
-            let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
-            hit_damages.push(display);
-            hit_cls.push(outcome.cl());
-        }
-        ship.damage_dealt += total_dealt;
-
-        at_eflag.push(0);
-        at_list.push(idx as i64);
-        n_mother_list.push(0);
-        df_list.push(vec![target_idx as i64; hits]);
-        si_list.push(night_si_entry(codex, ship, attack_type));
-        cl_list.push(hit_cls);
-        sp_list.push(attack_type.api_sp_list());
-        damage.push(
-            hit_damages
-                .into_iter()
-                .map(|d| {
-                    if shield {
-                        DamageCell::Shielded(d)
-                    } else {
-                        DamageCell::Plain(d)
-                    }
-                })
-                .collect(),
-        );
-    }
-
-    for (idx, ship) in enemy.iter_mut().enumerate() {
-        if !can_attack_night_ship(codex, ship) {
-            continue;
-        }
-        let Some(mut target_idx) =
-            select_random_target_index(codex, rng, ship, friendly, BattlePhase::NightShelling)
-        else {
-            continue;
+            )
         };
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let shield = match crate::targeting::select_escort_shield(
-            codex,
-            rng,
-            friendly,
-            target_idx,
-            params.friendly_formation_id,
-        ) {
-            Some(escort) => {
-                target_idx = escort;
-                true
-            }
-            None => false,
+        let raw = if is_submarine {
+            calculate_scratch_damage(rng, defenders[target_idx].hp().max(1))
+        } else {
+            calculate_night_damage(
+                codex,
+                rng,
+                ship,
+                &defenders[target_idx],
+                air_state,
+                if multiplier != 1.0 {
+                    Some(multiplier)
+                } else {
+                    None
+                },
+                outcome,
+            )
         };
-        let is_submarine = target_class(codex, &friendly[target_idx]).is_submarine();
-        let attack_type = resolve_night_attack(codex, rng, ship, idx == 0, is_submarine);
-        let hits = attack_type.hit_count();
-        let multiplier = attack_type.damage_multiplier();
-
-        let mut hit_damages = Vec::new();
-        let mut hit_cls = Vec::new();
-        let mut total_dealt = 0i64;
-
-        for _ in 0..hits {
-            // ponytail: a night attack on a submarine always lands for scratch
-            // damage; give it the ASW roll when night ASW gets its own formula.
-            let outcome = if is_submarine {
-                HitOutcome::Hit
-            } else {
-                roll_attack(
-                    codex,
-                    rng,
-                    ship,
-                    &friendly[target_idx],
-                    Aim::new(
-                        AttackKind::Night,
-                        params.enemy_formation_id,
-                        params.friendly_formation_id,
-                    )
-                    .with_modifier(attack_type.accuracy_modifier()),
-                )
-            };
-            let raw = if is_submarine {
-                calculate_scratch_damage(rng, friendly[target_idx].hp().max(1))
-            } else {
-                calculate_night_damage(
-                    codex,
-                    rng,
-                    ship,
-                    &friendly[target_idx],
-                    params.air_state,
-                    if multiplier != 1.0 {
-                        Some(multiplier)
-                    } else {
-                        None
-                    },
-                    outcome,
-                )
-            };
-            let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
-            total_dealt += dealt;
-            let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
-            hit_damages.push(display);
-            hit_cls.push(outcome.cl());
-        }
-        ship.damage_dealt += total_dealt;
-
-        at_eflag.push(1);
-        at_list.push(idx as i64);
-        n_mother_list.push(0);
-        df_list.push(vec![target_idx as i64; hits]);
-        si_list.push(night_si_entry(codex, ship, attack_type));
-        cl_list.push(hit_cls);
-        sp_list.push(attack_type.api_sp_list());
-        damage.push(
-            hit_damages
-                .into_iter()
-                .map(|d| {
-                    if shield {
-                        DamageCell::Shielded(d)
-                    } else {
-                        DamageCell::Plain(d)
-                    }
-                })
-                .collect(),
-        );
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        total_dealt += dealt;
+        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+        hit_damages.push(display);
+        hit_cls.push(outcome.cl());
     }
+    ship.damage_dealt += total_dealt;
 
-    if at_list.is_empty() {
-        return None;
-    }
-
-    Some(BattleNightHougeki {
-        api_at_eflag: at_eflag,
-        api_at_list: at_list,
-        api_n_mother_list: n_mother_list,
-        api_df_list: df_list,
-        api_si_list: si_list,
-        api_cl_list: cl_list,
-        api_sp_list: sp_list,
-        api_damage: damage,
-    })
+    hougeki.api_at_eflag.push(i64::from(attacker_is_enemy));
+    hougeki.api_at_list.push(idx as i64);
+    hougeki.api_n_mother_list.push(0);
+    hougeki.api_df_list.push(vec![target_idx as i64; hits]);
+    hougeki.api_si_list.push(night_si_entry(codex, ship, attack_type));
+    hougeki.api_cl_list.push(hit_cls);
+    hougeki.api_sp_list.push(attack_type.api_sp_list());
+    hougeki.api_damage.push(
+        hit_damages
+            .into_iter()
+            .map(|d| {
+                if shield {
+                    DamageCell::Shielded(d)
+                } else {
+                    DamageCell::Plain(d)
+                }
+            })
+            .collect(),
+    );
 }
 
 #[cfg(test)]
@@ -2550,5 +2492,31 @@ mod display_narrowing_tests {
             vec![-1]
         );
         assert!(zuiun_id > 0, "the ship really does carry something");
+    }
+
+    #[test]
+    fn the_two_fleets_fire_in_turn_down_their_lines() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut ship = sample_ship(&codex, dd_mst, 99);
+        ship.ship.api_soukou[0] = 400;
+        let fleet = || vec![BattleRuntimeShip::from(ship.clone()); 3];
+
+        let hougeki = simulate_night_hougeki(
+            &codex,
+            &mut crate::random::SeededRng::new(42),
+            &mut fleet(),
+            &mut fleet(),
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: crate::types::EngagementType::SameCourse,
+                air_state: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(hougeki.api_at_eflag, [0, 1, 0, 1, 0, 1]);
+        assert_eq!(hougeki.api_at_list, [0, 0, 1, 1, 2, 2]);
     }
 }

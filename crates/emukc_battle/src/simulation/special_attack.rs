@@ -579,14 +579,6 @@ pub(crate) fn try_special_attack(
 // Execution
 // ---------------------------------------------------------------------------
 
-/// Result of a special attack execution.
-pub(crate) struct SpecialAttackResult {
-    /// Hougeki entries for this special attack.
-    pub hougeki: BattleHougeki,
-    /// Indices of participating ships (to skip in normal shelling).
-    pub participant_indices: Vec<usize>,
-}
-
 /// Execute a resolved special attack, producing hougeki entries.
 pub(crate) fn execute_special_attack(
     codex: &Codex,
@@ -595,12 +587,11 @@ pub(crate) fn execute_special_attack(
     defenders: &mut [BattleRuntimeShip],
     resolved: ResolvedSpecialAttack,
     params: &ShellingParams,
-) -> SpecialAttackResult {
+) -> BattleHougeki {
     let attack_type_val = resolved.attack_type.api_value();
     let is_enemy = params.attacker_is_enemy;
 
     let mut hougeki = BattleHougeki::default();
-    let mut participant_indices = Vec::new();
 
     // T-disadvantage multiplier for Nelson Touch
     let t_disadv = matches!(params.engagement, EngagementType::TDisadvantage);
@@ -612,7 +603,6 @@ pub(crate) fn execute_special_attack(
 
     for (i, participant) in resolved.participants.iter().enumerate() {
         let fleet_idx = participant.fleet_index;
-        participant_indices.push(fleet_idx);
 
         let attacker = &mut attackers[fleet_idx];
         if !attacker.is_alive() {
@@ -709,10 +699,7 @@ pub(crate) fn execute_special_attack(
         );
     }
 
-    SpecialAttackResult {
-        hougeki,
-        participant_indices,
-    }
+    hougeki
 }
 
 // ---------------------------------------------------------------------------
@@ -882,13 +869,13 @@ mod tests {
         );
 
         assert!(
-            !result.hougeki.api_si_list.is_empty(),
+            !result.api_si_list.is_empty(),
             "special attack must push at least one si_list entry"
         );
         assert!(
-            result.hougeki.api_si_list.iter().flatten().any(|id| matches!(id, SiListId::Text(_))),
+            result.api_si_list.iter().flatten().any(|id| matches!(id, SiListId::Text(_))),
             "special attack si_list must contain string entries: {:?}",
-            result.hougeki.api_si_list
+            result.api_si_list
         );
     }
 
@@ -1091,14 +1078,73 @@ mod tests {
         );
 
         // Flagship (index 0) entry should have 2 damage values (2 hits)
-        let flagship_idx = result.hougeki.api_at_list.iter().position(|&i| i == 0).unwrap();
-        let flagship_damage = &result.hougeki.api_damage[flagship_idx];
+        let flagship_idx = result.api_at_list.iter().position(|&i| i == 0).unwrap();
+        let flagship_damage = &result.api_damage[flagship_idx];
         assert_eq!(
             flagship_damage.len(),
             2,
             "NagatoMutsu flagship should have 2 hits, got {}",
             flagship_damage.len()
         );
-        assert_eq!(result.hougeki.api_at_type[flagship_idx], 102);
+        assert_eq!(result.api_at_type[flagship_idx], 102);
+    }
+
+    /// The special attack takes the flagship's turn and nobody else's, and a
+    /// fleet that has made it does not make it again in the second round.
+    #[test]
+    fn a_special_attack_is_made_once_and_costs_only_the_flagship_her_turn() {
+        use crate::simulation::shelling::{ShellingRound, simulate_shelling_round};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let special = |round: &BattleHougeki| round.api_at_type.iter().any(|&t| t >= 100);
+
+        let mut made = 0;
+        for seed in 0..40 {
+            let mut friendly =
+                vec![sample_bb_at(&codex, NAGATO_K2_ID, 99), sample_bb_at(&codex, MUTSU_K2_ID, 99)];
+            let mut enemy =
+                vec![sample_bb_at(&codex, bb_mst, 99), sample_bb_at(&codex, bb_mst, 99)];
+            for ship in &mut enemy {
+                ship.ship.api_soukou[0] = 1000;
+            }
+            let mut rng = crate::random::SeededRng::new(seed);
+            let mut used = [false; 2];
+            let mut round = |by_range| {
+                let round = ShellingRound {
+                    friendly_deck: 0..2,
+                    enemy_deck: 0..2,
+                    by_range,
+                    friendly_formation: FORMATION_ECHELON,
+                    enemy_formation: 1,
+                    engagement: crate::types::EngagementType::SameCourse,
+                    air_state: None,
+                };
+                simulate_shelling_round(
+                    &codex,
+                    &mut rng,
+                    &mut friendly,
+                    &mut enemy,
+                    &round,
+                    &mut used,
+                )
+                .unwrap()
+            };
+            let first = round(true);
+            let second = round(false);
+            if !special(&first) {
+                continue;
+            }
+            made += 1;
+            let companion_attacks = first
+                .api_at_eflag
+                .iter()
+                .zip(&first.api_at_list)
+                .filter(|(eflag, attacker)| **eflag == 0 && **attacker == 1)
+                .count();
+            assert_eq!(companion_attacks, 2, "seed {seed}: once in the special attack, once alone");
+            assert!(!special(&second), "seed {seed}: made again in the second round");
+        }
+        assert!(made > 0, "no seed made the special attack, so nothing was tested");
     }
 }
