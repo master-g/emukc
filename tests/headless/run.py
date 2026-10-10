@@ -158,7 +158,7 @@ def after_battle(battle: dict) -> list[int]:
     return [max(hp, 0) for hp in left]
 
 
-def check_gunnery_cutin(work: Path) -> list[str]:
+def check_fair_battle(work: Path) -> list[str]:
     problems = []
     day = responses(work, "api_req_sortie/battle")[0]
     left = after_battle(day)
@@ -175,17 +175,20 @@ def check_gunnery_cutin(work: Path) -> list[str]:
     return problems
 
 
+FAIR_2_1 = (
+    f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+    "u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home"
+)
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
     # 南西諸島海域, 2-1, without the cheats: one battle, into the night if it is offered (夜戦突入
     # sits where 撤退 does on the next choice), and home. What the packets say the fleet was
     # left with has to be what it comes home with.
-    "gunnery_cutin": (
-        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
-        "u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
-        check_gunnery_cutin,
-    ),
+    "gunnery_cutin": (FAIR_2_1, check_fair_battle),
+    # The same with six destroyers, who seldom finish by day: this is the one that reaches the night.
+    "leveled_for_mid_boss": (FAIR_2_1, check_fair_battle),
     # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
     "transport_5_6": (
         f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
@@ -235,7 +238,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

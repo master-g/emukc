@@ -108,6 +108,8 @@ screen, pass steps on the command line and read the screenshots:
   rather than a value: the fleet's hit points after every attack in the day packet are what
   the night packet starts from, and what is left after that is what `api_port/port` answers.
   夜戦突入 sits where 撤退 does on the next choice (770, 365), so one spot serves both.
+  `leveled_for_mid_boss` is the same sortie with six destroyers, who seldom finish by day: it
+  is the one that reaches the night battle.
 
 ## Limits
 

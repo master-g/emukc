@@ -196,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] PR #28–#31 已合并（命中与暴击、无头检查走虚拟时间）。分支 `test/headless-fair-battle`：新增不开无敌的无头场景
-  `gunnery_cutin`，跑三次全过；发现单舰队昼战每轮炮击只有一方出手，已记入 `TODO.md`，未修。
+- [2026-10-10] 新增两个不开无敌的无头场景 `gunnery_cutin`、`leveled_for_mid_boss`（后者能打到夜战），检查的是昼战包、夜战包
+  与回港血量三者一致。昼战后手方不开炮的问题在 `fix/day-shelling-order`、`fix/phase-order-rest` 两条分支里修。
 
 ## Next Session
 
