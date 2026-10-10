@@ -37,7 +37,9 @@ whether the order is by range.
   (`BattleRng`, a shuffle followed by a stable sort). A ship's range is its own or that of the
   longest piece it carries: `api_leng` on the ship does not include equipment.
 - A second round goes down the line.
-- The flagship's special attack is decided when the flagship's turn comes.
+- The flagship's special attack is decided when the flagship's turn comes and takes that
+  turn only: the ships that join it still fire on their own. A side makes it once in a day
+  battle (`BattleState::special_attack_used`), so a second round does not roll it again.
 - Every index written is a position in the whole fleet (`append_turn` lifts them), so the
   combined paths need no shifting afterwards.
 
@@ -64,8 +66,8 @@ enemy did (plan `docs/plans/2026-10-10-002`):
 
 ## Not modelled
 
-- A special attack can be rolled in each round and its participants lose the turns they have
-  not taken yet; the source rolls it once a battle and lets them fire again.
+- The once-a-battle rule stops at the day battle: the night battle is a request of its own and
+  does not know a special attack was made by day.
 - Submarines joining the order when the other side has an installation.
 - The 39% split of a combined fleet's targets between main and escort.
 - Star shells, searchlights and night contact; when a night special attack is decided; the

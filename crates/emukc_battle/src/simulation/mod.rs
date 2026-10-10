@@ -201,7 +201,14 @@ fn shelling_round(
         engagement: state.engagement(),
         air_state: air_state.as_ref(),
     };
-    shelling::simulate_shelling_round(codex, rng, &mut state.friendly, &mut state.enemy, &round)
+    shelling::simulate_shelling_round(
+        codex,
+        rng,
+        &mut state.friendly,
+        &mut state.enemy,
+        &round,
+        &mut state.special_attack_used,
+    )
 }
 
 /// Simulate a day battle for a friendly single fleet against an enemy combined
