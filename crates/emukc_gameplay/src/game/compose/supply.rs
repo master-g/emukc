@@ -101,15 +101,21 @@ where
             // not the raw manifest maxeq
             let max_eq = onslot_max_of(codex, &ship);
             let mut plane_lost = 0;
-            [(max_eq[0], ship.onslot_1, &mut am.onslot_1)].into_iter().for_each(
-                |(max, current, am_current)| {
-                    let lost = max - current;
-                    if lost > 0 {
-                        plane_lost += lost;
-                        *am_current = ActiveValue::Set(max);
-                    }
-                },
-            );
+            [
+                (max_eq[0], ship.onslot_1, &mut am.onslot_1),
+                (max_eq[1], ship.onslot_2, &mut am.onslot_2),
+                (max_eq[2], ship.onslot_3, &mut am.onslot_3),
+                (max_eq[3], ship.onslot_4, &mut am.onslot_4),
+                (max_eq[4], ship.onslot_5, &mut am.onslot_5),
+            ]
+            .into_iter()
+            .for_each(|(max, current, am_current)| {
+                let lost = max - current;
+                if lost > 0 {
+                    plane_lost += lost;
+                    *am_current = ActiveValue::Set(max);
+                }
+            });
 
             material_consumes[3] += plane_lost * 5;
         }

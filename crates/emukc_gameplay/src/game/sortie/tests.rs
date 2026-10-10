@@ -112,6 +112,8 @@ fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
         friendly_ship_ids: vec![],
         enemy_ship_ids: vec![],
         friendly_nowhps: vec![],
+        friendly_onslots: vec![],
+        air_battle: false,
         enemy_ship_types: vec![],
         win_rank: "S".to_string(),
         get_exp: 0,
@@ -190,6 +192,8 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             friendly_ship_ids: session.friendly_ship_ids.clone(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
+            friendly_onslots: vec![],
+            air_battle: false,
             enemy_ship_types: vec![0; session.enemy_ship_ids.len()],
             win_rank: session.outcome.win_rank.to_string(),
             get_exp: 0,
@@ -282,6 +286,8 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
             friendly_ship_ids: session.friendly_ship_ids.clone(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
+            friendly_onslots: vec![],
+            air_battle: false,
             enemy_ship_types: session
                 .enemy_ship_ids
                 .iter()

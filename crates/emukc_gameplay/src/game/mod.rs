@@ -37,6 +37,7 @@ mod pay_item;
 mod picturebook;
 mod practice;
 mod presets;
+mod proficiency;
 mod quest;
 mod remodel_slot;
 mod route_probe;

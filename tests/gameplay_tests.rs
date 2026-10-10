@@ -86,3 +86,6 @@ mod battle_golden;
 
 #[path = "gameplay_tests/combined_sortie.rs"]
 mod combined_sortie;
+
+#[path = "gameplay_tests/plane_proficiency.rs"]
+mod plane_proficiency;

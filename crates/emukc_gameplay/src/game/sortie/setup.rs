@@ -353,6 +353,8 @@ impl SortieBattleSetup {
             friendly_ship_ids: session.friendly_ship_ids.clone(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps,
+            friendly_onslots: session.friendly.iter().map(|f| f.ship.api_onslot).collect(),
+            air_battle: session.packet.kouku.is_some(),
             mvp_combined,
             get_ship_exp_combined,
             get_exp_lvup_combined,

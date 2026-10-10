@@ -259,6 +259,7 @@ mod tests {
             locked: ActiveValue::Set(false),
             level: ActiveValue::Set(0),
             aircraft_lv: ActiveValue::Set(0),
+            aircraft_exp: ActiveValue::Set(0),
             equip_on: ActiveValue::Set(0),
             ..Default::default()
         };
@@ -272,6 +273,7 @@ mod tests {
             locked: ActiveValue::Set(false),
             level: ActiveValue::Set(0),
             aircraft_lv: ActiveValue::Set(0),
+            aircraft_exp: ActiveValue::Set(0),
             equip_on: ActiveValue::Set(42), // equipped on ship 42
             ..Default::default()
         };
@@ -296,6 +298,7 @@ mod tests {
             locked: ActiveValue::Set(true),
             level: ActiveValue::Set(0),
             aircraft_lv: ActiveValue::Set(0),
+            aircraft_exp: ActiveValue::Set(0),
             equip_on: ActiveValue::Set(0),
             ..Default::default()
         };
@@ -319,6 +322,7 @@ mod tests {
                 locked: ActiveValue::Set(false),
                 level: ActiveValue::Set(level),
                 aircraft_lv: ActiveValue::Set(0),
+                aircraft_exp: ActiveValue::Set(0),
                 equip_on: ActiveValue::Set(0),
                 ..Default::default()
             };

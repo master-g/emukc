@@ -101,8 +101,8 @@ So the flags are set whenever a strike is flown at a target, whether or not it l
 
 Each is a correction the source applies on top: proficiency for the air corps, the night air
 attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; proficiency in
-fighter power; its growth after a battle and its loss with a wiped slot (nothing on the server
-changes `aircraft_lv` after the equipment is handed out); gun fit, 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
+fighter power (how it grows and falls is in `plane-losses-and-proficiency-growth.md`); gun fit,
+改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
 A night attack on a submarine still always lands for scratch damage. Abyssal ships fight at
