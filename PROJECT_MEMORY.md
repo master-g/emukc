@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `fix/headless-time-limit`
+Last updated: 2026-10-10 · branch `main`
 
 ## Verified Facts
 
@@ -198,7 +198,7 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-10] PR #36–#38 已合并（熟练度进战斗、损失入库与成长、逐槽损失；旧库移为 `.data/emukc.db.bak-2026-10-10`）。
-  分支 `fix/headless-time-limit`：无头脚本加 300 秒总时限；`gunnery_cutin` 通过。
+  PR #39：无头脚本加 300 秒总时限；`gunnery_cutin` 通过。
 
 ## Next Session
 
