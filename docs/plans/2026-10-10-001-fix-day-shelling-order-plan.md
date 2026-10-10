@@ -2,7 +2,7 @@
 title: "Day Shelling: Both Sides Fire in Every Round, Ship by Ship - Plan"
 type: fix
 date: 2026-10-10
-status: planned
+status: implemented
 execution: code
 ---
 
@@ -96,6 +96,18 @@ execution: code
 
 `docs/solutions/architecture-patterns/` 记一篇炮击顺序；`docs/battle/combined-fleet-reference.md` 里若写了
 按航速定先手则改掉；`TODO.md` 那一条勾掉；回写 `PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-10）
+
+- U1–U3 按计划做完；`merge_hougeki`、`shift_enemy_indices`、`shift_friendly_attackers`、`fleet_speed`、
+  `enemy_shells_first` 删除，`execute_shelling1/2` 合成 `execute_shelling`。
+- 基线：20 个昼战文本基线重新冻结（夜战的 20 个没变）；`battle_golden.rs` 重新冻结——同射程的两艘舰现在
+  洗牌定先后，种子 1 下 F2 先出手并暴击击沉，F1 不再出手，MVP 由 F1 变 F2。
+- 换种子：`sortie_battle.rs` 的 `DROP_SEED` 1→3。
+- 30 个种子的敌方炮击次数：`leveled_for_mid_boss` 0→122，`transport_5_6` 0→159，`gunnery_cutin` 106（两轮都有双方）。
+- 无头检查 `fresh_1_1`、`transport_5_6` 通过；用 `test/headless-fair-battle` 分支上的 `gunnery_cutin`（不开无敌）
+  跑了两次也通过，包里 `api_at_eflag` 是交替的。
+- `combined-fleet-reference.md` 没有按航速定先手的说法，不用改。`TODO.md` 里那一条在另一个未合并的分支上。
 
 ## Stop Conditions
 

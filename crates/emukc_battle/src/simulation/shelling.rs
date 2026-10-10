@@ -6,9 +6,14 @@ use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::day_cutin::{day_accuracy_modifier, resolve_day_attack};
 use crate::simulation::special_attack;
-use crate::targeting::{can_shell_day_ship, select_random_target_index, target_class};
-use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, ShellingParams};
+use crate::targeting::{any_alive, can_shell_day_ship, select_random_target_index, target_class};
+use crate::types::{
+    AirState, BattleHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
+    ShellingParams,
+};
 use emukc_model::codex::Codex;
+use emukc_model::kc2::start2::ApiMstSlotitem;
+use std::ops::Range;
 
 /// Maximum ships per fleet. Caps the special-attack skip array.
 ///
@@ -16,7 +21,155 @@ use emukc_model::codex::Codex;
 /// never both, so the indices here stay deck-local.
 const MAX_FLEET_SIZE: usize = 6;
 
-/// Simulate one side's shelling attacks in a day battle.
+/// One round of day shelling: who fires, at whom, and in what order.
+pub(crate) struct ShellingRound<'a> {
+    /// The friendly ships that fire this round. The enemy fires at the whole
+    /// friendly force whichever deck this is.
+    pub friendly_deck: Range<usize>,
+    /// The enemy ships that fire this round and are fired at.
+    pub enemy_deck: Range<usize>,
+    /// Longest range first, as in a first round; fleet position otherwise.
+    pub by_range: bool,
+    pub friendly_formation: i64,
+    pub enemy_formation: i64,
+    pub engagement: EngagementType,
+    pub air_state: Option<&'a AirState>,
+}
+
+/// Simulate one round of day shelling. The two sides fire ship by ship in
+/// turn, the friendly side first: its first ship, the enemy's first, its
+/// second, and so on down the two orders. Every index written is a position in
+/// the whole fleet, whichever deck the round belongs to.
+pub(crate) fn simulate_shelling_round(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    friendly: &mut [BattleRuntimeShip],
+    enemy: &mut [BattleRuntimeShip],
+    round: &ShellingRound,
+) -> Option<BattleHougeki> {
+    let friendly_params = ShellingParams {
+        attacker_is_enemy: false,
+        formation_id: round.friendly_formation,
+        defender_formation_id: round.enemy_formation,
+        engagement: round.engagement,
+        phase: BattlePhase::DayShelling,
+        air_state: round.air_state,
+    };
+    let enemy_params = ShellingParams {
+        attacker_is_enemy: true,
+        formation_id: round.enemy_formation,
+        defender_formation_id: round.friendly_formation,
+        ..friendly_params
+    };
+    let (friendly_at, enemy_at) = (round.friendly_deck.start, round.enemy_deck.start);
+
+    let friendly_los = fleet_los(&friendly[round.friendly_deck.clone()]);
+    let enemy_los = fleet_los(&enemy[round.enemy_deck.clone()]);
+    // The orders are fixed when the round begins; a ship sunk before its turn
+    // comes loses it.
+    let friendly_order =
+        shelling_order(codex, rng, &friendly[round.friendly_deck.clone()], round.by_range);
+    let enemy_order = shelling_order(codex, rng, &enemy[round.enemy_deck.clone()], round.by_range);
+
+    let mut hougeki = BattleHougeki::default();
+    let mut friendly_skip = [false; MAX_FLEET_SIZE];
+    let mut enemy_skip = [false; MAX_FLEET_SIZE];
+    for turn in 0..friendly_order.len().max(enemy_order.len()) {
+        if let Some(&idx) = friendly_order.get(turn) {
+            let fired = shell_turn(
+                codex,
+                rng,
+                &mut friendly[round.friendly_deck.clone()],
+                idx,
+                &mut enemy[round.enemy_deck.clone()],
+                &friendly_params,
+                friendly_los,
+                &mut friendly_skip,
+            );
+            append_turn(&mut hougeki, fired, friendly_at, enemy_at);
+        }
+        if !any_alive(&enemy[round.enemy_deck.clone()]) {
+            break;
+        }
+        if let Some(&idx) = enemy_order.get(turn) {
+            let fired = shell_turn(
+                codex,
+                rng,
+                &mut enemy[round.enemy_deck.clone()],
+                idx,
+                friendly,
+                &enemy_params,
+                enemy_los,
+                &mut enemy_skip,
+            );
+            append_turn(&mut hougeki, fired, enemy_at, 0);
+        }
+        if !any_alive(friendly) {
+            break;
+        }
+    }
+
+    (!hougeki.api_at_list.is_empty()).then_some(hougeki)
+}
+
+fn fleet_los(ships: &[BattleRuntimeShip]) -> i64 {
+    ships.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum()
+}
+
+/// The ships of one side that can shell, in the order they will: longest range
+/// first with equal ranges in random order, or simply down the line.
+fn shelling_order(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    ships: &[BattleRuntimeShip],
+    by_range: bool,
+) -> Vec<usize> {
+    let mut order: Vec<usize> =
+        (0..ships.len()).filter(|&idx| can_shell_day_ship(codex, &ships[idx])).collect();
+    if by_range {
+        for last in (1..order.len()).rev() {
+            order.swap(last, rng.roll_range(0, last as i64 + 1) as usize);
+        }
+        // Stable, so the shuffle is what orders ships of one range.
+        order.sort_by_key(|&idx| std::cmp::Reverse(shelling_range(codex, &ships[idx])));
+    }
+    order
+}
+
+/// A ship's range: its own or that of the longest piece it carries.
+fn shelling_range(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+    ship.slot_items
+        .iter()
+        .filter_map(|item| codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok())
+        .map(|mst| mst.api_leng)
+        .fold(ship.ship.api_leng, i64::max)
+}
+
+/// Add what one ship fired to the round, lifting the indices of its own slice
+/// and of its targets' slice to positions in the whole fleets.
+fn append_turn(
+    round: &mut BattleHougeki,
+    mut fired: BattleHougeki,
+    attacker_at: usize,
+    defender_at: usize,
+) {
+    for attacker in &mut fired.api_at_list {
+        *attacker += attacker_at as i64;
+    }
+    for defender in fired.api_df_list.iter_mut().flatten().filter(|d| **d >= 0) {
+        *defender += defender_at as i64;
+    }
+    round.api_at_eflag.extend(fired.api_at_eflag);
+    round.api_at_list.extend(fired.api_at_list);
+    round.api_at_type.extend(fired.api_at_type);
+    round.api_df_list.extend(fired.api_df_list);
+    round.api_si_list.extend(fired.api_si_list);
+    round.api_cl_list.extend(fired.api_cl_list);
+    round.api_damage.extend(fired.api_damage);
+}
+
+/// One side shelling down its line with no answer from the other.
+#[cfg(test)]
 pub(crate) fn simulate_shelling_side(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -24,19 +177,38 @@ pub(crate) fn simulate_shelling_side(
     defenders: &mut [BattleRuntimeShip],
     params: &ShellingParams,
 ) -> Option<BattleHougeki> {
-    let fleet_los = attackers.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum();
-
+    let los = fleet_los(attackers);
     let mut hougeki = BattleHougeki::default();
-    let mut special_attack_skip = [false; MAX_FLEET_SIZE];
+    let mut skip = [false; MAX_FLEET_SIZE];
+    for idx in 0..attackers.len() {
+        let fired = shell_turn(codex, rng, attackers, idx, defenders, params, los, &mut skip);
+        append_turn(&mut hougeki, fired, 0, 0);
+    }
+    (!hougeki.api_at_list.is_empty()).then_some(hougeki)
+}
 
-    // Try flagship special attack before normal shelling loop
-    if let Some(resolved) =
-        special_attack::try_special_attack(codex, rng, attackers, params.formation_id)
+/// What the ship at `idx` fires when its turn comes: nothing, one attack, or
+/// from the flagship the whole of a special attack. Indices are those of the
+/// two slices.
+#[expect(clippy::too_many_arguments)]
+fn shell_turn(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attackers: &mut [BattleRuntimeShip],
+    idx: usize,
+    defenders: &mut [BattleRuntimeShip],
+    params: &ShellingParams,
+    fleet_los: i64,
+    special_attack_skip: &mut [bool; MAX_FLEET_SIZE],
+) -> BattleHougeki {
+    // A flagship special attack is decided when the flagship's turn comes.
+    if idx == 0
+        && let Some(resolved) =
+            special_attack::try_special_attack(codex, rng, attackers, params.formation_id)
     {
         let result = special_attack::execute_special_attack(
             codex, rng, attackers, defenders, resolved, params,
         );
-        hougeki = result.hougeki;
         for &i in &result.participant_indices {
             debug_assert!(
                 i < MAX_FLEET_SIZE,
@@ -46,122 +218,88 @@ pub(crate) fn simulate_shelling_side(
                 special_attack_skip[i] = true;
             }
         }
+        return result.hougeki;
     }
 
-    for (idx, ship) in attackers.iter_mut().enumerate() {
-        if idx < MAX_FLEET_SIZE && special_attack_skip[idx] {
-            continue;
+    let mut hougeki = BattleHougeki::default();
+    if idx < MAX_FLEET_SIZE && special_attack_skip[idx] {
+        return hougeki;
+    }
+    let ship = &mut attackers[idx];
+    if !can_shell_day_ship(codex, ship) {
+        return hougeki;
+    }
+    let Some(mut target_idx) =
+        select_random_target_index(codex, rng, ship, defenders, params.phase)
+    else {
+        return hougeki;
+    };
+    // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+    let shield = match crate::targeting::select_escort_shield(
+        codex,
+        rng,
+        defenders,
+        target_idx,
+        params.defender_formation_id,
+    ) {
+        Some(escort) => {
+            target_idx = escort;
+            true
         }
-        if !can_shell_day_ship(codex, ship) {
-            continue;
-        }
-        let Some(mut target_idx) =
-            select_random_target_index(codex, rng, ship, defenders, params.phase)
-        else {
-            continue;
-        };
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let shield = match crate::targeting::select_escort_shield(
+        None => false,
+    };
+    let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
+
+    if is_asw_attack {
+        let outcome = roll_attack(
             codex,
             rng,
-            defenders,
-            target_idx,
-            params.defender_formation_id,
-        ) {
-            Some(escort) => {
-                target_idx = escort;
-                true
-            }
-            None => false,
-        };
-        let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
+            ship,
+            &defenders[target_idx],
+            Aim::new(AttackKind::Asw, params.formation_id, params.defender_formation_id),
+        );
+        let raw = calculate_asw_damage(
+            codex,
+            rng,
+            ship,
+            &defenders[target_idx],
+            params.formation_id,
+            params.engagement,
+            outcome,
+        );
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        if !params.attacker_is_enemy {
+            ship.damage_dealt += dealt;
+        }
+        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
 
-        if is_asw_attack {
-            let outcome = roll_attack(
-                codex,
-                rng,
-                ship,
-                &defenders[target_idx],
-                Aim::new(AttackKind::Asw, params.formation_id, params.defender_formation_id),
-            );
-            let raw = calculate_asw_damage(
-                codex,
-                rng,
-                ship,
-                &defenders[target_idx],
-                params.formation_id,
-                params.engagement,
-                outcome,
-            );
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
-            if !params.attacker_is_enemy {
-                ship.damage_dealt += dealt;
-            }
-            let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+        hougeki.record_day_attack(
+            DayAttackKind::Asw(codex, ship),
+            params.attacker_is_enemy,
+            idx,
+            vec![target_idx as i64],
+            vec![damage_cell(display, shield)],
+            vec![outcome.cl()],
+        );
+    } else {
+        let resolved = resolve_day_attack(codex, rng, ship, params.air_state, fleet_los, idx);
 
-            hougeki.record_day_attack(
-                DayAttackKind::Asw(codex, ship),
-                params.attacker_is_enemy,
-                idx,
-                vec![target_idx as i64],
-                vec![damage_cell(display, shield)],
-                vec![outcome.cl()],
-            );
+        let ci_mult = if resolved.damage_multiplier != 1.0 {
+            Some(resolved.damage_multiplier)
         } else {
-            let resolved = resolve_day_attack(codex, rng, ship, params.air_state, fleet_los, idx);
+            None
+        };
 
-            let ci_mult = if resolved.damage_multiplier != 1.0 {
-                Some(resolved.damage_multiplier)
-            } else {
-                None
-            };
+        let aim = Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
+            .with_modifier(day_accuracy_modifier(resolved.at_type, resolved.carrier_sub));
 
-            let aim =
-                Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
-                    .with_modifier(day_accuracy_modifier(resolved.at_type, resolved.carrier_sub));
-
-            if resolved.hit_count == 2 {
-                // DoubleAttack: 2 hits on the same target
-                let mut damages = Vec::with_capacity(2);
-                let mut cls = Vec::with_capacity(2);
-                for _ in 0..2 {
-                    let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
-                    cls.push(outcome.cl());
-                    let raw = calculate_shelling_damage(
-                        codex,
-                        rng,
-                        ship,
-                        &defenders[target_idx],
-                        params.formation_id,
-                        params.engagement,
-                        ci_mult,
-                        outcome,
-                    );
-                    let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
-                    if !params.attacker_is_enemy {
-                        ship.damage_dealt += dealt;
-                    }
-                    damages.push(crate::targeting::display_damage(
-                        &defenders[target_idx],
-                        raw_dmg,
-                        dealt,
-                    ));
-                }
-                hougeki.record_day_attack(
-                    DayAttackKind::Shelling {
-                        codex,
-                        ship,
-                        at_type: resolved.at_type,
-                        carrier_sub: resolved.carrier_sub,
-                    },
-                    params.attacker_is_enemy,
-                    idx,
-                    vec![target_idx as i64; 2],
-                    damages.into_iter().map(|d| damage_cell(d, shield)).collect(),
-                    cls,
-                );
-            } else {
+        if resolved.hit_count == 2 {
+            // DoubleAttack: 2 hits on the same target
+            let mut damages = Vec::with_capacity(2);
+            let mut cls = Vec::with_capacity(2);
+            for _ in 0..2 {
                 let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
+                cls.push(outcome.cl());
                 let raw = calculate_shelling_damage(
                     codex,
                     rng,
@@ -176,26 +314,58 @@ pub(crate) fn simulate_shelling_side(
                 if !params.attacker_is_enemy {
                     ship.damage_dealt += dealt;
                 }
-                let display =
-                    crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-                hougeki.record_day_attack(
-                    DayAttackKind::Shelling {
-                        codex,
-                        ship,
-                        at_type: resolved.at_type,
-                        carrier_sub: resolved.carrier_sub,
-                    },
-                    params.attacker_is_enemy,
-                    idx,
-                    vec![target_idx as i64],
-                    vec![damage_cell(display, shield)],
-                    vec![outcome.cl()],
-                );
+                damages.push(crate::targeting::display_damage(
+                    &defenders[target_idx],
+                    raw_dmg,
+                    dealt,
+                ));
             }
+            hougeki.record_day_attack(
+                DayAttackKind::Shelling {
+                    codex,
+                    ship,
+                    at_type: resolved.at_type,
+                    carrier_sub: resolved.carrier_sub,
+                },
+                params.attacker_is_enemy,
+                idx,
+                vec![target_idx as i64; 2],
+                damages.into_iter().map(|d| damage_cell(d, shield)).collect(),
+                cls,
+            );
+        } else {
+            let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
+            let raw = calculate_shelling_damage(
+                codex,
+                rng,
+                ship,
+                &defenders[target_idx],
+                params.formation_id,
+                params.engagement,
+                ci_mult,
+                outcome,
+            );
+            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+            if !params.attacker_is_enemy {
+                ship.damage_dealt += dealt;
+            }
+            let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+            hougeki.record_day_attack(
+                DayAttackKind::Shelling {
+                    codex,
+                    ship,
+                    at_type: resolved.at_type,
+                    carrier_sub: resolved.carrier_sub,
+                },
+                params.attacker_is_enemy,
+                idx,
+                vec![target_idx as i64],
+                vec![damage_cell(display, shield)],
+                vec![outcome.cl()],
+            );
         }
     }
-
-    (!hougeki.api_at_list.is_empty()).then_some(hougeki)
+    hougeki
 }
 
 /// Wrap a display-damage value, flagging it as shield-intercepted when `shield`.
@@ -330,7 +500,6 @@ mod tests {
         );
 
         // Verify no friendly shelling attack came from index 0 (carrier)
-        // regardless of which side goes first due to fleet speed
         let all_at_eflags: Vec<i64> = simulation
             .packet
             .hougeki1
@@ -759,7 +928,7 @@ mod tests {
 
     #[test]
     fn special_attack_skip_marks_participants_and_spares_others() {
-        // Mirror the production loop in `simulate_shelling_side`: when a special attack
+        // Mirror the production code in `shell_turn`: when a special attack
         // produces participant indices 0/2/4, the skip array must mark exactly those
         // slots as true. Indices 1/3/5 (and any future slot) must remain attackable.
         const MAX_FLEET_SIZE: usize = super::MAX_FLEET_SIZE;

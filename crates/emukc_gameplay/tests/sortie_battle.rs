@@ -537,7 +537,7 @@ async fn repo_assets_support_real_map_boss_progression() {
     );
 }
 
-const DROP_SEED: u64 = 1;
+const DROP_SEED: u64 = 3;
 
 #[tokio::test]
 async fn sortie_battle_result_grants_ship_drop_from_repo_map_assets() {
