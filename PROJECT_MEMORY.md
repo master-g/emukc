@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `feat/anti-air-cut-in`
+Last updated: 2026-10-10 · branch `docs/memory-pointers`
 
 ## Verified Facts
 
@@ -52,8 +52,7 @@ Current verification baseline:
 - [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
-- [2026-10-08] 基地航空隊的全貌、数值出处、「不带航空队的战斗不多抽随机数」与基地空袭：`docs/solutions/architecture-patterns/air-corps.md`。
-- [2026-10-08] 基地航空隊的可配属机种、每中隊機数、配属扣铝都以客户端为准（`getEquipTypes`、`getKadouCount`，见计划 2026-09-22-001 订正段）；补给每機 燃料 3 / ボーキ 5。
+- [2026-10-09] 基地航空隊（全貌、数值出处、可配属机种与機数、疲劳、基地空袭、「不带航空队的战斗不多抽随机数」）：`docs/solutions/architecture-patterns/air-corps.md`。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
   `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
   两者不互补。`docs/apilist.txt` 是字段**语义**最全来源，解码客户端才是字段**是否存在**的真源。
@@ -148,16 +147,11 @@ Current verification baseline:
   5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
   服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
-- [2026-10-06] 路由规则由羅針盤シミュ源码（`X-20A/X-20A.github.io` 的 **`compass_dev`** 分支，MIT；`main` 只有压缩产物）
-  确定性转换，对拍零差异。详见 `docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
-- [2026-10-07] 装備ボーナス：数据取 KC3Kai `GearBonus.js`（钉住提交，MIT），Rust 是其读取函数的移植，客户端
-  `SlotItemEffectUtil` 只用来对拍。KC3Kai 与客户端的 82 条差异由手工订正层 `main-decoder/gear-bonus-corrections.json` 补平（多数是拟合出来的）。
-  分歧处客户端对：noro6 `kc-web` 的 `ItemBonus.ts` 与 wikiwiki 实测都同客户端（571 ★9 回避 +6 是真的），别因数值大改回 KC3Kai。
-  详见 `docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
-- [2026-10-09] 航空隊疲劳数值全部来自 wikiwiki 且该页自标「推測される値」；疲劳不影响战斗。内部值/双行槽位/加列回填的做法见
-  `docs/solutions/architecture-patterns/air-corps.md`「Condition and relocation run on one timestamp」。
+- [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
+- [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 - [2026-10-10] 対空カットイン：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度不单做打空清零，见 `air-corps.md`。
+- [2026-10-10] 质量门是 `clippy --workspace --all-targets -- -D warnings`（钩子同款，全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
 
@@ -174,9 +168,7 @@ Current verification baseline:
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
-| [2026-09-18] `-W warnings` and `cargo test` never fail on warnings; a test-target `dead_code` slipped through U1. Gates must run `clippy --all-targets` and fail on warnings in touched files. | git `0066096`, `.farm/deepen-u3-gate.sh` |
 | [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
-| `cargo clippy` 默认档比 `-D warnings` 宽（漏过 `match`→`let-else`），但 `-D` 会被既有的 `result_large_err`（`emukc_network/src/download.rs:236`、`src/bin/net/auth.rs:139`）挡住。仓库门是 `-W warnings`；新代码用 touched-file 的 `-D` 检查。 | plan 004 U7、sessions 2026-09-18/19 |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only there registers nothing. | session 2026-09-19 |
 | [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` 给假结果：`.bak` 保留原 mtime，cargo 认为没变，复用按**改动后**源码编出的产物。还原后必须 `touch` 再跑。 | session 2026-09-19 |
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
@@ -193,16 +185,15 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
-| [2026-10-10] 根目录 `cargo test` 只跑根包；全量要 `--workspace`。 | session 2026-10-10 |
 
 ## Last Session
 
-- [2026-10-10] 三条叠放的本地分支，均未推送：`feat/proficiency-fighter-power` → `feat/air-corps-proficiency` →
-  `feat/anti-air-cut-in`（计划 2026-10-10-007/008/009）。门与无头场景均通过。
+- [2026-10-10] 四条叠放的分支：`feat/proficiency-fighter-power` → `feat/air-corps-proficiency` →
+  `feat/anti-air-cut-in`（计划 2026-10-10-007/008/009，PR #40–#42 待合并）；质量门另从 `main` 开在 `chore/quality-gates`。
 
 ## Next Session
 
-- [2026-10-10] 先推送并按顺序开三个 PR。之后的候选：点名舰的対空カットイン种别、航空队熟练度的成长/损耗/清零（三者一起）、
+- [2026-10-10] 按顺序合并 #40–#42 与质量门的 PR。之后的候选：点名舰的対空カットイン种别、航空队熟练度的成长/损耗/清零（三者一起）、
   夜间航空攻击的熟练度。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
