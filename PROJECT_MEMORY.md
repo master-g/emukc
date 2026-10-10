@@ -196,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] 分支 `fix/phase-order-rest`（计划 `2026-10-10-002`，接在 `-001` 之后）：先制对潜、夜战改成双方逐舰交替，雷击同时结算，
-  特殊攻击每场昼战一次且只占旗舰那一手；fmt、clippy 17、1271 测试全过，无头检查含夜战通过。
+- [2026-10-10] PR #32–#34 已合并（不开无敌的无头场景；各阶段双方逐舰交替、雷击同时结算）。分支 `fix/sinking-protection-and-enemy-air-state`
+  （计划 `2026-10-10-003`）：击沉保护按当前血量、敌方用自己的制空状态；fmt、clippy 17、1273 测试全过，无头检查通过；未推送。
 
 ## Next Session
 

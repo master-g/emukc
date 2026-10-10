@@ -174,18 +174,25 @@ mod tests {
     }
 
     #[test]
-    fn protection_uses_entry_hp_not_current_hp() {
-        let max_hp = 40;
-        let mut ship = make_test_ship_ctx(10, 30, 10, max_hp, true, true);
-        let mut rng = crate::random::SeededRng::new(123);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 1);
-        assert!(effective > 0);
-        assert!(ship.current_hp > 0, "should survive due to protection");
-        assert!(
-            ship.current_hp <= 30,
-            "remaining HP should be based on entry_hp (30), not current_hp (10)"
-        );
-        assert_eq!(raw, 100);
+    fn protection_takes_its_share_of_what_is_left() {
+        // 30 at entry, 10 now: between half of the 10 and eight tenths of it.
+        for seed in 0..50 {
+            let mut ship = make_test_ship_ctx(10, 30, 10, 40, true, true);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let (raw, effective) = ship.apply_damage(&mut rng, 100, 1);
+            assert!((5..=7).contains(&effective), "seed {seed}: took {effective} of 10");
+            assert_eq!(raw, 100);
+        }
+    }
+
+    #[test]
+    fn a_second_lethal_hit_does_not_leave_a_ship_at_one() {
+        // 69 at entry and 5 left: the hit that would sink her takes 2 or 3.
+        for seed in 0..50 {
+            let mut ship = make_test_ship_ctx(5, 69, 5, 69, true, true);
+            ship.apply_damage(&mut crate::random::SeededRng::new(seed), 100, 0);
+            assert!((2..=3).contains(&ship.current_hp), "seed {seed}: left at {}", ship.current_hp);
+        }
     }
 
     #[test]

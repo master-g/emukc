@@ -50,10 +50,13 @@ pub(crate) fn simulate_shelling_round(
         phase: BattlePhase::DayShelling,
         air_state: round.air_state,
     };
+    // The air state is the friendly side's; the enemy spots under its own.
+    let enemy_air = round.air_state.map(|air| air.reversed());
     let enemy_params = ShellingParams {
         attacker_is_enemy: true,
         formation_id: round.enemy_formation,
         defender_formation_id: round.friendly_formation,
+        air_state: enemy_air.as_ref(),
         ..friendly_params
     };
     let (friendly_at, enemy_at) = (round.friendly_deck.start, round.enemy_deck.start);
@@ -693,6 +696,69 @@ mod tests {
     /// R3 end to end: 航空戦艦 with 瑞雲 plus guns. Day cut-ins and 連撃 are gun
     /// attacks, so the seaplane bomber must never appear in their `si_list` --
     /// it used to, through the broad day-surface display set.
+    /// The air state is the friendly side's: the enemy spots for its guns only
+    /// when that state is against the friendly side.
+    #[test]
+    fn the_enemy_spots_under_its_own_air_state() {
+        use super::{ShellingRound, simulate_shelling_round};
+        use crate::types::{AirState, EngagementType};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bbv_mst = first_ship_mst_by_type(&codex, KcShipType::BBV);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let zuiun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let main_gun_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::LargeCaliberMainGun);
+        let secondary_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SecondaryGun);
+
+        let enemy_cut_ins = |air_state: AirState| -> usize {
+            (0..100u64)
+                .filter(|&seed| {
+                    let mut dd = sample_ship(&codex, dd_mst, 30);
+                    dd.ship.api_soukou[0] = 1000;
+                    dd.ship.api_nowhp = 4000;
+                    dd.ship.api_maxhp = 4000;
+                    let mut bbv = sample_ship(&codex, bbv_mst, 99);
+                    bbv.slot_items = vec![
+                        slotitem_with_mst_id(zuiun_id),
+                        slotitem_with_mst_id(main_gun_id),
+                        slotitem_with_mst_id(main_gun_id),
+                        slotitem_with_mst_id(secondary_id),
+                    ];
+                    bbv.ship.api_onslot = [1, 0, 0, 0, 0];
+                    bbv.ship.api_soukou[0] = 1000;
+                    let mut friendly = vec![BattleRuntimeShip::from(dd)];
+                    let mut enemy = vec![BattleRuntimeShip::new(bbv, false, true)];
+                    let round = ShellingRound {
+                        friendly_deck: 0..1,
+                        enemy_deck: 0..1,
+                        by_range: true,
+                        friendly_formation: 1,
+                        enemy_formation: 1,
+                        engagement: EngagementType::SameCourse,
+                        air_state: Some(&air_state),
+                    };
+                    let hougeki = simulate_shelling_round(
+                        &codex,
+                        &mut crate::random::SeededRng::new(seed),
+                        &mut friendly,
+                        &mut enemy,
+                        &round,
+                        &mut [false; 2],
+                    )
+                    .unwrap();
+                    hougeki
+                        .api_at_eflag
+                        .iter()
+                        .zip(&hougeki.api_at_type)
+                        .any(|(eflag, at_type)| *eflag == 1 && *at_type != 0)
+                })
+                .count()
+        };
+
+        assert_eq!(enemy_cut_ins(AirState::Supremacy), 0, "the sky is the friendly side's");
+        assert!(enemy_cut_ins(AirState::Incapability) > 0, "the sky is the enemy's");
+    }
+
     #[test]
     fn day_cutin_si_list_excludes_seaplane_bombers() {
         use crate::types::{AirState, SiListId};

@@ -84,6 +84,17 @@ impl AirState {
         }
     }
 
+    /// The same sky as the other side sees it.
+    pub(crate) fn reversed(self) -> Self {
+        match self {
+            Self::Supremacy => Self::Incapability,
+            Self::Superiority => Self::Denial,
+            Self::Parity => Self::Parity,
+            Self::Denial => Self::Superiority,
+            Self::Incapability => Self::Supremacy,
+        }
+    }
+
     pub(crate) fn api_disp_seiku(self) -> i64 {
         match self {
             Self::Supremacy => 1,

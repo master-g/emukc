@@ -810,6 +810,8 @@ pub(crate) fn simulate_night_hougeki(
         api_damage: Vec::new(),
     };
     let (friendly_form, enemy_form) = (params.friendly_formation_id, params.enemy_formation_id);
+    // The air state is the friendly side's; the enemy's night recon flies under its own.
+    let enemy_air = params.air_state.map(|air| air.reversed());
 
     for idx in 0..friendly.len().max(enemy.len()) {
         if idx < friendly.len() {
@@ -838,7 +840,7 @@ pub(crate) fn simulate_night_hougeki(
                 idx,
                 friendly,
                 forms,
-                params.air_state,
+                enemy_air.as_ref(),
                 true,
                 &mut hougeki,
             );
