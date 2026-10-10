@@ -198,11 +198,11 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-10] 分支 `feat/proficiency-growth`（计划 `2026-10-10-005`）：舰载机损失入库、熟练度成长、补给补五槽；
-  `cargo test --workspace` 1299 全过，无头 `gunnery_cutin` 通过；PR #37 待合并。`slot_item` 加了列，旧的本地库要重建。
+  `cargo test --workspace` 1299 全过，无头 `gunnery_cutin` 通过；PR #37。`slot_item` 加了列，旧的本地库要重建。
 
 ## Next Session
 
-- [2026-10-10] 下一项候选：熟练度的制空値加成、航空队熟练度（见 `plane-losses-and-proficiency-growth.md`）。
+- [2026-10-10] 下一项：飞机损失改成按槽分配（`plane-losses-and-proficiency-growth.md` 的 Known deviation）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
