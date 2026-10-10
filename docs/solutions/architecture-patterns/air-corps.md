@@ -105,6 +105,18 @@ rolls, contact, per-equipment bonuses) should be done for both air battles toget
 A corps of bombers without fighters loses heavily to an enemy with aircraft: that is the
 air state, not the anti-air fire.
 
+## Proficiency
+
+A squadron carries its equipment's level into the battle (`AirSquadronInput::alv`, plan
+`2026-10-10-008`). It adds to 制空値 on a sortie and in defence — `proficiency_fighter_power`
+with the land-base switch on, so every aircraft gets at least `sqrt(exp x 0.1)` — and each
+striking squadron hits and criticals with its own level alone (`squadron_proficiency`, the
+source's `airstrikeLBAS`): `sqrt(exp x 0.1)` plus `0,0,1,2,3,4,6,9` to hit, the critical step
+times 0.8 to the rate, `floor(sqrt(exp) + step) / 100` to the damage. A critical sets
+`api_ecl_flag`, which the client reads as it does in the carrier air phase. A squadron left
+with no aircraft after a sortie has its level and experience set to zero
+(`reset_emptied_squadrons_impl`).
+
 ## The raid on the air base
 
 6-5 is the only regular map whose sortie brings one. Its raiders come from KCNav's node `AB`
@@ -140,8 +152,10 @@ place in the area as a string.
 ## Known gaps
 
 - A raid always costs stores when it does damage; upstream that is random at a rate nobody
-  published. Defending does not tire a squadron (no source says it does), 改修 and 熟練度 add
+  published. Defending does not tire a squadron (no source says it does), 改修 adds
   nothing to the defenders' fighter power, and the high-altitude modifier is left out.
+- A squadron's proficiency neither grows nor wears down by the aircraft it loses; it only
+  starts over when the squadron is shot down to nothing.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in

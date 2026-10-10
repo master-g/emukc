@@ -173,6 +173,36 @@ pub(crate) fn plane_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> Plan
     out
 }
 
+/// What each level adds to a squadron's chance to hit, on top of the root of
+/// its experience.
+const SQUADRON_ACCURACY: [f64; 8] = [0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 9.0];
+
+/// The proficiency one squadron of an air corps strikes with
+/// (`airstrikeLBAS`): its own level alone, at the first slot's rates. A patrol
+/// plane or autogyro counts one level lower.
+pub(crate) fn squadron_proficiency(type3: i64, alv: i64) -> PlaneProficiency {
+    let mut level = alv.clamp(0, 7) as usize;
+    let mut exp = PROFICIENCY_EXP[level];
+    if matches!(
+        KcSlotItemType3::n(type3),
+        Some(KcSlotItemType3::AutoGyro | KcSlotItemType3::AntiSubmarinePatrol)
+    ) {
+        exp *= PATROL_EXP_SHARE;
+        level = level.saturating_sub(1);
+    }
+    let critical = PROFICIENCY_CRITICAL[level];
+    PlaneProficiency {
+        accuracy: if level == 0 {
+            0.0
+        } else {
+            (exp * 0.1).sqrt() + SQUADRON_ACCURACY[level]
+        },
+        critical_rate: critical * 0.8,
+        critical_damage: 1.0 + (exp.sqrt() + critical).floor() / 100.0,
+        average_exp: exp,
+    }
+}
+
 /// The proficiency a ship's shelling takes: a carrier's, whose shelling is
 /// flown by its aircraft, and no one else's.
 pub(crate) fn shelling_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> PlaneProficiency {
@@ -518,6 +548,26 @@ mod tests {
         fn roll_range_impl(&mut self, _min: i64, _max: i64) -> i64 {
             self.0
         }
+    }
+
+    #[test]
+    fn a_squadron_strikes_with_its_own_level_at_the_first_slots_rates() {
+        let attacker = KcSlotItemType3::LandBasedAttacker as i64;
+        assert_eq!(squadron_proficiency(attacker, 0), PlaneProficiency::NONE);
+        let full = squadron_proficiency(attacker, 7);
+        // sqrt(12) + 9 to hit; 10 x 0.8 to the critical rate; floor(sqrt(120) + 10) = 20
+        // hundredths to its damage.
+        assert_eq!(full.accuracy, 12.0_f64.sqrt() + 9.0);
+        assert_eq!(full.critical_rate, 8.0);
+        assert_eq!(full.critical_damage, 1.2);
+        // Level 1 adds the root alone.
+        assert_eq!(squadron_proficiency(attacker, 1).accuracy, 1.0);
+        // A patrol plane counts 0.825 of its experience and one level lower:
+        // sqrt(9.9) + 6, 7 x 0.8, floor(sqrt(99) + 7) = 16.
+        let patrol = squadron_proficiency(KcSlotItemType3::AntiSubmarinePatrol as i64, 7);
+        assert_eq!(patrol.accuracy, 9.9_f64.sqrt() + 6.0);
+        assert!((patrol.critical_rate - 5.6).abs() < 1e-9);
+        assert_eq!(patrol.critical_damage, 1.16);
     }
 
     #[test]

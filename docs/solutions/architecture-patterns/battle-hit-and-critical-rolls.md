@@ -109,7 +109,7 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 
 ## Not modelled
 
-Each is a correction the source applies on top: proficiency for the air corps, the night air
+Each is a correction the source applies on top: proficiency for the night air
 attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; gun fit,
 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,

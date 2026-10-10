@@ -15,7 +15,7 @@ use emukc_model::{
     kc2::{KcApiSlotItem, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
-use crate::accuracy::{PlaneProficiency, roll_strike};
+use crate::accuracy::{HitOutcome, roll_strike, squadron_proficiency};
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_airstrike_attack_type, target_class};
@@ -26,7 +26,8 @@ use crate::types::{
 };
 
 use super::kouku::{
-    apply_plane_losses, attack_plane_from, calculate_fighter_power, total_plane_count,
+    apply_plane_losses, attack_plane_from, calculate_fighter_power, proficiency_fighter_power,
+    total_plane_count,
 };
 
 /// Where an air corps strike stops growing linearly (`lbasDmgCap`).
@@ -66,7 +67,8 @@ fn fighter_power(codex: &Codex, corps: &AirCorpsInput) -> i64 {
                 // 迎撃 is carried in the evasion field.
                 base += mst.api_houk as f64 * 1.5;
             }
-            Some((base * (squadron.count as f64).sqrt()).floor() as i64)
+            let bonus = proficiency_fighter_power(mst.api_type[2], Some(squadron.alv), true);
+            Some((base * (squadron.count as f64).sqrt() + bonus).floor() as i64)
         })
         .sum()
 }
@@ -274,6 +276,7 @@ pub(crate) fn simulate_air_base_attack(
     let mut api_edam = vec![0_i64; enemy.len()];
     let mut api_erai_flag = vec![0_i64; enemy.len()];
     let mut api_ebak_flag = vec![0_i64; enemy.len()];
+    let mut api_ecl_flag = vec![0_i64; enemy.len()];
     let mut struck = false;
     for squadron in &corps.squadrons {
         if squadron.count <= 0 {
@@ -305,6 +308,7 @@ pub(crate) fn simulate_air_base_attack(
         // point of the aircraft's 命中, and the target dodges it less well
         // than it dodges anything else: 0.86 of its evasion, 0.68 in a
         // combined fleet (`airstrikeLBAS`, `lbasEvaMod*`).
+        let planes = squadron_proficiency(mst.api_type[2], squadron.alv);
         let outcome = roll_strike(
             codex,
             rng,
@@ -315,9 +319,13 @@ pub(crate) fn simulate_air_base_attack(
             } else {
                 0.86
             },
-            PlaneProficiency::NONE,
+            planes,
         );
-        let power = outcome.power(strike_power(mst, squadron.count, on_land));
+        if outcome == HitOutcome::Critical {
+            api_ecl_flag[target] = 1;
+        }
+        let power =
+            outcome.power_with(strike_power(mst, squadron.count, on_land), planes.critical_damage);
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
         let damage = resolve_damage(rng, power, defense, enemy[target].hp());
         struck = true;
@@ -373,7 +381,7 @@ pub(crate) fn simulate_air_base_attack(
                 api_fbak_flag: Vec::new(),
                 api_ebak_flag,
                 api_fcl_flag: Vec::new(),
-                api_ecl_flag: vec![0; enemy.len()],
+                api_ecl_flag,
                 api_fdam: Vec::new(),
                 api_edam: api_edam.into_iter().map(DamageCell::Plain).collect(),
                 api_f_sp_list: Vec::new(),
@@ -406,6 +414,7 @@ mod tests {
                     squadron_id,
                     mst_id,
                     count,
+                    alv: 0,
                 })
                 .collect(),
         }
@@ -453,6 +462,42 @@ mod tests {
             fighter_power(&codex, &corps(&[(LAND_ATTACKER, 18), (LOCAL_FIGHTER, 18)])),
             8 + expected_fighter
         );
+    }
+
+    #[test]
+    fn proficiency_raises_an_air_corps_fighter_power() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let fighter = codex.manifest.find_slotitem(LOCAL_FIGHTER).unwrap();
+        let mut corps = corps(&[(LAND_ATTACKER, 18), (LOCAL_FIGHTER, 18)]);
+        corps.squadrons[0].alv = 7;
+        corps.squadrons[1].alv = 7;
+        // 一式陸攻 gets the root alone from a base: 2 x sqrt(18) + sqrt(12) = 11.9.
+        // 雷電 gets the fighters' 22 on top of it.
+        let expected_fighter = ((fighter.api_tyku as f64 + fighter.api_houk as f64 * 1.5)
+            * 18.0_f64.sqrt()
+            + 12.0_f64.sqrt()
+            + 22.0)
+            .floor() as i64;
+        assert_eq!(fighter_power(&codex, &corps), 11 + expected_fighter);
+    }
+
+    #[test]
+    fn a_proficient_squadron_strikes_critically() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let criticals = |alv: i64| {
+            (0..200)
+                .filter(|&seed| {
+                    let mut enemy = lone_enemy(&codex, KcShipType::DD);
+                    let mut corps = corps(&[(LAND_ATTACKER, 18)]);
+                    corps.squadrons[0].alv = alv;
+                    let mut rng = crate::random::SeededRng::new(seed);
+                    let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
+                    attack.kouku.api_stage3.api_ecl_flag[0] == 1
+                })
+                .count()
+        };
+        assert_eq!(criticals(0), 0, "no proficiency, no critical");
+        assert!(criticals(7) > 0, "8 in a hundred at full proficiency");
     }
 
     #[test]

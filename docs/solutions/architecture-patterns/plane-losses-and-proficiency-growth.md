@@ -67,7 +67,8 @@ marks as estimates. Nothing here was read from the game.
 
 ## Not modelled
 
-The air corps and air defence; patrol planes and autogyros, which grow when their ship attacks
+The air corps and air defence, beyond a squadron starting over when it is shot down to
+nothing (`air-corps.md`); patrol planes and autogyros, which grow when their ship attacks
 a submarine; the jet assault's extra roll; the escort fleet's growth (it needs an enemy
 combined fleet); scouts' gradual loss. The battle still reads a level's representative
 experience rather than the real one. A night-start battle counts as a search like any other,
