@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-07 · branch `feat/map-gauge-phases`
+Last updated: 2026-10-10 · branch `main`
 
 ## Verified Facts
 
@@ -196,8 +196,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] PR #32–#34 已合并（不开无敌的无头场景；各阶段双方逐舰交替、雷击同时结算）。分支 `fix/sinking-protection-and-enemy-air-state`
-  （计划 `2026-10-10-003`）：击沉保护按当前血量、敌方用自己的制空状态；fmt、clippy 17、1273 测试全过，无头检查通过；未推送。
+- [2026-10-10] PR #32–#35 已合并进 `main` 并推送（最后一项：击沉保护按当前血量、敌方用自己的制空状态，计划 `2026-10-10-003`）。
+  没有进行中的分支、stash 或 open issue；下一项从 `battle-hit-and-critical-rolls.md` 的「Not modelled」里取，先做舰载机熟练度。
 
 ## Next Session
 
