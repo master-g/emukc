@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `main`
+Last updated: 2026-10-10 · branch `fix/headless-time-limit`
 
 ## Verified Facts
 
@@ -197,8 +197,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] PR #38（计划 `2026-10-10-006`）：航空战两阶段逐槽结算，20 份文本基线重冻；
-  `cargo test --workspace` 1301 全过。PR #37 已合并（`slot_item` 加了列，旧库已移为 `.data/emukc.db.bak-2026-10-10`）。
+- [2026-10-10] PR #36–#38 已合并（熟练度进战斗、损失入库与成长、逐槽损失；旧库移为 `.data/emukc.db.bak-2026-10-10`）。
+  分支 `fix/headless-time-limit`：无头脚本加 300 秒总时限；`gunnery_cutin` 通过。
 
 ## Next Session
 
