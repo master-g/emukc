@@ -401,6 +401,7 @@ mod tests {
                 api_f_lostcount: 0,
                 api_e_count: 0,
                 api_e_lostcount: 0,
+                api_air_fire: None,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: vec![],

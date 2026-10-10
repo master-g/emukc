@@ -61,6 +61,9 @@ fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) ->
         }
         PhaseExpectation::DayCutIn => day_attack_types().any(|at_type| at_type != 0),
         PhaseExpectation::CarrierCutIn => day_attack_types().any(|at_type| at_type == 7),
+        PhaseExpectation::AntiAirCutIn => {
+            battle.pointer("/api_kouku/api_stage2/api_air_fire").is_some_and(|fire| !fire.is_null())
+        }
         PhaseExpectation::PlainBattle => true,
     }
 }

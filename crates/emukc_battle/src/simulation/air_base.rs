@@ -370,6 +370,7 @@ pub(crate) fn simulate_air_base_attack(
                 api_f_lostcount: stage2_f_lost,
                 api_e_count: 0,
                 api_e_lostcount: 0,
+                api_air_fire: None,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: Vec::new(),

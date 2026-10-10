@@ -143,6 +143,10 @@ fn remap_raigeki(raigeki: &mut BattleRaigeki, escort_start: usize, enemy_len: us
 /// This one splits rather than respreads — the client reads each half by its
 /// own deck's ship count, so no gap is needed.
 fn split_kouku_stage3(kouku: &mut BattleKouku, escort_start: usize) {
+    // The client finds the ship of a 対空カットイン in the twelve-place deck.
+    if let Some(fire) = kouku.api_stage2.api_air_fire.as_mut() {
+        fire.api_idx = remap_index(fire.api_idx, escort_start);
+    }
     let stage3 = &mut kouku.api_stage3;
     let split = |values: &mut Vec<i64>| values.split_off(escort_start.min(values.len()));
 
@@ -455,6 +459,11 @@ mod tests {
                 api_f_lostcount: 0,
                 api_e_count: 0,
                 api_e_lostcount: 0,
+                api_air_fire: Some(crate::types::packet::BattleAirFire {
+                    api_idx: 5,
+                    api_kind: 9,
+                    api_use_items: vec![3, 121],
+                }),
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: vec![-1; 6],
@@ -476,6 +485,12 @@ mod tests {
         };
 
         split_kouku_stage3(&mut kouku, 4);
+
+        assert_eq!(
+            kouku.api_stage2.api_air_fire.as_ref().map(|fire| fire.api_idx),
+            Some(7),
+            "the second ship of 第2艦隊 sits at 7 of the twelve places"
+        );
 
         assert_eq!(kouku.api_stage3.api_fdam, plain(&[1, 2, 3, 4]), "deck 1 keeps api_stage3");
         assert_eq!(kouku.api_stage3.api_edam.len(), 3, "the enemy half is untouched");

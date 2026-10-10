@@ -255,7 +255,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 路由规则：`make route-rules-update` 从钉住的羅針盤シミュ源码再生 `map_route_rules.json`；之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make route-oracle` 与来源代码对拍。
 - 装備ボーナス：`make gear-bonus-update` 从钉住的 KC3Kai 提交再生 `gear_bonus.json`，之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make gear-bonus-oracle` 与客户端 `main.js` 的加成函数对拍（需先 `make decode-main`）。对拍报出的差异手工写进 `main-decoder/gear-bonus-corrections.json`。`make update` 在漂移报告之后会自动跑一次对拍（不阻断）。
 - 缓存清单对拍：`make cache-list-oracle` 用客户端 `main.js` 检查清单（客户端点名的目录都有条目、舰船与装备地址的后缀一致；需先 `make decode-main` 与 `make cache-make-list`）。`make update` 之后会自动跑一次（不阻断）。
-- 无头客户端检查：`make headless-check SCENARIO=transport_5_6`（另有 `fresh_1_1`、`air_corps_6_4`、`air_raid_6_5`、`quest_equipment`，以及不开无敌的 `gunnery_cutin`、`leveled_for_mid_boss`）在独立工作区起服务器，用无头 Chrome 跑真实客户端走完一个场景（不进质量门；需资源缓存、已解码的 `main.js`、Playwright+Chrome，先停掉自己的服务器）。详见 `docs/solutions/best-practices/headless-client-check.md`。
+- 无头客户端检查：`make headless-check SCENARIO=transport_5_6`（另有 `fresh_1_1`、`air_corps_6_4`、`air_raid_6_5`、`quest_equipment`，以及不开无敌的 `gunnery_cutin`、`leveled_for_mid_boss`、`anti_air_cut_in`）在独立工作区起服务器，用无头 Chrome 跑真实客户端走完一个场景（不进质量门；需资源缓存、已解码的 `main.js`、Playwright+Chrome，先停掉自己的服务器）。详见 `docs/solutions/best-practices/headless-client-check.md`。
 - KCNav 数据：`make kcnav-sync [MAP=1-1]` 下载原始响应（单线程、2 秒间隔、可续传，全量约 1000 次请求，先与用户确认）；`make kcnav-normalize` 不联网，再生 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`（需先有 `.data/codex`），之后 `cargo run -- bootstrap --codex-only` 重建 codex；`cargo run -- kcnav sync --dry-run` 只报请求数。
 
 ## 代码风格

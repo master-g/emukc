@@ -110,6 +110,11 @@ screen, pass steps on the command line and read the screenshots:
   夜戦突入 sits where 撤退 does on the next choice (770, 365), so one spot serves both.
   `leveled_for_mid_boss` is the same sortie with six destroyers, who seldom finish by day: it
   is the one that reaches the night battle.
+- `anti_air_cut_in` is the same fleet with 秋月 in the sixth place, sent to 2-5 (the extra
+  operation sits where 6-5 does on its page, 700, 275), whose first battle meets carriers. The
+  check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a
+  hundred, when none of her three kinds fires. The cut-in itself is on `air1`–`air8`, taken
+  a second apart from the sixteenth second of the battle.
 
 ## Limits
 

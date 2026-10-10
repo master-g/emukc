@@ -9,6 +9,7 @@ use emukc_model::{
     kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
+use super::aaci::roll_air_fire;
 use super::air_base::{ENEMY_FLAT_SHOT, fleet_anti_air, weighted_anti_air};
 use crate::accuracy::{HitOutcome, PROFICIENCY_EXP, plane_proficiency, roll_strike};
 use crate::combined::CombinedFleetRole;
@@ -16,7 +17,7 @@ use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
 use crate::types::{
-    AirState, AirstrikeOutput, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
+    AirState, AirstrikeOutput, BattleAirFire, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
     BattleKoukuStage3, BattleRuntimeShip, DamageCell,
 };
 
@@ -259,17 +260,31 @@ fn fight_for_the_air(
 
 /// Stage 2: every slot of `attackers` that comes to strike is fired on by one
 /// of `defenders` still afloat (`kcsim.js` `AADefenceBombersAndAirstrike`).
-/// Returns how many aircraft flew in and how many were shot down.
-// ponytail: no anti-air cut-in, formation modifier or 改修; add them to the
-// fixed shot when they are modelled.
+/// A friendly fleet rolls its 対空カットイン first, once any aircraft come.
+/// Returns how many aircraft flew in, how many were shot down, and the cut-in.
+// ponytail: no formation modifier or 改修, and the enemy fires no cut-in; add
+// them to the fixed shot when they are modelled.
 fn fly_through_anti_air(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attackers: &mut [BattleRuntimeShip],
     defenders: &[BattleRuntimeShip],
-) -> (i64, i64) {
+) -> (i64, i64, Option<BattleAirFire>) {
     let fleet_aa = fleet_anti_air(codex, defenders) as f64;
     let attackers_combined = attackers.iter().any(|ship| ship.enemy_deck.is_some());
+    let strikes = attackers.iter().filter(|ship| ship.is_alive()).any(|ship| {
+        ship.slot_items.iter().zip(ship.ship.api_onslot).take(5).any(|(item, count)| {
+            count > 0
+                && codex
+                    .find::<ApiMstSlotitem>(&item.api_slotitem_id)
+                    .is_ok_and(|mst| is_airstrike_attack_type(mst.api_type[2]))
+        })
+    });
+    let air_fire = (strikes && defenders.iter().any(|ship| ship.is_friendly))
+        .then(|| roll_air_fire(codex, rng, defenders))
+        .flatten();
+    let (cut_in_fixed, cut_in_modifier) =
+        air_fire.as_ref().map_or((0, 1.0), |fire| (fire.fixed, fire.modifier));
     let (mut flew, mut shot) = (0, 0);
     for ship in attackers.iter_mut().filter(|ship| ship.is_alive()) {
         for (slot, item) in ship.slot_items.iter().enumerate().take(5) {
@@ -286,7 +301,7 @@ fn fly_through_anti_air(
             let afloat: Vec<&BattleRuntimeShip> =
                 defenders.iter().filter(|defender| defender.is_alive()).collect();
             let Some(pick) = rng.choose_index(afloat.len()) else {
-                return (flew, shot);
+                return (flew, shot, air_fire.map(|fire| fire.packet));
             };
             let defender = afloat[pick];
             let kept = combined_fire_share(defender, attackers_combined);
@@ -298,12 +313,14 @@ fn fly_through_anti_air(
             } else {
                 (fleet_aa * kept, ENEMY_FLAT_SHOT, 0)
             };
-            let mut lost = at_least;
+            // A cut-in takes its own number from every slot and makes the
+            // fixed shot heavier (`shotFix`, `AACImod`).
+            let mut lost = at_least + cut_in_fixed;
             if rng.roll_range(0, 2) == 0 {
                 lost += (count as f64 * ship_aa / 200.0).floor() as i64;
             }
             if rng.roll_range(0, 2) == 0 {
-                lost += ((ship_aa + fleet_fire) * rate).floor() as i64;
+                lost += ((ship_aa + fleet_fire) * rate * cut_in_modifier).floor() as i64;
             }
             let lost = lost.min(count);
             ship.ship.api_onslot[slot] = count - lost;
@@ -311,7 +328,7 @@ fn fly_through_anti_air(
             shot += lost;
         }
     }
-    (flew, shot)
+    (flew, shot, air_fire.map(|fire| fire.packet))
 }
 
 // ---------------------------------------------------------------------------
@@ -576,8 +593,9 @@ pub(crate) fn simulate_kouku(
     let stage1_e_lost = fight_for_the_air(codex, rng, enemy, air_state, false);
 
     // Stage 2: each slot that comes to strike is fired on by one ship.
-    let (stage2_f_count, stage2_f_lost) = fly_through_anti_air(codex, rng, friendly, enemy);
-    let (stage2_e_count, stage2_e_lost) = fly_through_anti_air(codex, rng, enemy, friendly);
+    let (stage2_f_count, stage2_f_lost, _) = fly_through_anti_air(codex, rng, friendly, enemy);
+    let (stage2_e_count, stage2_e_lost, api_air_fire) =
+        fly_through_anti_air(codex, rng, enemy, friendly);
 
     // Stage 3: bombing damage
     let mut api_edam = vec![0i64; enemy.len()];
@@ -644,6 +662,7 @@ pub(crate) fn simulate_kouku(
             api_f_lostcount: stage2_f_lost,
             api_e_count: stage2_e_count,
             api_e_lostcount: stage2_e_lost,
+            api_air_fire,
         },
         api_stage3: BattleKoukuStage3 {
             api_frai,
@@ -969,13 +988,64 @@ mod tests {
         for seed in 0..50 {
             let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
             let mut rng = crate::random::SeededRng::new(seed);
-            let (flew, shot) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &defenders);
+            let (flew, shot, _) =
+                fly_through_anti_air(&codex, &mut rng, &mut attackers, &defenders);
             let left = attackers[0].ship.api_onslot;
             assert_eq!(flew, 33, "the fighters between them do not come to strike");
             assert!(left[0] < 30 && left[2] < 3, "seed {seed}: {left:?}");
             assert_eq!(left[1], 12, "seed {seed}: fighters are not fired on");
             assert_eq!(shot, 45 - left.iter().sum::<i64>());
         }
+    }
+
+    /// 秋月 with two 10cm連装高角砲+高射装置 and 13号対空電探改 fires kind 1, 2
+    /// or 3, which take seven, six or four aircraft more from every slot.
+    #[test]
+    fn a_cut_in_takes_its_number_from_every_slot_and_is_reported() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let mut carrier = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
+        carrier.slot_items = vec![slotitem_with_mst_id(bomber), slotitem_with_mst_id(bomber)];
+        carrier.ship.api_onslot = [60, 60, 0, 0, 0];
+        let mut akizuki = sample_ship(&codex, 421, 50);
+        let plain = vec![BattleRuntimeShip::new(akizuki.clone(), true, true)];
+        akizuki.slot_items = [122, 122, 106].map(slotitem_with_mst_id).to_vec();
+        let armed = vec![BattleRuntimeShip::new(akizuki.clone(), true, true)];
+
+        let (mut fired, mut held) = (0, 0);
+        for seed in 0..100 {
+            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+            let mut rng = crate::random::SeededRng::new(seed);
+            let (_, shot, fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &armed);
+            let Some(fire) = fire else {
+                held += 1;
+                continue;
+            };
+            fired += 1;
+            let (fixed, shown) = match fire.api_kind {
+                1 => (7, vec![122, 122, 106]),
+                2 => (6, vec![122, 106]),
+                3 => (4, vec![122, 122]),
+                other => panic!("seed {seed}: kind {other}"),
+            };
+            assert_eq!(fire.api_idx, 0);
+            assert_eq!(fire.api_use_items, shown);
+            assert!(shot >= 2 * (1 + fixed), "seed {seed}: kind {}, {shot} shot", fire.api_kind);
+        }
+        assert!(fired > held && held > 0, "{fired} fired, {held} held");
+
+        // Without the equipment there is none.
+        let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+        let mut rng = crate::random::SeededRng::new(1);
+        let (_, shot, fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &plain);
+        assert!(fire.is_none());
+        assert!(shot >= 2);
+
+        // An enemy fleet fires none, and fighters alone bring none on.
+        let enemy = vec![BattleRuntimeShip::new(akizuki, false, true)];
+        let mut attackers = vec![BattleRuntimeShip::new(carrier, true, true)];
+        let (.., fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &enemy);
+        assert!(fire.is_none());
     }
 
     #[test]

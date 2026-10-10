@@ -17,6 +17,7 @@ use crate::types::{
     NightBattleSimulation,
 };
 
+pub(crate) mod aaci;
 pub(crate) mod air_base;
 pub(crate) mod air_raid;
 pub(crate) mod asw;
