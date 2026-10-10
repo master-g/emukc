@@ -263,6 +263,8 @@ pub struct AirSquadronInput {
     pub mst_id: i64,
     /// Aircraft left.
     pub count: i64,
+    /// Proficiency level, 0 to 7.
+    pub alv: i64,
 }
 
 impl BattleContext {

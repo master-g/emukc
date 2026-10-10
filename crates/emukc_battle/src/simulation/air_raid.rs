@@ -22,7 +22,9 @@ use crate::types::{
     BattleSquadronPlane, DamageCell,
 };
 
-use super::kouku::{AIRSTRIKE_HIT_PERCENT, attack_plane_from, calculate_fighter_power};
+use super::kouku::{
+    AIRSTRIKE_HIT_PERCENT, attack_plane_from, calculate_fighter_power, proficiency_fighter_power,
+};
 
 /// What an air base can take; it is never brought below 1.
 const BASE_HP: i64 = 200;
@@ -92,7 +94,8 @@ fn defence_power(codex: &Codex, base: &AirRaidBase) -> i64 {
             // 迎撃 is carried in the evasion field, 対爆 in the accuracy field.
             stat += (mst.api_houk + 2 * mst.api_houm) as f64;
         }
-        power += (stat * (squadron.count as f64).sqrt()).floor() as i64;
+        let bonus = proficiency_fighter_power(mst.api_type[2], Some(squadron.alv), true);
+        power += (stat * (squadron.count as f64).sqrt() + bonus).floor() as i64;
         let scouting = match type3 {
             Some(KcSlotItemType3::SeaBasedRecon | KcSlotItemType3::LargeFlyingBoat) => {
                 match mst.api_saku {
@@ -363,6 +366,7 @@ mod tests {
                     squadron_id,
                     mst_id,
                     count,
+                    alv: 0,
                 })
                 .collect(),
         }
@@ -390,6 +394,25 @@ mod tests {
             serde_json::to_value(&raid).unwrap()["api_air_base_attack"]["api_stage2"],
             serde_json::Value::Null
         );
+    }
+
+    #[test]
+    fn proficiency_raises_the_defenders_fighter_power() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut base = AirRaidBase {
+            base_rid: 1,
+            defending: true,
+            squadrons: vec![AirSquadronInput {
+                squadron_id: 1,
+                mst_id: LOCAL_FIGHTER,
+                count: 18,
+                alv: 0,
+            }],
+        };
+        // (6 + 2 + 2 x 5) x sqrt(18) = 76.4; level 7 adds sqrt(12) + 22 = 25.5.
+        assert_eq!(defence_power(&codex, &base), 76);
+        base.squadrons[0].alv = 7;
+        assert_eq!(defence_power(&codex, &base), 101);
     }
 
     #[test]

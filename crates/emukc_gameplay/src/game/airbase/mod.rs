@@ -793,6 +793,7 @@ where
                     squadron_id: plane.squadron_id,
                     mst_id: item.mst_id,
                     count: plane.count,
+                    alv: item.aircraft_lv,
                 })
             })
             .collect();
@@ -872,6 +873,7 @@ where
                         squadron_id: plane.squadron_id,
                         mst_id: item.mst_id,
                         count: plane.count,
+                        alv: item.aircraft_lv,
                     })
                 })
                 .collect(),
