@@ -10,7 +10,7 @@ use emukc_model::{
 };
 
 use super::air_base::{ENEMY_FLAT_SHOT, fleet_anti_air, weighted_anti_air};
-use crate::accuracy::{HitOutcome, plane_proficiency, roll_strike};
+use crate::accuracy::{HitOutcome, PROFICIENCY_EXP, plane_proficiency, roll_strike};
 use crate::combined::CombinedFleetRole;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
@@ -53,9 +53,40 @@ pub(crate) fn calculate_fighter_power(codex: &Codex, ships: &[BattleRuntimeShip]
                 return None;
             }
             let aa = mst.api_tyku.max(0) as f64;
-            Some((aa * (onslot as f64).sqrt()).floor() as i64)
+            let bonus = proficiency_fighter_power(mst.api_type[2], slot_item.api_alv, false);
+            Some((aa * (onslot as f64).sqrt() + bonus).floor() as i64)
         })
         .sum()
+}
+
+/// What each proficiency level adds to a fighter's 制空値.
+const FIGHTER_PROFICIENCY: [f64; 8] = [0.0, 0.0, 2.0, 5.0, 9.0, 14.0, 14.0, 22.0];
+/// The same for a seaplane bomber.
+const SEAPLANE_BOMBER_PROFICIENCY: [f64; 8] = [0.0, 0.0, 1.0, 1.0, 1.0, 3.0, 3.0, 6.0];
+
+/// 制空値 a slot gains from its proficiency (`setProficiency`'s `APbonus`):
+/// the root of a tenth of its experience, plus a step by level for the
+/// aircraft that fight for the air. Bombers get the root alone; anything else
+/// gets it only when it flies from a land base.
+pub(crate) fn proficiency_fighter_power(type3: i64, alv: Option<i64>, land_base: bool) -> f64 {
+    let level = alv.unwrap_or(0).clamp(0, 7) as usize;
+    let root = (PROFICIENCY_EXP[level] * 0.1).sqrt();
+    match KcSlotItemType3::n(type3) {
+        Some(
+            KcSlotItemType3::CarrierBasedFighter
+            | KcSlotItemType3::SeaplaneFighter
+            | KcSlotItemType3::LocalFighter
+            | KcSlotItemType3::JetFighter,
+        ) => root + FIGHTER_PROFICIENCY[level],
+        Some(KcSlotItemType3::SeaBasedBomber) => root + SEAPLANE_BOMBER_PROFICIENCY[level],
+        Some(
+            KcSlotItemType3::CarrierBasedTorpedoBomber
+            | KcSlotItemType3::CarrierBasedDiveBomber
+            | KcSlotItemType3::JetFighterBomber,
+        ) => root,
+        _ if land_base => root,
+        _ => 0.0,
+    }
 }
 
 pub(crate) fn total_plane_count(codex: &Codex, ships: &[BattleRuntimeShip]) -> i64 {
@@ -664,6 +695,56 @@ mod tests {
         let power = calculate_fighter_power(&codex, &ships);
         let expected = (aa as f64 * (18.0_f64).sqrt()).floor() as i64;
         assert_eq!(power, expected);
+    }
+
+    /// One ship flying 18 of `mst_id` at proficiency `alv`.
+    fn fighter_power_at(codex: &Codex, mst_id: i64, alv: i64) -> i64 {
+        let mut ship = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::CVL), 50);
+        ship.ship.api_onslot = [18, 0, 0, 0, 0];
+        let mut item = slotitem_with_mst_id(mst_id);
+        item.api_alv = Some(alv);
+        ship.slot_items = vec![item];
+        calculate_fighter_power(codex, &[BattleRuntimeShip::from(ship)])
+    }
+
+    #[test]
+    fn proficiency_adds_to_fighter_power_inside_the_slot_floor() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let root = 18.0_f64.sqrt();
+        // (kind, level, what the level adds): a fighter's step, a seaplane
+        // bomber's smaller one, and the root alone for a torpedo bomber.
+        for (kind, alv, bonus) in [
+            (KcSlotItemType3::CarrierBasedFighter, 7, 12.0_f64.sqrt() + 22.0),
+            (KcSlotItemType3::CarrierBasedFighter, 2, 2.5_f64.sqrt() + 2.0),
+            (KcSlotItemType3::CarrierBasedFighter, 1, 1.0),
+            (KcSlotItemType3::SeaBasedBomber, 7, 12.0_f64.sqrt() + 6.0),
+            (KcSlotItemType3::CarrierBasedTorpedoBomber, 7, 12.0_f64.sqrt()),
+            (KcSlotItemType3::CarrierBasedFighter, 0, 0.0),
+        ] {
+            let mst_id = first_slotitem_mst_by_type(&codex, kind);
+            let aa = codex.manifest.find_slotitem(mst_id).unwrap().api_tyku.max(0) as f64;
+            assert_eq!(
+                fighter_power_at(&codex, mst_id, alv),
+                (aa * root + bonus).floor() as i64,
+                "{kind:?} at level {alv}"
+            );
+        }
+    }
+
+    #[test]
+    fn proficiency_fighter_power_follows_the_source_figures() {
+        let fighter = KcSlotItemType3::CarrierBasedFighter as i64;
+        // 対空 10 on 18 aircraft is 42.43; level 7 adds sqrt(12) + 22 = 25.46.
+        let base = 10.0 * 18.0_f64.sqrt();
+        assert_eq!(base.floor() as i64, 42);
+        assert_eq!((base + proficiency_fighter_power(fighter, Some(7), false)).floor() as i64, 67);
+        assert_eq!(proficiency_fighter_power(fighter, None, false), 0.0);
+        // A land attacker has none aboard a ship and the root alone from a base.
+        let land = KcSlotItemType3::LandBasedAttacker as i64;
+        assert_eq!(proficiency_fighter_power(land, Some(7), false), 0.0);
+        assert_eq!(proficiency_fighter_power(land, Some(7), true), 12.0_f64.sqrt());
+        let local = KcSlotItemType3::LocalFighter as i64;
+        assert_eq!(proficiency_fighter_power(local, Some(7), true), 12.0_f64.sqrt() + 22.0);
     }
 
     #[test]

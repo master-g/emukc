@@ -88,6 +88,16 @@ The client reads stage 3's `api_fcl_flag` / `api_ecl_flag` as the critical flag
 client draws the run from `rai_flag` / `bak_flag` and the miss from the zero in `api_fdam`.
 So the flags are set whenever a strike is flown at a target, whether or not it lands.
 
+## Proficiency in fighter power
+
+Proficiency also raises 制空値 (`simulation/kouku.rs` `proficiency_fighter_power`, the source's
+`APbonus`). Each slot counts `floor(対空 x sqrt(count) + bonus)`, the bonus inside the floor:
+`sqrt(exp x 0.1)` plus a step by level — `0,0,2,5,9,14,14,22` for fighters (carrier, seaplane,
+land, jet), `0,0,1,1,1,3,3,6` for seaplane bombers, nothing more for torpedo, dive and jet
+bombers. Any other aircraft gets nothing aboard a ship and the root alone from a land base. The
+experience is the plain figure for the level; the 0.825 of a patrol plane belongs to the hit
+roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-growth.md`.
+
 ## Why it is shaped this way
 
 - **One function for all phases.** The phases differ only in base, formation column and
@@ -100,8 +110,7 @@ So the flags are set whenever a strike is flown at a target, whether or not it l
 ## Not modelled
 
 Each is a correction the source applies on top: proficiency for the air corps, the night air
-attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; proficiency in
-fighter power (how it grows and falls is in `plane-losses-and-proficiency-growth.md`); gun fit,
+attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; gun fit,
 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
