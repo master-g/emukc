@@ -9,7 +9,7 @@ use emukc_model::{
     kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
-use super::air_base::{fleet_anti_air, weighted_anti_air};
+use super::air_base::{ENEMY_FLAT_SHOT, fleet_anti_air, weighted_anti_air};
 use crate::accuracy::{HitOutcome, plane_proficiency, roll_strike};
 use crate::combined::CombinedFleetRole;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
@@ -163,11 +163,14 @@ fn best_bomber_index(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<usize
 // Plane losses, slot by slot
 // ---------------------------------------------------------------------------
 
-/// What a combined fleet's ship keeps of her anti-air fire.
-fn combined_anti_air(defender: &BattleRuntimeShip) -> f64 {
+/// The share of her anti-air fire a ship keeps when a combined fleet is in
+/// the fight: 0.48 in an escort deck, 0.8 in a main deck, and 0.8 too for a
+/// single fleet under an enemy combined fleet's aircraft (`getAAShotProp`,
+/// `getAAShotFlat` and `forceCF` in `kcsim.js`).
+fn combined_fire_share(defender: &BattleRuntimeShip, attackers_combined: bool) -> f64 {
     if defender.is_escort_deck() || defender.enemy_deck == Some(CombinedFleetRole::Escort) {
         0.48
-    } else if defender.is_main_deck() || defender.enemy_deck.is_some() {
+    } else if defender.is_main_deck() || defender.enemy_deck.is_some() || attackers_combined {
         0.8
     } else {
         1.0
@@ -184,7 +187,7 @@ fn fight_for_the_air(
     friendly: bool,
 ) -> i64 {
     let mut total = 0;
-    for ship in ships.iter_mut() {
+    for ship in ships.iter_mut().filter(|ship| ship.is_alive()) {
         for (slot, item) in ship.slot_items.iter().enumerate().take(5) {
             let count = ship.ship.api_onslot[slot];
             if count <= 0 {
@@ -204,15 +207,18 @@ fn fight_for_the_air(
                 ) => 0.6,
                 _ => 1.0,
             };
-            let share = if friendly {
+            // The source divides the enemy's tenths last, after the count.
+            let lost = if friendly {
                 let (always, more) = air_state.stage1_friendly_slot_loss();
-                always + rng.roll_range(0, more + 1) as f64 / 1000.0
+                let share = always + rng.roll_range(0, more + 1) as f64 / 1000.0;
+                count as f64 * share * jet
             } else {
                 let below = air_state.stage1_enemy_slot_loss();
-                (0.35 * rng.roll_range(0, below) as f64 + 0.65 * rng.roll_range(0, below) as f64)
-                    / 10.0
+                let tenths =
+                    0.35 * rng.roll_range(0, below) as f64 + 0.65 * rng.roll_range(0, below) as f64;
+                count as f64 * tenths * jet / 10.0
             };
-            let lost = ((count as f64 * share * jet).floor() as i64).min(count);
+            let lost = (lost.floor() as i64).min(count);
             ship.ship.api_onslot[slot] = count - lost;
             total += lost;
         }
@@ -232,8 +238,9 @@ fn fly_through_anti_air(
     defenders: &[BattleRuntimeShip],
 ) -> (i64, i64) {
     let fleet_aa = fleet_anti_air(codex, defenders) as f64;
+    let attackers_combined = attackers.iter().any(|ship| ship.enemy_deck.is_some());
     let (mut flew, mut shot) = (0, 0);
-    for ship in attackers.iter_mut() {
+    for ship in attackers.iter_mut().filter(|ship| ship.is_alive()) {
         for (slot, item) in ship.slot_items.iter().enumerate().take(5) {
             let count = ship.ship.api_onslot[slot];
             if count <= 0 {
@@ -251,21 +258,21 @@ fn fly_through_anti_air(
                 return (flew, shot);
             };
             let defender = afloat[pick];
-            let kept = combined_anti_air(defender);
+            let kept = combined_fire_share(defender, attackers_combined);
             let ship_aa = weighted_anti_air(codex, defender) as f64 * kept;
-            // A friendly fleet's fire counts for less, at a higher rate, and
-            // always takes at least one aircraft.
-            let (fleet_aa, rate, at_least) = if defender.is_friendly {
+            // A friendly fleet's fire counts for 1/1.3 as much at a rate of 0.2,
+            // and always takes one aircraft more (`getAAShotFlat`, `shotFix`).
+            let (fleet_fire, rate, at_least) = if defender.is_friendly {
                 ((fleet_aa / 1.3).floor() * kept, 0.2, 1)
             } else {
-                (fleet_aa * kept, 0.1875, 0)
+                (fleet_aa * kept, ENEMY_FLAT_SHOT, 0)
             };
             let mut lost = at_least;
             if rng.roll_range(0, 2) == 0 {
                 lost += (count as f64 * ship_aa / 200.0).floor() as i64;
             }
             if rng.roll_range(0, 2) == 0 {
-                lost += ((ship_aa + fleet_aa) * rate).floor() as i64;
+                lost += ((ship_aa + fleet_fire) * rate).floor() as i64;
             }
             let lost = lost.min(count);
             ship.ship.api_onslot[slot] = count - lost;
@@ -850,15 +857,44 @@ mod tests {
             );
             small_slot_emptied += i64::from(left[2] == 0);
 
-            // Fired on by a friendly fleet, a slot that strikes loses one at least.
-            let (left, kouku) = fly(seed, false);
-            let flew = kouku.api_stage2.api_e_count;
-            assert!(
-                kouku.api_stage2.api_e_lostcount >= i64::from(flew > 0),
-                "seed {seed}: {left:?}"
+            // The side with fighters alone sends nothing through anti-air fire.
+            let (_, kouku) = fly(seed, false);
+            assert_eq!(
+                (kouku.api_stage2.api_f_count, kouku.api_stage2.api_f_lostcount),
+                (0, 0),
+                "seed {seed}: fighters are not fired on"
             );
         }
         assert!(small_slot_emptied > 0, "a slot of three is emptied now and then");
+    }
+
+    /// A friendly ship's fire always takes one aircraft from each slot it is
+    /// aimed at, whether or not either of its shots lands.
+    #[test]
+    fn friendly_fire_takes_one_from_every_slot_that_strikes() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let fighter = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
+        let mut carrier = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
+        carrier.slot_items = vec![
+            slotitem_with_mst_id(bomber),
+            slotitem_with_mst_id(fighter),
+            slotitem_with_mst_id(bomber),
+        ];
+        carrier.ship.api_onslot = [30, 12, 3, 0, 0];
+        let defender = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        let defenders = vec![BattleRuntimeShip::new(defender, true, true)];
+
+        for seed in 0..50 {
+            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+            let mut rng = crate::random::SeededRng::new(seed);
+            let (flew, shot) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &defenders);
+            let left = attackers[0].ship.api_onslot;
+            assert_eq!(flew, 33, "the fighters between them do not come to strike");
+            assert!(left[0] < 30 && left[2] < 3, "seed {seed}: {left:?}");
+            assert_eq!(left[1], 12, "seed {seed}: fighters are not fired on");
+            assert_eq!(shot, 45 - left.iter().sum::<i64>());
+        }
     }
 
     #[test]

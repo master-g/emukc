@@ -198,7 +198,7 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-10] 分支 `feat/per-slot-plane-losses`（计划 `2026-10-10-006`）：航空战两阶段逐槽结算，20 份文本基线重冻；
-  `cargo test --workspace` 1300 全过。PR #37 已合并（`slot_item` 加了列，旧库已移为 `.data/emukc.db.bak-2026-10-10`）。
+  `cargo test --workspace` 1301 全过。PR #37 已合并（`slot_item` 加了列，旧库已移为 `.data/emukc.db.bak-2026-10-10`）。
 
 ## Next Session
 

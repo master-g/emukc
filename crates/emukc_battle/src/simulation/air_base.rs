@@ -12,7 +12,7 @@
 
 use emukc_model::{
     codex::Codex,
-    kc2::{KcSlotItemType3, start2::ApiMstSlotitem},
+    kc2::{KcApiSlotItem, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
 use crate::accuracy::{PlaneProficiency, roll_strike};
@@ -96,14 +96,14 @@ fn strike_stat(mst: &ApiMstSlotitem, on_land: bool) -> f64 {
 }
 
 /// What an enemy ship's fixed shot takes of its own and its fleet's anti-air.
-const ENEMY_FLAT_SHOT: f64 = 0.1875;
+pub(super) const ENEMY_FLAT_SHOT: f64 = 0.1875;
 
 /// 加重対空 of a ship: for an enemy the root of her anti-air, for a friendly
 /// ship half of what she has without equipment, plus her anti-air equipment
 /// weighted by kind (`Ship.weightedAntiAir`, `kcships.js:1619`).
 pub(super) fn weighted_anti_air(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
     let anti_air = ship.ship.api_taiku[0].max(0) as f64;
-    let equipped = |item: &emukc_model::kc2::KcApiSlotItem| {
+    let equipped = |item: &KcApiSlotItem| {
         codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).map_or(0, |mst| mst.api_tyku)
     };
     let mut weighted = if ship.is_friendly {
