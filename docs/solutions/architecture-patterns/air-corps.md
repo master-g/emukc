@@ -113,9 +113,7 @@ with the land-base switch on, so every aircraft gets at least `sqrt(exp x 0.1)` 
 striking squadron hits and criticals with its own level alone (`squadron_proficiency`, the
 source's `airstrikeLBAS`): `sqrt(exp x 0.1)` plus `0,0,1,2,3,4,6,9` to hit, the critical step
 times 0.8 to the rate, `floor(sqrt(exp) + step) / 100` to the damage. A critical sets
-`api_ecl_flag`, which the client reads as it does in the carrier air phase. A squadron left
-with no aircraft after a sortie has its level and experience set to zero
-(`reset_emptied_squadrons_impl`).
+`api_ecl_flag`, which the client reads as it does in the carrier air phase.
 
 ## The raid on the air base
 
@@ -154,8 +152,10 @@ place in the area as a string.
 - A raid always costs stores when it does damage; upstream that is random at a rate nobody
   published. Defending does not tire a squadron (no source says it does), 改修 adds
   nothing to the defenders' fighter power, and the high-altitude modifier is left out.
-- A squadron's proficiency neither grows nor wears down by the aircraft it loses; it only
-  starts over when the squadron is shot down to nothing.
+- A squadron's proficiency never changes in the air corps: it neither grows, nor wears down
+  by the aircraft it loses, nor starts over when the squadron is shot down to nothing. The
+  source simulator has only the last of the three, and that alone would leave a level that
+  can fall and never rise; do the three together.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in

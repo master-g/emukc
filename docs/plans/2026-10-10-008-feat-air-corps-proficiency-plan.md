@@ -43,12 +43,12 @@ execution: code
 1. `AirSquadronInput` 增加 `alv`，由装备行的 `aircraft_lv` 填入。
 2. 出击与防空的制空値每中隊加 `proficiency_fighter_power(.., land_base = true)`。
 3. 攻击的抽签与暴击伤害用该中隊自己的熟练度；出暴击时置 `api_ecl_flag`。仍是一次攻击一次抽签。
-4. 出击结算写回機数后，把機数为 0 的中隊的装备熟练度清零。
 
 ## Scope
 
-**不做：** 航空队熟练度的成长与按损失比例的下降（来源模拟器不建模；舰上那套出自另一份资料，没有说
-适用于航空队）；防空中被打空的清零（来源只在出击一侧标记）；陸上偵察機对制空値的倍率
+**不做：** 航空队熟练度的任何变化——成长、按损失比例的下降、打空清零。来源模拟器只有打空清零
+（`emptied`），成长不建模；只做清零会让熟练度在航空队里只降不升，比不做更偏离真实游戏，所以三者留到
+有成长的出处时一起做。陸上偵察機对制空値的倍率
 （`landscoutmod`，现有出击制空値本来就没有）；`AAImprove`；噴式强襲。
 
 ## Implementation Units
@@ -57,10 +57,14 @@ execution: code
   制空値、抽签、暴击伤害与 `api_ecl_flag`；`air_raid.rs` 的防空制空値。测试钉住满熟练度陸攻的三个值
   （命中 `sqrt(12)+9`、暴击率 8、暴击伤害 1.2）、哨戒机的折算、雷電防空 76 → 101、200 个种子里无熟练度
   不出暴击而满熟练度出。
-- **U2** `emukc_gameplay`：两处构造带上 `aircraft_lv`；`record_strike_losses_impl` 之后清零打空的中隊。
-  测试：两个满熟练度中隊，一个剩 0、一个剩 5，前者归零后者不变。
+- **U2** `emukc_gameplay`：两处构造带上 `aircraft_lv`。
 - **U3** 更新 `air-corps.md`、`battle-hit-and-critical-rolls.md`、
   `plane-losses-and-proficiency-growth.md`；基线若有变化则重新冻结并说明。
+
+## 实施记录（2026-10-10）
+
+- U1–U3 按计划做完，基线没有变化。
+- 初版照来源加了「出击后機数为 0 的中隊熟练度清零」，随后撤掉：航空队没有成长，清零只会单向往下掉。
 
 ## Verification
 

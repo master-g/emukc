@@ -24,7 +24,7 @@ use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::map::get_map_records_impl;
 use super::material::{deduct_material_impl, get_mat_impl};
-use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl, update_slot_item_impl};
+use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl};
 use super::sortie::AirStrike;
 use super::use_item::deduct_use_item_impl;
 use plane::{get_planes_impl, squadrons_of};
@@ -837,37 +837,6 @@ where
         }
     }
 
-    reset_emptied_squadrons_impl(
-        c,
-        profile_id,
-        area_id,
-        attacks.iter().map(|attack| attack.api_base_id),
-    )
-    .await
-}
-
-/// A squadron shot down to nothing starts its proficiency over (`kcsim.js` 3944).
-async fn reset_emptied_squadrons_impl<C>(
-    c: &C,
-    profile_id: i64,
-    area_id: i64,
-    base_rids: impl IntoIterator<Item = i64>,
-) -> Result<(), GameplayError>
-where
-    C: ConnectionTrait,
-{
-    let emptied = plane_db::Entity::find()
-        .filter(plane_db::Column::ProfileId.eq(profile_id))
-        .filter(plane_db::Column::AreaId.eq(area_id))
-        .filter(plane_db::Column::Rid.is_in(base_rids))
-        .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
-        .filter(plane_db::Column::Count.eq(0))
-        .all(c)
-        .await?;
-    for plane in emptied {
-        update_slot_item_impl(c, plane.slot_id, None, Some(0), None).await?;
-    }
-
     Ok(())
 }
 
@@ -1396,76 +1365,6 @@ mod tests {
             event_state: None,
             unlocked,
         }
-    }
-
-    #[tokio::test]
-    async fn a_squadron_shot_down_to_nothing_starts_its_proficiency_over() {
-        use emukc_db::entity::profile::item::slot_item;
-
-        let db = emukc_db::prelude::new_mem_db().await.unwrap();
-        let account = emukc_db::entity::user::account::ActiveModel {
-            name: ActiveValue::Set("emptied".into()),
-            secret: ActiveValue::Set(String::new()),
-            create_time: ActiveValue::Set(Utc::now()),
-            last_login: ActiveValue::Set(Utc::now()),
-            ..Default::default()
-        }
-        .insert(&db)
-        .await
-        .unwrap();
-        let pid = emukc_db::entity::profile::default_active_model(account.uid, "emptied")
-            .insert(&db)
-            .await
-            .unwrap()
-            .id;
-        // Two full-proficiency 一式陸攻 in airbase 6/1: squadron 1 has nothing left, squadron 2 five.
-        for squadron_id in 1..=2 {
-            let item = slot_item::ActiveModel {
-                profile_id: ActiveValue::Set(pid),
-                mst_id: ActiveValue::Set(169),
-                type3: ActiveValue::Set(47),
-                locked: ActiveValue::Set(false),
-                level: ActiveValue::Set(0),
-                aircraft_lv: ActiveValue::Set(7),
-                aircraft_exp: ActiveValue::Set(120),
-                equip_on: ActiveValue::Set(0),
-                ..Default::default()
-            }
-            .insert(&db)
-            .await
-            .unwrap();
-            plane_db::ActiveModel {
-                slot_id: ActiveValue::Set(item.id),
-                profile_id: ActiveValue::Set(pid),
-                area_id: ActiveValue::Set(6),
-                rid: ActiveValue::Set(1),
-                squadron_id: ActiveValue::Set(squadron_id),
-                state: ActiveValue::Set(plane_db::Status::Assigned),
-                condition: ActiveValue::Set(COND_DEPLOYED),
-                count: ActiveValue::Set(if squadron_id == 1 {
-                    0
-                } else {
-                    5
-                }),
-                max_count: ActiveValue::Set(18),
-                since: ActiveValue::Set(None),
-            }
-            .insert(&db)
-            .await
-            .unwrap();
-        }
-
-        reset_emptied_squadrons_impl(&db, pid, 6, [1]).await.unwrap();
-
-        let levels: Vec<(i64, i64)> = slot_item::Entity::find()
-            .order_by_asc(slot_item::Column::Id)
-            .all(&db)
-            .await
-            .unwrap()
-            .iter()
-            .map(|item| (item.aircraft_lv, item.aircraft_exp))
-            .collect();
-        assert_eq!(levels, [(0, 0), (7, 120)]);
     }
 
     /// The figures wikiwiki gives as examples.
