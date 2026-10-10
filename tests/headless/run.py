@@ -10,15 +10,18 @@ that KCSAPI path since the last call a step waited for, and `u:<x>,<y>:<path>` d
 same while clicking that spot every few seconds (several spots, separated by `;`, are
 clicked in turn). Every KCSAPI response is saved under api/, and the report lists the
 resources the client asked for that the cache list misses or the origin does not have. The run fails on a page error, a failed request or a step that
-times out; the report and screenshots land in .data/temp/headless/<scenario>/.
+times out; the report and screenshots land in .data/temp/headless/<scenario>/. A run that
+has no result after `LIMIT` seconds is stopped, naming the step it stood at.
 
 Needs the bootstrapped .data/codex, the resource cache, main-decoder/out/main.decoded.js
 and Playwright for Python with Chrome installed. Never touches .data/emukc.db.
 """
 
 import json
+import os
 import re
 import shutil
+import signal
 import socket
 import sqlite3
 import subprocess
@@ -30,6 +33,8 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 PORT = 27777
+# A scenario takes under a minute; this is for the run that never comes back.
+LIMIT = 300
 # Where the game canvas sits inside the page.
 CANVAS_X, CANVAS_Y = 40, 0
 # The same patch as main-decoder/src/client-runtime.ts, keeping the game running.
@@ -322,6 +327,18 @@ def main() -> int:
 
     report = {"scenario": scenario, "page_errors": [], "failed_requests": [], "api": [], "failed_step": None, "problems": []}
     server = subprocess.Popen([*emukcd, "serve", "--no-banner"], stdout=(work / "server.log").open("w"), stderr=subprocess.STDOUT)
+
+    at = "starting the browser"
+
+    def out_of_time(*_) -> None:
+        # The steps have deadlines of their own, but a browser call can block under them.
+        server.terminate()
+        last = report["api"][-1] if report["api"] else "none"
+        print(f"FAILED: no result after {LIMIT} s, at {at!r}; last KCSAPI call: {last}", flush=True)
+        os._exit(1)
+
+    signal.signal(signal.SIGALRM, out_of_time)
+    signal.alarm(LIMIT)
     try:
         wait_for_port()
         with sync_playwright() as playwright:
@@ -367,6 +384,7 @@ def main() -> int:
                         raise SystemExit(f"the page did not get through {ms} ms of its own time in two minutes")
                     page.wait_for_timeout(5)
 
+            at = "loading the page"
             page.goto(url, wait_until="domcontentloaded")
             cursor = 0
 
@@ -392,6 +410,7 @@ def main() -> int:
                 return True
 
             for step in steps:
+                at = step
                 kind, _, value = step.partition(":")
                 if kind == "w":
                     advance(float(value) * 1000)

@@ -125,5 +125,12 @@ screen, pass steps on the command line and read the screenshots:
   整備Lv screen.
 - The quest scenario does not show a locked piece's warning (`api_invalid_flag`), and it
   cannot see what the client draws in the flagship's slots after a claim.
+- A scenario takes 15 to 50 seconds on its own (`fresh_1_1` 14 s, `gunnery_cutin` 15 s,
+  `transport_5_6` 48 s, measured 2026-10-10 on a loaded machine); `cargo build` in front of it
+  is a few seconds when nothing changed. A check that takes minutes is not being slow, it is
+  stuck: one run sat on the world-select page for 47 minutes, past every step deadline, in a
+  browser call that never returned. `run.py` now stops a run with no result after `LIMIT`
+  (300 s), names the step it stood at and the last KCSAPI call, and stops its server. It could
+  not be made to happen again; start from that step if it does.
 - The entry module id (32875) changes with a client build; `run.py` and
   `client-runtime.ts` say so when their patch no longer matches.
