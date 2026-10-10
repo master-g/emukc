@@ -1041,11 +1041,21 @@ mod tests {
         assert!(fire.is_none());
         assert!(shot >= 2);
 
-        // An enemy fleet fires none, and fighters alone bring none on.
+        // An enemy fleet fires none.
         let enemy = vec![BattleRuntimeShip::new(akizuki, false, true)];
-        let mut attackers = vec![BattleRuntimeShip::new(carrier, true, true)];
+        let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), true, true)];
         let (.., fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &enemy);
         assert!(fire.is_none());
+
+        // Fighters alone bring none on, and nothing is drawn for it.
+        let fighter = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
+        carrier.slot_items = vec![slotitem_with_mst_id(fighter), slotitem_with_mst_id(fighter)];
+        let mut attackers = vec![BattleRuntimeShip::new(carrier, false, true)];
+        let mut rng = crate::random::SeededRng::new(1);
+        let mut untouched = crate::random::SeededRng::new(1);
+        let (flew, _, fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &armed);
+        assert!(fire.is_none() && flew == 0);
+        assert_eq!(rng.roll_range(0, 1000), untouched.roll_range(0, 1000));
     }
 
     #[test]
