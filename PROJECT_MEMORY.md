@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `feat/proficiency-growth`
+Last updated: 2026-10-10 · branch `main`
 
 ## Verified Facts
 
@@ -197,13 +197,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] 分支 `feat/proficiency-growth`（计划 `2026-10-10-005`）：舰载机损失入库、熟练度成长、补给补五槽；
-  `cargo test --workspace` 1299 全过，无头 `gunnery_cutin` 通过；PR #37。`slot_item` 加了列，旧的本地库要重建。
+- [2026-10-10] PR #38（计划 `2026-10-10-006`）：航空战两阶段逐槽结算，20 份文本基线重冻；
+  `cargo test --workspace` 1301 全过。PR #37 已合并（`slot_item` 加了列，旧库已移为 `.data/emukc.db.bak-2026-10-10`）。
 
 ## Next Session
 
-- [2026-10-10] 下一项：飞机损失改成按槽分配（`plane-losses-and-proficiency-growth.md` 的 Known deviation）。
+- [2026-10-10] 下一项候选：熟练度的制空値加成、対空カットイン、航空队熟练度。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  带种子的战斗测试因落空失败时换种子、不放宽断言。
+  带种子的战斗测试因落空失败时换种子、不放宽断言。写报告里的数字前先读到它，别凭印象填。

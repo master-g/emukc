@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        60,
-        42,
+        51,
+        56,
     ],
     enemy_nowhps: [
         0,
@@ -39,7 +39,7 @@ BattlePacket {
                 api_f_count: 0,
                 api_f_lostcount: 0,
                 api_e_count: 46,
-                api_e_lostcount: 1,
+                api_e_lostcount: 3,
                 api_disp_seiku: 4,
                 api_touch_plane: [
                     -1,
@@ -49,7 +49,7 @@ BattlePacket {
             api_stage2: BattleKoukuStage2 {
                 api_f_count: 0,
                 api_f_lostcount: 0,
-                api_e_count: 45,
+                api_e_count: 43,
                 api_e_lostcount: 5,
             },
             api_stage3: BattleKoukuStage3 {
@@ -67,7 +67,7 @@ BattlePacket {
                 ],
                 api_ebak: [
                     1,
-                    1,
+                    0,
                 ],
                 api_frai_flag: [
                     0,
@@ -78,7 +78,7 @@ BattlePacket {
                     0,
                 ],
                 api_fbak_flag: [
-                    0,
+                    1,
                     1,
                 ],
                 api_ebak_flag: [
@@ -94,8 +94,8 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    0,
-                    0,
+                    9,
+                    4,
                 ],
                 api_edam: [
                     0,
@@ -119,7 +119,7 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
-        1,
+        0,
         0,
         0,
     ],
@@ -131,13 +131,13 @@ BattlePacket {
                 0,
             ],
             api_at_list: [
-                0,
-                0,
                 1,
+                0,
+                0,
             ],
             api_at_type: [
                 0,
-                2,
+                0,
                 0,
             ],
             api_df_list: [
@@ -145,7 +145,6 @@ BattlePacket {
                     1,
                 ],
                 [
-                    1,
                     1,
                 ],
                 [
@@ -159,11 +158,8 @@ BattlePacket {
                     ),
                 ],
                 [
-                    Text(
-                        "105",
-                    ),
-                    Text(
-                        "8",
+                    Num(
+                        105,
                     ),
                 ],
                 [
@@ -174,105 +170,29 @@ BattlePacket {
             ],
             api_cl_list: [
                 [
-                    1,
-                ],
-                [
-                    1,
                     2,
                 ],
                 [
                     0,
                 ],
-            ],
-            api_damage: [
-                [
-                    113,
-                ],
-                [
-                    7.1,
-                    5.1,
-                ],
-                [
-                    0,
-                ],
-            ],
-        },
-    ),
-    hougeki2: Some(
-        BattleHougeki {
-            api_at_eflag: [
-                0,
-                1,
-                0,
-            ],
-            api_at_list: [
-                0,
-                0,
-                1,
-            ],
-            api_at_type: [
-                0,
-                2,
-                0,
-            ],
-            api_df_list: [
-                [
-                    0,
-                ],
-                [
-                    1,
-                    1,
-                ],
-                [
-                    0,
-                ],
-            ],
-            api_si_list: [
-                [
-                    Num(
-                        7,
-                    ),
-                ],
-                [
-                    Text(
-                        "105",
-                    ),
-                    Text(
-                        "8",
-                    ),
-                ],
-                [
-                    Num(
-                        7,
-                    ),
-                ],
-            ],
-            api_cl_list: [
-                [
-                    0,
-                ],
-                [
-                    0,
-                    1,
-                ],
                 [
                     1,
                 ],
             ],
             api_damage: [
                 [
-                    0,
+                    179,
                 ],
                 [
-                    0,
-                    6,
+                    0.1,
                 ],
                 [
-                    80,
+                    118,
                 ],
             ],
         },
     ),
+    hougeki2: None,
     hougeki3: None,
     raigeki: None,
 }

@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        60,
-        60,
+        50,
+        49,
     ],
     enemy_nowhps: [
         0,
@@ -39,7 +39,7 @@ BattlePacket {
                 api_f_count: 0,
                 api_f_lostcount: 0,
                 api_e_count: 46,
-                api_e_lostcount: 1,
+                api_e_lostcount: 2,
                 api_disp_seiku: 4,
                 api_touch_plane: [
                     -1,
@@ -49,8 +49,8 @@ BattlePacket {
             api_stage2: BattleKoukuStage2 {
                 api_f_count: 0,
                 api_f_lostcount: 0,
-                api_e_count: 45,
-                api_e_lostcount: 5,
+                api_e_count: 44,
+                api_e_lostcount: 3,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: [
@@ -94,7 +94,7 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    0,
+                    10,
                     0,
                 ],
                 api_edam: [
@@ -119,9 +119,9 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
+        1,
         0,
-        0,
-        0,
+        1,
     ],
     hougeki1: Some(
         BattleHougeki {
@@ -145,7 +145,7 @@ BattlePacket {
                     1,
                 ],
                 [
-                    1,
+                    0,
                 ],
                 [
                     0,
@@ -176,23 +176,126 @@ BattlePacket {
                     0,
                 ],
                 [
-                    1,
+                    0,
                 ],
             ],
             api_damage: [
                 [
-                    117.1,
+                    116,
                 ],
                 [
                     0,
                 ],
                 [
-                    116,
+                    0,
                 ],
             ],
         },
     ),
-    hougeki2: None,
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+                1,
+                0,
+            ],
+            api_at_list: [
+                0,
+                0,
+                1,
+            ],
+            api_at_type: [
+                0,
+                0,
+                0,
+            ],
+            api_df_list: [
+                [
+                    0,
+                ],
+                [
+                    1,
+                ],
+                [
+                    0,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        7,
+                    ),
+                ],
+                [
+                    Num(
+                        105,
+                    ),
+                ],
+                [
+                    Num(
+                        7,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    0,
+                ],
+                [
+                    2,
+                ],
+                [
+                    0,
+                ],
+            ],
+            api_damage: [
+                [
+                    0,
+                ],
+                [
+                    5,
+                ],
+                [
+                    0,
+                ],
+            ],
+        },
+    ),
     hougeki3: None,
-    raigeki: None,
+    raigeki: Some(
+        BattleRaigeki {
+            api_frai: [
+                0,
+                -1,
+            ],
+            api_fcl: [
+                1,
+                0,
+            ],
+            api_fdam: [
+                0,
+                6,
+            ],
+            api_fydam: [
+                110,
+                0,
+            ],
+            api_erai: [
+                1,
+                -1,
+            ],
+            api_ecl: [
+                1,
+                0,
+            ],
+            api_edam: [
+                110,
+                0,
+            ],
+            api_eydam: [
+                6,
+                0,
+            ],
+        },
+    ),
 }

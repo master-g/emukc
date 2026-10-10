@@ -5,7 +5,7 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        49,
+        57,
         55,
     ],
     enemy_nowhps: [
@@ -39,7 +39,7 @@ BattlePacket {
                 api_f_count: 0,
                 api_f_lostcount: 0,
                 api_e_count: 46,
-                api_e_lostcount: 1,
+                api_e_lostcount: 2,
                 api_disp_seiku: 4,
                 api_touch_plane: [
                     -1,
@@ -49,8 +49,8 @@ BattlePacket {
             api_stage2: BattleKoukuStage2 {
                 api_f_count: 0,
                 api_f_lostcount: 0,
-                api_e_count: 45,
-                api_e_lostcount: 5,
+                api_e_count: 44,
+                api_e_lostcount: 9,
             },
             api_stage3: BattleKoukuStage3 {
                 api_frai: [
@@ -66,7 +66,7 @@ BattlePacket {
                     -1,
                 ],
                 api_ebak: [
-                    1,
+                    0,
                     0,
                 ],
                 api_frai_flag: [
@@ -79,7 +79,7 @@ BattlePacket {
                 ],
                 api_fbak_flag: [
                     1,
-                    1,
+                    0,
                 ],
                 api_ebak_flag: [
                     0,
@@ -94,8 +94,8 @@ BattlePacket {
                     0,
                 ],
                 api_fdam: [
-                    11,
-                    5,
+                    3,
+                    0,
                 ],
                 api_edam: [
                     0,
@@ -119,7 +119,7 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
-        0,
+        1,
         0,
         0,
     ],
@@ -128,21 +128,27 @@ BattlePacket {
             api_at_eflag: [
                 0,
                 0,
+                1,
             ],
             api_at_list: [
                 0,
+                1,
                 1,
             ],
             api_at_type: [
                 0,
                 0,
+                0,
             ],
             api_df_list: [
+                [
+                    0,
+                ],
                 [
                     1,
                 ],
                 [
-                    0,
+                    1,
                 ],
             ],
             api_si_list: [
@@ -156,10 +162,18 @@ BattlePacket {
                         7,
                     ),
                 ],
+                [
+                    Num(
+                        105,
+                    ),
+                ],
             ],
             api_cl_list: [
                 [
                     2,
+                ],
+                [
+                    0,
                 ],
                 [
                     1,
@@ -167,15 +181,52 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    179.1,
+                    180,
                 ],
                 [
-                    114,
+                    0,
+                ],
+                [
+                    5.1,
                 ],
             ],
         },
     ),
-    hougeki2: None,
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+            ],
+            api_at_list: [
+                0,
+            ],
+            api_at_type: [
+                0,
+            ],
+            api_df_list: [
+                [
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        7,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                ],
+            ],
+            api_damage: [
+                [
+                    117,
+                ],
+            ],
+        },
+    ),
     hougeki3: None,
     raigeki: None,
 }

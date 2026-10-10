@@ -117,6 +117,32 @@ impl AirState {
         }
     }
 
+    /// What the fight for the air costs one friendly slot: the share it
+    /// always loses, and how many thousandths more it may lose
+    /// (`kcsim.js` `AADefenceFighters`).
+    pub(crate) fn stage1_friendly_slot_loss(self) -> (f64, i64) {
+        match self {
+            Self::Supremacy => (0.025, 33),
+            Self::Superiority => (0.075, 100),
+            Self::Parity => (0.125, 166),
+            Self::Denial => (0.175, 233),
+            Self::Incapability => (0.25, 333),
+        }
+    }
+
+    /// What it costs one enemy slot: the tenths it loses are drawn twice
+    /// below this. The source keys it on the enemy's own air state, the
+    /// reverse of this one.
+    pub(crate) fn stage1_enemy_slot_loss(self) -> i64 {
+        match self {
+            Self::Supremacy => 11,
+            Self::Superiority => 9,
+            Self::Parity => 7,
+            Self::Denial => 5,
+            Self::Incapability => 2,
+        }
+    }
+
     pub(crate) fn stage1_friendly_loss_ratio(self) -> (f64, f64) {
         match self {
             Self::Supremacy => (0.0, 0.04),
