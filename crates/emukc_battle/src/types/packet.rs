@@ -177,6 +177,18 @@ pub struct BattleKoukuStage2 {
     pub api_f_lostcount: i64,
     pub api_e_count: i64,
     pub api_e_lostcount: i64,
+    /// The friendly fleet's 対空カットイン, when one fired.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_air_fire: Option<BattleAirFire>,
+}
+
+/// A 対空カットイン: the ship that fired it, by her place in the fleet, the
+/// kind, and the equipment the client names.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BattleAirFire {
+    pub api_idx: i64,
+    pub api_kind: i64,
+    pub api_use_items: Vec<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `main`
+Last updated: 2026-10-10 · branch `feat/anti-air-cut-in`
 
 ## Verified Facts
 
@@ -52,8 +52,7 @@ Current verification baseline:
 - [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
   逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
   结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
-- [2026-10-08] 基地航空隊的全貌、数值出处与「不带航空队的战斗不多抽一个随机数」的规矩：`docs/solutions/architecture-patterns/air-corps.md`。
-- [2026-10-09] 基地空袭的敌编成在 KCNav 的 `maps/{图}/nodes/AB/enemycomps`；通常海域只有 6-5 有。战斗模型出自 `kcsim.js` 的 `simLBRaid`。
+- [2026-10-08] 基地航空隊的全貌、数值出处、「不带航空队的战斗不多抽随机数」与基地空袭：`docs/solutions/architecture-patterns/air-corps.md`。
 - [2026-10-08] 基地航空隊的可配属机种、每中隊機数、配属扣铝都以客户端为准（`getEquipTypes`、`getKadouCount`，见计划 2026-09-22-001 订正段）；补给每機 燃料 3 / ボーキ 5。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
   `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
@@ -158,6 +157,7 @@ Current verification baseline:
 - [2026-10-09] 航空隊疲劳数值全部来自 wikiwiki 且该页自标「推測される値」；疲劳不影响战斗。内部值/双行槽位/加列回填的做法见
   `docs/solutions/architecture-patterns/air-corps.md`「Condition and relocation run on one timestamp」。
 
+- [2026-10-10] 対空カットイン：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度不单做打空清零，见 `air-corps.md`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
 
@@ -197,13 +197,14 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-10] PR #36–#38 已合并（熟练度进战斗、损失入库与成长、逐槽损失；旧库移为 `.data/emukc.db.bak-2026-10-10`）。
-  PR #39：无头脚本加 300 秒总时限；`gunnery_cutin` 通过。
+- [2026-10-10] 三条叠放的本地分支，均未推送：`feat/proficiency-fighter-power` → `feat/air-corps-proficiency` →
+  `feat/anti-air-cut-in`（计划 2026-10-10-007/008/009）。门与无头场景均通过。
 
 ## Next Session
 
-- [2026-10-10] 下一项候选：熟练度的制空値加成、対空カットイン、航空队熟练度。
+- [2026-10-10] 先推送并按顺序开三个 PR。之后的候选：点名舰的対空カットイン种别、航空队熟练度的成长/损耗/清零（三者一起）、
+  夜间航空攻击的熟练度。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  带种子的战斗测试因落空失败时换种子、不放宽断言。写报告里的数字前先读到它，别凭印象填。
+  带种子的战斗测试落空时换种子、不放宽断言。报告里的数字先读到再写。

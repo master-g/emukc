@@ -205,6 +205,16 @@ impl Scenario {
         }
     }
 
+    /// The gunnery fleet with 秋月 in the last place, carrying two
+    /// 10cm連装高角砲+高射装置 and a 13号対空電探改: the 対空カットイン of her class.
+    /// 2-5 is open, the one map whose first battle always meets a carrier.
+    pub fn anti_air_cut_in() -> Self {
+        let mut scenario = Self::gunnery_cutin();
+        scenario.fleet[5] = ShipSpec::new(AKIZUKI_MST_ID, 99).with_slots([122, 122, 106]);
+        scenario.clear_maps.extend([21, 22, 23, 24]);
+        scenario
+    }
+
     /// A carrier fleet able to form the 空母カットイン (fighter + dive bomber +
     /// torpedo bomber).
     pub fn carrier_cutin() -> Self {
@@ -322,6 +332,8 @@ const FLETCHER_MK2_MST_ID: i64 = 629;
 const LARGE_SONAR_MST_ID: i64 = 132;
 /// 長門: four slots, so two main guns plus a secondary and a seaplane fit.
 const NAGATO_MST_ID: i64 = 80;
+/// 秋月.
+const AKIZUKI_MST_ID: i64 = 421;
 /// 35.6cm連装砲.
 const LARGE_MAIN_GUN_MST_ID: i64 = 7;
 /// 15.5cm三連装副砲.
@@ -351,6 +363,8 @@ pub enum PhaseExpectation {
     DayCutIn,
     /// Some day shelling attack must report the carrier cut-in, `api_at_type` 7.
     CarrierCutIn,
+    /// The air phase must carry an `api_air_fire`.
+    AntiAirCutIn,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
 }
@@ -410,6 +424,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::DayCutIn,
+    },
+    Preset {
+        name: "anti_air_cut_in",
+        build: Scenario::anti_air_cut_in,
+        maparea: 2,
+        mapinfo: 5,
+        expects: PhaseExpectation::AntiAirCutIn,
     },
     Preset {
         name: "carrier_cutin",

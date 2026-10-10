@@ -185,6 +185,17 @@ FAIR_2_1 = (
     "u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home"
 )
 
+def check_anti_air_cut_in(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    fire = responses(work, "api_req_sortie/battle")[0]["api_kouku"]["api_stage2"].get("api_air_fire")
+    # 秋月 is the sixth ship; her three kinds show two or three of 122, 122 and 106.
+    if not fire:
+        problems.append("no 対空カットイン this time: all three kinds fail about 7 times in a hundred, so run it again")
+    elif fire["api_idx"] != 5 or fire["api_kind"] not in (1, 2, 3) or not set(fire["api_use_items"]) <= {122, 106}:
+        problems.append(f"秋月 should fire kind 1, 2 or 3 from the sixth place; the battle carried {fire}")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -194,6 +205,14 @@ SCENARIOS = {
     "gunnery_cutin": (FAIR_2_1, check_fair_battle),
     # The same with six destroyers, who seldom finish by day: this is the one that reaches the night.
     "leveled_for_mid_boss": (FAIR_2_1, check_fair_battle),
+    # 南西諸島海域's extra operation, 2-5, whose first battle meets carriers: 秋月 in the sixth
+    # place fires her 対空カットイン at what they send. Photographed through the air phase.
+    "anti_air_cut_in": (
+        f"{TO_MAPS} c:320,680 w:3 c:1105,415 w:4 c:700,275 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "w:16 " + " ".join(f"w:1 s:air{n}" for n in range(1, 9))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_anti_air_cut_in,
+    ),
     # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
     "transport_5_6": (
         f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
@@ -243,7 +262,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:
