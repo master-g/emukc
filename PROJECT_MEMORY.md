@@ -189,8 +189,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-11] 分支 `feat/named-ship-anti-air-cut-in`：计划 2026-10-11-002 做完，対空カットイン补齐点名舰的 42 个种别。
-  验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1321 过、0 败、0 ignored；
+- [2026-10-11] PR #47 已合并进 `main`：计划 2026-10-11-002 做完，対空カットイン补齐点名舰的 42 个种别。
+  以下验证是合并前在功能分支上做的，合并后的 `main` 没有重跑。验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1321 过、0 败、0 ignored；
   无头检查 `anti_air_cut_in` 通过，但它只演秋月的种别 1–3，点名舰的种别没有在真实客户端里演过。
 
 ## Next Session
