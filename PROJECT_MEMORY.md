@@ -150,7 +150,7 @@ Current verification baseline:
 - [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
-- [2026-10-10] 対空カットイン：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
+- [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
 - [2026-10-10] 质量门是 `clippy --workspace --all-targets -- -D warnings`（钩子同款，全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
@@ -189,15 +189,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-11] PR #45 已合并进 `main`：计划 2026-10-11-001 做完，航空队熟练度按次成长/损耗、打空清零，
-  集中派遣第二次攻击前恢复机数。以下验证是合并前在功能分支上做的，合并后的 `main` 没有重跑。
-  验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1318 过、0 败、0 ignored；
-  无头检查 `air_corps_6_4` 与 `air_raid_6_5` 通过，跑完后库里一式陸攻的 `aircraft_exp` 分别是 9 和 7（起始 0）；
-  这两个场景是在审查后的重构提交之前跑的，重构之后没有重跑。
+- [2026-10-11] 分支 `feat/named-ship-anti-air-cut-in`：计划 2026-10-11-002 做完，対空カットイン补齐点名舰的 42 个种别。
+  验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1321 过、0 败、0 ignored；
+  无头检查 `anti_air_cut_in` 通过，但它只演秋月的种别 1–3，点名舰的种别没有在真实客户端里演过。
 
 ## Next Session
 
-- [2026-10-11] 下一个目标还没定。候选：点名舰的対空カットイン种别、夜间航空攻击的熟练度；
+- [2026-10-11] 下一个目标还没定。候选：夜间航空攻击的熟练度（先调研出处）；
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；

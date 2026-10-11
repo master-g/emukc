@@ -31,6 +31,14 @@ place in it is its priority), `getAACI`, and `kcships.js` `getAACItype`. The rat
 ones written in `AACIDATA`; `toggleAACIRework` would swap seven of them and nothing in the
 source calls it.
 
+The kinds that name a ship (plan `2026-10-11-002`) name her by master id or class, and some
+of their equipment by master id too, exactly as `getAACItype` does. Three of its switches are
+taken at their defaults: 吹雪改二, 改三 and 改三護 fire kinds 49 to 52, 大和改 and 武蔵改 fire
+kind 26, and 秋月型's kind 2 wants a 高角砲 with its own 高射装置.
+
+wikiwiki 対空砲火 was read against the table on 2026-10-11: it lists the same 53 kinds and the
+same ships, and gives no rates, so the rates have one source.
+
 Equipment is classed from master data the way the source does it: 高角砲 is icon 16
 (`api_type[3]`), one of 対空 8 or more has its own 高射装置, a 対空機銃 (type 21) of 対空 9 or
 more is 集中配備, a radar (types 12, 13, 93) of 対空 2 or more is a 対空電探, type 36 is
@@ -38,14 +46,30 @@ more is 集中配備, a radar (types 12, 13, 93) of 対空 2 or more is a 対空
 
 ## What is in and what is not
 
-In: the kinds formed by equipment and class alone — 1, 2, 3 (秋月型, `api_ctype` 54), 4 and 6
-(battleships with 大口径主砲, 三式弾 and 高射装置), 5, 7, 8, 9, 12, 13.
+In: all 53 kinds of the source. Adding one is a row in `KINDS`, a line in `kinds_of` at the
+place the source pushes it, and a letter string.
 
-Not in: every kind that names a ship (10, 11 and 14 to 53); the enemy's cut-in
-(the client has no `api_air_fire_e` to draw, so it would only be numbers); the source's
-exclusion of 摩耶改二 and her like from kind 13, which exists because they have 10 and 11; the
-resistance some aircraft have to the fixed number. Adding a kind is a row in `KINDS`, a line
-in `kinds_of` at the place the source pushes it, and a letter string.
+Seven kinds (34 to 37, 39 to 41) show equipment the source writes out by id, and kind 32 the
+first of three pairs the ship carries; `shown` does the same. So kind 40 shows two 362 and a
+307 on a ship that carries a 363: the plates exist, they are just not always hers.
+
+Not in: the enemy's cut-in (the client has no `api_air_fire_e` to draw, so it would only be
+numbers); the resistance some aircraft have to the fixed number.
+
+## Where it differs from wikiwiki
+
+The figures are the source's throughout. wikiwiki disagrees on five kinds:
+
+| Kind | Here (fixed, modifier) | wikiwiki |
+| --- | --- | --- |
+| 27 | 6, 1.55 | 5, 1.55 |
+| 45 | 6, 1.55 | 5, 1.55 |
+| 49 | 6, 1.5 | 5, 1.5 |
+| 51 | 5, 1.4 | 5, 1.35 |
+| 52 | 5, 1.4 | 4, 1.4 |
+
+It also lists only 大和型改二 for kind 26, and wants a 機銃 of 対空 3 or more for kinds 12, 23
+and 24 and of 4 or more for kind 33, where the source takes any 機銃.
 
 ## The golden rule of this phase
 
@@ -72,7 +96,8 @@ new 574 and 575, which `BTXT_FLAT_IDS` has not caught up with.
 
 ## How it is checked
 
-- `aaci.rs` tests: the table against the source, the kinds each loadout gives, which kind
+- `aaci.rs` tests: the whole table against the source, the kinds each loadout gives (one
+  ship for each sort of condition, not one for each kind), the equipment shown, which kind
   stands under fixed rolls, and the untouched stream.
 - The `anti_air_cut_in` preset (秋月 with two 10cm連装高角砲+高射装置 and 13号対空電探改, at 2-5,
   whose first battle always meets a carrier) is in the sim→validate gate with

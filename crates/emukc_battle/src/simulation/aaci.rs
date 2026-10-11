@@ -3,8 +3,7 @@
 //!
 //! The kinds, their figures and the order they are tried in are
 //! `kancolle-replay`'s (`kcsim.js` `AACIDATA`, `getAACI`; `kcships.js`
-//! `getAACItype`). Only the kinds formed by equipment and ship class are here;
-//! the ones that name a ship are not.
+//! `getAACItype`), the kinds that name a ship among them.
 
 use emukc_model::{
     codex::Codex,
@@ -31,7 +30,7 @@ struct Kind {
     equipment: &'static str,
 }
 
-const KINDS: [Kind; 11] = [
+const KINDS: [Kind; 53] = [
     Kind {
         id: 1,
         fixed: 7,
@@ -105,6 +104,22 @@ const KINDS: [Kind; 11] = [
         equipment: "HA",
     },
     Kind {
+        id: 10,
+        fixed: 8,
+        rate: 60,
+        modifier: 1.65,
+        priority: 6,
+        equipment: "HCR",
+    },
+    Kind {
+        id: 11,
+        fixed: 6,
+        rate: 55,
+        modifier: 1.5,
+        priority: 9,
+        equipment: "HC",
+    },
+    Kind {
         id: 12,
         fixed: 3,
         rate: 45,
@@ -120,6 +135,326 @@ const KINDS: [Kind; 11] = [
         priority: 40,
         equipment: "BCR",
     },
+    Kind {
+        id: 14,
+        fixed: 4,
+        rate: 63,
+        modifier: 1.45,
+        priority: 31,
+        equipment: "HGR",
+    },
+    Kind {
+        id: 15,
+        fixed: 3,
+        rate: 55,
+        modifier: 1.3,
+        priority: 41,
+        equipment: "HG",
+    },
+    Kind {
+        id: 16,
+        fixed: 4,
+        rate: 62,
+        modifier: 1.4,
+        priority: 30,
+        equipment: "HGR",
+    },
+    Kind {
+        id: 17,
+        fixed: 2,
+        rate: 55,
+        modifier: 1.25,
+        priority: 49,
+        equipment: "HG",
+    },
+    Kind {
+        id: 18,
+        fixed: 2,
+        rate: 60,
+        modifier: 1.2,
+        priority: 50,
+        equipment: "C",
+    },
+    Kind {
+        id: 19,
+        fixed: 5,
+        rate: 55,
+        modifier: 1.45,
+        priority: 26,
+        equipment: "HC",
+    },
+    Kind {
+        id: 20,
+        fixed: 3,
+        rate: 65,
+        modifier: 1.25,
+        priority: 43,
+        equipment: "C",
+    },
+    Kind {
+        id: 21,
+        fixed: 5,
+        rate: 60,
+        modifier: 1.45,
+        priority: 27,
+        equipment: "HR",
+    },
+    Kind {
+        id: 22,
+        fixed: 2,
+        rate: 60,
+        modifier: 1.2,
+        priority: 51,
+        equipment: "C",
+    },
+    Kind {
+        id: 23,
+        fixed: 1,
+        rate: 80,
+        modifier: 1.05,
+        priority: 53,
+        equipment: "G",
+    },
+    Kind {
+        id: 24,
+        fixed: 3,
+        rate: 55,
+        modifier: 1.25,
+        priority: 44,
+        equipment: "HG",
+    },
+    Kind {
+        id: 25,
+        fixed: 7,
+        rate: 60,
+        modifier: 1.55,
+        priority: 10,
+        equipment: "GRS",
+    },
+    Kind {
+        id: 26,
+        fixed: 6,
+        rate: 60,
+        modifier: 1.4,
+        priority: 15,
+        equipment: "HR",
+    },
+    Kind {
+        id: 27,
+        fixed: 6,
+        rate: 55,
+        modifier: 1.55,
+        priority: 20,
+        equipment: "BGR",
+    },
+    Kind {
+        id: 28,
+        fixed: 4,
+        rate: 55,
+        modifier: 1.4,
+        priority: 35,
+        equipment: "GR",
+    },
+    Kind {
+        id: 29,
+        fixed: 5,
+        rate: 60,
+        modifier: 1.55,
+        priority: 28,
+        equipment: "HR",
+    },
+    Kind {
+        id: 30,
+        fixed: 3,
+        rate: 45,
+        modifier: 1.3,
+        priority: 38,
+        equipment: "HHH",
+    },
+    Kind {
+        id: 31,
+        fixed: 2,
+        rate: 50,
+        modifier: 1.25,
+        priority: 47,
+        equipment: "HH",
+    },
+    Kind {
+        id: 32,
+        fixed: 3,
+        rate: 50,
+        modifier: 1.2,
+        priority: 45,
+        equipment: "CM",
+    },
+    Kind {
+        id: 33,
+        fixed: 3,
+        rate: 42,
+        modifier: 1.35,
+        priority: 37,
+        equipment: "HG",
+    },
+    Kind {
+        id: 34,
+        fixed: 7,
+        rate: 60,
+        modifier: 1.6,
+        priority: 13,
+        equipment: "BB",
+    },
+    Kind {
+        id: 35,
+        fixed: 6,
+        rate: 55,
+        modifier: 1.55,
+        priority: 18,
+        equipment: "BH",
+    },
+    Kind {
+        id: 36,
+        fixed: 6,
+        rate: 55,
+        modifier: 1.55,
+        priority: 19,
+        equipment: "HHR",
+    },
+    Kind {
+        id: 37,
+        fixed: 4,
+        rate: 40,
+        modifier: 1.45,
+        priority: 36,
+        equipment: "HH",
+    },
+    Kind {
+        id: 38,
+        fixed: 10,
+        rate: 62,
+        modifier: 1.85,
+        priority: 1,
+        equipment: "BB",
+    },
+    Kind {
+        id: 39,
+        fixed: 10,
+        rate: 57,
+        modifier: 1.7,
+        priority: 2,
+        equipment: "BB",
+    },
+    Kind {
+        id: 40,
+        fixed: 10,
+        rate: 56,
+        modifier: 1.7,
+        priority: 3,
+        equipment: "BBR",
+    },
+    Kind {
+        id: 41,
+        fixed: 9,
+        rate: 55,
+        modifier: 1.65,
+        priority: 5,
+        equipment: "BB",
+    },
+    Kind {
+        id: 42,
+        fixed: 10,
+        rate: 65,
+        modifier: 1.65,
+        priority: 4,
+        equipment: "HHRG",
+    },
+    Kind {
+        id: 43,
+        fixed: 8,
+        rate: 58,
+        modifier: 1.6,
+        priority: 7,
+        equipment: "HHR",
+    },
+    Kind {
+        id: 44,
+        fixed: 6,
+        rate: 55,
+        modifier: 1.6,
+        priority: 14,
+        equipment: "HRG",
+    },
+    Kind {
+        id: 45,
+        fixed: 6,
+        rate: 50,
+        modifier: 1.55,
+        priority: 21,
+        equipment: "HR",
+    },
+    Kind {
+        id: 46,
+        fixed: 8,
+        rate: 60,
+        modifier: 1.55,
+        priority: 8,
+        equipment: "MCR",
+    },
+    Kind {
+        id: 47,
+        fixed: 2,
+        rate: 70,
+        modifier: 1.3,
+        priority: 48,
+        equipment: "MG",
+    },
+    Kind {
+        id: 48,
+        fixed: 8,
+        rate: 65,
+        modifier: 1.75,
+        priority: 11,
+        equipment: "HHR",
+    },
+    Kind {
+        id: 49,
+        fixed: 6,
+        rate: 50,
+        modifier: 1.5,
+        priority: 23,
+        equipment: "HHR",
+    },
+    Kind {
+        id: 50,
+        fixed: 7,
+        rate: 50,
+        modifier: 1.5,
+        priority: 22,
+        equipment: "HHAR",
+    },
+    Kind {
+        id: 51,
+        fixed: 5,
+        rate: 50,
+        modifier: 1.4,
+        priority: 24,
+        equipment: "HCR",
+    },
+    Kind {
+        id: 52,
+        fixed: 5,
+        rate: 50,
+        modifier: 1.4,
+        priority: 25,
+        equipment: "HHA",
+    },
+    Kind {
+        id: 53,
+        fixed: 4,
+        rate: 60,
+        modifier: 1.6,
+        priority: 29,
+        equipment: "BR",
+    },
 ];
 
 fn kind(id: i64) -> &'static Kind {
@@ -128,6 +463,14 @@ fn kind(id: i64) -> &'static Kind {
 
 /// 秋月型.
 const AKIZUKI_CLASS: i64 = 54;
+/// Fletcher級.
+const FLETCHER_CLASS: i64 = 91;
+/// Atlanta級.
+const ATLANTA_CLASS: i64 = 99;
+/// 白露型.
+const SHIRATSUYU_CLASS: i64 = 23;
+/// Queen Elizabeth, Ark Royal, J, Nelson, Town and Illustrious classes.
+const ROYAL_NAVY_CLASSES: [i64; 6] = [67, 78, 82, 88, 108, 112];
 /// The icon every 高角砲 carries, main gun or secondary.
 const HIGH_ANGLE_ICON: i64 = 16;
 
@@ -135,6 +478,8 @@ const HIGH_ANGLE_ICON: i64 = 16;
 #[derive(Default, Clone, Copy)]
 struct Part {
     mst_id: i64,
+    /// 対空.
+    tyku: i64,
     /// 高角砲, with or without a director of its own.
     high_angle: bool,
     /// 高角砲 with its own 高射装置: one whose 対空 is 8 or more.
@@ -161,6 +506,7 @@ fn part(mst: &ApiMstSlotitem) -> Part {
     let radar = matches!(type3, 12 | 13 | 93);
     Part {
         mst_id: mst.api_id,
+        tyku: mst.api_tyku,
         high_angle,
         built_in_director: high_angle && mst.api_tyku >= 8,
         machine_gun: type3 == 21,
@@ -182,21 +528,108 @@ fn parts(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<Part> {
 }
 
 /// The kinds `ship` can fire, in the order the source lists them
-/// (`getAACItype`): that order decides which is rolled first.
+/// (`getAACItype`): that order decides which is rolled first. The ships and
+/// equipment it names are named here by the same ids.
 fn kinds_of(codex: &Codex, ship: &BattleRuntimeShip, parts: &[Part]) -> Vec<i64> {
-    let count = |is: fn(&Part) -> bool| parts.iter().filter(|part| is(part)).count();
-    let high_angle = count(|part| part.high_angle);
-    let built_in = count(|part| part.built_in_director);
-    let machine_guns = count(|part| part.machine_gun);
-    let concentrated = count(|part| part.concentrated) > 0;
-    let director = count(|part| part.director) > 0;
-    let radar = count(|part| part.radar) > 0;
-    let air_radar = count(|part| part.air_radar) > 0;
-    let akizuki = ship_mst(codex, ship).is_some_and(|mst| mst.api_ctype == AKIZUKI_CLASS);
+    let count = |is: &dyn Fn(&Part) -> bool| parts.iter().filter(|part| is(part)).count();
+    let of = |ids: &[i64]| count(&|part| ids.contains(&part.mst_id));
+    let high_angle = count(&|part| part.high_angle);
+    let built_in = count(&|part| part.built_in_director);
+    let machine_guns = count(&|part| part.machine_gun);
+    let concentrated = count(&|part| part.concentrated);
+    let plain_machine_gun = machine_guns > concentrated;
+    let director = count(&|part| part.director) > 0;
+    let radar = count(&|part| part.radar) > 0;
+    let air_radar = count(&|part| part.air_radar) > 0;
+    // A radar of 対空 4 or more.
+    let strong_radar = count(&|part| part.radar && part.tyku >= 4) > 0;
+    let type3_shell = count(&|part| part.type3_shell) > 0;
+    let mst = ship_mst(codex, ship);
+    let id = mst.map_or(0, |mst| mst.api_id);
+    let class = mst.map_or(0, |mst| mst.api_ctype);
+    let is = |ids: &[i64]| ids.contains(&id);
+    let akizuki = class == AKIZUKI_CLASS;
     let battleship =
         matches!(ship_type(codex, ship), Some(KcShipType::FBB | KcShipType::BB | KcShipType::BBV));
+    // 5inch単装砲 Mk.30 and its 改, the same with GFCS Mk.37, and the director alone.
+    let mk30 = of(&[313, 284]);
+    let mk30_gfcs = of(&[308]);
+    let gfcs = of(&[307]) > 0;
 
     let mut kinds = Vec::new();
+    // 秋月型改 and 改二, 吹雪改三護: two 10cm連装高角砲改+高射装置改.
+    if is(&[330, 346, 357, 537, 538, 963, 968, 1040]) && of(&[533]) >= 2 && strong_radar {
+        kinds.push(48);
+    }
+    // 涼波改二 and her like, 北上改三 and the three 吹雪.
+    if is(&[745, 981, 982, 983, 986, 987, 1033, 1034, 1071, 426, 1035, 1040])
+        && built_in >= 2
+        && strong_radar
+    {
+        kinds.push(49);
+    }
+    if akizuki || is(&[745, 981, 982, 983, 986, 987, 1033, 1034, 426, 1035, 1040]) {
+        // 10cm連装高角砲改, with or without its director, and 94式高射装置.
+        let guns = of(&[533, 553]);
+        let type94 = of(&[121]) > 0;
+        if (!akizuki || is(&[330, 346, 357, 537, 538, 963, 968]))
+            && guns >= 2
+            && strong_radar
+            && type94
+        {
+            kinds.push(50);
+        }
+        if !akizuki
+            && guns >= 1
+            && strong_radar
+            && count(&|part| part.machine_gun && part.tyku >= 5) > 0
+        {
+            kinds.push(51);
+        }
+        if of(&[553]) >= 2 && type94 {
+            kinds.push(52);
+        }
+    }
+    // 飛龍改三, 北上改三.
+    if is(&[1031, 1071])
+        && count(&|part| part.built_in_director && part.tyku >= 9) > 0
+        && strong_radar
+    {
+        kinds.push(53);
+    }
+    // 吹雪改三.
+    if id == 1035 {
+        if high_angle >= 1 && machine_guns >= 1 {
+            kinds.push(15);
+        }
+        if high_angle >= 1 && machine_guns >= 1 && air_radar {
+            kinds.push(16);
+        }
+        if high_angle >= 1 && air_radar {
+            kinds.push(21);
+        }
+        if high_angle >= 1 && plain_machine_gun {
+            kinds.push(24);
+        }
+    }
+    // 吹雪改三護.
+    if id == 1040 {
+        if built_in >= 1 && radar {
+            kinds.push(2);
+        }
+        if high_angle >= 1 && air_radar {
+            kinds.push(21);
+        }
+        if mk30_gfcs >= 2 {
+            kinds.push(34);
+        }
+        if mk30 >= 1 && mk30_gfcs >= 1 {
+            kinds.push(35);
+        }
+        if mk30 >= 2 && gfcs {
+            kinds.push(36);
+        }
+    }
     if akizuki {
         if high_angle >= 2 && radar {
             kinds.push(1);
@@ -208,10 +641,106 @@ fn kinds_of(codex: &Codex, ship: &BattleRuntimeShip, parts: &[Part]) -> Vec<i64>
             kinds.push(3);
         }
     }
-    let big_guns = battleship
-        && count(|part| part.large_gun) > 0
-        && count(|part| part.type3_shell) > 0
-        && director;
+    // 摩耶改二, 飛龍改三, 北上改三.
+    if is(&[428, 1031, 1071]) && concentrated >= 1 && high_angle >= 1 {
+        if air_radar {
+            kinds.push(10);
+        }
+        if is(&[428, 1031]) {
+            kinds.push(11);
+        }
+    }
+    // 五十鈴改二, 北上改三.
+    if is(&[141, 1071]) && high_angle >= 1 && machine_guns >= 1 {
+        if air_radar {
+            kinds.push(14);
+        }
+        if id == 141 {
+            kinds.push(15);
+        }
+    }
+    // 霞改二乙, 夕張改二, 稲木改二.
+    if is(&[470, 622]) && high_angle >= 1 && machine_guns >= 1 && air_radar {
+        kinds.push(16);
+    }
+    if is(&[470, 979]) && high_angle >= 1 && machine_guns >= 1 {
+        kinds.push(17);
+    }
+    // 鬼怒改二, with a 高角砲 that has no director of its own.
+    if id == 487 && concentrated >= 1 && high_angle > built_in {
+        kinds.push(19);
+    }
+    // 由良改二, 北上改三.
+    if is(&[488, 1071]) && high_angle >= 1 && air_radar {
+        kinds.push(21);
+    }
+    // 伊勢型改 and 改二, with 12cm30連装噴進砲改二.
+    if is(&[82, 88, 553, 554]) && of(&[274]) >= 1 && air_radar && type3_shell {
+        kinds.push(25);
+    }
+    if class == FLETCHER_CLASS {
+        if mk30_gfcs >= 2 {
+            kinds.push(34);
+        }
+        if mk30 >= 1 && mk30_gfcs >= 1 {
+            kinds.push(35);
+        }
+        if of(&[313]) >= 2 {
+            kinds.push(37);
+        }
+        if mk30 >= 2 && gfcs {
+            kinds.push(36);
+        }
+    }
+    if class == ATLANTA_CLASS {
+        // 5inch連装両用砲(集中配備), with and without GFCS Mk.37.
+        let with_gfcs = of(&[363]);
+        let dual = of(&[363, 362]);
+        if with_gfcs >= 2 {
+            kinds.push(38);
+        }
+        if with_gfcs >= 1 && of(&[362]) >= 1 {
+            kinds.push(39);
+        }
+        if gfcs && dual >= 2 {
+            kinds.push(40);
+        }
+        if dual >= 2 {
+            kinds.push(41);
+        }
+    }
+    // 大和型改二: 10cm連装高角砲群 集中配備, 15m二重測距儀 and a 機銃 of 対空 6 or more.
+    if is(&[546, 911, 916]) {
+        let groups = of(&[464]);
+        let rangefinder = of(&[142, 460]) > 0;
+        let strong_gun = count(&|part| part.machine_gun && part.tyku >= 6) > 0;
+        if groups >= 2 && rangefinder && strong_gun {
+            kinds.push(42);
+        }
+        if groups >= 2 && rangefinder {
+            kinds.push(43);
+        }
+        if groups >= 1 && rangefinder && strong_gun {
+            kinds.push(44);
+        }
+        if groups >= 1 && rangefinder {
+            kinds.push(45);
+        }
+    }
+    // 榛名改二乙, with 35.6cm連装砲改三(ダズル迷彩仕様) or 改四.
+    if id == 593 && of(&[502, 503]) >= 1 && concentrated >= 1 && air_radar {
+        kinds.push(46);
+    }
+    // 白露型 of 対空 70 or more at their best, with 12.7cm連装砲C型改三H.
+    if class == SHIRATSUYU_CLASS
+        && mst.and_then(|mst| mst.api_tyku).is_some_and(|tyku| tyku[1] >= 70)
+    {
+        let guns = of(&[529]);
+        if guns >= 2 || (guns >= 1 && (of(&[505]) >= 1 || strong_radar)) {
+            kinds.push(47);
+        }
+    }
+    let big_guns = battleship && count(&|part| part.large_gun) > 0 && type3_shell && director;
     if big_guns && air_radar {
         kinds.push(4);
     }
@@ -227,21 +756,94 @@ fn kinds_of(codex: &Codex, ship: &BattleRuntimeShip, parts: &[Part]) -> Vec<i64>
     if !akizuki && high_angle >= 1 && director && air_radar {
         kinds.push(7);
     }
+    // 大和型改二, 大和改 and 武蔵改, with 10cm連装高角砲改+増設機銃.
+    if is(&[546, 911, 916, 136, 148]) && of(&[275]) >= 1 && air_radar {
+        kinds.push(26);
+    }
+    // 大淀改, 飛龍改三.
+    if is(&[321, 1031]) && of(&[275, 71, 220]) >= 1 && of(&[274]) >= 1 && air_radar {
+        kinds.push(27);
+    }
+    // 伊勢型改 and 改二, 武蔵改 and 改二.
+    if is(&[82, 88, 553, 554, 148, 546]) && of(&[274]) >= 1 && air_radar {
+        kinds.push(28);
+    }
+    // 磯風乙改, 浜風乙改.
+    if is(&[557, 558]) && high_angle >= 1 && air_radar {
+        kinds.push(29);
+    }
     if high_angle >= 1 && director {
         kinds.push(9);
     }
-    if concentrated && machine_guns >= 2 && air_radar {
+    // Gotland改 and andra.
+    if is(&[579, 630]) && high_angle >= 1 && machine_guns >= 1 {
+        kinds.push(33);
+    }
+    if concentrated >= 1 && machine_guns >= 2 && air_radar {
         kinds.push(12);
     }
-    if concentrated && built_in >= 1 && air_radar {
+    // 摩耶改二 and 飛龍改三 have kinds 10 and 11 instead.
+    if !is(&[428, 1031]) && concentrated >= 1 && built_in >= 1 && air_radar {
         kinds.push(13);
+    }
+    // 皐月改二, 稲木改二; 鬼怒改二; 文月改二.
+    if is(&[418, 979]) && concentrated >= 1 {
+        kinds.push(18);
+    }
+    if id == 487 && concentrated >= 1 {
+        kinds.push(20);
+    }
+    if id == 548 && concentrated >= 1 {
+        kinds.push(22);
+    }
+    // UIT-25, 伊504.
+    if is(&[539, 530]) && plain_machine_gun {
+        kinds.push(23);
+    }
+    // 天龍改二, Gotland改 and andra, 稲木改二, 龍田改二.
+    if is(&[477, 579, 630]) && high_angle >= 3 {
+        kinds.push(30);
+    }
+    if is(&[477, 979]) && high_angle >= 2 {
+        kinds.push(31);
+    }
+    if is(&[478, 477]) && high_angle >= 1 && plain_machine_gun {
+        kinds.push(24);
+    }
+    // The Royal Navy and 金剛型改二: ポンポン砲, 16inch Mk.I三連装砲改+FCR type284, UP Rocket Launchers.
+    if (ROYAL_NAVY_CLASSES.contains(&class) || is(&[149, 150, 151, 152, 591, 592, 593, 954, 694]))
+        && ((of(&[191]) >= 1 && of(&[300]) >= 1)
+            || (of(&[301]) >= 1 && of(&[191]) >= 1)
+            || of(&[301]) >= 2)
+    {
+        kinds.push(32);
     }
     kinds
 }
 
 /// The equipment a cut-in shows: for each letter of the kind, the first piece
 /// not yet shown that answers to it.
+///
+/// A few kinds show equipment the source names outright, whatever of it the
+/// ship carries.
 fn shown(kind: &Kind, mut parts: Vec<Part>) -> Vec<i64> {
+    let has = |id: i64| parts.iter().any(|part| part.mst_id == id);
+    match kind.id {
+        34 => return vec![308, 308],
+        35 => return vec![308, 313],
+        36 => return vec![313, 313, 307],
+        37 => return vec![313, 313],
+        39 => return vec![363, 362],
+        40 => return vec![362, 362, 307],
+        41 => return vec![362, 362],
+        32 => {
+            return [[191, 300], [301, 191], [301, 301]]
+                .into_iter()
+                .find(|pair| has(pair[0]) && has(pair[1]))
+                .map_or_else(Vec::new, Vec::from);
+        }
+        _ => {}
+    }
     let mut ids = Vec::new();
     for letter in kind.equipment.chars() {
         let found = parts.iter().position(|part| match letter {
@@ -366,8 +968,50 @@ mod tests {
             (7, 3, 45, 1.35, 42),
             (8, 4, 50, 1.4, 39),
             (9, 2, 40, 1.3, 52),
+            (10, 8, 60, 1.65, 6),
+            (11, 6, 55, 1.5, 9),
             (12, 3, 45, 1.25, 46),
             (13, 4, 35, 1.35, 40),
+            (14, 4, 63, 1.45, 31),
+            (15, 3, 55, 1.3, 41),
+            (16, 4, 62, 1.4, 30),
+            (17, 2, 55, 1.25, 49),
+            (18, 2, 60, 1.2, 50),
+            (19, 5, 55, 1.45, 26),
+            (20, 3, 65, 1.25, 43),
+            (21, 5, 60, 1.45, 27),
+            (22, 2, 60, 1.2, 51),
+            (23, 1, 80, 1.05, 53),
+            (24, 3, 55, 1.25, 44),
+            (25, 7, 60, 1.55, 10),
+            (26, 6, 60, 1.4, 15),
+            (27, 6, 55, 1.55, 20),
+            (28, 4, 55, 1.4, 35),
+            (29, 5, 60, 1.55, 28),
+            (30, 3, 45, 1.3, 38),
+            (31, 2, 50, 1.25, 47),
+            (32, 3, 50, 1.2, 45),
+            (33, 3, 42, 1.35, 37),
+            (34, 7, 60, 1.6, 13),
+            (35, 6, 55, 1.55, 18),
+            (36, 6, 55, 1.55, 19),
+            (37, 4, 40, 1.45, 36),
+            (38, 10, 62, 1.85, 1),
+            (39, 10, 57, 1.7, 2),
+            (40, 10, 56, 1.7, 3),
+            (41, 9, 55, 1.65, 5),
+            (42, 10, 65, 1.65, 4),
+            (43, 8, 58, 1.6, 7),
+            (44, 6, 55, 1.6, 14),
+            (45, 6, 50, 1.55, 21),
+            (46, 8, 60, 1.55, 8),
+            (47, 2, 70, 1.3, 48),
+            (48, 8, 65, 1.75, 11),
+            (49, 6, 50, 1.5, 23),
+            (50, 7, 50, 1.5, 22),
+            (51, 5, 50, 1.4, 24),
+            (52, 5, 50, 1.4, 25),
+            (53, 4, 60, 1.6, 29),
         ];
         let table: Vec<_> = KINDS
             .iter()
@@ -399,6 +1043,76 @@ mod tests {
         assert_eq!(kinds(&codex, YAMATO, &[LARGE_GUN, TYPE3_SHELL, DIRECTOR]), [6]);
         assert_eq!(kinds(&codex, destroyer, &[LARGE_GUN, TYPE3_SHELL, DIRECTOR]), [0; 0]);
         assert_eq!(kinds(&codex, destroyer, &[]), [0; 0]);
+    }
+
+    #[test]
+    fn a_named_ship_has_kinds_of_her_own() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 12.7cm連装高角砲, 12.7cm高角砲+高射装置.
+        let (secondary, secondary_director) = (10, 130);
+        // 摩耶改二: her own two, and never kind 13.
+        assert_eq!(kinds(&codex, 428, &[secondary, CONCENTRATED, AIR_RADAR]), [10, 11]);
+        assert_eq!(kinds(&codex, 428, &[secondary, CONCENTRATED]), [11]);
+        assert_eq!(kinds(&codex, 428, &[secondary_director, CONCENTRATED, AIR_RADAR]), [10, 11, 8]);
+        // 五十鈴改二.
+        assert_eq!(kinds(&codex, 141, &[HIGH_ANGLE, MACHINE_GUN, AIR_RADAR]), [14, 15]);
+        assert_eq!(kinds(&codex, 141, &[HIGH_ANGLE, MACHINE_GUN]), [15]);
+        // 鬼怒改二: kind 19 wants a 高角砲 without a director of its own.
+        assert_eq!(kinds(&codex, 487, &[HIGH_ANGLE, CONCENTRATED]), [19, 20]);
+        assert_eq!(kinds(&codex, 487, &[HIGH_ANGLE_DIRECTOR, CONCENTRATED]), [20]);
+        // UIT-25: a 機銃 that is not 集中配備.
+        assert_eq!(kinds(&codex, 539, &[MACHINE_GUN]), [23]);
+        assert_eq!(kinds(&codex, 539, &[CONCENTRATED]), [0; 0]);
+        // 白露改二 reaches 対空 70 and 白露改 does not.
+        assert_eq!(kinds(&codex, 497, &[529, 529]), [47]);
+        assert_eq!(kinds(&codex, 497, &[529, AIR_RADAR]), [47]);
+        assert_eq!(kinds(&codex, 497, &[529]), [0; 0]);
+        assert_eq!(kinds(&codex, 242, &[529, 529]), [0; 0]);
+        // 飛龍改三.
+        assert_eq!(kinds(&codex, 1031, &[533, AIR_RADAR]), [53, 8]);
+    }
+
+    #[test]
+    fn equipment_named_by_id_forms_a_kind() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // Fletcher: 5inch単装砲 Mk.30改 with and without GFCS Mk.37.
+        assert_eq!(kinds(&codex, 596, &[308, 308]), [34]);
+        assert_eq!(kinds(&codex, 596, &[308, 313]), [35]);
+        assert_eq!(kinds(&codex, 596, &[313, 313, 307]), [37, 36]);
+        // Atlanta: 5inch連装両用砲(集中配備).
+        assert_eq!(kinds(&codex, 597, &[363, 363]), [38, 41]);
+        assert_eq!(kinds(&codex, 597, &[363, 362, 307]), [39, 40, 41, 5, 8]);
+        // 大和改二: 10cm連装高角砲群 集中配備 and 15m二重測距儀+21号電探改二.
+        assert_eq!(kinds(&codex, 911, &[464, 464, 142, CONCENTRATED]), [42, 43, 44, 45, 5, 8, 13]);
+        assert_eq!(kinds(&codex, 911, &[464, 142]), [45, 8]);
+        assert_eq!(kinds(&codex, 911, &[275, AIR_RADAR]), [8, 26]);
+        // 吹雪改二 and 秋月改 with 10cm連装高角砲改, its director and 94式高射装置.
+        assert_eq!(kinds(&codex, 426, &[533, 533, AIR_RADAR]), [49, 5, 8]);
+        assert_eq!(kinds(&codex, 426, &[533, 553, AIR_RADAR, DIRECTOR]), [50, 8, 7, 9]);
+        assert_eq!(kinds(&codex, 426, &[553, AIR_RADAR, MACHINE_GUN]), [51]);
+        assert_eq!(kinds(&codex, 426, &[553, 553, DIRECTOR]), [52, 9]);
+        assert_eq!(kinds(&codex, 330, &[533, 533, AIR_RADAR]), [48, 1, 2, 3]);
+        assert_eq!(kinds(&codex, 330, &[533, 533, AIR_RADAR, DIRECTOR]), [48, 50, 1, 2, 3, 9]);
+        // 金剛改二: ポンポン砲 and 16inch Mk.I三連装砲改+FCR type284.
+        assert_eq!(kinds(&codex, 149, &[191, 300]), [32]);
+    }
+
+    #[test]
+    fn some_kinds_show_the_equipment_the_source_names() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let shown_by = |id: i64, mst_id: i64, equipment: &[i64]| {
+            shown(kind(id), parts(&codex, &ship(&codex, mst_id, equipment)))
+        };
+        assert_eq!(shown_by(34, 596, &[308, 308]), [308, 308]);
+        // Kind 40 shows the gun without its director even when the ship carries the other.
+        assert_eq!(shown_by(40, 597, &[363, 362, 307]), [362, 362, 307]);
+        assert_eq!(shown_by(32, 149, &[191, 300]), [191, 300]);
+        // The rest go by their letters, as before.
+        assert_eq!(shown_by(38, 597, &[363, 363]), [363, 363]);
+        assert_eq!(
+            shown_by(10, 428, &[10, CONCENTRATED, AIR_RADAR]),
+            [10, CONCENTRATED, AIR_RADAR]
+        );
     }
 
     #[test]
