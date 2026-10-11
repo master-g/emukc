@@ -38,7 +38,12 @@ stays out of the night, where she used to attack.
 `CV.canNB`, `CV.NBPower`; `kcsim.js` 869-903 for the proficiency and the packet flag;
 `kcSHIPDATA.js` for `hasBuiltInNightCrew` and `nightattack`. The client's own
 `_getNormalAttackType` (night) keeps the list of carriers it draws as gunfire, which is the
-source's `nightattack` plus Wasp and Wasp改; both are in `NIGHT_SHELLING_CV_IDS`.
+source's `nightattack` plus Wasp and Wasp改. The source predates those two; that they shell at
+night is from the wiki's Wasp page (「火力初期値が1以上のため夜間砲撃を行う。改も同様」). All eleven
+are in `NIGHT_SHELLING_CV_IDS`. The wiki's reason is not a rule to derive the list from: nine other
+carriers in the master data start with firepower above zero (Langley, Independence, Béarn,
+Gambier Bay Mk.II and their remodels) and the client draws none of them as gunfire, so the list
+stays a list.
 
 ## The power
 

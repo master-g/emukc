@@ -235,8 +235,9 @@ const INDEPENDENCE_FLIGHT2_ID: i64 = 1036; // Independence Flight II
 
 /// Carriers that shell at night as a surface ship does, with no aircraft in it: Graf Zeppelin
 /// and 改, Saratoga, 大鷹改二, 神鷹改二, 加賀改二護, Lexington改, 雲鷹改二, Lexington, Wasp and 改.
-/// The first nine are `kancolle-replay`'s `nightattack`; the client keeps the same list, with
-/// Wasp, to draw their night attack as gunfire (`_getNormalAttackType`).
+/// The first nine are `kancolle-replay`'s `nightattack`, which predates Wasp; the wiki's Wasp
+/// page gives the last two (「火力初期値が1以上のため夜間砲撃を行う。改も同様」). The client
+/// keeps the same eleven to draw their night attack as gunfire (`_getNormalAttackType`).
 pub(crate) const NIGHT_SHELLING_CV_IDS: &[i64] =
     &[432, 353, 433, 529, 536, 646, 735, 889, 966, 1025, 1030];
 
