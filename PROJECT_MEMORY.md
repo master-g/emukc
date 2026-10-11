@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `docs/memory-pointers`
+Last updated: 2026-10-11 · branch `feat/air-corps-proficiency-growth`
 
 ## Verified Facts
 
@@ -150,7 +150,7 @@ Current verification baseline:
 - [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
-- [2026-10-10] 対空カットイン：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度不单做打空清零，见 `air-corps.md`。
+- [2026-10-10] 対空カットイン：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
 - [2026-10-10] 质量门是 `clippy --workspace --all-targets -- -D warnings`（钩子同款，全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
@@ -185,16 +185,19 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
+| [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，后面的 crate 不跑，通过数会偏少。 | session 2026-10-11 |
 
 ## Last Session
 
-- [2026-10-10] 四条叠放的分支：`feat/proficiency-fighter-power` → `feat/air-corps-proficiency` →
-  `feat/anti-air-cut-in`（计划 2026-10-10-007/008/009，PR #40–#42 待合并）；质量门另从 `main` 开在 `chore/quality-gates`。
+- [2026-10-11] 分支 `feat/air-corps-proficiency-growth`（叠在 `docs/memory-main-baseline` 上，两者都未推送）：计划 2026-10-11-001
+  做完，航空队熟练度按次成长/损耗、打空清零，集中派遣第二次攻击前恢复机数。
+  验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1318 过、0 败、0 ignored；
+  无头检查 `air_corps_6_4` 与 `air_raid_6_5` 通过，跑完后库里一式陸攻的 `aircraft_exp` 分别是 9 和 7（起始 0）。
 
 ## Next Session
 
-- [2026-10-10] 按顺序合并 #40–#42 与质量门的 PR。之后的候选：点名舰的対空カットイン种别、航空队熟练度的成长/损耗/清零（三者一起）、
-  夜间航空攻击的熟练度。
+- [2026-10-11] 推送这两个分支并开 PR。之后的候选：点名舰的対空カットイン种别、夜间航空攻击的熟练度；
+  航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。

@@ -224,6 +224,145 @@ mod tests {
         assert_eq!(condition(&context, attacker).await, 34, "集中 costs 6");
     }
 
+    async fn proficiency(context: &crate::TestContext, slot_id: i64) -> (i64, i64) {
+        use emukc_internal::db::entity::profile::item::slot_item;
+        let item = slot_item::Entity::find_by_id(slot_id).one(&*context.db).await.unwrap().unwrap();
+        (item.aircraft_exp, item.aircraft_lv)
+    }
+
+    /// 6-4 with 一式陸攻 in the first squadron of air corps 1, ordered to sortie.
+    /// Returns the profile and the squadron's equipment.
+    async fn striking_profile(context: &crate::TestContext, name: &str) -> (i64, i64) {
+        use emukc_internal::gameplay::scenario::{Scenario, apply_scenario};
+
+        let account = context.sign_up(name, "1234567").await.unwrap();
+        let profile = context.new_profile(&account.access_token.token, name).await.unwrap();
+        let pid = context
+            .start_game(&account.access_token.token, profile.profile.id)
+            .await
+            .unwrap()
+            .profile
+            .id;
+        apply_scenario(context, pid, &Scenario::air_corps_6_4()).await.unwrap();
+        context.get_airbases(pid).await.unwrap();
+        let attacker = context
+            .get_unset_slot_items(pid)
+            .await
+            .unwrap()
+            .iter()
+            .find(|item| item.api_slotitem_id == 169)
+            .unwrap()
+            .api_id;
+        context.set_airbase_plane(pid, AREA, 1, 1, attacker).await.unwrap();
+        context.set_airbase_actions(pid, AREA, &[(1, AirbaseAction::Attack as i64)]).await.unwrap();
+        (pid, attacker)
+    }
+
+    /// Fight the battle the fleet stands on and settle it. Returns, for each attack the air
+    /// corps flew in it, what the first squadron set out with and what it had left.
+    async fn fight(context: &crate::TestContext, pid: i64) -> Vec<(i64, i64)> {
+        context.sortie_battle(pid, 1).await.unwrap();
+        let attacks = context
+            .sortie_store()
+            .get_pending_battle(pid)
+            .unwrap()
+            .packet
+            .air_base_attack
+            .iter()
+            .map(|attack| (attack.flights[0].before, attack.flights[0].after))
+            .collect();
+        context.sortie_battle_result(pid).await.unwrap();
+        attacks
+    }
+
+    /// An air corps sent twice against the cell the fleet meets the enemy on flies two
+    /// attacks, the second with what the first set out with, and each is an air battle's
+    /// worth of proficiency (plan `2026-10-11-001`).
+    #[tokio::test]
+    async fn a_squadron_gains_proficiency_from_the_attacks_it_flies() {
+        let context = crate::TestContext::new().await;
+        let (pid, attacker) = striking_profile(&context, "airbase-growth").await;
+        assert_eq!(proficiency(&context, attacker).await, (0, 0));
+        emukc_internal::crypto::rng::seed(1);
+
+        let start = context.start_sortie(pid, 1, AREA, 4).await.unwrap();
+        context.start_air_base(pid, &[vec![start.cell_no, start.cell_no]]).await.unwrap();
+        let attacks = fight(&context, pid).await;
+
+        assert_eq!(attacks.len(), 2);
+        assert_eq!(attacks[1].0, attacks[0].0, "the first attack's losses are made good");
+        let left =
+            plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap().count;
+        assert_eq!(left, attacks[1].1, "what the last attack left is what the squadron keeps");
+        assert!(attacks.iter().all(|attack| attack.1 > 0), "pick a seed that empties nothing");
+
+        // 一式陸攻 gains at least 4 an attack and loses nothing from nothing.
+        let (exp, level) = proficiency(&context, attacker).await;
+        assert!(exp >= 10, "two attacks at this seed pass level 1: {exp}");
+        assert_eq!(level, 0, "no level moves before port");
+
+        context.sortie_goback_port(pid).await.unwrap();
+        context.port_view(pid).await.unwrap();
+        assert_eq!(proficiency(&context, attacker).await, (exp, 1));
+    }
+
+    /// 集中 against a squadron down to its last aircraft: the first attack loses it, the
+    /// second flies with it again and brings it home, and the squadron starts over all the
+    /// same — the game keeps the first attack's wipe-out apart from the counts.
+    #[tokio::test]
+    async fn a_squadron_the_first_attack_emptied_comes_home_with_no_proficiency() {
+        use emukc_internal::db::entity::profile::item::slot_item;
+
+        let context = crate::TestContext::new().await;
+        let (pid, attacker) = striking_profile(&context, "airbase-emptied").await;
+        let item =
+            slot_item::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap();
+        let mut am = item.into_active_model();
+        am.aircraft_exp = ActiveValue::Set(100);
+        am.aircraft_lv = ActiveValue::Set(7);
+        am.update(&*context.db).await.unwrap();
+        let row = plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap();
+        let mut am = row.into_active_model();
+        am.count = ActiveValue::Set(1);
+        am.update(&*context.db).await.unwrap();
+        // A seed at which 6-4's first fleet shoots down the one aircraft of the first
+        // attack and not that of the second; pick another if it stops.
+        emukc_internal::crypto::rng::seed(4);
+
+        let start = context.start_sortie(pid, 1, AREA, 4).await.unwrap();
+        context.start_air_base(pid, &[vec![start.cell_no, start.cell_no]]).await.unwrap();
+        assert_eq!(fight(&context, pid).await, vec![(1, 0), (1, 1)]);
+
+        let left =
+            plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap().count;
+        assert_eq!(left, 1, "the second attack's aircraft came home");
+        assert_eq!(proficiency(&context, attacker).await, (0, 7), "no level moves before port");
+
+        context.sortie_goback_port(pid).await.unwrap();
+        context.port_view(pid).await.unwrap();
+        assert_eq!(proficiency(&context, attacker).await, (0, 0));
+    }
+
+    /// An air corps sent to a cell the fleet has not reached has not flown.
+    #[tokio::test]
+    async fn a_squadron_that_did_not_fly_keeps_its_proficiency() {
+        let context = crate::TestContext::new().await;
+        let (pid, attacker) = striking_profile(&context, "airbase-elsewhere").await;
+
+        let start = context.start_sortie(pid, 1, AREA, 4).await.unwrap();
+        let mut sent = false;
+        for cell in (1..40).filter(|cell| *cell != start.cell_no) {
+            if context.start_air_base(pid, &[vec![cell, cell]]).await.is_ok() {
+                sent = true;
+                break;
+            }
+        }
+        assert!(sent, "no other cell of 6-4 is within reach");
+
+        assert_eq!(fight(&context, pid).await, vec![]);
+        assert_eq!(proficiency(&context, attacker).await, (0, 0));
+    }
+
     /// 6-5 with the boss sunk `sunk` times and 一式陸攻 in the first squadron of the area's
     /// one air corps, ordered to stand by. Returns the profile and the squadron's equipment.
     async fn raided_profile(context: &crate::TestContext, name: &str, sunk: i64) -> (i64, i64) {
@@ -320,6 +459,38 @@ mod tests {
             }
         );
         assert_eq!((14..18).contains(&left), ground_loss, "{left} of 18 left");
+        assert_eq!(proficiency(&context, attacker).await, (0, 0), "it never left the ground");
+    }
+
+    /// Going up against a raid is an air battle's worth of proficiency for the defenders,
+    /// the land attackers among them too (plan `2026-10-11-001`, decision 4).
+    #[tokio::test]
+    async fn defending_against_a_raid_grows_the_squadrons_that_went_up() {
+        /// 雷電, a local fighter. The growth sheet lists none, so it takes the median, 6.
+        const LOCAL_FIGHTER: i64 = 175;
+
+        let context = crate::TestContext::new().await;
+        let (pid, attacker) = raided_profile(&context, "airbase-raid-defended", 2).await;
+        let fighter = context.add_slot_item(pid, LOCAL_FIGHTER, 0, 0).await.unwrap().api_id;
+        context.set_airbase_plane(pid, AREA, 1, 2, fighter).await.unwrap();
+        context
+            .set_airbase_actions(pid, AREA, &[(1, AirbaseAction::Defense as i64)])
+            .await
+            .unwrap();
+        emukc_internal::crypto::rng::seed(1);
+
+        let raid = first_raid(&context, pid, 40).await.expect("a raid within forty sorties");
+        assert!(raid.api_air_base_attack.api_plane_from.0.is_some(), "the air corps went up");
+
+        // From nothing there is nothing to lose, so each squadron shows one roll of its
+        // constant: 3 to 5 for 6, 4 to 7 for 一式陸攻's 8.
+        for (slot_id, gain) in [(fighter, 3..=5), (attacker, 4..=7)] {
+            let left =
+                plane::Entity::find_by_id(slot_id).one(&*context.db).await.unwrap().unwrap().count;
+            assert!(left > 0, "this seed empties no squadron; pick another if it stops");
+            let (exp, _) = proficiency(&context, slot_id).await;
+            assert!(gain.contains(&exp), "one roll: {exp} is not in {gain:?}");
+        }
     }
 
     /// 6-5's strongest raid, 空母棲姫 with two 空母ヲ級, comes against the last bar and only then.

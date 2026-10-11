@@ -1,6 +1,8 @@
+use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::{
         airbase::{base, plane as plane_db},
+        item::slot_item,
         map_record,
     },
     sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
@@ -18,12 +20,14 @@ use emukc_time::chrono::{Duration, Utc};
 
 use emukc_battle::{
     AirCorpsInput, AirRaidBase, AirSquadronInput, BattleAirBaseAttack, BattleAirRaid, BattleRng,
+    SquadronFlight,
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::map::get_map_records_impl;
 use super::material::{deduct_material_impl, get_mat_impl};
+use super::proficiency;
 use super::slot_item::{find_slot_item_impl, find_slot_items_by_id_impl};
 use super::sortie::AirStrike;
 use super::use_item::deduct_use_item_impl;
@@ -809,8 +813,54 @@ where
     Ok(air_corps)
 }
 
-/// Write back what the air corps have left after a battle: for each one, the
-/// counts its last attack ended with.
+/// Settle the proficiency of one air corps' squadrons after the flights of
+/// one battle, in the order flown. A squadron a flight left without aircraft starts over and
+/// gains nothing from the flights after it: the game keeps that on record
+/// apart from the counts (wikiwiki 基地航空隊). Only the experience moves
+/// here; the level follows at port (`refresh_proficiency_levels_impl`).
+async fn settle_squadron_proficiency_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    rid: i64,
+    flights: &[SquadronFlight],
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let planes = get_planes_impl(c, profile_id, area_id, rid).await?;
+    for plane in planes.iter().filter(|plane| plane.state == plane_db::Status::Assigned) {
+        // Collected first: an iterator borrowing `plane` cannot be held across an await.
+        let flown: Vec<(i64, i64)> = flights
+            .iter()
+            .filter(|flight| flight.squadron_id == plane.squadron_id && flight.before > 0)
+            .map(|flight| (flight.before, flight.after))
+            .collect();
+        if flown.is_empty() {
+            continue;
+        }
+        let Some(item) = slot_item::Entity::find_by_id(plane.slot_id).one(c).await? else {
+            continue;
+        };
+        let mut exp = item.aircraft_exp;
+        for counts in flown {
+            exp = proficiency::settle_land_base(item.mst_id, item.type3, exp, counts, rng::f64);
+            if counts.1 <= 0 {
+                break;
+            }
+        }
+        if exp != item.aircraft_exp {
+            let mut am = item.into_active_model();
+            am.aircraft_exp = ActiveValue::Set(exp);
+            am.update(c).await?;
+        }
+    }
+    Ok(())
+}
+
+/// Settle what a battle did to the air corps that struck in it: each
+/// squadron's proficiency, attack by attack, and for each corps the counts its
+/// last attack ended with.
 pub(crate) async fn record_strike_losses_impl<C>(
     c: &C,
     profile_id: i64,
@@ -824,13 +874,20 @@ where
         if attacks[index + 1..].iter().any(|later| later.api_base_id == attack.api_base_id) {
             continue;
         }
-        for (squadron_id, count) in &attack.remaining {
+        let flights: Vec<SquadronFlight> = attacks
+            .iter()
+            .filter(|flown| flown.api_base_id == attack.api_base_id)
+            .flat_map(|flown| flown.flights.iter().copied())
+            .collect();
+        settle_squadron_proficiency_impl(c, profile_id, area_id, attack.api_base_id, &flights)
+            .await?;
+        for flight in &attack.flights {
             plane_db::Entity::update_many()
-                .col_expr(plane_db::Column::Count, Expr::value(*count))
+                .col_expr(plane_db::Column::Count, Expr::value(flight.after))
                 .filter(plane_db::Column::ProfileId.eq(profile_id))
                 .filter(plane_db::Column::AreaId.eq(area_id))
                 .filter(plane_db::Column::Rid.eq(attack.api_base_id))
-                .filter(plane_db::Column::SquadronId.eq(*squadron_id))
+                .filter(plane_db::Column::SquadronId.eq(flight.squadron_id))
                 .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
                 .exec(c)
                 .await?;
@@ -881,6 +938,35 @@ where
     }
 
     Ok(bases)
+}
+
+/// Settle the proficiency of the squadrons that went up against a raid.
+/// `before` is the air corps as the raid found them and `after` what its air
+/// battle left; aircraft destroyed on the ground afterwards are no part of it.
+pub(crate) async fn settle_raid_proficiency_impl<C>(
+    c: &C,
+    profile_id: i64,
+    area_id: i64,
+    before: &[AirRaidBase],
+    after: &[AirRaidBase],
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    for (before, after) in before.iter().zip(after).filter(|(_, after)| after.defending) {
+        let flights: Vec<SquadronFlight> = before
+            .squadrons
+            .iter()
+            .zip(&after.squadrons)
+            .map(|(before, after)| SquadronFlight {
+                squadron_id: before.squadron_id,
+                before: before.count,
+                after: after.count,
+            })
+            .collect();
+        settle_squadron_proficiency_impl(c, profile_id, area_id, after.base_rid, &flights).await?;
+    }
+    Ok(())
 }
 
 /// Take what a raid cost: the aircraft the defenders lost in the air, stores in proportion to
@@ -1365,6 +1451,89 @@ mod tests {
             event_state: None,
             unlocked,
         }
+    }
+
+    /// A profile with 一式陸攻 at `exp` in each of the first squadrons of air
+    /// corps 6/1, eighteen aircraft apiece. Returns the profile and the
+    /// equipment, in squadron order.
+    async fn land_attackers(db: &DbConn, exps: &[i64]) -> (i64, Vec<i64>) {
+        use emukc_db::entity::{profile, user};
+        let account = user::account::ActiveModel {
+            name: ActiveValue::Set("air-corps-test".into()),
+            secret: ActiveValue::Set(String::new()),
+            create_time: ActiveValue::Set(Utc::now()),
+            last_login: ActiveValue::Set(Utc::now()),
+            ..Default::default()
+        }
+        .insert(db)
+        .await
+        .unwrap();
+        let pid = profile::default_active_model(account.uid, "air-corps-tester")
+            .insert(db)
+            .await
+            .unwrap()
+            .id;
+
+        let mut items = Vec::new();
+        for (squadron_id, exp) in (1..).zip(exps) {
+            let item = slot_item::ActiveModel {
+                profile_id: ActiveValue::Set(pid),
+                mst_id: ActiveValue::Set(169),
+                type3: ActiveValue::Set(47),
+                locked: ActiveValue::Set(false),
+                level: ActiveValue::Set(0),
+                aircraft_lv: ActiveValue::Set(proficiency::level_of_exp(*exp)),
+                aircraft_exp: ActiveValue::Set(*exp),
+                equip_on: ActiveValue::Set(0),
+                ..Default::default()
+            }
+            .insert(db)
+            .await
+            .unwrap();
+            plane_db::ActiveModel {
+                slot_id: ActiveValue::Set(item.id),
+                profile_id: ActiveValue::Set(pid),
+                area_id: ActiveValue::Set(6),
+                rid: ActiveValue::Set(1),
+                squadron_id: ActiveValue::Set(squadron_id),
+                state: ActiveValue::Set(plane_db::Status::Assigned),
+                condition: ActiveValue::Set(COND_DEPLOYED),
+                count: ActiveValue::Set(18),
+                max_count: ActiveValue::Set(18),
+                since: ActiveValue::Set(None),
+            }
+            .insert(db)
+            .await
+            .unwrap();
+            items.push(item.id);
+        }
+        (pid, items)
+    }
+
+    async fn exp_of(db: &DbConn, item_id: i64) -> i64 {
+        slot_item::Entity::find_by_id(item_id).one(db).await.unwrap().unwrap().aircraft_exp
+    }
+
+    /// Two attacks on one cell: each is a battle's worth of growth, and a
+    /// squadron the first emptied starts over though the second cost it little.
+    #[tokio::test]
+    async fn a_squadron_settles_every_attack_and_starts_over_once_emptied() {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let (pid, items) = land_attackers(&db, &[0, 100, 100, 100]).await;
+
+        let flights = [(1, 18, 18), (2, 18, 0), (3, 0, 0), (1, 18, 17), (2, 18, 16), (3, 0, 0)]
+            .map(|(squadron_id, before, after)| SquadronFlight {
+                squadron_id,
+                before,
+                after,
+            });
+        settle_squadron_proficiency_impl(&db, pid, 6, 1, &flights).await.unwrap();
+
+        // 一式陸攻 has a growth constant of 8: at least 4 an attack from nothing.
+        assert!(exp_of(&db, items[0]).await >= 8, "two attacks, two rolls");
+        assert_eq!(exp_of(&db, items[1]).await, 0, "emptied by the first attack");
+        assert_eq!(exp_of(&db, items[2]).await, 100, "it had nothing to fly");
+        assert_eq!(exp_of(&db, items[3]).await, 100, "it did not fly");
     }
 
     /// The figures wikiwiki gives as examples.

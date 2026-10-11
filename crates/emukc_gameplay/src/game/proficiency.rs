@@ -59,6 +59,41 @@ fn growth_rolls(type3: i64, air_battle: bool) -> Option<i64> {
     }
 }
 
+/// How many times one attack or one defence lets this kind of aircraft grow
+/// in an air corps, or `None` for equipment that has no proficiency there.
+///
+/// wikiwiki 艦載機熟練度「上昇判定」: an attack and a defence each count as one
+/// air battle, and an air base does not search, so scouts and flying boats
+/// never grow there and a seaplane bomber grows once. See
+/// `docs/plans/2026-10-11-001`.
+// ponytail: a land attacker grows in defence as a fighter does (the source
+// marks it unconfirmed), and patrol planes and autogyros, which the source
+// gives no rule for off a ship, only lose. The base jet assault is left out.
+fn land_base_rolls(type3: i64) -> Option<i64> {
+    use KcSlotItemType3 as T;
+    match T::n(type3)? {
+        T::LandBasedAttacker
+        | T::LargeLandBasedAircraft
+        | T::LocalFighter
+        | T::LandBasedRecon
+        | T::CarrierBasedFighter
+        | T::CarrierBasedDiveBomber
+        | T::CarrierBasedTorpedoBomber
+        | T::SeaplaneFighter
+        | T::SeaBasedBomber
+        | T::JetFighter
+        | T::JetFighterBomber
+        | T::JetAttacker => Some(1),
+        T::CarrierBasedRecon
+        | T::CarrierBasedRecon2
+        | T::SeaBasedRecon
+        | T::LargeFlyingBoat
+        | T::AutoGyro
+        | T::AntiSubmarinePatrol => Some(0),
+        _ => None,
+    }
+}
+
 /// Whether this kind of aircraft is a scout, which loses experience only by
 /// being wiped out.
 fn is_scout(type3: i64) -> bool {
@@ -69,6 +104,7 @@ fn is_scout(type3: i64) -> bool {
                 | KcSlotItemType3::CarrierBasedRecon2
                 | KcSlotItemType3::SeaBasedRecon
                 | KcSlotItemType3::LargeFlyingBoat
+                | KcSlotItemType3::LandBasedRecon
         )
     )
 }
@@ -112,11 +148,49 @@ pub(crate) fn settle(
     (before, after): (i64, i64),
     air_battle: bool,
     grows: bool,
-    mut roll: impl FnMut() -> f64,
+    roll: impl FnMut() -> f64,
 ) -> i64 {
     let Some(rolls) = growth_rolls(type3, air_battle) else {
         return exp;
     };
+    settle_rolls(
+        mst_id,
+        type3,
+        exp,
+        (before, after),
+        if grows {
+            rolls
+        } else {
+            0
+        },
+        roll,
+    )
+}
+
+/// A squadron's experience after one attack or one defence of its air corps
+/// that left it `after` of its `before` aircraft: [`settle`] with the rolls an
+/// air corps gives.
+pub(crate) fn settle_land_base(
+    mst_id: i64,
+    type3: i64,
+    exp: i64,
+    counts: (i64, i64),
+    roll: impl FnMut() -> f64,
+) -> i64 {
+    let Some(rolls) = land_base_rolls(type3) else {
+        return exp;
+    };
+    settle_rolls(mst_id, type3, exp, counts, rolls, roll)
+}
+
+fn settle_rolls(
+    mst_id: i64,
+    type3: i64,
+    exp: i64,
+    (before, after): (i64, i64),
+    rolls: i64,
+    mut roll: impl FnMut() -> f64,
+) -> i64 {
     if before <= 0 {
         return exp;
     }
@@ -127,12 +201,10 @@ pub(crate) fn settle(
     if !is_scout(type3) {
         settled -= loss(exp, before, after, roll());
     }
-    if grows {
-        // The band is the one the slot entered the battle in, as the loss was.
-        let constant = growth_constant(mst_id);
-        for _ in 0..rolls {
-            settled += gain(constant, exp, roll());
-        }
+    // The band is the one the slot entered the battle in, as the loss was.
+    let constant = growth_constant(mst_id);
+    for _ in 0..rolls {
+        settled += gain(constant, exp, roll());
     }
     settled.clamp(0, EXP_MAX)
 }
@@ -448,5 +520,31 @@ mod tests {
         // Nothing passes the ceiling, and a gun has no proficiency.
         assert_eq!(settle(19, FIGHTER, 119, (18, 18), true, true, low), EXP_MAX);
         assert_eq!(settle(1, 1, 50, (1, 0), true, true, low), 50);
+    }
+
+    #[test]
+    fn an_air_corps_settles_a_squadron() {
+        use KcSlotItemType3 as T;
+        let low = || 0.0;
+        let land = |kind: T, exp, counts| settle_land_base(-1, kind as i64, exp, counts, low);
+        // One roll for an attack or a defence: the median constant adds 3.
+        assert_eq!(land(T::LandBasedAttacker, 0, (18, 18)), 3);
+        assert_eq!(land(T::LocalFighter, 0, (18, 18)), 3);
+        assert_eq!(land(T::LandBasedRecon, 0, (4, 4)), 3);
+        // No search from a base: a seaplane bomber grows once, not twice.
+        assert_eq!(land(T::SeaBasedBomber, 0, (18, 18)), 3);
+        // Scouts and flying boats do not grow there, but start over when wiped out.
+        assert_eq!(land(T::SeaBasedRecon, 50, (4, 4)), 50);
+        assert_eq!(land(T::LargeFlyingBoat, 50, (4, 3)), 50);
+        assert_eq!(land(T::LargeFlyingBoat, 50, (4, 0)), 0);
+        // Patrol planes do not grow either, and lose as any other aircraft.
+        assert_eq!(land(T::AntiSubmarinePatrol, 100, (18, 18)), 100);
+        assert_eq!(land(T::AntiSubmarinePatrol, 100, (30, 1)), 76);
+        // An attacker loses, then grows; an empty squadron is left alone.
+        assert_eq!(land(T::LandBasedAttacker, 100, (30, 1)), 79);
+        assert_eq!(land(T::LandBasedAttacker, 100, (0, 0)), 100);
+        // A land scout loses only by being wiped out.
+        assert_eq!(land(T::LandBasedRecon, 100, (4, 1)), 103);
+        assert_eq!(land(T::LandBasedRecon, 100, (4, 0)), 0);
     }
 }

@@ -22,7 +22,7 @@ use crate::targeting::{is_airstrike_attack_type, target_class};
 use crate::types::{
     AirCorpsInput, AirState, BattleAirBaseAttack, BattleKouku, BattleKoukuStage1,
     BattleKoukuStage2, BattleKoukuStage3, BattleRuntimeShip, BattleSquadronPlane, DamageCell,
-    TargetClass,
+    SquadronFlight, TargetClass,
 };
 
 use super::kouku::{
@@ -216,6 +216,7 @@ pub(crate) fn simulate_air_base_attack(
             api_count: squadron.count,
         })
         .collect();
+    let set_out: Vec<i64> = corps.squadrons.iter().map(|squadron| squadron.count).collect();
 
     let friend_planes: i64 = corps.squadrons.iter().map(|squadron| squadron.count).sum();
     let enemy_planes = total_plane_count(codex, enemy);
@@ -350,10 +351,15 @@ pub(crate) fn simulate_air_base_attack(
         api_base_id: corps.base_rid,
         api_stage_flag: [1, i64::from(stage2_f_count > 0), i64::from(struck)],
         api_squadron_plane,
-        remaining: corps
+        flights: corps
             .squadrons
             .iter()
-            .map(|squadron| (squadron.squadron_id, squadron.count))
+            .zip(set_out)
+            .map(|(squadron, before)| SquadronFlight {
+                squadron_id: squadron.squadron_id,
+                before,
+                after: squadron.count,
+            })
             .collect(),
         kouku: BattleKouku {
             api_plane_from: [Vec::new(), attack_plane_from(codex, enemy)],
@@ -524,7 +530,11 @@ mod tests {
         assert_eq!(attack.kouku.api_stage3.api_ebak_flag, [0]);
         assert!(enemy[0].hp() < 500, "the destroyer was hit");
         assert_eq!(
-            attack.remaining,
+            attack
+                .flights
+                .iter()
+                .map(|flight| (flight.squadron_id, flight.after))
+                .collect::<Vec<_>>(),
             [(1, corps.squadrons[0].count), (2, corps.squadrons[1].count)],
             "what is left is what the caller writes back"
         );
@@ -566,9 +576,9 @@ mod tests {
     }
 
     /// Pointed at one cell twice, an air corps attacks twice, the second time
-    /// with what the first left it.
+    /// with what it had before the first: its losses are made good in between.
     #[test]
-    fn two_waves_fly_in_turn_and_carry_their_losses() {
+    fn the_second_wave_flies_with_what_the_first_set_out_with() {
         use crate::types::{BattleContext, BattleType};
 
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
@@ -589,8 +599,10 @@ mod tests {
         let packet = crate::execute_day(&codex, context, &mut rng).packet;
 
         assert_eq!(packet.air_base_attack.len(), 2);
-        let after_first = packet.air_base_attack[0].remaining[0].1;
+        let after_first = packet.air_base_attack[0].flights[0].after;
         assert!(after_first < 18, "anti-air fire took some");
-        assert_eq!(packet.air_base_attack[1].api_squadron_plane[0].api_count, after_first);
+        assert_eq!(packet.air_base_attack[0].flights[0].before, 18);
+        assert_eq!(packet.air_base_attack[1].flights[0].before, 18);
+        assert_eq!(packet.air_base_attack[1].api_squadron_plane[0].api_count, 18);
     }
 }
