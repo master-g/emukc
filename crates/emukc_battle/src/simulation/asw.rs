@@ -2,7 +2,7 @@
 
 use emukc_model::codex::Codex;
 
-use crate::accuracy::{Aim, AttackKind, roll_attack};
+use crate::accuracy::{Aim, AttackKind, PlaneProficiency, roll_attack};
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
@@ -31,11 +31,13 @@ pub(crate) fn simulate_opening_taisen(
     let mut hougeki = BattleHougeki::default();
     for turn in 0..friendly_order.len().max(enemy_order.len()) {
         if let Some(&idx) = friendly_order.get(turn) {
-            let aim = Aim::new(AttackKind::Asw, friendly_formation_id, enemy_formation_id);
+            let aim = Aim::new(AttackKind::Asw, friendly_formation_id, enemy_formation_id)
+                .in_the_opening();
             asw_turn(codex, rng, friendly, idx, enemy, aim, engagement, false, &mut hougeki);
         }
         if let Some(&idx) = enemy_order.get(turn) {
-            let aim = Aim::new(AttackKind::Asw, enemy_formation_id, friendly_formation_id);
+            let aim = Aim::new(AttackKind::Asw, enemy_formation_id, friendly_formation_id)
+                .in_the_opening();
             asw_turn(codex, rng, enemy, idx, friendly, aim, engagement, true, &mut hougeki);
         }
     }
@@ -73,6 +75,7 @@ fn asw_turn(
         aim.attacker_formation,
         engagement,
         outcome,
+        PlaneProficiency::NONE,
     );
     let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
     ship.damage_dealt += dealt;

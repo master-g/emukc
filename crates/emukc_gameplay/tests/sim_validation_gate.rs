@@ -64,7 +64,7 @@ fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) ->
         PhaseExpectation::AntiAirCutIn => {
             battle.pointer("/api_kouku/api_stage2/api_air_fire").is_some_and(|fire| !fire.is_null())
         }
-        PhaseExpectation::PlainBattle => true,
+        PhaseExpectation::PlainBattle | PhaseExpectation::NightAirAttack => true,
     }
 }
 
@@ -307,6 +307,7 @@ async fn every_preset_night_battle_passes_protocol_validation() {
 
         let baseline = context.get_ships(pid).await.unwrap();
         let mut named_a_plate = false;
+        let mut flown = false;
 
         for &seed in SEEDS {
             // Discard any stale sortie state from the previous seed; restore the
@@ -338,7 +339,16 @@ async fn every_preset_night_battle_passes_protocol_validation() {
                 preset.name,
             );
             named_a_plate |= derived_a_name_plate(&report);
+            flown |= night
+                .api_hougeki
+                .as_ref()
+                .is_some_and(|hougeki| hougeki.api_n_mother_list.contains(&1));
         }
+        assert!(
+            flown == (preset.expects == PhaseExpectation::NightAirAttack),
+            "preset {}: a night air attack was flown ({flown}) against what it is registered for",
+            preset.name,
+        );
         // 連撃 draws guns, and guns have name plates, so the gunnery preset is
         // the one that proves the night display derivation ran at all.
         assert!(

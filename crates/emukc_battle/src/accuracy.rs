@@ -15,13 +15,14 @@
 use emukc_model::{
     codex::Codex,
     kc2::{
-        KcSlotItemType3,
+        KcShipType, KcSlotItemType3,
         start2::{ApiMstShip, ApiMstSlotitem},
     },
 };
 
 use crate::damage::is_cv_type;
 use crate::random::BattleRng;
+use crate::targeting::ship_type;
 use crate::types::BattleRuntimeShip;
 
 /// What a critical does to the attack power, after the cap and before armour.
@@ -210,6 +211,18 @@ pub(crate) fn shelling_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> P
         plane_proficiency(codex, ship)
     } else {
         PlaneProficiency::NONE
+    }
+}
+
+/// The proficiency a ship's day attack on a submarine takes (`usePlaneProf`):
+/// that of the ships whose aircraft make it — 航巡, 航戦, 水母, 揚陸艦 and 軽空母 —
+/// and not in the opening, where depth charges do the work.
+pub(crate) fn asw_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> PlaneProficiency {
+    match ship_type(codex, ship) {
+        Some(
+            KcShipType::CAV | KcShipType::BBV | KcShipType::AV | KcShipType::LHA | KcShipType::CVL,
+        ) => plane_proficiency(codex, ship),
+        _ => PlaneProficiency::NONE,
     }
 }
 
@@ -430,6 +443,10 @@ pub(crate) struct Aim {
     pub flat: f64,
     /// Whether this is a carrier's cut-in, which has its own critical rate.
     pub carrier_cut_in: bool,
+    /// Whether this is the opening ASW, which no aircraft proficiency reaches.
+    pub opening: bool,
+    /// Whether this is a carrier's night air attack, which her aircraft's proficiency does.
+    pub night_air_attack: bool,
 }
 
 impl Aim {
@@ -441,7 +458,19 @@ impl Aim {
             modifier: 1.0,
             flat: 0.0,
             carrier_cut_in: false,
+            opening: false,
+            night_air_attack: false,
         }
+    }
+
+    pub(crate) fn as_night_air_attack(mut self, night_air_attack: bool) -> Self {
+        self.night_air_attack = night_air_attack;
+        self
+    }
+
+    pub(crate) fn in_the_opening(mut self) -> Self {
+        self.opening = true;
+        self
     }
 
     pub(crate) fn as_carrier_cut_in(mut self, carrier_cut_in: bool) -> Self {
@@ -502,6 +531,8 @@ pub(crate) fn roll_attack(
             shelling_proficiency(codex, attacker).for_carrier_cut_in()
         }
         AttackKind::Shelling => shelling_proficiency(codex, attacker),
+        AttackKind::Night if aim.night_air_attack => plane_proficiency(codex, attacker),
+        AttackKind::Asw if !aim.opening => asw_proficiency(codex, attacker),
         _ => PlaneProficiency::NONE,
     };
     roll(rng, chance, aim.kind.critical_factor(), planes)
@@ -668,6 +699,47 @@ mod tests {
             shelling_proficiency(&codex, &carrier(KcShipType::BBV, &[Some(7)])),
             PlaneProficiency::NONE
         );
+    }
+
+    #[test]
+    fn aircraft_proficiency_reaches_the_day_attack_on_a_submarine_but_not_the_opening() {
+        use crate::test_utils::{
+            first_ship_mst_by_type, first_slotitem_mst_by_type, sample_ship, slotitem_with_mst_id,
+        };
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaBasedBomber);
+        let ship = |stype, alv: Option<i64>| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, stype), 50);
+            let mut item = slotitem_with_mst_id(bomber);
+            item.api_alv = alv;
+            ship.slot_items = vec![item];
+            BattleRuntimeShip::from(ship)
+        };
+        for stype in
+            [KcShipType::CAV, KcShipType::BBV, KcShipType::AV, KcShipType::LHA, KcShipType::CVL]
+        {
+            assert_eq!(asw_proficiency(&codex, &ship(stype, Some(7))).critical_damage, 1.2);
+        }
+        for stype in [KcShipType::CV, KcShipType::DD, KcShipType::CL] {
+            assert_eq!(asw_proficiency(&codex, &ship(stype, Some(7))), PlaneProficiency::NONE);
+        }
+
+        let submarine = BattleRuntimeShip::from(sample_ship(
+            &codex,
+            first_ship_mst_by_type(&codex, KcShipType::SS),
+            50,
+        ));
+        let roll = |alv, aim: Aim, seed| {
+            let attacker = ship(KcShipType::CAV, alv);
+            roll_attack(&codex, &mut SeededRng::new(seed), &attacker, &submarine, aim)
+        };
+        let aim = Aim::new(AttackKind::Asw, 1, 1);
+        // In the opening the skilled ship rolls as the green one does, draw for draw.
+        assert!(
+            (0..200).all(|seed| roll(Some(7), aim.in_the_opening(), seed) == roll(None, aim, seed))
+        );
+        assert!((0..200).any(|seed| roll(Some(7), aim, seed) != roll(None, aim, seed)));
     }
 
     #[test]
