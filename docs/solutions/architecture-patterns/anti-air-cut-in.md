@@ -71,6 +71,10 @@ The figures are the source's throughout. wikiwiki disagrees on five kinds:
 It also lists only 大和型改二 for kind 26, and wants a 機銃 of 対空 3 or more for kinds 12, 23
 and 24 and of 4 or more for kind 33, where the source takes any 機銃.
 
+One difference from the source itself, older than the named kinds: the letter `M` takes both
+classes of 大口径主砲 (types 3 and 38) where the source takes the first alone. It only decides
+which plate kinds 4 and 6 show.
+
 ## The golden rule of this phase
 
 A battle draws for a cut-in only when it can happen:

@@ -931,6 +931,47 @@ mod tests {
     const AKIZUKI: i64 = 421;
     const YAMATO: i64 = 131;
 
+    // The ships the source names.
+    const AKIZUKI_KAI: i64 = 330;
+    const FUBUKI_K2: i64 = 426;
+    const MAYA_K2: i64 = 428;
+    const HIRYUU_K3: i64 = 1031;
+    const ISUZU_K2: i64 = 141;
+    const KINU_K2: i64 = 487;
+    const UIT_25: i64 = 539;
+    const SHIRATSUYU_KAI: i64 = 242;
+    const SHIRATSUYU_K2: i64 = 497;
+    const FLETCHER: i64 = 596;
+    const ATLANTA: i64 = 597;
+    const YAMATO_KAI: i64 = 136;
+    const MUSASHI_KAI: i64 = 148;
+    const YAMATO_K2: i64 = 911;
+    const KONGOU_K2: i64 = 149;
+
+    /// 12.7cm連装高角砲 (対空 4) and 12.7cm高角砲+高射装置 (対空 8), secondary guns.
+    const SECONDARY: i64 = 10;
+    const SECONDARY_DIRECTOR: i64 = 130;
+    /// 10cm連装高角砲改 (対空 7), and the same with 高射装置改 (対空 11).
+    const HIGH_ANGLE_K: i64 = 553;
+    const HIGH_ANGLE_K_DIRECTOR: i64 = 533;
+    /// 10cm連装高角砲改+増設機銃.
+    const HIGH_ANGLE_MACHINE_GUN: i64 = 275;
+    /// 12.7cm連装砲C型改三H.
+    const C_TYPE_K3H: i64 = 529;
+    /// 5inch単装砲 Mk.30改, the same with GFCS Mk.37, and GFCS Mk.37 alone.
+    const MK30_KAI: i64 = 313;
+    const MK30_GFCS: i64 = 308;
+    const GFCS: i64 = 307;
+    /// 5inch連装両用砲(集中配備), without and with GFCS Mk.37.
+    const DUAL: i64 = 362;
+    const DUAL_GFCS: i64 = 363;
+    /// 10cm連装高角砲群 集中配備 and 15m二重測距儀+21号電探改二.
+    const GUN_GROUP: i64 = 464;
+    const RANGEFINDER: i64 = 142;
+    /// QF 2ポンド8連装ポンポン砲 and 16inch Mk.I三連装砲改+FCR type284.
+    const POM_POM: i64 = 191;
+    const MK1_FCR: i64 = 300;
+
     /// A die that always shows the same face.
     struct Fixed(i64);
 
@@ -957,65 +998,67 @@ mod tests {
 
     #[test]
     fn the_table_follows_the_source() {
-        // (id, fixed, rate, modifier, priority) as `AACIDATA` and `orderKnown` give them.
+        // (id, fixed, rate, modifier, priority, equipment) as `AACIDATA` and `orderKnown` give them.
         let source = [
-            (1, 7, 65, 1.7, 12),
-            (2, 6, 58, 1.7, 17),
-            (3, 4, 50, 1.6, 32),
-            (4, 6, 52, 1.5, 16),
-            (5, 4, 55, 1.5, 33),
-            (6, 4, 40, 1.45, 34),
-            (7, 3, 45, 1.35, 42),
-            (8, 4, 50, 1.4, 39),
-            (9, 2, 40, 1.3, 52),
-            (10, 8, 60, 1.65, 6),
-            (11, 6, 55, 1.5, 9),
-            (12, 3, 45, 1.25, 46),
-            (13, 4, 35, 1.35, 40),
-            (14, 4, 63, 1.45, 31),
-            (15, 3, 55, 1.3, 41),
-            (16, 4, 62, 1.4, 30),
-            (17, 2, 55, 1.25, 49),
-            (18, 2, 60, 1.2, 50),
-            (19, 5, 55, 1.45, 26),
-            (20, 3, 65, 1.25, 43),
-            (21, 5, 60, 1.45, 27),
-            (22, 2, 60, 1.2, 51),
-            (23, 1, 80, 1.05, 53),
-            (24, 3, 55, 1.25, 44),
-            (25, 7, 60, 1.55, 10),
-            (26, 6, 60, 1.4, 15),
-            (27, 6, 55, 1.55, 20),
-            (28, 4, 55, 1.4, 35),
-            (29, 5, 60, 1.55, 28),
-            (30, 3, 45, 1.3, 38),
-            (31, 2, 50, 1.25, 47),
-            (32, 3, 50, 1.2, 45),
-            (33, 3, 42, 1.35, 37),
-            (34, 7, 60, 1.6, 13),
-            (35, 6, 55, 1.55, 18),
-            (36, 6, 55, 1.55, 19),
-            (37, 4, 40, 1.45, 36),
-            (38, 10, 62, 1.85, 1),
-            (39, 10, 57, 1.7, 2),
-            (40, 10, 56, 1.7, 3),
-            (41, 9, 55, 1.65, 5),
-            (42, 10, 65, 1.65, 4),
-            (43, 8, 58, 1.6, 7),
-            (44, 6, 55, 1.6, 14),
-            (45, 6, 50, 1.55, 21),
-            (46, 8, 60, 1.55, 8),
-            (47, 2, 70, 1.3, 48),
-            (48, 8, 65, 1.75, 11),
-            (49, 6, 50, 1.5, 23),
-            (50, 7, 50, 1.5, 22),
-            (51, 5, 50, 1.4, 24),
-            (52, 5, 50, 1.4, 25),
-            (53, 4, 60, 1.6, 29),
+            (1, 7, 65, 1.7, 12, "HHR"),
+            (2, 6, 58, 1.7, 17, "HR"),
+            (3, 4, 50, 1.6, 32, "HH"),
+            (4, 6, 52, 1.5, 16, "MSAR"),
+            (5, 4, 55, 1.5, 33, "BBR"),
+            (6, 4, 40, 1.45, 34, "MSA"),
+            (7, 3, 45, 1.35, 42, "HAR"),
+            (8, 4, 50, 1.4, 39, "BR"),
+            (9, 2, 40, 1.3, 52, "HA"),
+            (10, 8, 60, 1.65, 6, "HCR"),
+            (11, 6, 55, 1.5, 9, "HC"),
+            (12, 3, 45, 1.25, 46, "CGR"),
+            (13, 4, 35, 1.35, 40, "BCR"),
+            (14, 4, 63, 1.45, 31, "HGR"),
+            (15, 3, 55, 1.3, 41, "HG"),
+            (16, 4, 62, 1.4, 30, "HGR"),
+            (17, 2, 55, 1.25, 49, "HG"),
+            (18, 2, 60, 1.2, 50, "C"),
+            (19, 5, 55, 1.45, 26, "HC"),
+            (20, 3, 65, 1.25, 43, "C"),
+            (21, 5, 60, 1.45, 27, "HR"),
+            (22, 2, 60, 1.2, 51, "C"),
+            (23, 1, 80, 1.05, 53, "G"),
+            (24, 3, 55, 1.25, 44, "HG"),
+            (25, 7, 60, 1.55, 10, "GRS"),
+            (26, 6, 60, 1.4, 15, "HR"),
+            (27, 6, 55, 1.55, 20, "BGR"),
+            (28, 4, 55, 1.4, 35, "GR"),
+            (29, 5, 60, 1.55, 28, "HR"),
+            (30, 3, 45, 1.3, 38, "HHH"),
+            (31, 2, 50, 1.25, 47, "HH"),
+            (32, 3, 50, 1.2, 45, "CM"),
+            (33, 3, 42, 1.35, 37, "HG"),
+            (34, 7, 60, 1.6, 13, "BB"),
+            (35, 6, 55, 1.55, 18, "BH"),
+            (36, 6, 55, 1.55, 19, "HHR"),
+            (37, 4, 40, 1.45, 36, "HH"),
+            (38, 10, 62, 1.85, 1, "BB"),
+            (39, 10, 57, 1.7, 2, "BB"),
+            (40, 10, 56, 1.7, 3, "BBR"),
+            (41, 9, 55, 1.65, 5, "BB"),
+            (42, 10, 65, 1.65, 4, "HHRG"),
+            (43, 8, 58, 1.6, 7, "HHR"),
+            (44, 6, 55, 1.6, 14, "HRG"),
+            (45, 6, 50, 1.55, 21, "HR"),
+            (46, 8, 60, 1.55, 8, "MCR"),
+            (47, 2, 70, 1.3, 48, "MG"),
+            (48, 8, 65, 1.75, 11, "HHR"),
+            (49, 6, 50, 1.5, 23, "HHR"),
+            (50, 7, 50, 1.5, 22, "HHAR"),
+            (51, 5, 50, 1.4, 24, "HCR"),
+            (52, 5, 50, 1.4, 25, "HHA"),
+            (53, 4, 60, 1.6, 29, "BR"),
         ];
         let table: Vec<_> = KINDS
             .iter()
-            .map(|kind| (kind.id, kind.fixed, kind.rate, kind.modifier, kind.priority))
+            .map(|kind| {
+                (kind.id, kind.fixed, kind.rate, kind.modifier, kind.priority, kind.equipment)
+            })
             .collect();
         assert_eq!(table, source);
     }
@@ -1048,53 +1091,57 @@ mod tests {
     #[test]
     fn a_named_ship_has_kinds_of_her_own() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        // 12.7cm連装高角砲, 12.7cm高角砲+高射装置.
-        let (secondary, secondary_director) = (10, 130);
         // 摩耶改二: her own two, and never kind 13.
-        assert_eq!(kinds(&codex, 428, &[secondary, CONCENTRATED, AIR_RADAR]), [10, 11]);
-        assert_eq!(kinds(&codex, 428, &[secondary, CONCENTRATED]), [11]);
-        assert_eq!(kinds(&codex, 428, &[secondary_director, CONCENTRATED, AIR_RADAR]), [10, 11, 8]);
+        assert_eq!(kinds(&codex, MAYA_K2, &[SECONDARY, CONCENTRATED, AIR_RADAR]), [10, 11]);
+        assert_eq!(kinds(&codex, MAYA_K2, &[SECONDARY, CONCENTRATED]), [11]);
+        let with_director = [SECONDARY_DIRECTOR, CONCENTRATED, AIR_RADAR];
+        assert_eq!(kinds(&codex, MAYA_K2, &with_director), [10, 11, 8]);
+        // 飛龍改三 has kind 53 besides, and no kind 13 either.
+        assert_eq!(kinds(&codex, HIRYUU_K3, &with_director), [10, 11, 8]);
+        assert_eq!(kinds(&codex, HIRYUU_K3, &[HIGH_ANGLE_K_DIRECTOR, AIR_RADAR]), [53, 8]);
         // 五十鈴改二.
-        assert_eq!(kinds(&codex, 141, &[HIGH_ANGLE, MACHINE_GUN, AIR_RADAR]), [14, 15]);
-        assert_eq!(kinds(&codex, 141, &[HIGH_ANGLE, MACHINE_GUN]), [15]);
+        assert_eq!(kinds(&codex, ISUZU_K2, &[HIGH_ANGLE, MACHINE_GUN, AIR_RADAR]), [14, 15]);
+        assert_eq!(kinds(&codex, ISUZU_K2, &[HIGH_ANGLE, MACHINE_GUN]), [15]);
         // 鬼怒改二: kind 19 wants a 高角砲 without a director of its own.
-        assert_eq!(kinds(&codex, 487, &[HIGH_ANGLE, CONCENTRATED]), [19, 20]);
-        assert_eq!(kinds(&codex, 487, &[HIGH_ANGLE_DIRECTOR, CONCENTRATED]), [20]);
+        assert_eq!(kinds(&codex, KINU_K2, &[HIGH_ANGLE, CONCENTRATED]), [19, 20]);
+        assert_eq!(kinds(&codex, KINU_K2, &[HIGH_ANGLE_DIRECTOR, CONCENTRATED]), [20]);
         // UIT-25: a 機銃 that is not 集中配備.
-        assert_eq!(kinds(&codex, 539, &[MACHINE_GUN]), [23]);
-        assert_eq!(kinds(&codex, 539, &[CONCENTRATED]), [0; 0]);
+        assert_eq!(kinds(&codex, UIT_25, &[MACHINE_GUN]), [23]);
+        assert_eq!(kinds(&codex, UIT_25, &[CONCENTRATED]), [0; 0]);
         // 白露改二 reaches 対空 70 and 白露改 does not.
-        assert_eq!(kinds(&codex, 497, &[529, 529]), [47]);
-        assert_eq!(kinds(&codex, 497, &[529, AIR_RADAR]), [47]);
-        assert_eq!(kinds(&codex, 497, &[529]), [0; 0]);
-        assert_eq!(kinds(&codex, 242, &[529, 529]), [0; 0]);
-        // 飛龍改三.
-        assert_eq!(kinds(&codex, 1031, &[533, AIR_RADAR]), [53, 8]);
+        assert_eq!(kinds(&codex, SHIRATSUYU_K2, &[C_TYPE_K3H, C_TYPE_K3H]), [47]);
+        assert_eq!(kinds(&codex, SHIRATSUYU_K2, &[C_TYPE_K3H, AIR_RADAR]), [47]);
+        assert_eq!(kinds(&codex, SHIRATSUYU_K2, &[C_TYPE_K3H]), [0; 0]);
+        assert_eq!(kinds(&codex, SHIRATSUYU_KAI, &[C_TYPE_K3H, C_TYPE_K3H]), [0; 0]);
     }
 
     #[test]
     fn equipment_named_by_id_forms_a_kind() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        // Fletcher: 5inch単装砲 Mk.30改 with and without GFCS Mk.37.
-        assert_eq!(kinds(&codex, 596, &[308, 308]), [34]);
-        assert_eq!(kinds(&codex, 596, &[308, 313]), [35]);
-        assert_eq!(kinds(&codex, 596, &[313, 313, 307]), [37, 36]);
-        // Atlanta: 5inch連装両用砲(集中配備).
-        assert_eq!(kinds(&codex, 597, &[363, 363]), [38, 41]);
-        assert_eq!(kinds(&codex, 597, &[363, 362, 307]), [39, 40, 41, 5, 8]);
-        // 大和改二: 10cm連装高角砲群 集中配備 and 15m二重測距儀+21号電探改二.
-        assert_eq!(kinds(&codex, 911, &[464, 464, 142, CONCENTRATED]), [42, 43, 44, 45, 5, 8, 13]);
-        assert_eq!(kinds(&codex, 911, &[464, 142]), [45, 8]);
-        assert_eq!(kinds(&codex, 911, &[275, AIR_RADAR]), [8, 26]);
+        assert_eq!(kinds(&codex, FLETCHER, &[MK30_GFCS, MK30_GFCS]), [34]);
+        assert_eq!(kinds(&codex, FLETCHER, &[MK30_GFCS, MK30_KAI]), [35]);
+        assert_eq!(kinds(&codex, FLETCHER, &[MK30_KAI, MK30_KAI, GFCS]), [37, 36]);
+        assert_eq!(kinds(&codex, ATLANTA, &[DUAL_GFCS, DUAL_GFCS]), [38, 41]);
+        assert_eq!(kinds(&codex, ATLANTA, &[DUAL_GFCS, DUAL, GFCS]), [39, 40, 41, 5, 8]);
+        // 大和改二 with her gun groups and rangefinder; 大和改 and 武蔵改 share only kind 26.
+        let groups = [GUN_GROUP, GUN_GROUP, RANGEFINDER, CONCENTRATED];
+        assert_eq!(kinds(&codex, YAMATO_K2, &groups), [42, 43, 44, 45, 5, 8, 13]);
+        assert_eq!(kinds(&codex, YAMATO_K2, &[GUN_GROUP, RANGEFINDER]), [45, 8]);
+        assert_eq!(kinds(&codex, YAMATO_KAI, &[GUN_GROUP, RANGEFINDER]), [8]);
+        for ship in [YAMATO_K2, YAMATO_KAI, MUSASHI_KAI] {
+            assert_eq!(kinds(&codex, ship, &[HIGH_ANGLE_MACHINE_GUN, AIR_RADAR]), [8, 26]);
+        }
         // 吹雪改二 and 秋月改 with 10cm連装高角砲改, its director and 94式高射装置.
-        assert_eq!(kinds(&codex, 426, &[533, 533, AIR_RADAR]), [49, 5, 8]);
-        assert_eq!(kinds(&codex, 426, &[533, 553, AIR_RADAR, DIRECTOR]), [50, 8, 7, 9]);
-        assert_eq!(kinds(&codex, 426, &[553, AIR_RADAR, MACHINE_GUN]), [51]);
-        assert_eq!(kinds(&codex, 426, &[553, 553, DIRECTOR]), [52, 9]);
-        assert_eq!(kinds(&codex, 330, &[533, 533, AIR_RADAR]), [48, 1, 2, 3]);
-        assert_eq!(kinds(&codex, 330, &[533, 533, AIR_RADAR, DIRECTOR]), [48, 50, 1, 2, 3, 9]);
-        // 金剛改二: ポンポン砲 and 16inch Mk.I三連装砲改+FCR type284.
-        assert_eq!(kinds(&codex, 149, &[191, 300]), [32]);
+        let twin = [HIGH_ANGLE_K_DIRECTOR, HIGH_ANGLE_K_DIRECTOR, AIR_RADAR];
+        let mixed = [HIGH_ANGLE_K_DIRECTOR, HIGH_ANGLE_K, AIR_RADAR, DIRECTOR];
+        assert_eq!(kinds(&codex, FUBUKI_K2, &twin), [49, 5, 8]);
+        assert_eq!(kinds(&codex, FUBUKI_K2, &mixed), [50, 8, 7, 9]);
+        assert_eq!(kinds(&codex, FUBUKI_K2, &[HIGH_ANGLE_K, AIR_RADAR, MACHINE_GUN]), [51]);
+        assert_eq!(kinds(&codex, FUBUKI_K2, &[HIGH_ANGLE_K, HIGH_ANGLE_K, DIRECTOR]), [52, 9]);
+        assert_eq!(kinds(&codex, AKIZUKI_KAI, &twin), [48, 1, 2, 3]);
+        assert_eq!(kinds(&codex, AKIZUKI_KAI, &mixed), [50, 1, 2, 3, 9]);
+        assert_eq!(kinds(&codex, AKIZUKI_KAI, &[HIGH_ANGLE_K, HIGH_ANGLE_K, DIRECTOR]), [52, 3, 9]);
+        assert_eq!(kinds(&codex, KONGOU_K2, &[POM_POM, MK1_FCR]), [32]);
     }
 
     #[test]
@@ -1103,16 +1150,14 @@ mod tests {
         let shown_by = |id: i64, mst_id: i64, equipment: &[i64]| {
             shown(kind(id), parts(&codex, &ship(&codex, mst_id, equipment)))
         };
-        assert_eq!(shown_by(34, 596, &[308, 308]), [308, 308]);
+        assert_eq!(shown_by(34, FLETCHER, &[MK30_GFCS, MK30_GFCS]), [MK30_GFCS, MK30_GFCS]);
         // Kind 40 shows the gun without its director even when the ship carries the other.
-        assert_eq!(shown_by(40, 597, &[363, 362, 307]), [362, 362, 307]);
-        assert_eq!(shown_by(32, 149, &[191, 300]), [191, 300]);
+        assert_eq!(shown_by(40, ATLANTA, &[DUAL_GFCS, DUAL, GFCS]), [DUAL, DUAL, GFCS]);
+        assert_eq!(shown_by(32, KONGOU_K2, &[POM_POM, MK1_FCR]), [POM_POM, MK1_FCR]);
         // The rest go by their letters, as before.
-        assert_eq!(shown_by(38, 597, &[363, 363]), [363, 363]);
-        assert_eq!(
-            shown_by(10, 428, &[10, CONCENTRATED, AIR_RADAR]),
-            [10, CONCENTRATED, AIR_RADAR]
-        );
+        assert_eq!(shown_by(38, ATLANTA, &[DUAL_GFCS, DUAL_GFCS]), [DUAL_GFCS, DUAL_GFCS]);
+        let maya = [SECONDARY, CONCENTRATED, AIR_RADAR];
+        assert_eq!(shown_by(10, MAYA_K2, &maya), maya);
     }
 
     #[test]
