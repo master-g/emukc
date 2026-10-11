@@ -14,7 +14,7 @@ pub use packet::SiListId;
 pub use packet::{
     BattleAirBaseAttack, BattleAirFire, BattleHougeki, BattleKouku, BattleKoukuStage1,
     BattleKoukuStage2, BattleKoukuStage3, BattleKoukuStage3Combined, BattleNightHougeki,
-    BattleOpeningAttack, BattleRaigeki, BattleSquadronPlane, DamageCell,
+    BattleOpeningAttack, BattleRaigeki, BattleSquadronPlane, DamageCell, SquadronFlight,
 };
 pub(crate) use runtime::CombinedMembership;
 pub use runtime::{

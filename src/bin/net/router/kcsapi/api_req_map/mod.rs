@@ -238,7 +238,7 @@ mod tests {
             json["api_air_base_attack"][0]["api_stage1"].is_object(),
             "stages sit beside the id"
         );
-        assert!(json["api_air_base_attack"][0].get("remaining").is_none());
+        assert!(json["api_air_base_attack"][0].get("flights").is_none());
 
         // The rules read out of the client accept the packet as a day battle.
         let assets =
@@ -251,7 +251,7 @@ mod tests {
         .unwrap();
         assert!(!report.has_errors(), "validation findings: {:?}", report.findings);
 
-        let left = attacks.last().unwrap().remaining[0].1;
+        let left = attacks.last().unwrap().flights[0].after;
         assert!(left < 18, "this seed costs the squadron aircraft; pick another if it stops");
         let planes = squadrons_of_air_corps(&context, pid).await;
         assert_eq!(planes[0].count, left, "what the last attack left is what was written back");

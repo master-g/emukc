@@ -20,6 +20,7 @@ use emukc_time::chrono::{Duration, Utc};
 
 use emukc_battle::{
     AirCorpsInput, AirRaidBase, AirSquadronInput, BattleAirBaseAttack, BattleAirRaid, BattleRng,
+    SquadronFlight,
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -813,8 +814,7 @@ where
 }
 
 /// Settle the proficiency of one air corps' squadrons after the flights of
-/// one battle, each `(squadron id, aircraft before, aircraft after)` and in the
-/// order flown. A squadron a flight left without aircraft starts over and
+/// one battle, in the order flown. A squadron a flight left without aircraft starts over and
 /// gains nothing from the flights after it: the game keeps that on record
 /// apart from the counts (wikiwiki 基地航空隊). Only the experience moves
 /// here; the level follows at port (`refresh_proficiency_levels_impl`).
@@ -823,7 +823,7 @@ async fn settle_squadron_proficiency_impl<C>(
     profile_id: i64,
     area_id: i64,
     rid: i64,
-    flights: &[(i64, i64, i64)],
+    flights: &[SquadronFlight],
 ) -> Result<(), GameplayError>
 where
     C: ConnectionTrait,
@@ -833,8 +833,8 @@ where
         // Collected first: an iterator borrowing `plane` cannot be held across an await.
         let flown: Vec<(i64, i64)> = flights
             .iter()
-            .filter(|(squadron_id, before, _)| *squadron_id == plane.squadron_id && *before > 0)
-            .map(|(_, before, after)| (*before, *after))
+            .filter(|flight| flight.squadron_id == plane.squadron_id && flight.before > 0)
+            .map(|flight| (flight.before, flight.after))
             .collect();
         if flown.is_empty() {
             continue;
@@ -874,25 +874,20 @@ where
         if attacks[index + 1..].iter().any(|later| later.api_base_id == attack.api_base_id) {
             continue;
         }
-        let flights: Vec<(i64, i64, i64)> = attacks
+        let flights: Vec<SquadronFlight> = attacks
             .iter()
             .filter(|flown| flown.api_base_id == attack.api_base_id)
-            .flat_map(|flown| {
-                flown.flown.iter().zip(&flown.remaining).map(|(before, after)| {
-                    debug_assert_eq!(before.0, after.0);
-                    (before.0, before.1, after.1)
-                })
-            })
+            .flat_map(|flown| flown.flights.iter().copied())
             .collect();
         settle_squadron_proficiency_impl(c, profile_id, area_id, attack.api_base_id, &flights)
             .await?;
-        for (squadron_id, count) in &attack.remaining {
+        for flight in &attack.flights {
             plane_db::Entity::update_many()
-                .col_expr(plane_db::Column::Count, Expr::value(*count))
+                .col_expr(plane_db::Column::Count, Expr::value(flight.after))
                 .filter(plane_db::Column::ProfileId.eq(profile_id))
                 .filter(plane_db::Column::AreaId.eq(area_id))
                 .filter(plane_db::Column::Rid.eq(attack.api_base_id))
-                .filter(plane_db::Column::SquadronId.eq(*squadron_id))
+                .filter(plane_db::Column::SquadronId.eq(flight.squadron_id))
                 .filter(plane_db::Column::State.eq(plane_db::Status::Assigned))
                 .exec(c)
                 .await?;
@@ -959,11 +954,15 @@ where
     C: ConnectionTrait,
 {
     for (before, after) in before.iter().zip(after).filter(|(_, after)| after.defending) {
-        let flights: Vec<(i64, i64, i64)> = before
+        let flights: Vec<SquadronFlight> = before
             .squadrons
             .iter()
             .zip(&after.squadrons)
-            .map(|(before, after)| (before.squadron_id, before.count, after.count))
+            .map(|(before, after)| SquadronFlight {
+                squadron_id: before.squadron_id,
+                before: before.count,
+                after: after.count,
+            })
             .collect();
         settle_squadron_proficiency_impl(c, profile_id, area_id, after.base_rid, &flights).await?;
     }
@@ -1455,8 +1454,9 @@ mod tests {
     }
 
     /// A profile with 一式陸攻 at `exp` in each of the first squadrons of air
-    /// corps 6/1, eighteen aircraft apiece. Returns the equipment, in squadron order.
-    async fn land_attackers(db: &DbConn, exps: &[i64]) -> Vec<i64> {
+    /// corps 6/1, eighteen aircraft apiece. Returns the profile and the
+    /// equipment, in squadron order.
+    async fn land_attackers(db: &DbConn, exps: &[i64]) -> (i64, Vec<i64>) {
         use emukc_db::entity::{profile, user};
         let account = user::account::ActiveModel {
             name: ActiveValue::Set("air-corps-test".into()),
@@ -1507,7 +1507,7 @@ mod tests {
             .unwrap();
             items.push(item.id);
         }
-        items
+        (pid, items)
     }
 
     async fn exp_of(db: &DbConn, item_id: i64) -> i64 {
@@ -1519,11 +1519,14 @@ mod tests {
     #[tokio::test]
     async fn a_squadron_settles_every_attack_and_starts_over_once_emptied() {
         let db = emukc_db::prelude::new_mem_db().await.unwrap();
-        let items = land_attackers(&db, &[0, 100, 100, 100]).await;
-        let pid =
-            plane_db::Entity::find_by_id(items[0]).one(&db).await.unwrap().unwrap().profile_id;
+        let (pid, items) = land_attackers(&db, &[0, 100, 100, 100]).await;
 
-        let flights = [(1, 18, 18), (2, 18, 0), (3, 0, 0), (1, 18, 17), (2, 18, 16), (3, 0, 0)];
+        let flights = [(1, 18, 18), (2, 18, 0), (3, 0, 0), (1, 18, 17), (2, 18, 16), (3, 0, 0)]
+            .map(|(squadron_id, before, after)| SquadronFlight {
+                squadron_id,
+                before,
+                after,
+            });
         settle_squadron_proficiency_impl(&db, pid, 6, 1, &flights).await.unwrap();
 
         // 一式陸攻 has a growth constant of 8: at least 4 an attack from nothing.

@@ -269,7 +269,7 @@ mod tests {
             .packet
             .air_base_attack
             .iter()
-            .map(|attack| (attack.flown[0].1, attack.remaining[0].1))
+            .map(|attack| (attack.flights[0].before, attack.flights[0].after))
             .collect();
         context.sortie_battle_result(pid).await.unwrap();
         attacks
@@ -304,6 +304,43 @@ mod tests {
         context.sortie_goback_port(pid).await.unwrap();
         context.port_view(pid).await.unwrap();
         assert_eq!(proficiency(&context, attacker).await, (exp, 1));
+    }
+
+    /// 集中 against a squadron down to its last aircraft: the first attack loses it, the
+    /// second flies with it again and brings it home, and the squadron starts over all the
+    /// same — the game keeps the first attack's wipe-out apart from the counts.
+    #[tokio::test]
+    async fn a_squadron_the_first_attack_emptied_comes_home_with_no_proficiency() {
+        use emukc_internal::db::entity::profile::item::slot_item;
+
+        let context = crate::TestContext::new().await;
+        let (pid, attacker) = striking_profile(&context, "airbase-emptied").await;
+        let item =
+            slot_item::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap();
+        let mut am = item.into_active_model();
+        am.aircraft_exp = ActiveValue::Set(100);
+        am.aircraft_lv = ActiveValue::Set(7);
+        am.update(&*context.db).await.unwrap();
+        let row = plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap();
+        let mut am = row.into_active_model();
+        am.count = ActiveValue::Set(1);
+        am.update(&*context.db).await.unwrap();
+        // A seed at which 6-4's first fleet shoots down the one aircraft of the first
+        // attack and not that of the second; pick another if it stops.
+        emukc_internal::crypto::rng::seed(4);
+
+        let start = context.start_sortie(pid, 1, AREA, 4).await.unwrap();
+        context.start_air_base(pid, &[vec![start.cell_no, start.cell_no]]).await.unwrap();
+        assert_eq!(fight(&context, pid).await, vec![(1, 0), (1, 1)]);
+
+        let left =
+            plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap().count;
+        assert_eq!(left, 1, "the second attack's aircraft came home");
+        assert_eq!(proficiency(&context, attacker).await, (0, 7), "no level moves before port");
+
+        context.sortie_goback_port(pid).await.unwrap();
+        context.port_view(pid).await.unwrap();
+        assert_eq!(proficiency(&context, attacker).await, (0, 0));
     }
 
     /// An air corps sent to a cell the fleet has not reached has not flown.
@@ -425,26 +462,35 @@ mod tests {
         assert_eq!(proficiency(&context, attacker).await, (0, 0), "it never left the ground");
     }
 
-    /// Going up against a raid is an air battle's worth of proficiency for the defenders.
+    /// Going up against a raid is an air battle's worth of proficiency for the defenders,
+    /// the land attackers among them too (plan `2026-10-11-001`, decision 4).
     #[tokio::test]
     async fn defending_against_a_raid_grows_the_squadrons_that_went_up() {
+        /// 雷電, a local fighter. The growth sheet lists none, so it takes the median, 6.
+        const LOCAL_FIGHTER: i64 = 175;
+
         let context = crate::TestContext::new().await;
         let (pid, attacker) = raided_profile(&context, "airbase-raid-defended", 2).await;
+        let fighter = context.add_slot_item(pid, LOCAL_FIGHTER, 0, 0).await.unwrap().api_id;
+        context.set_airbase_plane(pid, AREA, 1, 2, fighter).await.unwrap();
         context
             .set_airbase_actions(pid, AREA, &[(1, AirbaseAction::Defense as i64)])
             .await
             .unwrap();
+        emukc_internal::crypto::rng::seed(1);
 
         let raid = first_raid(&context, pid, 40).await.expect("a raid within forty sorties");
         assert!(raid.api_air_base_attack.api_plane_from.0.is_some(), "the air corps went up");
 
-        // Bombers without fighters lose heavily in the air, and from nothing there is
-        // nothing to lose: 一式陸攻 gains at least 4 unless the raid shot down the last one.
-        let left =
-            plane::Entity::find_by_id(attacker).one(&*context.db).await.unwrap().unwrap().count;
-        let (exp, _) = proficiency(&context, attacker).await;
-        assert!(left > 0, "ground losses never take a squadron's last aircraft");
-        assert!((4..=8).contains(&exp), "one roll of a constant of 8: {exp}");
+        // From nothing there is nothing to lose, so each squadron shows one roll of its
+        // constant: 3 to 5 for 6, 4 to 7 for 一式陸攻's 8.
+        for (slot_id, gain) in [(fighter, 3..=5), (attacker, 4..=7)] {
+            let left =
+                plane::Entity::find_by_id(slot_id).one(&*context.db).await.unwrap().unwrap().count;
+            assert!(left > 0, "this seed empties no squadron; pick another if it stops");
+            let (exp, _) = proficiency(&context, slot_id).await;
+            assert!(gain.contains(&exp), "one roll: {exp} is not in {gain:?}");
+        }
     }
 
     /// 6-5's strongest raid, 空母棲姫 with two 空母ヲ級, comes against the last bar and only then.

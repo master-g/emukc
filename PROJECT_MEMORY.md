@@ -191,7 +191,7 @@ Current verification baseline:
 
 - [2026-10-11] 分支 `feat/air-corps-proficiency-growth`（叠在 `docs/memory-main-baseline` 上，两者都未推送）：计划 2026-10-11-001
   做完，航空队熟练度按次成长/损耗、打空清零，集中派遣第二次攻击前恢复机数。
-  验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1317 过、0 败、0 ignored；
+  验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1318 过、0 败、0 ignored；
   无头检查 `air_corps_6_4` 与 `air_raid_6_5` 通过，跑完后库里一式陸攻的 `aircraft_exp` 分别是 9 和 7（起始 0）。
 
 ## Next Session

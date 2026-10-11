@@ -59,7 +59,8 @@ The formulas, their lines and what was left out are tabled in
    losses good before the second, at no cost. A corps pointed at two cells fights two battles,
    and the count written back after the first is what the second finds.
 4. Settling the battle settles each squadron's proficiency attack by attack, then writes each
-   corps' last `remaining` counts back to `plane_info` (`record_strike_losses_impl`).
+   corps' counts after its last attack back to `plane_info` (`record_strike_losses_impl`,
+   from `BattleAirBaseAttack::flights`).
 
 ## Condition and relocation run on one timestamp
 

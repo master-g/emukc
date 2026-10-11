@@ -1091,7 +1091,7 @@ where
 
     let (area_id, _) = split_map_id(map_id);
     let mut bases = raided_air_corps_impl(c, profile_id, area_id).await?;
-    let found = bases.clone();
+    let before_raid = bases.clone();
     let mut rng = ProductionRng;
     let mut raid = simulate_air_raid(
         codex,
@@ -1100,7 +1100,7 @@ where
         composition.formation.unwrap_or(1),
         &mut rng,
     );
-    settle_raid_proficiency_impl(c, profile_id, area_id, &found, &bases).await?;
+    settle_raid_proficiency_impl(c, profile_id, area_id, &before_raid, &bases).await?;
     settle_air_raid_impl(c, profile_id, area_id, &mut bases, &mut raid, &mut rng).await?;
 
     Ok(raid)
