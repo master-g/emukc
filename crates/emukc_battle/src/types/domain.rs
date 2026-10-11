@@ -195,6 +195,8 @@ pub(crate) enum AttackCapability {
     CannotAttack,
     SurfaceOnly,
     BothPreferSubmarine,
+    /// A carrier flying her night air attack: a submarine only once no surface ship is left.
+    BothPreferSurface,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

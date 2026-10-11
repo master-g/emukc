@@ -2,7 +2,7 @@
 title: "Whom a Carrier Attacks at Night - Plan"
 type: feat
 date: 2026-10-11
-status: draft
+status: implemented
 execution: code
 ---
 
@@ -85,6 +85,17 @@ execution: code
   测试：Graf Zeppelin改带两门副砲、无夜间机 → 连击且 `api_n_mother_list` 为 0；带一门副砲 → 普通攻击。
   计划 003 里为够到连击而塞主砲的那条测试改用两门副砲。
 - **U4** 文档：`carrier-night-air-attack.md` 的已知缺口去掉已做的两条；`PROJECT_MEMORY.md`。
+
+## 实施记录（2026-10-12）
+
+- 用户确认三条都做。U1–U4 做完，改动在 `targeting.rs`、`types/domain.rs`、`night.rs` 与文档。
+- 素対潜取到了：`Codex::find_ship_extra` 的 `tais` 按等级成长再加近代化改修（`bare_asw`），与 `cal_ship_status` 同一算法，
+  没有退到主数据的初始値。
+- 现有测试里只有一条受影响：计划 003 的 `the_packet_says_who_flew_her_night_attack`，其中打潜艇的空母从
+  「带回転翼機的轻空母」换成龍鳳改二戊，连击那一例不再需要塞主砲，改用两门副砲。
+  没有带种子的测试移位，没有换种子；两类基线都没有变化。
+- 新测试两条：选靶（夜间空母先打水面舰、只剩潜艇才打潜艇；大鷹改二先打潜艇；素対潜为 0 的轻空母与正规空母不打潜艇）、
+  两门副砲连击而一门不连击。
 
 ## Risks
 
