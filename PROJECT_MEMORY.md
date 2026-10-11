@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-10 · branch `docs/memory-pointers`
+Last updated: 2026-10-11 · branch `main`
 
 ## Verified Facts
 
@@ -185,15 +185,17 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
+| [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，后面的 crate 不跑，通过数会偏少。 | session 2026-10-11 |
 
 ## Last Session
 
-- [2026-10-10] 四条叠放的分支：`feat/proficiency-fighter-power` → `feat/air-corps-proficiency` →
-  `feat/anti-air-cut-in`（计划 2026-10-10-007/008/009，PR #40–#42 待合并）；质量门另从 `main` 开在 `chore/quality-gates`。
+- [2026-10-11] PR #40–#44 全部合入 `main`（熟练度计入制空、航空队熟练度、対空カットイン、质量门、记忆指针），无未合并分支。
+  合并后在 `main` 验证（15:41 JST 后）：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1312 过、0 败、0 ignored。
+  `emukc_time` 有两个测试在日本时间 05:00 前必败，那个时段跑出 2 败不算回归。
 
 ## Next Session
 
-- [2026-10-10] 按顺序合并 #40–#42 与质量门的 PR。之后的候选：点名舰的対空カットイン种别、航空队熟练度的成长/损耗/清零（三者一起）、
+- [2026-10-11] 候选三选一，先写 `docs/plans/` 计划：航空队熟练度的成长/损耗/清零（三者一起）、点名舰的対空カットイン种别、
   夜间航空攻击的熟练度。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
