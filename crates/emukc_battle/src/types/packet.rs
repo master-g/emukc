@@ -148,6 +148,10 @@ pub struct BattleAirBaseAttack {
     pub api_squadron_plane: Vec<BattleSquadronPlane>,
     #[serde(flatten)]
     pub kouku: BattleKouku,
+    /// What each squadron flew this attack with, as `(squadron id, count)`.
+    /// Not part of the packet: the caller settles proficiency from it.
+    #[serde(skip)]
+    pub flown: Vec<(i64, i64)>,
     /// What each squadron has left after this attack, as `(squadron id, count)`.
     /// Not part of the packet: the caller writes it back to the air corps.
     #[serde(skip)]

@@ -54,8 +54,12 @@ The formulas, their lines and what was left out are tabled in
    client names whichever it drew, so the match is by `node_label`, not by cell number.
 3. `emukc_battle` flies them before anything else (`simulation/air_base.rs`): per corps, one
    attack per time it was pointed here, each a fight for the air, anti-air fire and a strike.
-   Losses carry to the next attack.
-4. Settling the battle writes each corps' last `remaining` counts back to `plane_info`.
+   Every attack of one battle sets out with what the corps arrived with: two attacks in one
+   battle are a corps pointed twice at one cell (集中), and the game makes the first attack's
+   losses good before the second, at no cost. A corps pointed at two cells fights two battles,
+   and the count written back after the first is what the second finds.
+4. Settling the battle settles each squadron's proficiency attack by attack, then writes each
+   corps' last `remaining` counts back to `plane_info` (`record_strike_losses_impl`).
 
 ## Condition and relocation run on one timestamp
 
@@ -115,6 +119,26 @@ source's `airstrikeLBAS`): `sqrt(exp x 0.1)` plus `0,0,1,2,3,4,6,9` to hit, the 
 times 0.8 to the rate, `floor(sqrt(exp) + step) / 100` to the damage. A critical sets
 `api_ecl_flag`, which the client reads as it does in the carrier air phase.
 
+It changes as a carrier's does (plan `2026-10-11-001`, wikiwiki 艦載機熟練度 and 基地航空隊):
+every attack flown and every defence against a raid settles each squadron once with
+`proficiency::settle_land_base` — it loses by the share of aircraft shot down, then grows by
+one roll. `settle_squadron_proficiency_impl` writes `slot_item.aircraft_exp`; the level
+follows at port like any other.
+
+- One roll: land attackers, large land aircraft, land and local fighters, land scouts, and
+  the carrier fighters, bombers, torpedo bombers, seaplane fighters, seaplane bombers and
+  jets a corps can fly. No roll: carrier and seaplane scouts and flying boats (a base does
+  not search), patrol planes and autogyros. Those still lose.
+- A squadron an attack leaves with no aircraft starts over, and gains nothing from the
+  attacks after it in that battle — so a 集中 whose first attack emptied it comes home with
+  the second attack's aircraft and no proficiency, as the source describes.
+- A squadron with no aircraft does not fly and is left alone, and so is a corps sent to a
+  cell the fleet never reached.
+- In a raid only the corps ordered to defend go up, and only what was shot down in the air
+  counts: aircraft destroyed on the ground afterwards take no proficiency with them.
+- The growth sheet lists no land or local fighter (31 of them, 雷電 to 震電), so they all
+  take the median constant, 6.
+
 ## The raid on the air base
 
 6-5 is the only regular map whose sortie brings one. Its raiders come from KCNav's node `AB`
@@ -152,10 +176,11 @@ place in the area as a string.
 - A raid always costs stores when it does damage; upstream that is random at a rate nobody
   published. Defending does not tire a squadron (no source says it does), 改修 adds
   nothing to the defenders' fighter power, and the high-altitude modifier is left out.
-- A squadron's proficiency never changes in the air corps: it neither grows, nor wears down
-  by the aircraft it loses, nor starts over when the squadron is shot down to nothing. The
-  source simulator has only the last of the three, and that alone would leave a level that
-  can fall and never rise; do the three together.
+- Proficiency: a land attacker grows in defence as a fighter does, which the source marks
+  unconfirmed; patrol planes and autogyros never grow in an air corps, for which the source
+  has no rule. A squadron emptied in one battle can still gain from a later battle or raid of
+  the same sortie, where the source resets it on the way home. Land scouts lose only by being
+  wiped out, like the other scouts. The base jet assault and its extra roll are not modelled.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in

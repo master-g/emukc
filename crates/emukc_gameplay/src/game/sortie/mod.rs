@@ -33,7 +33,8 @@ use emukc_battle::{
 use super::{
     airbase::{
         charge_air_sortie_impl, load_area_airbases_impl, raided_air_corps_impl,
-        record_strike_losses_impl, settle_air_raid_impl, tire_air_corps_impl,
+        record_strike_losses_impl, settle_air_raid_impl, settle_raid_proficiency_impl,
+        tire_air_corps_impl,
     },
     battle::{
         engagement::roll_engagement,
@@ -1090,6 +1091,7 @@ where
 
     let (area_id, _) = split_map_id(map_id);
     let mut bases = raided_air_corps_impl(c, profile_id, area_id).await?;
+    let found = bases.clone();
     let mut rng = ProductionRng;
     let mut raid = simulate_air_raid(
         codex,
@@ -1098,6 +1100,7 @@ where
         composition.formation.unwrap_or(1),
         &mut rng,
     );
+    settle_raid_proficiency_impl(c, profile_id, area_id, &found, &bases).await?;
     settle_air_raid_impl(c, profile_id, area_id, &mut bases, &mut raid, &mut rng).await?;
 
     Ok(raid)

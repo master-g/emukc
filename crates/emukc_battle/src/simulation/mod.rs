@@ -269,13 +269,19 @@ fn simulate_day_enemy_combined(
 }
 
 /// Fly every air corps sent against this cell, one attack for each time it was
-/// pointed here, in air corps order. Losses carry from one attack to the next.
+/// pointed here, in air corps order. Each attack sets out with what the corps
+/// arrived with: between two attacks on one cell its losses are made good
+/// (wikiwiki 基地航空隊, 集中).
 fn execute_air_base_attacks(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRng) {
     let mut air_corps = std::mem::take(&mut state.air_corps);
     for corps in &mut air_corps {
+        let set_out: Vec<i64> = corps.squadrons.iter().map(|squadron| squadron.count).collect();
         for _ in 0..corps.waves {
             if !any_alive(&state.enemy) {
                 break;
+            }
+            for (squadron, count) in corps.squadrons.iter_mut().zip(&set_out) {
+                squadron.count = *count;
             }
             let attack = air_base::simulate_air_base_attack(codex, corps, &mut state.enemy, rng);
             state.air_base_attack.push(attack);
