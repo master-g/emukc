@@ -191,7 +191,9 @@ Current verification baseline:
 
 - [2026-10-11] 分支 `feat/night-air-attack`：计划 2026-10-11-003 做完，空母夜间航空攻击的资格、威力、熟练度与
   `api_n_mother_list`，以及昼战对潜的熟练度；见 `docs/solutions/architecture-patterns/carrier-night-air-attack.md`。
-  验证结果见该计划的「实施记录」。PR #45、#47、#48 已合并，合并后的 `main` 在 `ca0fa261` 上重跑过三道质量门与三个无头检查，都通过。
+  两路审查后的修正已做，未推送。`cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings` 通过；
+  `cargo test --workspace --no-fail-fast` 1328 过、0 败、0 ignored；`make headless-check SCENARIO=night_air_attack` 在修正前通过，修正后未重跑。
+  PR #45、#47、#48 已合并，合并后的 `main` 在 `ca0fa261` 上重跑过三道质量门与三个无头检查，都通过。
 
 ## Next Session
 

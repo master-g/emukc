@@ -71,7 +71,12 @@ make it — 航巡, 航戦, 水母, 揚陸艦, 軽空母 — and not in the open
 
 `api_n_mother_list` is 1 for an attack by air. The client keeps it as `yasen_kubo` and, when
 set, draws the attack as aircraft (`PhaseAttackKansaiki`) whatever the ship is. The cut-in
-carries it as well.
+carries it as well. It is 0 for a double attack and for an attack on a submarine, as in the
+source; no carrier can mount what a double attack needs here, so only a test reaches the first.
+
+`night_turn` decides once whether the attack is flown and hands that on: the power goes to
+`calculate_night_damage` as `air_power`, the roll gets `Aim::as_night_air_attack`. `accuracy.rs`
+and `damage.rs` do not ask `simulation::night` themselves.
 
 ## How it is checked
 
@@ -92,3 +97,8 @@ carries it as well.
   land target, and the special-aircraft multipliers.
 - A night attack on a submarine still always lands for scratch damage, so proficiency reaches
   the day attack on a submarine only.
+- A night carrier with an autogyro, a patrol aircraft, a seaplane bomber or a flying boat picks
+  a submarine first when there is one (`can_attack_submarine_night_shelling`), and scratches it.
+  The source has her attack the surface ships first (`kcsim.js` 1740).
+- The double attack needs a main gun (`is_double_attack_eligible`); the wiki has Graf Zeppelin
+  make one with two secondary guns.

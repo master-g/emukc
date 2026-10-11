@@ -221,6 +221,10 @@ pub(crate) fn calculate_torpedo_damage(
 ///
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied to basic power
 /// *before* the soft cap at 360 — matching `KanColle`'s CI damage pipeline.
+///
+/// `air_power` is the power of a carrier's night air attack (`night_air_power`) when she
+/// flies one; it stands in for her guns and torpedoes, and her aircraft's proficiency counts.
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn calculate_night_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -228,16 +232,13 @@ pub(crate) fn calculate_night_damage(
     defender: &BattleRuntimeShip,
     air_state: Option<&AirState>,
     ci_multiplier: Option<f64>,
+    air_power: Option<f64>,
     outcome: HitOutcome,
 ) -> i64 {
-    // A carrier's night air attack has a power of its own, and its aircraft's proficiency.
-    let by_air = crate::simulation::night::can_night_air_attack(codex, attacker);
-    let own_power = if by_air {
-        crate::simulation::night::night_air_power(codex, attacker)
-    } else {
+    let own_power = air_power.unwrap_or_else(|| {
         (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5) as f64
             + improvement_bonus_night(codex, attacker)
-    };
+    });
     let basic_power = own_power + night_recon_bonus(codex, attacker, air_state);
     let pre_cap = match ci_multiplier {
         Some(m) => basic_power * m,
@@ -245,7 +246,7 @@ pub(crate) fn calculate_night_damage(
     };
     let mut capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
     capped_power *= ammo_modifier(codex, attacker);
-    let capped_power = if by_air {
+    let capped_power = if air_power.is_some() {
         outcome.power_with(capped_power, plane_proficiency(codex, attacker).critical_damage)
     } else {
         outcome.power(capped_power)
@@ -985,12 +986,28 @@ mod tests {
 
             let (atk, def) = build(bull_max);
             let mut rng = crate::random::SeededRng::new(seed);
-            let night_full =
-                calculate_night_damage(&codex, &mut rng, &atk, &def, None, None, HitOutcome::Hit);
+            let night_full = calculate_night_damage(
+                &codex,
+                &mut rng,
+                &atk,
+                &def,
+                None,
+                None,
+                None,
+                HitOutcome::Hit,
+            );
             let (atk, def) = build(bull_max / 10);
             let mut rng = crate::random::SeededRng::new(seed);
-            let night_low =
-                calculate_night_damage(&codex, &mut rng, &atk, &def, None, None, HitOutcome::Hit);
+            let night_low = calculate_night_damage(
+                &codex,
+                &mut rng,
+                &atk,
+                &def,
+                None,
+                None,
+                None,
+                HitOutcome::Hit,
+            );
             assert!(night_low <= night_full, "night seed {seed}: {night_low} > {night_full}");
         }
     }

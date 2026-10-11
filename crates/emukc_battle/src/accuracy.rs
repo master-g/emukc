@@ -445,6 +445,8 @@ pub(crate) struct Aim {
     pub carrier_cut_in: bool,
     /// Whether this is the opening ASW, which no aircraft proficiency reaches.
     pub opening: bool,
+    /// Whether this is a carrier's night air attack, which her aircraft's proficiency does.
+    pub night_air_attack: bool,
 }
 
 impl Aim {
@@ -457,7 +459,13 @@ impl Aim {
             flat: 0.0,
             carrier_cut_in: false,
             opening: false,
+            night_air_attack: false,
         }
+    }
+
+    pub(crate) fn as_night_air_attack(mut self, night_air_attack: bool) -> Self {
+        self.night_air_attack = night_air_attack;
+        self
     }
 
     pub(crate) fn in_the_opening(mut self) -> Self {
@@ -523,9 +531,7 @@ pub(crate) fn roll_attack(
             shelling_proficiency(codex, attacker).for_carrier_cut_in()
         }
         AttackKind::Shelling => shelling_proficiency(codex, attacker),
-        AttackKind::Night if crate::simulation::night::can_night_air_attack(codex, attacker) => {
-            plane_proficiency(codex, attacker)
-        }
+        AttackKind::Night if aim.night_air_attack => plane_proficiency(codex, attacker),
         AttackKind::Asw if !aim.opening => asw_proficiency(codex, attacker),
         _ => PlaneProficiency::NONE,
     };
@@ -710,7 +716,9 @@ mod tests {
             ship.slot_items = vec![item];
             BattleRuntimeShip::from(ship)
         };
-        for stype in [KcShipType::CAV, KcShipType::BBV, KcShipType::AV, KcShipType::CVL] {
+        for stype in
+            [KcShipType::CAV, KcShipType::BBV, KcShipType::AV, KcShipType::LHA, KcShipType::CVL]
+        {
             assert_eq!(asw_proficiency(&codex, &ship(stype, Some(7))).critical_damage, 1.2);
         }
         for stype in [KcShipType::CV, KcShipType::DD, KcShipType::CL] {
