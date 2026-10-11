@@ -189,15 +189,15 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-11] 分支 `feat/night-air-attack`：计划 2026-10-11-003 做完，空母夜间航空攻击的资格、威力、熟练度与
-  `api_n_mother_list`，以及昼战对潜的熟练度；见 `docs/solutions/architecture-patterns/carrier-night-air-attack.md`。
-  两路审查后的修正已做，未推送。`cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings` 通过；
-  `cargo test --workspace --no-fail-fast` 1328 过、0 败、0 ignored；`make headless-check SCENARIO=night_air_attack` 在修正前通过，修正后未重跑。
-  PR #45、#47、#48 已合并，合并后的 `main` 在 `ca0fa261` 上重跑过三道质量门与三个无头检查，都通过。
+- [2026-10-11] PR #49（空母夜间航空攻击，计划 2026-10-11-003）已合并，`main` 在 `0df0bad5`；合并前 `cargo fmt --all --check`、
+  `cargo clippy --workspace --all-targets -- -D warnings` 通过，`cargo test --workspace --no-fail-fast` 1328 过、0 败、0 ignored；
+  `make headless-check SCENARIO=night_air_attack` 在审查修正前通过，修正后与合并后都没有重跑。
+  分支 `feat/night-carrier-targeting` 上只有计划 2026-10-11-004 的草稿，等用户确认，尚未实施。
 
 ## Next Session
 
-- [2026-10-11] 下一个目标还没定。候选：夜战对潜的公式（现在必中擦伤）、敌方空母的夜战；
+- [2026-10-11] 先等用户对计划 2026-10-11-004（夜间空母先打水面舰、夜战对潜资格、两门副砲连击）的确认再实施。
+  其后的候选：夜战对潜的命中与公式（现在必中擦伤）、敌方空母的夜战；
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
