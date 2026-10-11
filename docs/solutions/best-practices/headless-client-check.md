@@ -109,7 +109,9 @@ screen, pass steps on the command line and read the screenshots:
   the night packet starts from, and what is left after that is what `api_port/port` answers.
   夜戦突入 sits where 撤退 does on the next choice (770, 365), so one spot serves both.
   `leveled_for_mid_boss` is the same sortie with six destroyers, who seldom finish by day: it
-  is the one that reaches the night battle.
+  is the one that reaches the night battle. `night_air_attack` is the same sortie again with
+  six night carriers, five of which cannot strike by day: every attack of theirs in the night
+  packet has to say it was flown (`api_n_mother_list`).
 - `anti_air_cut_in` is the same fleet with 秋月 in the sixth place, sent to 2-5 (the extra
   operation sits where 6-5 does on its page, 700, 275), whose first battle meets carriers. The
   check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a

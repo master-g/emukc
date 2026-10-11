@@ -189,13 +189,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-11] PR #47 已合并进 `main`：计划 2026-10-11-002 做完，対空カットイン补齐点名舰的 42 个种别。
-  以下验证是合并前在功能分支上做的，合并后的 `main` 没有重跑。验证：fmt 与严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1321 过、0 败、0 ignored；
-  无头检查 `anti_air_cut_in` 通过，但它只演秋月的种别 1–3，点名舰的种别没有在真实客户端里演过。
+- [2026-10-11] 分支 `feat/night-air-attack`：计划 2026-10-11-003 做完，空母夜间航空攻击的资格、威力、熟练度与
+  `api_n_mother_list`，以及昼战对潜的熟练度；见 `docs/solutions/architecture-patterns/carrier-night-air-attack.md`。
+  验证结果见该计划的「实施记录」。PR #45、#47、#48 已合并，合并后的 `main` 在 `ca0fa261` 上重跑过三道质量门与三个无头检查，都通过。
 
 ## Next Session
 
-- [2026-10-11] 下一个目标还没定。候选：夜间航空攻击的熟练度（先调研出处）；
+- [2026-10-11] 下一个目标还没定。候选：夜战对潜的公式（现在必中擦伤）、敌方空母的夜战；
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；

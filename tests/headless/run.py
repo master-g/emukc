@@ -196,6 +196,18 @@ def check_anti_air_cut_in(work: Path) -> list[str]:
     return problems
 
 
+def check_night_air_attack(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the fleet strikes with one carrier by day, so the battle should have gone into the night"]
+    shelling = nights[0]["api_hougeki"]
+    flown = [flag for by_enemy, flag in zip(shelling["api_at_eflag"], shelling["api_n_mother_list"]) if not by_enemy]
+    if not flown or set(flown) != {1}:
+        problems.append(f"every carrier should fly her night attack; api_n_mother_list said {flown}")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -203,6 +215,9 @@ SCENARIOS = {
     # sits where 撤退 does on the next choice), and home. What the packets say the fleet was
     # left with has to be what it comes home with.
     "gunnery_cutin": (FAIR_2_1, check_fair_battle),
+    # Six night carriers, five of them with nothing to strike with by day: the night battle is
+    # theirs, flown as aircraft, as a 空母カットイン when it forms.
+    "night_air_attack": (FAIR_2_1, check_night_air_attack),
     # The same with six destroyers, who seldom finish by day: this is the one that reaches the night.
     "leveled_for_mid_boss": (FAIR_2_1, check_fair_battle),
     # 南西諸島海域's extra operation, 2-5, whose first battle meets carriers: 秋月 in the sixth
@@ -262,7 +277,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

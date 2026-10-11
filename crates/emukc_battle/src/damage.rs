@@ -12,7 +12,7 @@ use emukc_model::{
     },
 };
 
-use crate::accuracy::{HitOutcome, shelling_proficiency};
+use crate::accuracy::{HitOutcome, PlaneProficiency, plane_proficiency, shelling_proficiency};
 use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
@@ -230,22 +230,33 @@ pub(crate) fn calculate_night_damage(
     ci_multiplier: Option<f64>,
     outcome: HitOutcome,
 ) -> i64 {
-    let basic_power = (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5)
-        as f64
-        + improvement_bonus_night(codex, attacker)
-        + night_recon_bonus(codex, attacker, air_state);
+    // A carrier's night air attack has a power of its own, and its aircraft's proficiency.
+    let by_air = crate::simulation::night::can_night_air_attack(codex, attacker);
+    let own_power = if by_air {
+        crate::simulation::night::night_air_power(codex, attacker)
+    } else {
+        (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5) as f64
+            + improvement_bonus_night(codex, attacker)
+    };
+    let basic_power = own_power + night_recon_bonus(codex, attacker, air_state);
     let pre_cap = match ci_multiplier {
         Some(m) => basic_power * m,
         None => basic_power,
     };
     let mut capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
     capped_power *= ammo_modifier(codex, attacker);
-    let capped_power = outcome.power(capped_power);
+    let capped_power = if by_air {
+        outcome.power_with(capped_power, plane_proficiency(codex, attacker).critical_damage)
+    } else {
+        outcome.power(capped_power)
+    };
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
 
-/// Calculate ASW damage against a submarine target.
+/// Calculate ASW damage against a submarine target. `planes` is the attacker's aircraft
+/// proficiency where the attack is flown ([`asw_proficiency`]), and none in the opening.
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn calculate_asw_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -254,6 +265,7 @@ pub(crate) fn calculate_asw_damage(
     formation_id: i64,
     engagement: EngagementType,
     outcome: HitOutcome,
+    planes: PlaneProficiency,
 ) -> i64 {
     let ship_asw = attacker.ship.api_taisen[0].max(0) as f64;
     let equip_asw = equipment_asw_total(codex, attacker);
@@ -283,7 +295,7 @@ pub(crate) fn calculate_asw_damage(
         * day_formation_modifier(formation_id, CombinedAttackClass::Asw)
         * engagement.modifier()
         * dmg_state;
-    let capped = outcome.power(apply_cap(modified, ASW_CAP) as f64);
+    let capped = outcome.power_with(apply_cap(modified, ASW_CAP) as f64, planes.critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     let armor_reduction = depth_charge_armor_reduction(codex, attacker);
     let adjusted_defense = (defense - armor_reduction).max(0.0);
@@ -680,6 +692,39 @@ mod tests {
         };
         assert!(shell(Some(7), HitOutcome::Critical) > shell(None, HitOutcome::Critical));
         assert_eq!(shell(Some(7), HitOutcome::Hit), shell(None, HitOutcome::Hit));
+    }
+
+    #[test]
+    fn skilled_aircraft_drop_a_harder_critical_on_a_submarine() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut cruiser = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CAV), 50);
+        cruiser.ship.api_taisen[0] = 80;
+        let cruiser = BattleRuntimeShip::from(cruiser);
+        let mut submarine = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::SS), 50);
+        submarine.ship.api_nowhp = 9999;
+        submarine.ship.api_maxhp = 9999;
+        let submarine = BattleRuntimeShip::from(submarine);
+        let skilled = PlaneProficiency {
+            critical_damage: 1.2,
+            ..PlaneProficiency::NONE
+        };
+        let drop = |planes, outcome| {
+            calculate_asw_damage(
+                &codex,
+                &mut crate::random::SeededRng::new(3),
+                &cruiser,
+                &submarine,
+                1,
+                EngagementType::SameCourse,
+                outcome,
+                planes,
+            )
+        };
+        assert!(
+            drop(skilled, HitOutcome::Critical)
+                > drop(PlaneProficiency::NONE, HitOutcome::Critical)
+        );
+        assert_eq!(drop(skilled, HitOutcome::Hit), drop(PlaneProficiency::NONE, HitOutcome::Hit));
     }
 
     #[test]
@@ -1167,6 +1212,7 @@ mod tests {
             1, // line ahead
             EngagementType::SameCourse,
             HitOutcome::Hit,
+            PlaneProficiency::NONE,
         );
 
         // Verify damage is positive and uses the ASW formula (not shelling formula)
@@ -1288,6 +1334,7 @@ mod tests {
             1,
             EngagementType::SameCourse,
             HitOutcome::Hit,
+            PlaneProficiency::NONE,
         );
         assert!(dmg > 0, "ASW with both aircraft and depth charge should deal damage");
     }

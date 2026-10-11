@@ -238,6 +238,26 @@ impl Scenario {
         }
     }
 
+    /// Six 赤城改二戊, whose 夜戦特性 needs no 要員, with night fighters and, on the
+    /// flagship, a night attacker: by day five of them carry nothing that can
+    /// strike, so the battle lasts into a night they all fly in, each with a
+    /// 空母カットイン to form.
+    pub fn night_air_attack() -> Self {
+        let mut fleet =
+            vec![ShipSpec::new(AKAGI_K2E_MST_ID, 99).with_slots([NIGHT_FIGHTER_MST_ID; 3]); 6];
+        fleet[0].slots[2] = NIGHT_ATTACKER_MST_ID;
+        Self {
+            fleet,
+            materials: default_materials(),
+            unlock_maps: vec![],
+            clear_maps: vec![11, 12, 13, 14],
+            spare_items: vec![],
+            use_items: vec![],
+            quests: vec![],
+            scrapped: vec![],
+        }
+    }
+
     /// A leveled six-ship fleet with maps 1-1..1-4 cleared, so 2-1 (the
     /// mid-boss area) becomes sortie-able through the full prerequisite chain.
     pub fn leveled_for_mid_boss() -> Self {
@@ -342,6 +362,10 @@ const SECONDARY_GUN_MST_ID: i64 = 12;
 const SEAPLANE_RECON_MST_ID: i64 = 25;
 /// 赤城.
 const AKAGI_MST_ID: i64 = 83;
+/// 赤城改二戊, F6F-3N and TBM-3D.
+const AKAGI_K2E_MST_ID: i64 = 599;
+const NIGHT_FIGHTER_MST_ID: i64 = 254;
+const NIGHT_ATTACKER_MST_ID: i64 = 257;
 /// 零式艦戦21型.
 const FIGHTER_MST_ID: i64 = 20;
 /// 九九式艦爆.
@@ -365,6 +389,9 @@ pub enum PhaseExpectation {
     CarrierCutIn,
     /// The air phase must carry an `api_air_fire`.
     AntiAirCutIn,
+    /// Some night attack must be flown: an `api_n_mother_list` entry of 1. A
+    /// day battle is asked nothing.
+    NightAirAttack,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
 }
@@ -438,6 +465,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::CarrierCutIn,
+    },
+    Preset {
+        name: "night_air_attack",
+        build: Scenario::night_air_attack,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::NightAirAttack,
     },
     Preset {
         name: "transport_5_6",

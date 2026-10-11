@@ -74,8 +74,10 @@ critical.
 It counts torpedo, dive and seaplane bombers, jet fighter-bombers, flying boats and land
 attackers, plus a patrol plane or autogyro that can bomb, one level lower. The sum is taken
 per ship, not per slot, and goes to the carrier air phase (which then sets the target's
-`api_fcl_flag` / `api_ecl_flag`) and to the day shelling of a CV, CVL or CVB. A ship without
-skilled aircraft rolls exactly as before, on the same single draw.
+`api_fcl_flag` / `api_ecl_flag`), to the day shelling of a CV, CVL or CVB, to a carrier's night
+air attack, and to the day attack on a submarine by the ships whose aircraft make it (not the
+opening one); the last two are in `carrier-night-air-attack.md`. A ship without skilled
+aircraft rolls exactly as before, on the same single draw.
 
 A carrier's cut-in does not take the summed critical rate: the source cancels it and gives
 `13 x average experience / 120` instead (`Aim::as_carrier_cut_in`). Its further terms for the
@@ -109,8 +111,7 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 
 ## Not modelled
 
-Each is a correction the source applies on top: proficiency for the night air
-attack and ASW flown by aircraft; the first-slot terms of the carrier cut-in; gun fit,
+Each is a correction the source applies on top: the first-slot terms of the carrier cut-in; gun fit,
 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.

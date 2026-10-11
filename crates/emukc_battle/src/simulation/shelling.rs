@@ -1,6 +1,6 @@
 //! Day shelling phase simulation.
 
-use crate::accuracy::{Aim, AttackKind, roll_attack};
+use crate::accuracy::{Aim, AttackKind, asw_proficiency, roll_attack};
 use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
@@ -255,6 +255,7 @@ fn shell_turn(
             params.formation_id,
             params.engagement,
             outcome,
+            asw_proficiency(codex, ship),
         );
         let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
         if !params.attacker_is_enemy {
