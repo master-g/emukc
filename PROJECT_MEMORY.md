@@ -192,7 +192,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #55 做完，分支 `feat/enemy-night-carriers`，PR #60 待合并。
+- [2026-10-12] #55 做完并合并（PR #60）。
   质量门与 `make headless-check SCENARIO=enemy_night_carrier` 通过，战斗基线没变。与规格原文不同的三处见计划 2026-10-12-003。
 
 ## Next Session
