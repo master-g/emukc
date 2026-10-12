@@ -400,6 +400,7 @@ pub(crate) fn simulate_night(
         enemy_formation_id,
         engagement,
         air_state,
+        night_start,
         ..
     } = input;
     let entry_friendly_nowhps = friendly.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
@@ -416,6 +417,7 @@ pub(crate) fn simulate_night(
             enemy_formation_id,
             engagement,
             air_state: air_state.as_ref(),
+            night_start,
         },
     );
 

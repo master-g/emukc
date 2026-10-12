@@ -194,6 +194,7 @@ pub fn run_night_battle(
             enemy_formation_id: session.formation[1],
             engagement,
             air_state: session.air_state,
+            night_start: false,
         },
         rng,
     );

@@ -8,8 +8,8 @@ use emukc_model::{
     kc2::{KcShipType, KcSlotItemType3},
 };
 
-use crate::accuracy::{Aim, AttackKind, HitOutcome, roll_attack};
-use crate::damage::{calculate_night_damage, calculate_scratch_damage};
+use crate::accuracy::{Aim, AttackKind, HitOutcome, asw_proficiency, roll_attack};
+use crate::damage::{calculate_asw_damage, calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::targeting::{
     any_alive, can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
@@ -948,6 +948,7 @@ pub(crate) fn simulate_night_hougeki(
                 enemy,
                 forms,
                 params.air_state,
+                params,
                 false,
                 &mut hougeki,
             );
@@ -965,6 +966,7 @@ pub(crate) fn simulate_night_hougeki(
                 friendly,
                 forms,
                 enemy_air.as_ref(),
+                params,
                 true,
                 &mut hougeki,
             );
@@ -987,6 +989,7 @@ fn night_turn(
     defenders: &mut [BattleRuntimeShip],
     (attacker_formation, defender_formation): (i64, i64),
     air_state: Option<&AirState>,
+    params: &NightBattleParams,
     attacker_is_enemy: bool,
     hougeki: &mut BattleNightHougeki,
 ) {
@@ -1026,23 +1029,33 @@ fn night_turn(
     let mut total_dealt = 0i64;
 
     for _ in 0..hits {
-        // ponytail: a night attack on a submarine always lands for scratch
-        // damage; give it the ASW roll when night ASW gets its own formula.
-        let outcome = if is_submarine {
-            HitOutcome::Hit
+        // An attack on a submarine rolls as it does by day (`ASW`), not as night gunfire.
+        let aim = if is_submarine {
+            Aim::new(AttackKind::Asw, attacker_formation, defender_formation)
         } else {
-            roll_attack(
+            Aim::new(AttackKind::Night, attacker_formation, defender_formation)
+                .with_modifier(attack_type.accuracy_modifier())
+                .as_night_air_attack(air_power.is_some())
+        };
+        let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
+        let raw = if is_submarine && params.night_start {
+            calculate_asw_damage(
                 codex,
                 rng,
                 ship,
                 &defenders[target_idx],
-                Aim::new(AttackKind::Night, attacker_formation, defender_formation)
-                    .with_modifier(attack_type.accuracy_modifier())
-                    .as_night_air_attack(air_power.is_some()),
+                attacker_formation,
+                params.engagement,
+                outcome,
+                asw_proficiency(codex, ship),
             )
-        };
-        let raw = if is_submarine {
-            calculate_scratch_damage(rng, defenders[target_idx].hp().max(1))
+        } else if is_submarine {
+            // After a day battle her attack power counts as 0 (`isNightDmg`): a hit only
+            // scratches, and the submarine cannot be sunk.
+            match outcome {
+                HitOutcome::Miss => 0,
+                _ => calculate_scratch_damage(rng, defenders[target_idx].hp().max(1)),
+            }
         } else {
             calculate_night_damage(
                 codex,
@@ -1232,6 +1245,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         )
         .unwrap();
@@ -1284,6 +1298,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         )
         .unwrap();
@@ -1296,35 +1311,78 @@ mod tests {
         );
     }
 
+    /// A destroyer's night attack on a 30 HP submarine, one per seed: the `api_cl_list` value
+    /// and the submarine's HP afterwards.
+    fn night_asw_runs(codex: &Codex, sonar: bool, night_start: bool) -> Vec<(i64, i64)> {
+        let mut hunter = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::DD), 99);
+        hunter.ship.api_taisen[0] = 100;
+        hunter.slot_items = if sonar {
+            vec![slotitem_with_mst_id(first_slotitem_mst_by_type(codex, KcSlotItemType3::Sonar))]
+        } else {
+            Vec::new()
+        };
+        let mut submarine = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::SS), 50);
+        submarine.ship.api_soukou[0] = 5;
+        submarine.ship.api_nowhp = 30;
+        submarine.ship.api_maxhp = 30;
+
+        (0..300)
+            .map(|seed| {
+                let mut friendly = vec![BattleRuntimeShip::from(hunter.clone())];
+                let mut enemy = vec![BattleRuntimeShip::from(submarine.clone())];
+                let hougeki = simulate_night_hougeki(
+                    codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &mut friendly,
+                    &mut enemy,
+                    &NightBattleParams {
+                        friendly_formation_id: 5,
+                        enemy_formation_id: 1,
+                        engagement: EngagementType::SameCourse,
+                        air_state: None,
+                        night_start,
+                    },
+                )
+                .unwrap();
+                // The destroyer attacks first: with a depth charge, once, and no cut-in.
+                assert_eq!((hougeki.api_at_eflag[0], hougeki.api_sp_list[0]), (0, 0));
+                assert_eq!(hougeki.api_n_mother_list[0], 0);
+                assert_eq!(hougeki.api_df_list[0], vec![0]);
+                let cl = hougeki.api_cl_list[0][0];
+                assert_eq!(30 - enemy[0].hp(), hougeki.api_damage[0][0].amount());
+                assert_eq!(cl == 0, enemy[0].hp() == 30, "a miss does nothing, a hit something");
+                (cl, enemy[0].hp())
+            })
+            .collect()
+    }
+
     #[test]
-    fn night_shelling_against_submarines_is_scratch_damage() {
+    fn a_night_attack_on_a_submarine_after_a_day_battle_can_miss_and_only_scratches() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let runs = night_asw_runs(&codex, true, false);
 
-        let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
-        let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
-        let enemy_hp = enemy[0].hp();
-        let mut rng = crate::random::SeededRng::new(3);
+        assert!(runs.iter().any(|(cl, _)| *cl == 0), "it can miss");
+        assert!(runs.iter().any(|(cl, _)| *cl > 0), "it can hit");
+        // Scratch damage is at most 14% of the 30 HP she has.
+        assert!(runs.iter().all(|(_, hp)| *hp >= 26), "a hit is a scratch: {runs:?}");
+    }
 
-        let hougeki = simulate_night_hougeki(
-            &codex,
-            &mut rng,
-            &mut friendly,
-            &mut enemy,
-            &NightBattleParams {
-                friendly_formation_id: 1,
-                enemy_formation_id: 1,
-                engagement: EngagementType::SameCourse,
-                air_state: None,
-            },
-        )
-        .unwrap();
+    #[test]
+    fn a_night_attack_on_a_submarine_in_a_night_start_battle_can_sink_her() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let runs = night_asw_runs(&codex, true, true);
 
-        assert_eq!(hougeki.api_df_list[0], vec![0]);
-        assert!(hougeki.api_damage[0][0].amount() >= 1);
-        assert!(hougeki.api_damage[0][0].amount() < enemy_hp);
-        assert_eq!(enemy[0].hp(), enemy_hp - hougeki.api_damage[0][0].amount());
+        assert!(runs.iter().any(|(cl, _)| *cl == 0), "it can miss");
+        assert!(runs.iter().any(|(_, hp)| *hp <= 0), "it can sink her");
+    }
+
+    #[test]
+    fn a_sonar_makes_a_night_attack_on_a_submarine_miss_less() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let misses =
+            |sonar| night_asw_runs(&codex, sonar, false).iter().filter(|(cl, _)| *cl == 0).count();
+
+        assert!(misses(true) < misses(false), "{} < {}", misses(true), misses(false));
     }
 
     #[test]
@@ -1346,6 +1404,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
             &mut rng,
         );
@@ -1389,6 +1448,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         );
 
@@ -1436,6 +1496,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         );
 
@@ -2176,6 +2237,7 @@ mod tests {
                     enemy_formation_id: 1,
                     engagement: EngagementType::SameCourse,
                     air_state: None,
+                    night_start: false,
                 },
                 &mut crate::random::SeededRng::new(0),
             );
@@ -2498,6 +2560,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         )
         .expect("a night hougeki occurs")
@@ -2631,6 +2694,7 @@ mod tests {
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         )
         .unwrap();
@@ -2684,6 +2748,7 @@ mod tests {
             enemy_formation_id: defender_formation_id,
             engagement: EngagementType::SameCourse,
             air_state: None,
+            night_start: false,
         };
         // simulate_night_hougeki takes (friendly, enemy); the defending pair is
         // friendly when the enemy attacks it, enemy when the friendly attacks it.
@@ -2925,6 +2990,7 @@ mod display_narrowing_tests {
                 enemy_formation_id: 1,
                 engagement: crate::types::EngagementType::SameCourse,
                 air_state: None,
+                night_start: false,
             },
         )
         .unwrap();

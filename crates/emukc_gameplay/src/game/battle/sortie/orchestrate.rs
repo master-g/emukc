@@ -79,6 +79,7 @@ pub fn run_night_battle(
             engagement: EngagementType::from_api_id(engagement)
                 .unwrap_or(EngagementType::SameCourse),
             air_state,
+            night_start: false,
         },
         rng,
     );

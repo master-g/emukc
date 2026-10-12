@@ -85,6 +85,7 @@ pub fn execute_sp_midnight(
             enemy_formation_id,
             engagement,
             air_state: None,
+            night_start: true,
         },
         rng,
     );
@@ -147,6 +148,7 @@ mod tests {
             enemy_formation_id: 1,
             engagement: EngagementType::SameCourse,
             air_state: None,
+            night_start: false,
         }
     }
 
@@ -163,6 +165,40 @@ mod tests {
 
         assert_eq!(format!("{raw:#?}"), format!("{executed:#?}"));
         assert_eq!(raw_next, executed_next, "execution facade must not consume extra RNG");
+    }
+
+    /// A night-start battle is the one night battle where a submarine can be sunk; after a
+    /// day battle a hit on her is a scratch (14% of her HP at most).
+    #[test]
+    fn a_night_start_battle_can_sink_a_submarine() {
+        use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
+
+        use super::execute_sp_midnight;
+        use crate::test_utils::{
+            first_ship_mst_by_type, first_slotitem_mst_by_type, slotitem_with_mst_id,
+        };
+
+        let codex = load_codex(false, false);
+        let mut hunter = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 99);
+        hunter.ship.api_taisen[0] = 100;
+        hunter.slot_items =
+            vec![slotitem_with_mst_id(first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar))];
+        let mut submarine = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::SS), 50);
+        submarine.ship.api_soukou[0] = 5;
+        submarine.ship.api_nowhp = 30;
+        submarine.ship.api_maxhp = 30;
+
+        let sunk = (0..100).any(|seed| {
+            let context = BattleContext::head_on(
+                BattleType::Normal,
+                true,
+                vec![hunter.clone()],
+                vec![submarine.clone()],
+            );
+            let sp = execute_sp_midnight(&codex, context, &mut SeededRng::new(seed));
+            sp.night.enemy[0].hp() <= 0
+        });
+        assert!(sunk);
     }
 
     #[test]
