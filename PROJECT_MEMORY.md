@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-12 · branch `feat/night-asw`
+Last updated: 2026-10-12 · branch `main`
 
 ## Verified Facts
 
@@ -130,6 +130,7 @@ Current verification baseline:
 
 - [2026-10-07] 客户端进不进战斗只看 `event_id`（4 / 5），`event_kind` 只选接口（2 夜战、4 航空戦、5 敌联合、6 空襲、8 レーダー）。
   常规图的敌联合只有 6-5 M；`each_*`、`ec_night_to_day` 触发不到。见 `combined-fleet-index-spaces.md` 与计划 2026-10-07-001。
+- [2026-10-12] 常规图的开幕夜战格只在 5-3、5-4、5-5、6-5（16 个格子条目），敌编成里没有潜艇：敌潜艇在开幕夜战被击沉触发不到，无头检查也配不出来。
 - [2026-10-07] `emukc_time` 的 `jst_next_*_day_of_the_month` 两个测试在日本时间 05:00 前必败（循环加天数直到溢出），与改动无关。
 - [2026-09-22] `api_si_list` 只放对应阶段画得出名牌的装备；`btxt_flat` 的存在范围与探测方法见
   `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
@@ -189,9 +190,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 分支 `feat/night-asw`：实现 #52（夜战对潜抽命中；`NightBattleInput::night_start` 为真时走昼战对潜伤害）。
-  fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1334 过、0 败、0 ignored；
-  无头检查新场景 `night_asw` 跑三次都过。PR #57。golden 与 `battle_golden.rs` 未变（那几场夜战没有潜艇）。
+- [2026-10-12] #52 做完并合并（PR #57）：夜战对潜抽命中，`NightBattleInput::night_start` 为真时走昼战对潜伤害。
+  合并前 fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1334 过、0 败、0 ignored；
+  无头检查新场景 `night_asw` 跑三次都过。合并后只改了文档与本文件，没有重跑。
 
 ## Next Session
 
