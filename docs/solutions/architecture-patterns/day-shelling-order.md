@@ -103,7 +103,7 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
 
 - Submarines joining the order when the other side has an installation.
 - The 39% split of a combined fleet's targets between main and escort.
-- Star shells, searchlights and night contact; when a night special attack is decided; the
+- Star shells, searchlights and night contact; the
   order of the decks in a combined night battle; the 35% split of torpedo targets between a
   combined fleet's main and escort.
 

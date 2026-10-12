@@ -141,4 +141,5 @@ flagship's own attack; the partner still takes her turn. The enemy never makes i
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
 - Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
   submarine's torpedo cut-in with her radar and her plain attack (`night_asw`); the Kongou
-  class's night assault (`kongou_night_assault`). Not played: 4, 8 to 14.
+  class's night assault (`kongou_night_assault`); 101 at night, once and with one hit
+  (`nagato_broadside`). Not played: 4, 8 to 14.
