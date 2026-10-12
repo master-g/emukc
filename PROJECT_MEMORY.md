@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #64 做完，分支 `feat/night-attack-eligibility`，未合并。
+- [2026-10-12] #64 做完并合并（PR #65）。
   质量门通过；`make headless-check SCENARIO=night_asw`（六次）、`night_cut_in`、`gunnery_cutin` 通过；两类夜战基线没有变化。
 
 ## Next Session
