@@ -3,8 +3,9 @@
 
 Reads `js/kcSHIPDATA.js` of KC3Kai/kancolle-replay at COMMIT (downloaded, or the file given as
 the first argument) and writes crates/emukc_battle/src/simulation/abyssal_night.rs: every
-abyssal ship with a `nightattack` mark, and every one with `hasBuiltInNightCrew`. It prints the
-counts and id sums that the test `the_abyssal_tables_follow_the_source` asserts.
+abyssal ship with a `nightattack` mark, every one with `hasBuiltInNightCrew`, and the
+anti-submarine of those of them that have any. It prints the counts and sums that the test
+`the_abyssal_tables_follow_the_source` asserts.
 
     python3 scripts/gen_abyssal_night_carriers.py [kcSHIPDATA.js]
 """
@@ -22,8 +23,8 @@ OUT = Path(__file__).resolve().parent.parent / "crates/emukc_battle/src/simulati
 ABYSSAL = 1501
 
 
-def parse(text: str) -> tuple[dict[int, int], list[int]]:
-    marks, crews, ship = {}, [], None
+def parse(text: str) -> tuple[dict[int, int], list[int], dict[int, int]]:
+    marks, crews, asw, ship = {}, [], {}, None
     for line in text.splitlines():
         if entry := re.match(r"\t(\d+): \{", line):
             ship = int(entry[1])
@@ -32,7 +33,10 @@ def parse(text: str) -> tuple[dict[int, int], list[int]]:
                 marks[ship] = int(mark[1])
             elif re.match(r"\t\thasBuiltInNightCrew: true,", line):
                 crews.append(ship)
-    return marks, sorted(crews)
+            elif value := re.match(r"\t\tASW: (\d+),", line):
+                asw[ship] = int(value[1])
+    carriers = set(marks) | set(crews)
+    return marks, sorted(crews), {ship: value for ship, value in asw.items() if value and ship in carriers}
 
 
 def main() -> None:
@@ -41,7 +45,8 @@ def main() -> None:
     else:
         with urllib.request.urlopen(URL) as response:
             text = response.read().decode("utf-8")
-    marks, crews = parse(text)
+    marks, crews, asw = parse(text)
+    hunters = "".join(f"    ({ship}, {value}),\n" for ship, value in sorted(asw.items()))
     rows = "".join(f"    ({ship}, {mark}),\n" for ship, mark in sorted(marks.items()))
     ids = "".join(f"    {ship},\n" for ship in crews)
     OUT.write_text(
@@ -52,7 +57,10 @@ def main() -> None:
         "/// only while the fleet she attacks has a searchlight lit.\n"
         f"pub(crate) const ABYSSAL_NIGHT_ATTACK: &[(i64, u8)] = &[\n{rows}];\n\n"
         "/// The abyssal carriers with a night air crew of their own (`hasBuiltInNightCrew`).\n"
-        f"pub(crate) const ABYSSAL_NIGHT_CREW_IDS: &[i64] = &[\n{ids}];\n",
+        f"pub(crate) const ABYSSAL_NIGHT_CREW_IDS: &[i64] = &[\n{ids}];\n\n"
+        "/// The anti-submarine (`ASW`) of the carriers above that have any: the enemy data in the\n"
+        "/// codex gives every one of them none.\n"
+        f"pub(crate) const ABYSSAL_CARRIER_ASW: &[(i64, i64)] = &[\n{hunters}];\n",
         encoding="utf-8",
     )
     subprocess.run(["rustfmt", "--edition", "2024", str(OUT)], check=True)
@@ -60,6 +68,7 @@ def main() -> None:
         ships = [ship for ship, value in marks.items() if value == mark]
         print(f"nightattack {mark}: {len(ships)} ships, ids sum {sum(ships)}")
     print(f"hasBuiltInNightCrew: {len(crews)} ships, ids sum {sum(crews)}")
+    print(f"ASW above zero: {len(asw)} ships, ids sum {sum(asw)}, ASW sum {sum(asw.values())}")
 
 
 if __name__ == "__main__":

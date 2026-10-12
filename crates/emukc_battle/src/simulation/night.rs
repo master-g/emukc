@@ -13,9 +13,10 @@ use crate::damage::{calculate_asw_damage, calculate_night_damage, calculate_scra
 use crate::random::BattleRng;
 use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
 use crate::targeting::{
-    any_alive, can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
-    is_day_surface_display_type, is_main_gun_type, is_radar_type, is_secondary_gun_type,
-    is_torpedo_type, select_random_target_index, ship_type, target_class,
+    any_alive, can_attack_night_ship, can_attack_submarine_night_shelling,
+    collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
+    is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type,
+    select_random_target_index, select_submarine_target, ship_type, target_class,
 };
 use crate::types::{
     AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams,
@@ -1036,16 +1037,17 @@ fn night_turn(
         return;
     }
     // `nightPhaseTarget`: a carrier marked 3 takes a surface ship only while the fleet she
-    // attacks has its searchlight lit.
-    // ponytail: the source still lets her take a submarine in the dark if her own
-    // anti-submarine is above zero; the enemy data here gives every carrier none (the source
-    // has it for 40 light carriers), so she simply does not attack.
-    if abyssal_night_attack(ship) == 3 && !defenders_lit {
-        return;
-    }
-    let Some(mut target_idx) =
+    // attacks has its searchlight lit. In the dark she is left the submarines, if she can
+    // attack one.
+    let target = if abyssal_night_attack(ship) == 3 && !defenders_lit {
+        if !can_attack_submarine_night_shelling(codex, ship) {
+            return;
+        }
+        select_submarine_target(codex, rng, defenders)
+    } else {
         select_random_target_index(codex, rng, ship, defenders, BattlePhase::NightShelling)
-    else {
+    };
+    let Some(mut target_idx) = target else {
         return;
     };
     // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
@@ -3054,7 +3056,9 @@ mod display_narrowing_tests {
 #[cfg(test)]
 mod abyssal_carrier_tests {
     use super::*;
-    use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
+    use crate::simulation::abyssal_night::{
+        ABYSSAL_CARRIER_ASW, ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS,
+    };
     use crate::test_utils::*;
     use crate::types::{BattleRuntimeShip, BattleShipInput, EngagementType, NightBattleInput};
     use emukc_model::codex::Codex;
@@ -3111,7 +3115,10 @@ mod abyssal_carrier_tests {
         };
         let simulation =
             crate::simulation::simulate_night(codex, input, &mut crate::random::SeededRng::new(0));
-        let hougeki = simulation.packet.hougeki.unwrap();
+        // Nobody attacking leaves no shelling at all.
+        let Some(hougeki) = simulation.packet.hougeki else {
+            return Vec::new();
+        };
         hougeki
             .api_at_eflag
             .iter()
@@ -3137,6 +3144,11 @@ mod abyssal_carrier_tests {
         assert_eq!(
             (ABYSSAL_NIGHT_CREW_IDS.len(), ABYSSAL_NIGHT_CREW_IDS.iter().sum::<i64>()),
             (74, 161_283)
+        );
+        let asw = |pick: fn(&(i64, i64)) -> i64| ABYSSAL_CARRIER_ASW.iter().map(pick).sum::<i64>();
+        assert_eq!(
+            (ABYSSAL_CARRIER_ASW.len(), asw(|row| row.0), asw(|row| row.1)),
+            (40, 76_829, 3_165)
         );
         // Every one of them is a carrier the game data knows and gives a night aircraft to.
         for id in ABYSSAL_NIGHT_ATTACK
@@ -3172,6 +3184,20 @@ mod abyssal_carrier_tests {
         };
         assert_eq!(night(&[]), [0; 0]);
         assert_eq!(night(&[SEARCHLIGHT]), [0]);
+    }
+
+    #[test]
+    fn an_enemy_light_carrier_with_anti_submarine_attacks_a_submarine_at_night() {
+        let codex = codex();
+        let night = |enemy| {
+            let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+            flags_of(&codex, BattleRuntimeShip::from(sample_ship(&codex, ss, 50)), enemy, true)
+        };
+        // 軽母ヌ級改elite has 30, and needs no searchlight for a submarine.
+        assert_eq!(night(abyssal(&codex, NU_KAI_ELITE, 100)), [0]);
+        // 軽母ヌ級flagship has none, and a fleet carrier never does it.
+        assert_eq!(night(abyssal(&codex, 1560, 100)), [0; 0]);
+        assert_eq!(night(abyssal(&codex, WO_FLAGSHIP, 100)), [0; 0]);
     }
 
     #[test]

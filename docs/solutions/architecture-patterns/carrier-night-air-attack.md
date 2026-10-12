@@ -74,10 +74,13 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
 - An enemy carrier makes no cut-in: the tables are not in `is_cv_night_ci_eligible`.
 - The enemy fires by position, as the player does. The source's "enemy always skips to the
   next capable ship" is its NPC friend fleet's night only.
-- No enemy carrier attacks a submarine at night here, which is short of the source: there 40
-  of these light carriers (30 marked 3, 10 with a crew and no mark) have anti-submarine above
-  zero and take a submarine, lit or not. `enemy_ship_extra.json` gives every enemy carrier 0,
-  and `bare_asw` reads the player's table. See Known gaps.
+- An enemy light carrier attacks a submarine at night by the rule above: anti-submarine of
+  her own above zero. `enemy_ship_extra.json` gives every enemy carrier 0, so `bare_asw` takes
+  it from a third generated table, `ABYSSAL_CARRIER_ASW`: the 40 light carriers (30 marked 3,
+  10 with a crew and no mark) whose `ASW` in the source is above zero. One marked 3 takes a
+  submarine without the searchlight; a submarine is all she can take in the dark. After a day
+  battle such a hit is a scratch, as any; in a night-start battle its power is counted from
+  the codex's 0.
 
 ## The power
 
@@ -163,8 +166,8 @@ and `damage.rs` do not ask `simulation::night` themselves.
 
 - しまね丸改, a 補給艦 the source lets fly at night: every carrier test here goes by ship type.
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
-- An enemy light carrier's night attack on a submarine: it needs her anti-submarine, which
-  the enemy data here does not carry (the source's `ASW` does).
+- An enemy light carrier's power against a submarine in a night-start battle comes from the
+  codex's anti-submarine of 0, not from the source's figure that makes her eligible.
 - The searchlight beyond whether it is lit: the rerolls that draw fire to its ship, and the
   evasion it costs her.
 - The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
