@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 金剛型的僚艦夜戦突撃（104）做完（计划 2026-10-12-007），分支 `feat/kongou-night-assault`，未合并。
+- [2026-10-12] 金剛型的僚艦夜戦突撃（104）做完（计划 2026-10-12-007），已合并（PR #76）。
   质量门通过，基线没变，无头检查演过。
 
 ## Next Session
