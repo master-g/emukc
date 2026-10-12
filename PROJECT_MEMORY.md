@@ -199,11 +199,11 @@ Current verification baseline:
 ## Next Session
 
 - [2026-10-12] 周常重置读系统时钟还没有规格。
-  #53 留下的见 `night-attack-types.md` Known gaps；其中夜战的运读 `api_lucky[1]`（命中公式读 `[0]`），没核对哪个对。
+  #53 留下的见 `night-attack-types.md` Known gaps；最大的一条：潜水艦夜战不出手、大破的非空母仍出手，与来源 `canNB` 相反。
   #55 留下的：没用 `battle sim` 跑一批种子看夜战受损分布；带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。
   #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  带种子的战斗测试落空时换种子、不放宽断言。报告里的数字先读到再写。
+  带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。

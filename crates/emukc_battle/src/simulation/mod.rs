@@ -389,7 +389,7 @@ fn execute_closing_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
     }
 }
 
-/// Simulate a night battle.
+/// Simulate a night battle. The star shells are rolled for first, then the attacks.
 pub(crate) fn simulate_night(
     codex: &Codex,
     input: NightBattleInput,

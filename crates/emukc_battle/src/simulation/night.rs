@@ -648,7 +648,7 @@ fn night_cut_in_chance(
     is_flagship: bool,
     (own, theirs): (NightLights, NightLights),
 ) -> f64 {
-    let luck = ship.ship.api_lucky[1].max(0) as f64;
+    let luck = ship.ship.api_lucky[0].max(0) as f64;
     let level = ship.ship.api_lv.max(1) as f64;
 
     let mut chance = if luck >= 50.0 {
@@ -787,7 +787,10 @@ fn night_attack_display_ids(
         collect_matching_slot_ids(codex, ship, |slot_type, _| is_torpedo_type(slot_type));
     let secondary_guns =
         collect_matching_slot_ids(codex, ship, |slot_type, _| is_secondary_gun_type(slot_type));
-    let radars = collect_matching_slot_ids(codex, ship, |slot_type, _| is_radar_type(slot_type));
+    // The destroyer cut-ins are made with a surface radar, and show that one.
+    let radars = collect_matching_slot_ids(codex, ship, |slot_type, mst| {
+        is_radar_type(slot_type) && mst.api_saku >= 5
+    });
     let lookouts = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         slot_type == KcSlotItemType3::SeaplanePersonnel
     });
@@ -1587,20 +1590,18 @@ mod tests {
     }
 
     #[test]
-    fn night_ci_trigger_rate_uses_total_luck_with_equipment() {
+    fn night_ci_trigger_rate_uses_current_luck_not_its_maximum() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
 
-        // Ship with low base luck but high total luck (via equipment)
+        // `api_lucky` is the current luck and the most it can be modernised to.
         let mut ship = sample_ship(&codex, dd_mst, 99);
-        ship.ship.api_lucky = [10, 80]; // base=10, total=80
+        ship.ship.api_lucky = [80, 99];
         let rt = BattleRuntimeShip::from(ship);
 
         let rate = trigger_rate(&codex, &rt, NightAttackType::TorpTorpTorp, false);
-        // With total luck 80, we should get the higher-luck formula (>65)
-        // ci_value = 65 + sqrt(80-50) + floor(0.8*sqrt(99)) = 65 + ~5.48 + ~7.92 = ~78.4
-        // rate = 78.4 / 122 ≈ 0.64
-        assert!(rate > 0.5, "total luck (api_lucky[1]=80) should give rate > 0.5, got {rate}");
+        // 65 + floor(sqrt(80 - 50)) + floor(0.8 * sqrt(99)) = 77, over 122.
+        assert!((rate - 0.77 / 1.22).abs() < 1e-9, "got {rate}");
     }
 
     #[test]

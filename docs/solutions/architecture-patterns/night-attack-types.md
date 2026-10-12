@@ -54,7 +54,7 @@ unverified, there; 99% here).
 ## The chance
 
 `night_cut_in_chance` is one formula for every cut-in, in percent: with luck under 50,
-`floor(luck + 15 + sqrt(level) * 0.75)`, otherwise `65 + floor(sqrt(luck - 50)) +
+`floor(luck + 15 + sqrt(level) * 0.75)` (her current luck, `api_lucky[0]`), otherwise `65 + floor(sqrt(luck - 50)) +
 floor(sqrt(level) * 0.8)`; 15 for the flagship; 8 for the torpedo squadron lookout on a
 destroyer, light cruiser or torpedo cruiser and 5 for the plain lookout on anyone, both if she
 has both; 18 at moderate damage; 4 and 7 for her own fleet's star shell and searchlight, minus
@@ -91,6 +91,10 @@ Both get a name plate, as every gun and torpedo has one (`battle-display-name-pl
 - The night Zuiun cut-in and the fleet special attacks are other paths in the source.
 - A submarine making her torpedo cut-in from one late-model torpedo and her radar has one
   torpedo to show; whether the client wants the radar named was not looked at.
-- Luck is read from `api_lucky[1]`, as it was before this table was redone.
+- Who attacks at night is `can_attack_night_ship`, and it is not the source's `canNB`: a
+  submarine never attacks here, so her torpedo cut-in is reached by the unit tests only, and
+  a heavily damaged ship that is not a carrier still attacks (without the 18 of moderate
+  damage) where the source keeps her out.
+- The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
 - Played in the client (`night_cut_in`): types 2, 5 and 7 and the star shell. Not played: 3, 4,
   8 to 14, the submarine's.
