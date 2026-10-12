@@ -12,6 +12,7 @@ use crate::accuracy::{Aim, AttackKind, HitOutcome, asw_proficiency, roll_attack}
 use crate::damage::{calculate_asw_damage, calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
 use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
+use crate::simulation::night_attack_table::{NIGHT_ATTACKS, NightAttackRow, SPECIAL_TORPEDO_IDS};
 use crate::targeting::{
     any_alive, can_attack_night_ship, can_attack_submarine_night_shelling,
     collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
@@ -20,54 +21,66 @@ use crate::targeting::{
 };
 use crate::types::{
     AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams,
-    SiListId,
+    SiListId, TargetClass,
 };
 
 // ---------------------------------------------------------------------------
 // Night attack type enum
 // ---------------------------------------------------------------------------
 
-/// Night battle special attack (cut-in / double attack) type.
+/// Night battle special attack (cut-in / double attack) type. The numbers of every type but the
+/// carrier's are the rows of [`NIGHT_ATTACKS`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum NightAttackType {
     Normal,
-    DoubleAttack,  // 連撃: 2 hits x 1.2x
-    MainTorpRadar, // 主魚CI: 1 hit x 1.625x (sp_list=2)
-    TorpTorpTorp,  // 魚魚CI: 2 hits x 1.3x (sp_list=3)
-    MainMainSec,   // 主主副CI: 1 hit x 1.75x (sp_list=4)
-    MainMainMain,  // 主主主CI: 1 hit x 2.0x (sp_list=5)
+    DoubleAttack, // 連撃 (sp_list=1)
+    MainTorp,     // 主魚CI (sp_list=2)
+    TorpTorpTorp, // 魚魚CI (sp_list=3)
+    MainMainSec,  // 主主副CI (sp_list=4)
+    MainMainMain, // 主主主CI (sp_list=5)
     // DD CI variants (sp_list 7-14)
-    DdGunTorpRadar,      // GTR: 1 hit x 1.3x (sp_list=7)
-    DdGunTorpRadar2,     // GTR 2-hit: 2 hits x 1.3x (sp_list=11)
-    DdTorpLookoutRadar,  // TRL: 1 hit x 1.2x (sp_list=8)
-    DdTorpLookoutRadar2, // TRL 2-hit: 2 hits x 1.2x (sp_list=12)
-    DdTorpTorpLookout,   // TTL: 1 hit x 1.5x (sp_list=9)
-    DdTorpTorpLookout2,  // TTL 2-hit: 2 hits x 1.5x (sp_list=13)
-    DdTorpDrumLookout,   // DTL: 1 hit x 1.3x (sp_list=10)
-    DdTorpDrumLookout2,  // DTL 2-hit: 2 hits x 1.3x (sp_list=14)
+    DdGunTorpRadar,      // GTR (sp_list=7)
+    DdGunTorpRadar2,     // GTR 2-hit (sp_list=11)
+    DdTorpLookoutRadar,  // TRL (sp_list=8)
+    DdTorpLookoutRadar2, // TRL 2-hit (sp_list=12)
+    DdTorpTorpLookout,   // TTL (sp_list=9)
+    DdTorpTorpLookout2,  // TTL 2-hit (sp_list=13)
+    DdTorpDrumLookout,   // DTL (sp_list=10)
+    DdTorpDrumLookout2,  // DTL 2-hit (sp_list=14)
     // Carrier night CI (sp_list=6)
     CarrierNightCI(CarrierNightCiSubType), // 戦爆連合夜間CI: 1 hit, multiplier varies by sub-type
 }
 
 impl NightAttackType {
-    /// What the attack type does to accuracy (`kcsim.js` `NBATTACKDATA`).
+    /// The types [`NIGHT_ATTACKS`] has a row for.
+    const TABLED: [Self; 13] = [
+        Self::DoubleAttack,
+        Self::MainTorp,
+        Self::TorpTorpTorp,
+        Self::MainMainSec,
+        Self::MainMainMain,
+        Self::DdGunTorpRadar,
+        Self::DdTorpLookoutRadar,
+        Self::DdTorpTorpLookout,
+        Self::DdTorpDrumLookout,
+        Self::DdGunTorpRadar2,
+        Self::DdTorpLookoutRadar2,
+        Self::DdTorpTorpLookout2,
+        Self::DdTorpDrumLookout2,
+    ];
+
+    fn row(self) -> Option<&'static NightAttackRow> {
+        let id = self.api_sp_list();
+        NIGHT_ATTACKS.iter().find(|row| row.id == id)
+    }
+
+    /// What the attack type does to accuracy (`accMod`).
     fn accuracy_modifier(self) -> f64 {
         match self {
-            Self::Normal => 1.0,
-            Self::DoubleAttack | Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 1.1,
-            Self::MainTorpRadar
-            | Self::MainMainSec
-            | Self::DdTorpDrumLookout
-            | Self::DdTorpDrumLookout2 => 1.5,
-            Self::TorpTorpTorp
-            | Self::DdTorpLookoutRadar
-            | Self::DdTorpLookoutRadar2
-            | Self::DdTorpTorpLookout
-            | Self::DdTorpTorpLookout2 => 1.65,
-            Self::MainMainMain => 2.0,
             // The source has 1.25 for one of the four carrier cut-ins and
             // 1.2 for the rest.
             Self::CarrierNightCI(_) => 1.2,
+            _ => self.row().map_or(1.0, |row| row.accuracy),
         }
     }
 
@@ -75,7 +88,7 @@ impl NightAttackType {
         match self {
             Self::Normal => 0,
             Self::DoubleAttack => 1,
-            Self::MainTorpRadar => 2,
+            Self::MainTorp => 2,
             Self::TorpTorpTorp => 3,
             Self::MainMainSec => 4,
             Self::MainMainMain => 5,
@@ -93,51 +106,33 @@ impl NightAttackType {
 
     fn damage_multiplier(self) -> f64 {
         match self {
-            Self::Normal => 1.0,
-            Self::DoubleAttack | Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 1.2,
-            Self::MainTorpRadar => 1.625,
-            Self::TorpTorpTorp
-            | Self::DdGunTorpRadar
-            | Self::DdGunTorpRadar2
-            | Self::DdTorpDrumLookout
-            | Self::DdTorpDrumLookout2 => 1.3,
-            Self::MainMainSec => 1.75,
-            Self::MainMainMain => 2.0,
-            Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 1.5,
             Self::CarrierNightCI(sub) => sub.damage_multiplier(),
+            _ => self.row().map_or(1.0, |row| row.damage),
         }
     }
 
     fn hit_count(self) -> usize {
+        self.row().map_or(1, |row| row.hits)
+    }
+
+    /// What the cut-in chance is divided by (`chanceMod`); 0 for the double attack, which
+    /// fires at 99%.
+    fn chance_modifier(self) -> f64 {
         match self {
-            Self::Normal
-            | Self::MainTorpRadar
-            | Self::MainMainSec
-            | Self::MainMainMain
-            | Self::DdGunTorpRadar
-            | Self::DdTorpLookoutRadar
-            | Self::DdTorpTorpLookout
-            | Self::DdTorpDrumLookout
-            | Self::CarrierNightCI(_) => 1,
-            Self::DoubleAttack
-            | Self::TorpTorpTorp
-            | Self::DdGunTorpRadar2
-            | Self::DdTorpLookoutRadar2
-            | Self::DdTorpTorpLookout2
-            | Self::DdTorpDrumLookout2 => 2,
+            Self::CarrierNightCI(sub) => sub.coefficient() / 100.0,
+            _ => self.row().map_or(0.0, |row| row.chance),
         }
     }
 
-    fn ci_coefficient(self) -> f64 {
-        match self {
-            Self::MainTorpRadar | Self::DdGunTorpRadar | Self::DdGunTorpRadar2 => 115.0,
-            Self::TorpTorpTorp | Self::DdTorpDrumLookout | Self::DdTorpDrumLookout2 => 122.0,
-            Self::MainMainSec => 130.0,
-            Self::MainMainMain | Self::DdTorpLookoutRadar | Self::DdTorpLookoutRadar2 => 140.0,
-            Self::DdTorpTorpLookout | Self::DdTorpTorpLookout2 => 125.0,
-            Self::CarrierNightCI(sub) => sub.coefficient(),
-            Self::DoubleAttack | Self::Normal => 0.0,
-        }
+    /// The two-hit attack a destroyer of level 80 may make in its place, and how often.
+    fn replacement(self) -> Option<(Self, f64)> {
+        let row = self.row()?;
+        let twice = Self::TABLED.into_iter().find(|kind| kind.api_sp_list() == row.replace)?;
+        Some((twice, row.replace_chance))
+    }
+
+    fn is_destroyer_cut_in(self) -> bool {
+        (7..=14).contains(&self.api_sp_list())
     }
 }
 
@@ -184,23 +179,6 @@ fn count_secondary_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
                 })
         })
         .count()
-}
-
-fn has_radar(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-    ship.slot_items.iter().any(|slot_item| {
-        codex
-            .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&slot_item.api_slotitem_id)
-            .ok()
-            .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-            .is_some_and(|t| {
-                matches!(
-                    t,
-                    KcSlotItemType3::SmallRadar
-                        | KcSlotItemType3::LargeRadar
-                        | KcSlotItemType3::LargeRadar2
-                )
-            })
-    })
 }
 
 // ---------------------------------------------------------------------------
@@ -539,151 +517,72 @@ fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 }
 
 // ---------------------------------------------------------------------------
-// DD CI types (internal detection + trigger)
-// ---------------------------------------------------------------------------
-
-/// DD-specific night CI base types. Each has 1-hit and 2-hit resolved variants.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DdCiType {
-    GunTorpRadar,     // GTR: 主砲+魚雷+電探 (sp_list=7/11)
-    TorpLookoutRadar, // TRL: 魚雷+見張員+電探 (sp_list=8/12)
-    TorpTorpLookout,  // TTL: 魚雷+水雷見張員+魚雷 (sp_list=9/13)
-    TorpDrumLookout,  // DTL: 魚雷+水雷見張員+ドラム缶 (sp_list=10/14)
-}
-
-impl DdCiType {
-    fn base_attack(self) -> f64 {
-        match self {
-            Self::GunTorpRadar => 115.0,
-            Self::TorpLookoutRadar => 140.0,
-            Self::TorpTorpLookout => 125.0,
-            Self::TorpDrumLookout => 122.0,
-        }
-    }
-
-    fn second_hit_probability(self) -> f64 {
-        match self {
-            Self::GunTorpRadar => 0.65,
-            Self::TorpLookoutRadar => 0.50,
-            Self::TorpTorpLookout => 0.875,
-            Self::TorpDrumLookout => 0.55,
-        }
-    }
-
-    fn to_attack_type(self, two_hit: bool) -> NightAttackType {
-        match (self, two_hit) {
-            (Self::GunTorpRadar, false) => NightAttackType::DdGunTorpRadar,
-            (Self::GunTorpRadar, true) => NightAttackType::DdGunTorpRadar2,
-            (Self::TorpLookoutRadar, false) => NightAttackType::DdTorpLookoutRadar,
-            (Self::TorpLookoutRadar, true) => NightAttackType::DdTorpLookoutRadar2,
-            (Self::TorpTorpLookout, false) => NightAttackType::DdTorpTorpLookout,
-            (Self::TorpTorpLookout, true) => NightAttackType::DdTorpTorpLookout2,
-            (Self::TorpDrumLookout, false) => NightAttackType::DdTorpDrumLookout,
-            (Self::TorpDrumLookout, true) => NightAttackType::DdTorpDrumLookout2,
-        }
-    }
-}
-
-/// Check equipment conditions for a DD CI type.
-fn detect_dd_ci_type(codex: &Codex, ship: &BattleRuntimeShip, dd_type: DdCiType) -> bool {
-    let main_guns = count_main_guns(codex, ship);
-    let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
-        + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
-    let has_radar = has_radar(codex, ship);
-    let has_lookout = count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0;
-    let has_skilled_lookout = has_slotitem_id(ship, SKILLED_LOOKOUT_ID);
-    let has_drum = count_equipment_type(codex, ship, KcSlotItemType3::TransportContainer) > 0;
-
-    match dd_type {
-        DdCiType::GunTorpRadar => main_guns >= 1 && torps >= 1 && has_radar,
-        DdCiType::TorpLookoutRadar => torps >= 1 && has_lookout && has_radar,
-        DdCiType::TorpTorpLookout => torps >= 2 && has_skilled_lookout,
-        DdCiType::TorpDrumLookout => torps >= 1 && has_skilled_lookout && has_drum,
-    }
-}
-
-/// DD CI trigger rate (Level+Luck based, different from standard Luck-only formula).
-fn dd_ci_trigger_rate(
-    codex: &Codex,
-    ship: &BattleRuntimeShip,
-    dd_type: DdCiType,
-    is_flagship: bool,
-) -> f64 {
-    let luck = ship.ship.api_lucky[1].max(0) as f64;
-    let level = ship.ship.api_lv.max(1) as f64;
-
-    let base_ship = if luck < 50.0 {
-        (0.75 * level.sqrt()).floor() + luck
-    } else {
-        (0.80 * level.sqrt()).floor() + 50.0 + (luck - 50.0).sqrt()
-    };
-
-    let flagship_mod = if is_flagship {
-        15.0
-    } else {
-        0.0
-    };
-
-    let chuuha_mod = if is_chuuha(ship) {
-        18.0
-    } else {
-        0.0
-    };
-
-    // Lookout modifier: TSLO (+8) overrides regular lookout (+5)
-    let lookout_mod = if has_slotitem_id(ship, SKILLED_LOOKOUT_ID) {
-        8.0
-    } else if count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0 {
-        5.0
-    } else {
-        0.0
-    };
-
-    let total = (15.0 + base_ship + flagship_mod + chuuha_mod + lookout_mod).floor();
-    (total / dd_type.base_attack()).clamp(0.0, 1.0)
-}
-
-/// Resolve DD night CI via multiroll (GTR→TRL→TTL→DTL).
-/// Returns Some if a DD CI type triggered, None to fall through to standard CI.
-fn resolve_dd_night_attack(
-    codex: &Codex,
-    rng: &mut impl BattleRng,
-    ship: &BattleRuntimeShip,
-    is_flagship: bool,
-) -> Option<NightAttackType> {
-    let dd_types = [
-        DdCiType::GunTorpRadar,
-        DdCiType::TorpLookoutRadar,
-        DdCiType::TorpTorpLookout,
-        DdCiType::TorpDrumLookout,
-    ];
-
-    for dd_type in dd_types {
-        if !detect_dd_ci_type(codex, ship, dd_type) {
-            continue;
-        }
-        let rate = dd_ci_trigger_rate(codex, ship, dd_type, is_flagship);
-        if rng.random_f64_range(0.0, 1.0) < rate {
-            let is_two_hit = rng.random_f64_range(0.0, 1.0) < dd_type.second_hit_probability();
-            return Some(dd_type.to_attack_type(is_two_hit));
-        }
-    }
-    None
-}
-
-// ---------------------------------------------------------------------------
 // Night attack detection & CI trigger
 // ---------------------------------------------------------------------------
 
-/// Returns true if the ship qualifies for night double-attack: two guns between main and
-/// secondary (`NBtypes`, `mguns + sguns >= 2`), or a main gun and a torpedo.
-fn is_double_attack_eligible(main_guns: usize, sec_guns: usize, torps: usize) -> bool {
-    // ponytail: a main gun with a torpedo is a cut-in in the source (`NBtypes` 1440); it stays
-    // a double attack here until the night cut-in table is redone against it.
-    (main_guns + sec_guns >= 2) || (main_guns >= 1 && torps >= 1)
+/// 熟練見張員: with [`SKILLED_LOOKOUT_ID`], the two lookouts.
+const LOOKOUT_ID: i64 = 129;
+/// ドラム缶(輸送用), which the fourth destroyer cut-in carries.
+const DRUM_ID: i64 = 75;
+/// 12.7cm連装砲D型改二 and 改三: they raise the destroyer cut-ins made with a radar.
+const D_GUN_K2_ID: i64 = 267;
+const D_GUN_K3_ID: i64 = 366;
+
+/// What a fleet has lit for the night.
+#[derive(Debug, Clone, Copy, Default)]
+struct NightLights {
+    /// It fired a star shell as the night began.
+    star_shell: bool,
+    /// A ship of it afloat carries a searchlight.
+    searchlight: bool,
 }
 
-/// Detect the best night attack type from equipment loadout.
+/// The equipment the source's `NBtypes` counts.
+struct NightGear {
+    main_guns: usize,
+    sec_guns: usize,
+    torps: usize,
+    /// A radar with 5 or more line of sight.
+    surface_radar: bool,
+    lookout: bool,
+    skilled_lookout: bool,
+    drum: bool,
+    special_torps: usize,
+    sub_radar: bool,
+}
+
+impl NightGear {
+    fn of(codex: &Codex, ship: &BattleRuntimeShip) -> Self {
+        let surface_radar = ship.slot_items.iter().any(|slot_item| {
+            codex
+                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&slot_item.api_slotitem_id)
+                .is_ok_and(|mst| {
+                    KcSlotItemType3::n(mst.api_type[2]).is_some_and(is_radar_type)
+                        && mst.api_saku >= 5
+                })
+        });
+        Self {
+            main_guns: count_main_guns(codex, ship),
+            sec_guns: count_secondary_guns(codex, ship),
+            torps: count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
+                + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo),
+            surface_radar,
+            lookout: count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0,
+            skilled_lookout: has_slotitem_id(ship, SKILLED_LOOKOUT_ID),
+            drum: has_slotitem_id(ship, DRUM_ID),
+            special_torps: ship
+                .slot_items
+                .iter()
+                .filter(|slot_item| SPECIAL_TORPEDO_IDS.contains(&slot_item.api_slotitem_id))
+                .count(),
+            sub_radar: count_equipment_type(codex, ship, KcSlotItemType3::SubmarineEquipment) > 0,
+        }
+    }
+}
+
+/// The one general attack type a ship's equipment makes (`NBtypes`): the first of three main
+/// guns, two main guns with a secondary, two torpedoes, a main gun with a torpedo, and two guns
+/// between main and secondary.
 fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAttackType {
     // Carrier night CI takes priority for CV ships
     if is_cv_night_ci_eligible(codex, ship)
@@ -697,127 +596,180 @@ fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAtt
         return NightAttackType::Normal;
     }
 
-    let main_guns = count_main_guns(codex, ship);
-    let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
-        + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
-    let sec_guns = count_secondary_guns(codex, ship);
-    let has_radar = has_radar(codex, ship);
-
-    // CI priority (highest first): 主主主 > 主主副 > 鱼雷CI > 主鱼電 > 連撃
-    if main_guns >= 3 {
-        return NightAttackType::MainMainMain;
+    let gear = NightGear::of(codex, ship);
+    // A submarine radar with a late-model torpedo counts as one torpedo more.
+    let torps = gear.torps + usize::from(gear.sub_radar && gear.special_torps > 0);
+    if gear.main_guns >= 3 {
+        NightAttackType::MainMainMain
+    } else if gear.main_guns >= 2 && gear.sec_guns >= 1 {
+        NightAttackType::MainMainSec
+    } else if torps >= 2 {
+        NightAttackType::TorpTorpTorp
+    } else if torps >= 1 && gear.main_guns >= 1 {
+        NightAttackType::MainTorp
+    } else if gear.main_guns + gear.sec_guns >= 2 {
+        NightAttackType::DoubleAttack
+    } else {
+        NightAttackType::Normal
     }
-    if main_guns >= 2 && sec_guns >= 1 {
-        return NightAttackType::MainMainSec;
-    }
-    if torps >= 2 {
-        return NightAttackType::TorpTorpTorp;
-    }
-    if main_guns >= 1 && torps >= 1 && has_radar {
-        return NightAttackType::MainTorpRadar;
-    }
-    // Double attack: 2+ different weapon categories (main + secondary, main + torp, etc.)
-    if is_double_attack_eligible(main_guns, sec_guns, torps) {
-        return NightAttackType::DoubleAttack;
-    }
-    NightAttackType::Normal
 }
 
-/// Calculate night CI trigger rate.
-fn night_ci_trigger_rate(
-    ship: &BattleRuntimeShip,
-    ci_type: NightAttackType,
-    is_flagship: bool,
-) -> f64 {
-    let coefficient = ci_type.ci_coefficient();
-    if coefficient <= 0.0 {
-        return if ci_type == NightAttackType::DoubleAttack {
-            0.99
-        } else {
-            0.0
-        };
+/// Every attack type a ship rolls for, in the order she rolls (`NBtypes`): a destroyer's four
+/// cut-ins, each on its own, and then her one general type.
+fn night_attack_types(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<NightAttackType> {
+    let mut types = Vec::new();
+    if matches!(ship_type(codex, ship), Some(KcShipType::DD)) {
+        let gear = NightGear::of(codex, ship);
+        if gear.main_guns >= 1 && gear.torps >= 1 && gear.surface_radar {
+            types.push(NightAttackType::DdGunTorpRadar);
+        }
+        if gear.lookout && gear.torps >= 1 && gear.surface_radar {
+            types.push(NightAttackType::DdTorpLookoutRadar);
+        }
+        if gear.skilled_lookout && gear.torps >= 2 {
+            types.push(NightAttackType::DdTorpTorpLookout);
+        }
+        if gear.skilled_lookout && gear.torps >= 1 && gear.drum {
+            types.push(NightAttackType::DdTorpDrumLookout);
+        }
     }
+    match detect_night_attack_type(codex, ship) {
+        NightAttackType::Normal => {}
+        general => types.push(general),
+    }
+    types
+}
 
-    let luck = ship.ship.api_lucky[1].max(0) as f64;
+/// The cut-in chance in percent, before the attack type divides it (`NBchance` and the terms
+/// `NBattack` adds to it).
+fn night_cut_in_chance(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    is_flagship: bool,
+    (own, theirs): (NightLights, NightLights),
+) -> f64 {
+    let luck = ship.ship.api_lucky[0].max(0) as f64;
     let level = ship.ship.api_lv.max(1) as f64;
 
-    let ci_value = if luck < 50.0 {
-        15.0 + luck + (0.75 * level.sqrt()).floor()
+    let mut chance = if luck >= 50.0 {
+        65.0 + (luck - 50.0).sqrt().floor() + (level.sqrt() * 0.8).floor()
     } else {
-        65.0 + (luck - 50.0).sqrt() + (0.8 * level.sqrt()).floor()
+        (luck + 15.0 + level.sqrt() * 0.75).floor()
     };
-
-    let flagship_bonus = if is_flagship {
-        15.0
-    } else {
-        0.0
-    };
-
-    // Chuuha bonus: 25% < HP <= 50% (中破) → +18 for DD torpedo CI, +5 for others
-    let chuuha_bonus = if is_chuuha(ship) {
-        if ci_type == NightAttackType::TorpTorpTorp {
-            18.0
-        } else {
-            5.0
+    if is_flagship {
+        chance += 15.0;
+    }
+    if matches!(ship_type(codex, ship), Some(KcShipType::DD | KcShipType::CL | KcShipType::CLT))
+        && has_slotitem_id(ship, SKILLED_LOOKOUT_ID)
+    {
+        chance += 8.0;
+    }
+    if has_slotitem_id(ship, LOOKOUT_ID) {
+        chance += 5.0;
+    }
+    for (lit, bonus) in [
+        (own.star_shell, 4.0),
+        (theirs.star_shell, -10.0),
+        (own.searchlight, 7.0),
+        (theirs.searchlight, -5.0),
+    ] {
+        if lit {
+            chance += bonus;
         }
-    } else {
-        0.0
-    };
-
-    let total = ci_value + flagship_bonus + chuuha_bonus;
-    (total / coefficient).clamp(0.0, 1.0)
+    }
+    // The source has `HP/maxHP <= .5`, and a ship at a quarter or less does not attack.
+    if is_chuuha(ship) {
+        chance += 18.0;
+    }
+    chance
 }
 
-/// Resolve night attack type: detect CI from equipment, then roll trigger.
+/// What the D-type guns do to a destroyer cut-in made with a radar (`NBattack`).
+fn d_gun_modifier(ship: &BattleRuntimeShip) -> f64 {
+    let count = |id| ship.slot_items.iter().filter(|si| si.api_slotitem_id == id).count();
+    let k3 = count(D_GUN_K3_ID);
+    let both = match count(D_GUN_K2_ID) + k3 {
+        0 => 1.0,
+        1 => 1.25,
+        _ => 1.4,
+    };
+    both * match k3 {
+        0 => 1.0,
+        1 => 1.05,
+        _ => 1.1,
+    }
+}
+
+/// Roll a ship's night attack (`NBattack`): each of her attack types in turn, the first that
+/// comes up, and a plain attack if none does. Returns the type and its damage multiplier.
 fn resolve_night_attack(
     codex: &Codex,
     rng: &mut impl BattleRng,
     ship: &BattleRuntimeShip,
     is_flagship: bool,
-    is_submarine_target: bool,
-) -> NightAttackType {
-    if is_submarine_target {
-        return NightAttackType::Normal;
+    target: TargetClass,
+    lights: (NightLights, NightLights),
+) -> (NightAttackType, f64) {
+    const PLAIN: (NightAttackType, f64) = (NightAttackType::Normal, 1.0);
+    if target.is_submarine() {
+        return PLAIN;
     }
+    let types = night_attack_types(codex, ship);
+    if types.is_empty() {
+        return PLAIN;
+    }
+    let gear = NightGear::of(codex, ship);
+    let chance = night_cut_in_chance(codex, ship, is_flagship, lights) * 0.01;
+    let installation = target == TargetClass::Installation;
 
-    // DD CI multiroll: GTR→TRL→TTL→DTL, fallback to standard CI
-    if matches!(ship_type(codex, ship), Some(KcShipType::DD))
-        && let Some(dd_ci) = resolve_dd_night_attack(codex, rng, ship, is_flagship)
-    {
-        return dd_ci;
-    }
-
-    let detected = detect_night_attack_type(codex, ship);
-    if detected == NightAttackType::Normal {
-        return NightAttackType::Normal;
-    }
-    if detected == NightAttackType::DoubleAttack {
-        return NightAttackType::DoubleAttack;
-    }
-    // Roll CI trigger
-    let rate = night_ci_trigger_rate(ship, detected, is_flagship);
-    let roll = rng.random_f64_range(0.0, 1.0);
-    if roll < rate {
-        detected
-    } else {
-        // A CV that failed its night CI roll falls back to Normal — carriers do not perform the
-        // artillery 連撃 (double attack) at night.
-        if matches!(detected, NightAttackType::CarrierNightCI(_)) {
-            return NightAttackType::Normal;
+    for mut kind in types {
+        if let Some((twice, replace_chance)) = kind.replacement()
+            && ship.ship.api_lv >= 80
+            && rng.random_f64_range(0.0, 1.0) < replace_chance
+        {
+            kind = twice;
         }
-        // Failed CI -> check for double attack fallback
-        // ponytail: the source has no such fallback (a failed cut-in is a plain attack); it
-        // is kept as it was, for a ship with a main gun, until the cut-in table is redone.
-        let main_guns = count_main_guns(codex, ship);
-        let sec_guns = count_secondary_guns(codex, ship);
-        let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
-            + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
-        if main_guns >= 1 && is_double_attack_eligible(main_guns, sec_guns, torps) {
-            NightAttackType::DoubleAttack
+        if installation {
+            if kind.is_destroyer_cut_in() && gear.main_guns == 0 {
+                continue;
+            }
+            // A cut-in with a torpedo is not made on an installation; a ship that could double
+            // attack does that instead.
+            if kind.row().is_some_and(|row| row.torpedo) {
+                if gear.main_guns + gear.sec_guns < 2 {
+                    continue;
+                }
+                kind = NightAttackType::DoubleAttack;
+            }
+        }
+        let modifier = kind.chance_modifier();
+        let mut rate = if modifier == 0.0 {
+            0.99
         } else {
-            NightAttackType::Normal
+            chance / modifier
+        };
+        let mut damage = kind.damage_multiplier();
+        match kind {
+            // A submarine's torpedo cut-in with late-model torpedoes.
+            NightAttackType::TorpTorpTorp if gear.special_torps >= 1 && gear.sub_radar => {
+                rate = chance / 1.05;
+                damage = 1.75;
+            }
+            NightAttackType::TorpTorpTorp if gear.special_torps >= 2 => {
+                rate = chance / 1.1;
+                damage = 1.6;
+            }
+            NightAttackType::DdGunTorpRadar
+            | NightAttackType::DdGunTorpRadar2
+            | NightAttackType::DdTorpLookoutRadar
+            | NightAttackType::DdTorpLookoutRadar2 => damage *= d_gun_modifier(ship),
+            _ => {}
+        }
+        if rng.random_f64_range(0.0, 1.0) < rate {
+            return (kind, damage);
         }
     }
+    PLAIN
 }
 
 // ---------------------------------------------------------------------------
@@ -835,7 +787,10 @@ fn night_attack_display_ids(
         collect_matching_slot_ids(codex, ship, |slot_type, _| is_torpedo_type(slot_type));
     let secondary_guns =
         collect_matching_slot_ids(codex, ship, |slot_type, _| is_secondary_gun_type(slot_type));
-    let radars = collect_matching_slot_ids(codex, ship, |slot_type, _| is_radar_type(slot_type));
+    // The destroyer cut-ins are made with a surface radar, and show that one.
+    let radars = collect_matching_slot_ids(codex, ship, |slot_type, mst| {
+        is_radar_type(slot_type) && mst.api_saku >= 5
+    });
     let lookouts = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         slot_type == KcSlotItemType3::SeaplanePersonnel
     });
@@ -867,9 +822,12 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &main_guns, 2);
             extend_limit(&mut ids, &secondary_guns, 3);
         }
-        NightAttackType::MainTorpRadar
-        | NightAttackType::DdGunTorpRadar
-        | NightAttackType::DdGunTorpRadar2 => {
+        // `CutinSpSR` draws its first slot in the middle and its second above and below it.
+        NightAttackType::MainTorp => {
+            extend_limit(&mut ids, &main_guns, 1);
+            extend_limit(&mut ids, &torpedoes, 2);
+        }
+        NightAttackType::DdGunTorpRadar | NightAttackType::DdGunTorpRadar2 => {
             extend_limit(&mut ids, &main_guns, 1);
             extend_limit(&mut ids, &torpedoes, 2);
             extend_limit(&mut ids, &radars, 3);
@@ -943,6 +901,28 @@ fn night_si_entry(
     }
 }
 
+/// Fire the star shells as the night begins (`nightPhase`): in each fleet the first ship afloat
+/// that carries one, has more than 4 HP and rolls under 70%. Returns who fired in the friendly
+/// and in the enemy fleet, -1 for nobody.
+pub(crate) fn roll_star_shells(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+) -> [i64; 2] {
+    let mut fire = |fleet: &[BattleRuntimeShip]| {
+        fleet
+            .iter()
+            .position(|ship| {
+                ship.hp() > 4
+                    && count_equipment_type(codex, ship, KcSlotItemType3::Flare) > 0
+                    && rng.random_f64_range(0.0, 1.0) < 0.7
+            })
+            .map_or(-1, |position| position as i64)
+    };
+    [fire(friendly), fire(enemy)]
+}
+
 /// Simulate the night battle hougeki phase. The two fleets fire in turn down
 /// their lines, the friendly side first: its first ship, the enemy's first,
 /// its second, and so on.
@@ -974,7 +954,12 @@ pub(crate) fn simulate_night_hougeki(
                 > 0
         })
     };
-    let (friendly_lit, enemy_lit) = (lit(friendly), lit(enemy));
+    let lights = |fleet: &[BattleRuntimeShip], flare: i64| NightLights {
+        star_shell: flare >= 0,
+        searchlight: lit(fleet),
+    };
+    let friendly_lights = lights(friendly, params.flare_pos[0]);
+    let enemy_lights = lights(enemy, params.flare_pos[1]);
 
     for idx in 0..friendly.len().max(enemy.len()) {
         if idx < friendly.len() {
@@ -988,7 +973,7 @@ pub(crate) fn simulate_night_hougeki(
                 forms,
                 params.air_state,
                 params,
-                (false, enemy_lit),
+                (false, friendly_lights, enemy_lights),
                 &mut hougeki,
             );
         }
@@ -1006,7 +991,7 @@ pub(crate) fn simulate_night_hougeki(
                 forms,
                 enemy_air.as_ref(),
                 params,
-                (true, friendly_lit),
+                (true, enemy_lights, friendly_lights),
                 &mut hougeki,
             );
         }
@@ -1029,7 +1014,7 @@ fn night_turn(
     (attacker_formation, defender_formation): (i64, i64),
     air_state: Option<&AirState>,
     params: &NightBattleParams,
-    (attacker_is_enemy, defenders_lit): (bool, bool),
+    (attacker_is_enemy, own, theirs): (bool, NightLights, NightLights),
     hougeki: &mut BattleNightHougeki,
 ) {
     let ship = &mut attackers[idx];
@@ -1039,7 +1024,7 @@ fn night_turn(
     // `nightPhaseTarget`: a carrier marked 3 takes a surface ship only while the fleet she
     // attacks has its searchlight lit. In the dark she is left the submarines, if she can
     // attack one.
-    let target = if abyssal_night_attack(ship) == 3 && !defenders_lit {
+    let target = if abyssal_night_attack(ship) == 3 && !theirs.searchlight {
         if !can_attack_submarine_night_shelling(codex, ship) {
             return;
         }
@@ -1064,13 +1049,14 @@ fn night_turn(
         }
         None => false,
     };
-    let is_submarine = target_class(codex, &defenders[target_idx]).is_submarine();
-    let attack_type = resolve_night_attack(codex, rng, ship, idx == 0, is_submarine);
+    let target = target_class(codex, &defenders[target_idx]);
+    let is_submarine = target.is_submarine();
+    let (attack_type, multiplier) =
+        resolve_night_attack(codex, rng, ship, idx == 0, target, (own, theirs));
     // A submarine is not attacked from the air at night.
     let air_power =
         (!is_submarine && can_night_air_attack(codex, ship)).then(|| night_air_power(codex, ship));
     let hits = attack_type.hit_count();
-    let multiplier = attack_type.damage_multiplier();
 
     let mut hit_damages = Vec::new();
     let mut hit_cls = Vec::new();
@@ -1162,6 +1148,17 @@ mod tests {
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
 
+    /// The chance that `kind` comes up for a ship nothing is lit for.
+    fn trigger_rate(
+        codex: &Codex,
+        ship: &BattleRuntimeShip,
+        kind: NightAttackType,
+        is_flagship: bool,
+    ) -> f64 {
+        let lights = (NightLights::default(), NightLights::default());
+        night_cut_in_chance(codex, ship, is_flagship, lights) * 0.01 / kind.chance_modifier()
+    }
+
     #[test]
     fn night_ci_triple_main_gun_detects_as_main_main_main() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
@@ -1194,7 +1191,7 @@ mod tests {
         let rt = BattleRuntimeShip::from(ship);
         let attack = detect_night_attack_type(&codex, &rt);
         assert_eq!(attack, NightAttackType::TorpTorpTorp);
-        assert!((attack.damage_multiplier() - 1.3).abs() < f64::EPSILON);
+        assert!((attack.damage_multiplier() - 1.5).abs() < f64::EPSILON);
         assert_eq!(attack.hit_count(), 2);
     }
 
@@ -1219,7 +1216,7 @@ mod tests {
     }
 
     #[test]
-    fn night_double_attack_with_main_and_torpedo() {
+    fn a_main_gun_with_a_torpedo_is_a_cut_in_without_a_radar() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
         let main_gun_mst_id =
@@ -1231,9 +1228,9 @@ mod tests {
             vec![slotitem_with_mst_id(main_gun_mst_id), slotitem_with_mst_id(torp_mst_id)];
         let rt = BattleRuntimeShip::from(ship);
         let attack = detect_night_attack_type(&codex, &rt);
-        assert_eq!(attack, NightAttackType::DoubleAttack);
+        assert_eq!(attack, NightAttackType::MainTorp);
         assert_eq!(attack.hit_count(), 2);
-        assert!((attack.damage_multiplier() - 1.2).abs() < f64::EPSILON);
+        assert!((attack.damage_multiplier() - 1.3).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -1249,8 +1246,8 @@ mod tests {
         high_luck_ship.ship.api_lucky = [80, 99];
         let rt_high = BattleRuntimeShip::from(high_luck_ship);
 
-        let rate_low = night_ci_trigger_rate(&rt_low, NightAttackType::TorpTorpTorp, false);
-        let rate_high = night_ci_trigger_rate(&rt_high, NightAttackType::TorpTorpTorp, false);
+        let rate_low = trigger_rate(&codex, &rt_low, NightAttackType::TorpTorpTorp, false);
+        let rate_high = trigger_rate(&codex, &rt_high, NightAttackType::TorpTorpTorp, false);
         assert!(
             rate_high > rate_low,
             "higher luck should give higher CI rate: {rate_high} > {rate_low}"
@@ -1294,6 +1291,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         )
         .unwrap();
@@ -1347,6 +1345,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         )
         .unwrap();
@@ -1394,6 +1393,7 @@ mod tests {
                         engagement: EngagementType::SameCourse,
                         air_state: None,
                         night_start,
+                        flare_pos: [-1, -1],
                     },
                 )
                 .unwrap();
@@ -1502,6 +1502,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         );
 
@@ -1550,6 +1551,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         );
 
@@ -1570,7 +1572,7 @@ mod tests {
         let radar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
 
         // Ship with 1 main gun + 2 torpedoes + 1 radar
-        // Should detect TorpTorpTorp (priority 3), NOT MainTorpRadar (priority 4)
+        // Should detect TorpTorpTorp (priority 3), NOT MainTorp (priority 4)
         let mut ship = sample_ship(&codex, dd_mst, 99);
         ship.slot_items = vec![
             slotitem_with_mst_id(main_gun_mst_id),
@@ -1583,25 +1585,23 @@ mod tests {
         assert_eq!(
             attack,
             NightAttackType::TorpTorpTorp,
-            "ship with 2 torpedoes should get TorpTorpTorp, not MainTorpRadar"
+            "ship with 2 torpedoes should get TorpTorpTorp, not MainTorp"
         );
     }
 
     #[test]
-    fn night_ci_trigger_rate_uses_total_luck_with_equipment() {
+    fn night_ci_trigger_rate_uses_current_luck_not_its_maximum() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
 
-        // Ship with low base luck but high total luck (via equipment)
+        // `api_lucky` is the current luck and the most it can be modernised to.
         let mut ship = sample_ship(&codex, dd_mst, 99);
-        ship.ship.api_lucky = [10, 80]; // base=10, total=80
+        ship.ship.api_lucky = [80, 99];
         let rt = BattleRuntimeShip::from(ship);
 
-        let rate = night_ci_trigger_rate(&rt, NightAttackType::TorpTorpTorp, false);
-        // With total luck 80, we should get the higher-luck formula (>65)
-        // ci_value = 65 + sqrt(80-50) + floor(0.8*sqrt(99)) = 65 + ~5.48 + ~7.92 = ~78.4
-        // rate = 78.4 / 122 ≈ 0.64
-        assert!(rate > 0.5, "total luck (api_lucky[1]=80) should give rate > 0.5, got {rate}");
+        let rate = trigger_rate(&codex, &rt, NightAttackType::TorpTorpTorp, false);
+        // 65 + floor(sqrt(80 - 50)) + floor(0.8 * sqrt(99)) = 77, over 122.
+        assert!((rate - 0.77 / 1.22).abs() < 1e-9, "got {rate}");
     }
 
     #[test]
@@ -1621,8 +1621,8 @@ mod tests {
         ship_chuuha.ship.api_maxhp = 100;
         let rt_chuuha = BattleRuntimeShip::from(ship_chuuha);
 
-        let rate_healthy = night_ci_trigger_rate(&rt_healthy, NightAttackType::TorpTorpTorp, false);
-        let rate_chuuha = night_ci_trigger_rate(&rt_chuuha, NightAttackType::TorpTorpTorp, false);
+        let rate_healthy = trigger_rate(&codex, &rt_healthy, NightAttackType::TorpTorpTorp, false);
+        let rate_chuuha = trigger_rate(&codex, &rt_chuuha, NightAttackType::TorpTorpTorp, false);
 
         assert!(
             rate_chuuha > rate_healthy,
@@ -1656,9 +1656,9 @@ mod tests {
         ship_healthy.ship.api_maxhp = 100;
         let rt_healthy = BattleRuntimeShip::from(ship_healthy);
 
-        let rate_chuuha = night_ci_trigger_rate(&rt_chuuha, NightAttackType::TorpTorpTorp, false);
-        let rate_taiha = night_ci_trigger_rate(&rt_taiha, NightAttackType::TorpTorpTorp, false);
-        let rate_healthy = night_ci_trigger_rate(&rt_healthy, NightAttackType::TorpTorpTorp, false);
+        let rate_chuuha = trigger_rate(&codex, &rt_chuuha, NightAttackType::TorpTorpTorp, false);
+        let rate_taiha = trigger_rate(&codex, &rt_taiha, NightAttackType::TorpTorpTorp, false);
+        let rate_healthy = trigger_rate(&codex, &rt_healthy, NightAttackType::TorpTorpTorp, false);
 
         assert!(
             rate_chuuha > rate_taiha,
@@ -1689,8 +1689,9 @@ mod tests {
         ship_taiha.ship.api_maxhp = 100;
         let rt_taiha = BattleRuntimeShip::from(ship_taiha);
 
-        let rate_chuuha = dd_ci_trigger_rate(&codex, &rt_chuuha, DdCiType::TorpTorpLookout, false);
-        let rate_taiha = dd_ci_trigger_rate(&codex, &rt_taiha, DdCiType::TorpTorpLookout, false);
+        let rate_chuuha =
+            trigger_rate(&codex, &rt_chuuha, NightAttackType::DdTorpTorpLookout, false);
+        let rate_taiha = trigger_rate(&codex, &rt_taiha, NightAttackType::DdTorpTorpLookout, false);
 
         assert!(
             rate_chuuha > rate_taiha,
@@ -1716,8 +1717,8 @@ mod tests {
         ship_healthy.ship.api_maxhp = 100;
         let rt_healthy = BattleRuntimeShip::from(ship_healthy);
 
-        let rate_25 = night_ci_trigger_rate(&rt_25, NightAttackType::TorpTorpTorp, false);
-        let rate_healthy = night_ci_trigger_rate(&rt_healthy, NightAttackType::TorpTorpTorp, false);
+        let rate_25 = trigger_rate(&codex, &rt_25, NightAttackType::TorpTorpTorp, false);
+        let rate_healthy = trigger_rate(&codex, &rt_healthy, NightAttackType::TorpTorpTorp, false);
 
         assert_eq!(
             rate_25, rate_healthy,
@@ -1743,9 +1744,9 @@ mod tests {
         ship_healthy.ship.api_maxhp = 100;
         let rt_healthy = BattleRuntimeShip::from(ship_healthy);
 
-        let rate_25 = dd_ci_trigger_rate(&codex, &rt_25, DdCiType::TorpTorpLookout, false);
+        let rate_25 = trigger_rate(&codex, &rt_25, NightAttackType::DdTorpTorpLookout, false);
         let rate_healthy =
-            dd_ci_trigger_rate(&codex, &rt_healthy, DdCiType::TorpTorpLookout, false);
+            trigger_rate(&codex, &rt_healthy, NightAttackType::DdTorpTorpLookout, false);
 
         assert_eq!(
             rate_25, rate_healthy,
@@ -1771,8 +1772,8 @@ mod tests {
         ship_healthy.ship.api_maxhp = 100;
         let rt_healthy = BattleRuntimeShip::from(ship_healthy);
 
-        let rate_50 = night_ci_trigger_rate(&rt_50, NightAttackType::TorpTorpTorp, false);
-        let rate_healthy = night_ci_trigger_rate(&rt_healthy, NightAttackType::TorpTorpTorp, false);
+        let rate_50 = trigger_rate(&codex, &rt_50, NightAttackType::TorpTorpTorp, false);
+        let rate_healthy = trigger_rate(&codex, &rt_healthy, NightAttackType::TorpTorpTorp, false);
 
         assert!(
             rate_50 > rate_healthy,
@@ -1798,9 +1799,9 @@ mod tests {
         ship_healthy.ship.api_maxhp = 100;
         let rt_healthy = BattleRuntimeShip::from(ship_healthy);
 
-        let rate_50 = dd_ci_trigger_rate(&codex, &rt_50, DdCiType::TorpTorpLookout, false);
+        let rate_50 = trigger_rate(&codex, &rt_50, NightAttackType::DdTorpTorpLookout, false);
         let rate_healthy =
-            dd_ci_trigger_rate(&codex, &rt_healthy, DdCiType::TorpTorpLookout, false);
+            trigger_rate(&codex, &rt_healthy, NightAttackType::DdTorpTorpLookout, false);
 
         assert!(
             rate_50 > rate_healthy,
@@ -1816,7 +1817,7 @@ mod tests {
         // 4=カットイン(主砲/主砲/副砲), 5=カットイン(主砲/主砲/主砲)
         assert_eq!(NightAttackType::Normal.api_sp_list(), 0);
         assert_eq!(NightAttackType::DoubleAttack.api_sp_list(), 1);
-        assert_eq!(NightAttackType::MainTorpRadar.api_sp_list(), 2);
+        assert_eq!(NightAttackType::MainTorp.api_sp_list(), 2);
         assert_eq!(NightAttackType::TorpTorpTorp.api_sp_list(), 3);
         assert_eq!(NightAttackType::MainMainSec.api_sp_list(), 4);
         assert_eq!(NightAttackType::MainMainMain.api_sp_list(), 5);
@@ -1896,7 +1897,7 @@ mod tests {
         let main_gun_mst_id =
             first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
         let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
-        let radar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
+        let radar_mst_id = 28; // 22号対水上電探: the destroyer cut-ins want a surface radar
 
         let mut ship = sample_ship(&codex, dd_mst, 99);
         ship.slot_items = vec![
@@ -1906,10 +1907,10 @@ mod tests {
         ];
         let rt = BattleRuntimeShip::from(ship);
 
-        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::GunTorpRadar));
-        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::TorpLookoutRadar));
-        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::TorpTorpLookout));
-        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::TorpDrumLookout));
+        assert!(night_attack_types(&codex, &rt).contains(&NightAttackType::DdGunTorpRadar));
+        assert!(!night_attack_types(&codex, &rt).contains(&NightAttackType::DdTorpLookoutRadar));
+        assert!(!night_attack_types(&codex, &rt).contains(&NightAttackType::DdTorpTorpLookout));
+        assert!(!night_attack_types(&codex, &rt).contains(&NightAttackType::DdTorpDrumLookout));
     }
 
     #[test]
@@ -1918,7 +1919,7 @@ mod tests {
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
         let torp_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Torpedo);
         let lookout_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SeaplanePersonnel);
-        let radar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallRadar);
+        let radar_mst_id = 28; // 22号対水上電探: the destroyer cut-ins want a surface radar
 
         let mut ship = sample_ship(&codex, dd_mst, 99);
         ship.slot_items = vec![
@@ -1928,8 +1929,8 @@ mod tests {
         ];
         let rt = BattleRuntimeShip::from(ship);
 
-        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::GunTorpRadar));
-        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::TorpLookoutRadar));
+        assert!(!night_attack_types(&codex, &rt).contains(&NightAttackType::DdGunTorpRadar));
+        assert!(night_attack_types(&codex, &rt).contains(&NightAttackType::DdTorpLookoutRadar));
     }
 
     #[test]
@@ -1946,8 +1947,8 @@ mod tests {
         ];
         let rt = BattleRuntimeShip::from(ship);
 
-        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::TorpTorpLookout));
-        assert!(!detect_dd_ci_type(&codex, &rt, DdCiType::GunTorpRadar));
+        assert!(night_attack_types(&codex, &rt).contains(&NightAttackType::DdTorpTorpLookout));
+        assert!(!night_attack_types(&codex, &rt).contains(&NightAttackType::DdGunTorpRadar));
     }
 
     #[test]
@@ -1965,7 +1966,7 @@ mod tests {
         ];
         let rt = BattleRuntimeShip::from(ship);
 
-        assert!(detect_dd_ci_type(&codex, &rt, DdCiType::TorpDrumLookout));
+        assert!(night_attack_types(&codex, &rt).contains(&NightAttackType::DdTorpDrumLookout));
     }
 
     #[test]
@@ -1986,9 +1987,9 @@ mod tests {
         ];
         let rt = BattleRuntimeShip::from(ship);
 
-        // Standard detection for CL finds MainTorpRadar (not DD CI)
+        // Standard detection for CL finds MainTorp (not DD CI)
         let attack = detect_night_attack_type(&codex, &rt);
-        assert_eq!(attack, NightAttackType::MainTorpRadar, "CL should get standard CI, not DD CI");
+        assert_eq!(attack, NightAttackType::MainTorp, "CL should get standard CI, not DD CI");
     }
 
     #[test]
@@ -2037,8 +2038,8 @@ mod tests {
         high_luck.ship.api_lucky = [80, 90];
         let rt_high = BattleRuntimeShip::from(high_luck);
 
-        let rate_low = dd_ci_trigger_rate(&codex, &rt_low, DdCiType::GunTorpRadar, false);
-        let rate_high = dd_ci_trigger_rate(&codex, &rt_high, DdCiType::GunTorpRadar, false);
+        let rate_low = trigger_rate(&codex, &rt_low, NightAttackType::DdGunTorpRadar, false);
+        let rate_high = trigger_rate(&codex, &rt_high, NightAttackType::DdGunTorpRadar, false);
         assert!(
             rate_high > rate_low,
             "DD CI: higher luck should give higher rate: {rate_high} > {rate_low}"
@@ -2054,8 +2055,8 @@ mod tests {
         ship.ship.api_lucky = [50, 50];
         let rt = BattleRuntimeShip::from(ship);
 
-        let rate_normal = dd_ci_trigger_rate(&codex, &rt, DdCiType::GunTorpRadar, false);
-        let rate_flagship = dd_ci_trigger_rate(&codex, &rt, DdCiType::GunTorpRadar, true);
+        let rate_normal = trigger_rate(&codex, &rt, NightAttackType::DdGunTorpRadar, false);
+        let rate_flagship = trigger_rate(&codex, &rt, NightAttackType::DdGunTorpRadar, true);
         assert!(rate_flagship > rate_normal, "flagship should get +15 bonus");
     }
 
@@ -2388,7 +2389,8 @@ mod tests {
         let resolved = (0..50)
             .map(|seed| {
                 let rng = &mut crate::random::SeededRng::new(seed);
-                resolve_night_attack(&codex, rng, &cl, false, false)
+                let lights = (NightLights::default(), NightLights::default());
+                resolve_night_attack(&codex, rng, &cl, false, TargetClass::SurfaceShip, lights).0
             })
             .collect::<Vec<_>>();
         assert!(resolved.contains(&NightAttackType::Normal));
@@ -2502,15 +2504,15 @@ mod tests {
         use CarrierNightCiSubType::*;
         let nf2na = NightAttackType::CarrierNightCI(Nf2Na);
         assert_eq!(nf2na.damage_multiplier(), 1.25);
-        assert_eq!(nf2na.ci_coefficient(), 105.0);
+        assert_eq!(nf2na.chance_modifier(), 1.05);
 
         let nf1na = NightAttackType::CarrierNightCI(Nf1Na);
         assert_eq!(nf1na.damage_multiplier(), 1.20);
-        assert_eq!(nf1na.ci_coefficient(), 120.0);
+        assert_eq!(nf1na.chance_modifier(), 1.2);
 
         let nf1other = NightAttackType::CarrierNightCI(Nf1Other);
         assert_eq!(nf1other.damage_multiplier(), 1.18);
-        assert_eq!(nf1other.ci_coefficient(), 130.0);
+        assert_eq!(nf1other.chance_modifier(), 1.3);
 
         for sub in [Nf2Na, Nf1Na, Nf1Kk, Na1Kk, Nf1Nb, Na1Nb, Nb1Kk, Nf1Other] {
             assert_eq!(NightAttackType::CarrierNightCI(sub).api_sp_list(), 6);
@@ -2526,9 +2528,9 @@ mod tests {
         ship.ship.api_lucky = [99, 99];
         let rt = BattleRuntimeShip::from(ship);
 
-        let rate_nf2na = night_ci_trigger_rate(&rt, NightAttackType::CarrierNightCI(Nf2Na), true);
+        let rate_nf2na = trigger_rate(&codex, &rt, NightAttackType::CarrierNightCI(Nf2Na), true);
         let rate_nf1other =
-            night_ci_trigger_rate(&rt, NightAttackType::CarrierNightCI(Nf1Other), true);
+            trigger_rate(&codex, &rt, NightAttackType::CarrierNightCI(Nf1Other), true);
 
         // The carrier night CI rate is now non-zero (the stub returned 0.0 and never fired).
         assert!(rate_nf2na > 0.0, "carrier night CI must produce a non-zero trigger rate");
@@ -2614,6 +2616,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         )
         .expect("a night hougeki occurs")
@@ -2748,6 +2751,7 @@ mod tests {
                 engagement: EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         )
         .unwrap();
@@ -2802,6 +2806,7 @@ mod tests {
             engagement: EngagementType::SameCourse,
             air_state: None,
             night_start: false,
+            flare_pos: [-1, -1],
         };
         // simulate_night_hougeki takes (friendly, enemy); the defending pair is
         // friendly when the enemy attacks it, enemy when the friendly attacks it.
@@ -3044,6 +3049,7 @@ mod display_narrowing_tests {
                 engagement: crate::types::EngagementType::SameCourse,
                 air_state: None,
                 night_start: false,
+                flare_pos: [-1, -1],
             },
         )
         .unwrap();
@@ -3246,5 +3252,360 @@ mod abyssal_carrier_tests {
             let target = abyssal(&codex, WO, 100);
             assert_eq!(flags_of(&codex, ship, target, false), [0], "{bearn}");
         }
+    }
+}
+
+#[cfg(test)]
+mod attack_type_tests {
+    use std::collections::VecDeque;
+
+    use emukc_model::codex::Codex;
+    use emukc_model::kc2::KcShipType;
+
+    use super::*;
+    use crate::test_utils::{first_ship_mst_by_type, sample_ship, slotitem_with_mst_id};
+
+    const MAIN: i64 = 2; // 12.7cm連装砲
+    const SECONDARY: i64 = 11; // 15.2cm単装砲
+    const TORPEDO: i64 = 13; // 61cm三連装魚雷
+    const AIR_RADAR: i64 = 27; // 13号対空電探, 3 line of sight
+    const SURFACE_RADAR: i64 = 28; // 22号対水上電探, 5 line of sight
+    const SEARCHLIGHT: i64 = 74;
+    const STAR_SHELL: i64 = 101;
+    const SUB_RADAR: i64 = 210; // 潜水艦搭載電探&水防式望遠鏡
+    const LATE_TORPEDO: i64 = 213; // 後期型艦首魚雷(6門)
+
+    const DARK: (NightLights, NightLights) = (
+        NightLights {
+            star_shell: false,
+            searchlight: false,
+        },
+        NightLights {
+            star_shell: false,
+            searchlight: false,
+        },
+    );
+
+    /// Hands out the rolls it was given, and panics on one more.
+    struct Rolls(VecDeque<f64>);
+
+    impl BattleRng for Rolls {
+        fn random_f64_range(&mut self, min: f64, max: f64) -> f64 {
+            min + (max - min) * self.0.pop_front().expect("an unexpected roll")
+        }
+
+        fn roll_range_impl(&mut self, _min: i64, _max: i64) -> i64 {
+            panic!("an unexpected roll")
+        }
+    }
+
+    fn codex() -> Codex {
+        Codex::load_without_cache_source("../../.data/codex").unwrap()
+    }
+
+    /// A ship of the type with 30 luck: at level 50 her cut-in chance is 50.
+    fn ship(codex: &Codex, kind: KcShipType, level: i64, equipment: &[i64]) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, first_ship_mst_by_type(codex, kind), level);
+        ship.ship.api_lucky = [30, 30];
+        ship.slot_items = equipment.iter().copied().map(slotitem_with_mst_id).collect();
+        BattleRuntimeShip::from(ship)
+    }
+
+    /// Her attack with the rolls given, every one of which she must use.
+    fn attack(
+        codex: &Codex,
+        ship: &BattleRuntimeShip,
+        target: TargetClass,
+        rolls: &[f64],
+    ) -> (i64, f64) {
+        let mut rng = Rolls(rolls.iter().copied().collect());
+        let (kind, damage) = resolve_night_attack(codex, &mut rng, ship, false, target, DARK);
+        assert!(rng.0.is_empty(), "rolls left over");
+        (kind.api_sp_list(), damage)
+    }
+
+    fn types(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<i64> {
+        night_attack_types(codex, ship).into_iter().map(NightAttackType::api_sp_list).collect()
+    }
+
+    #[test]
+    fn the_night_attack_table_follows_the_source() {
+        // (id, dmgMod, accMod, chanceMod, numHits, torpedo, replace, replaceChance) as
+        // `NBATTACKDATA` gives them and `scripts/gen_night_attack_table.py` prints them.
+        let source = [
+            (1, 1.2, 1.1, 0.0, 2, false, 0, 0.0),
+            (2, 1.3, 1.5, 1.15, 2, true, 0, 0.0),
+            (3, 1.5, 1.65, 1.22, 2, true, 0, 0.0),
+            (4, 1.75, 1.5, 1.3, 1, false, 0, 0.0),
+            (5, 2.0, 2.0, 1.4, 1, false, 0, 0.0),
+            (7, 1.3, 1.1, 1.15, 1, false, 11, 0.65),
+            (8, 1.2, 1.65, 1.4, 1, false, 12, 0.5),
+            (9, 1.5, 1.65, 1.25, 1, false, 13, 0.875),
+            (10, 1.3, 1.5, 1.22, 1, false, 14, 0.55),
+            (11, 1.3, 1.1, 1.3, 2, false, 0, 0.0),
+            (12, 1.2, 1.65, 1.4, 2, false, 0, 0.0),
+            (13, 1.5, 1.65, 1.25, 2, false, 0, 0.0),
+            (14, 1.3, 1.5, 1.22, 2, false, 0, 0.0),
+        ];
+        let table: Vec<_> = NIGHT_ATTACKS
+            .iter()
+            .map(|row| {
+                (
+                    row.id,
+                    row.damage,
+                    row.accuracy,
+                    row.chance,
+                    row.hits,
+                    row.torpedo,
+                    row.replace,
+                    row.replace_chance,
+                )
+            })
+            .collect();
+        assert_eq!(table, source);
+        // Every row is an attack type, and the other way round.
+        let tabled: Vec<_> =
+            NightAttackType::TABLED.iter().map(|kind| kind.api_sp_list()).collect();
+        assert_eq!(tabled, source.map(|row| row.0));
+        assert_eq!(
+            (SPECIAL_TORPEDO_IDS.len(), SPECIAL_TORPEDO_IDS.iter().sum::<i64>()),
+            (8, 3_124)
+        );
+    }
+
+    #[test]
+    fn a_ship_has_one_general_attack_type() {
+        let codex = codex();
+        let general =
+            |equipment: &[i64]| types(&codex, &ship(&codex, KcShipType::CL, 50, equipment));
+        assert_eq!(general(&[MAIN, MAIN, MAIN, TORPEDO, TORPEDO]), [5]);
+        assert_eq!(general(&[MAIN, MAIN, SECONDARY, TORPEDO, TORPEDO]), [4]);
+        assert_eq!(general(&[MAIN, SECONDARY, TORPEDO, TORPEDO]), [3]);
+        // A main gun with a torpedo is a cut-in, with or without a radar, and not a double
+        // attack.
+        assert_eq!(general(&[MAIN, SECONDARY, TORPEDO]), [2]);
+        assert_eq!(general(&[MAIN, TORPEDO, SURFACE_RADAR]), [2]);
+        assert_eq!(general(&[MAIN, SECONDARY]), [1]);
+        assert_eq!(general(&[SECONDARY, SECONDARY]), [1]);
+        assert_eq!(general(&[MAIN, MAIN]), [1]);
+        assert_eq!(general(&[SECONDARY, TORPEDO]), [0; 0]);
+        assert_eq!(general(&[MAIN]), [0; 0]);
+    }
+
+    #[test]
+    fn a_failed_cut_in_is_a_plain_attack() {
+        let codex = codex();
+        let surface = TargetClass::SurfaceShip;
+        // Three main guns at a chance of 50: 0.5 / 1.4.
+        let guns = ship(&codex, KcShipType::CL, 50, &[MAIN, MAIN, MAIN]);
+        assert_eq!(attack(&codex, &guns, surface, &[0.35]), (5, 2.0));
+        assert_eq!(attack(&codex, &guns, surface, &[0.36]), (0, 1.0));
+        // A main gun with a torpedo hits twice at 1.3, and falls back on nothing.
+        let mixed = ship(&codex, KcShipType::CL, 50, &[MAIN, TORPEDO]);
+        assert_eq!(attack(&codex, &mixed, surface, &[0.43]), (2, 1.3));
+        assert_eq!(attack(&codex, &mixed, surface, &[0.44]), (0, 1.0));
+        assert_eq!(NightAttackType::MainTorp.hit_count(), 2);
+        // The double attack comes up 99 times in 100.
+        let double = ship(&codex, KcShipType::CL, 50, &[MAIN, SECONDARY]);
+        assert_eq!(attack(&codex, &double, surface, &[0.98]), (1, 1.2));
+        assert_eq!(attack(&codex, &double, surface, &[0.99]), (0, 1.0));
+        // A ship with nothing to roll for rolls nothing, and neither does one facing a
+        // submarine.
+        let plain = ship(&codex, KcShipType::CL, 50, &[MAIN]);
+        assert_eq!(attack(&codex, &plain, surface, &[]), (0, 1.0));
+        assert_eq!(attack(&codex, &guns, TargetClass::Submarine, &[]), (0, 1.0));
+    }
+
+    #[test]
+    fn the_cut_in_chance_follows_the_source() {
+        let codex = codex();
+        let lit = NightLights {
+            star_shell: true,
+            searchlight: true,
+        };
+        let dark = NightLights::default();
+        let chance = |ship: &BattleRuntimeShip, flagship, lights| {
+            night_cut_in_chance(&codex, ship, flagship, lights)
+        };
+        // floor(30 + 15 + sqrt(50) * 0.75), and 15 more for the flagship.
+        let cl = ship(&codex, KcShipType::CL, 50, &[]);
+        assert_eq!(chance(&cl, false, DARK), 50.0);
+        assert_eq!(chance(&cl, true, DARK), 65.0);
+        // 65 + floor(sqrt(60 - 50)) + floor(sqrt(99) * 0.8).
+        let mut lucky = ship(&codex, KcShipType::CL, 99, &[]);
+        lucky.ship.api_lucky = [60, 60];
+        assert_eq!(chance(&lucky, false, DARK), 75.0);
+        // Her own star shell and searchlight add 4 and 7; the enemy's take 10 and 5.
+        assert_eq!(chance(&cl, false, (lit, dark)), 61.0);
+        assert_eq!(chance(&cl, false, (dark, lit)), 35.0);
+        // The two lookouts add up; the torpedo squadron's counts on a destroyer, a light
+        // cruiser and a torpedo cruiser only.
+        let lookouts =
+            |kind| chance(&ship(&codex, kind, 50, &[LOOKOUT_ID, SKILLED_LOOKOUT_ID]), false, DARK);
+        assert_eq!(lookouts(KcShipType::DD), 63.0);
+        assert_eq!(lookouts(KcShipType::CL), 63.0);
+        assert_eq!(lookouts(KcShipType::CA), 55.0);
+        // Moderate damage adds 18 whatever the cut-in.
+        let at = |hp| {
+            let mut cl = ship(&codex, KcShipType::CL, 50, &[]);
+            cl.ship.api_maxhp = 100;
+            cl.set_hp_for_debug(hp);
+            chance(&cl, false, DARK)
+        };
+        assert_eq!([at(51), at(50), at(26)], [50.0, 68.0, 68.0]);
+    }
+
+    #[test]
+    fn a_destroyer_rolls_her_own_cut_ins_first_and_in_the_source_order() {
+        let codex = codex();
+        let surface = TargetClass::SurfaceShip;
+        let all = [MAIN, TORPEDO, TORPEDO, SURFACE_RADAR, SKILLED_LOOKOUT_ID, DRUM_ID];
+        assert_eq!(types(&codex, &ship(&codex, KcShipType::DD, 50, &all)), [7, 8, 9, 10, 3]);
+        // They are a destroyer's alone, and want a surface radar.
+        assert_eq!(types(&codex, &ship(&codex, KcShipType::CL, 50, &all)), [3]);
+        let air = [MAIN, TORPEDO, AIR_RADAR];
+        assert_eq!(types(&codex, &ship(&codex, KcShipType::DD, 50, &air)), [2]);
+
+        // Each is rolled for on its own: 0.5 / 1.15 for the first, then her general cut-in.
+        let dd = ship(&codex, KcShipType::DD, 50, &[MAIN, TORPEDO, SURFACE_RADAR]);
+        assert_eq!(types(&codex, &dd), [7, 2]);
+        assert_eq!(attack(&codex, &dd, surface, &[0.43]), (7, 1.3));
+        assert_eq!(attack(&codex, &dd, surface, &[0.44, 0.43]), (2, 1.3));
+        assert_eq!(attack(&codex, &dd, surface, &[0.44, 0.44]), (0, 1.0));
+    }
+
+    #[test]
+    fn a_destroyer_of_level_80_may_make_her_cut_in_twice() {
+        let codex = codex();
+        let surface = TargetClass::SurfaceShip;
+        let gear = [MAIN, TORPEDO, SURFACE_RADAR];
+        // Level 80 with 30 luck: floor(30 + 15 + sqrt(80) * 0.75) = 51.
+        let dd = ship(&codex, KcShipType::DD, 80, &gear);
+        // The roll for the second hit comes first, under 0.65, and the two-hit attack is
+        // then rolled for at its own 0.51 / 1.3.
+        assert_eq!(attack(&codex, &dd, surface, &[0.64, 0.39]), (11, 1.3));
+        assert_eq!(attack(&codex, &dd, surface, &[0.64, 0.40, 0.99]), (0, 1.0));
+        assert_eq!(attack(&codex, &dd, surface, &[0.65, 0.40]), (7, 1.3));
+        assert_eq!(NightAttackType::DdGunTorpRadar2.hit_count(), 2);
+        // Below level 80 there is no such roll.
+        let dd = ship(&codex, KcShipType::DD, 79, &gear);
+        assert_eq!(attack(&codex, &dd, surface, &[0.0]), (7, 1.3));
+    }
+
+    #[test]
+    fn the_d_type_guns_raise_the_destroyer_cut_ins_made_with_a_radar() {
+        let codex = codex();
+        let damage = |equipment: &[i64]| {
+            let dd = ship(&codex, KcShipType::DD, 50, equipment);
+            attack(&codex, &dd, TargetClass::SurfaceShip, &[0.0])
+        };
+        let close = |(kind, damage): (i64, f64), wanted: f64| {
+            assert_eq!(kind, 7);
+            assert!((damage - wanted).abs() < 1e-9, "{damage} is not {wanted}");
+        };
+        close(damage(&[D_GUN_K2_ID, TORPEDO, SURFACE_RADAR]), 1.3 * 1.25);
+        close(damage(&[D_GUN_K3_ID, TORPEDO, SURFACE_RADAR]), 1.3 * 1.25 * 1.05);
+        close(damage(&[D_GUN_K2_ID, D_GUN_K3_ID, TORPEDO, SURFACE_RADAR]), 1.3 * 1.4 * 1.05);
+        close(damage(&[D_GUN_K3_ID, D_GUN_K3_ID, TORPEDO, SURFACE_RADAR]), 1.3 * 1.4 * 1.1);
+        // Not the two made without a radar.
+        let lookout = damage(&[D_GUN_K2_ID, TORPEDO, TORPEDO, SKILLED_LOOKOUT_ID]);
+        assert_eq!(lookout.0, 9);
+        assert!((lookout.1 - 1.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn late_model_torpedoes_raise_a_submarine_torpedo_cut_in() {
+        let codex = codex();
+        let surface = TargetClass::SurfaceShip;
+        let sub = |equipment: &[i64]| ship(&codex, KcShipType::SS, 50, equipment);
+        // With her radar one late-model torpedo counts as two: 1.75 at 0.5 / 1.05.
+        let radar = sub(&[LATE_TORPEDO, SUB_RADAR]);
+        assert_eq!(types(&codex, &radar), [3]);
+        assert_eq!(attack(&codex, &radar, surface, &[0.47]), (3, 1.75));
+        assert_eq!(attack(&codex, &radar, surface, &[0.48]), (0, 1.0));
+        // Two of them without it: 1.6 at 0.5 / 1.1.
+        let two = sub(&[LATE_TORPEDO, LATE_TORPEDO]);
+        assert_eq!(attack(&codex, &two, surface, &[0.45]), (3, 1.6));
+        assert_eq!(attack(&codex, &two, surface, &[0.46]), (0, 1.0));
+        // One alone is a torpedo like another: 1.5 at 0.5 / 1.22.
+        let one = sub(&[LATE_TORPEDO, TORPEDO]);
+        assert_eq!(attack(&codex, &one, surface, &[0.40]), (3, 1.5));
+        assert_eq!(attack(&codex, &one, surface, &[0.41]), (0, 1.0));
+        assert_eq!(types(&codex, &sub(&[LATE_TORPEDO])), [0; 0]);
+    }
+
+    #[test]
+    fn a_torpedo_cut_in_is_not_made_on_an_installation() {
+        let codex = codex();
+        let land = TargetClass::Installation;
+        // Without two guns there is nothing left to roll for.
+        let mixed = ship(&codex, KcShipType::CL, 50, &[MAIN, TORPEDO]);
+        assert_eq!(attack(&codex, &mixed, land, &[]), (0, 1.0));
+        // With two she double attacks instead.
+        let guns = ship(&codex, KcShipType::CL, 50, &[MAIN, SECONDARY, TORPEDO, TORPEDO]);
+        assert_eq!(types(&codex, &guns), [3]);
+        assert_eq!(attack(&codex, &guns, land, &[0.98]), (1, 1.2));
+        assert_eq!(attack(&codex, &guns, land, &[0.99]), (0, 1.0));
+        // A destroyer cut-in needs a main gun there.
+        let lookout = [TORPEDO, TORPEDO, SKILLED_LOOKOUT_ID];
+        let dd = ship(&codex, KcShipType::DD, 50, &lookout);
+        assert_eq!(types(&codex, &dd), [9, 3]);
+        assert_eq!(attack(&codex, &dd, land, &[]), (0, 1.0));
+        let dd = ship(&codex, KcShipType::DD, 50, &[MAIN, TORPEDO, SURFACE_RADAR]);
+        assert_eq!(attack(&codex, &dd, land, &[0.0]), (7, 1.3));
+    }
+
+    #[test]
+    fn the_first_ship_to_roll_under_seventy_fires_her_star_shell() {
+        let codex = codex();
+        let mut holed = ship(&codex, KcShipType::DD, 50, &[STAR_SHELL]);
+        holed.set_hp_for_debug(4);
+        let fleet = [
+            ship(&codex, KcShipType::DD, 50, &[SEARCHLIGHT]),
+            holed,
+            ship(&codex, KcShipType::DD, 50, &[STAR_SHELL]),
+            ship(&codex, KcShipType::DD, 50, &[STAR_SHELL]),
+        ];
+        let fire = |rolls: &[f64]| {
+            let mut rng = Rolls(rolls.iter().copied().collect());
+            let fired = roll_star_shells(&codex, &mut rng, &fleet, &fleet[..1]);
+            assert!(rng.0.is_empty(), "rolls left over");
+            fired
+        };
+        // A fleet without one rolls nothing; a ship with 4 HP does not fire hers.
+        assert_eq!(fire(&[0.69]), [2, -1]);
+        assert_eq!(fire(&[0.7, 0.0]), [3, -1]);
+        assert_eq!(fire(&[0.7, 0.7]), [-1, -1]);
+    }
+
+    #[test]
+    fn the_packet_carries_a_mixed_cut_in_as_type_two_with_the_gun_first() {
+        let codex = codex();
+        let mut lucky = ship(&codex, KcShipType::CL, 99, &[TORPEDO, MAIN, SURFACE_RADAR]);
+        lucky.ship.api_lucky = [99, 99];
+        let friendly = vec![lucky];
+        let enemy = vec![ship(&codex, KcShipType::BB, 99, &[])];
+        let hougeki = (0..20)
+            .find_map(|seed| {
+                simulate_night_hougeki(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &mut friendly.clone(),
+                    &mut enemy.clone(),
+                    &NightBattleParams {
+                        friendly_formation_id: 1,
+                        enemy_formation_id: 1,
+                        engagement: crate::types::EngagementType::SameCourse,
+                        air_state: None,
+                        night_start: false,
+                        flare_pos: [-1, -1],
+                    },
+                )
+                .filter(|hougeki| hougeki.api_sp_list[0] == 2)
+            })
+            .expect("a mixed cut-in in 20 seeds");
+        assert_eq!(hougeki.api_damage[0].len(), 2);
+        assert_eq!(hougeki.api_df_list[0].len(), 2);
+        assert_eq!(hougeki.api_si_list[0], SiListId::text_from_i64(&[MAIN, TORPEDO]));
     }
 }

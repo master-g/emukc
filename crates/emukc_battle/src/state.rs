@@ -343,6 +343,7 @@ impl BattleState {
         friendly_maxhps: Vec<i64>,
         enemy_nowhps: Vec<i64>,
         enemy_maxhps: Vec<i64>,
+        flare_pos: [i64; 2],
         hougeki: Option<crate::types::BattleNightHougeki>,
     ) -> NightBattleSimulation {
         verify_protected_ships_alive(&self.friendly);
@@ -364,7 +365,7 @@ impl BattleState {
             enemy_nowhps,
             enemy_maxhps,
             touch_plane: [-1, -1],
-            flare_pos: [-1, -1],
+            flare_pos,
             hougeki,
         };
 

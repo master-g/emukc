@@ -304,6 +304,7 @@ pub(crate) fn remap_night_packet_enemy(packet: &mut NightBattlePacket) {
             0,
         );
     }
+    packet.flare_pos[1] = remap_index(packet.flare_pos[1], 0);
 }
 
 /// Rewrite a whole day packet for a combined fleet whose 第2艦隊 starts at
@@ -339,6 +340,7 @@ pub(crate) fn remap_night_packet(packet: &mut NightBattlePacket) {
     if let Some(hougeki) = packet.hougeki.as_mut() {
         remap_night_hougeki(hougeki, 0);
     }
+    packet.flare_pos[0] = remap_index(packet.flare_pos[0], 0);
 }
 
 #[cfg(test)]

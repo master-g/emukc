@@ -26,6 +26,7 @@ pub(crate) mod day_attack;
 pub(crate) mod day_cutin;
 pub(crate) mod kouku;
 pub(crate) mod night;
+pub(crate) mod night_attack_table;
 pub(crate) mod shelling;
 pub(crate) mod special_attack;
 pub(crate) mod torpedo;
@@ -388,7 +389,7 @@ fn execute_closing_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
     }
 }
 
-/// Simulate a night battle.
+/// Simulate a night battle. The star shells are rolled for first, then the attacks.
 pub(crate) fn simulate_night(
     codex: &Codex,
     input: NightBattleInput,
@@ -408,6 +409,7 @@ pub(crate) fn simulate_night(
     let entry_friendly_maxhps = friendly.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let entry_enemy_nowhps = enemy.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
     let entry_enemy_maxhps = enemy.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
+    let flare_pos = night::roll_star_shells(codex, rng, &friendly, &enemy);
     let hougeki = night::simulate_night_hougeki(
         codex,
         rng,
@@ -419,6 +421,7 @@ pub(crate) fn simulate_night(
             engagement,
             air_state: air_state.as_ref(),
             night_start,
+            flare_pos,
         },
     );
 
@@ -436,6 +439,7 @@ pub(crate) fn simulate_night(
         entry_friendly_maxhps,
         entry_enemy_nowhps,
         entry_enemy_maxhps,
+        flare_pos,
         hougeki,
     )
 }
