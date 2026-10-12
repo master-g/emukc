@@ -384,7 +384,7 @@ pub(crate) fn can_attack_night_ship(codex: &Codex, ship: &BattleRuntimeShip) -> 
                     || crate::simulation::night::abyssal_night_attack(ship) != 0)
                     && ship.hp() * 4 > ship.ship.api_maxhp)
         }
-        // `Ship.canNB`, which a submarine has no other of.
+        // `Ship.canNB`; `SS` does not override it.
         _ => ship.hp() * 4 > ship.ship.api_maxhp,
     }
 }

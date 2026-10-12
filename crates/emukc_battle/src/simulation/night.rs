@@ -802,6 +802,9 @@ fn night_attack_display_ids(
     let drums = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         slot_type == KcSlotItemType3::TransportContainer
     });
+    let sub_radars = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::SubmarineEquipment
+    });
     let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         is_day_surface_display_type(slot_type)
     });
@@ -835,10 +838,7 @@ fn night_attack_display_ids(
         // `CutinSpRR` reads two pieces without a check. A submarine who makes the cut-in with
         // one late-model torpedo and her radar shows the radar second.
         NightAttackType::TorpTorpTorp => {
-            extend_limit(&mut ids, &torpedoes, 2);
-            let sub_radars = collect_matching_slot_ids(codex, ship, |slot_type, _| {
-                slot_type == KcSlotItemType3::SubmarineEquipment
-            });
+            extend_limit(&mut ids, &torpedoes, 3);
             extend_limit(&mut ids, &sub_radars, 2);
         }
         // DD CI: TRL (魚雷+見張員+電探)
@@ -3669,7 +3669,7 @@ mod attack_type_tests {
 
     #[test]
     fn a_ship_attacks_at_night_with_more_than_a_quarter_of_her_hull() {
-        // `Ship.canNB`, which a submarine has no other of.
+        // `Ship.canNB`; `SS` does not override it.
         let codex = codex();
         let attacks =
             |kind, hp| can_attack_night_ship(&codex, &at_hp(ship(&codex, kind, 50, &[]), hp));
@@ -3747,6 +3747,12 @@ mod attack_type_tests {
             cut_ins.len()
         };
         assert!(cut_ins(&[LATE_TORPEDO, LATE_TORPEDO], &[LATE_TORPEDO, LATE_TORPEDO]) > 0);
+        // Three torpedoes are shown as before.
+        let three = ship(&codex, KcShipType::SS, 50, &[TORPEDO; 3]);
+        assert_eq!(
+            night_attack_display_ids(&codex, &three, NightAttackType::TorpTorpTorp),
+            [TORPEDO; 3]
+        );
         // `CutinSpRR` reads both pieces without a check: her radar stands for the second.
         assert!(cut_ins(&[LATE_TORPEDO, SUB_RADAR], &[LATE_TORPEDO, SUB_RADAR]) > 0);
     }

@@ -22,7 +22,8 @@ execution: code
 - `kcsim.js` 1739 行 `nightPhaseTarget`：`canASWNight()` 为真的舰先打潜艇，否则打水面舰。
   `Ship.canASW` 默认返回 false，`SS` 没有改写它，所以潜水艦只打水面舰；敌我全是潜艇时没有目标、不出手。
 - `kcships.js` 1557 行 `NBPower`：火力加雷装加改修。潜水艦唯一的专属项是打陆上目标且有对应倍率时火力加 30
-  （`this.isSub ? this.FP + 30 : this.FP`）；本项目的夜战伤害没有陆上倍率这一层，所以这一项现在走不到，没有做。
+  （`this.isSub ? this.FP + 30 : this.FP`），且打陆上目标不加雷装。本项目的夜战伤害没有陆上这一层（一律火力加雷装），
+  属伤害公式、在范围外，没有做；潜水艦打陆上目标因此偏高，已记入 `night-attack-types.md` 的 Known gaps。
 - `kcsim.js` 741 行：中破加成写作 `HP/maxHP <= .5`，而 `NBattack` 第一行就是 `if (!ship.canNB()) return false`。
 
 **客户端（`main.decoded.js`，夜战的 `PhaseHougekiBase`）：**
@@ -36,7 +37,7 @@ execution: code
 ## 规格没有写明的几处
 
 1. **一条後期型魚雷加潜水艦電探组成的魚雷切入，第二件展示電探。** 原来只发一件魚雷，在客户端会抛异常
-   （见上）。现在种别 3 取两件魚雷，不够时用潜水艦電探补上。实机发什么没有样本，这是照客户端的读法定的。
+   （见上）。现在魚雷不足两件时用潜水艦電探补上第二件；魚雷的取法（至多三件）不变。实机发什么没有样本，这是照客户端的读法定的。
 2. **潜水艦的普通攻击不点名装备**（`api_si_list` 是 `-1`），客户端照样演成雷击。没有改。
 3. **`is_chuuha` 没有动。** 它的下界（四分之一以上）在大破的舰不出手之后走不到，与来源的 `<= .5` 等价；
    用户故事 8 的不一致由出手资格本身消除。`night_ci_taiha_no_chuuha_bonus` 与 `dd_ci_taiha_no_chuuha_bonus`

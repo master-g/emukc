@@ -101,6 +101,9 @@ counterpart here.
 - A cut-in or double attack that misses does 0 here; the source gives it scratch damage.
 - A star shell's +5 to accuracy, and a searchlight's effects on who is fired at.
 - The night Zuiun cut-in and the fleet special attacks are other paths in the source.
+- A night attack on an installation is firepower plus torpedo here. The source drops the
+  torpedo and gives a submarine 30 firepower there (`NBPower`); now that submarines attack,
+  theirs is the attack this overstates most.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
 - Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
   submarine's torpedo cut-in with her radar and her plain attack (`night_asw`). Not played: 4,

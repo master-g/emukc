@@ -199,7 +199,7 @@ Current verification baseline:
 ## Next Session
 
 - [2026-10-12] 周常重置读系统时钟还没有规格。
-  #64 留下的见计划 2026-10-12-005 的 Scope 与 Risks（`battle sim` 受损分布没跑、`special_attack.rs` 的运没核对）。
+  #64 留下的见计划 2026-10-12-005 的 Scope 与 Risks。
   #53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。
