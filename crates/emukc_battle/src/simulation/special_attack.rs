@@ -492,7 +492,7 @@ fn check_qe_attack(
 
 fn nelson_touch_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
-    let flag_luck = flagship.ship.api_lucky[1].max(0) as f64;
+    let flag_luck = flagship.ship.api_lucky[0].max(0) as f64;
     let third_lv = fleet.get(2).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
     let fifth_lv = fleet.get(4).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
     let total =
@@ -503,8 +503,8 @@ fn nelson_touch_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) 
 fn nagato_broadside_rate(flagship: &BattleRuntimeShip, companion: &BattleRuntimeShip) -> f64 {
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
     let comp_lv = companion.ship.api_lv.max(1) as f64;
-    let flag_luck = flagship.ship.api_lucky[1].max(0) as f64;
-    let comp_luck = companion.ship.api_lucky[1].max(0) as f64;
+    let flag_luck = flagship.ship.api_lucky[0].max(0) as f64;
+    let comp_luck = companion.ship.api_lucky[0].max(0) as f64;
     let total =
         30.0 + flag_lv.sqrt() + comp_lv.sqrt() + 1.2 * (flag_luck.sqrt() + comp_luck.sqrt());
     (total / 140.0).clamp(0.0, 1.0)
@@ -512,7 +512,7 @@ fn nagato_broadside_rate(flagship: &BattleRuntimeShip, companion: &BattleRuntime
 
 fn colorado_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
-    let flag_luck = flagship.ship.api_lucky[1].max(0) as f64;
+    let flag_luck = flagship.ship.api_lucky[0].max(0) as f64;
     let second_lv = fleet.get(1).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
     let third_lv = fleet.get(2).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
     let total = 30.0 + flag_lv.sqrt() + second_lv.sqrt() + third_lv.sqrt() + 1.2 * flag_luck.sqrt();
@@ -521,7 +521,7 @@ fn colorado_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f
 
 fn three_ship_special_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
-    let flag_luck = flagship.ship.api_lucky[1].max(0) as f64;
+    let flag_luck = flagship.ship.api_lucky[0].max(0) as f64;
     let second_lv = fleet.get(1).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
     let third_lv = fleet.get(2).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
     let total = 20.0 + flag_lv.sqrt() + second_lv.sqrt() + third_lv.sqrt() + 1.2 * flag_luck.sqrt();
@@ -1146,5 +1146,29 @@ mod tests {
             assert!(!special(&second), "seed {seed}: made again in the second round");
         }
         assert!(made > 0, "no seed made the special attack, so nothing was tested");
+    }
+
+    #[test]
+    fn the_trigger_rates_read_the_current_luck_not_what_it_can_be_modernised_to() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let fleet = |luck: [i64; 2]| {
+            let mut ship = sample_bb_at(&codex, bb, 99);
+            ship.ship.api_lucky = luck;
+            vec![ship; 6]
+        };
+        let rates = |luck| {
+            let fleet = fleet(luck);
+            [
+                nelson_touch_rate(&fleet[0], &fleet),
+                nagato_broadside_rate(&fleet[0], &fleet[1]),
+                colorado_rate(&fleet[0], &fleet),
+                three_ship_special_rate(&fleet[0], &fleet),
+            ]
+        };
+        assert_eq!(rates([10, 100]), rates([10, 10]));
+        for (current, cap) in rates([10, 10]).into_iter().zip(rates([100, 100])) {
+            assert!(current < cap);
+        }
     }
 }

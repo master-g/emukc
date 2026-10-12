@@ -360,7 +360,7 @@ fn day_ci_trigger_rate(
     is_flagship: bool,
     at_type: DayAttackType,
 ) -> f64 {
-    let luck = ship.ship.api_lucky[1].max(0) as f64;
+    let luck = ship.ship.api_lucky[0].max(0) as f64;
     let los_equip = ship_los_from_equipment(codex, ship);
 
     let base = match air_state {
@@ -1008,5 +1008,25 @@ mod tests {
             rate_high >= rate_low,
             "higher equipment LoS must not reduce trigger rate: {rate_high} >= {rate_low}"
         );
+    }
+
+    #[test]
+    fn the_day_cut_in_chance_reads_the_current_luck_not_what_it_can_be_modernised_to() {
+        // `ASchance`: `Math.sqrt(this.LUK)`.
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let rate = |luck: [i64; 2]| {
+            let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
+            input.ship.api_lucky = luck;
+            day_ci_trigger_rate(
+                &codex,
+                &BattleRuntimeShip::from(input),
+                &AirState::Supremacy,
+                0,
+                false,
+                DayAttackType::DoubleAttack,
+            )
+        };
+        assert_eq!(rate([9, 100]), rate([9, 9]));
+        assert!(rate([9, 9]) < rate([100, 100]));
     }
 }
