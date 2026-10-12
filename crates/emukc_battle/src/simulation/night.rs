@@ -648,6 +648,8 @@ fn resolve_dd_night_attack(
 /// Returns true if the ship qualifies for night double-attack: two guns between main and
 /// secondary (`NBtypes`, `mguns + sguns >= 2`), or a main gun and a torpedo.
 fn is_double_attack_eligible(main_guns: usize, sec_guns: usize, torps: usize) -> bool {
+    // ponytail: a main gun with a torpedo is a cut-in in the source (`NBtypes` 1440); it stays
+    // a double attack here until the night cut-in table is redone against it.
     (main_guns + sec_guns >= 2) || (main_guns >= 1 && torps >= 1)
 }
 
@@ -658,6 +660,11 @@ fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAtt
         && let Some(sub) = detect_carrier_night_ci_sub_type(codex, ship)
     {
         return NightAttackType::CarrierNightCI(sub);
+    }
+    // `CV.NBtypes`: a carrier flying with a night air group has the carrier cut-ins and no
+    // other; her guns do not come into it.
+    if can_night_air_attack(codex, ship) && has_night_air_gear(codex, ship) {
+        return NightAttackType::Normal;
     }
 
     let main_guns = count_main_guns(codex, ship);
@@ -769,11 +776,13 @@ fn resolve_night_attack(
             return NightAttackType::Normal;
         }
         // Failed CI -> check for double attack fallback
+        // ponytail: the source has no such fallback (a failed cut-in is a plain attack); it
+        // is kept as it was, for a ship with a main gun, until the cut-in table is redone.
         let main_guns = count_main_guns(codex, ship);
         let sec_guns = count_secondary_guns(codex, ship);
         let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
             + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
-        if is_double_attack_eligible(main_guns, sec_guns, torps) {
+        if main_guns >= 1 && is_double_attack_eligible(main_guns, sec_guns, torps) {
             NightAttackType::DoubleAttack
         } else {
             NightAttackType::Normal
@@ -2024,8 +2033,9 @@ mod tests {
     const GRAF_ZEPPELIN: i64 = NIGHT_SHELLING_CV_IDS[0];
     const GRAF_ZEPPELIN_KAI: i64 = NIGHT_SHELLING_CV_IDS[1];
     const SECONDARY_GUN: i64 = 11; // 15.2cm単装砲
+    const TORPEDO: i64 = 13; // 61cm三連装魚雷
     const AUTOGYRO: i64 = 69; // カ号観測機
-    const TAIYOU_K2: i64 = 529; // 大鷹改二, a 軽空母 that shells at night
+    const TAIYOU_K2: i64 = NIGHT_SHELLING_CV_IDS[3]; // 大鷹改二, a 軽空母
 
     #[test]
     fn a_night_air_attack_needs_a_night_air_group_and_a_working_deck() {
@@ -2179,10 +2189,13 @@ mod tests {
         // She does not fly at a submarine, and a double attack is gunfire.
         let hunter = night_carrier(&codex, RYUUHOU_K2E_ID, &[(NF, 10, 0)], 100);
         assert_eq!(flag_against(hunter, ss).0, 0);
-        let guns = [CREW, (NF, 10, 0), (SECONDARY_GUN, 0, 0), (SECONDARY_GUN, 0, 0)];
-        let gunned = night_carrier(&codex, GRAF_ZEPPELIN_KAI, &guns, 100);
-        assert!(can_night_air_attack(&codex, &gunned));
+        // Two secondary guns make a double attack of her gunfire, and nothing of her flight.
+        let gun = (SECONDARY_GUN, 0, 0);
+        let gunned = night_carrier(&codex, GRAF_ZEPPELIN_KAI, &[gun, gun], 100);
         assert_eq!(flag_against(gunned, dd), (0, NightAttackType::DoubleAttack.api_sp_list()));
+        let flown = night_carrier(&codex, GRAF_ZEPPELIN_KAI, &[CREW, (NF, 10, 0), gun, gun], 100);
+        assert!(can_night_air_attack(&codex, &flown));
+        assert_eq!(flag_against(flown, dd), (1, NightAttackType::Normal.api_sp_list()));
         assert_eq!(flag_of(night_carrier(&codex, GRAF_ZEPPELIN, &[], 100)), 0);
         assert_eq!(flag_of(BattleRuntimeShip::from(sample_ship(&codex, dd, 50))), 0);
     }
@@ -2248,6 +2261,23 @@ mod tests {
         let gun = (SECONDARY_GUN, 0, 0);
         assert_eq!(attack(&[gun, gun]), NightAttackType::DoubleAttack);
         assert_eq!(attack(&[gun]), NightAttackType::Normal);
+        // A carrier flying with a night air group does not go by her guns.
+        assert_eq!(attack(&[CREW, (NF, 10, 0), gun, gun]), NightAttackType::Normal);
+
+        // A failed torpedo cut-in does not fall back on two secondary guns.
+        let mut cl = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CL), 50);
+        cl.slot_items =
+            [SECONDARY_GUN, SECONDARY_GUN, TORPEDO, TORPEDO].map(slotitem_with_mst_id).to_vec();
+        let cl = BattleRuntimeShip::from(cl);
+        assert_eq!(detect_night_attack_type(&codex, &cl), NightAttackType::TorpTorpTorp);
+        let resolved = (0..50)
+            .map(|seed| {
+                let rng = &mut crate::random::SeededRng::new(seed);
+                resolve_night_attack(&codex, rng, &cl, false, false)
+            })
+            .collect::<Vec<_>>();
+        assert!(resolved.contains(&NightAttackType::Normal));
+        assert!(!resolved.contains(&NightAttackType::DoubleAttack));
     }
 
     // ── Carrier night CI: sub-types, eligibility, enum, trigger (U1-U4) ───────

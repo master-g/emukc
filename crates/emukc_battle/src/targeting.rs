@@ -470,8 +470,8 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
             | KcShipType::CT
             | KcShipType::AO,
         ) => true,
-        // `canASWNight`: a light carrier needs anti-submarine of her own and no aircraft for
-        // it; a fleet or armoured carrier does not attack a submarine at night.
+        // `canASWNight`: a light carrier needs anti-submarine of her own, with or without
+        // aircraft for it; a fleet or armoured carrier does not attack a submarine at night.
         Some(KcShipType::CVL) => can_attack_night_ship(codex, ship) && bare_asw(codex, ship) > 0,
         _ => false,
     }
@@ -480,10 +480,9 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
 /// A ship's anti-submarine without her equipment or what it grants: grown with her level, plus
 /// 近代化改修, as `Codex::cal_ship_status` builds it.
 fn bare_asw(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+    const ASW_MODERNIZATION: usize = 6;
     codex.find_ship_extra(ship.ship.api_ship_id).map_or(0, |basic| {
-        (basic.tais[1] - basic.tais[0]) * ship.ship.api_lv / 99
-            + basic.tais[0]
-            + ship.ship.api_kyouka[6]
+        Codex::stat_at_level(ship.ship.api_lv, basic.tais) + ship.ship.api_kyouka[ASW_MODERNIZATION]
     })
 }
 

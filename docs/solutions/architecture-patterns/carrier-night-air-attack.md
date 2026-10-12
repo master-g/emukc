@@ -79,7 +79,9 @@ without equipment or what it grants); a fleet or armoured carrier never. The att
 for scratch damage and is not flown.
 
 Two guns between main and secondary make a double attack (`NBtypes`), so Graf Zeppelin with two
-secondary guns makes one; `api_n_mother_list` is 0 for it even when she could fly.
+secondary guns makes one. That is her gunfire only: a carrier flying with a night air group has
+the carrier cut-ins and no other attack type (`CV.NBtypes`), so with the same two guns and a
+night air group she flies a plain night air attack, flag 1.
 
 ## What the client is told
 
@@ -112,4 +114,5 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - A night attack on a submarine still always lands for scratch damage, so proficiency reaches
   the day attack on a submarine only.
 - A main gun with a torpedo counts as a double attack here; the source makes it a cut-in
-  (`NBtypes` 1440).
+  (`NBtypes` 1440). A failed cut-in falls back on a double attack for a ship with a main gun;
+  the source has no such fallback. Both wait for the night cut-in table to be redone.
