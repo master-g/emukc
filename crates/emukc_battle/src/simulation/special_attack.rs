@@ -586,6 +586,16 @@ pub(crate) fn try_special_attack(
 // Execution
 // ---------------------------------------------------------------------------
 
+/// `getSpecialAttackMod`: a Nelson Touch at T disadvantage is worth 1.25 again, 2.5 in all.
+fn engagement_multiplier(attack_type: SpecialAttackType, engagement: EngagementType) -> f64 {
+    if attack_type == SpecialAttackType::NelsonTouch && engagement == EngagementType::TDisadvantage
+    {
+        1.25
+    } else {
+        1.0
+    }
+}
+
 /// Execute a resolved special attack, producing hougeki entries.
 pub(crate) fn execute_special_attack(
     codex: &Codex,
@@ -604,13 +614,7 @@ pub(crate) fn execute_special_attack(
     // `apiAdjustHougekiSpecial` folds them into one.
     let (mut targets, mut damages, mut hits) = (Vec::new(), Vec::new(), Vec::new());
 
-    // T-disadvantage multiplier for Nelson Touch
-    let t_disadv = matches!(params.engagement, EngagementType::TDisadvantage);
-    let base_multiplier = if resolved.attack_type == SpecialAttackType::NelsonTouch && t_disadv {
-        2.5
-    } else {
-        1.0
-    };
+    let base_multiplier = engagement_multiplier(resolved.attack_type, params.engagement);
 
     for (i, participant) in resolved.participants.iter().enumerate() {
         let fleet_idx = participant.fleet_index;
@@ -645,11 +649,7 @@ pub(crate) fn execute_special_attack(
             continue;
         }
 
-        let total_mult = if base_multiplier != 1.0 {
-            participant.multiplier * base_multiplier
-        } else {
-            participant.multiplier
-        };
+        let total_mult = participant.multiplier * base_multiplier;
         let equip_mult = resolved.equip_bonuses.get(i).copied().unwrap_or(1.0);
 
         let num_hits = if matches!(
@@ -1408,5 +1408,17 @@ mod tests {
             vec![with(NAGATO_K2_ID, &[SG_RADAR_LATE_ID]), with(MUTSU_K2_ID, &[SG_RADAR_LATE_ID])];
         let resolved = check_nagato_broadside(&codex, &nagato, FORMATION_ECHELON).unwrap();
         assert!(resolved.equip_bonuses.iter().all(|bonus| (bonus - 1.15).abs() < 1e-9));
+    }
+
+    /// The source: `mod = 2`, and `mod *= 1.25` at T disadvantage. wikiwiki: 「T不利時に発動
+    /// すると、倍率が2.5倍に上昇」. It was the 2.0 of each ship times 2.5.
+    #[test]
+    fn a_nelson_touch_at_t_disadvantage_is_two_and_a_half_times() {
+        use SpecialAttackType::{ColoradoBroadside, NelsonTouch};
+
+        assert_eq!(2.0 * engagement_multiplier(NelsonTouch, EngagementType::TDisadvantage), 2.5);
+        assert_eq!(engagement_multiplier(NelsonTouch, EngagementType::TAdvantage), 1.0);
+        assert_eq!(engagement_multiplier(NelsonTouch, EngagementType::SameCourse), 1.0);
+        assert_eq!(engagement_multiplier(ColoradoBroadside, EngagementType::TDisadvantage), 1.0);
     }
 }
