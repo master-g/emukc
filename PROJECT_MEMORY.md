@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 昼战切入与特殊砲撃的发动率改读当前的运，特殊砲撃去掉除数、三条无出处的式子改用長門型（计划 2026-10-12-006），已合并（PR #68）。
+- [2026-10-12] Colorado 特殊砲撃的 SG レーダー(後期型) +5%（计划 2026-10-12-006 的「补」），分支 `feat/colorado-sg-radar-rate`，未合并。
   质量门通过，基线没有变化。
 
 ## Next Session
