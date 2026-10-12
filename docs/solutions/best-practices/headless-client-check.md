@@ -128,6 +128,13 @@ screen, pass steps on the command line and read the screenshots:
   be of a type her equipment makes, with the hits that type has, the mixed cut-in to show the
   gun and then the torpedo, and at least one cut-in; it fails when none comes up or the day
   ends the battle. The run of 2026-10-12 played types 2, 5 and 7 and the star shell.
+- `kongou_night_assault` is the same sortie led by 金剛改二丙 with a 32号対水上電探 and
+  榛名改二乙, both short of ammunition so that the enemy lives into the night. The check wants
+  a row of type 104 in the flagship's turn with her hit and her partner's (hers alone if it
+  sinks the last enemy) and no second row of hers; it fails when the assault does not come up
+  (78 in 100) or the day ends the battle. Seven runs on 2026-10-12: played four times, once
+  with two hits and three times with one, without a page error. One of them found the
+  cut-in's voice (`kcs/sound/kc…/991.mp3`) missing from the cache list.
 - `enemy_night_carrier` sends 金剛 and three destroyers to 2-5, where a battleship with fewer
   than four destroyers is routed to C: its flagship 軽母ヌ級flagship attacks at night. The check
   wants an attack of hers in the night packet, not said to be flown (she has no night crew);

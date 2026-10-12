@@ -20,8 +20,8 @@ use crate::targeting::{
     select_random_target_index, select_submarine_target, ship_type, target_class,
 };
 use crate::types::{
-    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams,
-    SiListId, TargetClass,
+    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
+    NightBattleParams, SiListId, TargetClass,
 };
 
 // ---------------------------------------------------------------------------
@@ -931,6 +931,195 @@ pub(crate) fn roll_star_shells(
     [fire(friendly), fire(enemy)]
 }
 
+// ---------------------------------------------------------------------------
+// 僚艦夜戦突撃 (the Kongou class's night assault, `api_sp_list` 104)
+// ---------------------------------------------------------------------------
+
+const KONGOU_ASSAULT_SP: i64 = 104;
+
+/// Who makes it as flagship, with whom in the second place, and what a surface radar of 8
+/// line of sight or more and a large searchlight on the flagship add to the rate (wikiwiki
+/// 金剛改二丙; the pairs are the source's `canSpecialAttackUnique` as well).
+const KONGOU_ASSAULT_SHIPS: &[(i64, &[i64], f64, f64)] = &[
+    (591, &[592, 151, 593, 954, 694, 439, 364, 927, 733], 30.0, 10.0), // 金剛改二丙
+    (592, &[591, 152, 694, 593, 954], 10.0, 30.0),                     // 比叡改二丙
+    (593, &[591, 592, 694], 15.0, 0.0),                                // 榛名改二乙
+    (954, &[591, 592, 694], 20.0, 0.0),                                // 榛名改二丙
+    (694, &[591, 592, 593, 954, 697], 20.0, 20.0),                     // 霧島改二丙
+];
+/// 単縦陣, 梯形陣, 第二 and 第四警戒航行序列.
+const KONGOU_ASSAULT_FORMATIONS: [i64; 4] = [1, 4, 12, 14];
+/// 35.6cm連装砲改二 and 改三(ダズル迷彩仕様). The source has 529 for the first, a destroyer's gun.
+const KONGOU_ASSAULT_GUNS_A: [i64; 2] = [329, 502];
+/// 35.6cm連装砲改四 and 改三丙.
+const KONGOU_ASSAULT_GUNS_B: [i64; 2] = [503, 530];
+
+/// The chance that the fleet's flagship and second ship make the night assault, or `None` if
+/// they cannot: the pair, neither heavily damaged, five surface ships afloat and a formation
+/// for it.
+fn kongou_assault_rate(
+    codex: &Codex,
+    fleet: &[BattleRuntimeShip],
+    formation_id: i64,
+) -> Option<f64> {
+    let (flagship, partner) = (fleet.first()?, fleet.get(1)?);
+    let (_, partners, radar, searchlight) =
+        KONGOU_ASSAULT_SHIPS.iter().find(|(id, ..)| *id == flagship.ship.api_ship_id)?;
+    let afloat = fleet
+        .iter()
+        .filter(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
+        .count();
+    if !partners.contains(&partner.ship.api_ship_id)
+        || !KONGOU_ASSAULT_FORMATIONS.contains(&formation_id)
+        || [flagship, partner].iter().any(|ship| ship.hp() * 4 <= ship.ship.api_maxhp)
+        || afloat < 5
+    {
+        return None;
+    }
+
+    let root = |value: i64| (value.max(0) as f64).sqrt();
+    let mut rate = 3.5 * (root(flagship.ship.api_lv) + root(partner.ship.api_lv))
+        + 1.1 * (root(flagship.ship.api_lucky[0]) + root(partner.ship.api_lucky[0]))
+        - 33.0;
+    let has_radar = flagship.slot_items.iter().any(|slot_item| {
+        codex
+            .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&slot_item.api_slotitem_id)
+            .is_ok_and(|mst| {
+                KcSlotItemType3::n(mst.api_type[2]).is_some_and(is_radar_type) && mst.api_saku >= 8
+            })
+    });
+    if has_radar {
+        rate += radar;
+    }
+    if count_equipment_type(codex, flagship, KcSlotItemType3::LargeSearchlight) > 0 {
+        rate += searchlight;
+    }
+    Some((rate.floor() / 100.0).clamp(0.0, 1.0))
+}
+
+/// What one of the two hits with, before the cap: 2.6 for the flagship and 2.7 for her partner,
+/// by the engagement, and by her own guns.
+fn kongou_assault_multiplier(
+    ship: &BattleRuntimeShip,
+    is_flagship: bool,
+    engagement: EngagementType,
+) -> f64 {
+    let guns = |ids: [i64; 2]| {
+        ship.slot_items.iter().filter(|slot_item| ids.contains(&slot_item.api_slotitem_id)).count()
+    };
+    let base = if is_flagship {
+        2.6
+    } else {
+        2.7
+    };
+    let engagement = match engagement {
+        EngagementType::TAdvantage => 1.25,
+        EngagementType::TDisadvantage => 0.8,
+        _ => 1.0,
+    };
+    let guns_a = match guns(KONGOU_ASSAULT_GUNS_A) {
+        0 => 1.0,
+        1 => 1.05,
+        _ => 1.08,
+    };
+    let guns_b = match guns(KONGOU_ASSAULT_GUNS_B) {
+        0 => 1.0,
+        1 => 1.11,
+        _ => 1.15,
+    };
+    base * engagement * guns_a * guns_b
+}
+
+/// The night assault in the friendly flagship's turn, if it comes up: one row, the flagship's
+/// hit and then her partner's, each on a surface ship of her own choosing. Rolls nothing unless
+/// the fleet can make it and there is a surface ship to attack.
+fn kongou_night_assault(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    friendly: &mut [BattleRuntimeShip],
+    enemy: &mut [BattleRuntimeShip],
+    (friendly_formation, enemy_formation): (i64, i64),
+    params: &NightBattleParams,
+    hougeki: &mut BattleNightHougeki,
+) -> bool {
+    let Some(rate) = kongou_assault_rate(codex, friendly, friendly_formation) else {
+        return false;
+    };
+    let surface =
+        |ship: &BattleRuntimeShip| ship.is_alive() && !target_class(codex, ship).is_submarine();
+    if !enemy.iter().any(surface) || rng.random_f64_range(0.0, 1.0) >= rate {
+        return false;
+    }
+
+    let (mut targets, mut hits, mut damages) = (Vec::new(), Vec::new(), Vec::new());
+    for (at, ship) in friendly.iter_mut().take(2).enumerate() {
+        let Some(mut target_idx) =
+            select_random_target_index(codex, rng, ship, enemy, BattlePhase::NightShelling)
+                .filter(|target| surface(&enemy[*target]))
+        else {
+            continue;
+        };
+        let shield = match crate::targeting::select_escort_shield(
+            codex,
+            rng,
+            enemy,
+            target_idx,
+            enemy_formation,
+        ) {
+            Some(escort) => {
+                target_idx = escort;
+                true
+            }
+            None => false,
+        };
+        // `getSpecialAttackMod`: 1.4 to her accuracy.
+        let aim =
+            Aim::new(AttackKind::Night, friendly_formation, enemy_formation).with_modifier(1.4);
+        let outcome = roll_attack(codex, rng, ship, &enemy[target_idx], aim);
+        let raw = calculate_night_damage(
+            codex,
+            rng,
+            ship,
+            &enemy[target_idx],
+            params.air_state,
+            Some(kongou_assault_multiplier(ship, at == 0, params.engagement)),
+            None,
+            outcome,
+        );
+        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
+        ship.damage_dealt += dealt;
+        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
+        targets.push(target_idx as i64);
+        hits.push(outcome.cl());
+        damages.push(if shield {
+            DamageCell::Shielded(display)
+        } else {
+            DamageCell::Plain(display)
+        });
+    }
+    if targets.is_empty() {
+        return true;
+    }
+
+    // The client draws the two from the fleet's first places and reads no equipment.
+    let shown =
+        collect_matching_slot_ids(codex, &friendly[0], |slot_type, _| is_main_gun_type(slot_type));
+    let mut ids = Vec::new();
+    extend_limit(&mut ids, &shown, 3);
+    if ids.is_empty() {
+        ids.push(-1);
+    }
+    hougeki.api_at_eflag.push(0);
+    hougeki.api_at_list.push(0);
+    hougeki.api_n_mother_list.push(0);
+    hougeki.api_df_list.push(targets);
+    hougeki.api_si_list.push(SiListId::text_from_i64(&ids));
+    hougeki.api_cl_list.push(hits);
+    hougeki.api_sp_list.push(KONGOU_ASSAULT_SP);
+    hougeki.api_damage.push(damages);
+    true
+}
+
 /// Simulate the night battle hougeki phase. The two fleets fire in turn down
 /// their lines, the friendly side first: its first ship, the enemy's first,
 /// its second, and so on.
@@ -972,18 +1161,23 @@ pub(crate) fn simulate_night_hougeki(
     for idx in 0..friendly.len().max(enemy.len()) {
         if idx < friendly.len() {
             let forms = (friendly_form, enemy_form);
-            night_turn(
-                codex,
-                rng,
-                friendly,
-                idx,
-                enemy,
-                forms,
-                params.air_state,
-                params,
-                (false, friendly_lights, enemy_lights),
-                &mut hougeki,
-            );
+            // Her partner keeps her own turn.
+            if idx != 0
+                || !kongou_night_assault(codex, rng, friendly, enemy, forms, params, &mut hougeki)
+            {
+                night_turn(
+                    codex,
+                    rng,
+                    friendly,
+                    idx,
+                    enemy,
+                    forms,
+                    params.air_state,
+                    params,
+                    (false, friendly_lights, enemy_lights),
+                    &mut hougeki,
+                );
+            }
         }
         if !any_alive(enemy) {
             break;
@@ -3755,5 +3949,146 @@ mod attack_type_tests {
         );
         // `CutinSpRR` reads both pieces without a check: her radar stands for the second.
         assert!(cut_ins(&[LATE_TORPEDO, SUB_RADAR], &[LATE_TORPEDO, SUB_RADAR]) > 0);
+    }
+
+    const KONGOU: i64 = 591; // 金剛改二丙
+    const HIEI: i64 = 592; // 比叡改二丙
+    const HARUNA_B: i64 = 593; // 榛名改二乙
+    const SURFACE_RADAR_10: i64 = 31; // 32号対水上電探, 10 line of sight
+    const LARGE_SEARCHLIGHT: i64 = 140; // 96式150cm探照灯
+
+    fn battleship(
+        codex: &Codex,
+        mst_id: i64,
+        level: i64,
+        luck: i64,
+        equipment: &[i64],
+    ) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, mst_id, level);
+        ship.ship.api_lucky = [luck, 99];
+        ship.slot_items = equipment.iter().copied().map(slotitem_with_mst_id).collect();
+        at_hp(BattleRuntimeShip::from(ship), 100)
+    }
+
+    /// A flagship and her partner at level 99 with 18 and 48 luck, as wikiwiki works the rate
+    /// out, and four destroyers.
+    fn assault_fleet(codex: &Codex, flagship: i64, equipment: &[i64]) -> Vec<BattleRuntimeShip> {
+        let partner = if flagship == KONGOU {
+            HARUNA_B
+        } else {
+            KONGOU
+        };
+        let mut fleet = vec![
+            battleship(codex, flagship, 99, 18, equipment),
+            battleship(codex, partner, 99, 48, &[]),
+        ];
+        fleet.extend((0..4).map(|_| at_hp(ship(codex, KcShipType::DD, 50, &[]), 100)));
+        fleet
+    }
+
+    #[test]
+    fn the_kongou_night_assault_rate_is_wikiwikis() {
+        let codex = codex();
+        let rate = |flagship, equipment: &[i64]| {
+            kongou_assault_rate(&codex, &assault_fleet(&codex, flagship, equipment), 1).unwrap()
+        };
+        // 金剛 Lv99 with 18 luck and 榛名乙 Lv99 with 48: 48, and what her pieces add.
+        assert_eq!(rate(KONGOU, &[]), 0.48);
+        assert_eq!(rate(KONGOU, &[SURFACE_RADAR_10]), 0.78);
+        assert_eq!(rate(KONGOU, &[SURFACE_RADAR_10, LARGE_SEARCHLIGHT]), 0.88);
+        // A radar of 5 line of sight and a plain searchlight are not the pieces meant.
+        assert_eq!(rate(KONGOU, &[SURFACE_RADAR, SEARCHLIGHT]), 0.48);
+        // 比叡 has them the other way round.
+        assert_eq!(rate(HIEI, &[SURFACE_RADAR_10]), 0.58);
+        assert_eq!(rate(HIEI, &[LARGE_SEARCHLIGHT]), 0.78);
+    }
+
+    #[test]
+    fn the_kongou_night_assault_needs_its_pair_five_surface_ships_and_a_formation() {
+        let codex = codex();
+        let fleet = || assault_fleet(&codex, KONGOU, &[]);
+        let eligible = |fleet: &[BattleRuntimeShip], formation| {
+            kongou_assault_rate(&codex, fleet, formation).is_some()
+        };
+        for formation in [1, 4, 12, 14] {
+            assert!(eligible(&fleet(), formation), "{formation}");
+        }
+        for formation in [2, 3, 5, 6, 11, 13] {
+            assert!(!eligible(&fleet(), formation), "{formation}");
+        }
+        // The partner has to be one of hers, and in the second place.
+        let mut other = fleet();
+        other[1] = battleship(&codex, 541, 99, 48, &[]);
+        assert!(!eligible(&other, 1));
+        let mut swapped = fleet();
+        swapped.swap(1, 2);
+        assert!(!eligible(&swapped, 1));
+        // Neither of the two heavily damaged.
+        for at in [0, 1] {
+            let mut hurt = fleet();
+            hurt[at] = at_hp(hurt[at].clone(), 25);
+            assert!(!eligible(&hurt, 1), "{at}");
+            hurt[at] = at_hp(hurt[at].clone(), 26);
+            assert!(eligible(&hurt, 1), "{at}");
+        }
+        // Five surface ships afloat: a submarine or a sunk ship is not one.
+        assert!(eligible(&fleet()[..5], 1));
+        assert!(!eligible(&fleet()[..4], 1));
+        let mut with_submarine = fleet()[..5].to_vec();
+        with_submarine[4] = ship(&codex, KcShipType::SS, 50, &[]);
+        assert!(!eligible(&with_submarine, 1));
+        let mut sunk = fleet()[..5].to_vec();
+        sunk[4] = at_hp(sunk[4].clone(), 0);
+        assert!(!eligible(&sunk, 1));
+    }
+
+    #[test]
+    fn the_kongou_night_assault_multiplier_follows_the_place_the_engagement_and_the_guns() {
+        use crate::types::EngagementType::{HeadOn, SameCourse, TAdvantage, TDisadvantage};
+        let codex = codex();
+        let multiplier = |equipment: &[i64], flagship, engagement| {
+            let ship = battleship(&codex, KONGOU, 99, 18, equipment);
+            kongou_assault_multiplier(&ship, flagship, engagement)
+        };
+        let close = |value: f64, wanted: f64| (value - wanted).abs() < 1e-9;
+        assert!(close(multiplier(&[], true, SameCourse), 2.6));
+        assert!(close(multiplier(&[], false, HeadOn), 2.7));
+        assert!(close(multiplier(&[], true, TAdvantage), 2.6 * 1.25));
+        assert!(close(multiplier(&[], true, TDisadvantage), 2.6 * 0.8));
+        // 35.6cm連装砲改四 / 改三丙, and 改二 / 改三(ダズル迷彩仕様): by how many, the two multiplied.
+        assert!(close(multiplier(&[503], true, SameCourse), 2.6 * 1.11));
+        assert!(close(multiplier(&[503, 530, 530], true, SameCourse), 2.6 * 1.15));
+        assert!(close(multiplier(&[329], true, SameCourse), 2.6 * 1.05));
+        assert!(close(multiplier(&[329, 502], true, SameCourse), 2.6 * 1.08));
+        assert!(close(multiplier(&[503, 502], false, SameCourse), 2.7 * 1.11 * 1.05));
+    }
+
+    #[test]
+    fn the_kongou_night_assault_is_one_row_of_two_hits_and_spares_the_partner_her_turn() {
+        let codex = codex();
+        // Level 175, 99 luck and both of her pieces put the rate past 100: it always comes up.
+        let mut friendly = assault_fleet(&codex, KONGOU, &[SURFACE_RADAR_10, LARGE_SEARCHLIGHT]);
+        for ship in &mut friendly[..2] {
+            ship.ship.api_lv = 175;
+            ship.ship.api_lucky[0] = 99;
+        }
+        assert_eq!(kongou_assault_rate(&codex, &friendly, 1), Some(1.0));
+        let mut target = at_hp(ship(&codex, KcShipType::BB, 50, &[]), 100);
+        target.ship.api_soukou[0] = 9999;
+        let enemy = vec![hostile(target); 6];
+        for seed in 0..20 {
+            let attacks = night(&codex, seed, &friendly, &enemy);
+            // (by the enemy, attacker, target, type, hits, shown)
+            assert_eq!((attacks[0].0, attacks[0].1, attacks[0].3, attacks[0].4), (0, 0, 104, 2));
+            let ours = |at| attacks.iter().filter(|attack| (attack.0, attack.1) == (0, at)).count();
+            assert_eq!((ours(0), ours(1)), (1, 1), "the flagship once, her partner once more");
+            // The enemy never makes it.
+            let theirs: Vec<_> = friendly.iter().cloned().map(hostile).collect();
+            let plain = vec![at_hp(ship(&codex, KcShipType::BB, 50, &[]), 100); 6];
+            assert!(!night(&codex, seed, &plain, &theirs).iter().any(|attack| attack.3 == 104));
+        }
+        // Not without the pair.
+        friendly.swap(1, 2);
+        assert!(!night(&codex, 0, &friendly, &enemy).iter().any(|attack| attack.3 == 104));
     }
 }

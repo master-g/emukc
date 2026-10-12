@@ -289,6 +289,28 @@ def check_night_cut_in(work: Path) -> list[str]:
     return problems
 
 
+def check_kongou_night_assault(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the enemy was sunk by day this time, so the flagship had no turn at night: run it again"]
+    shelling = nights[0]["api_hougeki"]
+    rows = list(zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_sp_list"], shelling["api_df_list"], shelling["api_damage"]))
+    ours = [row[1:] for row in rows if not row[0]]
+    assaults = [row for row in ours if row[1] == 104]
+    if not assaults:
+        problems.append("the night assault did not come up this time (78 in 100): run it again")
+    for at, _, targets, damages in assaults:
+        # One row in the flagship's turn: her hit and her partner's, or hers alone if it sank
+        # the last of the enemy.
+        if at != 0 or len(targets) not in (1, 2) or len(damages) != len(targets):
+            problems.append(f"the night assault is the flagship's row with her hit and her partner's; it carried ship {at}, {targets}, {damages}")
+    if len(assaults) > 1 or sum(1 for row in ours if row[0] == 0) > 1:
+        problems.append(f"the flagship has one turn at night; the rows were {[(row[0], row[1]) for row in ours]}")
+    print("our night rows (ship, kind, targets, damage):", ours)
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -318,6 +340,14 @@ SCENARIOS = {
         + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_night_cut_in,
+    ),
+    # 2-1 with 金剛改二丙 and 榛名改二乙 leading: the Kongou class's night assault in the
+    # flagship's turn. Photographed through the night.
+    "kongou_night_assault": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_kongou_night_assault,
     ),
     # 2-5 again, sent to C by a battleship: its flagship 軽母ヌ級flagship attacks at night, which
     # the client plays as aircraft. Photographed through the night.
@@ -376,7 +406,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

@@ -96,15 +96,45 @@ a submarine (`canASWNight`), so she takes a surface ship or nothing; the client 
 attack as a torpedo whatever equipment is named (`_getNormalAttackType`). `retreated` has no
 counterpart here.
 
+## The Kongou class's night assault
+
+`api_sp_list` 104, in `night.rs` beside the hougeki it is part of (`kongou_night_assault`).
+In the friendly flagship's turn, if the fleet can make it and it comes up, one row carries her
+hit and then her partner's, each on a surface ship of her own choosing, in place of the
+flagship's own attack; the partner still takes her turn. The enemy never makes it.
+
+- **Who:** 金剛改二丙, 比叡改二丙, 榛名改二乙/丙 or 霧島改二丙 as flagship with one of her
+  partners second (`KONGOU_ASSAULT_SHIPS`; wikiwiki's table and the source's
+  `canSpecialAttackUnique` agree), neither heavily damaged, five surface ships afloat, and
+  単縦陣, 梯形陣 or 第二 / 第四警戒航行序列. A combined fleet's night is its second fleet's, so
+  the flagship is that fleet's.
+- **How often:** wikiwiki's `floor(3.5(√Lv + √Lv) + 1.1(√luck + √luck) + A + B - 33)` percent,
+  A and B for a surface radar of 8 line of sight or more and a large searchlight on the
+  flagship, by which ship she is. The source has no rate for it. Nothing is rolled unless the
+  fleet can make it and a surface ship is left to attack.
+- **How hard:** 2.6 for the flagship and 2.7 for her partner before the cap, 1.25 at T
+  advantage and 0.8 at T disadvantage, and her own 35.6cm guns (改四 / 改三丙: 1.11 for one,
+  1.15 for more; 改二 / 改三(ダズル迷彩仕様): 1.05, 1.08). 1.4 to accuracy. The source's later
+  2.76 / 2.86 is marked an estimate there and is not taken; its second gun id for the lesser
+  pair, 529, is a destroyer's gun and read as 329.
+- **The client** (`_kongo_cutin`, `PhaseKongoAttack`) takes the two attackers from the fleet's
+  first two places, not from the row, reads no equipment, and plays up to three targets. Its
+  cut-in speaks one of the flagship's voices 900 and 990 to 993 by the pair; the cache list
+  names them (`voice.rs` `SPECIAL`).
+- **Not done:** at most three times a sortie (there is no state across battles; a night gives
+  the flagship one turn, so it is once a battle), the 1.2 on the battle's ammunition, and the
+  nodes of PT boats alone where no special attack is made.
+
 ## Known gaps
 
 - A cut-in or double attack that misses does 0 here; the source gives it scratch damage.
 - A star shell's +5 to accuracy, and a searchlight's effects on who is fired at.
-- The night Zuiun cut-in and the fleet special attacks are other paths in the source.
+- The night Zuiun cut-in is another path in the source. Of the fleet special attacks only the
+  Kongou class's night assault is made at night (below); the others are rolled for by day only.
 - A night attack on an installation is firepower plus torpedo here. The source drops the
   torpedo and gives a submarine 30 firepower there (`NBPower`); now that submarines attack,
   theirs is the attack this overstates most.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
 - Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
-  submarine's torpedo cut-in with her radar and her plain attack (`night_asw`). Not played: 4,
-  8 to 14.
+  submarine's torpedo cut-in with her radar and her plain attack (`night_asw`); the Kongou
+  class's night assault (`kongou_night_assault`). Not played: 4, 8 to 14.
