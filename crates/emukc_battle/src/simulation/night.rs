@@ -1316,11 +1316,16 @@ mod tests {
     fn night_asw_runs(codex: &Codex, sonar: bool, night_start: bool) -> Vec<(i64, i64)> {
         let mut hunter = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::DD), 99);
         hunter.ship.api_taisen[0] = 100;
-        hunter.slot_items = if sonar {
-            vec![slotitem_with_mst_id(first_slotitem_mst_by_type(codex, KcSlotItemType3::Sonar))]
-        } else {
-            Vec::new()
-        };
+        // Two torpedoes would be a cut-in on a surface ship.
+        let item = |kind| slotitem_with_mst_id(first_slotitem_mst_by_type(codex, kind));
+        hunter.slot_items = vec![
+            item(KcSlotItemType3::Torpedo),
+            item(KcSlotItemType3::Torpedo),
+            item(KcSlotItemType3::DepthCharge),
+        ];
+        if sonar {
+            hunter.slot_items.push(item(KcSlotItemType3::Sonar));
+        }
         let mut submarine = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::SS), 50);
         submarine.ship.api_soukou[0] = 5;
         submarine.ship.api_nowhp = 30;

@@ -99,12 +99,15 @@ pub fn execute_sp_midnight(
 #[cfg(test)]
 mod tests {
     use emukc_model::codex::Codex;
+    use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
 
-    use super::{execute_day, execute_night};
+    use super::{execute_day, execute_night, execute_sp_midnight};
     use crate::debug_overlay::{apply_day_debug, apply_night_debug};
     use crate::random::{BattleRng, SeededRng};
     use crate::simulation::{simulate_day, simulate_night};
-    use crate::test_utils::sample_ship;
+    use crate::test_utils::{
+        first_ship_mst_by_type, first_slotitem_mst_by_type, sample_ship, slotitem_with_mst_id,
+    };
     use crate::types::{
         BattleContext, BattleRuntimeShip, BattleType, EngagementType, NightBattleInput,
     };
@@ -171,13 +174,6 @@ mod tests {
     /// day battle a hit on her is a scratch (14% of her HP at most).
     #[test]
     fn a_night_start_battle_can_sink_a_submarine() {
-        use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
-
-        use super::execute_sp_midnight;
-        use crate::test_utils::{
-            first_ship_mst_by_type, first_slotitem_mst_by_type, slotitem_with_mst_id,
-        };
-
         let codex = load_codex(false, false);
         let mut hunter = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 99);
         hunter.ship.api_taisen[0] = 100;

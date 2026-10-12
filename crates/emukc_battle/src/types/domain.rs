@@ -243,7 +243,7 @@ pub(crate) struct AirstrikeOutput<'a> {
 /// Parameters for night battle shelling simulation.
 ///
 /// Night battle does not use formation or engagement modifiers
-/// per `KanColle` mechanics, but for an attack on a submarine.
+/// per `KanColle` mechanics, except for an attack on a submarine.
 pub(crate) struct NightBattleParams<'a> {
     /// Defender formations drive the 旗艦援護 (かばう) interception rate.
     pub friendly_formation_id: i64,
