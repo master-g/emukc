@@ -193,16 +193,15 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #64 做完并合并（PR #65）；合并后跑了种子批次，结果在计划 2026-10-12-005 的「种子批次」。
-  质量门通过；`make headless-check SCENARIO=night_asw`（六次）、`night_cut_in`、`gunnery_cutin` 通过；两类夜战基线没有变化。
+- [2026-10-12] 昼战切入与特殊砲撃的发动率改读当前的运，特殊砲撃去掉除数、三条无出处的式子改用長門型（计划 2026-10-12-006），分支 `fix/current-luck-for-cut-in-rates`，未合并。
+  质量门通过，基线没有变化。
 
 ## Next Session
 
 - [2026-10-12] 周常重置读系统时钟还没有规格。
-  #64 留下的见计划 2026-10-12-005 的 Scope 与 Risks。
-  #53 留下的见 `night-attack-types.md` Known gaps。
+  #64 留下的见计划 2026-10-12-005 的 Scope 与 Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
-  来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。
+  来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
   #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
