@@ -217,8 +217,22 @@ def check_night_asw(work: Path) -> list[str]:
     shelling = night["api_hougeki"]
     # The whole fleet is submarines. A night attack on one is one plain hit, not flown; a miss
     # does nothing, and after a day battle a hit sinks nobody (at 1 HP it does nothing either).
-    rows = zip(shelling["api_at_eflag"], shelling["api_df_list"], shelling["api_sp_list"], shelling["api_n_mother_list"], shelling["api_cl_list"], shelling["api_damage"])
-    attacks = [row[1:] for row in rows if row[0]]
+    rows = list(zip(shelling["api_at_eflag"], shelling["api_df_list"], shelling["api_sp_list"], shelling["api_n_mother_list"], shelling["api_cl_list"], shelling["api_damage"], shelling["api_at_list"], shelling["api_si_list"]))
+    attacks = [row[1:6] for row in rows if row[0]]
+    # They attack too, with more than a quarter of the hull: plainly, or the flagship with the
+    # torpedo cut-in her late-model torpedo and radar make, which shows both.
+    ours = [row for row in rows if not row[0]]
+    if not ours:
+        problems.append("no submarine attacked at night: run it again")
+    for _, targets, kind, flown, _, _, at, shown in ours:
+        before = night["api_f_nowhps"][at]
+        if before * 4 <= night["api_f_maxhps"][at]:
+            problems.append(f"submarine {at} attacked at night with {before} of {night['api_f_maxhps'][at]}")
+        if flown or (kind, len(targets)) not in ({(0, 1), (3, 2)} if at == 0 else {(0, 1)}):
+            problems.append(f"submarine {at} attacked with kind {kind}, {len(targets)} hits, flown {flown}")
+        if kind == 3 and [int(item) for item in shown] != [213, 210]:
+            problems.append(f"her torpedo cut-in shows the torpedo, then the radar; it carried {shown}")
+    print("submarines' attacks (ship, kind, shown):", [(row[6], row[2], row[7]) for row in ours])
     if not attacks:
         problems.append("no enemy attacked at night: run it again")
     for targets, kind, flown, hits, damages in attacks:
@@ -287,7 +301,7 @@ SCENARIOS = {
     "night_air_attack": (FAIR_2_1, check_night_air_attack),
     # The same with six destroyers, who seldom finish by day: this is the one that reaches the night.
     "leveled_for_mid_boss": (FAIR_2_1, check_fair_battle),
-    # The same with six submarines, for the enemy to attack at night.
+    # The same with six submarines, for the enemy to attack at night and to attack it.
     "night_asw": (FAIR_2_1, check_night_asw),
     # 南西諸島海域's extra operation, 2-5, whose first battle meets carriers: 秋月 in the sixth
     # place fires her 対空カットイン at what they send. Photographed through the air phase.

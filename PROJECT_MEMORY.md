@@ -156,7 +156,7 @@ Current verification baseline:
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常的 `jst_next_monday_0500`、`init`、`quest_add` 仍读系统时钟，固定时间的测试只用过去的日期。
-- [2026-10-12] 夜战攻击种别（生成的表、每艘舰的种别列表、抽签的先后、照明弾、与 wiki 的三处差异）：`docs/solutions/architecture-patterns/night-attack-types.md`。
+- [2026-10-12] 夜战攻击种别与谁出手（表、抽签先后、照明弾、`canNB`；客户端种别 3 必须发两件展示装备）：`docs/solutions/architecture-patterns/night-attack-types.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
 ## Failed Attempts / Pitfalls
@@ -193,14 +193,15 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #53 做完并合并（PR #62）。
-  质量门、`make headless-check SCENARIO=night_cut_in`、`gunnery_cutin`、`night_air_attack` 通过；战斗模块的 20 份夜战基线重新冻结（原因见计划 2026-10-12-004）。
+- [2026-10-12] #64 做完，分支 `feat/night-attack-eligibility`，未合并。
+  质量门通过；`make headless-check SCENARIO=night_asw`（六次）、`night_cut_in`、`gunnery_cutin` 通过；两类夜战基线没有变化。
 
 ## Next Session
 
 - [2026-10-12] 周常重置读系统时钟还没有规格。
-  #53 留下的见 `night-attack-types.md` Known gaps；最大的一条：潜水艦夜战不出手、大破的非空母仍出手，与来源 `canNB` 相反。
-  #55 留下的：没用 `battle sim` 跑一批种子看夜战受损分布；带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
+  #64 留下的见计划 2026-10-12-005 的 Scope 与 Risks（`battle sim` 受损分布没跑、`special_attack.rs` 的运没核对）。
+  #53 留下的见 `night-attack-types.md` Known gaps。
+  #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。
   #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；

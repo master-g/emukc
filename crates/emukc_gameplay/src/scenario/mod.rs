@@ -273,12 +273,14 @@ impl Scenario {
         }
     }
 
-    /// Six submarines for the enemy to attack at night: 伊401改 below the level of the
-    /// opening torpedo, so she sinks one ship by day at most, and five まるゆ, who sink none.
+    /// Six submarines for the enemy to attack at night, and to attack it: 伊401改 below the
+    /// level of the opening torpedo, so she sinks one ship by day at most, and five まるゆ, who
+    /// sink none. Her late-model torpedo and radar make the submarine's torpedo cut-in.
     pub fn night_asw() -> Self {
         let mut scenario = Self::leveled_for_mid_boss();
         scenario.fleet = vec![ShipSpec::new(163, 1); 6];
-        scenario.fleet[0] = ShipSpec::new(403, 5);
+        // 後期型艦首魚雷(6門), 潜水艦搭載電探&水防式望遠鏡
+        scenario.fleet[0] = ShipSpec::new(403, 5).with_slots([213, 210]);
         scenario
     }
 

@@ -83,18 +83,25 @@ cut-in (2) is two hits shown as one sum and takes two pieces of equipment, the m
 then the torpedo: `CutinSpSR` draws the first in the middle and the second above and below.
 Both get a name plate, as every gun and torpedo has one (`battle-display-name-plates.md`).
 `api_flare_pos` is a position in the fleet, from 6 for a combined fleet's escort.
+The torpedo cut-in (3) takes two as well, and `CutinSpRR` reads both without a check: a
+submarine who makes it with one late-model torpedo and her radar shows the radar second.
+
+## Who attacks
+
+`targeting.rs` `can_attack_night_ship` is the source's `canNB`: any ship with more than a
+quarter of her hull, a submarine included (`Ship.canNB`; `SS` has no other), and a carrier as
+`carrier-night-air-attack.md` has it. A ship at a quarter or less makes no attack, whichever
+fleet she is in, so the 18 of moderate damage is never read for her. A submarine cannot attack
+a submarine (`canASWNight`), so she takes a surface ship or nothing; the client plays her plain
+attack as a torpedo whatever equipment is named (`_getNormalAttackType`). `retreated` has no
+counterpart here.
 
 ## Known gaps
 
 - A cut-in or double attack that misses does 0 here; the source gives it scratch damage.
 - A star shell's +5 to accuracy, and a searchlight's effects on who is fired at.
 - The night Zuiun cut-in and the fleet special attacks are other paths in the source.
-- A submarine making her torpedo cut-in from one late-model torpedo and her radar has one
-  torpedo to show; whether the client wants the radar named was not looked at.
-- Who attacks at night is `can_attack_night_ship`, and it is not the source's `canNB`: a
-  submarine never attacks here, so her torpedo cut-in is reached by the unit tests only, and
-  a heavily damaged ship that is not a carrier still attacks (without the 18 of moderate
-  damage) where the source keeps her out.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
-- Played in the client (`night_cut_in`): types 2, 5 and 7 and the star shell. Not played: 3, 4,
-  8 to 14, the submarine's.
+- Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
+  submarine's torpedo cut-in with her radar and her plain attack (`night_asw`). Not played: 4,
+  8 to 14.
