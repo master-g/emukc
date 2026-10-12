@@ -135,6 +135,11 @@ screen, pass steps on the command line and read the screenshots:
   (78 in 100) or the day ends the battle. Seven runs on 2026-10-12: played four times, once
   with two hits and three times with one, without a page error. One of them found the
   cut-in's voice (`kcs/sound/kc…/991.mp3`) missing from the cache list.
+- `nagato_broadside` is the same sortie in 梯形陣 (the fourth button of the formation screen)
+  led by 長門改二 and 陸奥改二. The check wants one row of type 101 by the flagship with up
+  to three hits, by day or, if the day did not make it, at night, and never a second; it
+  fails when the attack does not come up (62 in 100 a turn). Six runs on 2026-10-12: five
+  by day and one at night, without a page error.
 - `enemy_night_carrier` sends 金剛 and three destroyers to 2-5, where a battleship with fewer
   than four destroyers is routed to C: its flagship 軽母ヌ級flagship attacks at night. The check
   wants an attack of hers in the night packet, not said to be flown (she has no night crew);
