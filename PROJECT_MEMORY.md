@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #53 做完，分支 `feat/night-attack-types`，未开 PR。
+- [2026-10-12] #53 做完并合并（PR #62）。
   质量门、`make headless-check SCENARIO=night_cut_in`、`gunnery_cutin`、`night_air_attack` 通过；战斗模块的 20 份夜战基线重新冻结（原因见计划 2026-10-12-004）。
 
 ## Next Session
