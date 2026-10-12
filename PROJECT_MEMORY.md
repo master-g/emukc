@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 特殊砲撃照来源重做（计划 2026-10-12-009；008 已合并，PR #78），分支 `fix/special-attack-one-row` 未合并。
+- [2026-10-12] 特殊砲撃照来源重做（计划 2026-10-12-009），已合并（PR #80；008 是 PR #78）。
   质量门通过，基线没变，无头检查演过。
 
 ## Next Session
