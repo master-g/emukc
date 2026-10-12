@@ -139,7 +139,7 @@ impl BattleState {
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
-            special_attack_used: [false; 2],
+            special_attack_used: [context.special_attacks_made.gunnery, false],
         }
     }
 

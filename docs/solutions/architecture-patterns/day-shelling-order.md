@@ -38,8 +38,12 @@ whether the order is by range.
   longest piece it carries: `api_leng` on the ship does not include equipment.
 - A second round goes down the line.
 - The flagship's special attack is decided when the flagship's turn comes and takes that
-  turn only: the ships that join it still fire on their own. A side makes it once in a day
-  battle (`BattleState::special_attack_used`), so a second round does not roll it again.
+  turn only: the ships that join it still fire on their own. A fleet makes it once a sortie:
+  `BattleState::special_attack_used` begins as the sortie's `SpecialAttacksMade::gunnery`, so
+  neither a second round nor a later battle rolls it again, and the sortie takes it in from
+  the packet when the battle is over. None is made in an exercise, nor by 第2艦隊's flagship.
+  The formations are the source's: 梯形陣 (4) for 101, 102, 103 and 106, 複縦陣 (2) for 100
+  and 105, and 第二警戒航行序列 (12) for all of them.
 - Every index written is a position in the whole fleet (`append_turn` lifts them), so the
   combined paths need no shifting afterwards.
 
@@ -72,8 +76,8 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
 
 ## Not modelled
 
-- The once-a-battle rule stops at the day battle: the night battle is a request of its own and
-  does not know a special attack was made by day.
+- The special gunnery attacks are rolled for by day only; the source and wikiwiki have them
+  at night as well. What is wrong with them besides is listed in plan `2026-10-12-008`.
 - Submarines joining the order when the other side has an installation.
 - The 39% split of a combined fleet's targets between main and escort.
 - Star shells, searchlights and night contact; when a night special attack is decided; the

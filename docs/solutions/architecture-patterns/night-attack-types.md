@@ -121,9 +121,12 @@ flagship's own attack; the partner still takes her turn. The enemy never makes i
   first two places, not from the row, reads no equipment, and plays up to three targets. Its
   cut-in speaks one of the flagship's voices 900 and 990 to 993 by the pair; the cache list
   names them (`voice.rs` `SPECIAL`).
-- **Not done:** at most three times a sortie (there is no state across battles; a night gives
-  the flagship one turn, so it is once a battle), the 1.2 on the battle's ammunition, and the
-  nodes of PT boats alone where no special attack is made.
+- **How many:** three a sortie, counted apart from the special gunnery attacks
+  (`SpecialAttacksMade::kongou_assaults`, kept by the sortie and read off each night's
+  `api_sp_list`), and none in an exercise. A night gives the flagship one turn, so it is one a
+  battle at most.
+- **Not done:** the 1.2 on the battle's ammunition, and the nodes of PT boats alone where no
+  special attack is made.
 
 ## Known gaps
 

@@ -403,7 +403,7 @@ pub(crate) fn simulate_night(
         engagement,
         air_state,
         night_start,
-        ..
+        special_attacks_made,
     } = input;
     let entry_friendly_nowhps = friendly.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
     let entry_friendly_maxhps = friendly.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
@@ -416,6 +416,7 @@ pub(crate) fn simulate_night(
         &mut friendly,
         &mut enemy,
         &crate::types::NightBattleParams {
+            special_attacks_made,
             friendly_formation_id,
             enemy_formation_id,
             engagement,
@@ -1068,6 +1069,7 @@ mod combined_tests {
         };
 
         let context = BattleContext {
+            special_attacks_made: Default::default(),
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,
@@ -1132,6 +1134,7 @@ mod combined_tests {
         let dd = first_ship_mst_by_type(codex, KcShipType::DD);
 
         let context = BattleContext {
+            special_attacks_made: Default::default(),
             battle_type: BattleType::Normal,
             is_sortie: true,
             // 第一警戒航行序列; the enemy keeps a normal formation.

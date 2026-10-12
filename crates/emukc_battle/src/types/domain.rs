@@ -254,4 +254,6 @@ pub(crate) struct NightBattleParams<'a> {
     pub night_start: bool,
     /// Who fired a star shell in the friendly and in the enemy fleet, -1 for nobody.
     pub flare_pos: [i64; 2],
+    /// What the friendly fleet has made of its special attacks on this sortie.
+    pub special_attacks_made: super::SpecialAttacksMade,
 }

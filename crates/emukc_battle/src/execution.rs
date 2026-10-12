@@ -69,6 +69,7 @@ pub fn execute_sp_midnight(
     let friendly_formation_id = context.friendly_formation_id;
     let enemy_formation_id = context.enemy_formation_id;
     let engagement = context.engagement;
+    let special_attacks_made = context.special_attacks_made;
 
     let state = BattleState::from_context(context);
     let escort_start = state.combined().map_or(0, |layout| layout.escort_start);
@@ -79,6 +80,7 @@ pub fn execute_sp_midnight(
     let night = execute_night(
         codex,
         NightBattleInput {
+            special_attacks_made,
             friendly,
             enemy,
             friendly_formation_id,
@@ -126,6 +128,7 @@ mod tests {
 
     fn day_context(codex: &Codex) -> BattleContext {
         BattleContext {
+            special_attacks_made: Default::default(),
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,
@@ -141,6 +144,7 @@ mod tests {
 
     fn night_input(codex: &Codex) -> NightBattleInput {
         NightBattleInput {
+            special_attacks_made: Default::default(),
             friendly: vec![
                 BattleRuntimeShip::new(sample_ship(codex, 79, 99), true, true),
                 BattleRuntimeShip::new(sample_ship(codex, 79, 99), true, true),

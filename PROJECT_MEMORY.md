@@ -193,14 +193,14 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 金剛型的僚艦夜戦突撃（104）做完（计划 2026-10-12-007），已合并（PR #76）。
-  质量门通过，基线没变，无头检查演过。
+- [2026-10-12] 特殊砲撃的陣形与出击级次数做完（计划 2026-10-12-008），分支 `fix/special-attack-sortie-limits` 未合并。
+  质量门通过，基线没变。
 
 ## Next Session
 
-- [2026-10-12] 待处理（计划 2026-10-12-007 的 Scope、Risks）：特殊砲撃的出击级次数限制、梯形陣常量写成 3。
+- [2026-10-12] 待用户定：计划 2026-10-12-008「没有改的出入」六条与夜战发动（先看一次发成几行那条）。
   周常重置读系统时钟还没有规格。
-  #64 留下的见计划 2026-10-12-005 的 Scope 与 Risks。#53 留下的见 `night-attack-types.md` Known gaps。
+  #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
   #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。

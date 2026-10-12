@@ -27,7 +27,8 @@ use serde::Serialize;
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use emukc_battle::{
-    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, simulate_air_raid,
+    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, SpecialAttacksMade,
+    simulate_air_raid,
 };
 
 use super::{
@@ -89,6 +90,9 @@ pub struct ActiveSortieState {
     pub air_strikes: Vec<AirStrike>,
     /// The air base was raided on this sortie; a sortie brings one raid at most.
     pub raided: bool,
+    /// The fleet special attacks made on this sortie: a flagship's special gunnery attack
+    /// once, the Kongou class's night assault three times.
+    pub special_attacks_made: SpecialAttacksMade,
 }
 
 /// The cells one air corps was sent against, in the order it flies them.
@@ -257,6 +261,7 @@ impl Ctx {
             landing_tp: None,
             air_strikes: vec![],
             raided: false,
+            special_attacks_made: SpecialAttacksMade::default(),
         };
         tx.commit().await?;
         self.sortie_store
@@ -1018,6 +1023,7 @@ impl Ctx {
 
                 let mut active = setup.active;
                 active.pending_battle_cell_id = Some(active.current_cell_id);
+                active.special_attacks_made.record_night(&night_session.packet);
 
                 tx.commit().await?;
                 let _ = store.insert_active(profile_id, active);
@@ -1198,6 +1204,7 @@ async fn sortie_battle_impl(
 
             let mut active = setup.active;
             active.pending_battle_cell_id = Some(active.current_cell_id);
+            active.special_attacks_made.record_day(&session.packet);
 
             tx.commit().await?;
             let _ = store.insert_active(profile_id, active);

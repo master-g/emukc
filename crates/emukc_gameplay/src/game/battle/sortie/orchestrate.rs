@@ -69,9 +69,15 @@ pub fn run_night_battle(
             CombinedFleetRole::Main
         }
     });
+    // The day battle's special attack is already counted, so the night does not repeat it.
+    let active = store.get_active(session.profile_id);
     let simulation = execute_night(
         codex,
         NightBattleInput {
+            special_attacks_made: active
+                .as_ref()
+                .map(|active| active.special_attacks_made)
+                .unwrap_or_default(),
             friendly: session.night_fleet().to_vec(),
             enemy: session.enemy[fought.clone()].to_vec(),
             friendly_formation_id,
@@ -85,6 +91,10 @@ pub fn run_night_battle(
     );
     session.absorb_night(&simulation, fought);
     store.insert_pending_battle(session.profile_id, session.clone());
+    if let Some(mut active) = active {
+        active.special_attacks_made.record_night(&simulation.packet);
+        let _ = store.insert_active(session.profile_id, active);
+    }
 
     let night = SortieNightBattleSession {
         profile_id: session.profile_id,
