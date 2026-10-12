@@ -41,9 +41,16 @@ stays out of the night, where she used to attack.
 source's `nightattack` plus Wasp and Wasp改. The source predates those two; that they shell at
 night is from the wiki's Wasp page (「火力初期値が1以上のため夜間砲撃を行う。改も同様」). All eleven
 are in `NIGHT_SHELLING_CV_IDS`. The wiki's reason is not a rule to derive the list from: nine other
-carriers in the master data start with firepower above zero (Langley, Independence, Béarn,
-Gambier Bay Mk.II and their remodels) and the client draws none of them as gunfire, so the list
-stays a list.
+carriers in the master data start with firepower above zero. Six of them (Langley, Independence,
+Gambier Bay Mk.II and their remodels) the client does not draw as gunfire, so the list stays a
+list.
+
+The other three are Béarn's forms, and they are an open question: right after the eleven the
+client draws Béarn (1055) and Béarn改 (1060) as gunfire, and Béarn amélioration (1061) as
+gunfire or, with a torpedo, a torpedo attack. That it has an animation for them suggests they
+shell at night; nothing read so far says so outright (the wiki's Béarn page does not mention
+night battle). They are not in `NIGHT_SHELLING_CV_IDS`, so without a night air group they do not
+attack at night. Issue #55 takes this up.
 
 ## The power
 
