@@ -599,6 +599,10 @@ pub(crate) fn execute_special_attack(
     let is_enemy = params.attacker_is_enemy;
 
     let mut hougeki = BattleHougeki::default();
+    // The client reads every hit of the attack from one row (`PhaseHougeki._nelson_touch`
+    // and the others: `d_indexes[0..3]`, `getDamage(0..2)`), as the source's
+    // `apiAdjustHougekiSpecial` folds them into one.
+    let (mut targets, mut damages, mut hits) = (Vec::new(), Vec::new(), Vec::new());
 
     // T-disadvantage multiplier for Nelson Touch
     let t_disadv = matches!(params.engagement, EngagementType::TDisadvantage);
@@ -658,9 +662,6 @@ pub(crate) fn execute_special_attack(
             1
         };
 
-        let mut hit_damages = Vec::with_capacity(num_hits);
-        let mut cls = Vec::with_capacity(num_hits);
-
         for _ in 0..num_hits {
             let ci_mult = Some(total_mult * equip_mult);
             // ponytail: the source gives each special attack its own accuracy
@@ -673,7 +674,7 @@ pub(crate) fn execute_special_attack(
                 &defenders[target_idx],
                 Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id),
             );
-            cls.push(outcome.cl());
+            hits.push(outcome.cl());
             let raw = calculate_shelling_damage(
                 codex,
                 rng,
@@ -689,23 +690,25 @@ pub(crate) fn execute_special_attack(
                 attacker.damage_dealt += dealt;
             }
             let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-            hit_damages.push(if shield {
+            targets.push(target_idx as i64);
+            damages.push(if shield {
                 DamageCell::Shielded(display)
             } else {
                 DamageCell::Plain(display)
             });
         }
-
-        hougeki.record_day_attack(
-            DayAttackKind::Special(codex, attacker, attack_type_val),
-            is_enemy,
-            fleet_idx,
-            vec![target_idx as i64; num_hits],
-            hit_damages,
-            cls,
-        );
     }
 
+    if !targets.is_empty() {
+        hougeki.record_day_attack(
+            DayAttackKind::Special(codex, &attackers[0], attack_type_val),
+            is_enemy,
+            0,
+            targets,
+            damages,
+            hits,
+        );
+    }
     hougeki
 }
 
@@ -1153,13 +1156,18 @@ mod tests {
                 continue;
             }
             made += 1;
-            let companion_attacks = first
-                .api_at_eflag
-                .iter()
-                .zip(&first.api_at_list)
-                .filter(|(eflag, attacker)| **eflag == 0 && **attacker == 1)
-                .count();
-            assert_eq!(companion_attacks, 2, "seed {seed}: once in the special attack, once alone");
+            // One row for the whole attack, by the flagship: her two hits and her partner's.
+            let rows = |attacker: i64| {
+                (0..first.api_at_list.len())
+                    .filter(|&i| (first.api_at_eflag[i], first.api_at_list[i]) == (0, attacker))
+                    .map(|i| (first.api_at_type[i], first.api_damage[i].len()))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(rows(0), [(102, 3)], "seed {seed}");
+            assert_eq!(rows(1).len(), 1, "seed {seed}: her partner keeps her own turn");
+            let row = first.api_at_type.iter().position(|&t| t == 102).unwrap();
+            assert_eq!(first.api_df_list[row].len(), 3);
+            assert_eq!(first.api_cl_list[row].len(), 3);
             assert!(!special(&second), "seed {seed}: made again in the second round");
         }
         assert!(made > 0, "no seed made the special attack, so nothing was tested");
