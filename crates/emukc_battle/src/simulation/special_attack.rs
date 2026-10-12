@@ -40,12 +40,12 @@ const WARSPIRE_KAI_ID: i64 = 364;
 /// Valiant Kai
 const VALIANT_KAI_ID: i64 = 733;
 
-/// Big Seven ship IDs (all remodels)
+/// The Big Seven of the Colorado attack, as wikiwiki and the source's `kcsim.js` list them:
+/// not 長門, 陸奥 or Nelson before their remodel, nor Rodney.
 const BIG_SEVEN_IDS: &[i64] = &[
-    80, 275, 541, // 長門 base/kai/k2
-    81, 276, 573, // 陸奥 base/kai/k2
-    571, 576, // Nelson base/kai
-    572, 577, // Rodney base/kai
+    275, 541, // 長門 kai/k2
+    276, 573, // 陸奥 kai/k2
+    576, // Nelson kai
     601, 1496, // Colorado base/kai
     913, 918, // Maryland base/kai
 ];
@@ -939,15 +939,25 @@ mod tests {
     #[test]
     fn colorado_big_seven_bonus() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let colorado = sample_bb_at(&codex, 601, 99);
-        let nagato = sample_bb_at(&codex, 80, 99); // Nagato = Big Seven
-        let mutsu = sample_bb_at(&codex, 81, 99); // Mutsu = Big Seven
-        let fleet = vec![colorado, nagato, mutsu];
-        let resolved = check_colorado_broadside(&codex, &fleet, FORMATION_ECHELON).unwrap();
-        // 2nd (Nagato): 1.3 * 1.15 = 1.495
-        assert!((resolved.participants[1].multiplier - 1.3 * 1.15).abs() < 1e-10);
-        // 3rd (Mutsu): 1.3 * 1.17 = 1.521
-        assert!((resolved.participants[2].multiplier - 1.3 * 1.17).abs() < 1e-10);
+        // The second ship's and the third's, with `mst_id` in both places.
+        let multipliers = |mst_id| {
+            let fleet = vec![
+                sample_bb_at(&codex, 601, 99),
+                sample_bb_at(&codex, mst_id, 99),
+                sample_bb_at(&codex, mst_id, 99),
+            ];
+            let resolved = check_colorado_broadside(&codex, &fleet, FORMATION_ECHELON).unwrap();
+            (resolved.participants[1].multiplier, resolved.participants[2].multiplier)
+        };
+        // 長門改/改二, 陸奥改/改二, Nelson改, Colorado and Maryland: 1.495 and 1.521.
+        for mst_id in [275, 541, 276, 573, 576, 601, 1496, 913, 918] {
+            let (second, third) = multipliers(mst_id);
+            assert!((second - 1.495).abs() < 1e-9 && (third - 1.521).abs() < 1e-9, "{mst_id}");
+        }
+        // Not 長門, 陸奥 or Nelson before their remodel, nor Rodney.
+        for mst_id in [80, 81, 571, 572, 577] {
+            assert_eq!(multipliers(mst_id), (1.3, 1.3), "{mst_id}");
+        }
     }
 
     #[test]

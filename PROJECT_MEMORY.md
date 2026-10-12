@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] Colorado 特殊砲撃里 SG レーダー(後期型) 的攻击倍率 ×1.15（计划 2026-10-12-006 的第二节「补」），已合并（PR #72）。
+- [2026-10-12] Colorado 特殊砲撃的ビッグセブン名单删掉五个 id（计划 2026-10-12-006 的第三节「补」），分支 `fix/big-seven-list`，未合并。
   质量门通过，基线没有变化。
 
 ## Next Session
