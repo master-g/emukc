@@ -189,17 +189,16 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-11] PR #49（空母夜间航空攻击，计划 2026-10-11-003）已合并；合并前 `cargo fmt --all --check`、
-  `cargo clippy --workspace --all-targets -- -D warnings` 通过，`cargo test --workspace --no-fail-fast` 1328 过、0 败、0 ignored；
-  `make headless-check SCENARIO=night_air_attack` 在审查修正前通过，修正后与合并后都没有重跑。
-  分支 `feat/night-carrier-targeting`：计划 2026-10-11-004 做完（夜间空母先打水面舰、夜战对潜资格、两门副砲连击），两路审查后的修正已做，未推送。
-  [2026-10-12] fmt、严格 Clippy 通过；`cargo test --workspace --no-fail-fast` 1330 过、0 败、0 ignored（日本时间中午跑的）。
-  `emukc_time` 的两条测试在日本时间 0–5 点会失败（`jst_next_nth_day_of_the_month` 溢出），修复在 PR #50，未合并；
-  #50 把这两类任务的重置定在「下一个对应日的 05:00」，实机是否次日 05:00 就重置还没核对。
+- [2026-10-12] PR #49（空母夜间航空攻击，计划 2026-10-11-003）与 PR #50（`emukc_time` 限定日任务重置时间的溢出）已合并。
+  分支 `feat/night-carrier-targeting`：计划 2026-10-11-004 做完（夜间空母先打水面舰、夜战对潜资格、两门副砲连击），
+  两路审查后的修正已做，变基到含 #50 的 `main` 上，已推送开 PR。`cargo fmt --all --check`、
+  `cargo clippy --workspace --all-targets -- -D warnings` 通过；`cargo test --workspace --no-fail-fast` 1331 过、0 败、0 ignored。
+  没有跑无头检查（不改报文形状）。
 
 ## Next Session
 
-- [2026-10-12] 计划 2026-10-11-004 等推送开 PR；PR #50 等用户定重置规则后合并，合并后把夜间空母的分支变基上去。
+- [2026-10-12] 等用户合并夜间空母选靶的 PR。限定日任务（逢 3/7/0、逢 2/8）实机是只在对应日出现、次日 05:00 重置；
+  服务器没有出现限制，重置定在下一个对应日的 05:00（见 PR #50 描述），要做全需单独的计划。
   其后的候选：夜战对潜的命中与公式（现在必中擦伤）、敌方空母的夜战；
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
