@@ -189,17 +189,15 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] PR #49（空母夜间航空攻击，计划 2026-10-11-003）与 PR #50（`emukc_time` 限定日任务重置时间的溢出）已合并。
-  分支 `feat/night-carrier-targeting`：计划 2026-10-11-004 做完（夜间空母先打水面舰、夜战对潜资格、两门副砲连击），
-  两路审查后的修正已做，变基到含 #50 的 `main` 上，已推送开 PR。`cargo fmt --all --check`、
-  `cargo clippy --workspace --all-targets -- -D warnings` 通过；`cargo test --workspace --no-fail-fast` 1331 过、0 败、0 ignored。
-  没有跑无头检查（不改报文形状）。
+- [2026-10-12] PR #49（空母夜间航空攻击）、#50（`emukc_time` 限定日任务重置时间的溢出）、#51（夜间空母选靶，计划 2026-10-11-004）已合并。
+  #51 合并前 fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1331 过、0 败、0 ignored；合并后没有重跑，没有跑无头检查。
+  之后只做了研究与规格：四份规格发成 issue #52–#55（标签 `ready-for-agent`），没有改代码。
 
 ## Next Session
 
-- [2026-10-12] 等用户合并夜间空母选靶的 PR。限定日任务（逢 3/7/0、逢 2/8）实机是只在对应日出现、次日 05:00 重置；
-  服务器没有出现限制，重置定在下一个对应日的 05:00（见 PR #50 描述），要做全需单独的计划。
-  其后的候选：夜战对潜的命中与公式（现在必中擦伤）、敌方空母的夜战；
+- [2026-10-12] 待做的四份规格：#52 夜战对潜的命中与开幕夜战的对潜公式；#53 夜战攻击种别表对照来源重做（最大）；
+  #54 限定日任务按日出现、次日 05:00 重置（给任务更新加「当前时间」参数）；#55 敌方空母的夜战与 Béarn。
+  研究用的来源副本与 wiki 页面不在仓库，实施时按 `kancolle-replay` 提交 `69097abc` 重新取。
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
