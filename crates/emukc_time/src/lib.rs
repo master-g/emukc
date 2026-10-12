@@ -332,7 +332,8 @@ enum NthDay {
 
 fn jst_next_nth_day_of_the_month(nth_day: NthDay, ts: &DateTime<Utc>) -> DateTime<Utc> {
     let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-    let mut tokyo_time = ts.with_timezone(&tokyo_tz);
+    let tokyo_then = ts.with_timezone(&tokyo_tz);
+    let mut tokyo_time = tokyo_then;
 
     loop {
         let day = tokyo_time.day();
@@ -347,7 +348,7 @@ fn jst_next_nth_day_of_the_month(nth_day: NthDay, ts: &DateTime<Utc>) -> DateTim
                 .with_ymd_and_hms(tokyo_time.year(), tokyo_time.month(), day, 5, 0, 0)
                 .unwrap();
 
-            if target_time < tokyo_time {
+            if tokyo_then < target_time {
                 return target_time.with_timezone(&Utc);
             }
         }
