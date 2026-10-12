@@ -321,9 +321,17 @@ def check_nagato_broadside(work: Path) -> list[str]:
         shelling = day.get(name) or {}
         rows = zip(shelling.get("api_at_eflag", []), shelling.get("api_at_list", []), shelling.get("api_at_type", []), shelling.get("api_df_list", []), shelling.get("api_damage", []))
         ours += [row[1:] for row in rows if not row[0]]
+    # It is rolled for again in the flagship's turn at night if the day did not make it.
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if nights:
+        shelling = nights[0]["api_hougeki"]
+        rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_sp_list"], shelling["api_df_list"], shelling["api_damage"])
+        night = [row[1:] for row in rows if not row[0]]
+        print("our night rows (ship, kind, targets, damage):", night)
+        ours += [row for row in night if row[1] >= 100]
     specials = [row for row in ours if row[1] >= 100]
     if not specials:
-        problems.append("the special attack did not come up this time (62 in 100): run it again")
+        problems.append("the special attack did not come up this time (62 in 100 a turn of the flagship's): run it again")
     for at, kind, targets, damages in specials:
         # One row in the flagship's turn: her two hits and her partner's, fewer if the enemy ran out.
         if at != 0 or kind != 101 or not 1 <= len(targets) <= 3 or len(damages) != len(targets):
@@ -377,7 +385,8 @@ SCENARIOS = {
     "nagato_broadside": (
         f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;772,516:api_req_sortie/battle "
         + "w:6 " + " ".join(f"w:2 s:day{n}" for n in range(1, 17))
-        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        + " u:600,400;770,365:api_req_sortie/battleresult " + " ".join(f"w:2 s:after{n}" for n in range(1, 8))
+        + " u:600,400;770,365:api_port/port w:5 s:home",
         check_nagato_broadside,
     ),
     # 2-5 again, sent to C by a battleship: its flagship 軽母ヌ級flagship attacks at night, which

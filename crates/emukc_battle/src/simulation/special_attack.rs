@@ -10,9 +10,7 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::targeting::{
-    can_shell_day_ship, has_slotitem_id, select_surface_target, ship_type, target_class,
-};
+use crate::targeting::{has_slotitem_id, select_surface_target, ship_type, target_class};
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
@@ -466,22 +464,24 @@ fn trigger_rate(attack_type: SpecialAttackType, fleet: &[BattleRuntimeShip]) -> 
 // Detection entry point
 // ---------------------------------------------------------------------------
 
-/// Check if a special attack is eligible and triggered for the attacking fleet.
+/// Check if a special attack is eligible and triggered for the attacking fleet, in a turn
+/// of its flagship's in which she `can_attack`: by day or at night.
 /// Returns the resolved attack if triggered, None otherwise.
 pub(crate) fn try_special_attack(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attackers: &[BattleRuntimeShip],
     formation_id: i64,
+    can_attack: bool,
 ) -> Option<ResolvedSpecialAttack> {
     let flagship = attackers.first()?;
-    // None is made in an exercise, and none with fewer than six ships afloat that are not
-    // submarines.
+    // None is made in an exercise, none by 第2艦隊's flagship, and none with fewer than six
+    // ships afloat that are not submarines.
     let surface = attackers
         .iter()
         .filter(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
         .count();
-    if !flagship.is_sortie || surface < 6 || !can_shell_day_ship(codex, flagship) {
+    if !can_attack || !flagship.is_sortie || flagship.is_escort_deck() || surface < 6 {
         return None;
     }
 
@@ -497,6 +497,63 @@ pub(crate) fn try_special_attack(
     candidates.into_iter().flatten().find(|candidate| {
         rng.random_f64_range(0.0, 1.0) < trigger_rate(candidate.attack_type, attackers)
     })
+}
+
+/// One hit of a special attack: who makes it, by her place in the fleet, what her attack is
+/// multiplied by, and what her accuracy is.
+pub(crate) struct SpecialHit {
+    pub(crate) fleet_index: usize,
+    pub(crate) multiplier: f64,
+    pub(crate) accuracy: f64,
+}
+
+impl ResolvedSpecialAttack {
+    /// `api_at_type` by day, `api_sp_list` at night.
+    pub(crate) fn api_value(&self) -> i64 {
+        self.attack_type.api_value()
+    }
+
+    /// The hits in order (`getSpecialAttackShips`): the flagship hits twice where two ships
+    /// make the attack.
+    pub(crate) fn hits(
+        &self,
+        codex: &Codex,
+        fleet: &[BattleRuntimeShip],
+        engagement: EngagementType,
+    ) -> Vec<SpecialHit> {
+        let mut hits = Vec::new();
+        for (i, participant) in self.participants.iter().enumerate() {
+            let ship = &fleet[participant.fleet_index];
+            // `getSpecialAttackMod`: 1.05 to the accuracy of a Nelson Touch, 1.4 to the
+            // others', and 1.15 more for an AP shell and for a surface radar.
+            let accuracy = if self.attack_type == SpecialAttackType::NelsonTouch {
+                1.05
+            } else {
+                let piece = |carried: bool| {
+                    if carried {
+                        1.15
+                    } else {
+                        1.0
+                    }
+                };
+                1.4 * piece(has_ap_shell(codex, ship)) * piece(has_surface_radar(codex, ship))
+            };
+            let multiplier = participant.multiplier
+                * engagement_multiplier(self.attack_type, engagement)
+                * self.equip_bonuses.get(i).copied().unwrap_or(1.0);
+            let count = if self.participants.len() == 2 && i == 0 {
+                2
+            } else {
+                1
+            };
+            hits.extend((0..count).map(|_| SpecialHit {
+                fleet_index: participant.fleet_index,
+                multiplier,
+                accuracy,
+            }));
+        }
+        hits
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -522,7 +579,6 @@ pub(crate) fn execute_special_attack(
     resolved: ResolvedSpecialAttack,
     params: &ShellingParams,
 ) -> BattleHougeki {
-    let attack_type_val = resolved.attack_type.api_value();
     let is_enemy = params.attacker_is_enemy;
 
     let mut hougeki = BattleHougeki::default();
@@ -531,12 +587,8 @@ pub(crate) fn execute_special_attack(
     // `apiAdjustHougekiSpecial` folds them into one.
     let (mut targets, mut damages, mut hits) = (Vec::new(), Vec::new(), Vec::new());
 
-    let base_multiplier = engagement_multiplier(resolved.attack_type, params.engagement);
-
-    for (i, participant) in resolved.participants.iter().enumerate() {
-        let fleet_idx = participant.fleet_index;
-
-        let attacker = &mut attackers[fleet_idx];
+    for hit in resolved.hits(codex, attackers, params.engagement) {
+        let attacker = &mut attackers[hit.fleet_index];
         if !attacker.is_alive() {
             continue;
         }
@@ -559,68 +611,42 @@ pub(crate) fn execute_special_attack(
             None => false,
         };
 
-        let total_mult = participant.multiplier * base_multiplier;
-        let equip_mult = resolved.equip_bonuses.get(i).copied().unwrap_or(1.0);
-
-        // `getSpecialAttackShips`: the flagship hits twice where two ships make the attack.
-        let num_hits = if resolved.participants.len() == 2 && i == 0 {
-            2
-        } else {
-            1
-        };
-        // `getSpecialAttackMod`: 1.05 to the accuracy of a Nelson Touch, 1.4 to the others',
-        // and 1.15 more for an AP shell and for a surface radar.
-        let accuracy = if resolved.attack_type == SpecialAttackType::NelsonTouch {
-            1.05
-        } else {
-            let piece = |carried: bool| {
-                if carried {
-                    1.15
-                } else {
-                    1.0
-                }
-            };
-            1.4 * piece(has_ap_shell(codex, attacker)) * piece(has_surface_radar(codex, attacker))
-        };
-
-        for _ in 0..num_hits {
-            let ci_mult = Some(total_mult * equip_mult);
-            let outcome = roll_attack(
-                codex,
-                rng,
-                attacker,
-                &defenders[target_idx],
-                Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
-                    .with_modifier(accuracy),
-            );
-            hits.push(outcome.cl());
-            let raw = calculate_shelling_damage(
-                codex,
-                rng,
-                attacker,
-                &defenders[target_idx],
-                params.formation_id,
-                params.engagement,
-                ci_mult,
-                outcome,
-            );
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
-            if !is_enemy {
-                attacker.damage_dealt += dealt;
-            }
-            let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-            targets.push(target_idx as i64);
-            damages.push(if shield {
-                DamageCell::Shielded(display)
-            } else {
-                DamageCell::Plain(display)
-            });
+        let outcome = roll_attack(
+            codex,
+            rng,
+            attacker,
+            &defenders[target_idx],
+            Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
+                .with_modifier(hit.accuracy),
+        );
+        hits.push(outcome.cl());
+        // By day the multiplier is applied after the cap.
+        let raw = calculate_shelling_damage(
+            codex,
+            rng,
+            attacker,
+            &defenders[target_idx],
+            params.formation_id,
+            params.engagement,
+            Some(hit.multiplier),
+            outcome,
+        );
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        if !is_enemy {
+            attacker.damage_dealt += dealt;
         }
+        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+        targets.push(target_idx as i64);
+        damages.push(if shield {
+            DamageCell::Shielded(display)
+        } else {
+            DamageCell::Plain(display)
+        });
     }
 
     if !targets.is_empty() {
         hougeki.record_day_attack(
-            DayAttackKind::Special(codex, &attackers[0], attack_type_val),
+            DayAttackKind::Special(codex, &attackers[0], resolved.api_value()),
             is_enemy,
             0,
             targets,
@@ -808,7 +834,7 @@ mod tests {
         let comes_up = |fleet: &[BattleRuntimeShip]| {
             (0..40).any(|seed| {
                 let rng = &mut crate::random::SeededRng::new(seed);
-                try_special_attack(&codex, rng, fleet, 4).is_some()
+                try_special_attack(&codex, rng, fleet, 4, true).is_some()
             })
         };
         let six = fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb, bb]);

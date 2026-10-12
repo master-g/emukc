@@ -204,10 +204,14 @@ fn shell_turn(
     // that turn; the ships that join it still have their own. 第2艦隊's
     // flagship is not the fleet's.
     if idx == 0
-        && !attackers[0].is_escort_deck()
         && !*special_attack_used
-        && let Some(resolved) =
-            special_attack::try_special_attack(codex, rng, attackers, params.formation_id)
+        && let Some(resolved) = special_attack::try_special_attack(
+            codex,
+            rng,
+            attackers,
+            params.formation_id,
+            can_shell_day_ship(codex, &attackers[0]),
+        )
     {
         *special_attack_used = true;
         return special_attack::execute_special_attack(
