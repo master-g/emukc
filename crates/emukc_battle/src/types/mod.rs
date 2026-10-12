@@ -20,7 +20,7 @@ pub(crate) use runtime::CombinedMembership;
 pub use runtime::{
     AirCorpsInput, AirSquadronInput, BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip,
     BattleShipInput, BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket,
-    NightBattleSimulation,
+    NightBattleSimulation, SpecialAttacksMade,
 };
 
 #[cfg(test)]

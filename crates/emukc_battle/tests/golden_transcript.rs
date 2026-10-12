@@ -121,6 +121,7 @@ fn day_context(codex: &Codex) -> BattleContext {
 
 fn night_input(codex: &Codex) -> NightBattleInput {
     NightBattleInput {
+        special_attacks_made: Default::default(),
         friendly: vec![
             BattleRuntimeShip::new(attacker(codex), true, true),
             BattleRuntimeShip::new(attacker(codex), true, true),

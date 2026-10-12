@@ -77,6 +77,7 @@ async fn settle_boss_win_with_enemies(
 ) -> SortieSettlement {
     let stage = definition.stage(stage_id).unwrap();
     let active = ActiveSortieState {
+        special_attacks_made: Default::default(),
         deck_id: 1,
         map_id: definition.map_id,
         map_name: definition.name.clone(),
@@ -166,6 +167,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             map_id: 11,
             cell_id: 1,
             context: BattleContext {
+                special_attacks_made: Default::default(),
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 11,
@@ -1797,6 +1799,7 @@ fn active_sortie_on_cell(
     let stage = definition.stage(&definition.default_variant).unwrap();
     let cell = stage.cells.iter().find(|cell| pick(cell)).unwrap();
     ActiveSortieState {
+        special_attacks_made: Default::default(),
         deck_id: 1,
         map_id: 11,
         map_name: definition.name.clone(),
@@ -1974,6 +1977,7 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
     let _ = store.insert_active(
         pid,
         ActiveSortieState {
+            special_attacks_made: Default::default(),
             deck_id: 1,
             map_id: 65,
             map_name: definition.name.clone(),
@@ -2118,6 +2122,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
                 let _ = store.insert_active(
                     pid,
                     ActiveSortieState {
+                        special_attacks_made: Default::default(),
                         deck_id: 1,
                         map_id: *map_id,
                         map_name: definition.name.clone(),
@@ -2244,6 +2249,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
     let _ = store.insert_active(
         pid,
         ActiveSortieState {
+            special_attacks_made: Default::default(),
             deck_id: 1,
             map_id,
             map_name: definition.name.clone(),
@@ -2303,6 +2309,7 @@ async fn settle_win_carrying(
     let stage = definition.stage(&stage_id).unwrap();
     let cell_no = stage.multi_label_index()[label][0];
     let active = ActiveSortieState {
+        special_attacks_made: Default::default(),
         deck_id: 1,
         map_id: definition.map_id,
         map_name: definition.name.clone(),
@@ -2441,6 +2448,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
     let _ = context.sortie_store.insert_active(
         profile_id,
         ActiveSortieState {
+            special_attacks_made: Default::default(),
             deck_id: 1,
             map_id: definition.map_id,
             map_name: definition.name.clone(),
@@ -2520,6 +2528,7 @@ async fn map_5_6_counts_the_cargo_on_arrival_at_the_landing_cell() {
     let _ = context.sortie_store.insert_active(
         profile_id,
         ActiveSortieState {
+            special_attacks_made: Default::default(),
             deck_id: 1,
             map_id: definition.map_id,
             map_name: definition.name.clone(),
@@ -2582,4 +2591,43 @@ async fn a_badly_damaged_ship_carries_nothing() {
     };
     assert_eq!(points(at(hp_max / 4 + 1)).await, 10);
     assert_eq!(points(at(hp_max / 4)).await, 0);
+}
+
+/// The battle is told what the sortie has made of its special attacks, and the sortie takes
+/// in what the battle made: a flagship's special gunnery attack is made once a sortie.
+#[tokio::test]
+async fn a_sortie_makes_its_special_gunnery_attack_once() {
+    let (context, pid) = guard_context().await;
+    let nagato = context.add_ship(pid, 541).await.unwrap();
+    let mutsu = context.add_ship(pid, 573).await.unwrap();
+    context
+        .update_fleet_ships(pid, 1, &[nagato.api_id, mutsu.api_id, -1, -1, -1, -1])
+        .await
+        .unwrap();
+    let store = context.sortie_store.as_ref();
+
+    // (the battle made it, the sortie has it on record)
+    let mut battles = [Vec::new(), Vec::new()];
+    for made_before in [false, true] {
+        for _ in 0..30 {
+            store.remove_active(pid);
+            super::clear_pending_sortie_runtime_state(store, pid);
+            let mut active = active_sortie_on_cell(&context.codex, |c| c.event_id == 4);
+            active.special_attacks_made.gunnery = made_before;
+            let _ = store.insert_active(pid, active);
+            // 梯形陣
+            let packet = serde_json::json!(context.sortie_battle(pid, 4).await.unwrap());
+            let made = ["api_hougeki1", "api_hougeki2", "api_hougeki3"]
+                .iter()
+                .filter_map(|round| packet[round]["api_at_type"].as_array())
+                .flatten()
+                .any(|attack_type| attack_type.as_i64().unwrap() >= 100);
+            let recorded = store.get_active(pid).unwrap().special_attacks_made.gunnery;
+            battles[usize::from(made_before)].push((made, recorded));
+        }
+    }
+    let [fresh, spent] = battles;
+    assert!(fresh.contains(&(true, true)), "no battle of thirty made it: {fresh:?}");
+    assert!(fresh.iter().all(|(made, recorded)| made == recorded), "{fresh:?}");
+    assert!(spent.iter().all(|battle| *battle == (false, true)), "{spent:?}");
 }

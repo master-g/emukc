@@ -163,6 +163,7 @@ mod tests {
         let simulation = execute_day(
             &codex,
             BattleContext {
+                special_attacks_made: Default::default(),
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -213,6 +214,7 @@ mod tests {
         let simulation = execute_day(
             &codex,
             BattleContext {
+                special_attacks_made: Default::default(),
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -256,6 +258,7 @@ mod tests {
             let simulation = execute_day(
                 &codex,
                 BattleContext {
+                    special_attacks_made: Default::default(),
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: if combined.is_some() {
@@ -288,5 +291,85 @@ mod tests {
         assert_eq!(combined.escort_start(), Some(2));
         assert_eq!(combined.main_deck().len(), 2);
         assert!(combined.night_fleet().iter().all(BattleRuntimeShip::is_escort_deck));
+    }
+
+    /// A night battle reads how many night assaults the sortie has made and adds its own:
+    /// the third is made and the fourth is not.
+    #[test]
+    fn a_night_battle_counts_the_kongou_assault_against_the_sortie() {
+        use std::collections::BTreeSet;
+
+        use crate::game::sortie::ActiveSortieState;
+
+        let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        codex.game_cfg.god_mode = false;
+        codex.game_cfg.one_hit_kill = false;
+        let store = crate::game::sortie_store::SortieStore::new();
+        let mut rng = super::super::rng::ProductionRng;
+
+        // 金剛改二丙 and 榛名改二乙 at a level and luck that put the rate past 100, with four
+        // more surface ships, against one ship nobody can sink.
+        let mut pair = [591, 593].map(|id| sample_ship(&codex, id, 175));
+        for ship in &mut pair {
+            ship.ship.api_lucky[0] = 99;
+        }
+        let mut friend_ships = pair.to_vec();
+        friend_ships.extend(vec![sample_ship(&codex, 412, 99); 4]);
+        let mut enemy = sample_ship(&codex, 412, 99);
+        enemy.ship.api_karyoku[0] = 0;
+        enemy.ship.api_raisou[0] = 0;
+        enemy.ship.api_soukou[0] = 9999;
+        let session = || {
+            let simulation = execute_day(
+                &codex,
+                BattleContext {
+                    battle_type: BattleType::Normal,
+                    is_sortie: true,
+                    friendly_formation_id: 1,
+                    enemy_formation_id: 1,
+                    engagement: EngagementType::SameCourse,
+                    friend_ships: friend_ships.clone(),
+                    enemy_ships: vec![enemy.clone()],
+                    enemy_escort_ships: Vec::new(),
+                    air_corps: Vec::new(),
+                    combined: None,
+                    special_attacks_made: Default::default(),
+                },
+                &mut super::super::rng::ProductionRng,
+            );
+            build_sortie_session(42, 1, 11, 3, simulation)
+        };
+        let _ = store.insert_active(
+            42,
+            ActiveSortieState {
+                deck_id: 1,
+                map_id: 11,
+                map_name: String::new(),
+                map_level: 1,
+                stage_id: String::new(),
+                current_cell_id: 3,
+                boss_cell_id: 3,
+                pending_battle_cell_id: Some(3),
+                visited_cell_ids: BTreeSet::new(),
+                locked_enemy_composition: None,
+                landing_tp: None,
+                air_strikes: vec![],
+                raided: false,
+                special_attacks_made: emukc_battle::SpecialAttacksMade {
+                    gunnery: true,
+                    kongou_assaults: 2,
+                },
+            },
+        );
+        let assaults = |night: &SortieNightBattleSession| {
+            let hougeki = night.packet.hougeki.as_ref().unwrap();
+            hougeki.api_sp_list.iter().filter(|&&attack| attack == 104).count()
+        };
+        let made = || store.get_active(42).unwrap().special_attacks_made.kongou_assaults;
+
+        let (_, third) = run_night_battle(&store, &codex, session(), &mut rng);
+        assert_eq!((assaults(&third), made()), (1, 3));
+        let (_, fourth) = run_night_battle(&store, &codex, session(), &mut rng);
+        assert_eq!((assaults(&fourth), made()), (0, 3));
     }
 }

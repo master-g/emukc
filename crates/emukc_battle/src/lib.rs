@@ -36,7 +36,7 @@ pub use types::{
     BattleKoukuStage3Combined, BattleNightHougeki, BattleOpeningAttack, BattleOutcome,
     BattlePacket, BattleRaigeki, BattleRuntimeShip, BattleShipInput, BattleSimulation, BattleType,
     CombinedSetup, EngagementType, NightBattleInput, NightBattlePacket, NightBattleSimulation,
-    SiListId, SquadronFlight,
+    SiListId, SpecialAttacksMade, SquadronFlight,
 };
 
 // Public API — the raid on the air base

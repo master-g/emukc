@@ -594,6 +594,7 @@ mod combined_tests {
         let escort = escort_deck(codex);
         let enemy = enemy_fleet(codex);
         let context = BattleContext {
+            special_attacks_made: Default::default(),
             battle_type: BattleType::Normal,
             is_sortie: true,
             // 第一警戒航行序列 — the one formation with no escort-size floor.

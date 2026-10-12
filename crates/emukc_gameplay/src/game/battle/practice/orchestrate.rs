@@ -74,6 +74,7 @@ pub fn run_day_battle(
     let simulation = execute_day(
         codex,
         BattleContext {
+            special_attacks_made: Default::default(),
             battle_type: BattleType::Normal,
             is_sortie: false,
             friendly_formation_id: input.formation_id,
@@ -188,6 +189,7 @@ pub fn run_night_battle(
     let simulation = execute_night(
         codex,
         NightBattleInput {
+            special_attacks_made: Default::default(),
             friendly: session.friendly.clone(),
             enemy: session.enemy.clone(),
             friendly_formation_id: session.formation[0],

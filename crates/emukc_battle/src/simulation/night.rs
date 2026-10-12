@@ -21,7 +21,7 @@ use crate::targeting::{
 };
 use crate::types::{
     AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
-    NightBattleParams, SiListId, TargetClass,
+    NightBattleParams, SiListId, SpecialAttacksMade, TargetClass,
 };
 
 // ---------------------------------------------------------------------------
@@ -1042,6 +1042,12 @@ fn kongou_night_assault(
     params: &NightBattleParams,
     hougeki: &mut BattleNightHougeki,
 ) -> bool {
+    // Three a sortie, and none in an exercise.
+    if params.special_attacks_made.kongou_assaults >= SpecialAttacksMade::KONGOU_ASSAULTS_A_SORTIE
+        || !friendly.first().is_some_and(|flagship| flagship.is_sortie)
+    {
+        return false;
+    }
     let Some(rate) = kongou_assault_rate(codex, friendly, friendly_formation) else {
         return false;
     };
@@ -1488,6 +1494,7 @@ mod tests {
             &mut friendly,
             &mut enemies,
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -1542,6 +1549,7 @@ mod tests {
             &mut friendly,
             &mut enemies,
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -1590,6 +1598,7 @@ mod tests {
                     &mut friendly,
                     &mut enemy,
                     &NightBattleParams {
+                        special_attacks_made: Default::default(),
                         friendly_formation_id: 5,
                         enemy_formation_id: 1,
                         engagement: EngagementType::SameCourse,
@@ -1653,6 +1662,7 @@ mod tests {
         let simulation = crate::simulation::simulate_night(
             &codex,
             crate::types::NightBattleInput {
+                special_attacks_made: Default::default(),
                 friendly: vec![BattleRuntimeShip::from(carrier)],
                 enemy: vec![BattleRuntimeShip::from(enemy)],
                 friendly_formation_id: 1,
@@ -1699,6 +1709,7 @@ mod tests {
             &mut enemies, // enemy attacks first
             &mut friendly,
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -1748,6 +1759,7 @@ mod tests {
             &mut enemies,
             &mut friendly,
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -2487,6 +2499,7 @@ mod tests {
             let simulation = crate::simulation::simulate_night(
                 &codex,
                 crate::types::NightBattleInput {
+                    special_attacks_made: Default::default(),
                     friendly: vec![attacker],
                     enemy: vec![BattleRuntimeShip::from(sample_ship(&codex, target, 50))],
                     friendly_formation_id: 1,
@@ -2813,6 +2826,7 @@ mod tests {
             &mut friendly,
             &mut enemy,
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -2948,6 +2962,7 @@ mod tests {
             &mut friendly,
             &mut enemies, // enemy is the second slice → it attacks via the enemy loop (the fixed path)
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -3003,6 +3018,7 @@ mod tests {
 
         let mut rng = crate::random::SeededRng::new(seed);
         let params = NightBattleParams {
+            special_attacks_made: Default::default(),
             friendly_formation_id: defender_formation_id,
             enemy_formation_id: defender_formation_id,
             engagement: EngagementType::SameCourse,
@@ -3246,6 +3262,7 @@ mod display_narrowing_tests {
             &mut fleet(),
             &mut fleet(),
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: crate::types::EngagementType::SameCourse,
@@ -3313,6 +3330,7 @@ mod abyssal_carrier_tests {
         by_enemy: bool,
     ) -> Vec<i64> {
         let input = NightBattleInput {
+            special_attacks_made: Default::default(),
             friendly: vec![friendly],
             enemy: vec![enemy],
             friendly_formation_id: 1,
@@ -3419,6 +3437,7 @@ mod abyssal_carrier_tests {
         // And the packet's damage is that power's, capped: her gunfire would be 208 + 5
         // before armour.
         let input = NightBattleInput {
+            special_attacks_made: Default::default(),
             friendly: vec![destroyer(&codex, &[])],
             enemy: vec![abyssal(&codex, SOUTH_PACIFIC, 100)],
             friendly_formation_id: 1,
@@ -3795,6 +3814,7 @@ mod attack_type_tests {
                     &mut friendly.clone(),
                     &mut enemy.clone(),
                     &NightBattleParams {
+                        special_attacks_made: Default::default(),
                         friendly_formation_id: 1,
                         enemy_formation_id: 1,
                         engagement: crate::types::EngagementType::SameCourse,
@@ -3837,6 +3857,7 @@ mod attack_type_tests {
             &mut friendly.to_vec(),
             &mut enemy.to_vec(),
             &NightBattleParams {
+                special_attacks_made: Default::default(),
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: crate::types::EngagementType::SameCourse,
@@ -4090,5 +4111,48 @@ mod attack_type_tests {
         // Not without the pair.
         friendly.swap(1, 2);
         assert!(!night(&codex, 0, &friendly, &enemy).iter().any(|attack| attack.3 == 104));
+    }
+
+    /// wikiwiki 金剛改二丙: 「出撃1回毎に…最大3回発動可能」, apart from the special gunnery
+    /// attacks, and none in an exercise. The source: `numSpecialKongou >= 3`.
+    #[test]
+    fn the_kongou_night_assault_is_made_three_times_a_sortie_and_never_in_an_exercise() {
+        let codex = codex();
+        let mut friendly = assault_fleet(&codex, KONGOU, &[SURFACE_RADAR_10, LARGE_SEARCHLIGHT]);
+        for ship in &mut friendly[..2] {
+            ship.ship.api_lv = 175;
+            ship.ship.api_lucky[0] = 99;
+        }
+        let enemy = vec![hostile(at_hp(ship(&codex, KcShipType::BB, 50, &[]), 100)); 6];
+        let made = |friendly: &[BattleRuntimeShip], kongou_assaults| {
+            simulate_night_hougeki(
+                &codex,
+                &mut crate::random::SeededRng::new(0),
+                &mut friendly.to_vec(),
+                &mut enemy.clone(),
+                &NightBattleParams {
+                    special_attacks_made: SpecialAttacksMade {
+                        gunnery: true,
+                        kongou_assaults,
+                    },
+                    friendly_formation_id: 1,
+                    enemy_formation_id: 1,
+                    engagement: crate::types::EngagementType::SameCourse,
+                    air_state: None,
+                    night_start: false,
+                    flare_pos: [-1, -1],
+                },
+            )
+            .unwrap()
+            .api_sp_list
+            .contains(&104)
+        };
+        assert!(made(&friendly, 0));
+        assert!(made(&friendly, 2));
+        assert!(!made(&friendly, 3));
+        for ship in &mut friendly {
+            ship.is_sortie = false;
+        }
+        assert!(!made(&friendly, 0));
     }
 }

@@ -245,6 +245,7 @@ impl SortieBattleSetup {
             map_id: self.active.map_id,
             cell_id: self.active.current_cell_id,
             context: BattleContext {
+                special_attacks_made: self.active.special_attacks_made,
                 battle_type,
                 is_sortie: true,
                 friendly_formation_id: formation_id,

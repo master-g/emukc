@@ -219,6 +219,45 @@ pub struct CombinedSetup {
     pub escort_ships: Vec<BattleShipInput>,
 }
 
+/// The fleet special attacks a fleet has made since its sortie began.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SpecialAttacksMade {
+    /// A flagship's special gunnery attack (100 to 103, 105, 106): one a sortie.
+    pub gunnery: bool,
+    /// The Kongou class's night assaults (104), counted apart: three a sortie.
+    pub kongou_assaults: u8,
+}
+
+impl SpecialAttacksMade {
+    /// How many night assaults a sortie allows (wikiwiki 金剛改二丙; the source's
+    /// `numSpecialKongou >= 3`).
+    pub(crate) const KONGOU_ASSAULTS_A_SORTIE: u8 = 3;
+
+    /// Take in what the friendly fleet made in a day battle.
+    pub fn record_day(&mut self, packet: &BattlePacket) {
+        for round in [&packet.hougeki1, &packet.hougeki2, &packet.hougeki3].into_iter().flatten() {
+            self.record(&round.api_at_eflag, &round.api_at_type);
+        }
+    }
+
+    /// Take in what the friendly fleet made in a night battle.
+    pub fn record_night(&mut self, packet: &NightBattlePacket) {
+        if let Some(hougeki) = &packet.hougeki {
+            self.record(&hougeki.api_at_eflag, &hougeki.api_sp_list);
+        }
+    }
+
+    fn record(&mut self, eflags: &[i64], attack_types: &[i64]) {
+        for (_, attack_type) in eflags.iter().zip(attack_types).filter(|(eflag, _)| **eflag == 0) {
+            match attack_type {
+                104 => self.kongou_assaults += 1,
+                100..=106 => self.gunnery = true,
+                _ => {}
+            }
+        }
+    }
+}
+
 /// Input parameters for a day battle simulation.
 #[derive(Debug, Clone)]
 pub struct BattleContext {
@@ -241,6 +280,8 @@ pub struct BattleContext {
     /// The air corps sent against this battle's cell; empty for most battles,
     /// and then the battle draws not one random number more.
     pub air_corps: Vec<AirCorpsInput>,
+    /// What the fleet has made of its special attacks on this sortie.
+    pub special_attacks_made: SpecialAttacksMade,
 }
 
 /// An air corps attacking the enemy fleet before the fleets meet.
@@ -287,6 +328,7 @@ impl BattleContext {
             enemy_escort_ships: Vec::new(),
             combined: None,
             air_corps: Vec::new(),
+            special_attacks_made: SpecialAttacksMade::default(),
         }
     }
 }
@@ -301,6 +343,8 @@ pub struct NightBattleInput {
     pub air_state: Option<AirState>,
     /// Whether this is a night-start (開幕夜戦) battle and not the night after a day battle.
     pub night_start: bool,
+    /// What the fleet has made of its special attacks on this sortie.
+    pub special_attacks_made: SpecialAttacksMade,
 }
 
 #[derive(Debug, Clone)]

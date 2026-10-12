@@ -563,7 +563,8 @@ pub(crate) fn try_special_attack(
     formation_id: i64,
 ) -> Option<ResolvedSpecialAttack> {
     let flagship = attackers.first()?;
-    if !can_shell_day_ship(codex, flagship) {
+    // None is made in an exercise.
+    if !flagship.is_sortie || !can_shell_day_ship(codex, flagship) {
         return None;
     }
 
@@ -1236,6 +1237,72 @@ mod tests {
             .unwrap();
             assert!(hougeki.api_at_type.iter().all(|&t| t < 100), "seed {seed}");
         }
+    }
+
+    /// wikiwiki: 「発動するのは出撃1回につき1度のみ」「演習では発動しない」. The source keeps
+    /// `fleet.didSpecial` set from one battle of a sortie to the next.
+    #[test]
+    fn a_special_attack_is_made_once_a_sortie_and_never_in_an_exercise() {
+        use crate::types::{BattleContext, BattleType, SpecialAttacksMade};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let battles = |is_sortie, made: SpecialAttacksMade| {
+            let mut after = Vec::new();
+            for seed in 0..40 {
+                let mut enemy_ships = vec![sample_ship(&codex, bb_mst, 99); 2];
+                for ship in &mut enemy_ships {
+                    ship.ship.api_soukou[0] = 1000;
+                }
+                let context = BattleContext {
+                    battle_type: BattleType::Normal,
+                    is_sortie,
+                    friendly_formation_id: 4,
+                    enemy_formation_id: 1,
+                    engagement: EngagementType::SameCourse,
+                    friend_ships: vec![
+                        sample_ship(&codex, NAGATO_K2_ID, 99),
+                        sample_ship(&codex, MUTSU_K2_ID, 99),
+                    ],
+                    enemy_ships,
+                    enemy_escort_ships: Vec::new(),
+                    combined: None,
+                    air_corps: Vec::new(),
+                    special_attacks_made: made,
+                };
+                let mut rng = crate::random::SeededRng::new(seed);
+                let packet = crate::execute_day(&codex, context, &mut rng).packet;
+                let rounds = [&packet.hougeki1, &packet.hougeki2, &packet.hougeki3];
+                let special = rounds
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|round| &round.api_at_type)
+                    .any(|&attack_type| attack_type >= 100);
+                let mut made = made;
+                made.record_day(&packet);
+                after.push((special, made));
+            }
+            after
+        };
+        let fresh = SpecialAttacksMade::default();
+        let spent = SpecialAttacksMade {
+            gunnery: true,
+            kongou_assaults: 0,
+        };
+        // A fleet that has not made it makes it in some battles, and that is recorded.
+        let first = battles(true, fresh);
+        assert!(first.contains(&(true, spent)));
+        assert!(first.iter().all(|battle| [(false, fresh), (true, spent)].contains(battle)));
+        // One that has does not make it again.
+        assert!(battles(true, spent).iter().all(|battle| *battle == (false, spent)));
+        // The night assaults are counted apart from it.
+        let assaulted = SpecialAttacksMade {
+            gunnery: false,
+            kongou_assaults: 3,
+        };
+        assert!(battles(true, assaulted).iter().any(|battle| battle.0));
+        // And none is made in an exercise.
+        assert!(battles(false, fresh).iter().all(|battle| *battle == (false, fresh)));
     }
 
     #[test]
