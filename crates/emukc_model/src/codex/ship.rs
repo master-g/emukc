@@ -183,6 +183,12 @@ impl Codex {
         Some((ship, slot_items))
     }
 
+    /// A stat that grows with the ship's level, from `[at level 1, at level 99]`: evasion,
+    /// line of sight and anti-submarine.
+    pub fn stat_at_level(lv: i64, range: [i64; 2]) -> i64 {
+        ((range[1] - range[0]) * lv / 99) + range[0]
+    }
+
     /// Calculate ship status.
     ///
     /// # How it works
@@ -290,10 +296,9 @@ impl Codex {
         ship.api_lucky = mst.api_luck.unwrap_or([0, 0]); // luck
 
         // leveling
-        let formula = |lv: i64, base: i64, max: i64| -> i64 { ((max - base) * lv / 99) + base };
-        ship.api_kaihi[0] = formula(ship.api_lv, basic.kaih[0], basic.kaih[1]);
-        ship.api_sakuteki[0] = formula(ship.api_lv, basic.saku[0], basic.saku[1]);
-        ship.api_taisen[0] = formula(ship.api_lv, basic.tais[0], basic.tais[1]);
+        ship.api_kaihi[0] = Self::stat_at_level(ship.api_lv, basic.kaih);
+        ship.api_sakuteki[0] = Self::stat_at_level(ship.api_lv, basic.saku);
+        ship.api_taisen[0] = Self::stat_at_level(ship.api_lv, basic.tais);
 
         // married HP bonus
         if married {

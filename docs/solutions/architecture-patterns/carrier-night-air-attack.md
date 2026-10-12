@@ -67,12 +67,28 @@ of a carrier takes: accuracy and critical rate in `roll_attack`, critical damage
 The day attack on a submarine takes it too (`asw_proficiency`), for the ships whose aircraft
 make it — 航巡, 航戦, 水母, 揚陸艦, 軽空母 — and not in the opening (`Aim::in_the_opening`).
 
+## Whom she attacks
+
+A carrier flying her night air attack goes for the surface ships and takes a submarine only once
+none is left (`nightPhaseTarget`; `AttackCapability::BothPreferSurface`). A carrier that shells
+takes the submarine first, as any ship does.
+
+Which carriers may attack a submarine at night at all is `canASWNight`: a light carrier whose own
+anti-submarine is above zero, aircraft or not (`bare_asw`: grown with her level plus 近代化改修,
+without equipment or what it grants); a fleet or armoured carrier never. The attack still lands
+for scratch damage and is not flown.
+
+Two guns between main and secondary make a double attack (`NBtypes`), so Graf Zeppelin with two
+secondary guns makes one. That is her gunfire only: a carrier flying with a night air group has
+the carrier cut-ins and no other attack type (`CV.NBtypes`), so with the same two guns and a
+night air group she flies a plain night air attack, flag 1.
+
 ## What the client is told
 
 `api_n_mother_list` is 1 for an attack by air. The client keeps it as `yasen_kubo` and, when
 set, draws the attack as aircraft (`PhaseAttackKansaiki`) whatever the ship is. The cut-in
 carries it as well. It is 0 for a double attack and for an attack on a submarine, as in the
-source; no carrier can mount what a double attack needs here, so only a test reaches the first.
+source.
 
 `night_turn` decides once whether the attack is flown and hands that on: the power goes to
 `calculate_night_damage` as `air_power`, the roll gets `Aim::as_night_air_attack`. `accuracy.rs`
@@ -97,8 +113,6 @@ and `damage.rs` do not ask `simulation::night` themselves.
   land target, and the special-aircraft multipliers.
 - A night attack on a submarine still always lands for scratch damage, so proficiency reaches
   the day attack on a submarine only.
-- A night carrier with an autogyro, a patrol aircraft, a seaplane bomber or a flying boat picks
-  a submarine first when there is one (`can_attack_submarine_night_shelling`), and scratches it.
-  The source has her attack the surface ships first (`kcsim.js` 1740).
-- The double attack needs a main gun (`is_double_attack_eligible`); the wiki has Graf Zeppelin
-  make one with two secondary guns.
+- A main gun with a torpedo counts as a double attack here; the source makes it a cut-in
+  (`NBtypes` 1440). A failed cut-in falls back on a double attack for a ship with a main gun;
+  the source has no such fallback. Both wait for the night cut-in table to be redone.

@@ -101,6 +101,13 @@ pub(crate) fn select_random_target_index(
                 submarine_targets
             }
         }
+        AttackCapability::BothPreferSurface => {
+            if surface_like_targets.is_empty() {
+                submarine_targets
+            } else {
+                surface_like_targets
+            }
+        }
     };
     if candidates.is_empty() {
         return None;
@@ -410,10 +417,13 @@ pub(crate) fn attack_capability_for_phase(
         BattlePhase::NightShelling => {
             if !can_attack_night_ship(codex, ship) {
                 AttackCapability::CannotAttack
-            } else if can_attack_submarine_night_shelling(codex, ship) {
-                AttackCapability::BothPreferSubmarine
-            } else {
+            } else if !can_attack_submarine_night_shelling(codex, ship) {
                 AttackCapability::SurfaceOnly
+            } else if crate::simulation::night::can_night_air_attack(codex, ship) {
+                // `nightPhaseTarget`: her aircraft go for the surface ships first.
+                AttackCapability::BothPreferSurface
+            } else {
+                AttackCapability::BothPreferSubmarine
             }
         }
     }
@@ -460,11 +470,20 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
             | KcShipType::CT
             | KcShipType::AO,
         ) => true,
-        Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB) => {
-            can_attack_night_ship(codex, ship) && has_active_asw_aircraft(codex, ship)
-        }
+        // `canASWNight`: a light carrier needs anti-submarine of her own, with or without
+        // aircraft for it; a fleet or armoured carrier does not attack a submarine at night.
+        Some(KcShipType::CVL) => can_attack_night_ship(codex, ship) && bare_asw(codex, ship) > 0,
         _ => false,
     }
+}
+
+/// A ship's anti-submarine without her equipment or what it grants: grown with her level, plus
+/// 近代化改修, as `Codex::cal_ship_status` builds it.
+fn bare_asw(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+    const ASW_MODERNIZATION: usize = 6;
+    codex.find_ship_extra(ship.ship.api_ship_id).map_or(0, |basic| {
+        Codex::stat_at_level(ship.ship.api_lv, basic.tais) + ship.ship.api_kyouka[ASW_MODERNIZATION]
+    })
 }
 
 /// Whether a ship has at least one active ASW-capable aircraft.

@@ -645,10 +645,12 @@ fn resolve_dd_night_attack(
 // Night attack detection & CI trigger
 // ---------------------------------------------------------------------------
 
-/// Returns true if the ship qualifies for night double-attack.
-/// Requires at least 2 different weapon categories (main + secondary, main + torp, or 2+ main).
+/// Returns true if the ship qualifies for night double-attack: two guns between main and
+/// secondary (`NBtypes`, `mguns + sguns >= 2`), or a main gun and a torpedo.
 fn is_double_attack_eligible(main_guns: usize, sec_guns: usize, torps: usize) -> bool {
-    (main_guns >= 2) || (main_guns >= 1 && sec_guns >= 1) || (main_guns >= 1 && torps >= 1)
+    // ponytail: a main gun with a torpedo is a cut-in in the source (`NBtypes` 1440); it stays
+    // a double attack here until the night cut-in table is redone against it.
+    (main_guns + sec_guns >= 2) || (main_guns >= 1 && torps >= 1)
 }
 
 /// Detect the best night attack type from equipment loadout.
@@ -658,6 +660,11 @@ fn detect_night_attack_type(codex: &Codex, ship: &BattleRuntimeShip) -> NightAtt
         && let Some(sub) = detect_carrier_night_ci_sub_type(codex, ship)
     {
         return NightAttackType::CarrierNightCI(sub);
+    }
+    // `CV.NBtypes`: a carrier flying with a night air group has the carrier cut-ins and no
+    // other; her guns do not come into it.
+    if can_night_air_attack(codex, ship) && has_night_air_gear(codex, ship) {
+        return NightAttackType::Normal;
     }
 
     let main_guns = count_main_guns(codex, ship);
@@ -769,11 +776,13 @@ fn resolve_night_attack(
             return NightAttackType::Normal;
         }
         // Failed CI -> check for double attack fallback
+        // ponytail: the source has no such fallback (a failed cut-in is a plain attack); it
+        // is kept as it was, for a ship with a main gun, until the cut-in table is redone.
         let main_guns = count_main_guns(codex, ship);
         let sec_guns = count_secondary_guns(codex, ship);
         let torps = count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
             + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo);
-        if is_double_attack_eligible(main_guns, sec_guns, torps) {
+        if main_guns >= 1 && is_double_attack_eligible(main_guns, sec_guns, torps) {
             NightAttackType::DoubleAttack
         } else {
             NightAttackType::Normal
@@ -2023,9 +2032,10 @@ mod tests {
     const ARK_ROYAL: i64 = 515;
     const GRAF_ZEPPELIN: i64 = NIGHT_SHELLING_CV_IDS[0];
     const GRAF_ZEPPELIN_KAI: i64 = NIGHT_SHELLING_CV_IDS[1];
-    const MAIN_GUN: i64 = 2; // 12.7cm連装砲
     const SECONDARY_GUN: i64 = 11; // 15.2cm単装砲
+    const TORPEDO: i64 = 13; // 61cm三連装魚雷
     const AUTOGYRO: i64 = 69; // カ号観測機
+    const TAIYOU_K2: i64 = NIGHT_SHELLING_CV_IDS[3]; // 大鷹改二, a 軽空母
 
     #[test]
     fn a_night_air_attack_needs_a_night_air_group_and_a_working_deck() {
@@ -2177,16 +2187,97 @@ mod tests {
         let carrier = || night_carrier(&codex, cvl, &[CREW, (NF, 10, 0)], 100);
         assert_eq!(flag_of(carrier()), 1);
         // She does not fly at a submarine, and a double attack is gunfire.
-        let mut hunter = night_carrier(&codex, cvl, &[CREW, (NF, 10, 0), (AUTOGYRO, 5, 0)], 100);
-        hunter.ship.api_taisen[0] = 10;
+        let hunter = night_carrier(&codex, RYUUHOU_K2E_ID, &[(NF, 10, 0)], 100);
         assert_eq!(flag_against(hunter, ss).0, 0);
-        // No carrier mounts a main gun; the test hands her one to reach the double attack.
-        let guns = [CREW, (NF, 10, 0), (MAIN_GUN, 0, 0), (SECONDARY_GUN, 0, 0)];
-        let gunned = night_carrier(&codex, GRAF_ZEPPELIN_KAI, &guns, 100);
-        assert!(can_night_air_attack(&codex, &gunned));
+        // Two secondary guns make a double attack of her gunfire, and nothing of her flight.
+        let gun = (SECONDARY_GUN, 0, 0);
+        let gunned = night_carrier(&codex, GRAF_ZEPPELIN_KAI, &[gun, gun], 100);
         assert_eq!(flag_against(gunned, dd), (0, NightAttackType::DoubleAttack.api_sp_list()));
+        let flown = night_carrier(&codex, GRAF_ZEPPELIN_KAI, &[CREW, (NF, 10, 0), gun, gun], 100);
+        assert!(can_night_air_attack(&codex, &flown));
+        assert_eq!(flag_against(flown, dd), (1, NightAttackType::Normal.api_sp_list()));
         assert_eq!(flag_of(night_carrier(&codex, GRAF_ZEPPELIN, &[], 100)), 0);
         assert_eq!(flag_of(BattleRuntimeShip::from(sample_ship(&codex, dd, 50))), 0);
+    }
+
+    #[test]
+    fn a_carrier_flying_at_night_goes_for_the_surface_ships_first() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = BattleRuntimeShip::from(sample_ship(
+            &codex,
+            first_ship_mst_by_type(&codex, KcShipType::DD),
+            50,
+        ));
+        let ss = BattleRuntimeShip::from(sample_ship(
+            &codex,
+            first_ship_mst_by_type(&codex, KcShipType::SS),
+            50,
+        ));
+        // Whom she picks over a run of seeds: `Some(0)` the destroyer, `Some(1)` the submarine.
+        let picks = |attacker: &BattleRuntimeShip, defenders: &[BattleRuntimeShip]| {
+            let picked = (0..50)
+                .map(|seed| {
+                    crate::targeting::select_random_target_index(
+                        &codex,
+                        &mut crate::random::SeededRng::new(seed),
+                        attacker,
+                        defenders,
+                        crate::types::BattlePhase::NightShelling,
+                    )
+                })
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(picked.len(), 1, "one choice whatever the draw");
+            picked.into_iter().next().unwrap()
+        };
+        let both = [dd.clone(), ss.clone()];
+        let submarine = [ss.clone()];
+
+        // 龍鳳改二戊 flies and has anti-submarine of her own.
+        let flier = night_carrier(&codex, RYUUHOU_K2E_ID, &[(NF, 10, 0)], 100);
+        assert_eq!(picks(&flier, &both), Some(0));
+        assert_eq!(picks(&flier, &submarine), Some(0), "the submarine, once she is all there is");
+        // 大鷹改二 shells, and a ship that shells takes the submarine first.
+        let sheller = night_carrier(&codex, TAIYOU_K2, &[], 100);
+        assert_eq!(picks(&sheller, &both), Some(1));
+
+        // A light carrier with no anti-submarine of her own, and any fleet carrier, leave a
+        // submarine alone at night, 回転翼機 or not.
+        let group = [CREW, (NF, 10, 0), (AUTOGYRO, 5, 0)];
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let cv = first_ship_mst_by_type(&codex, KcShipType::CV);
+        for mst_id in [cvl, cv] {
+            let carrier = night_carrier(&codex, mst_id, &group, 100);
+            assert_eq!(picks(&carrier, &both), Some(0));
+            assert_eq!(picks(&carrier, &submarine), None);
+        }
+    }
+
+    #[test]
+    fn two_secondary_guns_make_a_double_attack() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let attack = |guns: &[(i64, i64, i64)]| {
+            detect_night_attack_type(&codex, &night_carrier(&codex, GRAF_ZEPPELIN_KAI, guns, 100))
+        };
+        let gun = (SECONDARY_GUN, 0, 0);
+        assert_eq!(attack(&[gun, gun]), NightAttackType::DoubleAttack);
+        assert_eq!(attack(&[gun]), NightAttackType::Normal);
+        // A carrier flying with a night air group does not go by her guns.
+        assert_eq!(attack(&[CREW, (NF, 10, 0), gun, gun]), NightAttackType::Normal);
+
+        // A failed torpedo cut-in does not fall back on two secondary guns.
+        let mut cl = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CL), 50);
+        cl.slot_items =
+            [SECONDARY_GUN, SECONDARY_GUN, TORPEDO, TORPEDO].map(slotitem_with_mst_id).to_vec();
+        let cl = BattleRuntimeShip::from(cl);
+        assert_eq!(detect_night_attack_type(&codex, &cl), NightAttackType::TorpTorpTorp);
+        let resolved = (0..50)
+            .map(|seed| {
+                let rng = &mut crate::random::SeededRng::new(seed);
+                resolve_night_attack(&codex, rng, &cl, false, false)
+            })
+            .collect::<Vec<_>>();
+        assert!(resolved.contains(&NightAttackType::Normal));
+        assert!(!resolved.contains(&NightAttackType::DoubleAttack));
     }
 
     // ── Carrier night CI: sub-types, eligibility, enum, trigger (U1-U4) ───────

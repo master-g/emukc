@@ -189,15 +189,17 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-11] 分支 `feat/night-air-attack`：计划 2026-10-11-003 做完，空母夜间航空攻击的资格、威力、熟练度与
-  `api_n_mother_list`，以及昼战对潜的熟练度；见 `docs/solutions/architecture-patterns/carrier-night-air-attack.md`。
-  两路审查后的修正已做，未推送。`cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings` 通过；
-  `cargo test --workspace --no-fail-fast` 1328 过、0 败、0 ignored；`make headless-check SCENARIO=night_air_attack` 在修正前通过，修正后未重跑。
-  PR #45、#47、#48 已合并，合并后的 `main` 在 `ca0fa261` 上重跑过三道质量门与三个无头检查，都通过。
+- [2026-10-12] PR #49（空母夜间航空攻击，计划 2026-10-11-003）与 PR #50（`emukc_time` 限定日任务重置时间的溢出）已合并。
+  分支 `feat/night-carrier-targeting`：计划 2026-10-11-004 做完（夜间空母先打水面舰、夜战对潜资格、两门副砲连击），
+  两路审查后的修正已做，变基到含 #50 的 `main` 上，已推送开 PR。`cargo fmt --all --check`、
+  `cargo clippy --workspace --all-targets -- -D warnings` 通过；`cargo test --workspace --no-fail-fast` 1331 过、0 败、0 ignored。
+  没有跑无头检查（不改报文形状）。
 
 ## Next Session
 
-- [2026-10-11] 下一个目标还没定。候选：夜战对潜的公式（现在必中擦伤）、敌方空母的夜战；
+- [2026-10-12] 等用户合并夜间空母选靶的 PR。限定日任务（逢 3/7/0、逢 2/8）实机是只在对应日出现、次日 05:00 重置；
+  服务器没有出现限制，重置定在下一个对应日的 05:00（见 PR #50 描述），要做全需单独的计划。
+  其后的候选：夜战对潜的命中与公式（现在必中擦伤）、敌方空母的夜战；
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
