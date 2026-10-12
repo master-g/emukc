@@ -50,6 +50,8 @@ execution: code
 
 - **U1** 一行报文（`fix(battle): write a special attack as one row`）。
 - **U2** 无头场景 `nagato_broadside` 与检查（`test(headless): …`）。
+- **U2b** Nelson Touch 在 T字不利的倍率（`fix(battle): make a Nelson Touch at T disadvantage 2.5 times, not 5`），
+  独立提交。测试 `a_nelson_touch_at_t_disadvantage_is_two_and_a_half_times`，看过把 1.25 改回 2.5 后失败（得 5.0）。
 - **U3** 资格、倍率、目标、命中（`fix(battle): take who makes a special attack from the source`）。
   测试 `who_makes_each_attack_and_what_her_hits_are_multiplied_by`、`how_damaged_the_ships_of_an_attack_may_be`、
   `a_fleet_of_fewer_than_six_surface_ships_makes_no_special_attack`、`the_hits_of_an_attack_are_one_row_on_surface_ships`。
