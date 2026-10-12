@@ -201,8 +201,10 @@ fn shell_turn(
     special_attack_used: &mut bool,
 ) -> BattleHougeki {
     // A special attack is decided when the flagship's turn comes and takes
-    // that turn; the ships that join it still have their own.
+    // that turn; the ships that join it still have their own. 第2艦隊's
+    // flagship is not the fleet's.
     if idx == 0
+        && !attackers[0].is_escort_deck()
         && !*special_attack_used
         && let Some(resolved) =
             special_attack::try_special_attack(codex, rng, attackers, params.formation_id)

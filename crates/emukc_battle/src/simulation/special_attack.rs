@@ -166,9 +166,12 @@ fn equip_bonus(codex: &Codex, ship: &BattleRuntimeShip, no_equip: bool) -> f64 {
     bonus
 }
 
-/// Formation ID: 複縦陣=2, 梯形陣=3
+/// Formation ID: 複縦陣=2, 梯形陣=4
 const FORMATION_DOUBLE_LINE: i64 = 2;
-const FORMATION_ECHELON: i64 = 3;
+const FORMATION_ECHELON: i64 = 4;
+/// 第二警戒航行序列, which a combined fleet takes in place of either (`kcsim.js`
+/// `canSpecialAttackUnique`: `formation.id != 12 && formation.id != 4`, or `!= 2`).
+const FORMATION_CRUISING_2: i64 = 12;
 
 /// Check Nelson Touch eligibility.
 /// Flagship: Nelson/Rodney, positions 1/3/5, formation 複縦陣.
@@ -177,7 +180,7 @@ fn check_nelson_touch(
     fleet: &[BattleRuntimeShip],
     formation_id: i64,
 ) -> Option<ResolvedSpecialAttack> {
-    if formation_id != FORMATION_DOUBLE_LINE {
+    if !matches!(formation_id, FORMATION_DOUBLE_LINE | FORMATION_CRUISING_2) {
         return None;
     }
     let flagship = fleet.first()?;
@@ -251,7 +254,7 @@ fn check_nagato_broadside(
     fleet: &[BattleRuntimeShip],
     formation_id: i64,
 ) -> Option<ResolvedSpecialAttack> {
-    if formation_id != FORMATION_ECHELON {
+    if !matches!(formation_id, FORMATION_ECHELON | FORMATION_CRUISING_2) {
         return None;
     }
     let flagship = fleet.first()?;
@@ -306,7 +309,7 @@ fn check_colorado_broadside(
     fleet: &[BattleRuntimeShip],
     formation_id: i64,
 ) -> Option<ResolvedSpecialAttack> {
-    if formation_id != FORMATION_ECHELON {
+    if !matches!(formation_id, FORMATION_ECHELON | FORMATION_CRUISING_2) {
         return None;
     }
     let flagship = fleet.first()?;
@@ -380,7 +383,7 @@ fn check_richelieu_attack(
     fleet: &[BattleRuntimeShip],
     formation_id: i64,
 ) -> Option<ResolvedSpecialAttack> {
-    if formation_id != FORMATION_DOUBLE_LINE {
+    if !matches!(formation_id, FORMATION_DOUBLE_LINE | FORMATION_CRUISING_2) {
         return None;
     }
     let flagship = fleet.first()?;
@@ -437,7 +440,7 @@ fn check_qe_attack(
     fleet: &[BattleRuntimeShip],
     formation_id: i64,
 ) -> Option<ResolvedSpecialAttack> {
-    if formation_id != FORMATION_ECHELON {
+    if !matches!(formation_id, FORMATION_ECHELON | FORMATION_CRUISING_2) {
         return None;
     }
     let flagship = fleet.first()?;
@@ -1159,6 +1162,80 @@ mod tests {
             assert!(!special(&second), "seed {seed}: made again in the second round");
         }
         assert!(made > 0, "no seed made the special attack, so nothing was tested");
+    }
+
+    /// `kcsim.js` `canSpecialAttackUnique`: 4 or 12 for 101, 102, 103 and 106, 2 or 12 for
+    /// 100 and 105. 3 is 輪形陣.
+    #[test]
+    fn the_formations_are_the_echelon_the_double_line_and_the_second_cruising_formation() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let fleet = |ids: [i64; 5]| ids.map(|id| sample_bb_at(&codex, id, 99)).to_vec();
+        let nagato = fleet([NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb]);
+        let colorado = fleet([601, bb, bb, bb, bb]);
+        let mut warspite = fleet([WARSPIRE_KAI_ID, VALIANT_KAI_ID, bb, bb, bb]);
+        for ship in &mut warspite {
+            ship.ship.api_soku = 5;
+        }
+        let nelson = fleet([571, bb, bb, bb, bb]);
+        let richelieu = fleet([392, JEAN_BART_KAI_ID, bb, bb, bb]);
+        for formation in [1, 2, 3, 4, 5, 6, 11, 12, 13, 14] {
+            let echelon = [4, 12].contains(&formation);
+            let double_line = [2, 12].contains(&formation);
+            assert_eq!(check_nagato_broadside(&codex, &nagato, formation).is_some(), echelon);
+            assert_eq!(check_colorado_broadside(&codex, &colorado, formation).is_some(), echelon);
+            assert_eq!(check_qe_attack(&codex, &warspite, formation).is_some(), echelon);
+            assert_eq!(check_nelson_touch(&codex, &nelson, formation).is_some(), double_line);
+            assert_eq!(
+                check_richelieu_attack(&codex, &richelieu, formation).is_some(),
+                double_line
+            );
+        }
+    }
+
+    /// `canSpecialAttackUnique`: `ship.isescort` makes none of them. 第二警戒航行序列 is the
+    /// formation of both decks, so the formation does not keep 第2艦隊's flagship from it.
+    #[test]
+    fn the_flagship_of_the_escort_fleet_makes_no_special_attack() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        use crate::simulation::shelling::{ShellingRound, simulate_shelling_round};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        for seed in 0..40 {
+            let deck = |ids: [i64; 2], role| {
+                ids.map(|id| {
+                    sample_bb_at(&codex, id, 99)
+                        .in_combined_fleet(CombinedType::SurfaceTaskForce, role)
+                })
+            };
+            let mut friendly = [
+                deck([bb_mst, bb_mst], CombinedFleetRole::Main),
+                deck([NAGATO_K2_ID, MUTSU_K2_ID], CombinedFleetRole::Escort),
+            ]
+            .concat();
+            let mut enemy =
+                vec![sample_bb_at(&codex, bb_mst, 99), sample_bb_at(&codex, bb_mst, 99)];
+            let round = ShellingRound {
+                friendly_deck: 2..4,
+                enemy_deck: 0..2,
+                by_range: true,
+                friendly_formation: 12,
+                enemy_formation: 1,
+                engagement: crate::types::EngagementType::SameCourse,
+                air_state: None,
+            };
+            let hougeki = simulate_shelling_round(
+                &codex,
+                &mut crate::random::SeededRng::new(seed),
+                &mut friendly,
+                &mut enemy,
+                &round,
+                &mut [false; 2],
+            )
+            .unwrap();
+            assert!(hougeki.api_at_type.iter().all(|&t| t < 100), "seed {seed}");
+        }
     }
 
     #[test]
