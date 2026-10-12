@@ -252,4 +252,6 @@ pub(crate) struct NightBattleParams<'a> {
     pub air_state: Option<&'a AirState>,
     /// A night-start (開幕夜戦) battle, where an attack on a submarine does real damage.
     pub night_start: bool,
+    /// Who fired a star shell in the friendly and in the enemy fleet, -1 for nobody.
+    pub flare_pos: [i64; 2],
 }

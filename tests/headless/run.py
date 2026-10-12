@@ -248,6 +248,33 @@ def check_enemy_night_carrier(work: Path) -> list[str]:
     return problems
 
 
+def check_night_cut_in(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the enemy was sunk by day this time, so nothing was rolled for at night: run it again"]
+    night = nights[0]
+    shelling = night["api_hougeki"]
+    rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_sp_list"], shelling["api_df_list"], shelling["api_si_list"])
+    attacks = [row[1:] for row in rows if not row[0]]
+    # What each ship may come up with, by her place: her cut-ins, a double attack, or a plain attack.
+    may = [{0, 2}, {0, 3}, {0, 5}, {0, 2, 7}, {0, 3, 9}, {0, 1}]
+    for at, kind, targets, shown in attacks:
+        if kind not in may[at]:
+            problems.append(f"ship {at} attacked with kind {kind}; her equipment makes {sorted(may[at])}")
+        if len(targets) != (2 if kind in (1, 2, 3) else 1):
+            problems.append(f"an attack of kind {kind} carried {len(targets)} hits")
+        if kind == 2 and [int(item) for item in shown] != [2, 15]:
+            problems.append(f"a main gun and torpedo cut-in shows the gun, then the torpedo; it carried {shown}")
+    if not any(kind >= 2 for _, kind, _, _ in attacks):
+        problems.append("no cut-in came up this time: run it again")
+    # The star shell is the flagship's, fired 7 times in 10.
+    if night["api_flare_pos"][0] not in (-1, 0) or night["api_flare_pos"][1] != -1:
+        problems.append(f"only the flagship carries a star shell; api_flare_pos said {night['api_flare_pos']}")
+    print("night attacks (ship, kind, shown):", [(at, kind, shown) for at, kind, _, shown in attacks], "api_flare_pos", night["api_flare_pos"])
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -269,6 +296,14 @@ SCENARIOS = {
         + "w:16 " + " ".join(f"w:1 s:air{n}" for n in range(1, 9))
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_anti_air_cut_in,
+    ),
+    # 2-1 with six destroyers who have a cut-in or a double attack to roll for each, and a star
+    # shell. Photographed through the night.
+    "night_cut_in": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_night_cut_in,
     ),
     # 2-5 again, sent to C by a battleship: its flagship 軽母ヌ級flagship attacks at night, which
     # the client plays as aircraft. Photographed through the night.
@@ -327,7 +362,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "enemy_night_carrier"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

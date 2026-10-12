@@ -255,7 +255,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 路由规则：`make route-rules-update` 从钉住的羅針盤シミュ源码再生 `map_route_rules.json`；之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make route-oracle` 与来源代码对拍。
 - 装備ボーナス：`make gear-bonus-update` 从钉住的 KC3Kai 提交再生 `gear_bonus.json`，之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make gear-bonus-oracle` 与客户端 `main.js` 的加成函数对拍（需先 `make decode-main`）。对拍报出的差异手工写进 `main-decoder/gear-bonus-corrections.json`。`make update` 在漂移报告之后会自动跑一次对拍（不阻断）。
 - 缓存清单对拍：`make cache-list-oracle` 用客户端 `main.js` 检查清单（客户端点名的目录都有条目、舰船与装备地址的后缀一致；需先 `make decode-main` 与 `make cache-make-list`）。`make update` 之后会自动跑一次（不阻断）。
-- 无头客户端检查：`make headless-check SCENARIO=transport_5_6`（另有 `fresh_1_1`、`air_corps_6_4`、`air_raid_6_5`、`quest_equipment`，以及不开无敌的 `gunnery_cutin`、`leveled_for_mid_boss`、`anti_air_cut_in`、`night_air_attack`、`night_asw`、`enemy_night_carrier`）在独立工作区起服务器，用无头 Chrome 跑真实客户端走完一个场景（不进质量门；需资源缓存、已解码的 `main.js`、Playwright+Chrome，先停掉自己的服务器）。详见 `docs/solutions/best-practices/headless-client-check.md`。
+- 无头客户端检查：`make headless-check SCENARIO=transport_5_6`（另有 `fresh_1_1`、`air_corps_6_4`、`air_raid_6_5`、`quest_equipment`，以及不开无敌的 `gunnery_cutin`、`leveled_for_mid_boss`、`anti_air_cut_in`、`night_air_attack`、`night_asw`、`night_cut_in`、`enemy_night_carrier`）在独立工作区起服务器，用无头 Chrome 跑真实客户端走完一个场景（不进质量门；需资源缓存、已解码的 `main.js`、Playwright+Chrome，先停掉自己的服务器）。详见 `docs/solutions/best-practices/headless-client-check.md`。
 - KCNav 数据：`make kcnav-sync [MAP=1-1]` 下载原始响应（单线程、2 秒间隔、可续传，全量约 1000 次请求，先与用户确认）；`make kcnav-normalize` 不联网，再生 `map_ship_drops.json` 与 `kcnav_enemy_fleets.json`（需先有 `.data/codex`），之后 `cargo run -- bootstrap --codex-only` 重建 codex；`cargo run -- kcnav sync --dry-run` 只报请求数。
 
 ## 代码风格
@@ -270,6 +270,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 
 - 不手改 `crates/emukc_bootstrap/assets/*.json` 与 `main-decoder/out/battle/*.json`；通过 `make decode-main`/decoder 同步流程再生。例外：`assets/map_limited_drops.json`（期间限定掉落清单）与 `assets/map_gauge_rules.json`（多血条图各阶段的推进条件）是手工维护的，改后跑 `make kcnav-normalize`。
 - 不手改 `crates/emukc_battle/src/simulation/abyssal_night.rs`（敌方夜战空母名单）；用 `python3 scripts/gen_abyssal_night_carriers.py` 从钉住的 `kancolle-replay` 提交再生，脚本打印的条数与各项之和要与 `the_abyssal_tables_follow_the_source` 一致。
+- 不手改 `crates/emukc_battle/src/simulation/night_attack_table.rs`（夜战攻击种别表）；用 `python3 scripts/gen_night_attack_table.py` 从钉住的 `kancolle-replay` 提交再生，脚本打印的各行要与 `the_night_attack_table_follows_the_source` 一致。
 - 不逐项手改 `tests/gameplay_tests/battle_golden.rs`；行为变化时必须有意重新冻结并解释差异。
 - 不手改 `Cargo.lock`；依赖升级使用 `cargo update -p <crate>`。
 - 不提交本地/敏感状态：`.env`、`emukc.config.toml`、`.data/`、`z/`、`target/` 及其他 `.gitignore` 所有路径。

@@ -282,6 +282,28 @@ impl Scenario {
         scenario
     }
 
+    /// Six destroyers with something to roll for at night each: a main gun with a torpedo (and
+    /// the fleet's star shell), two torpedoes, three main guns, the destroyer's cut-in with a
+    /// surface radar, the one with the torpedo squadron's lookout, and a double attack beside
+    /// a searchlight.
+    pub fn night_cut_in() -> Self {
+        const MAIN_GUN: i64 = 2; // 12.7cm連装砲
+        const TORPEDO: i64 = 15; // 61cm四連装(酸素)魚雷
+        let loadouts = [
+            [MAIN_GUN, TORPEDO, 101], // 照明弾
+            [TORPEDO, TORPEDO, MAIN_GUN],
+            [MAIN_GUN, MAIN_GUN, MAIN_GUN],
+            [MAIN_GUN, TORPEDO, 28],  // 22号対水上電探
+            [TORPEDO, TORPEDO, 412],  // 水雷戦隊 熟練見張員
+            [MAIN_GUN, MAIN_GUN, 74], // 探照灯
+        ];
+        let mut scenario = Self::leveled_for_mid_boss();
+        for (ship, slots) in scenario.fleet.iter_mut().zip(loadouts) {
+            ship.slots = slots.to_vec();
+        }
+        scenario
+    }
+
     /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
     /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
     /// night. Too few and too weak to be sure of sinking her by day.
@@ -416,6 +438,9 @@ pub enum PhaseExpectation {
     NightAirAttack,
     /// Some night attack must be made by an enemy carrier. A day battle is asked nothing.
     EnemyCarrierNightAttack,
+    /// Some friendly night attack must be a cut-in: an `api_sp_list` entry of 2 or more. A
+    /// day battle is asked nothing.
+    NightCutIn,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
 }
@@ -503,6 +528,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "night_cut_in",
+        build: Scenario::night_cut_in,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::NightCutIn,
     },
     Preset {
         name: "enemy_night_carrier",

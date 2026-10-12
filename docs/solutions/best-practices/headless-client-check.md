@@ -117,6 +117,12 @@ screen, pass steps on the command line and read the screenshots:
   them there. Every such attack has to be one plain hit, not flown, a miss has to do nothing,
   and nobody may be sunk. It fails when the enemy is sunk by day; three runs of three reached
   the night (2026-10-12), each with a miss and a scratch among the attacks.
+- `night_cut_in` is the same sortie with six destroyers who each have something to roll for
+  at night (a main gun and a torpedo, two torpedoes, three main guns, the two destroyer
+  cut-ins, a double attack) and a star shell on the flagship. The check wants every attack to
+  be of a type her equipment makes, with the hits that type has, the mixed cut-in to show the
+  gun and then the torpedo, and at least one cut-in; it fails when none comes up or the day
+  ends the battle. The run of 2026-10-12 played types 2, 5 and 7 and the star shell.
 - `enemy_night_carrier` sends 金剛 and three destroyers to 2-5, where a battleship with fewer
   than four destroyers is routed to C: its flagship 軽母ヌ級flagship attacks at night. The check
   wants an attack of hers in the night packet, not said to be flown (she has no night crew);

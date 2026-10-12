@@ -175,6 +175,5 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - In the source a combined fleet's escort does real damage to a submarine in the night after a
   day battle as well (`!NBonly && !isescort`); here that night is `night_start: false`, a scratch.
 - Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
-- A main gun with a torpedo counts as a double attack here; the source makes it a cut-in
-  (`NBtypes` 1440). A failed cut-in falls back on a double attack for a ship with a main gun;
-  the source has no such fallback. Both wait for the night cut-in table to be redone.
+- The source lets a carrier roll for several of her cut-ins in turn; here she has the one her
+  air group makes. The types of the other ships are in `night-attack-types.md`.
