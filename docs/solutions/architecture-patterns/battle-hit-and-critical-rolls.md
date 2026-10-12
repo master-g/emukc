@@ -115,7 +115,8 @@ Each is a correction the source applies on top: the first-slot terms of the carr
 改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
 half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
-A night attack on a submarine still always lands for scratch damage. Abyssal ships fight at
+A night attack on a submarine in a combined fleet after a day battle scratches where the source
+does real damage (see `carrier-night-air-attack.md`, "A submarine at night"). Abyssal ships fight at
 condition 49 with full fuel; an enemy built from the manifest alone has no evasion.
 
 ## When a test breaks

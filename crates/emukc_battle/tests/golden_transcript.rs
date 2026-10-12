@@ -133,6 +133,7 @@ fn night_input(codex: &Codex) -> NightBattleInput {
         enemy_formation_id: 1,
         engagement: EngagementType::SameCourse,
         air_state: None,
+        night_start: false,
     }
 }
 

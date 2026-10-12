@@ -299,6 +299,8 @@ pub struct NightBattleInput {
     pub enemy_formation_id: i64,
     pub engagement: EngagementType,
     pub air_state: Option<AirState>,
+    /// Whether this is a night-start (開幕夜戦) battle and not the night after a day battle.
+    pub night_start: bool,
 }
 
 #[derive(Debug, Clone)]

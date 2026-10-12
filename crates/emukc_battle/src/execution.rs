@@ -85,6 +85,7 @@ pub fn execute_sp_midnight(
             enemy_formation_id,
             engagement,
             air_state: None,
+            night_start: true,
         },
         rng,
     );
@@ -98,14 +99,19 @@ pub fn execute_sp_midnight(
 #[cfg(test)]
 mod tests {
     use emukc_model::codex::Codex;
+    use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
 
-    use super::{execute_day, execute_night};
+    use super::{execute_day, execute_night, execute_sp_midnight};
+    use crate::combined::CombinedType;
     use crate::debug_overlay::{apply_day_debug, apply_night_debug};
     use crate::random::{BattleRng, SeededRng};
     use crate::simulation::{simulate_day, simulate_night};
-    use crate::test_utils::sample_ship;
+    use crate::test_utils::{
+        first_ship_mst_by_type, first_slotitem_mst_by_type, sample_ship, slotitem_with_mst_id,
+    };
     use crate::types::{
-        BattleContext, BattleRuntimeShip, BattleType, EngagementType, NightBattleInput,
+        BattleContext, BattleRuntimeShip, BattleType, CombinedSetup, EngagementType,
+        NightBattleInput,
     };
 
     const SEED: u64 = 0xE7EC_0710;
@@ -147,6 +153,7 @@ mod tests {
             enemy_formation_id: 1,
             engagement: EngagementType::SameCourse,
             air_state: None,
+            night_start: false,
         }
     }
 
@@ -163,6 +170,44 @@ mod tests {
 
         assert_eq!(format!("{raw:#?}"), format!("{executed:#?}"));
         assert_eq!(raw_next, executed_next, "execution facade must not consume extra RNG");
+    }
+
+    /// A night-start battle is the one night battle where a submarine can be sunk; after a
+    /// day battle a hit on her is a scratch (14% of her HP at most).
+    #[test]
+    fn a_night_start_battle_can_sink_a_submarine() {
+        let codex = load_codex(false, false);
+        let mut hunter = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 99);
+        hunter.ship.api_taisen[0] = 100;
+        hunter.slot_items =
+            vec![slotitem_with_mst_id(first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar))];
+        let mut submarine = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::SS), 50);
+        submarine.ship.api_soukou[0] = 5;
+        submarine.ship.api_nowhp = 30;
+        submarine.ship.api_maxhp = 30;
+
+        // Alone, and as 第2艦隊 of a combined fleet: the source zeroes the power for neither
+        // in a night-start battle (`!NBonly && !isescort`).
+        for combined in [false, true] {
+            let sunk = (0..100).any(|seed| {
+                let mut context = BattleContext::head_on(
+                    BattleType::Normal,
+                    true,
+                    vec![hunter.clone()],
+                    vec![submarine.clone()],
+                );
+                if combined {
+                    context.combined = Some(CombinedSetup {
+                        combined_type: CombinedType::SurfaceTaskForce,
+                        escort_ships: vec![hunter.clone()],
+                    });
+                }
+                let sp = execute_sp_midnight(&codex, context, &mut SeededRng::new(seed));
+                assert_eq!(sp.main_deck.len(), usize::from(combined));
+                sp.night.enemy[0].hp() <= 0
+            });
+            assert!(sunk, "combined: {combined}");
+        }
     }
 
     #[test]

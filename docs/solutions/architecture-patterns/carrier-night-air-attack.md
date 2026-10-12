@@ -82,8 +82,24 @@ takes the submarine first, as any ship does.
 
 Which carriers may attack a submarine at night at all is `canASWNight`: a light carrier whose own
 anti-submarine is above zero, aircraft or not (`bare_asw`: grown with her level plus 近代化改修,
-without equipment or what it grants); a fleet or armoured carrier never. The attack still lands
-for scratch damage and is not flown.
+without equipment or what it grants); a fleet or armoured carrier never. The attack is not flown.
+
+## A submarine at night
+
+Any ship's night attack on a submarine is the day one (`ASW`, called from the night loop with
+`isNightDmg` and `isNightActual`), never a cut-in or a double attack:
+
+- The roll is the day roll on a submarine, `Aim::new(AttackKind::Asw, ..)`: base 80, twice the
+  anti-submarine of each sonar, the formation's anti-submarine column, morale, and the
+  proficiency of `asw_proficiency`. Not the night gunfire roll, so it can miss.
+- After a day battle the attack power counts as 0: a hit is scratch damage
+  (`calculate_scratch_damage`) and the submarine cannot be sunk.
+- In a night-start battle (開幕夜戦, `NightBattleInput::night_start`, set by
+  `execute_sp_midnight` alone) the damage is `calculate_asw_damage` as by day, with formation,
+  engagement and the attacker's damage state, and she can be sunk.
+
+The packet does not change: `api_sp_list` 0, `api_n_mother_list` 0, the depth charge in
+`api_si_list`.
 
 Two guns between main and secondary make a double attack (`NBtypes`), so Graf Zeppelin with two
 secondary guns makes one. That is her gunfire only: a carrier flying with a night air group has
@@ -118,8 +134,9 @@ and `damage.rs` do not ask `simulation::night` themselves.
   and the abyssal `nightattack` ships are not listed. They do not attack at night, as before.
 - The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
   land target, and the special-aircraft multipliers.
-- A night attack on a submarine still always lands for scratch damage, so proficiency reaches
-  the day attack on a submarine only.
+- In the source a combined fleet's escort does real damage to a submarine in the night after a
+  day battle as well (`!NBonly && !isescort`); here that night is `night_start: false`, a scratch.
+- Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
 - A main gun with a torpedo counts as a double attack here; the source makes it a cut-in
   (`NBtypes` 1440). A failed cut-in falls back on a double attack for a ship with a main gun;
   the source has no such fallback. Both wait for the night cut-in table to be redone.

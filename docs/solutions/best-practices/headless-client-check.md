@@ -112,6 +112,11 @@ screen, pass steps on the command line and read the screenshots:
   is the one that reaches the night battle. `night_air_attack` is the same sortie again with
   six night carriers, five of which cannot strike by day: every attack of theirs in the night
   packet has to say it was flown (`api_n_mother_list`).
+- `night_asw` is the same sortie with six submarines, 伊401改 below the level of the opening
+  torpedo and five まるゆ, who sink next to nothing: the enemy lives into the night and attacks
+  them there. Every such attack has to be one plain hit, not flown, a miss has to do nothing,
+  and nobody may be sunk. It fails when the enemy is sunk by day; three runs of three reached
+  the night (2026-10-12), each with a miss and a scratch among the attacks.
 - `anti_air_cut_in` is the same fleet with 秋月 in the sixth place, sent to 2-5 (the extra
   operation sits where 6-5 does on its page, 700, 275), whose first battle meets carriers. The
   check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a
