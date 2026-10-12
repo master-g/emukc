@@ -42,6 +42,8 @@ pub struct SortieBattleResultSnapshot {
     pub friendly_onslots: Vec<[i64; 5]>,
     /// Whether the battle had an air phase, where carrier aircraft gain proficiency.
     pub air_battle: bool,
+    /// The fleet special attacks the fleet made in the battle, day and night, by their type.
+    pub special_attacks: Vec<i64>,
     pub enemy_ship_types: Vec<i64>,
     pub win_rank: String,
     pub get_exp: i64,
@@ -638,7 +640,10 @@ where
                 let fuel_max = mst.api_fuel_max.unwrap_or(0);
                 let ammo_max = mst.api_bull_max.unwrap_or(0);
                 let fuel_cost = (fuel_max * 2 / 10).max(1);
-                let ammo_cost = (ammo_max * 2 / 10).max(1);
+                let kongou_pair = snapshot.get_ship_exp_combined.as_ref().map_or(0, |_| main_len);
+                let ammo_cost = ((ammo_max * 2 / 10).max(1) as f64
+                    * special_attack_ammo(&snapshot.special_attacks, idx, kongou_pair))
+                    as i64;
                 api_ship.api_fuel = (api_ship.api_fuel - fuel_cost).max(0);
                 api_ship.api_bull = (api_ship.api_bull - ammo_cost).max(0);
             }
@@ -954,6 +959,21 @@ where
     Ok(0)
 }
 
+/// What a ship's ammunition for the battle is multiplied by for the special attack she
+/// joined. The source's `updateSupply`: 1.5 for the flagship and second ship of the Nagato
+/// and Richelieu classes' attacks. wikiwiki 金剛改二丙: 1.2 for the two of the night assault,
+/// who lead 第2艦隊 in a combined fleet (`kongou_pair` is where they begin).
+fn special_attack_ammo(special_attacks: &[i64], idx: usize, kongou_pair: usize) -> f64 {
+    let mut factor = 1.0;
+    if idx < 2 && special_attacks.iter().any(|kind| matches!(kind, 101 | 102 | 105)) {
+        factor *= 1.5;
+    }
+    if (kongou_pair..kongou_pair + 2).contains(&idx) && special_attacks.contains(&104) {
+        factor *= 1.2;
+    }
+    factor
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
@@ -971,6 +991,7 @@ mod tests {
             friendly_nowhps: vec![],
             friendly_onslots: vec![],
             air_battle: false,
+            special_attacks: Vec::new(),
             enemy_ship_types: vec![],
             win_rank: win_rank.to_string(),
             get_exp: 0,
@@ -1411,5 +1432,25 @@ mod tests {
         assert_eq!(pick(89), Some(1));
         assert_eq!(pick(90), Some(2));
         assert_eq!(pick(100), Some(3));
+    }
+
+    #[test]
+    fn the_ammunition_of_a_special_attack_is_its_ships_alone() {
+        let of = |attacks: &[i64], kongou_pair| {
+            [0, 1, 2, 6, 7, 8].map(|idx| special_attack_ammo(attacks, idx, kongou_pair))
+        };
+        // The Nagato and Richelieu classes': the flagship and the second ship.
+        for kind in [101, 102, 105] {
+            assert_eq!(of(&[kind], 0), [1.5, 1.5, 1.0, 1.0, 1.0, 1.0]);
+        }
+        // The source charges nothing for a Nelson Touch, nor for 103 and 106.
+        for kind in [100, 103, 106] {
+            assert_eq!(of(&[kind], 0), [1.0; 6]);
+        }
+        // The night assault: the first two, of 第2艦隊 in a combined fleet.
+        assert_eq!(of(&[104], 0), [1.2, 1.2, 1.0, 1.0, 1.0, 1.0]);
+        assert_eq!(of(&[104], 6), [1.0, 1.0, 1.0, 1.2, 1.2, 1.0]);
+        assert_eq!(of(&[101, 104], 6), [1.5, 1.5, 1.0, 1.2, 1.2, 1.0]);
+        assert_eq!(of(&[], 0), [1.0; 6]);
     }
 }

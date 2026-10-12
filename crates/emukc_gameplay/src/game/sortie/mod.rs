@@ -933,6 +933,7 @@ impl Ctx {
         let (session, night) = run_night_battle(store, codex, pending, &mut rng);
 
         if let Some(mut snapshot) = store.take_pending_result(profile_id) {
+            snapshot.special_attacks.extend(night.packet.special_attacks());
             snapshot.win_rank = night.outcome.win_rank.to_string();
             snapshot.get_exp = calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
             snapshot.friendly_nowhps = session.friendly.iter().map(|f| f.hp().max(0)).collect();
@@ -1019,11 +1020,12 @@ impl Ctx {
                     setup.battle_input(BattleType::Normal, formation_id, engagement),
                     &mut rng,
                 );
-                store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
-
+                let mut snapshot = setup.result_snapshot(codex, &session);
+                snapshot.special_attacks = night_session.packet.special_attacks();
                 let mut active = setup.active;
                 active.pending_battle_cell_id = Some(active.current_cell_id);
-                active.special_attacks_made.record_night(&night_session.packet);
+                active.special_attacks_made.record(&snapshot.special_attacks);
+                store.insert_pending_result(profile_id, snapshot);
 
                 tx.commit().await?;
                 let _ = store.insert_active(profile_id, active);
@@ -1204,7 +1206,7 @@ async fn sortie_battle_impl(
 
             let mut active = setup.active;
             active.pending_battle_cell_id = Some(active.current_cell_id);
-            active.special_attacks_made.record_day(&session.packet);
+            active.special_attacks_made.record(&session.packet.special_attacks());
 
             tx.commit().await?;
             let _ = store.insert_active(profile_id, active);

@@ -233,28 +233,45 @@ impl SpecialAttacksMade {
     /// `numSpecialKongou >= 3`).
     pub(crate) const KONGOU_ASSAULTS_A_SORTIE: u8 = 3;
 
-    /// Take in what the friendly fleet made in a day battle.
-    pub fn record_day(&mut self, packet: &BattlePacket) {
-        for round in [&packet.hougeki1, &packet.hougeki2, &packet.hougeki3].into_iter().flatten() {
-            self.record(&round.api_at_eflag, &round.api_at_type);
-        }
-    }
-
-    /// Take in what the friendly fleet made in a night battle.
-    pub fn record_night(&mut self, packet: &NightBattlePacket) {
-        if let Some(hougeki) = &packet.hougeki {
-            self.record(&hougeki.api_at_eflag, &hougeki.api_sp_list);
-        }
-    }
-
-    fn record(&mut self, eflags: &[i64], attack_types: &[i64]) {
-        for (_, attack_type) in eflags.iter().zip(attack_types).filter(|(eflag, _)| **eflag == 0) {
+    /// Take in the special attacks the friendly fleet made in a battle
+    /// ([`BattlePacket::special_attacks`], [`NightBattlePacket::special_attacks`]).
+    pub fn record(&mut self, special_attacks: &[i64]) {
+        for attack_type in special_attacks {
             match attack_type {
                 104 => self.kongou_assaults += 1,
-                100..=106 => self.gunnery = true,
-                _ => {}
+                _ => self.gunnery = true,
             }
         }
+    }
+}
+
+/// The friendly rows of a shelling phase that are fleet special attacks (100 to 106).
+fn special_attacks_in(eflags: &[i64], attack_types: &[i64]) -> impl Iterator<Item = i64> {
+    eflags
+        .iter()
+        .zip(attack_types)
+        .filter(|(eflag, attack_type)| **eflag == 0 && (100..=106).contains(*attack_type))
+        .map(|(_, attack_type)| *attack_type)
+}
+
+impl BattlePacket {
+    /// The fleet special attacks the friendly fleet made, by their `api_at_type`.
+    pub fn special_attacks(&self) -> Vec<i64> {
+        [&self.hougeki1, &self.hougeki2, &self.hougeki3]
+            .into_iter()
+            .flatten()
+            .flat_map(|round| special_attacks_in(&round.api_at_eflag, &round.api_at_type))
+            .collect()
+    }
+}
+
+impl NightBattlePacket {
+    /// The fleet special attacks the friendly fleet made, by their `api_sp_list`.
+    pub fn special_attacks(&self) -> Vec<i64> {
+        self.hougeki
+            .iter()
+            .flat_map(|hougeki| special_attacks_in(&hougeki.api_at_eflag, &hougeki.api_sp_list))
+            .collect()
     }
 }
 

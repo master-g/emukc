@@ -119,6 +119,23 @@ pub(crate) fn select_random_target_index(
     )
 }
 
+/// Select a random alive target that is not a submarine, whatever the attacker would
+/// rather fire at: the ships of a special attack take no other (`shellPhaseTarget` with no
+/// submarines to choose from).
+pub(crate) fn select_surface_target(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    defenders: &[BattleRuntimeShip],
+) -> Option<usize> {
+    let surface: Vec<usize> = defenders
+        .iter()
+        .enumerate()
+        .filter(|(_, ship)| ship.is_alive() && !target_class(codex, ship).is_submarine())
+        .map(|(idx, _)| idx)
+        .collect();
+    rng.choose_index(surface.len()).map(|at| surface[at])
+}
+
 /// Select a random alive submarine target.
 pub(crate) fn select_submarine_target(
     codex: &Codex,
@@ -256,6 +273,13 @@ pub(crate) fn target_class(codex: &Codex, ship: &BattleRuntimeShip) -> TargetCla
     }
 
     TargetClass::SurfaceShip
+}
+
+/// A fleet of PT boats and nothing else, sunk or not: no fleet special attack is made
+/// against one (wikiwiki: 「敵がPT小鬼群のみのマス…では発動しない」; the source's
+/// `isNoSpecialNode`).
+pub(crate) fn is_pt_only(codex: &Codex, fleet: &[BattleRuntimeShip]) -> bool {
+    !fleet.is_empty() && fleet.iter().all(|ship| target_class(codex, ship) == TargetClass::PtBoat)
 }
 
 /// Check whether a ship name matches PT-boat markers.

@@ -10,9 +10,7 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::targeting::{
-    can_shell_day_ship, has_slotitem_id, select_random_target_index, ship_type, target_class,
-};
+use crate::targeting::{has_slotitem_id, select_surface_target, ship_type, target_class};
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
@@ -74,7 +72,7 @@ impl SpecialAttackType {
 // Detection
 // ---------------------------------------------------------------------------
 
-/// Participant info for a special attack.
+/// One ship of a special attack: her place in the fleet and what her hits are multiplied by.
 pub(crate) struct Participant {
     fleet_index: usize,
     multiplier: f64,
@@ -104,18 +102,15 @@ fn is_ship_id(ship: &BattleRuntimeShip, ids: &[i64]) -> bool {
     ids.contains(&ship.ship.api_ship_id)
 }
 
-fn hp_ratio(ship: &BattleRuntimeShip) -> f64 {
-    ship.hp() as f64 / ship.ship.api_maxhp.max(1) as f64
-}
-
-/// Flagship must be shouha or better (HP > 75%).
+/// The flagship makes it lightly damaged or better: more than half her hull
+/// (`canSpecialAttackUnique`: `HP/maxHP <= .5` makes none).
 fn is_flagship_healthy(ship: &BattleRuntimeShip) -> bool {
-    hp_ratio(ship) > 0.75
+    ship.hp() * 2 > ship.ship.api_maxhp
 }
 
-/// Companion must be chuuha or better (HP > 50%).
+/// A ship named beside her joins moderately damaged or better: more than a quarter.
 fn is_companion_healthy(ship: &BattleRuntimeShip) -> bool {
-    hp_ratio(ship) > 0.5
+    ship.hp() * 4 > ship.ship.api_maxhp
 }
 
 /// Check if a ship has an AP shell equipped.
@@ -173,6 +168,30 @@ const FORMATION_ECHELON: i64 = 4;
 /// `canSpecialAttackUnique`: `formation.id != 12 && formation.id != 4`, or `!= 2`).
 const FORMATION_CRUISING_2: i64 = 12;
 
+/// The flagship and the second ship, each with the AP shell and radar she carries: the
+/// attack of two ships, of which the flagship hits twice.
+fn pair(
+    codex: &Codex,
+    fleet: &[BattleRuntimeShip],
+    attack_type: SpecialAttackType,
+    (flagship, second): (f64, f64),
+) -> ResolvedSpecialAttack {
+    ResolvedSpecialAttack {
+        attack_type,
+        participants: vec![
+            Participant {
+                fleet_index: 0,
+                multiplier: flagship,
+            },
+            Participant {
+                fleet_index: 1,
+                multiplier: second,
+            },
+        ],
+        equip_bonuses: fleet[..2].iter().map(|ship| equip_bonus(codex, ship, false)).collect(),
+    }
+}
+
 /// Check Nelson Touch eligibility.
 /// Flagship: Nelson/Rodney, positions 1/3/5, formation 複縦陣.
 fn check_nelson_touch(
@@ -190,52 +209,30 @@ fn check_nelson_touch(
     if !is_flagship_healthy(flagship) {
         return None;
     }
-
-    let mut participants = vec![Participant {
-        fleet_index: 0,
-        multiplier: 2.0,
-    }];
-
-    // Positions 3 (index 2) and 5 (index 4)
-    let companion_indices: &[usize] = &[2, 4];
-    for &idx in companion_indices {
-        let Some(companion) = fleet.get(idx) else {
-            continue;
-        };
-        if !companion.is_alive() || is_submarine_or_carrier(codex, companion) {
-            continue;
-        }
-        if !is_companion_healthy(companion) {
-            continue;
-        }
-        participants.push(Participant {
-            fleet_index: idx,
-            multiplier: 2.0,
-        });
-    }
-
-    // Need at least 1 companion to trigger
-    if participants.len() < 2 {
+    // The third and the fifth ship, neither a carrier nor a submarine, whatever state they
+    // are in: 「参加艦が大破していても問題なく発動する」.
+    let (third, fifth) = (fleet.get(2)?, fleet.get(4)?);
+    if is_submarine_or_carrier(codex, third) || is_submarine_or_carrier(codex, fifth) {
         return None;
     }
 
-    // Nelson+Rodney bonus: if both present, flagship x1.15, Rodney companion x1.20
-    let flag_is_nelson = is_ship_id(flagship, NELSON_IDS);
-    let flag_is_rodney = is_ship_id(flagship, RODNEY_IDS);
-    if flag_is_nelson || flag_is_rodney {
-        let other_ids = if flag_is_nelson {
-            RODNEY_IDS
-        } else {
-            NELSON_IDS
-        };
-        for p in participants.iter_mut().skip(1) {
-            if is_ship_id(&fleet[p.fleet_index], other_ids) {
-                p.multiplier *= 1.20;
-                participants[0].multiplier *= 1.15;
-                break;
-            }
-        }
-    }
+    // `getSpecialAttackMod`: with another of the Nelson class in the third or fifth place,
+    // 1.15 to the flagship and 1.2 to her.
+    let nelson_class =
+        |ship: &BattleRuntimeShip| is_ship_id(ship, NELSON_IDS) || is_ship_id(ship, RODNEY_IDS);
+    let sisters = nelson_class(third) || nelson_class(fifth);
+    let participants = [0, 2, 4]
+        .into_iter()
+        .map(|fleet_index| Participant {
+            fleet_index,
+            multiplier: 2.0
+                * match (sisters && nelson_class(&fleet[fleet_index]), fleet_index) {
+                    (false, _) => 1.0,
+                    (true, 0) => 1.15,
+                    (true, _) => 1.2,
+                },
+        })
+        .collect::<Vec<_>>();
 
     // Nelson Touch has NO equipment bonuses
     let equip_bonuses: Vec<f64> = participants.iter().map(|_| 1.0).collect();
@@ -247,8 +244,8 @@ fn check_nelson_touch(
     })
 }
 
-/// Check 長門一斉射 (101) / 長門陸奥 (102) eligibility.
-/// Flagship: 長門改二, 2nd ship: BB type (or 陸奥改二 for 102), 梯形陣.
+/// Check the Nagato class's broadside: 長門改二 (101) or 陸奥改二 (102) as flagship, a
+/// battleship second, 梯形陣.
 fn check_nagato_broadside(
     codex: &Codex,
     fleet: &[BattleRuntimeShip],
@@ -257,49 +254,30 @@ fn check_nagato_broadside(
     if !matches!(formation_id, FORMATION_ECHELON | FORMATION_CRUISING_2) {
         return None;
     }
-    let flagship = fleet.first()?;
-    if flagship.ship.api_ship_id != NAGATO_K2_ID {
-        return None;
-    }
-    if !is_flagship_healthy(flagship) {
-        return None;
-    }
-
-    let second = fleet.get(1)?;
-    if !second.is_alive() || !is_bb_class(ship_type(codex, second)) {
-        return None;
-    }
-    if !is_companion_healthy(second) {
-        return None;
-    }
-
-    // Check if 2nd ship is 陸奥改二 for type 102
-    let is_mutsu_k2 = second.ship.api_ship_id == MUTSU_K2_ID;
-    let (attack_type, flag_mult, companion_mult) = if is_mutsu_k2 {
-        (SpecialAttackType::NagatoMutsuBroadside, 1.68, 1.68)
-    } else {
-        (SpecialAttackType::NagatoClassBroadside, 1.4, 1.1)
+    let (flagship, second) = (fleet.first()?, fleet.get(1)?);
+    let attack_type = match flagship.ship.api_ship_id {
+        NAGATO_K2_ID => SpecialAttackType::NagatoClassBroadside,
+        MUTSU_K2_ID => SpecialAttackType::NagatoMutsuBroadside,
+        _ => return None,
     };
-
-    let participants = vec![
-        Participant {
-            fleet_index: 0,
-            multiplier: flag_mult,
-        },
-        Participant {
-            fleet_index: 1,
-            multiplier: companion_mult,
-        },
-    ];
-
-    let equip_bonuses: Vec<f64> =
-        participants.iter().map(|p| equip_bonus(codex, &fleet[p.fleet_index], false)).collect();
-
-    Some(ResolvedSpecialAttack {
-        attack_type,
-        participants,
-        equip_bonuses,
-    })
+    if !is_flagship_healthy(flagship)
+        || !is_bb_class(ship_type(codex, second))
+        || !is_companion_healthy(second)
+    {
+        return None;
+    }
+    // `getSpecialAttackMod`: 1.4 and 1.2, and more by who the second ship is.
+    let with = match (attack_type, second.ship.api_ship_id) {
+        (SpecialAttackType::NagatoClassBroadside, MUTSU_K2_ID)
+        | (SpecialAttackType::NagatoMutsuBroadside, NAGATO_K2_ID) => (1.2, 1.4),
+        // 陸奥改 beside 長門改二, 長門改 beside 陸奥改二
+        (SpecialAttackType::NagatoClassBroadside, 276)
+        | (SpecialAttackType::NagatoMutsuBroadside, 275) => (1.15, 1.35),
+        // Nelson改
+        (SpecialAttackType::NagatoClassBroadside, 576) => (1.1, 1.25),
+        _ => (1.0, 1.0),
+    };
+    Some(pair(codex, fleet, attack_type, (1.4 * with.0, 1.2 * with.1)))
 }
 
 /// Check Colorado broadside (103) eligibility.
@@ -322,11 +300,10 @@ fn check_colorado_broadside(
 
     let second = fleet.get(1)?;
     let third = fleet.get(2)?;
-    if !second.is_alive() || !is_bb_class(ship_type(codex, second)) || !is_companion_healthy(second)
-    {
+    if !is_bb_class(ship_type(codex, second)) || !is_companion_healthy(second) {
         return None;
     }
-    if !third.is_alive() || !is_bb_class(ship_type(codex, third)) || !is_companion_healthy(third) {
+    if !is_bb_class(ship_type(codex, third)) || !is_companion_healthy(third) {
         return None;
     }
 
@@ -376,8 +353,8 @@ fn check_colorado_broadside(
     })
 }
 
-/// Check Richelieu attack (105) eligibility.
-/// Flagship: Richelieu Kai/Deux, 2nd: Jean Bart Kai, 3rd: any BB, 複縦陣.
+/// Check the Richelieu class's attack (105): Richelieu改, Richelieu Deux or Jean Bart改 as
+/// flagship and one of them second, 複縦陣.
 fn check_richelieu_attack(
     codex: &Codex,
     fleet: &[BattleRuntimeShip],
@@ -386,55 +363,28 @@ fn check_richelieu_attack(
     if !matches!(formation_id, FORMATION_DOUBLE_LINE | FORMATION_CRUISING_2) {
         return None;
     }
-    let flagship = fleet.first()?;
-    if !is_ship_id(flagship, RICHELIEU_IDS) {
+    let (flagship, second) = (fleet.first()?, fleet.get(1)?);
+    let of_the_class = |ship: &BattleRuntimeShip| {
+        is_ship_id(ship, RICHELIEU_IDS) || is_ship_id(ship, &[JEAN_BART_KAI_ID])
+    };
+    if !of_the_class(flagship)
+        || !of_the_class(second)
+        || !is_flagship_healthy(flagship)
+        || !is_companion_healthy(second)
+    {
         return None;
     }
-    if !is_flagship_healthy(flagship) {
-        return None;
-    }
-
-    let second = fleet.get(1)?;
-    if second.ship.api_ship_id != JEAN_BART_KAI_ID {
-        return None;
-    }
-    if !second.is_alive() || !is_companion_healthy(second) {
-        return None;
-    }
-
-    let third = fleet.get(2)?;
-    if !third.is_alive() || !is_bb_class(ship_type(codex, third)) || !is_companion_healthy(third) {
-        return None;
-    }
-
-    let participants = vec![
-        Participant {
-            fleet_index: 0,
-            multiplier: 1.3,
-        },
-        Participant {
-            fleet_index: 1,
-            multiplier: 1.3,
-        },
-        Participant {
-            fleet_index: 2,
-            multiplier: 1.24,
-        },
-    ];
-
-    let equip_bonuses: Vec<f64> =
-        participants.iter().map(|p| equip_bonus(codex, &fleet[p.fleet_index], false)).collect();
-
-    Some(ResolvedSpecialAttack {
-        attack_type: SpecialAttackType::RichelieuAttack,
-        participants,
-        equip_bonuses,
-    })
+    // `getSpecialAttackMod`: 1.24, and 1.3 for Richelieu as flagship.
+    let flagship_mult = if is_ship_id(flagship, RICHELIEU_IDS) {
+        1.3
+    } else {
+        1.24
+    };
+    Some(pair(codex, fleet, SpecialAttackType::RichelieuAttack, (flagship_mult, 1.24)))
 }
 
-/// Check Queen Elizabeth attack (106) eligibility.
-/// Flagship: Warspite Kai or Valiant Kai, 2nd: the other sister, 3rd: any BB, 梯形陣.
-/// Requires slow fleet (min soku = 5).
+/// Check the Queen Elizabeth class's attack (106): Warspite改 or Valiant改 as flagship and
+/// one of them second, 梯形陣.
 fn check_qe_attack(
     codex: &Codex,
     fleet: &[BattleRuntimeShip],
@@ -443,63 +393,23 @@ fn check_qe_attack(
     if !matches!(formation_id, FORMATION_ECHELON | FORMATION_CRUISING_2) {
         return None;
     }
-    let flagship = fleet.first()?;
-
-    let (_, sister_id) = if flagship.ship.api_ship_id == WARSPIRE_KAI_ID {
-        (WARSPIRE_KAI_ID, VALIANT_KAI_ID)
-    } else if flagship.ship.api_ship_id == VALIANT_KAI_ID {
-        (VALIANT_KAI_ID, WARSPIRE_KAI_ID)
+    let (flagship, second) = (fleet.first()?, fleet.get(1)?);
+    let of_the_class =
+        |ship: &BattleRuntimeShip| is_ship_id(ship, &[WARSPIRE_KAI_ID, VALIANT_KAI_ID]);
+    if !of_the_class(flagship)
+        || !of_the_class(second)
+        || !is_flagship_healthy(flagship)
+        || !is_companion_healthy(second)
+    {
+        return None;
+    }
+    // `getSpecialAttackMod`: 1.24, and 1.2 for Valiant as flagship.
+    let flagship_mult = if flagship.ship.api_ship_id == VALIANT_KAI_ID {
+        1.2
     } else {
-        return None;
+        1.24
     };
-
-    if !is_flagship_healthy(flagship) {
-        return None;
-    }
-
-    // Slow fleet check
-    let min_soku =
-        fleet.iter().filter(|s| s.is_alive()).map(|s| s.ship.api_soku).min().unwrap_or(0);
-    if min_soku > 5 {
-        return None;
-    }
-
-    let second = fleet.get(1)?;
-    if second.ship.api_ship_id != sister_id {
-        return None;
-    }
-    if !second.is_alive() || !is_companion_healthy(second) {
-        return None;
-    }
-
-    let third = fleet.get(2)?;
-    if !third.is_alive() || !is_bb_class(ship_type(codex, third)) || !is_companion_healthy(third) {
-        return None;
-    }
-
-    let participants = vec![
-        Participant {
-            fleet_index: 0,
-            multiplier: 1.24,
-        },
-        Participant {
-            fleet_index: 1,
-            multiplier: 1.24,
-        },
-        Participant {
-            fleet_index: 2,
-            multiplier: 1.24,
-        },
-    ];
-
-    let equip_bonuses: Vec<f64> =
-        participants.iter().map(|p| equip_bonus(codex, &fleet[p.fleet_index], false)).collect();
-
-    Some(ResolvedSpecialAttack {
-        attack_type: SpecialAttackType::QueenElizabethAttack,
-        participants,
-        equip_bonuses,
-    })
+    Some(pair(codex, fleet, SpecialAttackType::QueenElizabethAttack, (flagship_mult, 1.24)))
 }
 
 // ---------------------------------------------------------------------------
@@ -554,17 +464,24 @@ fn trigger_rate(attack_type: SpecialAttackType, fleet: &[BattleRuntimeShip]) -> 
 // Detection entry point
 // ---------------------------------------------------------------------------
 
-/// Check if a special attack is eligible and triggered for the attacking fleet.
+/// Check if a special attack is eligible and triggered for the attacking fleet, in a turn
+/// of its flagship's in which she `can_attack`: by day or at night.
 /// Returns the resolved attack if triggered, None otherwise.
 pub(crate) fn try_special_attack(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attackers: &[BattleRuntimeShip],
     formation_id: i64,
+    can_attack: bool,
 ) -> Option<ResolvedSpecialAttack> {
     let flagship = attackers.first()?;
-    // None is made in an exercise.
-    if !flagship.is_sortie || !can_shell_day_ship(codex, flagship) {
+    // None is made in an exercise, none by 第2艦隊's flagship, and none with fewer than six
+    // ships afloat that are not submarines.
+    let surface = attackers
+        .iter()
+        .filter(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
+        .count();
+    if !can_attack || !flagship.is_sortie || flagship.is_escort_deck() || surface < 6 {
         return None;
     }
 
@@ -582,9 +499,76 @@ pub(crate) fn try_special_attack(
     })
 }
 
+/// One hit of a special attack: who makes it, by her place in the fleet, what her attack is
+/// multiplied by, and what her accuracy is.
+pub(crate) struct SpecialHit {
+    pub(crate) fleet_index: usize,
+    pub(crate) multiplier: f64,
+    pub(crate) accuracy: f64,
+}
+
+impl ResolvedSpecialAttack {
+    /// `api_at_type` by day, `api_sp_list` at night.
+    pub(crate) fn api_value(&self) -> i64 {
+        self.attack_type.api_value()
+    }
+
+    /// The hits in order (`getSpecialAttackShips`): the flagship hits twice where two ships
+    /// make the attack.
+    pub(crate) fn hits(
+        &self,
+        codex: &Codex,
+        fleet: &[BattleRuntimeShip],
+        engagement: EngagementType,
+    ) -> Vec<SpecialHit> {
+        let mut hits = Vec::new();
+        for (i, participant) in self.participants.iter().enumerate() {
+            let ship = &fleet[participant.fleet_index];
+            // `getSpecialAttackMod`: 1.05 to the accuracy of a Nelson Touch, 1.4 to the
+            // others', and 1.15 more for an AP shell and for a surface radar.
+            let accuracy = if self.attack_type == SpecialAttackType::NelsonTouch {
+                1.05
+            } else {
+                let piece = |carried: bool| {
+                    if carried {
+                        1.15
+                    } else {
+                        1.0
+                    }
+                };
+                1.4 * piece(has_ap_shell(codex, ship)) * piece(has_surface_radar(codex, ship))
+            };
+            let multiplier = participant.multiplier
+                * engagement_multiplier(self.attack_type, engagement)
+                * self.equip_bonuses.get(i).copied().unwrap_or(1.0);
+            let count = if self.participants.len() == 2 && i == 0 {
+                2
+            } else {
+                1
+            };
+            hits.extend((0..count).map(|_| SpecialHit {
+                fleet_index: participant.fleet_index,
+                multiplier,
+                accuracy,
+            }));
+        }
+        hits
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Execution
 // ---------------------------------------------------------------------------
+
+/// `getSpecialAttackMod`: a Nelson Touch at T disadvantage is worth 1.25 again, 2.5 in all.
+fn engagement_multiplier(attack_type: SpecialAttackType, engagement: EngagementType) -> f64 {
+    if attack_type == SpecialAttackType::NelsonTouch && engagement == EngagementType::TDisadvantage
+    {
+        1.25
+    } else {
+        1.0
+    }
+}
 
 /// Execute a resolved special attack, producing hougeki entries.
 pub(crate) fn execute_special_attack(
@@ -595,30 +579,21 @@ pub(crate) fn execute_special_attack(
     resolved: ResolvedSpecialAttack,
     params: &ShellingParams,
 ) -> BattleHougeki {
-    let attack_type_val = resolved.attack_type.api_value();
     let is_enemy = params.attacker_is_enemy;
 
     let mut hougeki = BattleHougeki::default();
+    // The client reads every hit of the attack from one row (`PhaseHougeki._nelson_touch`
+    // and the others: `d_indexes[0..3]`, `getDamage(0..2)`), as the source's
+    // `apiAdjustHougekiSpecial` folds them into one.
+    let (mut targets, mut damages, mut hits) = (Vec::new(), Vec::new(), Vec::new());
 
-    // T-disadvantage multiplier for Nelson Touch
-    let t_disadv = matches!(params.engagement, EngagementType::TDisadvantage);
-    let base_multiplier = if resolved.attack_type == SpecialAttackType::NelsonTouch && t_disadv {
-        2.5
-    } else {
-        1.0
-    };
-
-    for (i, participant) in resolved.participants.iter().enumerate() {
-        let fleet_idx = participant.fleet_index;
-
-        let attacker = &mut attackers[fleet_idx];
+    for hit in resolved.hits(codex, attackers, params.engagement) {
+        let attacker = &mut attackers[hit.fleet_index];
         if !attacker.is_alive() {
             continue;
         }
 
-        let Some(mut target_idx) =
-            select_random_target_index(codex, rng, attacker, defenders, params.phase)
-        else {
+        let Some(mut target_idx) = select_surface_target(codex, rng, defenders) else {
             continue;
         };
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
@@ -636,76 +611,49 @@ pub(crate) fn execute_special_attack(
             None => false,
         };
 
-        let is_sub = target_class(codex, &defenders[target_idx]).is_submarine();
-        if is_sub {
-            continue;
-        }
-
-        let total_mult = if base_multiplier != 1.0 {
-            participant.multiplier * base_multiplier
-        } else {
-            participant.multiplier
-        };
-        let equip_mult = resolved.equip_bonuses.get(i).copied().unwrap_or(1.0);
-
-        let num_hits = if matches!(
-            resolved.attack_type,
-            SpecialAttackType::NagatoClassBroadside | SpecialAttackType::NagatoMutsuBroadside
-        ) && i == 0
-        {
-            2
-        } else {
-            1
-        };
-
-        let mut hit_damages = Vec::with_capacity(num_hits);
-        let mut cls = Vec::with_capacity(num_hits);
-
-        for _ in 0..num_hits {
-            let ci_mult = Some(total_mult * equip_mult);
-            // ponytail: the source gives each special attack its own accuracy
-            // multiplier (`getSpecialAttackMod`, 1.05 to 1.4 and more with AP
-            // shells or radar); a plain shelling roll stands in for all of them.
-            let outcome = roll_attack(
-                codex,
-                rng,
-                attacker,
-                &defenders[target_idx],
-                Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id),
-            );
-            cls.push(outcome.cl());
-            let raw = calculate_shelling_damage(
-                codex,
-                rng,
-                attacker,
-                &defenders[target_idx],
-                params.formation_id,
-                params.engagement,
-                ci_mult,
-                outcome,
-            );
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
-            if !is_enemy {
-                attacker.damage_dealt += dealt;
-            }
-            let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-            hit_damages.push(if shield {
-                DamageCell::Shielded(display)
-            } else {
-                DamageCell::Plain(display)
-            });
-        }
-
-        hougeki.record_day_attack(
-            DayAttackKind::Special(codex, attacker, attack_type_val),
-            is_enemy,
-            fleet_idx,
-            vec![target_idx as i64; num_hits],
-            hit_damages,
-            cls,
+        let outcome = roll_attack(
+            codex,
+            rng,
+            attacker,
+            &defenders[target_idx],
+            Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
+                .with_modifier(hit.accuracy),
         );
+        hits.push(outcome.cl());
+        // By day the multiplier is applied after the cap.
+        let raw = calculate_shelling_damage(
+            codex,
+            rng,
+            attacker,
+            &defenders[target_idx],
+            params.formation_id,
+            params.engagement,
+            Some(hit.multiplier),
+            outcome,
+        );
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        if !is_enemy {
+            attacker.damage_dealt += dealt;
+        }
+        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+        targets.push(target_idx as i64);
+        damages.push(if shield {
+            DamageCell::Shielded(display)
+        } else {
+            DamageCell::Plain(display)
+        });
     }
 
+    if !targets.is_empty() {
+        hougeki.record_day_attack(
+            DayAttackKind::Special(codex, &attackers[0], resolved.api_value()),
+            is_enemy,
+            0,
+            targets,
+            damages,
+            hits,
+        );
+    }
     hougeki
 }
 
@@ -743,27 +691,6 @@ mod tests {
     }
 
     #[test]
-    fn nelson_touch_detection() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let nelson = sample_bb_at(&codex, 571, 99);
-        let dd = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 99);
-        let bb1 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let dd2 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 99);
-        let bb2 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-
-        // Fleet: Nelson, DD, BB, DD, BB → positions 0,2,4 are valid
-        let fleet = vec![nelson, dd, bb1, dd2, bb2];
-        let resolved = check_nelson_touch(&codex, &fleet, FORMATION_DOUBLE_LINE);
-        assert!(resolved.is_some());
-        let r = resolved.unwrap();
-        assert_eq!(r.attack_type, SpecialAttackType::NelsonTouch);
-        assert_eq!(r.participants.len(), 3);
-        assert_eq!(r.participants[0].fleet_index, 0);
-        assert_eq!(r.participants[1].fleet_index, 2);
-        assert_eq!(r.participants[2].fleet_index, 4);
-    }
-
-    #[test]
     fn nelson_touch_wrong_formation() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let nelson = sample_bb_at(&codex, 571, 99);
@@ -797,29 +724,218 @@ mod tests {
         assert!(resolved.is_none(), "chuuha flagship should not trigger");
     }
 
-    #[test]
-    fn nelson_touch_no_equipment_bonuses() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let nelson = sample_bb_at(&codex, 571, 99);
-        let bb1 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let bb2 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let fleet = vec![nelson, bb1, bb2];
-        let resolved = check_nelson_touch(&codex, &fleet, FORMATION_DOUBLE_LINE).unwrap();
-        // All equipment bonuses should be 1.0
-        assert!(resolved.equip_bonuses.iter().all(|&b| b == 1.0));
+    fn fleet_of<const N: usize>(codex: &Codex, ids: [i64; N]) -> Vec<BattleRuntimeShip> {
+        ids.map(|id| sample_bb_at(codex, id, 99)).to_vec()
     }
 
+    /// What each attack is, who makes it and at what multiplier: `canSpecialAttackUnique`,
+    /// `getSpecialAttackShips` and `getSpecialAttackMod`, and wikiwiki's tables.
     #[test]
-    fn nelson_rodney_bonus() {
+    fn who_makes_each_attack_and_what_her_hits_are_multiplied_by() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let nelson = sample_bb_at(&codex, 571, 99);
-        let dd = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 99);
-        let rodney = sample_bb_at(&codex, 577, 99);
-        let fleet = vec![nelson, dd, rodney];
-        let resolved = check_nelson_touch(&codex, &fleet, FORMATION_DOUBLE_LINE).unwrap();
-        // Flagship gets 1.15x bonus, Rodney companion gets 1.20x
-        assert!((resolved.participants[0].multiplier - 2.0 * 1.15).abs() < f64::EPSILON);
-        assert!((resolved.participants[1].multiplier - 2.0 * 1.20).abs() < f64::EPSILON);
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let cv = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let made = |resolved: Option<ResolvedSpecialAttack>| {
+            resolved.map(|r| {
+                let ships = r.participants.iter();
+                let of = ships.map(|p| (p.fleet_index, (p.multiplier * 1000.0).round() as i64));
+                (r.attack_type.api_value(), of.collect::<Vec<_>>())
+            })
+        };
+        let pair = |kind, flagship, second| Some((kind, vec![(0, flagship), (1, second)]));
+
+        // 長門改二 or 陸奥改二 and a battleship: 1.4 and 1.2, and more by who she is.
+        let nagato = |ids| made(check_nagato_broadside(&codex, &fleet_of(&codex, ids), 4));
+        assert_eq!(nagato([NAGATO_K2_ID, bb]), pair(101, 1400, 1200));
+        assert_eq!(nagato([NAGATO_K2_ID, MUTSU_K2_ID]), pair(101, 1680, 1680));
+        assert_eq!(nagato([NAGATO_K2_ID, 276]), pair(101, 1610, 1620));
+        assert_eq!(nagato([NAGATO_K2_ID, 576]), pair(101, 1540, 1500));
+        assert_eq!(nagato([MUTSU_K2_ID, bb]), pair(102, 1400, 1200));
+        assert_eq!(nagato([MUTSU_K2_ID, NAGATO_K2_ID]), pair(102, 1680, 1680));
+        assert_eq!(nagato([MUTSU_K2_ID, 275]), pair(102, 1610, 1620));
+        assert_eq!(nagato([NAGATO_K2_ID, dd]), None);
+        assert_eq!(nagato([275, MUTSU_K2_ID]), None);
+
+        // Two of the Richelieu class, either way round.
+        let richelieu = |ids| made(check_richelieu_attack(&codex, &fleet_of(&codex, ids), 2));
+        assert_eq!(richelieu([392, JEAN_BART_KAI_ID]), pair(105, 1300, 1240));
+        assert_eq!(richelieu([969, JEAN_BART_KAI_ID]), pair(105, 1300, 1240));
+        assert_eq!(richelieu([JEAN_BART_KAI_ID, 392]), pair(105, 1240, 1240));
+        assert_eq!(richelieu([392, bb]), None);
+
+        // Warspite改 and Valiant改, either way round, whatever the fleet's speed.
+        let qe = |ids| made(check_qe_attack(&codex, &fleet_of(&codex, ids), 4));
+        assert_eq!(qe([WARSPIRE_KAI_ID, VALIANT_KAI_ID]), pair(106, 1240, 1240));
+        assert_eq!(qe([VALIANT_KAI_ID, WARSPIRE_KAI_ID]), pair(106, 1200, 1240));
+        assert_eq!(qe([WARSPIRE_KAI_ID, bb]), None);
+
+        // Nelson or Rodney with the third and the fifth ship, neither a carrier.
+        let nelson = |ids: [i64; 5]| made(check_nelson_touch(&codex, &fleet_of(&codex, ids), 2));
+        let three = |a, b, c| Some((100, vec![(0, a), (2, b), (4, c)]));
+        assert_eq!(nelson([571, dd, bb, dd, dd]), three(2000, 2000, 2000));
+        assert_eq!(nelson([572, dd, bb, dd, dd]), three(2000, 2000, 2000));
+        assert_eq!(nelson([571, dd, 572, dd, dd]), three(2300, 2400, 2000));
+        assert_eq!(nelson([576, dd, bb, dd, 577]), three(2300, 2000, 2400));
+        assert_eq!(nelson([571, dd, cv, dd, dd]), None);
+        assert_eq!(made(check_nelson_touch(&codex, &fleet_of(&codex, [571, dd, bb, dd]), 2)), None);
+        // It takes no AP shell and no radar; the others do.
+        let touch = check_nelson_touch(&codex, &fleet_of(&codex, [571, dd, bb, dd, dd]), 2);
+        assert_eq!(touch.unwrap().equip_bonuses, [1.0, 1.0, 1.0]);
+    }
+
+    /// The flagship lightly damaged or better and the ships named beside her moderately
+    /// damaged or better; the third and fifth ship of a Nelson Touch in any state.
+    #[test]
+    fn how_damaged_the_ships_of_an_attack_may_be() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // The fleet with one ship left `hp` of 100.
+        let with = |ids: &[i64], at: usize, hp: i64| {
+            let mut fleet: Vec<_> = ids.iter().map(|&id| sample_bb_at(&codex, id, 99)).collect();
+            fleet[at].ship.api_maxhp = 100;
+            fleet[at].ship.api_nowhp = hp;
+            fleet[at].current_hp = hp;
+            fleet
+        };
+        let nagato = |at, hp| {
+            check_nagato_broadside(&codex, &with(&[NAGATO_K2_ID, MUTSU_K2_ID], at, hp), 4).is_some()
+        };
+        assert_eq!([nagato(0, 51), nagato(0, 50)], [true, false]);
+        assert_eq!([nagato(1, 26), nagato(1, 25)], [true, false]);
+        let colorado =
+            |at, hp| check_colorado_broadside(&codex, &with(&[601, bb, bb], at, hp), 4).is_some();
+        assert_eq!([colorado(0, 51), colorado(0, 50)], [true, false]);
+        assert_eq!([colorado(1, 26), colorado(1, 25)], [true, false]);
+        assert_eq!([colorado(2, 26), colorado(2, 25)], [true, false]);
+        let richelieu = |at, hp| {
+            check_richelieu_attack(&codex, &with(&[392, JEAN_BART_KAI_ID], at, hp), 2).is_some()
+        };
+        assert_eq!([richelieu(0, 51), richelieu(0, 50)], [true, false]);
+        assert_eq!([richelieu(1, 26), richelieu(1, 25)], [true, false]);
+        let qe = |at, hp| {
+            check_qe_attack(&codex, &with(&[WARSPIRE_KAI_ID, VALIANT_KAI_ID], at, hp), 4).is_some()
+        };
+        assert_eq!([qe(0, 51), qe(0, 50)], [true, false]);
+        assert_eq!([qe(1, 26), qe(1, 25)], [true, false]);
+        let nelson =
+            |at, hp| check_nelson_touch(&codex, &with(&[571, dd, bb, dd, dd], at, hp), 2).is_some();
+        assert_eq!([nelson(0, 51), nelson(0, 50)], [true, false]);
+        assert_eq!([nelson(2, 1), nelson(4, 1)], [true, true]);
+    }
+
+    /// 「水上艦6隻」: six ships afloat that are not submarines.
+    #[test]
+    fn a_fleet_of_fewer_than_six_surface_ships_makes_no_special_attack() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let comes_up = |fleet: &[BattleRuntimeShip]| {
+            (0..40).any(|seed| {
+                let rng = &mut crate::random::SeededRng::new(seed);
+                try_special_attack(&codex, rng, fleet, 4, true).is_some()
+            })
+        };
+        let six = fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb, bb]);
+        assert!(comes_up(&six));
+        assert!(!comes_up(&six[..5]));
+        assert!(!comes_up(&fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb, ss])));
+        assert!(comes_up(&fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb, bb, ss])));
+        let mut sunk = six.clone();
+        sunk[5].current_hp = 0;
+        assert!(!comes_up(&sunk));
+    }
+
+    /// One row: the flagship's two hits and her partner's for a pair, a hit each for three
+    /// ships, and never on a submarine while a surface ship is afloat.
+    #[test]
+    fn the_hits_of_an_attack_are_one_row_on_surface_ships() {
+        use crate::types::{BattlePhase, ShellingParams};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let row = |mut fleet: Vec<BattleRuntimeShip>, formation, seed| {
+            let resolved = [
+                check_richelieu_attack(&codex, &fleet, formation),
+                check_nelson_touch(&codex, &fleet, formation),
+            ]
+            .into_iter()
+            .flatten()
+            .next()
+            .unwrap();
+            // A submarine first, then a ship nobody sinks.
+            let mut target = sample_bb_at(&codex, bb, 99);
+            target.ship.api_soukou[0] = 9999;
+            let mut enemy = vec![sample_bb_at(&codex, ss, 99), target];
+            execute_special_attack(
+                &codex,
+                &mut crate::random::SeededRng::new(seed),
+                &mut fleet,
+                &mut enemy,
+                resolved,
+                &ShellingParams {
+                    attacker_is_enemy: false,
+                    formation_id: formation,
+                    defender_formation_id: 1,
+                    engagement: EngagementType::SameCourse,
+                    phase: BattlePhase::DayShelling,
+                    air_state: None,
+                },
+            )
+        };
+        for seed in 0..20 {
+            let pair = row(fleet_of(&codex, [392, JEAN_BART_KAI_ID]), 2, seed);
+            assert_eq!((&pair.api_at_list, &pair.api_at_type), (&vec![0], &vec![105]));
+            assert_eq!(pair.api_df_list, [[1, 1, 1]]);
+            assert_eq!((pair.api_damage[0].len(), pair.api_cl_list[0].len()), (3, 3));
+            // Destroyers would rather fire at the submarine.
+            let touch = row(fleet_of(&codex, [571, dd, dd, dd, dd]), 2, seed);
+            assert_eq!((&touch.api_at_list, &touch.api_at_type), (&vec![0], &vec![100]));
+            assert_eq!(touch.api_df_list, [[1, 1, 1]]);
+        }
+    }
+
+    /// wikiwiki: 「敵がPT小鬼群のみのマス…では発動しない」.
+    #[test]
+    fn no_special_attack_is_made_against_pt_boats_alone() {
+        use crate::simulation::shelling::{ShellingRound, simulate_shelling_round};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let pt = ship_mst_id_by_name(&codex, "PT小鬼群");
+        let made = |enemy_ids: [i64; 3]| {
+            (0..40).any(|seed| {
+                let mut friendly = fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb, bb]);
+                // A destroyer under the boat's id is a boat to the battle.
+                let mut enemy = fleet_of(&codex, [bb; 3]);
+                for (ship, id) in enemy.iter_mut().zip(enemy_ids) {
+                    ship.ship.api_ship_id = id;
+                }
+                let round = ShellingRound {
+                    friendly_deck: 0..6,
+                    enemy_deck: 0..3,
+                    by_range: true,
+                    friendly_formation: 4,
+                    enemy_formation: 1,
+                    engagement: EngagementType::SameCourse,
+                    air_state: None,
+                };
+                let hougeki = simulate_shelling_round(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &mut friendly,
+                    &mut enemy,
+                    &round,
+                    &mut [false; 2],
+                );
+                hougeki.is_some_and(|rows| rows.api_at_type.iter().any(|&t| t >= 100))
+            })
+        };
+        assert!(!made([pt, pt, pt]));
+        assert!(made([pt, pt, bb]));
     }
 
     #[test]
@@ -887,36 +1003,6 @@ mod tests {
     }
 
     #[test]
-    fn nagato_broadside_detection() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let nagato_k2 = sample_bb_at(&codex, NAGATO_K2_ID, 99);
-        let bb = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let fleet = vec![nagato_k2, bb];
-        let resolved = check_nagato_broadside(&codex, &fleet, FORMATION_ECHELON);
-        assert!(resolved.is_some());
-        let r = resolved.unwrap();
-        assert_eq!(r.attack_type, SpecialAttackType::NagatoClassBroadside);
-        assert_eq!(r.participants.len(), 2);
-        // Flagship: 2 hits at 1.4x, companion: 1 hit at 1.1x
-        assert!((r.participants[0].multiplier - 1.4).abs() < f64::EPSILON);
-        assert!((r.participants[1].multiplier - 1.1).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn nagato_mutsu_detection() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let nagato_k2 = sample_bb_at(&codex, NAGATO_K2_ID, 99);
-        let mutsu_k2 = sample_bb_at(&codex, MUTSU_K2_ID, 99);
-        let fleet = vec![nagato_k2, mutsu_k2];
-        let resolved = check_nagato_broadside(&codex, &fleet, FORMATION_ECHELON);
-        assert!(resolved.is_some());
-        let r = resolved.unwrap();
-        assert_eq!(r.attack_type, SpecialAttackType::NagatoMutsuBroadside);
-        assert!((r.participants[0].multiplier - 1.68).abs() < f64::EPSILON);
-        assert!((r.participants[1].multiplier - 1.68).abs() < f64::EPSILON);
-    }
-
-    #[test]
     fn nagato_broadside_requires_bb_companion() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let nagato_k2 = sample_bb_at(&codex, NAGATO_K2_ID, 99);
@@ -965,77 +1051,6 @@ mod tests {
     }
 
     #[test]
-    fn richelieu_detection() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let richelieu = sample_bb_at(&codex, 392, 99); // Richelieu Kai
-        let jb = sample_bb_at(&codex, JEAN_BART_KAI_ID, 99);
-        let bb = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let fleet = vec![richelieu, jb, bb];
-        let resolved = check_richelieu_attack(&codex, &fleet, FORMATION_DOUBLE_LINE);
-        assert!(resolved.is_some());
-        let r = resolved.unwrap();
-        assert_eq!(r.attack_type, SpecialAttackType::RichelieuAttack);
-        assert!((r.participants[0].multiplier - 1.3).abs() < f64::EPSILON);
-        assert!((r.participants[1].multiplier - 1.3).abs() < f64::EPSILON);
-        assert!((r.participants[2].multiplier - 1.24).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn richelieu_requires_jean_bart() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let richelieu = sample_bb_at(&codex, 392, 99);
-        let bb = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let bb2 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let fleet = vec![richelieu, bb, bb2];
-        let resolved = check_richelieu_attack(&codex, &fleet, FORMATION_DOUBLE_LINE);
-        assert!(resolved.is_none(), "no Jean Bart Kai should fail");
-    }
-
-    #[test]
-    fn qe_detection() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let warspite = sample_bb_at(&codex, WARSPIRE_KAI_ID, 99);
-        let valiant = sample_bb_at(&codex, VALIANT_KAI_ID, 99);
-        let bb = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let fleet = vec![warspite, valiant, bb];
-        // Make fleet slow
-        let mut fleet = fleet;
-        fleet[0].ship.api_soku = 5;
-        fleet[1].ship.api_soku = 5;
-        fleet[2].ship.api_soku = 5;
-        let resolved = check_qe_attack(&codex, &fleet, FORMATION_ECHELON);
-        assert!(resolved.is_some());
-        let r = resolved.unwrap();
-        assert_eq!(r.attack_type, SpecialAttackType::QueenElizabethAttack);
-        assert!(r.participants.iter().all(|p| (p.multiplier - 1.24).abs() < f64::EPSILON));
-    }
-
-    #[test]
-    fn qe_fast_fleet_rejected() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let warspite = sample_bb_at(&codex, WARSPIRE_KAI_ID, 99);
-        let valiant = sample_bb_at(&codex, VALIANT_KAI_ID, 99);
-        let bb = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let mut fleet = vec![warspite, valiant, bb];
-        fleet[0].ship.api_soku = 10; // fast
-        fleet[1].ship.api_soku = 10;
-        fleet[2].ship.api_soku = 10;
-        let resolved = check_qe_attack(&codex, &fleet, FORMATION_ECHELON);
-        assert!(resolved.is_none(), "fast fleet should be rejected");
-    }
-
-    #[test]
-    fn rodney_flagship_also_triggers_nelson_touch() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let rodney = sample_bb_at(&codex, 577, 99);
-        let bb1 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let bb2 = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let fleet = vec![rodney, bb1, bb2];
-        let resolved = check_nelson_touch(&codex, &fleet, FORMATION_DOUBLE_LINE);
-        assert!(resolved.is_some(), "Rodney as flagship should also trigger");
-    }
-
-    #[test]
     fn maryland_flagship_triggers_colorado() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let maryland = sample_bb_at(&codex, 913, 99);
@@ -1044,66 +1059,6 @@ mod tests {
         let fleet = vec![maryland, bb1, bb2];
         let resolved = check_colorado_broadside(&codex, &fleet, FORMATION_ECHELON);
         assert!(resolved.is_some(), "Maryland as flagship should trigger Colorado type");
-    }
-
-    #[test]
-    fn valiant_flagship_triggers_qe() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let valiant = sample_bb_at(&codex, VALIANT_KAI_ID, 99);
-        let warspite = sample_bb_at(&codex, WARSPIRE_KAI_ID, 99);
-        let bb = sample_bb_at(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 99);
-        let mut fleet = vec![valiant, warspite, bb];
-        fleet[0].ship.api_soku = 5;
-        fleet[1].ship.api_soku = 5;
-        fleet[2].ship.api_soku = 5;
-        let resolved = check_qe_attack(&codex, &fleet, FORMATION_ECHELON);
-        assert!(resolved.is_some(), "Valiant flagship + Warspite companion should trigger QE");
-    }
-
-    #[test]
-    fn nagato_mutsu_flagship_produces_two_hits() {
-        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let nagato_k2 = sample_bb_at(&codex, NAGATO_K2_ID, 99);
-        let mutsu_k2 = sample_bb_at(&codex, MUTSU_K2_ID, 99);
-        let mut attackers = vec![nagato_k2, mutsu_k2];
-
-        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let mut defenders = vec![sample_ship(&codex, dd_mst, 50).into()];
-
-        let resolved = try_special_attack(
-            &codex,
-            &mut crate::random::SeededRng::new(2),
-            &attackers,
-            FORMATION_ECHELON,
-        )
-        .expect("NagatoMutsu should trigger");
-
-        let result = execute_special_attack(
-            &codex,
-            &mut crate::random::SeededRng::new(2),
-            &mut attackers,
-            &mut defenders,
-            resolved,
-            &crate::types::ShellingParams {
-                formation_id: FORMATION_ECHELON,
-                defender_formation_id: 0, // unused here: no かばう in this test
-                engagement: crate::types::EngagementType::SameCourse,
-                air_state: None,
-                phase: crate::types::BattlePhase::DayShelling,
-                attacker_is_enemy: false,
-            },
-        );
-
-        // Flagship (index 0) entry should have 2 damage values (2 hits)
-        let flagship_idx = result.api_at_list.iter().position(|&i| i == 0).unwrap();
-        let flagship_damage = &result.api_damage[flagship_idx];
-        assert_eq!(
-            flagship_damage.len(),
-            2,
-            "NagatoMutsu flagship should have 2 hits, got {}",
-            flagship_damage.len()
-        );
-        assert_eq!(result.api_at_type[flagship_idx], 102);
     }
 
     /// The special attack takes the flagship's turn and nobody else's, and a
@@ -1119,7 +1074,7 @@ mod tests {
         let mut made = 0;
         for seed in 0..40 {
             let mut friendly =
-                vec![sample_bb_at(&codex, NAGATO_K2_ID, 99), sample_bb_at(&codex, MUTSU_K2_ID, 99)];
+                fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb_mst, bb_mst, bb_mst, bb_mst]);
             let mut enemy =
                 vec![sample_bb_at(&codex, bb_mst, 99), sample_bb_at(&codex, bb_mst, 99)];
             for ship in &mut enemy {
@@ -1129,7 +1084,7 @@ mod tests {
             let mut used = [false; 2];
             let mut round = |by_range| {
                 let round = ShellingRound {
-                    friendly_deck: 0..2,
+                    friendly_deck: 0..6,
                     enemy_deck: 0..2,
                     by_range,
                     friendly_formation: FORMATION_ECHELON,
@@ -1153,13 +1108,18 @@ mod tests {
                 continue;
             }
             made += 1;
-            let companion_attacks = first
-                .api_at_eflag
-                .iter()
-                .zip(&first.api_at_list)
-                .filter(|(eflag, attacker)| **eflag == 0 && **attacker == 1)
-                .count();
-            assert_eq!(companion_attacks, 2, "seed {seed}: once in the special attack, once alone");
+            // One row for the whole attack, by the flagship: her two hits and her partner's.
+            let rows = |attacker: i64| {
+                (0..first.api_at_list.len())
+                    .filter(|&i| (first.api_at_eflag[i], first.api_at_list[i]) == (0, attacker))
+                    .map(|i| (first.api_at_type[i], first.api_damage[i].len()))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(rows(0), [(101, 3)], "seed {seed}");
+            assert_eq!(rows(1).len(), 1, "seed {seed}: her partner keeps her own turn");
+            let row = first.api_at_type.iter().position(|&t| t == 101).unwrap();
+            assert_eq!(first.api_df_list[row].len(), 3);
+            assert_eq!(first.api_cl_list[row].len(), 3);
             assert!(!special(&second), "seed {seed}: made again in the second round");
         }
         assert!(made > 0, "no seed made the special attack, so nothing was tested");
@@ -1204,21 +1164,24 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
         for seed in 0..40 {
-            let deck = |ids: [i64; 2], role| {
+            let deck = |ids: [i64; 6], role| {
                 ids.map(|id| {
                     sample_bb_at(&codex, id, 99)
                         .in_combined_fleet(CombinedType::SurfaceTaskForce, role)
                 })
             };
             let mut friendly = [
-                deck([bb_mst, bb_mst], CombinedFleetRole::Main),
-                deck([NAGATO_K2_ID, MUTSU_K2_ID], CombinedFleetRole::Escort),
+                deck([bb_mst; 6], CombinedFleetRole::Main),
+                deck(
+                    [NAGATO_K2_ID, MUTSU_K2_ID, bb_mst, bb_mst, bb_mst, bb_mst],
+                    CombinedFleetRole::Escort,
+                ),
             ]
             .concat();
             let mut enemy =
                 vec![sample_bb_at(&codex, bb_mst, 99), sample_bb_at(&codex, bb_mst, 99)];
             let round = ShellingRound {
-                friendly_deck: 2..4,
+                friendly_deck: 6..12,
                 enemy_deck: 0..2,
                 by_range: true,
                 friendly_formation: 12,
@@ -1260,10 +1223,9 @@ mod tests {
                     friendly_formation_id: 4,
                     enemy_formation_id: 1,
                     engagement: EngagementType::SameCourse,
-                    friend_ships: vec![
-                        sample_ship(&codex, NAGATO_K2_ID, 99),
-                        sample_ship(&codex, MUTSU_K2_ID, 99),
-                    ],
+                    friend_ships: [NAGATO_K2_ID, MUTSU_K2_ID, bb_mst, bb_mst, bb_mst, bb_mst]
+                        .map(|id| sample_ship(&codex, id, 99))
+                        .to_vec(),
                     enemy_ships,
                     enemy_escort_ships: Vec::new(),
                     combined: None,
@@ -1279,7 +1241,7 @@ mod tests {
                     .flat_map(|round| &round.api_at_type)
                     .any(|&attack_type| attack_type >= 100);
                 let mut made = made;
-                made.record_day(&packet);
+                made.record(&packet.special_attacks());
                 after.push((special, made));
             }
             after
@@ -1400,5 +1362,17 @@ mod tests {
             vec![with(NAGATO_K2_ID, &[SG_RADAR_LATE_ID]), with(MUTSU_K2_ID, &[SG_RADAR_LATE_ID])];
         let resolved = check_nagato_broadside(&codex, &nagato, FORMATION_ECHELON).unwrap();
         assert!(resolved.equip_bonuses.iter().all(|bonus| (bonus - 1.15).abs() < 1e-9));
+    }
+
+    /// The source: `mod = 2`, and `mod *= 1.25` at T disadvantage. wikiwiki: 「T不利時に発動
+    /// すると、倍率が2.5倍に上昇」. It was the 2.0 of each ship times 2.5.
+    #[test]
+    fn a_nelson_touch_at_t_disadvantage_is_two_and_a_half_times() {
+        use SpecialAttackType::{ColoradoBroadside, NelsonTouch};
+
+        assert_eq!(2.0 * engagement_multiplier(NelsonTouch, EngagementType::TDisadvantage), 2.5);
+        assert_eq!(engagement_multiplier(NelsonTouch, EngagementType::TAdvantage), 1.0);
+        assert_eq!(engagement_multiplier(NelsonTouch, EngagementType::SameCourse), 1.0);
+        assert_eq!(engagement_multiplier(ColoradoBroadside, EngagementType::TDisadvantage), 1.0);
     }
 }

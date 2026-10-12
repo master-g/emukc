@@ -38,12 +38,7 @@ whether the order is by range.
   longest piece it carries: `api_leng` on the ship does not include equipment.
 - A second round goes down the line.
 - The flagship's special attack is decided when the flagship's turn comes and takes that
-  turn only: the ships that join it still fire on their own. A fleet makes it once a sortie:
-  `BattleState::special_attack_used` begins as the sortie's `SpecialAttacksMade::gunnery`, so
-  neither a second round nor a later battle rolls it again, and the sortie takes it in from
-  the packet when the battle is over. None is made in an exercise, nor by 第2艦隊's flagship.
-  The formations are the source's: 梯形陣 (4) for 101, 102, 103 and 106, 複縦陣 (2) for 100
-  and 105, and 第二警戒航行序列 (12) for all of them.
+  turn only: the ships that join it still fire on their own (below).
 - Every index written is a position in the whole fleet (`append_turn` lifts them), so the
   combined paths need no shifting afterwards.
 
@@ -74,13 +69,41 @@ enemy did (plan `docs/plans/2026-10-10-002`):
 (`AirState::reversed`): the enemy spots for its guns by day, and its night recon counts, when
 the sky is the enemy's. Day shelling and the night battle both pass it that way.
 
+## The flagship's special gunnery attacks
+
+`special_attack.rs`, against `kancolle-replay` `69097abc` (`canSpecialAttackUnique`,
+`getSpecialAttackShips`, `getSpecialAttackMod`, `updateSupply`) and wikiwiki's 発動条件.
+
+- **Who** (`check_*`): Nelson or Rodney with the third and fifth ship, neither a carrier nor
+  a submarine (100); 長門改二 (101) or 陸奥改二 (102) with a battleship second; Colorado or
+  Maryland with battleships second and third (103); two of Richelieu改, Richelieu Deux and
+  Jean Bart改 (105); Warspite改 and Valiant改 (106). The flagship more than half her hull, the
+  ships named beside her more than a quarter, the two of a Nelson Touch in any state.
+- **When** (`try_special_attack`): six ships afloat that are not submarines, 梯形陣 (4) for
+  101, 102, 103 and 106, 複縦陣 (2) for 100 and 105, 第二警戒航行序列 (12) for all; not in an
+  exercise, not by 第2艦隊's flagship, not against PT boats alone (`is_pt_only`). It is rolled
+  for in each turn of the flagship's, by day and at night, until the sortie has made one:
+  `SpecialAttacksMade::gunnery`, kept in `ActiveSortieState`, handed to every battle and
+  taken in from the packet afterwards (`BattlePacket::special_attacks`).
+- **What** (`ResolvedSpecialAttack::hits`): the flagship twice and her partner once for a
+  pair, a hit each for three ships, on surface ships only. The multiplier is after the cap by
+  day and before it at night. Accuracy 1.05 for a Nelson Touch, 1.4 for the others, 1.15 more
+  for an AP shell and for a surface radar.
+- **One row**: the client reads all three hits from one row of the flagship's
+  (`PhaseHougeki._nelson_touch` and the others, `d_indexes[0..3]`), by day and at night.
+- **Ammunition** (`special_attack_ammo`): the flagship and second ship of 101, 102 and 105
+  pay half as much again for the battle, the two of the night assault a fifth more.
+- **Unsettled:** wikiwiki has the three ships of 103 paying more as well, without a number
+  (the source charges nothing); Warspite and Valiant with no ammunition left make none
+  there; the source's latest step charges the night assault 1.1. The rates of 103, 105 and
+  106 are the Nagato class's (plan `2026-10-12-006`).
+- Played in the client (`nagato_broadside`): 101 by day and at night.
+
 ## Not modelled
 
-- The special gunnery attacks are rolled for by day only; the source and wikiwiki have them
-  at night as well. What is wrong with them besides is listed in plan `2026-10-12-008`.
 - Submarines joining the order when the other side has an installation.
 - The 39% split of a combined fleet's targets between main and escort.
-- Star shells, searchlights and night contact; when a night special attack is decided; the
+- Star shells, searchlights and night contact; the
   order of the decks in a combined night battle; the 35% split of torpedo targets between a
   combined fleet's main and escort.
 

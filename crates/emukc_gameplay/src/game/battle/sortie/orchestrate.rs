@@ -92,7 +92,7 @@ pub fn run_night_battle(
     session.absorb_night(&simulation, fought);
     store.insert_pending_battle(session.profile_id, session.clone());
     if let Some(mut active) = active {
-        active.special_attacks_made.record_night(&simulation.packet);
+        active.special_attacks_made.record(&simulation.packet.special_attacks());
         let _ = store.insert_active(session.profile_id, active);
     }
 
