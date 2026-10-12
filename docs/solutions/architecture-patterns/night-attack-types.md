@@ -125,7 +125,8 @@ flagship's own attack; the partner still takes her turn. The enemy never makes i
   (`SpecialAttacksMade::kongou_assaults`, kept by the sortie and read off each night's
   `api_sp_list`), and none in an exercise. A night gives the flagship one turn, so it is one a
   battle at most.
-- **What it costs:** the two pay 1.2 times the battle's ammunition (wikiwiki). None is made
+- **What it costs:** the two pay 1.1 times the battle's ammunition (`kongouSpecialBuff5`;
+  1.2 before 2026-04-23, which is what wikiwiki's page still says). None is made
   against PT boats alone.
 
 ## Known gaps
