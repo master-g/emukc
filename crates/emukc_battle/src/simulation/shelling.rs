@@ -205,6 +205,7 @@ fn shell_turn(
     // flagship is not the fleet's.
     if idx == 0
         && !*special_attack_used
+        && !crate::targeting::is_pt_only(codex, defenders)
         && let Some(resolved) = special_attack::try_special_attack(
             codex,
             rng,

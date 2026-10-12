@@ -356,6 +356,7 @@ impl SortieBattleSetup {
             friendly_nowhps,
             friendly_onslots: session.friendly.iter().map(|f| f.ship.api_onslot).collect(),
             air_battle: session.packet.kouku.is_some(),
+            special_attacks: session.packet.special_attacks(),
             mvp_combined,
             get_ship_exp_combined,
             get_exp_lvup_combined,

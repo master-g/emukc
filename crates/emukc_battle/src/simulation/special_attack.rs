@@ -898,6 +898,46 @@ mod tests {
         }
     }
 
+    /// wikiwiki: 「敵がPT小鬼群のみのマス…では発動しない」.
+    #[test]
+    fn no_special_attack_is_made_against_pt_boats_alone() {
+        use crate::simulation::shelling::{ShellingRound, simulate_shelling_round};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let pt = ship_mst_id_by_name(&codex, "PT小鬼群");
+        let made = |enemy_ids: [i64; 3]| {
+            (0..40).any(|seed| {
+                let mut friendly = fleet_of(&codex, [NAGATO_K2_ID, MUTSU_K2_ID, bb, bb, bb, bb]);
+                // A destroyer under the boat's id is a boat to the battle.
+                let mut enemy = fleet_of(&codex, [bb; 3]);
+                for (ship, id) in enemy.iter_mut().zip(enemy_ids) {
+                    ship.ship.api_ship_id = id;
+                }
+                let round = ShellingRound {
+                    friendly_deck: 0..6,
+                    enemy_deck: 0..3,
+                    by_range: true,
+                    friendly_formation: 4,
+                    enemy_formation: 1,
+                    engagement: EngagementType::SameCourse,
+                    air_state: None,
+                };
+                let hougeki = simulate_shelling_round(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &mut friendly,
+                    &mut enemy,
+                    &round,
+                    &mut [false; 2],
+                );
+                hougeki.is_some_and(|rows| rows.api_at_type.iter().any(|&t| t >= 100))
+            })
+        };
+        assert!(!made([pt, pt, pt]));
+        assert!(made([pt, pt, bb]));
+    }
+
     #[test]
     fn special_attack_si_list_entries_are_strings() {
         use crate::types::{AirState, BattlePhase, EngagementType, ShellingParams, SiListId};
@@ -1201,7 +1241,7 @@ mod tests {
                     .flat_map(|round| &round.api_at_type)
                     .any(|&attack_type| attack_type >= 100);
                 let mut made = made;
-                made.record_day(&packet);
+                made.record(&packet.special_attacks());
                 after.push((special, made));
             }
             after

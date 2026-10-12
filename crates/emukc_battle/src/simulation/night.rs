@@ -1052,7 +1052,7 @@ fn kongou_night_assault(
     let Some(rate) = kongou_assault_rate(codex, friendly, forms.0) else {
         return false;
     };
-    if !has_surface_target(codex, enemy) || rng.random_f64_range(0.0, 1.0) >= rate {
+    if !has_special_attack_target(codex, enemy) || rng.random_f64_range(0.0, 1.0) >= rate {
         return false;
     }
     // `getSpecialAttackMod`: 1.4 to her accuracy.
@@ -1087,7 +1087,7 @@ fn special_gunnery_at_night(
     params: &NightBattleParams,
     hougeki: &mut BattleNightHougeki,
 ) -> bool {
-    if params.special_attacks_made.gunnery || !has_surface_target(codex, enemy) {
+    if params.special_attacks_made.gunnery || !has_special_attack_target(codex, enemy) {
         return false;
     }
     let can_attack =
@@ -1103,8 +1103,10 @@ fn special_gunnery_at_night(
     true
 }
 
-fn has_surface_target(codex: &Codex, enemy: &[BattleRuntimeShip]) -> bool {
-    enemy.iter().any(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
+/// A surface ship afloat to attack, in a fleet that is not PT boats alone.
+fn has_special_attack_target(codex: &Codex, enemy: &[BattleRuntimeShip]) -> bool {
+    !crate::targeting::is_pt_only(codex, enemy)
+        && enemy.iter().any(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
 }
 
 /// The one row of a fleet special attack at night: each hit on a surface ship of its own, its
@@ -4227,6 +4229,50 @@ mod attack_type_tests {
             ship.is_sortie = false;
         }
         assert!(!made(&friendly, 0));
+    }
+
+    /// wikiwiki: 「敵がPT小鬼群のみのマス…では発動しない」, of every fleet special attack.
+    #[test]
+    fn no_special_attack_is_made_at_night_against_pt_boats_alone() {
+        let codex = codex();
+        let pt = crate::test_utils::ship_mst_id_by_name(&codex, "PT小鬼群");
+        // A destroyer under the boat's id is a boat to the battle.
+        let mut boat = hostile(at_hp(ship(&codex, KcShipType::DD, 50, &[]), 100));
+        boat.ship.api_ship_id = pt;
+        let mut other = hostile(at_hp(ship(&codex, KcShipType::BB, 50, &[]), 100));
+        other.ship.api_soukou[0] = 9999;
+        let mut kongou = assault_fleet(&codex, KONGOU, &[SURFACE_RADAR_10, LARGE_SEARCHLIGHT]);
+        let mut nagato =
+            vec![battleship(&codex, 541, 175, 99, &[]), battleship(&codex, 573, 175, 99, &[])];
+        nagato.extend((0..4).map(|_| at_hp(ship(&codex, KcShipType::BB, 50, &[]), 100)));
+        for ship in kongou[..2].iter_mut() {
+            ship.ship.api_lv = 175;
+            ship.ship.api_lucky[0] = 99;
+        }
+        let made = |friendly: &[BattleRuntimeShip], formation, enemy: &[BattleRuntimeShip]| {
+            (0..20).any(|seed| {
+                simulate_night_hougeki(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &mut friendly.to_vec(),
+                    &mut enemy.to_vec(),
+                    &NightBattleParams {
+                        special_attacks_made: Default::default(),
+                        friendly_formation_id: formation,
+                        enemy_formation_id: 1,
+                        engagement: crate::types::EngagementType::SameCourse,
+                        air_state: None,
+                        night_start: true,
+                        flare_pos: [-1, -1],
+                    },
+                )
+                .is_some_and(|rows| rows.api_sp_list.iter().any(|&sp| sp >= 100))
+            })
+        };
+        let boats = vec![boat.clone(); 3];
+        let mixed = vec![boat.clone(), boat, other];
+        assert!(!made(&kongou, 1, &boats) && made(&kongou, 1, &mixed));
+        assert!(!made(&nagato, 4, &boats) && made(&nagato, 4, &mixed));
     }
 
     /// The attacks of the day are rolled for in the flagship's turn at night as well (the

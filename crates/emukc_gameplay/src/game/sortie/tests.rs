@@ -115,6 +115,7 @@ fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
         friendly_nowhps: vec![],
         friendly_onslots: vec![],
         air_battle: false,
+        special_attacks: Vec::new(),
         enemy_ship_types: vec![],
         win_rank: "S".to_string(),
         get_exp: 0,
@@ -196,6 +197,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
             friendly_onslots: vec![],
             air_battle: false,
+            special_attacks: Vec::new(),
             enemy_ship_types: vec![0; session.enemy_ship_ids.len()],
             win_rank: session.outcome.win_rank.to_string(),
             get_exp: 0,
@@ -290,6 +292,7 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
             friendly_nowhps: session.friendly.iter().map(|f| f.hp().max(0)).collect(),
             friendly_onslots: vec![],
             air_battle: false,
+            special_attacks: Vec::new(),
             enemy_ship_types: session
                 .enemy_ship_ids
                 .iter()
@@ -2630,4 +2633,49 @@ async fn a_sortie_makes_its_special_gunnery_attack_once() {
     assert!(fresh.contains(&(true, true)), "no battle of thirty made it: {fresh:?}");
     assert!(fresh.iter().all(|(made, recorded)| made == recorded), "{fresh:?}");
     assert!(spent.iter().all(|battle| *battle == (false, true)), "{spent:?}");
+}
+
+/// The two ships of the Nagato class's attack pay half as much ammunition again for the
+/// battle they made it in (`updateSupply`); the others pay what the battle costs.
+#[tokio::test]
+async fn the_ships_of_a_special_attack_pay_more_ammunition_for_the_battle() {
+    let (context, pid) = guard_context().await;
+    let mut fleet = [541, 573, 951, 951, 951, 951];
+    for ship in &mut fleet {
+        *ship = context.add_ship(pid, *ship).await.unwrap().api_id;
+    }
+    context.update_fleet_ships(pid, 1, &fleet).await.unwrap();
+    let store = context.sortie_store.as_ref();
+    let ammo = |ships: Vec<emukc_model::kc2::KcApiShip>| {
+        fleet.map(|id| ships.iter().find(|ship| ship.api_id == id).unwrap().api_bull)
+    };
+
+    for _ in 0..30 {
+        store.remove_active(pid);
+        super::clear_pending_sortie_runtime_state(store, pid);
+        let active = active_sortie_on_cell(&context.codex, |c| c.event_id == 4);
+        let _ = store.insert_active(pid, active);
+        let packet = serde_json::json!(context.sortie_battle(pid, 4).await.unwrap());
+        let made = ["api_hougeki1", "api_hougeki2", "api_hougeki3"]
+            .iter()
+            .filter_map(|round| packet[round]["api_at_type"].as_array())
+            .flatten()
+            .any(|attack_type| attack_type.as_i64().unwrap() >= 100);
+        if !made {
+            continue;
+        }
+        let before = ammo(context.get_ships(pid).await.unwrap());
+        context.sortie_battle_result(pid).await.unwrap();
+        let after = ammo(context.get_ships(pid).await.unwrap());
+        let paid: Vec<i64> =
+            before.iter().zip(after).map(|(before, after)| before - after).collect();
+        // A fifth of what each carries, and half as much again for the two.
+        let fifth = |mst_id: i64| {
+            context.codex.manifest.find_ship(mst_id).unwrap().api_bull_max.unwrap() * 2 / 10
+        };
+        let (bb, dd) = (fifth(541), fifth(951));
+        assert_eq!(paid, [bb * 3 / 2, fifth(573) * 3 / 2, dd, dd, dd, dd]);
+        return;
+    }
+    panic!("no battle of thirty made the special attack");
 }
