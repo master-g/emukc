@@ -1,6 +1,6 @@
 //! Time utilities for the game.
 
-use chrono::{DateTime, Datelike, FixedOffset, Local, TimeZone, Timelike, Utc};
+use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate, TimeZone, Timelike, Utc};
 
 /// A utility struct for time operations in `EmuKC`.
 pub struct KcTime;
@@ -176,13 +176,27 @@ impl KcTime {
     /// A `DateTime<Utc>` representing the next day's 5 AM JST.
     pub fn jst_next_day_0500(ts: &DateTime<Utc>) -> DateTime<Utc> {
         let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_then = ts.with_timezone(&tokyo_tz);
-        let today_0500 = Self::jst_today_hour_utc(5);
-        if tokyo_then < today_0500 {
-            today_0500
-        } else {
-            today_0500 + chrono::Duration::days(1)
-        }
+        let next_day = Self::jst_quest_day(ts) + chrono::Duration::days(1);
+
+        tokyo_tz
+            .from_local_datetime(&next_day.and_hms_opt(5, 0, 0).unwrap())
+            .unwrap()
+            .with_timezone(&Utc)
+    }
+
+    /// Get the day the given time belongs to for quests: the JST (UTC+9) date,
+    /// with the day turning at 5 AM instead of midnight.
+    ///
+    /// # Arguments
+    ///
+    /// * `ts` - The time to get the day of.
+    ///
+    /// # Returns
+    ///
+    /// The date of the quest day.
+    pub fn jst_quest_day(ts: &DateTime<Utc>) -> NaiveDate {
+        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
+        (ts.with_timezone(&tokyo_tz) - chrono::Duration::hours(5)).date_naive()
     }
 
     /// Get the next Monday's 5 AM JST (UTC+9) from the given time.

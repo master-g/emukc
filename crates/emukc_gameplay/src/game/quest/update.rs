@@ -1,6 +1,6 @@
 use emukc_db::{
     entity::profile::quest::{
-        ShouldReset, oneshot,
+        Period, ShouldReset, oneshot,
         periodic::{self},
         progress,
     },
@@ -12,7 +12,7 @@ use emukc_model::{
     profile::quest::QuestProgressStatus,
     thirdparty::QuestActionEvent,
 };
-use emukc_time::chrono;
+use emukc_time::{KcTime, chrono};
 
 use crate::err::GameplayError;
 
@@ -20,6 +20,7 @@ pub(crate) async fn update_quests_impl<C>(
     c: &C,
     codex: &Codex,
     profile_id: i64,
+    now: chrono::DateTime<chrono::Utc>,
 ) -> Result<bool, GameplayError>
 where
     C: ConnectionTrait,
@@ -40,7 +41,7 @@ where
         periodic::Entity::find().filter(periodic::Column::ProfileId.eq(profile_id)).all(c).await?;
 
     for quest in periodic_quests {
-        if quest.should_reset() {
+        if quest.should_reset(now) {
             should_commit = true;
             quest.delete(c).await?;
         } else {
@@ -55,7 +56,7 @@ where
     let mut in_progress_quest_id: Vec<i64> = Vec::new();
 
     for quest in in_progress_quests.iter() {
-        if quest.should_reset() {
+        if quest.should_reset(now) {
             should_commit = true;
             progress::Entity::delete_by_id(quest.id).exec(c).await?;
         } else {
@@ -70,7 +71,7 @@ where
 
     // reconstruct quest tree
     let new_quests =
-        reconstruct_quest_tree(codex, profile_id, &completed_quest_id, &in_progress_quest_id)
+        reconstruct_quest_tree(codex, profile_id, &completed_quest_id, &in_progress_quest_id, now)
             .await?;
 
     if !new_quests.is_empty() {
@@ -128,7 +129,9 @@ async fn reconstruct_quest_tree(
     profile_id: i64,
     completed_quest_id: &[i64],
     in_progress_quest_id: &[i64],
+    now: chrono::DateTime<chrono::Utc>,
 ) -> Result<Vec<progress::ActiveModel>, GameplayError> {
+    let quest_day = KcTime::jst_quest_day(&now);
     let new_quests: Vec<progress::ActiveModel> = codex
         .quest
         .iter()
@@ -151,16 +154,20 @@ async fn reconstruct_quest_tree(
                 }
             };
 
+            // the limited-day quests are only offered on their days
+            let period: Period = quest.period.try_into().expect("unknown period filtered upstream");
+            if !period.appears_on(quest_day) {
+                return None;
+            }
+
             Some(progress::ActiveModel {
                 id: ActiveValue::NotSet,
                 profile_id: ActiveValue::Set(profile_id),
                 quest_id: ActiveValue::Set(*id),
                 status: ActiveValue::Set(progress::Status::Idle),
                 progress: ActiveValue::Set(progress::Progress::Empty),
-                period: ActiveValue::Set(
-                    quest.period.try_into().expect("unknown period filtered upstream"),
-                ),
-                start_since: ActiveValue::Set(chrono::Utc::now()),
+                period: ActiveValue::Set(period),
+                start_since: ActiveValue::Set(now),
                 requirement_type: ActiveValue::Set(requirement_type),
                 requirements: ActiveValue::Set(serde_json::to_value(conditions).unwrap()),
             })

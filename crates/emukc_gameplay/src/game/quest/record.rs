@@ -11,6 +11,7 @@ pub(super) async fn mark_quest_as_completed<C>(
     profile_id: i64,
     quest_id: i64,
     period: Period,
+    now: chrono::DateTime<chrono::Utc>,
 ) -> Result<(), GameplayError>
 where
     C: ConnectionTrait,
@@ -26,7 +27,7 @@ where
                 id: ActiveValue::NotSet,
                 profile_id: ActiveValue::Set(profile_id),
                 quest_id: ActiveValue::Set(quest_id),
-                complete_time: ActiveValue::Set(chrono::Utc::now()),
+                complete_time: ActiveValue::Set(now),
             };
             am.insert(c).await?;
         }
@@ -41,7 +42,7 @@ where
                 id: ActiveValue::NotSet,
                 profile_id: ActiveValue::Set(profile_id),
                 quest_id: ActiveValue::Set(quest_id),
-                complete_time: ActiveValue::Set(chrono::Utc::now()),
+                complete_time: ActiveValue::Set(now),
                 period: ActiveValue::Set(period),
             };
 
