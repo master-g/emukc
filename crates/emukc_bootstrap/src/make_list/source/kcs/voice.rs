@@ -189,6 +189,12 @@ static SPECIAL: LazyLock<Vec<SpecialVoice>> = LazyLock::new(|| {
         (916, vec![901]),
         (944, vec![901]),
         (949, vec![901]),
+        // 僚艦夜戦突撃, by the pair (`CutinKongoAttack._getVoiceId`).
+        (591, vec![990, 991, 992]),
+        (592, vec![990, 991, 992]),
+        (593, vec![990, 991, 992]),
+        (954, vec![990, 991, 992]),
+        (694, vec![990, 991, 992, 993]),
     ]
 });
 

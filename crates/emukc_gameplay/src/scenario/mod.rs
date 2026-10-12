@@ -306,6 +306,22 @@ impl Scenario {
         scenario
     }
 
+    /// 金剛改二丙 with a 32号対水上電探 and 榛名改二乙 ahead of four destroyers, for the
+    /// Kongou class's night assault (78 in 100 at their level and luck). The two are short of
+    /// ammunition, so that they do not finish the enemy by day.
+    pub fn kongou_night_assault() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec {
+            ammo: Some(40),
+            ..ShipSpec::new(591, 99).with_slots([31])
+        };
+        scenario.fleet[1] = ShipSpec {
+            ammo: Some(40),
+            ..ShipSpec::new(593, 99)
+        };
+        scenario
+    }
+
     /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
     /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
     /// night. Too few and too weak to be sure of sinking her by day.
@@ -537,6 +553,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::NightCutIn,
+    },
+    Preset {
+        name: "kongou_night_assault",
+        build: Scenario::kongou_night_assault,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
     },
     Preset {
         name: "enemy_night_carrier",
