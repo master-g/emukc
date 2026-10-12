@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod test {
-    use chrono::{DateTime, FixedOffset, Utc};
+    use chrono::{DateTime, FixedOffset, TimeZone, Utc};
     use emukc_time::KcTime;
 
     #[test]
@@ -122,6 +122,29 @@ mod test {
             "Next 2nd or 8th day of the month at 5 AM JST in UTC: {:?}",
             KcTime::jst_next_28th_day_of_the_month(&now)
         );
+    }
+
+    #[test]
+    fn the_next_nth_day_is_the_first_0500_after_the_given_time() {
+        let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+        let at = |month, day, hour, minute| {
+            jst.with_ymd_and_hms(2026, month, day, hour, minute, 0).unwrap().with_timezone(&Utc)
+        };
+        let next_28 = |ts| KcTime::jst_next_28th_day_of_the_month(&ts);
+        let next_370 = |ts| KcTime::jst_next_370th_day_of_the_month(&ts);
+
+        // Before 05:00 on a matching day it is that day's 05:00; this used to overflow.
+        assert_eq!(next_28(at(10, 12, 1, 39)), at(10, 12, 5, 0));
+        assert_eq!(next_370(at(10, 13, 1, 0)), at(10, 13, 5, 0));
+        // Before 05:00 on any other day, and from 05:00 on, it is the next matching day.
+        assert_eq!(next_370(at(10, 12, 1, 39)), at(10, 13, 5, 0));
+        assert_eq!(next_28(at(10, 12, 5, 0)), at(10, 18, 5, 0));
+        assert_eq!(next_28(at(10, 12, 6, 0)), at(10, 18, 5, 0));
+        assert_eq!(next_370(at(10, 13, 6, 0)), at(10, 17, 5, 0));
+        // Across the end of a month, with no 30th in February.
+        assert_eq!(next_28(at(2, 28, 6, 0)), at(3, 2, 5, 0));
+        assert_eq!(next_370(at(2, 27, 6, 0)), at(3, 3, 5, 0));
+        assert_eq!(next_370(at(10, 30, 6, 0)), at(11, 3, 5, 0));
     }
 
     #[test]
