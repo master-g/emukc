@@ -311,6 +311,29 @@ def check_kongou_night_assault(work: Path) -> list[str]:
     return problems
 
 
+def check_nagato_broadside(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    day = responses(work, "api_req_sortie/battle")[0]
+    if day["api_formation"][0] != 4:
+        problems.append(f"the fleet was to fight in 梯形陣; api_formation said {day['api_formation']}")
+    ours = []
+    for name in ("api_hougeki1", "api_hougeki2", "api_hougeki3"):
+        shelling = day.get(name) or {}
+        rows = zip(shelling.get("api_at_eflag", []), shelling.get("api_at_list", []), shelling.get("api_at_type", []), shelling.get("api_df_list", []), shelling.get("api_damage", []))
+        ours += [row[1:] for row in rows if not row[0]]
+    specials = [row for row in ours if row[1] >= 100]
+    if not specials:
+        problems.append("the special attack did not come up this time (62 in 100): run it again")
+    for at, kind, targets, damages in specials:
+        # One row in the flagship's turn: her two hits and her partner's, fewer if the enemy ran out.
+        if at != 0 or kind != 101 or not 1 <= len(targets) <= 3 or len(damages) != len(targets):
+            problems.append(f"the special attack is one row of 長門改二's, kind 101, of three hits; it carried ship {at}, kind {kind}, {targets}, {damages}")
+    if len(specials) > 1:
+        problems.append(f"a sortie makes one special attack; the rows were {[(row[0], row[1]) for row in specials]}")
+    print("our day rows (ship, kind, targets, damage):", ours)
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -348,6 +371,14 @@ SCENARIOS = {
         + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_kongou_night_assault,
+    ),
+    # 2-1 in 梯形陣 with 長門改二 and 陸奥改二 leading: the flagship's special gunnery attack.
+    # Photographed through the day.
+    "nagato_broadside": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;772,516:api_req_sortie/battle "
+        + "w:6 " + " ".join(f"w:2 s:day{n}" for n in range(1, 17))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_nagato_broadside,
     ),
     # 2-5 again, sent to C by a battleship: its flagship 軽母ヌ級flagship attacks at night, which
     # the client plays as aircraft. Photographed through the night.
@@ -406,7 +437,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

@@ -322,6 +322,15 @@ impl Scenario {
         scenario
     }
 
+    /// 長門改二 and 陸奥改二 ahead of four destroyers, for the flagship's special gunnery
+    /// attack in 梯形陣 (62 in 100 at their level and luck).
+    pub fn nagato_broadside() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec::new(541, 99);
+        scenario.fleet[1] = ShipSpec::new(573, 99);
+        scenario
+    }
+
     /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
     /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
     /// night. Too few and too weak to be sure of sinking her by day.
@@ -557,6 +566,13 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "kongou_night_assault",
         build: Scenario::kongou_night_assault,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "nagato_broadside",
+        build: Scenario::nagato_broadside,
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
