@@ -1038,7 +1038,8 @@ fn night_turn(
     // `nightPhaseTarget`: a carrier marked 3 takes a surface ship only while the fleet she
     // attacks has its searchlight lit.
     // ponytail: the source still lets her take a submarine in the dark if her own
-    // anti-submarine is above zero; no abyssal carrier's is, so she simply does not attack.
+    // anti-submarine is above zero; the enemy data here gives every carrier none (the source
+    // has it for 40 light carriers), so she simply does not attack.
     if abyssal_night_attack(ship) == 3 && !defenders_lit {
         return;
     }
@@ -3181,6 +3182,23 @@ mod abyssal_carrier_tests {
         // 3 + 16 + 9 x sqrt(18) without the count, 夜復讐深海艦攻 x15 4 + 15 + 45 + 13.95 x sqrt(15).
         assert!((night_air_power(&codex, &princess) - 498.6119).abs() < 1e-3);
         assert_eq!(enemy_flags(&codex, princess), [1]);
+        // And the packet's damage is that power's, capped: her gunfire would be 208 + 5
+        // before armour.
+        let input = NightBattleInput {
+            friendly: vec![destroyer(&codex, &[])],
+            enemy: vec![abyssal(&codex, SOUTH_PACIFIC, 100)],
+            friendly_formation_id: 1,
+            enemy_formation_id: 1,
+            engagement: EngagementType::SameCourse,
+            air_state: None,
+            night_start: false,
+        };
+        let night =
+            crate::simulation::simulate_night(&codex, input, &mut crate::random::SeededRng::new(0));
+        let hougeki = night.packet.hougeki.unwrap();
+        let hers = hougeki.api_at_eflag.iter().position(|side| *side == 1).unwrap();
+        assert_eq!(hougeki.api_cl_list[hers], [1]);
+        assert_eq!(format!("{:?}", hougeki.api_damage[hers]), "[366]");
         // At half her hull the deck is shut, and her mark still has her attack.
         let damaged = abyssal(&codex, SOUTH_PACIFIC, 50);
         assert!(!can_night_air_attack(&codex, &damaged));

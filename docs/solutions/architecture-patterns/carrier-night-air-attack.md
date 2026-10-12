@@ -74,7 +74,10 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
 - An enemy carrier makes no cut-in: the tables are not in `is_cv_night_ci_eligible`.
 - The enemy fires by position, as the player does. The source's "enemy always skips to the
   next capable ship" is its NPC friend fleet's night only.
-- No abyssal carrier has anti-submarine of her own, so none attacks a submarine at night.
+- No enemy carrier attacks a submarine at night here, which is short of the source: there 40
+  of these light carriers (30 marked 3, 10 with a crew and no mark) have anti-submarine above
+  zero and take a submarine, lit or not. `enemy_ship_extra.json` gives every enemy carrier 0,
+  and `bare_asw` reads the player's table. See Known gaps.
 
 ## The power
 
@@ -153,13 +156,15 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - `abyssal_carrier_tests` in `night.rs`: the tables against what the script prints, who
   attacks, the searchlight, one power worked by hand, Béarn. The `enemy_night_carrier` preset
   (2-5, cell C) is in the gate with `PhaseExpectation::EnemyCarrierNightAttack`, and in the
-  headless check. A crewed enemy (flag 1) is met only in 5-6's fourth phase and has not been
+  headless check. A crewed enemy (flag 1) is met only in 5-6's fourth phase and in 7-4, and has not been
   played in the client.
 
 ## Known gaps
 
 - しまね丸改, a 補給艦 the source lets fly at night: every carrier test here goes by ship type.
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
+- An enemy light carrier's night attack on a submarine: it needs her anti-submarine, which
+  the enemy data here does not carry (the source's `ASW` does).
 - The searchlight beyond whether it is lit: the rerolls that draw fire to its ship, and the
   evasion it costs her.
 - The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
