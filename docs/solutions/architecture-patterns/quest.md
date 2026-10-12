@@ -40,6 +40,20 @@ via the quest operations on `Ctx`. Definitions come from the Codex
   quests are filtered by period (daily/weekly/monthly/etc.) and reset timers;
   prerequisite quest chains are respected (quest X may require quest Y to be
   completed first).
+- Time: `update_quests_impl` takes the current time from its caller and passes
+  it to both the reset check (`ShouldReset::should_reset(now)`) and the new
+  records' `start_since`. `get_quest_records_at` and
+  `quest_clear_and_claim_reward_at` take it as a parameter, which is how tests
+  run against fixed dates; the methods without `_at` read the clock once and
+  delegate. The quest day is the JST date with the day turning at 05:00
+  (`KcTime::jst_quest_day`).
+- Limited-day dailies: quest 211 (Bd4, period `Daily3rd7th0th`) is offered only
+  on quest days ending in 3, 7 or 0, quest 212 (Bd6, `Daily2nd8th`) on those
+  ending in 2 or 8 (`Period::appears_on`), on top of their prerequisite. They
+  reset at the next 05:00 like any daily (`Period::reset_time`), so they are gone
+  the day after and rebuilt on their next day. Their prerequisite 201 is itself
+  a daily and has to be cleared again that day. The weekly reset still reads the
+  system clock (`KcTime::jst_next_monday_0500`).
 - Activation (`quest_start`) on an idle quest: status → Activated; if the quest
   has Exercise conditions, activation headroom may be applied (sets `times=1`
   if inactive had `times<=0`); if already at Completed progress, it is reset to

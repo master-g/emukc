@@ -131,7 +131,6 @@ Current verification baseline:
 - [2026-10-07] 客户端进不进战斗只看 `event_id`（4 / 5），`event_kind` 只选接口（2 夜战、4 航空戦、5 敌联合、6 空襲、8 レーダー）。
   常规图的敌联合只有 6-5 M；`each_*`、`ec_night_to_day` 触发不到。见 `combined-fleet-index-spaces.md` 与计划 2026-10-07-001。
 - [2026-10-12] 常规图的开幕夜战格只在 5-3、5-4、5-5、6-5（16 个格子条目），敌编成里没有潜艇：敌潜艇在开幕夜战被击沉触发不到，无头检查也配不出来。
-- [2026-10-07] `emukc_time` 的 `jst_next_*_day_of_the_month` 两个测试在日本时间 05:00 前必败（循环加天数直到溢出），与改动无关。
 - [2026-09-22] `api_si_list` 只放对应阶段画得出名牌的装备；`btxt_flat` 的存在范围与探测方法见
   `docs/solutions/architecture-patterns/battle-display-name-plates.md`。
 - [2026-09-22] 同名 `PhaseHougeki` 昼夜两份编号互斥（昼 2=連撃/7=空母切入，夜 1=連撃/6=空母切入）；
@@ -155,6 +154,8 @@ Current verification baseline:
 - [2026-10-10] 质量门是 `clippy --workspace --all-targets -- -D warnings`（钩子同款，全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
+- [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
+  周常的 `jst_next_monday_0500`、`init`、`quest_add` 仍读系统时钟，固定时间的测试只用过去的日期。
 
 ## Failed Attempts / Pitfalls
 
@@ -190,14 +191,14 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #52 做完并合并（PR #57）：夜战对潜抽命中，`NightBattleInput::night_start` 为真时走昼战对潜伤害。
-  合并前 fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1334 过、0 败、0 ignored；
-  无头检查新场景 `night_asw` 跑三次都过。合并后只改了文档与本文件，没有重跑。
+- [2026-10-12] #54 做完，提交在分支 `feat/limited-day-quests`，未推送、未开 PR：限定日任务按日出现、次日 05:00 重置，任务更新接收当前时间。
+  fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1344 过、0 败、0 ignored；没有用客户端跑（报文形状没变）。
+  顺带的两处行为变化见计划 2026-10-12-002。
 
 ## Next Session
 
-- [2026-10-12] 待做的三份规格：#53 夜战攻击种别表对照来源重做（最大）；
-  #54 限定日任务按日出现、次日 05:00 重置（给任务更新加「当前时间」参数）；#55 敌方空母的夜战与 Béarn。
+- [2026-10-12] 先把 `feat/limited-day-quests` 推送并开 PR；PR 里标出计划里「标出而不动的」函数。
+  待做的规格：#53 夜战攻击种别表对照来源重做（最大）；#55 敌方空母的夜战与 Béarn。周常重置读系统时钟还没有规格。
   研究用的来源副本与 wiki 页面不在仓库，实施时按 `kancolle-replay` 提交 `69097abc` 重新取（`js/kcsim.js` 一个文件够用）。
   #52 留下的差异：连合舰队昼战后的夜战对潜在来源里是真伤害，这里仍是擦伤（`carrier-night-air-attack.md` Known gaps）。
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。

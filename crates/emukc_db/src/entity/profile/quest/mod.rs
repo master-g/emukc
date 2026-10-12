@@ -87,27 +87,49 @@ pub trait HasTimestampAndPeriod {
     fn period(&self) -> Period;
 }
 
-/// Trait for entities that can be reset
-pub trait ShouldReset {
-    /// Check if the quest should be reset.
-    fn should_reset(&self) -> bool;
-}
+impl Period {
+    /// Whether quests of this period are offered on the given quest day
+    /// (see [`KcTime::jst_quest_day`]). Only the two limited-day periods are
+    /// tied to the day of the month.
+    pub fn appears_on(self, quest_day: chrono::NaiveDate) -> bool {
+        use chrono::Datelike;
 
-impl<T: HasTimestampAndPeriod> ShouldReset for T {
-    fn should_reset(&self) -> bool {
-        let start_time = &self.timestamp();
-        let reset_time = match self.period() {
-            Period::Oneshot => return false,
-            Period::Daily => KcTime::jst_next_day_0500(start_time),
+        match self {
+            Period::Daily3rd7th0th => matches!(quest_day.day() % 10, 0 | 3 | 7),
+            Period::Daily2nd8th => matches!(quest_day.day() % 10, 2 | 8),
+            _ => true,
+        }
+    }
+
+    /// When a record of this period that started at `start_time` resets.
+    /// `None` for one-shot quests, which never do.
+    pub fn reset_time(
+        self,
+        start_time: &chrono::DateTime<chrono::Utc>,
+    ) -> Option<chrono::DateTime<chrono::Utc>> {
+        Some(match self {
+            Period::Oneshot => return None,
+            // The limited-day quests last their day only, like any daily.
+            Period::Daily | Period::Daily3rd7th0th | Period::Daily2nd8th => {
+                KcTime::jst_next_day_0500(start_time)
+            }
             Period::Weekly => KcTime::jst_next_monday_0500(start_time),
-            Period::Daily3rd7th0th => KcTime::jst_next_370th_day_of_the_month(start_time),
-            Period::Daily2nd8th => KcTime::jst_next_28th_day_of_the_month(start_time),
             Period::Monthly => KcTime::jst_next_1st_day_of_the_month(start_time),
             Period::Quarterly => KcTime::jst_next_quarter_day_one_0500(start_time),
             Period::Annually => KcTime::jst_next_year_day_one_0500(start_time),
-        };
+        })
+    }
+}
 
-        chrono::Utc::now() > reset_time
+/// Trait for entities that can be reset
+pub trait ShouldReset {
+    /// Check if the quest should be reset at the given time.
+    fn should_reset(&self, now: chrono::DateTime<chrono::Utc>) -> bool;
+}
+
+impl<T: HasTimestampAndPeriod> ShouldReset for T {
+    fn should_reset(&self, now: chrono::DateTime<chrono::Utc>) -> bool {
+        self.period().reset_time(&self.timestamp()).is_some_and(|reset_time| now >= reset_time)
     }
 }
 
@@ -165,5 +187,43 @@ mod tests {
             let back: Period = kc_period.try_into().unwrap();
             assert_eq!(period, back);
         }
+    }
+
+    #[test]
+    fn limited_day_periods_appear_by_the_last_digit_of_the_day() {
+        let days = |period: Period, month| -> Vec<u32> {
+            (1..=31)
+                .filter_map(|day| chrono::NaiveDate::from_ymd_opt(2026, month, day))
+                .filter(|day| period.appears_on(*day))
+                .map(|day| chrono::Datelike::day(&day))
+                .collect()
+        };
+
+        // March has a 30th and a 31st; the 31st ends in 1 and offers neither.
+        assert_eq!(days(Period::Daily3rd7th0th, 3), [3, 7, 10, 13, 17, 20, 23, 27, 30]);
+        assert_eq!(days(Period::Daily2nd8th, 3), [2, 8, 12, 18, 22, 28]);
+        // February has no 30th.
+        assert_eq!(days(Period::Daily3rd7th0th, 2), [3, 7, 10, 13, 17, 20, 23, 27]);
+        assert_eq!(days(Period::Daily2nd8th, 2), [2, 8, 12, 18, 22, 28]);
+        // Every other period is offered every day.
+        assert_eq!(days(Period::Daily, 2).len(), 28);
+        assert_eq!(days(Period::Weekly, 3).len(), 31);
+    }
+
+    #[test]
+    fn limited_day_periods_reset_at_the_next_0500_like_a_daily() {
+        use chrono::TimeZone;
+
+        let jst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
+        let at = |day, hour, minute| {
+            jst.with_ymd_and_hms(2026, 3, day, hour, minute, 0).unwrap().with_timezone(&chrono::Utc)
+        };
+
+        for period in [Period::Daily, Period::Daily3rd7th0th, Period::Daily2nd8th] {
+            assert_eq!(period.reset_time(&at(3, 23, 0)), Some(at(4, 5, 0)));
+            assert_eq!(period.reset_time(&at(4, 4, 59)), Some(at(4, 5, 0)));
+            assert_eq!(period.reset_time(&at(4, 5, 0)), Some(at(5, 5, 0)));
+        }
+        assert_eq!(Period::Oneshot.reset_time(&at(3, 23, 0)), None);
     }
 }

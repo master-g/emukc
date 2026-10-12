@@ -132,11 +132,25 @@ impl Ctx {
         &self,
         profile_id: i64,
     ) -> Result<Vec<quest::progress::Model>, GameplayError> {
+        self.get_quest_records_at(profile_id, chrono::Utc::now()).await
+    }
+
+    /// Get all quest records of a profile as they stand at the given time.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `now`: The time quests are reset and offered against.
+    pub async fn get_quest_records_at(
+        &self,
+        profile_id: i64,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<quest::progress::Model>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
         let mut tx = db.begin().await?;
 
-        if update_quests_impl(&tx, codex, profile_id).await? {
+        if update_quests_impl(&tx, codex, profile_id, now).await? {
             tx.commit().await?;
 
             tx = db.begin().await?;
@@ -253,6 +267,30 @@ impl Ctx {
         quest_id: i64,
         reward_choices: Option<Vec<i64>>,
     ) -> Result<KcApiQuestClearItemGet, GameplayError> {
+        self.quest_clear_and_claim_reward_at(
+            profile_id,
+            quest_id,
+            reward_choices,
+            chrono::Utc::now(),
+        )
+        .await
+    }
+
+    /// Clear a quest and claim its reward for a profile, at the given time.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    /// - `reward_choices`: The reward choices, if any.
+    /// - `now`: The time the quest is completed at.
+    pub async fn quest_clear_and_claim_reward_at(
+        &self,
+        profile_id: i64,
+        quest_id: i64,
+        reward_choices: Option<Vec<i64>>,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<KcApiQuestClearItemGet, GameplayError> {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
@@ -298,7 +336,7 @@ impl Ctx {
         };
 
         // mark as completed
-        mark_quest_as_completed(&tx, profile_id, quest_id, quest.period).await?;
+        mark_quest_as_completed(&tx, profile_id, quest_id, quest.period, now).await?;
 
         // remove quest progress
         {
@@ -310,7 +348,7 @@ impl Ctx {
 
         // reconstruct quest tree
         // this will be called by mainjs, but we do it here to ensure consistency
-        update_quests_impl(&tx, codex, profile_id).await?;
+        update_quests_impl(&tx, codex, profile_id, now).await?;
 
         // deduct requirements
         deduct_requirements(&tx, profile_id, quest_mst).await?;
@@ -480,7 +518,7 @@ pub(super) async fn init<C>(c: &C, codex: &Codex, profile_id: i64) -> Result<(),
 where
     C: ConnectionTrait,
 {
-    update_quests_impl(c, codex, profile_id).await?;
+    update_quests_impl(c, codex, profile_id, chrono::Utc::now()).await?;
 
     Ok(())
 }

@@ -148,6 +148,34 @@ mod test {
     }
 
     #[test]
+    fn the_next_day_0500_depends_only_on_the_given_time() {
+        let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+        let at = |month, day, hour, minute| {
+            jst.with_ymd_and_hms(2026, month, day, hour, minute, 0).unwrap().with_timezone(&Utc)
+        };
+        let next = |ts| KcTime::jst_next_day_0500(&ts);
+
+        assert_eq!(next(at(3, 3, 23, 0)), at(3, 4, 5, 0));
+        assert_eq!(next(at(3, 4, 4, 59)), at(3, 4, 5, 0));
+        assert_eq!(next(at(3, 4, 5, 0)), at(3, 5, 5, 0));
+        assert_eq!(next(at(2, 28, 12, 0)), at(3, 1, 5, 0));
+    }
+
+    #[test]
+    fn the_quest_day_turns_at_0500_jst() {
+        let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+        let at = |month, day, hour, minute| {
+            jst.with_ymd_and_hms(2026, month, day, hour, minute, 0).unwrap().with_timezone(&Utc)
+        };
+        let day = |month, day| chrono::NaiveDate::from_ymd_opt(2026, month, day).unwrap();
+
+        assert_eq!(KcTime::jst_quest_day(&at(3, 3, 23, 0)), day(3, 3));
+        assert_eq!(KcTime::jst_quest_day(&at(3, 4, 4, 59)), day(3, 3));
+        assert_eq!(KcTime::jst_quest_day(&at(3, 4, 5, 0)), day(3, 4));
+        assert_eq!(KcTime::jst_quest_day(&at(3, 1, 2, 0)), day(2, 28));
+    }
+
+    #[test]
     fn test_jst_next_first_day_of_quarter() {
         let now = Utc::now();
         println!("Current time in UTC: {}", now);
