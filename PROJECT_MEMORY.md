@@ -190,7 +190,8 @@ Current verification baseline:
 ## Last Session
 
 - [2026-10-12] 分支 `feat/night-asw`：实现 #52（夜战对潜抽命中；`NightBattleInput::night_start` 为真时走昼战对潜伤害）。
-  fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1334 过、0 败、0 ignored；没有跑无头检查。golden 与 `battle_golden.rs` 未变（那几场夜战没有潜艇）。
+  fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1334 过、0 败、0 ignored；
+  无头检查新场景 `night_asw` 跑三次都过。PR #57。golden 与 `battle_golden.rs` 未变（那几场夜战没有潜艇）。
 
 ## Next Session
 

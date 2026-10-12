@@ -273,6 +273,15 @@ impl Scenario {
         }
     }
 
+    /// Six submarines for the enemy to attack at night: 伊401改 below the level of the
+    /// opening torpedo, so she sinks one ship by day at most, and five まるゆ, who sink none.
+    pub fn night_asw() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet = vec![ShipSpec::new(163, 1); 6];
+        scenario.fleet[0] = ShipSpec::new(403, 5);
+        scenario
+    }
+
     /// Four destroyers into 5-6, a drum and a radar each: enough small ships for the route
     /// past the landing point E, enough line of sight to be sent from there to the boss, and
     /// 40 transport points to land.
@@ -472,6 +481,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::NightAirAttack,
+    },
+    Preset {
+        name: "night_asw",
+        build: Scenario::night_asw,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
     },
     Preset {
         name: "transport_5_6",

@@ -208,6 +208,29 @@ def check_night_air_attack(work: Path) -> list[str]:
     return problems
 
 
+def check_night_asw(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the enemy was sunk by day this time, so no submarine was attacked at night: run it again"]
+    night = nights[0]
+    shelling = night["api_hougeki"]
+    # The whole fleet is submarines. A night attack on one is one plain hit, not flown; a miss
+    # does nothing, and after a day battle a hit sinks nobody (at 1 HP it does nothing either).
+    rows = zip(shelling["api_at_eflag"], shelling["api_df_list"], shelling["api_sp_list"], shelling["api_n_mother_list"], shelling["api_cl_list"], shelling["api_damage"])
+    attacks = [row[1:] for row in rows if row[0]]
+    if not attacks:
+        problems.append("no enemy attacked at night: run it again")
+    for targets, kind, flown, hits, damages in attacks:
+        if (len(targets), kind, flown) != (1, 0, 0) or (hits[0] == 0 and int(damages[0]) != 0):
+            problems.append(f"a night attack on a submarine carried {targets}, kind {kind}, flown {flown}, {hits}, {damages}")
+    sunk = [at for at, (before, after) in enumerate(zip(night["api_f_nowhps"], after_battle(night))) if before > 0 >= after]
+    if sunk:
+        problems.append(f"submarines {sunk} were sunk in the night after a day battle")
+    print("night began at", night["api_f_nowhps"], "attacks on submarines (target, cl, damage):", [(row[0][0], row[3][0], int(row[4][0])) for row in attacks])
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -220,6 +243,8 @@ SCENARIOS = {
     "night_air_attack": (FAIR_2_1, check_night_air_attack),
     # The same with six destroyers, who seldom finish by day: this is the one that reaches the night.
     "leveled_for_mid_boss": (FAIR_2_1, check_fair_battle),
+    # The same with six submarines, for the enemy to attack at night.
+    "night_asw": (FAIR_2_1, check_night_asw),
     # 南西諸島海域's extra operation, 2-5, whose first battle meets carriers: 秋月 in the sixth
     # place fires her 対空カットイン at what they send. Photographed through the air phase.
     "anti_air_cut_in": (
@@ -277,7 +302,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

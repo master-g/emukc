@@ -96,4 +96,6 @@ Implementation Decisions 做，这里只记 issue 里没有的东西——对来
 
 - `cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings` 通过；
   `cargo test --workspace --no-fail-fast` 1334 过、0 败、0 ignored。
-- sim→validate 门与无头检查没有另加场景，也没有跑无头检查：报文的形状不变，只有命中与伤害两列的值会变。
+- 无头检查加了场景 `night_asw`（六艘潜艇打 2-1，敌方在夜战打我方潜艇）：`make headless-check SCENARIO=night_asw`
+  跑了三次都过，客户端演了打空（cl 0、伤害 0）与命中擦伤，没有页面错误。这也是「敌方打我方潜艇」唯一的端到端证据。
+  我方在夜战打敌方潜艇、开幕夜战格，没有用客户端跑过。
