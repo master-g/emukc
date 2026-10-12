@@ -2598,12 +2598,12 @@ async fn a_badly_damaged_ship_carries_nothing() {
 #[tokio::test]
 async fn a_sortie_makes_its_special_gunnery_attack_once() {
     let (context, pid) = guard_context().await;
-    let nagato = context.add_ship(pid, 541).await.unwrap();
-    let mutsu = context.add_ship(pid, 573).await.unwrap();
-    context
-        .update_fleet_ships(pid, 1, &[nagato.api_id, mutsu.api_id, -1, -1, -1, -1])
-        .await
-        .unwrap();
+    // 長門改二 and 陸奥改二 ahead of four more surface ships.
+    let mut fleet = [541, 573, 951, 951, 951, 951];
+    for ship in &mut fleet {
+        *ship = context.add_ship(pid, *ship).await.unwrap().api_id;
+    }
+    context.update_fleet_ships(pid, 1, &fleet).await.unwrap();
     let store = context.sortie_store.as_ref();
 
     // (the battle made it, the sortie has it on record)
