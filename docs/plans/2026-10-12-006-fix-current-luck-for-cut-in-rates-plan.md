@@ -102,5 +102,16 @@ wikiwiki 的留言说运不改修的 Lv99 大约六成。代码把这个数再�
   原计划（`archive/2026-05-14-002`）写的是「每艘 5%」，没有出处；若日后有按件数叠加的依据，改 `trigger_rate` 一处。
 - **测试** `an_sg_radar_late_model_on_one_of_the_three_adds_five_to_the_colorado_rate`：一番、三番舰各带一件都加 5，
   三艘都带仍加 5，四番舰带不加，長門型不受影响。
-- **没做：** SG レーダー(後期型) 对攻击倍率再乘 1.15（wikiwiki 同页有记载，代码里没有）。
+- 基线没有变化。
+
+## 补：SG レーダー(後期型) 的攻击倍率（2026-10-12，#70 合并之后）
+
+- **出处：** wikiwiki `Colorado` 页「攻撃倍率」：水上電探 1.15 倍，「電探がSG レーダー(後期型)の場合はさらに1.15倍」，
+  并有一张按装备列出三发各自倍率的表。kankorekore 的表把它写成「SG後期 x1.3225」，只列在 Colorado 级一栏。
+- **做法：** `check_colorado_broadside` 里带装备 456 的参加舰，装备倍率再乘 1.15。其它特殊砲撃不变，
+  这件装备在那里只算一件水上電探。
+- **测试** `an_sg_radar_late_model_multiplies_the_colorado_attack_once_more`，数取自 wikiwiki 的表：
+  Colorado 带徹甲弾与 SG後期 约 2.67 倍，非ビッグセブン的二番舰带 SG後期 约 1.71 倍，不带的三番舰 1.3 倍；長門型带它仍是 1.15。
+  改之前这条测试得到 2.33 与 1.495。
+- **没核对的：** 代码里的ビッグセブン名单（含 Rodney、Colorado 与各舰的未改造形态）比 wikiwiki 这一页列的宽，这次没有动。
 - 基线没有变化。
