@@ -802,6 +802,9 @@ fn night_attack_display_ids(
     let drums = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         slot_type == KcSlotItemType3::TransportContainer
     });
+    let sub_radars = collect_matching_slot_ids(codex, ship, |slot_type, _| {
+        slot_type == KcSlotItemType3::SubmarineEquipment
+    });
     let surface_ids = collect_matching_slot_ids(codex, ship, |slot_type, _| {
         is_day_surface_display_type(slot_type)
     });
@@ -832,7 +835,12 @@ fn night_attack_display_ids(
             extend_limit(&mut ids, &torpedoes, 2);
             extend_limit(&mut ids, &radars, 3);
         }
-        NightAttackType::TorpTorpTorp => extend_limit(&mut ids, &torpedoes, 3),
+        // `CutinSpRR` reads two pieces without a check. A submarine who makes the cut-in with
+        // one late-model torpedo and her radar shows the radar second.
+        NightAttackType::TorpTorpTorp => {
+            extend_limit(&mut ids, &torpedoes, 3);
+            extend_limit(&mut ids, &sub_radars, 2);
+        }
         // DD CI: TRL (魚雷+見張員+電探)
         NightAttackType::DdTorpLookoutRadar | NightAttackType::DdTorpLookoutRadar2 => {
             extend_limit(&mut ids, &torpedoes, 1);
@@ -3607,5 +3615,145 @@ mod attack_type_tests {
         assert_eq!(hougeki.api_damage[0].len(), 2);
         assert_eq!(hougeki.api_df_list[0].len(), 2);
         assert_eq!(hougeki.api_si_list[0], SiListId::text_from_i64(&[MAIN, TORPEDO]));
+    }
+
+    fn at_hp(mut ship: BattleRuntimeShip, hp: i64) -> BattleRuntimeShip {
+        ship.ship.api_maxhp = 100;
+        ship.ship.api_nowhp = hp;
+        ship.current_hp = hp;
+        ship.entry_hp = hp;
+        ship
+    }
+
+    fn hostile(mut ship: BattleRuntimeShip) -> BattleRuntimeShip {
+        ship.is_friendly = false;
+        ship
+    }
+
+    /// The night's attacks as (by the enemy, attacker, target, type, hits, shown).
+    fn night(
+        codex: &Codex,
+        seed: u64,
+        friendly: &[BattleRuntimeShip],
+        enemy: &[BattleRuntimeShip],
+    ) -> Vec<(i64, i64, i64, i64, usize, Vec<SiListId>)> {
+        let hougeki = simulate_night_hougeki(
+            codex,
+            &mut crate::random::SeededRng::new(seed),
+            &mut friendly.to_vec(),
+            &mut enemy.to_vec(),
+            &NightBattleParams {
+                friendly_formation_id: 1,
+                enemy_formation_id: 1,
+                engagement: crate::types::EngagementType::SameCourse,
+                air_state: None,
+                night_start: false,
+                flare_pos: [-1, -1],
+            },
+        );
+        hougeki.map_or_else(Vec::new, |h| {
+            (0..h.api_at_list.len())
+                .map(|i| {
+                    (
+                        h.api_at_eflag[i],
+                        h.api_at_list[i],
+                        h.api_df_list[i][0],
+                        h.api_sp_list[i],
+                        h.api_damage[i].len(),
+                        h.api_si_list[i].clone(),
+                    )
+                })
+                .collect()
+        })
+    }
+
+    #[test]
+    fn a_ship_attacks_at_night_with_more_than_a_quarter_of_her_hull() {
+        // `Ship.canNB`; `SS` does not override it.
+        let codex = codex();
+        let attacks =
+            |kind, hp| can_attack_night_ship(&codex, &at_hp(ship(&codex, kind, 50, &[]), hp));
+        for kind in [KcShipType::DD, KcShipType::BB, KcShipType::SS, KcShipType::SSV] {
+            assert!(attacks(kind, 100), "{kind:?}");
+            assert!(attacks(kind, 26), "{kind:?}");
+            assert!(!attacks(kind, 25), "{kind:?} at a quarter");
+            assert!(!attacks(kind, 0), "{kind:?} sunk");
+        }
+    }
+
+    #[test]
+    fn a_heavily_damaged_ship_of_either_fleet_makes_no_night_attack() {
+        let codex = codex();
+        // Armoured so that a hit only scratches.
+        let dd = |hp| {
+            let mut dd = at_hp(ship(&codex, KcShipType::DD, 50, &[MAIN]), hp);
+            dd.ship.api_soukou[0] = 999;
+            dd
+        };
+        let enemy = |hp| hostile(dd(hp));
+        for seed in 0..20 {
+            let attackers = |friendly: i64, hostile: i64| {
+                night(&codex, seed, &[dd(friendly)], &[enemy(hostile)])
+                    .iter()
+                    .map(|attack| attack.0)
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(attackers(100, 100), [0, 1]);
+            assert_eq!(attackers(25, 100), [1]);
+            assert_eq!(attackers(100, 25), [0]);
+        }
+    }
+
+    #[test]
+    fn a_submarine_attacks_the_surface_ships_at_night_and_no_submarine() {
+        let codex = codex();
+        let submarine = ship(&codex, KcShipType::SS, 50, &[]);
+        let hostile = |kind| hostile(at_hp(ship(&codex, kind, 50, &[]), 100));
+        for seed in 0..50 {
+            let enemy = [hostile(KcShipType::SS), hostile(KcShipType::BB)];
+            let attacks = night(&codex, seed, std::slice::from_ref(&submarine), &enemy);
+            // One plain attack on the battleship; the enemy submarine has nobody to attack.
+            let hers: Vec<_> = attacks.iter().filter(|attack| attack.0 == 0).collect();
+            assert_eq!(hers.len(), 1);
+            assert_eq!((hers[0].1, hers[0].2, hers[0].3, hers[0].4), (0, 1, 0, 1));
+            assert!(!attacks.iter().any(|attack| (attack.0, attack.1) == (1, 0)));
+            assert!(night(&codex, seed, std::slice::from_ref(&submarine), &enemy[..1]).is_empty());
+        }
+    }
+
+    #[test]
+    fn a_submarine_makes_her_torpedo_cut_in_in_battle_and_shows_two_pieces() {
+        let codex = codex();
+        let target = hostile(at_hp(ship(&codex, KcShipType::BB, 50, &[]), 100));
+        let cut_ins = |equipment: &[i64], shown: &[i64]| {
+            let submarine = ship(&codex, KcShipType::SS, 50, equipment);
+            let attacks: Vec<_> = (0..40)
+                .map(|seed| {
+                    night(
+                        &codex,
+                        seed,
+                        std::slice::from_ref(&submarine),
+                        std::slice::from_ref(&target),
+                    )
+                    .remove(0)
+                })
+                .collect();
+            let cut_ins: Vec<_> = attacks.iter().filter(|attack| attack.3 == 3).collect();
+            for attack in &cut_ins {
+                assert_eq!(attack.4, 2, "two hits");
+                assert_eq!(attack.5, SiListId::text_from_i64(shown));
+            }
+            assert!(attacks.iter().all(|attack| attack.3 == 0 || attack.3 == 3));
+            cut_ins.len()
+        };
+        assert!(cut_ins(&[LATE_TORPEDO, LATE_TORPEDO], &[LATE_TORPEDO, LATE_TORPEDO]) > 0);
+        // Three torpedoes are shown as before.
+        let three = ship(&codex, KcShipType::SS, 50, &[TORPEDO; 3]);
+        assert_eq!(
+            night_attack_display_ids(&codex, &three, NightAttackType::TorpTorpTorp),
+            [TORPEDO; 3]
+        );
+        // `CutinSpRR` reads both pieces without a check: her radar stands for the second.
+        assert!(cut_ins(&[LATE_TORPEDO, SUB_RADAR], &[LATE_TORPEDO, SUB_RADAR]) > 0);
     }
 }

@@ -116,7 +116,12 @@ screen, pass steps on the command line and read the screenshots:
   torpedo and five まるゆ, who sink next to nothing: the enemy lives into the night and attacks
   them there. Every such attack has to be one plain hit, not flown, a miss has to do nothing,
   and nobody may be sunk. It fails when the enemy is sunk by day; three runs of three reached
-  the night (2026-10-12), each with a miss and a scratch among the attacks.
+  the night (2026-10-12), each with a miss and a scratch among the attacks. The submarines
+  attack too (#64): each with more than a quarter of her hull once and plainly, played as a
+  torpedo, and the flagship, who carries a late-model torpedo and a submarine radar, with the
+  torpedo cut-in when it comes up, showing the torpedo and then the radar. Six runs of six
+  passed, the cut-in played in five; in the sixth she came into the night at 1 HP and made
+  no attack.
 - `night_cut_in` is the same sortie with six destroyers who each have something to roll for
   at night (a main gun and a torpedo, two torpedoes, three main guns, the two destroyer
   cut-ins, a double attack) and a star shell on the flagship. The check wants every attack to
