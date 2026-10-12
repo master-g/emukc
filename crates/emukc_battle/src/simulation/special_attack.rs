@@ -10,7 +10,9 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::calculate_shelling_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::targeting::{can_shell_day_ship, select_random_target_index, ship_type, target_class};
+use crate::targeting::{
+    can_shell_day_ship, has_slotitem_id, select_random_target_index, ship_type, target_class,
+};
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
@@ -514,6 +516,26 @@ fn nagato_broadside_rate(flagship: &BattleRuntimeShip, companion: &BattleRuntime
     (total / 100.0).clamp(0.0, 1.0)
 }
 
+/// SG レーダー(後期型)
+const SG_RADAR_LATE_ID: i64 = 456;
+
+/// The chance that an attack the fleet can make comes up.
+fn trigger_rate(attack_type: SpecialAttackType, fleet: &[BattleRuntimeShip]) -> f64 {
+    let flagship = &fleet[0];
+    match attack_type {
+        SpecialAttackType::NelsonTouch => nelson_touch_rate(flagship, fleet),
+        // wikiwiki: 5% more with an SG レーダー(後期型) on one of the three. It does not say
+        // the radars add up, so one is counted.
+        SpecialAttackType::ColoradoBroadside
+            if fleet.iter().take(3).any(|ship| has_slotitem_id(ship, SG_RADAR_LATE_ID)) =>
+        {
+            (nagato_broadside_rate(flagship, &fleet[1]) + 0.05).min(1.0)
+        }
+        // Every attack but Nelson Touch names the second ship.
+        _ => nagato_broadside_rate(flagship, &fleet[1]),
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Detection entry point
 // ---------------------------------------------------------------------------
@@ -540,19 +562,9 @@ pub(crate) fn try_special_attack(
         check_qe_attack(codex, attackers, formation_id),
     ];
 
-    for candidate in candidates.into_iter().flatten() {
-        // Every attack but Nelson Touch names the second ship.
-        let rate = match candidate.attack_type {
-            SpecialAttackType::NelsonTouch => nelson_touch_rate(flagship, attackers),
-            _ => nagato_broadside_rate(flagship, &attackers[1]),
-        };
-
-        if rng.random_f64_range(0.0, 1.0) < rate {
-            return Some(candidate);
-        }
-    }
-
-    None
+    candidates.into_iter().flatten().find(|candidate| {
+        rng.random_f64_range(0.0, 1.0) < trigger_rate(candidate.attack_type, attackers)
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -1165,5 +1177,27 @@ mod tests {
         let fleet = vec![ship(NELSON_IDS[0], 24); 6];
         let rate = nelson_touch_rate(&fleet[0], &fleet);
         assert!((0.60..0.65).contains(&rate), "{rate}");
+    }
+
+    #[test]
+    fn an_sg_radar_late_model_on_one_of_the_three_adds_five_to_the_colorado_rate() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let fleet = |radars: &[usize]| {
+            let mut fleet = vec![sample_bb_at(&codex, COLORADO_IDS[1], 99); 6];
+            for &at in radars {
+                fleet[at].slot_items = vec![slotitem_with_mst_id(SG_RADAR_LATE_ID)];
+            }
+            fleet
+        };
+        let rate = |kind, radars: &[usize]| trigger_rate(kind, &fleet(radars));
+        let colorado = SpecialAttackType::ColoradoBroadside;
+        let plain = rate(colorado, &[]);
+        assert!((rate(colorado, &[0]) - plain - 0.05).abs() < 1e-9);
+        assert!((rate(colorado, &[2]) - plain - 0.05).abs() < 1e-9);
+        assert!((rate(colorado, &[0, 1, 2]) - plain - 0.05).abs() < 1e-9, "one is counted");
+        assert_eq!(rate(colorado, &[3]), plain, "the fourth ship is not one of the three");
+        // The other attacks have no such piece.
+        let nagato = SpecialAttackType::NagatoClassBroadside;
+        assert_eq!(rate(nagato, &[0, 1]), rate(nagato, &[]));
     }
 }
