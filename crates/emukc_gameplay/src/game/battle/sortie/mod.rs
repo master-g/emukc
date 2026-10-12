@@ -307,11 +307,11 @@ mod tests {
         let store = crate::game::sortie_store::SortieStore::new();
         let mut rng = super::super::rng::ProductionRng;
 
-        // 金剛改二丙 and 榛名改二乙 at a level and luck that put the rate past 100, with four
-        // more surface ships, against one ship nobody can sink.
+        // 金剛改二丙 and 榛名改二乙 at a level and a luck that put the rate past 100 (99 luck
+        // leaves it at 81), with four more surface ships, against one ship nobody can sink.
         let mut pair = [591, 593].map(|id| sample_ship(&codex, id, 175));
         for ship in &mut pair {
-            ship.ship.api_lucky[0] = 99;
+            ship.ship.api_lucky[0] = 999;
         }
         let mut friend_ships = pair.to_vec();
         friend_ships.extend(vec![sample_ship(&codex, 412, 99); 4]);
