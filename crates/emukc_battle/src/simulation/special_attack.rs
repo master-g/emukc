@@ -352,8 +352,19 @@ fn check_colorado_broadside(
         multiplier: third_mult,
     });
 
-    let equip_bonuses: Vec<f64> =
-        participants.iter().map(|p| equip_bonus(codex, &fleet[p.fleet_index], false)).collect();
+    // wikiwiki: an SG レーダー(後期型) is worth 1.15 again on top of a surface radar's.
+    let equip_bonuses: Vec<f64> = participants
+        .iter()
+        .map(|p| {
+            let ship = &fleet[p.fleet_index];
+            let sg = if has_slotitem_id(ship, SG_RADAR_LATE_ID) {
+                1.15
+            } else {
+                1.0
+            };
+            equip_bonus(codex, ship, false) * sg
+        })
+        .collect();
 
     Some(ResolvedSpecialAttack {
         attack_type: SpecialAttackType::ColoradoBroadside,
@@ -1199,5 +1210,41 @@ mod tests {
         // The other attacks have no such piece.
         let nagato = SpecialAttackType::NagatoClassBroadside;
         assert_eq!(rate(nagato, &[0, 1]), rate(nagato, &[]));
+    }
+
+    #[test]
+    fn an_sg_radar_late_model_multiplies_the_colorado_attack_once_more() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ap_shell = first_slotitem_mst_by_type(
+            &codex,
+            emukc_model::kc2::KcSlotItemType3::ArmorPiercingShell,
+        );
+        let with = |mst_id, equipment: &[i64]| {
+            let mut ship = sample_bb_at(&codex, mst_id, 99);
+            ship.slot_items = equipment.iter().copied().map(slotitem_with_mst_id).collect();
+            ship
+        };
+        let other_bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        // What each of the three does, as wikiwiki's table of the attack has it.
+        let colorado = vec![
+            with(COLORADO_IDS[1], &[SG_RADAR_LATE_ID, ap_shell]),
+            with(other_bb, &[SG_RADAR_LATE_ID]),
+            with(other_bb, &[]),
+        ];
+        let resolved = check_colorado_broadside(&codex, &colorado, FORMATION_ECHELON).unwrap();
+        let totals: Vec<f64> = resolved
+            .participants
+            .iter()
+            .zip(&resolved.equip_bonuses)
+            .map(|(participant, bonus)| participant.multiplier * bonus)
+            .collect();
+        for (total, table) in totals.iter().zip([2.67, 1.71, 1.3]) {
+            assert!((total - table).abs() < 0.01, "{totals:?}");
+        }
+        // It is a surface radar and no more to the Nagato class.
+        let nagato =
+            vec![with(NAGATO_K2_ID, &[SG_RADAR_LATE_ID]), with(MUTSU_K2_ID, &[SG_RADAR_LATE_ID])];
+        let resolved = check_nagato_broadside(&codex, &nagato, FORMATION_ECHELON).unwrap();
+        assert!(resolved.equip_bonuses.iter().all(|bonus| (bonus - 1.15).abs() < 1e-9));
     }
 }
