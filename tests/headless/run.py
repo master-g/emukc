@@ -175,7 +175,7 @@ def check_fair_battle(work: Path) -> list[str]:
             problems.append(f"the day battle left the fleet at {left} and the night began at {nights[0]['api_f_nowhps']}")
         left = after_battle(nights[0])
     home = {ship["api_id"]: ship["api_nowhp"] for ship in responses(work, "api_port/port")[-1]["api_ship"]}
-    if [home[ship] for ship in range(1, 7)] != left:
+    if [home[ship] for ship in range(1, len(left) + 1)] != left:
         problems.append(f"the battles left the fleet at {left} and it came home at {home}")
     return problems
 
@@ -231,6 +231,23 @@ def check_night_asw(work: Path) -> list[str]:
     return problems
 
 
+def check_enemy_night_carrier(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the battle ended by day this time, so no enemy carrier attacked at night: run it again"]
+    night = nights[0]
+    shelling = night["api_hougeki"]
+    rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_n_mother_list"])
+    # 軽母ヌ級flagship carries no night aircraft: she attacks, and the packet does not say flown.
+    flags = [flown for by_enemy, at, flown in rows if by_enemy and night["api_ship_ke"][at] == 1560]
+    if not flags:
+        problems.append("軽母ヌ級flagship did not attack at night (sunk or heavily damaged by day?): run it again")
+    elif set(flags) != {0}:
+        problems.append(f"軽母ヌ級flagship has no night air crew; api_n_mother_list said {flags}")
+    return problems
+
+
 SCENARIOS = {
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -252,6 +269,14 @@ SCENARIOS = {
         + "w:16 " + " ".join(f"w:1 s:air{n}" for n in range(1, 9))
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_anti_air_cut_in,
+    ),
+    # 2-5 again, sent to C by a battleship: its flagship 軽母ヌ級flagship attacks at night, which
+    # the client plays as aircraft. Photographed through the night.
+    "enemy_night_carrier": (
+        f"{TO_MAPS} c:320,680 w:3 c:1105,415 w:4 c:700,275 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "u:600,400;770,365:api_req_battle_midnight/battle w:8 " + " ".join(f"w:2 s:night{n}" for n in range(1, 13))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_enemy_night_carrier,
     ),
     # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
     "transport_5_6": (
@@ -302,7 +327,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "enemy_night_carrier"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:

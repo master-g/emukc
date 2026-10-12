@@ -282,6 +282,17 @@ impl Scenario {
         scenario
     }
 
+    /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
+    /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
+    /// night. Too few and too weak to be sure of sinking her by day.
+    pub fn enemy_night_carrier() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet = vec![ShipSpec::new(951, 30); 4];
+        scenario.fleet[0] = ShipSpec::new(KONGOU_MST_ID, 30);
+        scenario.clear_maps.extend([21, 22, 23, 24]);
+        scenario
+    }
+
     /// Four destroyers into 5-6, a drum and a radar each: enough small ships for the route
     /// past the landing point E, enough line of sight to be sent from there to the boss, and
     /// 40 transport points to land.
@@ -363,6 +374,8 @@ const LARGE_SONAR_MST_ID: i64 = 132;
 const NAGATO_MST_ID: i64 = 80;
 /// 秋月.
 const AKIZUKI_MST_ID: i64 = 421;
+/// 金剛.
+const KONGOU_MST_ID: i64 = 78;
 /// 35.6cm連装砲.
 const LARGE_MAIN_GUN_MST_ID: i64 = 7;
 /// 15.5cm三連装副砲.
@@ -401,6 +414,8 @@ pub enum PhaseExpectation {
     /// Some night attack must be flown: an `api_n_mother_list` entry of 1. A
     /// day battle is asked nothing.
     NightAirAttack,
+    /// Some night attack must be made by an enemy carrier. A day battle is asked nothing.
+    EnemyCarrierNightAttack,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
 }
@@ -488,6 +503,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "enemy_night_carrier",
+        build: Scenario::enemy_night_carrier,
+        maparea: 2,
+        mapinfo: 5,
+        expects: PhaseExpectation::EnemyCarrierNightAttack,
     },
     Preset {
         name: "transport_5_6",

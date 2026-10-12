@@ -375,11 +375,13 @@ pub(crate) fn can_attack_night_ship(codex: &Codex, ship: &BattleRuntimeShip) -> 
 
     match ship_type(codex, ship) {
         Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB) => {
-            // A night air attack, or one of the few carriers that shell at night, which do
-            // so until heavily damaged (`CV.canNB`).
+            // A night air attack, or one of the carriers the source marks `nightattack`
+            // (the few of ours that shell at night, and the abyssal ones), which attack until
+            // heavily damaged (`CV.canNB`).
             crate::simulation::night::can_night_air_attack(codex, ship)
-                || (crate::simulation::night::NIGHT_SHELLING_CV_IDS
+                || ((crate::simulation::night::NIGHT_SHELLING_CV_IDS
                     .contains(&ship.ship.api_ship_id)
+                    || crate::simulation::night::abyssal_night_attack(ship) != 0)
                     && ship.hp() * 4 > ship.ship.api_maxhp)
         }
         Some(KcShipType::SS | KcShipType::SSV) => false,

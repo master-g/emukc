@@ -117,6 +117,11 @@ screen, pass steps on the command line and read the screenshots:
   them there. Every such attack has to be one plain hit, not flown, a miss has to do nothing,
   and nobody may be sunk. It fails when the enemy is sunk by day; three runs of three reached
   the night (2026-10-12), each with a miss and a scratch among the attacks.
+- `enemy_night_carrier` sends 金剛 and three destroyers to 2-5, where a battleship with fewer
+  than four destroyers is routed to C: its flagship 軽母ヌ級flagship attacks at night. The check
+  wants an attack of hers in the night packet, not said to be flown (she has no night crew);
+  the client plays it as abyssal aircraft (`night2`). It fails when the day battle ends it or
+  leaves her heavily damaged. A fleet need not be six ships: the fair check counts them.
 - `anti_air_cut_in` is the same fleet with 秋月 in the sixth place, sent to 2-5 (the extra
   operation sits where 6-5 does on its page, 700, 275), whose first battle meets carriers. The
   check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a
