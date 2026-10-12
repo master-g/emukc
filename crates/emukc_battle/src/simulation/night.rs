@@ -11,10 +11,12 @@ use emukc_model::{
 use crate::accuracy::{Aim, AttackKind, HitOutcome, asw_proficiency, roll_attack};
 use crate::damage::{calculate_asw_damage, calculate_night_damage, calculate_scratch_damage};
 use crate::random::BattleRng;
+use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
 use crate::targeting::{
-    any_alive, can_attack_night_ship, collect_matching_slot_ids, extend_limit, has_slotitem_id,
-    is_day_surface_display_type, is_main_gun_type, is_radar_type, is_secondary_gun_type,
-    is_torpedo_type, select_random_target_index, ship_type, target_class,
+    any_alive, can_attack_night_ship, can_attack_submarine_night_shelling,
+    collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
+    is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type,
+    select_random_target_index, select_submarine_target, ship_type, target_class,
 };
 use crate::types::{
     AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, NightBattleParams,
@@ -234,10 +236,26 @@ const EXEMPT_NIGHT_CV_IDS: &[i64] =
 /// Carriers that shell at night as a surface ship does, with no aircraft in it: Graf Zeppelin
 /// and 改, Saratoga, 大鷹改二, 神鷹改二, 加賀改二護, Lexington改, 雲鷹改二, Lexington, Wasp and 改.
 /// The first nine are `kancolle-replay`'s `nightattack`, which predates Wasp; the wiki's Wasp
-/// page gives the last two (「火力初期値が1以上のため夜間砲撃を行う。改も同様」). The client
+/// page gives the next two (「火力初期値が1以上のため夜間砲撃を行う。改も同様」). The client
 /// keeps the same eleven to draw their night attack as gunfire (`_getNormalAttackType`).
+///
+/// Béarn, Béarn改 and Béarn amélioration are an inference: the client draws their night attack
+/// as gunfire too (the last as a torpedo attack when she carries one) and all three start with
+/// firepower above zero, but nothing read says outright that they attack at night.
 pub(crate) const NIGHT_SHELLING_CV_IDS: &[i64] =
-    &[432, 353, 433, 529, 536, 646, 735, 889, 966, 1025, 1030];
+    &[432, 353, 433, 529, 536, 646, 735, 889, 966, 1025, 1030, 1055, 1060, 1061];
+
+/// The source's `nightattack` mark of an abyssal carrier, 0 for a ship without one.
+pub(crate) fn abyssal_night_attack(ship: &BattleRuntimeShip) -> u8 {
+    ABYSSAL_NIGHT_ATTACK
+        .iter()
+        .find(|(id, _)| *id == ship.ship.api_ship_id)
+        .map_or(0, |(_, mark)| *mark)
+}
+
+/// 夜深海艦爆, 夜深海艦爆II and 深海不屈艦爆 Mk.II (`B_NIGHTBOMBER2`): like 光電管彗星 they fly
+/// with a night air group and count in its power, without making one.
+const ABYSSAL_NIGHT_BOMBER_IDS: &[i64] = &[1582, 1618, 1651];
 
 /// Ark Royal級, whose Swordfish fly at night without a night air group.
 const ARK_ROYAL_CLASS: i64 = 78;
@@ -300,20 +318,32 @@ fn count_swordfish_iwai(ship: &BattleRuntimeShip) -> usize {
 }
 
 fn is_swordfish_or_iwai_or_kouden(id: i64) -> bool {
-    SWORDFISH_IDS.contains(&id) || id == IWAI_FUKUSEN_ID || id == KOUDENKAN_SUISEI_ID
+    SWORDFISH_IDS.contains(&id)
+        || id == IWAI_FUKUSEN_ID
+        || id == KOUDENKAN_SUISEI_ID
+        || ABYSSAL_NIGHT_BOMBER_IDS.contains(&id)
 }
 
 /// Whether a carrier has a night air group (`hasNBAirGear`): 夜間作戦航空要員 or a built-in
 /// 夜戦特性, and a 夜間戦闘機, 夜間攻撃機 or 夜間爆戦 that still has aircraft. 光電管彗星, 岩井爆戦
 /// and Swordfish fly with such a group but do not make one.
+///
+/// An abyssal carrier with a crew of her own (`hasBuiltInNightCrew`) needs the aircraft type
+/// only: the source does not ask whether any are left in the slot.
 fn has_night_air_gear(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    let night_icons = [NIGHT_FIGHTER_ICON, NIGHT_ATTACKER_ICON, NIGHT_BOMBER_ICON];
+    if ABYSSAL_NIGHT_CREW_IDS.contains(&ship.ship.api_ship_id) {
+        return ship.slot_items.iter().any(|si| {
+            codex
+                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
+                .is_ok_and(|mst| night_icons.contains(&mst.api_type[3]))
+        });
+    }
     let has_personnel = AVIATION_PERSONNEL_IDS
         .iter()
         .any(|&id| ship.slot_items.iter().any(|si| si.api_slotitem_id == id));
     (has_personnel || EXEMPT_NIGHT_CV_IDS.contains(&ship.ship.api_ship_id))
-        && [NIGHT_FIGHTER_ICON, NIGHT_ATTACKER_ICON, NIGHT_BOMBER_ICON]
-            .iter()
-            .any(|&icon| count_night_planes_by_icon(codex, ship, icon) > 0)
+        && night_icons.iter().any(|&icon| count_night_planes_by_icon(codex, ship, icon) > 0)
 }
 
 /// Whether a carrier attacks at night with her aircraft (`canNBAirAttack`): a night air group,
@@ -936,6 +966,15 @@ pub(crate) fn simulate_night_hougeki(
     let (friendly_form, enemy_form) = (params.friendly_formation_id, params.enemy_formation_id);
     // The air state is the friendly side's; the enemy's night recon flies under its own.
     let enemy_air = params.air_state.map(|air| air.reversed());
+    // `nightPhase`: a fleet's searchlight is lit for the whole night if a ship afloat has one.
+    let lit = |fleet: &[BattleRuntimeShip]| {
+        fleet.iter().filter(|ship| ship.is_alive()).any(|ship| {
+            count_equipment_type(codex, ship, KcSlotItemType3::Searchlight)
+                + count_equipment_type(codex, ship, KcSlotItemType3::LargeSearchlight)
+                > 0
+        })
+    };
+    let (friendly_lit, enemy_lit) = (lit(friendly), lit(enemy));
 
     for idx in 0..friendly.len().max(enemy.len()) {
         if idx < friendly.len() {
@@ -949,7 +988,7 @@ pub(crate) fn simulate_night_hougeki(
                 forms,
                 params.air_state,
                 params,
-                false,
+                (false, enemy_lit),
                 &mut hougeki,
             );
         }
@@ -967,7 +1006,7 @@ pub(crate) fn simulate_night_hougeki(
                 forms,
                 enemy_air.as_ref(),
                 params,
-                true,
+                (true, friendly_lit),
                 &mut hougeki,
             );
         }
@@ -990,16 +1029,25 @@ fn night_turn(
     (attacker_formation, defender_formation): (i64, i64),
     air_state: Option<&AirState>,
     params: &NightBattleParams,
-    attacker_is_enemy: bool,
+    (attacker_is_enemy, defenders_lit): (bool, bool),
     hougeki: &mut BattleNightHougeki,
 ) {
     let ship = &mut attackers[idx];
     if !can_attack_night_ship(codex, ship) {
         return;
     }
-    let Some(mut target_idx) =
+    // `nightPhaseTarget`: a carrier marked 3 takes a surface ship only while the fleet she
+    // attacks has its searchlight lit. In the dark she is left the submarines, if she can
+    // attack one.
+    let target = if abyssal_night_attack(ship) == 3 && !defenders_lit {
+        if !can_attack_submarine_night_shelling(codex, ship) {
+            return;
+        }
+        select_submarine_target(codex, rng, defenders)
+    } else {
         select_random_target_index(codex, rng, ship, defenders, BattlePhase::NightShelling)
-    else {
+    };
+    let Some(mut target_idx) = target else {
         return;
     };
     // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
@@ -3002,5 +3050,201 @@ mod display_narrowing_tests {
 
         assert_eq!(hougeki.api_at_eflag, [0, 1, 0, 1, 0, 1]);
         assert_eq!(hougeki.api_at_list, [0, 0, 1, 1, 2, 2]);
+    }
+}
+
+#[cfg(test)]
+mod abyssal_carrier_tests {
+    use super::*;
+    use crate::simulation::abyssal_night::{
+        ABYSSAL_CARRIER_ASW, ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS,
+    };
+    use crate::test_utils::*;
+    use crate::types::{BattleRuntimeShip, BattleShipInput, EngagementType, NightBattleInput};
+    use emukc_model::codex::Codex;
+    use emukc_model::kc2::types::KcShipType;
+
+    const WO: i64 = 1512; // 空母ヲ級
+    const WO_FLAGSHIP: i64 = 1528; // 空母ヲ級flagship, mark 1
+    const LYCORIS: i64 = 1679; // リコリス棲姫, mark 2
+    const NU_KAI_ELITE: i64 = 1734; // 軽母ヌ級改elite, mark 3
+    const SOUTH_PACIFIC: i64 = 1971; // 南太平洋空母棲姫, mark 1 with a night air crew
+    const SEARCHLIGHT: i64 = 74; // 探照灯
+
+    fn codex() -> Codex {
+        Codex::load_without_cache_source("../../.data/codex").unwrap()
+    }
+
+    /// An enemy as a sortie meets her, with `hp` of her hull in a hundred.
+    fn abyssal(codex: &Codex, mst_id: i64, hp: i64) -> BattleRuntimeShip {
+        let (mut ship, slot_items) = codex.new_enemy_ship(mst_id).unwrap();
+        ship.api_nowhp = ship.api_maxhp * hp / 100;
+        let input = BattleShipInput {
+            ship,
+            slot_items,
+            effect_list: vec![0],
+            married: false,
+        };
+        BattleRuntimeShip::new(input, false, true)
+    }
+
+    /// A destroyer nobody sinks in one night, carrying `equipment`.
+    fn destroyer(codex: &Codex, equipment: &[i64]) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::DD), 50);
+        ship.slot_items = equipment.iter().copied().map(slotitem_with_mst_id).collect();
+        ship.ship.api_nowhp = 9999;
+        ship.ship.api_maxhp = 9999;
+        BattleRuntimeShip::from(ship)
+    }
+
+    /// The `api_n_mother_list` flags of the attacks one side made in a night between the two.
+    fn flags_of(
+        codex: &Codex,
+        friendly: BattleRuntimeShip,
+        enemy: BattleRuntimeShip,
+        by_enemy: bool,
+    ) -> Vec<i64> {
+        let input = NightBattleInput {
+            friendly: vec![friendly],
+            enemy: vec![enemy],
+            friendly_formation_id: 1,
+            enemy_formation_id: 1,
+            engagement: EngagementType::SameCourse,
+            air_state: None,
+            night_start: false,
+        };
+        let simulation =
+            crate::simulation::simulate_night(codex, input, &mut crate::random::SeededRng::new(0));
+        // Nobody attacking leaves no shelling at all.
+        let Some(hougeki) = simulation.packet.hougeki else {
+            return Vec::new();
+        };
+        hougeki
+            .api_at_eflag
+            .iter()
+            .zip(&hougeki.api_n_mother_list)
+            .filter(|(side, _)| **side == i64::from(by_enemy))
+            .map(|(_, flag)| *flag)
+            .collect()
+    }
+
+    fn enemy_flags(codex: &Codex, enemy: BattleRuntimeShip) -> Vec<i64> {
+        flags_of(codex, destroyer(codex, &[]), enemy, true)
+    }
+
+    #[test]
+    fn the_abyssal_tables_follow_the_source() {
+        let codex = codex();
+        // What `scripts/gen_abyssal_night_carriers.py` prints: (mark, ships, sum of their ids).
+        for (mark, ships, sum) in [(1, 86, 172_021), (2, 11, 18_548), (3, 35, 64_694)] {
+            let ids = || ABYSSAL_NIGHT_ATTACK.iter().filter(|row| row.1 == mark).map(|row| row.0);
+            assert_eq!((ids().count(), ids().sum::<i64>()), (ships, sum), "mark {mark}");
+        }
+        assert_eq!(ABYSSAL_NIGHT_ATTACK.len(), 132);
+        assert_eq!(
+            (ABYSSAL_NIGHT_CREW_IDS.len(), ABYSSAL_NIGHT_CREW_IDS.iter().sum::<i64>()),
+            (74, 161_283)
+        );
+        let asw = |pick: fn(&(i64, i64)) -> i64| ABYSSAL_CARRIER_ASW.iter().map(pick).sum::<i64>();
+        assert_eq!(
+            (ABYSSAL_CARRIER_ASW.len(), asw(|row| row.0), asw(|row| row.1)),
+            (40, 76_829, 3_165)
+        );
+        // Every one of them is a carrier the game data knows and gives a night aircraft to.
+        for id in ABYSSAL_NIGHT_ATTACK
+            .iter()
+            .map(|row| row.0)
+            .chain(ABYSSAL_NIGHT_CREW_IDS.iter().copied())
+        {
+            assert!(crate::damage::is_cv_type(&codex, &abyssal(&codex, id, 100)), "{id}");
+        }
+        for &id in ABYSSAL_NIGHT_CREW_IDS {
+            assert!(can_night_air_attack(&codex, &abyssal(&codex, id, 100)), "{id}");
+        }
+    }
+
+    #[test]
+    fn a_marked_enemy_carrier_attacks_at_night_until_heavily_damaged() {
+        let codex = codex();
+        assert_eq!(enemy_flags(&codex, abyssal(&codex, WO_FLAGSHIP, 100)), [0]);
+        // More than a quarter of her hull: 25 of her 96, and not 24.
+        let attacks = |hp| can_attack_night_ship(&codex, &abyssal(&codex, WO_FLAGSHIP, hp));
+        assert!(attacks(27) && !attacks(25));
+        assert_eq!(enemy_flags(&codex, abyssal(&codex, WO, 100)), [0; 0], "no mark");
+        // The one the client draws as gunfire is told nothing more.
+        assert_eq!(enemy_flags(&codex, abyssal(&codex, LYCORIS, 100)), [0]);
+    }
+
+    #[test]
+    fn a_light_carrier_marked_three_needs_a_searchlight_on_the_fleet_she_attacks() {
+        let codex = codex();
+        let night = |equipment: &[i64]| {
+            let nu = abyssal(&codex, NU_KAI_ELITE, 100);
+            flags_of(&codex, destroyer(&codex, equipment), nu, true)
+        };
+        assert_eq!(night(&[]), [0; 0]);
+        assert_eq!(night(&[SEARCHLIGHT]), [0]);
+    }
+
+    #[test]
+    fn an_enemy_light_carrier_with_anti_submarine_attacks_a_submarine_at_night() {
+        let codex = codex();
+        let night = |enemy| {
+            let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+            flags_of(&codex, BattleRuntimeShip::from(sample_ship(&codex, ss, 50)), enemy, true)
+        };
+        // 軽母ヌ級改elite has 30, and needs no searchlight for a submarine.
+        assert_eq!(night(abyssal(&codex, NU_KAI_ELITE, 100)), [0]);
+        // 軽母ヌ級flagship has none, and a fleet carrier never does it.
+        assert_eq!(night(abyssal(&codex, 1560, 100)), [0; 0]);
+        assert_eq!(night(abyssal(&codex, WO_FLAGSHIP, 100)), [0; 0]);
+    }
+
+    #[test]
+    fn an_enemy_carrier_with_a_night_crew_flies_her_attack() {
+        let codex = codex();
+        let princess = abyssal(&codex, SOUTH_PACIFIC, 100);
+        // Her hull's 208, and by `CV.NBPower`: 夜猫深海艦戦 x36 2 + 108 + 0.9 x 6, 夜深海艦爆 x18
+        // 3 + 16 + 9 x sqrt(18) without the count, 夜復讐深海艦攻 x15 4 + 15 + 45 + 13.95 x sqrt(15).
+        assert!((night_air_power(&codex, &princess) - 498.6119).abs() < 1e-3);
+        assert_eq!(enemy_flags(&codex, princess), [1]);
+        // And the packet's damage is that power's, capped: her gunfire would be 208 + 5
+        // before armour.
+        let input = NightBattleInput {
+            friendly: vec![destroyer(&codex, &[])],
+            enemy: vec![abyssal(&codex, SOUTH_PACIFIC, 100)],
+            friendly_formation_id: 1,
+            enemy_formation_id: 1,
+            engagement: EngagementType::SameCourse,
+            air_state: None,
+            night_start: false,
+        };
+        let night =
+            crate::simulation::simulate_night(&codex, input, &mut crate::random::SeededRng::new(0));
+        let hougeki = night.packet.hougeki.unwrap();
+        let hers = hougeki.api_at_eflag.iter().position(|side| *side == 1).unwrap();
+        assert_eq!(hougeki.api_cl_list[hers], [1]);
+        assert_eq!(format!("{:?}", hougeki.api_damage[hers]), "[366]");
+        // At half her hull the deck is shut, and her mark still has her attack.
+        let damaged = abyssal(&codex, SOUTH_PACIFIC, 50);
+        assert!(!can_night_air_attack(&codex, &damaged));
+        assert_eq!(enemy_flags(&codex, damaged), [0]);
+        // The source asks an enemy for the aircraft type, not for aircraft left in the slot.
+        let mut emptied = abyssal(&codex, SOUTH_PACIFIC, 100);
+        emptied.ship.api_onslot = [0; 5];
+        assert!(can_night_air_attack(&codex, &emptied));
+    }
+
+    #[test]
+    fn bearn_shells_at_night_in_all_her_forms() {
+        let codex = codex();
+        for bearn in [1055, 1060, 1061] {
+            let mut ship = sample_ship(&codex, bearn, 99);
+            ship.slot_items.clear();
+            ship.ship.api_onslot = [0; 5];
+            let ship = BattleRuntimeShip::from(ship);
+            let target = abyssal(&codex, WO, 100);
+            assert_eq!(flags_of(&codex, ship, target, false), [0], "{bearn}");
+        }
     }
 }

@@ -64,7 +64,9 @@ fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) ->
         PhaseExpectation::AntiAirCutIn => {
             battle.pointer("/api_kouku/api_stage2/api_air_fire").is_some_and(|fire| !fire.is_null())
         }
-        PhaseExpectation::PlainBattle | PhaseExpectation::NightAirAttack => true,
+        PhaseExpectation::PlainBattle
+        | PhaseExpectation::NightAirAttack
+        | PhaseExpectation::EnemyCarrierNightAttack => true,
     }
 }
 
@@ -308,6 +310,7 @@ async fn every_preset_night_battle_passes_protocol_validation() {
         let baseline = context.get_ships(pid).await.unwrap();
         let mut named_a_plate = false;
         let mut flown = false;
+        let mut enemy_carrier_attacked = false;
 
         for &seed in SEEDS {
             // Discard any stale sortie state from the previous seed; restore the
@@ -343,7 +346,23 @@ async fn every_preset_night_battle_passes_protocol_validation() {
                 .api_hougeki
                 .as_ref()
                 .is_some_and(|hougeki| hougeki.api_n_mother_list.contains(&1));
+            enemy_carrier_attacked |= night.api_hougeki.as_ref().is_some_and(|hougeki| {
+                hougeki.api_at_eflag.iter().zip(&hougeki.api_at_list).any(|(by_enemy, at)| {
+                    *by_enemy == 1
+                        && context
+                            .codex
+                            .manifest
+                            .find_ship(night.api_ship_ke[*at as usize])
+                            .is_some_and(|mst| [7, 11, 18].contains(&mst.api_stype))
+                })
+            });
         }
+        assert!(
+            enemy_carrier_attacked || preset.expects != PhaseExpectation::EnemyCarrierNightAttack,
+            "preset {}: no enemy carrier attacked at night across {} seeds",
+            preset.name,
+            SEEDS.len(),
+        );
         assert!(
             flown == (preset.expects == PhaseExpectation::NightAirAttack),
             "preset {}: a night air attack was flown ({flown}) against what it is registered for",

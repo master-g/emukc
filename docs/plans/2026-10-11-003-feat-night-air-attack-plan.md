@@ -75,7 +75,8 @@ execution: code
 - 夜战对潜的公式（现在是必中擦伤）；因此 Decision 7 只管昼战。
 - しまね丸改（補給艦）的夜间航空攻击：我方的空母判断都按舰种，要为一艘舰另开一条路。记入已知差异。
 - 装备加成里空母雷装的那两项（`eqBonusCV`）、对陆上目标不加雷装的分支、夜间航空攻击的特殊机加成（`bonusSpecialP`）。
-- 敌方空母的夜战：敌舰由 manifest 构造，没有装备槽，资格判断对它们恒为假；`nightattack` 的深海舰不在这次范围。
+- 敌方空母的夜战：`nightattack` 的深海舰不在这次范围。（原文说「敌舰由 manifest 构造，没有装备槽」，不准确：
+  敌舰由 `new_enemy_ship` 按 `enemy_ship_extra.json` 构造，带装备与机数。敌方空母的夜战见计划 `2026-10-12-003`。）
 - 带艦攻/艦爆的補給艦昼战对潜（计划 004 已注明我方只认 CV / CVL / CVB）。
 
 ## Implementation Units

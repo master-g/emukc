@@ -156,6 +156,7 @@ Current verification baseline:
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常的 `jst_next_monday_0500`、`init`、`quest_add` 仍读系统时钟，固定时间的测试只用过去的日期。
+- [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
 ## Failed Attempts / Pitfalls
 
@@ -191,15 +192,15 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] #54 做完并合并（PR #59）：限定日任务按日出现、次日 05:00 重置，任务更新接收当前时间。
-  fmt、严格 Clippy 通过，`cargo test --workspace --no-fail-fast` 1344 过、0 败、0 ignored；没有用客户端跑（报文形状没变）。
-  顺带的两处行为变化见计划 2026-10-12-002。
+- [2026-10-12] #55 做完，分支 `feat/enemy-night-carriers`，PR #60 待合并。
+  质量门与 `make headless-check SCENARIO=enemy_night_carrier` 通过，战斗基线没变。与规格原文不同的三处见计划 2026-10-12-003。
 
 ## Next Session
 
-- [2026-10-12] 待做的规格：#53 夜战攻击种别表对照来源重做（最大）；#55 敌方空母的夜战与 Béarn。周常重置读系统时钟还没有规格。
-  研究用的来源副本与 wiki 页面不在仓库，实施时按 `kancolle-replay` 提交 `69097abc` 重新取（`js/kcsim.js` 一个文件够用）。
-  #52 留下的差异：连合舰队昼战后的夜战对潜在来源里是真伤害，这里仍是擦伤（`carrier-night-air-attack.md` Known gaps）。
+- [2026-10-12] 待做的规格：#53 夜战攻击种别表对照来源重做（最大）。周常重置读系统时钟还没有规格。
+  #55 留下的：没用 `battle sim` 跑一批种子看夜战受损分布；带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
+  来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。
+  #52 留下的：连合舰队昼战后的夜战对潜仍是擦伤（`carrier-night-air-attack.md` Known gaps）。
   航空队里还没做的是基地噴式强襲，以及「同一次出击里被打空后又在别的战斗涨回一点」与来源的回港清零之差（`air-corps.md` Known gaps）。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
