@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 特殊砲撃的陣形与出击级次数做完（计划 2026-10-12-008），分支 `fix/special-attack-sortie-limits` 未合并。
+- [2026-10-12] 特殊砲撃的陣形与出击级次数做完（计划 2026-10-12-008），已合并（PR #78）。
   质量门通过，基线没变。
 
 ## Next Session
