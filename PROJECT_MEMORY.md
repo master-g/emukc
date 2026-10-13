@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-12 · branch `main`
+Last updated: 2026-10-13 · branch `test/night-contact-headless`
 
 ## Verified Facts
 
@@ -193,15 +193,14 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 弹药量补正位置、夜间触接、按格子的消耗（计划 2026-10-13-004），分支
-  `fix/damage-pipeline-and-night-contact`，未合并。质量门通过，战斗基线重冻。
+- [2026-10-13] 无头场景 `night_contact`（夜间触接），分支 `test/night-contact-headless`，未提交。质量门通过，场景三次全过。
 
 ## Next Session
 
 - [2026-10-13] 未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
-  #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。
+  #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。演习里对手的夜间触接也没有。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
   #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；

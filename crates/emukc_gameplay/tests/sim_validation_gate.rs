@@ -67,7 +67,8 @@ fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) ->
         PhaseExpectation::PlainBattle
         | PhaseExpectation::NightAirAttack
         | PhaseExpectation::EnemyCarrierNightAttack
-        | PhaseExpectation::NightCutIn => true,
+        | PhaseExpectation::NightCutIn
+        | PhaseExpectation::NightContact => true,
     }
 }
 
@@ -112,6 +113,7 @@ async fn every_preset_day_battle_passes_protocol_validation() {
         let baseline = context.get_ships(pid).await.unwrap();
         let mut reached = false;
         let mut named_a_plate = false;
+        let mut scouted = false;
 
         for &seed in SEEDS {
             for ship in &baseline {
@@ -143,7 +145,21 @@ async fn every_preset_day_battle_passes_protocol_validation() {
             );
             reached |= reached_expectation(&serde_json::to_value(&battle).unwrap(), preset.expects);
             named_a_plate |= derived_a_name_plate(&report);
+            // The night after a day battle, not one that opens at night: there a scout flies
+            // whatever the air, and the fighter that takes it by day would not be missed.
+            if preset.expects == PhaseExpectation::NightContact && battle.api_midnight_flag != 0 {
+                let night = context.sortie_midnight_battle(pid).await.unwrap_or_else(|e| {
+                    panic!("preset {} seed {seed}: sortie_midnight_battle: {e:?}", preset.name)
+                });
+                scouted |= night.api_touch_plane.first().is_some_and(|plane| *plane > 0);
+            }
         }
+        assert!(
+            scouted || preset.expects != PhaseExpectation::NightContact,
+            "preset {}: no night scout came into contact after a day battle across {} seeds",
+            preset.name,
+            SEEDS.len(),
+        );
         assert!(
             reached,
             "preset {} never reached {:?} across {} seeds: its coverage is gone and every \

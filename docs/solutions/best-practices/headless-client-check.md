@@ -135,6 +135,20 @@ screen, pass steps on the command line and read the screenshots:
   (78 in 100) or the day ends the battle. Seven runs on 2026-10-12: played four times, once
   with two hits and three times with one, without a page error. One of them found the
   cut-in's voice (`kcs/sound/kc…/991.mp3`) missing from the cache list.
+- `night_contact` is the same sortie led by 由良改二 at level 90 with a
+  零式水上偵察機11型甲改二 and a 二式水戦改: the fighter takes the air from an enemy that has
+  no fighter, and at her level the scout comes into contact every time, so the check is a
+  value: `api_disp_seiku` 1 or 2 and `api_touch_plane` `[540, -1]`. That the client shows it
+  is in the screenshots only: our scout on the enemy's radar (`rader_e.touch_plane`) with
+  触接中! under it. The scout's picture appears about a second after the label and stays; the
+  label blinks (0.9 s in every 1.1), so one screenshot may show either without the other
+  (`night3`, `night4`, `night6` of the first run: label alone, both, picture alone). The
+  request for the picture (`slot/item_up/0540_…`) proves nothing: the day's `PhaseSakuteki`
+  loads the same one for the scout it sends out. Three runs of three on 2026-10-13, without
+  a page error. In a sortie the enemy's scout (`api_touch_plane[1]`) cannot be played: no
+  abyssal equipment in `api_mst_slotitem` has the night scout's icon (`api_type[3]` 50). An
+  exercise can: the opponent's ships carry what they are built with, 川内改二 a 九八式夜偵.
+  That has not been played.
 - `nagato_broadside` is the same sortie in 梯形陣 (the fourth button of the formation screen)
   led by 長門改二 and 陸奥改二. The check wants one row of type 101 by the flagship with up
   to three hits, by day or, if the day did not make it, at night, and never a second; it

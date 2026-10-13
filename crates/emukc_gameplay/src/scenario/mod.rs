@@ -322,6 +322,15 @@ impl Scenario {
         scenario
     }
 
+    /// 由良改二 with a 零式水上偵察機11型甲改二 and a 二式水戦改 ahead of five destroyers,
+    /// for the night contact: the fighter takes the air from an enemy without aircraft, and
+    /// at her level the scout comes into contact every time (`floor(√90 × √7)` is 25 in 25).
+    pub fn night_contact() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec::new(488, 90).with_slots([540, 165]);
+        scenario
+    }
+
     /// 長門改二 and 陸奥改二 ahead of four destroyers, for the flagship's special gunnery
     /// attack in 梯形陣 (62 in 100 at their level and luck).
     pub fn nagato_broadside() -> Self {
@@ -468,6 +477,9 @@ pub enum PhaseExpectation {
     /// Some friendly night attack must be a cut-in: an `api_sp_list` entry of 2 or more. A
     /// day battle is asked nothing.
     NightCutIn,
+    /// Some night battle that follows a day battle must carry the friendly fleet's scout in
+    /// `api_touch_plane`: the air has to be taken by day for it to fly.
+    NightContact,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
 }
@@ -569,6 +581,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "night_contact",
+        build: Scenario::night_contact,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::NightContact,
     },
     Preset {
         name: "nagato_broadside",
