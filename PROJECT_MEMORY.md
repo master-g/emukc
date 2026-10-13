@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `docs/open-leftover-issues`
+Last updated: 2026-10-13 · branch `fix/account-deletion`
 
 ## Verified Facts
 
@@ -192,7 +192,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 遗留开了 #99–#102（未分拣）；出撃状态只在内存，维持现状（用户定）。
+- [2026-10-13] #99 已修；#100–#102 未分拣；出撃状态只在内存，维持现状（用户定）。
 
 ## Next Session
 

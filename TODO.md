@@ -26,7 +26,7 @@
 - [x] implement combined fleet handler (`api_req_hensei/combined`)
 - [ ] update quest progress on port entry (`game/view/port.rs`) — probably unnecessary: quests are refreshed when the quest list is read
 - [ ] fix naming confusion in `net/assets/mod.rs`
-- [ ] remove all profile data on account deletion (`user/account.rs`) — only the `profile` row goes; child tables keep orphans (#99)
+- [x] remove all profile data on account deletion (`user/account.rs`, #99)
 - [ ] practice system: implement opponent fleet generation (`game/practice.rs`) — five template rivals with one level-180 ship each for now (#102)
 - [ ] `calculate_single_slot_airstrike_damage` (`emukc_battle/src/damage.rs`) is dead code kept for an airstrike phase that never used it
 - [x] migrate off deprecated `axum_extra::extract::Host` in `net/router/game.rs`

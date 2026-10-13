@@ -1,8 +1,5 @@
 use emukc_db::{
-    entity::profile::{
-        expedition,
-        quest::{self, progress::Status},
-    },
+    entity::profile::quest::{self, progress::Status},
     sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 use emukc_model::{
@@ -528,15 +525,15 @@ where
     C: ConnectionTrait,
 {
     quest::oneshot::Entity::delete_many()
-        .filter(expedition::Column::ProfileId.eq(profile_id))
+        .filter(quest::oneshot::Column::ProfileId.eq(profile_id))
         .exec(c)
         .await?;
     quest::periodic::Entity::delete_many()
-        .filter(expedition::Column::ProfileId.eq(profile_id))
+        .filter(quest::periodic::Column::ProfileId.eq(profile_id))
         .exec(c)
         .await?;
     quest::progress::Entity::delete_many()
-        .filter(expedition::Column::ProfileId.eq(profile_id))
+        .filter(quest::progress::Column::ProfileId.eq(profile_id))
         .exec(c)
         .await?;
 

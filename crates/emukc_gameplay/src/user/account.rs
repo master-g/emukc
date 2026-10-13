@@ -18,7 +18,7 @@ use emukc_model::{
 use emukc_time::chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::gameplay::Ctx;
+use crate::{game::wipe_profile_game_data, gameplay::Ctx};
 
 use super::{
     UserError,
@@ -248,8 +248,14 @@ impl Ctx {
         // remove all tokens under the same uid
         token::Entity::delete_many().filter(token::Column::Uid.eq(uid)).exec(&tx).await?;
 
-        // remove all profiles under the same uid
-        // TODO(#0): remove all profile data
+        // remove all profiles under the same uid, game data first
+        let profiles =
+            profile::Entity::find().filter(profile::Column::AccountId.eq(uid)).all(&tx).await?;
+        for profile in profiles {
+            wipe_profile_game_data(&tx, profile.id).await?;
+            // the wipe leaves a default furniture config behind
+            profile::furniture::config::Entity::delete_by_id(profile.id).exec(&tx).await?;
+        }
         profile::Entity::delete_many().filter(profile::Column::AccountId.eq(uid)).exec(&tx).await?;
 
         // remove the account
@@ -350,5 +356,34 @@ mod tests {
         let auth = gp.auth(&access_token).await;
 
         assert!(auth.is_err());
+    }
+
+    #[tokio::test]
+    async fn deleting_an_account_removes_its_game_data() {
+        use emukc_db::entity::profile::{fleet, furniture, material};
+
+        let gp = new_mock().await;
+        let account = gp.sign_up("test", "1234567").await.unwrap();
+        gp.new_profile(&account.access_token.token, "admiral").await.unwrap();
+        let db = gp.db.as_ref();
+        assert_ne!(material::Entity::find().count(db).await.unwrap(), 0);
+        assert_ne!(fleet::Entity::find().count(db).await.unwrap(), 0);
+
+        gp.delete_account("test", "1234567").await.unwrap();
+
+        assert_eq!(material::Entity::find().count(db).await.unwrap(), 0);
+        assert_eq!(fleet::Entity::find().count(db).await.unwrap(), 0);
+        assert_eq!(furniture::config::Entity::find().count(db).await.unwrap(), 0);
+        assert_eq!(profile::Entity::find().count(db).await.unwrap(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_profile_can_be_wiped() {
+        let gp = new_mock().await;
+        let account = gp.sign_up("test", "1234567").await.unwrap();
+        let token = &account.access_token.token;
+        let game = gp.new_profile(token, "admiral").await.unwrap();
+
+        gp.wipe_profile(token, game.profile.id).await.unwrap();
     }
 }
