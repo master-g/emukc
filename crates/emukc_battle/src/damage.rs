@@ -234,7 +234,7 @@ pub(crate) fn calculate_torpedo_damage(
 }
 
 /// What a ship attacks with at night from her guns and torpedoes, before the night scout and
-/// the cap. The source's `NBPower`: against an installation the torpedoes are left out, and
+/// the cap: firepower and torpedo, with none of the day's 5. The source's `NBPower`: against an installation the torpedoes are left out, and
 /// a submarine has 30 more firepower.
 // ponytail: the anti-installation equipment's multipliers and flat bonuses are not modelled,
 // by day or at night; they go here and in the day's shelling power together.
@@ -251,7 +251,7 @@ fn night_gun_power(
     } else {
         0
     };
-    (firepower + rest + 5) as f64 + improvement_bonus_night(codex, attacker)
+    (firepower + rest) as f64 + improvement_bonus_night(codex, attacker)
 }
 
 /// Calculate night battle damage for a single attack.
@@ -1021,11 +1021,11 @@ mod tests {
         let power = |attacker, defender| night_gun_power(&codex, attacker, defender);
 
         let destroyer = ship(KcShipType::DD, 50, 80);
-        assert_eq!(power(&destroyer, &surface), 135.0);
-        assert_eq!(power(&destroyer, &installation), 55.0);
+        assert_eq!(power(&destroyer, &surface), 130.0);
+        assert_eq!(power(&destroyer, &installation), 50.0);
         let submarine = ship(KcShipType::SS, 10, 60);
-        assert_eq!(power(&submarine, &surface), 75.0);
-        assert_eq!(power(&submarine, &installation), 45.0);
+        assert_eq!(power(&submarine, &surface), 70.0);
+        assert_eq!(power(&submarine, &installation), 40.0);
     }
 
     #[test]
