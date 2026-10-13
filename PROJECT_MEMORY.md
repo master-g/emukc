@@ -192,7 +192,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] #100 已做，fmt、clippy、全量测试（1406 条）全过；#101、#102 未分拣。
+- [2026-10-13] #100 在 PR #105，质量门全过，客户端已演；#101、#102、#106 未分拣。
 
 ## Next Session
 

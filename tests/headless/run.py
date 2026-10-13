@@ -375,7 +375,75 @@ def check_nagato_broadside(work: Path) -> list[str]:
     return problems
 
 
+def check_recon_6_3(work: Path) -> list[str]:
+    problems = []
+    steps = responses(work, "api_req_map/next")
+    visited = [cell["api_no"] for cell in steps]
+    if visited != [3, 5, 7, 12, 10]:
+        return [f"the fleet went {visited}, not C, E, the reconnaissance cells G and H and the boss J"]
+    found = {}
+    for label, cell in zip("GH", steps[2:4]):
+        items = cell.get("api_itemget") or []
+        print(f"{label} answered:", cell.get("api_airsearch"), items)
+        if cell.get("api_airsearch") != {"api_plane_type": 1, "api_result": 2} or len(items) != 1:
+            problems.append(f"{label} was no great success by flying boat with one thing found")
+        for item in items:
+            found[item["api_id"]] = found.get(item["api_id"], 0) + item["api_getcount"]
+    before, after = (
+        {m["api_id"]: m["api_value"] for m in port["api_material"]} for port in responses(work, "api_port/port")[:2]
+    )
+    gained = {kind: after[kind] - before[kind] for kind in after if after[kind] != before[kind]}
+    print("found:", found, "gained in port:", gained)
+    if gained != found:
+        problems.append(f"the fleet found {found} and headquarters gained {gained}")
+    return problems
+
+
+def check_escort_1_6(work: Path) -> list[str]:
+    problems = []
+    steps = responses(work, "api_req_map/next")
+    visited = [cell["api_no"] for cell in steps]
+    if visited != [3, 4, 12, 13, 17]:
+        problems.append(f"the fleet went {visited}, not E, G, F, B and the goal N")
+        return problems
+    goal = steps[-1]
+    print("the goal answered:", {key: goal.get(key) for key in ("api_event_id", "api_itemget_eo_comment", "api_itemget_eo_result", "api_get_eo_rate")})
+    # The seventh arrival: 燃料 1000, a プレゼント箱 and 戦果 75.
+    if goal.get("api_itemget_eo_comment") != {"api_usemst": 4, "api_id": 1, "api_getcount": 1000}:
+        problems.append(f"the goal gave {goal.get('api_itemget_eo_comment')}, not 1000 fuel")
+    if goal.get("api_itemget_eo_result") != {"api_usemst": 5, "api_id": 60, "api_getcount": 1} or goal.get("api_get_eo_rate") != 75:
+        problems.append(f"the goal's bonus was {goal.get('api_itemget_eo_result')} and {goal.get('api_get_eo_rate')}")
+    ports = responses(work, "api_port/port")
+    fuel = [next(m["api_value"] for m in port["api_material"] if m["api_id"] == 1) for port in ports]
+    print("fuel in port, before and after:", fuel)
+    return problems
+
+
 SCENARIOS = {
+    # 中部海域, 6-3: a battle at C and at E, the reconnaissance cells G and H, the boss J, home.
+    # Two 二式大艇 and two 零観 make a great success of both. Photographed through each.
+    "recon_6_3": (
+        f"{TO_MAPS} c:800,680 w:4 c:280,525 w:3 {START} u:{TAPS}:api_req_map/next {BATTLE} "
+        f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next "
+        + " ".join(f"w:1.5 s:g{n}" for n in range(1, 9))
+        + f" u:{TAPS}:api_req_map/next "
+        + " ".join(f"w:1.5 s:h{n}" for n in range(1, 9))
+        + f" u:{TAPS}:api_req_map/next {BATTLE} w:14 s:result u:{TAPS}:api_port/port w:5 s:home",
+        check_recon_6_3,
+    ),
+    # 鎮守府海域's extra operations, 1-6, with its gauge one arrival short of empty: A, a battle at
+    # E, the resource cell G, the air battle F, a battle at B and the goal N, which empties the
+    # gauge and hands over the bonus; then home. Photographed through the goal.
+    "escort_1_6": (
+        f"sunk:16:6 {TO_MAPS} c:1105,415 w:4 c:660,420 w:3 {START} u:{TAPS}:api_req_map/next {BATTLE} "
+        f"u:{TAPS}:api_req_map/next w:3 s:resource u:{TAPS}:api_req_map/next {BATTLE} "
+        f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next "
+        + " ".join(f"w:2 s:goal{n}" for n in range(1, 11))
+        # 戦果, then the プレゼント箱, each closed by a tap anywhere.
+        + " c:600,400 " + " ".join(f"w:2 s:bonus{n}" for n in range(1, 7))
+        + f" c:600,400 w:4 s:box u:{TAPS}:api_port/port w:5 s:home",
+        check_escort_1_6,
+    ),
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
     # 南西諸島海域, 2-1, without the cheats: one battle, into the night if it is offered (夜戦突入

@@ -103,8 +103,14 @@ fleet's equipment and no field of the response; the cargo is counted there
 - 戦果 is not kept anywhere; 75 is for the client to show.
 - 1-6's month-end limits (21:59 for 戦果, 23:59 for the プレゼント箱).
 - The quests that count 「ゴール地点到達」.
-- Not played in the client. `make headless-check` has no scenario that ends on 1-6 N or
-  passes 6-3 G.
+- Played in the client on 2026-10-13 by `make headless-check SCENARIO=escort_1_6` (the
+  arrival that empties the gauge) and `SCENARIO=recon_6_3` (a great success by flying boat
+  at G and H), without a page error: `headless-client-check.md`. Not played: an arrival
+  that leaves the gauge standing or comes after it, a plain success, a failure, a
+  reconnaissance called off, the seaplane's picture. The balloon was read for 開発資材
+  only; 弾薬 and ボーキサイト came up in later runs whose screenshots nobody read.
+- 6-3 A is a choice of route that the client is never offered: the start answers without
+  `api_select_route` (#106).
 - Event maps.
 
 ## When a test breaks

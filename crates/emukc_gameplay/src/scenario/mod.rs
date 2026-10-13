@@ -428,6 +428,34 @@ impl Scenario {
     }
 }
 
+impl Scenario {
+    /// A light cruiser and five destroyers into 1-6, who are sent by A, E, G, F and B to its
+    /// goal N.
+    pub fn escort_1_6() -> Self {
+        let mut scenario = Self::transport_5_6();
+        scenario.fleet = vec![ShipSpec::new(951, 99); 6];
+        scenario.fleet[0] = ShipSpec::new(ABUKUMA_MST_ID, 99);
+        scenario.clear_maps = vec![11, 12, 13, 14, 15];
+        scenario
+    }
+
+    /// A seaplane tender, a light cruiser and four destroyers into 6-3, who go from E by
+    /// its reconnaissance cells G and H to the boss. Two 二式大艇 and two 零式水上観測機
+    /// score 36, a great success at both.
+    pub fn recon_6_3() -> Self {
+        let mut scenario = Self::transport_5_6();
+        scenario.fleet = vec![ShipSpec::new(951, 99); 6];
+        scenario.fleet[0] = ShipSpec::new(AKITSUSHIMA_MST_ID, 99).with_slots([138, 138]);
+        scenario.fleet[1] = ShipSpec::new(ABUKUMA_MST_ID, 99).with_slots([59, 59]);
+        scenario.clear_maps.extend([61, 62]);
+        scenario
+    }
+}
+
+/// 阿武隈.
+const ABUKUMA_MST_ID: i64 = 114;
+/// 秋津洲.
+const AKITSUSHIMA_MST_ID: i64 = 445;
 /// 鳳翔.
 const HOUSHOU_MST_ID: i64 = 89;
 /// 一式陸攻.
@@ -641,6 +669,24 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "air_raid_6_5",
         build: Scenario::air_raid_6_5,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    // The goal of 1-6 is what this is for, and its first cell is no battle; the battle
+    // target is only 1-1.
+    Preset {
+        name: "escort_1_6",
+        build: Scenario::escort_1_6,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    // 6-3's reconnaissance is what this is for, and its first cell is a choice of route;
+    // the battle target is only 1-1.
+    Preset {
+        name: "recon_6_3",
+        build: Scenario::recon_6_3,
         maparea: 1,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
