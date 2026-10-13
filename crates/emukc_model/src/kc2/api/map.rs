@@ -120,4 +120,25 @@ pub struct KcApiMapNext {
     /// The raid on the air base this step brought, laid out as a battle.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_destruction_battle: Option<serde_json::Value>,
+
+    /// The resource an escort-success cell gives.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_itemget_eo_comment: Option<KcApiMapEoItem>,
+
+    /// What the arrival that empties the gauge gives besides.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_itemget_eo_result: Option<KcApiMapEoItem>,
+
+    /// The ranking points (戦果) of that arrival.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_get_eo_rate: Option<i64>,
+}
+
+/// One thing an escort-success cell (船団護衛成功) gives.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KcApiMapEoItem {
+    /// 4 for a material, 5 for a use item.
+    pub api_usemst: i64,
+    pub api_id: i64,
+    pub api_getcount: i64,
 }

@@ -1,5 +1,7 @@
 mod cell_effect;
 mod enemy_ship;
+mod escort;
+mod reconnaissance;
 mod route;
 mod setup;
 
@@ -83,6 +85,8 @@ pub struct ActiveSortieState {
     /// What the fleet carried when it passed the landing cell of a transport gauge;
     /// `None` until it has.
     pub landing_tp: Option<i64>,
+    /// What the reconnaissances of this sortie found, the fleet's once the boss is beaten.
+    pub recon_rewards: Vec<SortieItemGet>,
     /// The cells each air corps was sent against; empty until
     /// `api_req_map/start_air_base` names them.
     pub air_strikes: Vec<AirStrike>,
@@ -185,6 +189,19 @@ pub struct SortieNextResponse {
     pub happening: Option<SortieHappening>,
     /// The raid on the air base that this step brought, if any.
     pub destruction_battle: Option<BattleAirRaid>,
+    /// What arriving at an escort-success cell (船団護衛成功) brought.
+    pub escort: Option<SortieEscortSuccess>,
+}
+
+/// What arriving at an escort-success cell brought.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SortieEscortSuccess {
+    /// Fuel, ammunition, steel or bauxite.
+    pub gain: SortieItemGet,
+    /// The `api_mst_useitem` id and count given with the arrival that empties the gauge.
+    pub bonus_use_item: Option<(i64, i64)>,
+    /// The ranking points (戦果) of that arrival; 0 on any other.
+    pub rank_points: i64,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -259,6 +276,7 @@ impl Ctx {
             visited_cell_ids: first_step.visited_cell_ids,
             locked_enemy_composition: locked_enemy_composition.clone(),
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
             special_attacks_made: SpecialAttacksMade::default(),
@@ -564,6 +582,29 @@ impl Ctx {
                 )
                 .await?;
                 advance_stage_on_reach(&tx, profile_id, definition, stage, next.cell_no).await?;
+                let (airsearch, found) = if next.event_id == reconnaissance::EVENT_ID {
+                    reconnaissance::reconnoitre(
+                        &tx,
+                        codex,
+                        active.map_id,
+                        next.node_label.as_deref().unwrap_or_default(),
+                        &fleet_ships,
+                    )
+                    .await?
+                } else {
+                    (default_sortie_airsearch(), None)
+                };
+                let escort = if next.event_id == escort::EVENT_ID {
+                    Some(escort::arrive(&tx, codex, profile_id, definition, stage).await?)
+                } else {
+                    None
+                };
+                if let Some(found) = &found
+                    && let Some(mut state) = store.get_active(profile_id)
+                {
+                    state.recon_rewards.push(found.clone());
+                    let _ = store.insert_active(profile_id, state);
+                }
                 // The cargo is counted where it is landed: later damage does not shrink it.
                 if stage.transport_gauge && next.event_id == LANDING_EVENT_ID {
                     let points = fleet_transport_points_impl(&tx, codex, &fleet_ships).await?;
@@ -611,6 +652,11 @@ impl Ctx {
                 };
                 tx.commit().await?;
                 cell_effect::put_by(store, profile_id, itemget.as_deref());
+                cell_effect::put_by(
+                    store,
+                    profile_id,
+                    escort.as_ref().map(|escort| std::slice::from_ref(&escort.gain)),
+                );
 
                 let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
                 // rashin_flg keys on the departing cell's physical out-degree
@@ -635,15 +681,17 @@ impl Ctx {
                     from_cell_no: current.cell_no,
                     comment_kind: Some(0),
                     production_kind: Some(0),
-                    airsearch: Some(default_sortie_airsearch()),
+                    airsearch: Some(airsearch),
                     enemy_deck_preview: locked_enemy_composition
                         .as_ref()
                         .map(build_enemy_deck_preview)
                         .filter(|preview| !preview.is_empty()),
                     limit_state: Some(0),
-                    itemget,
+                    // What a reconnaissance found is shown as a resource cell's is.
+                    itemget: itemget.or(found.map(|found| vec![found])),
                     happening,
                     destruction_battle,
+                    escort,
                 })
             })
             .await

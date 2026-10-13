@@ -89,6 +89,7 @@ async fn settle_boss_win_with_enemies(
         visited_cell_ids: BTreeSet::from([stage.boss_cell_no]),
         locked_enemy_composition: None,
         landing_tp: None,
+        recon_rewards: Vec::new(),
         air_strikes: vec![],
         raided: false,
     };
@@ -1487,6 +1488,7 @@ fn active_sortie_on_cell(
         visited_cell_ids: BTreeSet::from([cell.cell_no]),
         locked_enemy_composition: None,
         landing_tp: None,
+        recon_rewards: Vec::new(),
         air_strikes: vec![],
         raided: false,
     }
@@ -1665,6 +1667,7 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
             visited_cell_ids: BTreeSet::from([boss.cell_no]),
             locked_enemy_composition: None,
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
         },
@@ -1810,6 +1813,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
                         visited_cell_ids: BTreeSet::from([cell.cell_no]),
                         locked_enemy_composition: None,
                         landing_tp: None,
+                        recon_rewards: Vec::new(),
                         air_strikes: vec![],
                         raided: false,
                     },
@@ -1937,6 +1941,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
             visited_cell_ids: BTreeSet::from([cell.cell_no]),
             locked_enemy_composition: None,
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
         },
@@ -1981,6 +1986,19 @@ async fn settle_win_carrying(
     win_rank: &str,
     landing_tp: Option<i64>,
 ) -> SortieSettlement {
+    settle_win_with(context, profile_id, definition, label, win_rank, landing_tp, Vec::new()).await
+}
+
+/// [`settle_win_carrying`] for a fleet whose reconnaissances found `recon_rewards`.
+async fn settle_win_with(
+    context: &Ctx,
+    profile_id: i64,
+    definition: &MapDefinition,
+    label: &str,
+    win_rank: &str,
+    landing_tp: Option<i64>,
+    recon_rewards: Vec<SortieItemGet>,
+) -> SortieSettlement {
     let stage_id = staged_map_stage(context, profile_id, definition).await;
     let stage = definition.stage(&stage_id).unwrap();
     let cell_no = stage.multi_label_index()[label][0];
@@ -1997,6 +2015,7 @@ async fn settle_win_carrying(
         visited_cell_ids: BTreeSet::from([cell_no]),
         locked_enemy_composition: None,
         landing_tp,
+        recon_rewards,
         air_strikes: vec![],
         raided: false,
     };
@@ -2136,6 +2155,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
             visited_cell_ids: BTreeSet::from([h]),
             locked_enemy_composition: None,
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
         },
@@ -2150,6 +2170,39 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
     }
     assert_eq!(stage().await, "phase4");
     assert_eq!(definition.chained_gauge("phase4"), Some((3, 3)));
+}
+
+/// wikiwiki 中部海域「航空偵察について」: ボスB勝利以上をもって入手確定.
+#[tokio::test]
+async fn what_the_reconnaissances_found_is_given_with_a_b_or_better_at_the_boss() {
+    let (context, profile_id) = staged_map_context("recon-6-3").await;
+    let definition = context.codex.map_catalog().map_definition(63).unwrap().clone();
+    let found = || {
+        vec![
+            SortieItemGet {
+                item: CellItem::Ammo,
+                amount: 150,
+            },
+            SortieItemGet {
+                item: CellItem::DevMat,
+                amount: 3,
+            },
+        ]
+    };
+    let held = || async {
+        let m = context.get_materials(profile_id).await.unwrap();
+        (m.ammo, m.devmat)
+    };
+    let (ammo, devmat) = held().await;
+
+    settle_win_with(&context, profile_id, &definition, "J", "C", None, found()).await;
+    assert_eq!(held().await, (ammo, devmat), "a C rank brings nothing home");
+    // F is a battle on the way, not the boss.
+    settle_win_with(&context, profile_id, &definition, "F", "S", None, found()).await;
+    assert_eq!(held().await, (ammo, devmat));
+
+    settle_win_with(&context, profile_id, &definition, "J", "B", None, found()).await;
+    assert_eq!(held().await, (ammo + 150, devmat + 3));
 }
 
 #[tokio::test]
@@ -2216,6 +2269,7 @@ async fn map_5_6_counts_the_cargo_on_arrival_at_the_landing_cell() {
             visited_cell_ids: BTreeSet::from([before]),
             locked_enemy_composition: None,
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
         },

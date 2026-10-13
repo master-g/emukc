@@ -192,6 +192,21 @@ where
     } else {
         None
     };
+    // What the reconnaissances found is the fleet's with a B or better at the boss.
+    if is_boss_cell && matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+        for found in &active.recon_rewards {
+            let category = emukc_model::kc2::MaterialCategory::from_id(
+                found.item.material_id().unwrap_or_default(),
+            );
+            crate::game::material::add_material_impl(
+                c,
+                codex,
+                profile_id,
+                &[(category, found.amount)],
+            )
+            .await?;
+        }
+    }
     let first_clear = apply_sortie_map_result(
         c,
         profile_id,
@@ -1135,6 +1150,7 @@ mod tests {
             visited_cell_ids: BTreeSet::new(),
             locked_enemy_composition: None,
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
         };
@@ -1209,6 +1225,7 @@ mod tests {
             visited_cell_ids: BTreeSet::new(),
             locked_enemy_composition: None,
             landing_tp: None,
+            recon_rewards: Vec::new(),
             air_strikes: vec![],
             raided: false,
         };

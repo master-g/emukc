@@ -175,6 +175,21 @@ screen, pass steps on the command line and read the screenshots:
   check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a
   hundred, when none of her three kinds fires. The cut-in itself is on `air1`–`air8`, taken
   a second apart from the sixteenth second of the battle.
+- `escort_1_6` sends a light cruiser and five destroyers through 1-6 (the second banner of
+  鎮守府海域's extra operations, 660, 420) with six arrivals already counted (`sunk:16:6`): A,
+  E, the resource cell G, the air battle F, B and the goal N. The check wants that route,
+  燃料 1000, the プレゼント箱 and 75 in the goal's answer, and the screenshots show the client
+  playing it: the fuel balloon ×1000 and the last notch of the gauge (`goal3`), the gauge gone
+  (`goal10`), 「特別戦果 +75」 (`bonus4`). Fuel in port went from 11000 to 12000. Four runs of
+  four on 2026-10-13, without a page error.
+- `recon_6_3` sends 秋津洲 with two 二式大艇, 阿武隈 with two 零観 and four destroyers through
+  6-3: C, E, the reconnaissance cells G and H, the boss J. The check wants a great success by
+  flying boat with one thing found at each, and headquarters to gain in port exactly what
+  was found. `h4` has the client's balloon: 航空偵察 大成功!, the item ×3, 作戦完遂時にGet!
+  The shots at G (`g1`–`g8`) held a frame from the first step instead; nothing was drawn
+  between. At A the client asked for no route: the start answers without `api_select_route`,
+  so it steps on at once and the server picks (C in all three runs of 2026-10-13, which
+  found 開発資材, 弾薬 and ボーキサイト between them and passed without a page error).
 
 ## Limits
 

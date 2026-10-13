@@ -9,8 +9,8 @@ pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use remodel_slot::{RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResult};
 pub use route_probe::{RouteProbe, RouteProbeFleet, RouteProbeShip, probe_route};
 pub use sortie::{
-    SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
-    SortieNextResponse, SortieStartResponse,
+    SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieEscortSuccess, SortieHappening,
+    SortieItemGet, SortieNextResponse, SortieStartResponse,
 };
 pub use sortie_store::PracticeStore;
 pub use sortie_store::SortieStore;
@@ -59,7 +59,7 @@ pub mod types {
         ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo, PortView, PowerupResp,
         QuestListItem, QuestListView, RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResult,
         RequireInfoView, RouteProbe, RouteProbeFleet, RouteProbeShip, SlotDepriveParams,
-        SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet,
-        SortieNextResponse, SortieStartResponse,
+        SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieEscortSuccess,
+        SortieHappening, SortieItemGet, SortieNextResponse, SortieStartResponse,
     };
 }

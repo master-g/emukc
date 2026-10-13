@@ -94,7 +94,7 @@ pub(super) fn put_by(store: &SortieStore, profile_id: i64, gains: Option<&[Sorti
 }
 
 /// The equipment the fleet carries, by the ship carrying it.
-async fn fleet_equipment<C>(
+pub(super) async fn fleet_equipment<C>(
     c: &C,
     fleet_ships: &[ship::Model],
 ) -> Result<Vec<Vec<slot_item::Model>>, GameplayError>

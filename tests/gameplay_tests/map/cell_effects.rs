@@ -477,4 +477,171 @@ mod tests {
         assert!(pinned > 0);
         assert!(entries >= pinned, "an entry sits on a cell no map has");
     }
+
+    /// 秋津洲, who carries one aircraft in each of her two slots.
+    const AKITSUSHIMA: i64 = 445;
+    /// 阿武隈, likewise.
+    const ABUKUMA: i64 = 114;
+    /// 水母 1, 軽巡 1 and 駆逐 4 go from E to G and on to H.
+    const RECON_FLEET: [i64; 6] = [AKITSUSHIMA, ABUKUMA, 951, 951, 951, 951];
+    /// 二式大艇, 索敵 12.
+    const FLYING_BOAT: i64 = 138;
+    /// 零式水上観測機, 索敵 6.
+    const OBSERVATION_SEAPLANE: i64 = 59;
+
+    /// What a reconnaissance of this result may find: wikiwiki 中部海域
+    /// 「航空偵察で獲得できる資源一覧」.
+    fn found(result: i64, reward: &SortieItemGet) -> bool {
+        let amounts: &[i64] = match (result, reward.item) {
+            (1, CellItem::Ammo) => &[50, 60, 80],
+            (1, CellItem::Bauxite) => &[30, 40, 50],
+            (1, CellItem::DevMat) => &[1],
+            (2, CellItem::Ammo) => &[100, 150, 200],
+            (2, CellItem::Bauxite) => &[80, 100, 150],
+            (2, CellItem::DevMat) => &[2, 3, 4],
+            _ => &[],
+        };
+        amounts.contains(&reward.amount)
+    }
+
+    #[tokio::test]
+    async fn a_fleet_without_reconnaissance_aircraft_calls_the_reconnaissance_off() {
+        let context = crate::TestContext::new().await;
+        let pid = profile(&context, "recon-none").await;
+        fleet(&context, pid, 6).await;
+
+        let arrival = arrive(&context, pid, 63, "G", async || {}).await;
+        let airsearch = arrival.next.airsearch.as_ref().unwrap();
+        assert_eq!((airsearch.plane_type, airsearch.result), (0, 0));
+        assert_eq!(arrival.next.itemget, None);
+    }
+
+    /// The score is 索敵 × ⁴√機数 a slot. One 零観 makes 6, under G's 12; one 二式大艇
+    /// makes G's 12 and no more than a success; two of each make 36, a great success at G
+    /// as at H (35.2 and over).
+    #[tokio::test]
+    async fn a_reconnaissance_succeeds_by_the_score_of_the_fleet_s_aircraft() {
+        let context = crate::TestContext::new().await;
+
+        let pid = profile(&context, "recon-fail").await;
+        let ships = fleet_of(&context, pid, &RECON_FLEET).await;
+        equip(&context, pid, ships[0], 1, OBSERVATION_SEAPLANE).await;
+        let arrival = arrive(&context, pid, 63, "G", async || {}).await;
+        let airsearch = arrival.next.airsearch.as_ref().unwrap();
+        assert_eq!((airsearch.plane_type, airsearch.result), (2, 0));
+        assert_eq!(arrival.next.itemget, None);
+
+        let pid = profile(&context, "recon-success").await;
+        let ships = fleet_of(&context, pid, &RECON_FLEET).await;
+        equip(&context, pid, ships[0], 1, FLYING_BOAT).await;
+        for _ in 0..20 {
+            let arrival = arrive(&context, pid, 63, "G", async || {}).await;
+            let airsearch = arrival.next.airsearch.as_ref().unwrap();
+            assert_eq!((airsearch.plane_type, airsearch.result), (1, 1));
+            let [reward] = gains(&arrival) else {
+                panic!("{:?}", arrival.next.itemget);
+            };
+            assert!(found(1, reward), "{reward:?}");
+        }
+        // The same aircraft fall short of H's 16.
+        let arrival = arrive(&context, pid, 63, "H", async || {}).await;
+        assert_eq!(arrival.next.airsearch.as_ref().unwrap().result, 0);
+
+        let pid = profile(&context, "recon-great").await;
+        let ships = fleet_of(&context, pid, &RECON_FLEET).await;
+        for slot in [1, 2] {
+            equip(&context, pid, ships[0], slot, FLYING_BOAT).await;
+            equip(&context, pid, ships[1], slot, OBSERVATION_SEAPLANE).await;
+        }
+        for label in ["G", "H"] {
+            for _ in 0..20 {
+                let arrival = arrive(&context, pid, 63, label, async || {}).await;
+                // A flying boat among the aircraft is the one the client is shown.
+                let airsearch = arrival.next.airsearch.as_ref().unwrap();
+                assert_eq!((airsearch.plane_type, airsearch.result), (1, 2), "{label}");
+                assert!(found(2, &gains(&arrival)[0]), "{label}: {:?}", arrival.next.itemget);
+            }
+        }
+    }
+
+    /// What a reconnaissance finds is the fleet's only once the boss is beaten.
+    #[tokio::test]
+    async fn what_a_reconnaissance_finds_is_not_given_at_the_cell() {
+        let context = crate::TestContext::new().await;
+        let pid = profile(&context, "recon-reserved").await;
+        let ships = fleet_of(&context, pid, &RECON_FLEET).await;
+        for slot in [1, 2] {
+            equip(&context, pid, ships[0], slot, FLYING_BOAT).await;
+            equip(&context, pid, ships[1], slot, OBSERVATION_SEAPLANE).await;
+        }
+
+        let arrival = arrive(&context, pid, 63, "G", async || {}).await;
+        assert_eq!(gains(&arrival).len(), 1);
+        let port = context.port_view(pid).await.unwrap();
+        let held = |m: &Material| (m.ammo, m.bauxite, m.devmat);
+        assert_eq!(held(&port.materials), held(&arrival.before));
+    }
+
+    /// プレゼント箱.
+    const PRESENT_BOX: i64 = 60;
+
+    /// Whether 1-6 is cleared, and the arrivals counted against its gauge. A fresh profile
+    /// has not opened the map, so the map list does not show it.
+    async fn convoy_route(context: &crate::TestContext, pid: i64) -> (bool, i64) {
+        use emukc_internal::db::{
+            entity::profile::map_record,
+            sea_orm::{ColumnTrait, QueryFilter},
+        };
+        let record = map_record::Entity::find()
+            .filter(map_record::Column::ProfileId.eq(pid))
+            .filter(map_record::Column::MapId.eq(16))
+            .one(&*context.db)
+            .await
+            .unwrap()
+            .unwrap();
+        (record.cleared, record.defeat_count.unwrap_or_default())
+    }
+
+    /// wikiwiki 鎮守府海域 1-6: every arrival at N takes a seventh of the gauge and gives
+    /// one resource by the hundred; the seventh gives 燃料 1000, a プレゼント箱 and 戦果 75,
+    /// and what the cell gives afterwards is far less.
+    #[tokio::test]
+    async fn the_goal_of_1_6_empties_its_gauge_in_seven_arrivals() {
+        let context = crate::TestContext::new().await;
+        let pid = profile(&context, "escort-goal").await;
+        fleet(&context, pid, 6).await;
+        let basic = |item| {
+            matches!(item, CellItem::Fuel | CellItem::Ammo | CellItem::Steel | CellItem::Bauxite)
+        };
+        let held = |m: &Material| m.fuel + m.ammo + m.steel + m.bauxite;
+
+        for arrivals in 1..=6 {
+            let arrival = arrive(&context, pid, 16, "N", async || {}).await;
+            let escort = arrival.next.escort.as_ref().unwrap();
+            assert!(basic(escort.gain.item), "{escort:?}");
+            assert!((100..=1000).contains(&escort.gain.amount), "{escort:?}");
+            assert_eq!(escort.gain.amount % 100, 0, "{escort:?}");
+            assert_eq!((escort.bonus_use_item, escort.rank_points), (None, 0));
+            assert_eq!(convoy_route(&context, pid).await, (false, arrivals));
+            // It reaches headquarters in port, as what a resource cell gives does.
+            let port = context.port_view(pid).await.unwrap();
+            assert_eq!(held(&port.materials), held(&arrival.before) + escort.gain.amount);
+        }
+
+        let boxes = use_item_count(&context, pid, PRESENT_BOX).await;
+        let arrival = arrive(&context, pid, 16, "N", async || {}).await;
+        let escort = arrival.next.escort.as_ref().unwrap();
+        assert_eq!((escort.gain.item, escort.gain.amount), (CellItem::Fuel, 1000));
+        assert_eq!((escort.bonus_use_item, escort.rank_points), (Some((PRESENT_BOX, 1)), 75));
+        assert_eq!(convoy_route(&context, pid).await, (true, 7));
+        assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes + 1);
+
+        let arrival = arrive(&context, pid, 16, "N", async || {}).await;
+        let escort = arrival.next.escort.as_ref().unwrap();
+        assert!(basic(escort.gain.item), "{escort:?}");
+        assert!((10..=100).contains(&escort.gain.amount), "{escort:?}");
+        assert_eq!((escort.bonus_use_item, escort.rank_points), (None, 0));
+        assert_eq!(convoy_route(&context, pid).await, (true, 7));
+        assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes + 1);
+    }
 }
