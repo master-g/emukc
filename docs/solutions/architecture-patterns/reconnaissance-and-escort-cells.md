@@ -109,8 +109,8 @@ fleet's equipment and no field of the response; the cargo is counted there
   that leaves the gauge standing or comes after it, a plain success, a failure, a
   reconnaissance called off, the seaplane's picture. The balloon was read for 開発資材
   only; 弾薬 and ボーキサイト came up in later runs whose screenshots nobody read.
-- 6-3 A is a choice of route that the client is never offered: the start answers without
-  `api_select_route` (#106).
+- 6-3 A is a choice of route: the start offers B and C (`api_select_route`, #106), and
+  `recon_6_3` taps C.
 - Event maps.
 
 ## When a test breaks

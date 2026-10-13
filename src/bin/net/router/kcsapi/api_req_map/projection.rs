@@ -1,7 +1,7 @@
 use emukc_internal::prelude::{
     KcApiMapAirSearch, KcApiMapCellData, KcApiMapEnemyDeckInfo, KcApiMapEoItem, KcApiMapHappening,
-    KcApiMapItemGet, KcApiMapNext, KcApiMapStart, SortieAirSearch, SortieCellData,
-    SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
+    KcApiMapItemGet, KcApiMapNext, KcApiMapSelectRoute, KcApiMapStart, SortieAirSearch,
+    SortieCellData, SortieEnemyDeckPreview, SortieHappening, SortieItemGet, SortieNextResponse,
     SortieStartResponse,
 };
 
@@ -23,6 +23,9 @@ pub(super) fn project_start(response: SortieStartResponse) -> KcApiMapStart {
         api_limit_state: response.limit_state,
         api_eventmap: None,
         api_airsearch: response.airsearch.map(project_airsearch),
+        api_select_route: response.select_route.map(|cells| KcApiMapSelectRoute {
+            api_select_cells: cells,
+        }),
         api_e_deck_info: response
             .enemy_deck_preview
             .map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
@@ -64,6 +67,9 @@ pub(super) fn project_next(response: SortieNextResponse) -> KcApiMapNext {
         api_comment_kind: response.comment_kind,
         api_production_kind: response.production_kind,
         api_airsearch: response.airsearch.map(project_airsearch),
+        api_select_route: response.select_route.map(|cells| KcApiMapSelectRoute {
+            api_select_cells: cells,
+        }),
         api_e_deck_info: response
             .enemy_deck_preview
             .map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
@@ -165,6 +171,7 @@ mod tests {
                 result: 2,
             }),
             enemy_deck_preview: None,
+            select_route: None,
             limit_state: Some(0),
             itemget: None,
             happening: None,
@@ -188,9 +195,39 @@ mod tests {
             serde_json::json!({"api_usemst": 5, "api_id": 60, "api_getcount": 1})
         );
         assert_eq!(json["api_get_eo_rate"], 75);
+        assert!(json.get("api_select_route").is_none(), "only at a choice of route");
         assert_eq!(
             json["api_airsearch"],
             serde_json::json!({"api_plane_type": 1, "api_result": 2})
         );
+    }
+
+    /// What the client's `NextModel.getSelectableRoutes` reads, as the real start of 6-3
+    /// has it (`real_map_start_data/map_6-3.json`).
+    #[test]
+    fn a_choice_of_route_is_laid_out_for_the_client() {
+        let start = project_start(SortieStartResponse {
+            cell_data: Vec::new(),
+            rashin_flg: false,
+            rashin_id: 0,
+            maparea_id: 6,
+            mapinfo_no: 3,
+            cell_no: 1,
+            color_no: 4,
+            event_id: 6,
+            event_kind: 2,
+            has_next: true,
+            boss_cell_no: 10,
+            bosscomp: true,
+            from_cell_no: 0,
+            limit_state: 0,
+            airsearch: None,
+            select_route: Some(vec![2, 3]),
+            enemy_deck_preview: None,
+            itemget: None,
+            happening: None,
+        });
+        let json = serde_json::to_value(&start).unwrap();
+        assert_eq!(json["api_select_route"], serde_json::json!({"api_select_cells": [2, 3]}));
     }
 }

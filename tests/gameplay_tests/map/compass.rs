@@ -71,6 +71,64 @@ mod tests {
         );
     }
 
+    /// 6-3 opens onto A, where the player picks B or C: the start has to offer both
+    /// (`api_select_cells` `[2, 3]` in the real start of 6-3), the fleet goes where it is
+    /// told, and no compass spins over a choice the player made.
+    #[tokio::test]
+    async fn a_route_choice_cell_offers_its_ways_out_and_follows_the_choice() {
+        use emukc_internal::db::{
+            entity::profile::map_record,
+            sea_orm::{
+                ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel,
+                QueryFilter,
+            },
+        };
+
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        setup_fleet(&context, pid).await;
+        context.get_map_infos(pid).await.unwrap();
+        let record = map_record::Entity::find()
+            .filter(map_record::Column::ProfileId.eq(pid))
+            .filter(map_record::Column::MapId.eq(63))
+            .one(context.db())
+            .await
+            .unwrap()
+            .unwrap();
+        let mut am = record.into_active_model();
+        am.unlocked = ActiveValue::Set(true);
+        am.update(context.db()).await.unwrap();
+
+        for chosen in [2, 3] {
+            context.clear_sortie_state_if_any(pid).await;
+            let start = context.start_sortie(pid, 1, 6, 3).await.unwrap();
+            assert_eq!((start.cell_no, start.event_id, start.event_kind), (1, 6, 2));
+            assert_eq!(start.select_route, Some(vec![2, 3]));
+
+            let next = context.next_sortie(pid, Some(chosen)).await.unwrap();
+            assert_eq!(next.cell_no, chosen);
+            assert!(!next.rashin_flg, "the player chose: no compass");
+            assert_eq!(next.rashin_id, 0);
+            assert_eq!(next.select_route, None, "B and C are no choice of route");
+        }
+
+        // A cell that is no way out of A is refused.
+        context.clear_sortie_state_if_any(pid).await;
+        context.start_sortie(pid, 1, 6, 3).await.unwrap();
+        assert!(context.next_sortie(pid, Some(10)).await.is_err());
+    }
+
+    /// A cell of any other kind offers nothing, however many ways lead out of it.
+    #[tokio::test]
+    async fn a_branch_the_compass_decides_offers_no_choice() {
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        setup_fleet(&context, pid).await;
+
+        let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
+        assert_eq!(start.select_route, None);
+    }
+
     /// Data invariant that keeps the compass rule honest across every map.
     ///
     /// `rashin_flg` keys on `next_cells.len() > 1`, while `has_next` keys on
