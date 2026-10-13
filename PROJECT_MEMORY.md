@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 金剛型夜战突击威力 ×1.06（计划 2026-10-13-001），分支 `fix/kongou-assault-power`，未合并。
+- [2026-10-13] 金剛型夜战突击威力 ×1.06（计划 2026-10-13-001），已合并（PR #84）。
   质量门通过，无头检查没重跑。
 
 ## Next Session
