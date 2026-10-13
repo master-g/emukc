@@ -71,6 +71,10 @@ pub struct KcApiMapStart {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_airsearch: Option<KcApiMapAirSearch>,
 
+    /// The cells the player may pick from, where this cell is a choice of route.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_select_route: Option<KcApiMapSelectRoute>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_e_deck_info: Option<Vec<KcApiMapEnemyDeckInfo>>,
 
@@ -79,6 +83,13 @@ pub struct KcApiMapStart {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_happening: Option<KcApiMapHappening>,
+}
+
+/// The ways out of a cell where the player picks the route (能動分岐).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KcApiMapSelectRoute {
+    /// Cell numbers, to come back as `api_cell_id`.
+    pub api_select_cells: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,6 +115,10 @@ pub struct KcApiMapNext {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_airsearch: Option<KcApiMapAirSearch>,
+
+    /// The cells the player may pick from, where this cell is a choice of route.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_select_route: Option<KcApiMapSelectRoute>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_e_deck_info: Option<Vec<KcApiMapEnemyDeckInfo>>,

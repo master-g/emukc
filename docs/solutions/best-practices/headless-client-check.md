@@ -187,9 +187,11 @@ screen, pass steps on the command line and read the screenshots:
   flying boat with one thing found at each, and headquarters to gain in port exactly what
   was found. `h4` has the client's balloon: 航空偵察 大成功!, the item ×3, 作戦完遂時にGet!
   The shots at G (`g1`–`g8`) held a frame from the first step instead; nothing was drawn
-  between. At A the client asked for no route: the start answers without `api_select_route`,
-  so it steps on at once and the server picks (C in all three runs of 2026-10-13, which
-  found 開発資材, 弾薬 and ボーキサイト between them and passed without a page error).
+  between. A is a choice of route (#106): the start offers B and C, the client shows
+  「艦隊針路選択可能!」 and 「艦隊の針路を選択できます。」 (`choice`), and the scenario taps
+  C where `kcs2/resources/map/006/03_info.json` puts cell 3. The check wants the offer and
+  `api_cell_id=3` in what the client sent (every request is saved beside its response, as
+  `.request`). `leaving` has the ship under way to C with no compass.
 
 ## Limits
 

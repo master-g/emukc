@@ -38,6 +38,21 @@ The flag is a pure function of the departing cell's **physical** out-degree. It 
 **not** depend on which way this particular fleet is forced to go, and it does **not**
 depend on the *next* cell's out-degree.
 
+### Exception: a cell where the player picks the route
+
+Leaving a route-choice cell (能動分岐, `event_id` 6 with `event_kind` 2, which the
+arrival answered with `api_select_route`) sends `api_rashin_flg` 0 and `api_rashin_id` 0,
+whatever its out-degree. The client plays the compass on the flag alone
+(`TaskNextSpot._compass`), so a 1 here would spin 「どこに進む？」 over a choice the
+player has just made.
+
+This one is ours, not a capture's (2026-10-13, #106): the three captures below are 2-1's,
+which has no such cell, and the real starts of 6-3 and 4-5 only show the arrival. The
+staff's notice of 2015-04-28 sets 能動分岐 against 羅針盤分岐
+(x.com/KanColle_STAFF/status/593007287444213760). A real `next` out of 6-3 A or 4-5 A
+settles it. Played by `make headless-check SCENARIO=recon_6_3`: the ship sails from A to
+C with no compass (`leaving`).
+
 ## Why (oracle)
 
 Official captures in `~/Downloads/kcsapi/` (`start.txt`, `next.txt`, `next(2).txt`),

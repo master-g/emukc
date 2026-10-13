@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `main`
+Last updated: 2026-10-13 · branch `fix/route-choice-cells`
 
 ## Verified Facts
 
@@ -192,7 +192,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] #100 已合并（PR #105），质量门全过，客户端已演；#101、#102、#106 未分拣。
+- [2026-10-13] 分支 `fix/route-choice-cells`：#106 做完未合并，质量门全过，客户端已演；#102 未分拣。
 
 ## Next Session
 
