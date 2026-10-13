@@ -62,6 +62,18 @@ pub(super) fn assemble_final_map_catalog(
         )?;
     }
 
+    // After the cell kinds and the phases: an effect belongs on a cell of its kind.
+    if let Some(cell_effects) = &sources.cell_effects {
+        crate::map_cell_effects::apply_cell_effects(&mut catalog, cell_effects).map_err(
+            |errors| {
+                ParseError::Generic(format!(
+                    "cell effects do not fit the map topology:\n{}",
+                    errors.join("\n")
+                ))
+            },
+        )?;
+    }
+
     let overlay_items_dropped = sources
         .label_overlay
         .as_ref()
@@ -350,6 +362,7 @@ mod tests {
             route_rules: None,
             cell_events: None,
             gauge_phases: None,
+            cell_effects: None,
             public_overlay_catalog: public_overlay,
             ..sources_from_kcdata(kcdata)
         };
@@ -373,6 +386,7 @@ mod tests {
             route_rules: None,
             cell_events: None,
             gauge_phases: None,
+            cell_effects: None,
             kcdata_catalog: kcdata,
             kcdata_parse_errors: 0,
             public_overlay_map_count: 0,
@@ -541,6 +555,7 @@ mod tests {
             route_rules: None,
             cell_events: None,
             gauge_phases: None,
+            cell_effects: None,
             ..sources_from_kcdata(kcdata)
         })
         .unwrap();

@@ -1,3 +1,4 @@
+mod cell_effect;
 mod enemy_ship;
 mod route;
 mod setup;
@@ -12,14 +13,12 @@ use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 use std::collections::BTreeSet;
 
 use emukc_crypto::rng;
-use emukc_db::entity::profile::{item::slot_item, ship};
-use emukc_db::sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*};
+use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
 use emukc_model::{
     codex::{
         Codex,
-        map::{EnemyComposition, MapCellDefinition, MapStageDefinition, split_map_id},
+        map::{CellItem, EnemyComposition, MapCellDefinition, MapStageDefinition, split_map_id},
     },
-    kc2::MaterialCategory,
     profile::airbase::{AirbaseAction, COND_COST_CONCENTRATED, COND_COST_SPREAD},
 };
 use serde::Serialize;
@@ -55,7 +54,6 @@ use super::{
     },
     map_progress::resolve_record_stage_id,
     map_route::cell_has_routing_outgoing,
-    material::add_material_impl,
     quest::observe::observe,
     ship::exp::calculate_admiral_exp,
     sortie_result::{
@@ -143,21 +141,23 @@ pub struct SortieStartResponse {
     pub limit_state: i64,
     pub airsearch: Option<SortieAirSearch>,
     pub enemy_deck_preview: Option<Vec<SortieEnemyDeckPreview>>,
+    pub itemget: Option<Vec<SortieItemGet>>,
+    pub happening: Option<SortieHappening>,
 }
 
-/// Resource acquisition at a non-battle node.
+/// One thing a resource cell gave.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SortieItemGet {
-    /// Resource type: 1=fuel, 2=ammo, 3=steel, 4=bauxite
-    pub resource_type: i64,
+    pub item: CellItem,
     pub amount: i64,
 }
 
-/// Maelstrom (渦潮) resource loss.
+/// What a maelstrom (渦潮) took.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SortieHappening {
-    /// Resource type: 1=fuel, 2=ammo
-    pub resource_type: i64,
+    /// Fuel or ammunition.
+    pub item: CellItem,
+    /// The most any one ship lost.
     pub amount: i64,
     pub radar_reduced: bool,
 }
@@ -263,14 +263,27 @@ impl Ctx {
             raided: false,
             special_attacks_made: SpecialAttacksMade::default(),
         };
+        // A sortie may open onto a resource cell or a maelstrom.
+        let (itemget, happening) = cell_effect::resolve_cell_effect(
+            &tx,
+            codex,
+            profile_id,
+            definition.map_id,
+            first_cell,
+            &fleet_ships,
+        )
+        .await?;
         tx.commit().await?;
         self.sortie_store
             .as_ref()
             .with_profile_lock(profile_id, async {
                 clear_pending_sortie_runtime_state(self.sortie_store.as_ref(), profile_id);
+                // What an earlier sortie gathered and never brought to port is gone.
+                let _ = self.sortie_store.take_pending_gains(profile_id);
                 let _ = self.sortie_store.as_ref().insert_active(profile_id, active);
             })
             .await;
+        cell_effect::put_by(self.sortie_store.as_ref(), profile_id, itemget.as_deref());
 
         // rashin_flg keys on whether the departing cell is a physical branch node
         // (out-degree > 1), not the fleet-resolved candidate count. See
@@ -300,6 +313,8 @@ impl Ctx {
                 .as_ref()
                 .map(build_enemy_deck_preview)
                 .filter(|preview| !preview.is_empty()),
+            itemget,
+            happening,
         })
     }
 
@@ -539,9 +554,15 @@ impl Ctx {
 
                 // Resolve non-battle node effects (resource gain / maelstrom loss).
                 let tx = db.begin().await?;
-                let (itemget, happening) =
-                    resolve_non_battle_node_effect(&tx, codex, profile_id, next, &fleet_ships)
-                        .await?;
+                let (itemget, happening) = cell_effect::resolve_cell_effect(
+                    &tx,
+                    codex,
+                    profile_id,
+                    active.map_id,
+                    next.cell_no,
+                    &fleet_ships,
+                )
+                .await?;
                 advance_stage_on_reach(&tx, profile_id, definition, stage, next.cell_no).await?;
                 // The cargo is counted where it is landed: later damage does not shrink it.
                 if stage.transport_gauge && next.event_id == LANDING_EVENT_ID {
@@ -589,6 +610,7 @@ impl Ctx {
                     }
                 };
                 tx.commit().await?;
+                cell_effect::put_by(store, profile_id, itemget.as_deref());
 
                 let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
                 // rashin_flg keys on the departing cell's physical out-degree
@@ -1320,134 +1342,6 @@ fn select_locked_enemy_composition(
 
 fn sortie_bosscomp(stage: &MapStageDefinition) -> bool {
     stage.enemy_fleets.contains_key(&stage.boss_cell_no)
-}
-
-/// `KanColle` `event_id` values for non-battle cells:
-/// 0 = start, 1 = no event, 2 = resource obtain, 3 = maelstrom (渦潮),
-/// 4 = normal battle, 5 = boss, 6 = imaginary (気のせい), 7 = air battle.
-///
-/// Resolve resource acquisition or maelstrom loss for the given cell.
-/// Only `event_kind`=0 cells produce effects; battle cells are handled elsewhere.
-///
-/// The `c` parameter must be a transaction connection when the maelstrom branch (`event_id` 3)
-/// is reachable. Per-ship resource deductions are applied individually; a non-transaction
-/// connection risks partial state on failure.
-async fn resolve_non_battle_node_effect<C>(
-    c: &C,
-    codex: &Codex,
-    profile_id: i64,
-    cell: &MapCellDefinition,
-    fleet_ships: &[ship::Model],
-) -> Result<(Option<Vec<SortieItemGet>>, Option<SortieHappening>), GameplayError>
-where
-    C: ConnectionTrait,
-{
-    if cell.event_kind != 0 {
-        return Ok((None, None));
-    }
-
-    match cell.event_id {
-        2 => {
-            // Resource acquisition node: award a resource based on map area.
-            // Resource type cycles by color_no: 2=fuel, 3=ammo, 4=steel, 5=bauxite.
-            let resource_type = match cell.color_no {
-                2 => 1_i64, // green → fuel
-                3 => 2,     // red → ammo
-                6 => 3,     // grey → steel
-                _ => 4,     // yellow/etc → bauxite
-            };
-            // Amount is proportional to fleet size (5-15 per ship).
-            let base_amount = (fleet_ships.len() as i64) * 10;
-            let amount = (base_amount + (cell.cell_no % 5) * 3).max(5);
-            let category = MaterialCategory::from_id(resource_type);
-            let _ = add_material_impl(c, codex, profile_id, &[(category, amount)]).await?;
-            Ok((
-                Some(vec![SortieItemGet {
-                    resource_type,
-                    amount,
-                }]),
-                None,
-            ))
-        }
-        3 => {
-            // Maelstrom (渦潮): lose fuel or ammo.
-            // Current assets infer the drained resource from the node appearance.
-            // Capture-backed calibration can tighten this later if needed.
-            let resource_type = if cell.color_no == 4 {
-                2
-            } else {
-                1
-            }; // purple=ammo, else=fuel
-            let slot_ids: Vec<i64> = fleet_ships
-                .iter()
-                .flat_map(|s| [s.slot_1, s.slot_2, s.slot_3, s.slot_4, s.slot_5])
-                .filter(|&id| id > 0)
-                .collect();
-            let radar_item_ids = if slot_ids.is_empty() {
-                std::collections::BTreeSet::new()
-            } else {
-                slot_item::Entity::find()
-                    .filter(slot_item::Column::Id.is_in(slot_ids))
-                    .filter(slot_item::Column::Type3.is_in([12_i64, 13, 93]))
-                    .all(c)
-                    .await?
-                    .into_iter()
-                    .map(|item| item.id)
-                    .collect::<std::collections::BTreeSet<_>>()
-            };
-            let radar_ship_count = fleet_ships
-                .iter()
-                .filter(|ship| {
-                    [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5]
-                        .into_iter()
-                        .filter(|slot_id| *slot_id > 0)
-                        .any(|slot_id| radar_item_ids.contains(&slot_id))
-                })
-                .count();
-            let radar_reduction = match radar_ship_count {
-                0 => 0.0,
-                1 => 0.25,
-                2 => 0.40,
-                3 => 0.50,
-                4 => 0.55,
-                5 => 0.58,
-                _ => 0.60,
-            };
-            let mut total_loss = 0;
-            for ship_model in fleet_ships {
-                let stock = if resource_type == 1 {
-                    ship_model.fuel
-                } else {
-                    ship_model.ammo
-                };
-                let ship_loss = ((stock as f64) * 0.30 * (1.0 - radar_reduction)).floor() as i64;
-                if ship_loss <= 0 {
-                    continue;
-                }
-
-                let mut am = ship_model.into_active_model();
-                if resource_type == 1 {
-                    am.fuel = ActiveValue::Set((ship_model.fuel - ship_loss).max(0));
-                } else {
-                    am.ammo = ActiveValue::Set((ship_model.ammo - ship_loss).max(0));
-                }
-                am.update(c).await?;
-                total_loss += ship_loss;
-            }
-            Ok((
-                None,
-                Some(SortieHappening {
-                    resource_type,
-                    amount: total_loss,
-                    radar_reduced: radar_ship_count > 0,
-                }),
-            ))
-        }
-        _ => {
-            // event_id 0 (start), 1 (nothing), 6 (imaginary) — no effect
-            Ok((None, None))
-        }
-    }
 }
 
 fn clear_pending_sortie_runtime_state(store: &SortieStore, profile_id: i64) {

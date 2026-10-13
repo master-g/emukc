@@ -104,9 +104,15 @@ impl MapCatalog {
         let mut catalog = Self {
             maps,
             prerequisites: build_regular_prerequisites(),
+            cell_effects: CellEffects::default(),
         };
         catalog.ensure_synthetic_variants();
         catalog
+    }
+
+    /// What the cell gives or takes, if it is a resource cell or a maelstrom.
+    pub fn cell_effect(&self, map_id: i64, cell_no: i64) -> Option<&CellEffect> {
+        self.cell_effects.cells.get(&map_id)?.get(&cell_no)
     }
 
     pub fn map_definition(&self, map_id: i64) -> Option<&MapDefinition> {
@@ -876,6 +882,7 @@ mod tests {
         let mut catalog = MapCatalog {
             maps: BTreeMap::new(),
             prerequisites: HashMap::new(),
+            cell_effects: CellEffects::default(),
         };
         // Insert a map with no variants
         catalog.maps.insert(

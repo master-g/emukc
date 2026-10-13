@@ -25,8 +25,8 @@ pub(super) fn project_start(response: SortieStartResponse) -> KcApiMapStart {
         api_e_deck_info: response
             .enemy_deck_preview
             .map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
-        api_itemget: None,
-        api_happening: None,
+        api_itemget: response.itemget.map(|items| items.into_iter().map(project_itemget).collect()),
+        api_happening: response.happening.map(project_happening),
     }
 }
 
@@ -83,25 +83,38 @@ fn project_enemy_deck_preview(preview: SortieEnemyDeckPreview) -> KcApiMapEnemyD
     }
 }
 
-const RESOURCE_NAMES: [&str; 5] = ["", "燃料", "弾薬", "鋼材", "ボーキサイト"];
+const MATERIAL_NAMES: [&str; 8] =
+    ["", "燃料", "弾薬", "鋼材", "ボーキサイト", "高速建造材", "高速修復材", "開発資材"];
 
+/// A material goes by `api_usemst` 4 and its number, which the client looks up in a table
+/// of its own; a furniture box by `api_usemst` 5 and its `api_mst_useitem` id.
 fn project_itemget(item: SortieItemGet) -> KcApiMapItemGet {
-    let name = RESOURCE_NAMES.get(item.resource_type as usize).unwrap_or(&"").to_string();
+    let (usemst, id, name) = match (item.item.furniture_box(), item.item.material_id()) {
+        (Some(use_item), _) => {
+            (5, use_item, ["家具箱(小)", "家具箱(中)", "家具箱(大)"][use_item as usize - 10])
+        }
+        (None, material) => {
+            let id = material.unwrap_or_default();
+            (4, id, MATERIAL_NAMES[id as usize])
+        }
+    };
     KcApiMapItemGet {
-        api_id: item.resource_type,
+        api_id: id,
         api_getcount: item.amount,
-        api_name: name,
-        api_icon_id: item.resource_type,
-        api_usemst: 4,
+        api_name: name.to_string(),
+        api_icon_id: id,
+        api_usemst: usemst,
     }
 }
 
+/// The client reads what was lost from `api_mst_id`: 1 for fuel, 2 for ammunition.
 fn project_happening(h: SortieHappening) -> KcApiMapHappening {
+    let id = h.item.material_id().unwrap_or_default();
     KcApiMapHappening {
-        api_type: h.resource_type,
+        api_type: 1,
         api_count: h.amount,
         api_dentan: i64::from(h.radar_reduced),
-        api_mst_id: 0,
-        api_icon_id: h.resource_type,
+        api_mst_id: id,
+        api_icon_id: id,
     }
 }

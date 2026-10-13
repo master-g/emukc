@@ -32,6 +32,8 @@ pub(super) struct ResolvedMapSources {
     pub(super) cell_events: Option<crate::kcnav::KcnavCellEventsAsset>,
     /// The phases of the multi-gauge maps; `None` leaves every map in one piece.
     pub(super) gauge_phases: Option<crate::map_gauge_phases::MapGaugePhasesAsset>,
+    /// What the resource cells give and the maelstroms take; `None` leaves them without.
+    pub(super) cell_effects: Option<crate::map_cell_effects::MapCellEffectsAsset>,
     pub(super) kcdata_catalog: MapCatalog,
     pub(super) kcdata_parse_errors: usize,
     pub(super) public_overlay_map_count: usize,
@@ -57,6 +59,7 @@ pub(super) fn load_repo_source_set(
         route_rules: Some(load_repo_compass_route_rules()?),
         cell_events: Some(crate::kcnav::load_repo_kcnav_cell_events()?),
         gauge_phases: Some(crate::map_gauge_phases::load_repo_map_gauge_phases()?),
+        cell_effects: Some(crate::map_cell_effects::load_repo_map_cell_effects()?),
         kcdata_catalog,
         kcdata_parse_errors,
         public_overlay_map_count,
