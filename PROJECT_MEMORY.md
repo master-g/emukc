@@ -193,8 +193,8 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 战斗消耗分档、夜战对陆、切入未命中擦伤（计划 2026-10-13-003），分支
-  `fix/battle-supply-and-night-hits`，未合并。质量门通过，战斗基线重冻。
+- [2026-10-13] 战斗消耗分档、夜战对陆、切入未命中擦伤（计划 2026-10-13-003），已合并
+  （PR #90）。质量门通过，战斗基线重冻。
 
 ## Next Session
 
