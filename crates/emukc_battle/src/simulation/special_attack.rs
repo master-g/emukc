@@ -419,27 +419,32 @@ fn check_qe_attack(
 // Trigger rate
 // ---------------------------------------------------------------------------
 
-/// wikiwiki's estimate for Nelson Touch, which is a percentage as it stands.
-fn nelson_touch_rate(flagship: &BattleRuntimeShip, fleet: &[BattleRuntimeShip]) -> f64 {
+/// The formula @`Divinity_123` and fourinone fitted to `TsunDB`'s samples of Nelson Touch
+/// (2024-08), a percentage as it stands: the flagship's level and luck, and the levels of the
+/// two ships at `others`. The Colorado class's samples fit it too, over her second and third.
+fn nelson_touch_rate(fleet: &[BattleRuntimeShip], others: [usize; 2]) -> f64 {
+    let flagship = &fleet[0];
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
     let flag_luck = flagship.ship.api_lucky[0].max(0) as f64;
-    let third_lv = fleet.get(2).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
-    let fifth_lv = fleet.get(4).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0);
-    let total =
-        1.1 * flag_lv.sqrt() + third_lv.sqrt() + fifth_lv.sqrt() + 1.4 * flag_luck.sqrt() + 25.0;
+    let [third_lv, fifth_lv] =
+        others.map(|at| fleet.get(at).map(|s| s.ship.api_lv.max(1) as f64).unwrap_or(0.0));
+    let total = (1.1 * flag_lv.sqrt() + 1.4 * flag_luck.sqrt() + third_lv.sqrt() + fifth_lv.sqrt())
+        .floor()
+        + 25.0;
     (total / 100.0).clamp(0.0, 1.0)
 }
 
-/// wikiwiki's estimate for the Nagato class, a percentage as it stands. The Colorado, Richelieu
-/// and Queen Elizabeth attacks have no formula of their own on record and take this one, as
-/// wikiwiki supposes of the last.
+/// The formula the same test fitted to the Nagato class's samples, where wikiwiki's (1.2 to
+/// the luck, and 30) came out two points high. The Richelieu and Queen Elizabeth attacks have
+/// no formula of their own on record and take this one, as wikiwiki supposes of the last.
 fn nagato_broadside_rate(flagship: &BattleRuntimeShip, companion: &BattleRuntimeShip) -> f64 {
     let flag_lv = flagship.ship.api_lv.max(1) as f64;
     let comp_lv = companion.ship.api_lv.max(1) as f64;
     let flag_luck = flagship.ship.api_lucky[0].max(0) as f64;
     let comp_luck = companion.ship.api_lucky[0].max(0) as f64;
-    let total =
-        30.0 + flag_lv.sqrt() + comp_lv.sqrt() + 1.2 * (flag_luck.sqrt() + comp_luck.sqrt());
+    let total = (flag_lv.sqrt() + comp_lv.sqrt() + 1.5 * (flag_luck.sqrt() + comp_luck.sqrt()))
+        .floor()
+        + 25.0;
     (total / 100.0).clamp(0.0, 1.0)
 }
 
@@ -450,15 +455,20 @@ const SG_RADAR_LATE_ID: i64 = 456;
 fn trigger_rate(attack_type: SpecialAttackType, fleet: &[BattleRuntimeShip]) -> f64 {
     let flagship = &fleet[0];
     match attack_type {
-        SpecialAttackType::NelsonTouch => nelson_touch_rate(flagship, fleet),
+        SpecialAttackType::NelsonTouch => nelson_touch_rate(fleet, [2, 4]),
         // wikiwiki: 5% more with an SG レーダー(後期型) on one of the three. It does not say
         // the radars add up, so one is counted.
-        SpecialAttackType::ColoradoBroadside
-            if fleet.iter().take(3).any(|ship| has_slotitem_id(ship, SG_RADAR_LATE_ID)) =>
-        {
-            (nagato_broadside_rate(flagship, &fleet[1]) + 0.05).min(1.0)
+        SpecialAttackType::ColoradoBroadside => {
+            let radar = fleet.iter().take(3).any(|ship| has_slotitem_id(ship, SG_RADAR_LATE_ID));
+            (nelson_touch_rate(fleet, [1, 2])
+                + if radar {
+                    0.05
+                } else {
+                    0.0
+                })
+            .min(1.0)
         }
-        // Every attack but Nelson Touch names the second ship.
+        // The attacks of two ships name the second.
         _ => nagato_broadside_rate(flagship, &fleet[1]),
     }
 }
@@ -1287,7 +1297,7 @@ mod tests {
         };
         let rates = |luck| {
             let fleet = fleet(luck);
-            [nelson_touch_rate(&fleet[0], &fleet), nagato_broadside_rate(&fleet[0], &fleet[1])]
+            [nelson_touch_rate(&fleet, [2, 4]), nagato_broadside_rate(&fleet[0], &fleet[1])]
         };
         assert_eq!(rates([10, 100]), rates([10, 10]));
         for (current, cap) in rates([10, 10]).into_iter().zip(rates([100, 100])) {
@@ -1295,24 +1305,40 @@ mod tests {
         }
     }
 
+    /// The formulas @`Divinity_123` and fourinone fitted to `TsunDB`'s samples (2024-08), worked
+    /// out by hand.
     #[test]
-    fn the_trigger_rates_are_the_percentages_the_wiki_gives() {
+    fn the_trigger_rates_are_the_fitted_formulas() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let ship = |mst_id, luck| {
-            let mut ship = sample_bb_at(&codex, mst_id, 99);
+        let ship = |mst_id, level, luck| {
+            let mut ship = sample_bb_at(&codex, mst_id, level);
             ship.ship.api_lucky = [luck, luck];
             ship
         };
-        // 長門 Lv99 with 40 luck and 陸奥 Lv99 with 16: 62.2% on the page that works it out.
-        let rate = nagato_broadside_rate(&ship(NAGATO_K2_ID, 40), &ship(MUTSU_K2_ID, 16));
-        assert!((rate - 0.622).abs() < 0.002, "{rate}");
-        // Warspite改 with 70 and Valiant改 with 40, neither modernised: wikiwiki's 67.5%.
-        let rate = nagato_broadside_rate(&ship(WARSPIRE_KAI_ID, 70), &ship(VALIANT_KAI_ID, 40));
-        assert!((rate - 0.675).abs() < 0.001, "{rate}");
-        // Nelson at Lv99 with her own luck beside Lv99 ships: about six in ten.
-        let fleet = vec![ship(NELSON_IDS[0], 24); 6];
-        let rate = nelson_touch_rate(&fleet[0], &fleet);
-        assert!((0.60..0.65).contains(&rate), "{rate}");
+        let close = |rate: f64, wanted: f64| (rate - wanted).abs() < 1e-9;
+        // 長門 Lv99 with 40 luck and 陸奥 Lv99 with 16: floor(9.95 + 9.49 + 9.95 + 6) + 25.
+        let rate = nagato_broadside_rate(&ship(NAGATO_K2_ID, 99, 40), &ship(MUTSU_K2_ID, 99, 16));
+        assert!(close(rate, 0.60), "{rate}");
+        // Warspite改 with 70 and Valiant改 with 40: floor(19.90 + 1.5 * (8.37 + 6.32)) + 25.
+        let rate =
+            nagato_broadside_rate(&ship(WARSPIRE_KAI_ID, 99, 70), &ship(VALIANT_KAI_ID, 99, 40));
+        assert!(close(rate, 0.66), "{rate}");
+        // Nelson at Lv99 with 24 luck, the third and fifth at Lv99:
+        // floor(1.1 * 9.95 + 1.4 * 4.90 + 9.95 + 9.95) + 25.
+        let fleet = vec![ship(NELSON_IDS[0], 99, 24); 6];
+        let rate = trigger_rate(SpecialAttackType::NelsonTouch, &fleet);
+        assert!(close(rate, 0.62), "{rate}");
+        // Colorado with 30 luck: Nelson's formula over her second and third ships,
+        // floor(1.1 * 9.95 + 1.4 * 5.48 + 9.95 + 9.95) + 25, whatever the second's luck.
+        let colorado = SpecialAttackType::ColoradoBroadside;
+        let mut fleet = vec![ship(COLORADO_IDS[1], 99, 30); 6];
+        assert!(close(trigger_rate(colorado, &fleet), 0.63));
+        fleet[1].ship.api_lucky = [99, 99];
+        fleet[4].ship.api_lv = 1;
+        assert!(close(trigger_rate(colorado, &fleet), 0.63));
+        // The third at Lv1: floor(1.1 * 9.95 + 1.4 * 5.48 + 9.95 + 1) + 25.
+        fleet[2].ship.api_lv = 1;
+        assert!(close(trigger_rate(colorado, &fleet), 0.54));
     }
 
     #[test]
