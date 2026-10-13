@@ -389,7 +389,8 @@ fn execute_closing_torpedo(codex: &Codex, state: &mut BattleState, rng: &mut imp
     }
 }
 
-/// Simulate a night battle. The star shells are rolled for first, then the attacks.
+/// Simulate a night battle. The star shells are rolled for first, then the night scouts,
+/// then the attacks.
 pub(crate) fn simulate_night(
     codex: &Codex,
     input: NightBattleInput,
@@ -410,6 +411,7 @@ pub(crate) fn simulate_night(
     let entry_enemy_nowhps = enemy.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
     let entry_enemy_maxhps = enemy.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let flare_pos = night::roll_star_shells(codex, rng, &friendly, &enemy);
+    let contact = night::roll_night_contact(codex, rng, &friendly, &enemy, air_state, night_start);
     let hougeki = night::simulate_night_hougeki(
         codex,
         rng,
@@ -420,7 +422,7 @@ pub(crate) fn simulate_night(
             friendly_formation_id,
             enemy_formation_id,
             engagement,
-            air_state: air_state.as_ref(),
+            contact,
             night_start,
             flare_pos,
         },
@@ -441,6 +443,7 @@ pub(crate) fn simulate_night(
         entry_enemy_nowhps,
         entry_enemy_maxhps,
         flare_pos,
+        contact.map(|contact| contact.map_or(-1, |contact| contact.plane)),
         hougeki,
     )
 }

@@ -8,7 +8,7 @@ use emukc_model::{
     kc2::{KcShipType, KcSlotItemType3},
 };
 
-use crate::accuracy::{Aim, AttackKind, HitOutcome, asw_proficiency, roll_attack};
+use crate::accuracy::{Aim, AttackKind, HitOutcome, NightContact, asw_proficiency, roll_attack};
 use crate::damage::{
     calculate_asw_damage, calculate_night_damage, calculate_scratch_damage, cut_in_hit,
 };
@@ -934,6 +934,52 @@ pub(crate) fn roll_star_shells(
     [fire(friendly), fire(enemy)]
 }
 
+/// Put the night scouts up as the night begins (`nightPhase`, `getNightEquipsScout`): each
+/// scout a fleet carries comes into contact at `floor(√Lv × √LoS) / 25`, and the one with the
+/// most accuracy of those that do is the fleet's. No fleet flies one that lost the air by day,
+/// nor, unless the battle opens at night, one that met the enemy in the air on even terms.
+/// `air_state` is the friendly side's. Returns the friendly fleet's and the enemy's.
+pub(crate) fn roll_night_contact(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    friendly: &[BattleRuntimeShip],
+    enemy: &[BattleRuntimeShip],
+    air_state: Option<AirState>,
+    night_start: bool,
+) -> [Option<NightContact>; 2] {
+    let mut fly = |fleet: &[BattleRuntimeShip], air: Option<AirState>| {
+        let grounded = match air {
+            Some(AirState::Incapability) => true,
+            Some(AirState::Parity) | None => !night_start,
+            _ => false,
+        };
+        if grounded {
+            return None;
+        }
+        let mut best: Option<(i64, i64)> = None;
+        for ship in fleet.iter().filter(|ship| ship.is_alive()) {
+            for slot_item in &ship.slot_items {
+                let Ok(mst) = codex
+                    .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&slot_item.api_slotitem_id)
+                else {
+                    continue;
+                };
+                // The night scouts have an icon of their own.
+                if mst.api_type[3] != 50 || best.is_some_and(|(_, most)| mst.api_houm <= most) {
+                    continue;
+                }
+                let level = ship.ship.api_lv.max(0) as f64;
+                let chance = (level.sqrt() * (mst.api_saku.max(0) as f64).sqrt()).floor() / 25.0;
+                if rng.random_f64_range(0.0, 1.0) < chance {
+                    best = Some((mst.api_id, mst.api_houm));
+                }
+            }
+        }
+        best.map(|(plane, accuracy)| NightContact::of(plane, accuracy))
+    };
+    [fly(friendly, air_state), fly(enemy, air_state.map(AirState::reversed))]
+}
+
 // ---------------------------------------------------------------------------
 // 僚艦夜戦突撃 (the Kongou class's night assault, `api_sp_list` 104)
 // ---------------------------------------------------------------------------
@@ -1150,14 +1196,15 @@ fn special_attack_row(
             None => false,
         };
         let aim = Aim::new(AttackKind::Night, friendly_formation, enemy_formation)
-            .with_modifier(hit.accuracy);
+            .with_modifier(hit.accuracy)
+            .under_contact(params.contact[0]);
         let outcome = roll_attack(codex, rng, ship, &enemy[target_idx], aim);
         let raw = calculate_night_damage(
             codex,
             rng,
             ship,
             &enemy[target_idx],
-            params.air_state,
+            params.contact[0],
             Some(hit.multiplier),
             None,
             outcome,
@@ -1217,8 +1264,6 @@ pub(crate) fn simulate_night_hougeki(
         api_damage: Vec::new(),
     };
     let (friendly_form, enemy_form) = (params.friendly_formation_id, params.enemy_formation_id);
-    // The air state is the friendly side's; the enemy's night recon flies under its own.
-    let enemy_air = params.air_state.map(|air| air.reversed());
     // `nightPhase`: a fleet's searchlight is lit for the whole night if a ship afloat has one.
     let lit = |fleet: &[BattleRuntimeShip]| {
         fleet.iter().filter(|ship| ship.is_alive()).any(|ship| {
@@ -1257,7 +1302,7 @@ pub(crate) fn simulate_night_hougeki(
                     idx,
                     enemy,
                     forms,
-                    params.air_state,
+                    params.contact[0],
                     params,
                     (false, friendly_lights, enemy_lights),
                     &mut hougeki,
@@ -1276,7 +1321,7 @@ pub(crate) fn simulate_night_hougeki(
                 idx,
                 friendly,
                 forms,
-                enemy_air.as_ref(),
+                params.contact[1],
                 params,
                 (true, enemy_lights, friendly_lights),
                 &mut hougeki,
@@ -1299,7 +1344,7 @@ fn night_turn(
     idx: usize,
     defenders: &mut [BattleRuntimeShip],
     (attacker_formation, defender_formation): (i64, i64),
-    air_state: Option<&AirState>,
+    contact: Option<NightContact>,
     params: &NightBattleParams,
     (attacker_is_enemy, own, theirs): (bool, NightLights, NightLights),
     hougeki: &mut BattleNightHougeki,
@@ -1357,6 +1402,7 @@ fn night_turn(
             Aim::new(AttackKind::Night, attacker_formation, defender_formation)
                 .with_modifier(attack_type.accuracy_modifier())
                 .as_night_air_attack(air_power.is_some())
+                .under_contact(contact)
         };
         let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
         let raw = if is_submarine && params.night_start {
@@ -1383,7 +1429,7 @@ fn night_turn(
                 rng,
                 ship,
                 &defenders[target_idx],
-                air_state,
+                contact,
                 if multiplier != 1.0 {
                     Some(multiplier)
                 } else {
@@ -1583,7 +1629,7 @@ mod tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -1638,7 +1684,7 @@ mod tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -1687,7 +1733,7 @@ mod tests {
                         friendly_formation_id: 5,
                         enemy_formation_id: 1,
                         engagement: EngagementType::SameCourse,
-                        air_state: None,
+                        contact: [None, None],
                         night_start,
                         flare_pos: [-1, -1],
                     },
@@ -1798,7 +1844,7 @@ mod tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -1848,7 +1894,7 @@ mod tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -2915,7 +2961,7 @@ mod tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -3051,7 +3097,7 @@ mod tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -3107,7 +3153,7 @@ mod tests {
             friendly_formation_id: defender_formation_id,
             enemy_formation_id: defender_formation_id,
             engagement: EngagementType::SameCourse,
-            air_state: None,
+            contact: [None, None],
             night_start: false,
             flare_pos: [-1, -1],
         };
@@ -3351,7 +3397,7 @@ mod display_narrowing_tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: crate::types::EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -3903,7 +3949,7 @@ mod attack_type_tests {
                         friendly_formation_id: 1,
                         enemy_formation_id: 1,
                         engagement: crate::types::EngagementType::SameCourse,
-                        air_state: None,
+                        contact: [None, None],
                         night_start: false,
                         flare_pos: [-1, -1],
                     },
@@ -3946,7 +3992,7 @@ mod attack_type_tests {
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: crate::types::EngagementType::SameCourse,
-                air_state: None,
+                contact: [None, None],
                 night_start: false,
                 flare_pos: [-1, -1],
             },
@@ -4148,6 +4194,44 @@ mod attack_type_tests {
         assert!(!eligible(&sunk, 1));
     }
 
+    /// `getNightEquipsScout` and `NBattack`: who may fly a night scout, and what one in
+    /// contact gives.
+    #[test]
+    fn a_night_scout_comes_into_contact_by_the_air_and_gives_by_its_accuracy() {
+        use crate::types::AirState::{Denial, Incapability, Parity, Superiority};
+        let codex = codex();
+        // 九八式水上偵察機(夜偵): 3 line of sight and 1 accuracy; at Lv99, floor(√99 × √3) / 25.
+        let scout = 102;
+        let fleet = vec![battleship(&codex, KONGOU, 99, 18, &[scout])];
+        let none: Vec<BattleRuntimeShip> = Vec::new();
+        let flown = |air, night_start| {
+            (0..400)
+                .filter_map(|seed| {
+                    let mut rng = crate::random::SeededRng::new(seed);
+                    roll_night_contact(&codex, &mut rng, &fleet, &none, air, night_start)[0]
+                })
+                .collect::<Vec<_>>()
+        };
+        let by_superiority = flown(Some(Superiority), false);
+        // 17 in 25: 68%.
+        assert!((240..300).contains(&by_superiority.len()), "{}", by_superiority.len());
+        assert!(by_superiority.iter().all(|contact| *contact == NightContact::of(scout, 1)));
+        assert!(!flown(Some(Denial), false).is_empty());
+        assert!(flown(Some(Incapability), false).is_empty());
+        assert!(flown(Some(Parity), false).is_empty());
+        assert!(flown(None, false).is_empty());
+        // A battle that opens at night has had no air battle to lose.
+        assert!(!flown(None, true).is_empty());
+
+        let gives = |accuracy| {
+            let contact = NightContact::of(scout, accuracy);
+            (contact.power, contact.accuracy, contact.critical)
+        };
+        assert_eq!(gives(1), (5.0, 1.1, 1.57));
+        assert_eq!(gives(2), (7.0, 1.15, 1.64));
+        assert_eq!(gives(3), (9.0, 1.2, 1.7));
+    }
+
     #[test]
     fn the_kongou_night_assault_multiplier_follows_the_place_the_engagement_and_the_guns() {
         use crate::types::EngagementType::{HeadOn, SameCourse, TAdvantage, TDisadvantage};
@@ -4224,7 +4308,7 @@ mod attack_type_tests {
                     friendly_formation_id: 1,
                     enemy_formation_id: 1,
                     engagement: crate::types::EngagementType::SameCourse,
-                    air_state: None,
+                    contact: [None, None],
                     night_start: false,
                     flare_pos: [-1, -1],
                 },
@@ -4272,7 +4356,7 @@ mod attack_type_tests {
                         friendly_formation_id: formation,
                         enemy_formation_id: 1,
                         engagement: crate::types::EngagementType::SameCourse,
-                        air_state: None,
+                        contact: [None, None],
                         night_start: true,
                         flare_pos: [-1, -1],
                     },
@@ -4314,7 +4398,7 @@ mod attack_type_tests {
                     friendly_formation_id: formation,
                     enemy_formation_id: 1,
                     engagement: crate::types::EngagementType::SameCourse,
-                    air_state: None,
+                    contact: [None, None],
                     night_start: false,
                     flare_pos: [-1, -1],
                 },

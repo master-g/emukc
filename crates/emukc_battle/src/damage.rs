@@ -12,7 +12,9 @@ use emukc_model::{
     },
 };
 
-use crate::accuracy::{HitOutcome, PlaneProficiency, plane_proficiency, shelling_proficiency};
+use crate::accuracy::{
+    HitOutcome, NightContact, PlaneProficiency, plane_proficiency, shelling_proficiency,
+};
 use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
@@ -21,7 +23,7 @@ use crate::random::BattleRng;
 use crate::targeting::{
     has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type, target_class,
 };
-use crate::types::{AirState, BattlePhase, BattleRuntimeShip, EngagementType, TargetClass};
+use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType, TargetClass};
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -267,13 +269,13 @@ pub(crate) fn calculate_night_damage(
     rng: &mut impl BattleRng,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
-    air_state: Option<&AirState>,
+    contact: Option<NightContact>,
     ci_multiplier: Option<f64>,
     air_power: Option<f64>,
     outcome: HitOutcome,
 ) -> i64 {
     let own_power = air_power.unwrap_or_else(|| night_gun_power(codex, attacker, defender));
-    let basic_power = own_power + night_recon_bonus(codex, attacker, air_state);
+    let basic_power = own_power + contact.map_or(0.0, |contact| contact.power);
     let pre_cap = match ci_multiplier {
         Some(m) => basic_power * m,
         None => basic_power,
@@ -433,29 +435,6 @@ pub(crate) fn light_gun_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         })
         .count() as f64;
     single.sqrt() + 2.0 * twin.sqrt()
-}
-
-/// Night recon plane bonus based on air state.
-pub(crate) fn night_recon_bonus(
-    codex: &Codex,
-    ship: &BattleRuntimeShip,
-    air_state: Option<&AirState>,
-) -> f64 {
-    let has_night_recon = ship.slot_items.iter().any(|slot_item| {
-        codex
-            .find::<ApiMstSlotitem>(&slot_item.api_slotitem_id)
-            .ok()
-            .map(|mst| mst.api_type[3] == 50)
-            .unwrap_or(false)
-    });
-    if !has_night_recon {
-        return 0.0;
-    }
-    match air_state {
-        Some(AirState::Supremacy) => 9.0,
-        Some(AirState::Superiority) => 7.0,
-        _ => 5.0,
-    }
 }
 
 // ---------------------------------------------------------------------------

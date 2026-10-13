@@ -226,6 +226,36 @@ pub(crate) fn asw_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> PlaneP
     }
 }
 
+/// A night scout in contact with the other fleet (夜間触接), and what it gives every attack
+/// of its own fleet that night. The source's `NBattack`, by the scout's own accuracy.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct NightContact {
+    /// The scout, for `api_touch_plane`.
+    pub plane: i64,
+    /// Added to the attack power before the cap.
+    pub power: f64,
+    /// Multiplies the base accuracy.
+    pub accuracy: f64,
+    /// Stands in for the night's critical factor of 1.5.
+    pub critical: f64,
+}
+
+impl NightContact {
+    pub(crate) fn of(plane: i64, plane_accuracy: i64) -> Self {
+        let (power, accuracy, critical) = match plane_accuracy {
+            ..=1 => (5.0, 1.1, 1.57),
+            2 => (7.0, 1.15, 1.64),
+            _ => (9.0, 1.2, 1.7),
+        };
+        Self {
+            plane,
+            power,
+            accuracy,
+            critical,
+        }
+    }
+}
+
 /// The kind of attack, which picks the base accuracy, the formation columns
 /// and the critical factor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -242,8 +272,7 @@ impl AttackKind {
             Self::Shelling => 90.0,
             Self::Torpedo => 85.0,
             Self::Asw => 80.0,
-            // ponytail: star shells (+5) and night contact (x1.1 to x1.2) are
-            // not counted; add them when the night battle rolls them.
+            // ponytail: a star shell's +5 is not counted; add it where `NightLights` is read.
             Self::Night => 69.0,
         }
     }
@@ -447,6 +476,8 @@ pub(crate) struct Aim {
     pub opening: bool,
     /// Whether this is a carrier's night air attack, which her aircraft's proficiency does.
     pub night_air_attack: bool,
+    /// The attacker's fleet's night scout in contact, if one is.
+    pub contact: Option<NightContact>,
 }
 
 impl Aim {
@@ -460,7 +491,13 @@ impl Aim {
             carrier_cut_in: false,
             opening: false,
             night_air_attack: false,
+            contact: None,
         }
+    }
+
+    pub(crate) fn under_contact(mut self, contact: Option<NightContact>) -> Self {
+        self.contact = contact;
+        self
     }
 
     pub(crate) fn as_night_air_attack(mut self, night_air_attack: bool) -> Self {
@@ -511,7 +548,7 @@ pub(crate) fn roll_attack(
 
     let level = attacker.ship.api_lv.max(0) as f64;
     let luck = attacker.ship.api_lucky[0].max(0) as f64;
-    let hit = (aim.kind.base()
+    let hit = (aim.kind.base() * aim.contact.map_or(1.0, |contact| contact.accuracy)
         + 2.0 * level.sqrt()
         + 1.5 * luck.sqrt()
         + equipment_accuracy(codex, attacker, aim.kind)
@@ -535,7 +572,8 @@ pub(crate) fn roll_attack(
         AttackKind::Asw if !aim.opening => asw_proficiency(codex, attacker),
         _ => PlaneProficiency::NONE,
     };
-    roll(rng, chance, aim.kind.critical_factor(), planes)
+    let critical = aim.contact.map_or(aim.kind.critical_factor(), |contact| contact.critical);
+    roll(rng, chance, critical, planes)
 }
 
 /// Roll an aircraft's strike on a ship. Aircraft hit at a fixed rate that no
