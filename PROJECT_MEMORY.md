@@ -193,12 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 金剛型夜战突击两处出入核对完，只改文档（计划 2026-10-13-001「后续核对」），
-  已合并（PR #86；威力 ×1.06 是 PR #84）。
+- [2026-10-13] 特殊砲撃发动率改用 TsunDB 拟合式（计划 2026-10-13-002），分支 `fix/special-attack-rates`，未合并。
+  质量门通过，无头检查没重跑。
 
 ## Next Session
 
-- [2026-10-13] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010 与 2026-10-13-001。
+- [2026-10-13] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001、002。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。

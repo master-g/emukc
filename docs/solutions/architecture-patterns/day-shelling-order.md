@@ -99,8 +99,12 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
   nothing) and whether the other attacks also need ammunition left (KC3Kai asks it of every
   one of them, on the strength of the same one measurement). The cost is a factor on
   the flat fifth a battle; the steps by day, night and opening night, their rounding, and
-  the cost lost on going into the night against a combined fleet are not modelled. The
-  rates of 103, 105 and 106 are the Nagato class's (plan `2026-10-12-006`).
+  the cost lost on going into the night against a combined fleet are not modelled. 105
+  and 106 take the Nagato class's rate, having none of their own on record.
+- **How often** (`trigger_rate`, plan `2026-10-13-002`): the formulas fitted to TsunDB's
+  samples in 2024-08. 100: `floor(1.1√Lv1 + 1.4√luck1 + √Lv3 + √Lv5) + 25` percent. 103: the
+  same over her second and third ships, and 5 more with an SG レーダー(後期型) on one of the
+  three. 101, 102, 105, 106: `floor(√Lv1 + √Lv2 + 1.5(√luck1 + √luck2)) + 25`.
 - Played in the client (`nagato_broadside`): 101 by day and at night.
 
 ## Not modelled
